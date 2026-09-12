@@ -1,6 +1,8 @@
 .caissa-board {
-    --caissa-board-light: #e4d7bd;
-    --caissa-board-dark: #8b6f55;
+    /* The persistent surface inherits the canonical CAISSA Classic tokens.
+       Renderer code stays palette-agnostic so later themes can override them. */
+    --caissa-board-light: var(--light-square, #f0d9b5);
+    --caissa-board-dark: var(--dark-square, #b58863);
     --caissa-board-selected: #f6c945;
     --caissa-board-last-move: rgba(246, 201, 69, 0.38);
     --caissa-board-legal: rgba(35, 129, 92, 0.72);

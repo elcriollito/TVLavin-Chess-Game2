@@ -194,7 +194,7 @@ test('review jumps and Live restore are visual-only setPosition operations', asy
 });
 
 test('client integration is presentation-only and Play imports none of the pilot', () => {
-    assert.match(indexSource, /fics-board-view\.js\?v=1\.0\.0/);
+    assert.match(indexSource, /fics-board-view\.js\?v=1\.0\.1/);
     assert.match(clientSource, /deriveStyle12BoardMove/);
     assert.match(clientSource, /presentCanonicalBoardState/);
     assert.match(clientSource, /this\.boardView\.presentCanonicalState/);

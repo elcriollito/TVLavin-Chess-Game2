@@ -4,7 +4,7 @@
     const FLAG = 'CAISSA_FICS_PERSISTENT_BOARD_PILOT';
     const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     const ADAPTER_URL = '/js/board/caissa-board-adapter.js';
-    const STYLESHEET_URL = '/css/caissa-board.css';
+    const STYLESHEET_URL = '/css/caissa-board.css?v=1.1.0';
 
     function featureEnabled(host = root) {
         return host?.[FLAG] === true;
