@@ -7695,6 +7695,13 @@ button:focus,
     transition: all 0.2s;
 }
 
+/* Analyze config exposes only its assigned actions even when responsive
+ * gameplay rules switch visible siblings to flex. */
+body[data-caissa-section="analyze"] .mobile-quick-btn[hidden],
+body.caissa-play-v2-analyze-open .mobile-quick-btn[hidden] {
+    display: none !important;
+}
+
 .mobile-quick-btn i {
     font-size: 16px;
 }

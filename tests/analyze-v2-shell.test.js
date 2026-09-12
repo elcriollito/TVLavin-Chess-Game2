@@ -39,6 +39,22 @@ test('A1 workspace has the approved tabs and compact bottom navigation', () => {
     }
 });
 
+test('mobile handoff layout reparents the one navigation owner into semantic reading order', () => {
+    assert.match(shell, /MOBILE_LAYOUT_QUERY = '\(max-width: 560px\)'/);
+    assert.match(shell, /syncResponsiveLayout\(\)[\s\S]*?target\.insertBefore\(this\.navigation, anchor\)/);
+    assert.match(shell, /headerAnchor = compact \? this\.tabsHost\.nextElementSibling : this\.workspace\.firstElementChild/);
+    assert.match(shell, /compact \? this\.workspace : this\.footer/);
+    assert.match(shell, /analyzeMobileLayout = compact \? 'compact' : 'desktop'/);
+    assert.match(css, /caissa-analyze-v2__stage\s*\{\s*order:\s*0/);
+    assert.match(css, /data-analyze-mobile-layout='compact'[\s\S]*?\.analyze-board-controls/);
+});
+
+test('mobile Analyze hides secondary floating actions and hidden quick actions stay hidden', () => {
+    const globalCss = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+    assert.match(css, /body:is\(\[data-caissa-section='analyze'\], \.caissa-play-v2-analyze-open\)[\s\S]*?\.caissa-mentor-launcher[\s\S]*?\.caissa-manual-qa-launcher[\s\S]*?display:\s*none !important/);
+    assert.match(globalCss, /body\[data-caissa-section="analyze"\] \.mobile-quick-btn\[hidden\],[\s\S]*?body\.caissa-play-v2-analyze-open \.mobile-quick-btn\[hidden\][\s\S]*?display:\s*none !important/);
+});
+
 test('A2 mounts the dedicated Setup Position controls in the existing workspace', () => {
     for (const id of [
         'analyzeSetupBack', 'analyzeSetupTurn', 'analyzeSetupFlip', 'analyzeSetupReset',
@@ -154,6 +170,9 @@ test('A1.3 streams four attributed lines through the existing Analyze engine own
 test('A1 assets are registered once after the legacy base styles', () => {
     assert.equal((html.match(/analyze-v2-shell\.css/g) || []).length, 1);
     assert.equal((html.match(/analyze-v2-shell\.js/g) || []).length, 1);
+    assert.match(html, /styles\.css\?v=2\.0\.17/);
+    assert.match(html, /analyze-v2-shell\.css\?v=1\.1\.5/);
+    assert.match(html, /analyze-v2-shell\.js\?v=1\.0\.1/);
     assert.ok(html.indexOf('caissa-mobile-foundation.css') < html.indexOf('analyze-v2-shell.css'));
 });
 
