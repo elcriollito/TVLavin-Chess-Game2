@@ -72,7 +72,7 @@ test('Play v2 reachable graph contains no FICS adapter, provider, route, or Play
 
 test('generator explicitly strips known legacy FICS resources while preserving the strict boundary guard', async () => {
     const known = [
-        'fics-observability', 'fics-players-protocol', 'fics-presentation-contract', 'fics-analyze-handoff', 'fics-layout-shell', 'fics-match-research',
+        'fics-board-view', 'fics-observability', 'fics-players-protocol', 'fics-presentation-contract', 'fics-analyze-handoff', 'fics-layout-shell', 'fics-match-research',
         'fics-research-actions', 'fics-computer-challenge'
     ];
     const [source, play, publicPlay, builder] = await Promise.all([
@@ -84,6 +84,7 @@ test('generator explicitly strips known legacy FICS resources while preserving t
         assert.doesNotMatch(publicPlay, new RegExp(`js/${name}\\.js`), `${name} excluded from public Play`);
     }
     assert.match(builder, /fics-\(\?:observability\|players-protocol\|presentation-contract\|analyze-handoff\|layout-shell\|match-research\|research-actions\|computer-challenge\)/);
+    assert.match(builder, /fics-board-view/);
     assert.match(builder, /fics-\(\?:client\|redesign-shell\)/);
     assert.match(builder, /PROHIBITED_PLAY_V2_RESOURCE/);
 });

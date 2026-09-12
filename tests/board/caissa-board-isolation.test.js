@@ -23,7 +23,8 @@ test('foundation adds no Chessground or cm-chessboard dependency', async () => {
     assert.equal(packages['cm-chessboard'], undefined);
 });
 
-test('Play, FICS, Analyze and PGN product sources do not import the foundation', async () => {
+test('Play, Analyze, PGN and non-pilot FICS sources do not import the foundation', async () => {
+    const approvedFicsPilot = resolve(root, 'js/fics-board-view.js');
     const candidates = [
         resolve(root, 'index.html'),
         resolve(root, 'app.js'),
@@ -32,10 +33,18 @@ test('Play, FICS, Analyze and PGN product sources do not import the foundation',
         ...await collectFiles(resolve(root, 'js'), path => /[\\/](?:fics|analyze)[^\\/]*\.js$/i.test(path))
     ];
     for (const path of candidates) {
+        if (path === approvedFicsPilot) continue;
         const source = await readFile(path, 'utf8');
         assert.doesNotMatch(source, /js\/board\/caissa-|board\/caissa-board-adapter/i, path);
         assert.doesNotMatch(source, /tests\/fixtures\/caissa-board/i, path);
     }
+});
+
+test('FICS Observe pilot is the only approved product import seam for the adapter', async () => {
+    const source = await readFile(resolve(root, 'js/fics-board-view.js'), 'utf8');
+    assert.match(source, /const ADAPTER_URL = '\/js\/board\/caissa-board-adapter\.js'/);
+    assert.match(source, /import\(ADAPTER_URL\)/);
+    assert.doesNotMatch(source, /js\/board\/(?:caissa-board-state|caissa-persistent-renderer)\.js/);
 });
 
 test('renderer runtime imports stay inside the CAISSA board presentation boundary', async () => {

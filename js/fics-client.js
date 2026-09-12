@@ -50,7 +50,8 @@ const CaissaFICSClient = {
 
     // Game state
     chess: null, // chess.js instance
-    board: null, // chessboard.js instance
+    board: null, // active board compatibility surface (legacy by default)
+    boardView: null, // optional BOARD-006 renderer-selection owner
     gameActive: false,
     myColor: null,
     gameNumber: null,
@@ -681,7 +682,9 @@ const CaissaFICSClient = {
         this.liveGame = this.createEmptyLiveGameState('disconnected');
         this.resetGameRecord();
         if (this.chess) this.chess.reset();
-        if (this.board) {
+        if (this.boardView) {
+            this.presentCanonicalBoardState({ fen: 'start' }, null, true);
+        } else if (this.board) {
             this.setBoardOrientation('white');
             this.setBoardPosition('start', false);
         }
@@ -1220,7 +1223,9 @@ const CaissaFICSClient = {
         this.clearBoardSelection();
 
         this.initBoard(state.fen);
-        if (this.board) {
+        if (this.boardView) {
+            this.presentCanonicalBoardState(state, isNewGame ? null : previousFen, isNewGame);
+        } else if (this.board) {
             this.setBoardOrientation(userColor || 'white');
             this.setBoardPosition(state.fen, false);
         }
@@ -1707,7 +1712,9 @@ const CaissaFICSClient = {
         this.liveGame = this.createEmptyLiveGameState('idle');
         this.resetGameRecord();
         if (this.chess) this.chess.reset();
-        if (this.board) {
+        if (this.boardView) {
+            this.presentCanonicalBoardState({ fen: 'start' }, null, true);
+        } else if (this.board) {
             this.setBoardOrientation('white');
             this.setBoardPosition('start', false);
         }
@@ -2498,6 +2505,96 @@ const CaissaFICSClient = {
         return String(position || '').trim().split(/\s+/)[0] || null;
     },
 
+    normalizeBoardTransitionKey(position) {
+        if (position === 'start') position = FICS_STANDARD_START_FEN;
+        const fields = String(position || '').trim().split(/\s+/);
+        // En-passant serialization differs across the legacy browser chess.js and
+        // current fixture library. Presentation trust requires exact placement,
+        // side-to-move and castling rights; the adapter separately checks the
+        // semantic move against the canonical target placement.
+        return fields.length >= 3 ? fields.slice(0, 3).join(' ') : null;
+    },
+
+    deriveStyle12BoardMove(state, previousFen) {
+        if (!previousFen || !state?.fen || previousFen === state.fen || typeof Chess !== 'function') return null;
+        let validator;
+        try {
+            validator = new Chess(previousFen);
+        } catch {
+            return null;
+        }
+
+        let move = null;
+        const san = String(state.lastMove || '').trim();
+        if (san && !/^(?:none|---|\*)$/i.test(san)) {
+            try { move = validator.move(san); } catch {}
+        }
+        if (!move) {
+            const verbose = state.lastMoveVerbose;
+            const direct = verbose && typeof verbose === 'object'
+                && /^[a-h][1-8]$/.test(verbose.from || '')
+                && /^[a-h][1-8]$/.test(verbose.to || '')
+                ? verbose
+                : null;
+            const parsed = direct || (() => {
+                const match = String(verbose || '').match(/[KQRBNP]?\/([a-h][1-8])-([a-h][1-8])(?:=([QRBN]))?/i);
+                return match ? { from: match[1], to: match[2], promotion: match[3]?.toLowerCase() } : null;
+            })();
+            if (!parsed) return null;
+            try {
+                move = validator.move({ from: parsed.from, to: parsed.to, promotion: parsed.promotion || 'q' });
+            } catch {
+                return null;
+            }
+        }
+
+        if (!move || this.normalizeBoardTransitionKey(validator.fen()) !== this.normalizeBoardTransitionKey(state.fen)) {
+            return null;
+        }
+        const flags = String(move.flags || '');
+        return Object.freeze({
+            from: move.from,
+            to: move.to,
+            promotion: move.promotion ? String(move.promotion).toUpperCase() : null,
+            capture: Boolean(move.captured) || flags.includes('c') || flags.includes('e'),
+            enPassant: flags.includes('e'),
+            castle: flags.includes('k') || flags.includes('q')
+        });
+    },
+
+    presentCanonicalBoardState(state, previousFen = null, forceSnapshot = false) {
+        if (!this.boardView || !state?.fen) return false;
+        const orientation = this.liveGame.userColor || 'white';
+        const semanticMove = forceSnapshot ? null : this.deriveStyle12BoardMove(state, previousFen);
+        const result = this.boardView.presentCanonicalState({
+            state: { ...this.liveGame },
+            position: state.fen,
+            previousFen,
+            semanticMove,
+            orientation,
+            animate: semanticMove !== null,
+            reviewing: this.isReviewingHistoricalPosition()
+        });
+        this.boardPositionKey = this.normalizeBoardPositionKey(state.fen);
+        this.boardOrientation = orientation;
+        return result;
+    },
+
+    getBoardRendererSnapshot() {
+        return this.boardView?.getSnapshot?.() || Object.freeze({
+            featureFlag: 'CAISSA_FICS_PERSISTENT_BOARD_PILOT',
+            enabled: false,
+            renderer: this.board ? 'legacy' : null,
+            eligible: false,
+            readOnly: false,
+            metrics: null
+        });
+    },
+
+    waitForBoardRendererIdle() {
+        return this.boardView?.whenIdle?.() || Promise.resolve(this.getBoardRendererSnapshot());
+    },
+
     setBoardPosition(position, animate = false, force = false) {
         if (!this.board?.position || !position) return false;
         const nextKey = this.normalizeBoardPositionKey(position);
@@ -2521,6 +2618,7 @@ const CaissaFICSClient = {
     initBoard(position = this.liveGame.currentFen || 'start') {
         if (!this.elements.boardContainer) return;
         if (!this.elements.boardContainer.offsetParent && !this.board) return;
+        if (this.boardView) return;
         if (this.board) {
             if (position) this.setBoardPosition(position, false);
             return;
@@ -2543,7 +2641,30 @@ const CaissaFICSClient = {
             config.orientation = 'black';
         }
 
-        if (typeof Chessboard !== 'undefined') {
+        const pilot = window.CaissaFICSBoardView;
+        if (pilot?.featureEnabled?.() && typeof Chessboard !== 'undefined') {
+            const createLegacy = (initialPosition, orientation) => Chessboard(this.elements.boardContainer, {
+                draggable: true,
+                position: initialPosition,
+                orientation,
+                onDragStart: (source, piece) => this.onDragStart(source, piece),
+                onDrop: (source, target) => this.onDrop(source, target),
+                onSnapEnd: () => this.onSnapEnd()
+            });
+            this.boardView = pilot.createFicsBoardView({
+                container: this.elements.boardContainer,
+                position,
+                orientation: config.orientation || 'white',
+                createLegacy,
+                onRendererChange: () => this.refreshBoardInteractionDom(),
+                onError: error => console.error('[FICS Client] Persistent Observe board unavailable:', error)
+            });
+            this.board = this.boardView.board;
+            this.boardPositionKey = this.normalizeBoardPositionKey(position);
+            this.boardOrientation = config.orientation || 'white';
+            this.refreshBoardInteractionDom();
+            console.log('[FICS Client] BOARD-006 renderer selection initialized');
+        } else if (typeof Chessboard !== 'undefined') {
             this.board = Chessboard(this.elements.boardContainer, config);
             this.boardPositionKey = this.normalizeBoardPositionKey(position);
             this.boardOrientation = config.orientation || 'white';
