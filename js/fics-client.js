@@ -57,6 +57,12 @@ const CaissaFICSClient = {
     opponent: null,
     pendingMove: null,
     pendingPromotionMove: null,
+    selectedBoardSquare: null,
+    boardPointerGesture: null,
+    boardInputBound: false,
+    boardDomObserver: null,
+    boardPositionKey: null,
+    boardOrientation: null,
     liveGame: {
         gameNumber: null,
         whiteName: null,
@@ -306,6 +312,8 @@ const CaissaFICSClient = {
                 this.cancelPromotionSelection();
             }
         });
+
+        this.bindBoardInputEvents();
 
         // Console
         this.elements.consoleToggle?.addEventListener('click', () => this.toggleConsole());
@@ -669,12 +677,13 @@ const CaissaFICSClient = {
         this.pendingGameActions = { resign: false, draw: false };
         this.observationExitInFlight = false;
         this.cancelPromotionSelection(false);
+        this.clearBoardSelection();
         this.liveGame = this.createEmptyLiveGameState('disconnected');
         this.resetGameRecord();
         if (this.chess) this.chess.reset();
         if (this.board) {
-            this.board.orientation('white');
-            this.board.position('start', false);
+            this.setBoardOrientation('white');
+            this.setBoardPosition('start', false);
         }
         this.updatePlayerBars();
         this.updateGameStatus('No active game', '');
@@ -1066,7 +1075,7 @@ const CaissaFICSClient = {
         if (this.pendingMove && /illegal move|not your move|move is not legal/i.test(line)) {
             this.clearPendingMove(false);
             this.cancelPromotionSelection(false);
-            if (this.board && this.liveGame.currentFen) this.board.position(this.liveGame.currentFen, false);
+            if (this.board && this.liveGame.currentFen) this.setBoardPosition(this.liveGame.currentFen, false, true);
             this.updateGameStatus('Move rejected by FICS', 'error');
         }
 
@@ -1124,6 +1133,7 @@ const CaissaFICSClient = {
         this.pendingMove = null;
         this.pendingGameActions = { resign: false, draw: false };
         this.cancelPromotionSelection(false);
+        this.clearBoardSelection();
         this.pgnResult = resultModel.result;
         this.updateGameStatus(resultModel.summary, 'ended');
         this.updatePlayerBars();
@@ -1207,11 +1217,12 @@ const CaissaFICSClient = {
         }
         this.cancelPromotionSelection(false);
         if (previousPending) this.clearPendingMove(true);
+        this.clearBoardSelection();
 
         this.initBoard(state.fen);
         if (this.board) {
-            this.board.orientation(userColor || 'white');
-            this.board.position(state.fen, false);
+            this.setBoardOrientation(userColor || 'white');
+            this.setBoardPosition(state.fen, false);
         }
 
         this.recordStyle12Move(state, isNewGame ? null : previousFen);
@@ -1692,12 +1703,13 @@ const CaissaFICSClient = {
         this.pendingObservation = null;
         this.observationExitInFlight = false;
         this.cancelPromotionSelection(false);
+        this.clearBoardSelection();
         this.liveGame = this.createEmptyLiveGameState('idle');
         this.resetGameRecord();
         if (this.chess) this.chess.reset();
         if (this.board) {
-            this.board.orientation('white');
-            this.board.position('start', false);
+            this.setBoardOrientation('white');
+            this.setBoardPosition('start', false);
         }
         this.updatePlayerBars();
         this.updateGameStatus('No active game', '');
@@ -1944,6 +1956,7 @@ const CaissaFICSClient = {
             this.setPendingState('', '');
         }
         this.pendingMove = null;
+        this.clearBoardSelection();
     },
 
     setPendingState(kind, text) {
@@ -2318,11 +2331,198 @@ const CaissaFICSClient = {
     },
 
     // ===== BOARD MANAGEMENT =====
+    startBoardTapGesture(input, identifier, target, clientX, clientY) {
+        const square = this.getBoardSquare(target);
+        if (!square) return false;
+        this.boardPointerGesture = {
+            input,
+            identifier,
+            square,
+            clientX,
+            clientY,
+            startedAt: performance.now()
+        };
+        return true;
+    },
+
+    finishBoardTapGesture(input, identifier, target, clientX, clientY) {
+        const gesture = this.boardPointerGesture;
+        if (!gesture || gesture.input !== input || gesture.identifier !== identifier) return false;
+        this.boardPointerGesture = null;
+        const distance = Math.hypot(clientX - gesture.clientX, clientY - gesture.clientY);
+        if (distance > 12 || performance.now() - gesture.startedAt > 650) return false;
+        const pointTarget = document.elementFromPoint?.(clientX, clientY);
+        const square = this.getBoardSquare(pointTarget) || this.getBoardSquare(target) || gesture.square;
+        return square ? this.handleBoardTap(square) : false;
+    },
+
+    bindBoardInputEvents() {
+        const container = this.elements.boardContainer;
+        if (!container || this.boardInputBound) return false;
+        this.boardInputBound = true;
+
+        container.addEventListener('pointerdown', (event) => {
+            if (event.isPrimary === false || !['touch', 'pen'].includes(event.pointerType)) return;
+            this.startBoardTapGesture('pointer', event.pointerId, event.target, event.clientX, event.clientY);
+        }, { passive: true });
+
+        container.addEventListener('pointerup', (event) => {
+            this.finishBoardTapGesture('pointer', event.pointerId, event.target, event.clientX, event.clientY);
+        }, { passive: true });
+
+        container.addEventListener('pointercancel', (event) => {
+            const gesture = this.boardPointerGesture;
+            if (gesture?.input === 'pointer' && gesture.identifier === event.pointerId) this.boardPointerGesture = null;
+        }, { passive: true });
+
+        container.addEventListener('touchstart', (event) => {
+            if (event.touches?.length > 1) return;
+            const touch = event.changedTouches?.[0];
+            if (!touch) return;
+            this.startBoardTapGesture('touch', touch.identifier, event.target, touch.clientX, touch.clientY);
+        }, { passive: true });
+
+        container.addEventListener('touchend', (event) => {
+            const touch = Array.from(event.changedTouches || [])
+                .find((candidate) => candidate.identifier === this.boardPointerGesture?.identifier);
+            if (!touch) return;
+            this.finishBoardTapGesture('touch', touch.identifier, event.target, touch.clientX, touch.clientY);
+        }, { passive: true });
+
+        container.addEventListener('touchcancel', (event) => {
+            const identifiers = Array.from(event.changedTouches || []).map((touch) => touch.identifier);
+            const gesture = this.boardPointerGesture;
+            if (gesture?.input === 'touch' && identifiers.includes(gesture.identifier)) this.boardPointerGesture = null;
+        }, { passive: true });
+
+        container.addEventListener('contextmenu', (event) => {
+            if (event.target?.closest?.('#ficsBoardContainer .piece-417db')) event.preventDefault();
+        });
+        container.addEventListener('dragstart', (event) => {
+            if (event.target?.closest?.('#ficsBoardContainer .piece-417db')) event.preventDefault();
+        });
+
+        if (typeof window.MutationObserver === 'function') {
+            this.boardDomObserver = new window.MutationObserver(() => this.refreshBoardInteractionDom());
+            this.boardDomObserver.observe(container, { childList: true, subtree: true });
+        }
+        this.refreshBoardInteractionDom();
+        return true;
+    },
+
+    getBoardSquare(target) {
+        const square = target?.closest?.('#ficsBoardContainer [data-square]')?.dataset?.square;
+        return /^[a-h][1-8]$/.test(square || '') ? square : null;
+    },
+
+    refreshBoardInteractionDom() {
+        const container = this.elements.boardContainer;
+        if (!container) return;
+        container.querySelectorAll?.('.piece-417db').forEach((piece) => {
+            piece.draggable = false;
+            piece.setAttribute('draggable', 'false');
+        });
+        this.syncBoardSelection();
+    },
+
+    syncBoardSelection() {
+        const container = this.elements.boardContainer;
+        if (!container) return;
+        container.querySelectorAll?.('.fics-tap-selected').forEach((square) => square.classList.remove('fics-tap-selected'));
+        const selected = this.selectedBoardSquare;
+        const selectedElement = selected ? container.querySelector?.(`.square-${selected}`) : null;
+        selectedElement?.classList.add('fics-tap-selected');
+        if (selectedElement) {
+            container.dataset.selectedSquare = selected;
+            container.setAttribute('role', 'group');
+            container.setAttribute('aria-label', `FICS chessboard. ${selected} selected; choose a destination.`);
+        } else {
+            delete container.dataset.selectedSquare;
+            container.setAttribute('role', 'group');
+            container.setAttribute('aria-label', 'FICS chessboard');
+        }
+    },
+
+    setBoardSelectedSquare(square) {
+        this.selectedBoardSquare = /^[a-h][1-8]$/.test(square || '') ? square : null;
+        this.syncBoardSelection();
+        if (this.selectedBoardSquare) {
+            this.setPendingState('selected', `Selected ${this.selectedBoardSquare}. Choose a destination.`);
+        } else if (this.elements.pendingState?.classList?.contains('selected')) {
+            this.setPendingState('', '');
+        }
+        return this.selectedBoardSquare;
+    },
+
+    clearBoardSelection() {
+        this.boardPointerGesture = null;
+        return this.setBoardSelectedSquare(null);
+    },
+
+    handleBoardTap(square) {
+        if (!/^[a-h][1-8]$/.test(square || '')) return false;
+        if (!this.canSubmitGraphicalMove()) {
+            this.clearBoardSelection();
+            return false;
+        }
+
+        const selected = this.selectedBoardSquare;
+        if (selected === square) {
+            this.clearBoardSelection();
+            return true;
+        }
+
+        const piece = this.chess?.get?.(square);
+        const ownColor = this.myColor === 'white' ? 'w' : this.myColor === 'black' ? 'b' : null;
+        if (piece?.color === ownColor) {
+            const pieceCode = `${piece.color}${String(piece.type || '').toUpperCase()}`;
+            if (!this.onDragStart(square, pieceCode)) {
+                this.clearBoardSelection();
+                return false;
+            }
+            this.setBoardSelectedSquare(square);
+            return true;
+        }
+
+        if (!selected) return false;
+        const result = this.onDrop(selected, square);
+        if (result !== 'snapback' || this.pendingPromotionMove) {
+            this.clearBoardSelection();
+            return true;
+        }
+        return false;
+    },
+
+    normalizeBoardPositionKey(position) {
+        if (position === 'start') return FICS_STANDARD_START_FEN.split(' ')[0];
+        return String(position || '').trim().split(/\s+/)[0] || null;
+    },
+
+    setBoardPosition(position, animate = false, force = false) {
+        if (!this.board?.position || !position) return false;
+        const nextKey = this.normalizeBoardPositionKey(position);
+        if (!force && nextKey && nextKey === this.boardPositionKey) return false;
+        this.board.position(position, animate);
+        this.boardPositionKey = nextKey;
+        this.refreshBoardInteractionDom();
+        return true;
+    },
+
+    setBoardOrientation(orientation, force = false) {
+        if (!this.board?.orientation) return false;
+        const next = orientation === 'black' ? 'black' : 'white';
+        if (!force && this.boardOrientation === next) return false;
+        this.board.orientation(next);
+        this.boardOrientation = next;
+        this.refreshBoardInteractionDom();
+        return true;
+    },
+
     initBoard(position = this.liveGame.currentFen || 'start') {
         if (!this.elements.boardContainer) return;
         if (!this.elements.boardContainer.offsetParent && !this.board) return;
         if (this.board) {
-            if (position) this.board.position(position, false);
+            if (position) this.setBoardPosition(position, false);
             return;
         }
 
@@ -2345,6 +2545,9 @@ const CaissaFICSClient = {
 
         if (typeof Chessboard !== 'undefined') {
             this.board = Chessboard(this.elements.boardContainer, config);
+            this.boardPositionKey = this.normalizeBoardPositionKey(position);
+            this.boardOrientation = config.orientation || 'white';
+            this.refreshBoardInteractionDom();
             console.log('[FICS Client] Chessboard initialized');
         } else {
             console.error('[FICS Client] Chessboard.js not found!');
@@ -2386,6 +2589,7 @@ const CaissaFICSClient = {
         // Illegal move
         if (move === null) return 'snapback';
 
+        this.clearBoardSelection();
         const moveStr = source + target + (move.promotion || '');
         this.pendingMove = {
             uci: moveStr,
@@ -2393,7 +2597,7 @@ const CaissaFICSClient = {
             sentAt: performance.now()
         };
         this.setPendingState('pending', `Pending ${moveStr}...`);
-        if (this.board) this.board.position(validator.fen(), true);
+        if (this.board) this.setBoardPosition(validator.fen(), true);
         this.sendMove(moveStr);
     },
 
@@ -2417,9 +2621,10 @@ const CaissaFICSClient = {
     },
 
     showPromotionSelector(source, target) {
+        this.clearBoardSelection();
         this.pendingPromotionMove = { source, target, fen: this.liveGame.currentFen };
         this.setPendingState('pending', `Choose promotion for ${source}${target}`);
-        if (this.board && this.liveGame.currentFen) this.board.position(this.liveGame.currentFen, false);
+        if (this.board && this.liveGame.currentFen) this.setBoardPosition(this.liveGame.currentFen, false, true);
         if (this.elements.promotionSelector) {
             this.elements.promotionSelector.hidden = false;
             const firstButton = this.elements.promotionSelector.querySelector('[data-promotion]');
@@ -2451,16 +2656,17 @@ const CaissaFICSClient = {
             sentAt: performance.now()
         };
         this.setPendingState('pending', `Pending ${moveStr}...`);
-        if (this.board) this.board.position(validator.fen(), true);
+        if (this.board) this.setBoardPosition(validator.fen(), true);
         this.sendMove(moveStr);
     },
 
     cancelPromotionSelection(restoreBoard = true) {
         this.pendingPromotionMove = null;
+        this.clearBoardSelection();
         if (this.elements.promotionSelector) this.elements.promotionSelector.hidden = true;
         this.setPendingState('', '');
         if (restoreBoard && this.board && this.liveGame.currentFen) {
-            this.board.position(this.liveGame.currentFen, false);
+            this.setBoardPosition(this.liveGame.currentFen, false, true);
         }
     },
 
@@ -2468,11 +2674,11 @@ const CaissaFICSClient = {
         if (!this.board) return;
         const replay = window.CaissaFICSShell?.getReplaySnapshot?.();
         if (replay?.isReviewingHistory && replay.fen) {
-            this.board.position(replay.fen, false);
+            this.setBoardPosition(replay.fen, false);
         } else if (this.pendingMove?.optimisticFen) {
-            this.board.position(this.pendingMove.optimisticFen, false);
+            this.setBoardPosition(this.pendingMove.optimisticFen, false);
         } else if (this.liveGame.currentFen) {
-            this.board.position(this.liveGame.currentFen, false);
+            this.setBoardPosition(this.liveGame.currentFen, false);
         }
     },
 
