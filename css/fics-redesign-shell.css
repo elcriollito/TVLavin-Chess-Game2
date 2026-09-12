@@ -1592,6 +1592,230 @@ body.fics-rd7-user-dialog-active .fics-rd7-user-dialog :is(button, input):focus-
         min-height: 30px;
         padding-block: 3px;
     }
+
+    /* BOARD-006B preview pilot: treat short phone landscape as a mobile
+       drawer layout instead of reserving the 220px desktop navigation rail. */
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container,
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container.nav-collapsed {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container > .header-minimal {
+        display: none;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container > .main-navigation {
+        position: fixed;
+        inset-block: 0;
+        left: -280px;
+        width: 280px;
+        height: 100dvh;
+        grid-row: 1;
+        z-index: 1001;
+        transition: left 0.3s ease;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container.nav-open > .main-navigation {
+        left: 0;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container > .mobile-nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        top: calc(6px + env(safe-area-inset-top, 0px));
+        left: calc(6px + env(safe-area-inset-left, 0px));
+        width: 38px;
+        height: 38px;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container.nav-open > .caissa-application-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.58);
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .content-area {
+        grid-column: 1;
+        grid-row: 1;
+        min-width: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-layout {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+        height: 100dvh;
+        min-height: 0;
+        padding: calc(4px + env(safe-area-inset-top, 0px)) calc(4px + env(safe-area-inset-right, 0px))
+            calc(4px + env(safe-area-inset-bottom, 0px)) calc(4px + env(safe-area-inset-left, 0px));
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-shell {
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+        grid-template-rows: minmax(0, 1fr);
+        align-items: start;
+        gap: 8px;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-board {
+        grid-template-rows: minmax(0, 1fr);
+        align-content: start;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-live-board-shell {
+        --caissa-fics-landscape-board-size: min(
+            calc(100dvh - 64px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)),
+            calc(58vw - 16px),
+            430px
+        );
+        box-sizing: border-box;
+        flex: 0 0 auto;
+        width: var(--caissa-fics-landscape-board-size);
+        height: calc(var(--caissa-fics-landscape-board-size) + 56px);
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled #ficsBoardContainer {
+        flex: 0 0 var(--caissa-fics-landscape-board-size);
+        width: var(--caissa-fics-landscape-board-size) !important;
+        height: var(--caissa-fics-landscape-board-size) !important;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        max-height: 100%;
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-player-bar {
+        box-sizing: border-box;
+        grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
+        flex: 0 0 28px;
+        width: 100%;
+        height: 28px;
+        min-height: 28px;
+        max-height: 28px;
+        padding: 3px 6px;
+        gap: 5px;
+        overflow: hidden;
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-player-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-workspace {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        height: 100%;
+        min-height: 0;
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled :is(
+        .fics-rd2-workspace-head,
+        .fics-rd2-workspace-body,
+        .fics-rd3-dynamic-body,
+        .fics-rd4-game,
+        .fics-rd4-move-region,
+        .fics-rd4-move-scroll,
+        .fics-rd2-workspace-foot
+    ) {
+        min-width: 0;
+        min-height: 0;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-workspace-body {
+        overflow-x: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-workspace-body[data-game-mode],
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-workspace-body[data-game-mode] .fics-rd3-dynamic-body,
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd4-game {
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-tabs {
+        height: 52px;
+        min-height: 52px;
+        max-height: 52px;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-tab {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Compact landscape has no page header. Keep session controls reachable in
+       FOOT instead of allowing their absolute page-chrome position to cover
+       the fourth (Game) tab when that state becomes available. */
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd7-session-chrome {
+        top: auto;
+        right: calc(11px + env(safe-area-inset-right, 0px));
+        bottom: calc(9px + env(safe-area-inset-bottom, 0px));
+        gap: 4px;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled :is(
+        .fics-rd7-session-button,
+        .fics-rd5-settings-button
+    ) {
+        justify-content: center;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        min-height: 32px;
+        padding: 0;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled :is(
+        .fics-rd7-session-identity,
+        .fics-rd5-settings-button span
+    ) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd7-session-menu {
+        top: auto;
+        right: 0;
+        bottom: calc(100% + 7px);
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-workspace-foot {
+        padding-right: 84px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

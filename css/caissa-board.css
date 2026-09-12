@@ -1,0 +1,164 @@
+.caissa-board {
+    /* The persistent surface inherits the canonical CAISSA Classic tokens.
+       Renderer code stays palette-agnostic so later themes can override them. */
+    --caissa-board-light: var(--light-square, #f0d9b5);
+    --caissa-board-dark: var(--dark-square, #b58863);
+    --caissa-board-selected: #f6c945;
+    --caissa-board-last-move: rgba(246, 201, 69, 0.38);
+    --caissa-board-legal: rgba(35, 129, 92, 0.72);
+    --caissa-board-hint: rgba(60, 125, 231, 0.55);
+    --caissa-board-error: rgba(190, 45, 57, 0.68);
+    --caissa-board-coordinates: rgba(20, 24, 30, 0.72);
+    --caissa-board-animation-duration: 180ms;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    isolation: isolate;
+    outline: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.caissa-board:focus-visible {
+    outline: 3px solid #6ea8fe;
+    outline-offset: 3px;
+}
+
+.caissa-board__squares,
+.caissa-board__highlights,
+.caissa-board__pieces,
+.caissa-board__coordinates,
+.caissa-board__arrows {
+    position: absolute;
+    inset: 0;
+}
+
+.caissa-board__squares { z-index: 0; }
+.caissa-board__row { display: contents; }
+.caissa-board__highlights { z-index: 1; pointer-events: none; }
+.caissa-board__arrows { z-index: 2; pointer-events: none; width: 100%; height: 100%; }
+.caissa-board__pieces { z-index: 3; pointer-events: none; }
+.caissa-board__coordinates { z-index: 4; pointer-events: none; }
+
+.caissa-board__square,
+.caissa-board__highlight,
+.caissa-board__piece {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 12.5%;
+    height: 12.5%;
+    transform: translate3d(calc(var(--caissa-x) * 100%), calc(var(--caissa-y) * 100%), 0);
+}
+
+.caissa-board__square {
+    appearance: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    cursor: default;
+}
+
+.caissa-board__square--light { background: var(--caissa-board-light); }
+.caissa-board__square--dark { background: var(--caissa-board-dark); }
+
+.caissa-board:not([aria-disabled="true"]) .caissa-board__square {
+    cursor: pointer;
+}
+
+.caissa-board:focus-visible .caissa-board__square[data-keyboard-focus="true"] {
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.95), inset 0 0 0 5px rgba(20, 24, 30, 0.9);
+}
+
+.caissa-board__highlight {
+    box-sizing: border-box;
+}
+
+.caissa-board__highlight--selected {
+    border: max(3px, 0.04em) solid var(--caissa-board-selected);
+    box-shadow: inset 0 0 0 2px rgba(20, 24, 30, 0.78);
+}
+
+.caissa-board__highlight--legal::after {
+    content: '';
+    position: absolute;
+    width: 28%;
+    height: 28%;
+    left: 36%;
+    top: 36%;
+    border-radius: 50%;
+    background: var(--caissa-board-legal);
+}
+
+.caissa-board__highlight--last { background: var(--caissa-board-last-move); }
+
+.caissa-board__highlight--hint {
+    border: max(3px, 0.04em) dashed var(--caissa-board-hint);
+}
+
+.caissa-board__highlight--error {
+    background: repeating-linear-gradient(135deg, transparent 0 8px, var(--caissa-board-error) 8px 12px);
+}
+
+.caissa-board__piece {
+    display: block;
+    box-sizing: border-box;
+    object-fit: contain;
+    padding: 3px;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    will-change: transform;
+}
+
+.caissa-board[data-animate="true"] .caissa-board__piece {
+    transition: transform var(--caissa-board-animation-duration) cubic-bezier(0.22, 0.8, 0.32, 1);
+}
+
+.caissa-board .caissa-board__piece[data-dragging="true"] {
+    z-index: 2;
+    filter: drop-shadow(0 0.4rem 0.35rem rgba(0, 0, 0, 0.35));
+    transition: none !important;
+}
+
+.caissa-board__coordinate {
+    position: absolute;
+    z-index: 1;
+    color: var(--caissa-board-coordinates);
+    font: 700 clamp(0.58rem, 2.2cqi, 0.8rem)/1 system-ui, sans-serif;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.45);
+}
+
+.caissa-board__coordinate--file {
+    left: calc((var(--caissa-x) + 1) * 12.5% - 0.9rem);
+    bottom: 0.22rem;
+}
+
+.caissa-board__coordinate--rank {
+    left: 0.25rem;
+    top: calc(var(--caissa-y) * 12.5% + 0.25rem);
+}
+
+.caissa-board__arrow-line {
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.caissa-board__arrow-head {
+    stroke: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .caissa-board[data-animate="true"] .caissa-board__piece {
+        transition: none;
+    }
+}
+
+.caissa-board[data-reduced-motion="true"] .caissa-board__piece {
+    transition: none !important;
+}
