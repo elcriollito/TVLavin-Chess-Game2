@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>CAISSA Persistent Board — Internal Harness</title>
+    <link rel="stylesheet" href="/css/caissa-board.css">
+    <link rel="stylesheet" href="./harness.css">
+</head>
+<body>
+    <main class="harness-shell">
+        <section class="board-region" aria-labelledby="harness-title">
+            <p class="eyebrow">Internal / test only</p>
+            <h1 id="harness-title">Persistent board renderer</h1>
+            <div id="board-host" class="board-host"></div>
+        </section>
+        <section class="workspace" aria-label="Board test controls">
+            <header class="workspace__head">
+                <h2>Renderer harness</h2>
+                <p>Presentation-only controls</p>
+            </header>
+            <div class="workspace__body">
+                <label for="fen-input">Arbitrary FEN</label>
+                <textarea id="fen-input" rows="3">rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</textarea>
+                <div class="button-grid">
+                    <button id="set-fen" type="button">Set FEN</button>
+                    <button id="reset-board" type="button">Starting position</button>
+                    <button id="next-move" type="button">Next move</button>
+                    <button id="previous-move" type="button">Previous move</button>
+                    <button id="flip-board" type="button">Flip orientation</button>
+                    <button id="rapid-updates" type="button">50-update burst</button>
+                    <button id="toggle-highlights" type="button">Highlights</button>
+                    <button id="toggle-arrow" type="button">Arrow</button>
+                </div>
+                <label class="check"><input id="animation-enabled" type="checkbox" checked> Animation</label>
+                <label class="check"><input id="reduced-motion" type="checkbox"> Force reduced motion</label>
+                <h3>Chronological input events</h3>
+                <ol id="event-log" aria-live="polite"></ol>
+            </div>
+            <footer class="workspace__foot">
+                <output id="metrics" aria-live="polite">Initializing renderer…</output>
+            </footer>
+        </section>
+    </main>
+    <div class="scroll-proof" aria-hidden="true"></div>
+    <script type="module" src="./harness.js"></script>
+</body>
+</html>
