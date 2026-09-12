@@ -1592,6 +1592,110 @@ body.fics-rd7-user-dialog-active .fics-rd7-user-dialog :is(button, input):focus-
         min-height: 30px;
         padding-block: 3px;
     }
+
+    /* BOARD-006B preview pilot: treat short phone landscape as a mobile
+       drawer layout instead of reserving the 220px desktop navigation rail. */
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container,
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container.nav-collapsed {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container > .header-minimal {
+        display: none;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container > .main-navigation {
+        position: fixed;
+        inset-block: 0;
+        left: -280px;
+        width: 280px;
+        height: 100dvh;
+        grid-row: 1;
+        z-index: 1001;
+        transition: left 0.3s ease;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container.nav-open > .main-navigation {
+        left: 0;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container > .mobile-nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        top: calc(6px + env(safe-area-inset-top, 0px));
+        left: calc(6px + env(safe-area-inset-left, 0px));
+        width: 38px;
+        height: 38px;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .app-container.nav-open > .caissa-application-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.58);
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] .content-area {
+        grid-column: 1;
+        grid-row: 1;
+        min-width: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-layout {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+        height: 100dvh;
+        min-height: 0;
+        padding: calc(4px + env(safe-area-inset-top, 0px)) calc(4px + env(safe-area-inset-right, 0px))
+            calc(4px + env(safe-area-inset-bottom, 0px)) calc(4px + env(safe-area-inset-left, 0px));
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-shell {
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+        align-items: start;
+        gap: 8px;
+        height: 100%;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-board {
+        align-content: start;
+        height: 100%;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-live-board-shell {
+        --caissa-fics-landscape-board-size: min(
+            calc(100dvh - 64px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)),
+            calc(58vw - 16px),
+            430px
+        );
+        width: var(--caissa-fics-landscape-board-size);
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-player-bar {
+        min-height: 28px;
+        padding: 3px 6px;
+        gap: 5px;
+        font-size: 11px;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-player-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    body.fics-board-pilot-active[data-caissa-section="fics"] #ficsSection.fics-rd2-enabled .fics-rd2-workspace {
+        height: 100%;
+        min-height: 0;
+        max-height: 100%;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

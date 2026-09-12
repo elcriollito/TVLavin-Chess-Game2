@@ -86,6 +86,8 @@ const CaissaFICSClient = {
     activeTables: [],
     pendingSeek: null,
     pendingObservation: null,
+    observeRecoveryAttemptGeneration: 0,
+    observeRecoveryTarget: null,
     pendingGameActions: { resign: false, draw: false },
     observationExitInFlight: false,
     lobbyRefreshTimer: null,
@@ -123,6 +125,9 @@ const CaissaFICSClient = {
         this.setConnectionState('disconnected');
         this.updateGatewayStatus();
         this.setLoginMode(this.loginMode);
+        const boardPilotEnabled = window.CaissaFICSBoardView?.featureEnabled?.() === true;
+        document.getElementById('ficsSection')?.classList.toggle('fics-board-pilot-enabled', boardPilotEnabled);
+        document.body?.classList.toggle('fics-board-pilot-active', boardPilotEnabled);
         this.renderRoomTables();
     },
 
@@ -235,6 +240,73 @@ const CaissaFICSClient = {
         });
 
         window.dispatchEvent(new CustomEvent(`caissa:fics:${event}`, { detail }));
+    },
+
+    observeContinuityEnabled() {
+        return window.CaissaFICSBoardView?.featureEnabled?.() === true
+            && !!window.CaissaFICSObserveRecovery;
+    },
+
+    getObserveRecoverySnapshot() {
+        return Object.freeze({
+            enabled: this.observeContinuityEnabled(),
+            record: this.observeContinuityEnabled()
+                ? window.CaissaFICSObserveRecovery.read()
+                : null,
+            attemptGeneration: this.observeRecoveryAttemptGeneration,
+            target: this.observeRecoveryTarget,
+            owner: 'EPHEMERAL_OBSERVE_NAVIGATION_INTENT'
+        });
+    },
+
+    clearObserveRecovery() {
+        this.observeRecoveryTarget = null;
+        return window.CaissaFICSObserveRecovery?.clear?.() ?? false;
+    },
+
+    persistObserveRecovery(state = this.liveGame, orientation = this.boardOrientation) {
+        if (!this.observeContinuityEnabled()) return null;
+        return window.CaissaFICSObserveRecovery.write(state, orientation || 'white');
+    },
+
+    attemptObserveRecovery() {
+        if (!this.observeContinuityEnabled()) {
+            return Object.freeze({ ok: false, code: 'RECOVERY_DISABLED' });
+        }
+        if (!this.authenticated || this.loginMode !== 'guest') {
+            if (this.authenticated && this.loginMode !== 'guest') this.clearObserveRecovery();
+            return Object.freeze({ ok: false, code: 'GUEST_SESSION_REQUIRED' });
+        }
+        if ((this.gameActive && !this.liveGame?.observedGame) || this.pendingSeek) {
+            this.clearObserveRecovery();
+            return Object.freeze({ ok: false, code: 'PLAY_STATE_PRESENT' });
+        }
+        if (this.observeRecoveryAttemptGeneration === this.sessionGeneration) {
+            return Object.freeze({ ok: false, code: 'RECOVERY_ALREADY_ATTEMPTED' });
+        }
+        const assessment = window.CaissaFICSObserveRecovery.assess(this.activeTables, {
+            lobbySettled: !this.lobbyRefreshInFlight
+        });
+        if (!assessment.ok) {
+            if (['GAME_UNAVAILABLE', 'AMBIGUOUS_GAME'].includes(assessment.code)) {
+                this.clearObserveRecovery();
+            }
+            return assessment;
+        }
+
+        this.observeRecoveryAttemptGeneration = this.sessionGeneration;
+        this.observeRecoveryTarget = assessment.record.gameNumber;
+        this.logToConsole(`Restoring observed game ${assessment.record.gameNumber} from FICS...`, 'CAISSA');
+        const delivery = this.switchObservedGame(assessment.record.gameNumber);
+        if (!delivery.ok) {
+            this.clearObserveRecovery();
+            return Object.freeze({ ...delivery, recovery: true });
+        }
+        this.notifySpectator('observation-recovery-requested', {
+            gameNumber: assessment.record.gameNumber,
+            sessionGeneration: this.sessionGeneration
+        });
+        return Object.freeze({ ...delivery, recovery: true });
     },
 
     isGatewayConfigured() {
@@ -499,6 +571,7 @@ const CaissaFICSClient = {
                 } else {
                     this.reconnectAttempts = 0;
                     if (!this.authFailed) {
+                        this.clearObserveRecovery();
                         this.resetLiveSessionState();
                         this.setConnectionState(event.code === 1000 ? 'disconnected' : 'error');
                     }
@@ -547,6 +620,7 @@ const CaissaFICSClient = {
 
     handleConnectionFailure(reason) {
         this.clearAccountPassword();
+        this.clearObserveRecovery();
         this.invalidatePlayersDirectory('CONNECTION_FAILED', { announceFailure: true });
         this.resetLiveSessionState();
         const fullMsg = reason === 'timeout'
@@ -622,6 +696,7 @@ const CaissaFICSClient = {
 
     disconnect() {
         this.manualDisconnect = true;
+        this.clearObserveRecovery();
         clearTimeout(this.reconnectTimer);
         if (this.ws) {
             this.send('quit');
@@ -637,6 +712,7 @@ const CaissaFICSClient = {
         this.activeTables = [];
         this.pendingSeek = null;
         this.pendingObservation = null;
+        this.observeRecoveryAttemptGeneration = 0;
         this.invalidatePlayersDirectory('DISCONNECTED', { announceFailure: true });
         this.resetLiveSessionState();
         this.setConnectionState('disconnected');
@@ -990,6 +1066,7 @@ const CaissaFICSClient = {
     handleFicsLoginFailure(reason = 'Login failed. Check your FICS username and password.') {
         if (this.authFailed) return;
         this.authFailed = true;
+        this.clearObserveRecovery();
         this.clearAccountPassword();
         this.updateGameStatus(reason, 'error');
         this.setConnectionState('error', 'Login failed');
@@ -1073,6 +1150,8 @@ const CaissaFICSClient = {
             return;
         }
 
+        if (this.handleObservationFailureLine(line)) return;
+
         this.parseSeekLine(line);
         this.parseActiveGameLine(line);
         if (this.pendingMove && /illegal move|not your move|move is not legal/i.test(line)) {
@@ -1102,6 +1181,22 @@ const CaissaFICSClient = {
         }
     },
 
+    handleObservationFailureLine(line) {
+        const request = this.pendingObservation;
+        if (!request || !/(?:no such game|game\s+\d+\s+(?:is\s+)?not available|game\s+\d+\s+does not exist|not currently being played)/i.test(line)) {
+            return false;
+        }
+        this.pendingObservation = null;
+        const target = String(request.target || '');
+        if (this.observeRecoveryTarget === target) this.clearObserveRecovery();
+        this.updateGameStatus(`Could not observe game ${target}.`, 'error');
+        this.notifySpectator('observation-error', {
+            gameNumber: target,
+            code: 'GAME_UNAVAILABLE'
+        });
+        return true;
+    },
+
     handleGameStart(line) {
         this.gameActive = true;
         this.updateGameStatus('Game started!', 'active');
@@ -1128,6 +1223,7 @@ const CaissaFICSClient = {
     handleGameEnd(line) {
         const resultModel = this.normalizeFicsGameResult(line);
         if (!resultModel.terminal) return false;
+        if (this.liveGame.observedGame) this.clearObserveRecovery();
         this.gameActive = false;
         this.liveGame.gameActive = false;
         this.liveGame.result = resultModel.result;
@@ -1167,6 +1263,11 @@ const CaissaFICSClient = {
         const userColor = state.userColor === 'w' ? 'white'
             : state.userColor === 'b' ? 'black'
                 : null;
+        const recoveryConfirmed = state.observedGame === true
+            && String(this.observeRecoveryTarget || '') === String(state.gameNumber);
+        const recoveryRecord = recoveryConfirmed
+            ? window.CaissaFICSObserveRecovery?.read?.()
+            : null;
         const challengeIntent = window.ClassicComputerChallenge?.snapshot?.().pending || null;
         const challengeTarget = String(challengeIntent?.targetHandle || '').toLowerCase();
         const challengeMatches = !!challengeTarget
@@ -1224,10 +1325,21 @@ const CaissaFICSClient = {
 
         this.initBoard(state.fen);
         if (this.boardView) {
-            this.presentCanonicalBoardState(state, isNewGame ? null : previousFen, isNewGame);
+            this.presentCanonicalBoardState(
+                state,
+                isNewGame ? null : previousFen,
+                isNewGame,
+                recoveryRecord?.orientation || null
+            );
         } else if (this.board) {
             this.setBoardOrientation(userColor || 'white');
             this.setBoardPosition(state.fen, false);
+        }
+        if (recoveryConfirmed && recoveryRecord?.orientation) {
+            this.setBoardOrientation(recoveryRecord.orientation, true);
+        }
+        if (state.observedGame) {
+            this.persistObserveRecovery(state, recoveryRecord?.orientation || this.boardOrientation || 'white');
         }
 
         this.recordStyle12Move(state, isNewGame ? null : previousFen);
@@ -1250,6 +1362,14 @@ const CaissaFICSClient = {
             this.logToConsole(`Game ${state.gameNumber} started.`, 'GAME');
         }
         if (!wasObserved && state.observedGame) this.logToConsole(`Observing game ${state.gameNumber}.`, 'GAME');
+        if (recoveryConfirmed) {
+            this.observeRecoveryTarget = null;
+            this.logToConsole(`Observed game ${state.gameNumber} restored from FICS.`, 'GAME');
+            this.notifySpectator('observation-recovered', {
+                gameNumber: String(state.gameNumber),
+                sessionGeneration: this.sessionGeneration
+            });
+        }
     },
 
     parseSeekLine(line) {
@@ -1449,6 +1569,7 @@ const CaissaFICSClient = {
             activeTables: this.activeTables.map((table) => ({ ...table })),
             seekActions: this.seekActions.map((seek) => ({ ...seek }))
         });
+        this.attemptObserveRecovery();
     },
 
     buildLobbyRows() {
@@ -1680,6 +1801,7 @@ const CaissaFICSClient = {
         }
 
         this.observationExitInFlight = true;
+        this.clearObserveRecovery();
         this.updateGameStatus(`Leaving observed game ${target}...`, 'active');
         this.logToConsole(`> unobserve ${target}`, 'COMMAND');
         const delivery = this.send(`unobserve ${target}`);
@@ -1701,6 +1823,7 @@ const CaissaFICSClient = {
             : this.liveGame?.gameNumber !== null && this.liveGame?.gameNumber !== undefined
                 ? String(this.liveGame.gameNumber)
                 : '';
+        this.clearObserveRecovery();
         this.gameActive = false;
         this.myColor = null;
         this.gameNumber = null;
@@ -2562,9 +2685,13 @@ const CaissaFICSClient = {
         });
     },
 
-    presentCanonicalBoardState(state, previousFen = null, forceSnapshot = false) {
+    presentCanonicalBoardState(state, previousFen = null, forceSnapshot = false, orientationOverride = null) {
         if (!this.boardView || !state?.fen) return false;
-        const orientation = this.liveGame.userColor || 'white';
+        const orientation = orientationOverride === 'black' || orientationOverride === 'white'
+            ? orientationOverride
+            : state.observedGame
+                ? (this.boardOrientation || 'white')
+                : (this.liveGame.userColor || 'white');
         const semanticMove = forceSnapshot ? null : this.deriveStyle12BoardMove(state, previousFen);
         const result = this.boardView.presentCanonicalState({
             state: { ...this.liveGame },
@@ -2612,6 +2739,7 @@ const CaissaFICSClient = {
         this.board.orientation(next);
         this.boardOrientation = next;
         this.refreshBoardInteractionDom();
+        if (this.liveGame?.observedGame) this.persistObserveRecovery(this.liveGame, next);
         return true;
     },
 

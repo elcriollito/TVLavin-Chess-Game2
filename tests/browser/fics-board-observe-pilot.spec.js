@@ -270,7 +270,20 @@ test('orientation, review/Live restore and portrait/landscape geometry remain st
 
     const geometry = async () => page.locator('#ficsBoardContainer').evaluate(node => {
         const rect = node.getBoundingClientRect();
-        return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, scrollX, scrollY };
+        const workspace = document.querySelector('.fics-rd2-workspace');
+        const workspaceRect = workspace?.getBoundingClientRect();
+        return {
+            left: rect.left, top: rect.top, width: rect.width, height: rect.height, scrollX, scrollY,
+            viewportWidth: innerWidth, viewportHeight: innerHeight,
+            documentWidth: document.documentElement.scrollWidth,
+            documentHeight: document.documentElement.scrollHeight,
+            workspaceWidth: workspaceRect?.width || 0,
+            rootPreserved: window.__board006Root === document.querySelector('.caissa-board'),
+            squaresPreserved: window.__board006Squares.every((square, index) =>
+                square === document.querySelectorAll('.caissa-board__square')[index]),
+            pieces: [...document.querySelectorAll('.caissa-board__piece')]
+                .map(piece => piece.getAttribute('data-piece')).sort()
+        };
     });
     const portraitBefore = await geometry();
     const portraitResizeBefore = await page.evaluate(() => window.CaissaFICSShell.getSnapshot().boardResizeCount);
@@ -282,15 +295,144 @@ test('orientation, review/Live restore and portrait/landscape geometry remain st
     expect(await page.evaluate(() => window.CaissaFICSClient.board.orientation())).toBe('white');
 
     await page.setViewportSize({ width: 844, height: 390 });
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(250);
     const landscapeBefore = await geometry();
+    expect(landscapeBefore.width).toBeGreaterThanOrEqual(320);
+    expect(Math.abs(landscapeBefore.width - landscapeBefore.height)).toBeLessThanOrEqual(1);
+    expect(landscapeBefore.workspaceWidth).toBeGreaterThanOrEqual(300);
+    expect(landscapeBefore.documentWidth).toBe(landscapeBefore.viewportWidth);
+    expect(landscapeBefore.documentHeight).toBe(landscapeBefore.viewportHeight);
+    expect(landscapeBefore.scrollX).toBe(0);
+    expect(landscapeBefore.scrollY).toBe(0);
+    expect(landscapeBefore.rootPreserved).toBe(true);
+    expect(landscapeBefore.squaresPreserved).toBe(true);
+    expect(landscapeBefore.pieces).toEqual(portraitBefore.pieces);
     const landscapeResizeBefore = await page.evaluate(() => window.CaissaFICSShell.getSnapshot().boardResizeCount);
+    expect(landscapeResizeBefore).toBe(portraitResizeBefore + 1);
     await playStates(page, [line(['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6', 'Ba4']).at(-1)]);
     const landscapeAfter = await geometry();
     for (const key of ['left', 'top', 'width', 'height']) expect(Math.abs(landscapeAfter[key] - landscapeBefore[key])).toBeLessThanOrEqual(1);
     expect(landscapeAfter.scrollY).toBe(landscapeBefore.scrollY);
     expect(await page.evaluate(() => window.CaissaFICSShell.getSnapshot().boardResizeCount)).toBe(landscapeResizeBefore);
     expect(await page.evaluate(() => window.CaissaFICSClient.board.orientation())).toBe('white');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(250);
+    const portraitRestored = await geometry();
+    console.log('[BOARD-006B ROTATION]', JSON.stringify({ portraitBefore, landscapeBefore, landscapeAfter, portraitRestored }));
+    for (const key of ['left', 'width', 'height']) {
+        expect(Math.abs(portraitRestored[key] - portraitBefore[key])).toBeLessThanOrEqual(1);
+    }
+    expect(portraitRestored.top).toBeGreaterThanOrEqual(0);
+    expect(portraitRestored.top + portraitRestored.height).toBeLessThanOrEqual(portraitRestored.viewportHeight);
+    expect(portraitRestored.rootPreserved).toBe(true);
+    expect(portraitRestored.squaresPreserved).toBe(true);
+    expect(portraitRestored.pieces).toEqual(portraitBefore.pieces);
+    expect(portraitRestored.documentWidth).toBe(portraitRestored.viewportWidth);
+    expect(portraitRestored.scrollX).toBe(0);
+    expect(portraitRestored.scrollY).toBe(0);
+    expect(await page.evaluate(() => window.CaissaFICSShell.getSnapshot().boardResizeCount))
+        .toBe(landscapeResizeBefore + 1);
+});
+
+test('Guest reload restores one validated Observe through one canonical socket and Leave prevents replay', async ({ page }) => {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.addInitScript(() => {
+        localStorage.setItem('caissa_onboarding_completed', 'true');
+        window.CAISSA_FICS_AUTO_GUEST_ENABLED = false;
+        window.CAISSA_FICS_PERSISTENT_BOARD_PILOT = true;
+        window.CAISSA_FICS_GATEWAY_URL = 'ws://fixture.test/ws';
+        window.__board006Sockets = [];
+
+        const style12 = '<12> rnbqkbnr pppppppp -------- -------- -------- -------- PPPPPPPP RNBQKBNR W -1 1 1 1 1 0 23 FixtureWhite FixtureBlack 0 3 0 39 39 180 180 1 none (0:00) none 0';
+        class FixtureWebSocket {
+            static CONNECTING = 0;
+            static OPEN = 1;
+            static CLOSING = 2;
+            static CLOSED = 3;
+
+            constructor(url) {
+                this.url = url;
+                this.readyState = FixtureWebSocket.CONNECTING;
+                this.commands = [];
+                window.__board006Sockets.push(this);
+                setTimeout(() => {
+                    this.readyState = FixtureWebSocket.OPEN;
+                    this.onopen?.();
+                    this.emit('login:\n');
+                }, 0);
+            }
+
+            emit(data) {
+                setTimeout(() => this.onmessage?.({ data }), 0);
+            }
+
+            send(payload) {
+                const value = typeof payload === 'string' ? payload : String(payload);
+                this.commands.push(value);
+                if (value === 'guest') this.emit('Press return to enter the server\n');
+                if (value === '') this.emit('Starting FICS session as GuestABCD\nfics%\n');
+                if (value === 'games') this.emit('23 1500 FixtureWhite 1600 FixtureBlack [ 3 0 ]\n');
+                if (value === 'observe 23') this.emit(`${style12}\n`);
+            }
+
+            close() {
+                this.readyState = FixtureWebSocket.CLOSED;
+                setTimeout(() => this.onclose?.({ code: 1000, reason: 'fixture close' }), 0);
+            }
+        }
+        window.WebSocket = FixtureWebSocket;
+    });
+
+    const connectAndWait = async () => {
+        await page.waitForFunction(() => window.CaissaFICSClient && window.CaissaFICSShell?.getSnapshot().mounted === true);
+        const result = await page.evaluate(() => window.CaissaFICSClient.connect('guest'));
+        expect(result).toMatchObject({ ok: true, code: 'CONNECTION_STARTED' });
+        await page.waitForFunction(() => window.CaissaFICSClient.authenticated === true
+            && window.CaissaFICSClient.activeTables.some(table => table.number === '23'));
+    };
+
+    await page.goto('/fics');
+    await connectAndWait();
+    expect(await page.evaluate(() => window.CaissaFICSClient.switchObservedGame(23))).toMatchObject({ ok: true });
+    await page.waitForFunction(() => window.CaissaFICSClient.liveGame.observedGame === true
+        && window.CaissaFICSClient.liveGame.gameNumber === 23);
+    await page.evaluate(() => window.CaissaFICSClient.setBoardOrientation('black'));
+
+    const stored = await page.evaluate(() => JSON.parse(sessionStorage.getItem('caissa_fics_observe_recovery_v1')));
+    expect(stored).toMatchObject({ gameNumber: '23', orientation: 'black', schemaVersion: 1 });
+    expect(Object.keys(stored).sort()).toEqual([
+        'expiresAt', 'gameNumber', 'observedAt', 'orientation', 'participantFingerprint', 'schemaVersion'
+    ]);
+    expect(JSON.stringify(stored)).not.toContain('FixtureWhite');
+    expect(JSON.stringify(stored)).not.toContain('FixtureBlack');
+    expect(JSON.stringify(stored)).not.toContain('rnbqkbnr');
+
+    await page.reload();
+    await connectAndWait();
+    await page.waitForFunction(() => window.CaissaFICSClient.liveGame.observedGame === true
+        && window.CaissaFICSClient.liveGame.gameNumber === 23);
+    await page.evaluate(() => window.CaissaFICSClient.waitForBoardRendererIdle());
+    const recovered = await page.evaluate(() => ({
+        sockets: window.__board006Sockets.length,
+        observeCommands: window.__board006Sockets.flatMap(socket => socket.commands)
+            .filter(command => command === 'observe 23').length,
+        orientation: window.CaissaFICSClient.board.orientation(),
+        renderer: window.CaissaFICSClient.getBoardRendererSnapshot().renderer,
+        visibleBoards: document.querySelectorAll('#ficsBoardContainer > .caissa-board, #ficsBoardContainer > .chessboard-63f37').length,
+        consoleText: window.CaissaFICSClient.messageBuffer.join('\n')
+    }));
+    expect(recovered).toMatchObject({ sockets: 1, observeCommands: 1, orientation: 'black', renderer: 'persistent', visibleBoards: 1 });
+    expect(recovered.consoleText).toContain('Observed game 23 restored from FICS.');
+
+    expect(await page.evaluate(() => window.CaissaFICSClient.leaveObservedGame())).toMatchObject({ ok: true });
+    expect(await page.evaluate(() => sessionStorage.getItem('caissa_fics_observe_recovery_v1'))).toBe(null);
+    await page.reload();
+    await connectAndWait();
+    await page.waitForTimeout(2700);
+    expect(await page.evaluate(() => window.__board006Sockets.flatMap(socket => socket.commands)
+        .filter(command => command === 'observe 23').length)).toBe(0);
+    expect(await page.evaluate(() => window.CaissaFICSClient.liveGame.observedGame)).toBe(false);
 });
 
 test('persistent Observe fails closed to legacy before a playable Style12 can accept input', async ({ page }) => {
