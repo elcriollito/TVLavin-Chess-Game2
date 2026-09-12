@@ -70,10 +70,33 @@
     width: 100% !important;
     height: auto !important;
     aspect-ratio: 1 / 1;
+    touch-action: none;
+    overscroll-behavior: contain;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 #ficsSection.fics-rd2-enabled #ficsBoardContainer > .board-b72b1 {
     width: 100% !important;
+}
+
+#ficsSection.fics-rd2-enabled #ficsBoardContainer .square-55d63,
+#ficsSection.fics-rd2-enabled #ficsBoardContainer .piece-417db {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#ficsSection.fics-rd2-enabled #ficsBoardContainer .piece-417db {
+    -webkit-user-drag: none;
+}
+
+#ficsSection.fics-rd2-enabled #ficsBoardContainer .fics-tap-selected {
+    outline: 3px solid var(--accent-color);
+    outline: 3px solid color-mix(in srgb, var(--accent-color) 82%, #ffffff);
+    outline-offset: -4px;
+    box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--accent-color) 38%, transparent);
 }
 
 #ficsSection.fics-rd2-enabled .fics-pending-state {

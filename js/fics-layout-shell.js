@@ -19,6 +19,8 @@
     let lastProductState = null;
     let resizeObserver = null;
     let resizeFrame = 0;
+    let lastBoardGeometry = null;
+    let boardResizeCount = 0;
     let actionNotice = null;
     let resignConfirmationKey = null;
     let gameMoveScrollTop = 0;
@@ -708,9 +710,12 @@
     function applyReplayBoardPosition(snapshot) {
         const replay = getReplaySnapshot();
         if (!snapshot.presentation?.gameModeAvailable || !replay.fen) return false;
-        const board = root.CaissaFICSClient?.board;
-        if (!board?.position) return false;
-        board.position(replay.fen, false);
+        const client = root.CaissaFICSClient;
+        if (typeof client?.setBoardPosition === 'function') {
+            return client.setBoardPosition(replay.fen, false, replay.isReviewingHistory);
+        }
+        if (!client?.board?.position) return false;
+        client.board.position(replay.fen, false);
         return true;
     }
 
@@ -1057,7 +1062,18 @@
             resizeFrame = 0;
             if (!mounted?.section?.classList.contains('fics-rd2-enabled')) return;
             if (!mounted.boardContainer.offsetParent) return;
-            root.CaissaFICSClient?.board?.resize?.();
+            const rect = mounted.boardContainer.getBoundingClientRect?.();
+            const geometry = rect ? { width: rect.width, height: rect.height } : null;
+            if (!geometry || geometry.width <= 0 || geometry.height <= 0) return;
+            const unchanged = lastBoardGeometry
+                && Math.abs(lastBoardGeometry.width - geometry.width) <= 0.5
+                && Math.abs(lastBoardGeometry.height - geometry.height) <= 0.5;
+            if (unchanged) return;
+            lastBoardGeometry = geometry;
+            const client = root.CaissaFICSClient;
+            client?.board?.resize?.();
+            client?.refreshBoardInteractionDom?.();
+            boardResizeCount += 1;
         });
     }
 
@@ -1134,7 +1150,6 @@
 
         mounted.roomPanel.hidden = true;
         mounted.sidePanel.hidden = true;
-        scheduleBoardResize();
         return view;
     }
 
@@ -1421,6 +1436,7 @@
         root.addEventListener?.('orientationchange', scheduleBoardResize, { passive: true });
         bindProductUpdates();
         render();
+        scheduleBoardResize();
         root.CaissaFICSClient?.announceWorkspaceAvailability?.('tables');
         return true;
     }
@@ -1431,6 +1447,7 @@
         unbindProductUpdates();
         resizeObserver?.disconnect();
         resizeObserver = null;
+        lastBoardGeometry = null;
         root.removeEventListener?.('resize', scheduleBoardResize);
         root.removeEventListener?.('orientationchange', scheduleBoardResize);
         document.removeEventListener('pointerdown', handleDocumentPointerDown);
@@ -1506,6 +1523,8 @@
             replay: getReplaySnapshot(),
             consoleExpanded: mounted?.consoleSection.querySelector('#ficsConsoleToggle')?.getAttribute('aria-expanded') === 'true',
             boardNodePreserved: Boolean(mounted && mounted.boardContainer === document.getElementById('ficsBoardContainer')),
+            boardResizeCount,
+            boardGeometry: lastBoardGeometry ? Object.freeze({ ...lastBoardGeometry }) : null,
             owner: 'PRESENTATION_ONLY'
         });
     }
