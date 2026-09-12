@@ -33,12 +33,12 @@ function snapshot(fen, gameNumber = 606) {
     };
 }
 
-async function openFics(page, { pilot = true, viewport = { width: 390, height: 844 } } = {}) {
+async function openFics(page, { pilot, viewport = { width: 390, height: 844 } } = {}) {
     await page.setViewportSize(viewport);
     await page.addInitScript(enabled => {
         localStorage.setItem('caissa_onboarding_completed', 'true');
         window.CAISSA_FICS_AUTO_GUEST_ENABLED = false;
-        if (enabled) window.CAISSA_FICS_PERSISTENT_BOARD_PILOT = true;
+        if (typeof enabled === 'boolean') window.CAISSA_FICS_PERSISTENT_BOARD_PILOT = enabled;
     }, pilot);
     await page.goto('/fics');
     await page.waitForFunction(() => window.CaissaFICSShell?.getSnapshot().mounted === true

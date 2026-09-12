@@ -104,9 +104,11 @@ const playing = Object.freeze({
     observedGame: false, status: 'playing', gameActive: true, relation: 1
 });
 
-test('pilot flag defaults OFF and Observe eligibility fails closed for playable relationships', () => {
+test('production Observe defaults ON, retains explicit rollback, and fails closed for playable relationships', () => {
     const root = loadSeam();
     assert.equal(root.CaissaFICSBoardView.FLAG, 'CAISSA_FICS_PERSISTENT_BOARD_PILOT');
+    assert.equal(root.CaissaFICSBoardView.featureEnabled(), true);
+    root.CAISSA_FICS_PERSISTENT_BOARD_PILOT = false;
     assert.equal(root.CaissaFICSBoardView.featureEnabled(), false);
     assert.equal(root.CaissaFICSBoardView.observeEligible(observed), true);
     assert.equal(root.CaissaFICSBoardView.observeEligible({ ...observed, relation: 1 }), false);
@@ -194,7 +196,7 @@ test('review jumps and Live restore are visual-only setPosition operations', asy
 });
 
 test('client integration is presentation-only and Play imports none of the pilot', () => {
-    assert.match(indexSource, /fics-board-view\.js\?v=1\.0\.1/);
+    assert.match(indexSource, /fics-board-view\.js\?v=1\.0\.2/);
     assert.match(clientSource, /deriveStyle12BoardMove/);
     assert.match(clientSource, /presentCanonicalBoardState/);
     assert.match(clientSource, /this\.boardView\.presentCanonicalState/);

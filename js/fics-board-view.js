@@ -6,6 +6,10 @@
     const ADAPTER_URL = '/js/board/caissa-board-adapter.js';
     const STYLESHEET_URL = '/css/caissa-board.css?v=1.1.0';
 
+    // BOARD-006D production activation. An explicit false remains the
+    // rollback switch; observeEligible still fails closed for playable games.
+    if (root && typeof root[FLAG] !== 'boolean') root[FLAG] = true;
+
     function featureEnabled(host = root) {
         return host?.[FLAG] === true;
     }

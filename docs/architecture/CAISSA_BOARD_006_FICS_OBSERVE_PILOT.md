@@ -1,6 +1,7 @@
 # CAISSA-BOARD-006 — FICS Observe persistent renderer pilot
 
-Status: local pilot candidate; feature flag OFF by default.
+Status: production-approved for FICS Observe; enabled by default with an
+explicit boolean `false` rollback switch.
 
 ## Scope and ownership
 
@@ -29,10 +30,11 @@ against the canonical target placement. Otherwise the board recovers with
 
 ## Selection and fail-closed behavior
 
-`CAISSA_FICS_PERSISTENT_BOARD_PILOT` is enabled only by the strict boolean
-value `true`; it is not set by the production document and has no user-facing
-toggle. With the flag OFF, `fics-client.js` executes the pre-existing raw
-Chessboard.js construction path without a wrapper.
+`CAISSA_FICS_PERSISTENT_BOARD_PILOT` defaults to the strict boolean value
+`true` inside the FICS board-view module and has no user-facing toggle. Setting
+it explicitly to `false` before that module loads retains the rollback path.
+With the flag OFF, `fics-client.js` executes the pre-existing raw Chessboard.js
+construction path without a wrapper.
 
 With the flag ON, `js/fics-board-view.js` owns one stable compatibility facade
 and exactly one underlying renderer. It begins with Chessboard.js and may
@@ -81,4 +83,6 @@ castling/promotion transitions, 20 moves, duplicate FEN, reconnect-style FEN,
 Live restore, portrait, landscape, reduced motion, accessibility, and the
 playable fail-closed transition in Chromium and WebKit. Live FICS, Worker,
 gateway, Play, Analyze, Bots, Coach, Seek, Tables, Players, and production
-deployment are outside this pilot.
+deployment were certified by the BOARD-006D production release. Persistent
+rendering remains limited to eligible FICS Observe state; playable FICS games,
+Play, Analyze, Bots, and Coach retain their established renderers and owners.
