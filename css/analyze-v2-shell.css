@@ -1450,8 +1450,17 @@ body.caissa-analyze-board-dragging > .piece-417db {
     }
 
     #analyzeSection .caissa-analyze-v2__stage {
+        order: 0;
         grid-template-rows: 30px minmax(0, auto) 30px;
         gap: 5px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__workspace {
+        order: 1;
+        grid-template-rows: auto auto minmax(0, auto) auto;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
     }
 
     #analyzeSection .caissa-analyze-v2 .analyze-board-zone {
@@ -1475,8 +1484,22 @@ body.caissa-analyze-board-dragging > .piece-417db {
     }
 
     #analyzeSection .caissa-analyze-v2__workspace-header {
-        min-height: 56px;
-        padding: 14px;
+        display: none;
+    }
+
+    #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__workspace-header {
+        display: flex;
+        min-height: 48px;
+        padding: 5px 14px;
+        justify-content: flex-start;
+    }
+
+    #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__workspace-header h2 {
+        display: none;
+    }
+
+    #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__setup-back {
+        position: static;
     }
 
     #analyzeSection .caissa-analyze-v2__workspace-header h2 {
@@ -1485,6 +1508,16 @@ body.caissa-analyze-board-dragging > .piece-417db {
 
     #analyzeSection .caissa-analyze-v2__tabs {
         min-height: 68px;
+    }
+
+    #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__tabs {
+        display: grid;
+    }
+
+    #analyzeSection .caissa-analyze-v2[data-analyze-mobile-layout='compact'] .analyze-board-controls {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--analyze-v2-line);
+        background: var(--analyze-v2-panel-strong);
     }
 
     #analyzeSection .caissa-analyze-v2__tab {
@@ -1514,6 +1547,11 @@ body.caissa-analyze-board-dragging > .piece-417db {
 
     #analyzeSection .caissa-analyze-v2__actions button span {
         display: none;
+    }
+
+    body:is([data-caissa-section='analyze'], .caissa-play-v2-analyze-open)
+        .caissa-floating-controls > :is(.caissa-mentor-launcher, .caissa-manual-qa-launcher) {
+        display: none !important;
     }
 
     #analyzeSection .caissa-analyze-v2__setup {

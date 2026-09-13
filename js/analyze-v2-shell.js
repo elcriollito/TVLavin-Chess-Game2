@@ -6,6 +6,7 @@
         games: 'Games',
         setup: 'Setup Position'
     });
+    const MOBILE_LAYOUT_QUERY = '(max-width: 560px)';
 
     const shell = {
         root: null,
@@ -13,6 +14,12 @@
         panels: [],
         activeView: 'analysis',
         resizeFrame: 0,
+        workspace: null,
+        workspaceHeader: null,
+        tabsHost: null,
+        footer: null,
+        navigation: null,
+        mobileLayoutMedia: null,
 
         init() {
             this.root = document.querySelector('[data-caissa-analyze-v2]');
@@ -22,6 +29,13 @@
             this.panels = Array.from(this.root.querySelectorAll('[data-analyze-v2-panel]'));
             if (!this.tabs.length || !this.panels.length) return false;
 
+            this.workspace = this.root.querySelector('.caissa-analyze-v2__workspace');
+            this.workspaceHeader = this.root.querySelector('.caissa-analyze-v2__workspace-header');
+            this.tabsHost = this.root.querySelector('.caissa-analyze-v2__tabs');
+            this.footer = this.root.querySelector('.caissa-analyze-v2__footer');
+            this.navigation = this.root.querySelector('.analyze-board-controls');
+            this.mobileLayoutMedia = global.matchMedia?.(MOBILE_LAYOUT_QUERY) || null;
+
             this.root.dataset.analyzeV2Ready = 'true';
             this.tabs.forEach((tab) => {
                 tab.addEventListener('click', () => this.selectView(tab.dataset.analyzeV2Tab));
@@ -29,10 +43,39 @@
             });
             global.addEventListener('resize', () => this.scheduleBoardResize(), { passive: true });
             global.visualViewport?.addEventListener?.('resize', () => this.scheduleBoardResize(), { passive: true });
+            const syncResponsiveLayout = () => this.syncResponsiveLayout();
+            if (this.mobileLayoutMedia?.addEventListener) {
+                this.mobileLayoutMedia.addEventListener('change', syncResponsiveLayout);
+            } else {
+                this.mobileLayoutMedia?.addListener?.(syncResponsiveLayout);
+            }
+            this.syncResponsiveLayout();
             this.bindPlayerLabels();
             this.bindMinimalAnalysisProjection();
             this.selectView('analysis', { focus: false, announce: false });
             return true;
+        },
+
+        syncResponsiveLayout() {
+            if (!this.workspace || !this.workspaceHeader || !this.tabsHost || !this.footer || !this.navigation)
+                return false;
+            const compact = this.mobileLayoutMedia?.matches ?? global.innerWidth <= 560;
+            const target = compact ? this.workspace : this.footer;
+            const anchor = compact ? this.tabsHost : this.footer.firstElementChild;
+            const navigationPlaced = this.navigation.parentElement === target
+                && (compact ? this.navigation.nextElementSibling === anchor : anchor === this.navigation);
+            const headerPlaced = compact
+                ? this.workspaceHeader.previousElementSibling === this.tabsHost
+                : this.workspace.firstElementChild === this.workspaceHeader;
+
+            if (!navigationPlaced) target.insertBefore(this.navigation, anchor);
+            if (!headerPlaced) {
+                const headerAnchor = compact ? this.tabsHost.nextElementSibling : this.workspace.firstElementChild;
+                this.workspace.insertBefore(this.workspaceHeader, headerAnchor);
+            }
+            this.root.dataset.analyzeMobileLayout = compact ? 'compact' : 'desktop';
+            if (!navigationPlaced || !headerPlaced) this.scheduleBoardResize();
+            return !navigationPlaced || !headerPlaced;
         },
 
         scheduleBoardResize() {
