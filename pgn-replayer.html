@@ -17,11 +17,11 @@
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#0b111b">
   <link rel="icon" href="/favicon.ico?v=4">
-  <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-  <link rel="stylesheet" href="/css/pgn-replayer.css?v=1.4.1">
+  <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/pgn-replayer.css?v=2.0.0">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="pgn-replayer-page">
@@ -55,15 +55,13 @@
             </div>
             <div class="pgn-player-card pgn-player-card--white"><span class="pgn-player-color" aria-hidden="true"></span><strong data-pgn-white>White</strong><span data-pgn-white-elo>—</span></div>
             <div class="pgn-toolbar" role="toolbar" aria-label="Replay controls">
-              <div class="pgn-toolbar-group pgn-toolbar-imports-mobile" aria-label="PGN import controls">
-                <button class="pgn-control pgn-control--mobile-import" type="button" data-pgn-open aria-label="Open PGN file" title="Open PGN file"><i class="fas fa-folder-open" aria-hidden="true"></i><small>Open</small></button>
-                <button class="pgn-control pgn-control--mobile-import" type="button" data-pgn-paste aria-label="Paste PGN text" title="Paste PGN text"><i class="fas fa-clipboard" aria-hidden="true"></i><small>Paste</small></button>
-              </div>
               <div class="pgn-toolbar-group pgn-toolbar-playback">
                 <button class="pgn-control" type="button" data-pgn-first aria-label="Go to starting position" title="Starting position"><span class="pgn-control-glyph" aria-hidden="true">⏮</span></button>
-                <button class="pgn-control" type="button" data-pgn-previous aria-label="Previous move" title="Previous move"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">‹</span></button>
-                <button class="pgn-control pgn-control--play" type="button" data-pgn-play aria-label="Play moves automatically" title="Play moves automatically"><span class="pgn-control-glyph" data-pgn-play-icon aria-hidden="true">▶</span></button>
-                <button class="pgn-control" type="button" data-pgn-next aria-label="Next move" title="Next move"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">›</span></button>
+                <div class="pgn-essential-navigation">
+                  <button class="pgn-control" type="button" data-pgn-previous aria-label="Previous move" title="Previous move"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">‹</span><small>Previous</small></button>
+                  <button class="pgn-control pgn-control--play" type="button" data-pgn-play aria-label="Play moves automatically" title="Play moves automatically"><span class="pgn-control-glyph" data-pgn-play-icon aria-hidden="true">▶</span><small data-pgn-play-label>Play</small></button>
+                  <button class="pgn-control" type="button" data-pgn-next aria-label="Next move" title="Next move"><span class="pgn-control-glyph pgn-control-glyph--large" aria-hidden="true">›</span><small>Next</small></button>
+                </div>
                 <button class="pgn-control" type="button" data-pgn-last aria-label="Go to final position" title="Final position"><span class="pgn-control-glyph" aria-hidden="true">⏭</span></button>
               </div>
               <div class="pgn-toolbar-group pgn-toolbar-view">
@@ -71,6 +69,21 @@
                 <button class="pgn-control" type="button" data-pgn-flip aria-label="Flip board" title="Flip board"><span class="pgn-control-glyph pgn-control-glyph--flip" aria-hidden="true">⇅</span><small class="pgn-control-label">Flip</small></button>
                 <button class="pgn-control" type="button" data-pgn-focus aria-label="Enter focus view" title="Focus view"><span class="pgn-control-glyph" data-pgn-focus-icon aria-hidden="true">⛶</span><small class="pgn-control-label">Zoom</small></button>
               </div>
+              <details class="pgn-mobile-menu" data-pgn-mobile-menu>
+                <summary class="pgn-control"><i class="fas fa-bars" aria-hidden="true"></i><small>Menu</small></summary>
+                <div class="pgn-mobile-menu-popover" role="group" aria-label="Reader actions">
+                  <button type="button" data-pgn-mobile-action="open"><i class="fas fa-folder-open" aria-hidden="true"></i><span>Open PGN</span></button>
+                  <button type="button" data-pgn-mobile-action="paste"><i class="fas fa-clipboard" aria-hidden="true"></i><span>Paste PGN</span></button>
+                  <button type="button" data-pgn-mobile-action="first"><i class="fas fa-backward-step" aria-hidden="true"></i><span>Start position</span></button>
+                  <button type="button" data-pgn-mobile-action="last"><i class="fas fa-forward-step" aria-hidden="true"></i><span>Final position</span></button>
+                  <button type="button" data-pgn-mobile-action="next-game"><i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i><span>Next game</span></button>
+                  <button type="button" data-pgn-mobile-action="flip"><i class="fas fa-arrows-up-down" aria-hidden="true"></i><span>Flip board</span></button>
+                  <button type="button" data-pgn-mobile-action="focus"><i class="fas fa-expand" aria-hidden="true"></i><span>Zoom / Fullscreen</span></button>
+                  <label class="pgn-mobile-speed"><i class="fas fa-gauge" aria-hidden="true"></i><span>Speed</span><select data-pgn-mobile-speed aria-label="Autoplay speed"><option value="1400">0.75×</option><option value="1000" selected>1×</option><option value="650">1.5×</option><option value="400">2×</option></select></label>
+                  <button type="button" data-pgn-mobile-action="options"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i><span>Save, Share, Help &amp; Options</span></button>
+                  <button type="button" data-pgn-mobile-action="engine"><i class="fas fa-microchip" aria-hidden="true"></i><span>Engine</span></button>
+                </div>
+              </details>
             </div>
           </section>
           <section class="pgn-panel" aria-label="Albums, games, notation, and analysis">
@@ -117,7 +130,10 @@
                 </div>
               </section>
               <section role="tabpanel" id="pgn-panel-analysis" aria-labelledby="pgn-tab-analysis" data-pgn-tabpanel="analysis" hidden>
-                <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
+                <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title">
+                  <div class="pgn-analysis-sandbox"><div><strong>Analysis board</strong><small data-pgn-analysis-status aria-live="polite">Open a game to explore a position.</small></div><button class="pgn-button" type="button" data-pgn-analysis-reset disabled><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Reset position</span></button></div>
+                  <div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div>
+                </section>
               </section>
             </div>
             <div class="pgn-panel-footer">
@@ -180,11 +196,8 @@
       </main>
     </div>
   </div>
-  <script src="/assets/vendor/jquery/jquery-3.6.0.min.js"></script>
-  <script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js"></script>
   <script src="/js/caissa-primary-navigation.js?v=1.0.2"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
-  <script src="/js/pgn-replayer/pgn-board.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-player-iconography.js?v=1.0.0"></script>
   <script src="/js/pgn-replayer/pgn-entitlements.js?v=1.1.0"></script>
   <script src="/js/pgn-replayer/pgn-album-catalog.js?v=1.2.0"></script>
@@ -193,6 +206,6 @@
   <script src="/js/pgn-replayer/pgn-mentor-historical-library.js?v=1.1.0"></script>
   <script src="/js/pgn-replayer/pgn-opening-library.js?v=1.0.2"></script>
   <script src="/js/pgn-replayer/pgn-album-pricing.js?v=1.1.0"></script>
-  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=1.5.4"></script>
+  <script type="module" src="/js/pgn-replayer/pgn-replayer-page.js?v=2.0.0"></script>
 </body>
 </html>

@@ -34,10 +34,11 @@ test('uses Albums, Games, Notation, Analysis order and a board-first accessible 
     assert.equal(control.length, 1, `${key} control missing`);
     assert.ok(control.attr('aria-label'), `${key} accessible name missing`);
   }
-  assert.equal(page('[data-pgn-open]').length, 2);
-  assert.equal(page('[data-pgn-paste]').length, 2);
-  assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-open]').length, 1);
-  assert.equal(page('.pgn-toolbar-imports-mobile [data-pgn-paste]').length, 1);
+  assert.equal(page('[data-pgn-open]').length, 1);
+  assert.equal(page('[data-pgn-paste]').length, 1);
+  assert.equal(page('[data-pgn-mobile-menu]').length, 1);
+  assert.deepEqual(page('[data-pgn-mobile-action]').map((_, node) => page(node).attr('data-pgn-mobile-action')).get(),
+    ['open', 'paste', 'first', 'last', 'next-game', 'flip', 'focus', 'options', 'engine']);
   assert.equal(page('.pgn-source-actions [data-pgn-open-menu] > summary').length, 1);
   assert.equal(page('.pgn-source-actions [data-pgn-open-menu] + [data-pgn-language] + [data-pgn-options]').length, 1);
   assert.equal(page('[data-pgn-options]').attr('aria-controls'), 'pgn-options-dialog');
@@ -223,34 +224,38 @@ test('focus view targets the sidebar class rendered by the shared shell', () => 
 });
 
 test('board geometry keeps all eight ranks and files at every responsive size', () => {
+  const page = load(read('pgn-replayer.html'));
   const styles = read('css/pgn-replayer.css');
   const board = read('js/pgn-replayer/pgn-board.js');
-  assert.match(styles, /\.pgn-chessboard \.board-b72b1 \{[^}]*display: flex;[^}]*height: 100%/);
-  assert.match(styles, /\.pgn-chessboard \.row-5277c \{[^}]*display: flex;[^}]*flex: 1 1 12\.5%/);
-  assert.match(styles, /\.pgn-chessboard \.square-55d63 \{[^}]*width: 12\.5% !important;[^}]*height: 100% !important/);
-  assert.match(styles, /\.pgn-chessboard \.piece-417db \{[^}]*width: 100% !important;[^}]*height: 100% !important/);
-  assert.match(styles, /body\.pgn-replayer-page > \.piece-417db \{[^}]*display: none !important/);
-  assert.match(board, /this\.widget\.position\(fen \|\| 'start', false\)/);
-  assert.match(board, /querySelectorAll\('body\.pgn-replayer-page > \.piece-417db'\)/);
+  assert.equal(page('link[href^="/css/caissa-board.css"]').length, 1);
+  assert.equal(page('link[href*="chessboard-1.0.0"]').length, 0);
+  assert.equal(page('script[src*="chessboard-1.0.0"]').length, 0);
+  assert.equal(page('script[src*="pgn-board.js"]').length, 0);
+  assert.match(board, /from '\.\.\/board\/caissa-board-adapter\.js'/);
+  assert.match(board, /interactive: false/);
+  assert.match(board, /readOnly: true/);
+  assert.doesNotMatch(board + styles, /Chessboard\(|board-b72b1|piece-417db|square-55d63/);
 });
 
 test('mobile controls stay compact while the panel owns its internal scrolling', () => {
   const page = load(read('pgn-replayer.html'));
   const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   const styles = read('css/pgn-replayer.css');
-  const firstRow = page('.pgn-toolbar-imports-mobile button, .pgn-toolbar-playback button')
-    .map((_, node) => page(node).attr('data-pgn-open') !== undefined ? 'open'
-      : page(node).attr('data-pgn-paste') !== undefined ? 'paste'
-        : Object.keys(node.attribs).find(key => key.startsWith('data-pgn-'))?.replace('data-pgn-', ''))
-    .get();
+  const primary = page('.pgn-essential-navigation button').map((_, node) =>
+    Object.keys(node.attribs).find(key => /^data-pgn-(previous|play|next)$/.test(key))?.replace('data-pgn-', '')).get();
 
-  assert.deepEqual(firstRow, ['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
+  assert.deepEqual(primary, ['previous', 'play', 'next']);
+  assert.equal(page('[data-pgn-mobile-menu] > summary').text().trim(), 'Menu');
   assert.equal(page('.pgn-panel-actions [data-pgn-engine]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-speed]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-flip]').length, 1);
   assert.equal(page('.pgn-toolbar-view [data-pgn-focus] .pgn-control-label').text(), 'Zoom');
   assert.equal(page('.pgn-board-column + .pgn-panel').length, 1);
-  assert.match(styles, /grid-template-columns: repeat\(7, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /\.pgn-essential-navigation \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /orientation: landscape/);
+  assert.match(styles, /--pgn-landscape-board-size: min\(calc\(100dvh/);
+  assert.match(styles, /\.pgn-workspace \{[^}]*grid-template-columns: minmax\(0, var\(--pgn-landscape-board-size\)\) minmax\(280px, 1fr\)/);
+  assert.match(styles, /\.pgn-topbar \{ display: none; \}/);
   assert.match(styles, /\.pgn-panel-body \[role="tabpanel"\] \{[^}]*overflow: auto/);
   assert.match(runtime, /enginePanels: root\.querySelectorAll/);
   assert.match(runtime, /engineLineGroups: root\.querySelectorAll/);
