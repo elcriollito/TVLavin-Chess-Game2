@@ -1,7 +1,7 @@
 (function installBotsAnalysisExploration(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.2.0';
+    const SCHEMA_VERSION = '1.3.0';
     const ANALYSIS_DEPTH = 14;
     const freeze = value => Object.freeze(value);
     const result = (ok, status, reasonCode, value = null) => freeze({ ok, status, reasonCode, value });
@@ -65,16 +65,28 @@
         if (!active?.engineEnabled) return;
         const state = active; const fen = state.game.fen(); const token = ++engineToken;
         state.engineRequests += 1;
-        state.onAnalysis?.(freeze({ status: 'loading', ...state.lastAnalysis }));
-        const engine = await state.analyze?.ensureAnalysisEngine?.();
-        if (!active || active !== state || !state.engineEnabled || token !== engineToken || !engine) return;
+        state.onAnalysis?.(freeze({ status: 'loading', evaluation: null, mate: null, pv: freeze([]), fen }));
+        let engine = null;
+        try { engine = await state.analyze?.ensureAnalysisEngine?.(); } catch (_) { engine = null; }
+        if (!active || active !== state || !state.engineEnabled || token !== engineToken) return;
+        if (!engine) {
+            state.onAnalysis?.(freeze({ status: 'unavailable', evaluation: null, mate: null,
+                pv: freeze([]), fen }));
+            return;
+        }
         engine.stopAnalysis?.();
-        engine.startAnalysis(fen, info => {
+        const startAnalysis = typeof engine.startAnalysisAttributed === 'function'
+            ? engine.startAnalysisAttributed.bind(engine) : engine.startAnalysis?.bind(engine);
+        const generation = startAnalysis?.(fen, info => {
             if (!active || active !== state || !state.engineEnabled || token !== engineToken || state.game.fen() !== fen) return;
             state.lastAnalysis = freeze({ evaluation: Number.isFinite(info?.score) ? info.score : null,
                 mate: Number.isFinite(info?.mate) ? info.mate : null, pv: freeze(readablePv(fen, info?.pv)) });
-            state.onAnalysis?.(freeze({ status: 'ready', ...state.lastAnalysis }));
+            state.onAnalysis?.(freeze({ status: 'ready', ...state.lastAnalysis, fen }));
         }, ANALYSIS_DEPTH);
+        if (generation === null || generation === false) {
+            state.onAnalysis?.(freeze({ status: 'unavailable', evaluation: null, mate: null,
+                pv: freeze([]), fen }));
+        }
     }
 
     function emitPosition() {
@@ -134,7 +146,7 @@
         if (active.engineEnabled) analyzeCurrentPosition();
         else {
             active.analyze?.analysisEngine?.stopAnalysis?.();
-            active.onAnalysis?.(freeze({ status: 'off', ...active.lastAnalysis }));
+            active.onAnalysis?.(freeze({ status: 'off', ...active.lastAnalysis, fen: active.game.fen() }));
         }
         return result(true, 'accepted', active.engineEnabled ? 'ENGINE_ENABLED' : 'ENGINE_DISABLED', snapshot());
     }

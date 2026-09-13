@@ -102,8 +102,7 @@ test('promotion semantics and canonical Play, FICS, and Analyze isolation remain
     await page.goto('/play/games?simplified=1');
     await expect(page.locator('#promotionModal')).toHaveAttribute('role', 'dialog');
     await expect(page.locator('#promotionModal')).toHaveAttribute('aria-labelledby', 'promotion-title');
-    await expect(page.locator('#chessboard')).toHaveAttribute('aria-description', /tap or drag/i);
-    await expect(page.locator('#chessboard')).not.toHaveAttribute('aria-description', /arrow|square-by-square/i);
+    await expect(page.locator('#chessboard .caissa-board')).toHaveAttribute('aria-description', /read only/i);
     await page.goto('/');
     await expect(page).toHaveURL(/\/play$/);
     await expect(page.locator('#playSection')).toHaveClass(/active/);

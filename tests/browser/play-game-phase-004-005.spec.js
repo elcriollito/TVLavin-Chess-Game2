@@ -92,7 +92,7 @@ test('Play Game transitions through authoritative progress and summary in one pe
     await expect(body.locator('.caissa-games-analysis__loading')).toBeVisible();
     await expect(body).toContainText('Analyzing your game');
     await expect(body).toContainText('Reviewing move 1 of 5');
-    await expect(foot.locator('button:visible')).toHaveText(['New Game', 'Review Game']);
+    await expect(foot.locator('button:visible')).toHaveText(['New Game', 'Start Review']);
     await expect(foot.locator('.caissa-games-analysis__review')).toBeDisabled();
     await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);
     await expect(page.locator('#playSection #chessboard .board-b72b1:visible')).toHaveCount(1);
@@ -126,7 +126,7 @@ test('Play Game transitions through authoritative progress and summary in one pe
     await expect(body.locator('.caissa-games-analysis__name')).toHaveText(['You', 'CAISSA']);
     await expect(body.locator('.caissa-games-analysis__accuracy-value')).toHaveCount(2);
     await expect(body.locator('.caissa-games-analysis__row')).not.toHaveCount(0);
-    await expect(foot.locator('button:visible')).toHaveText(['New Game', 'Review Game']);
+    await expect(foot.locator('button:visible')).toHaveText(['New Game', 'Start Review']);
     expect(await page.evaluate(() => window.App.game.fen())).toBe(completedFen);
 
     const summary = {};

@@ -49,13 +49,49 @@ test('Engine Off preserves its last presentation and navigation creates no reque
         onAnalysis: value => presentations.push(value) });
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(starts, 1); assert.equal(presentations.at(-1).evaluation, .42);
-    api.playMove('e2', 'e4'); await new Promise(resolve => setImmediate(resolve));
+    api.playMove('e2', 'e4');
+    assert.deepEqual({ status: presentations.at(-1).status, evaluation: presentations.at(-1).evaluation,
+        mate: presentations.at(-1).mate, pv: [...presentations.at(-1).pv], fen: presentations.at(-1).fen },
+    { status: 'loading', evaluation: null, mate: null, pv: [], fen: api.getFen() });
+    await new Promise(resolve => setImmediate(resolve));
     assert.equal(starts, 2); api.setEngineEnabled(false);
     const requests = api.getSnapshot().engineRequests; assert.equal(presentations.at(-1).status, 'off');
     assert.equal(presentations.at(-1).evaluation, .42);
     api.first(); api.last(); assert.equal(api.getSnapshot().engineRequests, requests); assert.equal(starts, 2);
     api.setEngineEnabled(true); await new Promise(resolve => setImmediate(resolve));
     assert.equal(starts, 3); api.leave();
+});
+
+test('exploration reuses the canonical engine attributed callback when attribution mode is available', async () => {
+    const { api } = fixture(); const presentations = []; let attributed = 0; let legacy = 0;
+    const engine = {
+        stopAnalysis() {},
+        startAnalysis() { legacy += 1; },
+        startAnalysisAttributed(fen, callback) {
+            attributed += 1; callback({ score: -.27, mate: null, pv: ['g1f3'] }); return 1;
+        }
+    };
+    const analyze = { ensureAnalysisEngine: async () => engine, analysisEngine: engine, teardownAnalysisEngine() {} };
+    const fen = new Chess().fen();
+    api.enter({ fen, analyze, entryReviewPly: 0, onAnalysis: value => presentations.push(value) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(attributed, 1); assert.equal(legacy, 0);
+    assert.deepEqual({ status: presentations.at(-1).status, evaluation: presentations.at(-1).evaluation,
+        fen: presentations.at(-1).fen }, { status: 'ready', evaluation: -.27, fen });
+    api.leave();
+});
+
+test('missing exploration engine resolves loading to an explicit unavailable state for the same FEN', async () => {
+    const { api } = fixture(); const presentations = [];
+    const fen = new Chess().fen();
+    api.enter({ fen, analyze: { ensureAnalysisEngine: async () => null, teardownAnalysisEngine() {} },
+        entryReviewPly: 0, onAnalysis: value => presentations.push(value) });
+    assert.equal(presentations.at(-1).status, 'loading');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual({ status: presentations.at(-1).status, evaluation: presentations.at(-1).evaluation,
+        mate: presentations.at(-1).mate, pv: [...presentations.at(-1).pv], fen: presentations.at(-1).fen },
+    { status: 'unavailable', evaluation: null, mate: null, pv: [], fen });
+    api.leave();
 });
 
 test('Bots presentation excludes technical engine internals and duplicate authoritative state', () => {

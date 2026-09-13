@@ -394,13 +394,13 @@ test('piece movement has one visible owner and programmatic navigation is immedi
     await page.mouse.down();
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 4 });
     const duringDrag = await page.evaluate(() => ({
-        sourceOpacity: getComputedStyle(document.querySelector('#chessboard .square-e2 .piece-417db')).opacity,
+        sourceOpacity: getComputedStyle(document.querySelector('#chessboard .caissa-board__piece[data-square="e2"]')).opacity,
         floating: [...document.querySelectorAll('body > .piece-417db')].filter(node => getComputedStyle(node).display !== 'none').length
     }));
     expect(duringDrag).toEqual({ sourceOpacity: '0', floating: 1 });
     await capture(page, 'final-correction-drag-single-owner-frame');
     await page.mouse.up();
-    await expect(page.locator('#chessboard .square-e4 .piece-417db')).toHaveCount(1);
+    await expect(page.locator('#chessboard .caissa-board__piece[data-square="e4"]')).toHaveCount(1);
     await expect(page.locator('body > .piece-417db:visible')).toHaveCount(0);
 
     const programmatic = await page.evaluate(() => {
@@ -408,7 +408,7 @@ test('piece movement has one visible owner and programmatic navigation is immedi
         return {
             pieces: document.querySelectorAll('#chessboard .piece-417db').length,
             floating: [...document.querySelectorAll('body > .piece-417db')].filter(node => getComputedStyle(node).display !== 'none').length,
-            destination: document.querySelectorAll('#chessboard .square-e3 .piece-417db').length
+            destination: document.querySelectorAll('#chessboard .caissa-board__piece[data-square="e3"]').length
         };
     });
     expect(programmatic).toEqual({ pieces: 32, floating: 0, destination: 1 });

@@ -23,7 +23,7 @@ test('local machine opponent and evaluation remain allowed with one worker', asy
     }));
     expect(proof.policy.counters.allowed).toBeGreaterThanOrEqual(2);
     expect(proof.harness.workersCreated).toBe(1);
-    expect(proof.harness.boardConstructions).toBe(1);
+    expect(proof.harness.boardConstructions).toBe(0);
 });
 
 test('human, FICS, and unknown contexts deny before engine commands or callbacks', async ({ page }) => {

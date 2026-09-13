@@ -71,6 +71,7 @@ export class CaissaBoardAdapter {
     selectSquare(square) { return this.#call('selectSquare', square); }
     clearSelection() { return this.#call('clearSelection'); }
     highlightSquares(items) { return this.#call('highlightSquares', items); }
+    replaceOverlays(state) { return this.#call('replaceOverlays', state); }
     clearHighlights() { return this.#call('clearHighlights'); }
     drawArrow(from, to, options) { return this.#call('drawArrow', from, to, options); }
     clearArrows() { return this.#call('clearArrows'); }
@@ -78,6 +79,8 @@ export class CaissaBoardAdapter {
     flushPending() { return this.#call('flushPending'); }
     getPosition() { return this.#call('getPosition'); }
     getOrientation() { return this.#call('getOrientation'); }
+    getPieceAt(square) { return this.#call('getPieceAt', square); }
+    focus(square) { return this.#call('focus', square); }
 
     getMetrics() {
         return Object.freeze({

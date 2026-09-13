@@ -71,6 +71,7 @@ test('real board pointer selection reaches the adapter before chessboard drag ha
     expect(box).not.toBeNull();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 10, box.y + box.height / 2 + 10);
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().legalTargets))
         .toEqual(['e3', 'e4']);
     await page.mouse.up();
@@ -184,7 +185,7 @@ test('opponent last move follows active play, navigation, Undo, reset, Flip, res
     await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
         .toEqual({ from: 'e7', to: 'e5' });
     await page.evaluate(() => { window.flipBoard(); window.App.board.resize(); });
-    await expect(page.locator('#chessboard')).toHaveAttribute('data-orientation', 'black');
+    await expect(page.locator('#chessboard .caissa-board')).toHaveAttribute('data-orientation', 'black');
     await expect(page.locator('#chessboard .square-e7')).toHaveClass(/caissa-board-last-move/);
     await expect(page.locator('#chessboard .square-e5')).toHaveClass(/caissa-board-last-move/);
 
@@ -231,14 +232,12 @@ for (const mode of MODES.slice(1)) {
         await expect.poll(() => page.evaluate(() => window.App.boardAdapter.getSnapshot().lastMove))
             .toEqual(expected);
         const destination = page.locator(`#chessboard .square-${expected.to}`);
-        const destinationPiece = destination.locator('.piece-417db');
+        const destinationPiece = page.locator(`#chessboard .caissa-board__piece[data-square="${expected.to}"]`);
         await expect(destinationPiece).toBeVisible();
-        const squareZ = await destination.evaluate(node => Number(getComputedStyle(node, '::before').zIndex));
         const pieceStyle = await destinationPiece.evaluate(node => {
             const style = getComputedStyle(node);
-            return { zIndex: Number(style.zIndex), opacity: style.opacity, filter: style.filter };
+            return { opacity: style.opacity, filter: style.filter };
         });
-        expect(pieceStyle.zIndex).toBeGreaterThan(squareZ);
         expect(pieceStyle.opacity).toBe('1');
         expect(['none', '']).toContain(pieceStyle.filter);
     });
@@ -314,7 +313,7 @@ test('Coach Review projects one authoritative selected-ply board contract', asyn
             const activeNotation = document.querySelector('#analyzeMoveList .active');
             return { boardFen: window.App.boardAdapter.getPosition(), projection,
                 lastMove: window.App.boardAdapter.getSnapshot().lastMove,
-                destinationHasPiece: !!document.querySelector(`#chessboard .square-${move.to} .piece-417db`),
+                destinationHasPiece: !!document.querySelector(`#chessboard .caissa-board__piece[data-square="${move.to}"]`),
                 badgeSquare: badge?.parentElement?.className.match(/square-([a-h][1-8])/)?.[1] || null,
                 badgeText: badge?.textContent || '', activeIndex: Number(activeNotation?.dataset.index),
                 head: document.querySelector('[data-coach-narration]')?.textContent || '',
@@ -363,7 +362,7 @@ test('Coach Review projects one authoritative selected-ply board contract', asyn
         analysis.analysisPhase = 'complete'; analysis.updateMoveList(); analysis.jumpToMove(0);
         return { move: { from: move.from, to: move.to }, fenAfter,
             boardFen: window.App.boardAdapter.getPosition(), lastMove: window.App.boardAdapter.getSnapshot().lastMove,
-            promotedPiece: !!document.querySelector('#chessboard .square-a8 .piece-417db'),
+            promotedPiece: !!document.querySelector('#chessboard .caissa-board__piece[data-square="a8"]'),
             badgeSquare: document.querySelector('[data-caissa-coach-move-annotation]')?.parentElement
                 ?.className.match(/square-([a-h][1-8])/)?.[1] || null };
     });

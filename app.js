@@ -103,6 +103,7 @@ const App = {
 
     // Pending promotion
     pendingPromotion: null,
+    boardProjection: null,
     boardAdapter: null,
 
     // Debug mode
@@ -485,7 +486,7 @@ function initBoardWhenReady() {
         if (rect.width >= minBoardSize && rect.height >= minBoardSize) {
             // Container is ready. The adapter owns the widget; App.board remains
             // a temporary method-only compatibility facade for legacy callers.
-            App.boardAdapter = window.CaissaChessboardAdapter.create({
+            App.boardProjection = window.CaissaPlayBoardProjection.create({
                 position: 'start',
                 orientation: App.isFlipped ? 'black' : 'white',
                 draggable: !isTouchMoveDevice(),
@@ -519,13 +520,15 @@ function initBoardWhenReady() {
                     return turn === 'w' ? 'white' : turn === 'b' ? 'black' : null;
                 }
             });
-            const mounted = App.boardAdapter.mount(boardContainer);
+            const mounted = App.boardProjection.mount(boardContainer);
             if (!mounted.ok) {
-                console.error('Play board adapter mount failed:', mounted.reasonCode);
+                console.error('Play board projection mount failed:', mounted.reasonCode);
+                App.boardProjection = null;
                 App.boardAdapter = null;
                 return;
             }
-            App.board = App.boardAdapter.getLegacyFacade();
+            App.boardAdapter = App.boardProjection;
+            App.board = App.boardProjection.getLegacyFacade();
 
             // Ensure game state is initialized to starting position
             App.game.reset();
@@ -540,7 +543,7 @@ function initBoardWhenReady() {
             // Multiple resize calls to ensure proper rendering
             setTimeout(() => {
                 if (App.board) {
-                    App.board.resize();
+                    App.boardProjection.resize();
                     ensureEvalBarLayout();
                     console.log('First resize completed');
                 }
@@ -548,7 +551,7 @@ function initBoardWhenReady() {
 
             setTimeout(() => {
                 if (App.board) {
-                    App.board.resize();
+                    App.boardProjection.resize();
                     ensureEvalBarLayout();
                     const finalRect = boardContainer.getBoundingClientRect();
                     console.log('Board after second resize:', {
@@ -558,12 +561,12 @@ function initBoardWhenReady() {
                     });
 
                     // Force refresh the position
-                    App.board.position('start', false);
+                    projectCanonicalPlayPosition('start', { animate: false, reason: 'initialization' });
 
                     // One final resize to ensure everything is correct
                     setTimeout(() => {
                         if (App.board) {
-                            App.board.resize();
+                            App.boardProjection.resize();
                             ensureEvalBarLayout();
                             console.log('Final resize completed - board should be fully rendered');
                         }
@@ -580,6 +583,19 @@ function initBoardWhenReady() {
 
     // Start checking
     checkAndInit();
+}
+
+function projectCanonicalPlayPosition(position = App.game.fen(), options = {}) {
+    return App.boardProjection?.setPosition(position, options)
+        || { ok: false, status: 'unavailable', reasonCode: 'PLAY_BOARD_NOT_READY' };
+}
+
+function projectCanonicalPlayMove(move, options = {}) {
+    return App.boardProjection?.applyMove(move, {
+        fen: options.fen || App.game.fen(),
+        animate: options.animate !== false,
+        reason: options.reason || 'canonical-move'
+    }) || { ok: false, status: 'unavailable', reasonCode: 'PLAY_BOARD_NOT_READY' };
 }
 
 // ===== ENGINE INITIALIZATION =====
@@ -987,7 +1003,7 @@ function handlePlayBoardSquareSelection(square) {
     clearMobileTapSource();
     if (!moved) {
         if (piece && canStartMoveFrom(square, piece)) markMobileTapSource(square);
-        else if (App.board) App.board.position(App.game.fen());
+        else if (App.boardProjection) projectCanonicalPlayPosition(App.game.fen(), { reason: 'illegal-tap-recovery' });
     }
     return true;
 }
@@ -1015,7 +1031,8 @@ function handleMobileBoardTap(event) {
 }
 
 function onDragStart(source, piece, position, orientation) {
-    if (isTouchMoveDevice()) return false;
+    // Pointer modality is enforced by the renderer's shared drag policy. This
+    // callback receives only an already-approved mouse drag intent.
     if (!canStartMoveFrom(source, piece)) return false;
 
     return true;
@@ -1091,7 +1108,7 @@ function onSnapEnd() {
         unlockScroll();
         return;
     }
-    App.board.position(App.game.fen());
+    projectCanonicalPlayPosition(App.game.fen(), { reason: 'drag-settle' });
     window.dispatchEvent(new CustomEvent('caissa-coach-move-annotation', {
         detail: { active: false, reason: 'board-render' }
     }));
@@ -1110,8 +1127,8 @@ function onMoveMade(move) {
     window.dispatchEvent(new CustomEvent('caissa-coach-hint-clear'));
     App.pendingCoachHint = false;
     App.currentEvaluation = null;
-    // Render only after the authoritative legacy chess state accepted the move.
-    App.board.position(App.game.fen(), false);
+    // Project only after the authoritative chess state accepted the move.
+    projectCanonicalPlayMove(move, { animate: true, reason: 'accepted-move' });
     switchLocalClockAfterMove(move);
 
     // Add move to history
@@ -1202,7 +1219,7 @@ function undoMove() {
     App.currentEvaluation = null;
     App.pendingCoachHint = false;
     document.body?.classList?.remove('caissa-coach-hint-active');
-    App.board.position(App.game.fen(), false);
+    projectCanonicalPlayPosition(App.game.fen(), { animate: false, reason: 'undo' });
     syncLastMovePresentation();
     updateMoveHistory();
     updateStatus();
@@ -1608,7 +1625,7 @@ function makeEngineMove() {
                 if (move) {
                     switchLocalClockAfterMove(move);
                     // Update board and history
-                    App.board.position(App.game.fen());
+                    projectCanonicalPlayMove(move, { reason: 'opening-book-move' });
                     App.moveHistory.push(move);
                     App.currentMoveIndex = App.moveHistory.length - 1;
                     syncLastMovePresentation();
@@ -1691,7 +1708,7 @@ function makeEngineMove() {
 
         if (move) {
             switchLocalClockAfterMove(move);
-            App.board.position(App.game.fen());
+            projectCanonicalPlayMove(move, { reason: 'opponent-move' });
 
             // Add to history
             App.moveHistory.push(move);
@@ -2603,7 +2620,7 @@ function updateNavigationButtons() {
 function navigateToStart() {
     App.game.reset();
     App.currentMoveIndex = -1;
-    App.board.position(App.game.fen());
+    projectCanonicalPlayPosition(App.game.fen(), { reason: 'navigate-start' });
     syncLastMovePresentation();
     updateStatus();
     updateMoveHistory();
@@ -2620,7 +2637,7 @@ function navigateToPrevious() {
     if (App.currentMoveIndex >= 0) {
         App.game.undo();
         App.currentMoveIndex--;
-        App.board.position(App.game.fen());
+        projectCanonicalPlayPosition(App.game.fen(), { reason: 'navigate-previous' });
         syncLastMovePresentation();
         updateStatus();
         updateMoveHistory();
@@ -2637,7 +2654,7 @@ function navigateToNext() {
         const nextMove = App.moveHistory[App.currentMoveIndex + 1];
         App.game.move(nextMove);
         App.currentMoveIndex++;
-        App.board.position(App.game.fen());
+        projectCanonicalPlayMove(nextMove, { reason: 'navigate-next' });
         syncLastMovePresentation();
         updateStatus();
         updateMoveHistory();
@@ -2655,7 +2672,7 @@ function navigateToEnd() {
         App.game.move(nextMove);
         App.currentMoveIndex++;
     }
-    App.board.position(App.game.fen());
+    projectCanonicalPlayPosition(App.game.fen(), { reason: 'navigate-end' });
     syncLastMovePresentation();
     updateStatus();
     updateMoveHistory();
@@ -2677,7 +2694,7 @@ function navigateToMove(index) {
         App.currentMoveIndex++;
     }
     
-    App.board.position(App.game.fen());
+    projectCanonicalPlayPosition(App.game.fen(), { reason: 'navigate-notation' });
     syncLastMovePresentation();
     updateStatus();
     updateMoveHistory();
@@ -3071,8 +3088,8 @@ function prepareNativePlaySetup() {
     if (typeof App.engine?.terminate === 'function') App.engine.terminate('postgame-mode-transition');
     else App.engine?.stop?.();
     App.game.reset();
-    App.board.position('start');
-    App.board.orientation('white');
+    projectCanonicalPlayPosition('start', { reason: 'mode-reset' });
+    App.boardProjection.setOrientation('white');
     clearMobileTapSource();
     App.boardAdapter?.setLastMove(null);
     App.pendingPromotion = null;
@@ -3157,7 +3174,7 @@ function newGame(options = {}) {
         showNotification('Board is still loading. Please try Start Game again in a moment.');
         return false;
     }
-    App.board.position('start');
+    projectCanonicalPlayPosition('start', { reason: 'new-game' });
     clearMobileTapSource();
     App.boardAdapter?.setLastMove(null);
     App.moveHistory = [];
@@ -3202,7 +3219,7 @@ function newGame(options = {}) {
     // session's orientation into Rematch and consecutive same-color games.
     const sessionOrientation = App.playerColor === 'black' ? 'black' : 'white';
     const orientationResult = App.boardAdapter?.setOrientation?.(sessionOrientation);
-    if (!orientationResult?.ok) App.board.orientation(sessionOrientation);
+    if (!orientationResult?.ok) App.boardProjection?.setOrientation(sessionOrientation);
     App.isFlipped = sessionOrientation === 'black';
     syncEvalOrientation();
     
@@ -3395,7 +3412,7 @@ function loadFEN(fen, setAnalysisMode = true) {
         console.log('📝 Resulting position:', App.game.fen());
 
         // Update board to match chess.js state
-        App.board.position(App.game.fen());
+        projectCanonicalPlayPosition(App.game.fen(), { reason: 'fen-load' });
         App.boardAdapter?.setLastMove(null);
 
         // Reset move history
@@ -3479,7 +3496,7 @@ function exportPGN() {
 // ===== BOARD OPERATIONS =====
 function flipBoard() {
     clearMobileTapSource();
-    App.board.flip();
+    App.boardProjection.flip();
 
     // HOTFIX: Toggle flipped state and sync eval bar orientation
     App.isFlipped = !App.isFlipped;
@@ -3497,7 +3514,7 @@ function flipBoard() {
 
     setTimeout(() => {
         try {
-            App.board.resize();
+            App.boardProjection.resize();
             ensureEvalBarLayout();
         } catch (e) {}
     }, 0);
@@ -3758,7 +3775,7 @@ function ensurePlayInitialized(source = 'unknown') {
         initializeBoard();
     } else {
         requestAnimationFrame(() => {
-            App.board?.resize();
+            App.boardProjection?.resize();
             ensureEvalBarLayout();
         });
     }
@@ -4422,7 +4439,7 @@ function setupBoardEditor() {
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', () => {
             if (confirm('Clear all pieces from the board?')) {
-                App.board.position({});
+                projectCanonicalPlayPosition({}, { reason: 'editor-clear' });
                 showNotification('Board cleared');
             }
         });
@@ -4503,7 +4520,7 @@ function handlePromotion(piece) {
     if (context === 'analyze' && window.AnalyzeSection?.isAnalyzeActive?.()) {
         const moved = window.AnalyzeSection.playStudyMove(from, to, piece);
         if (!moved) {
-            App.board.position(App.game.fen());
+            projectCanonicalPlayPosition(App.game.fen(), { reason: 'promotion-recovery' });
         }
         App.pendingPromotion = null;
         hideModal('promotionModal');
@@ -4518,7 +4535,7 @@ function handlePromotion(piece) {
     });
 
     if (result === null) {
-        App.board.position(App.game.fen());
+        projectCanonicalPlayPosition(App.game.fen(), { reason: 'promotion-recovery' });
     } else {
         onMoveMade(result);
     }
@@ -4611,7 +4628,7 @@ function placeEditorPiece(square) {
 
     console.log('🎨 Placing piece on square:', square, 'piece:', App.selectedEditorPiece);
 
-    const position = App.board.position();
+    const position = App.boardProjection.getPositionMap();
 
     if (App.selectedEditorPiece === 'move') {
         // Move/Adjust mode: select source, then destination
@@ -4629,7 +4646,7 @@ function placeEditorPiece(square) {
             const piece = position[App.editorMoveSource];
             delete position[App.editorMoveSource];
             position[square] = piece;
-            App.board.position(position);
+            projectCanonicalPlayPosition(position, { reason: 'editor-move' });
             console.log('🎨 Moved piece from', App.editorMoveSource, 'to', square);
             showNotification(`Moved ${piece} from ${App.editorMoveSource} to ${square}`);
             App.editorMoveSource = null; // Reset for next move
@@ -4637,24 +4654,24 @@ function placeEditorPiece(square) {
     } else if (App.selectedEditorPiece === 'erase') {
         // Remove piece from square
         delete position[square];
-        App.board.position(position);
+        projectCanonicalPlayPosition(position, { reason: 'editor-remove' });
     } else {
         // Place selected piece on square
         position[square] = App.selectedEditorPiece;
-        App.board.position(position);
+        projectCanonicalPlayPosition(position, { reason: 'editor-place' });
     }
 }
 
 // Board Editor: Clear all pieces
 function clearBoardEditor() {
     console.log('🎨 Clearing board');
-    App.board.position({});
+    projectCanonicalPlayPosition({}, { reason: 'editor-clear' });
 }
 
 // Board Editor: Reset to starting position
 function resetBoardEditor() {
     console.log('🎨 Resetting to start position');
-    App.board.start();
+    projectCanonicalPlayPosition('start', { reason: 'editor-reset' });
 }
 
 // Board Editor: Apply position and generate FEN
@@ -4663,7 +4680,7 @@ function applyEditorPosition() {
 
     try {
         // Get current board position
-        const position = App.board.position();
+        const position = App.boardProjection.getPositionMap();
 
         // Get side to move
         const sideToMove = document.querySelector('input[name="sideToMove"]:checked').value;
@@ -4686,7 +4703,7 @@ function applyEditorPosition() {
         const success = App.game.load(fen);
 
         if (success) {
-            App.board.position(App.game.fen());
+            projectCanonicalPlayPosition(App.game.fen(), { reason: 'editor-apply' });
             updateStatus();
             exitEditMode();
             showNotification('Position loaded successfully!');
@@ -4780,7 +4797,7 @@ async function enterEngineVsEngineMode() {
         console.log('🚀 Starting engines...');
         await startEngineVsEngine();
         setTimeout(() => {
-            try { App.board?.resize(); } catch (e) {}
+            try { App.boardProjection?.resize(); } catch (e) {}
         }, 0);
         console.log('✅ Engines started successfully');
     } catch (error) {
@@ -4811,7 +4828,7 @@ function exitEngineVsEngineMode() {
     if (gameMenuPanel) gameMenuPanel.style.display = 'block';
     if (actionsPanel) actionsPanel.style.display = 'block';
     setTimeout(() => {
-        try { App.board?.resize(); } catch (e) {}
+        try { App.boardProjection?.resize(); } catch (e) {}
     }, 0);
 
     showNotification('Engine vs Engine mode disabled.');
@@ -4976,7 +4993,7 @@ async function engineVsEngineLoop(invalidRetryCount = 0) {
                 if (move) {
                     switchLocalClockAfterMove(move);
                     // Update board and history
-                    App.board.position(App.game.fen());
+                    projectCanonicalPlayMove(move, { reason: 'eve-book-move' });
                     App.moveHistory.push(move);
                     App.currentMoveIndex = App.moveHistory.length - 1;
 
@@ -5058,9 +5075,6 @@ async function engineVsEngineLoop(invalidRetryCount = 0) {
         });
 
         if (move) {
-            // Update board
-            App.board.position(App.game.fen());
-
             // Update UI
             onMoveMade(move);
 
@@ -5537,7 +5551,7 @@ async function loadSelectedPGN() {
         console.log('📖 Move history populated:', App.moveHistory.length, 'moves');
 
         // Update board to match chess.js state (final position)
-        App.board.position(App.game.fen());
+        projectCanonicalPlayPosition(App.game.fen(), { reason: 'pgn-load' });
 
         // Update UI
         updateMoveHistory();
@@ -5908,7 +5922,7 @@ function projectCoachReviewBoardAssistance({ fen, move } = {}) {
     if (!document.body?.classList?.contains('caissa-coach-review-summary-active')
         && !document.body?.classList?.contains('caissa-bots-guided-review-active')
         && !document.body?.classList?.contains('caissa-games-guided-review-active')) return false;
-    if (fen) App.board?.position?.(fen, false);
+    if (fen) projectCanonicalPlayPosition(fen, { animate: false, reason: 'review-position' });
     clearMobileTapSource();
     App.boardAdapter?.setLastMove(move?.from && move?.to ? { from: move.from, to: move.to } : null);
     return true;
@@ -5916,7 +5930,7 @@ function projectCoachReviewBoardAssistance({ fen, move } = {}) {
 
 function restorePlayBoardAfterCoachReview() {
     if (!App.game || !App.board) return false;
-    App.board.position(App.game.fen(), false);
+    projectCanonicalPlayPosition(App.game.fen(), { animate: false, reason: 'review-restore' });
     syncLastMovePresentation();
     return true;
 }

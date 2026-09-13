@@ -21,8 +21,8 @@
                 'js/play/bots/bots-review-context.js?v=1.0.0',
                 'js/play/bots-panel.js?v=2.10.0',
                 'js/play/bots/bots-analysis-summary-presentation.js?v=1.4.0',
-                'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.6.0'
+                'js/play/bots/bots-analysis-exploration.js?v=1.3.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.12.0'
             ])
         }),
         'coach-stack': Object.freeze({
@@ -145,15 +145,15 @@
                 'js/analyze-game-import.js?v=1.1.0',
                 'js/play/analyze-opening-evidence.js?v=1.0.0',
                 'js/play/analyze-review-policy-v1-1.js?v=1.1.1',
-                'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.6.0',
+                'js/play/bots/bots-analysis-exploration.js?v=1.3.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.12.0',
                 'js/analyze-section.js?v=1.6.4'
             ] : [
                 'js/analyze-session.js?v=1.0.0', 'js/analyze-setup-draft.js?v=1.0.0',
                 'js/analyze-game-import.js?v=1.1.0',
                 'js/play/analyze-review-policy.js?v=1.0.1',
-                'js/play/bots/bots-analysis-exploration.js?v=1.2.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.6.0',
+                'js/play/bots/bots-analysis-exploration.js?v=1.3.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.12.0',
                 'js/analyze-section.js?v=1.6.4'
             ])
         })

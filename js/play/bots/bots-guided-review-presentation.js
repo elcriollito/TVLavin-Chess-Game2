@@ -1,7 +1,7 @@
 (function installBotsGuidedReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.6.0';
+    const SCHEMA_VERSION = '1.8.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
     let mounted = null;
     let mentorStudyRequested = false;
@@ -40,14 +40,17 @@
     }
 
     function createGuidedModel(input = {}) {
-        const analyze = input.analyze; const index = analyze?.currentMoveIndex;
+        const analyze = input.analyze; const index = Number.isInteger(input.index)
+            ? input.index : analyze?.currentMoveIndex;
         const moves = analyze?.getLoadedMoves?.() || []; const move = moves[index] || '';
         const item = analyze?.analysisResults?.[index] || null;
         if (!Number.isInteger(index) || index < 0 || !move || !item) return freeze({ index: -1,
             quality: 'Review', move: 'Starting position', annotation: '', evaluation: '\u2014',
+            playedMove: null, bestMove: null, bestMoveAvailable: false, bestMovePending: false,
             message: 'Select a move from the notation to review it.', detail: '', nextMoment: findNextReviewMoment(analyze) });
         if (item.unavailable) return freeze({ index, quality: 'Analysis unavailable', move, annotation: '',
-            evaluation: '\u2014', message: 'Complete analysis evidence is unavailable for this move.',
+            evaluation: '\u2014', playedMove: move, bestMove: null, bestMoveAvailable: false, bestMovePending: false,
+            message: 'Complete analysis evidence is unavailable for this move.',
             detail: 'Choose another move to continue.', nextMoment: findNextReviewMoment(analyze) });
         const quality = item.isBestMove === true ? 'Best' : (item.quality || 'Acceptable');
         const playerParity = input.handoff?.payload?.playerColor === 'black' ? 1 : 0;
@@ -72,7 +75,12 @@
             message = `${move} stayed within CAISSA's acceptable range.`;
             detail = 'The completed analysis did not classify this move as a review-worthy error.';
         }
-        return freeze({ index, quality, move, annotation: presentationAnnotation(item), evaluation: formatEvaluation(item),
+        const bestMoveAvailable = item.recommendationAvailable === true && typeof item.bestMoveSan === 'string'
+            && item.bestMoveSan.trim().length > 0;
+        const bestMovePending = analyze?.analysisPhase !== 'complete' && !bestMoveAvailable;
+        return freeze({ index, quality, move, playedMove: move,
+            bestMove: bestMoveAvailable ? item.bestMoveSan : null, bestMoveAvailable, bestMovePending,
+            annotation: presentationAnnotation(item), evaluation: formatEvaluation(item),
             message, detail, nextMoment: findNextReviewMoment(analyze) });
     }
 
@@ -96,9 +104,22 @@
         actions.append(explain, nextMoment);
         const detail = element('p', 'caissa-bots-guided__detail', { 'data-bots-guided-detail': '', 'aria-live': 'polite' });
         detail.hidden = true;
+        const comparison = element('dl', 'caissa-bots-guided__move-comparison', {
+            'data-games-guided-move-comparison': '', 'data-bots-guided-move-comparison': '',
+            'aria-label': 'Played move and analyzed best move'
+        });
+        const playedLabel = element('dt', 'caissa-bots-guided__move-label'); playedLabel.textContent = 'Played';
+        const playedValue = element('dd', 'caissa-bots-guided__move-value', {
+            'data-games-guided-played': '', 'data-bots-guided-played': ''
+        });
+        const bestLabel = element('dt', 'caissa-bots-guided__move-label'); bestLabel.textContent = 'Best';
+        const bestValue = element('dd', 'caissa-bots-guided__move-value', {
+            'data-games-guided-best': '', 'data-bots-guided-best': ''
+        });
+        comparison.append(playedLabel, playedValue, bestLabel, bestValue); comparison.hidden = true;
         const notation = element('div', 'caissa-bots-guided__notation', { 'data-bots-guided-notation': '',
             'aria-label': 'Classified game notation' });
-        body.append(actions, detail, notation);
+        body.append(actions, comparison, detail, notation);
 
         const foot = element('div', 'caissa-bots-guided__foot', { 'data-bots-foot-content': 'guided-review' });
         const navigation = element('div', 'caissa-bots-guided__navigation', { role: 'group', 'aria-label': 'Review move navigation' });
@@ -117,7 +138,8 @@
         analysis.innerHTML = '<span>Analysis</span><i class="fas fa-search" aria-hidden="true"></i>';
         const live = element('span', 'sr-only', { 'aria-live': 'polite' }); secondary.append(newGame, analysis, live);
         foot.append(navigation, secondary);
-        return { head, speech, body, explain, nextMoment, detail, notation, foot, navigation, navButtons,
+        return { head, speech, body, explain, nextMoment, comparison, playedValue, bestValue,
+            detail, notation, foot, navigation, navButtons,
             newGame, analysis, live };
     }
 
@@ -132,13 +154,38 @@
         const title = element('strong', 'caissa-bots-exploration__title'); title.textContent = 'Explore this position';
         const evaluation = element('strong', 'caissa-bots-exploration__evaluation', { 'data-bots-exploration-evaluation': '' });
         evaluation.textContent = '\u2014'; titleRow.append(title, evaluation);
-        const message = element('span', 'caissa-bots-exploration__message');
-        message.textContent = 'Try legal continuations here. Your reviewed game remains unchanged.';
+        const message = element('span', 'caissa-bots-exploration__message', {
+            'data-games-exploration-engine-status': '', 'data-bots-exploration-engine-status': '',
+            role: 'status', 'aria-live': 'polite'
+        });
+        message.textContent = 'Analyzing\u2026';
         const pv = element('span', 'caissa-bots-exploration__pv', { 'data-bots-exploration-pv': '', 'aria-live': 'polite' });
         pv.textContent = 'Principal variation: preparing\u2026'; speech.append(eyebrow, titleRow, message, pv); head.append(avatar, speech);
 
         const body = element('section', 'caissa-bots-exploration', { 'data-bots-analysis-exploration': '',
             'aria-label': 'Game study and temporary position analysis' });
+        const evidence = element('section', 'caissa-bots-exploration__evidence', {
+            'data-games-exploration-review-evidence': '', 'data-bots-exploration-review-evidence': '',
+            'aria-label': 'Reviewed move evidence'
+        });
+        const evidenceGrid = element('dl', 'caissa-bots-exploration__evidence-grid');
+        const evidenceFields = {};
+        [['classification', 'Classification'], ['played', 'Played'], ['best', 'Best'], ['evaluation', 'Review eval']]
+            .forEach(([key, label]) => {
+                const attributeKey = key === 'evaluation' ? 'review-evaluation' : key;
+                const item = element('div', 'caissa-bots-exploration__evidence-field');
+                const term = element('dt', 'caissa-bots-exploration__evidence-label'); term.textContent = label;
+                const value = element('dd', 'caissa-bots-exploration__evidence-value', {
+                    [`data-games-exploration-${attributeKey}`]: '', [`data-bots-exploration-${attributeKey}`]: ''
+                });
+                value.textContent = 'Not available'; evidenceFields[key] = value; item.append(term, value);
+                evidenceGrid.append(item);
+            });
+        const commentary = element('p', 'caissa-bots-exploration__commentary', {
+            'data-games-exploration-commentary': '', 'data-bots-exploration-commentary': ''
+        });
+        commentary.textContent = 'Reviewed move evidence is not available for this position.';
+        evidence.append(evidenceGrid, commentary);
         const sourceSection = element('section', 'caissa-bots-exploration__line');
         const sourceTitle = element('h3', 'caissa-bots-exploration__line-title'); sourceTitle.textContent = 'Game moves (study)';
         const sourceNotation = element('div', 'caissa-bots-exploration__notation', {
@@ -149,7 +196,7 @@
         const variationTitle = element('h3', 'caissa-bots-exploration__line-title'); variationTitle.textContent = 'Analysis variation';
         const notation = element('div', 'caissa-bots-exploration__notation', { 'data-bots-exploration-notation': '',
             'aria-label': 'Temporary exploration notation', 'aria-live': 'polite' });
-        variationSection.append(variationTitle, notation); body.append(sourceSection, variationSection);
+        variationSection.append(variationTitle, notation); body.append(evidence, sourceSection, variationSection);
 
         const foot = element('div', 'caissa-bots-exploration__foot', { 'data-bots-foot-content': 'analysis-exploration' });
         const navigation = element('div', 'caissa-bots-exploration__navigation', { role: 'group',
@@ -172,8 +219,8 @@
         engine.innerHTML = '<span class="caissa-bots-exploration__led" aria-hidden="true"></span>'
             + '<span data-bots-exploration-engine-label>Engine Off</span>';
         actions.append(back, engine); foot.append(navigation, actions);
-        return { head, evaluation, pv, body, sourceNotation, variationSection, notation,
-            foot, navigation, navButtons, back, engine };
+        return { head, evaluation, message, pv, body, evidence, evidenceFields, commentary,
+            sourceNotation, variationSection, notation, foot, navigation, navButtons, back, engine };
     }
 
     function renderHead(model) {
@@ -213,6 +260,14 @@
         mounted.ui.notation.replaceChildren(fragment);
     }
 
+    function revealWithinScroller(node, scroller) {
+        if (!node || !scroller) return;
+        const item = node.getBoundingClientRect?.(); const owner = scroller.getBoundingClientRect?.();
+        if (!item || !owner) return;
+        if (item.top < owner.top) scroller.scrollTop -= owner.top - item.top;
+        else if (item.bottom > owner.bottom) scroller.scrollTop += item.bottom - owner.bottom;
+    }
+
     function syncEvaluationRail(item, beforeMove = false) {
         const rail = root.CaissaEvaluationRailInstance; if (!rail) return false;
         if (rail.getSnapshot?.().displayMode !== 'post-game') rail.setMode?.('post-game');
@@ -230,6 +285,10 @@
         if (!mounted) return;
         const model = createGuidedModel({ analyze: mounted.analyze, handoff: mounted.handoff }); mounted.model = model;
         mounted.ui.body.dataset.authoritativePly = String(model.index); renderHead(model); renderNotation();
+        mounted.ui.comparison.hidden = model.index < 0;
+        mounted.ui.playedValue.textContent = model.playedMove || '\u2014';
+        mounted.ui.bestValue.textContent = model.bestMoveAvailable ? model.bestMove
+            : model.bestMovePending ? 'Analyzing\u2026' : 'Not available';
         mounted.ui.detail.textContent = model.detail;
         mounted.ui.detail.hidden = !mounted.explanationExpanded || !model.detail;
         mounted.ui.explain.setAttribute('aria-expanded', String(mounted.explanationExpanded));
@@ -241,12 +300,45 @@
         mounted.ui.navButtons.last.disabled = model.index >= last;
         syncEvaluationRail(model.index < 0 ? mounted.analyze.analysisResults?.[0]
             : mounted.analyze.analysisResults?.[model.index], model.index < 0);
-        mounted.ui.notation.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
+        revealWithinScroller(mounted.ui.notation.querySelector('[aria-current="move"]'),
+            mounted.ui.body.closest('.caissa-games-panel__body, .caissa-bots-panel__body'));
     }
 
     function navigate(index) {
         if (!mounted || !Number.isInteger(index)) return;
         mounted.explanationExpanded = false; mounted.analyze.jumpToMove(index); update();
+    }
+
+    function syncReviewNavigationPlacement() {
+        if (!mounted?.ui?.navigation) return;
+        const shell = root.document.querySelector('[data-caissa-simplified-shell]');
+        const phoneLayout = shell?.dataset.layout?.startsWith('phone-');
+        const phoneReview = mounted.phase === 'guided-review'
+            && phoneLayout;
+        const phoneExploration = mounted.phase === 'analysis-exploration' && phoneLayout;
+        const boardStage = shell?.querySelector('.caissa-simplified-shell__board-stage');
+        const destination = phoneReview
+            ? boardStage
+            : mounted.ui.foot;
+        if (destination && mounted.ui.navigation.parentNode !== destination) {
+            if (phoneReview) destination.append(mounted.ui.navigation);
+            else destination.prepend(mounted.ui.navigation);
+        }
+        mounted.ui.navigation.toggleAttribute('data-mobile-review-navigation', phoneReview);
+        const explorationDestination = phoneExploration ? boardStage : mounted.exploration?.foot;
+        if (mounted.exploration?.navigation && explorationDestination
+            && mounted.exploration.navigation.parentNode !== explorationDestination) {
+            if (phoneExploration) explorationDestination.append(mounted.exploration.navigation);
+            else explorationDestination.prepend(mounted.exploration.navigation);
+        }
+        mounted.exploration?.navigation?.toggleAttribute('data-mobile-review-navigation', phoneExploration);
+        if (phoneLayout) {
+            for (const scrollOwner of [root.document.querySelector('.content-area'),
+                root.document.getElementById('playSection')]) {
+                if (scrollOwner?.scrollTop) scrollOwner.scrollTop = 0;
+            }
+            if (root.scrollY) root.scrollTo?.(0, 0);
+        }
     }
 
     function captureReviewState() {
@@ -266,23 +358,65 @@
     function renderExplorationAnalysis(info = {}) {
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
         mounted.explorationAnalysis = freeze({ evaluation: info.evaluation, mate: info.mate,
-            pv: freeze([...(info.pv || [])]), status: info.status || 'unknown' });
-        const ui = mounted.exploration; const hasEvaluation = Number.isFinite(info.mate) || Number.isFinite(info.evaluation);
-        if (Number.isFinite(info.mate)) ui.evaluation.textContent = info.mate > 0 ? `M+${info.mate}` : `M${info.mate}`;
+            pv: freeze([...(info.pv || [])]), status: info.status || 'unknown', fen: info.fen || null });
+        const ui = mounted.exploration; const status = info.status || 'unknown';
+        const hasEvaluation = Number.isFinite(info.mate) || Number.isFinite(info.evaluation);
+        const statusText = status === 'loading' ? 'Analyzing\u2026'
+            : status === 'unavailable' ? 'Not available'
+                : status === 'off' ? 'Engine Off' : status === 'ready' ? 'Engine ready' : 'Not available';
+        ui.message.textContent = statusText;
+        ui.evidence.dataset.engineStatus = status;
+        ui.evidence.dataset.engineFen = info.fen || '';
+        if (status === 'loading') ui.evaluation.textContent = 'Analyzing\u2026';
+        else if (status === 'unavailable') ui.evaluation.textContent = 'Not available';
+        else if (status === 'off') ui.evaluation.textContent = 'Engine Off';
+        else if (Number.isFinite(info.mate)) ui.evaluation.textContent = info.mate > 0 ? `M+${info.mate}` : `M${info.mate}`;
         else if (Number.isFinite(info.evaluation))
             ui.evaluation.textContent = `${info.evaluation >= 0 ? '+' : ''}${info.evaluation.toFixed(2)}`;
-        else if (!hasEvaluation && info.status !== 'off') ui.evaluation.textContent = '\u2014';
-        if (info.pv?.length) ui.pv.textContent = `Principal variation: ${info.pv.join(' ')}`;
-        else if (info.status === 'loading') ui.pv.textContent = 'Principal variation: preparing\u2026';
-        else if (info.status !== 'off') ui.pv.textContent = 'Principal variation: unavailable.';
+        else if (!hasEvaluation) ui.evaluation.textContent = 'Not available';
+        if (status === 'loading') ui.pv.textContent = 'Principal variation: Analyzing\u2026';
+        else if (status === 'unavailable') ui.pv.textContent = 'Principal variation: Not available';
+        else if (status === 'off') ui.pv.textContent = 'Principal variation: Engine Off';
+        else if (info.pv?.length) ui.pv.textContent = `Principal variation: ${info.pv.join(' ')}`;
+        else ui.pv.textContent = 'Principal variation: Not available';
         const rail = root.CaissaEvaluationRailInstance;
-        if (rail && info.status === 'ready') {
+        if (rail && status === 'ready') {
             if (rail.getSnapshot?.().displayMode !== 'post-game') rail.setMode?.('post-game');
             if (Number.isFinite(info.mate) && info.mate !== 0) rail.setMate?.(info.mate, { source: 'bots-analysis-exploration' });
             else if (Number.isFinite(info.evaluation)) rail.setEvaluation?.(info.evaluation * 100,
                 { source: 'bots-analysis-exploration' });
         }
         syncMentorContext();
+    }
+
+    function renderExplorationEvidence(state) {
+        if (!mounted?.exploration?.evidence || !state) return;
+        const ui = mounted.exploration; const sourcePly = state.mode === 'source' ? state.sourceCursor - 1 : null;
+        const canonical = Number.isInteger(sourcePly) && sourcePly >= 0
+            ? createGuidedModel({ analyze: mounted.analyze, handoff: mounted.handoff, index: sourcePly }) : null;
+        const available = canonical?.index === sourcePly;
+        ui.evidence.dataset.authoritativePly = available ? String(sourcePly) : 'not-available';
+        ui.evidence.dataset.authoritativeFen = state.currentFen || '';
+        ui.evidence.dataset.positionMode = state.mode || 'unknown';
+        ui.evidenceFields.classification.textContent = available ? canonical.quality : 'Not available';
+        ui.evidenceFields.played.textContent = available ? canonical.playedMove || 'Not available' : 'Not available';
+        ui.evidenceFields.best.textContent = available
+            ? canonical.bestMoveAvailable ? canonical.bestMove
+                : canonical.bestMovePending ? 'Analyzing\u2026' : 'Not available'
+            : 'Not available';
+        ui.evidenceFields.evaluation.textContent = available && canonical.evaluation !== '\u2014'
+            ? canonical.evaluation : 'Not available';
+        ui.commentary.textContent = available ? canonical.message
+            : state.mode === 'temporary'
+                ? 'Completed-game Played, Best, and classification evidence: Not available for this analysis line.'
+                : 'Starting position. Reviewed move evidence is not available.';
+        mounted.explorationEvidence = freeze({ sourcePly: available ? sourcePly : null,
+            fen: state.currentFen || null, mode: state.mode || null,
+            classification: available ? canonical.quality : null,
+            playedMove: available ? canonical.playedMove : null,
+            bestMove: available && canonical.bestMoveAvailable ? canonical.bestMove : null,
+            reviewEvaluation: available ? canonical.evaluation : null,
+            commentary: ui.commentary.textContent });
     }
 
     function mentorEvidence() {
@@ -351,11 +485,13 @@
             });
         };
         const sourceLine = owner?.getSourceLine?.() || []; const line = owner?.getLine?.() || [];
+        renderExplorationEvidence(state);
         renderLine(ui.sourceNotation, sourceLine, 'source'); renderLine(ui.notation, line, 'temporary');
         ui.variationSection.hidden = line.length === 0;
         ui.navButtons.first.disabled = !state || state.atFirst; ui.navButtons.previous.disabled = !state || state.atFirst;
         ui.navButtons.next.disabled = !state || state.atLast; ui.navButtons.last.disabled = !state || state.atLast;
-        ui.body.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
+        revealWithinScroller(ui.body.querySelector('[aria-current="move"]'),
+            ui.body.closest('.caissa-games-panel__body, .caissa-bots-panel__body'));
         syncMentorContext();
     }
 
@@ -373,6 +509,7 @@
         if (!Number.isInteger(anchor) || !projection?.fen) return;
         mounted.entryReviewState = captureReviewState();
         mounted.phase = 'analysis-exploration'; mounted.entryReviewPly = anchor;
+        syncReviewNavigationPlacement();
         mounted.mentorSharing = options.mentor === true;
         const shown = mounted.panel.present({ phase: 'analysis-exploration',
             head: mounted.exploration.head, content: mounted.exploration.body, foot: mounted.exploration.foot });
@@ -391,23 +528,25 @@
             restore: () => mounted?.analyze?.jumpToMove?.(anchor) });
         if (!entered?.ok) { mounted.phase = 'guided-review';
             mounted.panel.present({ phase: 'guided-review', head: mounted.ui.head,
-                content: mounted.ui.body, foot: mounted.ui.foot }); update(); return; }
+                content: mounted.ui.body, foot: mounted.ui.foot }); syncReviewNavigationPlacement(); update(); return; }
         syncExplorationEngine(); renderExplorationPosition();
         if (mounted.mentorSharing && syncMentorContext()) root.CaissaMentorFloatingShell?.open?.();
-        else mounted.exploration.back?.focus?.();
+        else mounted.exploration.back?.focus?.({ preventScroll: true });
+        syncReviewNavigationPlacement();
     }
 
     function leaveExploration() {
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
         const anchor = mounted.entryReviewPly; stopMentorSharing(); root.CaissaBotsAnalysisExploration?.leave?.();
         mounted.phase = 'guided-review'; mounted.entryReviewPly = null;
+        syncReviewNavigationPlacement();
         mounted.panel.present({ phase: 'guided-review', head: mounted.ui.head,
             content: mounted.ui.body, foot: mounted.ui.foot });
         mounted.analyze.jumpToMove(anchor); update();
         const restored = captureReviewState();
         mounted.lastRestoration = freeze({ before: mounted.entryReviewState, after: restored,
             exact: JSON.stringify(mounted.entryReviewState) === JSON.stringify(restored) });
-        mounted.entryReviewState = null; mounted.ui.analysis.focus?.();
+        mounted.entryReviewState = null; mounted.ui.analysis.focus?.({ preventScroll: true });
     }
 
     function enter(options = {}) {
@@ -426,9 +565,10 @@
         mounted = { context: options.context, handoff: options.handoff, analyze: options.analyze, ui, exploration,
             model: null, explanationExpanded: false, pgn: options.handoff?.payload?.pgn || null,
             history: freeze([...(options.analyze.getLoadedMoves?.() || [])]), phase: 'guided-review', entryReviewPly: null,
-            mentorSharing: false, explorationAnalysis: null, product, panel,
+            mentorSharing: false, explorationAnalysis: null, explorationEvidence: null, product, panel,
             entryReviewState: null, lastRestoration: null };
         root.document.body.classList.add(`caissa-${product}-guided-review-active`);
+        syncReviewNavigationPlacement();
         ui.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; update(); });
         ui.nextMoment.addEventListener('click', () => { const target = findNextReviewMoment(mounted?.analyze);
@@ -465,8 +605,9 @@
         });
         root.addEventListener(`caissa:${product}-review-ply-change`, update);
         root.addEventListener('caissa:mentor-context-cleared', handleMentorContextCleared);
+        root.addEventListener('resize', syncReviewNavigationPlacement);
         options.analyze.jumpToMove(0); update();
-        if (options.mentorStudy === true) enterExploration({ mentor: true }); else ui.explain.focus?.();
+        if (options.mentorStudy === true) enterExploration({ mentor: true }); else ui.explain.focus?.({ preventScroll: true });
         return result(true, 'accepted', `${product.toUpperCase()}_GUIDED_REVIEW_MOUNTED`, getSnapshot());
     }
 
@@ -486,10 +627,13 @@
     function unmount() {
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
         const product = mounted.product;
+        const wasExploration = mounted.phase === 'analysis-exploration';
+        mounted.phase = 'unmounting'; syncReviewNavigationPlacement();
         stopMentorSharing();
-        if (mounted.phase === 'analysis-exploration') root.CaissaBotsAnalysisExploration?.leave?.();
+        if (wasExploration) root.CaissaBotsAnalysisExploration?.leave?.();
         root.removeEventListener(`caissa:${product}-review-ply-change`, update);
         root.removeEventListener('caissa:mentor-context-cleared', handleMentorContextCleared);
+        root.removeEventListener('resize', syncReviewNavigationPlacement);
         if (product === 'games') {
             mounted.exploration.head.remove(); mounted.exploration.body.remove(); mounted.exploration.foot.remove();
         }
@@ -507,6 +651,7 @@
             entryReviewState: mounted?.entryReviewState || null,
             lastRestoration: mounted?.lastRestoration || null,
             mentorActive: mounted?.mentorSharing === true, mentorStudyRequested,
+            explorationEvidence: mounted?.explorationEvidence || null,
             exploration: root.CaissaBotsAnalysisExploration?.getSnapshot?.() || null,
             reviewMoments: mounted ? findReviewMoments(mounted.analyze) : [] });
     }

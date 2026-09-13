@@ -11,7 +11,7 @@ test('lifecycle loads passively and derives idle then active Play', async ({ pag
     });
     expect(before.result.snapshot.state).toBe('idle');
     expect(before.h.workersCreated).toBe(1);
-    expect(before.h.boardConstructions).toBe(1);
+    expect(before.h.boardConstructions).toBe(0);
     expect(before.lifecycle.historySize).toBe(1);
 });
 

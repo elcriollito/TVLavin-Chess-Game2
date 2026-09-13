@@ -95,7 +95,7 @@ test('static guardrails exclude Worker, routing, storage, eval, arbitrary import
 test('entry points keep critical resources eager and deferred groups out of executable script tags', async () => {
     for(const page of ['index.html','yahoo-classic.html']){
         const html=await readFile(new URL(`../../${page}`,import.meta.url),'utf8');
-        for(const critical of ['chessboard-adapter.js','evaluation-rail.js','games-panel.js','play-lazy-loader.js','simplified-play-shell.js']) assert.equal(html.includes(critical),true);
+        for(const critical of ['play-board-projection.js','evaluation-rail.js','games-panel.js','play-lazy-loader.js','simplified-play-shell.js']) assert.equal(html.includes(critical),true);
         assert.doesNotMatch(html,/<script src="js\/play\/(?:bots\/|coach\/|players\/(?:presence|player-presence|challenge|human-play)|bots-panel|coach-panel|players-panel)/);
     }
 });

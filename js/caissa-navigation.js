@@ -292,8 +292,8 @@ const CaissaNavigation = {
                 if (sectionId === 'play' && typeof window.ensurePlayInitialized === 'function') {
                     window.ensurePlayInitialized('navigation-enter');
                 }
-                if (window.App && App.board) {
-                    App.board.resize();
+                if (window.App && App.boardProjection) {
+                    App.boardProjection.resize();
                     console.log('[CAISSA Nav] Board resized on section enter');
                 }
                 if (sectionId === 'arena' && window.CaissaArena?.board) {
@@ -331,9 +331,9 @@ const CaissaNavigation = {
             boardDestination.insertBefore(boardEl, boardDestination.firstChild);
 
             // Trigger board resize/redraw
-            if (window.App && App.board) {
+            if (window.App && App.boardProjection) {
                 setTimeout(() => {
-                    App.board.resize();
+                    App.boardProjection.resize();
                     console.log('[CAISSA Nav] Board resized');
                 }, 100);
             }
@@ -382,8 +382,8 @@ const CaissaNavigation = {
 
         // Resize board after layout change
         setTimeout(() => {
-            if (window.App && App.board) {
-                App.board.resize();
+            if (window.App && App.boardProjection) {
+                App.boardProjection.resize();
             }
         }, 350); // After transition
 

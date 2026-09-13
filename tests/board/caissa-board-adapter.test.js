@@ -15,6 +15,7 @@ function fakeHarness() {
         selectSquare(...args) { calls.push(['selectSquare', ...args]); return 'select'; }
         clearSelection(...args) { calls.push(['clearSelection', ...args]); return 'clear-selection'; }
         highlightSquares(...args) { calls.push(['highlightSquares', ...args]); return 'highlight'; }
+        replaceOverlays(...args) { calls.push(['replaceOverlays', ...args]); return 'replace-overlays'; }
         clearHighlights(...args) { calls.push(['clearHighlights', ...args]); return 'clear-highlights'; }
         drawArrow(...args) { calls.push(['drawArrow', ...args]); return 'arrow'; }
         clearArrows(...args) { calls.push(['clearArrows', ...args]); return 'clear-arrows'; }
@@ -22,6 +23,8 @@ function fakeHarness() {
         flushPending(...args) { calls.push(['flushPending', ...args]); return 'flush'; }
         getPosition() { return { placement: '8/8/8/8/8/8/8/8' }; }
         getOrientation() { return 'white'; }
+        getPieceAt(square) { return { square, code: 'wP' }; }
+        focus(square) { calls.push(['focus', square]); return 'focus'; }
         getMetrics() { return { squareCount: 64 }; }
         destroy() { calls.push(['destroy']); return { ok: true }; }
     }
@@ -41,12 +44,15 @@ test('adapter exposes the approved stable API and forwards presentation calls', 
     assert.equal(adapter.selectSquare('e2'), 'select');
     assert.equal(adapter.clearSelection(), 'clear-selection');
     assert.equal(adapter.highlightSquares(['e4']), 'highlight');
+    assert.equal(adapter.replaceOverlays({ selection: 'e2', highlights: [] }), 'replace-overlays');
     assert.equal(adapter.clearHighlights(), 'clear-highlights');
     assert.equal(adapter.drawArrow('e2', 'e4'), 'arrow');
     assert.equal(adapter.clearArrows(), 'clear-arrows');
     assert.equal(adapter.resize(), 'resize');
     assert.equal(adapter.flushPending(), 'flush');
     assert.equal(adapter.getOrientation(), 'white');
+    assert.deepEqual(adapter.getPieceAt('e2'), { square: 'e2', code: 'wP' });
+    assert.equal(adapter.focus('e2'), 'focus');
     assert.equal(adapter.getMetrics().renderer.squareCount, 64);
     assert.equal(fake.calls[0][1], container);
     assert.equal(adapter.destroy().ok, true);

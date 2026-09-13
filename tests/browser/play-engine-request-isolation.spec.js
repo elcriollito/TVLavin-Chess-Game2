@@ -36,7 +36,7 @@ test('isolation API is passive and existing namespaces and resources remain stab
     expect(proof.schemaVersion).toBe('1.0.0');
     expect(proof.after).toEqual(proof.before);
     expect(proof.before.workersCreated).toBe(0);
-    expect(proof.before.boardConstructions).toBe(1);
+    expect(proof.before.boardConstructions).toBe(0);
     expect(proof).toMatchObject({
         compatibilitySame: true,
         recordsSame: true,

@@ -22,7 +22,7 @@ test('protected architecture, dependencies, and lockfile remain outside this reg
     assert.deepEqual(pkg.devDependencies, baseline.devDependencies);
 });
 
-test('only the three documented browser characterization skips exist and no only marker exists', () => {
+test('only the remaining documented browser characterization skip exists and no only marker exists', () => {
     const browser = walk(path.join(root, 'tests/browser')).filter(file => file.endsWith('.spec.js'));
     const skips = [];
     for (const file of browser) {
@@ -31,9 +31,7 @@ test('only the three documented browser characterization skips exist and no only
         for (const match of source.matchAll(/\btest\.skip\s*\(\s*(['"`])([^\n]+?)\1/g)) skips.push(match[2]);
     }
     assert.deepEqual(skips.sort(), [
-        'modal focus trap and visible-focus styling — no reliable legacy focus-trap contract',
-        'repetition and fifty-move Play sequences — legacy Play has no public history injection',
-        'square-by-square keyboard chess play — adapter currently provides board-level focus only'
+        'repetition and fifty-move Play sequences — legacy Play has no public history injection'
     ].sort());
 });
 

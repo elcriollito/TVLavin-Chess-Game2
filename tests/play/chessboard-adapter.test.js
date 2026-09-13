@@ -1,195 +1,137 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import { create, PlayBoardProjection } from '../../js/play/play-board-projection.js';
+import legacyModule from '../../js/play/chessboard-adapter.js';
 
-const source = fs.readFileSync(new URL('../../js/play/chessboard-adapter.js', import.meta.url), 'utf8');
+const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-class Element {
-    constructor(id = '') {
-        this.id = id; this.attrs = {}; this.listeners = new Map(); this.nodes = new Map();
-        this.classList = { add() {}, remove() {} };
-    }
-    addEventListener(type, handler) { this.listeners.set(type, handler); }
-    removeEventListener(type) { this.listeners.delete(type); }
-    setAttribute(key, value) { this.attrs[key] = String(value); }
-    getAttribute(key) { return this.attrs[key] ?? null; }
-    getBoundingClientRect() { return { width: 400, height: 400 }; }
-    querySelector() { return null; }
-    querySelectorAll() { return []; }
-    focus() { this.focused = true; }
+function ok(status = 'accepted', reasonCode = 'OK', value = null) {
+    return Object.freeze({ ok: true, status, reasonCode, value });
 }
 
 function fixture(options = {}) {
-    const root = new Element('chessboard');
-    const document = new Element();
-    document.getElementById = id => id === 'chessboard' ? root : null;
-    const log = { factories: 0, positions: [], animations: [], orientations: [], resizes: 0, destroys: 0, config: null };
-    const boardFactory = (_, config) => {
-        log.factories += 1; log.config = config;
-        let widgetPosition = { e2: 'wP' };
-        return {
-            position(value, animate) {
-                if (arguments.length === 0) return widgetPosition;
-                log.positions.push(value); log.animations.push(animate);
-                widgetPosition = typeof value === 'object' ? { ...value } : value;
-            },
-            orientation(value) { log.orientations.push(value); },
-            resize() { log.resizes += 1; },
-            destroy() { log.destroys += 1; }
-        };
+    const calls = [];
+    let configured;
+    let generation = 0;
+    let orientation = 'white';
+    let pieces = [{ square: 'e2', code: 'wP', color: 'white', type: 'P', id: 'caissa-wP-1' }];
+    const adapter = {
+        setPosition(fen, config) {
+            calls.push(['setPosition', fen, config]);
+            if (options.rejectPosition) return { ok: false, status: 'rejected', reasonCode: 'BAD' };
+            generation += 1;
+            return ok('accepted', 'POSITION_APPLIED', fen);
+        },
+        applyMove(move, config) {
+            calls.push(['applyMove', move, config]);
+            if (options.rejectMove) return { ok: false, status: 'rejected', reasonCode: 'MISMATCH' };
+            generation += 1;
+            pieces = pieces.map(piece => piece.square === move.from ? { ...piece, square: move.to } : piece);
+            return ok('accepted', 'SEMANTIC_MOVE_APPLIED', config.fen);
+        },
+        setOrientation(value) { calls.push(['setOrientation', value]); orientation = value; return ok('accepted', 'ORIENTATION_CHANGED', value); },
+        setInteractive(value) { calls.push(['setInteractive', value]); return ok(); },
+        replaceOverlays(value) { calls.push(['replaceOverlays', value]); return ok(); },
+        resize() { calls.push(['resize']); return ok(); },
+        focus(square) { calls.push(['focus', square]); return ok('accepted', 'BOARD_FOCUSED', square || 'a1'); },
+        getPieceAt(square) { return pieces.find(piece => piece.square === square) || null; },
+        getPosition() { return { pieces }; },
+        getMetrics() { return { renderer: { rendererId: 'persistent-1', generation, resizeChecks: 0, squareCount: 64, orientation } }; },
+        destroy() { calls.push(['destroy']); return ok(); }
     };
-    const window = new Element();
-    Object.assign(window, { document, setTimeout, clearTimeout,
-        matchMedia: query => ({ matches: options.reducedMotion === true && query.includes('reduced-motion') }) });
-    vm.runInNewContext(source, { window, globalThis: window });
-    const adapter = window.CaissaChessboardAdapter.create({ boardFactory, ...options });
-    return { api: window.CaissaChessboardAdapter, adapter, root, document, window, log };
+    const adapterFactory = (container, input) => {
+        calls.push(['create', container]);
+        configured = input;
+        return adapter;
+    };
+    const container = {
+        id: 'chessboard', appendChild() {}, addEventListener() {}, removeEventListener() {},
+        querySelector() { return null; }, querySelectorAll() { return []; },
+        getBoundingClientRect() { return { width: 400, height: 400 }; }
+    };
+    const projection = create({ position: START, adapterFactory, ...options });
+    return { projection, container, calls, configured: () => configured };
 }
 
-test('publishes frozen versioned vocabularies and creates independent adapters', () => {
-    const { api } = fixture();
-    assert.equal(api.schemaVersion, '1.0.0');
-    assert.equal(api.snapshotSchemaVersion, '1.0.0');
-    assert.ok(Object.isFrozen(api));
-    assert.ok(Object.isFrozen(api.events));
-    assert.notEqual(api.create({}), api.create({}));
+test('publishes the versioned persistent Play seam and keeps the former module path as an alias', () => {
+    assert.equal(globalThis.CaissaPlayBoardProjection.schemaVersion, '2.0.0');
+    assert.equal(globalThis.CaissaChessboardAdapter, globalThis.CaissaPlayBoardProjection);
+    assert.equal(legacyModule, globalThis.CaissaPlayBoardProjection);
+    assert.ok(create({}) instanceof PlayBoardProjection);
 });
 
-test('mount is idempotent, rejects another container, and creates exactly one widget', () => {
+test('mount constructs exactly one persistent adapter with independent Play input policies', () => {
     const f = fixture();
-    assert.equal(f.adapter.mount('chessboard').status, 'accepted');
-    assert.equal(f.adapter.mount(f.root).status, 'unchanged');
-    assert.equal(f.adapter.mount(new Element('other')).reasonCode, 'DIFFERENT_CONTAINER');
-    assert.equal(f.log.factories, 1);
-    assert.equal(f.adapter.inspect().listenerCount, 7);
+    assert.equal(f.projection.mount(f.container).status, 'accepted');
+    assert.equal(f.projection.mount(f.container).status, 'unchanged');
+    assert.equal(f.calls.filter(call => call[0] === 'create').length, 1);
+    assert.equal(f.configured().tapPolicy, 'intent-only');
+    assert.equal(f.configured().dragPolicy, 'mouse');
+    assert.equal(f.configured().keyboardPolicy, 'enabled');
+    assert.equal(f.projection.getSnapshot().renderer, 'CaissaPersistentRenderer');
 });
 
-test('snapshot is deeply frozen, detached, serializable, and has no widget or callbacks', () => {
-    const f = fixture({ getActiveColor: () => 'white' });
-    f.adapter.mount(f.root);
-    const snapshot = f.adapter.getSnapshot();
-    assert.equal(snapshot.mounted, true);
-    assert.equal(snapshot.squareSize, 50);
-    assert.equal(snapshot.accessibility.activeColor, 'white');
-    assert.ok(Object.isFrozen(snapshot));
-    assert.ok(Object.isFrozen(snapshot.accessibility));
-    assert.doesNotMatch(JSON.stringify(snapshot), /widget|callback|boardFactory/);
-});
-
-test('position rendering is presentation-only, validated, and idempotent', () => {
+test('semantic moves carry capture, en-passant, castling and promotion intent with canonical FEN', () => {
     const f = fixture();
-    f.adapter.mount(f.root);
-    assert.equal(f.adapter.setPosition('start').status, 'unchanged');
-    const fen = '8/8/8/8/8/8/8/K6k w - - 0 1';
-    assert.equal(f.adapter.setPosition(fen).status, 'accepted');
-    assert.equal(f.adapter.setPosition(fen).status, 'unchanged');
-    assert.equal(f.adapter.setPosition('not-fen').status, 'rejected');
-    assert.deepEqual(f.log.positions, [fen]);
-    assert.equal(f.adapter.getSnapshot().renderSequence, 1);
+    f.projection.mount(f.container);
+    const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+    assert.equal(f.projection.applyMove({ from: 'e2', to: 'e4', flags: 'b' }, { fen }).ok, true);
+    const move = f.calls.find(call => call[0] === 'applyMove');
+    assert.deepEqual(move[1], { from: 'e2', to: 'e4', capture: false, enPassant: false, castle: false, promotion: null });
+    assert.equal(move[2].fen, fen);
+    assert.equal(f.projection.inspect().semanticMoves, 1);
 });
 
-test('programmatic placement is immediate by default and reduced motion rejects requested animation', () => {
-    const normal = fixture(); normal.adapter.mount(normal.root);
-    normal.adapter.setPosition('8/8/8/8/8/8/8/K6k w - - 0 1');
-    assert.deepEqual(normal.log.animations, [false]);
-    const reduced = fixture({ reducedMotion: true }); reduced.adapter.mount(reduced.root);
-    reduced.adapter.setPosition('8/8/8/8/8/8/8/K6k w - - 0 1', { animate: true });
-    assert.deepEqual(reduced.log.animations, [false]);
+test('semantic rejection recovers once through canonical setPosition', () => {
+    const f = fixture({ rejectMove: true });
+    f.projection.mount(f.container);
+    const fen = '8/8/8/8/4P3/8/8/8 b - - 0 1';
+    assert.equal(f.projection.applyMove({ from: 'e2', to: 'e4' }, { fen }).ok, true);
+    assert.equal(f.calls.filter(call => call[0] === 'applyMove').length, 1);
+    assert.equal(f.calls.filter(call => call[0] === 'setPosition').length, 1);
+    assert.equal(f.projection.inspect().semanticFallbacks, 1);
 });
 
-test('orientation, flip, interaction, resize and compatibility facade delegate once', () => {
+test('legacy position maps are translated without introducing another chess owner', () => {
     const f = fixture();
-    f.adapter.mount(f.root);
-    assert.equal(f.adapter.setOrientation('black').value, 'black');
-    assert.equal(f.adapter.flip().value, 'white');
-    f.adapter.setInteractionEnabled(false);
-    assert.equal(f.root.getAttribute('aria-disabled'), 'true');
-    f.adapter.resize();
-    const facade = f.adapter.getLegacyFacade();
-    facade.position('8/8/8/8/8/8/8/K6k w - - 0 1', false);
-    facade.resize();
-    assert.equal(f.log.resizes, 2);
-    assert.deepEqual(f.log.orientations, ['black', 'white']);
+    f.projection.mount(f.container);
+    const facade = f.projection.getLegacyFacade();
+    facade.position({ a1: 'wK', h8: 'bK' }, false);
+    assert.match(f.calls.findLast(call => call[0] === 'setPosition')[1], /^7k\/8\/8\/8\/8\/8\/8\/K7 w - - 0 1$/);
+    assert.deepEqual(facade.position(), { e2: 'wP' });
 });
 
-test('legacy facade returns a detached widget-position map for the existing editor', () => {
-    const f = fixture();
-    f.adapter.mount(f.root);
-    const position = f.adapter.getLegacyFacade().position();
-    assert.equal(JSON.stringify(position), '{"e2":"wP"}');
-    position.e2 = 'bQ';
-    assert.equal(JSON.stringify(f.adapter.getLegacyFacade().position()), '{"e2":"wP"}');
-});
-
-test('highlight state validates squares and remains presentation-only', () => {
-    const f = fixture();
-    f.adapter.mount(f.root);
-    assert.equal(f.adapter.setSelection('e2').ok, true);
-    assert.equal(f.adapter.setLegalTargets(['e3', 'e4'], { captureTargets: ['e4'] }).ok, true);
-    assert.equal(f.adapter.setLastMove({ from: 'a2', to: 'a4' }).ok, true);
-    assert.equal(f.adapter.setCheckSquare('e8').ok, true);
-    assert.equal(f.adapter.setSelection('__proto__').ok, false);
-    assert.deepEqual([...f.adapter.getSnapshot().legalTargets], ['e3', 'e4']);
-    assert.deepEqual([...f.adapter.getSnapshot().legalCaptureTargets], ['e4']);
-    f.adapter.clearHighlights();
-    assert.equal(f.adapter.getSnapshot().selectedSquare, null);
-});
-
-test('drag and drop callbacks are forwarded once and disabled input snaps back', () => {
-    let starts = 0; let drops = 0;
-    const f = fixture({ onDragStart: () => { starts += 1; return true; }, onDrop: () => { drops += 1; } });
-    f.adapter.mount(f.root);
-    assert.equal(f.log.config.onDragStart('e2', 'wP'), true);
-    f.log.config.onDrop('e2', 'e4');
-    assert.equal(starts, 1); assert.equal(drops, 1);
-    f.adapter.setInteractionEnabled(false);
-    assert.equal(f.log.config.onDragStart('e2', 'wP'), false);
-    assert.equal(f.log.config.onDrop('e2', 'e4'), 'snapback');
+test('tap, drag and overlay intent remain presentation-only and are forwarded once', async () => {
+    const interactions = [];
+    let drops = 0;
+    const f = fixture({
+        onInteraction: event => interactions.push(event),
+        onDragStart: () => true,
+        onDrop: () => { drops += 1; }
+    });
+    f.projection.mount(f.container);
+    f.configured().onSquareTap('e2');
+    assert.equal(interactions.filter(event => event.type === 'square-selected').length, 1);
+    assert.equal(f.configured().onDragStart('e2'), true);
+    f.configured().onMoveAttempt({ from: 'e2', to: 'e4', promotion: null, inputMethod: 'drag' });
     assert.equal(drops, 1);
+    f.projection.setSelection('e2');
+    f.projection.setLegalTargets(['e3', 'e4'], { captureTargets: ['e4'] });
+    f.projection.setLastMove({ from: 'e7', to: 'e5' });
+    const overlay = f.calls.findLast(call => call[0] === 'replaceOverlays')[1];
+    assert.equal(overlay.selection, 'e2');
+    assert.equal(overlay.highlights.filter(item => item.type === 'legal').length, 2);
+    assert.equal(overlay.highlights.filter(item => item.type === 'last').length, 2);
 });
 
-test('snap completion reconciles a fast opponent render and reapplies highlights', () => {
-    const f = fixture({ onSnapEnd: () => {} });
-    f.adapter.mount(f.root);
-    const fen = '8/8/8/4p3/8/8/8/K6k w - - 0 1';
-    f.adapter.setPosition(fen);
-    f.adapter.setLastMove({ from: 'e7', to: 'e5' });
-    assert.deepEqual(f.log.positions, [fen]);
-    f.log.config.onSnapEnd();
-    assert.deepEqual(f.log.positions, [fen, fen]);
-    assert.equal(f.adapter.getSnapshot().lastMove.from, 'e7');
-    assert.equal(f.adapter.getSnapshot().lastMove.to, 'e5');
-});
-
-test('unmount cleans listeners, remount works, and dispose is terminal and idempotent', () => {
-    const f = fixture();
-    f.adapter.mount(f.root);
-    assert.equal(f.adapter.unmount().status, 'accepted');
-    assert.equal(f.adapter.inspect().listenerCount, 0);
-    assert.equal(f.adapter.mount(f.root).ok, true);
-    assert.equal(f.log.factories, 2);
-    assert.equal(f.adapter.dispose().status, 'accepted');
-    assert.equal(f.adapter.dispose().status, 'unchanged');
-    assert.equal(f.adapter.setPosition('start').status, 'disposed');
-    assert.equal(f.log.destroys, 2);
-});
-
-test('static ownership guard excludes chess state, engines, clocks, storage, routing, and other boards', () => {
-    for (const forbidden of [
-        /\bnew\s+Chess\b/, /\bApp\./, /ClockService|EngineAdapter|FairPlayPolicy/,
-        /localStorage|sessionStorage|pushState|replaceState/, /analyzeChessboard|arenaBoard|fics|spectator/i,
-        /\.move\s*\(|game_over|in_check/
-    ]) assert.doesNotMatch(source, forbidden);
-});
-
-test('Play production integration has one adapter constructor path and no dependency or shell changes', () => {
+test('static ownership guard removes Chessboard.js construction and routes shared writes through one seam', () => {
+    const projection = fs.readFileSync(new URL('../../js/play/play-board-projection.js', import.meta.url), 'utf8');
     const app = fs.readFileSync(new URL('../../app.js', import.meta.url), 'utf8');
     const index = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-    const classic = fs.readFileSync(new URL('../../yahoo-classic.html', import.meta.url), 'utf8');
-    assert.doesNotMatch(app, /\bChessboard\s*\(\s*['"]chessboard['"]/);
-    assert.equal((app.match(/CaissaChessboardAdapter\.create\s*\(/g) || []).length, 1);
-    assert.equal((index.match(/js\/play\/chessboard-adapter\.js/g) || []).length, 1);
-    assert.equal((classic.match(/js\/play\/chessboard-adapter\.js/g) || []).length, 1);
-    assert.doesNotMatch(source, /GamesPanel|BotsPanel|CoachPanel|PlayersPanel/);
+    assert.doesNotMatch(projection, /\bnew\s+Chess\b|\bChessboard\s*\(|boardFactory|App\.game|Engine|ClockService/);
+    assert.doesNotMatch(app, /App\.board\??\.(?:position|orientation|resize|flip|start)\??\.?\s*\(/);
+    assert.equal((app.match(/CaissaPlayBoardProjection\.create\s*\(/g) || []).length, 1);
+    assert.match(index, /type="module" src="js\/play\/play-board-projection\.js\?v=2\.0\.0"/);
+    assert.doesNotMatch(index, /src="js\/play\/chessboard-adapter\.js/);
 });

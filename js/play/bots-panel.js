@@ -174,7 +174,7 @@
             setupContent.append(categoryNav, catalog, controls);
             body.appendChild(setupContent);
             const foot = this.#footHost = element('footer', 'caissa-bots-panel__foot', {
-                'data-caissa-bots-foot': '', 'aria-label': 'Bot phase actions'
+                'data-caissa-bots-foot': '', role: 'group', 'aria-label': 'Bot phase actions'
             });
             const setupFoot = this.#setupFoot = element('div', 'caissa-bots-panel__foot-content', {
                 'data-bots-foot-content': 'setup'

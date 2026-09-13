@@ -120,7 +120,9 @@ test('integration guardrails centralize announcements and preserve truthful boar
         'js/play/post-game-experience.js', 'js/mentor/guided-replay-view.js'
     ].map(read).join('\n');
     assert.equal((playFiles.match(/['"]aria-live['"]\s*:/g) || []).length, 0);
-    assert.match(read('js/play/chessboard-adapter.js'), /Use tap or drag to request a move/);
+    const projection = read('js/play/play-board-projection.js');
+    assert.match(projection, /label: 'Play chessboard'/);
+    assert.match(projection, /tapPolicy:.*'intent-only'/);
     assert.doesNotMatch(combined, /startNewGame|makeMove|navigate|evaluationMode|playerId/);
     assert.match(read('docs/design/PLAY_ACCESSIBILITY_AUDIT.md'),
         /does not provide square-by-square keyboard chess/);

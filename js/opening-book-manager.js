@@ -798,7 +798,9 @@ const OpeningBookManager = {
                 if (san && window.App?.game) {
                     const result = App.game.move(san);
                     if (result) {
-                        App.board.position(App.game.fen());
+                        App.boardProjection?.applyMove?.(result, {
+                            fen: App.game.fen(), reason: 'opening-database-move'
+                        });
                         if (typeof App.updateUI === 'function') App.updateUI();
                         this.lookupCurrentPosition();
                     }

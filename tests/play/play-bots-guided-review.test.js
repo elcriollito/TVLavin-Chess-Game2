@@ -42,7 +42,7 @@ const results = [
 ];
 
 function analyze(index = 1) {
-    return { currentMoveIndex: index, analysisResults: results,
+    return { currentMoveIndex: index, analysisPhase: 'complete', analysisResults: results,
         getLoadedMoves: () => ['c4', 'd5', 'cxd5', 'Qxd5', 'Nc3'] };
 }
 
@@ -64,6 +64,36 @@ test('guided copy uses completed evidence without technical engine metadata', ()
     assert.match(model.message, /opponent played d5/i);
     assert.match(model.message, /e5 was the stronger continuation/i);
     assert.doesNotMatch(`${model.message} ${model.detail}`, /centipawn|depth|nodes|hash|threads|multipv/i);
+});
+
+test('Bots Played and Best stay canonical while pending analysis is labeled truthfully', () => {
+    const api = load(); const owner = analyze(1);
+    const complete = api.createGuidedModel({ analyze: owner,
+        handoff: { payload: { playerColor: 'white' } } });
+    assert.deepEqual({ played: complete.playedMove, best: complete.bestMove,
+        available: complete.bestMoveAvailable, pending: complete.bestMovePending },
+    { played: 'd5', best: 'e5', available: true, pending: false });
+
+    owner.currentMoveIndex = 4;
+    const unavailable = api.createGuidedModel({ analyze: owner });
+    assert.deepEqual({ played: unavailable.playedMove, best: unavailable.bestMove,
+        available: unavailable.bestMoveAvailable, pending: unavailable.bestMovePending },
+    { played: 'Nc3', best: null, available: false, pending: false });
+
+    owner.analysisPhase = 'analyzing';
+    const pending = api.createGuidedModel({ analyze: owner });
+    assert.deepEqual({ played: pending.playedMove, best: pending.bestMove,
+        available: pending.bestMoveAvailable, pending: pending.bestMovePending },
+    { played: 'Nc3', best: null, available: false, pending: true });
+});
+
+test('exploration evidence can project an explicit canonical source ply without moving Analyze', () => {
+    const api = load(); const owner = analyze(4);
+    const model = api.createGuidedModel({ analyze: owner, index: 1,
+        handoff: { payload: { playerColor: 'white' } } });
+    assert.deepEqual({ index: model.index, played: model.playedMove, best: model.bestMove,
+        quality: model.quality, evaluation: model.evaluation, analyzeCursor: owner.currentMoveIndex },
+    { index: 1, played: 'd5', best: 'e5', quality: 'Inaccuracy', evaluation: '+0.80', analyzeCursor: 4 });
 });
 
 test('Bots presentation normalizes Mistake and Blunder symbols without reclassifying evidence', () => {
@@ -100,4 +130,17 @@ test('Study source projects authoritative annotations while temporary moves rema
     assert.match(source, /kind === 'source' && symbol/);
     assert.match(source, /data-bots-exploration-annotation/);
     assert.doesNotMatch(source, /kind === 'temporary'[\s\S]{0,120}data-bots-exploration-annotation/);
+});
+
+test('Engine exploration surfaces synchronized review evidence and truthful status labels', () => {
+    assert.match(source, /data-games-exploration-review-evidence/);
+    assert.match(source, /data-bots-exploration-review-evidence/);
+    assert.match(source, /\['classification', 'Classification'\][\s\S]*\['played', 'Played'\][\s\S]*\['best', 'Best'\][\s\S]*\['evaluation', 'Review eval'\]/);
+    assert.match(source, /data-bots-exploration-\$\{attributeKey\}/);
+    assert.match(source, /data-bots-exploration-commentary/);
+    assert.match(source, /status === 'loading' \? 'Analyzing\\u2026'/);
+    assert.match(source, /status === 'unavailable' \? 'Not available'/);
+    assert.match(source, /state\.mode === 'source' \? state\.sourceCursor - 1 : null/);
+    assert.match(source, /dataset\.authoritativeFen = state\.currentFen/);
+    assert.match(source, /Completed-game Played, Best, and classification evidence: Not available for this analysis line\./);
 });

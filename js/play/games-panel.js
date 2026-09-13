@@ -196,7 +196,7 @@
             });
             setupContent.append(disclosure, status); body.appendChild(setupContent);
             const foot = this.#footHost = node('footer', 'caissa-games-panel__foot', {
-                'data-caissa-games-foot': '', 'aria-label': 'Play Game actions'
+                'data-caissa-games-foot': '', role: 'group', 'aria-label': 'Play Game actions'
             });
             this.#setupFoot = action;
             action.setAttribute('data-games-foot-content', 'setup');
@@ -635,10 +635,14 @@
             const retry = readiness?.state === 'recoverable-error';
             action.disabled = !this.#validation.valid || this.#busy || !['ready', 'recoverable-error'].includes(readiness?.state);
             action.textContent = this.#status === 'active' ? 'New Game' : this.#busy ? 'Starting…' : 'Play';
+            action.setAttribute('aria-label', action.textContent);
             action.setAttribute('aria-busy', String(this.#busy));
             const status = this.#root.querySelector('[data-games-status]');
             status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-            if (retry) action.textContent = 'Retry';
+            if (retry) {
+                action.textContent = 'Retry';
+                action.setAttribute('aria-label', action.textContent);
+            }
             status.textContent = readiness?.state === 'booting' ? 'Preparing the local game...' :
                 retry ? 'Play could not be prepared. Retry when ready.' :
                 readiness?.state === 'unavailable' ? 'Play is unavailable in this session.' :

@@ -35,8 +35,8 @@
         global.App.pendingPromotion = null;
         global.App.isPlayerTurn = true;
         global.App.gameActive = true;
-        global.App.board.position(fixture.position, false);
-        global.App.board.orientation(fixture.color);
+        global.App.boardProjection.setPosition(fixture.position, { animate: false, reason: 'promotion-qa' });
+        global.App.boardProjection.setOrientation(fixture.color);
         global.App.isFlipped = fixture.color === 'black';
         global.CaissaClockService?.configure?.({ mode: 'physical-promotion-qa', initialTimeMs: 300000,
             incrementMs: 0, activeColor: fixture.color });
@@ -65,7 +65,7 @@
             piece: placed?.type === active.piece && placed?.color === active.color[0],
             san: san.includes(`=${active.piece.toUpperCase()}`), pgn: global.App.game.pgn().includes(san),
             board: document.querySelectorAll('#chessboard .board-b72b1').length === 1,
-            orientation: global.App.board.orientation() === active.color, worker: workerCount() === 0,
+            orientation: global.App.boardProjection.getSnapshot().orientation === active.color, worker: workerCount() === 0,
             clock: typeof clock?.running === 'boolean', lifecycle: ['active', 'completed'].includes(lifecycle?.state)
         };
         const failed = Object.entries(checks).filter(([, value]) => !value).map(([key]) => key);

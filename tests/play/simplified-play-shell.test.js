@@ -19,8 +19,8 @@ function load() {
 
 test('publishes frozen versioned shell and snapshot contracts', () => {
     const { api } = load();
-    assert.equal(api.schemaVersion, '1.18.0');
-    assert.equal(api.snapshotSchemaVersion, '1.14.0');
+    assert.equal(api.schemaVersion, '1.21.0');
+    assert.equal(api.snapshotSchemaVersion, '1.16.0');
     assert.ok(Object.isFrozen(api));
     assert.ok(Object.isFrozen(api.statuses));
     assert.ok(Object.isFrozen(api.regions));
@@ -137,6 +137,24 @@ test('Settings uses internal buttons, closes without navigation, and restores fo
     assert.doesNotMatch(source, /href: '#', 'aria-label': 'Close board settings'/);
     assert.match(source, /this\.#settingsDialog\.hidden = true;[\s\S]*this\.#settingsTrigger\?\.focus\?\.\(\)/);
     assert.doesNotMatch(source, /history\.(?:pushState|replaceState)/);
+});
+
+test('Mobile 2.0 uses one canonical board action block and gates phone composition to Play and Bots', () => {
+    assert.equal((source.match(/element\('div', 'caissa-simplified-shell__board-actions'/g) || []).length, 1);
+    assert.match(source, /isMobile2ReleaseMode = mode => mode === 'games' \|\| mode === 'bots'/);
+    assert.match(source, /mobile2Release = isMobile2ReleaseMode\(mode\) \? 'approved' : 'hold'/);
+    assert.match(source, /boardFirst = active && phone && isPhonePortraitLayout\(this\.#layoutMode\)/);
+    assert.match(source, /phoneContext = active && phone && !boardFirst/);
+    assert.match(source, /this\.#actionBar\.parentNode !== boardStage/);
+    assert.match(source, /activeActionPlacement = !active \? 'hidden'/);
+    assert.match(source, /if \(menu\) menu\.hidden = this\.#mode === 'coach'/);
+    assert.match(source, /this\.#utilityBar\.hidden = !active \|\| phone/);
+    assert.doesNotMatch(source, /#scheduleLayout\(\)/);
+    assert.match(css, /data-mobile2-release="approved"/);
+    assert.doesNotMatch(css, /caissa-games-guided-review-active, \.caissa-bots-guided-review-active, \.caissa-coach-guided-review-active/);
+    assert.match(css, /caissa-play-phone-layout \[data-caissa-floating-controls\]/);
+    assert.match(css, /data-post-game-action="mentor-review"/);
+    assert.match(css, /data-post-game-action="mentor-summary"/);
 });
 
 test('Coach annotation badge is anchored to the destination square top-right corner', () => {

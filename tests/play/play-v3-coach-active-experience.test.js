@@ -30,14 +30,14 @@ test('active Coach presents Caissa responsively and keeps narration synchronized
     assert.match(css, /data-layout="desktop-split"[\s\S]*caissa-simplified-shell__active-context/);
 });
 
-test('Bots and Coach share only Resign, Hint and Undo', () => {
+test('Bots and Coach share Resign, Hint and Undo while Coach retains its Menu baseline', () => {
     const shell = read('js/play/simplified-play-shell.js');
     const css = read('css/play-simplified-shell.css');
     assert.match(shell, /\['resign', 'Resign'\]/);
     assert.match(shell, /\['coach-hint', '💡 Hint'\]/);
     assert.match(shell, /\['coach-undo', '↶ Undo'\]/);
     assert.match(shell, /if \(pgn\) pgn\.hidden = assistedMode/);
-    assert.match(shell, /if \(menu\) menu\.hidden = assistedMode/);
+    assert.match(shell, /if \(menu\) menu\.hidden = this\.#mode === 'coach'/);
     assert.match(shell, /global\.requestCoachHint/);
     assert.match(shell, /global\.undoMove/);
     assert.match(shell, /\['bots', 'coach'\]\.includes\(this\.#mode\)/);

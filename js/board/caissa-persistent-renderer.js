@@ -93,6 +93,9 @@ export class CaissaPersistentRenderer {
             orientation: 'white',
             interactive: true,
             readOnly: false,
+            tapPolicy: 'native',
+            dragPolicy: 'all',
+            keyboardPolicy: 'enabled',
             animation: true,
             coalesce: false,
             animationDuration: 180,
@@ -256,6 +259,26 @@ export class CaissaPersistentRenderer {
         return result(true, 'accepted', 'HIGHLIGHTS_SET', items.length);
     }
 
+    replaceOverlays(state = {}) {
+        const selection = state.selection ?? null;
+        const items = state.highlights ?? [];
+        if (selection !== null && !isSquare(selection)) return result(false, 'rejected', 'INVALID_SQUARE');
+        if (!Array.isArray(items)) return result(false, 'rejected', 'INVALID_HIGHLIGHTS');
+        const next = new Map();
+        for (const item of items) {
+            const normalized = typeof item === 'string' ? { square: item, type: 'hint' } : item;
+            if (!normalized || !isSquare(normalized.square) || !HIGHLIGHT_TYPES.has(normalized.type)) {
+                return result(false, 'rejected', 'INVALID_HIGHLIGHT');
+            }
+            if (!next.has(normalized.square)) next.set(normalized.square, new Set());
+            next.get(normalized.square).add(normalized.type);
+        }
+        this.#selection = selection;
+        this.#highlights = next;
+        this.#paintHighlights();
+        return result(true, 'accepted', 'OVERLAYS_REPLACED', items.length + (selection ? 1 : 0));
+    }
+
     clearHighlights() {
         const hadHighlights = this.#highlights.size > 0 || this.#selection !== null;
         this.#highlights.clear();
@@ -327,6 +350,17 @@ export class CaissaPersistentRenderer {
 
     getPieceAt(square) {
         return copyPiece(this.#pieceAt(square));
+    }
+
+    focus(square = null) {
+        if (this.#destroyed) return result(false, 'disposed', 'RENDERER_DESTROYED');
+        if (square !== null && !isSquare(square)) return result(false, 'rejected', 'INVALID_SQUARE');
+        if (square) {
+            this.#focusSquare = square;
+            this.#refreshKeyboardFocus();
+        }
+        this.#root.focus();
+        return result(true, 'accepted', 'BOARD_FOCUSED', this.#focusSquare);
     }
 
     destroy() {
@@ -674,7 +708,7 @@ export class CaissaPersistentRenderer {
     #onPointerMove(event) {
         if (!this.#drag || event.pointerId !== this.#drag.pointerId) return;
         const distance = Math.hypot(event.clientX - this.#drag.startX, event.clientY - this.#drag.startY);
-        if (!this.#drag.started && distance >= 6 && this.#drag.pieceId) {
+        if (!this.#drag.started && distance >= 6 && this.#drag.pieceId && this.#allowsDrag(this.#drag.pointerType)) {
             const accepted = this.#notify('onDragStart', this.#drag.from) !== false;
             if (!accepted) {
                 this.#drag = null;
@@ -742,7 +776,7 @@ export class CaissaPersistentRenderer {
     }
 
     #onKeyDown(event) {
-        if (!this.#canInteract()) return;
+        if (!this.#canInteract() || this.#options.keyboardPolicy === 'disabled') return;
         if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
             event.preventDefault();
             this.#focusSquare = navigateSquare(this.#focusSquare, event.key, this.#orientation);
@@ -761,8 +795,10 @@ export class CaissaPersistentRenderer {
     }
 
     #handleTap(square, inputMethod) {
+        if (this.#options.tapPolicy === 'disabled') return;
         const piece = this.#pieceAt(square);
         this.#notify('onSquareTap', square);
+        if (this.#options.tapPolicy === 'intent-only') return;
         if (!this.#selection) {
             if (piece) this.selectSquare(square);
             return;
@@ -797,6 +833,13 @@ export class CaissaPersistentRenderer {
 
     #canInteract() {
         return this.#interactive && !this.#readOnly && !this.#destroyed;
+    }
+
+    #allowsDrag(pointerType) {
+        const policy = this.#options.dragPolicy;
+        if (policy === 'none') return false;
+        if (policy === 'mouse') return pointerType === 'mouse';
+        return policy !== 'disabled';
     }
 
     #isLightSquare(square) {

@@ -68,7 +68,7 @@
         const newGame = element('button', 'caissa-games-analysis__new-game', { type: 'button' });
         newGame.textContent = 'New Game';
         const review = element('button', 'caissa-games-analysis__review', { type: 'button', disabled: '' });
-        review.textContent = 'Review Game';
+        review.textContent = 'Start Review';
         const live = element('span', 'sr-only', { 'aria-live': 'polite' });
         foot.append(newGame, review, live);
         return { body, foot, loading, comparison, progress, progressFill, progressText, playerName, opponentName,

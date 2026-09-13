@@ -23,10 +23,11 @@ test('foundation adds no Chessground or cm-chessboard dependency', async () => {
     assert.equal(packages['cm-chessboard'], undefined);
 });
 
-test('Play, Analyze non-projection, PGN non-projection and non-pilot FICS sources do not import the foundation', async () => {
+test('products import the foundation only through their approved projection seams', async () => {
     const approvedFicsPilot = resolve(root, 'js/fics-board-view.js');
     const approvedPgnProjection = resolve(root, 'js/pgn-replayer/pgn-board.js');
     const approvedAnalyzeProjection = resolve(root, 'js/analyze-board-projection.js');
+    const approvedPlayProjection = resolve(root, 'js/play/play-board-projection.js');
     const candidates = [
         resolve(root, 'index.html'),
         resolve(root, 'app.js'),
@@ -35,11 +36,20 @@ test('Play, Analyze non-projection, PGN non-projection and non-pilot FICS source
         ...await collectFiles(resolve(root, 'js'), path => /[\\/](?:fics|analyze)[^\\/]*\.js$/i.test(path))
     ];
     for (const path of candidates) {
-        if (path === approvedFicsPilot || path === approvedPgnProjection || path === approvedAnalyzeProjection) continue;
+        if (path === approvedFicsPilot || path === approvedPgnProjection || path === approvedAnalyzeProjection || path === approvedPlayProjection) continue;
         const source = await readFile(path, 'utf8');
         assert.doesNotMatch(source, /js\/board\/caissa-|board\/caissa-board-adapter/i, path);
         assert.doesNotMatch(source, /tests\/fixtures\/caissa-board/i, path);
     }
+});
+
+test('Play imports only the stable adapter through its projection seam', async () => {
+    const projection = await readFile(resolve(root, 'js/play/play-board-projection.js'), 'utf8');
+    const legacyAlias = await readFile(resolve(root, 'js/play/chessboard-adapter.js'), 'utf8');
+    assert.match(projection, /from ['"]\.\.\/board\/caissa-board-adapter\.js['"]/);
+    assert.doesNotMatch(projection, /caissa-(?:board-state|persistent-renderer)\.js/);
+    assert.match(legacyAlias, /from ['"]\.\/play-board-projection\.js['"]/);
+    assert.doesNotMatch(legacyAlias, /board\/caissa-/);
 });
 
 test('Analyze imports only the stable adapter through its projection seam', async () => {

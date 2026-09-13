@@ -6,7 +6,7 @@ const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 
 
 test('Play board visual assistance uses one adapter-owned presentation pipeline', () => {
     const app = read('app.js');
-    const adapter = read('js/play/chessboard-adapter.js');
+    const projection = read('js/play/play-board-projection.js');
     const css = read('css/play-simplified-shell.css');
     const legacyCss = read('styles.css');
 
@@ -16,7 +16,7 @@ test('Play board visual assistance uses one adapter-owned presentation pipeline'
     assert.match(app, /setLegalTargets\(shouldShowLegalMoves\(\) \? App\.mobileTapTargets : \[\], \{/);
     assert.match(app, /captureTargets:/);
     assert.doesNotMatch(legacyCss, /#playSection #chessboard \.mobile-tap-target/);
-    assert.match(adapter, /caissa-board-legal-capture/);
+    assert.match(projection, /caissa-board-legal-capture/);
     assert.match(css, /caissa-board-legal-target::after/);
     assert.match(css, /caissa-board-legal-capture::after/);
 });

@@ -59,10 +59,15 @@ export async function openPlay(page, route = '/play?simplified=1') {
 }
 
 export async function startGame(page, options = {}) {
-    await page.evaluate((settings) => window.newGame({
+    await expect.poll(() => page.evaluate(() => {
+        const shell = window.CaissaSimplifiedPlayShellInstance?.getSnapshot?.();
+        return !!(shell?.mounted && shell?.active && shell?.gamesPanel);
+    })).toBe(true);
+    return page.evaluate((settings) => window.newGame({
         mode: 'analysis',
         color: 'white',
         timeControl: 0,
+        targetElo: 1500,
         ...settings
     }), options);
 }
@@ -74,11 +79,14 @@ export async function playMove(page, from, to) {
 export async function loadPosition(page, fen) {
     return page.evaluate((value) => {
         const loaded = window.App.game.load(value);
-        window.App.board.position(window.App.game.fen(), false);
+        window.App.boardProjection.setPosition(window.App.game.fen(), {
+            animate: false, reason: 'browser-fixture-load'
+        });
         window.App.moveHistory = [];
         window.App.currentMoveIndex = -1;
         window.App.gameActive = true;
         window.App.isPlayerTurn = true;
+        window.App.boardProjection.setInteractionEnabled(true);
         return loaded;
     }, fen);
 }

@@ -1,8 +1,8 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.18.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.14.0';
+    const SCHEMA_VERSION = '1.21.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.16.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
@@ -20,6 +20,9 @@
         'tablet-portrait-stacked', 'tablet-landscape-split',
         'desktop-split', 'constrained-height'
     ]);
+    const isPhoneLayout = mode => typeof mode === 'string' && mode.startsWith('phone-');
+    const isPhonePortraitLayout = mode => mode === 'phone-compact' || mode === 'phone-standard';
+    const isMobile2ReleaseMode = mode => mode === 'games' || mode === 'bots';
     const REASONS = Object.freeze({
         MOUNTED: 'MOUNTED', ALREADY_MOUNTED: 'ALREADY_MOUNTED', ACTIVATED: 'ACTIVATED',
         ALREADY_ACTIVE: 'ALREADY_ACTIVE', DEACTIVATED: 'DEACTIVATED', ALREADY_INACTIVE: 'ALREADY_INACTIVE',
@@ -282,7 +285,8 @@
                 ['share', 'fa-share-alt', 'Share'], ['download', 'fa-download', 'Download'], ['settings', 'fa-cog', 'Settings']
             ]) {
                 const button = element('button', 'caissa-simplified-shell__utility-action', {
-                    type: 'button', 'data-active-game-action': action, 'aria-label': label, title: label
+                    type: 'button', 'data-active-game-action': action, 'aria-label': label, title: label,
+                    'data-mobile-utility-disposition': 'hide-on-phone'
                 });
                 button.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${label}</span>`;
                 utilityBar.appendChild(button);
@@ -568,6 +572,7 @@
             global.document.body.classList.remove('caissa-simplified-play-active');
             global.document.body.classList.remove('caissa-play-v2-beta-active');
             global.document.body.classList.remove('caissa-bots-game-over-active');
+            global.document.body.classList.remove('caissa-play-phone-layout');
             this.#removeListeners();
             this.#stateObserver?.disconnect?.(); this.#stateObserver = null;
             this.#panelObserver?.disconnect?.(); this.#panelObserver = null;
@@ -587,7 +592,12 @@
                 if (sharedStatus) sharedStatus.textContent = '';
             }
             this.#mode = mode;
-            if (this.#root) this.#root.dataset.mode = mode;
+            if (this.#root) {
+                this.#root.dataset.mode = mode;
+                this.#root.dataset.mobile2Release = isMobile2ReleaseMode(mode) ? 'approved' : 'hold';
+            }
+            global.document.body.classList.toggle('caissa-play-phone-layout',
+                isMobile2ReleaseMode(mode) && isPhoneLayout(this.#layoutMode));
             this.#root?.querySelectorAll?.('[data-shell-mode]').forEach(button => {
                 const selected = button.dataset.shellMode === mode;
                 button.setAttribute('aria-selected', String(selected));
@@ -698,6 +708,14 @@
             this.#layoutMode = next.mode;
             this.#geometry = next;
             this.#root.dataset.layout = next.mode;
+            global.document.body.classList.toggle('caissa-play-phone-layout',
+                isMobile2ReleaseMode(this.#mode) && isPhoneLayout(next.mode));
+            if (isMobile2ReleaseMode(this.#mode) && next.mode === 'phone-landscape') {
+                for (const scrollOwner of [global.document.querySelector('.content-area'),
+                    global.document.getElementById('playSection')]) {
+                    if (scrollOwner?.scrollTop) scrollOwner.scrollTop = 0;
+                }
+            }
             this.#root.dataset.scrollOwner = next.mode.includes('split') || next.mode === 'desktop-split'
                 || next.mode === 'constrained-height' ? 'panel' : 'document';
             this.#root.dataset.stickyAction = 'false';
@@ -737,6 +755,10 @@
                 qaOnly: true, mode: this.#mode, status: this.#status,
                 layoutMode: this.#layoutMode, geometry: this.#geometry,
                 scrollOwner: this.#root?.dataset?.scrollOwner || null, stickyAction: false,
+                activeActionPlacement: this.#root?.dataset?.activeActionPlacement || null,
+                mobile2Release: this.#root?.dataset?.mobile2Release || null,
+                phoneUtilitiesSuppressed: this.#utilityBar?.hidden === true
+                    && isMobile2ReleaseMode(this.#mode) && isPhoneLayout(this.#layoutMode),
                 regionCount: this.#root?.querySelectorAll?.('[class*="caissa-simplified-shell__"]').length || 0,
                 movedNodeCount: this.#placements.length, activationCount: this.#activationCount,
                 resizeCount: this.#resizeCount, listenerCount: this.#listeners.length,
@@ -866,7 +888,7 @@
             const pgn = this.#actionBar.querySelector('[data-active-game-action="pgn"]');
             if (pgn) pgn.hidden = assistedMode;
             const menu = this.#actionBar.querySelector('[data-active-game-action="menu"]');
-            if (menu) menu.hidden = assistedMode;
+            if (menu) menu.hidden = this.#mode === 'coach';
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
             if (heading) {
                 const redundantAssistedHeading = !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
@@ -924,15 +946,51 @@
             this.#syncActivePlacement(active, gamesMode || coachMode || botsMode);
             this.#renderActiveNotation();
             this.#syncIdentity();
-            if (this.#active && previousState !== state) this.resize();
+            if (this.#active && previousState !== state) {
+                this.resize();
+                if (active && isMobile2ReleaseMode(this.#mode) && isPhoneLayout(this.#layoutMode)) {
+                    for (const scrollOwner of [global.document.querySelector('.content-area'),
+                        global.document.getElementById('playSection')]) {
+                        if (scrollOwner?.scrollTop) scrollOwner.scrollTop = 0;
+                    }
+                    if (global.scrollY) global.scrollTo?.(0, 0);
+                }
+            }
         }
         #syncActivePlacement(active, assistedShellMode) {
             if (!this.#root || !this.#activeContext || !this.#actionBar) return;
             const boardStage = this.#root.querySelector('.caissa-simplified-shell__board-stage');
             const opponent = this.#root.querySelector('.caissa-simplified-shell__player--opponent');
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
+            const phone = isMobile2ReleaseMode(this.#mode) && isPhoneLayout(this.#layoutMode);
+            const boardFirst = active && phone && isPhonePortraitLayout(this.#layoutMode);
+            const phoneContext = active && phone && !boardFirst;
             const desktopActive = active && this.#root.dataset.layout === 'desktop-split';
+            this.#root.dataset.activeActionPlacement = !active ? 'hidden'
+                : boardFirst ? 'board' : phoneContext ? 'context-top'
+                    : assistedShellMode ? 'context-foot' : 'context';
+            if (this.#utilityBar) this.#utilityBar.hidden = !active || phone;
+            if (boardFirst) {
+                if (narrator && boardStage && narrator.parentNode !== boardStage)
+                    boardStage.insertBefore(narrator, opponent);
+                if (this.#actionBar.parentNode !== boardStage) boardStage.appendChild(this.#actionBar);
+                if (this.#utilityBar?.parentNode !== this.#activeContext)
+                    this.#activeContext.appendChild(this.#utilityBar);
+                if (this.#activeFoot) this.#activeFoot.hidden = true;
+                return;
+            }
+            if (phoneContext) {
+                const context = this.#root.querySelector('.caissa-simplified-shell__context');
+                const contextBody = this.#root.querySelector('.caissa-simplified-shell__context-body');
+                if (context && contextBody && this.#actionBar.parentNode !== context)
+                    context.insertBefore(this.#actionBar, contextBody);
+                if (this.#utilityBar?.parentNode !== this.#activeContext)
+                    this.#activeContext.appendChild(this.#utilityBar);
+                if (this.#activeFoot) this.#activeFoot.hidden = true;
+                return;
+            }
             if (active && assistedShellMode && this.#activeFoot) {
+                this.#activeFoot.hidden = false;
                 if (this.#actionBar.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#actionBar);
                 if (this.#utilityBar?.parentNode !== this.#activeFoot) this.#activeFoot.appendChild(this.#utilityBar);
                 return;

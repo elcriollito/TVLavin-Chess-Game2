@@ -58,7 +58,7 @@ test('activate, deactivate, Back, and Forward preserve state, orientation, contr
     expect(after.history).toEqual(before.history);
     expect(after.isFlipped).toBe(true);
     expect(await page.evaluate(() => window.App.boardAdapter.getSnapshot().adapterId)).toBe(identity);
-    expect(after.harness.boardConstructions).toBe(1);
+    expect(after.harness.boardConstructions).toBe(0);
     await expect(page.locator('[data-games-primary]')).toBeVisible();
     await expect(page.locator('.caissa-games-panel')).toBeVisible();
 });

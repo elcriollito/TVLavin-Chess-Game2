@@ -7,7 +7,7 @@ test('blocking: cold deep link mounts one white-oriented primary board without r
     const runtime = monitorRuntime(page);
     await openPlay(page);
     const state = await snapshot(page);
-    expect(state.harness.boardConstructions).toBe(1);
+    expect(state.harness.boardConstructions).toBe(0);
     expect(await page.locator('#playSection #chessboard .board-b72b1').count()).toBe(1);
     expect(await page.locator('#playSection #chessboard [class*="square-"]').count()).toBe(64);
     expect(state.fen).toContain(' w KQkq ');
@@ -27,7 +27,7 @@ test('blocking: canonical navigation, repeated entry, leave, and return preserve
         await page.locator('[data-section="play"]').first().click();
         await expect(page.locator('#playSection')).toHaveClass(/active/);
     }
-    expect((await snapshot(page)).harness.boardConstructions).toBe(1);
+    expect((await snapshot(page)).harness.boardConstructions).toBe(0);
     expect(await page.locator('#playSection #chessboard .board-b72b1').count()).toBe(1);
 });
 

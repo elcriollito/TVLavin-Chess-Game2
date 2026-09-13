@@ -29,7 +29,7 @@ async function expectFreshCoachSetup(page) {
             exploration: window.CaissaCoachReviewExploration?.getSnapshot?.() || null
         };
     })).toEqual({
-        phase: 'setup', gameFen: START_FEN, renderedFen: START_FEN.split(' ')[0], adapterPosition: 'start',
+        phase: 'setup', gameFen: START_FEN, renderedFen: START_FEN.split(' ')[0], adapterPosition: START_FEN,
         appMoveIndex: -1, reviewMoveIndex: -1, gameHistory: [], moveHistory: 0, loadedGameInfo: null,
         annotations: 0, selection: null, legalTargets: [], legalCaptureTargets: [], lastMove: null,
         checkSquare: null, exploration: expect.objectContaining({ active: false, temporaryPlyCount: 0 })

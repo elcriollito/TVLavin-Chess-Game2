@@ -269,8 +269,9 @@ test('active bot is immutable; New Game admits the next profile and Games restor
     await expect(botsShell.locator('[data-active-game-context] > h3')).toBeHidden();
     await expect(botsShell.locator('[data-active-game-status]')).toBeHidden();
     await expect(botsShell.locator('[data-active-game-opening]')).toBeVisible();
-    await expect(botsShell.locator(':scope > [data-caissa-bots-foot] [data-active-game-action="resign"]')).toBeVisible();
-    await expect(botsShell.locator(':scope > [data-caissa-bots-foot] [data-active-game-action="share"]')).toBeVisible();
+    await expect(page.locator('.caissa-simplified-shell__board-stage > .caissa-simplified-shell__board-actions [data-active-game-action="resign"]')).toBeVisible();
+    await expect(page.locator('.caissa-simplified-shell__board-stage > .caissa-simplified-shell__board-actions [data-active-game-action="menu"]')).toBeVisible();
+    await expect(page.locator('[data-active-game-action="share"]')).toBeHidden();
     expect(await page.evaluate(() => window.CaissaSimplifiedPlayShellInstance.getSnapshot().botsPanel))
         .toMatchObject({ phase: 'active-game', architecture: 'head-body-foot', structuralRegionCount: 3 });
     const geometry = await botsShell.evaluate(shell => {
@@ -433,7 +434,7 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
         await expect(menuToggle).toHaveAttribute('aria-expanded', 'false');
         await expect(menuToggle).toBeFocused();
         await menuToggle.click();
-        await page.locator('#chessboard .board-b72b1').click({ position: { x: 8, y: 8 } });
+        await page.locator('#chessboard').click({ position: { x: 8, y: 8 } });
         await expect(menuToggle).toHaveAttribute('aria-expanded', 'false');
     }
     expect(await page.evaluate(() => window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);
@@ -581,7 +582,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);
     await expect(page.locator('.caissa-simplified-shell__board-stage > :is(.caissa-simplified-shell__board-actions, .caissa-simplified-shell__utility-bar):visible')).toHaveCount(0);
     await expect(page.locator('.caissa-simplified-shell__board-stage > .caissa-simplified-shell__player:visible')).toHaveCount(0);
-    await expect(shell.locator('[data-bots-guided-nav]')).toHaveCount(4);
+    await expect(page.locator('[data-bots-guided-nav]')).toHaveCount(4);
     await expect(shell.locator('[data-bots-guided-notation] [aria-current="move"]')).toHaveCount(1);
     await expect(shell).not.toContainText(/centipawn|depth|nodes|hash|threads|MultiPV|Game Info|Critical Moments|Move Evidence/i);
 
@@ -624,13 +625,13 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     }
     await shell.locator('[data-bots-guided-ply="0"]').click();
     await assertProjectedPly(0);
-    await shell.getByRole('button', { name: 'Next move' }).click(); await assertProjectedPly(1);
-    await shell.getByRole('button', { name: 'Previous move' }).click(); await assertProjectedPly(0);
+    await page.locator('[data-bots-guided-nav="next"]').click(); await assertProjectedPly(1);
+    await page.locator('[data-bots-guided-nav="previous"]').click(); await assertProjectedPly(0);
     const literalPly = Math.min(2, await page.evaluate(() => window.AnalyzeSection.getLoadedMoves().length - 1));
     await shell.locator(`[data-bots-guided-ply="${literalPly}"]`).click(); await assertProjectedPly(literalPly);
-    await shell.getByRole('button', { name: 'Last move' }).click();
+    await page.locator('[data-bots-guided-nav="last"]').click();
     await assertProjectedPly(await page.evaluate(() => window.AnalyzeSection.getLoadedMoves().length - 1));
-    await shell.getByRole('button', { name: 'First position' }).click();
+    await page.locator('[data-bots-guided-nav="first"]').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(-1);
     const initialProjection = await page.evaluate(() => ({
         board: window.App.boardAdapter.getPosition(),
@@ -921,12 +922,17 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded(); await page.evaluate(() => window.scrollTo(0, 0));
         const closed = await reviewFrame();
         expect(closed.bodyScroll[1]).toBeGreaterThan(closed.bodyScroll[0]); expect(closed.overflow).toBe(0);
+        if (viewport.width === 390) {
+            await expect(page.locator('[data-caissa-mentor-launcher]')).toBeHidden();
+            await expect(mentor).toBeHidden();
+            mentorGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, closed, phonePolicy: 'hidden' });
+            continue;
+        }
         await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
         const open = await reviewFrame(); expect(open).toEqual(closed);
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-study-long-mentor-open.png', fullPage: true });
         await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
         const minimized = await reviewFrame(); expect(minimized).toEqual(closed);
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-study-long-mentor-minimized-mobile.png', fullPage: true });
         await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
         await mentor.getByRole('button', { name: 'Close CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
         mentorGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, closed, open, minimized });
@@ -1071,7 +1077,7 @@ test('floating Mentor is an external observer with live Study FEN and zero board
         return null;
     });
     await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
-    const from = page.locator(`#chessboard .square-${dragCandidate.from} .piece-417db`);
+    const from = page.locator(`#chessboard .caissa-board__square[data-square="${dragCandidate.from}"]`);
     const to = page.locator(`#chessboard .square-${dragCandidate.to}`);
     const beforeDrag = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
         board: window.App.boardAdapter.getPosition(), cursor: window.CaissaBotsAnalysisExploration.getSnapshot().temporaryCursor }));
@@ -1102,6 +1108,13 @@ test('floating Mentor is an external observer with live Study FEN and zero board
         await page.setViewportSize(viewport); await shell.scrollIntoViewIfNeeded(); await settleFrame();
         await page.evaluate(() => window.scrollTo(0, 0));
         const openFrame = await frame();
+        if (viewport.width === 390) {
+            await expect(mentor).toBeHidden();
+            await expect(page.locator('[data-caissa-mentor-launcher]')).toBeHidden();
+            geometry.push({ viewport: `${viewport.width}x${viewport.height}`, frame: openFrame,
+                phonePolicy: 'hidden' });
+            continue;
+        }
         const measured = await shell.evaluate(node => {
             const head = node.querySelector(':scope > [data-caissa-bots-head]').getBoundingClientRect();
             const bodyNode = node.querySelector(':scope > [data-caissa-bots-body]');
@@ -1115,16 +1128,14 @@ test('floating Mentor is an external observer with live Study FEN and zero board
                 bodyOverflow: getComputedStyle(bodyNode).overflowY,
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
         });
-        expect(measured).toMatchObject({ head: viewport.width === 390 ? 112 : 150,
+        expect(measured).toMatchObject({ head: 150,
             anchored: true, bodyOverflow: 'auto', overflow: 0 });
         expect(measured.mentorWidth).toBeLessThanOrEqual(viewport.width);
         expect(measured.boardWidth).toBeGreaterThan(viewport.width === 390 ? 300 : 500);
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-open-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-open-mobile.png', fullPage: true });
         await mentor.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click(); await expect(mentor).toBeHidden();
         const minimizedFrame = await frame();
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-mobile.png', fullPage: true });
         expect(minimizedFrame).toEqual(openFrame);
         await page.locator('[data-caissa-mentor-launcher]').click(); await expect(mentor).toBeVisible();
         geometry.push({ viewport: `${viewport.width}x${viewport.height}`, frame: openFrame, ...measured });
@@ -1162,18 +1173,28 @@ test('floating Mentor is an external observer with live Study FEN and zero board
         await page.evaluate(() => { const owner = window.CaissaBotsAnalysisExploration.getSnapshot();
             window.CaissaMentorFloatingShell.setContext({ source: 'bots-analysis-study', fen: owner.currentFen, mode: owner.mode });
             window.CaissaMentorFloatingShell.open(); });
-        await expect(mentor).toBeVisible(); const open = await frame();
+        const open = await frame();
+        if (viewport.width === 390) {
+            await expect(mentor).toBeHidden();
+            await expect(page.locator('[data-caissa-mentor-launcher]')).toBeHidden();
+            await page.evaluate(() => window.CaissaMentorFloatingShell.minimize());
+            const minimized = await frame();
+            await page.evaluate(() => window.CaissaMentorFloatingShell.close());
+            const closedFrame = await frame();
+            expect(minimized).toEqual(open); expect(closedFrame).toEqual(open);
+            equivalentGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, open, minimized,
+                closed: closedFrame, phonePolicy: 'hidden' });
+            continue;
+        }
+        await expect(mentor).toBeVisible();
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-open-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-open-mobile.png', fullPage: true });
         await page.evaluate(() => window.CaissaMentorFloatingShell.minimize()); await expect(mentor).toBeHidden();
         const minimized = await frame();
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-minimized-mobile.png', fullPage: true });
         await page.evaluate(() => window.CaissaMentorFloatingShell.close()); await expect(mentor).toBeHidden();
         const closedFrame = await frame(); expect(minimized).toEqual(open); expect(closedFrame).toEqual(open);
         equivalentGeometry.push({ viewport: `${viewport.width}x${viewport.height}`, open, minimized, closed: closedFrame });
         if (viewport.width === 1600) await page.screenshot({ path: 'test-results/play-bots-mentor-closed-desktop.png', fullPage: true });
-        if (viewport.width === 390) await page.screenshot({ path: 'test-results/play-bots-mentor-closed-mobile.png', fullPage: true });
     }
     console.log(`BOTS_MENTOR_FRAME_EQUIVALENCE ${JSON.stringify(equivalentGeometry)}`);
     const closed = await page.evaluate(() => ({ fen: window.CaissaBotsAnalysisExploration.getFen(),
