@@ -23,9 +23,10 @@ test('foundation adds no Chessground or cm-chessboard dependency', async () => {
     assert.equal(packages['cm-chessboard'], undefined);
 });
 
-test('Play, Analyze, PGN non-projection and non-pilot FICS sources do not import the foundation', async () => {
+test('Play, Analyze non-projection, PGN non-projection and non-pilot FICS sources do not import the foundation', async () => {
     const approvedFicsPilot = resolve(root, 'js/fics-board-view.js');
     const approvedPgnProjection = resolve(root, 'js/pgn-replayer/pgn-board.js');
+    const approvedAnalyzeProjection = resolve(root, 'js/analyze-board-projection.js');
     const candidates = [
         resolve(root, 'index.html'),
         resolve(root, 'app.js'),
@@ -34,11 +35,20 @@ test('Play, Analyze, PGN non-projection and non-pilot FICS sources do not import
         ...await collectFiles(resolve(root, 'js'), path => /[\\/](?:fics|analyze)[^\\/]*\.js$/i.test(path))
     ];
     for (const path of candidates) {
-        if (path === approvedFicsPilot || path === approvedPgnProjection) continue;
+        if (path === approvedFicsPilot || path === approvedPgnProjection || path === approvedAnalyzeProjection) continue;
         const source = await readFile(path, 'utf8');
         assert.doesNotMatch(source, /js\/board\/caissa-|board\/caissa-board-adapter/i, path);
         assert.doesNotMatch(source, /tests\/fixtures\/caissa-board/i, path);
     }
+});
+
+test('Analyze imports only the stable adapter through its projection seam', async () => {
+    const projection = await readFile(resolve(root, 'js/analyze-board-projection.js'), 'utf8');
+    const section = await readFile(resolve(root, 'js/analyze-section.js'), 'utf8');
+    assert.match(projection, /from ['"]\.\/board\/caissa-board-adapter\.js['"]/);
+    assert.doesNotMatch(projection, /caissa-(?:board-state|persistent-renderer)\.js/);
+    assert.match(section, /import\('\/js\/analyze-board-projection\.js\?v=1\.0\.0'\)/);
+    assert.doesNotMatch(section, /board\/caissa-/);
 });
 
 test('PGN Reader imports only the stable adapter through its projection seam', async () => {

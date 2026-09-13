@@ -328,6 +328,7 @@ test('V2.0.1 reports a wrong player atomically and aborts a stale search when th
 test('A3.1 New opens a clean draft, cancel preserves the previous session, and Load commits', async ({ page }) => {
     await page.goto('/analyze');
     await expect.poll(() => page.evaluate(() => Boolean(window.AnalyzeSection?.getGame?.()))).toBe(true);
+    await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
     await page.evaluate((pgn) => {
         window.AnalyzeSection.loadGameFromPgn(pgn, 'A3.1 fixture');
         window.__a31PreviousSession = window.AnalyzeSection.session;

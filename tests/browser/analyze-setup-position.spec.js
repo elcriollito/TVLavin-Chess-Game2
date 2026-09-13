@@ -23,6 +23,19 @@ async function openSetup(page, { engine = false } = {}) {
     await expect(page.locator('#analyzeV2PanelSetup')).toBeVisible();
 }
 
+async function dragBoardPieceOffboard(page, sourceSquare, target) {
+    const source = page.locator(`#analyzeChessboard .caissa-board__piece[data-square="${sourceSquare}"]`);
+    const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
+    if (!sourceBox || !targetBox) throw new Error(`Could not resolve drag geometry for ${sourceSquare}`);
+    const start = { x: sourceBox.x + sourceBox.width / 2, y: sourceBox.y + sourceBox.height / 2 };
+    const end = { x: targetBox.x + targetBox.width / 2, y: targetBox.y + targetBox.height / 2 };
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move((start.x + end.x) / 2, (start.y + end.y) / 2, { steps: 4 });
+    await page.mouse.move(end.x, end.y, { steps: 6 });
+    await page.mouse.up();
+}
+
 test('A2 draft edits the existing board without mutating the authoritative session', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await openSetup(page, { engine: true });
@@ -39,12 +52,12 @@ test('A2 draft edits the existing board without mutating the authoritative sessi
     expect(initial.activeOperations).toBe(0);
 
     await page.getByRole('button', { name: 'Select white queen' }).click();
-    await page.locator('#analyzeChessboard .square-e4').click();
+    await page.locator('#analyzeChessboard .caissa-board__square[data-square="e4"]').click();
     expect(await page.evaluate(() => AnalyzeSection.setupDraft.getPiece('e4'))).toBe('wQ');
     expect(await page.evaluate(() => AnalyzeSection.loadedGame.game.get('e4'))).toBeNull();
 
     await page.getByRole('button', { name: 'Select white queen' }).click();
-    await page.locator('#analyzeChessboard .square-e4 img').dragTo(page.locator('#analyzeSetupMessage'));
+    await dragBoardPieceOffboard(page, 'e4', page.locator('#analyzeSetupMessage'));
     expect(await page.evaluate(() => AnalyzeSection.setupDraft.getPiece('e4'))).toBeNull();
 
     await page.getByRole('button', { name: 'Clear board' }).click();
@@ -52,9 +65,9 @@ test('A2 draft edits the existing board without mutating the authoritative sessi
     await page.getByRole('button', { name: 'Reset starting position' }).click();
     await expect(page.locator('#analyzeSetupFen')).toHaveValue(START_FEN);
 
-    expect(await page.evaluate(() => AnalyzeSection.board.orientation())).toBe('white');
+    expect(await page.evaluate(() => AnalyzeSection.board.getOrientation())).toBe('white');
     await page.getByRole('button', { name: 'Flip board' }).click();
-    expect(await page.evaluate(() => AnalyzeSection.board.orientation())).toBe('black');
+    expect(await page.evaluate(() => AnalyzeSection.board.getOrientation())).toBe('black');
 
     await page.locator('#analyzeSetupTurn').selectOption('b');
     await expect(page.locator('#analyzeSetupFen')).toHaveValue(/ b KQkq /);
@@ -75,13 +88,13 @@ test('A2 draft edits the existing board without mutating the authoritative sessi
         sameGame: AnalyzeSection.loadedGame.game === window.__a2Game,
         sameEngine: AnalyzeSection.analysisEngine === window.__a2Engine,
         fen: AnalyzeSection.loadedGame.game.fen(),
-        boardFen: AnalyzeSection.board.fen(),
+        boardFen: AnalyzeSection.board.getPosition().renderedFen,
         boardConstructions: window.__caissaPlayHarness.snapshot().boardConstructions,
         workers: window.__caissaPlayHarness.snapshot().workersCreated,
         activeOperations: AnalyzeSection.analysisEngine.inspectAttribution().activeOperationCount
     }));
     expect(canceled).toEqual({
-        sameGame: true, sameEngine: true, fen: initial.fen, boardFen: initial.fen.split(' ')[0],
+        sameGame: true, sameEngine: true, fen: initial.fen, boardFen: initial.fen,
         boardConstructions: initial.boardConstructions, workers: initial.workers, activeOperations: 1
     });
     expect(runtime.errors).toEqual([]);
@@ -96,8 +109,8 @@ test('A2 direct workspace navigation cancels the uncommitted draft', async ({ pa
     expect(await page.evaluate(() => ({
         setupActive: AnalyzeSection.setupModeActive,
         fen: AnalyzeSection.loadedGame.game.fen(),
-        boardFen: AnalyzeSection.board.fen()
-    }))).toEqual({ setupActive: false, fen: initialFen, boardFen: initialFen.split(' ')[0] });
+        boardFen: AnalyzeSection.board.getPosition().renderedFen
+    }))).toEqual({ setupActive: false, fen: initialFen, boardFen: initialFen });
 });
 
 test('A2 valid FEN commits once through CaissaAnalyzeSession and resumes the same engine owner', async ({ page }) => {

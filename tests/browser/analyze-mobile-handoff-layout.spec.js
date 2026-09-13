@@ -81,6 +81,7 @@ async function openCompletedFicsHandoff(page, viewport) {
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection?.loadedGame?.source))
         .toBe('FICS handoff');
+    await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
     return moves;
 }
 
@@ -149,7 +150,7 @@ async function compactLayoutSnapshot(page) {
             domOrder: follows('board', 'nav') && follows('nav', 'tabs')
                 && follows('tabs', 'engine') && follows('engine', 'notation'),
             navigationParent: nodes.nav.parentElement.className,
-            visibleBoards: [...document.querySelectorAll('.board-b72b1')].filter(visible).length,
+            visibleBoards: [...document.querySelectorAll('#analyzeChessboard .caissa-board')].filter(visible).length,
             quickActionLabels: quickActions.filter(visible).map(button => button.textContent.trim()),
             focusableHiddenQuickActions,
             floatingCount: floating.length,

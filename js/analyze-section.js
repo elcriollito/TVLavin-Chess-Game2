@@ -12,6 +12,7 @@ const AnalyzeSection = {
     loadedGame: null,
     session: null,
     board: null,
+    boardReady: null,
     activeHandoffId: null,
     pendingPromotion: null,
     fetchedGames: [],
@@ -288,26 +289,6 @@ const AnalyzeSection = {
         this.elements.setupReset?.addEventListener('click', () => this.resetSetupDraft());
         this.elements.setupClear?.addEventListener('click', () => this.clearSetupDraft());
         this.elements.setupLoad?.addEventListener('click', () => this.loadSetupDraft());
-        if (!this.setupBoardClickHandler) {
-            this.setupBoardClickHandler = (event) => {
-                if (!this.setupModeActive) return;
-                const square = event.target.closest?.('[data-square]')?.dataset?.square;
-                if (!square) return;
-                event.preventDefault();
-                event.stopPropagation();
-                if (event.detail >= 2 && this.setupDraft?.getPiece(square)) {
-                    this.setupSourceSquare = null;
-                    this.setupDraft.removePiece(square);
-                    this.syncSetupDraftUI();
-                    this.setSetupMessage(`Piece removed from ${square}.`);
-                    return;
-                }
-                this.handleSetupBoardTap(square);
-            };
-            document.getElementById('analyzeChessboard')
-                ?.addEventListener('click', this.setupBoardClickHandler);
-        }
-
         if (!this.workspaceViewHandler) {
             this.workspaceViewHandler = (event) => this.handleWorkspaceViewChange(event.detail?.view);
             document.querySelector('[data-caissa-analyze-v2]')
@@ -384,7 +365,7 @@ const AnalyzeSection = {
         this.setupSuppressPaletteClickUntil = 0;
         this.clearSetupBoardHighlights();
         const game = this.getGame();
-        if (game) this.board?.position(game.fen(), false);
+        if (game) this.projectAnalyzeBoard({ fen: game.fen(), reason: 'setup-cancelled' });
         this.updateEvaluationBar();
         return true;
     },
@@ -517,8 +498,7 @@ const AnalyzeSection = {
     },
 
     clearSetupBoardHighlights() {
-        document.querySelectorAll('#analyzeChessboard .caissa-analyze-v2__setup-source')
-            .forEach(square => square.classList.remove('caissa-analyze-v2__setup-source'));
+        this.board?.clearSelection?.();
         this.elements.setupPieces?.forEach(button => {
             const selected = button.dataset.setupPiece === this.setupSelectedPiece;
             button.classList.toggle('is-selected', selected);
@@ -556,8 +536,7 @@ const AnalyzeSection = {
         }
         this.setupSourceSquare = square;
         this.clearSetupBoardHighlights();
-        document.querySelector(`#analyzeChessboard .square-${square}`)
-            ?.classList.add('caissa-analyze-v2__setup-source');
+        this.board?.showSelection?.(square);
         this.setSetupMessage(`Selected ${square}. Choose a destination or click it again to remove.`);
         return true;
     },
@@ -566,19 +545,19 @@ const AnalyzeSection = {
         if (!this.setupModeActive || !this.setupDraft) return 'snapback';
         if (target === 'offboard') {
             this.setupDraft.removePiece(source);
-            this.syncSetupDraftUI({ board: false });
+            this.syncSetupDraftUI();
             this.setSetupMessage(`Piece removed from ${source}.`);
             return undefined;
         }
         if (!/^[a-h][1-8]$/.test(target) || !this.setupDraft.movePiece(source, target)) return 'snapback';
-        this.syncSetupDraftUI({ board: false });
+        this.syncSetupDraftUI();
         this.setSetupMessage(`Piece moved from ${source} to ${target}.`);
         return undefined;
     },
 
     syncSetupDraftUI({ board = true, fen = true, controls = true } = {}) {
         if (!this.setupModeActive || !this.setupDraft) return;
-        if (board) this.board?.position(this.setupDraft.position(), false);
+        if (board) this.projectAnalyzeBoard({ fen: this.setupDraft.toFen(), mode: 'setup', reason: 'setup-draft' });
         if (fen && this.elements.setupFen) this.elements.setupFen.value = this.setupDraft.toFen();
         if (controls) {
             if (this.elements.setupTurn) this.elements.setupTurn.value = this.setupDraft.toFen().split(' ')[1];
@@ -684,7 +663,7 @@ const AnalyzeSection = {
         this.setupSourceSquare = null;
         this.setupSuppressPaletteClickUntil = 0;
         this.clearSetupBoardHighlights();
-        this.board?.position(this.getGame()?.fen?.(), false);
+        this.projectAnalyzeBoard({ fen: this.getGame()?.fen?.(), reason: 'setup-committed' });
         window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
         if (this.liveEngineEnabled) this.refreshLiveEvaluation();
         else this.setLiveEngineEnabled(true);
@@ -816,36 +795,43 @@ const AnalyzeSection = {
     },
 
     ensureAnalyzeBoard() {
-        if (this.board || !window.Chessboard || !document.getElementById('analyzeChessboard')) return !!this.board;
-        this.board = Chessboard('analyzeChessboard', {
-            draggable: true,
-            dropOffBoard: 'trash',
-            position: this.getGame()?.fen?.() || 'start',
-            dragThrottleRate: 8,
-            snapSpeed: 70,
-            snapbackSpeed: 110,
-            trashSpeed: 100,
-            onDragStart: (source, piece) => this.beginAnalyzeBoardDrag(source, piece),
-            onDrop: (source, target) => {
-                const outcome = this.handleBoardDrop(source, target);
-                this.finishAnalyzeBoardDrag({ delay: outcome === 'snapback' ? 120 : 90 });
-                return outcome;
-            },
-            onSnapEnd: () => {
-                this.board?.position(
-                    this.setupModeActive && this.setupDraft ? this.setupDraft.position() : this.getGame()?.fen?.(), false
-                );
-                this.finishAnalyzeBoardDrag();
-            },
-            onSnapbackEnd: () => this.finishAnalyzeBoardDrag(),
-            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-            showNotation: true
-        });
-        return true;
+        if (this.board) return true;
+        const container = document.getElementById('analyzeChessboard');
+        if (!container) return false;
+        if (!this.boardReady) {
+            this.boardReady = import('/js/analyze-board-projection.js?v=1.0.0')
+                .then(async ({ create, stylesReady }) => {
+                    await stylesReady;
+                    if (this.board) return this.board;
+                    this.board = create(container, {
+                        position: this.setupModeActive && this.setupDraft
+                            ? this.setupDraft.toFen()
+                            : this.getGame()?.fen?.() || 'start',
+                        orientation: this.boardFlipped ? 'black' : 'white',
+                        onSquareTap: square => this.handleBoardTap(square),
+                        onMoveAttempt: intent => this.handleAnalyzeBoardMoveAttempt(intent),
+                        onDragStart: source => this.beginAnalyzeBoardDrag(source),
+                        onDragEnd: detail => this.handleAnalyzeBoardDragEnd(detail),
+                        onError: error => console.error('[Analyze] Board projection error:', error)
+                    });
+                    this.projectAnalyzeBoard({ reason: 'board-mounted', animate: false });
+                    this.applyAnalyzeOrientation();
+                    return this.board;
+                })
+                .catch(error => {
+                    this.boardReady = null;
+                    console.error('[Analyze] Persistent board failed to load:', error);
+                    this.setStatus('Analyze board unavailable', 'error');
+                    return null;
+                });
+        }
+        return false;
     },
 
     beginAnalyzeBoardDrag(source, piece) {
         if (!this.canStartStudyMove(source, piece)) return false;
+        if (this.setupModeActive) this.board?.showSelection?.(source);
+        else this.markTapSource(source);
         clearTimeout(this.boardDragCleanupTimer);
         document.body.classList.add('caissa-analyze-board-dragging');
         document.getElementById('analyzeChessboard')?.classList.add('is-piece-dragging');
@@ -864,15 +850,39 @@ const AnalyzeSection = {
     },
 
     handleBoardDrop(source, target) {
-        if (this.setupModeActive) return this.handleSetupBoardDrop(source, target);
-        const move = this.getGame()?.moves({ verbose: true })
-            .find(candidate => candidate.from === source && candidate.to === target);
-        if (move?.flags?.includes('p')) {
-            this.pendingPromotion = { from: source, to: target };
-            window.showPromotionDialog?.();
-            return undefined;
+        return this.handleAnalyzeBoardMoveAttempt({ from: source, to: target, inputMethod: 'drag' })
+            ? undefined
+            : 'snapback';
+    },
+
+    handleAnalyzeBoardMoveAttempt({ from, to, promotion, inputMethod } = {}) {
+        if (!from || !to) return false;
+        if (this.setupModeActive) {
+            return this.handleSetupBoardDrop(from, to) !== 'snapback';
         }
-        return this.playStudyMove(source, target) ? undefined : 'snapback';
+        const game = this.getGame();
+        const candidates = game?.moves({ square: from, verbose: true })
+            .filter(candidate => candidate.to === to) || [];
+        if (!promotion && candidates.some(candidate => candidate.flags?.includes('p') || candidate.promotion)) {
+            this.pendingPromotion = { from, to, inputMethod: inputMethod || 'tap' };
+            window.showPromotionDialog?.();
+            this.projectAnalyzeBoard({ reason: 'promotion-pending', animate: false });
+            return false;
+        }
+        const moved = this.playStudyMove(from, to, promotion?.toLowerCase?.());
+        if (!moved) {
+            if (this.canStartStudyMove(to)) this.markTapSource(to);
+            else this.clearTapSelection();
+            this.projectAnalyzeBoard({ reason: 'illegal-move', animate: false });
+        }
+        return moved;
+    },
+
+    handleAnalyzeBoardDragEnd(detail = {}) {
+        this.finishAnalyzeBoardDrag();
+        if (this.setupModeActive && detail.offboard && detail.from) {
+            this.handleSetupBoardDrop(detail.from, 'offboard');
+        }
     },
 
     completePromotion(piece) {
@@ -891,11 +901,9 @@ const AnalyzeSection = {
 
         const game = this.getGame();
         this.ensureAnalyzeBoard();
-        if (this.board && game) {
-            this.board.position(game.fen(), false);
-            this.board.orientation(this.boardFlipped ? 'black' : 'white');
-            this.board.resize?.();
-        }
+        if (game) this.projectAnalyzeBoard({ fen: game.fen(), reason: 'study-ready', animate: false });
+        this.applyAnalyzeOrientation();
+        this.board?.resize?.();
 
         this.updateMetadata();
         this.updateMoveList();
@@ -962,7 +970,7 @@ const AnalyzeSection = {
 
         window.CaissaClockService?.stop('analyze-enter');
         this.ensureAnalyzeBoard();
-        this.board?.position(game.fen(), false);
+        this.projectAnalyzeBoard({ fen: game.fen(), reason: 'study-reset', animate: false });
 
         this.updateMetadata();
         this.updateMoveList();
@@ -991,7 +999,15 @@ const AnalyzeSection = {
     playStudyMove(from, to, promotion) {
         const game = this.getGame();
         if (!this.isAnalyzeActive() || !game) return false;
+        const loadedMoves = this.getLoadedMoves();
+        if (this.currentMoveIndex < loadedMoves.length - 1) {
+            this.setStatus('Return to the latest move before continuing analysis.', 'info');
+            this.showNotification('Manual moves from historical positions are not saved in flat Analyze mode.', 'info');
+            this.projectAnalyzeBoard({ fen: game.fen(), reason: 'historical-move-rejected', animate: false });
+            return false;
+        }
         if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'position-changed' });
+        const fenBefore = game.fen();
         const move = game.move({ from, to, promotion });
         if (!move) return false;
 
@@ -1001,7 +1017,7 @@ const AnalyzeSection = {
         this.positionAnalyses = [];
         this.analysisPhase = 'idle';
         this.clearTapSelection();
-        this.updateBoardAndUI();
+        this.updateBoardAndUI({ move: { ...move, fenBefore }, reason: 'manual-move', animate: true });
         this.updateMoveList();
         this.updateNavigationControls();
         this.updateMentorPanel();
@@ -1025,7 +1041,7 @@ const AnalyzeSection = {
         this.positionAnalyses = [];
         this.analysisPhase = 'idle';
         this.clearTapSelection();
-        this.updateBoardAndUI();
+        this.updateBoardAndUI({ reason: 'undo' });
         this.updateMoveList();
         this.updateNavigationControls();
         this.updateMentorPanel();
@@ -1039,45 +1055,26 @@ const AnalyzeSection = {
     clearTapSelection() {
         this.tapSource = null;
         this.tapTargets = [];
-        document.querySelectorAll('#analyzeSection #chessboard .analyze-tap-source, #analyzeSection #chessboard .analyze-tap-target').forEach((el) => {
-            el.classList.remove('analyze-tap-source', 'analyze-tap-target');
-        });
+        this.board?.clearSelection?.();
     },
 
     markTapSource(square) {
         this.clearTapSelection();
         this.tapSource = square;
         this.tapTargets = this.getGame().moves({ square, verbose: true }).map((move) => move.to);
-        document.querySelector(`#analyzeSection #chessboard .square-${square}`)?.classList.add('analyze-tap-source');
-        this.tapTargets.forEach((target) => {
-            document.querySelector(`#analyzeSection #chessboard .square-${target}`)?.classList.add('analyze-tap-target');
-        });
+        this.board?.showSelection?.(square, this.tapTargets);
     },
 
     handleBoardTap(square) {
         if (this.setupModeActive) return this.handleSetupBoardTap(square);
-        if (!square || !this.getGame()) return false;
-
-        if (!this.tapSource) {
-            if (this.canStartStudyMove(square)) {
-                this.markTapSource(square);
-                return true;
-            }
-            return false;
-        }
-
-        const source = this.tapSource;
-        if (source === square) {
+        const selected = document.querySelector('#analyzeChessboard .caissa-board__square[aria-selected="true"]')
+            ?.dataset?.square || null;
+        if (!selected) {
             this.clearTapSelection();
             return true;
         }
-
-        const moved = this.playStudyMove(source, square);
-        if (!moved) {
-            this.clearTapSelection();
-            if (this.canStartStudyMove(square)) this.markTapSource(square);
-            else this.board?.position(this.getGame().fen(), false);
-        }
+        if (this.canStartStudyMove(selected)) this.markTapSource(selected);
+        else this.clearTapSelection();
         return true;
     },
 
@@ -1579,7 +1576,7 @@ const AnalyzeSection = {
             this.updateMetadata();
 
             this.ensureAnalyzeBoard();
-            this.updateBoardAndUI();
+            this.updateBoardAndUI({ reason: 'game-load' });
             this.projectCoachReviewBoardAssistance();
 
             // Update move list
@@ -1697,21 +1694,15 @@ const AnalyzeSection = {
         }
 
         this.currentMoveIndex = safeIndex;
-        this.updateBoardAndUI();
+        this.updateBoardAndUI({ reason: 'navigation' });
         this.updateMoveList();
         this.updateNavigationControls();
         this.updateMentorPanel();
         this.updateEvaluationBar();
         this.refreshLiveEvaluation();
 
-        const selected = this.analysisPhase === 'complete' ? this.analysisResults[safeIndex] : null;
-        const coachReviewActive = document.body?.classList?.contains('caissa-coach-review-summary-active');
         const botsReviewActive = document.body?.classList?.contains('caissa-bots-guided-review-active');
         const gamesReviewActive = document.body?.classList?.contains('caissa-games-guided-review-active');
-        if (!coachReviewActive && !botsReviewActive && !gamesReviewActive
-            && selected && ['Inaccuracy', 'Mistake', 'Blunder'].includes(selected.quality)) {
-            this.board?.position?.(selected.fenBefore, false);
-        }
         this.projectCoachReviewBoardAssistance();
 
         if (document.body?.classList?.contains('caissa-coach-review-summary-active')) {
@@ -1795,12 +1786,43 @@ const AnalyzeSection = {
             : failed ? 'Review failed. Try again.' : 'Review the current game';
     },
 
-    updateBoardAndUI() {
+    getCurrentBoardMove() {
+        if (this.currentMoveIndex < 0) return null;
+        const move = this.getLoadedMoves({ verbose: true })[this.currentMoveIndex];
+        return move?.from && move?.to ? move : null;
+    },
+
+    projectAnalyzeBoard({ fen, move = null, mode, reason = 'canonical', animate = false, coalesce = false } = {}) {
+        const game = this.getGame();
+        const boardMode = mode === 'setup' || (mode === undefined && this.setupModeActive) ? 'setup' : 'analysis';
+        const targetFen = fen || (boardMode === 'setup' ? this.setupDraft?.toFen?.() : game?.fen?.());
+        if (!targetFen) return false;
+        this.ensureAnalyzeBoard();
+        if (!this.board) return false;
+
+        this.board.setMode(boardMode);
+        const currentMove = boardMode === 'analysis' ? (move || this.getCurrentBoardMove()) : null;
+        const classification = boardMode === 'analysis' && this.analysisPhase === 'complete'
+            ? this.analysisResults[this.currentMoveIndex]?.quality || null
+            : null;
+        const renderedFen = this.board.getPosition?.().renderedFen;
+        const canApplyMove = move?.from && move?.to && move?.fenBefore && renderedFen === move.fenBefore;
+        const result = canApplyMove
+            ? this.board.applyMove(move, targetFen, { animate: animate !== false, classification })
+            : this.board.setPosition(targetFen, {
+                animate: animate === true,
+                coalesce,
+                lastMove: currentMove,
+                classification
+            });
+        document.getElementById('analyzeChessboard')?.setAttribute('data-analyze-projection-reason', reason);
+        return result?.ok === true;
+    },
+
+    updateBoardAndUI(options = {}) {
         const game = this.getGame();
         if (!game) return;
-        if (this.board && typeof this.board.position === 'function') {
-            this.board.position(game.fen(), false);
-        }
+        this.projectAnalyzeBoard({ fen: game.fen(), ...options });
         if (typeof App.updateUI === 'function') {
             App.updateUI();
         }
@@ -1880,7 +1902,7 @@ const AnalyzeSection = {
                     <div class="analyze-evidence__field analyze-evidence__evaluation"><span>Evaluation</span><strong>${this.formatEvaluation(result.beforePlayerEval, result.mateBefore)} → ${this.formatEvaluation(result.afterPlayerEval, result.mateAfter)}</strong></div>
                     <div class="analyze-evidence__field analyze-evidence__loss"><span>Loss</span><strong>${result.loss.toFixed(2)}</strong></div>` : ''}
                 </div>
-                ${negative ? `<p class="analyze-position-note">Position shown: before ${this.escapeHtml(result.move)}.</p>` : ''}
+                ${negative ? `<p class="analyze-position-note">Position shown: after ${this.escapeHtml(result.move)}.</p>` : ''}
             </div>
         `;
     },
@@ -1905,7 +1927,7 @@ const AnalyzeSection = {
         if (recommendation) parts.push(`Engine recommends ${this.describeSan(result.bestMoveSan)}.`);
         parts.push(`Evaluation changed from ${this.describeEvaluation(result.beforePlayerEval, result.mateBefore)} to ${this.describeEvaluation(result.afterPlayerEval, result.mateAfter)}.`);
         parts.push(`Evaluation loss ${result.loss.toFixed(2)} pawns.`);
-        parts.push(`The board shows the position before ${this.describeSan(result.move)}.`);
+        parts.push(`The board shows the position after ${this.describeSan(result.move)}.`);
         return parts.join(' ');
     },
 
@@ -2091,8 +2113,8 @@ const AnalyzeSection = {
     },
 
     applyAnalyzeOrientation() {
-        if (!this.board || typeof this.board.orientation !== 'function') return;
-        this.board.orientation(this.boardFlipped ? 'black' : 'white');
+        if (!this.board || typeof this.board.setOrientation !== 'function') return;
+        this.board.setOrientation(this.boardFlipped ? 'black' : 'white');
         this.elements.evalBar?.classList.toggle('eval-flipped', this.boardFlipped);
         this.elements.flipBoard?.classList.toggle('active', this.boardFlipped);
         setTimeout(() => this.board?.resize?.(), 0);

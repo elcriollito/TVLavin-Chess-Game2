@@ -57,7 +57,7 @@ for (const profile of profiles) {
         await openGenericAnalyze(page);
         const dialog = page.getByRole('dialog', { name: 'Analyze completed game' });
         await expect(dialog).toBeVisible();
-        await expect(page.locator('#analyzeChessboard .board-b72b1')).toBeVisible();
+        await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
 
         const state = await page.evaluate(() => {
             const visible = element => {
@@ -73,14 +73,14 @@ for (const profile of profiles) {
             };
             const viewport = window.visualViewport;
             return {
-                visibleBoards: [...document.querySelectorAll('.board-b72b1')].filter(visible).length,
+                visibleBoards: [...document.querySelectorAll('#analyzeChessboard .caissa-board')].filter(visible).length,
                 playInert: document.getElementById('playSection').inert,
                 playAriaHidden: document.getElementById('playSection').getAttribute('aria-hidden'),
                 playVisible: visible(document.getElementById('playSection')),
                 documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 dialog: rect('#analyzeSection'),
                 close: rect('[data-play-v2-analyze-close]'),
-                board: rect('#analyzeChessboard'),
+                board: rect('#analyzeChessboard .caissa-board'),
                 viewport: {
                     left: viewport?.offsetLeft || 0,
                     top: viewport?.offsetTop || 0,

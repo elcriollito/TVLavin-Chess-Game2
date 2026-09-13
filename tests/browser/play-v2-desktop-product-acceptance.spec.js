@@ -110,7 +110,7 @@ test('completed Games handoff runs one evidence-backed analysis and fails closed
     await expect(page.locator('#analyzeMoveEvidence')).toContainText('d4');
     await expect(page.locator('#analyzeMoveEvidence')).toContainText('Evaluation');
     await expect(page.locator('#analyzeMoveEvidence')).toContainText('Loss');
-    await expect(page.locator('#analyzeMoveEvidence')).toContainText('Position shown: before e4');
+    await expect(page.locator('#analyzeMoveEvidence')).toContainText('Position shown: after e4');
     await expect(page.locator('.move-white[data-index="0"]')).toHaveAttribute('aria-label', /Blunder/);
     const evidenceLayout = await page.evaluate(() => {
         const panel = document.querySelector('.analyze-evidence-panel').getBoundingClientRect();
