@@ -46,7 +46,7 @@ test('PGN Reader imports only the stable adapter through its projection seam', a
     const page = await readFile(resolve(root, 'js/pgn-replayer/pgn-replayer-page.js'), 'utf8');
     assert.match(projection, /from ['"]\.\.\/board\/caissa-board-adapter\.js['"]/);
     assert.doesNotMatch(projection, /caissa-(?:board-state|persistent-renderer)\.js/);
-    assert.match(page, /from ['"]\.\/pgn-board\.js\?v=2\.0\.0['"]/);
+    assert.match(page, /from ['"]\.\/pgn-board\.js\?v=2\.0\.1['"]/);
     assert.doesNotMatch(page, /board\/caissa-/);
 });
 
