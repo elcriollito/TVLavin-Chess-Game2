@@ -39,11 +39,11 @@ test('loads multiple games locally and replays mainline, comments, NAGs, and var
   await expect(page.locator('.pgn-nag').filter({ hasText: /^!$/ })).toHaveCount(1);
   await page.getByRole('button', { name: '1. e4' }).click();
   await expect(page.getByRole('button', { name: '1. e4' })).toHaveClass(/is-active/);
-  await expect(page.locator('.square-e4 .piece-417db')).toHaveCount(1);
+  await expect(page.locator('.caissa-board__piece[data-square="e4"]')).toHaveCount(1);
   await page.locator('[data-pgn-next]').click();
-  await expect(page.locator('.square-e5 .piece-417db')).toHaveCount(1);
+  await expect(page.locator('.caissa-board__piece[data-square="e5"]')).toHaveCount(1);
   await page.locator('[data-pgn-previous]').click();
-  await expect(page.locator('.square-e4 .piece-417db')).toHaveCount(1);
+  await expect(page.locator('.caissa-board__piece[data-square="e4"]')).toHaveCount(1);
 });
 
 test('supports game selection, notation metadata, Albums, flip, focus, and keyboard navigation', async ({ page }) => {
@@ -57,9 +57,9 @@ test('supports game selection, notation metadata, Albums, flip, focus, and keybo
   await expect(page.locator('[data-pgn-albums]')).toContainText('private-games.pgn');
   await expect(page.locator('[data-pgn-albums] [data-access="local"]')).toHaveText('Local PGN');
   await page.locator('[data-pgn-flip]').click();
-  await expect(page.locator('#pgn-chessboard')).toHaveAttribute('aria-label', /black orientation/i);
+  await expect(page.locator('#pgn-chessboard .caissa-board')).toHaveAttribute('aria-description', /black orientation/i);
   await page.keyboard.press('ArrowRight');
-  await expect(page.locator('.square-d4 .piece-417db')).toHaveCount(1);
+  await expect(page.locator('.caissa-board__piece[data-square="d4"]')).toHaveCount(1);
   await page.locator('[data-pgn-focus]').click();
   await expect(page.locator('body')).toHaveClass(/pgn-focus-mode/);
   await page.keyboard.press('Escape');
@@ -292,35 +292,33 @@ test('stays board-first without horizontal page overflow on mobile', async ({ pa
   expect(geometry.boardWidth).toBeLessThanOrEqual(geometry.clientWidth);
   expect(geometry.boardWidth).toBeGreaterThan(280);
   expect(geometry.panelWidth).toBeLessThanOrEqual(geometry.clientWidth);
-  for (const control of ['first', 'previous', 'play', 'next', 'last', 'flip', 'focus']) {
+  for (const control of ['previous', 'play', 'next']) {
     const box = await page.locator(`[data-pgn-${control}]`).boundingBox();
     expect(box.width).toBeGreaterThanOrEqual(42);
     expect(box.height).toBeGreaterThanOrEqual(42);
   }
 
-  const firstRow = await page.locator('.pgn-toolbar-imports-mobile button, .pgn-toolbar-playback button').evaluateAll(nodes => nodes.map(node => ({
-    name: node.hasAttribute('data-pgn-open') ? 'open' : node.hasAttribute('data-pgn-paste') ? 'paste' : [...node.attributes].find(attribute => attribute.name.startsWith('data-pgn-'))?.name.replace('data-pgn-', ''),
+  const firstRow = await page.locator('.pgn-essential-navigation button, [data-pgn-mobile-menu] > summary').evaluateAll(nodes => nodes.map(node => ({
+    name: node.tagName === 'SUMMARY' ? 'menu' : [...node.attributes].find(attribute => /^data-pgn-(previous|play|next)$/.test(attribute.name))?.name.replace('data-pgn-', ''),
     top: Math.round(node.getBoundingClientRect().top)
   })));
-  expect(firstRow.map(control => control.name)).toEqual(['open', 'paste', 'first', 'previous', 'play', 'next', 'last']);
+  expect(firstRow.map(control => control.name)).toEqual(['previous', 'play', 'next', 'menu']);
   expect(new Set(firstRow.map(control => control.top)).size).toBe(1);
 
-  const secondRow = await page.locator('[data-pgn-speed], [data-pgn-flip], [data-pgn-focus]').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
-  expect(Math.max(...secondRow) - Math.min(...secondRow)).toBeLessThanOrEqual(2);
-  expect(secondRow[0]).toBeGreaterThan(firstRow[0].top);
+  await page.locator('[data-pgn-mobile-menu] > summary').click();
+  await expect(page.locator('[data-pgn-mobile-action]:visible')).toHaveCount(9);
+  await expect(page.locator('[data-pgn-speed]')).toBeHidden();
+  await expect(page.locator('[data-pgn-flip]')).toBeHidden();
+  await expect(page.locator('[data-pgn-focus]')).toBeHidden();
+  await page.locator('[data-pgn-mobile-menu] > summary').click();
 
-  const mobileStack = await page.locator('.pgn-toolbar, .pgn-panel').evaluateAll(nodes => nodes.map(node => ({
-    className: node.className,
-    top: Math.round(node.getBoundingClientRect().top),
-    visible: node.getBoundingClientRect().height > 0
-  })).filter(item => item.visible));
-  expect(mobileStack).toHaveLength(2);
-  expect(mobileStack[0].className).toContain('pgn-toolbar');
-  expect(mobileStack[1].className).toContain('pgn-panel');
-  expect(mobileStack[0].top).toBeLessThan(mobileStack[1].top);
+  const fixedBar = await page.locator('.pgn-toolbar').boundingBox();
+  expect(Math.abs((fixedBar.y + fixedBar.height) - 700)).toBeLessThanOrEqual(1);
 
   await page.getByRole('tab', { name: 'Notation' }).click();
-  await page.locator('[data-pgn-speed]').selectOption('400');
+  await page.locator('[data-pgn-mobile-menu] > summary').click();
+  await page.locator('[data-pgn-mobile-speed]').selectOption('400');
+  await page.locator('[data-pgn-mobile-menu] > summary').click();
   await page.locator('[data-pgn-play]').click();
   const autoplayScrollY = await page.evaluate(() => window.scrollY);
   await page.waitForTimeout(1200);

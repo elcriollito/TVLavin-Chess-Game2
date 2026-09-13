@@ -1,4 +1,5 @@
 import { PgnAnalysisEngine } from './pgn-engine.js';
+import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
 
 (function () {
     'use strict';
@@ -58,11 +59,15 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         first: root.querySelector('[data-pgn-first]'),
         previous: root.querySelector('[data-pgn-previous]'),
         play: root.querySelector('[data-pgn-play]'),
+        playLabel: root.querySelector('[data-pgn-play-label]'),
         next: root.querySelector('[data-pgn-next]'),
         last: root.querySelector('[data-pgn-last]'),
         flip: root.querySelector('[data-pgn-flip]'),
         focus: root.querySelector('[data-pgn-focus]'),
         speed: root.querySelector('[data-pgn-speed]'),
+        mobileMenu: root.querySelector('[data-pgn-mobile-menu]'),
+        mobileSpeed: root.querySelector('[data-pgn-mobile-speed]'),
+        mobileActions: root.querySelectorAll('[data-pgn-mobile-action]'),
         nextGame: root.querySelector('[data-pgn-next-game]'),
         shareMenu: root.querySelector('[data-pgn-share-menu]'),
         copyPgn: root.querySelector('[data-pgn-copy-pgn]'),
@@ -103,6 +108,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         locale: savedLocale === 'es' ? 'es' : 'en'
     };
     elements.speed.value = preferences.speed;
+    elements.mobileSpeed.value = preferences.speed;
     elements.empty.hidden = hasSeenWelcome;
     if (!hasSeenWelcome) writePreference('caissa_pgn_welcome_seen', '1');
 
@@ -163,7 +169,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
 
     let board;
     try {
-        board = window.CaissaPgnBoard.create(elements.board, { orientation: preferences.orientation });
+        board = createPgnBoard(elements.board, { orientation: preferences.orientation });
     } catch (_) {
         showMessage('The chessboard could not be initialized.', 'error', false);
         return;
@@ -190,6 +196,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         window.clearTimeout(state.autoplayTimer);
         state.autoplayTimer = null;
         elements.play.querySelector('[data-pgn-play-icon]').textContent = '▶';
+        elements.playLabel.textContent = 'Play';
         elements.play.setAttribute('aria-label', 'Play moves automatically');
         elements.play.title = 'Play moves automatically';
     }
@@ -363,6 +370,19 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     function currentFen() {
         return activeNode()?.fenAfter || state.game?.startFen || null;
     }
+
+    Object.defineProperty(window, 'CaissaPgnReaderDiagnostics', {
+        configurable: true,
+        value: Object.freeze({
+            inspect: () => Object.freeze({
+                gameIndex: state.gameIndex,
+                currentNodeId: state.currentNodeId,
+                autoplay: state.autoplayTimer !== null,
+                fen: currentFen(),
+                board: board.inspect()
+            })
+        })
+    });
 
     function safeFileStem(value, fallback = 'caissa-game') {
         const stem = String(value || '').trim().replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '-').replace(/[. ]+$/g, '');
@@ -656,9 +676,10 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         }
     }
 
-    function updateBoard(animate = true) {
+    function updateBoard({ animate = true, strategy = 'position' } = {}) {
         const node = activeNode();
-        board.setPosition(node?.fenAfter || state.game?.startFen || 'start', node, animate);
+        if (strategy === 'move' && node) board.applyNode(node, { animate });
+        else board.setPosition(node?.fenAfter || state.game?.startFen || 'start', node, animate);
         elements.position.textContent = node ? `Move ${node.moveNumber}${node.turn === 'b' ? '…' : '.'} ${node.san}` : 'Start position';
         root.querySelectorAll('.pgn-move.is-active').forEach(item => item.classList.remove('is-active'));
         if (node) {
@@ -700,6 +721,18 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.exportDiagram.disabled = busy || !hasGame;
         elements.shareDiagram.disabled = busy || !hasGame;
         elements.shareMenu.querySelector('summary').setAttribute('aria-disabled', String(busy || !hasGame));
+        const mobileDisabled = {
+            first: elements.first.disabled,
+            last: elements.last.disabled,
+            'next-game': elements.nextGame.disabled,
+            flip: elements.flip.disabled,
+            focus: elements.focus.disabled,
+            engine: elements.engine.disabled,
+            options: false,
+            open: busy,
+            paste: busy
+        };
+        elements.mobileActions.forEach(button => { button.disabled = mobileDisabled[button.dataset.pgnMobileAction] === true; });
     }
 
     function clearGameFilter() {
@@ -727,7 +760,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         elements.result.textContent = `Result ${h.Result || '*'}`;
         renderGames();
         renderNotation();
-        updateBoard(false);
+        updateBoard({ animate: false });
         if (announce) showMessage(`Game ${index + 1} of ${state.collection.games.length}: ${game.label}`);
         return true;
     }
@@ -896,7 +929,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         const nextId = node?.nextId || (!node ? state.game?.mainline?.[0]?.id : null);
         if (!nextId) { stopAutoplay(); return false; }
         state.currentNodeId = nextId;
-        updateBoard();
+        updateBoard({ strategy: 'move' });
         if (!fromAutoplay) stopAutoplay();
         return true;
     }
@@ -904,6 +937,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     function startAutoplay() {
         if (state.autoplayTimer) { stopAutoplay(); return; }
         elements.play.querySelector('[data-pgn-play-icon]').textContent = 'Ⅱ';
+        elements.playLabel.textContent = 'Pause';
         elements.play.setAttribute('aria-label', 'Pause automatic replay');
         elements.play.title = 'Pause automatic replay';
         const tick = () => {
@@ -919,7 +953,7 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         document.body.classList.toggle('pgn-focus-mode', state.focusMode);
         elements.focus.querySelector('[data-pgn-focus-icon]').textContent = state.focusMode ? '▣' : '⛶';
         elements.focus.setAttribute('aria-label', state.focusMode ? 'Exit focus view' : 'Enter focus view');
-        window.setTimeout(() => board.resize(), 30);
+        window.requestAnimationFrame(() => board.resize());
     }
 
     elements.openButtons.forEach(button => button.addEventListener('click', () => {
@@ -951,7 +985,12 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
         updateEngineUi(state.engineEnabled ? 'ready' : 'off');
     });
     elements.optionsButton.addEventListener('click', () => elements.optionsDialog.showModal());
-    elements.optionsDialog.addEventListener('close', () => elements.optionsButton.focus());
+    elements.optionsDialog.addEventListener('close', () => {
+        const returnTarget = window.matchMedia('(max-width: 980px)').matches
+            ? elements.mobileMenu.querySelector('summary')
+            : elements.optionsButton;
+        returnTarget.focus();
+    });
     elements.loadPaste.addEventListener('click', () => {
         if (!elements.pasteInput.value.trim()) { showMessage('Paste PGN text before loading.', 'error'); return; }
         const text = elements.pasteInput.value;
@@ -1003,10 +1042,25 @@ import { PgnAnalysisEngine } from './pgn-engine.js';
     });
     elements.focus.addEventListener('click', toggleFocus);
     elements.engine.addEventListener('click', toggleEngine);
-    elements.speed.addEventListener('change', () => {
-        writePreference('caissa_pgn_speed', elements.speed.value);
+    function setReplaySpeed(value) {
+        preferences.speed = value;
+        elements.speed.value = value;
+        elements.mobileSpeed.value = value;
+        writePreference('caissa_pgn_speed', value);
         if (state.autoplayTimer) { stopAutoplay(); startAutoplay(); }
-    });
+    }
+    elements.speed.addEventListener('change', () => setReplaySpeed(elements.speed.value));
+    elements.mobileSpeed.addEventListener('change', () => setReplaySpeed(elements.mobileSpeed.value));
+    elements.mobileActions.forEach(button => button.addEventListener('click', () => {
+        const action = button.dataset.pgnMobileAction;
+        const target = {
+            open: elements.openButtons[0], paste: elements.pasteButtons[0], first: elements.first,
+            last: elements.last, 'next-game': elements.nextGame, flip: elements.flip, focus: elements.focus, engine: elements.engine
+        }[action];
+        elements.mobileMenu.open = false;
+        if (action === 'options') elements.optionsDialog.showModal();
+        else target?.click();
+    }));
 
     let dragDepth = 0;
     document.addEventListener('dragenter', event => {

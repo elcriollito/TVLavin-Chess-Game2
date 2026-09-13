@@ -1,54 +1,98 @@
-(function (global) {
-    'use strict';
+import { create as createBoardAdapter } from '../board/caissa-board-adapter.js';
 
-    class PgnBoard {
-        constructor(container, options = {}) {
-            if (!container || typeof global.Chessboard !== 'function') throw new Error('Chessboard is unavailable.');
-            this.container = container;
-            this.orientation = options.orientation === 'black' ? 'black' : 'white';
-            this.widget = global.Chessboard(container, {
-                position: options.position || 'start',
-                orientation: this.orientation,
-                draggable: false,
-                showNotation: true,
-                pieceTheme: '/img/chesspieces/wikipedia/{piece}.png',
-                appearSpeed: 'fast',
-                moveSpeed: 'fast'
-            });
-            this.removeDetachedPieces();
-            container.setAttribute('role', 'img');
-            container.setAttribute('tabindex', '0');
-            container.setAttribute('aria-label', 'Chess position. White orientation.');
-            this.onResize = () => this.resize();
-            global.addEventListener('resize', this.onResize, { passive: true });
-        }
+function semanticMove(node) {
+    const flags = String(node?.flags || '');
+    const move = { from: node?.from, to: node?.to };
+    if (flags.includes('c')) move.capture = true;
+    if (flags.includes('e')) move.enPassant = true;
+    if (flags.includes('k') || flags.includes('q')) move.castle = true;
+    if (node?.promotion || flags.includes('p')) move.promotion = String(node?.promotion || 'q').toUpperCase();
+    return move;
+}
 
-        setPosition(fen, move = null) {
-            this.widget.position(fen || 'start', false);
-            this.removeDetachedPieces();
-            this.container.querySelectorAll('.caissa-pgn-last-move').forEach(node => node.classList.remove('caissa-pgn-last-move'));
-            if (move?.from && move?.to) {
-                this.container.querySelector(`.square-${move.from}`)?.classList.add('caissa-pgn-last-move');
-                this.container.querySelector(`.square-${move.to}`)?.classList.add('caissa-pgn-last-move');
-            }
-        }
-
-        flip() {
-            this.orientation = this.orientation === 'white' ? 'black' : 'white';
-            this.widget.orientation(this.orientation);
-            this.container.setAttribute('aria-label', `Chess position. ${this.orientation} orientation.`);
-            return this.orientation;
-        }
-
-        resize() { this.widget?.resize?.(); }
-        removeDetachedPieces() {
-            document.querySelectorAll('body.pgn-replayer-page > .piece-417db').forEach(piece => piece.remove());
-        }
-        destroy() {
-            global.removeEventListener('resize', this.onResize);
-            this.widget?.destroy?.();
-        }
+export class PgnBoard {
+    constructor(container, options = {}) {
+        if (!container) throw new TypeError('A PGN board container is required.');
+        const createAdapter = options.adapterFactory || createBoardAdapter;
+        this.container = container;
+        this.currentNodeId = null;
+        this.stats = { semanticMoves: 0, positionSets: 0, semanticFallbacks: 0 };
+        this.adapter = createAdapter(container, {
+            label: 'PGN Reader chessboard',
+            position: options.position || 'start',
+            orientation: options.orientation === 'black' ? 'black' : 'white',
+            interactive: false,
+            readOnly: true,
+            animation: options.animation !== false,
+            animationDuration: 180
+        });
+        container.querySelector?.('.caissa-board')?.setAttribute('aria-readonly', 'true');
     }
 
-    global.CaissaPgnBoard = Object.freeze({ create: (container, options) => new PgnBoard(container, options) });
-})(window);
+    render(fen, node = null, options = {}) {
+        const targetFen = fen || 'start';
+        const animate = options.animate !== false;
+        let result;
+        let strategy = options.strategy === 'move' ? 'move' : 'position';
+        const position = this.adapter.getPosition();
+        const isSequential = strategy === 'move'
+            && node?.from && node?.to
+            && node.previousId === this.currentNodeId
+            && position.renderedFen === node.fenBefore;
+
+        if (isSequential) {
+            result = this.adapter.applyMove(semanticMove(node), { fen: targetFen, animate });
+            if (result?.ok) this.stats.semanticMoves += 1;
+            else strategy = 'position';
+        } else {
+            strategy = 'position';
+        }
+
+        if (strategy === 'position') {
+            if (options.strategy === 'move') this.stats.semanticFallbacks += 1;
+            result = this.adapter.setPosition(targetFen, { animate });
+            this.stats.positionSets += 1;
+        }
+
+        this.adapter.highlightSquares(node?.from && node?.to
+            ? [{ square: node.from, type: 'last' }, { square: node.to, type: 'last' }]
+            : []);
+        this.currentNodeId = node?.id || null;
+        this.container.dataset.pgnUpdateStrategy = strategy;
+        return result;
+    }
+
+    setPosition(fen, node = null, animate = true) {
+        return this.render(fen, node, { animate, strategy: 'position' });
+    }
+
+    applyNode(node, options = {}) {
+        return this.render(node?.fenAfter, node, { ...options, strategy: 'move' });
+    }
+
+    flip() {
+        const orientation = this.adapter.getOrientation() === 'white' ? 'black' : 'white';
+        this.adapter.setOrientation(orientation);
+        return orientation;
+    }
+
+    resize() { return this.adapter.resize(); }
+
+    inspect() {
+        return Object.freeze({
+            currentNodeId: this.currentNodeId,
+            strategy: this.container.dataset.pgnUpdateStrategy || 'position',
+            stats: Object.freeze({ ...this.stats }),
+            position: this.adapter.getPosition(),
+            metrics: this.adapter.getMetrics()
+        });
+    }
+
+    destroy() { return this.adapter.destroy(); }
+}
+
+export function create(container, options) {
+    return new PgnBoard(container, options);
+}
+
+export default Object.freeze({ create, PgnBoard });

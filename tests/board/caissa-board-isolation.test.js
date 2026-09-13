@@ -23,8 +23,9 @@ test('foundation adds no Chessground or cm-chessboard dependency', async () => {
     assert.equal(packages['cm-chessboard'], undefined);
 });
 
-test('Play, Analyze, PGN and non-pilot FICS sources do not import the foundation', async () => {
+test('Play, Analyze, PGN non-projection and non-pilot FICS sources do not import the foundation', async () => {
     const approvedFicsPilot = resolve(root, 'js/fics-board-view.js');
+    const approvedPgnProjection = resolve(root, 'js/pgn-replayer/pgn-board.js');
     const candidates = [
         resolve(root, 'index.html'),
         resolve(root, 'app.js'),
@@ -33,11 +34,20 @@ test('Play, Analyze, PGN and non-pilot FICS sources do not import the foundation
         ...await collectFiles(resolve(root, 'js'), path => /[\\/](?:fics|analyze)[^\\/]*\.js$/i.test(path))
     ];
     for (const path of candidates) {
-        if (path === approvedFicsPilot) continue;
+        if (path === approvedFicsPilot || path === approvedPgnProjection) continue;
         const source = await readFile(path, 'utf8');
         assert.doesNotMatch(source, /js\/board\/caissa-|board\/caissa-board-adapter/i, path);
         assert.doesNotMatch(source, /tests\/fixtures\/caissa-board/i, path);
     }
+});
+
+test('PGN Reader imports only the stable adapter through its projection seam', async () => {
+    const projection = await readFile(resolve(root, 'js/pgn-replayer/pgn-board.js'), 'utf8');
+    const page = await readFile(resolve(root, 'js/pgn-replayer/pgn-replayer-page.js'), 'utf8');
+    assert.match(projection, /from ['"]\.\.\/board\/caissa-board-adapter\.js['"]/);
+    assert.doesNotMatch(projection, /caissa-(?:board-state|persistent-renderer)\.js/);
+    assert.match(page, /from ['"]\.\/pgn-board\.js\?v=2\.0\.0['"]/);
+    assert.doesNotMatch(page, /board\/caissa-/);
 });
 
 test('FICS Observe pilot is the only approved product import seam for the adapter', async () => {

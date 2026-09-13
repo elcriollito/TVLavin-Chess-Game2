@@ -121,6 +121,9 @@
                     fenAfter: chess.fen(),
                     from: safeText(applied.from, 2),
                     to: safeText(applied.to, 2),
+                    flags: safeText(applied.flags, 16),
+                    captured: safeText(applied.captured, 1),
+                    promotion: safeText(applied.promotion, 1),
                     comments,
                     nags: normalizeNags(rawMove.nag),
                     variations: []

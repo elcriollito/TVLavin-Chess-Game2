@@ -98,6 +98,25 @@ test('supports a legal custom starting FEN', () => {
   assert.equal(collection.games[0].mainline[0].san, 'Kf3');
 });
 
+test('retains presentation-neutral move evidence for persistent replay', () => {
+  const source = `[Event "Move evidence"]
+[White "A"]
+[Black "B"]
+[Result "*"]
+
+1. e4 a6 2. e5 d5 3. exd6 exd6 4. Nf3 Nf6 5. Be2 Be7 6. O-O *`;
+  const moves = parse(source).games[0].mainline;
+  assert.equal(moves[0].flags.includes('b'), true);
+  assert.equal(moves[4].flags.includes('e'), true);
+  assert.equal(moves[4].captured, 'p');
+  assert.equal(moves.at(-1).flags.includes('k'), true);
+
+  const promotion = parse(`[SetUp "1"]\n[FEN "7k/P7/8/8/8/8/8/7K w - - 0 1"]\n[Result "*"]\n\n1. a8=Q+ *`)
+    .games[0].mainline[0];
+  assert.equal(promotion.flags.includes('p'), true);
+  assert.equal(promotion.promotion, 'q');
+});
+
 test('parses the bundled Capablanca album as 597 playable games', { timeout: 20_000 }, () => {
   const source = fs.readFileSync(new URL('../../api/_private/pgn/capablanca-games-1901-1941.pgn', import.meta.url), 'utf8');
   const collection = parse(source);
