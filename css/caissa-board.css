@@ -55,6 +55,8 @@
 
 .caissa-board__square {
     appearance: none;
+    min-width: 0 !important;
+    min-height: 0 !important;
     margin: 0;
     padding: 0;
     border: 0;

@@ -18,12 +18,12 @@ test.beforeEach(async ({ page }) => {
 async function openAnalyze(page) {
     await page.goto('/analyze');
     await expect(page.locator('#analyzeV2PanelAnalysis')).toBeVisible();
-    await expect(page.locator('#analyzeChessboard .board-b72b1')).toBeVisible();
+    await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
 }
 
-async function startBoardDrag(page, sourceSquare, targetSquare) {
-    const source = page.locator(`#analyzeChessboard .square-${sourceSquare} img`);
-    const target = page.locator(`#analyzeChessboard .square-${targetSquare}`);
+async function startBoardDrag(page, sourceSquare, targetSquare, { expectLegal = true } = {}) {
+    const source = page.locator(`#analyzeChessboard .caissa-board__piece[data-square="${sourceSquare}"]`);
+    const target = page.locator(`#analyzeChessboard .caissa-board__square[data-square="${targetSquare}"]`);
     await Promise.all([expect(source).toBeVisible(), expect(target).toBeVisible()]);
     const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
     if (!sourceBox || !targetBox) throw new Error(`Missing drag geometry for ${sourceSquare}-${targetSquare}`);
@@ -34,14 +34,16 @@ async function startBoardDrag(page, sourceSquare, targetSquare) {
     await page.mouse.move((start.x + end.x) / 2, (start.y + end.y) / 2, { steps: 5 });
     await page.mouse.move(end.x, end.y, { steps: 5 });
     await expect(page.locator('body')).toHaveClass(/caissa-analyze-board-dragging/);
-    await expect(page.locator('body > .piece-417db')).toBeVisible();
-    await expect(target).toHaveClass(/highlight2-9c5d2/);
+    await expect(source).toHaveAttribute('data-dragging', 'true');
+    if (expectLegal) {
+        await expect(page.locator(`#analyzeChessboard .caissa-board__highlight--legal[data-square="${targetSquare}"]`)).toBeVisible();
+    }
 }
 
 async function finishBoardDrag(page) {
     await page.mouse.up();
     await expect(page.locator('body')).not.toHaveClass(/caissa-analyze-board-dragging/);
-    await expect(page.locator('body > .piece-417db')).toBeHidden();
+    await expect(page.locator('#analyzeChessboard .caissa-board__piece[data-dragging="true"]')).toHaveCount(0);
 }
 
 async function dragBoardPiece(page, sourceSquare, targetSquare) {
@@ -93,11 +95,12 @@ test('A2.2 Analysis drag is physical while legal move, notation, cursor and engi
     expect(legal.engineFen).toBe(legal.fen);
 
     const fenBeforeIllegal = legal.fen;
-    await dragBoardPiece(page, 'g8', 'g6');
+    await startBoardDrag(page, 'g8', 'g6', { expectLegal: false });
+    await finishBoardDrag(page);
     expect(await page.evaluate(() => ({
         fen: AnalyzeSection.loadedGame.game.fen(),
         history: AnalyzeSection.loadedGame.game.history(),
-        ghostVisible: Array.from(document.querySelectorAll('body > .piece-417db'))
+        ghostVisible: Array.from(document.querySelectorAll('#analyzeChessboard .caissa-board__piece[data-dragging="true"]'))
             .some(piece => getComputedStyle(piece).display !== 'none'),
         dragging: document.body.classList.contains('caissa-analyze-board-dragging')
     }))).toEqual({ fen: fenBeforeIllegal, history: ['e4', 'e5', 'Nf3'], ghostVisible: false, dragging: false });
@@ -113,7 +116,7 @@ test('A2.2 Setup reuses the physical board drag but mutates only the temporary d
     });
     await page.locator('#analyzeNewBtn').click();
     await expect(page.locator('#analyzeV2PanelSetup')).toBeVisible();
-    await startBoardDrag(page, 'd2', 'd4');
+    await startBoardDrag(page, 'd2', 'd4', { expectLegal: false });
     if (browserName === 'chromium') {
         mkdirSync(ARTIFACTS, { recursive: true });
         await page.screenshot({ path: `${ARTIFACTS}/analyze-v2-a22-setup-board-dragging-1366x768.png` });

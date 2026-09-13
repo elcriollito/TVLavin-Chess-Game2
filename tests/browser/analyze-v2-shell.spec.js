@@ -31,12 +31,12 @@ for (const profile of desktopProfiles) {
         const shell = page.locator('[data-caissa-analyze-v2]');
         const stage = shell.locator('.caissa-analyze-v2__stage');
         const workspace = shell.locator('.caissa-analyze-v2__workspace');
-        const board = shell.locator('#analyzeChessboard .board-b72b1');
+        const board = shell.locator('#analyzeChessboard .caissa-board');
         await expect(shell).toBeVisible();
         await expect(stage).toBeVisible();
         await expect(workspace).toBeVisible();
         await expect(board).toBeVisible();
-        await expect(shell.locator('#analyzeChessboard .board-b72b1')).toHaveCount(1);
+        await expect(shell.locator('#analyzeChessboard .caissa-board')).toHaveCount(1);
 
         const geometry = await page.evaluate(() => {
             const rect = (selector) => {
@@ -47,7 +47,7 @@ for (const profile of desktopProfiles) {
                 stage: rect('.caissa-analyze-v2__stage'),
                 workspace: rect('.caissa-analyze-v2__workspace'),
                 board: rect('#analyzeChessboard'),
-                innerBoard: rect('#analyzeChessboard .board-b72b1'),
+                innerBoard: rect('#analyzeChessboard .caissa-board'),
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
             };
         });
@@ -66,6 +66,7 @@ test('A1 tabs switch presentation panels without replacing Analyze owners', asyn
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/analyze');
     await expect(page.locator('#analyzeV2PanelAnalysis')).toBeVisible();
+    await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
 
     await page.evaluate(() => {
         window.__a1Owners = {
@@ -119,7 +120,7 @@ test('A1 keeps the existing PGN session and review cursor pipeline authoritative
         source: window.AnalyzeSection.loadedGame?.source,
         moveCount: window.AnalyzeSection.loadedGame?.game?.history?.().length,
         currentMoveIndex: window.AnalyzeSection.currentMoveIndex,
-        analyzeBoards: document.querySelectorAll('#analyzeChessboard .board-b72b1').length,
+        analyzeBoards: document.querySelectorAll('#analyzeChessboard .caissa-board').length,
         analysisEngine: window.AnalyzeSection.analysisEngine
     }));
     expect(authority).toEqual({
@@ -257,7 +258,7 @@ test('A1.3 streams continuous primary plus MultiPV lines through the single engi
 
     const authority = await page.evaluate(() => ({
         sessionOwnsGame: window.AnalyzeSection.session.game === window.AnalyzeSection.loadedGame.game,
-        boardCount: document.querySelectorAll('#analyzeChessboard .board-b72b1').length,
+        boardCount: document.querySelectorAll('#analyzeChessboard .caissa-board').length,
         workers: window.__caissaPlayHarness.snapshot().workersCreated,
         multiPvFour: window.__caissaPlayHarness.snapshot().workerMessages
             .includes('setoption name MultiPV value 4'),

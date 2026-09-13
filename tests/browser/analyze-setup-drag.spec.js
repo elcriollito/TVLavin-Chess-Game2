@@ -19,7 +19,7 @@ async function openSetup(page) {
 
 async function dragPalettePiece(page, accessibleName, square) {
     const source = page.getByRole('button', { name: accessibleName });
-    const target = page.locator(`#analyzeChessboard .square-${square}`);
+    const target = page.locator(`#analyzeChessboard .caissa-board__square[data-square="${square}"]`);
     const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
     if (!sourceBox || !targetBox) throw new Error(`Could not resolve palette drag geometry for ${square}`);
     const start = { x: sourceBox.x + sourceBox.width / 2, y: sourceBox.y + sourceBox.height / 2 };
@@ -35,7 +35,7 @@ async function dragPalettePiece(page, accessibleName, square) {
 }
 
 async function dragBoardPiece(page, sourceSquare, target) {
-    const sourceBox = await page.locator(`#analyzeChessboard .square-${sourceSquare} img`).boundingBox();
+    const sourceBox = await page.locator(`#analyzeChessboard .caissa-board__piece[data-square="${sourceSquare}"]`).boundingBox();
     const targetBox = await target.boundingBox();
     if (!sourceBox || !targetBox) throw new Error(`Could not resolve board drag geometry for ${sourceSquare}`);
     const start = { x: sourceBox.x + sourceBox.width / 2, y: sourceBox.y + sourceBox.height / 2 };
@@ -82,7 +82,7 @@ test('A2.1 palette drag updates the approved draft and commits through the exist
         secondQueen: AnalyzeSection.setupDraft.getPiece('e5')
     }))).toEqual({ knight: 'bN', firstQueen: 'wQ', secondQueen: 'wQ' });
 
-    await dragBoardPiece(page, 'd4', page.locator('#analyzeChessboard .square-d5'));
+    await dragBoardPiece(page, 'd4', page.locator('#analyzeChessboard .caissa-board__square[data-square="d5"]'));
     expect(await page.evaluate(() => ({
         from: AnalyzeSection.setupDraft.getPiece('d4'),
         to: AnalyzeSection.setupDraft.getPiece('d5'),
@@ -134,7 +134,7 @@ test('A2.1 drag cancel and click fallback do not mutate the authoritative game',
 
     await page.getByRole('tab', { name: 'Setup Position' }).click();
     await page.getByRole('button', { name: 'Select white queen' }).click();
-    await page.locator('#analyzeChessboard .square-d4').click();
+    await page.locator('#analyzeChessboard .caissa-board__square[data-square="d4"]').click();
     expect(await page.evaluate(() => ({
         draftPiece: AnalyzeSection.setupDraft.getPiece('d4'),
         authoritativePiece: AnalyzeSection.loadedGame.game.get('d4')
@@ -145,7 +145,7 @@ test('A2.1 mobile retains the click-to-place fallback', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openSetup(page);
     await page.getByRole('button', { name: 'Select black knight' }).click();
-    await page.locator('#analyzeChessboard .square-c6').click();
+    await page.locator('#analyzeChessboard .caissa-board__square[data-square="c6"]').click();
     expect(await page.evaluate(() => ({
         piece: AnalyzeSection.setupDraft.getPiece('c6'),
         fenMatches: document.getElementById('analyzeSetupFen').value === AnalyzeSection.setupDraft.toFen()

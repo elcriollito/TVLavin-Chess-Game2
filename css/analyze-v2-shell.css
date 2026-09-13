@@ -88,6 +88,8 @@
 
 #analyzeSection .caissa-analyze-v2 .analyze-board-zone > #analyzeChessboard {
     grid-column: 2;
+    align-self: center;
+    justify-self: center;
     width: 100% !important;
     height: auto !important;
     max-width: none !important;
@@ -97,6 +99,16 @@
     border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: 5px;
     box-shadow: 0 20px 55px rgba(0, 0, 0, 0.42), 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+
+#analyzeSection .caissa-analyze-v2 #analyzeChessboard > .caissa-board {
+    width: 100%;
+    height: auto;
+}
+
+#analyzeSection .caissa-analyze-v2 #analyzeChessboard .caissa-board__square {
+    min-width: 0 !important;
+    min-height: 0 !important;
 }
 
 #analyzeSection .caissa-analyze-v2 .analyze-eval-column {
@@ -1236,38 +1248,15 @@
     cursor: crosshair;
 }
 
-#analyzeSection .caissa-analyze-v2 #analyzeChessboard .piece-417db {
+#analyzeSection .caissa-analyze-v2 #analyzeChessboard .caissa-board__piece {
     cursor: grab;
     user-select: none;
     -webkit-user-drag: none;
 }
 
 #analyzeSection .caissa-analyze-v2 #analyzeChessboard.is-piece-dragging,
-#analyzeSection .caissa-analyze-v2 #analyzeChessboard.is-piece-dragging .piece-417db {
+#analyzeSection .caissa-analyze-v2 #analyzeChessboard.is-piece-dragging .caissa-board__piece {
     cursor: grabbing;
-}
-
-#analyzeSection .caissa-analyze-v2 #analyzeChessboard .highlight1-32417 {
-    box-shadow: inset 0 0 0 4px rgba(240, 165, 72, 0.64), inset 0 0 22px rgba(240, 165, 72, 0.14);
-}
-
-#analyzeSection .caissa-analyze-v2 #analyzeChessboard .highlight2-9c5d2 {
-    box-shadow: inset 0 0 0 4px rgba(255, 194, 96, 0.82), inset 0 0 28px rgba(240, 165, 72, 0.22);
-}
-
-body.caissa-analyze-board-dragging > .piece-417db {
-    z-index: 2147482999;
-    cursor: grabbing;
-    filter: drop-shadow(0 10px 9px rgba(0, 0, 0, 0.46));
-    opacity: 0.94;
-    pointer-events: none;
-    transform: scale(1.055);
-    transform-origin: center;
-    will-change: left, top;
-}
-
-#analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] #analyzeChessboard .caissa-analyze-v2__setup-source {
-    box-shadow: inset 0 0 0 5px rgba(240, 165, 72, 0.64);
 }
 
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] #analyzeChessboard .caissa-analyze-v2__setup-drop-target {
@@ -1469,6 +1458,10 @@ body.caissa-analyze-board-dragging > .piece-417db {
         width: 100%;
     }
 
+    #analyzeSection.caissa-play-v2-inline-analyze .caissa-analyze-v2 .analyze-board-zone > #analyzeChessboard {
+        width: min(100%, calc(100dvw - 84px)) !important;
+    }
+
     #analyzeSection .caissa-analyze-v2__player {
         width: 100%;
         padding-left: 31px;
@@ -1586,6 +1579,132 @@ body.caissa-analyze-board-dragging > .piece-417db {
 
     #analyzeSection .caissa-analyze-v2__castling {
         grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (orientation: landscape) and (max-width: 960px) and (max-height: 560px) {
+    #analyzeSection:has(.caissa-analyze-v2) {
+        overflow: hidden;
+    }
+
+    #analyzeSection .caissa-analyze-v2 {
+        grid-template-columns: minmax(0, 48%) minmax(0, 52%);
+        gap: 6px;
+        height: 100%;
+        min-height: 0;
+        padding: 4px;
+        overflow: hidden;
+    }
+
+    #analyzeSection .caissa-analyze-v2__stage {
+        grid-template-rows: 20px minmax(0, 1fr) 20px;
+        gap: 2px;
+        height: 100%;
+        min-height: 0;
+    }
+
+    #analyzeSection .caissa-analyze-v2 .analyze-board-zone,
+    #analyzeSection .caissa-analyze-v2__player {
+        width: min(100%, calc(100dvh - 48px));
+    }
+
+    #analyzeSection .caissa-analyze-v2__player {
+        height: 20px;
+        padding-left: 26px;
+        gap: 5px;
+        font-size: 10px;
+        line-height: 1;
+    }
+
+    #analyzeSection .caissa-analyze-v2__avatar {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+    }
+
+    #analyzeSection .caissa-analyze-v2 .analyze-board-zone {
+        grid-template-columns: 20px minmax(0, 1fr);
+        gap: 4px;
+        min-height: 0;
+    }
+
+    #analyzeSection .caissa-analyze-v2 .analyze-eval-bar {
+        width: 14px;
+    }
+
+    #analyzeSection .caissa-analyze-v2 .analyze-eval-score {
+        width: 20px;
+        min-height: 16px;
+        padding: 2px 0;
+        font-size: 7px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__workspace {
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        height: 100%;
+        min-height: 0;
+        max-height: none;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    #analyzeSection .caissa-analyze-v2__workspace-header {
+        min-height: 34px;
+        padding: 5px 10px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__workspace-header h2 {
+        font-size: 15px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__tabs {
+        min-height: 45px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__tab {
+        min-height: 44px;
+        padding: 4px;
+        gap: 2px;
+        font-size: 9px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__tab i {
+        font-size: 14px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__viewport {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    #analyzeSection .caissa-analyze-v2__tabpanel {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    #analyzeSection .caissa-analyze-v2__engine-strip {
+        min-height: 36px;
+        padding: 5px 9px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__footer {
+        gap: 3px;
+        padding: 4px 7px 5px;
+    }
+
+    #analyzeSection .caissa-analyze-v2 .analyze-board-navigation {
+        gap: 4px;
+    }
+
+    #analyzeSection .caissa-analyze-v2 .analyze-board-navigation .nav-btn-sm {
+        min-width: 36px;
+        height: 34px;
+        min-height: 34px;
+    }
+
+    #analyzeSection .caissa-analyze-v2__actions button {
+        min-height: 22px;
+        padding: 2px;
     }
 }
 

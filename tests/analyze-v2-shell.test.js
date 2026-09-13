@@ -76,12 +76,14 @@ test('A2.1 palette drag is a pointer input into the existing setup draft only', 
     assert.match(css, /data-analyze-v2-view='setup'[\s\S]*?caissa-analyze-v2__footer[\s\S]*?opacity:\s*1/);
 });
 
-test('A2.2 wires physical board drag and local New/Save without parallel authorities', () => {
+test('A2.2 wires the persistent board projection and local New/Save without parallel authorities', () => {
     for (const id of ['analyzeNewBtn', 'analyzeSaveBtn', 'analyzeReviewBtn']) {
         assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, id);
     }
-    assert.match(analyze, /dragThrottleRate:\s*8/);
-    assert.match(analyze, /onDragStart:\s*\(source, piece\) => this\.beginAnalyzeBoardDrag/);
+    assert.match(analyze, /import\('\/js\/analyze-board-projection\.js\?v=1\.0\.0'\)/);
+    assert.match(analyze, /onDragStart:\s*source => this\.beginAnalyzeBoardDrag/);
+    assert.match(analyze, /onMoveAttempt:\s*intent => this\.handleAnalyzeBoardMoveAttempt/);
+    assert.doesNotMatch(analyze, /Chessboard\s*\(/);
     assert.match(analyze, /openNewAnalysis\(\)[\s\S]*?selectView\?\.\('setup'/);
     assert.match(analyze, /buildAnalysisPgn\(\)[\s\S]*?game\.pgn\(/);
     assert.match(analyze, /finishSetupCommit\(\)[\s\S]*?setLiveEngineEnabled\(true\)/);
