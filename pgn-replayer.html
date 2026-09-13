@@ -130,7 +130,10 @@
                 </div>
               </section>
               <section role="tabpanel" id="pgn-panel-analysis" aria-labelledby="pgn-tab-analysis" data-pgn-tabpanel="analysis" hidden>
-                <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title"><div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div></section>
+                <section class="pgn-engine-panel" data-pgn-engine-panel data-state="off" aria-labelledby="pgn-engine-title">
+                  <div class="pgn-analysis-sandbox"><div><strong>Analysis board</strong><small data-pgn-analysis-status aria-live="polite">Open a game to explore a position.</small></div><button class="pgn-button" type="button" data-pgn-analysis-reset disabled><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Reset position</span></button></div>
+                  <div class="pgn-engine-heading"><div><span class="pgn-engine-dot" aria-hidden="true"></span><strong id="pgn-engine-title">Stockfish analysis</strong></div><small data-pgn-engine-summary>Off</small></div><div class="pgn-engine-lines" data-pgn-engine-lines aria-live="polite"></div>
+                </section>
               </section>
             </div>
             <div class="pgn-panel-footer">

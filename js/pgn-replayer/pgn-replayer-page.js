@@ -1,5 +1,6 @@
 import { PgnAnalysisEngine } from './pgn-engine.js';
-import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
+import { create as createPgnBoard } from './pgn-board.js?v=2.0.1';
+import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
 (function () {
     'use strict';
@@ -79,7 +80,9 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
         engineState: root.querySelector('[data-pgn-engine-state]'),
         enginePanels: root.querySelectorAll('[data-pgn-engine-panel]'),
         engineSummaries: root.querySelectorAll('[data-pgn-engine-summary]'),
-        engineLineGroups: root.querySelectorAll('[data-pgn-engine-lines]')
+        engineLineGroups: root.querySelectorAll('[data-pgn-engine-lines]'),
+        analysisStatus: root.querySelector('[data-pgn-analysis-status]'),
+        analysisReset: root.querySelector('[data-pgn-analysis-reset]')
     };
 
     function readPreference(key) {
@@ -164,6 +167,8 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
         activeAlbumId: null,
         pendingAlbumId: null,
         pendingTab: null,
+        activeTab: 'albums',
+        analysis: null,
         albums: [{ ...CAPABLANCA_ALBUM }]
     };
 
@@ -358,6 +363,9 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
     }
 
     function selectTab(name, focus = false) {
+        const previous = state.activeTab;
+        if (previous === 'analysis' && name !== 'analysis') exitAnalysis();
+        state.activeTab = name;
         elements.tabs.forEach(tab => {
             const selected = tab.dataset.pgnTab === name;
             tab.setAttribute('aria-selected', String(selected));
@@ -365,10 +373,154 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
             if (selected && focus) tab.focus();
         });
         elements.panels.forEach(panel => { panel.hidden = panel.dataset.pgnTabpanel !== name; });
+        if (name === 'analysis' && previous !== 'analysis') enterAnalysis();
+    }
+
+    function canonicalFen() {
+        return activeNode()?.fenAfter || state.game?.startFen || null;
     }
 
     function currentFen() {
-        return activeNode()?.fenAfter || state.game?.startFen || null;
+        return state.activeTab === 'analysis' && state.analysis?.fen
+            ? state.analysis.fen
+            : canonicalFen();
+    }
+
+    function analysisSourceLabel() {
+        const node = activeNode();
+        return node ? `move ${node.moveNumber}${node.turn === 'b' ? '…' : '.'} ${node.san}` : 'the start position';
+    }
+
+    function updateAnalysisUi() {
+        const session = state.analysis;
+        elements.analysisReset.disabled = !session?.dirty;
+        if (!state.game) elements.analysisStatus.textContent = 'Open a game to explore a position.';
+        else if (session?.dirty) elements.analysisStatus.textContent = `${session.history.length} sandbox move${session.history.length === 1 ? '' : 's'} · source ${session.sourceLabel}`;
+        else elements.analysisStatus.textContent = `Explore from ${session?.sourceLabel || analysisSourceLabel()} · PGN stays unchanged`;
+    }
+
+    function syncAnalysisFromCanonical() {
+        const sourceFen = canonicalFen();
+        if (!sourceFen) {
+            state.analysis = null;
+            updateAnalysisUi();
+            return null;
+        }
+        state.analysis = {
+            sourceNodeId: state.currentNodeId,
+            sourceFen,
+            sourceLabel: analysisSourceLabel(),
+            game: new Chess(sourceFen),
+            fen: sourceFen,
+            history: [],
+            dirty: false,
+            selectedSquare: null,
+            revision: 0
+        };
+        updateAnalysisUi();
+        return state.analysis;
+    }
+
+    function enterAnalysis() {
+        stopAutoplay();
+        const session = syncAnalysisFromCanonical();
+        board.setInteractive(!!session);
+        if (session) board.setPosition(session.sourceFen, activeNode(), false);
+        requestEngineAnalysis();
+    }
+
+    function exitAnalysis() {
+        const wasDirty = state.analysis?.dirty === true;
+        state.analysis = null;
+        board.setInteractive(false);
+        const fen = canonicalFen();
+        if (fen) board.setPosition(fen, activeNode(), !wasDirty);
+        updateAnalysisUi();
+        requestEngineAnalysis();
+    }
+
+    function resetAnalysis() {
+        if (!state.analysis) return;
+        const { sourceFen } = state.analysis;
+        const sourceNode = state.analysis.sourceNodeId ? state.nodes.get(state.analysis.sourceNodeId) || null : null;
+        state.analysis = {
+            ...state.analysis,
+            game: new Chess(sourceFen),
+            fen: sourceFen,
+            history: [],
+            dirty: false,
+            selectedSquare: null,
+            revision: state.analysis.revision + 1
+        };
+        board.setPosition(sourceFen, sourceNode, false);
+        updateAnalysisUi();
+        requestEngineAnalysis();
+        showMessage('Analysis position reset to the PGN source.');
+    }
+
+    function legalAnalysisMoves(square) {
+        try { return state.analysis?.game.moves({ square, verbose: true }) || []; }
+        catch (_) { return []; }
+    }
+
+    function isOwnAnalysisPiece(square) {
+        const session = state.analysis;
+        const piece = session?.game.get(square);
+        return !!piece && piece.color === session.game.turn();
+    }
+
+    function presentAnalysisSelection() {
+        const square = state.analysis?.selectedSquare || null;
+        board.showSelection(square, square ? legalAnalysisMoves(square).map(move => move.to) : []);
+    }
+
+    function handleAnalysisSquareTap(square) {
+        const session = state.analysis;
+        if (!session) return;
+        const revision = session.revision;
+        if (!session.selectedSquare) session.selectedSquare = isOwnAnalysisPiece(square) ? square : null;
+        else if (session.selectedSquare === square) session.selectedSquare = null;
+        else if (isOwnAnalysisPiece(square)) session.selectedSquare = square;
+        queueMicrotask(() => {
+            if (state.analysis === session && session.revision === revision) presentAnalysisSelection();
+        });
+    }
+
+    function handleAnalysisMoveAttempt({ from, to, promotion }) {
+        const session = state.analysis;
+        if (!session || !isOwnAnalysisPiece(from)) return;
+        if (isOwnAnalysisPiece(to)) {
+            session.selectedSquare = to;
+            presentAnalysisSelection();
+            return;
+        }
+        let move = null;
+        try {
+            move = session.game.move({ from, to, ...(promotion ? { promotion: promotion.toLowerCase() } : {}) });
+        } catch (_) {
+            move = null;
+        }
+        if (!move) {
+            session.selectedSquare = from;
+            presentAnalysisSelection();
+            showMessage('That move is not legal in this position.', 'warning');
+            return;
+        }
+        session.fen = session.game.fen();
+        session.history.push({ from: move.from, to: move.to, promotion: move.promotion || null, san: move.san, fen: session.fen });
+        session.dirty = true;
+        session.selectedSquare = null;
+        session.revision += 1;
+        board.applySandboxMove(move, session.fen);
+        updateAnalysisUi();
+        requestEngineAnalysis();
+    }
+
+    function requestAnalysisPromotion({ from, to }) {
+        const session = state.analysis;
+        if (!session || !legalAnalysisMoves(from).some(move => move.to === to && move.promotion)) return null;
+        const choice = window.prompt('Promote to Q, R, B, or N:');
+        return /^[qrbn]$/i.test(choice || '') ? choice.toLowerCase() : null;
     }
 
     Object.defineProperty(window, 'CaissaPgnReaderDiagnostics', {
@@ -377,8 +529,19 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
             inspect: () => Object.freeze({
                 gameIndex: state.gameIndex,
                 currentNodeId: state.currentNodeId,
+                activeTab: state.activeTab,
                 autoplay: state.autoplayTimer !== null,
                 fen: currentFen(),
+                canonicalFen: canonicalFen(),
+                engine: Object.freeze({ enabled: state.engineEnabled, fen: state.engine?.currentFen || null }),
+                analysis: state.analysis ? Object.freeze({
+                    sourceNodeId: state.analysis.sourceNodeId,
+                    sourceFen: state.analysis.sourceFen,
+                    fen: state.analysis.fen,
+                    dirty: state.analysis.dirty,
+                    selectedSquare: state.analysis.selectedSquare,
+                    history: Object.freeze(state.analysis.history.map(move => Object.freeze({ ...move })))
+                }) : null,
                 board: board.inspect()
             })
         })
@@ -677,9 +840,13 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
     }
 
     function updateBoard({ animate = true, strategy = 'position' } = {}) {
+        const analysisWasActive = state.activeTab === 'analysis';
+        const analysisWasDirty = state.analysis?.dirty === true;
+        if (analysisWasActive) syncAnalysisFromCanonical();
         const node = activeNode();
-        if (strategy === 'move' && node) board.applyNode(node, { animate });
-        else board.setPosition(node?.fenAfter || state.game?.startFen || 'start', node, animate);
+        if (strategy === 'move' && node && !analysisWasDirty) board.applyNode(node, { animate });
+        else board.setPosition(node?.fenAfter || state.game?.startFen || 'start', node, analysisWasDirty ? false : animate);
+        board.setInteractive(analysisWasActive && !!state.analysis);
         elements.position.textContent = node ? `Move ${node.moveNumber}${node.turn === 'b' ? '…' : '.'} ${node.san}` : 'Start position';
         root.querySelectorAll('.pgn-move.is-active').forEach(item => item.classList.remove('is-active'));
         if (node) {
@@ -720,6 +887,7 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
         elements.saveSource.disabled = busy || !state.sourceText;
         elements.exportDiagram.disabled = busy || !hasGame;
         elements.shareDiagram.disabled = busy || !hasGame;
+        elements.analysisReset.disabled = !state.analysis?.dirty;
         elements.shareMenu.querySelector('summary').setAttribute('aria-disabled', String(busy || !hasGame));
         const mobileDisabled = {
             first: elements.first.disabled,
@@ -956,6 +1124,11 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
         window.requestAnimationFrame(() => board.resize());
     }
 
+    board.on('squareTap', handleAnalysisSquareTap);
+    board.on('moveAttempt', handleAnalysisMoveAttempt);
+    board.on('dragStart', square => state.analysis ? isOwnAnalysisPiece(square) : false);
+    board.on('promotionRequest', requestAnalysisPromotion);
+
     elements.openButtons.forEach(button => button.addEventListener('click', () => {
         elements.openMenu.open = false;
         elements.file.click();
@@ -1042,6 +1215,7 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
     });
     elements.focus.addEventListener('click', toggleFocus);
     elements.engine.addEventListener('click', toggleEngine);
+    elements.analysisReset.addEventListener('click', resetAnalysis);
     function setReplaySpeed(value) {
         preferences.speed = value;
         elements.speed.value = value;
@@ -1081,6 +1255,13 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && state.focusMode) { toggleFocus(); elements.focus.focus(); return; }
         if (!state.game || root.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.target.isContentEditable) return;
+        if (state.activeTab === 'analysis' && event.target.closest?.('.caissa-board')) {
+            if (event.key === 'Escape' && state.analysis) {
+                state.analysis.selectedSquare = null;
+                queueMicrotask(presentAnalysisSelection);
+            }
+            return;
+        }
         if (event.key === 'PageUp') { event.preventDefault(); selectAdjacentGame(-1); }
         if (event.key === 'PageDown') { event.preventDefault(); selectAdjacentGame(1); }
         if (event.key === 'ArrowLeft') { event.preventDefault(); goTo(activeNode()?.previousId || null); }
@@ -1095,5 +1276,6 @@ import { create as createPgnBoard } from './pgn-board.js?v=2.0.0';
     applyLocale(preferences.locale);
     renderEngineLines([]);
     updateEngineUi('off');
+    updateAnalysisUi();
     updateControls();
 })();

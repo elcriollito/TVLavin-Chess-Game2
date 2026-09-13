@@ -253,7 +253,9 @@ test('mobile controls stay compact while the panel owns its internal scrolling',
   assert.equal(page('.pgn-board-column + .pgn-panel').length, 1);
   assert.match(styles, /\.pgn-essential-navigation \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(styles, /orientation: landscape/);
-  assert.match(styles, /\.pgn-workspace \{[^}]*grid-template-columns: minmax\(230px, auto\) minmax\(280px, 1fr\)/);
+  assert.match(styles, /--pgn-landscape-board-size: min\(calc\(100dvh/);
+  assert.match(styles, /\.pgn-workspace \{[^}]*grid-template-columns: minmax\(0, var\(--pgn-landscape-board-size\)\) minmax\(280px, 1fr\)/);
+  assert.match(styles, /\.pgn-topbar \{ display: none; \}/);
   assert.match(styles, /\.pgn-panel-body \[role="tabpanel"\] \{[^}]*overflow: auto/);
   assert.match(runtime, /enginePanels: root\.querySelectorAll/);
   assert.match(runtime, /engineLineGroups: root\.querySelectorAll/);

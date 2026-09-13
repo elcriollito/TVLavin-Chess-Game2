@@ -16,7 +16,7 @@ export class PgnBoard {
         const createAdapter = options.adapterFactory || createBoardAdapter;
         this.container = container;
         this.currentNodeId = null;
-        this.stats = { semanticMoves: 0, positionSets: 0, semanticFallbacks: 0 };
+        this.stats = { semanticMoves: 0, sandboxMoves: 0, positionSets: 0, semanticFallbacks: 0 };
         this.adapter = createAdapter(container, {
             label: 'PGN Reader chessboard',
             position: options.position || 'start',
@@ -69,6 +69,39 @@ export class PgnBoard {
     applyNode(node, options = {}) {
         return this.render(node?.fenAfter, node, { ...options, strategy: 'move' });
     }
+
+    applySandboxMove(move, fen, animate = true) {
+        let result = this.adapter.applyMove(semanticMove(move), { fen, animate });
+        if (result?.ok) this.stats.sandboxMoves += 1;
+        else {
+            result = this.adapter.setPosition(fen, { animate: false });
+            this.stats.semanticFallbacks += 1;
+            this.stats.positionSets += 1;
+        }
+        this.adapter.highlightSquares([
+            { square: move.from, type: 'last' },
+            { square: move.to, type: 'last' }
+        ]);
+        this.container.dataset.pgnUpdateStrategy = result?.ok ? 'sandbox-move' : 'position';
+        return result;
+    }
+
+    setInteractive(enabled) {
+        this.adapter.setInteractive(enabled === true);
+        this.adapter.setReadOnly(enabled !== true);
+        this.adapter.clearSelection();
+        const root = this.container.querySelector?.('.caissa-board');
+        const readOnly = String(enabled !== true);
+        if (root?.getAttribute('aria-readonly') !== readOnly) root?.setAttribute('aria-readonly', readOnly);
+    }
+
+    showSelection(square, legalSquares = []) {
+        this.adapter.highlightSquares(legalSquares.map(target => ({ square: target, type: 'legal' })));
+        if (square) this.adapter.selectSquare(square);
+        else this.adapter.clearSelection();
+    }
+
+    on(type, listener) { return this.adapter.on(type, listener); }
 
     flip() {
         const orientation = this.adapter.getOrientation() === 'white' ? 'black' : 'white';
