@@ -31,11 +31,17 @@ test('complete seven-level ladder and strength policy remain unchanged', () => {
 
 test('color choices and Coach start boundary remain unchanged', () => {
     const panel = read('js/play/native-coach/coach-panel.js');
-    assert.match(panel, /value: 'white', label: 'White'/);
-    assert.match(panel, /value: 'random', label: 'Random'/);
-    assert.match(panel, /value: 'black', label: 'Black'/);
+    assert.match(panel, /value: 'white', label: 'White', symbol: '♔'/);
+    assert.match(panel, /value: 'random', label: 'Random', symbol: '\?'/);
+    assert.match(panel, /value: 'black', label: 'Black', symbol: '♚'/);
     assert.match(panel, /targetElo: level\.opponentStrength\.targetElo/);
     assert.doesNotMatch(panel, /reviewMoveIndex|new\s+Chess|Stockfish|classification/i);
+});
+
+test('phone Coach Play As enlarges only the symbol through a scoped token', () => {
+    const css = read('css/play-coach-review.css');
+    assert.match(css, /\[data-mode="coach"\]\[data-layout\^="phone-"\][\s\S]*\.caissa-native-coach-panel__color-choice > \.caissa-color-token[\s\S]*--coach-play-as-symbol-size:\s*1\.9rem/);
+    assert.doesNotMatch(css, /\.caissa-(?:games|bots)-panel__color-choice/);
 });
 
 test('primary Coach choices remain vertically stacked at every breakpoint', () => {

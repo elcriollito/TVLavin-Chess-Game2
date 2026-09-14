@@ -1,0 +1,90 @@
+export const PLAY_BOTS_FROZEN_MOBILE_BASELINE = Object.freeze({
+    contract: 'COACH-GUARD-001',
+    source: Object.freeze({
+        originMainSha: '1ec19ae9abcb3d5afee9c446e6eaaf871c895ab1',
+        productionDeploymentId: 'dpl_3jwY61V36cbACoJVauhYrt5rHG2G',
+        productionOrigin: 'https://www.caissa-chess.org'
+    }),
+    play: Object.freeze({
+        route: '/play',
+        mode: 'games',
+        panel: '[data-caissa-games-panel]',
+        boxes: Object.freeze({
+            '390x844': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 350, 350], tabs: [6, 466, 378, 64.5],
+                panel: [17, 549.5, 356, 700], playAs: [17, 866.38, 343.2, 70],
+                primary: [17, 1205.5, 356, 44] }),
+            '430x932': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 390, 390], tabs: [6, 506, 418, 64.5],
+                panel: [17, 589.5, 396, 636.06], playAs: [17, 936.38, 383.2, 70],
+                primary: [17, 1181.56, 396, 44] }),
+            '844x390': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 278, 278], tabs: [511.03, 14, 326.97, 121.5],
+                panel: [522.03, 154.5, 304.97, 178], playAs: [522.03, 549.69, 292.17, 70],
+                primary: [522.03, 334.88, 304.97, 44] }),
+            '932x430': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 318, 318], tabs: [560.78, 14, 365.22, 64.5],
+                panel: [571.78, 97.5, 343.22, 218], playAs: [571.78, 492.69, 330.42, 70],
+                primary: [571.78, 277.88, 343.22, 44] })
+        }),
+        webkitBoxes: Object.freeze({
+            '390x844': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 350, 350], tabs: [6, 466, 378, 64.5],
+                panel: [17, 549.5, 356, 700], playAs: [17, 866.38, 353.2, 80],
+                primary: [17, 1205.5, 356, 44] }),
+            '430x932': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 390, 390], tabs: [6, 506, 418, 64.5],
+                panel: [17, 589.5, 396, 646.06], playAs: [17, 936.38, 393.2, 80],
+                primary: [17, 1191.56, 396, 44] }),
+            '844x390': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 278, 278], tabs: [511.03, 14, 326.95, 121.5],
+                panel: [522.03, 154.5, 304.95, 178], playAs: [522.03, 549.69, 302.16, 70],
+                primary: [522.03, 334.88, 304.95, 44] }),
+            '932x430': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 318, 318], tabs: [560.78, 14, 365.22, 64.5],
+                panel: [571.78, 97.5, 343.22, 218], playAs: [571.78, 492.69, 340.42, 70],
+                primary: [571.78, 277.88, 343.22, 44] })
+        })
+    }),
+    bots: Object.freeze({
+        route: '/play/bots',
+        mode: 'bots',
+        panel: '[data-caissa-bots-panel]',
+        boxes: Object.freeze({
+            '390x844': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 350, 350], tabs: [6, 465, 378, 64.5],
+                panel: [17, 537.5, 356, 581], playAs: [17, 966.64, 346, 64.89],
+                primary: [17, 1074.5, 356, 44] }),
+            '430x932': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 390, 390], tabs: [6, 505, 418, 64.5],
+                panel: [17, 577.5, 396, 543.61], playAs: [261.22, 969.25, 141.78, 64.89],
+                primary: [17, 1077.11, 396, 44] }),
+            '844x390': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 278, 278], tabs: [511.03, 14, 326.97, 121.5],
+                panel: [522.03, 143.5, 304.97, 188], playAs: [675.22, 534.25, 141.78, 63.89],
+                primary: [522.03, 355.66, 304.97, 44] }),
+            '932x430': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 318, 318], tabs: [560.78, 14, 365.22, 64.5],
+                panel: [571.78, 86.5, 343.22, 228], playAs: [763.22, 477.25, 141.78, 63.89],
+                primary: [571.78, 298.66, 343.22, 44] })
+        }),
+        webkitBoxes: Object.freeze({
+            '390x844': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 350, 350], tabs: [6, 465, 378, 64.5],
+                panel: [17, 537.5, 356, 584], playAs: [17, 969.64, 356, 64.89],
+                primary: [17, 1077.5, 356, 44] }),
+            '430x932': Object.freeze({ layout: 'phone-standard',
+                board: [33, 69, 390, 390], tabs: [6, 505, 418, 64.5],
+                panel: [17, 577.5, 396, 546.61], playAs: [271.22, 972.25, 141.78, 64.89],
+                primary: [17, 1080.11, 396, 44] }),
+            '844x390': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 278, 278], tabs: [511.03, 14, 326.95, 121.5],
+                panel: [522.03, 143.5, 304.95, 188], playAs: [685.2, 534.25, 141.78, 63.89],
+                primary: [522.03, 355.66, 304.95, 44] }),
+            '932x430': Object.freeze({ layout: 'phone-landscape',
+                board: [107, 53, 318, 318], tabs: [560.78, 14, 365.22, 64.5],
+                panel: [571.78, 86.5, 343.22, 228], playAs: [773.22, 477.25, 141.78, 63.89],
+                primary: [571.78, 298.66, 343.22, 44] })
+        })
+    })
+});

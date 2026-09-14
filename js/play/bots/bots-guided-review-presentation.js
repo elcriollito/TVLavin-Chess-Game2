@@ -1,7 +1,7 @@
 (function installBotsGuidedReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.8.0';
+    const SCHEMA_VERSION = '1.9.0';
     const REVIEW_WORTHY = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
     let mounted = null;
     let mentorStudyRequested = false;
@@ -311,34 +311,12 @@
 
     function syncReviewNavigationPlacement() {
         if (!mounted?.ui?.navigation) return;
-        const shell = root.document.querySelector('[data-caissa-simplified-shell]');
-        const phoneLayout = shell?.dataset.layout?.startsWith('phone-');
-        const phoneReview = mounted.phase === 'guided-review'
-            && phoneLayout;
-        const phoneExploration = mounted.phase === 'analysis-exploration' && phoneLayout;
-        const boardStage = shell?.querySelector('.caissa-simplified-shell__board-stage');
-        const destination = phoneReview
-            ? boardStage
-            : mounted.ui.foot;
-        if (destination && mounted.ui.navigation.parentNode !== destination) {
-            if (phoneReview) destination.append(mounted.ui.navigation);
-            else destination.prepend(mounted.ui.navigation);
-        }
-        mounted.ui.navigation.toggleAttribute('data-mobile-review-navigation', phoneReview);
-        const explorationDestination = phoneExploration ? boardStage : mounted.exploration?.foot;
-        if (mounted.exploration?.navigation && explorationDestination
-            && mounted.exploration.navigation.parentNode !== explorationDestination) {
-            if (phoneExploration) explorationDestination.append(mounted.exploration.navigation);
-            else explorationDestination.prepend(mounted.exploration.navigation);
-        }
-        mounted.exploration?.navigation?.toggleAttribute('data-mobile-review-navigation', phoneExploration);
-        if (phoneLayout) {
-            for (const scrollOwner of [root.document.querySelector('.content-area'),
-                root.document.getElementById('playSection')]) {
-                if (scrollOwner?.scrollTop) scrollOwner.scrollTop = 0;
-            }
-            if (root.scrollY) root.scrollTo?.(0, 0);
-        }
+        const shell = root.CaissaSimplifiedPlayShellInstance;
+        shell?.placeReviewNavigation?.({ navigation: mounted.ui.navigation,
+            returnHost: mounted.ui.foot, active: mounted.phase === 'guided-review' });
+        if (mounted.exploration?.navigation && mounted.exploration?.foot)
+            shell?.placeReviewNavigation?.({ navigation: mounted.exploration.navigation,
+                returnHost: mounted.exploration.foot, active: mounted.phase === 'analysis-exploration' });
     }
 
     function captureReviewState() {

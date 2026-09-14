@@ -21,7 +21,8 @@ test('active Coach presents Caissa responsively and keeps narration synchronized
     assert.match(panel, /caissa-coach-narration-request/);
     assert.match(panel, /caissa-coach-observation/);
     assert.match(css, /caissa-simplified-shell__coach-narrator/);
-    assert.match(shell, /#syncActivePlacement\(active, coachMode\)/);
+    assert.match(shell, /#syncActivePlacement\(active, gamesMode \|\| coachMode \|\| botsMode\)/);
+    assert.match(shell, /coachPhaseSlot\.appendChild\(this\.#actionBar\)/);
     assert.match(shell, /this\.#root\.dataset\.layout === 'desktop-split'/);
     assert.match(shell, /this\.#activeContext\.appendChild\(this\.#actionBar\)/);
     assert.match(shell, /boardStage\.appendChild\(this\.#actionBar\)/);

@@ -5,19 +5,20 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
+const productionBaseline = '1ec19ae9abcb3d5afee9c446e6eaaf871c895ab1';
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
     entry.isDirectory() && !['node_modules', '.git', '.vercel'].includes(entry.name)
         ? walk(path.join(dir, entry.name)) : entry.isFile() ? [path.join(dir, entry.name)] : []);
 
 test('protected architecture, dependencies, and lockfile remain outside this regression change', () => {
-    const changed = execFileSync('git', ['diff', '--name-only', 'f94d689c7a4d38363149fd168e672811298c016b'], { encoding: 'utf8' }).replaceAll('\\', '/');
+    const changed = execFileSync('git', ['diff', '--name-only', productionBaseline], { encoding: 'utf8' }).replaceAll('\\', '/');
     for (const file of [
         'docs/architecture/PLAY_CURRENT_STATE_AUDIT.md',
         'docs/architecture/CAISSA_SIMPLIFIED_PLAY_ARCHITECTURE.md',
         'docs/architecture/PLAY_MIGRATION_AND_COMPATIBILITY_PLAN.md', 'package-lock.json'
     ]) assert(!changed.includes(file), file);
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-    const baseline = JSON.parse(execFileSync('git', ['show', 'f94d689c7a4d38363149fd168e672811298c016b:package.json'], { encoding: 'utf8' }));
+    const baseline = JSON.parse(execFileSync('git', ['show', `${productionBaseline}:package.json`], { encoding: 'utf8' }));
     assert.deepEqual(pkg.dependencies, baseline.dependencies);
     assert.deepEqual(pkg.devDependencies, baseline.devDependencies);
 });

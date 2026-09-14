@@ -1,7 +1,7 @@
 (function installCoachReviewPresentation(root) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.14.0';
+    const SCHEMA_VERSION = '1.16.2';
     const QUALITY_ORDER = Object.freeze(['Book', 'Best', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const CLASSIFICATIONS = Object.freeze(['Book', 'Acceptable', 'Inaccuracy', 'Mistake', 'Blunder']);
     const REVIEW_WORTHY_CLASSIFICATIONS = Object.freeze(['Inaccuracy', 'Mistake', 'Blunder']);
@@ -88,8 +88,17 @@
         return findReviewMoments(analyze).find(position => position > current) ?? null;
     }
 
+    function createGuidedProgress(analyze) {
+        const currentMoment = Number.isInteger(analyze?.currentMoveIndex) ? analyze.currentMoveIndex : -1;
+        const reviewMoments = findReviewMoments(analyze);
+        const remainingMoments = reviewMoments.filter(position => position > currentMoment);
+        return freeze({ currentMoment, reviewMoments, remainingMoments,
+            nextMoment: remainingMoments[0] ?? null, remainingCount: remainingMoments.length,
+            complete: remainingMoments.length === 0 });
+    }
+
     function isReviewComplete(analyze) {
-        return findNextReviewMoment(analyze) === null;
+        return createGuidedProgress(analyze).complete;
     }
 
     function createGuidedModel(analyze, expanded = false, handoff = null) {
@@ -298,6 +307,15 @@
         if (item.next?.parentNode === item.parent) item.parent.insertBefore(item.node, item.next); else item.parent.append(item.node); }
     function displayCount(value) { return value > 0 ? String(value) : '\u2014'; }
 
+    function syncReviewNavigationPlacement() {
+        if (!mounted?.guided) return;
+        const shell = root.CaissaSimplifiedPlayShellInstance;
+        if (mounted.navigation?.node) shell?.placeReviewNavigation?.({ navigation: mounted.navigation.node,
+            returnHost: mounted.guided.navigation, active: mounted.phase === 'guided-review' });
+        shell?.placeReviewNavigation?.({ navigation: mounted.guided.explorationNavigation,
+            returnHost: mounted.guided.explorationTools, active: mounted.phase === 'analysis-exploration' });
+    }
+
     function renderCoachHead(model) {
         const speech = root.document.querySelector('[data-caissa-coach-shell] [data-coach-narration]'); if (!speech) return;
         speech.classList.add('caissa-coach-guided__speech'); speech.replaceChildren();
@@ -376,6 +394,12 @@
         });
     }
 
+    function keepActiveMoveVisible(node) {
+        const shell = node?.closest?.('[data-caissa-simplified-shell]');
+        if (shell?.dataset?.scrollOwner === 'document') return;
+        node?.scrollIntoView?.({ block: 'nearest' });
+    }
+
     function updateGuided() {
         if (!mounted?.analyze || mounted.phase !== 'guided-review') return;
         const model = createGuidedModel(mounted.analyze, mounted.explanationExpanded, mounted.handoff);
@@ -383,16 +407,19 @@
         mounted.guided.detail.textContent = model.detail;
         mounted.guided.detail.hidden = !mounted.explanationExpanded || !model.detail;
         mounted.guided.explain.setAttribute('aria-expanded', String(mounted.explanationExpanded));
-        const complete = isReviewComplete(mounted.analyze);
-        mounted.guided.next.disabled = complete;
-        mounted.guided.next.querySelector('span').textContent = complete ? 'Review Complete' : 'Next Moment';
+        const progress = createGuidedProgress(mounted.analyze);
+        mounted.guided.next.disabled = progress.complete;
+        mounted.guided.next.dataset.remainingMoments = String(progress.remainingCount);
+        mounted.guided.next.setAttribute('aria-label', progress.complete
+            ? 'Review complete' : 'Next review-worthy moment');
+        mounted.guided.next.querySelector('span').textContent = progress.complete ? 'Review Complete' : 'Next Moment';
         mounted.guided.newGame.hidden = false;
-        mounted.guided.reviewTools.dataset.reviewComplete = String(complete);
+        mounted.guided.reviewTools.dataset.reviewComplete = String(progress.complete);
         renderCoachHead({ eyebrow: model.quality.toUpperCase(), title: `${model.move}${model.annotation || ''}`,
             evaluation: model.evaluation, message: model.message });
         syncReviewEvaluationRail();
         synchronizeCoachNotation();
-        mounted.guided.notation.querySelector('.active')?.scrollIntoView?.({ block: 'nearest' });
+        keepActiveMoveVisible(mounted.guided.notation.querySelector('.active'));
     }
 
     function updateCoachReviewPly() {
@@ -402,10 +429,6 @@
         else if (mounted.phase === 'analysis-exploration' && !mounted.restoringExploration) {
             const projection = mounted.analyze?.getCoachReviewProjection?.();
             if (!projection?.fen) return;
-            const selected = mounted.analyze.analysisResults?.[mounted.analyze.currentMoveIndex];
-            mounted.explorationLastAnalysis = selected && !selected.unavailable ? {
-                evaluation: selected.evalAfter, mate: selected.mateAfter, pv: []
-            } : null;
             renderAnalysisSource(); syncReviewEvaluationRail();
             root.CaissaCoachReviewExploration?.rebase?.({ fen: projection.fen, move: projection.move });
             renderExplorationPosition();
@@ -429,6 +452,7 @@
         root.document.body?.classList?.add('caissa-coach-guided-review-active');
         root.CaissaNativeCoachPanel?.present?.({ phase: 'guided-review', content: mounted.guided.content,
             foot: mounted.guided.foot, message: 'Reviewing the first move.' });
+        syncReviewNavigationPlacement();
         analyze.jumpToMove(0); updateGuided(); mounted.guided.explain.focus?.();
     }
 
@@ -449,32 +473,47 @@
 
     function renderAnalysisHead(info = {}) {
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
-        if (info.status === 'ready') mounted.explorationLastAnalysis = {
-            evaluation: info.evaluation, mate: info.mate, pv: [...(info.pv || [])]
+        const status = ['loading', 'ready', 'off', 'unavailable'].includes(info.status)
+            ? info.status : 'off';
+        const ready = status === 'ready';
+        const best = ready ? info.bestMoveSan || info.bestMove || '\u2014' : null;
+        const models = {
+            loading: { title: 'Analyzing\u2026', evaluation: '\u2014',
+                message: 'Current sandbox position. Principal variation pending.' },
+            off: { title: 'Engine Off', evaluation: '\u2014',
+                message: 'Turn Engine On to analyze this sandbox position.' },
+            unavailable: { title: 'Engine unavailable', evaluation: '\u2014',
+                message: 'No current suggestion is available for this position.' },
+            ready: { title: `Best move: ${best}`, evaluation: formatExplorationEvaluation(info),
+                message: `Caissa suggests ${best}. Principal variation: ${info.pv?.length ? info.pv.join(' ') : 'unavailable'}` }
         };
-        const retained = mounted.explorationLastAnalysis;
-        const visible = info.status === 'ready' ? info : retained;
-        const line = visible?.pv?.length ? visible.pv.join(' ') : 'Evaluating this position.';
-        const prefix = info.status === 'off' ? 'Engine off. ' : '';
-        renderCoachHead({ eyebrow: 'ANALYSIS', title: 'Explore this position',
-            evaluation: formatExplorationEvaluation(visible), message: `${prefix}Principal variation: ${line}` });
-        root.document.querySelector('[data-caissa-coach-shell] .caissa-coach-guided__message')
-            ?.setAttribute('data-coach-exploration-pv', '');
+        const model = models[status];
+        renderCoachHead({ eyebrow: 'ANALYSIS', ...model });
+        const speech = root.document.querySelector('[data-caissa-coach-shell] [data-coach-narration]');
+        speech?.setAttribute('data-coach-exploration-status', status);
+        if (info.requestFen) speech?.setAttribute('data-coach-exploration-fen', info.requestFen);
+        else speech?.removeAttribute('data-coach-exploration-fen');
+        speech?.querySelector('.caissa-coach-guided__move')?.setAttribute('data-coach-exploration-best', '');
+        speech?.querySelector('.caissa-coach-guided__eval')?.setAttribute('data-coach-exploration-evaluation', '');
+        speech?.querySelector('.caissa-coach-guided__message')?.setAttribute('data-coach-exploration-pv', '');
     }
 
     function renderExplorationAnalysis(info) {
         if (!mounted || mounted.phase !== 'analysis-exploration') return;
         renderAnalysisHead(info);
-        if (info?.status === 'ready'
-            && root.CaissaCoachReviewExploration?.getSnapshot?.().temporaryPlyCount > 0)
+        const rail = root.CaissaEvaluationRailInstance;
+        if (info?.status === 'ready')
             syncVisibleEvaluationRail(info.evaluation, info.mate, 'coach-review-exploration');
+        else if (info?.status === 'loading') {
+            rail?.reset?.(); rail?.setMode?.('loading');
+        } else if (['off', 'unavailable'].includes(info?.status)) rail?.setMode?.('unavailable');
     }
 
     function renderAnalysisSource() {
         if (!mounted?.analyze) return;
         synchronizeCoachNotation();
-        mounted.guided.sourceNotation.querySelector('.active')?.scrollIntoView?.({ block: 'nearest' });
-        renderAnalysisHead({ status: 'loading' });
+        keepActiveMoveVisible(mounted.guided.sourceNotation.querySelector('.active'));
+        renderAnalysisHead({ status: 'off' });
     }
 
     function renderExplorationPosition() {
@@ -512,7 +551,7 @@
         mounted.guided.explorationNavButtons.previous.disabled = atFirst;
         mounted.guided.explorationNavButtons.next.disabled = atLast;
         mounted.guided.explorationNavButtons.last.disabled = atLast;
-        mounted.guided.variation.querySelector('[aria-current="move"]')?.scrollIntoView?.({ block: 'nearest' });
+        keepActiveMoveVisible(mounted.guided.variation.querySelector('[aria-current="move"]'));
     }
 
     function syncExplorationEngineControl() {
@@ -540,14 +579,11 @@
     function enterExploration() {
         if (!mounted?.analyze || mounted.phase !== 'guided-review') return;
         const projection = mounted.analyze.getCoachReviewProjection?.(); if (!projection?.fen) return;
-        const selected = mounted.analyze.analysisResults?.[mounted.analyze.currentMoveIndex];
         mounted.explorationEntryPly = mounted.analyze.currentMoveIndex;
-        mounted.explorationLastAnalysis = selected && !selected.unavailable ? {
-            evaluation: selected.evalAfter, mate: selected.mateAfter, pv: []
-        } : null;
         mounted.phase = 'analysis-exploration'; mounted.summary.panel.dataset.coachReviewPhase = 'analysis-exploration';
         mounted.guided.guided.hidden = true; mounted.guided.exploration.hidden = false;
         mounted.guided.reviewTools.hidden = true; mounted.guided.explorationTools.hidden = false;
+        syncReviewNavigationPlacement();
         if (mounted.moveList?.node) mounted.guided.sourceNotation.append(mounted.moveList.node);
         renderAnalysisSource(); syncReviewEvaluationRail();
         const entered = root.CaissaCoachReviewExploration?.enter?.({ fen: projection.fen, move: projection.move,
@@ -557,7 +593,8 @@
             mounted.phase = 'guided-review'; mounted.guided.guided.hidden = false; mounted.guided.exploration.hidden = true;
             mounted.guided.reviewTools.hidden = false; mounted.guided.explorationTools.hidden = true;
             if (mounted.moveList?.node) mounted.guided.notation.append(mounted.moveList.node);
-            mounted.explorationEntryPly = null; mounted.explorationLastAnalysis = null; updateGuided(); return;
+            mounted.explorationEntryPly = null;
+            syncReviewNavigationPlacement(); updateGuided(); return;
         }
         syncExplorationEngineControl(); renderExplorationPosition(); mounted.guided.back.focus?.();
     }
@@ -570,8 +607,9 @@
         mounted.phase = 'guided-review'; mounted.summary.panel.dataset.coachReviewPhase = 'guided-review';
         mounted.guided.guided.hidden = false; mounted.guided.exploration.hidden = true;
         mounted.guided.reviewTools.hidden = false; mounted.guided.explorationTools.hidden = true;
+        syncReviewNavigationPlacement();
         if (mounted.moveList?.node) mounted.guided.notation.append(mounted.moveList.node);
-        mounted.restoringExploration = false; mounted.explorationEntryPly = null; mounted.explorationLastAnalysis = null;
+        mounted.restoringExploration = false; mounted.explorationEntryPly = null;
         updateGuided(); mounted.guided.analysis.focus?.();
     }
 
@@ -615,14 +653,14 @@
         mounted = { section: options.section, host: options.host, context: options.context, handoff: options.handoff,
             summary, guided, analyze: null, model: null, phase: 'review-summary', fingerprint: null,
             analysisStartRequests: 0, timer: null, moveList: null, navigation: null, flipTool: null,
-            explanationExpanded: false, explorationEntryPly: null, explorationLastAnalysis: null,
+            explanationExpanded: false, explorationEntryPly: null,
             restoringExploration: false };
         summary.action.addEventListener('click', enterGuidedReview);
         summary.newGame.addEventListener('click', () => startNewGame(summary.newGame));
         guided.explain.addEventListener('click', () => { if (!mounted) return;
             mounted.explanationExpanded = !mounted.explanationExpanded; updateGuided(); });
         guided.next.addEventListener('click', () => { if (!mounted?.analyze) return;
-            const destination = findNextReviewMoment(mounted.analyze);
+            const destination = createGuidedProgress(mounted.analyze).nextMoment;
             mounted.explanationExpanded = false;
             if (destination === null) { updateGuided(); return; }
             mounted.analyze.jumpToMove(destination); updateGuided(); });
@@ -656,6 +694,7 @@
             });
         });
         root.addEventListener('caissa:coach-review-ply-change', updateCoachReviewPly);
+        root.addEventListener('resize', syncReviewNavigationPlacement);
         renderModel({ phase: 'loading', progress: 0, progressText: 'Preparing your review' });
         return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_MOUNTED', getSnapshot());
     }
@@ -675,6 +714,7 @@
         if (!mounted) return result(true, 'unchanged', 'ALREADY_UNMOUNTED');
         if (mounted.timer) root.clearInterval(mounted.timer);
         if (mounted.phase === 'analysis-exploration') leaveExploration();
+        mounted.phase = 'unmounting'; syncReviewNavigationPlacement();
         if (mounted.flipTool?.node) {
             mounted.flipTool.node.querySelector('span').textContent = 'Flip';
             delete mounted.flipTool.node.dataset.coachGuidedFlip;
@@ -694,6 +734,7 @@
             ?.classList?.remove('caissa-coach-guided__speech');
         mounted.summary.panel.remove(); mounted.summary.foot.remove(); mounted.guided.content.remove(); mounted.guided.foot.remove();
         root.removeEventListener('caissa:coach-review-ply-change', updateCoachReviewPly);
+        root.removeEventListener('resize', syncReviewNavigationPlacement);
         root.CaissaNativeCoachPanel?.restorePresentation?.();
         root.document.body?.classList?.remove('caissa-coach-review-summary-active', 'caissa-coach-guided-review-active');
         mounted = null; return result(true, 'accepted', 'COACH_REVIEW_SUMMARY_UNMOUNTED');
@@ -710,6 +751,6 @@
     root.CaissaCoachReviewPresentation = freeze({ schemaVersion: SCHEMA_VERSION, classifications: CLASSIFICATIONS,
         reviewWorthyClassifications: REVIEW_WORTHY_CLASSIFICATIONS, qualityOrder: QUALITY_ORDER,
         qualitySymbols: FALLBACK_QUALITY_SYMBOLS, canonicalQualitySymbol,
-        findReviewMoments, findNextReviewMoment, isReviewComplete,
+        findReviewMoments, findNextReviewMoment, createGuidedProgress, isReviewComplete,
         createSummaryModel, createGuidedModel, mount, begin, unmount, getSnapshot });
 })(typeof window !== 'undefined' ? window : globalThis);

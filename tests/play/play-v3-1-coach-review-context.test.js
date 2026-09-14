@@ -179,6 +179,30 @@ test('Guided Review Next selects interleaved two-sided moments chronologically w
     assert.match(narration.message, /Nf6 was the stronger continuation available to them/);
 });
 
+test('Guided Review progress keeps Next Moment until the canonical final moment', () => {
+    const window = fixture();
+    const analyze = { currentMoveIndex: 0, analysisResults: ['Acceptable', 'Mistake', 'Acceptable',
+        'Inaccuracy', 'Acceptable', 'Blunder'].map((quality, moveIndex) => ({
+        moveIndex, quality, unavailable: false
+    })) };
+    const review = window.CaissaCoachReviewPresentation;
+    assert.deepEqual({ ...review.createGuidedProgress(analyze),
+        reviewMoments: [...review.createGuidedProgress(analyze).reviewMoments],
+        remainingMoments: [...review.createGuidedProgress(analyze).remainingMoments] }, {
+        currentMoment: 0, reviewMoments: [1, 3, 5], remainingMoments: [1, 3, 5],
+        nextMoment: 1, remainingCount: 3, complete: false
+    });
+    analyze.currentMoveIndex = 1;
+    assert.deepEqual([...review.createGuidedProgress(analyze).remainingMoments], [3, 5]);
+    assert.equal(review.createGuidedProgress(analyze).complete, false);
+    analyze.currentMoveIndex = 3;
+    assert.deepEqual([...review.createGuidedProgress(analyze).remainingMoments], [5]);
+    assert.equal(review.createGuidedProgress(analyze).complete, false);
+    analyze.currentMoveIndex = 5;
+    assert.equal(review.createGuidedProgress(analyze).remainingCount, 0);
+    assert.equal(review.createGuidedProgress(analyze).complete, true);
+});
+
 test('Review Complete persists after the final negative moment and reopens only before it', () => {
     const window = fixture();
     const analyze = { currentMoveIndex: 9, analysisResults: Array.from({ length: 14 }, (_, moveIndex) => ({
@@ -250,11 +274,25 @@ test('temporary exploration cursor reproduces positions and truncates a changed 
     assert.equal(api.playMove('b1', 'c3'), true);
     assert.deepEqual([...api.getLine()].map(move => move.san), ['e4', 'e5', 'Nc3']);
     assert.notEqual(api.getFen(), oldAfterThree);
-    assert.deepEqual({ ...api.getSnapshot() }, {
-        schemaVersion: '1.3.0', active: true, baseFen: start, currentFen: api.getFen(), temporaryPlyCount: 3,
-        cursor: 3, atFirst: false, atLast: true, engineEnabled: true, effortPresetId: 'balanced',
+    const state = api.getSnapshot();
+    assert.deepEqual({
+        schemaVersion: state.schemaVersion, active: state.active, baseFen: state.baseFen,
+        currentFen: state.currentFen, temporaryPlyCount: state.temporaryPlyCount,
+        cursor: state.cursor, atFirst: state.atFirst, atLast: state.atLast,
+        engineEnabled: state.engineEnabled, engineRequests: state.engineRequests,
+        acceptedResults: state.acceptedResults, staleResults: state.staleResults,
+        effortPresetId: state.effortPresetId, analysisDepth: state.analysisDepth,
+        reviewPlyOwner: state.reviewPlyOwner
+    }, {
+        schemaVersion: '1.4.0', active: true, baseFen: start, currentFen: api.getFen(), temporaryPlyCount: 3,
+        cursor: 3, atFirst: false, atLast: true, engineEnabled: false, engineRequests: 0,
+        acceptedResults: 0, staleResults: 0, effortPresetId: 'balanced',
         analysisDepth: 14, reviewPlyOwner: 'AnalyzeSection.currentMoveIndex'
     });
+    assert.equal(state.analysis.status, 'off');
+    assert.equal(state.analysis.requestFen, api.getFen());
+    assert.equal(state.analysis.bestMove, null);
+    assert.deepEqual([...state.analysis.pv], []);
     assert.equal(window.App.moveHistory, authoritative.moveHistory);
     assert.equal(window.App.currentMoveIndex, authoritative.currentMoveIndex);
     api.leave();
@@ -303,14 +341,13 @@ test('Review Settings reuses the authoritative PGN export and contains the singl
     assert.match(exploration, /quick:[\s\S]*depth: 10/);
     assert.match(exploration, /balanced:[\s\S]*depth: 14/);
     assert.match(exploration, /deep:[\s\S]*depth: 18/);
-    assert.match(exploration, /startAnalysis\(fen,[\s\S]*EFFORT_PRESETS\[effortPresetId\]\.depth/);
+    assert.match(exploration, /getBestMoveAttributed\?\.\(fen,[\s\S]*EFFORT_PRESETS\[effortPresetId\]\.depth/);
     assert.doesNotMatch(presentation, />\s*(?:Threads|Hash|Nodes|NPS|UCI|Depth)\s*</i);
 });
 
 test('Coach Manual Study presents source notation, deferred variation, and one compact tool set', () => {
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
     const css = read('css/play-coach-review.css');
-    const shellCss = read('css/play-simplified-shell.css');
     assert.match(presentation, /GAME MOVES \(STUDY\)/);
     assert.match(presentation, /ANALYSIS VARIATION/);
     assert.match(presentation, /variationWorkspace\.hidden = true/);
@@ -320,7 +357,7 @@ test('Coach Manual Study presents source notation, deferred variation, and one c
     assert.match(presentation, /data-coach-exploration-engine/);
     assert.match(presentation, /data-coach-exploration-nav/);
     assert.match(presentation, /<span>Next Moment<\/span>/);
-    assert.match(presentation, /const destination = findNextReviewMoment\(mounted\.analyze\)/);
+    assert.match(presentation, /const destination = createGuidedProgress\(mounted\.analyze\)\.nextMoment/);
     assert.doesNotMatch(presentation, /mounted\.analyze\.currentMoveIndex \+ 1/);
     assert.doesNotMatch(presentation, /Temporary variation|Undo|Reset/);
     assert.match(presentation, /secondaryActions\.append\(newGame, analysis\)/);
@@ -330,7 +367,8 @@ test('Coach Manual Study presents source notation, deferred variation, and one c
     assert.match(css, /\.caissa-coach-guided__notation[\s\S]*overflow: visible/);
     assert.match(css, /\.caissa-coach-guided__notation :is\(\.analyze-move-list, \.move-list-grid\)[\s\S]*max-height: none;[\s\S]*overflow-y: visible/);
     assert.doesNotMatch(css, /\.caissa-coach-guided__notation\s*\{[^}]*scrollbar-gutter/);
-    assert.match(shellCss, /\.caissa-native-coach-panel__phase[\s\S]*overflow-y: auto/);
+    assert.match(css, /#mainContent\.content-area[\s\S]*overflow-y:\s*auto !important/);
+    assert.match(css, /\.caissa-native-coach-panel__phase[\s\S]*overflow-y:\s*visible/);
 });
 
 test('every Coach post-game New Game path delegates to the authoritative native setup reset', () => {
@@ -354,6 +392,7 @@ test('Coach Review projects the existing source ply into the single visible rail
 
 test('interactive Analysis effort is session-only and leaves Balanced at the existing depth', async () => {
     const depths = [];
+    let renderedFen = null;
     class Chess {
         load(fen) { this.position = fen; return true; }
         fen() { return this.position; }
@@ -364,20 +403,27 @@ test('interactive Analysis effort is session-only and leaves Balanced at the exi
     const window = {
         Chess,
         document: { body: { classList: { add() {}, remove() {} } } },
-        App: { board: { position() {} }, boardAdapter: {
+        App: { board: { position(fen) { renderedFen = fen; } }, boardAdapter: {
+            setPosition(fen) { renderedFen = fen; return { ok: true }; }, getPosition() { return renderedFen; },
             setLastMove() {}, setInteractionEnabled() {}, clearSelection() {}, clearLegalTargets() {}
         } }
     };
     const context = vm.createContext({ window, globalThis: window, Object, Promise });
     vm.runInContext(read('js/play/native-coach/coach-review-exploration.js'), context,
         { filename: 'coach-review-exploration.js' });
-    const engine = { stopAnalysis() {}, startAnalysis(_fen, _callback, depth) { depths.push(depth); } };
+    let generation = 0;
+    const engine = { currentFen: null, cancelAttributedSearch() { return true; },
+        getBestMoveAttributed(fen, _callback, options) {
+            this.currentFen = fen; depths.push(options.depth); return `effort:${++generation}`;
+        } };
     const analyze = { ensureAnalysisEngine: async () => engine, analysisEngine: engine, teardownAnalysisEngine() {} };
     const api = window.CaissaCoachReviewExploration;
     assert.deepEqual({ preset: api.getSnapshot().effortPresetId, depth: api.getSnapshot().analysisDepth },
         { preset: 'balanced', depth: 14 });
     assert.equal(api.setEffortPreset('quick').ok, true);
     assert.equal(api.enter({ fen: 'review-fen', analyze }).ok, true);
+    assert.equal(depths.length, 0);
+    assert.equal(api.setEngineEnabled(true).ok, true);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(depths.at(-1), 10);
     assert.equal(api.setEffortPreset('deep').ok, true);

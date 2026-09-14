@@ -1,5 +1,13 @@
 /* QA-only Simplified Play shell. Layout is selected once by JS and expressed by data-layout. */
 
+/* The route marker is set in <head>, before floating utilities can paint.
+   Runtime phone composition takes over atomically after shell geometry lands. */
+html.caissa-initial-phone-coach [data-caissa-floating-controls],
+html.caissa-initial-phone-coach .caissa-mentor-shell,
+html.caissa-initial-phone-coach .caissa-manual-qa {
+    display: none !important;
+}
+
 /* Play keeps selector compatibility during the shared-core migration, but the
    visible board is the single persistent CAISSA renderer. */
 body.caissa-simplified-play-active #playSection #chessboard .caissa-play-persistent-board.board-b72b1 {
@@ -715,6 +723,22 @@ body.caissa-simplified-play-active .caissa-simplified-shell__board-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     width: min(calc(var(--play-board-size) + var(--shell-eval-width) + var(--shell-rail-gap)), 100%);
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__phase-action-slot {
+    display: grid;
+    width: min(calc(var(--play-board-size) + var(--shell-eval-width) + var(--shell-rail-gap)), 100%);
+    min-width: 0;
+    gap: 6px;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__phase-action-slot[hidden] {
+    display: none !important;
+}
+
+body.caissa-simplified-play-active .caissa-simplified-shell__phase-action-slot
+    > :is(.caissa-simplified-shell__board-actions, [data-mobile-review-navigation]) {
+    width: 100%;
 }
 
 body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__board-actions {
@@ -4057,20 +4081,23 @@ body.caissa-simplified-play-active.caissa-bots-guided-review-active
     display: none !important;
 }
 
-/* Play Game and Bots reviews place their one existing navigation owner
-   immediately below the board on phone layouts. No cloned controls or second
+/* Every review surface places its one existing navigation owner immediately
+   below the persistent board on phone layouts. No cloned controls or second
    listeners are introduced. */
-body.caissa-simplified-play-active .caissa-simplified-shell[data-mobile2-release="approved"][data-layout^="phone-"]
-    .caissa-simplified-shell__board-stage > [data-mobile-review-navigation] {
-    display: grid;
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"]
+    :is(.caissa-simplified-shell__board-stage, .caissa-simplified-shell__phase-action-slot)
+    > [data-mobile-review-navigation] {
+    display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     width: min(calc(var(--play-board-size) + var(--shell-eval-width) + var(--shell-rail-gap)), 100%);
 }
-body.caissa-simplified-play-active .caissa-simplified-shell[data-mobile2-release="approved"][data-layout^="phone-"]
-    .caissa-simplified-shell__board-stage > [data-mobile-review-navigation] > button,
-body.caissa-simplified-play-active .caissa-simplified-shell[data-mobile2-release="approved"][data-layout^="phone-"]
-    .caissa-simplified-shell__board-stage > [data-mobile-review-navigation] .nav-btn-sm {
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"]
+    :is(.caissa-simplified-shell__board-stage, .caissa-simplified-shell__phase-action-slot)
+    > [data-mobile-review-navigation] > button,
+body.caissa-simplified-play-active .caissa-simplified-shell[data-layout^="phone-"]
+    :is(.caissa-simplified-shell__board-stage, .caissa-simplified-shell__phase-action-slot)
+    > [data-mobile-review-navigation] .nav-btn-sm {
     width: 100%;
     min-width: 0;
     min-height: 48px !important;
@@ -4079,40 +4106,47 @@ body.caissa-simplified-play-active [data-mobile-review-navigation]
     :is(#analyzeUndoMove, #analyzeResetBoard, #analyzeEngineToggle) {
     display: none !important;
 }
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     .caissa-simplified-shell[data-layout^="phone-"] .caissa-simplified-shell__board-stage
     > :is(.caissa-simplified-shell__player, .caissa-simplified-shell__coach-narrator,
         .caissa-simplified-shell__board-actions, .caissa-simplified-shell__utility-bar) {
     display: none !important;
 }
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     .caissa-simplified-shell[data-layout^="phone-"] .caissa-simplified-shell__board-stage {
     align-content: start;
     overflow-anchor: none;
 }
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     .caissa-simplified-shell[data-layout^="phone-"] .caissa-simplified-shell__board-region {
     align-self: start;
 }
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     .caissa-simplified-shell[data-layout="phone-landscape"] .caissa-simplified-shell__board-stage {
     gap: 4px;
     padding: 4px;
 }
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     .caissa-simplified-shell[data-layout="phone-landscape"]
     :is(.caissa-simplified-shell__board-region, .caissa-simplified-shell__board-region .board-with-eval) {
     height: calc(var(--play-board-size) - 4px);
     min-height: 0;
 }
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     #playSection .caissa-simplified-shell[data-layout="phone-landscape"] #chessboard {
     width: calc(var(--play-board-size) - 6px) !important;
     height: calc(var(--play-board-size) - 6px) !important;
     max-width: calc(var(--play-board-size) - 6px) !important;
     max-height: calc(var(--play-board-size) - 6px) !important;
 }
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     #playSection .caissa-simplified-shell[data-layout="phone-landscape"] #evalBar {
     height: calc(var(--play-board-size) - 6px) !important;
     max-height: calc(var(--play-board-size) - 6px) !important;
@@ -4121,13 +4155,15 @@ body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caiss
 
 /* The board stage is the single board + navigation anchor. Dynamic review copy
    and notation may resize or scroll, but they are never browser scroll anchors. */
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active)
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active)
     :is(.content-area, #playSection, .caissa-simplified-shell__context, .caissa-simplified-shell__context-body,
-        .caissa-games-panel__body, .caissa-bots-panel__body) {
+        .caissa-games-panel__body, .caissa-bots-panel__body, .caissa-native-coach-panel__body) {
     overflow-anchor: none;
 }
 
-body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active):has(
+body.caissa-simplified-play-active:is(.caissa-games-guided-review-active, .caissa-bots-guided-review-active,
+    .caissa-coach-guided-review-active, .caissa-coach-review-exploration-active):has(
     .caissa-simplified-shell[data-layout="phone-landscape"])
     :is(.content-area, #mainContent, #playSection) {
     overflow-y: clip;

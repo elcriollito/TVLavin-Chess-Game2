@@ -32,19 +32,21 @@ async function openMode(page, mode) {
     if (mode === 'coach') await expect(page.locator('[data-caissa-native-coach-panel]')).toBeVisible();
 }
 
-test('M2-003H Coach stays on the production presentation while sharing the persistent renderer', async ({ page }) => {
+test('COACH-C3 Coach uses its approved phone composition in production', async ({ page }) => {
     await page.setViewportSize(VIEWPORTS[0]);
     await page.goto('/play/coach', { waitUntil: 'domcontentloaded' });
     const shell = page.locator('[data-caissa-simplified-shell]');
     await expect(shell).toBeVisible();
-    await expect(shell).toHaveAttribute('data-mobile2-release', 'hold');
-    await expect(page.locator('body')).not.toHaveClass(/caissa-play-phone-layout/);
-    await expect(page.locator('.caissa-simplified-shell__purpose')).toBeVisible();
+    await expect(shell).toHaveAttribute('data-mobile2-release', 'approved');
+    await expect(page.locator('body')).toHaveClass(/caissa-play-phone-layout/);
+    await expect(page.locator('.caissa-simplified-shell__purpose')).toBeAttached();
+    await expect(page.locator('.caissa-simplified-shell__preview')).toHaveCSS('position', 'absolute');
     await expect(page.locator('#chessboard .caissa-board__square')).toHaveCount(64);
     await page.locator('[data-caissa-native-coach-panel]').getByRole('button', { name: 'Play' }).click();
     await expect(shell).toHaveAttribute('data-ui-state', 'active');
-    await expect(shell).toHaveAttribute('data-active-action-placement', 'context-foot');
-    await expect(page.locator('body')).not.toHaveClass(/caissa-play-phone-layout/);
+    await expect(shell).toHaveAttribute('data-active-action-placement', 'phase-action-slot');
+    await expect(shell).toHaveAttribute('data-scroll-owner', 'document');
+    await expect(page.locator('[data-active-game-action="menu"]')).toBeVisible();
 });
 
 async function startMode(page, mode) {

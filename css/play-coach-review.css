@@ -21,7 +21,8 @@ body.caissa-simplified-play-active:is(.caissa-coach-review-summary-active, .cais
     overscroll-behavior-y: none;
 }
 body.caissa-simplified-play-active.caissa-coach-review-summary-active
-    .caissa-simplified-shell__board-stage > :not(.caissa-simplified-shell__board-region):not(.caissa-simplified-shell__sr-heading) {
+    .caissa-simplified-shell__board-stage
+    > :not(.caissa-simplified-shell__board-region):not(.caissa-simplified-shell__sr-heading):not([data-mobile-review-navigation]):not([data-caissa-phase-action-slot]) {
     display: none !important;
 }
 body.caissa-simplified-play-active.caissa-coach-review-summary-active .caissa-simplified-shell__board-stage {
@@ -69,38 +70,6 @@ body.caissa-simplified-play-active
     .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"]:is(
         [data-layout="desktop-split"], [data-layout="tablet-landscape-split"], [data-layout="constrained-height"])
     .caissa-simplified-shell__context { grid-row: 2; align-self: stretch; max-height: none; }
-body.caissa-simplified-play-active
-    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]
-    .caissa-simplified-shell__workspace:has([data-coach-shell-phase="active-game"]) {
-    grid-template-areas:
-        "board modes"
-        "board context";
-    grid-template-rows: auto minmax(0, 1fr);
-}
-body.caissa-simplified-play-active
-    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]
-    .caissa-simplified-shell__workspace:has([data-coach-shell-phase="active-game"])
-    > :is(.caissa-simplified-shell__footer, .caissa-simplified-shell__advanced) { display: none; }
-body.caissa-simplified-play-active
-    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]
-    .caissa-simplified-shell__context:has([data-coach-shell-phase="active-game"]) {
-    grid-row: 2;
-    align-self: stretch;
-    max-height: none;
-}
-body.caissa-simplified-play-active
-    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]:has(
-        [data-coach-shell-phase="active-game"])
-    .caissa-simplified-shell__modes .caissa-vc-tabs__list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-body.caissa-simplified-play-active
-    .caissa-simplified-shell[data-entry-experience="beta"][data-mode="coach"][data-layout="phone-landscape"]:has(
-        [data-coach-shell-phase="active-game"])
-    .caissa-simplified-shell__mode:last-child:nth-child(odd) {
-    grid-column: auto;
-}
-
 .caissa-coach-review-summary {
     display: flex;
     flex-direction: column;
@@ -887,96 +856,405 @@ body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
     padding: .2rem;
 }
 
-@media (max-width: 900px) {
-    body.caissa-simplified-play-active .caissa-native-coach-panel { flex: 0 0 auto; height: auto; }
-    body.caissa-simplified-play-active .caissa-native-coach-panel__phase {
-        flex: 0 0 auto;
+@media (max-width: 932px) {
+    /* Coach phone hybrid shell: BOARD -> VARIABLE ACTION SLOT -> HEAD -> CONTENT
+       participate in the one application page scroller. The canonical mode FOOT
+       is the only fixed region. */
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__color-choice > .caissa-color-token {
+        --coach-play-as-symbol-size: 2.35rem;
+        font-size: var(--coach-play-as-symbol-size);
+        line-height: 1;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__color-choice > .caissa-color-token--white {
+        text-shadow: 0 1px 1px #020617, 1px 0 1px #020617,
+            -1px 0 1px #020617, 0 -1px 1px #020617;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__color-choice > .caissa-color-token--black {
+        color: #020203;
+        text-shadow: 0 1px 1px rgb(255 255 255 / 35%);
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__color-choice > .caissa-color-token--random {
+        --coach-play-as-symbol-size: 1.9rem;
+        color: #e2e8f0;
+        font-weight: 800;
+        -webkit-text-stroke: .6px #111827;
+        text-shadow: 0 0 1px #f8fafc;
+    }
+    body.caissa-simplified-play-active:has(
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"])
+        #mainContent.content-area {
+        height: var(--play-visual-viewport-height, 100dvh);
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto !important;
+        overscroll-behavior-y: auto !important;
+        scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        -webkit-overflow-scrolling: touch;
+    }
+    body.caissa-simplified-play-active:has(
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"])
+        #playSection {
+        height: auto;
+        min-height: 100%;
+        overflow-x: clip;
+        overflow-y: visible !important;
+        overscroll-behavior-y: auto !important;
+    }
+    body.caissa-simplified-play-active:has(
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"])
+        #playSection .main-content.cais-grid[hidden] {
+        display: none !important;
+    }
+    body.caissa-simplified-play-active
+        #playSection
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"] {
+        box-sizing: border-box;
+        height: auto;
+        min-height: 0;
+        padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
         overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__preview {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        min-height: 0 !important;
+        margin: -1px !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        clip: rect(0 0 0 0) !important;
+        clip-path: inset(50%) !important;
+        white-space: nowrap !important;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"]:is(
+            [data-layout="phone-compact"], [data-layout="phone-standard"])
+        .caissa-simplified-shell__workspace {
+        grid-template-areas: "board" "context";
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-simplified-shell__workspace {
+        grid-template-areas: "board" "context";
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__workspace
+        > :is(.caissa-simplified-shell__footer, .caissa-simplified-shell__advanced) {
+        display: none;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-simplified-shell__context {
+        grid-area: context;
+        align-self: start;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-simplified-shell__board-stage {
+        box-sizing: border-box;
+        align-self: start;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__context {
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__context-body {
+        box-sizing: border-box;
+        flex: 0 0 auto;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        padding: 6px;
+        overflow: visible;
+        overflow-anchor: none;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel {
+        display: grid;
+        grid-template-rows: auto auto;
+        flex: 0 0 auto;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__phase-action-slot .caissa-simplified-shell__board-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__active-action {
+        min-height: 44px;
+        padding-inline: 5px;
+        font-size: clamp(.78rem, 3.4vw, .9rem);
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__phase-action-slot {
+        width: 100%;
+        flex: 0 0 auto;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-simplified-shell__board-stage > .caissa-simplified-shell__player {
+        display: none !important;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-simplified-shell__board-stage {
+        align-content: start;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        :is(.caissa-simplified-shell__board-region, .caissa-simplified-shell__board-region .board-with-eval) {
+        height: calc(var(--play-board-size) - 4px);
+        min-height: 0;
+        align-self: start;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__persona {
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: .45rem;
+        box-sizing: border-box;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        padding: .32rem .42rem;
+        overflow: visible;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__portrait {
+        width: min(100%, 78px);
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__speech {
+        padding: .48rem .55rem;
+        font-size: .88rem;
+        line-height: 1.3;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__phase {
+        flex: 0 0 auto;
+        align-self: stretch;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        margin-top: .32rem;
+        padding: .32rem .15rem .35rem 0;
+        overflow-x: visible;
+        overflow-y: visible;
+        overflow-anchor: none;
+        overscroll-behavior: auto;
         scrollbar-gutter: auto;
     }
-    body.caissa-simplified-play-active.caissa-coach-guided-review-active
-        .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__context,
-    body.caissa-simplified-play-active.caissa-coach-guided-review-active
-        .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__context-body {
-        overflow: hidden;
-    }
-    body.caissa-simplified-play-active.caissa-coach-guided-review-active .caissa-native-coach-panel {
-        height: 100dvh;
-        max-height: 100dvh;
-    }
-    body.caissa-simplified-play-active.caissa-coach-guided-review-active .caissa-native-coach-panel__phase {
-        flex: 1 1 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        scrollbar-gutter: stable;
-    }
-    body.caissa-simplified-play-active.caissa-coach-review-summary-active
-        .caissa-simplified-shell[data-mode="coach"] :is(
-            .caissa-simplified-shell__context, .caissa-simplified-shell__context-body) {
-        overflow: hidden;
-    }
-    body.caissa-simplified-play-active.caissa-coach-review-summary-active .caissa-native-coach-panel {
-        height: 100dvh;
-        max-height: 100dvh;
-    }
-    body.caissa-simplified-play-active.caissa-coach-review-summary-active .caissa-native-coach-panel__phase {
-        flex: 1 1 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        scrollbar-gutter: stable;
-    }
-    body.caissa-simplified-play-active .caissa-native-coach-panel__phase > [data-caissa-coach-phase-content]:not([hidden]) {
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__phase > [data-caissa-coach-phase-content]:not([hidden]) {
         flex: 0 0 auto;
         min-height: 0;
-    }
-    body.caissa-simplified-play-active .caissa-simplified-shell[data-mode="coach"] .caissa-simplified-shell__context {
-        overflow: visible;
+        scroll-margin-bottom: .5rem;
     }
     body.caissa-simplified-play-active
-        .caissa-simplified-shell[data-mode="coach"]:has([data-coach-shell-phase="active-game"])
-        :is(.caissa-simplified-shell__context, .caissa-simplified-shell__context-body) {
-        min-height: 0;
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel[data-mobile-phase-shell] > .caissa-native-coach-panel__foot {
+        display: none !important;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__phase > [data-caissa-coach-foot-content]:not([hidden]) {
+        flex: 0 0 auto;
+        margin-top: .5rem;
+        padding-top: .5rem;
+        border-top: 1px solid color-mix(in srgb, var(--coach-gold) 28%, var(--panel-border));
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        [data-caissa-coach-foot-wrap] {
+        box-sizing: border-box;
+        position: fixed;
+        z-index: 10010;
+        inset: auto max(4px, env(safe-area-inset-right, 0px)) 0
+            max(4px, env(safe-area-inset-left, 0px));
+        width: auto;
+        padding: 4px 4px max(4px, env(safe-area-inset-bottom, 0px))
+            calc(60px + env(safe-area-inset-left, 0px));
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        background: var(--panel-bg);
         overflow: hidden;
+        box-shadow: 0 -8px 24px rgb(0 0 0 / 28%);
     }
     body.caissa-simplified-play-active
-        .caissa-simplified-shell[data-mode="coach"] [data-coach-shell-phase="active-game"] {
-        flex: 1 1 auto;
-        height: 100%;
-        max-height: 100%;
-        min-height: 0;
-        overflow: hidden;
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        [data-caissa-coach-foot-wrap] .caissa-vc-tabs__list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-auto-rows: 48px;
+        gap: 4px;
     }
     body.caissa-simplified-play-active
-        .caissa-simplified-shell[data-mode="coach"] [data-coach-shell-phase="active-game"] [data-caissa-coach-body] {
-        flex: 1 1 0;
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        [data-caissa-coach-foot-wrap] .caissa-simplified-shell__mode {
+        min-height: 48px;
+        padding: 5px 4px;
+        font-size: clamp(.72rem, 2.8vw, .86rem);
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        [data-caissa-coach-foot-wrap] .caissa-simplified-shell__mode:last-child:nth-child(odd) {
+        grid-column: auto;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-native-coach-panel {
+        grid-template-rows: auto auto;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-native-coach-panel__persona {
+        grid-template-columns: 46px minmax(0, 1fr);
+        gap: .32rem;
         min-height: 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        scrollbar-gutter: stable;
+        max-height: none;
+        padding: .2rem .3rem;
     }
-    .caissa-coach-review-summary { width: 100%; min-height: 0; margin-top: 0; padding: 0; }
-    .caissa-coach-review-summary__profiles,
-    .caissa-coach-review-summary__accuracy {
-        grid-template-columns: minmax(3.5rem, 1fr) minmax(5rem, 1.15fr) minmax(3.5rem, 1fr);
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-native-coach-panel__portrait {
+        width: min(100%, 48px);
     }
-    .caissa-coach-review-summary__row {
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout="phone-landscape"]
+        .caissa-native-coach-panel__speech {
+        padding: .28rem .38rem;
+        font-size: .78rem;
+        line-height: 1.2;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__controls {
+        gap: .5rem;
+        padding-bottom: .45rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__level-picker {
+        gap: .45rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__featured-levels {
+        gap: .35rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-native-coach-panel__level-card {
+        min-height: 44px;
+        gap: .12rem;
+        padding: .45rem .65rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        :is(.caissa-coach-review-summary, .caissa-coach-review-summary__comparison) {
+        gap: .45rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        :is(.caissa-coach-review-summary__profile-avatar, .caissa-coach-review-summary__player-avatar) {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-coach-review-summary__accuracy {
+        min-height: 4rem;
+        padding-block: .3rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-coach-review-summary__table {
+        gap: .12rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-coach-review-summary__row {
+        min-height: 2.65rem;
+        padding-block: .16rem;
         grid-template-columns: minmax(2.5rem, .65fr) minmax(5.5rem, 1.35fr) 2.5rem minmax(2.5rem, .65fr);
     }
-    .caissa-coach-review-summary__profile-avatar { width: 4.25rem; height: 4.25rem; }
-    .caissa-coach-review-summary__player-avatar { width: 4.25rem; height: 4.25rem; }
-    .caissa-coach-guided { min-height: 25rem; padding: 0; }
-    .caissa-coach-guided__notation,
-    .caissa-coach-exploration__notation { max-height: none; }
-    .caissa-coach-guided .caissa-coach-exploration__nav-button { min-height: 52px; }
-    .caissa-coach-guided__navigation-host .analyze-board-navigation { gap: .38rem; }
-    .caissa-coach-guided__navigation-host .nav-btn-sm { min-height: 52px; padding: .4rem; font-size: 1.16rem; }
-    .caissa-coach-guided__foot-actions { gap: .38rem; }
-    .caissa-coach-guided__foot-actions > button { min-height: 48px; padding-inline: .45rem; }
-    .caissa-coach-review-settings__effort { grid-template-columns: 1fr; }
-    body.caissa-simplified-play-active .caissa-post-game.caissa-coach-game-over-context {
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        :is(.caissa-coach-guided__review-tools, .caissa-coach-guided__exploration-tools,
+            .caissa-coach-exploration, .caissa-coach-guided__foot-actions) {
+        gap: .38rem;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-coach-guided {
+        min-height: 0;
+        padding: 0;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        :is(.caissa-coach-guided__navigation-host .nav-btn-sm,
+            .caissa-coach-guided .caissa-coach-exploration__nav-button,
+            .caissa-coach-guided__foot-actions > button,
+            .caissa-coach-guided__exploration-tools button) {
+        min-height: 44px !important;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        :is(.caissa-coach-guided__notation, .caissa-coach-exploration__notation) {
+        max-height: none;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-coach-review-settings__effort {
+        grid-template-columns: 1fr;
+    }
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mode="coach"][data-layout^="phone-"]
+        .caissa-post-game.caissa-coach-game-over-context {
         width: 100%;
-        padding: .85rem;
-        gap: .55rem;
+        padding: .35rem;
+        gap: .45rem;
     }
 }
 

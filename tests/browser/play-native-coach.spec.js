@@ -364,6 +364,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     ];
     for (const viewport of guidedLongPgnLayouts) {
         await page.setViewportSize(viewport);
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const measurement = await page.evaluate(() => {
             const selectorFor = node => {
                 if (node.id) return `#${node.id}`;
@@ -376,21 +377,25 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
             const body = document.querySelector('[data-caissa-coach-body]');
             const foot = document.querySelector('[data-caissa-coach-foot]');
             const context = shell.closest('.caissa-simplified-shell__context');
+            const mobile = shell.closest('.caissa-simplified-shell')?.dataset.layout?.startsWith('phone-');
+            const owner = mobile ? document.querySelector('#mainContent') : body;
             const inspected = [context, ...context.querySelectorAll('*')];
             const descendants = [...document.querySelectorAll(
                 '[data-coach-guided-notation], [data-coach-guided-notation] .analyze-move-list, '
                 + '[data-coach-guided-notation] .move-list-grid')];
-            body.scrollTop = 0;
+            owner.scrollTop = 0;
             const before = { shellHeight: shell.getBoundingClientRect().height,
                 headTop: head.getBoundingClientRect().top, footTop: foot.getBoundingClientRect().top };
-            body.scrollTop = Math.max(0, body.scrollHeight - body.clientHeight);
+            owner.scrollTop = Math.max(0, owner.scrollHeight - owner.clientHeight);
             const after = { shellHeight: shell.getBoundingClientRect().height,
                 headTop: head.getBoundingClientRect().top, footTop: foot.getBoundingClientRect().top };
             return {
-                bodyClientHeight: body.clientHeight,
-                bodyScrollHeight: body.scrollHeight,
-                bodyOverflowY: getComputedStyle(body).overflowY,
-                bodyScrollable: body.scrollHeight > body.clientHeight,
+                mobile,
+                ownerSelector: selectorFor(owner),
+                ownerClientHeight: owner.clientHeight,
+                ownerScrollHeight: owner.scrollHeight,
+                ownerOverflowY: getComputedStyle(owner).overflowY,
+                ownerScrollable: owner.scrollHeight > owner.clientHeight,
                 descendantOwnerCount: descendants.filter(node => ['auto', 'scroll'].includes(getComputedStyle(node).overflowY)).length,
                 descendantOverflowY: descendants.map(node => getComputedStyle(node).overflowY),
                 scrollableElements: inspected.filter(node => {
@@ -409,13 +414,18 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
             };
         });
         console.log(`COACH_GUIDED_LONG_PGN ${viewport.width}x${viewport.height} ${viewport.scale} ${JSON.stringify(measurement)}`);
-        expect(measurement.bodyOverflowY, JSON.stringify(viewport)).toBe('auto');
-        expect(measurement.bodyScrollable, JSON.stringify(viewport)).toBe(true);
-        expect(measurement.bodyScrollHeight, JSON.stringify(viewport)).toBeGreaterThan(measurement.bodyClientHeight);
+        const expectedOwner = measurement.mobile ? '#mainContent' : '[data-caissa-coach-phase-host]';
+        expect(measurement.ownerSelector, JSON.stringify(viewport)).toBe(expectedOwner);
+        expect(measurement.ownerOverflowY, JSON.stringify(viewport)).toBe('auto');
+        expect(measurement.ownerScrollable, JSON.stringify(viewport)).toBe(true);
+        expect(measurement.ownerScrollHeight, JSON.stringify(viewport)).toBeGreaterThan(measurement.ownerClientHeight);
         expect(measurement.descendantOwnerCount, JSON.stringify(viewport)).toBe(0);
         expect(measurement.descendantOverflowY, JSON.stringify(viewport)).toEqual(['visible', 'visible', 'visible']);
         expect(measurement.shellHeightDelta, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
-        expect(measurement.headTopDelta, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
+        if (measurement.mobile)
+            expect(measurement.headTopDelta, JSON.stringify(viewport)).toBeGreaterThan(1);
+        else
+            expect(measurement.headTopDelta, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         expect(measurement.footTopDelta, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         expect(measurement.horizontalOverflow, JSON.stringify(viewport)).toBeLessThanOrEqual(1);
         if (process.env.CAISSA_QA_CAPTURE === '1' && viewport.width === 1600)
@@ -477,6 +487,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('#analyzeNavPrev').click();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.currentMoveIndex)).toBe(0);
     await expect.poll(() => page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot().scoreCp)).toBe(300);
+    await page.setViewportSize({ width: 390, height: 844 });
     const entryState = await page.evaluate(() => ({
         ply: window.AnalyzeSection.currentMoveIndex,
         fen: window.AnalyzeSection.getCoachReviewProjection().fen,
@@ -490,10 +501,10 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         window.AnalyzeSection.ensureAnalysisEngine = async function ensureInstrumentedEngine() {
             const engine = await originalEnsure();
             if (engine && !engine.__coachManualStudyInstrumented) {
-                const originalStart = engine.startAnalysis.bind(engine);
-                engine.startAnalysis = function recordManualStudyRequest(fen, callback, depth) {
+                const originalBestMove = engine.getBestMoveAttributed.bind(engine);
+                engine.getBestMoveAttributed = function recordManualStudyRequest(fen, callback, options) {
                     window.__coachReviewExplorationFens.push(fen);
-                    return originalStart(fen, callback, depth);
+                    return originalBestMove(fen, callback, options);
                 };
                 engine.__coachManualStudyInstrumented = true;
             }
@@ -504,16 +515,17 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(page.locator('[data-coach-analysis-exploration]')).toBeVisible();
     await expect(page.locator('[data-coach-guided-view]')).toBeHidden();
     await expect(page.locator('[data-caissa-coach-head]')).toContainText('ANALYSIS');
-    await expect(page.locator('[data-caissa-coach-head]')).toContainText('Explore this position');
-    await expect(page.locator('[data-caissa-coach-head] [data-coach-exploration-pv]')).toContainText('Principal variation:');
+    await expect(page.locator('[data-caissa-coach-head]')).toContainText('Engine Off');
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-narration]'))
+        .toHaveAttribute('data-coach-exploration-status', 'off');
     await expect(page.locator('[data-coach-source-game]')).toContainText('GAME MOVES (STUDY)');
     await expect(page.locator('[data-coach-source-notation] #analyzeMoveList')).toBeVisible();
     await expect(page.locator('[data-coach-exploration-workspace]')).toBeHidden();
     await expect(page.locator('[data-coach-exploration-foot]')).toBeVisible();
-    await expect(page.locator('[data-caissa-coach-foot] [data-coach-exploration-nav]')).toHaveCount(4);
-    await expect(page.locator('[data-caissa-coach-foot] .analyze-board-navigation:visible')).toHaveCount(0);
+    await expect(page.locator('.caissa-simplified-shell__phase-action-slot [data-coach-exploration-nav]')).toHaveCount(4);
+    await expect(page.locator('.analyze-board-navigation:visible')).toHaveCount(0);
     await expect(page.locator('[data-coach-exploration-back]')).toBeVisible();
-    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
     const visibleFootActions = (await page.locator('[data-caissa-coach-foot] button:visible').allTextContents()).join(' ');
     expect(visibleFootActions).not.toMatch(/Undo|Reset|Flip|Settings|New Game|Analysis\s*$/);
     expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(true);
@@ -534,14 +546,14 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
                 expectedLastMove: projection.move,
                 selectedIndex: active ? Number(active.dataset.index) : -1,
                 studyFen: window.CaissaCoachReviewExploration.getFen(),
-                railCp: rail.scoreCp,
-                expectedCp: Number.isFinite(item?.evalAfter) ? item.evalAfter * 100 : rail.scoreCp
+                railMode: rail.displayMode,
+                sourceEvaluation: Number.isFinite(item?.evalAfter) ? item.evalAfter : null
             };
         });
         expect(synchronized.studyFen).toBe(synchronized.fen);
         expect(synchronized.lastMove).toEqual(synchronized.expectedLastMove);
         expect(synchronized.selectedIndex).toBe(expectedIndex);
-        expect(synchronized.railCp).toBe(synchronized.expectedCp);
+        expect(synchronized.railMode).toBe('unavailable');
     };
     await page.locator('[data-coach-exploration-nav="first"]').click(); await assertSourceSynchronization(-1);
     await page.locator('[data-coach-exploration-nav="next"]').click(); await assertSourceSynchronization(0);
@@ -549,8 +561,54 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator('[data-coach-exploration-nav="previous"]').click(); await assertSourceSynchronization(0);
     await page.locator('[data-coach-source-notation] [data-index="1"]').click(); await assertSourceSynchronization(1);
     await page.locator('[data-coach-source-notation] [data-index="0"]').click(); await assertSourceSynchronization(0);
+    expect(await page.evaluate(() => window.__coachReviewExplorationFens.length)).toBe(0);
+    await page.evaluate(() => window.__caissaPlayHarness.configure({
+        bestMoves: ['e7e5', 'g1f3', 'e7e5', 'g1f3', 'e7e5', 'g1f3'],
+        cp: 42, depth: 14, delayMs: 80, resetSearchSequence: true
+    }));
+    const engineGeometry = await page.evaluate(() => {
+        const scrollTop = document.querySelector('#mainContent').scrollTop;
+        const rect = selector => { const value = document.querySelector(selector).getBoundingClientRect();
+            return { top: value.top, pageTop: value.top + scrollTop, height: value.height }; };
+        return { board: rect('#chessboard'), action: rect('.caissa-simplified-shell__phase-action-slot'),
+            head: rect('[data-caissa-coach-head]'), foot: rect('[data-caissa-coach-foot]') };
+    });
+    await page.locator('[data-coach-exploration-engine]').click();
+    await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-narration]'))
+        .toHaveAttribute('data-coach-exploration-status', 'loading');
+    await expect(page.locator('[data-caissa-coach-head]')).toContainText('Analyzing…');
+    await expect(page.locator('[data-caissa-coach-head]')).not.toContainText(/Best\s+[a-hKQRBN]/);
+    await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().analysis.status))
+        .toBe('ready');
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-exploration-best]')).toContainText('Best');
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-exploration-evaluation]')).not.toHaveText('—');
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-exploration-pv]'))
+        .toContainText('Principal variation:');
+    const alignedEntry = await page.evaluate(() => {
+        const analysis = window.CaissaCoachReviewExploration.getSnapshot().analysis;
+        return { aligned: analysis.aligned, engineFen: analysis.engineFen,
+            sandboxFen: analysis.sandboxFen, renderedFen: analysis.renderedFen,
+            requestFen: analysis.requestFen, boardFen: window.App.boardAdapter.getPosition() };
+    });
+    expect(alignedEntry.aligned).toBe(true);
+    expect(new Set(Object.values(alignedEntry).filter(value => typeof value === 'string')).size).toBe(1);
+    const illegalBefore = await page.evaluate(() => ({
+        fen: window.CaissaCoachReviewExploration.getFen(),
+        requests: window.CaissaCoachReviewExploration.getSnapshot().engineRequests,
+        analysis: JSON.stringify(window.CaissaCoachReviewExploration.getSnapshot().analysis),
+        head: document.querySelector('[data-caissa-coach-head]').textContent
+    }));
+    expect(await playMove(page, 'e2', 'e5')).toBe(false);
+    expect(await page.evaluate(() => ({
+        fen: window.CaissaCoachReviewExploration.getFen(),
+        requests: window.CaissaCoachReviewExploration.getSnapshot().engineRequests,
+        analysis: JSON.stringify(window.CaissaCoachReviewExploration.getSnapshot().analysis),
+        head: document.querySelector('[data-caissa-coach-head]').textContent
+    }))).toEqual(illegalBefore);
     const longNotationGeometry = await page.evaluate(() => {
         const phase = document.querySelector('[data-caissa-coach-body]');
+        const owner = document.querySelector('#mainContent');
         const foot = document.querySelector('[data-caissa-coach-foot]');
         const source = document.querySelector('[data-coach-source-notation]');
         const moveList = source.querySelector('.analyze-move-list');
@@ -563,6 +621,8 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
             list.append(clone);
         }
         const result = {
+            pageOverflow: getComputedStyle(owner).overflowY,
+            pageScrollable: owner.scrollHeight > owner.clientHeight,
             bodyOverflow: getComputedStyle(phase).overflowY,
             notationOverflow: getComputedStyle(source).overflowY,
             moveListOverflow: getComputedStyle(moveList).overflowY,
@@ -575,8 +635,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         return result;
     });
     expect(longNotationGeometry).toEqual({
-        bodyOverflow: 'auto', notationOverflow: 'visible', moveListOverflow: 'visible',
-        bodyScrollable: true, nestedScrollbars: 0, footTopDelta: 0
+        pageOverflow: 'auto', pageScrollable: true,
+        bodyOverflow: 'visible', notationOverflow: 'visible', moveListOverflow: 'visible',
+        bodyScrollable: false, nestedScrollbars: 0, footTopDelta: 0
     });
     const findExplorationMove = excluded => page.evaluate(excludedUci => {
         for (const file of 'abcdefgh') for (const rank of '12345678') {
@@ -591,15 +652,39 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await page.locator(`#chessboard .square-${draggedMove.from}`).dragTo(
         page.locator(`#chessboard .square-${draggedMove.to}`));
     await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().temporaryPlyCount)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().analysis.status))
+        .toBe('ready');
+    let priorAnalysisFen = alignedEntry.requestFen;
     for (let index = 1; index < 3; index += 1) {
         const move = await findExplorationMove(); expect(move).not.toBeNull();
         expect(await playMove(page, move.from, move.to, move.promotion)).toBe(true);
+        await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().analysis.status))
+            .toBe('ready');
+        const currentResult = await page.evaluate(() => {
+            const state = window.CaissaCoachReviewExploration.getSnapshot();
+            return { currentFen: state.currentFen, requestFen: state.analysis.requestFen,
+                engineFen: state.analysis.engineFen, sandboxFen: state.analysis.sandboxFen,
+                renderedFen: state.analysis.renderedFen, aligned: state.analysis.aligned,
+                best: state.analysis.bestMove, evaluation: state.analysis.evaluation,
+                pv: state.analysis.pv };
+        });
+        expect(currentResult.requestFen).not.toBe(priorAnalysisFen);
+        expect(currentResult.currentFen).toBe(currentResult.requestFen);
+        expect(currentResult.engineFen).toBe(currentResult.requestFen);
+        expect(currentResult.sandboxFen).toBe(currentResult.requestFen);
+        expect(currentResult.renderedFen).toBe(currentResult.requestFen);
+        expect(currentResult.aligned).toBe(true);
+        expect(currentResult.best).toMatch(/^[a-h][1-8][a-h][1-8][qrbn]?$/);
+        expect(Number.isFinite(currentResult.evaluation)).toBe(true);
+        expect(currentResult.pv.length).toBeGreaterThan(0);
+        priorAnalysisFen = currentResult.requestFen;
     }
     await expect(page.locator('[data-coach-exploration-workspace]')).toBeVisible();
     await expect(page.locator('[data-coach-exploration-workspace]')).toContainText('ANALYSIS VARIATION');
     await expect(page.locator('[data-coach-exploration-move]')).toHaveCount(3);
     const longVariationGeometry = await page.evaluate(() => {
         const body = document.querySelector('[data-caissa-coach-body]');
+        const owner = document.querySelector('#mainContent');
         const foot = document.querySelector('[data-caissa-coach-foot]');
         const variation = document.querySelector('[data-coach-exploration-notation]');
         const template = variation.querySelector('.caissa-coach-exploration__notation-row');
@@ -607,7 +692,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         for (let index = 0; index < 48; index += 1) {
             const clone = template.cloneNode(true); clone.dataset.hotfixQaClone = ''; variation.append(clone);
         }
-        const result = { bodyOverflow: getComputedStyle(body).overflowY,
+        const result = { pageOverflow: getComputedStyle(owner).overflowY,
+            pageScrollable: owner.scrollHeight > owner.clientHeight,
+            bodyOverflow: getComputedStyle(body).overflowY,
             variationOverflow: getComputedStyle(variation).overflowY,
             bodyScrollable: body.scrollHeight > body.clientHeight,
             nestedScrollbar: variation.scrollHeight > variation.clientHeight
@@ -616,8 +703,9 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         variation.querySelectorAll('[data-hotfix-qa-clone]').forEach(node => node.remove());
         return result;
     });
-    expect(longVariationGeometry).toEqual({ bodyOverflow: 'auto', variationOverflow: 'visible',
-        bodyScrollable: true, nestedScrollbar: false, footTopDelta: 0 });
+    expect(longVariationGeometry).toEqual({ pageOverflow: 'auto', pageScrollable: true,
+        bodyOverflow: 'visible', variationOverflow: 'visible', bodyScrollable: false,
+        nestedScrollbar: false, footTopDelta: 0 });
     const originalLine = await page.evaluate(() => window.CaissaCoachReviewExploration.getLine().map(move => ({ ...move })));
     await page.locator('[data-coach-exploration-nav="previous"]').click();
     const replaced = originalLine[2];
@@ -632,19 +720,40 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().cursor)).toBe(1);
     await page.locator('[data-coach-exploration-nav="last"]').click();
     await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().cursor)).toBe(3);
-    const headBeforeOff = await page.locator('[data-caissa-coach-head]').textContent();
-    const railBeforeOff = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
     await page.locator('[data-coach-exploration-engine]').click();
     await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('[data-caissa-coach-head]')).toContainText('Engine Off');
+    await expect(page.locator('[data-caissa-coach-head]')).not.toContainText(/Best\s+[a-hKQRBN]/);
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-exploration-evaluation]')).toHaveText('—');
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-exploration-pv]'))
+        .toHaveText('Turn Engine On to analyze this sandbox position.');
     const requestsWhileOff = await page.evaluate(() => window.__coachReviewExplorationFens.length);
     await page.locator('[data-coach-exploration-nav="previous"]').click();
     await page.waitForTimeout(250);
     expect(await page.evaluate(() => window.__coachReviewExplorationFens.length)).toBe(requestsWhileOff);
-    expect((await page.locator('[data-caissa-coach-head]').textContent()).replace('Engine off. ', '')).toBe(headBeforeOff);
     const railWhileOff = await page.evaluate(() => window.CaissaEvaluationRailInstance.getSnapshot());
-    expect({ cp: railWhileOff.scoreCp, mate: railWhileOff.mate }).toEqual({ cp: railBeforeOff.scoreCp, mate: railBeforeOff.mate });
+    expect({ mode: railWhileOff.displayMode, cp: railWhileOff.scoreCp, mate: railWhileOff.mate })
+        .toEqual({ mode: 'unavailable', cp: null, mate: null });
+    const resumeFen = await page.evaluate(() => window.CaissaCoachReviewExploration.getFen());
     await page.locator('[data-coach-exploration-engine]').click();
     await expect(page.locator('[data-coach-exploration-engine]')).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().analysis.status))
+        .toBe('ready');
+    expect(await page.evaluate(() => window.CaissaCoachReviewExploration.getSnapshot().analysis.requestFen)).toBe(resumeFen);
+    const engineGeometryAfter = await page.evaluate(() => {
+        const scrollTop = document.querySelector('#mainContent').scrollTop;
+        const rect = selector => { const value = document.querySelector(selector).getBoundingClientRect();
+            return { top: value.top, pageTop: value.top + scrollTop, height: value.height }; };
+        return { board: rect('#chessboard'), action: rect('.caissa-simplified-shell__phase-action-slot'),
+            head: rect('[data-caissa-coach-head]'), foot: rect('[data-caissa-coach-foot]') };
+    });
+    for (const region of ['board', 'action']) {
+        expect(Math.abs(engineGeometryAfter[region].pageTop - engineGeometry[region].pageTop)).toBeLessThanOrEqual(1);
+        expect(Math.abs(engineGeometryAfter[region].height - engineGeometry[region].height)).toBeLessThanOrEqual(1);
+    }
+    expect(Math.abs(engineGeometryAfter.head.pageTop - engineGeometry.head.pageTop)).toBeLessThanOrEqual(1);
+    expect(Math.abs(engineGeometryAfter.foot.top - engineGeometry.foot.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(engineGeometryAfter.foot.height - engineGeometry.foot.height)).toBeLessThanOrEqual(1);
     const layoutMetrics = [];
     for (const viewport of [{ width: 1600, height: 1000 }, { width: 1366, height: 768 }]) {
         await page.setViewportSize(viewport);
@@ -710,6 +819,12 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     }));
     expect(during).toEqual({ ...original, reviewPly: entryState.ply });
     expect(await page.evaluate(() => window.CaissaCoachReviewExploration.isActive())).toBe(true);
+    await page.evaluate(() => {
+        window.__caissaPlayHarness.configure({ delayMs: 300 });
+        window.CaissaCoachReviewExploration.analyzeCurrentPosition();
+    });
+    await expect(page.locator('[data-caissa-coach-head] [data-coach-narration]'))
+        .toHaveAttribute('data-coach-exploration-status', 'loading');
     await page.locator('[data-coach-exploration-back]').click();
     await expect(page.locator('[data-coach-guided-view]')).toBeVisible();
     await expect(page.locator('[data-coach-analysis-exploration]')).toBeHidden();
@@ -721,6 +836,14 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
         head: document.querySelector('[data-caissa-coach-head]').textContent
     }));
     expect(restoredState).toEqual(entryState);
+    await page.waitForTimeout(350);
+    expect(await page.evaluate(() => ({
+        ply: window.AnalyzeSection.currentMoveIndex,
+        fen: window.AnalyzeSection.getCoachReviewProjection().fen,
+        lastMove: window.App.boardAdapter.getSnapshot().lastMove,
+        rail: window.CaissaEvaluationRailInstance.getSnapshot().scoreCp,
+        head: document.querySelector('[data-caissa-coach-head]').textContent
+    }))).toEqual(entryState);
     expect(await page.evaluate(() => ({
         active: window.CaissaCoachReviewExploration.isActive(),
         temporaryPlyCount: window.CaissaCoachReviewExploration.getSnapshot().temporaryPlyCount
@@ -738,7 +861,7 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     expect(pageErrors).toEqual([]);
 });
 
-test('Coach real long-game review has BODY as its only live vertical scroll owner', async ({ page }) => {
+test('Coach real long-game review keeps one responsive vertical scroll owner', async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto('/play/coach');
     const panel = page.locator('[data-caissa-native-coach-panel]');
@@ -779,6 +902,7 @@ test('Coach real long-game review has BODY as its only live vertical scroll owne
     ];
     for (const layout of layouts) {
         await page.setViewportSize(layout);
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         await page.locator('.caissa-simplified-shell__context').evaluate(node => node.scrollIntoView({ block: 'start' }));
         const hierarchy = await page.evaluate(() => {
         const shell = document.querySelector('[data-caissa-coach-shell]');
@@ -824,21 +948,23 @@ test('Coach real long-game review has BODY as its only live vertical scroll owne
             const body = document.querySelector('[data-caissa-coach-body]');
             const foot = document.querySelector('[data-caissa-coach-foot]');
             const board = document.querySelector('#chessboard');
+            const mobile = shell.closest('.caissa-simplified-shell')?.dataset.layout?.startsWith('phone-');
+            const owner = mobile ? document.querySelector('#mainContent') : body;
             const snapshot = () => ({
                 shell: shell.getBoundingClientRect(), head: head.getBoundingClientRect(),
                 body: body.getBoundingClientRect(), foot: foot.getBoundingClientRect(),
                 board: board.getBoundingClientRect()
             });
-            body.scrollTop = 0;
+            owner.scrollTop = 0;
             await new Promise(resolve => requestAnimationFrame(resolve));
             const before = snapshot();
-            body.scrollTop = body.scrollHeight;
+            owner.scrollTop = owner.scrollHeight;
             await new Promise(resolve => requestAnimationFrame(resolve));
             const after = snapshot();
             const delta = (first, second, key) => Math.abs(first[key] - second[key]);
             return {
-                bodyClientHeight: body.clientHeight, bodyScrollHeight: body.scrollHeight,
-                bodyScrollTop: body.scrollTop, shellHeightDelta: delta(before.shell, after.shell, 'height'),
+                mobile, bodyClientHeight: owner.clientHeight, bodyScrollHeight: owner.scrollHeight,
+                bodyScrollTop: owner.scrollTop, shellHeightDelta: delta(before.shell, after.shell, 'height'),
                 headTopDelta: delta(before.head, after.head, 'top'), footTopDelta: delta(before.foot, after.foot, 'top'),
                 boardTopDelta: delta(before.board, after.board, 'top'),
                 boardWidthDelta: delta(before.board, after.board, 'width'),
@@ -847,19 +973,20 @@ test('Coach real long-game review has BODY as its only live vertical scroll owne
         });
         console.log(`COACH_REAL_LONG_SCROLL_HIERARCHY ${layout.label} ${JSON.stringify(hierarchy)}`);
         console.log(`COACH_REAL_LONG_GEOMETRY ${layout.label} ${JSON.stringify(geometry)}`);
-        expect(hierarchy.hierarchy.filter(item => item.scrollable).map(item => item.selector)).toEqual([
-            '[data-caissa-coach-body]'
-        ]);
+        const expectedOwner = geometry.mobile ? '#mainContent' : '[data-caissa-coach-body]';
+        expect(hierarchy.hierarchy.filter(item => item.scrollable).map(item => item.selector)).toEqual([expectedOwner]);
         expect(hierarchy.horizontalOverflow).toEqual([]);
         expect(geometry.bodyScrollHeight).toBeGreaterThan(geometry.bodyClientHeight);
         expect(geometry.bodyScrollTop).toBeGreaterThan(0);
         expect(geometry.shellHeightDelta).toBeLessThanOrEqual(0.5);
-        expect(geometry.headTopDelta).toBeLessThanOrEqual(0.5);
+        if (geometry.mobile) expect(geometry.headTopDelta).toBeGreaterThan(0.5);
+        else expect(geometry.headTopDelta).toBeLessThanOrEqual(0.5);
         expect(geometry.footTopDelta).toBeLessThanOrEqual(0.5);
-        expect(geometry.boardTopDelta).toBeLessThanOrEqual(0.5);
+        if (geometry.mobile) expect(geometry.boardTopDelta).toBeGreaterThan(0.5);
+        else expect(geometry.boardTopDelta).toBeLessThanOrEqual(0.5);
         expect(geometry.boardWidthDelta).toBeLessThanOrEqual(0.5);
         expect(geometry.shellHorizontalOverflow).toBe(0);
-        await page.locator('[data-caissa-coach-body]').evaluate(node => { node.scrollTop = 0; });
+        await page.locator(expectedOwner).evaluate(node => { node.scrollTop = 0; });
         if (layout.label === '1600x1000@100') {
             await page.screenshot({ path: 'artifacts/play-coach-double-scroll-desktop.png', fullPage: false });
         }
@@ -869,7 +996,7 @@ test('Coach real long-game review has BODY as its only live vertical scroll owne
     }
 });
 
-test('Coach active game keeps BODY as the only vertical scroll owner at the real 885x611 viewport', async ({ page }) => {
+test('Coach active game keeps one responsive vertical scroll owner at the real 885x611 viewport', async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto('/play/beta/coach');
     await page.locator('[data-caissa-native-coach-panel]').getByRole('button', { name: 'Play' }).click();
@@ -943,15 +1070,17 @@ test('Coach active game keeps BODY as the only vertical scroll owner at the real
             const head = document.querySelector('[data-caissa-coach-head]');
             const foot = document.querySelector('[data-caissa-coach-foot]');
             const board = document.querySelector('#chessboard');
+            const mobile = coachShell.closest('.caissa-simplified-shell')?.dataset.layout?.startsWith('phone-');
+            const owner = mobile ? document.querySelector('#mainContent') : body;
             const before = { headTop: head.getBoundingClientRect().top, footTop: foot.getBoundingClientRect().top,
                 boardTop: board.getBoundingClientRect().top };
-            body.scrollTop = body.scrollHeight;
+            owner.scrollTop = owner.scrollHeight;
             await new Promise(resolve => requestAnimationFrame(resolve));
             const deltas = { head: Math.abs(head.getBoundingClientRect().top - before.headTop),
                 foot: Math.abs(foot.getBoundingClientRect().top - before.footTop),
                 board: Math.abs(board.getBoundingClientRect().top - before.boardTop) };
-            body.scrollTop = 0;
-            return { layout: document.querySelector('.caissa-simplified-shell').dataset.layout,
+            owner.scrollTop = 0;
+            return { mobile, layout: document.querySelector('.caissa-simplified-shell').dataset.layout,
                 scrollOwners: metrics.filter(item => item.scrollOwner).map(item => item.selector),
                 chain: metrics.filter(item => ['html', 'body', '#app', '#mainContent', '#playSection',
                     'div.cais-stage', 'div.caissa-simplified-shell', 'div.caissa-simplified-shell__workspace',
@@ -961,15 +1090,23 @@ test('Coach active game keeps BODY as the only vertical scroll owner at the real
                     '[data-caissa-coach-foot]'].includes(item.selector)),
                 geometry: { head: rect('[data-caissa-coach-head]'), body: rect('[data-caissa-coach-body]'),
                     foot: rect('[data-caissa-coach-foot]'), panel: rect('[data-caissa-coach-shell]'),
-                    board: rect('#chessboard'), bodyClientHeight: body.clientHeight,
-                    bodyScrollHeight: body.scrollHeight, horizontalOverflow:
+                    board: rect('#chessboard'), bodyClientHeight: owner.clientHeight,
+                    bodyScrollHeight: owner.scrollHeight, horizontalOverflow:
                         Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth), deltas } };
         });
         console.log(`COACH_ACTIVE_LONG_SCROLL ${viewport.label} ${JSON.stringify(audit)}`);
-        expect(audit.scrollOwners).toEqual(['[data-caissa-coach-body]']);
+        const expectedOwner = audit.mobile ? '#mainContent' : '[data-caissa-coach-body]';
+        expect(audit.scrollOwners).toEqual([expectedOwner]);
         expect(audit.geometry.bodyScrollHeight).toBeGreaterThan(audit.geometry.bodyClientHeight);
         expect(audit.geometry.horizontalOverflow).toBe(0);
-        expect(audit.geometry.deltas).toEqual({ head: 0, foot: 0, board: 0 });
+        if (audit.mobile) {
+            expect(audit.geometry.deltas.board).toBeGreaterThan(1);
+            expect(audit.geometry.deltas.head).toBeGreaterThan(1);
+        } else {
+            expect(audit.geometry.deltas.board).toBe(0);
+            expect(audit.geometry.deltas.head).toBe(0);
+        }
+        expect(audit.geometry.deltas.foot).toBe(0);
         if (viewport.label === '885x611')
             await page.screenshot({ path: 'artifacts/play-coach-active-33ply-885x611.png', fullPage: false });
         if (viewport.label === '1600x1000')
@@ -1001,7 +1138,11 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
             const panel = document.querySelector('[data-caissa-coach-shell]').getBoundingClientRect();
             const head = document.querySelector('[data-caissa-coach-head]').getBoundingClientRect();
             const body = document.querySelector('[data-caissa-coach-body]').getBoundingClientRect();
-            const foot = document.querySelector('[data-caissa-coach-foot]').getBoundingClientRect();
+            const phone = document.querySelector('.caissa-simplified-shell').dataset.layout.startsWith('phone');
+            const nativeFootNode = document.querySelector('[data-caissa-coach-foot]');
+            const stableFootNode = phone
+                ? document.querySelector('[data-caissa-coach-foot-wrap]') : nativeFootNode;
+            const foot = stableFootNode.getBoundingClientRect();
             const reviewHeader = document.querySelector('.caissa-coach-review-summary__header')?.getBoundingClientRect();
             const evalRail = document.querySelector('#playSection #evalBar').getBoundingClientRect();
             const persistentNode = document.querySelector('[data-caissa-coach-persistent]');
@@ -1029,7 +1170,7 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
                 contextOverflow: getComputedStyle(contextNode).overflowY,
                 summaryOverflow: getComputedStyle(document.querySelector('[data-caissa-coach-review-summary]')).overflowY,
                 actionGap: action && finalRow ? action.top - finalRow.bottom : null,
-                footBottomGap: panel.bottom - document.querySelector('[data-caissa-coach-foot]').getBoundingClientRect().bottom,
+                footBottomGap: panel.bottom - nativeFootNode.getBoundingClientRect().bottom,
                 phaseScrollable: phaseNode.scrollHeight > phaseNode.clientHeight + 1,
                 playVisible: document.querySelector('#playSection').getClientRects().length > 0,
                 playInert: document.querySelector('#playSection').inert,
@@ -1041,7 +1182,8 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
                 summaryInsidePhase: phaseNode.contains(document.querySelector('[data-caissa-coach-review-summary]')),
                 navigationInsideSummary: document.querySelector('[data-caissa-coach-review-summary]')
                     .contains(document.querySelector('.analyze-board-navigation')),
-                reviewActionInFoot: document.querySelector('[data-caissa-coach-foot]')
+                reviewActionInBody: phaseNode.contains(document.querySelector('[data-coach-review-guided-action]')),
+                reviewActionInFoot: nativeFootNode
                     .contains(document.querySelector('[data-coach-review-guided-action]')),
                 visibleBoards: [...document.querySelectorAll('.board-b72b1')]
                     .filter(node => node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden').length,
@@ -1058,8 +1200,8 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
         expect(geometry.evalRailWidth).toBeGreaterThan(0);
         expect(geometry.touchTargets).toBe(true);
         expect(geometry.persistentStable).toBe(true);
-        expect(geometry.phaseOverflow).toBe('auto');
-        expect(geometry.contextOverflow).toBe('hidden');
+        expect(geometry.phaseOverflow).toBe(viewport.width <= 900 ? 'visible' : 'auto');
+        expect(geometry.contextOverflow).toBe(viewport.width <= 900 ? 'visible' : 'hidden');
         expect(geometry.summaryOverflow).toBe('visible');
         expect(geometry.playVisible).toBe(true);
         expect(geometry.playInert).toBe(false);
@@ -1068,7 +1210,8 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
         expect(geometry.tabsVisible).toBe(true);
         expect(geometry.summaryInsidePhase).toBe(true);
         expect(geometry.navigationInsideSummary).toBe(false);
-        expect(geometry.reviewActionInFoot).toBe(true);
+        expect(geometry.reviewActionInBody).toBe(viewport.width <= 900);
+        expect(geometry.reviewActionInFoot).toBe(viewport.width > 900);
         expect(geometry.visibleBoards).toBe(1);
         expect(geometry.boardChrome).toBe(0);
         if (viewport.width <= 900) {
@@ -1106,12 +1249,20 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
             const shell = document.querySelector('[data-caissa-coach-shell]').getBoundingClientRect();
             const head = document.querySelector('[data-caissa-coach-head]').getBoundingClientRect();
             const body = document.querySelector('[data-caissa-coach-body]').getBoundingClientRect();
-            const foot = document.querySelector('[data-caissa-coach-foot]').getBoundingClientRect();
-            const controls = [...document.querySelectorAll('[data-caissa-coach-guided-review] button, [data-caissa-coach-guided-foot] button')]
+            const phone = document.querySelector('.caissa-simplified-shell').dataset.layout.startsWith('phone');
+            const nativeFoot = document.querySelector('[data-caissa-coach-foot]');
+            const stableFoot = phone
+                ? document.querySelector('[data-caissa-coach-foot-wrap]') : nativeFoot;
+            const foot = stableFoot.getBoundingClientRect();
+            const controls = [...document.querySelectorAll('[data-caissa-coach-guided-review] button, '
+                + '[data-caissa-coach-guided-foot] button, [data-mobile-review-navigation] button')]
                 .filter(node => node.getClientRects().length && !node.disabled);
-            const navigation = [...document.querySelectorAll('[data-coach-guided-navigation] .nav-btn-sm')]
+            const navigationRoot = document.querySelector('[data-mobile-review-navigation]')
+                || document.querySelector('[data-coach-guided-navigation] .analyze-board-navigation');
+            const navigation = [...navigationRoot.querySelectorAll('.nav-btn-sm')]
                 .filter(node => node.getClientRects().length);
-            const navHost = document.querySelector('[data-coach-guided-navigation]').getBoundingClientRect();
+            const navHost = navigationRoot.getBoundingClientRect();
+            const actionSlot = document.querySelector('[data-caissa-phase-action-slot]');
             return {
                 overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                 boardBottom: board.bottom, boardRight: board.right, shellTop: shell.top, shellLeft: shell.left,
@@ -1119,6 +1270,13 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
                 touchTargets: controls.every(node => node.getBoundingClientRect().height >= 44),
                 navigationCount: navigation.length,
                 navigationFill: navigation.reduce((sum, node) => sum + node.getBoundingClientRect().width, 0) / navHost.width,
+                navigationInActionSlot: navigationRoot.parentElement === actionSlot,
+                phaseActionsInBody: document.querySelector('[data-caissa-coach-body]')
+                    .contains(document.querySelector('[data-coach-guided-analysis]')),
+                footerActions: [...document.querySelectorAll(
+                    '[data-coach-guided-foot-review] [data-coach-guided-new-game], '
+                    + '[data-coach-guided-foot-review] [data-coach-guided-analysis]')]
+                    .filter(node => node.getClientRects().length).map(node => node.textContent.trim().replace(/\s+/g, ' ')),
                 visibleBoards: [...document.querySelectorAll('.board-b72b1')]
                     .filter(node => node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden').length
             };
@@ -1128,6 +1286,9 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
         expect(guidedGeometry.touchTargets).toBe(true);
         expect(guidedGeometry.navigationCount).toBe(4);
         expect(guidedGeometry.navigationFill).toBeGreaterThan(.82);
+        expect(guidedGeometry.navigationInActionSlot).toBe(viewport.width <= 900);
+        expect(guidedGeometry.phaseActionsInBody).toBe(viewport.width <= 900);
+        expect(guidedGeometry.footerActions).toEqual(['New Game', 'Analysis']);
         expect(guidedGeometry.visibleBoards).toBe(1);
         if (viewport.width <= 900) expect(guidedGeometry.boardBottom).toBeLessThanOrEqual(guidedGeometry.shellTop + 1);
         else expect(guidedGeometry.boardRight).toBeLessThanOrEqual(guidedGeometry.shellLeft + 1);
@@ -1397,8 +1558,13 @@ test('Coach setup is keyboard accessible, responsive, and serious-violation free
     await expect(panel.getByRole('button', { name: 'Play' })).toBeVisible();
     await panel.getByRole('button', { name: 'Show Fewer Levels ↑' }).click();
     await page.setViewportSize({ width: 320, height: 568 });
-    await panel.getByRole('button', { name: 'Play' }).focus();
-    expect(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)).not.toBe('none');
+    const play = panel.getByRole('button', { name: 'Play' });
+    await expect(play).toBeEnabled();
+    await play.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(play).toBeFocused();
+    await expect(play).toHaveCSS('outline-style', 'solid');
     const axe = await new AxeBuilder({ page }).include('[data-caissa-native-coach-panel]').analyze();
     expect(axe.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
     await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });

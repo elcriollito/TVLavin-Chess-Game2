@@ -22,7 +22,7 @@
                 'js/play/bots-panel.js?v=2.10.0',
                 'js/play/bots/bots-analysis-summary-presentation.js?v=1.4.0',
                 'js/play/bots/bots-analysis-exploration.js?v=1.3.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.12.0'
+                'js/play/bots/bots-guided-review-presentation.js?v=1.13.0'
             ])
         }),
         'coach-stack': Object.freeze({
@@ -44,7 +44,7 @@
         'native-coach-stack': Object.freeze({
             resourceId: 'native-coach-stack', type: 'module-group', trigger: 'mode', priority: 'normal',
             qaOnly: true, productionEligible: false, dependencies: Object.freeze([]),
-            styles: Object.freeze(['css/play-coach-review.css?v=1.7.0']),
+            styles: Object.freeze(['css/play-coach-review.css?v=1.13.0']),
             sources: Object.freeze([
                 'js/play/native-coach/coach-assistance-policy.js?v=1.0.0',
                 'js/play/native-coach/coach-configuration.js?v=1.0.0',
@@ -56,9 +56,9 @@
                 'js/play/native-coach/coach-dialogue.js?v=1.1.0',
                 'js/play/native-coach/coach-game-over-presentation.js?v=1.2.0',
                 'js/play/native-coach/coach-review-context.js?v=1.0.0',
-                'js/play/native-coach/coach-review-exploration.js?v=1.1.0',
-                'js/play/native-coach/coach-review-presentation.js?v=1.7.0',
-                'js/play/native-coach/coach-panel.js?v=2.7.0'
+                'js/play/native-coach/coach-review-exploration.js?v=1.2.0',
+                'js/play/native-coach/coach-review-presentation.js?v=1.16.2',
+                'js/play/native-coach/coach-panel.js?v=2.8.2'
             ])
         }),
         'native-mentor-review': Object.freeze({
@@ -146,14 +146,14 @@
                 'js/play/analyze-opening-evidence.js?v=1.0.0',
                 'js/play/analyze-review-policy-v1-1.js?v=1.1.1',
                 'js/play/bots/bots-analysis-exploration.js?v=1.3.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.12.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.13.0',
                 'js/analyze-section.js?v=1.6.4'
             ] : [
                 'js/analyze-session.js?v=1.0.0', 'js/analyze-setup-draft.js?v=1.0.0',
                 'js/analyze-game-import.js?v=1.1.0',
                 'js/play/analyze-review-policy.js?v=1.0.1',
                 'js/play/bots/bots-analysis-exploration.js?v=1.3.0',
-                'js/play/bots/bots-guided-review-presentation.js?v=1.12.0',
+                'js/play/bots/bots-guided-review-presentation.js?v=1.13.0',
                 'js/analyze-section.js?v=1.6.4'
             ])
         })

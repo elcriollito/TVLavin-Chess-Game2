@@ -1,13 +1,14 @@
 (function (global) {
     'use strict';
 
-    const SCHEMA_VERSION = '1.21.0';
-    const SNAPSHOT_SCHEMA_VERSION = '1.16.0';
+    const SCHEMA_VERSION = '1.24.0';
+    const SNAPSHOT_SCHEMA_VERSION = '1.17.0';
     const STATUSES = Object.freeze(['loading', 'ready', 'inactive', 'unavailable', 'error']);
     const REGIONS = Object.freeze([
         'mode-navigation', 'board-stage', 'opponent-header', 'evaluation-rail',
-        'chessboard', 'player-header', 'board-actions', 'context-panel',
-        'panel-header', 'panel-body', 'advanced-options', 'panel-status', 'action-footer'
+        'chessboard', 'player-header', 'board-actions', 'variable-action-slot',
+        'context-panel', 'head-wrap', 'body-wrap', 'foot-wrap', 'panel-header',
+        'panel-body', 'advanced-options', 'panel-status', 'action-footer'
     ]);
     const productBoundary = global.CaissaPlayV2ProductBoundary;
     const inviteCoachAllowed = global.document?.body?.dataset?.caissaPlayV2Entry !== 'invite-only'
@@ -22,7 +23,8 @@
     ]);
     const isPhoneLayout = mode => typeof mode === 'string' && mode.startsWith('phone-');
     const isPhonePortraitLayout = mode => mode === 'phone-compact' || mode === 'phone-standard';
-    const isMobile2ReleaseMode = mode => mode === 'games' || mode === 'bots';
+    const isMobile2ReleaseMode = mode => mode === 'games' || mode === 'bots' || mode === 'coach';
+    const usesMobileComposition = mode => isMobile2ReleaseMode(mode) || mode === 'coach';
     const REASONS = Object.freeze({
         MOUNTED: 'MOUNTED', ALREADY_MOUNTED: 'ALREADY_MOUNTED', ACTIVATED: 'ACTIVATED',
         ALREADY_ACTIVE: 'ALREADY_ACTIVE', DEACTIVATED: 'DEACTIVATED', ALREADY_INACTIVE: 'ALREADY_INACTIVE',
@@ -209,7 +211,10 @@
             const boardActions = element('div', 'caissa-simplified-shell__board-actions', {
                 role: 'group', 'aria-label': 'Board actions'
             });
-            boardStage.append(heading, coachNarrator, opponent, boardRegion, player, boardActions);
+            const phaseActionSlot = element('div', 'caissa-simplified-shell__phase-action-slot', {
+                'data-caissa-phase-action-slot': '', hidden: ''
+            });
+            boardStage.append(heading, coachNarrator, opponent, boardRegion, player, boardActions, phaseActionSlot);
 
             const context = element('aside', 'caissa-simplified-shell__context', {
                 'aria-labelledby': `${this.#id}-context-heading`
@@ -595,9 +600,11 @@
             if (this.#root) {
                 this.#root.dataset.mode = mode;
                 this.#root.dataset.mobile2Release = isMobile2ReleaseMode(mode) ? 'approved' : 'hold';
+                if (isPhoneLayout(this.#layoutMode))
+                    this.#root.dataset.scrollOwner = mode === 'coach' ? 'coach-body' : 'document';
             }
             global.document.body.classList.toggle('caissa-play-phone-layout',
-                isMobile2ReleaseMode(mode) && isPhoneLayout(this.#layoutMode));
+                usesMobileComposition(mode) && isPhoneLayout(this.#layoutMode));
             this.#root?.querySelectorAll?.('[data-shell-mode]').forEach(button => {
                 const selected = button.dataset.shellMode === mode;
                 button.setAttribute('aria-selected', String(selected));
@@ -685,6 +692,54 @@
         }
         setPrimaryAction() { return result(false, 'unavailable', 'PRIMARY_ACTION_OWNED_BY_GAMES_PANEL'); }
 
+        placeReviewNavigation(options = {}) {
+            const navigation = options.navigation;
+            const returnHost = options.returnHost;
+            if (!navigation?.toggleAttribute || !returnHost?.prepend)
+                return result(false, 'rejected', 'INVALID_REVIEW_NAVIGATION_PLACEMENT');
+            const phoneReview = options.active === true
+                && usesMobileComposition(this.#mode) && isPhoneLayout(this.#layoutMode);
+            const boardStage = this.#root?.querySelector?.('.caissa-simplified-shell__board-stage');
+            const phaseActionSlot = this.#root?.querySelector?.('[data-caissa-phase-action-slot]');
+            const destination = phoneReview
+                ? (this.#mode === 'coach' ? phaseActionSlot : boardStage) : returnHost;
+            if (!destination) return result(false, 'unavailable', 'REVIEW_NAVIGATION_HOST_UNAVAILABLE');
+            if (navigation.parentNode !== destination) {
+                if (phoneReview) destination.append(navigation);
+                else destination.prepend(navigation);
+            }
+            navigation.toggleAttribute('data-mobile-review-navigation', phoneReview);
+            this.#syncPhaseActionSlot();
+            if (phoneReview) {
+                for (const scrollOwner of [global.document.querySelector('.content-area'),
+                    global.document.getElementById('playSection')]) {
+                    if (scrollOwner?.scrollTop) scrollOwner.scrollTop = 0;
+                }
+                if (global.scrollY) global.scrollTo?.(0, 0);
+            }
+            return result(true, 'accepted', phoneReview
+                ? 'REVIEW_NAVIGATION_PLACED_WITH_BOARD' : 'REVIEW_NAVIGATION_RETURNED_TO_PANEL');
+        }
+
+        #syncPhaseActionSlot() {
+            const slot = this.#root?.querySelector?.('[data-caissa-phase-action-slot]');
+            if (!slot) return;
+            const coachPhone = this.#mode === 'coach' && isPhoneLayout(this.#layoutMode);
+            const populated = [...slot.children].some(node => !node.hidden);
+            slot.hidden = !coachPhone || !populated;
+            slot.toggleAttribute('data-phase-action-active', coachPhone && populated);
+        }
+
+        #syncCoachPhaseShell() {
+            if (!this.#root) return;
+            const coachPhone = this.#mode === 'coach' && isPhoneLayout(this.#layoutMode);
+            this.#root.toggleAttribute('data-coach-mobile-phase-shell', coachPhone);
+            const modes = this.#root.querySelector('.caissa-simplified-shell__modes');
+            modes?.toggleAttribute?.('data-caissa-coach-foot-wrap', coachPhone);
+            this.#coachPanel?.setMobilePhaseShell?.(coachPhone);
+            this.#syncPhaseActionSlot();
+        }
+
         resize() {
             if (!this.#root) return result(false, 'unavailable', REASONS.PLAY_UNAVAILABLE);
             const viewportWidth = global.innerWidth || global.visualViewport?.width || 0;
@@ -709,15 +764,18 @@
             this.#geometry = next;
             this.#root.dataset.layout = next.mode;
             global.document.body.classList.toggle('caissa-play-phone-layout',
-                isMobile2ReleaseMode(this.#mode) && isPhoneLayout(next.mode));
-            if (isMobile2ReleaseMode(this.#mode) && next.mode === 'phone-landscape') {
+                usesMobileComposition(this.#mode) && isPhoneLayout(next.mode));
+            if (this.#mode === 'coach' && isPhoneLayout(next.mode))
+                global.document.documentElement.classList.remove('caissa-initial-phone-coach');
+            if (usesMobileComposition(this.#mode) && next.mode === 'phone-landscape') {
                 for (const scrollOwner of [global.document.querySelector('.content-area'),
                     global.document.getElementById('playSection')]) {
                     if (scrollOwner?.scrollTop) scrollOwner.scrollTop = 0;
                 }
             }
-            this.#root.dataset.scrollOwner = next.mode.includes('split') || next.mode === 'desktop-split'
-                || next.mode === 'constrained-height' ? 'panel' : 'document';
+            this.#root.dataset.scrollOwner = this.#mode === 'coach' && isPhoneLayout(next.mode)
+                ? 'coach-body' : next.mode.includes('split') || next.mode === 'desktop-split'
+                    || next.mode === 'constrained-height' ? 'panel' : 'document';
             this.#root.dataset.stickyAction = 'false';
             this.#root.style.setProperty('--shell-inline-pad', `${next.inlinePadding}px`);
             this.#root.style.setProperty('--play-visual-viewport-height', `${visualHeight}px`);
@@ -758,7 +816,7 @@
                 activeActionPlacement: this.#root?.dataset?.activeActionPlacement || null,
                 mobile2Release: this.#root?.dataset?.mobile2Release || null,
                 phoneUtilitiesSuppressed: this.#utilityBar?.hidden === true
-                    && isMobile2ReleaseMode(this.#mode) && isPhoneLayout(this.#layoutMode),
+                    && usesMobileComposition(this.#mode) && isPhoneLayout(this.#layoutMode),
                 regionCount: this.#root?.querySelectorAll?.('[class*="caissa-simplified-shell__"]').length || 0,
                 movedNodeCount: this.#placements.length, activationCount: this.#activationCount,
                 resizeCount: this.#resizeCount, listenerCount: this.#listeners.length,
@@ -876,6 +934,7 @@
             if (utilityBar) utilityBar.hidden = !active;
             this.#syncAssistance(active, postGame);
             const coachMode = this.#mode === 'coach';
+            this.#syncCoachPhaseShell();
             global.document.body.classList.toggle('caissa-bots-game-over-active',
                 postGame && this.#mode === 'bots');
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
@@ -888,7 +947,7 @@
             const pgn = this.#actionBar.querySelector('[data-active-game-action="pgn"]');
             if (pgn) pgn.hidden = assistedMode;
             const menu = this.#actionBar.querySelector('[data-active-game-action="menu"]');
-            if (menu) menu.hidden = this.#mode === 'coach';
+            if (menu) menu.hidden = this.#mode === 'coach' && !isPhoneLayout(this.#layoutMode);
             const heading = this.#root.querySelector('.caissa-simplified-shell__context-header h2');
             if (heading) {
                 const redundantAssistedHeading = !postGame && !starting && ['bots', 'coach'].includes(this.#mode);
@@ -923,6 +982,10 @@
                 this.#gamesPanel.hide();
             }
             const coachShellState = this.#coachPanel?.getSnapshot?.().shell;
+            const coachPhase = coachShellState?.phase || null;
+            const coachPhaseChanged = coachMode && coachPhase
+                && this.#root.dataset.coachScrollPhase !== coachPhase;
+            if (coachMode && coachPhase) this.#root.dataset.coachScrollPhase = coachPhase;
             const transientReview = (coachShellState?.transientDepth || 0) > 0
                 && ['review-summary', 'guided-review'].includes(coachShellState?.phase);
             if (coachMode && this.#coachPanel && !transientReview) {
@@ -948,7 +1011,7 @@
             this.#syncIdentity();
             if (this.#active && previousState !== state) {
                 this.resize();
-                if (active && isMobile2ReleaseMode(this.#mode) && isPhoneLayout(this.#layoutMode)) {
+                if (active && usesMobileComposition(this.#mode) && isPhoneLayout(this.#layoutMode)) {
                     for (const scrollOwner of [global.document.querySelector('.content-area'),
                         global.document.getElementById('playSection')]) {
                         if (scrollOwner?.scrollTop) scrollOwner.scrollTop = 0;
@@ -956,20 +1019,36 @@
                     if (global.scrollY) global.scrollTo?.(0, 0);
                 }
             }
+            if (coachMode && isPhoneLayout(this.#layoutMode) && (previousState !== state || coachPhaseChanged)) {
+                const coachScrollOwner = this.#root.querySelector('[data-caissa-coach-body-wrap]');
+                if (coachScrollOwner?.scrollTop) coachScrollOwner.scrollTop = 0;
+            }
         }
         #syncActivePlacement(active, assistedShellMode) {
             if (!this.#root || !this.#activeContext || !this.#actionBar) return;
             const boardStage = this.#root.querySelector('.caissa-simplified-shell__board-stage');
             const opponent = this.#root.querySelector('.caissa-simplified-shell__player--opponent');
             const narrator = this.#root.querySelector('[data-active-coach-narrator]');
-            const phone = isMobile2ReleaseMode(this.#mode) && isPhoneLayout(this.#layoutMode);
+            const phone = usesMobileComposition(this.#mode) && isPhoneLayout(this.#layoutMode);
+            const coachPhaseSlot = this.#mode === 'coach' && phone
+                ? this.#root.querySelector('[data-caissa-phase-action-slot]') : null;
             const boardFirst = active && phone && isPhonePortraitLayout(this.#layoutMode);
             const phoneContext = active && phone && !boardFirst;
             const desktopActive = active && this.#root.dataset.layout === 'desktop-split';
             this.#root.dataset.activeActionPlacement = !active ? 'hidden'
-                : boardFirst ? 'board' : phoneContext ? 'context-top'
+                : coachPhaseSlot ? 'phase-action-slot' : boardFirst ? 'board' : phoneContext ? 'context-top'
                     : assistedShellMode ? 'context-foot' : 'context';
             if (this.#utilityBar) this.#utilityBar.hidden = !active || phone;
+            if (active && coachPhaseSlot) {
+                if (narrator && boardStage && narrator.parentNode !== boardStage)
+                    boardStage.insertBefore(narrator, opponent);
+                if (this.#actionBar.parentNode !== coachPhaseSlot) coachPhaseSlot.appendChild(this.#actionBar);
+                if (this.#utilityBar?.parentNode !== this.#activeContext)
+                    this.#activeContext.appendChild(this.#utilityBar);
+                if (this.#activeFoot) this.#activeFoot.hidden = true;
+                this.#syncPhaseActionSlot();
+                return;
+            }
             if (boardFirst) {
                 if (narrator && boardStage && narrator.parentNode !== boardStage)
                     boardStage.insertBefore(narrator, opponent);
@@ -1005,6 +1084,7 @@
             if (narrator && boardStage && narrator.parentNode !== boardStage) boardStage.insertBefore(narrator, opponent);
             if (boardStage && this.#actionBar.parentNode !== boardStage) boardStage.appendChild(this.#actionBar);
             if (this.#utilityBar?.parentNode !== this.#activeContext) this.#activeContext.appendChild(this.#utilityBar);
+            this.#syncPhaseActionSlot();
         }
         #renderCoachBoardAnnotation() {
             const board = this.#root?.querySelector('#chessboard');

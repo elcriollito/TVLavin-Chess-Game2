@@ -1,9 +1,9 @@
 (function installNativeCoachPanel(root) {
     'use strict';
-    const SCHEMA_VERSION = '2.7.0';
+    const SCHEMA_VERSION = '2.8.2';
     const PHASES = Object.freeze(['setup', 'active-game', 'game-over', 'review-summary', 'guided-review']);
     const COLORS = Object.freeze([
-        Object.freeze({ value: 'white', label: 'White', symbol: '♚' }),
+        Object.freeze({ value: 'white', label: 'White', symbol: '♔' }),
         Object.freeze({ value: 'random', label: 'Random', symbol: '?' }),
         Object.freeze({ value: 'black', label: 'Black', symbol: '♚' })
     ]);
@@ -23,7 +23,7 @@
         #id = `native-coach-${++sequence}`; #root = null; #host = null; #homeHost = null;
         #phaseHost = null; #footHost = null; #setupContent = null; #setupFoot = null;
         #phaseContent = new Map(); #phaseFootContent = new Map(); #phase = 'setup';
-        #presentationStack = []; #disposed = false; #listeners = [];
+        #presentationStack = []; #disposed = false; #listeners = []; #mobilePhaseShell = false;
         #configuration = { ...root.CaissaNativeCoachConfiguration.defaults };
         #assistance = root.CaissaNativeCoachAssistance.create(); #status = 'ready'; #starts = 0; #helpSequence = 0;
         #dialogue = root.CaissaNativeCoachDialogue.create(); #experience = 'casual'; #color = 'white';
@@ -38,7 +38,8 @@
                 'data-coach-shell-phase': 'setup', 'aria-label': 'Play Coach' });
 
             const persona = node('div', { class: 'caissa-native-coach-panel__persona caissa-native-coach-panel__head',
-                'data-caissa-coach-persistent': '', 'data-caissa-coach-head': '' });
+                'data-caissa-coach-persistent': '', 'data-caissa-coach-head': '',
+                'data-caissa-coach-head-wrap': '' });
             const portrait = node('img', { class: 'caissa-native-coach-panel__portrait',
                 src: '/assets/play/caissa-coach-goddess.png', alt: 'Caissa, goddess of chess', width: '512', height: '512' });
             const speech = node('div', { class: 'caissa-native-coach-panel__speech', 'data-coach-narration': '' });
@@ -46,7 +47,8 @@
             persona.append(portrait, speech);
 
             const phaseHost = this.#phaseHost = node('div', { class: 'caissa-native-coach-panel__phase caissa-native-coach-panel__body',
-                'data-caissa-coach-phase-host': '', 'data-caissa-coach-body': '' });
+                'data-caissa-coach-phase-host': '', 'data-caissa-coach-body': '',
+                'data-caissa-coach-body-wrap': '' });
             const footHost = this.#footHost = node('footer', { class: 'caissa-native-coach-panel__foot',
                 'data-caissa-coach-foot': '', 'aria-label': 'Coach phase actions' });
             const setupContent = this.#setupContent = node('div', { class: 'caissa-native-coach-panel__setup',
@@ -280,6 +282,32 @@
             root.dispatchEvent?.(new CustomEvent('caissa-coach-narration', { detail: { message } }));
         }
         #renderDialogue(outcome) { if (outcome?.ok && outcome.message) this.#render(outcome.message); return outcome; }
+        #syncPhaseShellPlacement() {
+            if (!this.#root || !this.#phaseHost || !this.#footHost) return;
+            this.#phaseFootContent.forEach((item, key) => {
+                const destination = this.#mobilePhaseShell && key === this.#phase
+                    ? this.#phaseHost : this.#footHost;
+                if (item.parentNode !== destination) destination.appendChild(item);
+            });
+            if (this.#mobilePhaseShell) {
+                const content = this.#phase === 'setup'
+                    ? this.#setupContent : this.#phaseContent.get(this.#phase);
+                const actions = this.#phaseFootContent.get(this.#phase);
+                if (content?.parentNode === this.#phaseHost && actions?.parentNode === this.#phaseHost)
+                    this.#phaseHost.insertBefore(actions, content.nextSibling);
+            }
+            this.#footHost.hidden = this.#mobilePhaseShell || !this.#phaseFootContent.has(this.#phase);
+        }
+        setMobilePhaseShell(active = false) {
+            if (!this.#root || this.#disposed) return result(false, 'INVALID_COACH_SHELL');
+            this.#mobilePhaseShell = active === true;
+            this.#root.toggleAttribute('data-mobile-phase-shell', this.#mobilePhaseShell);
+            const shell = this.#root.closest?.('[data-caissa-simplified-shell]');
+            if (shell) shell.dataset.scrollOwner = this.#mobilePhaseShell ? 'document' : 'coach-body';
+            this.#syncPhaseShellPlacement();
+            return result(true, this.#mobilePhaseShell
+                ? 'COACH_MOBILE_PHASE_SHELL_ACTIVE' : 'COACH_DESKTOP_PHASE_SHELL_ACTIVE', this.getSnapshot());
+        }
         present(options = {}) {
             const phase = PHASES.includes(options.phase) ? options.phase : 'setup';
             if (!this.#root || this.#disposed) return result(false, 'INVALID_COACH_SHELL');
@@ -305,9 +333,9 @@
             this.#setupContent.hidden = phase !== 'setup';
             this.#phaseContent.forEach((item, key) => { item.hidden = key !== phase; });
             this.#phaseFootContent.forEach((item, key) => { item.hidden = key !== phase; });
-            this.#footHost.hidden = !this.#phaseFootContent.has(phase);
             this.#phase = phase;
             this.#root.dataset.coachShellPhase = phase;
+            this.#syncPhaseShellPlacement();
             this.#root.setAttribute('aria-label', `Play Coach ${phase.replaceAll('-', ' ')}`);
             this.#root.hidden = false;
             if (typeof options.message === 'string' && options.message.trim()) this.#render(options.message.trim());
@@ -324,7 +352,7 @@
             this.#phaseContent.forEach(item => { if (item.parentNode === this.#phaseHost) host.appendChild(item); });
             this.#phaseContent.clear();
             this.#phaseFootContent.forEach((item, key) => {
-                if (key !== 'setup' && item.parentNode === this.#footHost) host.appendChild(item);
+                if (key !== 'setup' && [this.#footHost, this.#phaseHost].includes(item.parentNode)) host.appendChild(item);
             });
             this.#phaseFootContent.clear();
             this.#phaseFootContent.set('setup', this.#setupFoot);
@@ -334,6 +362,7 @@
             this.#setupContent.hidden = false;
             this.#phase = 'setup';
             this.#root.dataset.coachShellPhase = 'setup';
+            this.#syncPhaseShellPlacement();
             return result(true, 'COACH_PHASE_CONTENT_RELEASED', this.getSnapshot());
         }
         show() { if (this.#root) this.#root.hidden = false; return result(true, 'SHOWN'); }
@@ -356,7 +385,8 @@
                 persistentAvatarCount: this.#root?.querySelectorAll?.('[data-caissa-coach-persistent] img').length || 0,
                 phaseContentCount: this.#phaseHost?.children?.length || 0,
                 structuralRegionCount: this.#root?.querySelectorAll?.(':scope > [data-caissa-coach-head], :scope > [data-caissa-coach-body], :scope > [data-caissa-coach-foot]').length || 0,
-                footPhase: this.#footHost?.querySelector?.('[data-caissa-coach-foot-content]:not([hidden])')?.getAttribute('data-caissa-coach-foot-content') || null,
+                footPhase: this.#root?.querySelector?.('[data-caissa-coach-foot-content]:not([hidden])')?.getAttribute('data-caissa-coach-foot-content') || null,
+                mobilePhaseShell: this.#mobilePhaseShell,
                 transientDepth: this.#presentationStack.length } }); }
         dispose() { if (activePanel === this) activePanel = null;
             this.#listeners.splice(0).forEach(item => item.target.removeEventListener(item.type, item.handler));
@@ -369,5 +399,6 @@
         getActiveSnapshot: () => activePanel?.getSnapshot?.() || null,
         present: options => activePanel?.present?.(options) || result(false, 'COACH_SHELL_UNAVAILABLE'),
         restorePresentation: () => activePanel?.restorePresentation?.() || result(false, 'COACH_SHELL_UNAVAILABLE'),
+        setMobilePhaseShell: active => activePanel?.setMobilePhaseShell?.(active) || result(false, 'COACH_SHELL_UNAVAILABLE'),
         releasePhaseContent: host => activePanel?.releasePhaseContent?.(host) || result(false, 'COACH_SHELL_UNAVAILABLE') });
 })(typeof window !== 'undefined' ? window : globalThis);
