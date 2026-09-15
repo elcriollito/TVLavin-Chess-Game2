@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ENGINE18-001",
+  "capturedFromOriginMain": "197d5e26ec408a6ffdc97078724f2c4f3c07fdac",
+  "migrationPerformed": false,
+  "engines": {
+    "playGame": {
+      "providerId": "stockfish",
+      "identity": "Stockfish 2019-08-15 Multi-Variant",
+      "registryVersion": "2019-08-15-multi-variant",
+      "worker": "/engine/stockfish-working.js",
+      "execution": "asm-js",
+      "multiPv": 1,
+      "migrationTarget": "Stockfish 18"
+    },
+    "playCoachActive": {
+      "providerId": "stockfish",
+      "identity": "Stockfish 2019-08-15 Multi-Variant",
+      "registryVersion": "2019-08-15-multi-variant",
+      "worker": "/engine/stockfish-working.js",
+      "execution": "asm-js",
+      "multiPv": 1,
+      "migrationTarget": "Stockfish 18"
+    },
+    "playBots": {
+      "providerId": "stockfish",
+      "identity": "Stockfish 2019-08-15 Multi-Variant",
+      "registryVersion": "2019-08-15-multi-variant",
+      "worker": "/engine/stockfish-working.js",
+      "execution": "asm-js",
+      "migrationTarget": null,
+      "status": "FROZEN"
+    },
+    "coachReviewManual": {
+      "providerId": "stockfish-18-lite",
+      "identity": "Stockfish 18 Lite WASM",
+      "registryVersion": "18.0.0",
+      "worker": "/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js",
+      "wasm": "/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.wasm",
+      "execution": "wasm",
+      "multiPv": 1,
+      "status": "ALREADY_MIGRATED"
+    }
+  },
+  "canonicalPositions": [
+    {
+      "id": "start",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    },
+    {
+      "id": "open-game",
+      "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"
+    },
+    {
+      "id": "black-to-move",
+      "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
+    },
+    {
+      "id": "mate-in-one",
+      "fen": "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1"
+    }
+  ],
+  "playGameStrengths": [
+    { "target": 250, "depth": 1, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 500, "depth": 2, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 800, "depth": 3, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 1200, "depth": 5, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 1600, "depth": 8, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 2000, "depth": 12, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 2400, "depth": 16, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 2800, "depth": 20, "movetimeMs": null, "multiPv": 1, "bookEligible": false, "fullPower": false },
+    { "target": 3200, "depth": null, "movetimeMs": 2000, "multiPv": 1, "bookEligible": true, "fullPower": true }
+  ],
+  "fenAcceptance": {
+    "requestFenSource": "App.game.fen()",
+    "requiredChecks": [
+      "result-attribution",
+      "request-generation",
+      "purpose",
+      "canonical-fen",
+      "legal-move"
+    ],
+    "races": [
+      { "id": "normal", "expected": "accepted" },
+      { "id": "superseded-search", "expected": "stale-request" },
+      { "id": "undo", "expected": "canceled" },
+      { "id": "reset", "expected": "stale-session" },
+      { "id": "rematch", "expected": "stale-session" },
+      { "id": "route-change", "expected": "canceled" },
+      { "id": "mode-change", "expected": "canceled" },
+      { "id": "game-over", "expected": "canceled" }
+    ],
+    "maximumStaleCommits": 0,
+    "maximumIllegalCommits": 0,
+    "maximumWrongFenCommits": 0
+  },
+  "coachActive": {
+    "opponentLevels": [
+      { "id": "casual", "target": 500, "depth": 2 },
+      { "id": "beginner", "target": 800, "depth": 3 },
+      { "id": "intermediate", "target": 1200, "depth": 5 },
+      { "id": "advanced", "target": 1600, "depth": 8 },
+      { "id": "expert", "target": 2000, "depth": 12 },
+      { "id": "master", "target": 2400, "depth": 16 },
+      { "id": "grandmaster", "target": 2800, "depth": 20 }
+    ],
+    "liveEvaluation": { "requestedDepth": 20, "settleDepth": 12, "multiPv": 1 },
+    "hintFen": "current-canonical-fen",
+    "beforeMoveMinimumDepth": 10,
+    "afterMoveCompletionDepth": 11,
+    "afterMoveTimeoutMs": 1800,
+    "classificationThresholdsPawns": {
+      "openingPlies1To12": { "precise": 0.2, "good": 0.65, "inaccuracy": 1.15, "mistake": 2.25 },
+      "later": { "precise": 0.1, "good": 0.45, "inaccuracy": 1.0, "mistake": 2.0 }
+    }
+  },
+  "coachReview": {
+    "providerId": "stockfish-18-lite",
+    "primaryDepth": 12,
+    "retryDepth": 8,
+    "positionTimeoutMs": 10000,
+    "positionOrder": "sequential-canonical",
+    "partialAccuracyClaimsAllowed": false,
+    "guidedReviewFields": ["Played", "Best", "Evaluation", "Commentary", "Next Moment"],
+    "guidedNavigationStartsSearch": false
+  },
+  "manualAnalysis": {
+    "effortDepths": { "quick": 10, "balanced": 14, "deep": 18 },
+    "requiredFenEquality": ["request", "engine", "sandbox", "rendered"],
+    "engineOff": ["invalidate", "cancel", "clear-best", "clear-evaluation", "clear-pv"],
+    "backToReview": ["cancel", "terminate-owner", "discard-sandbox", "restore-guided-review"],
+    "canonicalReviewMutationAllowed": false
+  },
+  "playBotsFreeze": {
+    "personalityContractId": "PlayV2BotPersonalityPolicy@1.1.0",
+    "personalityProfiles": {
+      "beginner": { "candidateCount": 5, "depth": 3, "lossBoundaryCp": 260, "errorRatePercent": 60 },
+      "casual": { "candidateCount": 4, "depth": 7, "lossBoundaryCp": 100, "errorRatePercent": 10 },
+      "tactical": { "candidateCount": 5, "depth": 9, "lossBoundaryCp": 70, "errorRatePercent": 0 },
+      "solid": { "candidateCount": 5, "depth": 9, "lossBoundaryCp": 55, "errorRatePercent": 0 }
+    },
+    "strengthModelVersion": "classic-target-model-1",
+    "strengthProfileCount": 63,
+    "strengthRange": { "min": 100, "max": 3200, "step": 50 },
+    "representativeDepths": { "100": 1, "250": 2, "1000": 6, "1500": 9, "2200": 13, "2800": 18, "3200": 20 },
+    "seedCorpus": ["fixture-a", "fixture-b", "fixture-c", "repeatable"],
+    "candidateCorpus": [
+      { "move": "e2e4", "multipv": 1, "score": 1.0 },
+      { "move": "d2d4", "multipv": 2, "score": 0.2 },
+      { "move": "g1f3", "multipv": 3, "score": -0.6 },
+      { "move": "c2c4", "multipv": 4, "score": -1.4 },
+      { "move": "b1c3", "multipv": 5, "score": -2.2 }
+    ]
+  },
+  "workerOwnership": {
+    "gameplayOwner": "App.engine",
+    "adapter": "EngineAdapter",
+    "maximumGameplayWorkers": 1,
+    "handoffOrder": ["terminate-gameplay", "start-review"],
+    "maximumOrdinaryCoachReviewWorkers": 1,
+    "universalSingletonAuthorized": false
+  },
+  "evaluation": {
+    "adapterPerspective": "white",
+    "centipawnsPerPawn": 100,
+    "blackToMoveSignInverted": true,
+    "mateSignInvertedForBlackToMove": true,
+    "railPresentationClampCp": 1500,
+    "railMatePresentationCp": 1400,
+    "railFunction": "1/(1+exp(-clampedCp/200))",
+    "syntheticInitialPlayCp": 20,
+    "syntheticInitialPlayLabel": "+0.20"
+  },
+  "calibrationSupersessions": {
+    "contractId": "ENGINE18-003A",
+    "scope": "Stockfish 18 Preview Play Game only",
+    "files": ["app.js", "js/play/opponent-strength.js"],
+    "legacyDepthAt2800": 20,
+    "sf18PreviewGameDepthAt2800": 18
+  },
+  "normalizedSourceGuards": {
+    "engine/stockfish-working.js": { "sha256": "723fda70117bfa8d5053a7bc4ae50cdc96dc9e3fd41b57627e4dfa0a0025957a", "bytes": 1579948 },
+    "js/engine-registry.js": { "sha256": "2951e8cc1017b69d1e46371564bec5dec57761cea48e3304f2295b2075475c34", "bytes": 12343 },
+    "js/engine-adapter.js": { "sha256": "96c9827b598f24b9dd76a107b2086c4ca4cfb6cbdbaf16aa3fb0e9008a941d94", "bytes": 33930 },
+    "app.js": { "sha256": "2dedc165ab5078322023247a2ff1fec4d090eff5eeb08ff8fcb830ff10b1de44", "bytes": 303006 },
+    "js/play/opponent-strength.js": { "sha256": "abe4fbc16e6c8b2c91bb035d6e1f60abb6105f43bdbc53ae07e97c18b66c5b70", "bytes": 5675 },
+    "js/play/engine-request-isolation.js": { "sha256": "e3656ce00b68b3995f8b3672fffd8e62c7b32cce12dccc7f2b8df5618627863e", "bytes": 25204 },
+    "js/play/bots/bot-strength-layer.js": { "sha256": "c2c392b06124dddda9ba544c49cb2483daca76b19e7c5a27830d68c7168e4698", "bytes": 3503 },
+    "js/play/bots/bot-personality-policy.js": { "sha256": "43aa2440dda262da5de809f82b1438725ea0795cac4cb0fc371e7cf0e3753f99", "bytes": 6928 },
+    "js/play/bots/bot-session.js": { "sha256": "fb2c16d925b014331b7628ff266fc2de792236a91037bc5ca4d067e706774443", "bytes": 5988 },
+    "js/play/bots/bot-collections.js": { "sha256": "fd0b44964c859e675337b1e614d86bae9b98af70a38e2699074bf3832347ee7f", "bytes": 10424 },
+    "js/play/native-coach/coach-levels.js": { "sha256": "9d5b5413050368f2c4a77dfe130ae0e72274954bc75032948158fda0ebb05b35", "bytes": 3103 },
+    "js/play/native-coach/coach-move-review.js": { "sha256": "4aa4d02fbe28e9a497b9eb7b6a729410231a55dedd6e2bc4e82be84744626ee3", "bytes": 5135 },
+    "js/play/native-coach/coach-review-exploration.js": { "sha256": "1097fbbd569b4873f659274aad8098e021638256ba4d2545dd8dde0b1e812c56", "bytes": 15480 },
+    "js/analyze-section.js": { "sha256": "808a99dd41ee4c3df3a38edcb7a377a04e0df70915d81b7797e16479a8f7b026", "bytes": 137894 },
+    "js/play/evaluation-rail.js": { "sha256": "462107bb2f6c7b641571a28306cff813c8f4c4c8c7c03496bf9099b63b3bcc51", "bytes": 18012 },
+    "js/board/caissa-board-adapter.js": { "sha256": "4bfb6b0052c9eb7ca2200c3576afad630992c7aa0495304d402e487251476f66", "bytes": 5258 },
+    "js/board/caissa-persistent-renderer.js": { "sha256": "a48f2f0b5ccf5816f1b2b065799c53e99ac3508679d0a8ab139e6649c197b058", "bytes": 38999 },
+    "index.html": { "sha256": "50233f92534e7b30b9d9cabcbc57faaee9f2822b58cea35de9284e93e133e180", "bytes": 377443 }
+  }
+}

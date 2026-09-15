@@ -51,6 +51,8 @@ test('session changes real search depth and restores full power at 3200', () => 
         depth: 1, targetElo: 250, calibrationStatus: 'target-strength-pending-calibration'
     });
     assert.equal(session.beginGame(1450).value.searchDepth, 6);
+    assert.equal(session.beginGame(2800).value.searchDepth, 20);
+    assert.equal(session.beginGame(3150).value.searchDepth, 20);
     assert.equal(session.beginGame(3200).value.fullPower, true);
     assert.equal(session.getSearchOptions(), null);
     assert.equal(session.reset().ok, true);
@@ -65,7 +67,8 @@ test('strength owner has no network, board, clock, or worker authority', () => {
 test('Play Game starts one target-strength session and routes its depth to opponent search', () => {
     const app = fs.readFileSync(new URL('../../app.js', import.meta.url), 'utf8');
     assert.match(app, /CaissaOpponentStrengthSession\?\.beginGame\?\.\(options\.targetElo\)/);
-    assert.match(app, /CaissaOpponentStrengthSession\?\.getSearchOptions\?\.\(\)/);
+    assert.match(app, /const strengthContext = \{[\s\S]*role: App\.engineProviderRole,[\s\S]*providerKey: App\.engineProviderKey/);
+    assert.match(app, /CaissaOpponentStrengthSession\?\.getSearchOptions\?\.\(strengthContext\)/);
     assert.match(app, /!activeBot && !targetStrength && App\.useOpeningBook/);
     assert.match(app, /CaissaBotSession\?\.getSearchOptions\?\.\(\) \|\| targetStrength/);
 });

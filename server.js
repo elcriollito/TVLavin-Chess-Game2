@@ -9,6 +9,10 @@ import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/priva
 import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
 import { resolvePlayV2PhysicalPromotionQA } from './js/play/play-v2-physical-promotion-qa-gate.js';
 import { resolvePlayV2PhysicalIpadAnalyzeDiagnostic } from './js/play/play-v2-physical-ipad-analyze-diagnostic-gate.js';
+import {
+  injectPlayGameplayPreviewMarker,
+  resolvePlayGameplayDeploymentConfig
+} from './api/_lib/play-gameplay-preview-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -502,6 +506,10 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', ipadAnalyzeDiagnostic.requested ? PLAY_V2_DIAGNOSTIC_CSP : PLAY_V2_CSP);
+    if (betaEntry.authorized) {
+      const gameplayPreview = resolvePlayGameplayDeploymentConfig(process.env);
+      res.setHeader('X-Caissa-Gameplay-Provider', gameplayPreview.providerKey);
+    }
   }
   if (pathname === '/play-v2.html' || pathname === '/play-v2-public-beta.html' || pathname === '/play-v2-invite.html' || pathname === '/play-v2-promotion-qa.html'
       || pathname === '/play-v2-ipad-analyze-diagnostic.html') {
@@ -565,8 +573,11 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500);
       res.end('Server Error: ' + error.code, 'utf-8');
     } else {
+      const servedContent = betaEntry.authorized && mimeType === 'text/html'
+        ? injectPlayGameplayPreviewMarker(content.toString('utf8'), resolvePlayGameplayDeploymentConfig(process.env))
+        : content;
       res.writeHead(responseStatus, { 'Content-Type': mimeType });
-      res.end(content, 'utf-8');
+      res.end(servedContent, 'utf-8');
     }
   });
 });

@@ -34,6 +34,9 @@ const App = {
     enginePlaysAs: 'black', // 'white' | 'black'
     engineDepth: 12, // Default search depth
     engineId: 'stockfish',
+    engineProviderKey: null,
+    engineProviderRole: null,
+    engineRouteUnsubscribe: null,
 
     // Game state
     isPlayerTurn: true,
@@ -314,6 +317,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize engine
     initializeEngine();
+    App.engineRouteUnsubscribe?.();
+    App.engineRouteUnsubscribe = window.CaissaPlayRouteController?.subscribe?.(
+        syncGameplayProviderForRoute
+    ) || null;
     populatePlayEngineSelect();
     if (window.localStorage) {
         App.chess960Enabled = localStorage.getItem('caissa.chess960') === '1';
@@ -599,6 +606,34 @@ function projectCanonicalPlayMove(move, options = {}) {
 }
 
 // ===== ENGINE INITIALIZATION =====
+function resolveGameplayProviderRole(route = window.CaissaPlayRouteController?.getCurrent?.()) {
+    const roles = window.EngineRegistry?.ENGINE_ROLES;
+    if (route?.mode === 'bots') return roles?.BOTS || 'bots';
+    if (route?.mode === 'coach') return roles?.COACH_ACTIVE || 'coach-active';
+    return roles?.GAME || 'game';
+}
+
+function readGameplayPreviewFeatureGates() {
+    const marker = document.querySelector('meta[name="caissa-play-gameplay-provider"]');
+    const activationId = marker?.dataset?.activationId || null;
+    const deploymentEnvironment = marker?.dataset?.deploymentEnvironment || 'other';
+    const validActivation = (activationId === 'ENGINE18-003' && deploymentEnvironment === 'preview')
+        || (activationId === 'ENGINE18-003C' && deploymentEnvironment === 'production');
+    const enabled = marker?.content === 'stockfish-18-gameplay' && validActivation;
+    return Object.freeze({
+        CAISSA_PLAY_SF18_GAMEPLAY: enabled,
+        activationId: enabled ? activationId : null,
+        deploymentEnvironment: enabled ? deploymentEnvironment : 'other'
+    });
+}
+
+function resolveGameplayProviderForRoute(route = window.CaissaPlayRouteController?.getCurrent?.()) {
+    const role = resolveGameplayProviderRole(route);
+    const featureGates = readGameplayPreviewFeatureGates();
+    const provider = window.EngineRegistry?.resolveRoleProvider?.(role, featureGates) || null;
+    return Object.freeze({ role, featureGates, provider });
+}
+
 function initializeEngine() {
     let engineId = (window.localStorage && localStorage.getItem('caissa.engineId')) || App.engineId || 'stockfish';
     if (window.EngineRegistry && typeof EngineRegistry.get === 'function') {
@@ -609,7 +644,17 @@ function initializeEngine() {
     }
     App.engineId = engineId;
     const nativePlayV2 = window.CaissaPlayV2ProductBoundary?.contractId === 'PlayV2ProductBoundary@1.0.0';
-    App.engine = createEngineInstance(engineId, nativePlayV2 ? { autoStart: false, owner: 'native-play-v2' } : {});
+    const routing = resolveGameplayProviderForRoute();
+    if (nativePlayV2 && typeof window.EngineRegistry?.createRoleEngine === 'function') {
+        App.engine = EngineRegistry.createRoleEngine(routing.role, {
+            featureGates: routing.featureGates,
+            adapterOptions: { autoStart: false, owner: 'native-play-v2' }
+        });
+    } else {
+        App.engine = createEngineInstance(engineId, nativePlayV2 ? { autoStart: false, owner: 'native-play-v2' } : {});
+    }
+    App.engineProviderRole = nativePlayV2 ? routing.role : null;
+    App.engineProviderKey = nativePlayV2 ? routing.provider?.providerKey || 'legacy-stockfish-2019' : engineId;
     if (window.localStorage && !nativePlayV2) {
         localStorage.setItem('caissa.engineId', engineId);
     }
@@ -654,6 +699,29 @@ function initializeEngine() {
         updateEngineStatus('error', 'Engine Error');
         showErrorNotification('Engine error. Please refresh the page.');
     };
+}
+
+function syncGameplayProviderForRoute(route) {
+    const nativePlayV2 = window.CaissaPlayV2ProductBoundary?.contractId === 'PlayV2ProductBoundary@1.0.0';
+    if (!nativePlayV2) return false;
+    if (route?.section !== 'play') {
+        window.CaissaEngineRequestIsolation?.cancelSession?.();
+        App.engine?.terminate?.('play-route-exit');
+        App.engine = null;
+        App.engineProviderKey = null;
+        App.engineProviderRole = null;
+        App.engineRestartPending = false;
+        return true;
+    }
+    const routing = resolveGameplayProviderForRoute(route);
+    if (App.engineProviderKey === routing.provider?.providerKey
+        && App.engineProviderRole === routing.role) return false;
+    window.CaissaEngineRequestIsolation?.cancelSession?.();
+    App.engine?.terminate?.('gameplay-provider-role-transition');
+    App.engine = null;
+    App.engineRestartPending = false;
+    initializeEngine();
+    return true;
 }
 
 function getCurrentEngineConfig() {
@@ -1602,7 +1670,14 @@ function makeEngineMove() {
     const currentFen = App.game.fen();
 
     const activeBot = window.CaissaBotSession?.getActiveProfile?.() || null;
-    const targetStrength = window.CaissaOpponentStrengthSession?.getSearchOptions?.() || null;
+    const strengthContext = {
+        role: App.engineProviderRole,
+        providerKey: App.engineProviderKey
+    };
+    const targetStrength = window.CaissaOpponentStrengthSession?.getSearchOptions?.(strengthContext) || null;
+    const targetEngineOptions = App.engineProviderRole === 'game'
+        && App.engineProviderKey === 'stockfish-18-gameplay'
+        ? window.CaissaOpponentStrengthSession?.getEngineOptions?.(strengthContext) || null : null;
 
     // CHECK OPENING BOOK FIRST (Bot presets intentionally use deterministic engine search.)
     if (!activeBot && !targetStrength && App.useOpeningBook && App.openingBook && App.openingBook.loaded) {
@@ -1662,11 +1737,12 @@ function makeEngineMove() {
     // Bot sessions use bounded depth; Games preserves the existing Full Power movetime.
     const botSearch = window.CaissaCoachSession?.getSearchOptions?.()
         || window.CaissaBotSession?.getSearchOptions?.() || targetStrength;
-    const engineSearch = botSearch || { movetime: 2000 };
+    const engineSearch = { ...(botSearch || { movetime: 2000 }),
+        ...(targetEngineOptions ? { uciOptions: targetEngineOptions } : {}) };
 
     const isolationRequest = createEngineIsolationRequest('opponent-move', currentFen, {
-        depth: botSearch?.depth || null,
-        moveTimeMs: botSearch ? null : 2000
+        depth: engineSearch.depth || null,
+        moveTimeMs: engineSearch.movetime || null
     });
     if (!isolationRequest) {
         App.isPlayerTurn = true;

@@ -41,6 +41,7 @@
             this.skillLevel = 5;
             this.searchDepth = this.config.defaultDepth || 20;
             this.multipv = 1;
+            this.gameplayStrengthOptions = null;
             this.wasmSupported = typeof WebAssembly === 'object';
 
             this.searchId = 0;
@@ -415,6 +416,7 @@
                 ? operation.candidateCount
                 : operation.options.multiPv;
             if (requestedMultiPv) this.send(`setoption name MultiPV value ${requestedMultiPv}`);
+            this.applyGameplayStrengthOptions(operation.options.uciOptions);
             this.setPosition(operation.fen);
             this.go(operation.options);
             if (operation.options.infinite) this.clearSearchTimer();
@@ -541,6 +543,22 @@
             this.configured = true;
         }
 
+        applyGameplayStrengthOptions(options) {
+            if (!options || typeof options !== 'object') return false;
+            const skill = Number(options['Skill Level']);
+            const elo = Number(options.UCI_Elo);
+            if (!Number.isInteger(skill) || skill < 0 || skill > 20
+                || typeof options.UCI_LimitStrength !== 'boolean'
+                || !Number.isInteger(elo) || elo < 1320 || elo > 3190) return false;
+            const normalized = Object.freeze({ 'Skill Level': skill,
+                UCI_LimitStrength: options.UCI_LimitStrength, UCI_Elo: elo });
+            this.send(`setoption name Skill Level value ${normalized['Skill Level']}`);
+            this.send(`setoption name UCI_LimitStrength value ${normalized.UCI_LimitStrength}`);
+            this.send(`setoption name UCI_Elo value ${normalized.UCI_Elo}`);
+            this.gameplayStrengthOptions = normalized;
+            return true;
+        }
+
         send(command) {
             if (this.engine) {
                 this.engine.postMessage(command);
@@ -649,6 +667,7 @@
             this.currentFen = fen;
 
             this.onBestMove = callback;
+            this.applyGameplayStrengthOptions(options.uciOptions);
             this.setPosition(fen);
             this.go(options);
         }
@@ -746,6 +765,10 @@
             return this.searchDepth;
         }
 
+        getGameplayStrengthOptions() {
+            return this.gameplayStrengthOptions ? Object.freeze({ ...this.gameplayStrengthOptions }) : null;
+        }
+
         supportsWASM() {
             return this.wasmSupported;
         }
@@ -776,6 +799,7 @@
             this.ready = false;
             this.configured = false;
             this.analyzing = false;
+            this.gameplayStrengthOptions = null;
             this.handshakePhase = 'absent';
             const worker = this.engine;
             if (worker) {

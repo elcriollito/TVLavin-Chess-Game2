@@ -8,6 +8,10 @@ import {
     PLAY_V2_PUBLIC_BETA_DOCUMENT,
     PLAY_V2_UNAVAILABLE_DOCUMENT
 } from './api/_lib/play-v2-public-beta-document.js';
+import {
+    injectPlayGameplayPreviewMarker,
+    resolvePlayGameplayDeploymentConfig
+} from './api/_lib/play-gameplay-preview-config.js';
 
 export const config = {
     matcher: [
@@ -91,10 +95,12 @@ export default function middleware(request) {
         }
         const build = /^[a-f0-9]{7,40}$/i.test(process.env.VERCEL_GIT_COMMIT_SHA || '')
             ? process.env.VERCEL_GIT_COMMIT_SHA.toLowerCase() : 'unknown';
-        const document = PLAY_V2_PUBLIC_BETA_DOCUMENT.replace(
+        const gameplayPreview = resolvePlayGameplayDeploymentConfig(process.env);
+        const document = injectPlayGameplayPreviewMarker(PLAY_V2_PUBLIC_BETA_DOCUMENT.replace(
             '</head>', `    <meta name="caissa-build" content="${build}">\n</head>`
-        );
-        return new Response(request.method === 'HEAD' ? null : document, { status: 200, headers: playHeaders });
+        ), gameplayPreview);
+        const headers = { ...playHeaders, 'X-Caissa-Gameplay-Provider': gameplayPreview.providerKey };
+        return new Response(request.method === 'HEAD' ? null : document, { status: 200, headers });
     }
     if (url.pathname === '/api/endgame/private-run-availability') {
         if (request.method !== 'GET') {

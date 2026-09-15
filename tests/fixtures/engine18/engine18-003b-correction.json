@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ENGINE18-003B",
+  "baseCheckpoint": "cee0fef9bc077dead27aa4d8901d10204f94383c",
+  "physicalFinding": {
+    "playLowTiers": "250, 500, 800, 1200, and 1600 felt compressed near 1600 strength",
+    "coachGrandmaster": "Engine Error",
+    "recertificationStatus": "pending-on-new-preview",
+    "decisionPriority": "physical-human-play-over-synthetic-corpus"
+  },
+  "runtimeInventory": [
+    "option name Skill Level type spin default 20 min 0 max 20",
+    "option name UCI_LimitStrength type check default false",
+    "option name UCI_Elo type spin default 1320 min 1320 max 3190"
+  ],
+  "definitions": {
+    "reference": "Stockfish 18 Lite, Threads 1, Hash 16, Skill Level 20, UCI_LimitStrength false, depth 18",
+    "candidateEvaluation": "Stockfish 18 Lite after the candidate move at depth 14",
+    "centipawnLoss": "mover-relative reference equivalent minus candidate equivalent, clamped to 0..100000",
+    "largeErrorCp": 100,
+    "blunderCp": 300,
+    "latencyClock": "browser performance.now around a warm single-worker search",
+    "selectedSample": "26 unique positions times 3 native-Skill repetitions per target"
+  },
+  "candidateMechanisms": [
+    "current bounded depth 1/2/3/5/8",
+    "Skill Level at fixed depth 8",
+    "Skill Level plus movetime 50",
+    "Skill Level plus bounded depth",
+    "movetime-only 5/10/25/50/100",
+    "UCI_LimitStrength plus UCI_Elo 1320/1600 at movetime 100",
+    "wide Skill Level spacing 0/4/8/12/16 at movetime 50 over three repetitions"
+  ],
+  "selectedPolicy": {
+    "mechanism": "native-skill-level-plus-bounded-movetime",
+    "externalRandomness": false,
+    "uciLimitStrength": false,
+    "uciElo": 1320,
+    "movetimeMs": 50,
+    "targets": [
+      { "target": 250, "skillLevel": 0 },
+      { "target": 500, "skillLevel": 4 },
+      { "target": 800, "skillLevel": 8 },
+      { "target": 1200, "skillLevel": 12 },
+      { "target": 1600, "skillLevel": 16 }
+    ]
+  },
+  "selectedMetrics": [
+    { "target": 250, "skillLevel": 0, "observations": 78, "legalRate": 1, "bestMoveRate": 0.3333333333, "obviousSolveRate": 0.8571428571, "hangingPieceAvoidanceRate": 1, "largeErrorRate": 0.1666666667, "blunderRate": 0.1282051282, "meanCpLoss": 100.2949, "medianCpLoss": 17, "p90CpLoss": 316, "maxCpLoss": 1403, "meanMs": 48.2718, "p90Ms": 50.2, "maxMs": 50.5 },
+    { "target": 500, "skillLevel": 4, "observations": 78, "legalRate": 1, "bestMoveRate": 0.4743589744, "obviousSolveRate": 1, "hangingPieceAvoidanceRate": 1, "largeErrorRate": 0.1025641026, "blunderRate": 0.0769230769, "meanCpLoss": 44, "medianCpLoss": 1, "p90CpLoss": 117, "maxCpLoss": 431, "meanMs": 48.3179, "p90Ms": 50.3, "maxMs": 50.9 },
+    { "target": 800, "skillLevel": 8, "observations": 78, "legalRate": 1, "bestMoveRate": 0.4871794872, "obviousSolveRate": 0.9523809524, "hangingPieceAvoidanceRate": 1, "largeErrorRate": 0.1025641026, "blunderRate": 0.0769230769, "meanCpLoss": 44.5897, "medianCpLoss": 3, "p90CpLoss": 144, "maxCpLoss": 431, "meanMs": 48.3359, "p90Ms": 50.3, "maxMs": 50.8 },
+    { "target": 1200, "skillLevel": 12, "observations": 78, "legalRate": 1, "bestMoveRate": 0.5128205128, "obviousSolveRate": 0.9523809524, "hangingPieceAvoidanceRate": 1, "largeErrorRate": 0.1282051282, "blunderRate": 0.0769230769, "meanCpLoss": 47.0128, "medianCpLoss": 5, "p90CpLoss": 179, "maxCpLoss": 431, "meanMs": 48.2782, "p90Ms": 50.2, "maxMs": 50.5 },
+    { "target": 1600, "skillLevel": 16, "observations": 78, "legalRate": 1, "bestMoveRate": 0.6025641026, "obviousSolveRate": 1, "hangingPieceAvoidanceRate": 1, "largeErrorRate": 0.1025641026, "blunderRate": 0.0769230769, "meanCpLoss": 38.9872, "medianCpLoss": 0, "p90CpLoss": 108, "maxCpLoss": 431, "meanMs": 48.2744, "p90Ms": 50.2, "maxMs": 51 }
+  ],
+  "qualitativeExamplesFirstRepetition": [
+    { "target": 250, "position": "beginner-free-pawn", "move": "e1d2", "referenceMove": "c3d4", "lossCp": 17, "interpretation": "legal king move misses the free pawn" },
+    { "target": 500, "position": "beginner-develop-or-pawn", "move": "g1f3", "referenceMove": "g1f3", "lossCp": 0, "interpretation": "finds basic development" },
+    { "target": 800, "position": "beginner-develop-or-pawn", "move": "b1c3", "referenceMove": "g1f3", "lossCp": 5, "interpretation": "chooses a plausible alternate developing move" },
+    { "target": 1200, "position": "beginner-king-safety", "move": "e1g1", "referenceMove": "d2d3", "lossCp": 17, "interpretation": "chooses the natural castling plan" },
+    { "target": 1600, "position": "beginner-free-pawn", "move": "c3d4", "referenceMove": "c3d4", "lossCp": 0, "interpretation": "takes the free pawn" }
+  ],
+  "coachDiagnosis": {
+    "highestWorkingComparison": { "level": "master", "target": 2400, "policy": "go depth 16" },
+    "grandmasterBefore": { "target": 2800, "policy": "go depth 20", "timeoutCode": "ENGINE_SEARCH_TIMEOUT", "timeoutMs": 10000 },
+    "provider": "legacy-stockfish-2019",
+    "worker": "/engine/stockfish-working.js",
+    "identity": "Stockfish 2019-08-15 Multi-Variant",
+    "routingDefect": false,
+    "rootCause": "legacy depth-20 latency crossed the adapter search deadline in the physical path"
+  },
+  "coachCorrection": {
+    "scope": "legacy Coach active target 2800 only",
+    "policy": "go movetime 2000",
+    "lowerCoachPoliciesChanged": false,
+    "coachSf18Migration": false
+  }
+}

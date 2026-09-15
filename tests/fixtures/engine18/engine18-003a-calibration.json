@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ENGINE18-003A",
+  "baseCheckpoint": "ce9354c1e32d743946897135389469a9e46944ce",
+  "definitions": {
+    "reference": "Stockfish 18 Lite, Threads 1, Hash 16, Skill Level 20, UCI_LimitStrength false, depth 18",
+    "candidateEvaluation": "Stockfish 18 Lite after the candidate move at depth 14",
+    "centipawnLoss": "mover-relative reference equivalent minus candidate equivalent, clamped to 0..100000",
+    "largeErrorCp": 100,
+    "blunderCp": 300,
+    "bestMove": "candidate UCI equals the depth-18 reference UCI",
+    "latencyClock": "browser performance.now around a warm single-worker search"
+  },
+  "corpus": [
+    { "id": "opening-start", "category": "opening", "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" },
+    { "id": "opening-open-game", "category": "opening", "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3" },
+    { "id": "opening-black-reply", "category": "opening", "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1" },
+    { "id": "italian-development", "category": "quiet", "fen": "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 5" },
+    { "id": "qgd-structure", "category": "positional", "fen": "rnbq1rk1/pp2bppp/2p1pn2/3p4/2PP4/2N1PN2/PP2BPPP/R1BQK2R w KQ - 4 7" },
+    { "id": "closed-center", "category": "positional", "fen": "r1bqk2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R1BQKB1R b KQkq - 2 5" },
+    { "id": "several-reasonable", "category": "quiet", "fen": "r1bq1rk1/ppp2ppp/2n2n2/2bp4/4P3/2P2N2/PP1N1PPP/R1BQ1RK1 w - - 2 9" },
+    { "id": "minor-piece-middle", "category": "middlegame", "fen": "r1b1r1k1/ppp2ppp/2n2n2/8/2BP4/P1N2N2/1P3PPP/R1B1R1K1 w - - 0 12" },
+    { "id": "hanging-black-queen", "category": "simple-tactic", "fen": "4k3/8/8/3q4/3R4/8/8/4K3 w - - 0 1" },
+    { "id": "hanging-white-queen", "category": "simple-tactic", "fen": "4k3/8/8/3r4/3Q4/8/8/4K3 b - - 0 1" },
+    { "id": "knight-wins-queen", "category": "simple-tactic", "fen": "4k3/8/8/8/3q4/5N2/8/4K3 w - - 0 1" },
+    { "id": "mate-in-one", "category": "forcing", "fen": "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1" },
+    { "id": "castling-choice", "category": "forcing", "fen": "r3k2r/ppp2ppp/2n5/8/8/8/PPP2PPP/R3K2R w KQkq - 0 1" },
+    { "id": "rook-ending", "category": "endgame", "fen": "8/5pk1/6p1/3R4/4P3/6P1/5PK1/8 w - - 0 1" },
+    { "id": "opposition", "category": "endgame", "fen": "8/8/4k2p/8/4K3/P7/8/8 b - - 0 1" },
+    { "id": "unsupported-passer", "category": "endgame", "fen": "7k/p7/8/3P4/8/8/8/K7 b - - 0 1" },
+    { "id": "minor-versus-rook", "category": "material-imbalance", "fen": "4k3/8/8/8/8/2n5/4PP2/4K2R w K - 0 1" },
+    { "id": "queen-versus-rook", "category": "material-imbalance", "fen": "6k1/8/8/8/3q4/8/3R4/6K1 w - - 0 1" },
+    { "id": "promotion", "category": "forcing", "fen": "4k3/P7/8/8/8/8/8/4K3 w - - 0 1" },
+    { "id": "king-and-pawn", "category": "quiet-endgame", "fen": "8/8/8/3k4/8/4K3/2P5/8 w - - 0 1" }
+  ],
+  "candidatePolicies": {
+    "depths": [1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20],
+    "movetimesMs": [10, 25, 50, 100, 250, 500],
+    "skillLevels": [0, 3, 6, 10, 15, 20],
+    "uciElo": [1320, 1600, 2000, 2400, 2800, 3190],
+    "uciEloMinimum": 1320
+  },
+  "selectedPolicy": {
+    "mechanism": "bounded-depth",
+    "externalRandomness": false,
+    "options": { "MultiPV": 1, "Hash": 16, "Threads": 1, "Skill Level": 20, "UCI_LimitStrength": false },
+    "targets": [
+      { "target": 250, "depth": 1, "movetimeMs": null },
+      { "target": 500, "depth": 2, "movetimeMs": null },
+      { "target": 800, "depth": 3, "movetimeMs": null },
+      { "target": 1200, "depth": 5, "movetimeMs": null },
+      { "target": 1600, "depth": 8, "movetimeMs": null },
+      { "target": 2000, "depth": 12, "movetimeMs": null },
+      { "target": 2400, "depth": 16, "movetimeMs": null },
+      { "target": 2800, "depth": 18, "movetimeMs": null },
+      { "target": 3200, "depth": null, "movetimeMs": 2000, "openingBookEligible": true }
+    ]
+  },
+  "metrics": {
+    "legacy": [
+      { "target": 250, "meanCp": 69, "medianCp": 12, "p90Cp": 155, "bestRate": 0.55, "largeErrorRate": 0.30, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 6.05, "p90Ms": 8.6, "maxMs": 37.6 },
+      { "target": 500, "meanCp": 70.5, "medianCp": 26, "p90Cp": 141, "bestRate": 0.55, "largeErrorRate": 0.25, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 4.3, "p90Ms": 9.2, "maxMs": 12.2 },
+      { "target": 800, "meanCp": 64.55, "medianCp": 21, "p90Cp": 124, "bestRate": 0.55, "largeErrorRate": 0.20, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 7.03, "p90Ms": 17.6, "maxMs": 18.4 },
+      { "target": 1200, "meanCp": 60.95, "medianCp": 16, "p90Cp": 124, "bestRate": 0.55, "largeErrorRate": 0.20, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 31.63, "p90Ms": 49.6, "maxMs": 75.3 },
+      { "target": 1600, "meanCp": 63.4, "medianCp": 15, "p90Cp": 107, "bestRate": 0.55, "largeErrorRate": 0.15, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 152.76, "p90Ms": 299.6, "maxMs": 509.2 },
+      { "target": 2000, "meanCp": 58, "medianCp": 6, "p90Cp": 107, "bestRate": 0.75, "largeErrorRate": 0.15, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 869.35, "p90Ms": 2048.1, "maxMs": 4069.6 },
+      { "target": 2400, "meanCp": 62.1, "medianCp": 6, "p90Cp": 126, "bestRate": 0.75, "largeErrorRate": 0.25, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 3299.39, "p90Ms": 8294.8, "maxMs": 9377.3 },
+      { "target": 2800, "meanCp": 45051.1, "medianCp": 287, "p90Cp": 100000, "bestRate": 0.40, "largeErrorRate": 0.65, "blunderRate": 0.50, "legalRate": 0.55, "mateMisses": 0, "timeouts": 9, "meanMs": 7646.48, "p90Ms": 15014.6, "maxMs": 15014.7 },
+      { "target": 3200, "meanCp": 63.35, "medianCp": 9, "p90Cp": 132, "bestRate": 0.75, "largeErrorRate": 0.25, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 2000.67, "p90Ms": 2066.2, "maxMs": 2132.4 }
+    ],
+    "sf18Uncalibrated": [
+      { "target": 250, "meanCp": 89.3, "medianCp": 12, "p90Cp": 155, "bestRate": 0.45, "largeErrorRate": 0.20, "blunderRate": 0.10, "legalRate": 1, "mateMisses": 0, "meanMs": 1.71, "p90Ms": 2.3, "maxMs": 8.4 },
+      { "target": 500, "meanCp": 66.15, "medianCp": 21, "p90Cp": 155, "bestRate": 0.50, "largeErrorRate": 0.20, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 0.92, "p90Ms": 1.3, "maxMs": 1.8 },
+      { "target": 800, "meanCp": 63.65, "medianCp": 16, "p90Cp": 155, "bestRate": 0.50, "largeErrorRate": 0.20, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 0.91, "p90Ms": 1.2, "maxMs": 1.8 },
+      { "target": 1200, "meanCp": 62.4, "medianCp": 0, "p90Cp": 155, "bestRate": 0.60, "largeErrorRate": 0.20, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 1.53, "p90Ms": 2.4, "maxMs": 3.8 },
+      { "target": 1600, "meanCp": 63.1, "medianCp": 6, "p90Cp": 155, "bestRate": 0.55, "largeErrorRate": 0.20, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 2.93, "p90Ms": 4.5, "maxMs": 5.6 },
+      { "target": 2000, "meanCp": 57.65, "medianCp": 0, "p90Cp": 155, "bestRate": 0.70, "largeErrorRate": 0.20, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 25.35, "p90Ms": 81.5, "maxMs": 113.5 },
+      { "target": 2400, "meanCp": 53.9, "medianCp": 6, "p90Cp": 107, "bestRate": 0.85, "largeErrorRate": 0.15, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 160.9, "p90Ms": 347, "maxMs": 625.3 },
+      { "target": 2800, "meanCp": 53.9, "medianCp": 6, "p90Cp": 107, "bestRate": 0.90, "largeErrorRate": 0.15, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 1558.51, "p90Ms": 3073.2, "maxMs": 6199.1 },
+      { "target": 3200, "meanCp": 53.9, "medianCp": 6, "p90Cp": 107, "bestRate": 0.80, "largeErrorRate": 0.15, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 1902.71, "p90Ms": 2001.9, "maxMs": 2004.8 }
+    ],
+    "sf18Calibrated2800": { "target": 2800, "depth": 18, "meanCp": 54.25, "medianCp": 6, "p90Cp": 107, "bestRate": 0.90, "largeErrorRate": 0.15, "blunderRate": 0.05, "legalRate": 1, "mateMisses": 0, "meanMs": 687.08, "p90Ms": 1763.9, "maxMs": 3206.3 }
+  },
+  "mechanismFindings": {
+    "depth": "selected: deterministic, simplest, closest to legacy, and naturally bounded",
+    "movetime": "rejected for ladder: even 10 ms produced 65% reference-best moves and weak tier separation",
+    "skillLevel": "rejected: fixed-depth samples were non-monotonic and native skill move choice is intentionally varied",
+    "uciLimitStrength": "rejected: UCI_Elo cannot represent targets below 1320 and the 20-position sample was non-monotonic",
+    "externalRandomBlunders": "not evaluated for adoption because Play Game explicitly excludes the Bots error architecture"
+  },
+  "monotonicity": {
+    "acceptable": true,
+    "systematicInversions": false,
+    "observedOverlaps": ["1200/1600 on some loss metrics", "2800/3200 on reference-best frequency"],
+    "basis": "All tiers were legal and mate-safe; best-move frequency rose from 45% at 250 to 90% at 2800, while 3200 retains the stronger time-bounded full-power contract. Isolated metric overlap is not a repeated cross-metric inversion."
+  }
+}

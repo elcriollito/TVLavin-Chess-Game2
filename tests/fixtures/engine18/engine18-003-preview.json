@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ENGINE18-003",
+  "baseCheckpoint": "4ecc1c7fb78e9fc77abbdc8ce1ca6f93cab2bf29",
+  "activation": {
+    "environment": "preview",
+    "envKey": "CAISSA_PLAY_SF18_GAMEPLAY",
+    "envValue": "true",
+    "activationId": "ENGINE18-003",
+    "providerKey": "stockfish-18-gameplay",
+    "productionDefault": "legacy-stockfish-2019"
+  },
+  "roles": {
+    "game": "stockfish-18-gameplay",
+    "coach-active": "legacy-stockfish-2019",
+    "bots": "legacy-stockfish-2019",
+    "analyze-review": "stockfish-18-lite",
+    "manual-analysis": "stockfish-18-lite"
+  },
+  "identity": {
+    "sf18": "Stockfish 18 Lite WASM",
+    "legacy": "Stockfish 2019-08-15 Multi-Variant"
+  },
+  "targets": [
+    { "target": 250, "depth": 1, "movetimeMs": null },
+    { "target": 500, "depth": 2, "movetimeMs": null },
+    { "target": 800, "depth": 3, "movetimeMs": null },
+    { "target": 1200, "depth": 5, "movetimeMs": null },
+    { "target": 1600, "depth": 8, "movetimeMs": null },
+    { "target": 2000, "depth": 12, "movetimeMs": null },
+    { "target": 2400, "depth": 16, "movetimeMs": null },
+    { "target": 2800, "depth": 18, "movetimeMs": null },
+    { "target": 3200, "depth": null, "movetimeMs": 2000 }
+  ],
+  "calibratedBy": "ENGINE18-003A",
+  "positions": [
+    { "id": "start", "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" },
+    { "id": "open-game", "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3" },
+    { "id": "mate-in-one", "fen": "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1" }
+  ],
+  "workerLimits": {
+    "maximumGameplayWorkers": 1,
+    "maximumLegacyWorkersDuringSf18Game": 0,
+    "maximumSf18WorkersDuringLegacyBotsOrCoach": 0,
+    "activeAfterExit": 0
+  }
+}

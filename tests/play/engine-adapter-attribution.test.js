@@ -249,3 +249,31 @@ test('finite attributed Review resolves a terminal position with score but no PV
     assert.equal(info[0].mate, -0);
     assert.deepEqual(moves, [[null, 'terminal:1']]);
 });
+
+test('gameplay strength options are validated and serialized immediately before an attributed search', () => {
+    const { adapter, worker } = fixture(['low-tier', 'full-power']);
+    const weak = { 'Skill Level': 0, UCI_LimitStrength: false, UCI_Elo: 1320 };
+    adapter.getBestMoveAttributed('weak-position w', () => {}, { movetime: 50, uciOptions: weak });
+    assert.deepEqual(worker.messages.slice(-5), [
+        'setoption name Skill Level value 0',
+        'setoption name UCI_LimitStrength value false',
+        'setoption name UCI_Elo value 1320',
+        'position fen weak-position w',
+        'go movetime 50'
+    ]);
+    assert.deepEqual(JSON.parse(JSON.stringify(adapter.getGameplayStrengthOptions())), weak);
+    worker.emit('bestmove e2e4');
+
+    const full = { 'Skill Level': 20, UCI_LimitStrength: false, UCI_Elo: 1320 };
+    adapter.getBestMoveAttributed('full-position b', () => {}, { depth: 12, uciOptions: full });
+    worker.emit('readyok');
+    assert.deepEqual(worker.messages.slice(-5), [
+        'setoption name Skill Level value 20',
+        'setoption name UCI_LimitStrength value false',
+        'setoption name UCI_Elo value 1320',
+        'position fen full-position b',
+        'go depth 12'
+    ]);
+    assert.equal(adapter.applyGameplayStrengthOptions({ 'Skill Level': -1,
+        UCI_LimitStrength: false, UCI_Elo: 1320 }), false);
+});

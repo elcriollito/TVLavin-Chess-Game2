@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ENGINE18-002",
+  "baseCheckpoint": "31fd8fd0fe548495cbad3270d3d27af2e8c0922a",
+  "verifiedOriginMain": "197d5e26ec408a6ffdc97078724f2c4f3c07fdac",
+  "runtimeMigrationPerformed": false,
+  "provider": {
+    "providerKey": "stockfish-18-gameplay",
+    "name": "Stockfish 18 Lite WASM (Gameplay, inactive)",
+    "version": "18.0.0",
+    "worker": "/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js",
+    "wasm": "/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.wasm",
+    "expectedName": "Stockfish 18 Lite WASM",
+    "expectedAuthor": "the Stockfish developers (see AUTHORS file)",
+    "enabled": false,
+    "selectedByDefault": false,
+    "roles": ["game", "coach-active"],
+    "defaultOptions": { "MultiPV": 1, "Hash": 16, "Threads": 1 },
+    "singleThreaded": true
+  },
+  "gate": {
+    "key": "CAISSA_PLAY_SF18_GAMEPLAY",
+    "compiledDefault": false,
+    "missing": false,
+    "invalid": false,
+    "explicitFalse": false,
+    "explicitTrueInThisPhase": false
+  },
+  "roleRouting": {
+    "game": "legacy-stockfish-2019",
+    "coach-active": "legacy-stockfish-2019",
+    "bots": "legacy-stockfish-2019",
+    "analyze-review": "stockfish-18-lite",
+    "manual-analysis": "stockfish-18-lite"
+  },
+  "assets": {
+    "legacy": {
+      "path": "engine/stockfish-working.js",
+      "normalizedBytes": 1579948,
+      "normalizedSha256": "723fda70117bfa8d5053a7bc4ae50cdc96dc9e3fd41b57627e4dfa0a0025957a"
+    },
+    "worker": {
+      "path": "assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js",
+      "normalizedBytes": 20670,
+      "normalizedSha256": "2278005057f381491f1c9bb3e44c9f5920b3a00bef9759e33cc6582769a1f1fe",
+      "mime": "application/javascript"
+    },
+    "wasm": {
+      "path": "assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.wasm",
+      "bytes": 7295411,
+      "sha256": "a8fbc05ec6920b56d7485826dcb02c5ffd2826bcbf751cf973046f237a9096f1",
+      "mime": "application/wasm"
+    }
+  },
+  "smoke": {
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+    "depth": 8,
+    "maximumSf18Workers": 1,
+    "passiveSf18Workers": 0
+  }
+}
