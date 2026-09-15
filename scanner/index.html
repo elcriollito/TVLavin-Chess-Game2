@@ -8,12 +8,12 @@
   <title>CAISSA Scanner · Web Lab</title>
   <link rel="icon" href="/favicon.ico?v=4">
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
-  <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.0">
+  <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
 </head>
 <body>
   <header class="scanner-topbar">
     <a class="scanner-brand" href="/play" aria-label="CAISSA Chess"><i class="fas fa-chess-knight" aria-hidden="true"></i><span>CAISSA</span></a>
-    <div class="scanner-lab-badge">Scanner Web Lab · Phase 2</div>
+    <div class="scanner-lab-badge">Scanner Lab · Phase 2B</div>
   </header>
 
   <main class="scanner-page" id="scannerApp">
@@ -21,7 +21,7 @@
       <div>
         <p class="scanner-eyebrow">CAISSA Labs · Private foundation</p>
         <h1>CAISSA Scanner</h1>
-        <p>Turn a chess diagram into a clean native position. The image is input only; FEN becomes the chess source of truth after you confirm it.</p>
+        <p>Photo in. Confirmed FEN out. The source image never becomes the playable board.</p>
       </div>
       <div class="scanner-state-pill" id="statePill">Idle</div>
     </section>
@@ -49,26 +49,33 @@
       <article class="scanner-card scanner-board-card">
         <div class="scanner-card-head"><div><span class="step">2</span><h2>Candidate position</h2></div><span class="status" id="candidateStatus">Waiting</span></div>
         <div class="board-shell">
-          <div class="scanner-board" id="scannerBoard" aria-label="Native chessboard preview"></div>
+          <div class="scanner-board is-empty" id="scannerBoard" aria-label="Native chessboard preview"></div>
+          <div class="board-empty" id="boardEmpty"><i class="fas fa-chess-board"></i><strong>No candidate yet</strong><span>Choose a chess image to begin.</span></div>
         </div>
-        <div class="confidence-row">
-          <span>Board confidence</span><strong id="boardConfidence">—</strong>
-        </div>
-        <p class="lab-note" id="recognitionNote">Phase 2 uses a clearly marked mock candidate after image selection. Automatic computer vision is not claimed in this phase.</p>
+        <div class="confidence-row"><span>Board confidence</span><strong id="boardConfidence">—</strong></div>
+        <p class="lab-note" id="recognitionNote">Phase 2B still uses a clearly marked mock candidate. Automatic computer vision remains off.</p>
       </article>
 
       <article class="scanner-card scanner-review-card">
         <div class="scanner-card-head"><div><span class="step">3</span><h2>Review & Fix</h2></div><span class="status" id="reviewStatus">Required</span></div>
+        <div class="visual-edit" id="visualEdit" hidden>
+          <div class="visual-edit-head"><strong id="editSquareLabel">Tap a square to edit</strong><span>Visual FEN editor</span></div>
+          <div class="piece-palette" id="piecePalette" aria-label="Piece palette">
+            <button type="button" data-piece="" aria-label="Clear square"><i class="fas fa-eraser"></i></button>
+            <button type="button" data-piece="K">♔</button><button type="button" data-piece="Q">♕</button><button type="button" data-piece="R">♖</button><button type="button" data-piece="B">♗</button><button type="button" data-piece="N">♘</button><button type="button" data-piece="P">♙</button>
+            <button type="button" data-piece="k">♚</button><button type="button" data-piece="q">♛</button><button type="button" data-piece="r">♜</button><button type="button" data-piece="b">♝</button><button type="button" data-piece="n">♞</button><button type="button" data-piece="p">♟</button>
+          </div>
+        </div>
         <label class="field-label" for="fenInput">Candidate FEN</label>
-        <textarea id="fenInput" rows="4" spellcheck="false" aria-describedby="fenHelp"></textarea>
-        <p id="fenHelp" class="field-help">Review is mandatory. Edit the FEN if the candidate is wrong, then validate before confirming.</p>
+        <textarea id="fenInput" rows="3" spellcheck="false" aria-describedby="fenHelp"></textarea>
+        <p id="fenHelp" class="field-help">Review is mandatory. Tap the board to fix pieces, or edit the FEN directly, then validate.</p>
         <div class="review-tools">
           <button class="btn" id="validateBtn" type="button"><i class="fas fa-check-circle"></i> Validate</button>
           <button class="btn" id="flipBtn" type="button"><i class="fas fa-arrows-up-down"></i> Flip Board</button>
           <button class="btn danger-ghost" id="resetBtn" type="button"><i class="fas fa-rotate-left"></i> Start Over</button>
         </div>
         <div class="validation-box" id="validationBox" role="status" aria-live="polite">Choose an image to begin.</div>
-        <button class="btn primary confirm" id="confirmBtn" type="button" disabled><i class="fas fa-lock-open"></i> Confirm Position</button>
+        <button class="btn primary confirm" id="confirmBtn" type="button" disabled><i class="fas fa-circle-check"></i> Confirm Position</button>
       </article>
     </section>
 
@@ -82,16 +89,13 @@
       <p class="field-help">Analyze handoff uses the Scanner adapter contract. Scanner does not create another analysis engine.</p>
     </section>
 
-    <section class="scanner-privacy">
-      <i class="fas fa-shield-halved" aria-hidden="true"></i>
-      <div><strong>Privacy foundation</strong><span>This Web Lab does not upload the selected image, save it to an account, or contribute it to training data.</span></div>
-    </section>
+    <section class="scanner-privacy"><i class="fas fa-shield-halved" aria-hidden="true"></i><div><strong>Privacy foundation</strong><span>This Web Lab does not upload the selected image, save it to an account, or contribute it to training data.</span></div></section>
   </main>
 
   <script src="/config/scanner-flags.js?v=0.2.0"></script>
   <script src="/scanner/scanner-state.js?v=0.2.0"></script>
-  <script src="/scanner/scanner-fen.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-fen.js?v=0.2.1"></script>
   <script src="/scanner/scanner-adapters.js?v=0.2.0"></script>
-  <script src="/scanner/scanner-app.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-app.js?v=0.2.1"></script>
 </body>
 </html>
