@@ -11,14 +11,14 @@
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
   <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.2.3">
-  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.2.4">
+  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.2.5">
 </head>
 <body>
   <header class="scanner-topbar app-topbar">
     <button class="top-icon back-home" id="homeBtn" type="button" aria-label="Scanner home"><i class="fas fa-chess-knight"></i></button>
     <div class="app-title"><strong>CAISSA Scanner</strong><span>Scan · Analyze · Explore</span></div>
     <div class="top-actions">
-      <button class="top-icon" id="shareBtn" type="button" aria-label="Share position"><i class="fas fa-share-nodes"></i></button>
+      <button class="top-icon" id="shareBtn" type="button" aria-label="Export position"><i class="fas fa-arrow-up-from-bracket"></i></button>
       <button class="top-icon" id="menuBtn" type="button" aria-label="More options"><i class="fas fa-bars"></i></button>
     </div>
   </header>
@@ -52,7 +52,7 @@
         <div class="board-toolbar" aria-label="Board tools">
           <button id="editBtn" type="button"><i class="fas fa-pen"></i><span>Edit</span></button>
           <button id="flipBtn" type="button"><i class="fas fa-rotate"></i><span>Flip</span></button>
-          <button id="workspaceShareBtn" type="button"><i class="fas fa-share-nodes"></i><span>Share</span></button>
+          <button id="workspaceShareBtn" type="button"><i class="fas fa-arrow-up-from-bracket"></i><span>Export</span></button>
           <button id="moreBtn" type="button"><i class="fas fa-ellipsis"></i><span>More</span></button>
         </div>
 
@@ -92,9 +92,14 @@
         <code id="confirmedFen" hidden></code>
       </section>
 
+      <div class="quick-rescan" id="quickRescan" aria-label="Start another scan">
+        <label class="quick-rescan-btn gallery" for="galleryInput" aria-label="Choose another photo"><i class="fas fa-image"></i></label>
+        <label class="quick-rescan-btn camera" for="cameraInput" aria-label="Take another photo"><i class="fas fa-camera"></i></label>
+      </div>
+
       <section class="edit-sheet" id="editSheet" hidden aria-label="Edit chess position">
         <div class="sheet-head"><button id="cancelEditBtn" type="button">Cancel</button><strong>Edit Position</strong><button id="applyEditBtn" class="apply" type="button">Apply</button></div>
-        <div class="edit-instruction"><strong id="editSquareLabel">Tap a square</strong><span>Select a piece below, or clear the square.</span></div>
+        <div class="edit-instruction"><strong id="editSquareLabel">Tap a square</strong><span>Edit this position directly.</span></div>
         <div class="piece-palette app-palette" id="piecePalette" aria-label="Piece palette">
           <div class="palette-row black-row" role="group" aria-label="Black pieces">
             <button data-piece="k" aria-label="Black king"><img src="/img/chesspieces/wikipedia/bK.png" alt=""></button>
@@ -114,6 +119,12 @@
             <button data-piece="P" aria-label="White pawn"><img src="/img/chesspieces/wikipedia/wP.png" alt=""></button>
           </div>
         </div>
+      </section>
+
+      <section class="export-sheet" id="exportSheet" hidden aria-label="Export position">
+        <div class="sheet-head"><button id="closeExportBtn" type="button">Cancel</button><strong>Export as</strong><span></span></div>
+        <button class="export-row" id="exportDiagramBtn" type="button"><i class="fas fa-image"></i><span>Diagram Image</span></button>
+        <button class="export-row" id="exportFenBtn" type="button"><i class="fas fa-font"></i><span>FEN Text</span></button>
       </section>
 
       <section class="more-sheet" id="moreSheet" hidden aria-label="Scanner options">
@@ -146,11 +157,11 @@
   <script src="/js/engine-adapter.js"></script>
   <script src="/js/engine-registry.js"></script>
   <script src="/config/scanner-flags.js?v=0.2.0"></script>
-  <script src="/scanner/scanner-state.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-state.js?v=0.2.5"></script>
   <script src="/scanner/scanner-fen.js?v=0.2.4"></script>
   <script src="/scanner/scanner-adapters.js?v=0.2.0"></script>
   <script src="/scanner/scanner-analysis.js?v=0.2.3"></script>
-  <script src="/scanner/scanner-app.js?v=0.2.4"></script>
+  <script src="/scanner/scanner-app.js?v=0.2.5"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>
