@@ -107,6 +107,90 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await expect(page.locator('#appToast')).toContainText(/FEN copied| w | b /);
   });
 
+  test('hamburgers control distinct, exclusive, dismissible overlay menus', async ({ page }) => {
+    await selectAndConfirm(page);
+    const before = await boardGeometry(page);
+
+    await page.locator('#moreBtn').click();
+    await expect(page.locator('#scannerProductMenu')).toBeVisible();
+    await expect(page.locator('#moreBtn')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('menuitem', { name: /Diagram Library/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Video Board Explorer/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^Account/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Membership/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Logout/ })).toBeVisible();
+    await expect(page.locator('#scannerProductMenu')).not.toContainText(/Flip Board|Copy FEN|Reset Scanner/);
+
+    await page.locator('#boardActionsBtn').click();
+    await expect(page.locator('#scannerProductMenu')).toBeHidden();
+    await expect(page.locator('#scannerAnalysisMenu')).toBeVisible();
+    await expect(page.locator('#moreBtn')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#boardActionsBtn')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('menuitem', { name: /Open in Lichess Analyzer/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Open in Chess.com Analyzer/ })).toContainText('Soon');
+    await expect(page.getByRole('menuitem', { name: /Open in CAISSA Analyzer/ })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#scannerAnalysisMenu')).toBeHidden();
+    await expect(page.locator('#boardActionsBtn')).toBeFocused();
+    await page.locator('#moreBtn').click();
+    await page.locator('#sideToMove').click();
+    await expect(page.locator('#scannerProductMenu')).toBeHidden();
+
+    await page.locator('#moreBtn').click();
+    await page.getByRole('menuitem', { name: /Diagram Library/ }).click();
+    await expect(page.locator('#scannerProductMenu')).toBeHidden();
+    await expect(page.locator('#appToast')).toContainText('coming soon');
+
+    await page.locator('#boardActionsBtn').click();
+    await page.getByRole('menuitem', { name: /Open in Chess.com Analyzer/ }).click();
+    await expect(page.locator('#scannerAnalysisMenu')).toBeHidden();
+    await expect(page.locator('#appToast')).toContainText('not available yet');
+
+    const after = await boardGeometry(page);
+    expect(after.width).toBe(before.width);
+    expect(after.height).toBe(before.height);
+    expect(after.overflow).toBeLessThanOrEqual(0);
+  });
+
+  test('analysis handoffs use the currently explored FEN', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__scannerOpenedUrls = [];
+      window.open = (url, target, features) => {
+        window.__scannerOpenedUrls.push({ url: String(url), target, features });
+        return { opener: window };
+      };
+    });
+    await selectAndConfirm(page);
+    const originalFen = await page.locator('#confirmedFen').textContent();
+    await page.locator('#analyzeBtn').click();
+    await page.locator('#scannerBoard .sq[aria-label="d5 wN"]').click();
+    await page.locator('#scannerBoard .sq[aria-label="f6 bN"]').click();
+    const exploredFen = await page.locator('#confirmedFen').textContent();
+    expect(exploredFen).not.toBe(originalFen);
+
+    await page.locator('#boardActionsBtn').click();
+    await page.getByRole('menuitem', { name: /Open in Lichess Analyzer/ }).click();
+    const opened = await page.evaluate(() => window.__scannerOpenedUrls);
+    expect(opened).toEqual([{
+      url: 'https://lichess.org/analysis/standard/' + exploredFen.trim().replace(/\s+/g, '_'),
+      target: '_blank',
+      features: 'noopener,noreferrer'
+    }]);
+    await expect(page.locator('#confirmedFen')).toHaveText(exploredFen);
+
+    await page.locator('#boardActionsBtn').click();
+    await page.getByRole('menuitem', { name: /Open in CAISSA Analyzer/ }).click();
+    await page.waitForURL(/\/analyze\?handoff=/);
+    const handoff = await page.evaluate(() => {
+      const token = new URLSearchParams(location.search).get('handoff');
+      return JSON.parse(sessionStorage.getItem(`caissa:analyze:handoff:v1:${token}`));
+    });
+    expect(handoff.intent).toBe('analyze-position');
+    expect(handoff.source).toBe('scanner');
+    expect(handoff.payload.finalFen).toBe(exploredFen);
+  });
+
   test('Stockfish MultiPV updates do not resize the board', async ({ page }) => {
     await selectAndConfirm(page);
     const before = await boardGeometry(page);
@@ -143,5 +227,17 @@ for (const profile of [
     expect(geometry.width).toBe(geometry.height);
     expect(geometry.width % 8).toBe(0);
     expect(geometry.overflow).toBeLessThanOrEqual(0);
+    await page.locator('#boardActionsBtn').click();
+    const menuRect = await page.locator('#scannerAnalysisMenu').evaluate((menu) => {
+      const rect = menu.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    });
+    expect(menuRect.left).toBeGreaterThanOrEqual(0);
+    expect(menuRect.right).toBeLessThanOrEqual(profile.width);
+    expect(menuRect.top).toBeGreaterThanOrEqual(0);
+    expect(menuRect.bottom).toBeLessThanOrEqual(profile.height);
+    const menuGeometry = await boardGeometry(page);
+    expect(menuGeometry.width).toBe(geometry.width);
+    expect(menuGeometry.height).toBe(geometry.height);
   });
 }

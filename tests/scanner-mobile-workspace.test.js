@@ -27,6 +27,22 @@ test('position toolbar and board navigation match the mobile contract', async ()
   assert.doesNotMatch(html, /id="shareBtn"|id="menuBtn"/);
 });
 
+test('top and lower hamburgers expose separate product and analysis menus', async () => {
+  const html = await read('scanner/index.html');
+  assert.match(html, /id="moreBtn"[^>]*aria-controls="scannerProductMenu"/);
+  assert.match(html, /id="boardActionsBtn"[^>]*aria-controls="scannerAnalysisMenu"/);
+  for (const label of ['Diagram Library', 'Video Board Explorer', 'Account', 'Membership', 'Logout']) {
+    assert.match(html, new RegExp(`>${label}<`));
+  }
+  for (const label of ['Open in Lichess Analyzer', 'Open in Chess.com Analyzer', 'Open in CAISSA Analyzer']) {
+    assert.match(html, new RegExp(`>${label}<`));
+  }
+  const productMenu = html.slice(html.indexOf('id="scannerProductMenu"'), html.indexOf('id="scannerAnalysisMenu"'));
+  assert.doesNotMatch(productMenu, />Flip Board<|>Copy FEN<|>Reset Scanner</);
+  assert.match(html, /role="menu"/);
+  assert.match(html, /role="menuitem"/);
+});
+
 test('FEN stays internal and export opens a format chooser', async () => {
   const html = await read('scanner/index.html');
   assert.match(html, /id="fenInput" hidden aria-hidden="true"/);
@@ -79,4 +95,42 @@ test('geometry remains an integer 8 by 8 persistent grid', async () => {
   assert.match(geometryCss, /repeat\(8,var\(--scanner-square-size/);
   assert.match(fen, /squares\.length === 64/);
   assert.match(fen, /for \(let i = 0; i < 64; i \+= 1\)/);
+});
+
+test('analysis handoffs preserve exact FEN and use canonical CAISSA transport', async () => {
+  const [handoffSource, adapterSource] = await Promise.all([
+    read('js/play/analyze-handoff.js'),
+    read('scanner/scanner-adapters.js')
+  ]);
+  const data = new Map();
+  const storage = {
+    get length() { return data.size; },
+    key(index) { return [...data.keys()][index] ?? null; },
+    getItem(key) { return data.has(key) ? data.get(key) : null; },
+    setItem(key, value) { data.set(key, String(value)); },
+    removeItem(key) { data.delete(key); }
+  };
+  const assigned = [];
+  const window = {
+    sessionStorage: storage,
+    location: { origin: 'https://caissa.test', assign: (url) => assigned.push(url) },
+    crypto: { randomUUID: () => '12345678-1234-1234-1234-123456789abc' }
+  };
+  vm.runInNewContext(handoffSource, { window, URL });
+  vm.runInNewContext(adapterSource, { window, URL });
+  const fen = 'r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R w KQkq - 4 10';
+  assert.equal(
+    window.CaissaScannerAdapters.createLichessAnalysisUrl(fen),
+    'https://lichess.org/analysis/standard/r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R_w_KQkq_-_4_10'
+  );
+  const prepared = window.CaissaScannerAdapters.prepareCaissaAnalyzeHandoff(fen, { orientation: 'black' });
+  assert.equal(prepared.ok, true);
+  assert.equal(prepared.value.handoff.intent, 'analyze-position');
+  assert.equal(prepared.value.handoff.source, 'scanner');
+  assert.equal(prepared.value.handoff.payload.finalFen, fen);
+  assert.equal(prepared.value.handoff.payload.boardOrientation, 'black');
+  const url = new URL(prepared.value.url);
+  assert.equal(url.pathname, '/analyze');
+  assert.equal(url.searchParams.get('handoff'), prepared.value.handoff.token);
+  assert.equal(url.searchParams.has('fen'), false);
 });

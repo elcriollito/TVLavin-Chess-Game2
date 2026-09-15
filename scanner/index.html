@@ -50,7 +50,7 @@
           <div class="position-actions">
             <button id="editBtn" type="button" aria-label="Edit position"><i class="fas fa-pen"></i></button>
             <button id="workspaceShareBtn" type="button" aria-label="Export position"><i class="fas fa-arrow-up-from-bracket"></i></button>
-            <button id="moreBtn" type="button" aria-label="More position options"><i class="fas fa-bars"></i></button>
+            <button id="moreBtn" type="button" aria-label="Open Scanner menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scannerProductMenu"><i class="fas fa-bars"></i></button>
           </div>
         </div>
 
@@ -73,7 +73,7 @@
           <button id="nextMoveBtn" type="button" aria-label="Next position" disabled><i class="fas fa-chevron-right"></i></button>
           <button id="lastMoveBtn" type="button" aria-label="Latest position" disabled><i class="fas fa-forward-step"></i></button>
           <button id="flipBtn" type="button" aria-label="Flip board"><i class="fas fa-rotate"></i></button>
-          <button id="boardActionsBtn" type="button" aria-label="Additional board actions"><i class="fas fa-bars"></i></button>
+          <button id="boardActionsBtn" type="button" aria-label="Open analysis menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scannerAnalysisMenu"><i class="fas fa-bars"></i></button>
         </nav>
 
         <section class="analysis-workspace" id="handoffCard" hidden aria-label="Position analysis">
@@ -133,13 +133,30 @@
         <button class="export-row" id="exportFenBtn" type="button"><i class="fas fa-font"></i><span>FEN Text</span></button>
       </section>
 
-      <section class="more-sheet" id="moreSheet" hidden aria-label="Scanner options">
-        <div class="sheet-head"><button id="closeMoreBtn" type="button">Close</button><strong>Position Options</strong><span></span></div>
-        <button class="menu-row" id="moreFlipBtn" type="button"><i class="fas fa-rotate"></i><span><strong>Flip Board</strong><small>Change board orientation</small></span></button>
-        <button class="menu-row" id="copyFenBtn" type="button"><i class="fas fa-copy"></i><span><strong>Copy FEN</strong><small>Copy the current position as text</small></span></button>
-        <button class="menu-row danger-row" id="resetBtn" type="button"><i class="fas fa-arrow-rotate-left"></i><span><strong>Reset Scanner</strong><small>Clear the current position and return home</small></span></button>
-        <figure class="source-preview-wrap" id="sourcePreviewWrap" hidden><img id="sourcePreview" alt="Selected chess source"><figcaption>Original source image</figcaption></figure>
+      <section class="scanner-popover product-menu" id="scannerProductMenu" hidden role="menu" aria-label="Scanner and account">
+        <div class="menu-group" role="presentation">
+          <span class="menu-group-label">Scanner</span>
+          <button class="menu-row" id="diagramLibraryBtn" type="button" role="menuitem"><i class="fas fa-image" aria-hidden="true"></i><span><strong>Diagram Library</strong><small>Saved positions and diagrams</small></span><em>Soon</em></button>
+          <button class="menu-row" id="videoExplorerBtn" type="button" role="menuitem"><i class="fas fa-circle-play" aria-hidden="true"></i><span><strong>Video Board Explorer</strong><small>Explore positions from video</small></span><em>Soon</em></button>
+        </div>
+        <div class="menu-group account-group" role="presentation">
+          <span class="menu-group-label">Account</span>
+          <button class="menu-row" id="accountBtn" type="button" role="menuitem"><i class="fas fa-user" aria-hidden="true"></i><span><strong>Account</strong><small id="accountMenuHint">Sign in or view your account</small></span></button>
+          <button class="menu-row" id="membershipBtn" type="button" role="menuitem"><i class="fas fa-crown" aria-hidden="true"></i><span><strong>Membership</strong><small>CAISSA membership options</small></span><em>Soon</em></button>
+          <button class="menu-row logout-row" id="logoutBtn" type="button" role="menuitem"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i><span><strong>Logout</strong><small id="logoutMenuHint">Sign out of CAISSA</small></span></button>
+        </div>
       </section>
+
+      <section class="scanner-popover analysis-menu" id="scannerAnalysisMenu" hidden role="menu" aria-label="Position analysis destinations">
+        <div class="menu-group" role="presentation">
+          <span class="menu-group-label">Open current position</span>
+          <button class="menu-row" id="openLichessBtn" type="button" role="menuitem"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i><span><strong>Open in Lichess Analyzer</strong><small>Continue on lichess.org</small></span></button>
+          <button class="menu-row" id="openChessComBtn" type="button" role="menuitem"><i class="fas fa-chess-pawn" aria-hidden="true"></i><span><strong>Open in Chess.com Analyzer</strong><small>Direct FEN handoff unavailable</small></span><em>Soon</em></button>
+          <button class="menu-row caissa-row" id="openCaissaBtn" type="button" role="menuitem"><i class="fas fa-crown" aria-hidden="true"></i><span><strong>Open in CAISSA Analyzer</strong><small>Continue with this position</small></span></button>
+        </div>
+      </section>
+
+      <div hidden aria-hidden="true"><figure id="sourcePreviewWrap" hidden><img id="sourcePreview" alt=""><figcaption>Original source image</figcaption></figure></div>
 
       <textarea id="fenInput" hidden aria-hidden="true"></textarea>
       <button id="validateBtn" type="button" hidden>Validate</button>
@@ -161,11 +178,14 @@
   <script src="/js/engine-adapter.js"></script>
   <script src="/js/engine-registry.js"></script>
   <script src="/config/scanner-flags.js?v=0.2.0"></script>
+  <script src="/js/auth-config.js?v=1.0.0"></script>
+  <script src="/js/caissa-auth.js?v=1.0.0"></script>
+  <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/scanner/scanner-state.js?v=0.2.5"></script>
   <script src="/scanner/scanner-fen.js?v=0.2.4"></script>
-  <script src="/scanner/scanner-adapters.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-adapters.js?v=0.3.0"></script>
   <script src="/scanner/scanner-analysis.js?v=0.3.0"></script>
-  <script src="/scanner/scanner-app.js?v=0.3.0"></script>
+  <script src="/scanner/scanner-app.js?v=0.4.0"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>

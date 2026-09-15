@@ -1,1 +1,49 @@
-(function(global){'use strict';const KEY='caissa.scanner.confirmed-position.v1';function createPayload(fen){return Object.freeze({schemaVersion:'1.0.0',source:'scanner',fen,createdAt:new Date().toISOString()});}function handoffToAnalyze(fen){const payload=createPayload(fen);try{sessionStorage.setItem(KEY,JSON.stringify(payload));}catch(_){}const url=new URL('/analyze',global.location.origin);url.searchParams.set('source','scanner');url.searchParams.set('fen',fen);global.location.assign(url.toString());}function readPending(){try{const raw=sessionStorage.getItem(KEY);return raw?JSON.parse(raw):null;}catch(_){return null;}}function clearPending(){try{sessionStorage.removeItem(KEY);}catch(_){}}global.CaissaScannerAdapters=Object.freeze({schemaVersion:'1.0.0',storageKey:KEY,createPayload,handoffToAnalyze,readPending,clearPending});})(window);
+(function (global) {
+  'use strict';
+
+  const VERSION = '1.1.0';
+
+  function createLichessAnalysisUrl(fen) {
+    const normalized = typeof fen === 'string' ? fen.trim().replace(/\s+/g, '_') : '';
+    if (!normalized) return '';
+    return 'https://lichess.org/analysis/standard/' + normalized;
+  }
+
+  function prepareCaissaAnalyzeHandoff(fen, options = {}) {
+    const transport = global.CaissaAnalyzeHandoff?.createTransport?.();
+    if (!transport || typeof fen !== 'string' || !fen.trim()) {
+      return Object.freeze({ ok: false, status: 'unavailable', reasonCode: 'HANDOFF_UNAVAILABLE' });
+    }
+    const created = transport.create({
+      source: 'scanner',
+      intent: 'analyze-position',
+      payload: {
+        finalFen: fen.trim(),
+        selectedPly: 0,
+        boardOrientation: options.orientation === 'black' ? 'black' : 'white',
+        recordStatus: 'active',
+        mode: 'scanner'
+      },
+      provenance: { sourceSection: 'scanner' }
+    });
+    if (!created.ok) return created;
+    const stored = transport.store(created.value);
+    if (!stored.ok) return stored;
+    const url = new URL('/analyze', global.location.origin);
+    url.searchParams.set('handoff', created.value.token);
+    return Object.freeze({ ok: true, status: 'ready', value: Object.freeze({ url: url.toString(), handoff: created.value }) });
+  }
+
+  function handoffToAnalyze(fen, options = {}) {
+    const prepared = prepareCaissaAnalyzeHandoff(fen, options);
+    if (prepared.ok) global.location.assign(prepared.value.url);
+    return prepared;
+  }
+
+  global.CaissaScannerAdapters = Object.freeze({
+    schemaVersion: VERSION,
+    createLichessAnalysisUrl,
+    prepareCaissaAnalyzeHandoff,
+    handoffToAnalyze
+  });
+})(window);

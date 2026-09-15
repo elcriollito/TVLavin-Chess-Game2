@@ -29,8 +29,6 @@
     fen: $('fenInput'),
     validate: $('validateBtn'),
     flip: $('flipBtn'),
-    moreFlip: $('moreFlipBtn'),
-    reset: $('resetBtn'),
     validation: $('validationBox'),
     sidePiece: document.querySelector('#sideToMove .side-piece'),
     sideIcon: $('sideToMovePiece'),
@@ -43,8 +41,18 @@
     palette: $('piecePalette'),
     moreBtn: $('moreBtn'),
     boardActions: $('boardActionsBtn'),
-    moreSheet: $('moreSheet'),
-    closeMore: $('closeMoreBtn'),
+    productMenu: $('scannerProductMenu'),
+    analysisMenu: $('scannerAnalysisMenu'),
+    diagramLibrary: $('diagramLibraryBtn'),
+    videoExplorer: $('videoExplorerBtn'),
+    account: $('accountBtn'),
+    accountHint: $('accountMenuHint'),
+    membership: $('membershipBtn'),
+    logout: $('logoutBtn'),
+    logoutHint: $('logoutMenuHint'),
+    openLichess: $('openLichessBtn'),
+    openChessCom: $('openChessComBtn'),
+    openCaissa: $('openCaissaBtn'),
     exportSheet: $('exportSheet'),
     closeExport: $('closeExportBtn'),
     exportDiagram: $('exportDiagramBtn'),
@@ -58,7 +66,6 @@
     handoff: $('handoffCard'),
     confirmed: $('confirmedFen'),
     analyze: $('analyzeBtn'),
-    copy: $('copyFenBtn'),
     engineToggle: $('engineToggle'),
     analysisPanel: $('analysisPanel'),
     analysisStatus: $('analysisStatus'),
@@ -78,6 +85,7 @@
   let editWasConfirmed = false;
   let editResumeAnalysis = false;
   let editOriginalFen = '';
+  let activeMenu = null;
 
   const lineEls = [1, 2, 3].map((number) => ({
     score: $('analysisScore' + number),
@@ -117,11 +125,58 @@
     toastTimer = setTimeout(() => { els.toast.hidden = true; }, 2600);
   }
 
+  function closeMenus(restoreFocus = false) {
+    const trigger = activeMenu?.trigger;
+    [
+      { menu: els.productMenu, trigger: els.moreBtn },
+      { menu: els.analysisMenu, trigger: els.boardActions }
+    ].forEach(({ menu, trigger: menuTrigger }) => {
+      menu.hidden = true;
+      menu.removeAttribute('style');
+      menuTrigger.setAttribute('aria-expanded', 'false');
+    });
+    activeMenu = null;
+    if (restoreFocus && trigger) trigger.focus();
+  }
+
+  function positionMenu(menu, trigger) {
+    const margin = 8;
+    const triggerRect = trigger.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const rootStyle = getComputedStyle(document.documentElement);
+    const inset = (name) => Number.parseFloat(rootStyle.getPropertyValue(name)) || 0;
+    const safeLeft = Math.max(margin, inset('--safe-left'));
+    const safeRight = Math.max(margin, inset('--safe-right'));
+    const safeTop = Math.max(margin, inset('--safe-top'));
+    const safeBottom = Math.max(margin, inset('--safe-bottom'));
+    const maxLeft = Math.max(safeLeft, window.innerWidth - menuRect.width - safeRight);
+    const left = Math.min(maxLeft, Math.max(safeLeft, triggerRect.right - menuRect.width));
+    const below = triggerRect.bottom + margin;
+    const above = triggerRect.top - menuRect.height - margin;
+    const maxTop = Math.max(safeTop, window.innerHeight - menuRect.height - safeBottom);
+    const top = below + menuRect.height <= window.innerHeight - safeBottom
+      ? below
+      : Math.max(safeTop, Math.min(maxTop, above));
+    menu.style.left = Math.round(left) + 'px';
+    menu.style.top = Math.round(top) + 'px';
+  }
+
+  function toggleMenu(menu, trigger) {
+    const shouldOpen = menu.hidden || activeMenu?.menu !== menu;
+    closeSheets();
+    if (!shouldOpen) return;
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    activeMenu = { menu, trigger };
+    positionMenu(menu, trigger);
+    menu.querySelector('[role="menuitem"]')?.focus();
+  }
+
   function closeSheets() {
     els.editSheet.hidden = true;
-    els.moreSheet.hidden = true;
     els.exportSheet.hidden = true;
     els.newScanSheet.hidden = true;
+    closeMenus();
   }
 
   function showHome() {
@@ -488,7 +543,6 @@
   async function exportFen() {
     const fen = currentFen();
     els.exportSheet.hidden = true;
-    els.moreSheet.hidden = true;
     if (!fen) return;
     try {
       await navigator.clipboard.writeText(fen);
@@ -504,10 +558,91 @@
     else validateCurrent(false);
   }
 
-  function toggleMore() {
-    const willOpen = els.moreSheet.hidden;
-    closeSheets();
-    els.moreSheet.hidden = !willOpen;
+  function openExternal(url) {
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (opened) opened.opener = null;
+  }
+
+  function openLichess() {
+    const fen = currentFen();
+    closeMenus();
+    if (!fen) {
+      toast('Confirm a position first.');
+      return;
+    }
+    const url = window.CaissaScannerAdapters?.createLichessAnalysisUrl?.(fen);
+    if (!url) {
+      toast('Lichess handoff is unavailable.');
+      return;
+    }
+    openExternal(url);
+  }
+
+  function openCaissa() {
+    const fen = currentFen();
+    closeMenus();
+    if (!fen) {
+      toast('Confirm a position first.');
+      return;
+    }
+    const result = window.CaissaScannerAdapters?.handoffToAnalyze?.(fen, { orientation: flipped ? 'black' : 'white' });
+    if (!result?.ok) toast('CAISSA Analyze handoff is unavailable.');
+  }
+
+  function placeholder(message) {
+    closeMenus();
+    toast(message);
+  }
+
+  function openAccount() {
+    closeMenus();
+    const auth = window.CAISSA_AUTH;
+    if (auth?.isSignedIn) {
+      toast('Account settings are coming soon.');
+      return;
+    }
+    if (typeof auth?.redirectToSignIn === 'function') {
+      auth.redirectToSignIn('/scanner/index.html');
+      return;
+    }
+    window.location.assign('/signin?redirect_url=%2Fscanner%2Findex.html');
+  }
+
+  async function logout() {
+    closeMenus();
+    const auth = window.CAISSA_AUTH;
+    if (!auth?.isSignedIn || typeof auth.signOut !== 'function') {
+      toast('You are not signed in.');
+      return;
+    }
+    await auth.signOut();
+    toast('Signed out of CAISSA.');
+  }
+
+  function updateAuthMenu(auth = window.CAISSA_AUTH) {
+    const signedIn = auth?.isSignedIn === true;
+    els.accountHint.textContent = signedIn ? 'Account settings' : 'Sign in to CAISSA';
+    els.logoutHint.textContent = signedIn ? 'Sign out of CAISSA' : 'Currently signed out';
+  }
+
+  function handleMenuKeys(event) {
+    if (!activeMenu) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenus(true);
+      return;
+    }
+    if (!activeMenu.menu.contains(event.target)) return;
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = [...activeMenu.menu.querySelectorAll('[role="menuitem"]')];
+    if (!items.length) return;
+    event.preventDefault();
+    const current = items.indexOf(document.activeElement);
+    const target = event.key === 'Home' ? 0
+      : event.key === 'End' ? items.length - 1
+        : event.key === 'ArrowDown' ? (current + 1 + items.length) % items.length
+          : (current - 1 + items.length) % items.length;
+    items[target].focus();
   }
 
   els.camera.addEventListener('change', (event) => selectFile(event.target.files?.[0]));
@@ -535,15 +670,20 @@
     if (state.snapshot().state === state.STATES.REVIEW) validateCurrent();
   });
   els.flip.addEventListener('click', flipBoard);
-  els.moreFlip.addEventListener('click', () => { flipBoard(); els.moreSheet.hidden = true; });
-  els.reset.addEventListener('click', () => resetAll(true));
   els.confirm.addEventListener('click', confirm);
   els.editBtn.addEventListener('click', openEdit);
   els.cancelEdit.addEventListener('click', () => closeEdit(false));
   els.applyEdit.addEventListener('click', () => closeEdit(true));
-  els.moreBtn.addEventListener('click', toggleMore);
-  els.boardActions.addEventListener('click', toggleMore);
-  els.closeMore.addEventListener('click', () => { els.moreSheet.hidden = true; });
+  els.moreBtn.addEventListener('click', () => toggleMenu(els.productMenu, els.moreBtn));
+  els.boardActions.addEventListener('click', () => toggleMenu(els.analysisMenu, els.boardActions));
+  els.diagramLibrary.addEventListener('click', () => placeholder('Diagram Library is coming soon.'));
+  els.videoExplorer.addEventListener('click', () => placeholder('Video Board Explorer is coming soon.'));
+  els.membership.addEventListener('click', () => placeholder('Membership is coming soon.'));
+  els.account.addEventListener('click', openAccount);
+  els.logout.addEventListener('click', logout);
+  els.openLichess.addEventListener('click', openLichess);
+  els.openChessCom.addEventListener('click', () => placeholder('Direct Chess.com FEN handoff is not available yet.'));
+  els.openCaissa.addEventListener('click', openCaissa);
   els.closeExport.addEventListener('click', () => { els.exportSheet.hidden = true; });
   els.exportDiagram.addEventListener('click', exportDiagram);
   els.exportFen.addEventListener('click', exportFen);
@@ -554,7 +694,6 @@
   els.takePhoto.addEventListener('click', () => openPicker(els.camera));
   els.choosePhoto.addEventListener('click', () => openPicker(els.gallery));
   els.workspaceShare.addEventListener('click', openExport);
-  els.copy.addEventListener('click', exportFen);
   els.analyze.addEventListener('click', () => {
     const fen = currentFen();
     if (!fen || !analysis) {
@@ -580,11 +719,22 @@
   els.previous.addEventListener('click', () => analysis?.previous());
   els.next.addEventListener('click', () => analysis?.next());
   els.last.addEventListener('click', () => analysis?.last());
+  document.addEventListener('pointerdown', (event) => {
+    if (!activeMenu) return;
+    if (activeMenu.menu.contains(event.target) || activeMenu.trigger.contains(event.target)) return;
+    closeMenus();
+  });
+  document.addEventListener('keydown', handleMenuKeys);
+  window.addEventListener('resize', () => {
+    if (activeMenu) positionMenu(activeMenu.menu, activeMenu.trigger);
+  });
+  window.addEventListener('caissa-auth-change', (event) => updateAuthMenu(event.detail));
 
   if (flags.scanner_beta_open === false) {
     document.querySelector('.scanner-page').innerHTML = '<section class="scanner-card"><h1>Scanner Lab is closed</h1><p>This feature flag is currently disabled.</p></section>';
     return;
   }
 
+  updateAuthMenu();
   resetAll(true);
 })();
