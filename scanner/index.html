@@ -5,57 +5,70 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#0b0f1a">
-  <title>CAISSA Scanner · Web Lab</title>
+  <title>CAISSA Scanner</title>
   <link rel="icon" href="/favicon.ico?v=4">
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
   <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.2.3">
+  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.2.4">
 </head>
 <body>
-  <header class="scanner-topbar">
-    <a class="scanner-brand" href="/play" aria-label="CAISSA Chess"><i class="fas fa-chess-knight" aria-hidden="true"></i><span>CAISSA</span></a>
-    <div class="scanner-lab-badge">Scanner Lab · Phase 2B</div>
+  <header class="scanner-topbar app-topbar">
+    <button class="top-icon back-home" id="homeBtn" type="button" aria-label="Scanner home"><i class="fas fa-chess-knight"></i></button>
+    <div class="app-title"><strong>CAISSA Scanner</strong><span>Scan · Analyze · Explore</span></div>
+    <div class="top-actions">
+      <button class="top-icon" id="shareBtn" type="button" aria-label="Share position"><i class="fas fa-share-nodes"></i></button>
+      <button class="top-icon" id="menuBtn" type="button" aria-label="More options"><i class="fas fa-bars"></i></button>
+    </div>
   </header>
 
-  <main class="scanner-page" id="scannerApp">
-    <section class="scanner-hero">
-      <div>
-        <p class="scanner-eyebrow">CAISSA Labs · Private foundation</p>
-        <h1>CAISSA Scanner</h1>
-        <p>Photo in. Confirmed FEN out. The source image never becomes the playable board.</p>
+  <main class="scanner-page app-shell" id="scannerApp">
+    <section class="scanner-home" id="homeView">
+      <div class="home-hero">
+        <div class="home-mark"><i class="fas fa-camera-retro"></i></div>
+        <h1>Scan a chess position</h1>
+        <p>Take a photo or choose an image. Analyze it, play it, or find videos about it.</p>
       </div>
-      <div class="scanner-state-pill" id="statePill">Idle</div>
+
+      <div class="home-actions" id="dropZone">
+        <label class="home-action primary-action" for="cameraInput"><i class="fas fa-camera"></i><span><strong>Take Photo</strong><small>Scan a board from a book, screen, or real board</small></span></label>
+        <label class="home-action" for="galleryInput"><i class="fas fa-image"></i><span><strong>Choose Photo</strong><small>Use an image already on your device</small></span></label>
+        <button class="home-action video-action" id="videoExplorerBtn" type="button"><i class="fab fa-youtube"></i><span><strong>Video Board Explorer</strong><small>Find chess videos from a position</small></span></button>
+        <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+        <input id="galleryInput" type="file" accept="image/*" hidden>
+      </div>
+
+      <div class="home-foot"><i class="fas fa-microchip"></i><span>Analysis powered by Stockfish 18</span></div>
     </section>
 
-    <section class="scanner-grid" aria-label="Scanner workspace">
-      <article class="scanner-card scanner-source-card">
-        <div class="scanner-card-head"><div><span class="step">1</span><h2>Source</h2></div><span class="status" id="sourceStatus">No image</span></div>
-        <div class="source-drop" id="dropZone">
-          <i class="fas fa-camera" aria-hidden="true"></i>
-          <strong>Take or choose a chess photo</strong>
-          <span>Book, magazine, screen, or printed diagram</span>
-          <div class="source-actions">
-            <label class="btn primary" for="cameraInput"><i class="fas fa-camera"></i> Take Photo</label>
-            <label class="btn" for="galleryInput"><i class="fas fa-image"></i> Choose Photo</label>
-          </div>
-          <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
-          <input id="galleryInput" type="file" accept="image/*" hidden>
-        </div>
-        <figure class="source-preview-wrap" id="sourcePreviewWrap" hidden>
-          <img id="sourcePreview" alt="Selected chess source">
-          <figcaption>Source preview — never used as the playable board.</figcaption>
-        </figure>
-      </article>
+    <section class="scanner-workspace" id="workspaceView" hidden>
+      <div class="workspace-status">
+        <div><span class="status-dot"></span><strong id="workspaceTitle">Review position</strong></div>
+        <span id="candidateStatus">Waiting</span>
+      </div>
 
-      <article class="scanner-card scanner-board-card" id="scannerBoardCard">
-        <div class="scanner-card-head"><div><span class="step">2</span><h2>Candidate position</h2></div><span class="status" id="candidateStatus">Waiting</span></div>
-        <div class="board-shell">
-          <div class="scanner-board is-empty" id="scannerBoard" aria-label="Native chessboard preview"></div>
-          <div class="board-empty" id="boardEmpty"><i class="fas fa-chess-board"></i><strong>No candidate yet</strong><span>Choose a chess image to begin.</span></div>
+      <section class="board-workspace" id="scannerBoardCard">
+        <div class="board-toolbar" aria-label="Board tools">
+          <button id="editBtn" type="button"><i class="fas fa-pen"></i><span>Edit</span></button>
+          <button id="flipBtn" type="button"><i class="fas fa-rotate"></i><span>Flip</span></button>
+          <button id="workspaceShareBtn" type="button"><i class="fas fa-share-nodes"></i><span>Share</span></button>
+          <button id="moreBtn" type="button"><i class="fas fa-ellipsis"></i><span>More</span></button>
         </div>
-        <div class="confidence-row"><span>Board confidence</span><strong id="boardConfidence">—</strong></div>
-        <p class="lab-note" id="recognitionNote">Phase 2B still uses a clearly marked mock candidate. Automatic computer vision remains off.</p>
+
+        <div class="board-shell">
+          <div class="scanner-board is-empty" id="scannerBoard" aria-label="Chess position"></div>
+          <div class="board-empty" id="boardEmpty"><i class="fas fa-chess-board"></i><strong>Preparing board…</strong></div>
+        </div>
+
+        <div class="recognition-summary" id="recognitionSummary">
+          <div><strong>Check the position</strong><span>Fix anything that does not match your source.</span></div>
+          <span class="confidence-chip" id="boardConfidence">—</span>
+        </div>
+
+        <div class="confirm-bar" id="confirmBar">
+          <button class="btn primary confirm" id="confirmBtn" type="button" disabled><i class="fas fa-circle-check"></i> Confirm Position</button>
+        </div>
 
         <section class="scanner-analysis-panel" id="analysisPanel" hidden aria-label="Stockfish 18 analysis">
           <div class="analysis-head">
@@ -69,62 +82,64 @@
           </div>
           <div class="analysis-footer"><span id="analysisMoveHint">Tap a piece, then its destination to explore a legal move.</span><code id="analysisFen"></code></div>
         </section>
-      </article>
+      </section>
 
-      <article class="scanner-card scanner-review-card">
-        <div class="scanner-card-head"><div><span class="step">3</span><h2>Review & Fix</h2></div><span class="status" id="reviewStatus">Required</span></div>
-        <div class="visual-edit" id="visualEdit" hidden>
-          <div class="visual-edit-head"><strong id="editSquareLabel">Tap a square to edit</strong><span>Visual FEN editor</span></div>
-          <div class="piece-palette" id="piecePalette" aria-label="Piece palette">
-            <button type="button" class="palette-clear" data-piece="" aria-label="Clear square"><i class="fas fa-eraser"></i><span>Clear</span></button>
-            <div class="piece-side-group white-side" role="group" aria-label="White pieces">
-              <div class="piece-side-label"><span class="side-dot"></span>WHITE PIECES</div>
-              <div class="piece-side-row">
-                <button type="button" class="piece-option white-piece" data-piece="K" aria-label="White king"><span class="piece-symbol">♔</span><small>W K</small></button>
-                <button type="button" class="piece-option white-piece" data-piece="Q" aria-label="White queen"><span class="piece-symbol">♕</span><small>W Q</small></button>
-                <button type="button" class="piece-option white-piece" data-piece="R" aria-label="White rook"><span class="piece-symbol">♖</span><small>W R</small></button>
-                <button type="button" class="piece-option white-piece" data-piece="B" aria-label="White bishop"><span class="piece-symbol">♗</span><small>W B</small></button>
-                <button type="button" class="piece-option white-piece" data-piece="N" aria-label="White knight"><span class="piece-symbol">♘</span><small>W N</small></button>
-                <button type="button" class="piece-option white-piece" data-piece="P" aria-label="White pawn"><span class="piece-symbol">♙</span><small>W P</small></button>
-              </div>
-            </div>
-            <div class="piece-side-group black-side" role="group" aria-label="Black pieces">
-              <div class="piece-side-label"><span class="side-dot"></span>BLACK PIECES</div>
-              <div class="piece-side-row">
-                <button type="button" class="piece-option black-piece" data-piece="k" aria-label="Black king"><span class="piece-symbol">♚</span><small>B K</small></button>
-                <button type="button" class="piece-option black-piece" data-piece="q" aria-label="Black queen"><span class="piece-symbol">♛</span><small>B Q</small></button>
-                <button type="button" class="piece-option black-piece" data-piece="r" aria-label="Black rook"><span class="piece-symbol">♜</span><small>B R</small></button>
-                <button type="button" class="piece-option black-piece" data-piece="b" aria-label="Black bishop"><span class="piece-symbol">♝</span><small>B B</small></button>
-                <button type="button" class="piece-option black-piece" data-piece="n" aria-label="Black knight"><span class="piece-symbol">♞</span><small>B N</small></button>
-                <button type="button" class="piece-option black-piece" data-piece="p" aria-label="Black pawn"><span class="piece-symbol">♟</span><small>B P</small></button>
-              </div>
-            </div>
+      <section class="action-dock" id="handoffCard" hidden>
+        <button class="dock-action active" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i><span>Analyze</span></button>
+        <button class="dock-action" id="playPositionBtn" type="button"><i class="fas fa-chess-knight"></i><span>Play</span></button>
+        <button class="dock-action" id="positionVideosBtn" type="button"><i class="fab fa-youtube"></i><span>Videos</span></button>
+        <button class="dock-action" id="copyFenBtn" type="button"><i class="fas fa-copy"></i><span>Copy</span></button>
+        <code id="confirmedFen" hidden></code>
+      </section>
+
+      <section class="edit-sheet" id="editSheet" hidden aria-label="Edit chess position">
+        <div class="sheet-head"><button id="cancelEditBtn" type="button">Cancel</button><strong>Edit Position</strong><button id="applyEditBtn" class="apply" type="button">Apply</button></div>
+        <div class="edit-instruction"><strong id="editSquareLabel">Tap a square</strong><span>Select a piece below, or clear the square.</span></div>
+        <div class="piece-palette app-palette" id="piecePalette" aria-label="Piece palette">
+          <div class="palette-row black-row" role="group" aria-label="Black pieces">
+            <button data-piece="k" aria-label="Black king"><img src="/img/chesspieces/wikipedia/bK.png" alt=""></button>
+            <button data-piece="q" aria-label="Black queen"><img src="/img/chesspieces/wikipedia/bQ.png" alt=""></button>
+            <button data-piece="r" aria-label="Black rook"><img src="/img/chesspieces/wikipedia/bR.png" alt=""></button>
+            <button data-piece="b" aria-label="Black bishop"><img src="/img/chesspieces/wikipedia/bB.png" alt=""></button>
+            <button data-piece="n" aria-label="Black knight"><img src="/img/chesspieces/wikipedia/bN.png" alt=""></button>
+            <button data-piece="p" aria-label="Black pawn"><img src="/img/chesspieces/wikipedia/bP.png" alt=""></button>
+          </div>
+          <div class="palette-tools"><button class="palette-clear" data-piece="" aria-label="Clear selected square"><i class="fas fa-eraser"></i><span>Clear square</span></button></div>
+          <div class="palette-row white-row" role="group" aria-label="White pieces">
+            <button data-piece="K" aria-label="White king"><img src="/img/chesspieces/wikipedia/wK.png" alt=""></button>
+            <button data-piece="Q" aria-label="White queen"><img src="/img/chesspieces/wikipedia/wQ.png" alt=""></button>
+            <button data-piece="R" aria-label="White rook"><img src="/img/chesspieces/wikipedia/wR.png" alt=""></button>
+            <button data-piece="B" aria-label="White bishop"><img src="/img/chesspieces/wikipedia/wB.png" alt=""></button>
+            <button data-piece="N" aria-label="White knight"><img src="/img/chesspieces/wikipedia/wN.png" alt=""></button>
+            <button data-piece="P" aria-label="White pawn"><img src="/img/chesspieces/wikipedia/wP.png" alt=""></button>
           </div>
         </div>
-        <label class="field-label" for="fenInput">Candidate FEN</label>
-        <textarea id="fenInput" rows="3" spellcheck="false" aria-describedby="fenHelp"></textarea>
-        <p id="fenHelp" class="field-help">Review is mandatory. Tap the board to fix pieces, or edit the FEN directly, then validate.</p>
-        <div class="review-tools">
-          <button class="btn" id="validateBtn" type="button"><i class="fas fa-check-circle"></i> Validate</button>
-          <button class="btn" id="flipBtn" type="button"><i class="fas fa-arrows-up-down"></i> Flip Board</button>
-          <button class="btn danger-ghost" id="resetBtn" type="button"><i class="fas fa-rotate-left"></i> Start Over</button>
-        </div>
-        <div class="validation-box" id="validationBox" role="status" aria-live="polite">Choose an image to begin.</div>
-        <button class="btn primary confirm" id="confirmBtn" type="button" disabled><i class="fas fa-circle-check"></i> Confirm Position</button>
-      </article>
+      </section>
+
+      <section class="more-sheet" id="moreSheet" hidden aria-label="Scanner options">
+        <div class="sheet-head"><button id="closeMoreBtn" type="button">Close</button><strong>Position Options</strong><span></span></div>
+        <button class="menu-row" id="newScanBtn" type="button"><i class="fas fa-camera"></i><span><strong>New Scan</strong><small>Take or choose another image</small></span></button>
+        <button class="menu-row" id="moreFlipBtn" type="button"><i class="fas fa-rotate"></i><span><strong>Flip Board</strong><small>Change board orientation</small></span></button>
+        <details class="advanced-position">
+          <summary><i class="fas fa-code"></i><span>Advanced position data</span></summary>
+          <label class="field-label" for="fenInput">FEN</label>
+          <textarea id="fenInput" rows="3" spellcheck="false"></textarea>
+          <div class="advanced-actions"><button class="btn" id="validateBtn" type="button">Validate</button><button class="btn danger-ghost" id="resetBtn" type="button">Start Over</button></div>
+          <div class="validation-box" id="validationBox" role="status" aria-live="polite">Choose an image to begin.</div>
+        </details>
+        <figure class="source-preview-wrap" id="sourcePreviewWrap" hidden><img id="sourcePreview" alt="Selected chess source"><figcaption>Original source image</figcaption></figure>
+      </section>
+
+      <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
+      <span id="sourceStatus" hidden>No image</span><span id="reviewStatus" hidden>Required</span><span id="statePill" hidden>Idle</span>
     </section>
 
-    <section class="scanner-card handoff-card" id="handoffCard" hidden>
-      <div class="scanner-card-head"><div><span class="step done"><i class="fas fa-check"></i></span><h2>Confirmed FEN</h2></div><span class="status success">Trusted boundary crossed</span></div>
-      <code id="confirmedFen"></code>
-      <div class="handoff-actions">
-        <button class="btn primary" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i> Analyze Here</button>
-        <button class="btn" id="copyFenBtn" type="button"><i class="fas fa-copy"></i> Copy FEN</button>
-      </div>
-      <p class="field-help">Analysis stays inside Scanner and uses CAISSA's canonical Stockfish 18 provider.</p>
+    <section class="app-menu" id="appMenu" hidden>
+      <button class="menu-row" id="menuNewScan" type="button"><i class="fas fa-camera"></i><span><strong>New Scan</strong><small>Return to Scanner home</small></span></button>
+      <button class="menu-row" id="menuVideos" type="button"><i class="fab fa-youtube"></i><span><strong>Video Board Explorer</strong><small>Find videos from a position</small></span></button>
+      <button class="menu-row" id="menuPrivacy" type="button"><i class="fas fa-shield-halved"></i><span><strong>Privacy</strong><small>Images stay local in this Web Lab</small></span></button>
+      <div class="lab-marker">CAISSA Labs · Phase 2C</div>
     </section>
-
-    <section class="scanner-privacy"><i class="fas fa-shield-halved" aria-hidden="true"></i><div><strong>Privacy foundation</strong><span>This Web Lab does not upload the selected image, save it to an account, or contribute it to training data.</span></div></section>
   </main>
 
   <script src="/assets/vendor/chess.js/chess-0.10.3.min.js"></script>
@@ -132,10 +147,10 @@
   <script src="/js/engine-registry.js"></script>
   <script src="/config/scanner-flags.js?v=0.2.0"></script>
   <script src="/scanner/scanner-state.js?v=0.2.0"></script>
-  <script src="/scanner/scanner-fen.js?v=0.2.3"></script>
+  <script src="/scanner/scanner-fen.js?v=0.2.4"></script>
   <script src="/scanner/scanner-adapters.js?v=0.2.0"></script>
   <script src="/scanner/scanner-analysis.js?v=0.2.3"></script>
-  <script src="/scanner/scanner-app.js?v=0.2.3"></script>
+  <script src="/scanner/scanner-app.js?v=0.2.4"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>
