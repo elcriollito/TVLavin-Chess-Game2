@@ -54,10 +54,65 @@
           </div>
         </div>
 
+        <section class="edit-workspace" id="editSheet" hidden aria-label="Edit chess position">
+          <div class="edit-toolbar">
+            <div class="edit-primary-actions">
+              <button class="edit-apply" id="applyEditBtn" type="button"><i class="fas fa-check" aria-hidden="true"></i><span>Apply</span></button>
+              <button class="edit-cancel" id="cancelEditBtn" type="button">Cancel</button>
+            </div>
+            <div class="edit-icon-actions">
+              <button id="editLibraryBtn" type="button" aria-label="Add to Diagram Library"><i class="fas fa-star" aria-hidden="true"></i><span>Soon</span></button>
+              <button id="editExportBtn" type="button" aria-label="Export working position"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i></button>
+              <button id="editMenuBtn" type="button" aria-label="Open Scanner menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scannerProductMenu"><i class="fas fa-bars" aria-hidden="true"></i></button>
+            </div>
+          </div>
+
+          <div class="edit-settings" aria-label="Edit position settings">
+            <div class="turn-selector" role="group" aria-label="Side to move">
+              <button id="editWhiteTurnBtn" type="button" aria-pressed="true"><span class="turn-dot white"></span>White</button>
+              <button id="editBlackTurnBtn" type="button" aria-pressed="false"><span class="turn-dot black"></span>Black</button>
+            </div>
+            <button id="editCastlingBtn" type="button" aria-expanded="false" aria-controls="editCastlingPanel"><i class="fas fa-chess-rook" aria-hidden="true"></i><span>Castling</span></button>
+            <button id="clearBoardBtn" type="button"><i class="fas fa-trash-can" aria-hidden="true"></i><span>Clear Board</span></button>
+            <button class="clear-square-tool" id="clearSquareBtn" type="button" data-tool="clear" aria-pressed="false"><i class="fas fa-eraser" aria-hidden="true"></i><span>Clear Square</span></button>
+            <button id="editFlipBtn" type="button"><i class="fas fa-rotate" aria-hidden="true"></i><span>Flip</span></button>
+          </div>
+
+          <div class="castling-panel" id="editCastlingPanel" hidden aria-label="Castling rights">
+            <strong>Castling rights</strong>
+            <label><input type="checkbox" data-castling="K"><span>White O-O</span></label>
+            <label><input type="checkbox" data-castling="Q"><span>White O-O-O</span></label>
+            <label><input type="checkbox" data-castling="k"><span>Black O-O</span></label>
+            <label><input type="checkbox" data-castling="q"><span>Black O-O-O</span></label>
+          </div>
+
+          <div class="edit-tool-status" id="editToolStatus" role="status" aria-live="polite"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Select a piece or Clear Square</span></div>
+          <div class="edit-palette black-palette" id="blackPiecePalette" role="group" aria-label="Black pieces">
+            <button type="button" data-piece="k" aria-label="Select black king" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bK.png" alt=""></button>
+            <button type="button" data-piece="q" aria-label="Select black queen" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bQ.png" alt=""></button>
+            <button type="button" data-piece="r" aria-label="Select black rook" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bR.png" alt=""></button>
+            <button type="button" data-piece="b" aria-label="Select black bishop" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bB.png" alt=""></button>
+            <button type="button" data-piece="n" aria-label="Select black knight" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bN.png" alt=""></button>
+            <button type="button" data-piece="p" aria-label="Select black pawn" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bP.png" alt=""></button>
+          </div>
+        </section>
+
         <div class="board-shell">
           <div class="scanner-board is-empty" id="scannerBoard" aria-label="Chess position"></div>
           <div class="board-empty" id="boardEmpty"><i class="fas fa-chess-board"></i><strong>Preparing board…</strong></div>
         </div>
+
+        <section class="edit-board-footer" id="editBoardFooter" hidden aria-label="White pieces and clearing tool">
+          <div class="edit-palette white-palette" id="whitePiecePalette" role="group" aria-label="White pieces">
+            <button type="button" data-piece="K" aria-label="Select white king" aria-pressed="false"><img src="/img/chesspieces/wikipedia/wK.png" alt=""></button>
+            <button type="button" data-piece="Q" aria-label="Select white queen" aria-pressed="false"><img src="/img/chesspieces/wikipedia/wQ.png" alt=""></button>
+            <button type="button" data-piece="R" aria-label="Select white rook" aria-pressed="false"><img src="/img/chesspieces/wikipedia/wR.png" alt=""></button>
+            <button type="button" data-piece="B" aria-label="Select white bishop" aria-pressed="false"><img src="/img/chesspieces/wikipedia/wB.png" alt=""></button>
+            <button type="button" data-piece="N" aria-label="Select white knight" aria-pressed="false"><img src="/img/chesspieces/wikipedia/wN.png" alt=""></button>
+            <button type="button" data-piece="P" aria-label="Select white pawn" aria-pressed="false"><img src="/img/chesspieces/wikipedia/wP.png" alt=""></button>
+          </div>
+          <div class="edit-validation" id="editValidation" role="status" aria-live="polite">Select a piece or Clear Square, then tap the board.</div>
+        </section>
 
         <div class="recognition-summary" id="recognitionSummary">
           <div><strong>Check the position</strong><span>Fix anything that does not match your source.</span></div>
@@ -102,30 +157,6 @@
         <span>New Scan</span>
       </div>
       <code id="confirmedFen" hidden></code>
-
-      <section class="edit-sheet" id="editSheet" hidden aria-label="Edit chess position">
-        <div class="sheet-head"><button id="cancelEditBtn" type="button">Cancel</button><strong>Edit Position</strong><button id="applyEditBtn" class="apply" type="button">Apply</button></div>
-        <div class="edit-instruction"><strong id="editSquareLabel">Tap a square</strong><span>Edit this position directly.</span></div>
-        <div class="piece-palette app-palette" id="piecePalette" aria-label="Piece palette">
-          <div class="palette-row black-row" role="group" aria-label="Black pieces">
-            <button data-piece="k" aria-label="Black king"><img src="/img/chesspieces/wikipedia/bK.png" alt=""></button>
-            <button data-piece="q" aria-label="Black queen"><img src="/img/chesspieces/wikipedia/bQ.png" alt=""></button>
-            <button data-piece="r" aria-label="Black rook"><img src="/img/chesspieces/wikipedia/bR.png" alt=""></button>
-            <button data-piece="b" aria-label="Black bishop"><img src="/img/chesspieces/wikipedia/bB.png" alt=""></button>
-            <button data-piece="n" aria-label="Black knight"><img src="/img/chesspieces/wikipedia/bN.png" alt=""></button>
-            <button data-piece="p" aria-label="Black pawn"><img src="/img/chesspieces/wikipedia/bP.png" alt=""></button>
-          </div>
-          <div class="palette-tools"><button class="palette-clear" data-piece="" aria-label="Clear selected square"><i class="fas fa-eraser"></i><span>Clear square</span></button></div>
-          <div class="palette-row white-row" role="group" aria-label="White pieces">
-            <button data-piece="K" aria-label="White king"><img src="/img/chesspieces/wikipedia/wK.png" alt=""></button>
-            <button data-piece="Q" aria-label="White queen"><img src="/img/chesspieces/wikipedia/wQ.png" alt=""></button>
-            <button data-piece="R" aria-label="White rook"><img src="/img/chesspieces/wikipedia/wR.png" alt=""></button>
-            <button data-piece="B" aria-label="White bishop"><img src="/img/chesspieces/wikipedia/wB.png" alt=""></button>
-            <button data-piece="N" aria-label="White knight"><img src="/img/chesspieces/wikipedia/wN.png" alt=""></button>
-            <button data-piece="P" aria-label="White pawn"><img src="/img/chesspieces/wikipedia/wP.png" alt=""></button>
-          </div>
-        </div>
-      </section>
 
       <section class="export-sheet" id="exportSheet" hidden aria-label="Export position">
         <div class="sheet-head"><button id="closeExportBtn" type="button">Cancel</button><strong>Export as</strong><span></span></div>

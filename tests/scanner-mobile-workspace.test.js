@@ -43,6 +43,18 @@ test('top and lower hamburgers expose separate product and analysis menus', asyn
   assert.match(html, /role="menuitem"/);
 });
 
+test('Edit mode exposes tool-first palettes and compact position controls', async () => {
+  const html = await read('scanner/index.html');
+  for (const id of ['editSheet', 'applyEditBtn', 'cancelEditBtn', 'editWhiteTurnBtn', 'editBlackTurnBtn', 'editCastlingBtn', 'clearBoardBtn', 'clearSquareBtn', 'editFlipBtn', 'editLibraryBtn', 'editExportBtn', 'editMenuBtn']) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.equal((html.match(/data-piece="[kqrbnpKQRBNP]"/g) || []).length, 12);
+  assert.match(html, /id="blackPiecePalette"[\s\S]*data-piece="k"[\s\S]*data-piece="q"[\s\S]*data-piece="r"[\s\S]*data-piece="b"[\s\S]*data-piece="n"[\s\S]*data-piece="p"/);
+  assert.match(html, /id="whitePiecePalette"[\s\S]*data-piece="K"[\s\S]*data-piece="Q"[\s\S]*data-piece="R"[\s\S]*data-piece="B"[\s\S]*data-piece="N"[\s\S]*data-piece="P"/);
+  assert.match(html, /Add to Diagram Library/);
+  assert.match(html, /id="editLibraryBtn"[\s\S]*>Soon</);
+});
+
 test('FEN stays internal and export opens a format chooser', async () => {
   const html = await read('scanner/index.html');
   assert.match(html, /id="fenInput" hidden aria-hidden="true"/);
@@ -95,6 +107,23 @@ test('geometry remains an integer 8 by 8 persistent grid', async () => {
   assert.match(geometryCss, /repeat\(8,var\(--scanner-square-size/);
   assert.match(fen, /squares\.length === 64/);
   assert.match(fen, /for \(let i = 0; i < 64; i \+= 1\)/);
+});
+
+test('FEN draft helpers preserve fields while supporting incomplete edit boards', async () => {
+  const source = await read('scanner/scanner-fen.js');
+  const window = {};
+  vm.runInNewContext(source, { window });
+  const tools = window.CaissaScannerFen;
+  const fen = 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq e3 4 10';
+  const cleared = tools.clearBoard(fen);
+  assert.equal(cleared, '8/8/8/8/8/8/8/8 w KQkq - 4 10');
+  assert.equal(tools.validate(cleared).ok, false);
+  assert.equal(tools.validateDraft(cleared).ok, true);
+  assert.equal(tools.setSideToMove(fen, 'b'), 'r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 4 10');
+  assert.equal(tools.setCastling(fen, 'qK'), 'r3k2r/8/8/8/8/8/8/R3K2R w Kq e3 4 10');
+  const repeated = tools.mutateSquare(tools.mutateSquare(fen, 3, 7, 'p'), 2, 6, 'p');
+  assert.equal(tools.validateDraft(repeated).board[3][7], 'p');
+  assert.equal(tools.validateDraft(repeated).board[2][6], 'p');
 });
 
 test('analysis handoffs preserve exact FEN and use canonical CAISSA transport', async () => {

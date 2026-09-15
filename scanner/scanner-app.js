@@ -5,6 +5,7 @@
   const state = window.CaissaScannerState;
   const fenTools = window.CaissaScannerFen;
   const MOCK_FEN = 'r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R w KQkq - 4 10';
+  const PIECE_NAMES = Object.freeze({ K: 'White King', Q: 'White Queen', R: 'White Rook', B: 'White Bishop', N: 'White Knight', P: 'White Pawn', k: 'Black King', q: 'Black Queen', r: 'Black Rook', b: 'Black Bishop', n: 'Black Knight', p: 'Black Pawn' });
   const $ = (id) => document.getElementById(id);
   const els = {
     home: $('homeView'),
@@ -37,8 +38,22 @@
     editSheet: $('editSheet'),
     cancelEdit: $('cancelEditBtn'),
     applyEdit: $('applyEditBtn'),
-    editSquareLabel: $('editSquareLabel'),
-    palette: $('piecePalette'),
+    editFooter: $('editBoardFooter'),
+    editToolStatus: $('editToolStatus'),
+    editValidation: $('editValidation'),
+    blackPalette: $('blackPiecePalette'),
+    whitePalette: $('whitePiecePalette'),
+    clearSquare: $('clearSquareBtn'),
+    clearBoard: $('clearBoardBtn'),
+    editWhiteTurn: $('editWhiteTurnBtn'),
+    editBlackTurn: $('editBlackTurnBtn'),
+    editCastling: $('editCastlingBtn'),
+    editCastlingPanel: $('editCastlingPanel'),
+    castlingInputs: [...document.querySelectorAll('#editCastlingPanel [data-castling]')],
+    editFlip: $('editFlipBtn'),
+    editLibrary: $('editLibraryBtn'),
+    editExport: $('editExportBtn'),
+    editMenu: $('editMenuBtn'),
     moreBtn: $('moreBtn'),
     boardActions: $('boardActionsBtn'),
     productMenu: $('scannerProductMenu'),
@@ -85,6 +100,8 @@
   let editWasConfirmed = false;
   let editResumeAnalysis = false;
   let editOriginalFen = '';
+  let editOriginalFlipped = false;
+  let activeEditTool = null;
   let activeMenu = null;
 
   const lineEls = [1, 2, 3].map((number) => ({
@@ -129,6 +146,7 @@
     const trigger = activeMenu?.trigger;
     [
       { menu: els.productMenu, trigger: els.moreBtn },
+      { menu: els.productMenu, trigger: els.editMenu },
       { menu: els.analysisMenu, trigger: els.boardActions }
     ].forEach(({ menu, trigger: menuTrigger }) => {
       menu.hidden = true;
@@ -173,7 +191,6 @@
   }
 
   function closeSheets() {
-    els.editSheet.hidden = true;
     els.exportSheet.hidden = true;
     els.newScanSheet.hidden = true;
     closeMenus();
@@ -203,7 +220,7 @@
   }
 
   function updateSideToMove(fen) {
-    const result = fenTools.validate(fen || '');
+    const result = fenTools.validateDraft(fen || '');
     if (!result.ok) return;
     const black = result.fen.split(' ')[1] === 'b';
     els.sidePiece.classList.toggle('white', !black);
@@ -212,15 +229,67 @@
     els.sideText.textContent = black ? 'Black to move' : 'White to move';
   }
 
+  function isEditing() {
+    return !els.editSheet.hidden;
+  }
+
+  function setEditFeedback(text, type = '') {
+    els.editValidation.textContent = text;
+    els.editValidation.className = 'edit-validation' + (type ? ' ' + type : '');
+  }
+
+  function syncEditFields(fen) {
+    const result = fenTools.validateDraft(fen);
+    if (!result.ok) return;
+    const [, turn, castling] = result.fen.split(' ');
+    els.editWhiteTurn.setAttribute('aria-pressed', String(turn === 'w'));
+    els.editBlackTurn.setAttribute('aria-pressed', String(turn === 'b'));
+    els.castlingInputs.forEach((input) => { input.checked = castling.includes(input.dataset.castling); });
+  }
+
+  function selectEditTool(tool) {
+    activeEditTool = tool;
+    const buttons = [...els.blackPalette.querySelectorAll('[data-piece]'), ...els.whitePalette.querySelectorAll('[data-piece]'), els.clearSquare];
+    buttons.forEach((button) => {
+      const value = button.dataset.tool === 'clear' ? 'clear' : button.dataset.piece;
+      button.setAttribute('aria-pressed', String(value === tool));
+    });
+    const label = tool === 'clear' ? 'Clear Square' : PIECE_NAMES[tool];
+    els.editToolStatus.classList.toggle('is-active', Boolean(label));
+    els.editToolStatus.querySelector('span').textContent = label ? 'Selected: ' + label : 'Select a piece or Clear Square';
+    if (label) setEditFeedback(label + ' is ready. Tap one or more squares.');
+  }
+
   function chooseSquare(row, col) {
-    if (state.snapshot().state !== state.STATES.REVIEW || els.editSheet.hidden) return;
+    if (!isEditing()) return;
+    if (!activeEditTool) {
+      setEditFeedback('Select a piece or Clear Square before tapping the board.', 'error');
+      return;
+    }
+    const piece = activeEditTool === 'clear' ? '' : activeEditTool;
+    const nextFen = fenTools.mutateSquare(els.fen.value, row, col, piece);
+    if (!nextFen) return;
+    els.fen.value = nextFen;
     selectedSquare = { row, col };
-    els.editSquareLabel.textContent = 'Editing ' + fenTools.squareName(row, col);
+    const action = activeEditTool === 'clear' ? 'Cleared ' : 'Placed ' + PIECE_NAMES[activeEditTool] + ' on ';
     validateCurrent(false);
+    const result = fenTools.validate(nextFen);
+    setEditFeedback(action + fenTools.squareName(row, col) + (result.ok ? '. Ready to apply.' : '. ' + result.error), result.ok ? 'ok' : 'error');
   }
 
   function validateCurrent(updateMessage = true) {
     const result = fenTools.validate(els.fen.value);
+    if (isEditing()) {
+      const draft = fenTools.validateDraft(els.fen.value);
+      if (draft.ok) {
+        setBoardEmpty(false);
+        fenTools.renderDraft(els.board, draft.fen, flipped, chooseSquare, selectedSquare);
+        updateSideToMove(draft.fen);
+        syncEditFields(draft.fen);
+      }
+      if (updateMessage) setEditFeedback(result.ok ? 'Position is valid and ready to apply.' : result.error, result.ok ? 'ok' : 'error');
+      return result;
+    }
     els.confirm.disabled = !result.ok || state.snapshot().state !== state.STATES.REVIEW;
     if (result.ok) {
       setBoardEmpty(false);
@@ -233,6 +302,10 @@
   }
 
   function currentFen() {
+    if (isEditing()) {
+      const editing = fenTools.validate(els.fen.value);
+      return editing.ok ? editing.fen : '';
+    }
     const snapshot = state.snapshot();
     if (snapshot.state === state.STATES.CONFIRMED) {
       const analysisFen = analysis?.currentFen();
@@ -325,6 +398,11 @@
     editWasConfirmed = false;
     editResumeAnalysis = false;
     editOriginalFen = '';
+    editOriginalFlipped = false;
+    activeEditTool = null;
+    els.editSheet.hidden = true;
+    els.editFooter.hidden = true;
+    els.workspace.classList.remove('edit-mode');
     closeSheets();
     fenTools.renderEmpty(els.board);
     setBoardEmpty(true);
@@ -355,18 +433,24 @@
   }
 
   async function startAnalysis(fen, silent = false) {
-    if (!analysis || !fen) return;
+    if (!analysis || !fen) return false;
     els.analyze.disabled = true;
     els.analyze.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Starting</span>';
     els.engineToggle.checked = true;
     try {
-      await analysis.start(fen);
+      const started = await analysis.start(fen);
+      if (!started) {
+        els.analyze.disabled = false;
+        els.analyze.innerHTML = '<i class="fas fa-chart-line"></i><span>Analyze</span>';
+        return false;
+      }
       analysis.setFlipped(flipped);
       els.workspaceTitle.textContent = 'Analyze position';
       els.candidateStatus.textContent = 'Stockfish 18';
       els.analyze.disabled = false;
       els.analyze.innerHTML = '<i class="fas fa-chart-line"></i><span>Analyze</span>';
       if (!silent) toast('Stockfish 18 is analyzing with 3 lines.');
+      return true;
     } catch (error) {
       analysis.stop();
       els.analysisPanel.hidden = false;
@@ -376,6 +460,7 @@
       els.analyze.disabled = false;
       els.analyze.innerHTML = '<i class="fas fa-rotate-right"></i><span>Retry</span>';
       els.engineToggle.checked = false;
+      return false;
     }
   }
 
@@ -397,12 +482,12 @@
     editWasConfirmed = snapshot.state === state.STATES.CONFIRMED;
     editResumeAnalysis = Boolean(analysis?.isActive());
     editOriginalFen = fen;
+    editOriginalFlipped = flipped;
     if (editWasConfirmed) {
       analysis?.stop();
       els.analysisPanel.hidden = true;
       els.engineToggle.checked = false;
       els.fen.value = fen;
-      state.revise(fen);
       els.confirmBar.hidden = true;
       els.recognitionSummary.hidden = true;
       els.handoff.hidden = false;
@@ -412,11 +497,27 @@
     }
     closeSheets();
     els.editSheet.hidden = false;
+    els.editFooter.hidden = false;
+    els.workspace.classList.add('edit-mode');
     selectedSquare = null;
-    els.editSquareLabel.textContent = 'Tap a square';
+    selectEditTool(null);
+    syncEditFields(fen);
     validateCurrent(false);
+    setEditFeedback('Select a piece or Clear Square, then tap the board.');
     els.workspaceTitle.textContent = 'Edit position';
     els.candidateStatus.textContent = 'Editing';
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+
+  function leaveEditMode() {
+    els.editSheet.hidden = true;
+    els.editFooter.hidden = true;
+    els.editCastlingPanel.hidden = true;
+    els.editCastling.setAttribute('aria-expanded', 'false');
+    els.workspace.classList.remove('edit-mode');
+    selectedSquare = null;
+    selectEditTool(null);
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
 
   async function closeEdit(apply) {
@@ -426,45 +527,76 @@
         toast(result.error);
         return;
       }
-      selectedSquare = null;
-      els.editSheet.hidden = true;
       if (editWasConfirmed) {
+        state.revise(result.fen);
         const confirmed = state.confirm(result.fen);
         els.confirmed.textContent = confirmed.fen;
         els.handoff.hidden = false;
         els.confirmBar.hidden = true;
         els.recognitionSummary.hidden = true;
+        analysis?.setFlipped(flipped);
         analysis?.setPosition(result.fen);
+        leaveEditMode();
         fenTools.render(els.board, result.fen, flipped, null, null);
         els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
         els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
         if (editResumeAnalysis) await startAnalysis(result.fen, true);
         toast('Position updated.');
       } else {
+        state.revise(result.fen);
+        leaveEditMode();
         validateCurrent(false);
       }
     } else {
-      selectedSquare = null;
-      els.editSheet.hidden = true;
+      flipped = editOriginalFlipped;
       if (editWasConfirmed && editOriginalFen) {
         els.fen.value = editOriginalFen;
-        const confirmed = state.confirm(editOriginalFen);
-        els.confirmed.textContent = confirmed.fen;
+        els.confirmed.textContent = editOriginalFen;
         els.handoff.hidden = false;
         els.confirmBar.hidden = true;
         els.recognitionSummary.hidden = true;
+        analysis?.setFlipped(flipped);
         analysis?.setPosition(editOriginalFen);
+        leaveEditMode();
         fenTools.render(els.board, editOriginalFen, flipped, null, null);
         els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
         els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
         if (editResumeAnalysis) await startAnalysis(editOriginalFen, true);
       } else {
+        els.fen.value = editOriginalFen;
+        leaveEditMode();
         validateCurrent(false);
       }
     }
     editWasConfirmed = false;
     editResumeAnalysis = false;
     editOriginalFen = '';
+    editOriginalFlipped = false;
+  }
+
+  function setEditTurn(side) {
+    const nextFen = fenTools.setSideToMove(els.fen.value, side);
+    if (!nextFen) return;
+    els.fen.value = nextFen;
+    selectedSquare = null;
+    validateCurrent();
+  }
+
+  function updateCastling() {
+    const rights = els.castlingInputs.filter((input) => input.checked).map((input) => input.dataset.castling).join('');
+    const nextFen = fenTools.setCastling(els.fen.value, rights);
+    if (!nextFen) return;
+    els.fen.value = nextFen;
+    validateCurrent();
+  }
+
+  function clearEditingBoard() {
+    const nextFen = fenTools.clearBoard(els.fen.value);
+    if (!nextFen) return;
+    els.fen.value = nextFen;
+    selectedSquare = null;
+    validateCurrent(false);
+    setEditFeedback('Board cleared. Add exactly one white king and one black king before applying.', 'error');
   }
 
   function openExport() {
@@ -554,7 +686,8 @@
 
   function flipBoard() {
     flipped = !flipped;
-    if (analysis?.currentFen()) analysis.setFlipped(flipped);
+    if (isEditing()) validateCurrent(false);
+    else if (analysis?.currentFen()) analysis.setFlipped(flipped);
     else validateCurrent(false);
   }
 
@@ -656,14 +789,21 @@
     els.drop.classList.remove('dragging');
   }));
   els.drop.addEventListener('drop', (event) => selectFile(event.dataTransfer?.files?.[0]));
-  els.palette.addEventListener('click', (event) => {
+  [els.blackPalette, els.whitePalette].forEach((palette) => palette.addEventListener('click', (event) => {
     const button = event.target.closest('[data-piece]');
-    if (!button || !selectedSquare) return;
-    const nextFen = fenTools.mutateSquare(els.fen.value, selectedSquare.row, selectedSquare.col, button.dataset.piece);
-    if (!nextFen) return;
-    els.fen.value = nextFen;
-    validateCurrent();
+    if (!button) return;
+    selectEditTool(button.dataset.piece);
+  }));
+  els.clearSquare.addEventListener('click', () => selectEditTool('clear'));
+  els.clearBoard.addEventListener('click', clearEditingBoard);
+  els.editWhiteTurn.addEventListener('click', () => setEditTurn('w'));
+  els.editBlackTurn.addEventListener('click', () => setEditTurn('b'));
+  els.editCastling.addEventListener('click', () => {
+    const open = els.editCastlingPanel.hidden;
+    els.editCastlingPanel.hidden = !open;
+    els.editCastling.setAttribute('aria-expanded', String(open));
   });
+  els.castlingInputs.forEach((input) => input.addEventListener('change', updateCastling));
   els.validate.addEventListener('click', () => validateCurrent());
   els.fen.addEventListener('input', () => {
     selectedSquare = null;
@@ -674,6 +814,10 @@
   els.editBtn.addEventListener('click', openEdit);
   els.cancelEdit.addEventListener('click', () => closeEdit(false));
   els.applyEdit.addEventListener('click', () => closeEdit(true));
+  els.editFlip.addEventListener('click', flipBoard);
+  els.editLibrary.addEventListener('click', () => toast('Diagram Library — coming soon.'));
+  els.editExport.addEventListener('click', openExport);
+  els.editMenu.addEventListener('click', () => toggleMenu(els.productMenu, els.editMenu));
   els.moreBtn.addEventListener('click', () => toggleMenu(els.productMenu, els.moreBtn));
   els.boardActions.addEventListener('click', () => toggleMenu(els.analysisMenu, els.boardActions));
   els.diagramLibrary.addEventListener('click', () => placeholder('Diagram Library is coming soon.'));

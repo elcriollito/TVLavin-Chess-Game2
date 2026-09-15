@@ -88,8 +88,8 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await selectAndConfirm(page);
     const originalFen = await page.locator('#confirmedFen').textContent();
     await page.locator('#editBtn').click();
+    await page.locator('#clearSquareBtn').click();
     await page.locator('#scannerBoard .sq[aria-label="a2 wP"]').click();
-    await page.locator('.palette-clear').click();
     await page.locator('#applyEditBtn').click();
     await expect(page.locator('#confirmedFen')).not.toHaveText(originalFen);
     await expect(page.locator('#editSheet')).toBeHidden();
@@ -105,6 +105,132 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await page.locator('#exportFenBtn').click();
     await expect(page.locator('#appToast')).toBeVisible();
     await expect(page.locator('#appToast')).toContainText(/FEN copied| w | b /);
+  });
+
+  test('Edit opens the currently visible analyzed position without invoking image pickers', async ({ page }) => {
+    await selectAndConfirm(page);
+    await page.evaluate(() => {
+      window.__scannerPickerClicks = 0;
+      document.querySelector('#cameraInput').addEventListener('click', () => { window.__scannerPickerClicks += 1; });
+      document.querySelector('#galleryInput').addEventListener('click', () => { window.__scannerPickerClicks += 1; });
+    });
+    await page.locator('#analyzeBtn').click();
+    await page.locator('#scannerBoard .sq[aria-label="d5 wN"]').click();
+    await page.locator('#scannerBoard .sq[aria-label="f6 bN"]').click();
+    const exploredFen = await page.locator('#confirmedFen').textContent();
+    await page.locator('#editBtn').click();
+    await expect(page.getByRole('region', { name: 'Edit chess position' })).toBeVisible();
+    await expect(page.locator('#fenInput')).toHaveValue(exploredFen);
+    await expect(page.locator('#analysisPanel')).toBeHidden();
+    await expect(page.locator('#newScanBtn')).toBeHidden();
+    expect(await page.evaluate(() => window.__scannerPickerClicks)).toBe(0);
+  });
+
+  test('piece tools stay visibly armed for repeated placement, clearing, and flipped mapping', async ({ page }) => {
+    await selectAndConfirm(page);
+    await page.locator('#editBtn').click();
+    const pieces = ['k', 'q', 'r', 'b', 'n', 'p', 'K', 'Q', 'R', 'B', 'N', 'P'];
+    for (const piece of pieces) {
+      const tool = page.locator(`${piece === piece.toLowerCase() ? '#blackPiecePalette' : '#whitePiecePalette'} [data-piece="${piece}"]`);
+      await tool.click();
+      await expect(tool).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('[data-piece][aria-pressed="true"], #clearSquareBtn[aria-pressed="true"]')).toHaveCount(1);
+    }
+
+    await page.locator('#blackPiecePalette [data-piece="p"]').click();
+    for (const square of ['a5', 'b5', 'c5']) await page.locator(`#scannerBoard .sq[aria-label^="${square} "]`).click();
+    let placed = await page.evaluate(() => window.CaissaScannerFen.validateDraft(document.querySelector('#fenInput').value).board);
+    expect(placed[3].slice(0, 3)).toEqual(['p', 'p', 'p']);
+
+    await page.locator('#clearSquareBtn').click();
+    await expect(page.locator('#clearSquareBtn')).toHaveAttribute('aria-pressed', 'true');
+    for (const square of ['a5', 'b5']) await page.locator(`#scannerBoard .sq[aria-label^="${square} "]`).click();
+    placed = await page.evaluate(() => window.CaissaScannerFen.validateDraft(document.querySelector('#fenInput').value).board);
+    expect(placed[3].slice(0, 3)).toEqual(['', '', 'p']);
+
+    await page.locator('#editFlipBtn').click();
+    await page.locator('#whitePiecePalette [data-piece="Q"]').click();
+    await page.locator('#scannerBoard .sq').first().click();
+    const flippedTarget = await page.evaluate(() => window.CaissaScannerFen.validateDraft(document.querySelector('#fenInput').value).board[7][7]);
+    expect(flippedTarget).toBe('Q');
+  });
+
+  test('Clear Board and every editable FEN field are isolated until Apply', async ({ page }) => {
+    await selectAndConfirm(page);
+    const originalFen = await page.locator('#confirmedFen').textContent();
+    await page.locator('#editBtn').click();
+    await page.locator('#blackPiecePalette [data-piece="p"]').click();
+    await page.locator('#scannerBoard .sq[aria-label="a5 empty"]').click();
+    await page.locator('#clearSquareBtn').click();
+    await page.locator('#scannerBoard .sq[aria-label="a7 bP"]').click();
+    await page.locator('#editBlackTurnBtn').click();
+    await expect(page.locator('#fenInput')).toHaveValue(/ b /);
+    await page.locator('#editWhiteTurnBtn').click();
+    await expect(page.locator('#fenInput')).toHaveValue(/ w /);
+    await page.locator('#editCastlingBtn').click();
+    await page.locator('[data-castling="K"]').uncheck();
+    await page.locator('#clearBoardBtn').click();
+    await expect(page.locator('#fenInput')).toHaveValue(/^8\/8\/8\/8\/8\/8\/8\/8 w Qkq - 4 10$/);
+    await expect(page.locator('#editValidation')).toContainText('exactly one white king');
+    await page.locator('#editFlipBtn').click();
+    await page.locator('#cancelEditBtn').click();
+    await expect(page.locator('#confirmedFen')).toHaveText(originalFen);
+    await expect(page.locator('#fenInput')).toHaveValue(originalFen);
+    expect((await page.evaluate(() => window.CaissaScannerState.snapshot())).state).toBe('confirmed');
+    await expect(page.locator('#scannerBoard .sq').first()).toHaveAttribute('aria-label', /^a8 /);
+  });
+
+  test('invalid king edits stay in Edit and valid Apply replaces analysis without stale FEN', async ({ page }) => {
+    await selectAndConfirm(page);
+    await page.evaluate(() => { window.__scannerFirstSquareNode = document.querySelector('#scannerBoard .sq'); });
+    await page.locator('#analyzeBtn').click();
+    await expect(page.locator('#analysisPanel')).toBeVisible();
+    await page.locator('#editBtn').click();
+    await page.locator('#clearSquareBtn').click();
+    await page.locator('#scannerBoard .sq[aria-label="e8 bK"]').click();
+    await expect(page.locator('#scannerBoard .sq[aria-label="e8 empty"]')).toBeVisible();
+    await page.locator('#applyEditBtn').click();
+    await expect(page.locator('#editSheet')).toBeVisible();
+    await expect(page.locator('#editValidation')).toContainText('exactly one white king and one black king');
+
+    await page.locator('#blackPiecePalette [data-piece="k"]').click();
+    await page.locator('#scannerBoard .sq[aria-label="e8 empty"]').click();
+    await page.locator('#editBlackTurnBtn').click();
+    await page.locator('#editCastlingBtn').click();
+    await page.locator('[data-castling="K"]').uncheck();
+    await page.locator('#applyEditBtn').click();
+    await expect(page.locator('#editSheet')).toBeHidden();
+    const appliedFen = await page.locator('#confirmedFen').textContent();
+    expect(appliedFen.split(' ')[1]).toBe('b');
+    expect(appliedFen.split(' ')[2]).toBe('Qkq');
+    await expect(page.locator('#analysisFen')).toHaveText(appliedFen);
+    await expect(page.locator('#analysisPanel')).toBeVisible();
+    await expect(page.locator('#scannerBoard .sq')).toHaveCount(64);
+    expect(await page.evaluate(() => window.__scannerFirstSquareNode === document.querySelector('#scannerBoard .sq'))).toBe(true);
+  });
+
+  test('Edit exports the working FEN and Diagram Library remains an honest placeholder', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__scannerCopiedFen = '';
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (value) => { window.__scannerCopiedFen = value; } } });
+    });
+    await selectAndConfirm(page);
+    await page.locator('#editBtn').click();
+    await page.locator('#blackPiecePalette [data-piece="q"]').click();
+    await page.locator('#scannerBoard .sq[aria-label="a3 empty"]').click();
+    const workingFen = await page.locator('#fenInput').inputValue();
+    await page.locator('#editExportBtn').click();
+    await expect(page.getByRole('region', { name: 'Export position' })).toBeVisible();
+    await page.locator('#exportFenBtn').click();
+    expect(await page.evaluate(() => window.__scannerCopiedFen)).toBe(workingFen);
+    await expect(page.locator('#editSheet')).toBeVisible();
+
+    await page.locator('#editLibraryBtn').click();
+    await expect(page.locator('#appToast')).toContainText('coming soon');
+    expect(await page.evaluate(() => [...Array(localStorage.length).keys()].map((index) => localStorage.key(index)).filter((key) => /diagram.*library/i.test(key)))).toEqual([]);
+    await page.locator('#editMenuBtn').click();
+    await expect(page.locator('#scannerProductMenu')).toBeVisible();
+    await expect(page.locator('#editMenuBtn')).toHaveAttribute('aria-expanded', 'true');
   });
 
   test('hamburgers control distinct, exclusive, dismissible overlay menus', async ({ page }) => {
@@ -239,5 +365,14 @@ for (const profile of [
     const menuGeometry = await boardGeometry(page);
     expect(menuGeometry.width).toBe(geometry.width);
     expect(menuGeometry.height).toBe(geometry.height);
+    await page.keyboard.press('Escape');
+    await page.locator('#editBtn').click();
+    const editGeometry = await boardGeometry(page);
+    expect(editGeometry.count).toBe(64);
+    expect(editGeometry.width).toBe(editGeometry.height);
+    expect(editGeometry.width % 8).toBe(0);
+    expect(editGeometry.overflow).toBeLessThanOrEqual(0);
+    await expect(page.locator('#blackPiecePalette button')).toHaveCount(6);
+    await expect(page.locator('#whitePiecePalette button')).toHaveCount(6);
   });
 }

@@ -45,7 +45,7 @@
     }).join('/');
   }
 
-  function validate(fen) {
+  function validateDraft(fen) {
     if (typeof fen !== 'string' || !fen.trim()) return { ok: false, error: 'Enter a FEN first.' };
     const parts = fen.trim().split(/\s+/);
     if (parts.length !== 6) return { ok: false, error: 'FEN must contain 6 fields.' };
@@ -55,15 +55,21 @@
     } catch (error) {
       return { ok: false, error: error.message };
     }
-    const flat = board.flat();
-    if (flat.filter((piece) => piece === 'K').length !== 1 || flat.filter((piece) => piece === 'k').length !== 1) {
-      return { ok: false, error: 'Position must contain exactly one white king and one black king.' };
-    }
     if (!/^[wb]$/.test(parts[1])) return { ok: false, error: 'Side to move must be w or b.' };
     if (!/^(-|K?Q?k?q?)$/.test(parts[2])) return { ok: false, error: 'Castling field is invalid.' };
     if (!/^(-|[a-h][36])$/.test(parts[3])) return { ok: false, error: 'En-passant field is invalid.' };
     if (!/^\d+$/.test(parts[4]) || !/^[1-9]\d*$/.test(parts[5])) return { ok: false, error: 'Move counters are invalid.' };
     return { ok: true, fen: parts.join(' '), board };
+  }
+
+  function validate(fen) {
+    const result = validateDraft(fen);
+    if (!result.ok) return result;
+    const flat = result.board.flat();
+    if (flat.filter((piece) => piece === 'K').length !== 1 || flat.filter((piece) => piece === 'k').length !== 1) {
+      return { ok: false, error: 'Position must contain exactly one white king and one black king.' };
+    }
+    return result;
   }
 
   function mutateSquare(fen, row, col, piece) {
@@ -78,6 +84,34 @@
     if (row < 0 || row > 7 || col < 0 || col > 7 || !(piece === '' || PIECE_CODES[piece])) return null;
     board[row][col] = piece;
     parts[0] = boardToPart(board);
+    return parts.join(' ');
+  }
+
+  function clearBoard(fen) {
+    const result = validateDraft(fen);
+    if (!result.ok) return null;
+    const parts = result.fen.split(' ');
+    parts[0] = '8/8/8/8/8/8/8/8';
+    parts[3] = '-';
+    return parts.join(' ');
+  }
+
+  function setSideToMove(fen, side) {
+    const result = validateDraft(fen);
+    if (!result.ok || !/^[wb]$/.test(side || '')) return null;
+    const parts = result.fen.split(' ');
+    parts[1] = side;
+    parts[3] = '-';
+    return parts.join(' ');
+  }
+
+  function setCastling(fen, rights) {
+    const result = validateDraft(fen);
+    if (!result.ok) return null;
+    const requested = typeof rights === 'string' ? rights : '';
+    const normalized = ['K', 'Q', 'k', 'q'].filter((key) => requested.includes(key)).join('') || '-';
+    const parts = result.fen.split(' ');
+    parts[2] = normalized;
     return parts.join(' ');
   }
 
@@ -155,8 +189,8 @@
     return true;
   }
 
-  function render(boardElement, fen, flipped = false, onSquareClick = null, selected = null, extraClassForSquare = null) {
-    const result = validate(fen);
+  function renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, validator) {
+    const result = validator(fen);
     if (!result.ok) return result;
     const squares = ensureSquares(boardElement);
     squares.forEach((square, index) => {
@@ -187,11 +221,24 @@
     return result;
   }
 
+  function render(boardElement, fen, flipped = false, onSquareClick = null, selected = null, extraClassForSquare = null) {
+    return renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, validate);
+  }
+
+  function renderDraft(boardElement, fen, flipped = false, onSquareClick = null, selected = null, extraClassForSquare = null) {
+    return renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, validateDraft);
+  }
+
   global.CaissaScannerFen = Object.freeze({
     validate,
+    validateDraft,
     render,
+    renderDraft,
     renderEmpty,
     mutateSquare,
+    clearBoard,
+    setSideToMove,
+    setCastling,
     squareName,
     coordsFromSquare,
     pieceSrc,
