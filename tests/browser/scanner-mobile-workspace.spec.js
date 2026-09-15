@@ -30,6 +30,19 @@ async function boardGeometry(page) {
   });
 }
 
+async function toolbarGeometry(page) {
+  return page.locator('.position-toolbar').evaluate((toolbar) => {
+    const actions = toolbar.querySelector('.position-actions');
+    const actionRects = [...actions.children].map((button) => button.getBoundingClientRect());
+    return {
+      flexWrap: getComputedStyle(actions).flexWrap,
+      rows: new Set(actionRects.map((rect) => Math.round(rect.top))).size,
+      clipped: actionRects.some((rect) => rect.left < 0 || rect.right > window.innerWidth),
+      overflow: document.documentElement.scrollWidth - window.innerWidth
+    };
+  });
+}
+
 test.describe('CAISSA Scanner approved mobile workspace', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -58,7 +71,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     expect(geometry.overflow).toBeLessThanOrEqual(0);
     await expect(page.locator('#fenInput')).toBeHidden();
     await expect(page.locator('#recognitionSummary')).toBeHidden();
-    await expect(page.locator('.position-actions button')).toHaveCount(3);
+    await expect(page.locator('.position-actions button')).toHaveCount(4);
     await expect(page.locator('.new-scan-control #newScanBtn')).toBeVisible();
 
     await page.locator('#workspaceShareBtn').click();
@@ -78,6 +91,29 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await page.locator('#cancelNewScanBtn').click();
     const stateAfterCancel = await page.evaluate(() => window.CaissaScannerState.snapshot());
     expect(stateAfterCancel).toEqual(stateBeforeCancel);
+  });
+
+  test('workspace Save Diagram is ordered, unsaved, non-persistent, and layout-stable', async ({ page }) => {
+    await selectAndConfirm(page);
+    const actionIds = await page.locator('.position-actions > button').evaluateAll((buttons) => buttons.map((button) => button.id));
+    expect(actionIds).toEqual(['editBtn', 'workspaceSaveDiagramBtn', 'workspaceShareBtn', 'moreBtn']);
+    await expect(page.locator('#workspaceSaveDiagramBtn')).toHaveCount(1);
+    const saveDiagram = page.getByRole('button', { name: 'Save Diagram' });
+    await expect(saveDiagram).toHaveAttribute('data-diagram-state', 'unsaved');
+    await expect(saveDiagram).toHaveAttribute('aria-pressed', 'false');
+    await expect(saveDiagram.locator('i')).toHaveClass(/\bfar\b/);
+
+    const beforeBoard = await boardGeometry(page);
+    const beforeStorage = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+    await saveDiagram.focus();
+    await expect(saveDiagram).toBeFocused();
+    await saveDiagram.click();
+    await expect(page.locator('#appToast')).toHaveText('Diagram Library — coming soon.');
+    await expect(saveDiagram).toHaveAttribute('data-diagram-state', 'unsaved');
+    await expect(saveDiagram).toHaveAttribute('aria-pressed', 'false');
+    expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(beforeStorage);
+    expect(await boardGeometry(page)).toEqual(beforeBoard);
+    expect(await toolbarGeometry(page)).toEqual({ flexWrap: 'nowrap', rows: 1, clipped: false, overflow: 0 });
   });
 
   test('Edit applies to the current board and both export formats remain internal first', async ({ page }) => {
@@ -226,7 +262,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await expect(page.locator('#editSheet')).toBeVisible();
 
     await page.locator('#editLibraryBtn').click();
-    await expect(page.locator('#appToast')).toContainText('coming soon');
+    await expect(page.locator('#appToast')).toHaveText('Diagram Library — coming soon.');
     expect(await page.evaluate(() => [...Array(localStorage.length).keys()].map((index) => localStorage.key(index)).filter((key) => /diagram.*library/i.test(key)))).toEqual([]);
     await page.locator('#editMenuBtn').click();
     await expect(page.locator('#scannerProductMenu')).toBeVisible();
@@ -266,7 +302,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await page.locator('#moreBtn').click();
     await page.getByRole('menuitem', { name: /Diagram Library/ }).click();
     await expect(page.locator('#scannerProductMenu')).toBeHidden();
-    await expect(page.locator('#appToast')).toContainText('coming soon');
+    await expect(page.locator('#appToast')).toHaveText('Diagram Library — coming soon.');
 
     await page.locator('#boardActionsBtn').click();
     await page.getByRole('menuitem', { name: /Open in Chess.com Analyzer/ }).click();
@@ -353,6 +389,7 @@ for (const profile of [
     expect(geometry.width).toBe(geometry.height);
     expect(geometry.width % 8).toBe(0);
     expect(geometry.overflow).toBeLessThanOrEqual(0);
+    expect(await toolbarGeometry(page)).toEqual({ flexWrap: 'nowrap', rows: 1, clipped: false, overflow: 0 });
     await page.locator('#boardActionsBtn').click();
     const menuRect = await page.locator('#scannerAnalysisMenu').evaluate((menu) => {
       const rect = menu.getBoundingClientRect();

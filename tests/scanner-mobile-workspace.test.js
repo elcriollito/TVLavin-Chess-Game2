@@ -21,10 +21,23 @@ test('position toolbar and board navigation match the mobile contract', async ()
   const html = await read('scanner/index.html');
   assert.match(html, /class="position-toolbar"/);
   assert.match(html, /id="sideToMove"/);
-  for (const id of ['editBtn', 'workspaceShareBtn', 'moreBtn', 'firstMoveBtn', 'previousMoveBtn', 'nextMoveBtn', 'lastMoveBtn', 'flipBtn', 'boardActionsBtn']) {
+  for (const id of ['editBtn', 'workspaceSaveDiagramBtn', 'workspaceShareBtn', 'moreBtn', 'firstMoveBtn', 'previousMoveBtn', 'nextMoveBtn', 'lastMoveBtn', 'flipBtn', 'boardActionsBtn']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
+  assert.match(html, /class="position-actions"[\s\S]*id="editBtn"[\s\S]*id="workspaceSaveDiagramBtn"[\s\S]*id="workspaceShareBtn"[\s\S]*id="moreBtn"/);
+  assert.equal((html.match(/id="workspaceSaveDiagramBtn"/g) || []).length, 1);
+  assert.match(html, /id="workspaceSaveDiagramBtn"[^>]*data-diagram-state="unsaved"[^>]*aria-label="Save Diagram"[^>]*aria-pressed="false"[\s\S]*?<i class="far fa-star"/);
   assert.doesNotMatch(html, /id="shareBtn"|id="menuBtn"/);
+});
+
+test('Diagram Library entry points reuse one honest placeholder action', async () => {
+  const [html, app] = await Promise.all([read('scanner/index.html'), read('scanner/scanner-app.js')]);
+  for (const id of ['workspaceSaveDiagramBtn', 'editLibraryBtn', 'diagramLibraryBtn']) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(app, /function showDiagramLibraryPlaceholder\(\)[\s\S]*Diagram Library — coming soon\./);
+  assert.equal((app.match(/addEventListener\('click', showDiagramLibraryPlaceholder\)/g) || []).length, 3);
+  assert.doesNotMatch(app, /workspaceSaveDiagram[\s\S]{0,160}(localStorage|indexedDB|fetch\()/);
 });
 
 test('top and lower hamburgers expose separate product and analysis menus', async () => {

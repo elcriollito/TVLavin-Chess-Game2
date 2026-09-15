@@ -77,6 +77,7 @@
     cancelNewScan: $('cancelNewScanBtn'),
     takePhoto: $('takePhotoBtn'),
     choosePhoto: $('choosePhotoBtn'),
+    workspaceSaveDiagram: $('workspaceSaveDiagramBtn'),
     workspaceShare: $('workspaceShareBtn'),
     handoff: $('handoffCard'),
     confirmed: $('confirmedFen'),
@@ -727,6 +728,10 @@
     toast(message);
   }
 
+  function showDiagramLibraryPlaceholder() {
+    placeholder('Diagram Library — coming soon.');
+  }
+
   function openAccount() {
     closeMenus();
     const auth = window.CAISSA_AUTH;
@@ -815,12 +820,12 @@
   els.cancelEdit.addEventListener('click', () => closeEdit(false));
   els.applyEdit.addEventListener('click', () => closeEdit(true));
   els.editFlip.addEventListener('click', flipBoard);
-  els.editLibrary.addEventListener('click', () => toast('Diagram Library — coming soon.'));
+  els.editLibrary.addEventListener('click', showDiagramLibraryPlaceholder);
   els.editExport.addEventListener('click', openExport);
   els.editMenu.addEventListener('click', () => toggleMenu(els.productMenu, els.editMenu));
   els.moreBtn.addEventListener('click', () => toggleMenu(els.productMenu, els.moreBtn));
   els.boardActions.addEventListener('click', () => toggleMenu(els.analysisMenu, els.boardActions));
-  els.diagramLibrary.addEventListener('click', () => placeholder('Diagram Library is coming soon.'));
+  els.diagramLibrary.addEventListener('click', showDiagramLibraryPlaceholder);
   els.videoExplorer.addEventListener('click', () => placeholder('Video Board Explorer is coming soon.'));
   els.membership.addEventListener('click', () => placeholder('Membership is coming soon.'));
   els.account.addEventListener('click', openAccount);
@@ -837,6 +842,7 @@
   els.cancelNewScan.addEventListener('click', () => { els.newScanSheet.hidden = true; });
   els.takePhoto.addEventListener('click', () => openPicker(els.camera));
   els.choosePhoto.addEventListener('click', () => openPicker(els.gallery));
+  els.workspaceSaveDiagram.addEventListener('click', showDiagramLibraryPlaceholder);
   els.workspaceShare.addEventListener('click', openExport);
   els.analyze.addEventListener('click', () => {
     const fen = currentFen();

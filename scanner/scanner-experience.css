@@ -30,8 +30,9 @@ button,label{touch-action:manipulation}
 .side-to-move{min-width:0;display:flex;align-items:center;gap:9px;color:#e8eef5;font-size:12px;font-weight:750}
 .side-piece{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#102c40;box-shadow:inset 0 0 0 1px #49657a}
 .side-piece img{width:34px;height:34px;object-fit:contain}.side-piece.black{background:#d8e1e8;box-shadow:inset 0 0 0 1px #fff}
-.position-actions{display:flex;gap:7px}
+.position-actions{display:flex;flex-wrap:nowrap;gap:7px}
 .position-actions button{appearance:none;width:44px;height:44px;border-radius:11px;border:1px solid #35566d;background:linear-gradient(180deg,#102c40,#0b2030);color:#f4f7fb;display:grid;place-items:center;font-size:17px;cursor:pointer;box-shadow:0 5px 12px rgba(0,0,0,.16)}
+.position-actions button:focus-visible{outline:2px solid #59b9ff;outline-offset:2px}.position-actions .save-diagram-action[data-diagram-state="unsaved"] i{color:#f1b654}
 .position-actions button:active,.board-navigation button:active{background:#183b52;transform:translateY(1px)}
 .board-shell{width:100%!important;max-width:none!important}
 .scanner-board{width:var(--scanner-board-size,100%)!important;height:var(--scanner-board-size,auto)!important;border:0!important;border-radius:8px!important;box-shadow:0 7px 23px rgba(0,0,0,.28)}
