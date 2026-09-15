@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0b0f1a">
+  <title>CAISSA Scanner · Web Lab</title>
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
+  <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.0">
+</head>
+<body>
+  <header class="scanner-topbar">
+    <a class="scanner-brand" href="/play" aria-label="CAISSA Chess"><i class="fas fa-chess-knight" aria-hidden="true"></i><span>CAISSA</span></a>
+    <div class="scanner-lab-badge">Scanner Web Lab · Phase 2</div>
+  </header>
+
+  <main class="scanner-page" id="scannerApp">
+    <section class="scanner-hero">
+      <div>
+        <p class="scanner-eyebrow">CAISSA Labs · Private foundation</p>
+        <h1>CAISSA Scanner</h1>
+        <p>Turn a chess diagram into a clean native position. The image is input only; FEN becomes the chess source of truth after you confirm it.</p>
+      </div>
+      <div class="scanner-state-pill" id="statePill">Idle</div>
+    </section>
+
+    <section class="scanner-grid" aria-label="Scanner workspace">
+      <article class="scanner-card scanner-source-card">
+        <div class="scanner-card-head"><div><span class="step">1</span><h2>Source</h2></div><span class="status" id="sourceStatus">No image</span></div>
+        <div class="source-drop" id="dropZone">
+          <i class="fas fa-camera" aria-hidden="true"></i>
+          <strong>Take or choose a chess photo</strong>
+          <span>Book, magazine, screen, or printed diagram</span>
+          <div class="source-actions">
+            <label class="btn primary" for="cameraInput"><i class="fas fa-camera"></i> Take Photo</label>
+            <label class="btn" for="galleryInput"><i class="fas fa-image"></i> Choose Photo</label>
+          </div>
+          <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+          <input id="galleryInput" type="file" accept="image/*" hidden>
+        </div>
+        <figure class="source-preview-wrap" id="sourcePreviewWrap" hidden>
+          <img id="sourcePreview" alt="Selected chess source">
+          <figcaption>Source preview — never used as the playable board.</figcaption>
+        </figure>
+      </article>
+
+      <article class="scanner-card scanner-board-card">
+        <div class="scanner-card-head"><div><span class="step">2</span><h2>Candidate position</h2></div><span class="status" id="candidateStatus">Waiting</span></div>
+        <div class="board-shell">
+          <div class="scanner-board" id="scannerBoard" aria-label="Native chessboard preview"></div>
+        </div>
+        <div class="confidence-row">
+          <span>Board confidence</span><strong id="boardConfidence">—</strong>
+        </div>
+        <p class="lab-note" id="recognitionNote">Phase 2 uses a clearly marked mock candidate after image selection. Automatic computer vision is not claimed in this phase.</p>
+      </article>
+
+      <article class="scanner-card scanner-review-card">
+        <div class="scanner-card-head"><div><span class="step">3</span><h2>Review & Fix</h2></div><span class="status" id="reviewStatus">Required</span></div>
+        <label class="field-label" for="fenInput">Candidate FEN</label>
+        <textarea id="fenInput" rows="4" spellcheck="false" aria-describedby="fenHelp"></textarea>
+        <p id="fenHelp" class="field-help">Review is mandatory. Edit the FEN if the candidate is wrong, then validate before confirming.</p>
+        <div class="review-tools">
+          <button class="btn" id="validateBtn" type="button"><i class="fas fa-check-circle"></i> Validate</button>
+          <button class="btn" id="flipBtn" type="button"><i class="fas fa-arrows-up-down"></i> Flip Board</button>
+          <button class="btn danger-ghost" id="resetBtn" type="button"><i class="fas fa-rotate-left"></i> Start Over</button>
+        </div>
+        <div class="validation-box" id="validationBox" role="status" aria-live="polite">Choose an image to begin.</div>
+        <button class="btn primary confirm" id="confirmBtn" type="button" disabled><i class="fas fa-lock-open"></i> Confirm Position</button>
+      </article>
+    </section>
+
+    <section class="scanner-card handoff-card" id="handoffCard" hidden>
+      <div class="scanner-card-head"><div><span class="step done"><i class="fas fa-check"></i></span><h2>Confirmed FEN</h2></div><span class="status success">Trusted boundary crossed</span></div>
+      <code id="confirmedFen"></code>
+      <div class="handoff-actions">
+        <button class="btn primary" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i> Analyze Position</button>
+        <button class="btn" id="copyFenBtn" type="button"><i class="fas fa-copy"></i> Copy FEN</button>
+      </div>
+      <p class="field-help">Analyze handoff uses the Scanner adapter contract. Scanner does not create another analysis engine.</p>
+    </section>
+
+    <section class="scanner-privacy">
+      <i class="fas fa-shield-halved" aria-hidden="true"></i>
+      <div><strong>Privacy foundation</strong><span>This Web Lab does not upload the selected image, save it to an account, or contribute it to training data.</span></div>
+    </section>
+  </main>
+
+  <script src="/config/scanner-flags.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-state.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-fen.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-adapters.js?v=0.2.0"></script>
+  <script src="/scanner/scanner-app.js?v=0.2.0"></script>
+</body>
+</html>

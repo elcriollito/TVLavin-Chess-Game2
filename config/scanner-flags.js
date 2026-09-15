@@ -1,0 +1,1 @@
+window.CAISSA_SCANNER_FLAGS=Object.freeze({scanner_beta_open:true,scanner_free_scan_limit:null,scanner_premium_required:false,scanner_cv_enabled:false,scanner_training_contribution_enabled:false});
