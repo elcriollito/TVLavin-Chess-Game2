@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
+  <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.2.3">
 </head>
 <body>
   <header class="scanner-topbar">
@@ -47,7 +48,7 @@
         </figure>
       </article>
 
-      <article class="scanner-card scanner-board-card">
+      <article class="scanner-card scanner-board-card" id="scannerBoardCard">
         <div class="scanner-card-head"><div><span class="step">2</span><h2>Candidate position</h2></div><span class="status" id="candidateStatus">Waiting</span></div>
         <div class="board-shell">
           <div class="scanner-board is-empty" id="scannerBoard" aria-label="Native chessboard preview"></div>
@@ -55,6 +56,19 @@
         </div>
         <div class="confidence-row"><span>Board confidence</span><strong id="boardConfidence">—</strong></div>
         <p class="lab-note" id="recognitionNote">Phase 2B still uses a clearly marked mock candidate. Automatic computer vision remains off.</p>
+
+        <section class="scanner-analysis-panel" id="analysisPanel" hidden aria-label="Stockfish 18 analysis">
+          <div class="analysis-head">
+            <div><i class="fas fa-microchip" aria-hidden="true"></i><strong>Stockfish 18</strong><span>3 lines</span></div>
+            <span class="analysis-status" id="analysisStatus">Off</span>
+          </div>
+          <div class="analysis-lines" aria-live="polite">
+            <div class="analysis-line" data-line="1"><span class="analysis-rank">1</span><strong class="analysis-score" id="analysisScore1">—</strong><span class="analysis-depth" id="analysisDepth1">d—</span><span class="analysis-pv" id="analysisPv1">Waiting…</span></div>
+            <div class="analysis-line" data-line="2"><span class="analysis-rank">2</span><strong class="analysis-score" id="analysisScore2">—</strong><span class="analysis-depth" id="analysisDepth2">d—</span><span class="analysis-pv" id="analysisPv2">Waiting…</span></div>
+            <div class="analysis-line" data-line="3"><span class="analysis-rank">3</span><strong class="analysis-score" id="analysisScore3">—</strong><span class="analysis-depth" id="analysisDepth3">d—</span><span class="analysis-pv" id="analysisPv3">Waiting…</span></div>
+          </div>
+          <div class="analysis-footer"><span id="analysisMoveHint">Tap a piece, then its destination to explore a legal move.</span><code id="analysisFen"></code></div>
+        </section>
       </article>
 
       <article class="scanner-card scanner-review-card">
@@ -62,9 +76,29 @@
         <div class="visual-edit" id="visualEdit" hidden>
           <div class="visual-edit-head"><strong id="editSquareLabel">Tap a square to edit</strong><span>Visual FEN editor</span></div>
           <div class="piece-palette" id="piecePalette" aria-label="Piece palette">
-            <button type="button" data-piece="" aria-label="Clear square"><i class="fas fa-eraser"></i></button>
-            <button type="button" data-piece="K">♔</button><button type="button" data-piece="Q">♕</button><button type="button" data-piece="R">♖</button><button type="button" data-piece="B">♗</button><button type="button" data-piece="N">♘</button><button type="button" data-piece="P">♙</button>
-            <button type="button" data-piece="k">♚</button><button type="button" data-piece="q">♛</button><button type="button" data-piece="r">♜</button><button type="button" data-piece="b">♝</button><button type="button" data-piece="n">♞</button><button type="button" data-piece="p">♟</button>
+            <button type="button" class="palette-clear" data-piece="" aria-label="Clear square"><i class="fas fa-eraser"></i><span>Clear</span></button>
+            <div class="piece-side-group white-side" role="group" aria-label="White pieces">
+              <div class="piece-side-label"><span class="side-dot"></span>WHITE PIECES</div>
+              <div class="piece-side-row">
+                <button type="button" class="piece-option white-piece" data-piece="K" aria-label="White king"><span class="piece-symbol">♔</span><small>W K</small></button>
+                <button type="button" class="piece-option white-piece" data-piece="Q" aria-label="White queen"><span class="piece-symbol">♕</span><small>W Q</small></button>
+                <button type="button" class="piece-option white-piece" data-piece="R" aria-label="White rook"><span class="piece-symbol">♖</span><small>W R</small></button>
+                <button type="button" class="piece-option white-piece" data-piece="B" aria-label="White bishop"><span class="piece-symbol">♗</span><small>W B</small></button>
+                <button type="button" class="piece-option white-piece" data-piece="N" aria-label="White knight"><span class="piece-symbol">♘</span><small>W N</small></button>
+                <button type="button" class="piece-option white-piece" data-piece="P" aria-label="White pawn"><span class="piece-symbol">♙</span><small>W P</small></button>
+              </div>
+            </div>
+            <div class="piece-side-group black-side" role="group" aria-label="Black pieces">
+              <div class="piece-side-label"><span class="side-dot"></span>BLACK PIECES</div>
+              <div class="piece-side-row">
+                <button type="button" class="piece-option black-piece" data-piece="k" aria-label="Black king"><span class="piece-symbol">♚</span><small>B K</small></button>
+                <button type="button" class="piece-option black-piece" data-piece="q" aria-label="Black queen"><span class="piece-symbol">♛</span><small>B Q</small></button>
+                <button type="button" class="piece-option black-piece" data-piece="r" aria-label="Black rook"><span class="piece-symbol">♜</span><small>B R</small></button>
+                <button type="button" class="piece-option black-piece" data-piece="b" aria-label="Black bishop"><span class="piece-symbol">♝</span><small>B B</small></button>
+                <button type="button" class="piece-option black-piece" data-piece="n" aria-label="Black knight"><span class="piece-symbol">♞</span><small>B N</small></button>
+                <button type="button" class="piece-option black-piece" data-piece="p" aria-label="Black pawn"><span class="piece-symbol">♟</span><small>B P</small></button>
+              </div>
+            </div>
           </div>
         </div>
         <label class="field-label" for="fenInput">Candidate FEN</label>
@@ -84,20 +118,24 @@
       <div class="scanner-card-head"><div><span class="step done"><i class="fas fa-check"></i></span><h2>Confirmed FEN</h2></div><span class="status success">Trusted boundary crossed</span></div>
       <code id="confirmedFen"></code>
       <div class="handoff-actions">
-        <button class="btn primary" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i> Analyze Position</button>
+        <button class="btn primary" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i> Analyze Here</button>
         <button class="btn" id="copyFenBtn" type="button"><i class="fas fa-copy"></i> Copy FEN</button>
       </div>
-      <p class="field-help">Analyze handoff uses the Scanner adapter contract. Scanner does not create another analysis engine.</p>
+      <p class="field-help">Analysis stays inside Scanner and uses CAISSA's canonical Stockfish 18 provider.</p>
     </section>
 
     <section class="scanner-privacy"><i class="fas fa-shield-halved" aria-hidden="true"></i><div><strong>Privacy foundation</strong><span>This Web Lab does not upload the selected image, save it to an account, or contribute it to training data.</span></div></section>
   </main>
 
+  <script src="/assets/vendor/chess.js/chess-0.10.3.min.js"></script>
+  <script src="/js/engine-adapter.js"></script>
+  <script src="/js/engine-registry.js"></script>
   <script src="/config/scanner-flags.js?v=0.2.0"></script>
   <script src="/scanner/scanner-state.js?v=0.2.0"></script>
-  <script src="/scanner/scanner-fen.js?v=0.2.1"></script>
+  <script src="/scanner/scanner-fen.js?v=0.2.3"></script>
   <script src="/scanner/scanner-adapters.js?v=0.2.0"></script>
-  <script src="/scanner/scanner-app.js?v=0.2.1"></script>
+  <script src="/scanner/scanner-analysis.js?v=0.2.3"></script>
+  <script src="/scanner/scanner-app.js?v=0.2.3"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>
