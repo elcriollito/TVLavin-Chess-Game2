@@ -1,1 +1,252 @@
-(function(global){'use strict';const DEPTH=18;const MULTIPV=3;function scoreText(info){if(Number.isFinite(info?.mate))return(info.mate>0?'+':'')+'M'+info.mate;if(Number.isFinite(info?.score)){const v=info.score/100;return(v>0?'+':'')+v.toFixed(2);}return'—';}function uciToSan(fen,pv){if(typeof global.Chess!=='function'||!Array.isArray(pv))return(pv||[]).join(' ');let game;try{game=new global.Chess(fen);}catch(_){return pv.join(' ');}const san=[];for(const uci of pv.slice(0,10)){const m=String(uci).match(/^([a-h][1-8])([a-h][1-8])([qrbn])?$/i);if(!m)break;let move=null;try{move=game.move({from:m[1],to:m[2],promotion:(m[3]||'q').toLowerCase()});}catch(_){}if(!move)break;san.push(move.san||uci);}return san.length?san.join(' '):pv.slice(0,10).join(' ');}function create(options={}){const board=options.board;const fenTools=options.fenTools;const panel=options.panel;const status=options.status;const fenOutput=options.fenOutput;const moveHint=options.moveHint;const lineEls=options.lineEls||[];let engine=null;let game=null;let active=false;let flipped=false;let selected=null;let activeGeneration=null;let startSequence=0;function setStatus(text,type=''){if(!status)return;status.textContent=text;status.className='analysis-status'+(type?' '+type:'');}function resetLines(){lineEls.forEach(line=>{line.score.textContent='—';line.depth.textContent='d—';line.pv.textContent='Calculating…';});}function squareClass(row,col){const sq=fenTools.squareName(row,col);if(selected===sq)return'analysis-selected';return'';}function render(){if(!game)return;fenTools.render(board,game.fen(),flipped,handleSquare,null,squareClass);board.classList.toggle('analysis-active',active);if(fenOutput)fenOutput.textContent=game.fen();}function chooseNewSource(square){const piece=game.get(square);if(piece&&piece.color===game.turn()){selected=square;if(moveHint)moveHint.textContent='Selected '+square+'. Tap a destination square.';render();return true;}return false;}function handleSquare(row,col){if(!active||!game)return;const square=fenTools.squareName(row,col);if(!selected){if(!chooseNewSource(square)&&moveHint)moveHint.textContent='Choose a '+(game.turn()==='w'?'white':'black')+' piece to move.';return;}if(square===selected){selected=null;if(moveHint)moveHint.textContent='Selection cleared. Choose a piece.';render();return;}let move=null;try{move=game.move({from:selected,to:square,promotion:'q'});}catch(_){}if(!move){if(chooseNewSource(square))return;if(moveHint)moveHint.textContent='That move is not legal. Choose another destination.';return;}selected=null;if(moveHint)moveHint.textContent=(move.san||'Move')+' played. Stockfish is updating…';render();options.onFenChange?.(game.fen(),move);runAnalysis();}function updateLine(info,generation){if(!active||!game||generation!==activeGeneration)return;const index=Math.max(1,Math.min(MULTIPV,Number(info?.multipv)||1))-1;const line=lineEls[index];if(!line)return;line.score.textContent=scoreText(info);line.depth.textContent='d'+(Number(info.depth)||'—');line.pv.textContent=uciToSan(game.fen(),info.pv||[]);setStatus('Analyzing','running');}function runAnalysis(){if(!active||!engine?.ready||!game)return;resetLines();setStatus('Analyzing','running');engine.setMultiPV(MULTIPV);const generation=engine.startAnalysisAttributed(game.fen(),updateLine,DEPTH);activeGeneration=generation;}async function start(fen){const sequence=++startSequence;if(typeof global.Chess!=='function')throw new Error('Chess rules library is unavailable.');if(!global.EngineRegistry?.createAnalyzeEngine)throw new Error('CAISSA engine registry is unavailable.');let nextGame;try{nextGame=new global.Chess(fen);}catch(_){throw new Error('Confirmed FEN could not be loaded for analysis.');}game=nextGame;active=true;selected=null;panel.hidden=false;resetLines();setStatus('Starting…');render();if(!engine){engine=global.EngineRegistry.createAnalyzeEngine('stockfish-18-lite',{autoStart:false,owner:'scanner-analysis',searchTimeoutMs:30000});if(!engine)throw new Error('Stockfish 18 provider is unavailable.');engine.onError=err=>{if(!active)return;setStatus('Engine error','error');if(moveHint)moveHint.textContent=err?.message||'Stockfish 18 stopped unexpectedly.';};}await engine.start();if(sequence!==startSequence||!active)return false;engine.setMultiPV(MULTIPV);runAnalysis();return true;}function stop(){startSequence+=1;active=false;selected=null;activeGeneration=null;engine?.stopAnalysis?.();board?.classList.remove('analysis-active');setStatus('Off');}function setFlipped(value){flipped=!!value;if(active)render();}function isActive(){return active;}function currentFen(){return game?.fen?.()||null;}return Object.freeze({start,stop,setFlipped,isActive,currentFen});}global.CaissaScannerAnalysis=Object.freeze({create});})(window);
+(function (global) {
+  'use strict';
+
+  const DEPTH = 18;
+  const MULTIPV = 3;
+
+  function scoreText(info) {
+    if (Number.isFinite(info?.mate)) return (info.mate > 0 ? '+' : '') + 'M' + info.mate;
+    if (Number.isFinite(info?.score)) return (info.score > 0 ? '+' : '') + info.score.toFixed(2);
+    return '—';
+  }
+
+  function uciToSan(fen, pv) {
+    if (typeof global.Chess !== 'function' || !Array.isArray(pv)) return (pv || []).join(' ');
+    let game;
+    try {
+      game = new global.Chess(fen);
+    } catch (_) {
+      return pv.join(' ');
+    }
+    const san = [];
+    for (const uci of pv.slice(0, 10)) {
+      const match = String(uci).match(/^([a-h][1-8])([a-h][1-8])([qrbn])?$/i);
+      if (!match) break;
+      let move = null;
+      try {
+        move = game.move({ from: match[1], to: match[2], promotion: (match[3] || 'q').toLowerCase() });
+      } catch (_) {}
+      if (!move) break;
+      san.push(move.san || uci);
+    }
+    return san.length ? san.join(' ') : pv.slice(0, 10).join(' ');
+  }
+
+  function create(options = {}) {
+    const board = options.board;
+    const fenTools = options.fenTools;
+    const panel = options.panel;
+    const status = options.status;
+    const fenOutput = options.fenOutput;
+    const moveHint = options.moveHint;
+    const lineEls = options.lineEls || [];
+    let engine = null;
+    let game = null;
+    let active = false;
+    let flipped = false;
+    let selected = null;
+    let activeGeneration = null;
+    let startSequence = 0;
+    let history = [];
+    let historyIndex = -1;
+
+    function setStatus(text, type = '') {
+      if (!status) return;
+      status.textContent = text;
+      status.className = 'analysis-status' + (type ? ' ' + type : '');
+    }
+
+    function resetLines(text = 'Calculating…') {
+      lineEls.forEach((line) => {
+        line.score.textContent = '—';
+        line.depth.textContent = 'd—';
+        line.pv.textContent = text;
+      });
+    }
+
+    function reportHistory() {
+      options.onHistoryChange?.({ index: historyIndex, length: history.length });
+    }
+
+    function resetHistory(fen) {
+      history = fen ? [fen] : [];
+      historyIndex = fen ? 0 : -1;
+      reportHistory();
+    }
+
+    function squareClass(row, col) {
+      const square = fenTools.squareName(row, col);
+      return selected === square ? 'analysis-selected' : '';
+    }
+
+    function render() {
+      if (!game) return;
+      fenTools.render(board, game.fen(), flipped, active ? handleSquare : null, null, squareClass);
+      board.classList.toggle('analysis-active', active);
+      if (fenOutput) fenOutput.textContent = game.fen();
+      options.onPositionChange?.(game.fen());
+    }
+
+    function chooseNewSource(square) {
+      const piece = game.get(square);
+      if (piece && piece.color === game.turn()) {
+        selected = square;
+        if (moveHint) moveHint.textContent = 'Selected ' + square + '. Tap a destination square.';
+        render();
+        return true;
+      }
+      return false;
+    }
+
+    function handleSquare(row, col) {
+      if (!active || !game) return;
+      const square = fenTools.squareName(row, col);
+      if (!selected) {
+        if (!chooseNewSource(square) && moveHint) moveHint.textContent = 'Choose a ' + (game.turn() === 'w' ? 'white' : 'black') + ' piece to move.';
+        return;
+      }
+      if (square === selected) {
+        selected = null;
+        if (moveHint) moveHint.textContent = 'Selection cleared. Choose a piece.';
+        render();
+        return;
+      }
+      let move = null;
+      try {
+        move = game.move({ from: selected, to: square, promotion: 'q' });
+      } catch (_) {}
+      if (!move) {
+        if (chooseNewSource(square)) return;
+        if (moveHint) moveHint.textContent = 'That move is not legal. Choose another destination.';
+        return;
+      }
+      selected = null;
+      history = history.slice(0, historyIndex + 1);
+      history.push(game.fen());
+      historyIndex = history.length - 1;
+      reportHistory();
+      if (moveHint) moveHint.textContent = (move.san || 'Move') + ' played. Stockfish is updating…';
+      render();
+      options.onFenChange?.(game.fen(), move);
+      runAnalysis();
+    }
+
+    function updateLine(info, generation) {
+      if (!active || !game || generation !== activeGeneration) return;
+      const index = Math.max(1, Math.min(MULTIPV, Number(info?.multipv) || 1)) - 1;
+      const line = lineEls[index];
+      if (!line) return;
+      line.score.textContent = scoreText(info);
+      line.depth.textContent = 'd' + (Number(info.depth) || '—');
+      line.pv.textContent = uciToSan(game.fen(), info.pv || []);
+      setStatus('Analyzing', 'running');
+    }
+
+    function runAnalysis() {
+      if (!active || !engine?.ready || !game) return;
+      resetLines();
+      setStatus('Analyzing', 'running');
+      engine.setMultiPV(MULTIPV);
+      activeGeneration = engine.startAnalysisAttributed(game.fen(), updateLine, DEPTH);
+    }
+
+    function setPosition(fen, preserveHistory = false) {
+      if (typeof global.Chess !== 'function') throw new Error('Chess rules library is unavailable.');
+      let nextGame;
+      try {
+        nextGame = new global.Chess(fen);
+      } catch (_) {
+        throw new Error('Confirmed FEN could not be loaded for analysis.');
+      }
+      game = nextGame;
+      selected = null;
+      if (!preserveHistory) resetHistory(game.fen());
+      render();
+      return game.fen();
+    }
+
+    async function start(fen) {
+      const sequence = ++startSequence;
+      if (!global.EngineRegistry?.createAnalyzeEngine) throw new Error('CAISSA engine registry is unavailable.');
+      setPosition(fen);
+      active = true;
+      panel.hidden = false;
+      resetLines();
+      setStatus('Starting…');
+      render();
+      if (!engine) {
+        engine = global.EngineRegistry.createAnalyzeEngine('stockfish-18-lite', {
+          autoStart: false,
+          owner: 'scanner-analysis',
+          searchTimeoutMs: 30000
+        });
+        if (!engine) throw new Error('Stockfish 18 provider is unavailable.');
+        engine.onError = (error) => {
+          if (!active) return;
+          stop();
+          setStatus('Engine error', 'error');
+          if (moveHint) moveHint.textContent = error?.message || 'Stockfish 18 stopped unexpectedly.';
+        };
+      }
+      await engine.start();
+      if (sequence !== startSequence || !active) return false;
+      engine.setMultiPV(MULTIPV);
+      runAnalysis();
+      options.onActiveChange?.(true);
+      return true;
+    }
+
+    function stop() {
+      startSequence += 1;
+      active = false;
+      selected = null;
+      activeGeneration = null;
+      engine?.stopAnalysis?.();
+      board?.classList.remove('analysis-active');
+      setStatus('Off');
+      if (game) render();
+      options.onActiveChange?.(false);
+    }
+
+    function clear() {
+      stop();
+      game = null;
+      resetHistory('');
+      panel.hidden = true;
+    }
+
+    function navigate(index) {
+      if (!history.length) return false;
+      const nextIndex = Math.max(0, Math.min(history.length - 1, index));
+      if (nextIndex === historyIndex) return false;
+      historyIndex = nextIndex;
+      setPosition(history[historyIndex], true);
+      reportHistory();
+      if (moveHint) moveHint.textContent = 'Position ' + (historyIndex + 1) + ' of ' + history.length + '.';
+      options.onFenChange?.(game.fen(), null);
+      if (active) runAnalysis();
+      return true;
+    }
+
+    function setFlipped(value) {
+      flipped = Boolean(value);
+      if (game) render();
+    }
+
+    return Object.freeze({
+      start,
+      stop,
+      clear,
+      setPosition,
+      setFlipped,
+      isActive: () => active,
+      currentFen: () => game?.fen?.() || null,
+      first: () => navigate(0),
+      previous: () => navigate(historyIndex - 1),
+      next: () => navigate(historyIndex + 1),
+      last: () => navigate(history.length - 1)
+    });
+  }
+
+  global.CaissaScannerAnalysis = Object.freeze({ create });
+})(window);
