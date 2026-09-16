@@ -185,3 +185,16 @@ Before changing Scanner visible UI:
 1. Read `docs/CAISSA_SCANNER_VISUAL_FREEZE.md`.
 2. Run `node --test tests/scanner-visual-contract.test.js`.
 3. If the task conflicts with this freeze and no explicit Alexander approval exists, return **HOLD**.
+
+## Required Scanner verification gate
+
+`npm run verify:scanner` is the canonical blocking Scanner verification command. The Scanner CI workflow runs it automatically for relevant changes.
+
+Before Scanner Phase 3 recognition changes are accepted:
+
+1. The visual contract test must pass.
+2. Scanner regression tests must pass.
+3. The browser Scanner suite must pass.
+4. No visual-freeze exception may be assumed.
+
+See this visual-freeze contract before changing any public Scanner experience.

@@ -1,0 +1,73 @@
+name: Scanner verification
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/scanner-verification.yml'
+      - 'docs/CAISSA_SCANNER_VISUAL_FREEZE.md'
+      - 'scanner/**'
+      - 'tests/scanner-visual-contract.test.js'
+      - 'tests/scanner-mobile-workspace.test.js'
+      - 'tests/browser/scanner-mobile-workspace.spec.js'
+      - 'tests/play/analyze-handoff.test.js'
+      - 'js/play/analyze-handoff.js'
+      - 'js/engine-adapter.js'
+      - 'js/engine-registry.js'
+      - 'img/chesspieces/**'
+      - 'assets/vendor/stockfish/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'playwright.config.js'
+      - 'server.js'
+  push:
+    branches:
+      - main
+      - feature/caissa-scanner-web-lab
+    paths:
+      - '.github/workflows/scanner-verification.yml'
+      - 'docs/CAISSA_SCANNER_VISUAL_FREEZE.md'
+      - 'scanner/**'
+      - 'tests/scanner-visual-contract.test.js'
+      - 'tests/scanner-mobile-workspace.test.js'
+      - 'tests/browser/scanner-mobile-workspace.spec.js'
+      - 'tests/play/analyze-handoff.test.js'
+      - 'js/play/analyze-handoff.js'
+      - 'js/engine-adapter.js'
+      - 'js/engine-registry.js'
+      - 'img/chesspieces/**'
+      - 'assets/vendor/stockfish/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'playwright.config.js'
+      - 'server.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scanner-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Scanner browser engines
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run mandatory Scanner verification gate
+        run: npm run verify:scanner
