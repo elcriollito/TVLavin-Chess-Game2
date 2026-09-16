@@ -2,12 +2,14 @@ import {
   CORNER_KEYS,
   CORNER_LABELS,
   OUTPUT_FILE,
+  V03_STARTER_FILE,
   annotateSample,
   cornersFromGroundTruth,
   createAnnotationState,
   hydrateAnnotations,
   isSampleComplete,
   mapDisplayPoint,
+  manifestFilesForCorpus,
   mergeAnnotationManifest,
   reduceAnnotationState,
   serializeManifest,
@@ -41,6 +43,7 @@ const state = {
   directory: null,
   sourceManifest: null,
   sourceManifestSha256: null,
+  outputFile: OUTPUT_FILE,
   annotations: new Map(),
   visibleSamples: [],
   sampleIndex: 0,
@@ -93,7 +96,7 @@ async function getFileByRelativePath(directory, relativePath) {
 }
 
 async function writeOutputManifest(manifest) {
-  const handle = await state.directory.getFileHandle(OUTPUT_FILE, { create: true });
+  const handle = await state.directory.getFileHandle(state.outputFile, { create: true });
   const writable = await handle.createWritable();
   try {
     await writable.write(serializeManifest(manifest));
@@ -302,7 +305,8 @@ async function openCorpus() {
   }
   try {
     const directory = await window.showDirectoryPicker({ mode: 'readwrite' });
-    const sourceResult = await readTextFile(directory, 'manifest-starter.json');
+    const sourceResult = (await readTextFile(directory, V03_STARTER_FILE, false))
+      || (await readTextFile(directory, 'manifest-starter.json'));
     const sourceManifest = JSON.parse(sourceResult.text);
     if (!sourceManifest.corpus || !Array.isArray(sourceManifest.samples) || sourceManifest.samples.length === 0) {
       throw new Error('starter-manifest-invalid');
@@ -313,7 +317,9 @@ async function openCorpus() {
       ids.add(sample.sampleId);
     }
     const sourceManifestSha256 = await sha256Hex(await sourceResult.file.arrayBuffer());
-    const existingResult = await readTextFile(directory, OUTPUT_FILE, false);
+    const manifestFiles = manifestFilesForCorpus(sourceManifest);
+    if (sourceResult.file.name !== manifestFiles.starter) throw new Error('starter-manifest-filename-mismatch');
+    const existingResult = await readTextFile(directory, manifestFiles.output, false);
     let annotations = new Map();
     if (existingResult) {
       const existing = JSON.parse(existingResult.text);
@@ -324,6 +330,7 @@ async function openCorpus() {
     state.directory = directory;
     state.sourceManifest = sourceManifest;
     state.sourceManifestSha256 = sourceManifestSha256;
+    state.outputFile = manifestFiles.output;
     state.annotations = annotations;
     state.sampleIndex = 0;
     elements.app.hidden = false;
@@ -361,7 +368,7 @@ async function confirmCurrent() {
     renderMetadata(annotated);
     renderProgress();
     renderSampleOptions();
-    setMessage(`Saved locally to ${OUTPUT_FILE}. Original image unchanged.`, 'success');
+    setMessage(`Saved locally to ${state.outputFile}. Original image unchanged.`, 'success');
     if (elements.incompleteOnly.checked) {
       const previousIndex = state.sampleIndex;
       rebuildVisibleSamples();

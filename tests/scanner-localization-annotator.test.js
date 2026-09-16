@@ -8,6 +8,7 @@ import {
   createAnnotationState,
   hydrateAnnotations,
   isSampleComplete,
+  manifestFilesForCorpus,
   mapDisplayPoint,
   mergeAnnotationManifest,
   normalizePoint,
@@ -159,4 +160,24 @@ test('annotation output is separate and source manifest/image values remain immu
   mergeAnnotationManifest(SOURCE_MANIFEST, new Map([[SAMPLE.sampleId, annotated]]), 'B'.repeat(64));
   assert.equal(serializeManifest(SOURCE_MANIFEST), sourceBefore);
   assert.equal(await sha256Hex(image), imageHashBefore);
+});
+
+test('v0.3 verified negatives are complete without corners while positives remain pending', () => {
+  const source = {
+    corpus: 'scanner-localization-hard-v0.3',
+    corpusVersion: 'scanner-localization-hard-v0.3',
+    samples: [
+      { ...SAMPLE, sampleId: 'real-v03-positive-001', annotationStatus: 'pending' },
+      { ...SAMPLE, sampleId: 'real-v03-negative-001', boardPresent: false,
+        annotationStatus: 'verified-negative', originalFile: 'hard-negatives/negative.jpg' }
+    ]
+  };
+  assert.equal(isSampleComplete(source.samples[0]), false);
+  assert.equal(isSampleComplete(source.samples[1]), true);
+  assert.deepEqual(manifestFilesForCorpus(source), {
+    starter: 'manifest-starter-v0.3.json', output: 'localization-hard-v0.3.annotated.json'
+  });
+  const merged = mergeAnnotationManifest(source, new Map(), 'A'.repeat(64));
+  assert.deepEqual(merged.progress, { completed: 1, total: 2 });
+  assert.equal(merged.sourceManifest.file, 'manifest-starter-v0.3.json');
 });

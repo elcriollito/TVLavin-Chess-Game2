@@ -1,5 +1,7 @@
 export const ANNOTATION_SCHEMA = 'caissa-scanner-localization-annotations/1';
 export const OUTPUT_FILE = 'localization-hard-v0.1.annotated.json';
+export const V03_STARTER_FILE = 'manifest-starter-v0.3.json';
+export const V03_OUTPUT_FILE = 'localization-hard-v0.3.annotated.json';
 export const CORNER_KEYS = Object.freeze(['topLeft', 'topRight', 'bottomRight', 'bottomLeft']);
 export const CORNER_LABELS = Object.freeze(['TOP-LEFT', 'TOP-RIGHT', 'BOTTOM-RIGHT', 'BOTTOM-LEFT']);
 export const SAMPLE_STATUSES = Object.freeze([
@@ -159,6 +161,8 @@ export function cornersFromGroundTruth(sample) {
 }
 
 export function isSampleComplete(sample) {
+  if (sample?.boardPresent === false && sample?.annotationStatus === 'verified-negative'
+      && !sample?.annotation && !sample?.groundTruth?.playableBoardCorners) return true;
   const status = sample?.annotation?.sampleStatus;
   if (sample?.annotation?.annotationStatus !== 'verified') return false;
   if (status === 'board-not-present' || status === 'unsupported-partial-board') return true;
@@ -174,6 +178,7 @@ export function annotateSample(sourceSample, { status, points = [], imageWidth, 
   result.sourceHeight = imageHeight;
 
   if (status === 'skip-for-now') {
+    result.annotationStatus = 'skip-for-now';
     delete result.groundTruth;
     result.annotation = {
       humanVerifiedBy: 'Alexander',
@@ -210,7 +215,14 @@ export function annotateSample(sourceSample, { status, points = [], imageWidth, 
     cornerOrder: status === 'board-present' ? 'tl-tr-br-bl' : null,
     timestampPolicy: 'omitted-for-determinism'
   };
+  result.annotationStatus = 'verified';
   return result;
+}
+
+export function manifestFilesForCorpus(sourceManifest) {
+  return sourceManifest?.corpusVersion === 'scanner-localization-hard-v0.3'
+    ? { starter: V03_STARTER_FILE, output: V03_OUTPUT_FILE }
+    : { starter: 'manifest-starter.json', output: OUTPUT_FILE };
 }
 
 export function mergeAnnotationManifest(sourceManifest, annotationsById, sourceManifestSha256) {
@@ -227,7 +239,7 @@ export function mergeAnnotationManifest(sourceManifest, annotationsById, sourceM
     corpus: sourceManifest.corpus,
     status: completed === samples.length ? 'annotation-complete' : 'annotation-in-progress',
     sourceManifest: {
-      file: 'manifest-starter.json',
+      file: manifestFilesForCorpus(sourceManifest).starter,
       sha256: sourceManifestSha256,
       sampleCount: samples.length
     },
