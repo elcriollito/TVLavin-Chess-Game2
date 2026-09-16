@@ -1,0 +1,7 @@
+{
+  "phase": "2C",
+  "status": "physically-certified",
+  "certifiedBaseline": "ad8036132417bc0d283f18ccd8d0e320111325c2",
+  "requiresExplicitApprovalForVisualChanges": true,
+  "contract": "docs/CAISSA_SCANNER_VISUAL_FREEZE.md"
+}

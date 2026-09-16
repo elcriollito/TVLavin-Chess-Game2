@@ -1,6 +1,8 @@
 (function (global) {
   'use strict';
 
+  // CAISSA SCANNER VISUAL FREEZE: Phase 2C physically certified.
+  // Preserve the four exclusive public views; see docs/CAISSA_SCANNER_VISUAL_FREEZE.md.
   const STATES = Object.freeze({
     CAPTURE: 'capture',
     READING: 'reading',

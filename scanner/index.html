@@ -44,10 +44,12 @@
       <p>Preparing the board for review.</p>
     </section>
 
+    <!-- CAISSA SCANNER VISUAL FREEZE: Phase 2C physically certified. Do not redesign or reorder visible UX without explicit Alexander approval. See docs/CAISSA_SCANNER_VISUAL_FREEZE.md -->
     <section class="scanner-workspace" id="workspaceView" data-principal-view="workspace" hidden inert aria-hidden="true">
       <span id="workspaceTitle" hidden>Position ready</span>
       <span id="candidateStatus" hidden>Waiting</span>
       <section class="board-workspace" id="scannerBoardCard">
+        <!-- Certified toolbar order: Edit, Save Diagram, Export, Product Menu. -->
         <div class="position-toolbar" aria-label="Position tools">
           <div class="side-to-move" id="sideToMove" aria-live="polite">
             <span class="side-piece white"><img id="sideToMovePiece" src="/img/chesspieces/wikipedia/wK.png" alt=""></span>
@@ -113,6 +115,7 @@
       <code id="confirmedFen" hidden></code>
     </section>
 
+    <!-- Certified exclusive Review/Edit structure. Visual changes require explicit Alexander approval. -->
     <section class="scanner-workspace review-edit-view" id="reviewEditView" data-principal-view="review_edit" hidden inert aria-hidden="true">
       <section class="board-workspace">
         <section class="edit-workspace" id="editSheet" hidden aria-label="Edit chess position">
