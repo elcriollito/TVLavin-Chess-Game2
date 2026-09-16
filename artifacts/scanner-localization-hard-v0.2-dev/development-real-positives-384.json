@@ -1,0 +1,1688 @@
+{
+  "schemaVersion": "caissa-scanner-localization-real-report/1",
+  "corpusVersion": "scanner-localization-hard-v0.1",
+  "annotationManifestSha256": "EEA230D23C0BC608784B20542A4EC5B2FAA7F533E1EC427E62985BB4720708A7",
+  "sourceManifestSha256": "DFE01F52B20BAF38ED5BF680B4A929E49D231CE0A1F2F69F8433C6257F7E1304",
+  "detector": {
+    "label": "v0.2-development-positive-384",
+    "localizerVersion": "caissa-scanner-board-localizer/3",
+    "implementationCheckpoint": "working-tree",
+    "splitEvaluated": "development",
+    "backend": "node-sharp-rgba-plus-shared-js-localizer",
+    "boardSize": 512,
+    "analysisEdge": 384,
+    "preprocessing": "none",
+    "runtimeNote": "Timing is measured wall time and environment-specific; scores and ordering are deterministic."
+  },
+  "qualityPolicy": {
+    "excellent": {
+      "maximumRmse": 0.012,
+      "maximumWorstCorner": 0.02
+    },
+    "acceptable": {
+      "maximumRmse": 0.03,
+      "maximumWorstCorner": 0.05
+    },
+    "reviewNeeded": {
+      "maximumRmse": 0.06,
+      "maximumWorstCorner": 0.1
+    }
+  },
+  "scope": "positive-corpus-localization-only",
+  "falsePositiveEvaluation": "incomplete-until-real-hard-negatives-are-added",
+  "metrics": {
+    "all": {
+      "sampleCount": 10,
+      "boardFoundRate": 0.5,
+      "falseNegativeRate": 0.5,
+      "localizationAcceptedRate": 0.3,
+      "wrongBoardSelectedRate": 0.1,
+      "multipleBoardAmbiguityRate": 0.2,
+      "cornerAccuracy": {
+        "sampleCount": 5,
+        "meanNormalizedRmse": 0.029387,
+        "medianNormalizedRmse": 0.011369,
+        "worstSampleId": "cv-success-003-lichess-endgame-photo",
+        "worstSampleRmse": 0.072413,
+        "worstCornerError": 0.081963
+      },
+      "homographySuccessRate": 0.5,
+      "geometryContractPassRate": 0.5,
+      "latencyMs": {
+        "mean": 922.884,
+        "median": 917.044,
+        "worst": 1406.722,
+        "worstSampleId": "cv-success-010-digital-board-photo-with-ui"
+      },
+      "qualityBuckets": {
+        "excellent": 3,
+        "acceptable": 0,
+        "review-needed": 1,
+        "failed": 6
+      },
+      "failures": {
+        "candidate-score-too-low": 3,
+        "corner-position-error": 1,
+        "multiple-board-candidates": 2,
+        "wrong-board-selected": 1
+      }
+    },
+    "development": {
+      "sampleCount": 10,
+      "boardFoundRate": 0.5,
+      "falseNegativeRate": 0.5,
+      "localizationAcceptedRate": 0.3,
+      "wrongBoardSelectedRate": 0.1,
+      "multipleBoardAmbiguityRate": 0.2,
+      "cornerAccuracy": {
+        "sampleCount": 5,
+        "meanNormalizedRmse": 0.029387,
+        "medianNormalizedRmse": 0.011369,
+        "worstSampleId": "cv-success-003-lichess-endgame-photo",
+        "worstSampleRmse": 0.072413,
+        "worstCornerError": 0.081963
+      },
+      "homographySuccessRate": 0.5,
+      "geometryContractPassRate": 0.5,
+      "latencyMs": {
+        "mean": 922.884,
+        "median": 917.044,
+        "worst": 1406.722,
+        "worstSampleId": "cv-success-010-digital-board-photo-with-ui"
+      },
+      "qualityBuckets": {
+        "excellent": 3,
+        "acceptable": 0,
+        "review-needed": 1,
+        "failed": 6
+      },
+      "failures": {
+        "candidate-score-too-low": 3,
+        "corner-position-error": 1,
+        "multiple-board-candidates": 2,
+        "wrong-board-selected": 1
+      }
+    },
+    "holdout": {
+      "sampleCount": 0,
+      "boardFoundRate": null,
+      "falseNegativeRate": null,
+      "localizationAcceptedRate": null,
+      "wrongBoardSelectedRate": null,
+      "multipleBoardAmbiguityRate": null,
+      "cornerAccuracy": {
+        "sampleCount": 0,
+        "meanNormalizedRmse": null,
+        "medianNormalizedRmse": null,
+        "worstSampleId": null,
+        "worstSampleRmse": null,
+        "worstCornerError": null
+      },
+      "homographySuccessRate": null,
+      "geometryContractPassRate": null,
+      "latencyMs": {
+        "mean": null,
+        "median": null,
+        "worst": null,
+        "worstSampleId": null
+      },
+      "qualityBuckets": {
+        "excellent": 0,
+        "acceptable": 0,
+        "review-needed": 0,
+        "failed": 0
+      },
+      "failures": {}
+    },
+    "byCategory": {
+      "degraded-print": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 1,
+        "wrongBoardSelectedRate": 0,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.011369,
+          "medianNormalizedRmse": 0.011369,
+          "worstSampleId": "cv-failure-001-old-newspaper-mackenzie-97",
+          "worstSampleRmse": 0.011369,
+          "worstCornerError": 0.016869
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 632.042,
+          "median": 632.042,
+          "worst": 632.042,
+          "worstSampleId": "cv-failure-001-old-newspaper-mackenzie-97"
+        },
+        "qualityBuckets": {
+          "excellent": 1,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 0
+        },
+        "failures": {}
+      },
+      "digital-photo": {
+        "sampleCount": 4,
+        "boardFoundRate": 0.75,
+        "falseNegativeRate": 0.25,
+        "localizationAcceptedRate": 0.25,
+        "wrongBoardSelectedRate": 0.25,
+        "multipleBoardAmbiguityRate": 0.25,
+        "cornerAccuracy": {
+          "sampleCount": 3,
+          "meanNormalizedRmse": 0.041794,
+          "medianNormalizedRmse": 0.046475,
+          "worstSampleId": "cv-success-003-lichess-endgame-photo",
+          "worstSampleRmse": 0.072413,
+          "worstCornerError": 0.081963
+        },
+        "homographySuccessRate": 0.75,
+        "geometryContractPassRate": 0.75,
+        "latencyMs": {
+          "mean": 772.604,
+          "median": 578.949,
+          "worst": 1406.722,
+          "worstSampleId": "cv-success-010-digital-board-photo-with-ui"
+        },
+        "qualityBuckets": {
+          "excellent": 1,
+          "acceptable": 0,
+          "review-needed": 1,
+          "failed": 2
+        },
+        "failures": {
+          "corner-position-error": 1,
+          "multiple-board-candidates": 1,
+          "wrong-board-selected": 1
+        }
+      },
+      "hatched-print": {
+        "sampleCount": 2,
+        "boardFoundRate": 0,
+        "falseNegativeRate": 1,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 0,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 0,
+          "meanNormalizedRmse": null,
+          "medianNormalizedRmse": null,
+          "worstSampleId": null,
+          "worstSampleRmse": null,
+          "worstCornerError": null
+        },
+        "homographySuccessRate": 0,
+        "geometryContractPassRate": 0,
+        "latencyMs": {
+          "mean": 1109.859,
+          "median": 1109.859,
+          "worst": 1133.659,
+          "worstSampleId": "cv-success-007-printed-skewer-hatched"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 2
+        },
+        "failures": {
+          "candidate-score-too-low": 2
+        }
+      },
+      "printed-diagram": {
+        "sampleCount": 2,
+        "boardFoundRate": 0.5,
+        "falseNegativeRate": 0.5,
+        "localizationAcceptedRate": 0.5,
+        "wrongBoardSelectedRate": 0,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.010182,
+          "medianNormalizedRmse": 0.010182,
+          "worstSampleId": "cv-success-005-puzzle-diagram-no-kings",
+          "worstSampleRmse": 0.010182,
+          "worstCornerError": 0.014333
+        },
+        "homographySuccessRate": 0.5,
+        "geometryContractPassRate": 0.5,
+        "latencyMs": {
+          "mean": 942.489,
+          "median": 942.489,
+          "worst": 1136.949,
+          "worstSampleId": "cv-success-006-printed-book-classic-diagram"
+        },
+        "qualityBuckets": {
+          "excellent": 1,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 1
+        },
+        "failures": {
+          "candidate-score-too-low": 1
+        }
+      },
+      "small-board-print": {
+        "sampleCount": 1,
+        "boardFoundRate": 0,
+        "falseNegativeRate": 1,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 0,
+        "multipleBoardAmbiguityRate": 1,
+        "cornerAccuracy": {
+          "sampleCount": 0,
+          "meanNormalizedRmse": null,
+          "medianNormalizedRmse": null,
+          "worstSampleId": null,
+          "worstSampleRmse": null,
+          "worstCornerError": null
+        },
+        "homographySuccessRate": 0,
+        "geometryContractPassRate": 0,
+        "latencyMs": {
+          "mean": 1401.687,
+          "median": 1401.687,
+          "worst": 1401.687,
+          "worstSampleId": "cv-success-009-small-printed-diagram-in-page"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 1
+        },
+        "failures": {
+          "multiple-board-candidates": 1
+        }
+      }
+    }
+  },
+  "samples": [
+    {
+      "sampleId": "cv-failure-001-old-newspaper-mackenzie-97",
+      "split": "development",
+      "categoryGroup": "degraded-print",
+      "difficultyTags": [
+        "degraded-monochrome-print",
+        "old-newspaper",
+        "low-contrast",
+        "piece-color-confusion",
+        "missed-piece",
+        "illegal-output"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "misread",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": true,
+      "qualityBucket": "excellent",
+      "failureTaxonomy": null,
+      "predictedCorners": [
+        [
+          56,
+          244
+        ],
+        [
+          1092,
+          216
+        ],
+        [
+          1084,
+          1128
+        ],
+        [
+          100,
+          1144
+        ]
+      ],
+      "truthCorners": [
+        [
+          39.865,
+          226.061
+        ],
+        [
+          1112.656,
+          191.052
+        ],
+        [
+          1092.65,
+          1138.809
+        ],
+        [
+          104.882,
+          1136.308
+        ]
+      ],
+      "cornerRmse": 0.011369,
+      "worstCornerError": 0.016869,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            56,
+            244
+          ],
+          [
+            1092,
+            216
+          ],
+          [
+            1084,
+            1128
+          ],
+          [
+            100,
+            1144
+          ]
+        ],
+        "candidateScore": 0.935775,
+        "geometryScore": 0.972558,
+        "gridScore": 0.968433,
+        "gridPhaseScore": 0.850175,
+        "checkerScore": 0.914501,
+        "edgeScore": 0.786595,
+        "outerBoundary": {
+          "mean": 39.443210085523965,
+          "minimumSideMean": 38.47333427762445,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            38.781913545884755,
+            38.64326164415631,
+            41.87433087443033,
+            38.47333427762445
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.895426,
+        "geometryScore": 0.965459,
+        "gridScore": 0.876373,
+        "gridPhaseScore": 0.838442,
+        "checkerScore": 0.90542,
+        "edgeScore": 0.72946,
+        "outerBoundary": {
+          "mean": 29.968831337776304,
+          "minimumSideMean": 21.67048938331809,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            42.91801120691695,
+            24.493883696328954,
+            30.792941064541225,
+            21.67048938331809
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 544.355,
+        "candidateGeneration": 544.355,
+        "periodicityScoring": 11.439,
+        "insetRefinement": 4.629,
+        "cornerRefinement": 36.532,
+        "candidateScoring": 52.655,
+        "homography": 34.286,
+        "geometryValidation": 0.374,
+        "totalGeometry": 632.042
+      }
+    },
+    {
+      "sampleId": "cv-success-001-ui-overlay-board",
+      "split": "development",
+      "categoryGroup": "digital-photo",
+      "difficultyTags": [
+        "photo-of-screen",
+        "board-overlay",
+        "arrows",
+        "highlighted-squares",
+        "surrounding-ui",
+        "mild-perspective"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": false,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "multiple-board-candidates",
+      "predictedCorners": null,
+      "truthCorners": [
+        [
+          139.855,
+          288.715
+        ],
+        [
+          1071.545,
+          291.161
+        ],
+        [
+          1037.309,
+          1193.498
+        ],
+        [
+          164.309,
+          1181.271
+        ]
+      ],
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            121.383,
+            391.146
+          ],
+          [
+            1088.532,
+            418.526
+          ],
+          [
+            1029.799,
+            1306.427
+          ],
+          [
+            180.117,
+            1275.135
+          ]
+        ],
+        "candidateScore": 0.94016,
+        "geometryScore": 0.969262,
+        "gridScore": 0.963034,
+        "gridPhaseScore": 0.946759,
+        "checkerScore": 0.906428,
+        "edgeScore": 0.883917,
+        "outerBoundary": {
+          "mean": 32.3861860148118,
+          "minimumSideMean": 25.58405312023454,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            30.756255408278975,
+            43.535370179386625,
+            29.66906535134704,
+            25.58405312023454
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.943161,
+        "geometryScore": 0.985122,
+        "gridScore": 0.902906,
+        "gridPhaseScore": 0.970333,
+        "checkerScore": 0.922599,
+        "edgeScore": 0.926629,
+        "outerBoundary": {
+          "mean": 35.309264175614445,
+          "minimumSideMean": 30.876542652349453,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            37.75513548634691,
+            31.037332657632504,
+            41.56804590612891,
+            30.876542652349453
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": true,
+      "homographySuccess": false,
+      "geometryContractSuccess": false,
+      "typedFailureCode": "multiple-board-candidates",
+      "timingsMs": {
+        "localization": 523.641,
+        "candidateGeneration": 523.641,
+        "periodicityScoring": 9.036,
+        "insetRefinement": 0.016,
+        "cornerRefinement": 62.777,
+        "candidateScoring": 71.851,
+        "homography": 0,
+        "geometryValidation": 0,
+        "totalGeometry": 595.493
+      }
+    },
+    {
+      "sampleId": "cv-success-003-lichess-endgame-photo",
+      "split": "development",
+      "categoryGroup": "digital-photo",
+      "difficultyTags": [
+        "photo-of-screen",
+        "surrounding-ui",
+        "mild-perspective",
+        "highlighted-square",
+        "lichess-board",
+        "standard-2d-pieces"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "wrong-board-selected",
+      "predictedCorners": [
+        [
+          48,
+          196
+        ],
+        [
+          868,
+          208
+        ],
+        [
+          876,
+          1036
+        ],
+        [
+          76,
+          988
+        ]
+      ],
+      "truthCorners": [
+        [
+          149.895,
+          305.249
+        ],
+        [
+          987.622,
+          310.251
+        ],
+        [
+          935.108,
+          1112.969
+        ],
+        [
+          182.403,
+          1085.461
+        ]
+      ],
+      "cornerRmse": 0.072413,
+      "worstCornerError": 0.081963,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            48,
+            196
+          ],
+          [
+            868,
+            208
+          ],
+          [
+            876,
+            1036
+          ],
+          [
+            76,
+            988
+          ]
+        ],
+        "candidateScore": 0.924833,
+        "geometryScore": 0.976933,
+        "gridScore": 0.974651,
+        "gridPhaseScore": 0.934277,
+        "checkerScore": 0.893347,
+        "edgeScore": 0.871457,
+        "outerBoundary": {
+          "mean": 27.029456563295636,
+          "minimumSideMean": 13.358521271963511,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            26.197439450814798,
+            30.18742824738239,
+            38.37443728302185,
+            13.358521271963511
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.948045,
+        "geometryScore": 0.976471,
+        "gridScore": 0.918696,
+        "gridPhaseScore": 0.95167,
+        "checkerScore": 0.941415,
+        "edgeScore": 0.899404,
+        "outerBoundary": {
+          "mean": 38.99295416444592,
+          "minimumSideMean": 30.021278602794297,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            46.24717385622187,
+            30.021278602794297,
+            36.94767076886189,
+            42.75569342990563
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 459.514,
+        "candidateGeneration": 459.514,
+        "periodicityScoring": 10.078,
+        "insetRefinement": 0.026,
+        "cornerRefinement": 26.456,
+        "candidateScoring": 36.605,
+        "homography": 29.495,
+        "geometryValidation": 0.108,
+        "totalGeometry": 525.797
+      }
+    },
+    {
+      "sampleId": "cv-success-004-lichess-complex-screen-photo",
+      "split": "development",
+      "categoryGroup": "digital-photo",
+      "difficultyTags": [
+        "photo-of-screen",
+        "lichess-board",
+        "surrounding-ui",
+        "highlighted-squares",
+        "moderate-piece-density",
+        "perspective-light"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "review-needed",
+      "failureTaxonomy": "corner-position-error",
+      "predictedCorners": [
+        [
+          72,
+          428
+        ],
+        [
+          840,
+          436
+        ],
+        [
+          824,
+          1176
+        ],
+        [
+          108,
+          1148
+        ]
+      ],
+      "truthCorners": [
+        [
+          169.9,
+          447.788
+        ],
+        [
+          917.603,
+          440.286
+        ],
+        [
+          892.596,
+          1162.982
+        ],
+        [
+          212.412,
+          1140.476
+        ]
+      ],
+      "cornerRmse": 0.046475,
+      "worstCornerError": 0.054522,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            72,
+            428
+          ],
+          [
+            840,
+            436
+          ],
+          [
+            824,
+            1176
+          ],
+          [
+            108,
+            1148
+          ]
+        ],
+        "candidateScore": 0.925532,
+        "geometryScore": 0.979077,
+        "gridScore": 0.960182,
+        "gridPhaseScore": 0.887419,
+        "checkerScore": 0.90708,
+        "edgeScore": 0.801343,
+        "outerBoundary": {
+          "mean": 19.492980514239377,
+          "minimumSideMean": 13.173936815479998,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            20.131664212923525,
+            13.173936815479998,
+            29.98111807884725,
+            14.68520294970674
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.941121,
+        "geometryScore": 0.977819,
+        "gridScore": 0.923799,
+        "gridPhaseScore": 0.896861,
+        "checkerScore": 0.931598,
+        "edgeScore": 0.857864,
+        "outerBoundary": {
+          "mean": 46.93499388755681,
+          "minimumSideMean": 43.08406754527763,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            53.41141318750129,
+            43.08406754527763,
+            47.07633133660951,
+            44.168163480838786
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 484.382,
+        "candidateGeneration": 484.382,
+        "periodicityScoring": 10.862,
+        "insetRefinement": 0.036,
+        "cornerRefinement": 31.36,
+        "candidateScoring": 42.296,
+        "homography": 35.551,
+        "geometryValidation": 0.081,
+        "totalGeometry": 562.405
+      }
+    },
+    {
+      "sampleId": "cv-success-005-puzzle-diagram-no-kings",
+      "split": "development",
+      "categoryGroup": "printed-diagram",
+      "difficultyTags": [
+        "puzzle-diagram",
+        "nonstandard-position",
+        "no-kings",
+        "sparse-board",
+        "printed-graphic",
+        "photo-of-screen",
+        "surrounding-text"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": true,
+      "qualityBucket": "excellent",
+      "failureTaxonomy": null,
+      "predictedCorners": [
+        [
+          128,
+          456
+        ],
+        [
+          972,
+          428
+        ],
+        [
+          984,
+          1300
+        ],
+        [
+          136,
+          1292
+        ]
+      ],
+      "truthCorners": [
+        [
+          109.884,
+          435.285
+        ],
+        [
+          970.117,
+          415.279
+        ],
+        [
+          980.12,
+          1300.519
+        ],
+        [
+          129.889,
+          1315.523
+        ]
+      ],
+      "cornerRmse": 0.010182,
+      "worstCornerError": 0.014333,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            128,
+            456
+          ],
+          [
+            972,
+            428
+          ],
+          [
+            984,
+            1300
+          ],
+          [
+            136,
+            1292
+          ]
+        ],
+        "candidateScore": 0.895334,
+        "geometryScore": 0.989751,
+        "gridScore": 0.907352,
+        "gridPhaseScore": 0.897346,
+        "checkerScore": 0.867345,
+        "edgeScore": 0.798376,
+        "outerBoundary": {
+          "mean": 20.923444735198693,
+          "minimumSideMean": 14.045697579176265,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            18.447026427033986,
+            29.550612390082986,
+            21.65044254450154,
+            14.045697579176265
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.830493,
+        "geometryScore": 0.99272,
+        "gridScore": 0.745737,
+        "gridPhaseScore": 0.890147,
+        "checkerScore": 0.86309,
+        "edgeScore": 0.753718,
+        "outerBoundary": {
+          "mean": 81.43170834624422,
+          "minimumSideMean": 5.4137498815446286,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            5.4137498815446286,
+            27.52257934667891,
+            142.08225861184124,
+            150.70824554491213
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 517.479,
+        "candidateGeneration": 517.479,
+        "periodicityScoring": 18.431,
+        "insetRefinement": 0.047,
+        "cornerRefinement": 91.759,
+        "candidateScoring": 110.378,
+        "homography": 119.768,
+        "geometryValidation": 0.222,
+        "totalGeometry": 748.028
+      }
+    },
+    {
+      "sampleId": "cv-success-006-printed-book-classic-diagram",
+      "split": "development",
+      "categoryGroup": "printed-diagram",
+      "difficultyTags": [
+        "printed-book",
+        "classic-diagram",
+        "monochrome-print",
+        "surrounding-text",
+        "reversed-orientation",
+        "old-piece-style",
+        "page-background"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": false,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "candidate-score-too-low",
+      "predictedCorners": null,
+      "truthCorners": [
+        [
+          139.892,
+          375.268
+        ],
+        [
+          1010.128,
+          377.769
+        ],
+        [
+          982.62,
+          1222.998
+        ],
+        [
+          154.896,
+          1212.996
+        ]
+      ],
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            160,
+            156
+          ],
+          [
+            956,
+            140
+          ],
+          [
+            972,
+            1012
+          ],
+          [
+            220,
+            1060
+          ]
+        ],
+        "candidateScore": 0.590489,
+        "geometryScore": 0.969477,
+        "gridScore": 0.865172,
+        "gridPhaseScore": 0.570953,
+        "checkerScore": 0.362132,
+        "edgeScore": 0.530149,
+        "outerBoundary": {
+          "mean": 32.00071326162869,
+          "minimumSideMean": 28.28285485316279,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            31.03978022019142,
+            32.114230832830124,
+            36.56598714033044,
+            28.28285485316279
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": [
+          "candidate-score-too-low"
+        ]
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.545821,
+        "geometryScore": 0.988071,
+        "gridScore": 0.569956,
+        "gridPhaseScore": 0.613829,
+        "checkerScore": 0.408617,
+        "edgeScore": 0.586148,
+        "outerBoundary": {
+          "mean": 24.09605759046104,
+          "minimumSideMean": 16.89147052015544,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            24.718031308911236,
+            18.853566344309304,
+            35.921162188468195,
+            16.89147052015544
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": false,
+        "rejectionReasons": [
+          "candidate-score-too-low"
+        ]
+      },
+      "ambiguity": false,
+      "homographySuccess": false,
+      "geometryContractSuccess": false,
+      "typedFailureCode": "board-not-found",
+      "timingsMs": {
+        "localization": 1115.079,
+        "candidateGeneration": 1115.079,
+        "periodicityScoring": 21.516,
+        "insetRefinement": 0.036,
+        "cornerRefinement": 0.172,
+        "candidateScoring": 21.869,
+        "homography": 0,
+        "geometryValidation": 0,
+        "totalGeometry": 1136.949
+      }
+    },
+    {
+      "sampleId": "cv-success-007-printed-skewer-hatched",
+      "split": "development",
+      "categoryGroup": "hatched-print",
+      "difficultyTags": [
+        "printed-book",
+        "tactical-diagram",
+        "perspective-skew",
+        "hatched-dark-squares",
+        "surrounding-text",
+        "classic-piece-style",
+        "book-page-photo"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": false,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "candidate-score-too-low",
+      "predictedCorners": null,
+      "truthCorners": [
+        [
+          209.911,
+          562.819
+        ],
+        [
+          950.112,
+          502.803
+        ],
+        [
+          930.106,
+          1170.484
+        ],
+        [
+          249.922,
+          1207.994
+        ]
+      ],
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            212,
+            288
+          ],
+          [
+            860,
+            256
+          ],
+          [
+            884,
+            956
+          ],
+          [
+            244,
+            984
+          ]
+        ],
+        "candidateScore": 0.472528,
+        "geometryScore": 0.985253,
+        "gridScore": 0.59551,
+        "gridPhaseScore": 0.56102,
+        "checkerScore": 0.303758,
+        "edgeScore": 0.528993,
+        "outerBoundary": {
+          "mean": 23.99027030291717,
+          "minimumSideMean": 4.089833399327681,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            4.089833399327681,
+            27.31373844373159,
+            37.09513720971351,
+            27.462372158895903
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": [
+          "unbalanced-playable-border",
+          "candidate-score-too-low"
+        ]
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.678921,
+        "geometryScore": 0.965356,
+        "gridScore": 0.758244,
+        "gridPhaseScore": 0.63317,
+        "checkerScore": 0.579462,
+        "edgeScore": 0.636649,
+        "outerBoundary": {
+          "mean": 27.31737262569923,
+          "minimumSideMean": 20.41591233625142,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            38.47600326609142,
+            28.183246367872318,
+            20.41591233625142,
+            22.194328532581768
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": false,
+      "geometryContractSuccess": false,
+      "typedFailureCode": "board-not-found",
+      "timingsMs": {
+        "localization": 1103.886,
+        "candidateGeneration": 1103.886,
+        "periodicityScoring": 29.253,
+        "insetRefinement": 0.048,
+        "cornerRefinement": 0.205,
+        "candidateScoring": 29.772,
+        "homography": 0,
+        "geometryValidation": 0,
+        "totalGeometry": 1133.659
+      }
+    },
+    {
+      "sampleId": "cv-success-009-small-printed-diagram-in-page",
+      "split": "development",
+      "categoryGroup": "small-board-print",
+      "difficultyTags": [
+        "small-board-in-page",
+        "printed-book",
+        "surrounding-text",
+        "perspective-light",
+        "hatched-squares",
+        "classic-piece-style",
+        "dense-page-layout"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": false,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "multiple-board-candidates",
+      "predictedCorners": null,
+      "truthCorners": [
+        [
+          292.433,
+          430.283
+        ],
+        [
+          855.086,
+          445.287
+        ],
+        [
+          815.075,
+          982.933
+        ],
+        [
+          297.435,
+          965.429
+        ]
+      ],
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            296,
+            512
+          ],
+          [
+            848,
+            512
+          ],
+          [
+            848,
+            1056
+          ],
+          [
+            280,
+            1052
+          ]
+        ],
+        "candidateScore": 0.923443,
+        "geometryScore": 0.988943,
+        "gridScore": 0.964595,
+        "gridPhaseScore": 0.811657,
+        "checkerScore": 0.927269,
+        "edgeScore": 0.703075,
+        "outerBoundary": {
+          "mean": 51.193629074010154,
+          "minimumSideMean": 34.564858719507846,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            78.95750270426265,
+            34.564858719507846,
+            36.13016592525221,
+            55.12198894701792
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.908932,
+        "geometryScore": 0.981635,
+        "gridScore": 0.857267,
+        "gridPhaseScore": 0.850068,
+        "checkerScore": 0.926216,
+        "edgeScore": 0.732658,
+        "outerBoundary": {
+          "mean": 47.57155298556936,
+          "minimumSideMean": 40.825888504142675,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            53.64386346234361,
+            53.45068190243388,
+            42.36577807335729,
+            40.825888504142675
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": true,
+      "homographySuccess": false,
+      "geometryContractSuccess": false,
+      "typedFailureCode": "multiple-board-candidates",
+      "timingsMs": {
+        "localization": 1164.582,
+        "candidateGeneration": 1164.582,
+        "periodicityScoring": 42.897,
+        "insetRefinement": 0.059,
+        "cornerRefinement": 193.865,
+        "candidateScoring": 237.105,
+        "homography": 0,
+        "geometryValidation": 0,
+        "totalGeometry": 1401.687
+      }
+    },
+    {
+      "sampleId": "cv-success-010-digital-board-photo-with-ui",
+      "split": "development",
+      "categoryGroup": "digital-photo",
+      "difficultyTags": [
+        "photo-of-screen",
+        "digital-board",
+        "surrounding-ui",
+        "highlighted-squares",
+        "moderate-perspective",
+        "mixed-piece-density",
+        "standard-2d-pieces"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": true,
+      "qualityBucket": "excellent",
+      "failureTaxonomy": null,
+      "predictedCorners": [
+        [
+          108,
+          148
+        ],
+        [
+          1064,
+          184
+        ],
+        [
+          1004,
+          1100
+        ],
+        [
+          96,
+          1080
+        ]
+      ],
+      "truthCorners": [
+        [
+          107.383,
+          157.709
+        ],
+        [
+          1062.642,
+          185.217
+        ],
+        [
+          990.123,
+          1100.465
+        ],
+        [
+          102.382,
+          1062.955
+        ]
+      ],
+      "cornerRmse": 0.006495,
+      "worstCornerError": 0.009479,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            108,
+            148
+          ],
+          [
+            1064,
+            184
+          ],
+          [
+            1004,
+            1100
+          ],
+          [
+            96,
+            1080
+          ]
+        ],
+        "candidateScore": 0.959953,
+        "geometryScore": 0.987546,
+        "gridScore": 0.965701,
+        "gridPhaseScore": 0.935488,
+        "checkerScore": 0.941202,
+        "edgeScore": 0.821761,
+        "outerBoundary": {
+          "mean": 93.21909114315191,
+          "minimumSideMean": 86.27977844967556,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            99.94943685812588,
+            97.19540864466808,
+            89.45174062013814,
+            86.27977844967556
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.964036,
+        "geometryScore": 0.982739,
+        "gridScore": 0.981728,
+        "gridPhaseScore": 0.939571,
+        "checkerScore": 0.930238,
+        "edgeScore": 0.896481,
+        "outerBoundary": {
+          "mean": 121.2109155508897,
+          "minimumSideMean": 118.64011867423797,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            119.85351713423763,
+            121.27295342080238,
+            125.0770729742808,
+            118.64011867423797
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 1252.226,
+        "candidateGeneration": 1252.226,
+        "periodicityScoring": 26.72,
+        "insetRefinement": 0.033,
+        "cornerRefinement": 57.508,
+        "candidateScoring": 84.302,
+        "homography": 69.986,
+        "geometryValidation": 0.115,
+        "totalGeometry": 1406.722
+      }
+    },
+    {
+      "sampleId": "cv-success-011-printed-driving-off",
+      "split": "development",
+      "categoryGroup": "hatched-print",
+      "difficultyTags": [
+        "printed-book",
+        "page-curvature",
+        "perspective-skew",
+        "hatched-dark-squares",
+        "surrounding-text",
+        "classic-piece-style",
+        "book-photo"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success-with-warning",
+      "boardPresent": true,
+      "detected": false,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "candidate-score-too-low",
+      "predictedCorners": null,
+      "truthCorners": [
+        [
+          147.394,
+          406.277
+        ],
+        [
+          907.6,
+          591.327
+        ],
+        [
+          815.075,
+          1256.507
+        ],
+        [
+          117.386,
+          1123.972
+        ]
+      ],
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            92,
+            576
+          ],
+          [
+            968,
+            576
+          ],
+          [
+            912,
+            1200
+          ],
+          [
+            144,
+            1200
+          ]
+        ],
+        "candidateScore": 0.467509,
+        "geometryScore": 0.929834,
+        "gridScore": 0.620669,
+        "gridPhaseScore": 0.539654,
+        "checkerScore": 0.294013,
+        "edgeScore": 0.516876,
+        "outerBoundary": {
+          "mean": 14.90651568604833,
+          "minimumSideMean": 3.576092010476525,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            25.800503467718944,
+            3.576092010476525,
+            14.905742991765436,
+            15.343724274232414
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": [
+          "unbalanced-playable-border",
+          "candidate-score-too-low"
+        ]
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.786703,
+        "geometryScore": 0.941387,
+        "gridScore": 0.763374,
+        "gridPhaseScore": 0.76043,
+        "checkerScore": 0.797255,
+        "edgeScore": 0.615076,
+        "outerBoundary": {
+          "mean": 35.32521399626926,
+          "minimumSideMean": 14.326462738671829,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            56.328441764159095,
+            31.971829412143038,
+            14.326462738671829,
+            38.674122070103095
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": false,
+      "geometryContractSuccess": false,
+      "typedFailureCode": "board-not-found",
+      "timingsMs": {
+        "localization": 1065.905,
+        "candidateGeneration": 1065.905,
+        "periodicityScoring": 19.986,
+        "insetRefinement": 0.033,
+        "cornerRefinement": 0.094,
+        "candidateScoring": 20.154,
+        "homography": 0,
+        "geometryValidation": 0,
+        "totalGeometry": 1086.059
+      }
+    }
+  ]
+}

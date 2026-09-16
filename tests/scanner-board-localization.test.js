@@ -12,6 +12,7 @@ import {
   solidImage,
   stripedImage
 } from './fixtures/scanner-localization-fixtures.js';
+import { createV02DevelopmentFixtures } from './fixtures/scanner-localization-hard-v02-fixtures.js';
 
 const geometry = globalThis.CaissaScannerBoardGeometry;
 const localizer = globalThis.CaissaScannerBoardLocalizer;
@@ -251,6 +252,49 @@ test('plain images, stripes, single rectangles, and non-checker grids are reject
   }
 });
 
+test('playable 8x8 field outranks a decorative outer frame and displaced grid phase', () => {
+  const fixture = createV02DevelopmentFixtures().find((item) => item.id === 'synthetic-thick-coordinate-frame');
+  const playable = localizer.scoreSourceCorners(fixture);
+  const frame = localizer.scoreSourceCorners({ ...fixture,
+    corners: [[27, 24], [293, 24], [293, 290], [27, 290]] });
+  const shifted = localizer.scoreSourceCorners({ ...fixture,
+    corners: fixture.corners.map(([x, y]) => [x + 12, y]) });
+  assert.ok(playable.candidateScore > frame.candidateScore + 0.2);
+  assert.ok(playable.gridPhaseEvidenceScore > shifted.gridPhaseEvidenceScore + 0.2);
+  assert.equal(playable.accepted, true);
+  assert.equal(frame.accepted, false);
+});
+
+test('bounded inset and corner refinement preserve deterministic playable-field geometry', () => {
+  const fixture = createV02DevelopmentFixtures().find((item) => item.id === 'synthetic-thick-coordinate-frame');
+  const first = run(fixture, 128);
+  const second = run(fixture, 128);
+  assert.equal(first.ok, true);
+  assert.deepEqual(first.board.corners, second.board.corners);
+  assert.ok(first.diagnostics.insetCandidateCount <= 4);
+  assert.ok(first.diagnostics.cornerRefinedCount <= 2);
+  assert.ok(localizer.cornerErrorMetrics(first.board.corners, fixture.corners, fixture.width, fixture.height).normalizedCornerRmse < 0.02);
+  assertExactTileCoverage(first.board);
+});
+
+test('v0.2 synthetic print, perspective, hatching, highlights and small-board analogues localize', () => {
+  for (const fixture of createV02DevelopmentFixtures().filter((item) => item.boardPresent)) {
+    const result = run(fixture, 128);
+    assert.equal(result.ok, true, `${fixture.id}: ${result.error?.code}`);
+    const error = localizer.cornerErrorMetrics(result.board.corners, fixture.corners, fixture.width, fixture.height);
+    assert.ok(error.normalizedCornerRmse <= 0.03, `${fixture.id}: ${error.normalizedCornerRmse}`);
+    assertExactTileCoverage(result.board);
+  }
+});
+
+test('v0.2 synthetic hard negatives safely abstain, including non-8x8 checker and panels', () => {
+  for (const fixture of createV02DevelopmentFixtures().filter((item) => !item.boardPresent)) {
+    const result = run(fixture, 128);
+    assert.equal(result.ok, false, `${fixture.id} was falsely localized`);
+    assert.ok(['board-not-found', 'multiple-board-candidates'].includes(result.error.code));
+  }
+});
+
 test('multiple similarly scored boards return typed ambiguity with bounded summaries', () => {
   const result = run(fixtures.multipleBoards, 128);
   assert.equal(result.ok, false);
@@ -292,7 +336,7 @@ test('timing and score fields remain measurable diagnostics rather than probabil
   for (const field of ['candidateScore', 'geometryScore', 'gridEvidenceScore']) {
     assert.ok(result.board[field] >= 0 && result.board[field] <= 1);
   }
-  assert.equal(result.diagnostics.localizerVersion, 'caissa-scanner-board-localizer/2');
+  assert.equal(result.diagnostics.localizerVersion, 'caissa-scanner-board-localizer/3');
   assert.ok(result.diagnostics.candidateCount <= localizer.MAX_CANDIDATES);
   const selected = result.diagnostics.candidateSummaries.find((candidate) => candidate.accepted);
   assert.equal(selected.shapeMetrics.edgeLengths.length, 4);
@@ -310,7 +354,7 @@ test('benchmark adapter records detection, corners, geometry, scores, and timing
   assert.equal(success.status, 'candidate');
   assert.equal(success.predictedCorners.length, 4);
   assert.equal(validateHomographyOutput(success.geometry).ok, true);
-  assert.equal(success.localization.localizerVersion, 'caissa-scanner-board-localizer/2');
+  assert.equal(success.localization.localizerVersion, 'caissa-scanner-board-localizer/3');
   assert.equal('predictedClasses' in success, false);
   const failure = localizer.toBenchmarkOutput('plain-fixture', run(fixtures.nonBoard, 128));
   assert.deepEqual({ boardDetected: failure.boardDetected, status: failure.status, failureCode: failure.failureCode }, {

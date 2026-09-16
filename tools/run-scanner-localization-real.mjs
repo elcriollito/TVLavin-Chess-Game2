@@ -32,7 +32,7 @@ function orderedTruth(sample) {
   return orderedAnnotationCorners(sample, 'pixels');
 }
 
-async function decodeRgba(filePath) {
+async function decodeRgba(filePath, preprocessing) {
   const source = sharp(filePath, { failOn: 'error' }).rotate();
   const metadata = await source.metadata();
   const scale = Math.min(1, 2048 / Math.max(metadata.width, metadata.height), Math.sqrt(4_000_000 / (metadata.width * metadata.height)));
@@ -40,6 +40,31 @@ async function decodeRgba(filePath) {
     ? source.resize(Math.max(1, Math.round(metadata.width * scale)), Math.max(1, Math.round(metadata.height * scale)), { fit: 'fill' })
     : source;
   const { data, info } = await pipeline.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  if (preprocessing === 'global-contrast-stretch') {
+    const histogram = new Uint32Array(256);
+    for (let offset = 0; offset < data.length; offset += 4) {
+      histogram[Math.round(0.2126 * data[offset] + 0.7152 * data[offset + 1] + 0.0722 * data[offset + 2])] += 1;
+    }
+    const percentile = (fraction) => {
+      const target = info.width * info.height * fraction;
+      let count = 0;
+      for (let value = 0; value < 256; value += 1) {
+        count += histogram[value];
+        if (count >= target) return value;
+      }
+      return 255;
+    };
+    const low = percentile(0.05);
+    const high = percentile(0.95);
+    if (high > low + 8) {
+      const multiplier = 255 / (high - low);
+      for (let offset = 0; offset < data.length; offset += 4) {
+        for (let channel = 0; channel < 3; channel += 1) {
+          data[offset + channel] = Math.max(0, Math.min(255, Math.round((data[offset + channel] - low) * multiplier)));
+        }
+      }
+    }
+  }
   return {
     pixels: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
     width: info.width,
@@ -52,6 +77,10 @@ async function decodeRgba(filePath) {
 const corpusRoot = resolve(argument('corpus', process.env.CAISSA_SCANNER_REAL_CORPUS || defaultCorpus));
 const label = argument('label', 'baseline');
 const splitFilter = argument('split', 'all');
+const preprocessing = argument('preprocess', 'none');
+if (!['none', 'global-contrast-stretch'].includes(preprocessing)) throw new Error(`Unsupported preprocessing: ${preprocessing}`);
+const analysisEdge = Number(argument('analysis-edge', '256'));
+if (![256, 320, 384].includes(analysisEdge)) throw new Error(`Unsupported analysis edge: ${analysisEdge}`);
 if (!['all', 'development', 'holdout'].includes(splitFilter)) throw new Error(`Unsupported split: ${splitFilter}`);
 const outputPath = resolve(argument('output', join(repoRoot, 'artifacts/scanner-localization-hard-v0.1', `${label}-localization-v0.1.json`)));
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
@@ -78,11 +107,11 @@ const samples = [];
 for (const sample of selected) {
   const splitRecord = manifest.samples.find((entry) => entry.sampleId === sample.sampleId);
   const imagePath = join(corpusRoot, ...sample.originalFile.split('/'));
-  const decoded = await decodeRgba(imagePath);
+  const decoded = await decodeRgba(imagePath, preprocessing);
   if (decoded.width !== sample.sourceWidth || decoded.height !== sample.sourceHeight) {
     throw new Error(`${sample.sampleId}: decoded dimensions ${decoded.width}x${decoded.height} do not match annotation ${sample.sourceWidth}x${sample.sourceHeight}`);
   }
-  const result = localizer.localizeAndRectify({ pixels: decoded.pixels, width: decoded.width, height: decoded.height, boardSize: 512 });
+  const result = localizer.localizeAndRectify({ pixels: decoded.pixels, width: decoded.width, height: decoded.height, boardSize: 512, analysisEdge });
   const truth = orderedTruth(sample).map(([x, y]) => [x * decoded.scaleX, y * decoded.scaleY]);
   const metrics = result.ok ? localizer.cornerErrorMetrics(result.board.corners, truth, decoded.width, decoded.height) : null;
   const truthCandidateEvidence = localizer.scoreSourceCorners({
@@ -105,6 +134,8 @@ const report = createLocalizationReport({
     splitEvaluated: splitFilter,
     backend: 'node-sharp-rgba-plus-shared-js-localizer',
     boardSize: 512,
+    analysisEdge,
+    preprocessing,
     runtimeNote: 'Timing is measured wall time and environment-specific; scores and ordering are deterministic.'
   },
   samples

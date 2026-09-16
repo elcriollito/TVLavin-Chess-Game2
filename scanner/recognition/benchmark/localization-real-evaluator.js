@@ -102,16 +102,20 @@ export function evaluateLocalizationSample({ sample, splitRecord, result, corner
       candidateScore: round(candidate.candidateScore),
       geometryScore: round(candidate.geometryScore),
       gridScore: round(candidate.gridEvidenceScore),
+      gridPhaseScore: round(candidate.gridPhaseEvidenceScore),
       checkerScore: round(candidate.checkerEvidenceScore),
       edgeScore: round(candidate.edgeEvidenceScore),
+      outerBoundary: candidate.outerBoundary || null,
       rejectionReasons: candidate.rejectionReasons || []
     } : null,
     truthCandidateEvidence: truthCandidateEvidence ? {
       candidateScore: round(truthCandidateEvidence.candidateScore),
       geometryScore: round(truthCandidateEvidence.geometryScore),
       gridScore: round(truthCandidateEvidence.gridEvidenceScore),
+      gridPhaseScore: round(truthCandidateEvidence.gridPhaseEvidenceScore),
       checkerScore: round(truthCandidateEvidence.checkerEvidenceScore),
       edgeScore: round(truthCandidateEvidence.edgeEvidenceScore),
+      outerBoundary: truthCandidateEvidence.outerBoundary || null,
       acceptedByScoring: truthCandidateEvidence.accepted,
       rejectionReasons: truthCandidateEvidence.rejectionReasons || []
     } : null,
@@ -121,6 +125,10 @@ export function evaluateLocalizationSample({ sample, splitRecord, result, corner
     typedFailureCode: result?.ok ? null : (result?.error?.code || 'board-not-found'),
     timingsMs: {
       localization: round(result?.timing?.localizationMs, 3) || 0,
+      candidateGeneration: round(result?.timing?.candidateGenerationMs, 3) || 0,
+      periodicityScoring: round(result?.timing?.periodicityScoringMs, 3) || 0,
+      insetRefinement: round(result?.timing?.insetRefinementMs, 3) || 0,
+      cornerRefinement: round(result?.timing?.cornerRefinementMs, 3) || 0,
       candidateScoring: round(result?.timing?.candidateScoringMs, 3) || 0,
       homography: round(result?.timing?.homographyMs, 3) || 0,
       geometryValidation: round(result?.timing?.geometryValidationMs, 3) || 0,

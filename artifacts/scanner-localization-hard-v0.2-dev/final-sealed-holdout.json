@@ -1,0 +1,852 @@
+{
+  "schemaVersion": "caissa-scanner-localization-real-report/1",
+  "corpusVersion": "scanner-localization-hard-v0.1",
+  "annotationManifestSha256": "EEA230D23C0BC608784B20542A4EC5B2FAA7F533E1EC427E62985BB4720708A7",
+  "sourceManifestSha256": "DFE01F52B20BAF38ED5BF680B4A929E49D231CE0A1F2F69F8433C6257F7E1304",
+  "detector": {
+    "label": "v0.2-final-sealed-holdout",
+    "localizerVersion": "caissa-scanner-board-localizer/3",
+    "implementationCheckpoint": "working-tree-frozen",
+    "splitEvaluated": "holdout",
+    "backend": "node-sharp-rgba-plus-shared-js-localizer",
+    "boardSize": 512,
+    "analysisEdge": 256,
+    "preprocessing": "none",
+    "runtimeNote": "Timing is measured wall time and environment-specific; scores and ordering are deterministic."
+  },
+  "qualityPolicy": {
+    "excellent": {
+      "maximumRmse": 0.012,
+      "maximumWorstCorner": 0.02
+    },
+    "acceptable": {
+      "maximumRmse": 0.03,
+      "maximumWorstCorner": 0.05
+    },
+    "reviewNeeded": {
+      "maximumRmse": 0.06,
+      "maximumWorstCorner": 0.1
+    }
+  },
+  "scope": "positive-corpus-localization-only",
+  "falsePositiveEvaluation": "incomplete-until-real-hard-negatives-are-added",
+  "metrics": {
+    "all": {
+      "sampleCount": 4,
+      "boardFoundRate": 1,
+      "falseNegativeRate": 0,
+      "localizationAcceptedRate": 0.25,
+      "wrongBoardSelectedRate": 0.5,
+      "multipleBoardAmbiguityRate": 0,
+      "cornerAccuracy": {
+        "sampleCount": 4,
+        "meanNormalizedRmse": 0.059936,
+        "medianNormalizedRmse": 0.065999,
+        "worstSampleId": "cv-failure-003-3d-videogame-board",
+        "worstSampleRmse": 0.09698,
+        "worstCornerError": 0.136496
+      },
+      "homographySuccessRate": 1,
+      "geometryContractPassRate": 1,
+      "latencyMs": {
+        "mean": 510.715,
+        "median": 510.48,
+        "worst": 542.338,
+        "worstSampleId": "cv-success-008-printed-perspective-sparse"
+      },
+      "qualityBuckets": {
+        "excellent": 1,
+        "acceptable": 0,
+        "review-needed": 1,
+        "failed": 2
+      },
+      "failures": {
+        "corner-position-error": 1,
+        "outer-frame-selected": 1,
+        "wrong-board-selected": 1
+      }
+    },
+    "development": {
+      "sampleCount": 0,
+      "boardFoundRate": null,
+      "falseNegativeRate": null,
+      "localizationAcceptedRate": null,
+      "wrongBoardSelectedRate": null,
+      "multipleBoardAmbiguityRate": null,
+      "cornerAccuracy": {
+        "sampleCount": 0,
+        "meanNormalizedRmse": null,
+        "medianNormalizedRmse": null,
+        "worstSampleId": null,
+        "worstSampleRmse": null,
+        "worstCornerError": null
+      },
+      "homographySuccessRate": null,
+      "geometryContractPassRate": null,
+      "latencyMs": {
+        "mean": null,
+        "median": null,
+        "worst": null,
+        "worstSampleId": null
+      },
+      "qualityBuckets": {
+        "excellent": 0,
+        "acceptable": 0,
+        "review-needed": 0,
+        "failed": 0
+      },
+      "failures": {}
+    },
+    "holdout": {
+      "sampleCount": 4,
+      "boardFoundRate": 1,
+      "falseNegativeRate": 0,
+      "localizationAcceptedRate": 0.25,
+      "wrongBoardSelectedRate": 0.5,
+      "multipleBoardAmbiguityRate": 0,
+      "cornerAccuracy": {
+        "sampleCount": 4,
+        "meanNormalizedRmse": 0.059936,
+        "medianNormalizedRmse": 0.065999,
+        "worstSampleId": "cv-failure-003-3d-videogame-board",
+        "worstSampleRmse": 0.09698,
+        "worstCornerError": 0.136496
+      },
+      "homographySuccessRate": 1,
+      "geometryContractPassRate": 1,
+      "latencyMs": {
+        "mean": 510.715,
+        "median": 510.48,
+        "worst": 542.338,
+        "worstSampleId": "cv-success-008-printed-perspective-sparse"
+      },
+      "qualityBuckets": {
+        "excellent": 1,
+        "acceptable": 0,
+        "review-needed": 1,
+        "failed": 2
+      },
+      "failures": {
+        "corner-position-error": 1,
+        "outer-frame-selected": 1,
+        "wrong-board-selected": 1
+      }
+    },
+    "byCategory": {
+      "3d-board": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 1,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.09698,
+          "medianNormalizedRmse": 0.09698,
+          "worstSampleId": "cv-failure-003-3d-videogame-board",
+          "worstSampleRmse": 0.09698,
+          "worstCornerError": 0.136496
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 479.561,
+          "median": 479.561,
+          "worst": 479.561,
+          "worstSampleId": "cv-failure-003-3d-videogame-board"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 1
+        },
+        "failures": {
+          "outer-frame-selected": 1
+        }
+      },
+      "degraded-print": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 0,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.05769,
+          "medianNormalizedRmse": 0.05769,
+          "worstSampleId": "cv-failure-002-old-newspaper-problem-196",
+          "worstSampleRmse": 0.05769,
+          "worstCornerError": 0.068878
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 517.843,
+          "median": 517.843,
+          "worst": 517.843,
+          "worstSampleId": "cv-failure-002-old-newspaper-problem-196"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 1,
+          "failed": 0
+        },
+        "failures": {
+          "corner-position-error": 1
+        }
+      },
+      "digital-photo": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 1,
+        "wrongBoardSelectedRate": 0,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.010766,
+          "medianNormalizedRmse": 0.010766,
+          "worstSampleId": "cv-success-002-lichess-photo-of-screen",
+          "worstSampleRmse": 0.010766,
+          "worstCornerError": 0.017533
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 503.117,
+          "median": 503.117,
+          "worst": 503.117,
+          "worstSampleId": "cv-success-002-lichess-photo-of-screen"
+        },
+        "qualityBuckets": {
+          "excellent": 1,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 0
+        },
+        "failures": {}
+      },
+      "hatched-print": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 1,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.074308,
+          "medianNormalizedRmse": 0.074308,
+          "worstSampleId": "cv-success-008-printed-perspective-sparse",
+          "worstSampleRmse": 0.074308,
+          "worstCornerError": 0.097606
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 542.338,
+          "median": 542.338,
+          "worst": 542.338,
+          "worstSampleId": "cv-success-008-printed-perspective-sparse"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 1
+        },
+        "failures": {
+          "wrong-board-selected": 1
+        }
+      }
+    }
+  },
+  "samples": [
+    {
+      "sampleId": "cv-failure-002-old-newspaper-problem-196",
+      "split": "holdout",
+      "categoryGroup": "degraded-print",
+      "difficultyTags": [
+        "degraded-monochrome-print",
+        "old-newspaper",
+        "low-contrast",
+        "piece-color-confusion",
+        "missed-piece",
+        "illegal-output"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "misread",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "review-needed",
+      "failureTaxonomy": "corner-position-error",
+      "predictedCorners": [
+        [
+          132,
+          342
+        ],
+        [
+          1038,
+          330
+        ],
+        [
+          984,
+          1146
+        ],
+        [
+          150,
+          1098
+        ]
+      ],
+      "truthCorners": [
+        [
+          109.884,
+          430.283
+        ],
+        [
+          1012.629,
+          442.787
+        ],
+        [
+          990.123,
+          1245.504
+        ],
+        [
+          114.885,
+          1225.499
+        ]
+      ],
+      "cornerRmse": 0.05769,
+      "worstCornerError": 0.068878,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            132,
+            342
+          ],
+          [
+            1038,
+            330
+          ],
+          [
+            984,
+            1146
+          ],
+          [
+            150,
+            1098
+          ]
+        ],
+        "candidateScore": 0.912674,
+        "geometryScore": 0.964858,
+        "gridScore": 0.958691,
+        "gridPhaseScore": 0.806408,
+        "checkerScore": 0.902721,
+        "edgeScore": 0.726692,
+        "outerBoundary": {
+          "mean": 31.298544309889298,
+          "minimumSideMean": 25.186546994761375,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            30.373334230981825,
+            31.494192570595064,
+            38.14010344321894,
+            25.186546994761375
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.866082,
+        "geometryScore": 0.977574,
+        "gridScore": 0.768294,
+        "gridPhaseScore": 0.814648,
+        "checkerScore": 0.912703,
+        "edgeScore": 0.692081,
+        "outerBoundary": {
+          "mean": 30.96918441530441,
+          "minimumSideMean": 19.33198214144963,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            30.5742444035847,
+            51.3153783885779,
+            22.655132727605423,
+            19.33198214144963
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 438.526,
+        "candidateGeneration": 438.526,
+        "periodicityScoring": 10.492,
+        "insetRefinement": 0.134,
+        "cornerRefinement": 38,
+        "candidateScoring": 48.682,
+        "homography": 30.046,
+        "geometryValidation": 0.33,
+        "totalGeometry": 517.843
+      }
+    },
+    {
+      "sampleId": "cv-failure-003-3d-videogame-board",
+      "split": "holdout",
+      "categoryGroup": "3d-board",
+      "difficultyTags": [
+        "3d-board",
+        "strong-perspective",
+        "square-occlusion",
+        "shadows",
+        "textured-board",
+        "decorative-border",
+        "photo-of-screen"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "board-not-found",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "outer-frame-selected",
+      "predictedCorners": [
+        [
+          72,
+          270
+        ],
+        [
+          816,
+          204
+        ],
+        [
+          840,
+          900
+        ],
+        [
+          108,
+          918
+        ]
+      ],
+      "truthCorners": [
+        [
+          284.931,
+          422.781
+        ],
+        [
+          842.583,
+          425.282
+        ],
+        [
+          975.118,
+          887.907
+        ],
+        [
+          97.38,
+          875.404
+        ]
+      ],
+      "cornerRmse": 0.09698,
+      "worstCornerError": 0.136496,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            72,
+            270
+          ],
+          [
+            816,
+            204
+          ],
+          [
+            840,
+            900
+          ],
+          [
+            108,
+            918
+          ]
+        ],
+        "candidateScore": 0.776343,
+        "geometryScore": 0.972459,
+        "gridScore": 0.661017,
+        "gridPhaseScore": 0.585658,
+        "checkerScore": 0.845506,
+        "edgeScore": 0.576933,
+        "outerBoundary": {
+          "mean": 38.01922973804989,
+          "minimumSideMean": 26.64499781943916,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            62.34427624726149,
+            34.53042914796131,
+            28.55721573753759,
+            26.64499781943916
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.716702,
+        "geometryScore": 0.816096,
+        "gridScore": 0.538102,
+        "gridPhaseScore": 0.611734,
+        "checkerScore": 0.795154,
+        "edgeScore": 0.640425,
+        "outerBoundary": {
+          "mean": 67.71715360640346,
+          "minimumSideMean": 54.933265318437066,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            79.8594787645718,
+            54.933265318437066,
+            70.30430754601723,
+            65.7715627965877
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 403.734,
+        "candidateGeneration": 403.734,
+        "periodicityScoring": 12.575,
+        "insetRefinement": 0.036,
+        "cornerRefinement": 31.181,
+        "candidateScoring": 43.834,
+        "homography": 31.649,
+        "geometryValidation": 0.089,
+        "totalGeometry": 479.561
+      }
+    },
+    {
+      "sampleId": "cv-success-002-lichess-photo-of-screen",
+      "split": "holdout",
+      "categoryGroup": "digital-photo",
+      "difficultyTags": [
+        "photo-of-screen",
+        "lichess-board",
+        "rotated-orientation",
+        "highlights",
+        "move-arrows",
+        "surrounding-ui",
+        "moderate-perspective"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": true,
+      "qualityBucket": "excellent",
+      "failureTaxonomy": null,
+      "predictedCorners": [
+        [
+          210,
+          372
+        ],
+        [
+          936,
+          384
+        ],
+        [
+          918,
+          1080
+        ],
+        [
+          228,
+          1086
+        ]
+      ],
+      "truthCorners": [
+        [
+          219.914,
+          380.27
+        ],
+        [
+          945.11,
+          367.766
+        ],
+        [
+          910.101,
+          1080.46
+        ],
+        [
+          249.922,
+          1060.454
+        ]
+      ],
+      "cornerRmse": 0.010766,
+      "worstCornerError": 0.017533,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            210,
+            372
+          ],
+          [
+            936,
+            384
+          ],
+          [
+            918,
+            1080
+          ],
+          [
+            228,
+            1086
+          ]
+        ],
+        "candidateScore": 0.958296,
+        "geometryScore": 0.988117,
+        "gridScore": 0.972759,
+        "gridPhaseScore": 0.915166,
+        "checkerScore": 0.939666,
+        "edgeScore": 0.879192,
+        "outerBoundary": {
+          "mean": 37.10377280134104,
+          "minimumSideMean": 31.067883862608642,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            37.41230639638389,
+            31.067883862608642,
+            48.80607143871119,
+            31.128829507660413
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.947425,
+        "geometryScore": 0.978376,
+        "gridScore": 0.933738,
+        "gridPhaseScore": 0.915059,
+        "checkerScore": 0.935751,
+        "edgeScore": 0.887081,
+        "outerBoundary": {
+          "mean": 41.654103118267926,
+          "minimumSideMean": 36.073748502785655,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            40.05962301734357,
+            36.073748502785655,
+            46.321761390254075,
+            44.1612795626884
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 419.825,
+        "candidateGeneration": 419.825,
+        "periodicityScoring": 12.532,
+        "insetRefinement": 0.043,
+        "cornerRefinement": 32.656,
+        "candidateScoring": 45.306,
+        "homography": 37.783,
+        "geometryValidation": 0.092,
+        "totalGeometry": 503.117
+      }
+    },
+    {
+      "sampleId": "cv-success-008-printed-perspective-sparse",
+      "split": "holdout",
+      "categoryGroup": "hatched-print",
+      "difficultyTags": [
+        "printed-book",
+        "strong-perspective",
+        "page-curvature",
+        "hatched-squares",
+        "sparse-position",
+        "classic-piece-style"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "wrong-board-selected",
+      "predictedCorners": [
+        [
+          234,
+          306
+        ],
+        [
+          1098,
+          192
+        ],
+        [
+          1104,
+          1146
+        ],
+        [
+          204,
+          1158
+        ]
+      ],
+      "truthCorners": [
+        [
+          167.399,
+          435.285
+        ],
+        [
+          1047.638,
+          295.247
+        ],
+        [
+          957.614,
+          1263.009
+        ],
+        [
+          149.895,
+          1253.007
+        ]
+      ],
+      "cornerRmse": 0.074308,
+      "worstCornerError": 0.097606,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            234,
+            306
+          ],
+          [
+            1098,
+            192
+          ],
+          [
+            1104,
+            1146
+          ],
+          [
+            204,
+            1158
+          ]
+        ],
+        "candidateScore": 0.819046,
+        "geometryScore": 0.962178,
+        "gridScore": 0.778389,
+        "gridPhaseScore": 0.729394,
+        "checkerScore": 0.851086,
+        "edgeScore": 0.715719,
+        "outerBoundary": {
+          "mean": 15.86048608494648,
+          "minimumSideMean": 5.967831728207113,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            5.967831728207113,
+            7.1152237667619715,
+            32.14669597854118,
+            18.21219286627566
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.721555,
+        "geometryScore": 0.938203,
+        "gridScore": 0.549903,
+        "gridPhaseScore": 0.611095,
+        "checkerScore": 0.796139,
+        "edgeScore": 0.597549,
+        "outerBoundary": {
+          "mean": 37.46189418403151,
+          "minimumSideMean": 21.34340455481815,
+          "minimumValidFraction": 1,
+          "sideMeans": [
+            33.81532383676064,
+            35.84627690762532,
+            58.842571436921936,
+            21.34340455481815
+          ],
+          "validFractions": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 439.556,
+        "candidateGeneration": 439.556,
+        "periodicityScoring": 8.928,
+        "insetRefinement": 0.026,
+        "cornerRefinement": 60.127,
+        "candidateScoring": 69.125,
+        "homography": 33.549,
+        "geometryValidation": 0.064,
+        "totalGeometry": 542.338
+      }
+    }
+  ]
+}

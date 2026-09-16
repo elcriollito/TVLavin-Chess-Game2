@@ -1,6 +1,6 @@
 # CAISSA Scanner — Real-World Localization Hardening
 
-Status: **PHASE 3-004B COMPLETE — MORE LOCALIZATION HARDENING REQUIRED**
+Status: **PHASE 3-004C EVALUATED — MORE LOCALIZATION HARDENING REQUIRED**
 
 Visual changes authorized and made: **NONE**
 
@@ -233,3 +233,51 @@ The digital/photo-of-screen category is promising, and the geometry contract rem
 Next task: **PHASE 3-004C — TARGETED REAL-WORLD LOCALIZATION HARDENING**. The new task must preserve this holdout result as evidence, add or reserve fresh evaluation data before any further tuning, address playable-field-versus-frame discrimination and perspective/hatched print, and add real hard negatives.
 
 **VISUAL-FREEZE exception requires Alexander's explicit approval.**
+
+## 15. PHASE 3-004C — v0.2 development corpus and sealed evaluation
+
+The v0.1 ground truth and its 10/4 split were not changed. `scanner-localization-hard-v0.2-dev` references the ten checksum-verified v0.1 **development** positives and adds six deterministic developer-created positive analogues (strong-perspective print, thick coordinate frame, low-contrast print, diagonal hatching, digital highlights, and a small board in a page) plus six developer-created hard negatives (plain field, stripes, generic grid, empty frame, 10×10 non-chess checker, and webpage/table panels). The generator source, manifest, and each generated RGBA input are SHA-256 identified in the development report. No newly found local image was silently added; there are **zero real-world negative images** in this version. Thus real-world false-positive and true-negative rates are **not measurable** here; the synthetic-negative results must not be presented as a real-world rate.
+
+The detector version is `caissa-scanner-board-localizer/3`. It adds rectified-space grid-phase support at all seven internal divisions on both axes, trimmed directional sampling that tolerates local highlights/hatching, balanced outer-border evidence, a bounded four-ratio playable inset search, bounded two-candidate corner refinement, and a fail-closed check for an 8×8 crop cut out of a larger periodic grid. The last check was motivated by the synthetic 10×10 negative, which initially caused a false positive. Rejected candidates are no longer allowed to suppress an overlapping accepted candidate during deduplication. These are geometric rules, not sample-ID or image-specific exceptions. The analysis edge remains 256 pixels in the runtime; 320 and 384 were benchmarked only.
+
+Wrong-board selection has a higher operational cost than board-not-found: a plausible but incorrect quadrilateral would poison all 64 downstream piece crops. A failed or ambiguous result is therefore treated as a safe abstention, not as successful localization. Successful returns still use the existing homography and exact 64 equal, gapless, non-overlapping squares.
+
+### Development results (256-pixel analysis edge)
+
+| Evidence set | Positive | Negative | Found positives | Accepted positives | Wrong positives | False positives | True negatives |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Real v0.1 development | 10 | 0 | 6/10 | 3/10 | 0/10 | n/a | n/a |
+| v0.2 synthetic analogues | 6 | 6 | 6/6 | 6/6 | 0/6 | 0/6 | 6/6 |
+
+Real development had two typed ambiguities and two score-based no-board results. Three returned boards needed corner review. Relative to 3-004B, real accepted localization declined from 4/10 to 3/10; no real development wrong-board case was introduced. The synthetic hard-negative false-positive rate is 0/6 (0%) and true-negative rate 6/6 (100%), **synthetic only**. The previous false positive on the 10×10 checker was eliminated by grid-continuation abstention.
+
+Analysis-edge comparison on the same ten real development positives:
+
+| Edge | Found | Accepted | Wrong | Mean total geometry latency |
+| ---: | ---: | ---: | ---: | ---: |
+| 256 | 6/10 | 3/10 | 0/10 | 855.074 ms |
+| 320 | 6/10 | 2/10 | 1/10 | 802.326 ms |
+| 384 | 5/10 | 3/10 | 1/10 | 922.884 ms |
+
+Changing search resolution changes the discrete hypotheses; higher resolution is not monotonically better and was not adopted. The synthetic 256/320/384 runs had 6/6, 5/6, and 6/6 accepted positives respectively, zero wrong positives, and zero false positives among six negatives at each edge. On the ten real development positives, a benchmark-only global 5th–95th-percentile contrast stretch raised acceptance to 5/10 but also caused 1/10 wrong-board selection. It was **not enabled**. This leaves real degraded/hatched print preprocessing unresolved.
+
+Mean 256-edge synthetic timing across 12 inputs was 550.899 ms candidate generation, 17.250 ms final periodicity scoring, 2.406 ms inset refinement, 16.458 ms corner refinement, 1.142 ms homography, and 588.282 ms total geometry. Mean real-development timing across ten inputs was 750.402 ms candidate generation, 22.163 ms periodicity scoring, 0.050 ms inset refinement, 51.765 ms corner refinement, 30.383 ms homography, and 855.074 ms total geometry. Candidate generation remains the dominant cost; these Node/Sharp wall times are not physical mobile-Safari measurements. Search remains bounded by the existing eight seeds and twelve candidates; refinement is fixed-size and deterministic. No WebGPU, SharedArrayBuffer, server fallback, OCR, ML, image upload, telemetry, or training capture was added.
+
+### Final sealed v0.1 holdout — one run only
+
+The original four holdout image pixels were not inspected or used to adjust the detector during development. After the algorithm and tests were frozen, the holdout split was evaluated **once** at 256 pixels. There were no detector changes afterward.
+
+| Sample | 3-004C bucket | RMSE | Failure taxonomy |
+| --- | --- | ---: | --- |
+| old newspaper problem 196 | review-needed | 0.057690 | corner-position-error |
+| 3D videogame board | failed | 0.096980 | outer-frame-selected |
+| Lichess photo of screen | excellent | 0.010766 | none |
+| printed perspective sparse | failed | 0.074308 | wrong-board-selected |
+
+Board found was 4/4; accepted localization 1/4; wrong/outer selection **2/4 (50%)**, down from the prior 3/4 (75%) but still unacceptable. Mean detected RMSE was 0.059936; worst normalized corner error 0.136496. All four returned homographies passed the 64-square geometry contract, but geometric validity cannot make incorrect corners acceptable. The 3D category is **DEFERRED / OUTSIDE MVP**. The current detector still returns an outer frame there, so simply labelling 3D unsupported does not yet make runtime behavior safe. The strong-perspective printed case likewise remains unsupported for automatic localization. This holdout result is not a threshold-tuning set for this task.
+
+### Verification and readiness
+
+`npm run test:scanner:localization` passed 31/31 focused localization/evaluator tests. `npm run verify:scanner` passed 7 visual-contract, 22 unit, 17 benchmark, 31 localization, 13 runtime, and 96 three-browser checks (186 total). `git diff --check` passed. No public Scanner UI file was changed; the certified visual contract is intact. **VISUAL-FREEZE exception requires Alexander's explicit approval.**
+
+Readiness decision: **MORE LOCALIZATION HARDENING REQUIRED**. A 50% wrong/outer-board rate on the sealed holdout fails the near-zero target, despite the synthetic-negative pass and improvement on degraded newspaper print. Next task: **PHASE 3-004D — LOCALIZATION HARDENING / SUPPORT-BOUNDARY DECISION**. Add lawful real negatives and a fresh, independently reserved evaluation split before further tuning; resolve or explicitly gate unsupported 3D and strong-perspective print without using these four sealed images as a development loop. Do not integrate the classifier, merge, or deploy production on this evidence.

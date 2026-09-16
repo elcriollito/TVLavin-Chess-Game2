@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "caissa-scanner-localization-development-manifest/1",
+  "corpusVersion": "scanner-localization-hard-v0.2-dev",
+  "realPositiveSource": "scanner-localization-hard-v0.1 development split only (10 immutable, checksum-verified samples)",
+  "realNegativeCount": 0,
+  "syntheticGenerator": "tests/fixtures/scanner-localization-hard-v02-fixtures.js",
+  "syntheticPositiveCount": 6,
+  "syntheticNegativeCount": 6,
+  "holdoutPolicy": "The four v0.1 holdout images are excluded from all development runs and inspected only once after the detector is frozen.",
+  "qualityPolicy": "excellent <=0.012 normalized RMSE and <=0.02 worst corner; acceptable <=0.03 RMSE and <=0.05 worst corner; wrong-board >0.06 RMSE or clear non-playable rectangle."
+}

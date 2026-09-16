@@ -4,12 +4,13 @@
   const geometry = global.CaissaScannerBoardGeometry;
   if (!geometry) throw new Error('CAISSA Scanner board geometry must load before localization.');
 
-  const LOCALIZER_VERSION = 'caissa-scanner-board-localizer/2';
+  const LOCALIZER_VERSION = 'caissa-scanner-board-localizer/3';
   const MAX_ANALYSIS_EDGE = 256;
   const MAX_CANDIDATES = 12;
   const MIN_CANDIDATE_SCORE = 0.6;
   const MIN_GRID_EVIDENCE = 0.35;
   const MIN_CHECKER_EVIDENCE = 0.24;
+  const MIN_GRID_PHASE_EVIDENCE = 0.36;
   const AMBIGUITY_MARGIN = 0.08;
   const SCORE_SAMPLE_SIZE = 80;
   const SEARCH_SAMPLE_SIZE = 32;
@@ -35,9 +36,9 @@
     return ordered[Math.min(ordered.length - 1, Math.max(0, Math.floor((ordered.length - 1) * fraction)))];
   }
 
-  function rgbaToAnalysis(pixels, width, height) {
+  function rgbaToAnalysis(pixels, width, height, maxAnalysisEdge = MAX_ANALYSIS_EDGE) {
     const source = new Uint8ClampedArray(pixels);
-    const scale = Math.min(1, MAX_ANALYSIS_EDGE / Math.max(width, height));
+    const scale = Math.min(1, maxAnalysisEdge / Math.max(width, height));
     const analysisWidth = Math.max(1, Math.round(width * scale));
     const analysisHeight = Math.max(1, Math.round(height * scale));
     const gray = new Float32Array(analysisWidth * analysisHeight);
@@ -243,7 +244,7 @@
     return output;
   }
 
-  function scoreRectifiedGrid(sample, size) {
+  function scoreRectifiedGrid(sample, size, measurePhase = true) {
     const cell = size / 8;
     const evenCells = [];
     const oddCells = [];
@@ -271,6 +272,53 @@
       ? clamp(1 - (withinParity / Math.max(8, parityDifference * 1.5)))
       : 0;
     const checkerEvidenceScore = clamp((0.72 * paritySeparation) + (0.28 * parityConsistency));
+
+    // Measure phase only on the seven *interior* divisions. A decorative border
+    // can be a strong quadrilateral edge without being the playable 8x8 field.
+    // Samples avoid intersections and use a trimmed average so pieces, arrows,
+    // hatching, and a few highlighted squares cannot dominate a whole line.
+    function directionalEnergy(axis, position) {
+      const values = [];
+      const delta = Math.max(0.65, cell * 0.075);
+      for (let index = 0; index < 32; index += 1) {
+        const section = Math.floor(index / 4);
+        const within = (index % 4 + 1) / 5;
+        const along = (section + 0.15 + within * 0.7) * cell;
+        const first = axis === 'x'
+          ? sampleGray(sample, size, size, position - delta, along)
+          : sampleGray(sample, size, size, along, position - delta);
+        const second = axis === 'x'
+          ? sampleGray(sample, size, size, position + delta, along)
+          : sampleGray(sample, size, size, along, position + delta);
+        values.push(Math.abs(second - first));
+      }
+      values.sort((a, b) => a - b);
+      return mean(values.slice(4, 28));
+    }
+    const phaseSupport = [];
+    const phaseContrast = [];
+    if (measurePhase) {
+      for (const axis of ['x', 'y']) {
+        for (let boundary = 1; boundary < 8; boundary += 1) {
+          const position = boundary * cell;
+          const aligned = Math.max(
+            directionalEnergy(axis, position - cell * 0.045),
+            directionalEnergy(axis, position),
+            directionalEnergy(axis, position + cell * 0.045)
+          );
+          const displaced = Math.max(
+            directionalEnergy(axis, position - cell * 0.25),
+            directionalEnergy(axis, position + cell * 0.25)
+          );
+          phaseSupport.push(aligned);
+          phaseContrast.push(clamp((aligned - displaced * 0.65) / Math.max(3, aligned)));
+        }
+      }
+    }
+    const supportedLines = phaseSupport.filter((value) => value >= Math.max(3, overallStd * 0.08)).length;
+    const gridPhaseEvidenceScore = clamp(
+      0.7 * mean(phaseContrast) + 0.3 * (supportedLines / 14)
+    );
 
     const verticalBoundaries = [];
     const horizontalBoundaries = [];
@@ -316,6 +364,7 @@
     return Object.freeze({
       gridEvidenceScore,
       checkerEvidenceScore,
+      gridPhaseEvidenceScore,
       edgeEvidenceScore: clamp(boundaryMean / Math.max(1, boundaryMean + offGridMean)),
       diagnostics: Object.freeze({
         parityDifference,
@@ -370,6 +419,34 @@
     });
   }
 
+  function countGridContinuationSides(analysis, corners) {
+    let transform;
+    try { transform = geometry.buildTransform(corners, 80); } catch (_) { return 0; }
+    let continuing = 0;
+    for (const side of ['top', 'right', 'bottom', 'left']) {
+      const values = [];
+      for (let index = 0; index < 8; index += 1) {
+        const center = (index + 0.5) * 10;
+        const destination = side === 'top' ? [center, -5]
+          : side === 'bottom' ? [center, 85]
+            : side === 'left' ? [-5, center] : [85, center];
+        let x;
+        let y;
+        try { [x, y] = geometry.transformPoint(transform.boardToSource, destination); } catch (_) { break; }
+        if (x < 1 || y < 1 || x > analysis.width - 1 || y > analysis.height - 1) break;
+        values.push(sampleGray(analysis.gray, analysis.width, analysis.height, x, y));
+      }
+      if (values.length !== 8) continue;
+      const even = mean(values.filter((_, index) => index % 2 === 0));
+      const odd = mean(values.filter((_, index) => index % 2 === 1));
+      const separation = Math.abs(even - odd);
+      const within = (standardDeviation(values.filter((_, index) => index % 2 === 0), even)
+        + standardDeviation(values.filter((_, index) => index % 2 === 1), odd)) / 2;
+      if (separation >= 12 && within <= separation * 0.3) continuing += 1;
+    }
+    return continuing;
+  }
+
   function scoreCandidate(seed, analysis, sampleSize = SCORE_SAMPLE_SIZE) {
     const searchGenerated = seed.source === 'grid-periodicity-search';
     const outerBoundary = scoreOuterBoundary(analysis.gray, analysis.width, analysis.height, seed.corners);
@@ -389,6 +466,7 @@
         geometryScore: 0,
         gridEvidenceScore: 0,
         checkerEvidenceScore: 0,
+        gridPhaseEvidenceScore: 0,
         edgeEvidenceScore: 0,
         boundingArea: null,
         areaRatio: null,
@@ -411,6 +489,7 @@
         geometryScore: validation.metrics?.geometryScore || 0,
         gridEvidenceScore: 0,
         checkerEvidenceScore: 0,
+        gridPhaseEvidenceScore: 0,
         edgeEvidenceScore: 0,
         boundingArea: validation.metrics?.area ?? null,
         areaRatio: validation.metrics?.areaRatio ?? null,
@@ -421,7 +500,7 @@
     let evidence;
     try {
       const sample = rectifyGraySample(analysis.gray, analysis.width, analysis.height, seed.corners, sampleSize);
-      evidence = scoreRectifiedGrid(sample, sampleSize);
+      evidence = scoreRectifiedGrid(sample, sampleSize, sampleSize !== SEARCH_SAMPLE_SIZE);
     } catch (_) {
       return Object.freeze({
         source: seed.source,
@@ -431,6 +510,7 @@
         geometryScore: validation.metrics.geometryScore,
         gridEvidenceScore: 0,
         checkerEvidenceScore: 0,
+        gridPhaseEvidenceScore: 0,
         edgeEvidenceScore: 0,
         boundingArea: validation.metrics.area,
         areaRatio: validation.metrics.areaRatio,
@@ -438,15 +518,26 @@
         rejectionReasons: Object.freeze(['homography-scoring-failed'])
       });
     }
-    const candidateScore = clamp((0.3 * evidence.gridEvidenceScore)
-      + (0.55 * evidence.checkerEvidenceScore)
+    const borderBalance = outerBoundary.mean > 2
+      ? clamp(outerBoundary.minimumSideMean / outerBoundary.mean) : 0;
+    const gridContinuationSides = sampleSize === SEARCH_SAMPLE_SIZE ? 0 : countGridContinuationSides(analysis, seed.corners);
+    const candidateScore = clamp(((sampleSize === SEARCH_SAMPLE_SIZE ? 0.3 : 0.24) * evidence.gridEvidenceScore)
+      + ((sampleSize === SEARCH_SAMPLE_SIZE ? 0.55 : 0.49) * evidence.checkerEvidenceScore)
+      + (sampleSize === SEARCH_SAMPLE_SIZE ? 0 : 0.12 * evidence.gridPhaseEvidenceScore)
       + (0.1 * validation.metrics.geometryScore)
-      + (0.05 * evidence.edgeEvidenceScore));
+      + (0.05 * evidence.edgeEvidenceScore)
+      + (sampleSize === SEARCH_SAMPLE_SIZE ? 0 : 0.035 * (borderBalance - 0.5)));
     const rejectionReasons = [];
     if (evidence.gridEvidenceScore < MIN_GRID_EVIDENCE) rejectionReasons.push('insufficient-grid-evidence');
     if (evidence.checkerEvidenceScore < MIN_CHECKER_EVIDENCE) rejectionReasons.push('insufficient-checker-evidence');
+    if (sampleSize !== SEARCH_SAMPLE_SIZE && evidence.gridPhaseEvidenceScore < MIN_GRID_PHASE_EVIDENCE) rejectionReasons.push('grid-phase-misaligned');
+    if (gridContinuationSides >= 2) rejectionReasons.push('grid-continues-outside-playable-field');
     if (searchGenerated && outerBoundary.minimumSideMean < 1.5) {
       rejectionReasons.push('search-missing-outer-boundary');
+    }
+    if (searchGenerated && outerBoundary.mean > 2
+      && outerBoundary.minimumSideMean / outerBoundary.mean < 0.33) {
+      rejectionReasons.push('unbalanced-playable-border');
     }
     if (candidateScore < MIN_CANDIDATE_SCORE) rejectionReasons.push('candidate-score-too-low');
     return Object.freeze({
@@ -457,11 +548,13 @@
       geometryScore: validation.metrics.geometryScore,
       gridEvidenceScore: evidence.gridEvidenceScore,
       checkerEvidenceScore: evidence.checkerEvidenceScore,
+      gridPhaseEvidenceScore: evidence.gridPhaseEvidenceScore,
       edgeEvidenceScore: evidence.edgeEvidenceScore,
       boundingArea: validation.metrics.area,
       areaRatio: validation.metrics.areaRatio,
       shapeMetrics: validation.metrics,
       outerBoundary,
+      gridContinuationSides,
       evidenceDiagnostics: evidence.diagnostics,
       rejectionReasons: Object.freeze(rejectionReasons)
     });
@@ -534,6 +627,38 @@
     return diverse.map((seed) => refineGridSeed(seed, analysis));
   }
 
+  function refinePlayableInset(candidate, analysis) {
+    if (!candidate.source.startsWith('edge-component-') || candidate.candidateScore < 0.48) return null;
+    const center = [mean(candidate.corners.map((point) => point[0])), mean(candidate.corners.map((point) => point[1]))];
+    let best = null;
+    for (const ratio of [0.03, 0.06, 0.09, 0.12]) {
+      const corners = candidate.corners.map(([x, y]) => [x + (center[0] - x) * ratio, y + (center[1] - y) * ratio]);
+      const scored = scoreCandidate({ source: `${candidate.source}-playable-inset`, corners }, analysis);
+      if (!best || scored.candidateScore > best.candidateScore) best = scored;
+    }
+    return best && best.accepted && best.candidateScore >= candidate.candidateScore + 0.025 ? best : null;
+  }
+
+  function refineCandidateCorners(candidate, analysis) {
+    if (!candidate.accepted) return candidate;
+    const original = candidate.corners;
+    const maximumDrift = Math.min(analysis.width, analysis.height) * 0.025;
+    let best = candidate;
+    for (const step of [2, 1]) {
+      for (let cornerIndex = 0; cornerIndex < 4; cornerIndex += 1) {
+        for (const [dx, dy] of [[-step, 0], [step, 0], [0, -step], [0, step]]) {
+          const corners = best.corners.map((point) => [...point]);
+          corners[cornerIndex][0] += dx;
+          corners[cornerIndex][1] += dy;
+          if (Math.hypot(corners[cornerIndex][0] - original[cornerIndex][0], corners[cornerIndex][1] - original[cornerIndex][1]) > maximumDrift) continue;
+          const scored = scoreCandidate({ source: candidate.source, corners }, analysis);
+          if (scored.accepted && scored.candidateScore > best.candidateScore + 1e-7) best = scored;
+        }
+      }
+    }
+    return best.candidateScore >= candidate.candidateScore + 0.008 ? best : candidate;
+  }
+
   function deduplicateScoredCandidates(candidates, analysis) {
     const output = [];
     const tolerance = Math.max(6, Math.min(analysis.width, analysis.height) * 0.1);
@@ -580,9 +705,11 @@
       geometryScore: candidate.geometryScore,
       gridEvidenceScore: candidate.gridEvidenceScore,
       checkerEvidenceScore: candidate.checkerEvidenceScore,
+      gridPhaseEvidenceScore: candidate.gridPhaseEvidenceScore,
       edgeEvidenceScore: candidate.edgeEvidenceScore,
       candidateScore: candidate.candidateScore,
       outerBoundary: candidate.outerBoundary || null,
+      gridContinuationSides: candidate.gridContinuationSides || 0,
       evidenceDiagnostics: candidate.evidenceDiagnostics || null,
       shapeMetrics: candidate.shapeMetrics ? Object.freeze({
         edgeLengths: candidate.shapeMetrics.edgeLengths,
@@ -603,10 +730,11 @@
     });
   }
 
-  function localizeAndRectify({ pixels, width, height, boardSize = geometry.REFERENCE_BOARD_SIZE, now = () => global.performance.now() }) {
+  function localizeAndRectify({ pixels, width, height, boardSize = geometry.REFERENCE_BOARD_SIZE, analysisEdge = MAX_ANALYSIS_EDGE, now = () => global.performance.now() }) {
     const startedAt = now();
     if (!(pixels instanceof ArrayBuffer) || !Number.isSafeInteger(width) || !Number.isSafeInteger(height)
-      || width <= 0 || height <= 0 || pixels.byteLength !== width * height * 4) {
+      || width <= 0 || height <= 0 || pixels.byteLength !== width * height * 4
+      || ![256, 320, 384].includes(analysisEdge)) {
       return failure('geometry-contract-failed', 'Working RGBA pixels are invalid.', {}, {
         localizationMs: 0, candidateScoringMs: 0, homographyMs: 0, geometryValidationMs: 0, totalGeometryMs: 0
       });
@@ -614,7 +742,7 @@
     let analysis;
     let seeds;
     try {
-      analysis = rgbaToAnalysis(pixels, width, height);
+      analysis = rgbaToAnalysis(pixels, width, height, analysisEdge);
       const edgeResult = sobelEdges(analysis.gray, analysis.width, analysis.height);
       seeds = generateCandidateSeeds(edgeResult, analysis.width, analysis.height)
         .concat(generateGridSearchSeeds(analysis));
@@ -624,14 +752,31 @@
       });
     }
     const candidatesGeneratedAt = now();
-    const scored = deduplicateScoredCandidates(seeds.map((seed) => scoreCandidate(seed, analysis))
-      .sort((left, right) => right.candidateScore - left.candidateScore || left.source.localeCompare(right.source)), analysis);
+    const initial = seeds.map((seed) => scoreCandidate(seed, analysis));
+    const periodicityScoringCompletedAt = now();
+    const insetCandidates = initial.filter((candidate) => candidate.source.startsWith('edge-component-'))
+      .sort((left, right) => right.candidateScore - left.candidateScore)
+      .slice(0, 4).map((candidate) => refinePlayableInset(candidate, analysis)).filter(Boolean);
+    const insetCompletedAt = now();
+    const ranked = deduplicateScoredCandidates(initial.concat(insetCandidates)
+      .sort((left, right) => Number(right.accepted) - Number(left.accepted)
+        || right.candidateScore - left.candidateScore || left.source.localeCompare(right.source)), analysis);
+    const refined = ranked.map((candidate, index) => index < 2 ? refineCandidateCorners(candidate, analysis) : candidate);
+    const cornerRefinedCount = refined.filter((candidate, index) => candidate !== ranked[index]).length;
+    const cornerRefinementCompletedAt = now();
+    const scored = deduplicateScoredCandidates(refined
+      .sort((left, right) => Number(right.accepted) - Number(left.accepted)
+        || right.candidateScore - left.candidateScore || left.source.localeCompare(right.source)), analysis);
     const scoringCompletedAt = now();
     const accepted = scored.filter((candidate) => candidate.accepted);
     const summaries = Object.freeze(scored.slice(0, MAX_CANDIDATES).map((candidate) => summarizeCandidate(candidate, analysis)));
     const baseTiming = {
       localizationMs: Math.max(0, candidatesGeneratedAt - startedAt),
       candidateScoringMs: Math.max(0, scoringCompletedAt - candidatesGeneratedAt),
+      candidateGenerationMs: Math.max(0, candidatesGeneratedAt - startedAt),
+      periodicityScoringMs: Math.max(0, periodicityScoringCompletedAt - candidatesGeneratedAt),
+      insetRefinementMs: Math.max(0, insetCompletedAt - periodicityScoringCompletedAt),
+      cornerRefinementMs: Math.max(0, cornerRefinementCompletedAt - insetCompletedAt),
       homographyMs: 0,
       geometryValidationMs: 0,
       totalGeometryMs: Math.max(0, scoringCompletedAt - startedAt)
@@ -719,6 +864,7 @@
         geometryScore: selected.geometryScore,
         candidateScore: selected.candidateScore,
         gridEvidenceScore: selected.gridEvidenceScore,
+        gridPhaseEvidenceScore: selected.gridPhaseEvidenceScore,
         checkerEvidenceScore: selected.checkerEvidenceScore,
         edgeEvidenceScore: selected.edgeEvidenceScore,
         orientation: 'unknown',
@@ -731,12 +877,18 @@
         analysisHeight: analysis.height,
         candidateCount: scored.length,
         acceptedCandidateCount: accepted.length,
+        insetCandidateCount: insetCandidates.length,
+        cornerRefinedCount,
         scoreSeparation: accepted.length > 1 ? accepted[0].candidateScore - accepted[1].candidateScore : null,
         candidateSummaries: summaries
       }),
       timing: Object.freeze({
         localizationMs: Math.max(0, candidatesGeneratedAt - startedAt),
         candidateScoringMs: Math.max(0, scoringCompletedAt - candidatesGeneratedAt),
+        candidateGenerationMs: Math.max(0, candidatesGeneratedAt - startedAt),
+        periodicityScoringMs: Math.max(0, periodicityScoringCompletedAt - candidatesGeneratedAt),
+        insetRefinementMs: Math.max(0, insetCompletedAt - periodicityScoringCompletedAt),
+        cornerRefinementMs: Math.max(0, cornerRefinementCompletedAt - insetCompletedAt),
         homographyMs: Math.max(0, homographyCompletedAt - homographyStartedAt),
         geometryValidationMs: Math.max(0, completedAt - geometryStartedAt),
         totalGeometryMs: Math.max(0, completedAt - startedAt)
@@ -801,6 +953,7 @@
     MIN_CANDIDATE_SCORE,
     MIN_GRID_EVIDENCE,
     MIN_CHECKER_EVIDENCE,
+    MIN_GRID_PHASE_EVIDENCE,
     AMBIGUITY_MARGIN,
     rgbaToAnalysis,
     scoreRectifiedGrid,
