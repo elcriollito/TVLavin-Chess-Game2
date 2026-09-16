@@ -7,6 +7,7 @@
   const VIEW_STATES = viewState.STATES;
   const fenTools = window.CaissaScannerFen;
   const MOCK_FEN = 'r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R w KQkq - 4 10';
+  const MIN_READING_DURATION_MS = 320;
   const EDIT_ENTRY = Object.freeze({ RECOGNITION_REVIEW: 'recognition-review', MANUAL_EDIT: 'manual-edit' });
   const PIECE_NAMES = Object.freeze({ K: 'White King', Q: 'White Queen', R: 'White Rook', B: 'White Bishop', N: 'White Knight', P: 'White Pawn', k: 'Black King', q: 'Black Queen', r: 'Black Rook', b: 'Black Bishop', n: 'Black Knight', p: 'Black Pawn' });
   const $ = (id) => document.getElementById(id);
@@ -119,6 +120,15 @@
   let activeMenu = null;
   let activeSheet = null;
   let viewFocusSequence = 0;
+  let recognitionRuntime = null;
+
+  function createRecognitionRuntime() {
+    return window.CaissaScannerRecognitionRuntime?.create({
+      isGenerationCurrent: (generation) => state.snapshot().generation === generation
+    }) || null;
+  }
+
+  recognitionRuntime = createRecognitionRuntime();
 
   const lineEls = [1, 2, 3].map((number) => ({
     score: $('analysisScore' + number),
@@ -414,16 +424,34 @@
     openEdit(EDIT_ENTRY.RECOGNITION_REVIEW);
   }
 
-  function selectFile(file) {
+  function releaseSourcePreview() {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    }
+    els.preview.removeAttribute('src');
+    els.previewWrap.hidden = true;
+  }
+
+  function preserveReadingDuration(startedAt) {
+    const remaining = Math.max(0, MIN_READING_DURATION_MS - (performance.now() - startedAt));
+    return remaining > 0 ? new Promise((resolve) => setTimeout(resolve, remaining)) : Promise.resolve();
+  }
+
+  async function selectFile(file) {
     if (!file || !file.type.startsWith('image/')) {
       if (file) toast('Choose a supported image file.');
+      return;
+    }
+    if (!recognitionRuntime?.supportsMimeType(file.type)) {
+      toast('Choose a JPEG, PNG, or WebP image.');
       return;
     }
     closeSheets(false);
     analysis?.clear();
     els.engineToggle.checked = false;
     const snapshot = state.beginSource();
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    releaseSourcePreview();
     objectUrl = URL.createObjectURL(file);
     els.preview.src = objectUrl;
     els.previewWrap.hidden = false;
@@ -437,37 +465,45 @@
     els.recognitionSummary.hidden = true;
     selectedSquare = null;
     showReading();
+    const readingStartedAt = performance.now();
     state.beginRecognition(snapshot.generation);
     setBoardEmpty(true);
     const expectedGeneration = snapshot.generation;
-    setTimeout(() => {
+    try {
+      const prepared = await recognitionRuntime.processImage(file, expectedGeneration);
+      await preserveReadingDuration(readingStartedAt);
       if (state.snapshot().generation !== expectedGeneration) return;
       const accepted = state.setCandidate(expectedGeneration, {
         fen: MOCK_FEN,
         boardConfidence: null,
         pieceConfidenceBySquare: {},
         lowConfidenceSquares: [],
-        orientation: 'white'
+        orientation: 'white',
+        preprocessing: prepared.metadata,
+        timingsMs: prepared.timing
       });
       if (!accepted) return;
+      releaseSourcePreview();
       els.fen.value = MOCK_FEN;
       els.candidateStatus.textContent = 'Ready to review';
       els.workspaceTitle.textContent = 'Review position';
       routeRecognitionResult();
-    }, 320);
+    } catch (error) {
+      if (error?.code === 'canceled' || error?.code === 'stale-generation') return;
+      if (state.snapshot().generation !== expectedGeneration) return;
+      state.fail(expectedGeneration, error?.code || 'worker-processing-failed');
+      resetAll(true);
+      toast('Could not read that image. Choose another image to try again.');
+    }
   }
 
   function resetAll(goHome = true) {
     analysis?.clear();
+    recognitionRuntime?.cancelActive('scanner-reset');
     state.reset();
-    if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
-      objectUrl = null;
-    }
+    releaseSourcePreview();
     els.camera.value = '';
     els.gallery.value = '';
-    els.preview.removeAttribute('src');
-    els.previewWrap.hidden = true;
     els.fen.value = '';
     els.confidence.textContent = '—';
     els.candidateStatus.textContent = 'Waiting';
@@ -982,6 +1018,14 @@
     if (activeMenu) positionMenu(activeMenu.menu, activeMenu.trigger);
   });
   window.addEventListener('caissa-auth-change', (event) => updateAuthMenu(event.detail));
+  window.addEventListener('pagehide', () => {
+    recognitionRuntime?.dispose();
+    recognitionRuntime = null;
+    releaseSourcePreview();
+  });
+  window.addEventListener('pageshow', () => {
+    if (!recognitionRuntime) recognitionRuntime = createRecognitionRuntime();
+  });
 
   if (flags.scanner_beta_open === false) {
     document.querySelector('.scanner-page').innerHTML = '<section class="scanner-card"><h1>Scanner Lab is closed</h1><p>This feature flag is currently disabled.</p></section>';
