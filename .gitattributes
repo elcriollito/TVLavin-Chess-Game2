@@ -7,3 +7,4 @@
 /play-v2-promotion-qa.html text eol=lf
 /play-v2-ipad-analyze-diagnostic.html text eol=lf
 /api/_lib/play-v2-public-beta-document.js text eol=lf
+/scanner/recognition/benchmark/fixtures/*.pgm binary

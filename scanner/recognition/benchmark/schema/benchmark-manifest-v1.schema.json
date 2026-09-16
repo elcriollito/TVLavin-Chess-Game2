@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caissachess.net/schemas/scanner/benchmark-manifest-v1.schema.json",
+  "title": "CAISSA Scanner immutable benchmark manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "benchmarkVersion", "description", "splitPolicy", "samples"],
+  "properties": {
+    "schemaVersion": { "const": "caissa-scanner-benchmark-manifest/1" },
+    "benchmarkVersion": { "type": "string", "pattern": "^scanner-realworld-v[0-9]+\\.[0-9]+$" },
+    "description": { "type": "string", "minLength": 1 },
+    "splitPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exclusiveGroups"],
+      "properties": {
+        "exclusiveGroups": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["sourceGroup", "positionGroup", "pieceFamilyGroup", "boardThemeGroup", "augmentationFamilyGroup"]
+          }
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sample" }
+    }
+  },
+  "$defs": {
+    "checksum": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "corners": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": { "type": "number" }
+      }
+    },
+    "squareLabels": {
+      "type": "array",
+      "minItems": 64,
+      "maxItems": 64,
+      "items": { "enum": ["empty", "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"] }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sampleId",
+        "schemaVersion",
+        "sourceType",
+        "sourceReference",
+        "sourceChecksum",
+        "provenance",
+        "consentStatus",
+        "imageWidth",
+        "imageHeight",
+        "split",
+        "categories",
+        "groundTruth",
+        "conditions",
+        "grouping"
+      ],
+      "properties": {
+        "sampleId": { "type": "string", "minLength": 1 },
+        "schemaVersion": { "const": "caissa-scanner-benchmark/1" },
+        "sourceType": {
+          "enum": ["controlled-photo", "licensed-diagram", "screenshot", "book-photo", "consented-user", "hard-negative", "test-fixture"]
+        },
+        "sourceReference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "enum": ["repository-fixture", "external-local", "uri"] },
+            "value": { "type": "string", "minLength": 1 }
+          }
+        },
+        "sourceChecksum": { "$ref": "#/$defs/checksum" },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["origin", "license"],
+          "properties": {
+            "origin": { "type": "string", "minLength": 1 },
+            "license": { "type": "string", "minLength": 1 },
+            "notes": { "type": "string" }
+          }
+        },
+        "consentStatus": {
+          "enum": ["not-required", "internal-only", "explicitly-consented", "prohibited-from-training"]
+        },
+        "captureDevice": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "family": { "type": "string" },
+            "model": { "type": "string" },
+            "browser": { "type": "string" }
+          }
+        },
+        "imageWidth": { "type": "integer", "minimum": 1 },
+        "imageHeight": { "type": "integer", "minimum": 1 },
+        "split": { "enum": ["train", "development", "test"] },
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "clean-digital-diagram",
+              "app-or-site-screenshot",
+              "printed-modern-book",
+              "old-or-yellowed-book",
+              "physical-chessboard",
+              "moderate-perspective",
+              "rotation",
+              "shadow",
+              "glare",
+              "blur",
+              "low-resolution",
+              "compression-artifact",
+              "coordinates",
+              "annotation-or-highlight",
+              "unusual-valid-board-color",
+              "multiple-board-hard-negative",
+              "non-board-hard-negative",
+              "partial-or-cropped-board"
+            ]
+          }
+        },
+        "groundTruth": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["boardPresent", "fenPlacement", "squareLabels"],
+              "properties": {
+                "boardPresent": { "const": true },
+                "boardCorners": { "$ref": "#/$defs/corners" },
+                "orientation": { "enum": ["white-at-bottom", "black-at-bottom", "rotated-90", "rotated-270", "unknown"] },
+                "fenPlacement": { "type": "string", "minLength": 1 },
+                "squareLabels": { "$ref": "#/$defs/squareLabels" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["boardPresent"],
+              "properties": {
+                "boardPresent": { "const": false },
+                "boardCorners": { "$ref": "#/$defs/corners" },
+                "orientation": { "const": "unknown" }
+              }
+            }
+          ]
+        },
+        "conditions": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "perspective": { "type": "string" },
+            "rotation": { "type": "string" },
+            "lighting": { "type": "string" },
+            "glare": { "type": "string" },
+            "shadow": { "type": "string" },
+            "blur": { "type": "string" },
+            "compression": { "type": "string" },
+            "coordinates": { "type": "string" },
+            "annotations": { "type": "string" },
+            "physicalOrDigital": { "enum": ["physical", "digital", "printed", "not-applicable", "unknown"] },
+            "pieceFamily": { "type": "string" },
+            "boardStyle": { "type": "string" }
+          }
+        },
+        "grouping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceGroup", "positionGroup", "pieceFamilyGroup", "boardThemeGroup", "augmentationFamilyGroup"],
+          "properties": {
+            "sourceGroup": { "type": "string", "minLength": 1 },
+            "positionGroup": { "type": "string", "minLength": 1 },
+            "pieceFamilyGroup": { "type": "string", "minLength": 1 },
+            "boardThemeGroup": { "type": "string", "minLength": 1 },
+            "augmentationFamilyGroup": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}

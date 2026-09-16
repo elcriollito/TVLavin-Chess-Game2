@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "caissa-scanner-benchmark-manifest/1",
+  "benchmarkVersion": "scanner-realworld-v0.1",
+  "description": "TEST FIXTURE - NOT REAL-WORLD PERFORMANCE DATA",
+  "splitPolicy": {
+    "exclusiveGroups": [
+      "sourceGroup",
+      "positionGroup",
+      "pieceFamilyGroup",
+      "augmentationFamilyGroup"
+    ]
+  },
+  "samples": [
+    {
+      "sampleId": "unit-perfect-board-001",
+      "schemaVersion": "caissa-scanner-benchmark/1",
+      "sourceType": "test-fixture",
+      "sourceReference": {
+        "kind": "repository-fixture",
+        "value": "unit-board.pgm"
+      },
+      "sourceChecksum": "sha256:b9dbb8239f9d1def9fb4eda5c7778db88989e890ee93cf8d2aeb6f9d29b12d2c",
+      "provenance": {
+        "origin": "CAISSA deterministic unit fixture",
+        "license": "repository-test-only",
+        "notes": "Synthetic checker pixels; contains no user data."
+      },
+      "consentStatus": "not-required",
+      "imageWidth": 8,
+      "imageHeight": 8,
+      "split": "test",
+      "categories": ["clean-digital-diagram"],
+      "groundTruth": {
+        "boardPresent": true,
+        "boardCorners": [[0, 0], [7, 0], [7, 7], [0, 7]],
+        "orientation": "white-at-bottom",
+        "fenPlacement": "r3k2r/ppp2ppp/2n1bn2/3pp3/3PP3/2N1BN2/PPP2PPP/R3K2R",
+        "squareLabels": [
+          "r", "empty", "empty", "empty", "k", "empty", "empty", "r",
+          "p", "p", "p", "empty", "empty", "p", "p", "p",
+          "empty", "empty", "n", "empty", "b", "n", "empty", "empty",
+          "empty", "empty", "empty", "p", "p", "empty", "empty", "empty",
+          "empty", "empty", "empty", "P", "P", "empty", "empty", "empty",
+          "empty", "empty", "N", "empty", "B", "N", "empty", "empty",
+          "P", "P", "P", "empty", "empty", "P", "P", "P",
+          "R", "empty", "empty", "empty", "K", "empty", "empty", "R"
+        ]
+      },
+      "conditions": {
+        "physicalOrDigital": "digital",
+        "pieceFamily": "synthetic-unit-symbols",
+        "boardStyle": "synthetic-checker"
+      },
+      "grouping": {
+        "sourceGroup": "unit-source-001",
+        "positionGroup": "unit-position-001",
+        "pieceFamilyGroup": "unit-piece-family-001",
+        "boardThemeGroup": "unit-board-theme-001",
+        "augmentationFamilyGroup": "unit-augmentation-001"
+      }
+    }
+  ]
+}

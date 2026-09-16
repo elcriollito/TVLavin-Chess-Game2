@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caissachess.net/schemas/scanner/benchmark-report-v1.schema.json",
+  "title": "CAISSA Scanner deterministic benchmark report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "benchmarkVersion",
+    "manifestChecksum",
+    "recognizer",
+    "sampleCount",
+    "categoryCounts",
+    "detection",
+    "localization",
+    "geometry",
+    "orientation",
+    "squares",
+    "positions",
+    "correctionBurden",
+    "confidence",
+    "performance",
+    "failuresByCategory"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "caissa-scanner-benchmark-report/1" },
+    "benchmarkVersion": { "type": "string" },
+    "manifestChecksum": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "recognizer": {
+      "type": "object",
+      "required": ["modelVersion", "preprocessingVersion", "backend"],
+      "properties": {
+        "modelVersion": { "type": "string" },
+        "preprocessingVersion": { "type": "string" },
+        "backend": { "type": "string" },
+        "device": { "type": "string" },
+        "browser": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "sampleCount": { "type": "integer", "minimum": 0 },
+    "categoryCounts": { "$ref": "#/$defs/countMap" },
+    "detection": { "type": "object" },
+    "localization": { "type": "object" },
+    "geometry": { "type": "object" },
+    "orientation": { "type": "object" },
+    "squares": { "type": "object" },
+    "positions": { "type": "object" },
+    "correctionBurden": { "type": "object" },
+    "confidence": { "type": "object" },
+    "performance": { "type": "object" },
+    "failuresByCategory": { "$ref": "#/$defs/countMap" }
+  },
+  "$defs": {
+    "countMap": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}
