@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
   <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.3.0">
-  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.3.0">
+  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.4.0">
 </head>
 <body>
   <header class="scanner-topbar app-topbar">
@@ -23,11 +23,11 @@
     </button>
   </header>
 
-  <main class="scanner-page app-shell" id="scannerApp">
-    <section class="scanner-home" id="homeView">
+  <main class="scanner-page app-shell" id="scannerApp" data-scanner-view="capture">
+    <section class="scanner-home" id="homeView" data-principal-view="capture" aria-labelledby="captureTitle">
       <div class="home-hero">
         <div class="home-mark"><i class="fas fa-chess-board"></i></div>
-        <h1>Scan a chess position</h1>
+        <h1 id="captureTitle" tabindex="-1">Scan a chess position</h1>
         <p>Capture a board, review the position, and explore it with Stockfish 18.</p>
       </div>
       <div class="home-actions" id="dropZone">
@@ -38,8 +38,14 @@
       <div class="home-foot"><i class="fas fa-microchip"></i><span>Analysis powered by Stockfish 18</span></div>
     </section>
 
-    <section class="scanner-workspace" id="workspaceView" hidden>
-      <span id="workspaceTitle" hidden>Review position</span>
+    <section class="scanner-reading" id="readingView" data-principal-view="reading" aria-labelledby="readingTitle" hidden inert aria-hidden="true">
+      <div class="reading-indicator" aria-hidden="true"><i class="fas fa-chess-board"></i></div>
+      <h1 id="readingTitle" tabindex="-1">Reading position…</h1>
+      <p>Preparing the board for review.</p>
+    </section>
+
+    <section class="scanner-workspace" id="workspaceView" data-principal-view="workspace" hidden inert aria-hidden="true">
+      <span id="workspaceTitle" hidden>Position ready</span>
       <span id="candidateStatus" hidden>Waiting</span>
       <section class="board-workspace" id="scannerBoardCard">
         <div class="position-toolbar" aria-label="Position tools">
@@ -55,6 +61,60 @@
           </div>
         </div>
 
+        <div class="view-board-slot" id="workspaceBoardSlot">
+          <div class="board-shell" id="scannerBoardShell">
+            <div class="scanner-board is-empty" id="scannerBoard" aria-label="Chess position"></div>
+            <div class="board-empty" id="boardEmpty"><i class="fas fa-chess-board"></i><strong>Preparing board…</strong></div>
+          </div>
+        </div>
+
+        <div class="recognition-summary" id="recognitionSummary" hidden>
+          <div><strong>Check the position</strong><span>Fix anything that does not match your source.</span></div>
+          <span class="confidence-chip" id="boardConfidence">—</span>
+        </div>
+        <div class="confirm-bar" id="confirmBar" hidden>
+          <button class="btn primary confirm" id="confirmBtn" type="button" disabled><i class="fas fa-circle-check"></i> Confirm Position</button>
+        </div>
+
+        <nav class="board-navigation" aria-label="Board navigation">
+          <button id="firstMoveBtn" type="button" aria-label="First position" disabled><i class="fas fa-backward-step"></i></button>
+          <button id="previousMoveBtn" type="button" aria-label="Previous position" disabled><i class="fas fa-chevron-left"></i></button>
+          <button id="nextMoveBtn" type="button" aria-label="Next position" disabled><i class="fas fa-chevron-right"></i></button>
+          <button id="lastMoveBtn" type="button" aria-label="Latest position" disabled><i class="fas fa-forward-step"></i></button>
+          <button id="flipBtn" type="button" aria-label="Flip board"><i class="fas fa-rotate"></i></button>
+          <button id="boardActionsBtn" type="button" aria-label="Open analysis menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scannerAnalysisMenu"><i class="fas fa-bars"></i></button>
+        </nav>
+
+        <section class="analysis-workspace" id="handoffCard" hidden aria-label="Position analysis">
+          <div class="analysis-controls">
+            <button class="analyze-control" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i><span>Analyze</span></button>
+            <label class="engine-control" for="engineToggle"><span>Engine</span><input id="engineToggle" type="checkbox" role="switch" aria-label="Stockfish engine"><span class="toggle-track" aria-hidden="true"><span></span></span></label>
+          </div>
+        </section>
+
+        <section class="scanner-analysis-panel" id="analysisPanel" hidden aria-label="Stockfish 18 analysis">
+          <div class="analysis-head">
+            <div><i class="fas fa-microchip" aria-hidden="true"></i><strong>Stockfish 18</strong><span>3 lines</span></div>
+            <span class="analysis-status" id="analysisStatus">Off</span>
+          </div>
+          <div class="analysis-lines" aria-live="polite">
+            <div class="analysis-line" data-line="1"><strong class="analysis-score" id="analysisScore1">—</strong><span class="analysis-pv" id="analysisPv1">Waiting…</span><span class="analysis-depth" id="analysisDepth1">d—</span></div>
+            <div class="analysis-line" data-line="2"><strong class="analysis-score" id="analysisScore2">—</strong><span class="analysis-pv" id="analysisPv2">Waiting…</span><span class="analysis-depth" id="analysisDepth2">d—</span></div>
+            <div class="analysis-line" data-line="3"><strong class="analysis-score" id="analysisScore3">—</strong><span class="analysis-pv" id="analysisPv3">Waiting…</span><span class="analysis-depth" id="analysisDepth3">d—</span></div>
+          </div>
+          <div class="analysis-footer"><span id="analysisMoveHint">Tap a piece, then its destination to explore a legal move.</span><code id="analysisFen"></code></div>
+        </section>
+      </section>
+
+      <div class="new-scan-control">
+        <button class="new-scan-button" id="newScanBtn" type="button" aria-label="Start a new scan"><i class="fas fa-camera"></i></button>
+        <span>New Scan</span>
+      </div>
+      <code id="confirmedFen" hidden></code>
+    </section>
+
+    <section class="scanner-workspace review-edit-view" id="reviewEditView" data-principal-view="review_edit" hidden inert aria-hidden="true">
+      <section class="board-workspace">
         <section class="edit-workspace" id="editSheet" hidden aria-label="Edit chess position">
           <div class="edit-toolbar">
             <div class="edit-primary-actions">
@@ -98,10 +158,7 @@
           </div>
         </section>
 
-        <div class="board-shell">
-          <div class="scanner-board is-empty" id="scannerBoard" aria-label="Chess position"></div>
-          <div class="board-empty" id="boardEmpty"><i class="fas fa-chess-board"></i><strong>Preparing board…</strong></div>
-        </div>
+        <div class="view-board-slot" id="editBoardSlot"></div>
 
         <section class="edit-board-footer" id="editBoardFooter" hidden aria-label="White pieces and clearing tool">
           <div class="edit-palette white-palette" id="whitePiecePalette" role="group" aria-label="White pieces">
@@ -114,94 +171,51 @@
           </div>
           <div class="edit-validation" id="editValidation" role="status" aria-live="polite">Select a piece or Clear Square, then tap the board.</div>
         </section>
-
-        <div class="recognition-summary" id="recognitionSummary">
-          <div><strong>Check the position</strong><span>Fix anything that does not match your source.</span></div>
-          <span class="confidence-chip" id="boardConfidence">—</span>
-        </div>
-        <div class="confirm-bar" id="confirmBar">
-          <button class="btn primary confirm" id="confirmBtn" type="button" disabled><i class="fas fa-circle-check"></i> Confirm Position</button>
-        </div>
-
-        <nav class="board-navigation" aria-label="Board navigation">
-          <button id="firstMoveBtn" type="button" aria-label="First position" disabled><i class="fas fa-backward-step"></i></button>
-          <button id="previousMoveBtn" type="button" aria-label="Previous position" disabled><i class="fas fa-chevron-left"></i></button>
-          <button id="nextMoveBtn" type="button" aria-label="Next position" disabled><i class="fas fa-chevron-right"></i></button>
-          <button id="lastMoveBtn" type="button" aria-label="Latest position" disabled><i class="fas fa-forward-step"></i></button>
-          <button id="flipBtn" type="button" aria-label="Flip board"><i class="fas fa-rotate"></i></button>
-          <button id="boardActionsBtn" type="button" aria-label="Open analysis menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scannerAnalysisMenu"><i class="fas fa-bars"></i></button>
-        </nav>
-
-        <section class="analysis-workspace" id="handoffCard" hidden aria-label="Position analysis">
-          <div class="analysis-controls">
-            <button class="analyze-control" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i><span>Analyze</span></button>
-            <label class="engine-control" for="engineToggle"><span>Engine</span><input id="engineToggle" type="checkbox" role="switch" aria-label="Stockfish engine"><span class="toggle-track" aria-hidden="true"><span></span></span></label>
-          </div>
-        </section>
-
-        <section class="scanner-analysis-panel" id="analysisPanel" hidden aria-label="Stockfish 18 analysis">
-          <div class="analysis-head">
-            <div><i class="fas fa-microchip" aria-hidden="true"></i><strong>Stockfish 18</strong><span>3 lines</span></div>
-            <span class="analysis-status" id="analysisStatus">Off</span>
-          </div>
-          <div class="analysis-lines" aria-live="polite">
-            <div class="analysis-line" data-line="1"><strong class="analysis-score" id="analysisScore1">—</strong><span class="analysis-pv" id="analysisPv1">Waiting…</span><span class="analysis-depth" id="analysisDepth1">d—</span></div>
-            <div class="analysis-line" data-line="2"><strong class="analysis-score" id="analysisScore2">—</strong><span class="analysis-pv" id="analysisPv2">Waiting…</span><span class="analysis-depth" id="analysisDepth2">d—</span></div>
-            <div class="analysis-line" data-line="3"><strong class="analysis-score" id="analysisScore3">—</strong><span class="analysis-pv" id="analysisPv3">Waiting…</span><span class="analysis-depth" id="analysisDepth3">d—</span></div>
-          </div>
-          <div class="analysis-footer"><span id="analysisMoveHint">Tap a piece, then its destination to explore a legal move.</span><code id="analysisFen"></code></div>
-        </section>
       </section>
-
-      <div class="new-scan-control">
-        <button class="new-scan-button" id="newScanBtn" type="button" aria-label="Start a new scan"><i class="fas fa-camera"></i></button>
-        <span>New Scan</span>
-      </div>
-      <code id="confirmedFen" hidden></code>
-
-      <section class="export-sheet" id="exportSheet" hidden aria-label="Export position">
-        <div class="sheet-head"><button id="closeExportBtn" type="button">Cancel</button><strong>Export as</strong><span></span></div>
-        <button class="export-row" id="exportDiagramBtn" type="button"><i class="fas fa-image"></i><span>Diagram Image</span></button>
-        <button class="export-row" id="exportFenBtn" type="button"><i class="fas fa-font"></i><span>FEN Text</span></button>
-      </section>
-
-      <section class="scanner-popover product-menu" id="scannerProductMenu" hidden role="menu" aria-label="Scanner and account">
-        <div class="menu-group" role="presentation">
-          <span class="menu-group-label">Scanner</span>
-          <button class="menu-row" id="diagramLibraryBtn" type="button" role="menuitem"><i class="fas fa-image" aria-hidden="true"></i><span><strong>Diagram Library</strong><small>Saved positions and diagrams</small></span><em>Soon</em></button>
-          <button class="menu-row" id="videoExplorerBtn" type="button" role="menuitem"><i class="fas fa-circle-play" aria-hidden="true"></i><span><strong>Video Board Explorer</strong><small>Explore positions from video</small></span><em>Soon</em></button>
-        </div>
-        <div class="menu-group account-group" role="presentation">
-          <span class="menu-group-label">Account</span>
-          <button class="menu-row" id="accountBtn" type="button" role="menuitem"><i class="fas fa-user" aria-hidden="true"></i><span><strong>Account</strong><small id="accountMenuHint">Sign in or view your account</small></span></button>
-          <button class="menu-row" id="membershipBtn" type="button" role="menuitem"><i class="fas fa-crown" aria-hidden="true"></i><span><strong>Membership</strong><small>CAISSA membership options</small></span><em>Soon</em></button>
-          <button class="menu-row logout-row" id="logoutBtn" type="button" role="menuitem"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i><span><strong>Logout</strong><small id="logoutMenuHint">Sign out of CAISSA</small></span></button>
-        </div>
-      </section>
-
-      <section class="scanner-popover analysis-menu" id="scannerAnalysisMenu" hidden role="menu" aria-label="Position analysis destinations">
-        <div class="menu-group" role="presentation">
-          <span class="menu-group-label">Open current position</span>
-          <button class="menu-row" id="openLichessBtn" type="button" role="menuitem"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i><span><strong>Open in Lichess Analyzer</strong><small>Continue on lichess.org</small></span></button>
-          <button class="menu-row" id="openChessComBtn" type="button" role="menuitem"><i class="fas fa-chess-pawn" aria-hidden="true"></i><span><strong>Open in Chess.com Analyzer</strong><small>Direct FEN handoff unavailable</small></span><em>Soon</em></button>
-          <button class="menu-row caissa-row" id="openCaissaBtn" type="button" role="menuitem"><i class="fas fa-crown" aria-hidden="true"></i><span><strong>Open in CAISSA Analyzer</strong><small>Continue with this position</small></span></button>
-        </div>
-      </section>
-
-      <div hidden aria-hidden="true"><figure id="sourcePreviewWrap" hidden><img id="sourcePreview" alt=""><figcaption>Original source image</figcaption></figure></div>
-
-      <textarea id="fenInput" hidden aria-hidden="true"></textarea>
-      <button id="validateBtn" type="button" hidden>Validate</button>
-      <div id="validationBox" role="status" aria-live="polite" hidden>Choose an image to begin.</div>
-      <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
-      <span id="sourceStatus" hidden>No image</span><span id="reviewStatus" hidden>Required</span><span id="statePill" hidden>Idle</span>
     </section>
 
-    <section class="new-scan-sheet" id="newScanSheet" hidden aria-label="New Scan">
+    <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+    <section class="export-sheet" id="exportSheet" hidden aria-label="Export position" role="dialog" aria-modal="true">
+      <div class="sheet-head"><button id="closeExportBtn" type="button">Cancel</button><strong>Export as</strong><span></span></div>
+      <button class="export-row" id="exportDiagramBtn" type="button"><i class="fas fa-image"></i><span>Diagram Image</span></button>
+      <button class="export-row" id="exportFenBtn" type="button"><i class="fas fa-font"></i><span>FEN Text</span></button>
+    </section>
+
+    <section class="scanner-popover product-menu" id="scannerProductMenu" hidden role="menu" aria-label="Scanner and account">
+      <div class="menu-group" role="presentation">
+        <span class="menu-group-label">Scanner</span>
+        <button class="menu-row" id="diagramLibraryBtn" type="button" role="menuitem"><i class="fas fa-image" aria-hidden="true"></i><span><strong>Diagram Library</strong><small>Saved positions and diagrams</small></span><em>Soon</em></button>
+        <button class="menu-row" id="videoExplorerBtn" type="button" role="menuitem"><i class="fas fa-circle-play" aria-hidden="true"></i><span><strong>Video Board Explorer</strong><small>Explore positions from video</small></span><em>Soon</em></button>
+      </div>
+      <div class="menu-group account-group" role="presentation">
+        <span class="menu-group-label">Account</span>
+        <button class="menu-row" id="accountBtn" type="button" role="menuitem"><i class="fas fa-user" aria-hidden="true"></i><span><strong>Account</strong><small id="accountMenuHint">Sign in or view your account</small></span></button>
+        <button class="menu-row" id="membershipBtn" type="button" role="menuitem"><i class="fas fa-crown" aria-hidden="true"></i><span><strong>Membership</strong><small>CAISSA membership options</small></span><em>Soon</em></button>
+        <button class="menu-row logout-row" id="logoutBtn" type="button" role="menuitem"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i><span><strong>Logout</strong><small id="logoutMenuHint">Sign out of CAISSA</small></span></button>
+      </div>
+    </section>
+
+    <section class="scanner-popover analysis-menu" id="scannerAnalysisMenu" hidden role="menu" aria-label="Position analysis destinations">
+      <div class="menu-group" role="presentation">
+        <span class="menu-group-label">Open current position</span>
+        <button class="menu-row" id="openLichessBtn" type="button" role="menuitem"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i><span><strong>Open in Lichess Analyzer</strong><small>Continue on lichess.org</small></span></button>
+        <button class="menu-row" id="openChessComBtn" type="button" role="menuitem"><i class="fas fa-chess-pawn" aria-hidden="true"></i><span><strong>Open in Chess.com Analyzer</strong><small>Direct FEN handoff unavailable</small></span><em>Soon</em></button>
+        <button class="menu-row caissa-row" id="openCaissaBtn" type="button" role="menuitem"><i class="fas fa-crown" aria-hidden="true"></i><span><strong>Open in CAISSA Analyzer</strong><small>Continue with this position</small></span></button>
+      </div>
+    </section>
+
+    <section class="new-scan-sheet" id="newScanSheet" hidden aria-label="New Scan" role="dialog" aria-modal="true">
       <div class="sheet-head"><span></span><strong>New Scan</strong><button id="cancelNewScanBtn" type="button">Cancel</button></div>
       <button class="scan-choice" id="takePhotoBtn" type="button"><i class="fas fa-camera"></i><span>Take Photo</span></button>
       <button class="scan-choice" id="choosePhotoBtn" type="button"><i class="fas fa-image"></i><span>Choose Photo</span></button>
     </section>
+
+    <div hidden aria-hidden="true"><figure id="sourcePreviewWrap" hidden><img id="sourcePreview" alt=""><figcaption>Original source image</figcaption></figure></div>
+    <textarea id="fenInput" hidden aria-hidden="true"></textarea>
+    <button id="validateBtn" type="button" hidden>Validate</button>
+    <div id="validationBox" role="status" aria-live="polite" hidden>Choose an image to begin.</div>
+    <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
+    <span id="sourceStatus" hidden>No image</span><span id="reviewStatus" hidden>Required</span><span id="statePill" hidden>Idle</span>
     <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
     <input id="galleryInput" type="file" accept="image/*" hidden>
   </main>
@@ -214,10 +228,11 @@
   <script src="/js/caissa-auth.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/scanner/scanner-state.js?v=0.2.5"></script>
+  <script src="/scanner/scanner-view-state.js?v=0.1.0"></script>
   <script src="/scanner/scanner-fen.js?v=0.2.4"></script>
   <script src="/scanner/scanner-adapters.js?v=0.3.0"></script>
   <script src="/scanner/scanner-analysis.js?v=0.3.0"></script>
-  <script src="/scanner/scanner-app.js?v=0.4.0"></script>
+  <script src="/scanner/scanner-app.js?v=0.5.0"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>

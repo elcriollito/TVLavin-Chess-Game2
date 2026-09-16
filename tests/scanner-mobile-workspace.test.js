@@ -17,6 +17,33 @@ test('approved workspace exposes one scan control and progressive action sheets'
   assert.doesNotMatch(html, /quick-rescan|quick-rescan-btn/);
 });
 
+test('four exclusive app-like views use a separate presentation state machine', async () => {
+  const [html, source] = await Promise.all([
+    read('scanner/index.html'),
+    read('scanner/scanner-view-state.js')
+  ]);
+  for (const view of ['capture', 'reading', 'review_edit', 'workspace']) {
+    assert.equal((html.match(new RegExp(`data-principal-view="${view}"`, 'g')) || []).length, 1);
+  }
+  assert.match(html, /id="readingView"[^>]*hidden[^>]*inert/);
+  assert.match(html, /id="reviewEditView"[^>]*hidden[^>]*inert/);
+  assert.match(html, /id="workspaceView"[^>]*hidden[^>]*inert/);
+  assert.equal((html.match(/id="scannerBoard"/g) || []).length, 1);
+  assert.match(html, /id="workspaceBoardSlot"/);
+  assert.match(html, /id="editBoardSlot"/);
+
+  const context = { window: {} };
+  vm.runInNewContext(source, context);
+  const views = context.window.CaissaScannerViewState;
+  assert.equal(views.snapshot().view, views.STATES.CAPTURE);
+  assert.equal(views.transition(views.STATES.READING, { reason: 'image' }).view, views.STATES.READING);
+  assert.equal(views.transition(views.STATES.REVIEW_EDIT, { reason: 'recognition-review' }).view, views.STATES.REVIEW_EDIT);
+  assert.equal(views.transition(views.STATES.WORKSPACE, { reason: 'approved' }).view, views.STATES.WORKSPACE);
+  assert.equal(views.transition(views.STATES.READING, { reason: 'new-scan' }).view, views.STATES.READING);
+  assert.equal(views.transition(views.STATES.CAPTURE, { reason: 'back' }).view, views.STATES.CAPTURE);
+  assert.equal(views.transition(views.STATES.WORKSPACE), false);
+});
+
 test('position toolbar and board navigation match the mobile contract', async () => {
   const html = await read('scanner/index.html');
   assert.match(html, /class="position-toolbar"/);
@@ -94,7 +121,25 @@ test('new scan only advances generation after a valid image selection', async ()
   assert.doesNotMatch(openNewScan, /beginSource|resetAll/);
   assert.match(selectFile, /file\.type\.startsWith\('image\/'\)/);
   assert.ok(selectFile.indexOf('state.beginSource()') > selectFile.indexOf("file.type.startsWith('image/')"));
+  assert.match(selectFile, /showReading\(\)/);
+  assert.match(selectFile, /routeRecognitionResult\(\)/);
   assert.match(selectFile, /expectedGeneration/);
+});
+
+test('safe areas, modal blocking, and mobile touch targets are explicit', async () => {
+  const [html, css, app] = await Promise.all([
+    read('scanner/index.html'),
+    read('scanner/scanner-experience.css'),
+    read('scanner/scanner-app.js')
+  ]);
+  for (const inset of ['top', 'right', 'bottom', 'left']) assert.match(css, new RegExp(`safe-area-inset-${inset}`));
+  assert.match(html, /id="sheetBackdrop"[^>]*hidden/);
+  assert.match(html, /role="dialog" aria-modal="true"/);
+  assert.match(css, /\.edit-toolbar button,.edit-settings button[^}]*min-height:44px/);
+  assert.match(css, /\.sheet-head button\{min-height:44px/);
+  assert.match(app, /els\.topbar\.inert = sheetIsOpen/);
+  assert.match(app, /element\.inert = !visible \|\| sheetIsOpen/);
+  assert.match(app, /focusTargets/);
 });
 
 test('state generations reject stale recognition results', async () => {

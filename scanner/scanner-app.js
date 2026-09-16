@@ -3,13 +3,21 @@
 
   const flags = window.CAISSA_SCANNER_FLAGS || {};
   const state = window.CaissaScannerState;
+  const viewState = window.CaissaScannerViewState;
+  const VIEW_STATES = viewState.STATES;
   const fenTools = window.CaissaScannerFen;
   const MOCK_FEN = 'r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R w KQkq - 4 10';
+  const EDIT_ENTRY = Object.freeze({ RECOGNITION_REVIEW: 'recognition-review', MANUAL_EDIT: 'manual-edit' });
   const PIECE_NAMES = Object.freeze({ K: 'White King', Q: 'White Queen', R: 'White Rook', B: 'White Bishop', N: 'White Knight', P: 'White Pawn', k: 'Black King', q: 'Black Queen', r: 'Black Rook', b: 'Black Bishop', n: 'Black Knight', p: 'Black Pawn' });
   const $ = (id) => document.getElementById(id);
   const els = {
+    topbar: document.querySelector('.app-topbar'),
     home: $('homeView'),
+    reading: $('readingView'),
+    readingTitle: $('readingTitle'),
     workspace: $('workspaceView'),
+    reviewEdit: $('reviewEditView'),
+    app: $('scannerApp'),
     homeBtn: $('homeBtn'),
     homeScan: $('homeScanBtn'),
     camera: $('cameraInput'),
@@ -22,6 +30,9 @@
     reviewStatus: $('reviewStatus'),
     workspaceTitle: $('workspaceTitle'),
     board: $('scannerBoard'),
+    boardShell: $('scannerBoardShell'),
+    workspaceBoardSlot: $('workspaceBoardSlot'),
+    editBoardSlot: $('editBoardSlot'),
     boardEmpty: $('boardEmpty'),
     recognitionSummary: $('recognitionSummary'),
     confidence: $('boardConfidence'),
@@ -74,6 +85,7 @@
     exportFen: $('exportFenBtn'),
     newScan: $('newScanBtn'),
     newScanSheet: $('newScanSheet'),
+    sheetBackdrop: $('sheetBackdrop'),
     cancelNewScan: $('cancelNewScanBtn'),
     takePhoto: $('takePhotoBtn'),
     choosePhoto: $('choosePhotoBtn'),
@@ -102,8 +114,11 @@
   let editResumeAnalysis = false;
   let editOriginalFen = '';
   let editOriginalFlipped = false;
+  let editEntryMode = null;
   let activeEditTool = null;
   let activeMenu = null;
+  let activeSheet = null;
+  let viewFocusSequence = 0;
 
   const lineEls = [1, 2, 3].map((number) => ({
     score: $('analysisScore' + number),
@@ -182,7 +197,7 @@
 
   function toggleMenu(menu, trigger) {
     const shouldOpen = menu.hidden || activeMenu?.menu !== menu;
-    closeSheets();
+    closeSheets(false);
     if (!shouldOpen) return;
     menu.hidden = false;
     trigger.setAttribute('aria-expanded', 'true');
@@ -191,23 +206,90 @@
     menu.querySelector('[role="menuitem"]')?.focus();
   }
 
-  function closeSheets() {
+  function principalViews() {
+    return {
+      [VIEW_STATES.CAPTURE]: els.home,
+      [VIEW_STATES.READING]: els.reading,
+      [VIEW_STATES.REVIEW_EDIT]: els.reviewEdit,
+      [VIEW_STATES.WORKSPACE]: els.workspace
+    };
+  }
+
+  function syncPrincipalAccessibility() {
+    const activeView = viewState.snapshot().view;
+    const sheetIsOpen = Boolean(activeSheet);
+    els.topbar.inert = sheetIsOpen;
+    els.topbar.setAttribute('aria-hidden', String(sheetIsOpen));
+    Object.entries(principalViews()).forEach(([name, element]) => {
+      const visible = name === activeView;
+      element.hidden = !visible;
+      element.inert = !visible || sheetIsOpen;
+      element.setAttribute('aria-hidden', String(!visible));
+    });
+  }
+
+  function closeSheets(restoreFocus = false) {
+    const trigger = activeSheet?.trigger;
     els.exportSheet.hidden = true;
     els.newScanSheet.hidden = true;
+    els.sheetBackdrop.hidden = true;
+    activeSheet = null;
+    document.body.classList.remove('sheet-open');
+    syncPrincipalAccessibility();
     closeMenus();
+    if (restoreFocus && trigger?.isConnected) trigger.focus({ preventScroll: true });
   }
 
-  function showHome() {
-    els.home.hidden = false;
-    els.workspace.hidden = true;
-    document.body.classList.remove('workspace-open');
+  function openSheet(sheet, trigger) {
+    closeSheets(false);
+    activeSheet = { sheet, trigger };
+    sheet.hidden = false;
+    els.sheetBackdrop.hidden = false;
+    document.body.classList.add('sheet-open');
+    syncPrincipalAccessibility();
+    requestAnimationFrame(() => sheet.querySelector('button:not([disabled])')?.focus({ preventScroll: true }));
   }
 
-  function showWorkspace() {
-    els.home.hidden = true;
-    els.workspace.hidden = false;
-    document.body.classList.add('workspace-open');
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  function setPrincipalView(nextView, { focus = true, reason = 'navigation', reset = false } = {}) {
+    closeSheets(false);
+    const result = reset ? viewState.reset({ reason }) : viewState.transition(nextView, { reason });
+    if (!result) return false;
+    if (nextView === VIEW_STATES.REVIEW_EDIT && els.boardShell.parentElement !== els.editBoardSlot) {
+      els.editBoardSlot.appendChild(els.boardShell);
+    } else if (nextView === VIEW_STATES.WORKSPACE && els.boardShell.parentElement !== els.workspaceBoardSlot) {
+      els.workspaceBoardSlot.appendChild(els.boardShell);
+    }
+    els.app.dataset.scannerView = nextView;
+    document.body.classList.toggle('workspace-open', nextView === VIEW_STATES.WORKSPACE || nextView === VIEW_STATES.REVIEW_EDIT);
+    syncPrincipalAccessibility();
+    const focusTargets = {
+      [VIEW_STATES.CAPTURE]: els.homeScan,
+      [VIEW_STATES.READING]: els.readingTitle,
+      [VIEW_STATES.REVIEW_EDIT]: els.applyEdit,
+      [VIEW_STATES.WORKSPACE]: els.editBtn
+    };
+    const sequence = ++viewFocusSequence;
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+      if (focus && sequence === viewFocusSequence) focusTargets[nextView]?.focus({ preventScroll: true });
+    });
+    return true;
+  }
+
+  function showHome(options = {}) {
+    return setPrincipalView(VIEW_STATES.CAPTURE, options);
+  }
+
+  function showReading() {
+    return setPrincipalView(VIEW_STATES.READING, { reason: 'valid-image-selected' });
+  }
+
+  function showReviewEdit(reason) {
+    return setPrincipalView(VIEW_STATES.REVIEW_EDIT, { reason });
+  }
+
+  function showWorkspace(options = {}) {
+    return setPrincipalView(VIEW_STATES.WORKSPACE, options);
   }
 
   function setValidation(text, type) {
@@ -231,7 +313,7 @@
   }
 
   function isEditing() {
-    return !els.editSheet.hidden;
+    return viewState.snapshot().view === VIEW_STATES.REVIEW_EDIT;
   }
 
   function setEditFeedback(text, type = '') {
@@ -317,15 +399,19 @@
     return result.ok ? result.fen : '';
   }
 
-  function openNewScan() {
-    closeSheets();
-    els.newScanSheet.hidden = false;
+  function openNewScan(trigger = document.activeElement) {
+    openSheet(els.newScanSheet, trigger);
   }
 
   function openPicker(input) {
-    els.newScanSheet.hidden = true;
+    closeSheets(false);
     input.value = '';
     input.click();
+  }
+
+  function routeRecognitionResult() {
+    // Phase 3 replaces this deterministic decision with confidence and warning policy.
+    openEdit(EDIT_ENTRY.RECOGNITION_REVIEW);
   }
 
   function selectFile(file) {
@@ -333,7 +419,7 @@
       if (file) toast('Choose a supported image file.');
       return;
     }
-    closeSheets();
+    closeSheets(false);
     analysis?.clear();
     els.engineToggle.checked = false;
     const snapshot = state.beginSource();
@@ -347,29 +433,28 @@
     els.fen.value = '';
     els.confirm.disabled = true;
     els.handoff.hidden = true;
-    els.confirmBar.hidden = false;
-    els.recognitionSummary.hidden = false;
+    els.confirmBar.hidden = true;
+    els.recognitionSummary.hidden = true;
     selectedSquare = null;
-    showWorkspace();
+    showReading();
     state.beginRecognition(snapshot.generation);
     setBoardEmpty(true);
     const expectedGeneration = snapshot.generation;
     setTimeout(() => {
       if (state.snapshot().generation !== expectedGeneration) return;
-      state.setCandidate(expectedGeneration, {
+      const accepted = state.setCandidate(expectedGeneration, {
         fen: MOCK_FEN,
         boardConfidence: null,
         pieceConfidenceBySquare: {},
         lowConfidenceSquares: [],
         orientation: 'white'
       });
+      if (!accepted) return;
       els.fen.value = MOCK_FEN;
-      els.confidence.textContent = 'Review';
       els.candidateStatus.textContent = 'Ready to review';
       els.workspaceTitle.textContent = 'Review position';
-      validateCurrent();
-      toast('Check the board. Edit anything that does not match your source.');
-    }, 220);
+      routeRecognitionResult();
+    }, 320);
   }
 
   function resetAll(goHome = true) {
@@ -390,8 +475,8 @@
     els.reviewStatus.textContent = 'Required';
     els.confirm.disabled = true;
     els.handoff.hidden = true;
-    els.confirmBar.hidden = false;
-    els.recognitionSummary.hidden = false;
+    els.confirmBar.hidden = true;
+    els.recognitionSummary.hidden = true;
     els.analysisPanel.hidden = true;
     els.engineToggle.checked = false;
     selectedSquare = null;
@@ -400,16 +485,17 @@
     editResumeAnalysis = false;
     editOriginalFen = '';
     editOriginalFlipped = false;
+    editEntryMode = null;
     activeEditTool = null;
     els.editSheet.hidden = true;
     els.editFooter.hidden = true;
-    els.workspace.classList.remove('edit-mode');
-    closeSheets();
+    els.reviewEdit.classList.remove('edit-mode');
+    closeSheets(false);
     fenTools.renderEmpty(els.board);
     setBoardEmpty(true);
     setValidation('Choose an image to begin.');
     els.workspaceTitle.textContent = 'Review position';
-    if (goHome) showHome();
+    if (goHome) showHome({ reset: true, reason: 'scanner-reset' });
   }
 
   function confirm() {
@@ -429,6 +515,7 @@
     els.workspaceTitle.textContent = 'Position ready';
     els.candidateStatus.textContent = 'Confirmed';
     analysis?.setPosition(result.fen);
+    showWorkspace({ reason: 'position-confirmed' });
     fenTools.render(els.board, result.fen, flipped, null, null);
     toast('Position confirmed.');
   }
@@ -473,15 +560,22 @@
     els.candidateStatus.textContent = 'Confirmed';
   }
 
-  function openEdit() {
+  function openEdit(entryMode = EDIT_ENTRY.MANUAL_EDIT) {
     const fen = currentFen();
     if (!fen) {
       toast('Scan or load a position first.');
       return;
     }
     const snapshot = state.snapshot();
-    editWasConfirmed = snapshot.state === state.STATES.CONFIRMED;
-    editResumeAnalysis = Boolean(analysis?.isActive());
+    const recognitionReview = entryMode === EDIT_ENTRY.RECOGNITION_REVIEW;
+    if (recognitionReview && snapshot.state !== state.STATES.REVIEW) return;
+    if (!recognitionReview && snapshot.state !== state.STATES.CONFIRMED) {
+      toast('There is no editable position yet.');
+      return;
+    }
+    editEntryMode = entryMode;
+    editWasConfirmed = !recognitionReview;
+    editResumeAnalysis = editWasConfirmed && Boolean(analysis?.isActive());
     editOriginalFen = fen;
     editOriginalFlipped = flipped;
     if (editWasConfirmed) {
@@ -492,14 +586,15 @@
       els.confirmBar.hidden = true;
       els.recognitionSummary.hidden = true;
       els.handoff.hidden = false;
-    } else if (snapshot.state !== state.STATES.REVIEW) {
-      toast('There is no editable position yet.');
-      return;
+    } else {
+      els.fen.value = fen;
+      els.handoff.hidden = true;
     }
-    closeSheets();
+    closeSheets(false);
     els.editSheet.hidden = false;
     els.editFooter.hidden = false;
-    els.workspace.classList.add('edit-mode');
+    els.reviewEdit.classList.add('edit-mode');
+    showReviewEdit(entryMode);
     selectedSquare = null;
     selectEditTool(null);
     syncEditFields(fen);
@@ -507,7 +602,6 @@
     setEditFeedback('Select a piece or Clear Square, then tap the board.');
     els.workspaceTitle.textContent = 'Edit position';
     els.candidateStatus.textContent = 'Editing';
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
 
   function leaveEditMode() {
@@ -515,42 +609,52 @@
     els.editFooter.hidden = true;
     els.editCastlingPanel.hidden = true;
     els.editCastling.setAttribute('aria-expanded', 'false');
-    els.workspace.classList.remove('edit-mode');
+    els.reviewEdit.classList.remove('edit-mode');
     selectedSquare = null;
     selectEditTool(null);
-    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+
+  function clearEditContext() {
+    editWasConfirmed = false;
+    editResumeAnalysis = false;
+    editOriginalFen = '';
+    editOriginalFlipped = false;
+    editEntryMode = null;
   }
 
   async function closeEdit(apply) {
+    const recognitionReview = editEntryMode === EDIT_ENTRY.RECOGNITION_REVIEW;
     if (apply) {
       const result = validateCurrent();
       if (!result.ok) {
         toast(result.error);
         return;
       }
-      if (editWasConfirmed) {
-        state.revise(result.fen);
-        const confirmed = state.confirm(result.fen);
-        els.confirmed.textContent = confirmed.fen;
-        els.handoff.hidden = false;
-        els.confirmBar.hidden = true;
-        els.recognitionSummary.hidden = true;
-        analysis?.setFlipped(flipped);
-        analysis?.setPosition(result.fen);
-        leaveEditMode();
-        fenTools.render(els.board, result.fen, flipped, null, null);
-        els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
-        els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
-        if (editResumeAnalysis) await startAnalysis(result.fen, true);
-        toast('Position updated.');
-      } else {
-        state.revise(result.fen);
-        leaveEditMode();
-        validateCurrent(false);
-      }
+      state.revise(result.fen);
+      const confirmed = state.confirm(result.fen);
+      if (!confirmed) return;
+      els.confirmed.textContent = confirmed.fen;
+      els.handoff.hidden = false;
+      els.confirmBar.hidden = true;
+      els.recognitionSummary.hidden = true;
+      analysis?.setFlipped(flipped);
+      analysis?.setPosition(result.fen);
+      leaveEditMode();
+      showWorkspace({ reason: recognitionReview ? 'recognition-approved' : 'manual-edit-applied' });
+      fenTools.render(els.board, result.fen, flipped, null, null);
+      els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
+      els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
+      if (editResumeAnalysis) await startAnalysis(result.fen, true);
+      toast(recognitionReview ? 'Position ready.' : 'Position updated.');
     } else {
+      if (recognitionReview) {
+        leaveEditMode();
+        clearEditContext();
+        resetAll(true);
+        return;
+      }
       flipped = editOriginalFlipped;
-      if (editWasConfirmed && editOriginalFen) {
+      if (editOriginalFen) {
         els.fen.value = editOriginalFen;
         els.confirmed.textContent = editOriginalFen;
         els.handoff.hidden = false;
@@ -559,20 +663,14 @@
         analysis?.setFlipped(flipped);
         analysis?.setPosition(editOriginalFen);
         leaveEditMode();
+        showWorkspace({ reason: 'manual-edit-cancelled' });
         fenTools.render(els.board, editOriginalFen, flipped, null, null);
         els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
         els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
         if (editResumeAnalysis) await startAnalysis(editOriginalFen, true);
-      } else {
-        els.fen.value = editOriginalFen;
-        leaveEditMode();
-        validateCurrent(false);
       }
     }
-    editWasConfirmed = false;
-    editResumeAnalysis = false;
-    editOriginalFen = '';
-    editOriginalFlipped = false;
+    clearEditContext();
   }
 
   function setEditTurn(side) {
@@ -600,14 +698,13 @@
     setEditFeedback('Board cleared. Add exactly one white king and one black king before applying.', 'error');
   }
 
-  function openExport() {
+  function openExport(trigger = document.activeElement) {
     const fen = currentFen();
     if (!fen) {
       toast('Scan or load a position first.');
       return;
     }
-    closeSheets();
-    els.exportSheet.hidden = false;
+    openSheet(els.exportSheet, trigger);
   }
 
   function loadImage(src) {
@@ -626,7 +723,7 @@
       toast('No valid position to export.');
       return;
     }
-    els.exportSheet.hidden = true;
+    closeSheets(false);
     const size = 1200;
     const margin = 60;
     const boardSize = 1080;
@@ -675,7 +772,7 @@
 
   async function exportFen() {
     const fen = currentFen();
-    els.exportSheet.hidden = true;
+    closeSheets(false);
     if (!fen) return;
     try {
       await navigator.clipboard.writeText(fen);
@@ -764,6 +861,11 @@
   }
 
   function handleMenuKeys(event) {
+    if (event.key === 'Escape' && activeSheet) {
+      event.preventDefault();
+      closeSheets(true);
+      return;
+    }
     if (!activeMenu) return;
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -816,12 +918,12 @@
   });
   els.flip.addEventListener('click', flipBoard);
   els.confirm.addEventListener('click', confirm);
-  els.editBtn.addEventListener('click', openEdit);
+  els.editBtn.addEventListener('click', () => openEdit(EDIT_ENTRY.MANUAL_EDIT));
   els.cancelEdit.addEventListener('click', () => closeEdit(false));
   els.applyEdit.addEventListener('click', () => closeEdit(true));
   els.editFlip.addEventListener('click', flipBoard);
   els.editLibrary.addEventListener('click', showDiagramLibraryPlaceholder);
-  els.editExport.addEventListener('click', openExport);
+  els.editExport.addEventListener('click', () => openExport(els.editExport));
   els.editMenu.addEventListener('click', () => toggleMenu(els.productMenu, els.editMenu));
   els.moreBtn.addEventListener('click', () => toggleMenu(els.productMenu, els.moreBtn));
   els.boardActions.addEventListener('click', () => toggleMenu(els.analysisMenu, els.boardActions));
@@ -833,17 +935,17 @@
   els.openLichess.addEventListener('click', openLichess);
   els.openChessCom.addEventListener('click', () => placeholder('Direct Chess.com FEN handoff is not available yet.'));
   els.openCaissa.addEventListener('click', openCaissa);
-  els.closeExport.addEventListener('click', () => { els.exportSheet.hidden = true; });
+  els.closeExport.addEventListener('click', () => closeSheets(true));
   els.exportDiagram.addEventListener('click', exportDiagram);
   els.exportFen.addEventListener('click', exportFen);
   els.homeBtn.addEventListener('click', () => resetAll(true));
-  els.newScan.addEventListener('click', openNewScan);
-  els.homeScan.addEventListener('click', openNewScan);
-  els.cancelNewScan.addEventListener('click', () => { els.newScanSheet.hidden = true; });
+  els.newScan.addEventListener('click', () => openNewScan(els.newScan));
+  els.homeScan.addEventListener('click', () => openNewScan(els.homeScan));
+  els.cancelNewScan.addEventListener('click', () => closeSheets(true));
   els.takePhoto.addEventListener('click', () => openPicker(els.camera));
   els.choosePhoto.addEventListener('click', () => openPicker(els.gallery));
   els.workspaceSaveDiagram.addEventListener('click', showDiagramLibraryPlaceholder);
-  els.workspaceShare.addEventListener('click', openExport);
+  els.workspaceShare.addEventListener('click', () => openExport(els.workspaceShare));
   els.analyze.addEventListener('click', () => {
     const fen = currentFen();
     if (!fen || !analysis) {
@@ -869,6 +971,7 @@
   els.previous.addEventListener('click', () => analysis?.previous());
   els.next.addEventListener('click', () => analysis?.next());
   els.last.addEventListener('click', () => analysis?.last());
+  els.sheetBackdrop.addEventListener('click', () => closeSheets(true));
   document.addEventListener('pointerdown', (event) => {
     if (!activeMenu) return;
     if (activeMenu.menu.contains(event.target) || activeMenu.trigger.contains(event.target)) return;
