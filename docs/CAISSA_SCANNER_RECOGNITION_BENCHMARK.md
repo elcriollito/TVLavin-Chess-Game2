@@ -262,4 +262,4 @@ They do not establish recognition quality.
 
 ## 14. Deferred work
 
-The repository now includes local image decode and a synthetic-evidence board-localization/homography prototype. Real-world localization certification, orientation inference, a classifier adapter, a production model, a visual dashboard, production routing, and any visible Scanner change remain deferred.
+The repository now includes local image decode, a versioned 14-image annotated localization corpus identity, deterministic development/holdout evaluation, and a real-evidence board-localization/homography prototype. The 3-004B holdout did not establish classifier readiness. Targeted localization hardening, real hard negatives, orientation inference, a classifier adapter, a production model, a visual dashboard, production routing, and any visible Scanner change remain deferred.

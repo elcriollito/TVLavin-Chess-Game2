@@ -4,14 +4,17 @@
   const geometry = global.CaissaScannerBoardGeometry;
   if (!geometry) throw new Error('CAISSA Scanner board geometry must load before localization.');
 
-  const LOCALIZER_VERSION = 'caissa-scanner-board-localizer/1';
+  const LOCALIZER_VERSION = 'caissa-scanner-board-localizer/2';
   const MAX_ANALYSIS_EDGE = 256;
   const MAX_CANDIDATES = 12;
-  const MIN_CANDIDATE_SCORE = 0.5;
+  const MIN_CANDIDATE_SCORE = 0.6;
   const MIN_GRID_EVIDENCE = 0.35;
   const MIN_CHECKER_EVIDENCE = 0.24;
   const AMBIGUITY_MARGIN = 0.08;
   const SCORE_SAMPLE_SIZE = 80;
+  const SEARCH_SAMPLE_SIZE = 32;
+  const SEARCH_SEED_LIMIT = 8;
+  const MIN_SEARCH_BOUNDARY_MARGIN_RATIO = 0.03;
 
   function clamp(value, minimum = 0, maximum = 1) {
     return Math.max(minimum, Math.min(maximum, value));
@@ -327,7 +330,73 @@
     });
   }
 
-  function scoreCandidate(seed, analysis) {
+  function scoreOuterBoundary(gray, width, height, corners) {
+    const sideMeans = [];
+    const validFractions = [];
+    for (let side = 0; side < 4; side += 1) {
+      const start = corners[side];
+      const end = corners[(side + 1) % 4];
+      const dx = end[0] - start[0];
+      const dy = end[1] - start[1];
+      const length = Math.hypot(dx, dy);
+      if (!(length > 0)) { sideMeans.push(0); validFractions.push(0); continue; }
+      const inwardX = -dy / length;
+      const inwardY = dx / length;
+      const offset = 2;
+      const differences = [];
+      const count = 24;
+      for (let index = 0; index < count; index += 1) {
+        const t = (index + 1) / (count + 1);
+        const x = start[0] + (dx * t);
+        const y = start[1] + (dy * t);
+        const insideX = x + (inwardX * offset);
+        const insideY = y + (inwardY * offset);
+        const outsideX = x - (inwardX * offset);
+        const outsideY = y - (inwardY * offset);
+        if (insideX < 0 || insideX > width || insideY < 0 || insideY > height
+            || outsideX < 0 || outsideX > width || outsideY < 0 || outsideY > height) continue;
+        differences.push(Math.abs(sampleGray(gray, width, height, insideX, insideY)
+          - sampleGray(gray, width, height, outsideX, outsideY)));
+      }
+      sideMeans.push(mean(differences));
+      validFractions.push(differences.length / count);
+    }
+    return Object.freeze({
+      mean: mean(sideMeans),
+      minimumSideMean: Math.min(...sideMeans),
+      minimumValidFraction: Math.min(...validFractions),
+      sideMeans: Object.freeze(sideMeans),
+      validFractions: Object.freeze(validFractions)
+    });
+  }
+
+  function scoreCandidate(seed, analysis, sampleSize = SCORE_SAMPLE_SIZE) {
+    const searchGenerated = seed.source === 'grid-periodicity-search';
+    const outerBoundary = scoreOuterBoundary(analysis.gray, analysis.width, analysis.height, seed.corners);
+    const boundaryMargin = Math.min(analysis.width, analysis.height) * MIN_SEARCH_BOUNDARY_MARGIN_RATIO;
+    const touchesImageBoundary = seed.corners.some(([x, y]) => (
+      x < boundaryMargin || y < boundaryMargin
+      || x > analysis.width - boundaryMargin || y > analysis.height - boundaryMargin
+    ));
+    const boundaryClipped = searchGenerated
+      && (touchesImageBoundary || outerBoundary.minimumValidFraction < 0.75);
+    if (boundaryClipped) {
+      return Object.freeze({
+        source: seed.source,
+        corners: seed.corners,
+        accepted: false,
+        candidateScore: 0,
+        geometryScore: 0,
+        gridEvidenceScore: 0,
+        checkerEvidenceScore: 0,
+        edgeEvidenceScore: 0,
+        boundingArea: null,
+        areaRatio: null,
+        shapeMetrics: null,
+        outerBoundary,
+        rejectionReasons: Object.freeze(['image-boundary-clipped'])
+      });
+    }
     const validation = geometry.validateQuadrilateral(seed.corners, {
       imageWidth: analysis.width,
       imageHeight: analysis.height,
@@ -351,8 +420,8 @@
     }
     let evidence;
     try {
-      const sample = rectifyGraySample(analysis.gray, analysis.width, analysis.height, seed.corners);
-      evidence = scoreRectifiedGrid(sample, SCORE_SAMPLE_SIZE);
+      const sample = rectifyGraySample(analysis.gray, analysis.width, analysis.height, seed.corners, sampleSize);
+      evidence = scoreRectifiedGrid(sample, sampleSize);
     } catch (_) {
       return Object.freeze({
         source: seed.source,
@@ -369,13 +438,16 @@
         rejectionReasons: Object.freeze(['homography-scoring-failed'])
       });
     }
-    const candidateScore = clamp((0.54 * evidence.gridEvidenceScore)
-      + (0.31 * evidence.checkerEvidenceScore)
+    const candidateScore = clamp((0.3 * evidence.gridEvidenceScore)
+      + (0.55 * evidence.checkerEvidenceScore)
       + (0.1 * validation.metrics.geometryScore)
       + (0.05 * evidence.edgeEvidenceScore));
     const rejectionReasons = [];
     if (evidence.gridEvidenceScore < MIN_GRID_EVIDENCE) rejectionReasons.push('insufficient-grid-evidence');
     if (evidence.checkerEvidenceScore < MIN_CHECKER_EVIDENCE) rejectionReasons.push('insufficient-checker-evidence');
+    if (searchGenerated && outerBoundary.minimumSideMean < 1.5) {
+      rejectionReasons.push('search-missing-outer-boundary');
+    }
     if (candidateScore < MIN_CANDIDATE_SCORE) rejectionReasons.push('candidate-score-too-low');
     return Object.freeze({
       source: seed.source,
@@ -389,13 +461,113 @@
       boundingArea: validation.metrics.area,
       areaRatio: validation.metrics.areaRatio,
       shapeMetrics: validation.metrics,
+      outerBoundary,
       evidenceDiagnostics: evidence.diagnostics,
       rejectionReasons: Object.freeze(rejectionReasons)
     });
   }
 
+  function searchPositions(limit, extent, step) {
+    const positions = [];
+    for (let value = 0; value <= limit - extent; value += step) positions.push(value);
+    const last = limit - extent;
+    if (last >= 0 && positions.at(-1) !== last) positions.push(last);
+    return positions;
+  }
+
+  function refineGridSeed(seed, analysis) {
+    let corners = seed.corners.map((point) => [...point]);
+    let best = scoreCandidate({ source: seed.source, corners }, analysis, SEARCH_SAMPLE_SIZE);
+    const initialStep = Math.max(4, Math.round(Math.min(analysis.width, analysis.height) / 20));
+    const steps = [initialStep, Math.max(2, Math.round(initialStep / 2)), 1];
+    for (const step of [...new Set(steps)]) {
+      let changed = true;
+      let passes = 0;
+      while (changed && passes < 4) {
+        changed = false;
+        passes += 1;
+        for (let cornerIndex = 0; cornerIndex < 4; cornerIndex += 1) {
+          for (const [dx, dy] of [[-step, 0], [step, 0], [0, -step], [0, step]]) {
+            const trial = corners.map((point) => [...point]);
+            trial[cornerIndex][0] = clamp(trial[cornerIndex][0] + dx, 0, analysis.width);
+            trial[cornerIndex][1] = clamp(trial[cornerIndex][1] + dy, 0, analysis.height);
+            const scored = scoreCandidate({ source: seed.source, corners: trial }, analysis, SEARCH_SAMPLE_SIZE);
+            if (scored.candidateScore > best.candidateScore + 1e-7) {
+              corners = trial;
+              best = scored;
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+    return { source: seed.source, corners, searchScore: best.candidateScore };
+  }
+
+  function generateGridSearchSeeds(analysis) {
+    const minimumDimension = Math.min(analysis.width, analysis.height);
+    const minimumExtent = Math.max(48, Math.round((minimumDimension * 0.32) / 8) * 8);
+    const maximumExtent = Math.floor((minimumDimension * 0.96) / 8) * 8;
+    const extentStep = Math.max(12, Math.round(minimumDimension / 12));
+    const positionStep = Math.max(10, Math.round(minimumDimension / 16));
+    const coarse = [];
+    for (let boardWidth = minimumExtent; boardWidth <= maximumExtent; boardWidth += extentStep) {
+      for (const aspect of [0.82, 1, 1.18]) {
+        const boardHeight = Math.round((boardWidth * aspect) / 4) * 4;
+        if (boardHeight > analysis.height || boardHeight < minimumExtent * 0.75) continue;
+        for (const x of searchPositions(analysis.width, boardWidth, positionStep)) {
+          for (const y of searchPositions(analysis.height, boardHeight, positionStep)) {
+            const corners = [[x, y], [x + boardWidth, y], [x + boardWidth, y + boardHeight], [x, y + boardHeight]];
+            const scored = scoreCandidate({ source: 'grid-periodicity-search', corners }, analysis, SEARCH_SAMPLE_SIZE);
+            coarse.push({ source: 'grid-periodicity-search', corners, searchScore: scored.candidateScore });
+          }
+        }
+      }
+    }
+    coarse.sort((left, right) => right.searchScore - left.searchScore);
+    const diverse = [];
+    for (const seed of coarse) {
+      if (diverse.some((existing) => cornersNear(existing.corners, seed.corners, 10))) continue;
+      diverse.push(seed);
+      if (diverse.length >= SEARCH_SEED_LIMIT) break;
+    }
+    return diverse.map((seed) => refineGridSeed(seed, analysis));
+  }
+
+  function deduplicateScoredCandidates(candidates, analysis) {
+    const output = [];
+    const tolerance = Math.max(6, Math.min(analysis.width, analysis.height) * 0.1);
+    const boundingBox = (corners) => {
+      const xs = corners.map((point) => point[0]);
+      const ys = corners.map((point) => point[1]);
+      return { left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) };
+    };
+    const overlap = (left, right) => {
+      const a = boundingBox(left.corners);
+      const b = boundingBox(right.corners);
+      const intersection = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+        * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+      const areaA = (a.right - a.left) * (a.bottom - a.top);
+      const areaB = (b.right - b.left) * (b.bottom - b.top);
+      return intersection / Math.max(1, areaA + areaB - intersection);
+    };
+    for (const candidate of candidates) {
+      if (output.some((existing) => cornersNear(existing.corners, candidate.corners, tolerance)
+          || overlap(existing, candidate) >= 0.5)) continue;
+      output.push(candidate);
+      if (output.length >= MAX_CANDIDATES) break;
+    }
+    return output;
+  }
+
   function toWorkingCorners(corners, analysis) {
     return Object.freeze(corners.map(([x, y]) => Object.freeze([x * analysis.scaleX, y * analysis.scaleY])));
+  }
+
+  function scoreSourceCorners({ pixels, width, height, corners }) {
+    const analysis = rgbaToAnalysis(pixels, width, height);
+    const analysisCorners = corners.map(([x, y]) => [x / analysis.scaleX, y / analysis.scaleY]);
+    return summarizeCandidate(scoreCandidate({ source: 'diagnostic-source-corners', corners: analysisCorners }, analysis), analysis);
   }
 
   function summarizeCandidate(candidate, analysis) {
@@ -410,6 +582,8 @@
       checkerEvidenceScore: candidate.checkerEvidenceScore,
       edgeEvidenceScore: candidate.edgeEvidenceScore,
       candidateScore: candidate.candidateScore,
+      outerBoundary: candidate.outerBoundary || null,
+      evidenceDiagnostics: candidate.evidenceDiagnostics || null,
       shapeMetrics: candidate.shapeMetrics ? Object.freeze({
         edgeLengths: candidate.shapeMetrics.edgeLengths,
         angles: candidate.shapeMetrics.angles,
@@ -441,15 +615,17 @@
     let seeds;
     try {
       analysis = rgbaToAnalysis(pixels, width, height);
-      seeds = generateCandidateSeeds(sobelEdges(analysis.gray, analysis.width, analysis.height), analysis.width, analysis.height);
+      const edgeResult = sobelEdges(analysis.gray, analysis.width, analysis.height);
+      seeds = generateCandidateSeeds(edgeResult, analysis.width, analysis.height)
+        .concat(generateGridSearchSeeds(analysis));
     } catch (error) {
       return failure('board-not-found', 'No board localization candidate could be generated.', { reason: error?.message || 'candidate-generation-failed' }, {
         localizationMs: Math.max(0, now() - startedAt), candidateScoringMs: 0, homographyMs: 0, geometryValidationMs: 0, totalGeometryMs: Math.max(0, now() - startedAt)
       });
     }
     const candidatesGeneratedAt = now();
-    const scored = seeds.map((seed) => scoreCandidate(seed, analysis))
-      .sort((left, right) => right.candidateScore - left.candidateScore || left.source.localeCompare(right.source));
+    const scored = deduplicateScoredCandidates(seeds.map((seed) => scoreCandidate(seed, analysis))
+      .sort((left, right) => right.candidateScore - left.candidateScore || left.source.localeCompare(right.source)), analysis);
     const scoringCompletedAt = now();
     const accepted = scored.filter((candidate) => candidate.accepted);
     const summaries = Object.freeze(scored.slice(0, MAX_CANDIDATES).map((candidate) => summarizeCandidate(candidate, analysis)));
@@ -628,6 +804,7 @@
     AMBIGUITY_MARGIN,
     rgbaToAnalysis,
     scoreRectifiedGrid,
+    scoreSourceCorners,
     cornerErrorMetrics,
     toBenchmarkOutput,
     localizeAndRectify

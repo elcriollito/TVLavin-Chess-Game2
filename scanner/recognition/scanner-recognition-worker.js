@@ -5,7 +5,7 @@
   try {
     workerScope.importScripts?.(
       '/scanner/recognition/scanner-board-geometry.js?v=0.1.0',
-      '/scanner/recognition/scanner-board-localizer.js?v=0.1.0'
+      '/scanner/recognition/scanner-board-localizer.js?v=0.2.0'
     );
   } catch (error) {
     geometryLoadFailure = error;

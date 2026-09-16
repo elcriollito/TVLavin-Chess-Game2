@@ -1,0 +1,688 @@
+{
+  "schemaVersion": "caissa-scanner-localization-real-report/1",
+  "corpusVersion": "scanner-localization-hard-v0.1",
+  "annotationManifestSha256": "EEA230D23C0BC608784B20542A4EC5B2FAA7F533E1EC427E62985BB4720708A7",
+  "sourceManifestSha256": "DFE01F52B20BAF38ED5BF680B4A929E49D231CE0A1F2F69F8433C6257F7E1304",
+  "detector": {
+    "label": "hardened-holdout",
+    "localizerVersion": "caissa-scanner-board-localizer/2",
+    "implementationCheckpoint": "working-tree-sha256:50DD073EE74C580661C0962273AA02D109BC7DAB7680CA4BE7FC9CBF492E9696",
+    "splitEvaluated": "holdout",
+    "backend": "node-sharp-rgba-plus-shared-js-localizer",
+    "boardSize": 512,
+    "runtimeNote": "Timing is measured wall time and environment-specific; scores and ordering are deterministic."
+  },
+  "qualityPolicy": {
+    "excellent": {
+      "maximumRmse": 0.012,
+      "maximumWorstCorner": 0.02
+    },
+    "acceptable": {
+      "maximumRmse": 0.03,
+      "maximumWorstCorner": 0.05
+    },
+    "reviewNeeded": {
+      "maximumRmse": 0.06,
+      "maximumWorstCorner": 0.1
+    }
+  },
+  "scope": "positive-corpus-localization-only",
+  "falsePositiveEvaluation": "incomplete-until-real-hard-negatives-are-added",
+  "metrics": {
+    "all": {
+      "sampleCount": 4,
+      "boardFoundRate": 1,
+      "falseNegativeRate": 0,
+      "localizationAcceptedRate": 0.25,
+      "wrongBoardSelectedRate": 0.75,
+      "multipleBoardAmbiguityRate": 0,
+      "cornerAccuracy": {
+        "sampleCount": 4,
+        "meanNormalizedRmse": 0.062978,
+        "medianNormalizedRmse": 0.074306,
+        "worstSampleId": "cv-failure-003-3d-videogame-board",
+        "worstSampleRmse": 0.090058,
+        "worstCornerError": 0.125236
+      },
+      "homographySuccessRate": 1,
+      "geometryContractPassRate": 1,
+      "latencyMs": {
+        "mean": 465.005,
+        "median": 460.869,
+        "worst": 485.789,
+        "worstSampleId": "cv-failure-002-old-newspaper-problem-196"
+      },
+      "qualityBuckets": {
+        "excellent": 0,
+        "acceptable": 1,
+        "review-needed": 0,
+        "failed": 3
+      },
+      "failures": {
+        "outer-frame-selected": 1,
+        "wrong-board-selected": 2
+      }
+    },
+    "development": {
+      "sampleCount": 0,
+      "boardFoundRate": null,
+      "falseNegativeRate": null,
+      "localizationAcceptedRate": null,
+      "wrongBoardSelectedRate": null,
+      "multipleBoardAmbiguityRate": null,
+      "cornerAccuracy": {
+        "sampleCount": 0,
+        "meanNormalizedRmse": null,
+        "medianNormalizedRmse": null,
+        "worstSampleId": null,
+        "worstSampleRmse": null,
+        "worstCornerError": null
+      },
+      "homographySuccessRate": null,
+      "geometryContractPassRate": null,
+      "latencyMs": {
+        "mean": null,
+        "median": null,
+        "worst": null,
+        "worstSampleId": null
+      },
+      "qualityBuckets": {
+        "excellent": 0,
+        "acceptable": 0,
+        "review-needed": 0,
+        "failed": 0
+      },
+      "failures": {}
+    },
+    "holdout": {
+      "sampleCount": 4,
+      "boardFoundRate": 1,
+      "falseNegativeRate": 0,
+      "localizationAcceptedRate": 0.25,
+      "wrongBoardSelectedRate": 0.75,
+      "multipleBoardAmbiguityRate": 0,
+      "cornerAccuracy": {
+        "sampleCount": 4,
+        "meanNormalizedRmse": 0.062978,
+        "medianNormalizedRmse": 0.074306,
+        "worstSampleId": "cv-failure-003-3d-videogame-board",
+        "worstSampleRmse": 0.090058,
+        "worstCornerError": 0.125236
+      },
+      "homographySuccessRate": 1,
+      "geometryContractPassRate": 1,
+      "latencyMs": {
+        "mean": 465.005,
+        "median": 460.869,
+        "worst": 485.789,
+        "worstSampleId": "cv-failure-002-old-newspaper-problem-196"
+      },
+      "qualityBuckets": {
+        "excellent": 0,
+        "acceptable": 1,
+        "review-needed": 0,
+        "failed": 3
+      },
+      "failures": {
+        "outer-frame-selected": 1,
+        "wrong-board-selected": 2
+      }
+    },
+    "byCategory": {
+      "3d-board": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 1,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.090058,
+          "medianNormalizedRmse": 0.090058,
+          "worstSampleId": "cv-failure-003-3d-videogame-board",
+          "worstSampleRmse": 0.090058,
+          "worstCornerError": 0.125236
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 453.176,
+          "median": 453.176,
+          "worst": 453.176,
+          "worstSampleId": "cv-failure-003-3d-videogame-board"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 1
+        },
+        "failures": {
+          "outer-frame-selected": 1
+        }
+      },
+      "degraded-print": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 1,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.074581,
+          "medianNormalizedRmse": 0.074581,
+          "worstSampleId": "cv-failure-002-old-newspaper-problem-196",
+          "worstSampleRmse": 0.074581,
+          "worstCornerError": 0.088062
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 485.789,
+          "median": 485.789,
+          "worst": 485.789,
+          "worstSampleId": "cv-failure-002-old-newspaper-problem-196"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 1
+        },
+        "failures": {
+          "wrong-board-selected": 1
+        }
+      },
+      "digital-photo": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 1,
+        "wrongBoardSelectedRate": 0,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.013243,
+          "medianNormalizedRmse": 0.013243,
+          "worstSampleId": "cv-success-002-lichess-photo-of-screen",
+          "worstSampleRmse": 0.013243,
+          "worstCornerError": 0.01949
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 468.561,
+          "median": 468.561,
+          "worst": 468.561,
+          "worstSampleId": "cv-success-002-lichess-photo-of-screen"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 1,
+          "review-needed": 0,
+          "failed": 0
+        },
+        "failures": {}
+      },
+      "hatched-print": {
+        "sampleCount": 1,
+        "boardFoundRate": 1,
+        "falseNegativeRate": 0,
+        "localizationAcceptedRate": 0,
+        "wrongBoardSelectedRate": 1,
+        "multipleBoardAmbiguityRate": 0,
+        "cornerAccuracy": {
+          "sampleCount": 1,
+          "meanNormalizedRmse": 0.07403,
+          "medianNormalizedRmse": 0.07403,
+          "worstSampleId": "cv-success-008-printed-perspective-sparse",
+          "worstSampleRmse": 0.07403,
+          "worstCornerError": 0.097215
+        },
+        "homographySuccessRate": 1,
+        "geometryContractPassRate": 1,
+        "latencyMs": {
+          "mean": 452.493,
+          "median": 452.493,
+          "worst": 452.493,
+          "worstSampleId": "cv-success-008-printed-perspective-sparse"
+        },
+        "qualityBuckets": {
+          "excellent": 0,
+          "acceptable": 0,
+          "review-needed": 0,
+          "failed": 1
+        },
+        "failures": {
+          "wrong-board-selected": 1
+        }
+      }
+    }
+  },
+  "samples": [
+    {
+      "sampleId": "cv-failure-002-old-newspaper-problem-196",
+      "split": "holdout",
+      "categoryGroup": "degraded-print",
+      "difficultyTags": [
+        "degraded-monochrome-print",
+        "old-newspaper",
+        "low-contrast",
+        "piece-color-confusion",
+        "missed-piece",
+        "illegal-output"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "misread",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "wrong-board-selected",
+      "predictedCorners": [
+        [
+          36,
+          342
+        ],
+        [
+          906,
+          342
+        ],
+        [
+          858,
+          1140
+        ],
+        [
+          42,
+          1110
+        ]
+      ],
+      "truthCorners": [
+        [
+          109.884,
+          430.283
+        ],
+        [
+          1012.629,
+          442.787
+        ],
+        [
+          990.123,
+          1245.504
+        ],
+        [
+          114.885,
+          1225.499
+        ]
+      ],
+      "cornerRmse": 0.074581,
+      "worstCornerError": 0.088062,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            36,
+            342
+          ],
+          [
+            906,
+            342
+          ],
+          [
+            858,
+            1140
+          ],
+          [
+            42,
+            1110
+          ]
+        ],
+        "candidateScore": 0.900227,
+        "geometryScore": 0.974332,
+        "gridScore": 0.930069,
+        "checkerScore": 0.885934,
+        "edgeScore": 0.730189,
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.864836,
+        "geometryScore": 0.977574,
+        "gridScore": 0.768294,
+        "checkerScore": 0.912703,
+        "edgeScore": 0.692081,
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 441.726,
+        "candidateScoring": 13.548,
+        "homography": 29.98,
+        "geometryValidation": 0.317,
+        "totalGeometry": 485.789
+      }
+    },
+    {
+      "sampleId": "cv-failure-003-3d-videogame-board",
+      "split": "holdout",
+      "categoryGroup": "3d-board",
+      "difficultyTags": [
+        "3d-board",
+        "strong-perspective",
+        "square-occlusion",
+        "shadows",
+        "textured-board",
+        "decorative-border",
+        "photo-of-screen"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "board-not-found",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "outer-frame-selected",
+      "predictedCorners": [
+        [
+          90,
+          282
+        ],
+        [
+          828,
+          222
+        ],
+        [
+          840,
+          900
+        ],
+        [
+          102,
+          918
+        ]
+      ],
+      "truthCorners": [
+        [
+          284.931,
+          422.781
+        ],
+        [
+          842.583,
+          425.282
+        ],
+        [
+          975.118,
+          887.907
+        ],
+        [
+          97.38,
+          875.404
+        ]
+      ],
+      "cornerRmse": 0.090058,
+      "worstCornerError": 0.125236,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            90,
+            282
+          ],
+          [
+            828,
+            222
+          ],
+          [
+            840,
+            900
+          ],
+          [
+            102,
+            918
+          ]
+        ],
+        "candidateScore": 0.69902,
+        "geometryScore": 0.969178,
+        "gridScore": 0.654031,
+        "checkerScore": 0.686523,
+        "edgeScore": 0.566111,
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.712396,
+        "geometryScore": 0.816096,
+        "gridScore": 0.538102,
+        "checkerScore": 0.795154,
+        "edgeScore": 0.640425,
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 414.007,
+        "candidateScoring": 7.768,
+        "homography": 31.17,
+        "geometryValidation": 0.091,
+        "totalGeometry": 453.176
+      }
+    },
+    {
+      "sampleId": "cv-success-002-lichess-photo-of-screen",
+      "split": "holdout",
+      "categoryGroup": "digital-photo",
+      "difficultyTags": [
+        "photo-of-screen",
+        "lichess-board",
+        "rotated-orientation",
+        "highlights",
+        "move-arrows",
+        "surrounding-ui",
+        "moderate-perspective"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": true,
+      "qualityBucket": "acceptable",
+      "failureTaxonomy": null,
+      "predictedCorners": [
+        [
+          216,
+          366
+        ],
+        [
+          930,
+          402
+        ],
+        [
+          918,
+          1074
+        ],
+        [
+          228,
+          1080
+        ]
+      ],
+      "truthCorners": [
+        [
+          219.914,
+          380.27
+        ],
+        [
+          945.11,
+          367.766
+        ],
+        [
+          910.101,
+          1080.46
+        ],
+        [
+          249.922,
+          1060.454
+        ]
+      ],
+      "cornerRmse": 0.013243,
+      "worstCornerError": 0.01949,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            216,
+            366
+          ],
+          [
+            930,
+            402
+          ],
+          [
+            918,
+            1074
+          ],
+          [
+            228,
+            1080
+          ]
+        ],
+        "candidateScore": 0.947007,
+        "geometryScore": 0.983283,
+        "gridScore": 0.973262,
+        "checkerScore": 0.934044,
+        "edgeScore": 0.859523,
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.936976,
+        "geometryScore": 0.978376,
+        "gridScore": 0.933738,
+        "checkerScore": 0.935751,
+        "edgeScore": 0.887081,
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 429.644,
+        "candidateScoring": 8.207,
+        "homography": 30.496,
+        "geometryValidation": 0.097,
+        "totalGeometry": 468.561
+      }
+    },
+    {
+      "sampleId": "cv-success-008-printed-perspective-sparse",
+      "split": "holdout",
+      "categoryGroup": "hatched-print",
+      "difficultyTags": [
+        "printed-book",
+        "strong-perspective",
+        "page-curvature",
+        "hatched-squares",
+        "sparse-position",
+        "classic-piece-style"
+      ],
+      "referenceSystem": "Chessvision",
+      "referenceOutcome": "success",
+      "boardPresent": true,
+      "detected": true,
+      "localizationAccepted": false,
+      "qualityBucket": "failed",
+      "failureTaxonomy": "wrong-board-selected",
+      "predictedCorners": [
+        [
+          234,
+          306
+        ],
+        [
+          1104,
+          210
+        ],
+        [
+          1098,
+          1140
+        ],
+        [
+          204,
+          1146
+        ]
+      ],
+      "truthCorners": [
+        [
+          167.399,
+          435.285
+        ],
+        [
+          1047.638,
+          295.247
+        ],
+        [
+          957.614,
+          1263.009
+        ],
+        [
+          149.895,
+          1253.007
+        ]
+      ],
+      "cornerRmse": 0.07403,
+      "worstCornerError": 0.097215,
+      "selectedCandidate": {
+        "source": "grid-periodicity-search",
+        "corners": [
+          [
+            234,
+            306
+          ],
+          [
+            1104,
+            210
+          ],
+          [
+            1098,
+            1140
+          ],
+          [
+            204,
+            1146
+          ]
+        ],
+        "candidateScore": 0.81001,
+        "geometryScore": 0.968263,
+        "gridScore": 0.722205,
+        "checkerScore": 0.842135,
+        "edgeScore": 0.666956,
+        "rejectionReasons": []
+      },
+      "truthCandidateEvidence": {
+        "candidateScore": 0.726545,
+        "geometryScore": 0.938203,
+        "gridScore": 0.549903,
+        "checkerScore": 0.796139,
+        "edgeScore": 0.597549,
+        "acceptedByScoring": true,
+        "rejectionReasons": []
+      },
+      "ambiguity": false,
+      "homographySuccess": true,
+      "geometryContractSuccess": true,
+      "typedFailureCode": null,
+      "timingsMs": {
+        "localization": 413.284,
+        "candidateScoring": 5.741,
+        "homography": 33.283,
+        "geometryValidation": 0.094,
+        "totalGeometry": 452.493
+      }
+    }
+  ]
+}

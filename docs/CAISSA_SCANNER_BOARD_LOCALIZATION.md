@@ -1,8 +1,8 @@
 # CAISSA Scanner — Board Localization and Homography Prototype
 
-Status: **PHASE 3-004 PROTOTYPE — SYNTHETIC GEOMETRY EVIDENCE ONLY**
+Status: **PHASE 3-004B HARDENED PROTOTYPE — REAL-CORPUS EVIDENCE, NOT CLASSIFIER-READY**
 
-Localizer version: `caissa-scanner-board-localizer/1`
+Localizer version: `caissa-scanner-board-localizer/2`
 
 Homography version: `caissa-scanner-homography/1`
 
@@ -34,6 +34,7 @@ bounded oriented RGBA working image
 → two-threshold Sobel edge evidence
 → connected edge structures
 → convex hulls and quadrilateral hypotheses
+→ bounded coarse-to-fine 8×8 periodicity search
 → four-corner ordering and strict validation
 → 8×8 grid/checker evidence scoring
 → unambiguous candidate selection
@@ -56,7 +57,9 @@ The dependency-free MVP uses targeted JavaScript rather than OpenCV.js:
 5. Connected edge structures are bounded and sorted by evidence size.
 6. Each component is converted to a convex hull.
 7. At most 24 hull samples are considered, and the maximum-area cyclic four-point subset becomes a candidate.
-8. Candidate arrays and diagnostic summaries are capped at 12.
+8. A bounded axis-aligned coarse search scores plausible board extents on a 32×32 surface, keeps eight diverse seeds, and refines their four corners at decreasing step sizes.
+9. Search candidates touching the image boundary or lacking measurable evidence on any outer side fail closed. This prevents a partial board from being stretched into a complete board.
+10. Candidate arrays and diagnostic summaries are deduplicated by corner proximity and overlap, then capped at 12.
 
 A full-frame grid hypothesis is also scored. It is not a localization failure fallback: it is accepted only when the image itself supplies the same explicit 8×8 checker and bidirectional grid evidence as any other candidate. Failure never fabricates full-image corners, a center crop, or a fixed inset.
 
@@ -75,19 +78,19 @@ Every valid candidate is rectified to an 80×80 luminance scoring surface. Scori
 Current formula:
 
 ```text
-0.54 × gridEvidenceScore
-+ 0.31 × checkerEvidenceScore
+0.30 × gridEvidenceScore
++ 0.55 × checkerEvidenceScore
 + 0.10 × geometryScore
 + 0.05 × edgeEvidenceScore
 ```
 
 Acceptance requires all of:
 
-- candidate score at least `0.50`;
+- candidate score at least `0.60`;
 - grid evidence at least `0.35`;
 - checker evidence at least `0.24`.
 
-These thresholds are prototype policy constants selected for deterministic synthetic tests. They are not product confidence or real-world calibration.
+The score reweighting and fail-closed threshold were selected on the fixed ten-image development split of `scanner-localization-hard-v0.1`. The four-image holdout was evaluated once afterward. These are engineering policy constants, not product confidence or calibrated probabilities.
 
 The checker requirement rejects uniform table-like grids that have line periodicity but no alternating chessboard structure. Bidirectional evidence rejects stripe-only patterns.
 
@@ -345,7 +348,7 @@ All localization and rectification remain local. The recognition modules contain
 ## 18. Known limitations
 
 - Candidate generation currently relies on connected straight-edge/checker structure; borderless boards whose outer edge blends into the background can be missed.
-- The scoring thresholds are synthetic-fixture thresholds, not calibrated real-world confidence.
+- The scoring policy has development-corpus evidence but is not calibrated confidence; the final holdout accepted only one of four boards.
 - Dense page tables, patterned textiles, or adversarial checker-like graphics need a larger hard-negative benchmark.
 - Severe perspective, lens distortion, curled pages, blur, compression, glare, shadow, and partial occlusion are not certified.
 - 3D pieces can obscure square boundaries; controlled physical boards are a target, not a proven capability.
@@ -357,8 +360,8 @@ All localization and rectification remain local. The recognition modules contain
 
 No piece classification is implemented yet.
 
-The prototype demonstrates correct projective geometry on deterministic synthetic fixtures, but no immutable real annotated board set has yet established adequate localization quality. The evidence therefore supports:
+The prototype now has an immutable 14-image annotated real corpus and a sealed four-image holdout result. It accepted 4/10 development and 1/4 holdout localizations; three holdout samples selected wrong playable-field bounds. The evidence therefore supports:
 
-**PHASE 3-004B — LOCALIZATION HARDENING**
+**PHASE 3-004C — TARGETED REAL-WORLD LOCALIZATION HARDENING**
 
-That task should add lawful real annotated boards and hard negatives, quantify board-found recall, false positives, normalized corner error, ambiguity, physical-iPhone memory/latency, and compare targeted candidate-generation improvements. Classifier integration must wait until localization is evidence-backed.
+That task should preserve the 3-004B holdout result, reserve fresh evaluation data, improve playable-grid-versus-frame discrimination and perspective/hatched-print localization, add lawful real hard negatives, and measure physical-iPhone memory/latency. Classifier integration must wait until localization is trustworthy enough on declared MVP categories.

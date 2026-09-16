@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "caissa-scanner-localization-real-manifest/1",
+  "corpusVersion": "scanner-localization-hard-v0.1",
+  "annotationSchemaVersion": "caissa-scanner-localization-annotations/1",
+  "sourceManifest": {
+    "file": "manifest-starter.json",
+    "sha256": "DFE01F52B20BAF38ED5BF680B4A929E49D231CE0A1F2F69F8433C6257F7E1304"
+  },
+  "annotationManifest": {
+    "file": "localization-hard-v0.1.annotated.json",
+    "sha256": "EEA230D23C0BC608784B20542A4EC5B2FAA7F533E1EC427E62985BB4720708A7"
+  },
+  "sampleCount": 14,
+  "splitPolicy": {
+    "id": "fixed-stratified-v1",
+    "developmentCount": 10,
+    "holdoutCount": 4,
+    "holdoutSelection": "Fixed before detector evaluation; preserves degraded-print, digital/photo-of-screen, printed-perspective, and 3D-board diversity."
+  },
+  "samples": [
+    { "sampleId": "cv-failure-001-old-newspaper-mackenzie-97", "split": "development", "sha256": "FEF6B6365E31E43DFF22BBBDD8E1E0DE10F1A65054D4741BA1B4FA880463A0E3", "categoryGroup": "degraded-print" },
+    { "sampleId": "cv-failure-002-old-newspaper-problem-196", "split": "holdout", "sha256": "FD75F7B965961B1AF01B261799BFB1DA0B2657F580D4556ACF2632AC385751D9", "categoryGroup": "degraded-print" },
+    { "sampleId": "cv-failure-003-3d-videogame-board", "split": "holdout", "sha256": "A656FF7689F8DC78379295B77CE03F35EB0F722D34DECA971AE6C3DE3F0112E1", "categoryGroup": "3d-board" },
+    { "sampleId": "cv-success-001-ui-overlay-board", "split": "development", "sha256": "B8B9867D50E81A8570A9082E2CFCF66E4C54F49AD24CBC80A7C1384F0CF8D3FC", "categoryGroup": "digital-photo" },
+    { "sampleId": "cv-success-002-lichess-photo-of-screen", "split": "holdout", "sha256": "02ABFA8D17D1948641E1C32D51A4431491D2A7560622BE40E37F08EB0B778607", "categoryGroup": "digital-photo" },
+    { "sampleId": "cv-success-003-lichess-endgame-photo", "split": "development", "sha256": "53DB98E616A7B3B8FA5178977CC8225A78616D236D2185824066B7AADECFD6A3", "categoryGroup": "digital-photo" },
+    { "sampleId": "cv-success-004-lichess-complex-screen-photo", "split": "development", "sha256": "BADBA54C0A76D27A201954A5D2933486FA759F0BCF4B026136F18F5002AE02CA", "categoryGroup": "digital-photo" },
+    { "sampleId": "cv-success-005-puzzle-diagram-no-kings", "split": "development", "sha256": "5AE7B8EB4D2FE4F870AAF23E57FA73889055F16BB50F2EAD8873BCDAE8150912", "categoryGroup": "printed-diagram" },
+    { "sampleId": "cv-success-006-printed-book-classic-diagram", "split": "development", "sha256": "4DD8BE630FB7F5BC0A44BE3813879B0489DE55886124E2A51F4079641DBCF4CB", "categoryGroup": "printed-diagram" },
+    { "sampleId": "cv-success-007-printed-skewer-hatched", "split": "development", "sha256": "32523ECC3188A6F7AC4EB76F45552F5C92686051D11B7555C5B35900A7AB7BAA", "categoryGroup": "hatched-print" },
+    { "sampleId": "cv-success-008-printed-perspective-sparse", "split": "holdout", "sha256": "87B06D816A15D1557C06CBBEE2CD18F97BA8124977C7D1987E73777F4A730419", "categoryGroup": "hatched-print" },
+    { "sampleId": "cv-success-009-small-printed-diagram-in-page", "split": "development", "sha256": "50F3C9F1A81AFE38925AEC3E230684BE9601C553933FB1564785CBE746C8DE8D", "categoryGroup": "small-board-print" },
+    { "sampleId": "cv-success-010-digital-board-photo-with-ui", "split": "development", "sha256": "4CE317168167D04FE41089FAE975D1C1330D6E880EA50F947D3259FD673678AE", "categoryGroup": "digital-photo" },
+    { "sampleId": "cv-success-011-printed-driving-off", "split": "development", "sha256": "78DFDD7FE0DE8D0930C03262FCB4722D701AC3912440BA935166FC56ABBFA8E1", "categoryGroup": "hatched-print" }
+  ]
+}
