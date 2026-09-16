@@ -1,6 +1,16 @@
 (function (workerScope) {
   'use strict';
 
+  let geometryLoadFailure = null;
+  try {
+    workerScope.importScripts?.(
+      '/scanner/recognition/scanner-board-geometry.js?v=0.1.0',
+      '/scanner/recognition/scanner-board-localizer.js?v=0.1.0'
+    );
+  } catch (error) {
+    geometryLoadFailure = error;
+  }
+
   const VERSION = 1;
   const PROTOCOL = 'caissa-scanner-recognition-worker/1';
   const MAX_WORKING_PIXELS = 4_000_000;
@@ -13,7 +23,7 @@
     return `${message.generation}:${message.requestId}`;
   }
 
-  function postError(message, code) {
+  function postError(message, code, diagnostics = null, timing = null) {
     workerScope.postMessage({
       type: 'recognition-error',
       protocol: PROTOCOL,
@@ -21,7 +31,9 @@
       generation: Number.isSafeInteger(message?.generation) ? message.generation : null,
       requestId: typeof message?.requestId === 'string' ? message.requestId : null,
       code,
-      message: 'The local recognition worker could not process this image.'
+      message: 'The local recognition worker could not process this image.',
+      diagnostics,
+      timing
     });
   }
 
@@ -108,18 +120,45 @@
 
     const startedAt = workerScope.performance.now();
     try {
+      const localizer = workerScope.CaissaScannerBoardLocalizer;
+      if (geometryLoadFailure || !localizer?.localizeAndRectify) {
+        postError(message, 'worker-processing-failed', { stage: 'geometry-module-load' });
+        return;
+      }
       const probe = deterministicPixelProbe(message.image.pixels);
+      const boardSize = message.geometry?.boardSize || 512;
+      if (!Number.isSafeInteger(boardSize) || boardSize <= 0 || boardSize % 8 !== 0) {
+        postError(message, 'geometry-contract-failed', { stage: 'canonical-board-size' });
+        return;
+      }
+      const result = localizer.localizeAndRectify({
+        pixels: message.image.pixels,
+        width: message.metadata.workingWidth,
+        height: message.metadata.workingHeight,
+        boardSize,
+        now: () => workerScope.performance.now()
+      });
+      if (!result.ok) {
+        postError(message, result.error.code, result.error.diagnostics, result.timing);
+        return;
+      }
       const completedAt = workerScope.performance.now();
       workerScope.postMessage({
-        type: 'image-ready',
+        type: 'board-localized',
         protocol: PROTOCOL,
         version: VERSION,
+        status: result.status,
         generation: message.generation,
         requestId: message.requestId,
         metadata: message.metadata,
-        timing: { workerProcessMs: Math.max(0, completedAt - startedAt) },
+        board: result.board,
+        diagnostics: result.diagnostics,
+        timing: {
+          workerProcessMs: Math.max(0, completedAt - startedAt),
+          ...result.timing
+        },
         probe
-      });
+      }, [result.board.pixels]);
     } catch (_) {
       postError(message, 'worker-processing-failed');
     }

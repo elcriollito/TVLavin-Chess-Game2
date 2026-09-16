@@ -27,17 +27,34 @@ async function loadBrowserModules() {
 }
 
 async function loadWorkerHarness() {
-  const source = await read('scanner/recognition/scanner-recognition-worker.js');
+  const [geometrySource, localizerSource, source] = await Promise.all([
+    read('scanner/recognition/scanner-board-geometry.js'),
+    read('scanner/recognition/scanner-board-localizer.js'),
+    read('scanner/recognition/scanner-recognition-worker.js')
+  ]);
   const messages = [];
   let clock = 0;
-  const self = {
+  const context = {
     performance: { now: () => ++clock },
-    postMessage: (message) => messages.push(message),
+    postMessage: (message, transfer = []) => messages.push({ message, transfer }),
     closeCalled: false,
-    close() { this.closeCalled = true; }
+    close() { this.closeCalled = true; },
+    ArrayBuffer,
+    Uint8Array,
+    Uint8ClampedArray,
+    Float32Array,
+    Set,
+    Math,
+    Number,
+    Object,
+    String
   };
-  vm.runInNewContext(source, { self, ArrayBuffer, Uint8Array, Set, Math, Number, Object, String });
-  return { self, messages };
+  context.self = context;
+  vm.createContext(context);
+  vm.runInContext(geometrySource, context);
+  vm.runInContext(localizerSource, context);
+  vm.runInContext(source, context);
+  return { self: context, messages };
 }
 
 function metadata(width = 64, height = 64) {
@@ -58,14 +75,26 @@ function metadata(width = 64, height = 64) {
 }
 
 function processMessage(generation, requestId, width = 64, height = 64) {
+  const bytes = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = ((y * width) + x) * 4;
+      const cellX = Math.min(7, Math.floor((x * 8) / width));
+      const cellY = Math.min(7, Math.floor((y * 8) / height));
+      const onGrid = x % (width / 8) < 1 || y % (height / 8) < 1;
+      const value = onGrid ? 15 : ((cellX + cellY) % 2 ? 70 : 225);
+      bytes.set([value, value, value, 255], offset);
+    }
+  }
   return {
     type: 'process-image',
     protocol: 'caissa-scanner-recognition-worker/1',
     version: 1,
     generation,
     requestId,
-    image: { pixels: new ArrayBuffer(width * height * 4) },
-    metadata: metadata(width, height)
+    image: { pixels: bytes.buffer },
+    metadata: metadata(width, height),
+    geometry: { boardSize: 128 }
   };
 }
 
@@ -102,12 +131,21 @@ class FakeWorker {
     if (message.type !== 'process-image') return;
     queueMicrotask(() => this.onmessage?.({
       data: {
-        type: 'image-ready',
+        type: 'board-localized',
         protocol: message.protocol,
         version: message.version,
+        status: 'board-localized',
         generation: message.generation,
         requestId: message.requestId,
         metadata: message.metadata,
+        board: {
+          pixels: new ArrayBuffer(128 * 128 * 4),
+          corners: [[0, 0], [64, 0], [64, 64], [0, 64]],
+          boardSize: 128,
+          width: 128,
+          height: 128
+        },
+        diagnostics: { localizerVersion: 'test' },
         timing: { workerProcessMs: 1 },
         probe: { byteLength: message.metadata.workingWidth * message.metadata.workingHeight * 4, checksum: 1 }
       }
@@ -181,11 +219,15 @@ test('worker validates payload and echoes matching generation and request identi
   assert.equal(typeof self.onmessage, 'function');
   self.onmessage({ data: processMessage(7, '7:1') });
   assert.equal(messages.length, 1);
-  assert.equal(messages[0].type, 'image-ready');
-  assert.equal(messages[0].generation, 7);
-  assert.equal(messages[0].requestId, '7:1');
-  assert.equal(messages[0].probe.byteLength, 64 * 64 * 4);
-  assert.equal(messages[0].metadata.preprocessingVersion, 'caissa-scanner-local-decode/1');
+  assert.equal(messages[0].message.type, 'board-localized');
+  assert.equal(messages[0].message.status, 'board-localized');
+  assert.equal(messages[0].message.generation, 7);
+  assert.equal(messages[0].message.requestId, '7:1');
+  assert.equal(messages[0].message.probe.byteLength, 64 * 64 * 4);
+  assert.equal(messages[0].message.board.width, 128);
+  assert.equal(messages[0].message.board.geometry.tiles.length, 64);
+  assert.equal(messages[0].message.metadata.preprocessingVersion, 'caissa-scanner-local-decode/1');
+  assert.equal(messages[0].transfer.length, 1);
 });
 
 test('worker returns typed failures for malformed, tiny, and mismatched pixel payloads', async () => {
@@ -195,7 +237,15 @@ test('worker returns typed failures for malformed, tiny, and mismatched pixel pa
   const mismatch = processMessage(1, 'mismatch');
   mismatch.image.pixels = new ArrayBuffer(4);
   self.onmessage({ data: mismatch });
-  assert.deepEqual(messages.map((message) => message.code), ['malformed-payload', 'image-too-small', 'malformed-payload']);
+  const invalidBoardSize = processMessage(1, 'invalid-board-size');
+  invalidBoardSize.geometry.boardSize = 510;
+  self.onmessage({ data: invalidBoardSize });
+  assert.deepEqual(messages.map(({ message }) => message.code), [
+    'malformed-payload',
+    'image-too-small',
+    'malformed-payload',
+    'geometry-contract-failed'
+  ]);
 });
 
 test('worker supports sequential jobs and a bounded cancellation protocol', async () => {
@@ -210,8 +260,8 @@ test('worker supports sequential jobs and a bounded cancellation protocol', asyn
     requestId: '3:1'
   } });
   self.onmessage({ data: processMessage(3, '3:1') });
-  assert.deepEqual(messages.map((message) => message.type), ['image-ready', 'image-ready', 'job-canceled', 'recognition-error']);
-  assert.equal(messages[3].code, 'canceled');
+  assert.deepEqual(messages.map(({ message }) => message.type), ['board-localized', 'board-localized', 'job-canceled', 'recognition-error']);
+  assert.equal(messages[3].message.code, 'canceled');
 });
 
 test('runtime lazily creates and reuses one worker for sequential requests', async () => {
@@ -303,7 +353,7 @@ test('stale worker result and worker failure cannot mutate the authoritative gen
   const request = worker.messages.find(({ message }) => message.type === 'process-image').message;
   currentGeneration = 5;
   worker.onmessage({ data: {
-    type: 'image-ready',
+    type: 'board-localized',
     protocol: request.protocol,
     version: request.version,
     generation: request.generation,
@@ -328,6 +378,8 @@ test('stale worker result and worker failure cannot mutate the authoritative gen
 test('recognition runtime source has an explicit zero-upload and zero-persistence guard', async () => {
   const paths = [
     'scanner/recognition/scanner-image-decode.js',
+    'scanner/recognition/scanner-board-geometry.js',
+    'scanner/recognition/scanner-board-localizer.js',
     'scanner/recognition/scanner-recognition-runtime.js',
     'scanner/recognition/scanner-recognition-worker.js'
   ];

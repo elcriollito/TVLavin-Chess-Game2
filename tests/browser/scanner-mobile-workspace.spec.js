@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
-
-const imageFixture = fileURLToPath(new URL('../../img/chesspieces/wikipedia/wK.png', import.meta.url));
+import { scannerBoardImage as imageFixture } from './fixtures/scanner-board-image.js';
 
 async function selectAndConfirm(page) {
   await page.goto('/scanner/index.html');

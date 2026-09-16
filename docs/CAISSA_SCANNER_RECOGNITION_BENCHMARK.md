@@ -1,6 +1,6 @@
 # CAISSA Scanner — Recognition Benchmark and Geometry Contract
 
-Status: **PHASE 3 EVALUATION FOUNDATION — NO PRODUCTION RECOGNITION**
+Status: **PHASE 3 EVALUATION FOUNDATION — EXTENDED BY LOCAL GEOMETRY PROTOTYPE**
 
 Benchmark namespace: `scanner-realworld-v0.1`
 
@@ -12,7 +12,7 @@ This contract establishes immutable ground truth, deterministic geometry, groupe
 
 ## 1. Protection boundary
 
-This work is developer/evaluation infrastructure only. It does not change Capture, Reading, Review/Edit, Workspace, menus, the board, Edit, Export, or New Scan. It does not load a model, implement board detection, activate a classifier, upload an image, collect telemetry, or contribute training data.
+This work is developer/evaluation infrastructure only. It does not change Capture, Reading, Review/Edit, Workspace, menus, the board, Edit, Export, or New Scan. Phase 3-004 now supplies a local board-localization/homography prototype to this contract; it does not load a model, activate a classifier, upload an image, collect telemetry, or contribute training data.
 
 The existing frozen seam remains authoritative:
 
@@ -79,7 +79,7 @@ Square extraction accepts only:
 }
 ```
 
-`sourceCorners` contains four finite `[x,y]` points. `pixelSpace` names the canonical coordinate space. `transformMetadata` preserves the future homography version and diagnostics. This task does not implement board detection or homography.
+`sourceCorners` contains four finite `[x,y]` points. `pixelSpace` names the canonical coordinate space. `transformMetadata` preserves the homography version and diagnostics. Phase 3-004 implements and tests this contract in `scanner-board-geometry.js`; the reference size remains configurable rather than a final production decision.
 
 ## 4. Tile metadata and orientation separation
 
@@ -262,4 +262,4 @@ They do not establish recognition quality.
 
 ## 14. Deferred work
 
-This foundation does not implement board detection, homography, image decode, orientation inference, a classifier adapter, a production model, a visual dashboard, production routing, or any visible Scanner change.
+The repository now includes local image decode and a synthetic-evidence board-localization/homography prototype. Real-world localization certification, orientation inference, a classifier adapter, a production model, a visual dashboard, production routing, and any visible Scanner change remain deferred.

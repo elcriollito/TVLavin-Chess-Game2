@@ -1,6 +1,6 @@
 # CAISSA Scanner — Local Recognition Runtime
 
-Status: **PHASE 3-003 FOUNDATION — NO BOARD LOCALIZATION OR PIECE RECOGNITION**
+Status: **PHASE 3-003 DECODE FOUNDATION — EXTENDED BY PHASE 3-004 GEOMETRY**
 
 Runtime preprocessing version: `caissa-scanner-local-decode/1`
 
@@ -8,7 +8,7 @@ Worker protocol: `caissa-scanner-recognition-worker/1`
 
 Visual changes authorized: **NONE**
 
-This document defines the local image-decode and dedicated Worker foundation behind the frozen Scanner flow. It does not implement board detection, corners, homography, 8×8 extraction from a real image, orientation inference, a model, a classifier, Candidate FEN generation, confidence routing, server inference, or image upload.
+This document defines the local image-decode and dedicated Worker foundation behind the frozen Scanner flow. Phase 3-004 now extends that Worker with board localization and homography as documented in `docs/CAISSA_SCANNER_BOARD_LOCALIZATION.md`. Piece recognition, chess-orientation inference, a model, a classifier, Candidate FEN recognition, confidence routing, server inference, and image upload remain unimplemented.
 
 ## 1. Frozen integration boundary
 
@@ -24,7 +24,7 @@ File / Blob
 → browser-native decode with EXIF orientation
 → aspect-preserving bounded canvas resize
 → transferable RGBA ArrayBuffer
-→ dedicated recognition Worker probe
+→ dedicated recognition Worker localization and homography
 → generation check
 → existing mock candidate
 → existing routeRecognitionResult()
@@ -155,7 +155,7 @@ The runtime:
 - terminates the Worker on explicit disposal/page exit;
 - recreates a clean runtime on a restored page lifecycle.
 
-The Worker currently validates the request and performs only a harmless deterministic pixel probe. It loads no model, finds no board, extracts no squares, and returns no chess result.
+The Worker validates the request, retains the deterministic pixel probe, and now performs the Phase 3-004 geometry prototype. It loads no model, classifies no pieces, infers no chess orientation, and returns no recognized chess position.
 
 ## 9. Versioned Worker protocol
 
@@ -190,16 +190,20 @@ Success response:
 
 ```js
 {
-  type: 'image-ready',
+  type: 'board-localized',
   protocol: 'caissa-scanner-recognition-worker/1',
   version: 1,
   generation,
   requestId,
   metadata,
-  timing: { workerProcessMs },
+  status: 'board-localized',
+  board: { pixels, corners, boardSize, transformMetadata, geometry },
+  timing: { workerProcessMs, localizationMs, candidateScoringMs, homographyMs, geometryValidationMs },
   probe: { byteLength, samples, checksum, firstByte, lastByte }
 }
 ```
+
+The board-localization document defines the complete Phase 3-004 board and diagnostics fields.
 
 Typed error:
 
@@ -247,7 +251,7 @@ Local internal results record:
 - `decodeMs`;
 - `resizeMs`;
 - `workerTransferMs`—main-thread transfer/round-trip wall time;
-- `workerProcessMs`—Worker probe time;
+- `workerProcessMs`—total Worker geometry/probe time;
 - `totalPreprocessMs`.
 
 These values can feed future benchmark records. They are not uploaded and are not shown in the frozen UI.
@@ -309,8 +313,8 @@ Fixtures are deterministic canvases or repository-owned chess-piece imagery. No 
 - Color management and interpolation can vary slightly across browser engines. Geometry metadata remains deterministic, while pixel parity must be benchmarked before model selection.
 - Cancellation cannot forcibly interrupt an in-progress native image decode; stale work is logically isolated and released afterward.
 
-## 16. Boundary for Phase 3-004
+## 16. Phase 3-004 extension
 
-Phase 3-004 may consume the validated, orientation-normalized, bounded RGBA buffer and its metadata to prototype board localization and homography diagnostics.
+Phase 3-004 consumes the validated, orientation-normalized, bounded RGBA buffer and its metadata inside the same dedicated Worker. The extension remains generation-safe and local-only.
 
-Phase 3-004 must not silently expand this task into piece classification, model integration, Candidate FEN, confidence routing, server inference, upload, or visible Scanner redesign. Any new visible manual-corner or board-selection UI requires separate Alexander approval.
+It does not expand into piece classification, model integration, Candidate FEN recognition, confidence routing, server inference, upload, or visible Scanner redesign. Any new visible manual-corner or board-selection UI still requires separate Alexander approval.

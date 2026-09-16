@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
-
-const imageFixture = fileURLToPath(new URL('../../img/chesspieces/wikipedia/wK.png', import.meta.url));
+import { scannerBoardImage as imageFixture } from './fixtures/scanner-board-image.js';
 
 async function openScanner(page) {
   await page.goto('/scanner/index.html');
@@ -186,8 +184,18 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
     await openScanner(page);
     const result = await page.evaluate(async () => {
       const canvas = document.createElement('canvas');
-      canvas.width = 96;
-      canvas.height = 80;
+      canvas.width = 128;
+      canvas.height = 128;
+      const context = canvas.getContext('2d');
+      for (let row = 0; row < 8; row += 1) {
+        for (let col = 0; col < 8; col += 1) {
+          context.fillStyle = (row + col) % 2 ? '#805b3e' : '#ead8b5';
+          context.fillRect(col * 16, row * 16, 16, 16);
+        }
+      }
+      context.strokeStyle = '#07131d';
+      context.lineWidth = 3;
+      context.strokeRect(1.5, 1.5, 125, 125);
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       let generation = 1;
       const runtime = window.CaissaScannerRecognitionRuntime.create({
@@ -208,8 +216,8 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
         worker.postMessage({ type: 'process-image', version: 1 });
       });
       return {
-        first: { generation: first.generation, requestId: first.requestId, bytes: first.probe.byteLength },
-        second: { generation: second.generation, requestId: second.requestId, bytes: second.probe.byteLength },
+        first: { generation: first.generation, requestId: first.requestId, bytes: first.probe.byteLength, status: first.status, board: { width: first.board.width, tileCount: first.board.geometry.tiles.length } },
+        second: { generation: second.generation, requestId: second.requestId, bytes: second.probe.byteLength, status: second.status, board: { width: second.board.width, tileCount: second.board.geometry.tiles.length } },
         snapshot,
         malformed
       };
@@ -217,8 +225,12 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
     expect(result.first.generation).toBe(1);
     expect(result.second.generation).toBe(2);
     expect(result.first.requestId).not.toBe(result.second.requestId);
-    expect(result.first.bytes).toBe(96 * 80 * 4);
-    expect(result.second.bytes).toBe(96 * 80 * 4);
+    expect(result.first.bytes).toBe(128 * 128 * 4);
+    expect(result.second.bytes).toBe(128 * 128 * 4);
+    expect(result.first.status).toBe('board-localized');
+    expect(result.second.status).toBe('board-localized');
+    expect(result.first.board.width).toBe(512);
+    expect(result.second.board.tileCount).toBe(64);
     expect(result.snapshot).toMatchObject({ workerCreated: true, active: null, pendingCount: 0, disposed: false });
     expect(result.malformed).toMatchObject({ type: 'recognition-error', code: 'malformed-payload' });
   });
@@ -261,14 +273,21 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
     }));
     expect(result.state.state).toBe('reviewing-position');
     expect(result.state.candidate.preprocessing).toMatchObject({
-      sourceWidth: 80,
-      sourceHeight: 80,
-      workingWidth: 80,
-      workingHeight: 80,
+      sourceWidth: 256,
+      sourceHeight: 256,
+      workingWidth: 256,
+      workingHeight: 256,
       mimeType: 'image/png',
       backend: 'rgba-arraybuffer-worker'
     });
     expect(result.state.candidate.timingsMs.totalPreprocessMs).toBeGreaterThanOrEqual(0);
+    expect(result.state.candidate.recognitionStage).toBe('geometry-only');
+    expect(result.state.candidate.pieceRecognition).toBe('not-implemented');
+    expect(result.state.candidate.orientation).toBe('unknown');
+    expect(result.state.candidate.localization).toMatchObject({
+      status: 'board-localized',
+      boardSize: 512
+    });
     expect(result.urlLifecycle.created).toBeGreaterThan(0);
     expect(result.urlLifecycle.revoked).toBe(result.urlLifecycle.created);
     expect(result.previewSource).toBe(null);

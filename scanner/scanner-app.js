@@ -478,7 +478,18 @@
         boardConfidence: null,
         pieceConfidenceBySquare: {},
         lowConfidenceSquares: [],
-        orientation: 'white',
+        orientation: 'unknown',
+        recognitionStage: 'geometry-only',
+        pieceRecognition: 'not-implemented',
+        localization: prepared.board ? {
+          status: prepared.status,
+          corners: prepared.board.corners,
+          boardSize: prepared.board.boardSize,
+          candidateScore: prepared.board.candidateScore,
+          geometryScore: prepared.board.geometryScore,
+          gridEvidenceScore: prepared.board.gridEvidenceScore,
+          transformMetadata: prepared.board.transformMetadata
+        } : null,
         preprocessing: prepared.metadata,
         timingsMs: prepared.timing
       });

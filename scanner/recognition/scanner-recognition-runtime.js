@@ -3,12 +3,15 @@
 
   const VERSION = 1;
   const PROTOCOL = 'caissa-scanner-recognition-worker/1';
-  const DEFAULT_WORKER_URL = '/scanner/recognition/scanner-recognition-worker.js?v=0.1.0';
+  const DEFAULT_WORKER_URL = '/scanner/recognition/scanner-recognition-worker.js?v=0.2.0';
+  const DEFAULT_BOARD_SIZE = 512;
 
-  function createError(decoder, code, message) {
+  function createError(decoder, code, message, details = null) {
     const ErrorClass = decoder?.ScannerRecognitionError;
     const error = ErrorClass ? new ErrorClass(code, message) : new Error(message);
     if (!error.code) error.code = code;
+    if (details?.diagnostics) error.diagnostics = details.diagnostics;
+    if (details?.timing) error.timing = details.timing;
     return error;
   }
 
@@ -18,6 +21,7 @@
     const workerUrl = options.workerUrl || DEFAULT_WORKER_URL;
     const now = options.now || (() => global.performance.now());
     const isGenerationCurrent = options.isGenerationCurrent || (() => true);
+    const boardSize = options.boardSize || DEFAULT_BOARD_SIZE;
     let worker = null;
     let active = null;
     let requestSequence = 0;
@@ -51,10 +55,15 @@
         return;
       }
       if (message.type === 'recognition-error') {
-        job.reject(createError(decoder, message.code || 'worker-processing-failed', message.message || 'Local worker processing failed.'));
+        job.reject(createError(
+          decoder,
+          message.code || 'worker-processing-failed',
+          message.message || 'Local worker processing failed.',
+          { diagnostics: message.diagnostics, timing: message.timing }
+        ));
         return;
       }
-      if (message.type !== 'image-ready') {
+      if (message.type !== 'board-localized') {
         job.reject(createError(decoder, 'worker-processing-failed', 'The local worker returned an invalid response.'));
         return;
       }
@@ -107,6 +116,9 @@
       if (!Number.isSafeInteger(generation) || generation < 0) {
         throw createError(decoder, 'stale-generation', 'A valid Scanner generation is required.');
       }
+      if (!Number.isSafeInteger(boardSize) || boardSize <= 0 || boardSize % 8 !== 0) {
+        throw createError(decoder, 'geometry-contract-failed', 'Canonical board size must be a positive integer divisible by 8.');
+      }
       if (!decoder?.decodeImageBlob) {
         throw createError(decoder, 'decode-failed', 'The local image decoder is unavailable.');
       }
@@ -134,7 +146,8 @@
               generation,
               requestId: token.requestId,
               image: { pixels: decoded.pixels },
-              metadata: decoded.metadata
+              metadata: decoded.metadata,
+              geometry: { boardSize }
             }, [decoded.pixels]);
           } catch (_) {
             pending.delete(token.requestId);
@@ -145,12 +158,16 @@
         if (!isGenerationCurrent(generation)) throw createError(decoder, 'stale-generation', 'A newer scan replaced this worker result.');
         const completedAt = now();
         return Object.freeze({
+          status: response.status,
           generation,
           requestId: token.requestId,
           metadata: Object.freeze({ ...response.metadata }),
+          board: response.board ? Object.freeze({ ...response.board }) : null,
+          diagnostics: response.diagnostics ? Object.freeze({ ...response.diagnostics }) : null,
           probe: Object.freeze({ ...response.probe }),
           timing: Object.freeze({
             ...decoded.timing,
+            ...response.timing,
             workerTransferMs: Math.max(0, completedAt - transferStartedAt),
             workerProcessMs: response.timing?.workerProcessMs || 0,
             totalPreprocessMs: Math.max(0, completedAt - startedAt)
@@ -198,6 +215,7 @@
     VERSION,
     PROTOCOL,
     DEFAULT_WORKER_URL,
+    DEFAULT_BOARD_SIZE,
     create
   });
 })(window);
