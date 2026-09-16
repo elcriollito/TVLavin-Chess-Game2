@@ -348,6 +348,15 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = url.pathname;
 
+  // Developer-only Scanner corpus tooling is served exclusively by its
+  // loopback launcher and must never become a public application route.
+  if (pathname === '/tools/scanner-localization-annotator'
+      || pathname.startsWith('/tools/scanner-localization-annotator/')) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end('Not found');
+    return;
+  }
+
   // Consolidate public blog routes on the canonical no-trailing-slash form.
   if (pathname === '/blog/' || /^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*\/$/.test(pathname)) {
     res.writeHead(308, { Location: pathname.slice(0, -1) + url.search });

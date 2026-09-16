@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>CAISSA Scanner — Local Corpus Annotator</title>
+  <link rel="stylesheet" href="./annotator.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">DEV-ONLY · LOCAL FILES</p>
+      <h1>Scanner Corner Annotator</h1>
+      <p>No uploads, telemetry, production route, or changes to original images.</p>
+    </div>
+    <button id="open-corpus" class="primary">Open corpus folder</button>
+  </header>
+
+  <main id="app" hidden>
+    <aside class="sidebar" aria-label="Corpus navigation">
+      <div class="progress-block">
+        <strong id="progress">0 / 0 completed</strong>
+        <label><input id="incomplete-only" type="checkbox"> Show incomplete only</label>
+      </div>
+      <label for="sample-select">Jump to sample</label>
+      <select id="sample-select"></select>
+      <dl class="metadata" id="metadata"></dl>
+      <div class="checksum" id="checksum" role="status"></div>
+    </aside>
+
+    <section class="workspace">
+      <div class="instruction-panel">
+        <p class="boundary-rule">Mark the corners of the playable 8×8 board, not the outer frame.</p>
+        <p id="expected-corner">Click TOP-LEFT corner</p>
+      </div>
+
+      <fieldset class="status-controls">
+        <legend>Sample classification</legend>
+        <label><input type="radio" name="sample-status" value="board-present" checked> Board present</label>
+        <label><input type="radio" name="sample-status" value="board-not-present"> No board present</label>
+        <label><input type="radio" name="sample-status" value="unsupported-partial-board"> Unsupported partial board</label>
+        <label><input type="radio" name="sample-status" value="skip-for-now"> Skip for now</label>
+      </fieldset>
+
+      <div id="image-scroller" class="image-scroller">
+        <div id="image-stage" class="image-stage">
+          <img id="source-image" alt="Corpus sample awaiting annotation" draggable="false">
+          <svg id="corner-overlay" aria-hidden="true"></svg>
+        </div>
+      </div>
+
+      <div class="actions" aria-label="Annotation actions">
+        <button id="reset" type="button">Reset <kbd>R</kbd></button>
+        <button id="undo" type="button">Undo last <kbd>U</kbd></button>
+        <button id="confirm" type="button" class="primary">Confirm <kbd>Enter</kbd></button>
+      </div>
+
+      <div class="navigation" aria-label="Sample navigation">
+        <button id="previous" type="button">← Previous</button>
+        <button id="next" type="button">Next →</button>
+      </div>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <section id="welcome" class="welcome">
+    <h2>Select the extracted corpus folder</h2>
+    <p>Choose the folder containing <code>manifest-starter.json</code> and <code>originals/</code>.</p>
+    <p>The annotator writes only <code>localization-hard-v0.1.annotated.json</code>.</p>
+  </section>
+
+  <script type="module" src="./annotator-app.js"></script>
+</body>
+</html>
