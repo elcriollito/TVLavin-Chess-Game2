@@ -6,10 +6,12 @@ import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
 import nodeUtil from 'node:util';
 import { certifyHistoricalArtifacts, HistoricalTFJSBaseline, HISTORICAL_CLASSES, HISTORICAL_PREPROCESSING, preprocessCanonicalRgba } from '../scanner/recognition/benchmark/historical-tfjs-baseline.js';
-import { evaluateHistoricalBoards, selectUniqueSources, truthLabels } from '../scanner/recognition/benchmark/historical-classifier-evaluation.js';
+import { evaluateHistoricalBoards, knownHardCaseObservations, selectUniqueSources, truthLabels }
+  from '../scanner/recognition/benchmark/historical-classifier-evaluation.js';
 import { orderedAnnotationCorners, validateLocalizationCorpus } from '../scanner/recognition/benchmark/localization-real-corpus.js';
 import { classifyV03Sample, verifyV03Split, V03_CORPUS_SHA256 } from '../scanner/recognition/benchmark/localization-v03-split.js';
 import { toVisualBenchmarkTruth, validateManifest as validatePieceLabelManifest } from './scanner-piece-label-annotator/piece-label-core.js';
+import { certifyVerifiedRealEligibility } from '../scanner/recognition/benchmark/historical-classifier-eligibility.js';
 import '../scanner/recognition/scanner-board-geometry.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,6 +23,9 @@ const corpusV03 = resolve(argument('corpus-v03', join(root, '..', 'caissa_scanne
 const modelDir = argument('model-dir');
 const runtimeDir = argument('runtime-dir');
 const truthPath = argument('truth');
+const scoringPolicy = argument('scoring-policy', 'legacy');
+if (!['legacy', 'verified-real-31'].includes(scoringPolicy)) throw new Error('unsupported historical scoring policy');
+if (scoringPolicy === 'verified-real-31' && !truthPath) throw new Error('verified-real-31 requires canonical --truth');
 if (!modelDir || !runtimeDir) throw new Error('Provide isolated --model-dir and --runtime-dir (tfjs-node 4.22.0 + sharp 0.34.5); no model or runtime is bundled into Scanner.');
 const output = resolve(argument('output', join(root, 'artifacts/scanner-classifier-baseline/historical-tfjs-real-benchmark.json')));
 const timingOutput = resolve(argument('timing-output', join(dirname(output), 'historical-tfjs-performance.json')));
@@ -54,7 +59,9 @@ for (const sample of v01Annotated.samples) {
   entries.push({ sampleId: sample.sampleId, sourceSha256: sample.originalSha256, path: join(corpusV01, ...sample.originalFile.split('/')),
     sourceFilename: sample.originalFile.split('/').at(-1), cornerManifestSha256: sha(v01AnnotatedBytes),
     width: sample.sourceWidth, height: sample.sourceHeight, corners: orderedAnnotationCorners(sample),
-    sourceCategory: splitRecord.categoryGroup, pieceSetFamily: sample.pieceSetFamily || 'unknown', difficultyTags: sample.difficultyTags || [], cohort: 'v0.1' });
+    sourceCategory: splitRecord.categoryGroup, pieceSetFamily: sample.pieceSetFamily || 'unknown',
+    pieceSetStyle: sample.pieceSetStyle || 'unknown', sourcePlatform: sample.sourcePlatform || null,
+    difficultyTags: sample.difficultyTags || [], cohort: 'v0.1' });
 }
 for (const sample of v03Annotated.samples) {
   if (!sample.boardPresent) continue;
@@ -66,25 +73,33 @@ for (const sample of v03Annotated.samples) {
   entries.push({ sampleId: sample.sampleId, sourceSha256: sample.originalSha256, path: join(corpusV03, ...sample.originalFile.split('/')),
     sourceFilename: sample.originalFile.split('/').at(-1), cornerManifestSha256: sha(v03AnnotatedBytes),
     width: sample.sourceWidth, height: sample.sourceHeight, corners: orderedAnnotationCorners(sample),
-    sourceCategory: split.category, pieceSetFamily: sample.pieceSetFamily || 'unknown', difficultyTags: sample.difficultyTags || [], cohort: 'v0.3-fresh' });
+    sourceCategory: split.category, pieceSetFamily: sample.pieceSetFamily || 'unknown',
+    pieceSetStyle: sample.pieceSetStyle || 'unknown', sourcePlatform: sample.sourcePlatform || null,
+    difficultyTags: sample.difficultyTags || [], cohort: 'v0.3-fresh' });
 }
 const { selected, duplicates } = selectUniqueSources(entries);
 if (selected.length !== 32 || duplicates.length) throw new Error(`unexpected 2D source count: ${selected.length} unique, ${duplicates.length} duplicate`);
 for (const entry of selected) if (await fileSha(entry.path) !== entry.sourceSha256) throw new Error(`${entry.sampleId}: original image checksum mismatch`);
 
 let truthById = new Map();
+let truthManifestSha256 = null;
+let eligibility = null;
 if (truthPath) {
-  const manifest = JSON.parse(await readFile(resolve(truthPath), 'utf8'));
+  const truthBytes = await readFile(resolve(truthPath));
+  truthManifestSha256 = sha(truthBytes);
+  const manifest = JSON.parse(truthBytes);
   truthById = new Map();
   if (manifest.schemaVersion === 'caissa-scanner-piece-labels/1') {
     validatePieceLabelManifest(manifest, { v01CornerManifestSha256: sha(v01AnnotatedBytes),
       v03CornerManifestSha256: sha(v03AnnotatedBytes), samples: selected });
+    if (scoringPolicy === 'verified-real-31') eligibility = certifyVerifiedRealEligibility(selected, manifest);
     for (const item of manifest.samples.filter((entry) => entry.annotation.status === 'verified')) {
       const truth = toVisualBenchmarkTruth(item);
       truthLabels(truth);
       truthById.set(item.sampleId, truth);
     }
   } else if (manifest.schemaVersion === 'caissa-scanner-piece-truth/1' && Array.isArray(manifest.samples)) {
+    if (scoringPolicy === 'verified-real-31') throw new Error('verified-real-31 requires canonical human-reviewed piece-label manifest');
     for (const item of manifest.samples) {
       if (truthById.has(item.sampleId)) throw new Error(`${item.sampleId}: duplicate truth record`);
       truthLabels(item);
@@ -102,7 +117,8 @@ const scored = [];
 const timing = [];
 const geometry = globalThis.CaissaScannerBoardGeometry;
 let peakRssBytes = process.memoryUsage().rss;
-for (const entry of selected) {
+const scoringIds = new Set(eligibility?.scoringSampleIds || selected.map((entry) => entry.sampleId));
+for (const entry of selected.filter((sample) => scoringIds.has(sample.sampleId))) {
   const started = performance.now();
   const metadata = await sharp(entry.path, { failOn: 'error' }).metadata();
   if (metadata.width !== entry.width || metadata.height !== entry.height) throw new Error(`${entry.sampleId}: source dimensions differ`);
@@ -119,16 +135,27 @@ for (const entry of selected) {
   timing.push({ sampleId: entry.sampleId, preprocessMs: preprocessed.preprocessMs, inferenceMs: inference.inferenceMs, totalMs, effectiveTileMs: inference.inferenceMs / 64 });
   peakRssBytes = Math.max(peakRssBytes, process.memoryUsage().rss);
   const truth = truthById.get(entry.sampleId);
+  if (scoringPolicy === 'verified-real-31' && !truth) throw new Error(`${entry.sampleId}: unreviewed sample reached headline scoring`);
   if (truth) scored.push({ ...entry, truth, predictions: inference.predictions });
   process.stderr.write(`${entry.sampleId}: ${truth ? 'scored' : 'unscored'}\n`);
 }
 baseline.dispose();
+if (scoringPolicy === 'verified-real-31' && (scored.length !== 31 || scored.length * 64 !== 1984)) {
+  throw new Error('verified-real-31 scoring count mismatch');
+}
+if (truthPath && await fileSha(resolve(truthPath)) !== truthManifestSha256) throw new Error('truth manifest changed during benchmark');
+for (const entry of selected) if (await fileSha(entry.path) !== entry.sourceSha256) {
+  throw new Error(`${entry.sampleId}: source changed during benchmark`);
+}
 const metrics = evaluateHistoricalBoards(scored);
 const average = (field) => timing.reduce((sum, item) => sum + item[field], 0) / timing.length;
 const report = {
   schemaVersion: 'caissa-scanner-historical-tfjs-baseline/1',
-  evaluationStatus: scored.length ? 'PARTIALLY_SCORED' : 'HOLD_NO_VERIFIED_PIECE_TRUTH',
-  benchmarkVersion: 'phase3-005/1', modelVersion: artifacts.metadata.version, preprocessingVersion: HISTORICAL_PREPROCESSING,
+  evaluationStatus: scoringPolicy === 'verified-real-31' ? 'SCORED_VERIFIED_REAL_31'
+    : scored.length ? 'PARTIALLY_SCORED' : 'HOLD_NO_VERIFIED_PIECE_TRUTH',
+  benchmarkVersion: scoringPolicy === 'verified-real-31' ? 'phase3-005b/1' : 'phase3-005/1',
+  scoringPolicy, truthManifestSha256, modelVersion: artifacts.metadata.version,
+  preprocessingVersion: HISTORICAL_PREPROCESSING,
   model: { hashes: artifacts.hashes, framework: 'tfjs-node 4.22.0', sharpVersion: '0.34.5', parameterCount: artifacts.parameterCount,
     inputShape: [null, 32, 32, 1], classOrder: HISTORICAL_CLASSES, syntheticTrainingTiles: artifacts.metadata.syntheticTiles,
     verifiedRealTrainingTiles: artifacts.metadata.realTiles, historicalSyntheticValidationAccuracy: artifacts.metadata.syntheticValAccuracy },
@@ -136,8 +163,15 @@ const report = {
     unique2dSources: selected.length, duplicateSourceIdsExcluded: v03Annotated.samples.filter((item) => item.priorCorpusSampleId).map((item) => item.sampleId),
     additionalDuplicateIds: duplicates, humanCornerBoards: selected.length, inferenceBoards: timing.length,
     eligibleTruthBoards: scored.length, eligibleTruthSquares: scored.length * 64,
-    missingTruthSampleIds: selected.filter((entry) => !truthById.has(entry.sampleId)).map((entry) => entry.sampleId) },
+    sourceFamilyCount: new Set(scored.map((entry) => entry.sourceCategory)).size,
+    missingTruthSampleIds: selected.filter((entry) => !truthById.has(entry.sampleId)).map((entry) => entry.sampleId),
+    excludedEdgeCase: eligibility?.excluded || null },
   realMetrics: scored.length ? metrics : null,
+  knownHardCaseObservations: scored.length ? knownHardCaseObservations(metrics.perBoard) : null,
+  historicalModelDecision: scoringPolicy === 'verified-real-31'
+    ? { class: 'B', label: 'USEFUL ONLY AS BOOTSTRAP / REFERENCE',
+      reason: 'Measured 13-class and exact-board real performance is insufficient for product recognition; weights remain a reproducible historical comparator.' }
+    : null,
   realAccuracyUnavailableReason: scored.length ? null : 'No human-verified 64-square labels or FEN plus orientation in either real corpus; reference recognizer output is not ground truth.',
   performance: { measurementsFile: basename(timingOutput), note: 'Separate environment-dependent wall-time measurements; no iPhone claim.' },
   specialCasesAwaitingVerifiedMapping: [

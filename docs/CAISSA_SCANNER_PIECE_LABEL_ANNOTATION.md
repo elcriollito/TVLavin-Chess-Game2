@@ -1,6 +1,6 @@
 # CAISSA Scanner — Phase 3-005A local piece-label annotation
 
-Status: **tool ready; human annotation pending**. The audited v0.1/v0.3 corpora currently yield **32 unique in-scope 2D boards with certified human corners**, **14 exact-byte v0.3 aliases**, and **one excluded physical/volumetric 3D board**. No sample has a trusted complete FEN or 64-square piece truth. Accordingly, **0 are prefillable from trusted FEN and 32 require Alexander's manual annotation**. The tool does not label boards automatically or assert that a reference recognizer is correct.
+Status (Phase 3-005B): **31 of 32 unique in-scope 2D boards are human-verified; one no-kings puzzle remains a draft and is excluded from scored results**. The audited v0.1/v0.3 corpora contain **14 exact-byte v0.3 aliases** and **one excluded physical/volumetric 3D board**. At tool creation no sample had trusted complete FEN or 64-square truth, so all 32 required Alexander's manual annotation. The tool does not label boards automatically or assert that a reference recognizer is correct.
 
 ## Launch and privacy boundary
 
@@ -75,6 +75,6 @@ Read-only coverage:
 npm run report:scanner:pieces
 ```
 
-It reports verified-corner and unique 2D boards, completed/pending/draft/missing truth, exact-byte aliases, out-of-scope boards, trusted-FEN candidates, and the output-manifest path. The [historical TFJS benchmark runner](../tools/run-scanner-historical-tfjs-baseline.mjs) now accepts this versioned manifest with `--truth=<path>`, ignores drafts, validates source/corner hashes and canonical label/FEN agreement, and remaps Black-at-bottom labels to image order only for scoring. **Do not rerun Phase 3-005 as an accuracy claim until Alexander finishes and verifies the labels.**
+It reports verified-corner and unique 2D boards, completed/pending/draft/missing truth, exact-byte aliases, out-of-scope boards, trusted-FEN candidates, and the output-manifest path. The [historical TFJS benchmark runner](../tools/run-scanner-historical-tfjs-baseline.mjs) accepts this versioned manifest with `--truth=<path>`, ignores drafts, validates source/corner hashes and canonical label/FEN agreement, and remaps Black-at-bottom labels to image order only for scoring. The [Phase 3-005B report](CAISSA_SCANNER_HISTORICAL_CLASSIFIER_BASELINE.md) scores only the 31 verified records (1,984 squares) and excludes the remaining draft from every headline metric.
 
 This is a **2D MVP** annotation tool: digital screenshots, app/web/broadcast boards, printed books, diagrams, puzzles and photographed screens are in scope. Degraded print, strong 2D perspective, page curvature and unusual 2D piece sets may need careful review. Physical/volumetric 3D is out of MVP and retained only as an educational hard negative. No classifier training, fine-tuning, production Candidate FEN, recognition routing, merge, or deployment is part of this task. **VISUAL-FREEZE exception requires Alexander's explicit approval.**
