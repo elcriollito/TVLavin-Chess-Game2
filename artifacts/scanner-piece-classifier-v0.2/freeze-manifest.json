@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-freeze/1",
+  "modelVersion": "caissa-piece-classifier-v0.2-revision",
+  "datasetVersion": "scanner-piece-dataset-v0.4",
+  "datasetMetadataSha256": "50DB29018B2B48AA34D940DC1FC4E2121EE690F2B6E2DD495C06A556367F860F",
+  "datasetPixelsSha256": "36AC185585907C03CA705B35D6530F3918840A0194B396E8D12A414359920AFB",
+  "configSha256": "D0D6F05621DC70A2DC0CCC9D9A1DD52C32FF372FAD0B9B73988576D5654F8FAF",
+  "classOrder": [
+    "empty",
+    "P",
+    "N",
+    "B",
+    "R",
+    "Q",
+    "K",
+    "p",
+    "n",
+    "b",
+    "r",
+    "q",
+    "k"
+  ],
+  "inputShape": [
+    null,
+    3,
+    64,
+    64
+  ],
+  "selectedVariant": "multi-realistic",
+  "selectedHead": "multi",
+  "selectedSeed": 1802,
+  "selectedBestEpoch": 8,
+  "parameterCount": 649706,
+  "temperature": {
+    "occupancy": 0.75,
+    "color": 0.75,
+    "type": 0.75
+  },
+  "stateSha256": "13EE19030FAA5DFA99FF7B94E42749D1ED7ED7AB2AB96C57AF6EE0076E20DB7C",
+  "stateBytes": 2622565,
+  "torchscriptSha256": "042B62179589A1CF3CB28C561A4D21DEDE36B89A25830AC24001DBCA0A235BFF",
+  "torchscriptBytes": 2676264,
+  "canonicalPolicy": "occupancy x occupied-only color x occupied-only type product; 13-class argmax",
+  "thresholdPolicy": "none; raw and validation-calibrated argmax reported separately",
+  "selectionEvidence": "whole-family v0.4 validation only; no synthetic test or real inference read"
+}

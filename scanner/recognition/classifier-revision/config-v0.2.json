@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-config/1",
+  "modelVersion": "caissa-piece-classifier-v0.2-revision",
+  "datasetVersion": "scanner-piece-dataset-v0.4",
+  "datasetMetadataSha256": "50DB29018B2B48AA34D940DC1FC4E2121EE690F2B6E2DD495C06A556367F860F",
+  "datasetPixelsSha256": "36AC185585907C03CA705B35D6530F3918840A0194B396E8D12A414359920AFB",
+  "sourceManifestSha256": "DCDF1799CC8D25F8D9CEEE6FFCE37FF7214958BA36C27331A48BA0D5EE9AB531",
+  "catalogSha256": "4D71DC062A494DBA8E030FFE31A5FA44522DBDE1C2F0280B1193E8D0B48865CC",
+  "classOrder": ["empty", "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"],
+  "inputShape": [null, 3, 64, 64],
+  "inputScaling": "RGB uint8 / 255; same frozen human-corner 512x512 real board tiles as v0.1",
+  "architecture": {
+    "backbone": "seven 3x3 Conv-BatchNorm-ReLU blocks; channels 32,32,64,64,128,128,256; max pool after 2,4,6; global average pool",
+    "singleHead": "128-unit dense ReLU, dropout 0.2, 13 logits",
+    "multiHead": "independent occupancy 2 logits, occupied-only color 2 logits, occupied-only type 6 logits from shared 256 features",
+    "canonical": "P(empty)=P(occ=empty); P(piece)=P(occ=occupied)*P(color|occupied)*P(type|occupied); 13-class argmax",
+    "pretrained": false
+  },
+  "variants": [
+    { "id": "single-realistic", "head": "single", "sampling": "natural-v04" },
+    { "id": "multi-realistic", "head": "multi", "sampling": "natural-v04" },
+    { "id": "multi-balanced", "head": "multi", "sampling": "balanced-occupancy" }
+  ],
+  "training": {
+    "datasetSeed": 307,
+    "seeds": [1801, 1802],
+    "optimizer": "AdamW",
+    "learningRate": 0.001,
+    "weightDecay": 0.0001,
+    "batchSize": 128,
+    "maximumEpochs": 28,
+    "earlyStoppingPatience": 5,
+    "singleLoss": "unweighted 13-class cross-entropy",
+    "multiLoss": "1.5*CE(occupancy)+0.75*CE(color|occupied)+1.0*CE(type|occupied)",
+    "selectionMetric": "occupiedMacroF1 + occupancyF1 + 0.25*colorAccuracy + 0.25*typeMacroF1 - 2*hardNegativeFalsePositiveRate - 0.1*blackKingExcessPerTile",
+    "selectionTieBreak": "lower validation 13-class NLL then variant ID then seed",
+    "validationFamilies": ["lichess-celtic", "livius"],
+    "testFamilies": ["lichess-rhosgfx", "p4wn-svg"]
+  },
+  "calibration": {
+    "validationOnly": true,
+    "temperatureGrid": [0.75, 1, 1.5, 2, 3, 4, 6],
+    "criterion": "minimum validation NLL independently per head; single-head one 13-class temperature"
+  },
+  "uncertainty": {
+    "benchmarkOnly": true,
+    "lowOccupancyProbability": 0.6,
+    "lowColorMargin": 0.25,
+    "lowTypeMargin": 0.2,
+    "lowCanonicalTop1": 0.6
+  },
+  "evaluationPolicy": "select variant/seed/epoch and calibrate on validation only; freeze hashes; one synthetic test; one 31-board real pass; no post-test tuning"
+}

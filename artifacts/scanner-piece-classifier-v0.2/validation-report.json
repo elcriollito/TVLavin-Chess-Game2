@@ -1,0 +1,1644 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-validation/1",
+  "selectedVariant": "multi-realistic",
+  "selectedSeed": 1802,
+  "temperature": {
+    "occupancy": 0.75,
+    "color": 0.75,
+    "type": 0.75
+  },
+  "raw": {
+    "sampleCount": 1440,
+    "classOrder": [
+      "empty",
+      "P",
+      "N",
+      "B",
+      "R",
+      "Q",
+      "K",
+      "p",
+      "n",
+      "b",
+      "r",
+      "q",
+      "k"
+    ],
+    "confusionMatrix": [
+      [
+        960,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        5,
+        0,
+        35,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        38,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        10,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        38
+      ]
+    ],
+    "perClass": [
+      {
+        "label": "empty",
+        "support": 960,
+        "predicted": 960,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "P",
+        "support": 40,
+        "predicted": 45,
+        "precision": 0.8888888888888888,
+        "recall": 1.0,
+        "f1": 0.9411764705882353
+      },
+      {
+        "label": "N",
+        "support": 40,
+        "predicted": 42,
+        "precision": 0.9523809523809523,
+        "recall": 1.0,
+        "f1": 0.975609756097561
+      },
+      {
+        "label": "B",
+        "support": 40,
+        "predicted": 35,
+        "precision": 1.0,
+        "recall": 0.875,
+        "f1": 0.9333333333333333
+      },
+      {
+        "label": "R",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "Q",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "K",
+        "support": 40,
+        "predicted": 38,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743
+      },
+      {
+        "label": "p",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "n",
+        "support": 40,
+        "predicted": 30,
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571
+      },
+      {
+        "label": "b",
+        "support": 40,
+        "predicted": 50,
+        "precision": 0.8,
+        "recall": 1.0,
+        "f1": 0.888888888888889
+      },
+      {
+        "label": "r",
+        "support": 40,
+        "predicted": 42,
+        "precision": 0.9523809523809523,
+        "recall": 1.0,
+        "f1": 0.975609756097561
+      },
+      {
+        "label": "q",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "k",
+        "support": 40,
+        "predicted": 38,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743
+      }
+    ],
+    "accuracy13": 0.9868055555555556,
+    "occupiedMacroF1": 0.9600399175721988,
+    "occupancy": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "trueEmptyPredictedOccupied": 0,
+      "trueOccupiedPredictedEmpty": 0,
+      "headAccuracy": 1.0
+    },
+    "pieceTypeAccuracy": 0.9604166666666667,
+    "pieceTypeMacroF1": 0.960308967618909,
+    "colorAccuracy": 1.0,
+    "whiteExactAccuracy": 0.9708333333333333,
+    "blackExactAccuracy": 0.95,
+    "kingSink": {
+      "predictedK": 38,
+      "trueK": 40,
+      "predictedk": 38,
+      "truek": 40,
+      "emptyToK": 0,
+      "emptyTok": 0
+    },
+    "hardNegative": {
+      "sampleCount": 440,
+      "falsePositive": 0,
+      "falsePositiveRate": 0.0
+    },
+    "confidence": {
+      "meanTop1": 0.9681829810142517,
+      "nll13": 0.043295301496982574,
+      "brier13": 0.021124301478266716,
+      "ece10": 0.01864480995055702,
+      "wrongAtLeast090": 0,
+      "bins": [
+        {
+          "count": 0,
+          "accuracy": null,
+          "meanConfidence": null
+        },
+        {
+          "count": 0,
+          "accuracy": null,
+          "meanConfidence": null
+        },
+        {
+          "count": 0,
+          "accuracy": null,
+          "meanConfidence": null
+        },
+        {
+          "count": 1,
+          "accuracy": 1.0,
+          "meanConfidence": 0.39776289463043213
+        },
+        {
+          "count": 3,
+          "accuracy": 0.6666666865348816,
+          "meanConfidence": 0.4873248040676117
+        },
+        {
+          "count": 26,
+          "accuracy": 0.6538461446762085,
+          "meanConfidence": 0.5494330525398254
+        },
+        {
+          "count": 25,
+          "accuracy": 0.6399999856948853,
+          "meanConfidence": 0.640636682510376
+        },
+        {
+          "count": 23,
+          "accuracy": 1.0,
+          "meanConfidence": 0.7586590051651001
+        },
+        {
+          "count": 67,
+          "accuracy": 1.0,
+          "meanConfidence": 0.8512905836105347
+        },
+        {
+          "count": 1295,
+          "accuracy": 1.0,
+          "meanConfidence": 0.9942368865013123
+        }
+      ]
+    }
+  },
+  "calibrated": {
+    "sampleCount": 1440,
+    "classOrder": [
+      "empty",
+      "P",
+      "N",
+      "B",
+      "R",
+      "Q",
+      "K",
+      "p",
+      "n",
+      "b",
+      "r",
+      "q",
+      "k"
+    ],
+    "confusionMatrix": [
+      [
+        960,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        5,
+        0,
+        35,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        38,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        10,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        38
+      ]
+    ],
+    "perClass": [
+      {
+        "label": "empty",
+        "support": 960,
+        "predicted": 960,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "P",
+        "support": 40,
+        "predicted": 45,
+        "precision": 0.8888888888888888,
+        "recall": 1.0,
+        "f1": 0.9411764705882353
+      },
+      {
+        "label": "N",
+        "support": 40,
+        "predicted": 42,
+        "precision": 0.9523809523809523,
+        "recall": 1.0,
+        "f1": 0.975609756097561
+      },
+      {
+        "label": "B",
+        "support": 40,
+        "predicted": 35,
+        "precision": 1.0,
+        "recall": 0.875,
+        "f1": 0.9333333333333333
+      },
+      {
+        "label": "R",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "Q",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "K",
+        "support": 40,
+        "predicted": 38,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743
+      },
+      {
+        "label": "p",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "n",
+        "support": 40,
+        "predicted": 30,
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571
+      },
+      {
+        "label": "b",
+        "support": 40,
+        "predicted": 50,
+        "precision": 0.8,
+        "recall": 1.0,
+        "f1": 0.888888888888889
+      },
+      {
+        "label": "r",
+        "support": 40,
+        "predicted": 42,
+        "precision": 0.9523809523809523,
+        "recall": 1.0,
+        "f1": 0.975609756097561
+      },
+      {
+        "label": "q",
+        "support": 40,
+        "predicted": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "label": "k",
+        "support": 40,
+        "predicted": 38,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743
+      }
+    ],
+    "accuracy13": 0.9868055555555556,
+    "occupiedMacroF1": 0.9600399175721988,
+    "occupancy": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "trueEmptyPredictedOccupied": 0,
+      "trueOccupiedPredictedEmpty": 0,
+      "headAccuracy": 1.0
+    },
+    "pieceTypeAccuracy": 0.9604166666666667,
+    "pieceTypeMacroF1": 0.960308967618909,
+    "colorAccuracy": 1.0,
+    "whiteExactAccuracy": 0.9708333333333333,
+    "blackExactAccuracy": 0.95,
+    "kingSink": {
+      "predictedK": 38,
+      "trueK": 40,
+      "predictedk": 38,
+      "truek": 40,
+      "emptyToK": 0,
+      "emptyTok": 0
+    },
+    "hardNegative": {
+      "sampleCount": 440,
+      "falsePositive": 0,
+      "falsePositiveRate": 0.0
+    },
+    "confidence": {
+      "meanTop1": 0.97809898853302,
+      "nll13": 0.03310020640492439,
+      "brier13": 0.01824021339416504,
+      "ece10": 0.012368312519457605,
+      "wrongAtLeast090": 0,
+      "bins": [
+        {
+          "count": 0,
+          "accuracy": null,
+          "meanConfidence": null
+        },
+        {
+          "count": 0,
+          "accuracy": null,
+          "meanConfidence": null
+        },
+        {
+          "count": 0,
+          "accuracy": null,
+          "meanConfidence": null
+        },
+        {
+          "count": 0,
+          "accuracy": null,
+          "meanConfidence": null
+        },
+        {
+          "count": 1,
+          "accuracy": 1.0,
+          "meanConfidence": 0.46876782178878784
+        },
+        {
+          "count": 17,
+          "accuracy": 0.6470588445663452,
+          "meanConfidence": 0.547561764717102
+        },
+        {
+          "count": 24,
+          "accuracy": 0.5416666865348816,
+          "meanConfidence": 0.6515175700187683
+        },
+        {
+          "count": 16,
+          "accuracy": 0.875,
+          "meanConfidence": 0.74090176820755
+        },
+        {
+          "count": 34,
+          "accuracy": 1.0,
+          "meanConfidence": 0.8646583557128906
+        },
+        {
+          "count": 1348,
+          "accuracy": 1.0,
+          "meanConfidence": 0.9953975677490234
+        }
+      ]
+    }
+  },
+  "byFamilyCalibrated": {
+    "lichess-celtic": {
+      "sampleCount": 720,
+      "classOrder": [
+        "empty",
+        "P",
+        "N",
+        "B",
+        "R",
+        "Q",
+        "K",
+        "p",
+        "n",
+        "b",
+        "r",
+        "q",
+        "k"
+      ],
+      "confusionMatrix": [
+        [
+          480,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0,
+          0,
+          18,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          0,
+          18
+        ]
+      ],
+      "perClass": [
+        {
+          "label": "empty",
+          "support": 480,
+          "predicted": 480,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "P",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "N",
+          "support": 20,
+          "predicted": 22,
+          "precision": 0.9090909090909091,
+          "recall": 1.0,
+          "f1": 0.9523809523809523
+        },
+        {
+          "label": "B",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "R",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "Q",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "K",
+          "support": 20,
+          "predicted": 18,
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1": 0.9473684210526316
+        },
+        {
+          "label": "p",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "n",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "b",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "r",
+          "support": 20,
+          "predicted": 22,
+          "precision": 0.9090909090909091,
+          "recall": 1.0,
+          "f1": 0.9523809523809523
+        },
+        {
+          "label": "q",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "k",
+          "support": 20,
+          "predicted": 18,
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1": 0.9473684210526316
+        }
+      ],
+      "accuracy13": 0.9944444444444445,
+      "occupiedMacroF1": 0.9832915622389308,
+      "occupancy": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "trueEmptyPredictedOccupied": 0,
+        "trueOccupiedPredictedEmpty": 0,
+        "headAccuracy": 1.0
+      },
+      "pieceTypeAccuracy": 0.9833333333333333,
+      "pieceTypeMacroF1": 0.9830979888746256,
+      "colorAccuracy": 1.0,
+      "whiteExactAccuracy": 0.9833333333333333,
+      "blackExactAccuracy": 0.9833333333333333,
+      "kingSink": {
+        "predictedK": 18,
+        "trueK": 20,
+        "predictedk": 18,
+        "truek": 20,
+        "emptyToK": 0,
+        "emptyTok": 0
+      },
+      "hardNegative": {
+        "sampleCount": 220,
+        "falsePositive": 0,
+        "falsePositiveRate": 0.0
+      },
+      "confidence": {
+        "meanTop1": 0.9859956502914429,
+        "nll13": 0.019682424142956734,
+        "brier13": 0.008364642038941383,
+        "ece10": 0.01227420638832781,
+        "wrongAtLeast090": 0,
+        "bins": [
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 1,
+            "accuracy": 1.0,
+            "meanConfidence": 0.5681250691413879
+          },
+          {
+            "count": 5,
+            "accuracy": 0.4000000059604645,
+            "meanConfidence": 0.6754257678985596
+          },
+          {
+            "count": 5,
+            "accuracy": 0.800000011920929,
+            "meanConfidence": 0.7428525686264038
+          },
+          {
+            "count": 21,
+            "accuracy": 1.0,
+            "meanConfidence": 0.8717997670173645
+          },
+          {
+            "count": 688,
+            "accuracy": 1.0,
+            "meanConfidence": 0.9941126704216003
+          }
+        ]
+      }
+    },
+    "livius": {
+      "sampleCount": 720,
+      "classOrder": [
+        "empty",
+        "P",
+        "N",
+        "B",
+        "R",
+        "Q",
+        "K",
+        "p",
+        "n",
+        "b",
+        "r",
+        "q",
+        "k"
+      ],
+      "confusionMatrix": [
+        [
+          480,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          10,
+          10,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          20
+        ]
+      ],
+      "perClass": [
+        {
+          "label": "empty",
+          "support": 480,
+          "predicted": 480,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "P",
+          "support": 20,
+          "predicted": 25,
+          "precision": 0.8,
+          "recall": 1.0,
+          "f1": 0.888888888888889
+        },
+        {
+          "label": "N",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "B",
+          "support": 20,
+          "predicted": 15,
+          "precision": 1.0,
+          "recall": 0.75,
+          "f1": 0.8571428571428571
+        },
+        {
+          "label": "R",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "Q",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "K",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "p",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "n",
+          "support": 20,
+          "predicted": 10,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        {
+          "label": "b",
+          "support": 20,
+          "predicted": 30,
+          "precision": 0.6666666666666666,
+          "recall": 1.0,
+          "f1": 0.8
+        },
+        {
+          "label": "r",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "q",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        {
+          "label": "k",
+          "support": 20,
+          "predicted": 20,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      ],
+      "accuracy13": 0.9791666666666666,
+      "occupiedMacroF1": 0.9343915343915343,
+      "occupancy": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "trueEmptyPredictedOccupied": 0,
+        "trueOccupiedPredictedEmpty": 0,
+        "headAccuracy": 1.0
+      },
+      "pieceTypeAccuracy": 0.9375,
+      "pieceTypeMacroF1": 0.9369747899159663,
+      "colorAccuracy": 1.0,
+      "whiteExactAccuracy": 0.9583333333333334,
+      "blackExactAccuracy": 0.9166666666666666,
+      "kingSink": {
+        "predictedK": 20,
+        "trueK": 20,
+        "predictedk": 20,
+        "truek": 20,
+        "emptyToK": 0,
+        "emptyTok": 0
+      },
+      "hardNegative": {
+        "sampleCount": 220,
+        "falsePositive": 0,
+        "falsePositiveRate": 0.0
+      },
+      "confidence": {
+        "meanTop1": 0.9702022075653076,
+        "nll13": 0.0465179905295372,
+        "brier13": 0.028115781024098396,
+        "ece10": 0.0124625563621521,
+        "wrongAtLeast090": 0,
+        "bins": [
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 0,
+            "accuracy": null,
+            "meanConfidence": null
+          },
+          {
+            "count": 1,
+            "accuracy": 1.0,
+            "meanConfidence": 0.46876782178878784
+          },
+          {
+            "count": 16,
+            "accuracy": 0.625,
+            "meanConfidence": 0.5462765693664551
+          },
+          {
+            "count": 19,
+            "accuracy": 0.5789473652839661,
+            "meanConfidence": 0.645226001739502
+          },
+          {
+            "count": 11,
+            "accuracy": 0.9090909361839294,
+            "meanConfidence": 0.7400150299072266
+          },
+          {
+            "count": 13,
+            "accuracy": 1.0,
+            "meanConfidence": 0.8531224131584167
+          },
+          {
+            "count": 660,
+            "accuracy": 1.0,
+            "meanConfidence": 0.9967368245124817
+          }
+        ]
+      }
+    }
+  }
+}

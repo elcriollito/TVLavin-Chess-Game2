@@ -1,0 +1,181 @@
+{
+  "schemaVersion": "caissa-scanner-king-contrast-v02/1",
+  "cohortRule": "all certified v0.4 synthetic tiles with truth empty/K/k/Q/q/B/b/R/r; no real pixels or truth in cohort construction",
+  "datasetMetadataSha256": "50DB29018B2B48AA34D940DC1FC4E2121EE690F2B6E2DD495C06A556367F860F",
+  "datasetPixelsSha256": "36AC185585907C03CA705B35D6530F3918840A0194B396E8D12A414359920AFB",
+  "classScope": [
+    "empty",
+    "B",
+    "R",
+    "Q",
+    "K",
+    "b",
+    "r",
+    "q",
+    "k"
+  ],
+  "bySplit": {
+    "train": {
+      "sampleCount": 4480,
+      "sampleIdsSha256": "3E6E8E1F60628507A876A88772744A8E6206646017159298AB2AD4A115391AF8",
+      "byClass": {
+        "B": 140,
+        "K": 140,
+        "Q": 140,
+        "R": 140,
+        "b": 140,
+        "empty": 3360,
+        "k": 140,
+        "q": 140,
+        "r": 140
+      },
+      "byTone": {
+        "dark": 2240,
+        "light": 2240
+      },
+      "byTheme": {
+        "blue-white": 448,
+        "brown-beige": 448,
+        "cream-gray": 448,
+        "dark-digital": 448,
+        "grayscale": 448,
+        "green-white": 448,
+        "hatched-print": 448,
+        "light-digital": 448,
+        "low-contrast-print": 448,
+        "wood": 448
+      },
+      "byCatalogStyle": {
+        "blocky": 640,
+        "classic": 640,
+        "geometric": 1280,
+        "high-detail": 640,
+        "minimalist": 1280
+      },
+      "screenEffectProxy": 1106,
+      "printEffectProxy": 1743,
+      "lowContrastProxy": 595
+    },
+    "validation": {
+      "sampleCount": 1280,
+      "sampleIdsSha256": "7743D7302C09AF0AAFEAFB84545C4B7765598E448E1F9C4392301D9F6CFF5C9D",
+      "byClass": {
+        "B": 40,
+        "K": 40,
+        "Q": 40,
+        "R": 40,
+        "b": 40,
+        "empty": 960,
+        "k": 40,
+        "q": 40,
+        "r": 40
+      },
+      "byTone": {
+        "dark": 640,
+        "light": 640
+      },
+      "byTheme": {
+        "blue-white": 128,
+        "brown-beige": 128,
+        "cream-gray": 128,
+        "dark-digital": 128,
+        "grayscale": 128,
+        "green-white": 128,
+        "hatched-print": 128,
+        "light-digital": 128,
+        "low-contrast-print": 128,
+        "wood": 128
+      },
+      "byCatalogStyle": {
+        "monochrome": 640,
+        "ornamental": 640
+      },
+      "screenEffectProxy": 316,
+      "printEffectProxy": 498,
+      "lowContrastProxy": 170
+    },
+    "test": {
+      "sampleCount": 1280,
+      "sampleIdsSha256": "7257CCBF65B836A4353E0D587657FB62D8069D149EAA63C361CD76E02BFB0A47",
+      "byClass": {
+        "B": 40,
+        "K": 40,
+        "Q": 40,
+        "R": 40,
+        "b": 40,
+        "empty": 960,
+        "k": 40,
+        "q": 40,
+        "r": 40
+      },
+      "byTone": {
+        "dark": 640,
+        "light": 640
+      },
+      "byTheme": {
+        "blue-white": 128,
+        "brown-beige": 128,
+        "cream-gray": 128,
+        "dark-digital": 128,
+        "grayscale": 128,
+        "green-white": 128,
+        "hatched-print": 128,
+        "light-digital": 128,
+        "low-contrast-print": 128,
+        "wood": 128
+      },
+      "byCatalogStyle": {
+        "mobile": 640,
+        "stylized": 640
+      },
+      "screenEffectProxy": 316,
+      "printEffectProxy": 498,
+      "lowContrastProxy": 170
+    }
+  },
+  "syntheticTestFromSingleFrozenPass": {
+    "raw": {
+      "support": 1280,
+      "accuracy13": 0.884375,
+      "predictedK": 22,
+      "predictedk": 46,
+      "trueK": 40,
+      "truek": 40,
+      "emptyToK": 0,
+      "emptyTok": 0
+    },
+    "calibrated": {
+      "support": 1280,
+      "accuracy13": 0.884375,
+      "predictedK": 22,
+      "predictedk": 46,
+      "trueK": 40,
+      "truek": 40,
+      "emptyToK": 0,
+      "emptyTok": 0
+    }
+  },
+  "realAggregateDescriptiveOnly": {
+    "raw": {
+      "support": 1533,
+      "accuracy13": 0.8264840182648402,
+      "predictedK": 34,
+      "predictedk": 116,
+      "trueK": 31,
+      "truek": 31,
+      "emptyToK": 0,
+      "emptyTok": 66
+    },
+    "calibrated": {
+      "support": 1533,
+      "accuracy13": 0.8232224396607958,
+      "predictedK": 34,
+      "predictedk": 119,
+      "trueK": 31,
+      "truek": 31,
+      "emptyToK": 0,
+      "emptyTok": 69
+    }
+  },
+  "coverageLimitations": "Light/dark, ten board themes and catalog styles are explicit. Glare/moiré/compression are photographed-screen proxies, not real photographs. Catalog has no certified outline-versus-solid style label; do not claim that distinction as verified or infer a platform."
+}

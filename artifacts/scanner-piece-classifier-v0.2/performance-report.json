@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-desktop-performance/1",
+  "modelVersion": "caissa-piece-classifier-v0.2-revision",
+  "stateSha256": "13EE19030FAA5DFA99FF7B94E42749D1ED7ED7AB2AB96C57AF6EE0076E20DB7C",
+  "environment": {
+    "framework": "PyTorch 2.13.0+cu130",
+    "device": "CPU",
+    "cpuThreads": 8,
+    "os": "Windows",
+    "samplePolicy": "64 certified synthetic unseen-family tiles; no real-board timing"
+  },
+  "method": "5 warmups, 30 timed repeats; RGB64 NCHW float32 /255, batch 64; median",
+  "modelLoadMilliseconds": 23.002200003247708,
+  "preprocessMillisecondsPerBoard": 0.7511000003432855,
+  "inferenceMillisecondsPerBoard": 213.73600000151782,
+  "inferenceMillisecondsPerTileEffective": 3.339625000023716,
+  "totalPreprocessAndInferenceMillisecondsPerBoard": 214.4871000018611,
+  "residentMemoryBytesBeforeLoad": 543371264,
+  "residentMemoryBytesAfterLoad": 552116224,
+  "residentMemoryBytesAfterBenchmark": 691896320,
+  "nativeModelBytes": 2622565,
+  "nativeModelGzipBytes": 2425832,
+  "torchscriptBytes": 2676264,
+  "torchscriptGzipBytes": 2452498,
+  "limitations": "Excludes image decoding, homography, crop, file I/O, browser backend and mobile device behavior"
+}

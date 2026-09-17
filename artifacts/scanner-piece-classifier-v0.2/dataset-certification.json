@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "caissa-scanner-piece-dataset-v04-certification/1",
+  "datasetVersion": "scanner-piece-dataset-v0.4",
+  "sourceDatasetVersion": "scanner-piece-dataset-v0.3",
+  "sourceManifestSha256": "DCDF1799CC8D25F8D9CEEE6FFCE37FF7214958BA36C27331A48BA0D5EE9AB531",
+  "sourcePixelsSha256": "188AFD2146BBE70B3CA5A6F2D9B2A2A5CC140E73737E092F48E64E1A4E348BE4",
+  "catalogSha256": "4D71DC062A494DBA8E030FFE31A5FA44522DBDE1C2F0280B1193E8D0B48865CC",
+  "generatedMetadataSha256": "50DB29018B2B48AA34D940DC1FC4E2121EE690F2B6E2DD495C06A556367F860F",
+  "generatedPixelsSha256": "36AC185585907C03CA705B35D6530F3918840A0194B396E8D12A414359920AFB",
+  "independentBuildCount": 3,
+  "independentBuildsByteIdentical": true,
+  "familySplit": {
+    "train": ["caissa-procedural-geometry-v1", "kosal", "lichess-chessnut", "lichess-fantasy", "lichess-firi", "lichess-kiwen-suwi", "lichess-spatial"],
+    "validation": ["lichess-celtic", "livius"],
+    "test": ["lichess-rhosgfx", "p4wn-svg"]
+  },
+  "splitTiles": { "train": 5040, "validation": 1440, "test": 1440 },
+  "splitEmptyTiles": { "train": 3360, "validation": 960, "test": 960 },
+  "splitOccupiedTiles": { "train": 1680, "validation": 480, "test": 480 },
+  "occupiedClassCountPerSplit": { "train": 140, "validation": 40, "test": 40 },
+  "additionalEmptyTiles": 2640,
+  "hardNegativeTiles": 2420,
+  "emptySubtypeNames": ["plain", "highlighted", "arrow-overlay", "coordinate-edge", "border", "print-texture", "glare", "moire", "compression", "hatched", "ui-overlay", "shadow"],
+  "additionalTilesPerSubtypePerFamily": 20,
+  "realEvaluationTilesIncluded": 0,
+  "trainingPolicy": "v0.3 train families plus their deterministic empty variants only; validation and test families never train",
+  "generatedPixelsCommitted": false
+}

@@ -1,0 +1,110 @@
+{
+  "interpretationPolicy": "Validation logits and dataset metadata only; prior synthetic test and real results are descriptive aggregates, not training/model-selection inputs",
+  "previousRealAggregateDescriptiveOnly": {
+    "brier13": 0.5589112095139387,
+    "ece10": 0.20959360279413247,
+    "emptyPredictedOccupied": 248,
+    "emptyToBlackKing": 134,
+    "highConfidenceWrong": 144,
+    "predictedBlackKing": 350,
+    "trueBlackKing": 31
+  },
+  "prior13ClassOutputOrder": [
+    "empty",
+    "P",
+    "N",
+    "B",
+    "R",
+    "Q",
+    "K",
+    "p",
+    "n",
+    "b",
+    "r",
+    "q",
+    "k"
+  ],
+  "realEmptyFractionDescriptiveOnly": 0.6224798387096774,
+  "schemaVersion": "caissa-scanner-classifier-v01-root-cause/1",
+  "sourceStateSha256": "EA12AAF00ED8E330C572B51F73FF1545696208ECC58458E5AFC20DC78F6DDABB",
+  "syntheticPixelsSha256": "188AFD2146BBE70B3CA5A6F2D9B2A2A5CC140E73737E092F48E64E1A4E348BE4",
+  "syntheticUnseenFamilyAggregateDescriptiveOnly": {
+    "emptyPredictedOccupied": 0,
+    "emptyToBlackKing": 0,
+    "predictedBlackKing": 74,
+    "trueBlackKing": 40
+  },
+  "trainClassCounts": {
+    "B": 140,
+    "K": 140,
+    "N": 140,
+    "P": 140,
+    "Q": 140,
+    "R": 140,
+    "b": 140,
+    "empty": 1680,
+    "k": 140,
+    "n": 140,
+    "p": 140,
+    "q": 140,
+    "r": 140
+  },
+  "trainEmptyAugmentationCounts": {
+    "arrow": 105,
+    "brightness-gradient": 98,
+    "clean": 91,
+    "coordinate": 105,
+    "desaturated-print": 91,
+    "glare": 105,
+    "highlight": 105,
+    "jpeg-roundtrip": 105,
+    "low-contrast": 98,
+    "perspective-residual": 84,
+    "print-fade": 105,
+    "screen-moire": 105,
+    "soft-blur": 105,
+    "speckle": 105,
+    "subpixel-scale": 84,
+    "webp-roundtrip": 105,
+    "yellowed-paper": 84
+  },
+  "trainEmptyFraction": 0.5,
+  "trainEmptyThemeCounts": {
+    "blue-white": 168,
+    "brown-beige": 168,
+    "cream-gray": 168,
+    "dark-digital": 168,
+    "grayscale": 168,
+    "green-white": 168,
+    "hatched-print": 168,
+    "light-digital": 168,
+    "low-contrast-print": 168,
+    "wood": 168
+  },
+  "validationOnlyLogits": {
+    "lichess-celtic": {
+      "emptyCount": 240,
+      "emptyMaxBlackKingProbability": 0.00014198994904290885,
+      "emptyMaxOccupancyProbability": 0.0014977455139160156,
+      "emptyMeanBlackKingProbability": 1.239267749042483e-05,
+      "emptyMeanOccupancyProbability": 0.00015104810881894082,
+      "emptyPredictedOccupied": 0,
+      "meanLogitMargin": 6.59705924987793,
+      "meanTop1Confidence": 0.9440299272537231,
+      "predictedBlackKingCount": 20,
+      "trueBlackKingCount": 20
+    },
+    "livius": {
+      "emptyCount": 240,
+      "emptyMaxBlackKingProbability": 0.00014363312220666558,
+      "emptyMaxOccupancyProbability": 0.0015130043029785156,
+      "emptyMeanBlackKingProbability": 1.2460465768526774e-05,
+      "emptyMeanOccupancyProbability": 0.0001517462224001065,
+      "emptyPredictedOccupied": 0,
+      "meanLogitMargin": 6.514667987823486,
+      "meanTop1Confidence": 0.9295230507850647,
+      "predictedBlackKingCount": 20,
+      "trueBlackKingCount": 20
+    }
+  }
+}

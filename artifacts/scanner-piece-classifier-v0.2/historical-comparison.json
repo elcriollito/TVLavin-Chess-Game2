@@ -1,0 +1,258 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-comparison/1",
+  "modelVersion": "caissa-piece-classifier-v0.2-revision",
+  "truthManifestSha256": "AA471439A1EE78301591424A92FC9C425D3B7C3FCF12AC18A2CFE83B2A4EF855",
+  "stateSha256": "13EE19030FAA5DFA99FF7B94E42749D1ED7ED7AB2AB96C57AF6EE0076E20DB7C",
+  "sourceReportSha256": {
+    "historical": "EA133B2D7C5D145632D166983DC84109BD9BB8474BFD53FE740B7249B83D6F83",
+    "v01": "7CCDE79F58B6B5EBF562D40136D7A705AFE0F650D60CE707239949FBDC3D84F0",
+    "current": "CF3551346C6BA5EF4EA01C99FC851AE1D28E0C9B9F2BBE6CFE51CBA59C04CB27",
+    "freeze": "4CF0EFC2BDCF8E985C34EEFB146FB76562C5F1A26B6D84CA06E9673744BA071A",
+    "performance": "A819B73346E375E0A56010A9EAD23665F91B49252D90CE904E55E35E6F39FAC8"
+  },
+  "rows": [
+    {
+      "name": "13-class accuracy",
+      "historical": 0.6592741935483871,
+      "v01": 0.6270161290322581,
+      "v02Raw": 0.702116935483871,
+      "v02Calibrated": 0.6995967741935484,
+      "rawDeltaVsV01": 0.07510080645161288,
+      "calibratedDeltaVsV01": 0.07258064516129026,
+      "unit": "fraction"
+    },
+    {
+      "name": "occupied macro-F1",
+      "historical": 0.10127777953786672,
+      "v01": 0.31212692769126815,
+      "v02Raw": 0.40641885989826215,
+      "v02Calibrated": 0.4047559655858339,
+      "rawDeltaVsV01": 0.094291932206994,
+      "calibratedDeltaVsV01": 0.09262903789456572,
+      "unit": "fraction"
+    },
+    {
+      "name": "occupancy precision",
+      "historical": 0.9822161422708618,
+      "v01": 0.7502517623363545,
+      "v02Raw": 0.8124318429661941,
+      "v02Calibrated": 0.8084415584415584,
+      "rawDeltaVsV01": 0.062180080629839596,
+      "calibratedDeltaVsV01": 0.05818979610520392,
+      "unit": "fraction"
+    },
+    {
+      "name": "occupancy recall",
+      "historical": 0.9586114819759679,
+      "v01": 0.9946595460614153,
+      "v02Raw": 0.9946595460614153,
+      "v02Calibrated": 0.9973297730307076,
+      "rawDeltaVsV01": 0,
+      "calibratedDeltaVsV01": 0.002670226969292311,
+      "unit": "fraction"
+    },
+    {
+      "name": "occupancy F1",
+      "historical": 0.9702702702702702,
+      "v01": 0.8553386911595868,
+      "v02Raw": 0.8943577430972389,
+      "v02Calibrated": 0.8930065750149432,
+      "rawDeltaVsV01": 0.039019051937652094,
+      "calibratedDeltaVsV01": 0.037667883855356354,
+      "unit": "fraction"
+    },
+    {
+      "name": "empty to occupied",
+      "historical": 13,
+      "v01": 248,
+      "v02Raw": 172,
+      "v02Calibrated": 177,
+      "rawDeltaVsV01": -76,
+      "calibratedDeltaVsV01": -71,
+      "unit": "squares"
+    },
+    {
+      "name": "occupied to empty",
+      "historical": 31,
+      "v01": 4,
+      "v02Raw": 4,
+      "v02Calibrated": 2,
+      "rawDeltaVsV01": 0,
+      "calibratedDeltaVsV01": -2,
+      "unit": "squares"
+    },
+    {
+      "name": "piece-type accuracy",
+      "historical": 0.17089452603471295,
+      "v01": 0.4445927903871829,
+      "v02Raw": 0.507343124165554,
+      "v02Calibrated": 0.5086782376502003,
+      "rawDeltaVsV01": 0.06275033377837114,
+      "calibratedDeltaVsV01": 0.06408544726301735,
+      "unit": "fraction"
+    },
+    {
+      "name": "color accuracy",
+      "historical": 0.7730307076101469,
+      "v01": 0.7049399198931909,
+      "v02Raw": 0.8544726301735648,
+      "v02Calibrated": 0.8544726301735648,
+      "rawDeltaVsV01": 0.14953271028037385,
+      "calibratedDeltaVsV01": 0.14953271028037385,
+      "unit": "fraction"
+    },
+    {
+      "name": "white exact accuracy",
+      "historical": 0.1741424802110818,
+      "v01": 0.21635883905013192,
+      "v02Raw": 0.35883905013192613,
+      "v02Calibrated": 0.35883905013192613,
+      "rawDeltaVsV01": 0.1424802110817942,
+      "calibratedDeltaVsV01": 0.1424802110817942,
+      "unit": "fraction"
+    },
+    {
+      "name": "black exact accuracy",
+      "historical": 0.05405405405405406,
+      "v01": 0.47297297297297297,
+      "v02Raw": 0.5243243243243243,
+      "v02Calibrated": 0.5243243243243243,
+      "rawDeltaVsV01": 0.051351351351351326,
+      "calibratedDeltaVsV01": 0.051351351351351326,
+      "unit": "fraction"
+    },
+    {
+      "name": "predicted black kings",
+      "historical": 2,
+      "v01": 350,
+      "v02Raw": 135,
+      "v02Calibrated": 138,
+      "rawDeltaVsV01": -215,
+      "calibratedDeltaVsV01": -212,
+      "unit": "squares"
+    },
+    {
+      "name": "empty to black king",
+      "historical": 0,
+      "v01": 134,
+      "v02Raw": 66,
+      "v02Calibrated": 69,
+      "rawDeltaVsV01": -68,
+      "calibratedDeltaVsV01": -65,
+      "unit": "squares"
+    },
+    {
+      "name": "color swaps",
+      "historical": 42,
+      "v01": 76,
+      "v02Raw": 50,
+      "v02Calibrated": 51,
+      "rawDeltaVsV01": -26,
+      "calibratedDeltaVsV01": -25,
+      "unit": "errors"
+    },
+    {
+      "name": "exact-board accuracy",
+      "historical": 0,
+      "v01": 0,
+      "v02Raw": 0,
+      "v02Calibrated": 0,
+      "rawDeltaVsV01": 0,
+      "calibratedDeltaVsV01": 0,
+      "unit": "fraction"
+    },
+    {
+      "name": "mean corrections per board",
+      "historical": 21.806451612903224,
+      "v01": 23.870967741935484,
+      "v02Raw": 19.06451612903226,
+      "v02Calibrated": 19.225806451612904,
+      "rawDeltaVsV01": -4.806451612903224,
+      "calibratedDeltaVsV01": -4.64516129032258,
+      "unit": "squares"
+    },
+    {
+      "name": "median corrections per board",
+      "historical": 24,
+      "v01": 21,
+      "v02Raw": 16,
+      "v02Calibrated": 16,
+      "rawDeltaVsV01": -5,
+      "calibratedDeltaVsV01": -5,
+      "unit": "squares"
+    },
+    {
+      "name": "wrong confidence >=0.90",
+      "historical": 97,
+      "v01": 144,
+      "v02Raw": 183,
+      "v02Calibrated": 266,
+      "rawDeltaVsV01": 39,
+      "calibratedDeltaVsV01": 122,
+      "unit": "errors"
+    },
+    {
+      "name": "Brier 13-class",
+      "historical": 0.49030088905376545,
+      "v01": 0.5589112095139387,
+      "v02Raw": 0.4730260705359167,
+      "v02Calibrated": 0.5013097431383781,
+      "rawDeltaVsV01": -0.08588513897802197,
+      "calibratedDeltaVsV01": -0.05760146637556063,
+      "unit": "score"
+    },
+    {
+      "name": "ECE 10-bin",
+      "historical": 0.18122979520159144,
+      "v01": 0.20959360279413247,
+      "v02Raw": 0.1886403283870388,
+      "v02Calibrated": 0.21706403223347032,
+      "rawDeltaVsV01": -0.02095327440709366,
+      "calibratedDeltaVsV01": 0.0074704294393378445,
+      "unit": "score"
+    }
+  ],
+  "kingSink": {
+    "historical": {
+      "predictedK": 8,
+      "trueK": 31,
+      "predictedk": 2,
+      "truek": 31,
+      "emptyToK": 0,
+      "emptyTok": 0
+    },
+    "v01": {
+      "predictedK": 52,
+      "trueK": 31,
+      "predictedk": 350,
+      "truek": 31,
+      "emptyToK": 15,
+      "emptyTok": 134
+    },
+    "v02Raw": {
+      "predictedK": 43,
+      "trueK": 31,
+      "predictedk": 135,
+      "truek": 31,
+      "emptyToK": 0,
+      "emptyTok": 66
+    },
+    "v02Calibrated": {
+      "predictedK": 43,
+      "trueK": 31,
+      "predictedk": 138,
+      "truek": 31,
+      "emptyToK": 0,
+      "emptyTok": 69
+    }
+  },
+  "modelSizeBytes": {
+    "historical": null,
+    "v01": 2489733,
+    "v02Native": 2622565,
+    "v02Gzip": 2425832
+  },
+  "performanceCaveat": "Different backends/workloads; v0.2 synthetic CPU batch timing excludes board decode/warp and cannot establish mobile latency.",
+  "decision": "MORE DATA / ARCHITECTURE WORK REQUIRED",
+  "decisionRationale": "Raw v0.2 improves occupancy, occupied macro-F1, color/type, corrections and king sink versus v0.1, but still has 172 empty false positives, 135 predicted black kings for 31 true, zero exact boards, and 183 high-confidence wrong errors; validation temperature scaling further worsens real calibration (266 high-confidence errors). No post-real tuning or runtime integration."
+}
