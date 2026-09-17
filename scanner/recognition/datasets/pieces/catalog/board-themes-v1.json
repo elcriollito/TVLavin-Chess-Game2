@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "caissa-scanner-board-themes/1",
+  "themes": [
+    { "boardThemeId": "green-white", "family": "digital", "light": "#eff4e9", "dark": "#71956c", "texture": "none" },
+    { "boardThemeId": "blue-white", "family": "digital", "light": "#e6eff8", "dark": "#6e91b3", "texture": "none" },
+    { "boardThemeId": "brown-beige", "family": "digital", "light": "#f2dfbb", "dark": "#aa8061", "texture": "none" },
+    { "boardThemeId": "wood", "family": "textured", "light": "#ecd5a8", "dark": "#8d5e3f", "texture": "grain" },
+    { "boardThemeId": "grayscale", "family": "print", "light": "#f3f3f0", "dark": "#aaa9a2", "texture": "none" },
+    { "boardThemeId": "hatched-print", "family": "print", "light": "#f3f0e8", "dark": "#c4c0b9", "texture": "hatch" },
+    { "boardThemeId": "cream-gray", "family": "print", "light": "#f0eadb", "dark": "#aaa69d", "texture": "none" },
+    { "boardThemeId": "dark-digital", "family": "digital", "light": "#778a90", "dark": "#344b56", "texture": "none" },
+    { "boardThemeId": "light-digital", "family": "digital", "light": "#faf9f4", "dark": "#c7d0c8", "texture": "none" }
+  ]
+}

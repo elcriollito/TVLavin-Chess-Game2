@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "caissa-scanner-platform-coverage/1",
+  "platforms": [
+    { "platformFamily": "Chess.com", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "No rights-certified sprites or platform-identified real sample." },
+    { "platformFamily": "Lichess", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "Chessnut and RhosGFX are rights leads only; exact bytes not acquired. No platform-identified real sample." },
+    { "platformFamily": "ChessBase/Playchess", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "No certified source family or platform-identified real sample." },
+    { "platformFamily": "ICC", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "No certified source family or platform-identified real sample." },
+    { "platformFamily": "PlayOK", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "No certified source family or platform-identified real sample." },
+    { "platformFamily": "FIDE/event boards", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "One livestream-category board exists, but its platform is unrecorded." },
+    { "platformFamily": "Chessworld", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "No certified source family or platform-identified real sample." },
+    { "platformFamily": "mobile/web games", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "Digital boards exist in the real corpus but specific apps are unrecorded." },
+    { "platformFamily": "broadcast boards", "directTrainingAssetAvailable": false, "evaluationSampleAvailable": false, "styleRepresentedIndirectly": false, "missing": true, "note": "One livestream-category board exists, but its platform/style family is unrecorded." }
+  ]
+}

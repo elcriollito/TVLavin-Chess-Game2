@@ -1,0 +1,231 @@
+{
+  "schemaVersion": "caissa-scanner-piece-dataset-quality/1",
+  "datasetVersion": "scanner-piece-dataset-v0.1",
+  "manifestSha256": "4786E9C976D0B01BA667E1E68E0F1F614DEFDEDE49C684DABA84277990E8F528",
+  "catalogSha256": "D6B42F2B5A1FC23B34FDF17733F9A11747501E06920509B3E23D2BA4546E0CA7",
+  "boardThemeCatalogSha256": "23C99DDCB1C93B5218DB6C6CDDDAAE266CDADB10158D5D6A91356C4DD0393401",
+  "platformCoverageSha256": "69D92E14A2CF9C3DD0E79D1D9086367792F1F9AAD3DD9324BB9EF89D9E3AA524",
+  "totalSamples": 2416,
+  "countsByClass": {
+    "B": 62,
+    "K": 49,
+    "N": 58,
+    "P": 202,
+    "Q": 44,
+    "R": 72,
+    "b": 58,
+    "empty": 1451,
+    "k": 49,
+    "n": 62,
+    "p": 201,
+    "q": 39,
+    "r": 69
+  },
+  "trainCountsByClass": {
+    "B": 18,
+    "K": 18,
+    "N": 18,
+    "P": 18,
+    "Q": 18,
+    "R": 18,
+    "b": 18,
+    "empty": 216,
+    "k": 18,
+    "n": 18,
+    "p": 18,
+    "q": 18,
+    "r": 18
+  },
+  "testCountsByClass": {
+    "B": 44,
+    "K": 31,
+    "N": 40,
+    "P": 184,
+    "Q": 26,
+    "R": 54,
+    "b": 40,
+    "empty": 1235,
+    "k": 31,
+    "n": 44,
+    "p": 183,
+    "q": 21,
+    "r": 51
+  },
+  "countsByColor": {
+    "black": 478,
+    "empty": 1451,
+    "white": 487
+  },
+  "testCountsByColor": {
+    "black": 370,
+    "empty": 1235,
+    "white": 379
+  },
+  "countsByPieceType": {
+    "bishop": 120,
+    "empty": 1451,
+    "king": 98,
+    "knight": 120,
+    "pawn": 403,
+    "queen": 83,
+    "rook": 141
+  },
+  "testCountsByPieceType": {
+    "bishop": 84,
+    "empty": 1235,
+    "king": 62,
+    "knight": 84,
+    "pawn": 367,
+    "queen": 47,
+    "rook": 105
+  },
+  "countsByPieceSet": {
+    "caissa-procedural-geometry-v1": 432,
+    "unknown-real-family": 1984
+  },
+  "countsBySourceFamily": {
+    "caissa-procedural-geometry-v1": 432,
+    "unattributed-real-source-family": 1984
+  },
+  "countsBySourceCategory": {
+    "degraded-print": 128,
+    "digital-2d": 1024,
+    "digital-photo": 320,
+    "hatched-print": 192,
+    "livestream": 64,
+    "printed": 128,
+    "printed-diagram": 64,
+    "small-board-print": 64
+  },
+  "countsByBoardTheme": {
+    "blue-white": 48,
+    "brown-beige": 48,
+    "cream-gray": 48,
+    "dark-digital": 48,
+    "grayscale": 48,
+    "green-white": 48,
+    "hatched-print": 48,
+    "light-digital": 48,
+    "unknown-real-theme": 1984,
+    "wood": 48
+  },
+  "countsByRole": {
+    "EVALUATION-ONLY": 1984,
+    "TRAINING-ELIGIBLE": 432
+  },
+  "countsBySplit": {
+    "test": 1984,
+    "train": 432
+  },
+  "trainBalance": {
+    "occupied": 216,
+    "empty": 216,
+    "white": 108,
+    "black": 108
+  },
+  "hardSubsets": {
+    "bishopKnightQueen": 215,
+    "kingColor": 62,
+    "whiteKingE1Candidates": 10,
+    "lowContrast": 128,
+    "printed": 576,
+    "mobileWeb": 1344,
+    "broadcast": 64
+  },
+  "holdoutFamilies": {
+    "train": [
+      "caissa-procedural-geometry-v1"
+    ],
+    "validation": [],
+    "test": [
+      "unknown-real-piece-family"
+    ]
+  },
+  "licenseSummary": {
+    "REFERENCE-ONLY:available-unlicensed-for-dataset": 1,
+    "REFERENCE-ONLY:isolated-audit-only": 1,
+    "REFERENCE-ONLY:pending-acquisition": 2,
+    "TRAINING-ELIGIBLE:available": 1
+  },
+  "platformCoverage": [
+    {
+      "platformFamily": "Chess.com",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No rights-certified sprites or platform-identified real sample."
+    },
+    {
+      "platformFamily": "Lichess",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "Chessnut and RhosGFX are rights leads only; exact bytes not acquired. No platform-identified real sample."
+    },
+    {
+      "platformFamily": "ChessBase/Playchess",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified source family or platform-identified real sample."
+    },
+    {
+      "platformFamily": "ICC",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified source family or platform-identified real sample."
+    },
+    {
+      "platformFamily": "PlayOK",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified source family or platform-identified real sample."
+    },
+    {
+      "platformFamily": "FIDE/event boards",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "One livestream-category board exists, but its platform is unrecorded."
+    },
+    {
+      "platformFamily": "Chessworld",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified source family or platform-identified real sample."
+    },
+    {
+      "platformFamily": "mobile/web games",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "Digital boards exist in the real corpus but specific apps are unrecorded."
+    },
+    {
+      "platformFamily": "broadcast boards",
+      "directTrainingAssetAvailable": false,
+      "evaluationSampleAvailable": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "One livestream-category board exists, but its platform/style family is unrecorded."
+    }
+  ],
+  "warnings": [
+    "fewer-than-15-training-eligible-piece-families",
+    "no-credible-whole-family-validation-and-test-holdouts",
+    "real-piece-families-not-attributed",
+    "perceptual-near-duplicate-audit-pending"
+  ],
+  "trainingReadiness": "NEEDS MORE PIECE-SET DIVERSITY"
+}
