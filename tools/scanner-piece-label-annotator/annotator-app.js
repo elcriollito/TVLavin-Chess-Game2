@@ -2,6 +2,20 @@ import { LABELS, ORIENTATIONS, assignImageSquare, canonicalIndexForImageIndex, c
   labelsToPlacementFen, placementFenToLabels, reorientLabelsPreservingImage, squareForImageIndex }
   from './piece-label-core.js';
 
+// The old, already-running loopback server may still be serving this static file.
+// Keep its client compatible until Alexander restarts; only the hotfix server advertises the workspace API.
+let hotfixServer = false;
+try {
+  const probe = await fetch('/api/samples');
+  if (probe.ok) {
+    const payload = await probe.json();
+    hotfixServer = Boolean(payload.workspace && payload.revisions && Array.isArray(payload.workingDrafts));
+  }
+} catch { /* The legacy client below will show its normal local-load error. */ }
+if (hotfixServer) {
+  await import('./annotator-app-v2.js');
+} else {
+
 const $ = (selector) => document.querySelector(selector);
 const elements = {
   app: $('#app'), loading: $('#loading'), progress: $('#progress'), outputPath: $('#output-path'),
@@ -297,4 +311,5 @@ try {
   elements.loading.hidden = true; elements.app.hidden = false;
 } catch (error) {
   elements.loading.textContent = `Local corpus certification failed: ${error.message}`;
+}
 }

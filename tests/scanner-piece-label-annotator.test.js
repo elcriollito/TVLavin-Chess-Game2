@@ -139,7 +139,7 @@ test('canonical manifest serialization is stable, sorted, and contains no genera
   assert.equal(JSON.parse(first).samples[0].labels.length, 64);
 });
 
-test('file store resumes drafts, retains prior hash-named history, and rejects changed source bytes', async () => {
+test('file store resumes drafts, retains bounded checkpoints, and rejects changed source bytes', async () => {
   const folder = await mkdtemp(join(tmpdir(), 'caissa-piece-core-'));
   try {
     const image = join(folder, 'board.png');
@@ -157,7 +157,7 @@ test('file store resumes drafts, retains prior hash-named history, and rejects c
     assert.equal((await store.read()).samples[0].annotation.status, 'draft');
     await store.save(verified(source));
     assert.equal((await store.read()).samples[0].annotation.status, 'verified');
-    assert.equal((await readdir(join(folder, 'truth', 'history'))).length, 1);
+    assert.equal((await readdir(join(folder, 'truth', 'checkpoints'))).length, 2);
     const before = await readFile(output);
     await writeFile(image, Buffer.from('changed-image'));
     await assert.rejects(() => store.save(verified(source)), /source-checksum-mismatch/);

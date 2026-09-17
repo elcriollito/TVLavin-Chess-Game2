@@ -105,7 +105,7 @@ test('draft save, reload, human review, verified save, incomplete filter, and ed
   await page.locator('.board-square').nth(60).click();
   await expect(page.locator('#placement-fen')).toHaveText('8/8/8/8/8/8/8/4K3');
   await page.getByRole('button', { name: 'Save draft' }).click();
-  await expect(page.locator('#message')).toContainText('Draft saved locally');
+  await expect(page.locator('#message')).toContainText('Save draft checkpoint complete');
   await page.reload();
   await expect(page.locator('#message')).toContainText('Draft restored');
   await expect(page.locator('#placement-fen')).toHaveText('8/8/8/8/8/8/8/4K3');
@@ -122,7 +122,8 @@ test('draft save, reload, human review, verified save, incomplete filter, and ed
   expect(output.samples[0].squareOrder).toBe('a8-to-h1');
   expect(JSON.stringify(output)).not.toContain('updatedAt');
   await page.reload();
-  await expect(page.locator('#message')).toContainText('Verified record loaded');
+  await expect(page.locator('#sample-select')).toHaveValue('fixture-2');
+  await expect(page.locator('#progress')).toContainText('1 / 2 verified');
   await page.locator('#incomplete-only').check();
   await expect(page.locator('#sample-select option')).toHaveCount(1);
   await expect(page.locator('#sample-select')).toHaveValue('fixture-2');
@@ -131,15 +132,18 @@ test('draft save, reload, human review, verified save, incomplete filter, and ed
   await page.getByRole('button', { name: 'Empty / Clear', exact: true }).click();
   await page.locator('.board-square').nth(60).click();
   await page.getByRole('button', { name: 'Save draft' }).click();
-  await expect(page.locator('#message')).toContainText('Draft saved locally');
+  await expect(page.locator('#message')).toContainText('Save draft checkpoint complete');
   output = JSON.parse(await readFile(outputPath, 'utf8'));
-  expect(output.samples[0].annotation.status).toBe('draft');
-  expect(output.samples[0].labels[60]).toBe('empty');
+  expect(output.samples[0].annotation.status).toBe('verified');
+  expect(output.samples[0].labels[60]).toBe('K');
+  const workspace = JSON.parse(await readFile(running.store.workspacePath, 'utf8'));
+  expect(workspace.verifiedDrafts[0].record.labels[60]).toBe('empty');
 });
 
 test('invalid verification and cross-origin or malformed writes are blocked; no image upload endpoint exists', async ({ page }) => {
   await page.goto(running.url);
   await page.locator('#sample-select').selectOption('fixture-2');
+  await expect(page.locator('#sample-heading')).toHaveText('fixture-2');
   await page.getByRole('button', { name: 'Review labels' }).click();
   await page.locator('#review-confirm').check();
   await expect(page.getByRole('button', { name: 'Confirm verified as Alexander' })).toBeDisabled();
@@ -164,13 +168,14 @@ test('invalid verification and cross-origin or malformed writes are blocked; no 
 test('corpus-bound trusted FEN can prefill only an unverified draft until all squares are reviewed', async ({ page }) => {
   await page.goto(running.url);
   await page.locator('#sample-select').selectOption('fixture-2');
+  await expect(page.locator('#sample-heading')).toHaveText('fixture-2');
   await expect(page.locator('#trusted-fen')).toHaveValue('8/8/8/8/8/8/8/4K3');
   await expect(page.locator('#prefill')).toBeEnabled();
   await page.getByRole('button', { name: 'White at bottom' }).click();
   await page.locator('#prefill').click();
   await expect(page.locator('#placement-fen')).toHaveText('8/8/8/8/8/8/8/4K3');
   await page.locator('#save-draft').click();
-  await expect(page.locator('#message')).toContainText('Draft saved locally');
+  await expect(page.locator('#message')).toContainText('Save draft checkpoint complete');
   let output = JSON.parse(await readFile(outputPath, 'utf8'));
   expect(output.samples.find((sample) => sample.sampleId === 'fixture-2').annotation.source).toBe('fen-prefill-unreviewed');
   await page.locator('#review').click();

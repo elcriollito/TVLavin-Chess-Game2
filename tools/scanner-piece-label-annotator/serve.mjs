@@ -3,8 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createPieceRecord, coverageReport } from './piece-label-core.js';
-import { DEFAULT_OUTPUT, loadPieceCatalog, rectifiedBoardPng } from './catalog.js';
-import { createPieceStore } from './store.js';
+import { DEFAULT_OUTPUT, loadPieceCatalog, rectifiedBoardPng, verifySourceImage } from './catalog.js';
+import { createPieceStore, recordRevision } from './store.js';
 
 const TOOL_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(TOOL_ROOT, '../..');
@@ -12,6 +12,7 @@ const STATIC = Object.freeze({
   '/index.html': ['index.html', 'text/html; charset=utf-8'],
   '/annotator.css': ['annotator.css', 'text/css; charset=utf-8'],
   '/annotator-app.js': ['annotator-app.js', 'text/javascript; charset=utf-8'],
+  '/annotator-app-v2.js': ['annotator-app-v2.js', 'text/javascript; charset=utf-8'],
   '/piece-label-core.js': ['piece-label-core.js', 'text/javascript; charset=utf-8']
 });
 const PIECE_ASSET = /^\/piece\/([wb][KQRBNP]\.png)$/;
@@ -45,7 +46,9 @@ export async function createPieceAnnotatorServer({ port = 4179, outputPath = DEF
   if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('invalid-port');
   const certified = catalog || await loadPieceCatalog({ corpusV01, corpusV03 });
   const store = createPieceStore({ outputPath, catalog: certified });
-  await store.read(); // A stale/corrupt existing truth file must stop launch, not be overwritten.
+  const startupState = await store.readState();
+  const boardCache = new Map(); // Compressed 512px boards only; original decoded buffers are never retained.
+  const pieceCache = new Map();
   const server = createServer(async (request, response) => {
     const localOrigin = `http://127.0.0.1:${server.address().port}`;
     response.setHeader('Cache-Control', 'no-store');
@@ -59,29 +62,51 @@ export async function createPieceAnnotatorServer({ port = 4179, outputPath = DEF
     }
     const pathname = new URL(request.url || '/', localOrigin).pathname;
     try {
-      if (request.method === 'POST' && pathname === '/api/save') {
+      if (request.method === 'POST' && (pathname === '/api/save' || pathname === '/api/activate')) {
         if (request.headers.origin !== localOrigin || request.headers['x-caissa-local-tool'] !== 'piece-label-annotator') {
           send(response, 403, JSON.stringify({ error: 'same-origin-local-tool-required' }));
           return;
         }
         const body = await readJson(request);
+        if (pathname === '/api/activate') {
+          const workspace = await store.savePosition(body.sampleId, body.incompleteOnly);
+          send(response, 200, JSON.stringify({ lastActiveSampleId: workspace.lastActiveSampleId,
+            incompleteOnly: workspace.incompleteOnly }));
+          return;
+        }
         const sample = certified.samples.find((item) => item.sampleId === body.sampleId);
         if (!sample) throw new Error('unknown-piece-sample');
+        if (!Object.hasOwn(body, 'expectedRecordRevision')
+            || (body.expectedRecordRevision !== null && !/^[A-F0-9]{64}$/.test(body.expectedRecordRevision))) {
+          throw new Error('expected-record-revision-required');
+        }
         const record = createPieceRecord(sample, body);
-        const manifest = await store.save(record);
-        send(response, 200, JSON.stringify({ record, coverage: coverageReport(certified, manifest) }));
+        const before = await store.readState();
+        const canonical = before.manifest.samples.find((item) => item.sampleId === sample.sampleId);
+        const result = record.annotation.status === 'draft' && canonical?.annotation.status === 'verified'
+          ? await store.saveVerifiedDraft(record, body.expectedRecordRevision)
+          : await store.saveRecord(record, body.expectedRecordRevision);
+        send(response, 200, JSON.stringify({ record, saveTarget: result.workingDraft ? 'verified-workspace' : 'manifest',
+          canonicalRevision: recordRevision(result.manifest.samples.find((item) => item.sampleId === sample.sampleId)),
+          coverage: coverageReport(certified, result.manifest) }));
         return;
       }
       if (!['GET', 'HEAD'].includes(request.method)) {
-        response.setHeader('Allow', 'GET, HEAD, POST /api/save');
+        response.setHeader('Allow', 'GET, HEAD, POST /api/save, POST /api/activate');
         send(response, 405, 'Method not allowed', 'text/plain; charset=utf-8', request.method);
         return;
       }
       if (pathname === '/api/samples') {
-        const manifest = await store.read();
-        send(response, 200, JSON.stringify({ samples: certified.samples.map(clientSample), records: manifest.samples,
+        const current = await store.readState();
+        send(response, 200, JSON.stringify({ samples: certified.samples.map(clientSample), records: current.manifest.samples,
+          revisions: Object.fromEntries(current.manifest.samples.map((item) => [item.sampleId, recordRevision(item)])),
+          workingDrafts: current.workspace.verifiedDrafts.map((item) => item.record),
+          workspace: { lastActiveSampleId: current.workspace.lastActiveSampleId,
+            incompleteOnly: current.workspace.incompleteOnly },
+          recovery: current.recovery.length ? current.recovery : startupState.recovery,
+          ignoredStaleDrafts: current.ignoredStaleDrafts,
           duplicateAliases: certified.duplicateAliases, outOfScope: certified.outOfScope,
-          coverage: coverageReport(certified, manifest), outputPath: store.outputPath }),
+          coverage: coverageReport(certified, current.manifest), outputPath: store.outputPath }),
         'application/json; charset=utf-8', request.method);
         return;
       }
@@ -94,13 +119,22 @@ export async function createPieceAnnotatorServer({ port = 4179, outputPath = DEF
       if (boardMatch) {
         const sample = certified.samples.find((item) => item.sampleId === boardMatch[1]);
         if (!sample) { send(response, 404, 'Not found', 'text/plain; charset=utf-8', request.method); return; }
-        const png = await rectifiedBoardPng(sample);
+        await verifySourceImage(sample);
+        let png = boardCache.get(sample.sampleId);
+        if (png) { boardCache.delete(sample.sampleId); boardCache.set(sample.sampleId, png); }
+        else {
+          png = await rectifiedBoardPng(sample);
+          boardCache.set(sample.sampleId, png);
+          if (boardCache.size > 4) boardCache.delete(boardCache.keys().next().value);
+        }
         send(response, 200, png, 'image/png', request.method);
         return;
       }
       const pieceMatch = PIECE_ASSET.exec(pathname);
       if (pieceMatch) {
-        const png = await readFile(join(REPO_ROOT, 'img/chesspieces/wikipedia', pieceMatch[1]));
+        let png = pieceCache.get(pieceMatch[1]);
+        if (!png) { png = await readFile(join(REPO_ROOT, 'img/chesspieces/wikipedia', pieceMatch[1])); pieceCache.set(pieceMatch[1], png); }
+        response.setHeader('Cache-Control', 'private, max-age=86400');
         send(response, 200, png, 'image/png', request.method);
         return;
       }
@@ -113,7 +147,8 @@ export async function createPieceAnnotatorServer({ port = 4179, outputPath = DEF
       send(response, 404, 'Not found', 'text/plain; charset=utf-8', request.method);
     } catch (error) {
       const reason = String(error?.message || error);
-      const status = reason.includes('checksum') || reason.includes('corpus-identity') ? 409
+      const status = reason.includes('checksum') || reason.includes('corpus-identity') || reason.includes('changed-reload')
+        || reason.includes('record-protected') ? 409
         : reason.includes('required') || reason.includes('invalid') || reason.includes('unknown') || reason.includes('mismatch')
           || reason.includes('duplicate') || reason.includes('fen-') || reason.includes('out-of-range') ? 400 : 500;
       send(response, status, JSON.stringify({ error: reason }), 'application/json; charset=utf-8', request.method);

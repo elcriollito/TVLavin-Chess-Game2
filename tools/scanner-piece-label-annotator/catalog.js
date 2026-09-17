@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -13,6 +13,8 @@ export const DEFAULT_V03_CORPUS = resolve(ROOT, '..', 'caissa_scanner_real_local
 export const DEFAULT_OUTPUT = resolve(ROOT, '..', 'caissa_scanner_piece_labels_v0_1', 'piece-labels-v0.1.json');
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex').toUpperCase();
 const assert = (condition, reason) => { if (!condition) throw new Error(reason); };
+const verifiedSourceCache = new Map();
+const sourceIdentity = (info) => `${info.dev}:${info.ino}:${info.size}:${info.mtimeMs}:${info.ctimeMs}:${info.birthtimeMs}`;
 
 function imagePath(corpus, originalFile) {
   assert(typeof originalFile === 'string' && /^originals\/[a-zA-Z0-9._-]+$/.test(originalFile), 'unsafe-source-path');
@@ -53,9 +55,19 @@ function canonicalSample(sample, corpus, cornerManifestSha256, sourceCategory, c
   };
 }
 
-export async function verifySourceImage(sample) {
+export async function verifySourceImage(sample, { fresh = false } = {}) {
+  const before = await stat(sample.sourcePath);
+  const identity = sourceIdentity(before);
+  const cached = verifiedSourceCache.get(sample.sourcePath);
+  if (!fresh && cached?.identity === identity && cached.sha256 === sample.sourceSha256) {
+    return cached.sha256;
+  }
   const actual = sha(await readFile(sample.sourcePath));
+  const after = await stat(sample.sourcePath);
+  if (sourceIdentity(after) !== identity) throw new Error(`${sample.sampleId}: source-changed-during-verification`);
   if (actual !== sample.sourceSha256) throw new Error(`${sample.sampleId}: source-checksum-mismatch`);
+  verifiedSourceCache.set(sample.sourcePath, { identity, sha256: actual });
+  if (verifiedSourceCache.size > 64) verifiedSourceCache.delete(verifiedSourceCache.keys().next().value);
   return actual;
 }
 
