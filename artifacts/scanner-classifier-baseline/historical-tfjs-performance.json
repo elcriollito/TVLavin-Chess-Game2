@@ -1,0 +1,236 @@
+{
+  "schemaVersion": "caissa-scanner-historical-tfjs-performance/1",
+  "environment": "Node v24.12.0; win32/x64; native tensorflow backend; no iPhone claim",
+  "modelLoadMs": 13.857600000000048,
+  "meanPreprocessMs": 25.378737500000014,
+  "meanInferenceMs": 29.957846875000033,
+  "meanPerBoardTotalMs": 147.987265625,
+  "meanEffectivePerTileInferenceMs": 0.4680913574218755,
+  "peakProcessRssBytes": 268632064,
+  "perBoard": [
+    {
+      "sampleId": "cv-failure-001-old-newspaper-mackenzie-97",
+      "preprocessMs": 27.052400000000034,
+      "inferenceMs": 67.82529999999997,
+      "totalMs": 167.30319999999995,
+      "effectiveTileMs": 1.0597703124999995
+    },
+    {
+      "sampleId": "cv-failure-002-old-newspaper-problem-196",
+      "preprocessMs": 29.369100000000003,
+      "inferenceMs": 32.77080000000001,
+      "totalMs": 131.15269999999998,
+      "effectiveTileMs": 0.5120437500000001
+    },
+    {
+      "sampleId": "cv-success-001-ui-overlay-board",
+      "preprocessMs": 23.18520000000001,
+      "inferenceMs": 26.206199999999967,
+      "totalMs": 115.52260000000001,
+      "effectiveTileMs": 0.4094718749999995
+    },
+    {
+      "sampleId": "cv-success-002-lichess-photo-of-screen",
+      "preprocessMs": 28.14670000000001,
+      "inferenceMs": 25.172800000000052,
+      "totalMs": 120.61569999999995,
+      "effectiveTileMs": 0.3933250000000008
+    },
+    {
+      "sampleId": "cv-success-003-lichess-endgame-photo",
+      "preprocessMs": 24.14539999999988,
+      "inferenceMs": 24.234900000000152,
+      "totalMs": 131.39589999999998,
+      "effectiveTileMs": 0.3786703125000024
+    },
+    {
+      "sampleId": "cv-success-004-lichess-complex-screen-photo",
+      "preprocessMs": 22.804399999999987,
+      "inferenceMs": 25.809000000000196,
+      "totalMs": 109.52510000000007,
+      "effectiveTileMs": 0.40326562500000307
+    },
+    {
+      "sampleId": "cv-success-005-puzzle-diagram-no-kings",
+      "preprocessMs": 24.8762999999999,
+      "inferenceMs": 26.243299999999863,
+      "totalMs": 140.72090000000003,
+      "effectiveTileMs": 0.41005156249999786
+    },
+    {
+      "sampleId": "cv-success-006-printed-book-classic-diagram",
+      "preprocessMs": 31.247100000000046,
+      "inferenceMs": 32.165700000000015,
+      "totalMs": 156.7272999999998,
+      "effectiveTileMs": 0.5025890625000002
+    },
+    {
+      "sampleId": "cv-success-007-printed-skewer-hatched",
+      "preprocessMs": 32.423,
+      "inferenceMs": 28.022500000000036,
+      "totalMs": 136.28949999999986,
+      "effectiveTileMs": 0.43785156250000057
+    },
+    {
+      "sampleId": "cv-success-008-printed-perspective-sparse",
+      "preprocessMs": 27.140899999999874,
+      "inferenceMs": 33.32269999999994,
+      "totalMs": 145.30899999999997,
+      "effectiveTileMs": 0.5206671874999991
+    },
+    {
+      "sampleId": "cv-success-009-small-printed-diagram-in-page",
+      "preprocessMs": 23.566900000000032,
+      "inferenceMs": 27.542199999999866,
+      "totalMs": 160.9306999999999,
+      "effectiveTileMs": 0.4303468749999979
+    },
+    {
+      "sampleId": "cv-success-010-digital-board-photo-with-ui",
+      "preprocessMs": 25.64940000000024,
+      "inferenceMs": 26.199999999999818,
+      "totalMs": 129.6224000000002,
+      "effectiveTileMs": 0.40937499999999716
+    },
+    {
+      "sampleId": "cv-success-011-printed-driving-off",
+      "preprocessMs": 25.21180000000004,
+      "inferenceMs": 38.66010000000006,
+      "totalMs": 162.07570000000032,
+      "effectiveTileMs": 0.6040640625000009
+    },
+    {
+      "sampleId": "real-v03-positive-001",
+      "preprocessMs": 17.253499999999804,
+      "inferenceMs": 22.664099999999962,
+      "totalMs": 123.28099999999995,
+      "effectiveTileMs": 0.3541265624999994
+    },
+    {
+      "sampleId": "real-v03-positive-002",
+      "preprocessMs": 15.458000000000084,
+      "inferenceMs": 26.105099999999766,
+      "totalMs": 120.30160000000024,
+      "effectiveTileMs": 0.40789218749999634
+    },
+    {
+      "sampleId": "real-v03-positive-003",
+      "preprocessMs": 20.577400000000125,
+      "inferenceMs": 21.714400000000296,
+      "totalMs": 120.9052999999999,
+      "effectiveTileMs": 0.3392875000000046
+    },
+    {
+      "sampleId": "real-v03-positive-004",
+      "preprocessMs": 17.528999999999996,
+      "inferenceMs": 18.60059999999976,
+      "totalMs": 101.57780000000002,
+      "effectiveTileMs": 0.2906343749999962
+    },
+    {
+      "sampleId": "real-v03-positive-005",
+      "preprocessMs": 12.027799999999843,
+      "inferenceMs": 19.781800000000203,
+      "totalMs": 88.09169999999995,
+      "effectiveTileMs": 0.30909062500000317
+    },
+    {
+      "sampleId": "real-v03-positive-006",
+      "preprocessMs": 47.54860000000008,
+      "inferenceMs": 34.24210000000039,
+      "totalMs": 173.0369999999998,
+      "effectiveTileMs": 0.5350328125000061
+    },
+    {
+      "sampleId": "real-v03-positive-007",
+      "preprocessMs": 21.1882999999998,
+      "inferenceMs": 26.381200000000263,
+      "totalMs": 133.54520000000002,
+      "effectiveTileMs": 0.4122062500000041
+    },
+    {
+      "sampleId": "real-v03-positive-008",
+      "preprocessMs": 30.078199999999924,
+      "inferenceMs": 35.61760000000004,
+      "totalMs": 145.21770000000015,
+      "effectiveTileMs": 0.5565250000000006
+    },
+    {
+      "sampleId": "real-v03-positive-009",
+      "preprocessMs": 40.60089999999991,
+      "inferenceMs": 38.763200000000325,
+      "totalMs": 216.10879999999997,
+      "effectiveTileMs": 0.6056750000000051
+    },
+    {
+      "sampleId": "real-v03-positive-010",
+      "preprocessMs": 21.54340000000002,
+      "inferenceMs": 49.391099999999824,
+      "totalMs": 147.88720000000012,
+      "effectiveTileMs": 0.7717359374999972
+    },
+    {
+      "sampleId": "real-v03-positive-011",
+      "preprocessMs": 26.435399999999845,
+      "inferenceMs": 28.444500000000062,
+      "totalMs": 169.3200999999999,
+      "effectiveTileMs": 0.44444531250000097
+    },
+    {
+      "sampleId": "real-v03-positive-012",
+      "preprocessMs": 33.89499999999998,
+      "inferenceMs": 31.771200000000135,
+      "totalMs": 151.80290000000014,
+      "effectiveTileMs": 0.4964250000000021
+    },
+    {
+      "sampleId": "real-v03-positive-013",
+      "preprocessMs": 17.903699999999844,
+      "inferenceMs": 24.534899999999652,
+      "totalMs": 121.85999999999967,
+      "effectiveTileMs": 0.38335781249999457
+    },
+    {
+      "sampleId": "real-v03-positive-014",
+      "preprocessMs": 32.08179999999993,
+      "inferenceMs": 35.121399999999994,
+      "totalMs": 149.40369999999984,
+      "effectiveTileMs": 0.5487718749999999
+    },
+    {
+      "sampleId": "real-v03-positive-015",
+      "preprocessMs": 21.292600000000675,
+      "inferenceMs": 20.330299999999625,
+      "totalMs": 415.58179999999993,
+      "effectiveTileMs": 0.31766093749999413
+    },
+    {
+      "sampleId": "real-v03-positive-016",
+      "preprocessMs": 25.247699999999895,
+      "inferenceMs": 24.9375,
+      "totalMs": 144.52319999999963,
+      "effectiveTileMs": 0.3896484375
+    },
+    {
+      "sampleId": "real-v03-positive-017",
+      "preprocessMs": 21.707800000000134,
+      "inferenceMs": 28.694000000000415,
+      "totalMs": 147.08710000000065,
+      "effectiveTileMs": 0.4483437500000065
+    },
+    {
+      "sampleId": "real-v03-positive-018",
+      "preprocessMs": 22.96560000000045,
+      "inferenceMs": 27.569099999999708,
+      "totalMs": 135.8020000000006,
+      "effectiveTileMs": 0.43076718749999543
+    },
+    {
+      "sampleId": "real-v03-positive-019",
+      "preprocessMs": 21.966300000000047,
+      "inferenceMs": 29.811500000000706,
+      "totalMs": 123.0676999999996,
+      "effectiveTileMs": 0.465804687500011
+    }
+  ]
+}

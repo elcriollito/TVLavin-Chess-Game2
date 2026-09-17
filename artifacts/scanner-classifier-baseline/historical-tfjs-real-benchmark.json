@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "caissa-scanner-historical-tfjs-baseline/1",
+  "evaluationStatus": "HOLD_NO_VERIFIED_PIECE_TRUTH",
+  "benchmarkVersion": "phase3-005/1",
+  "modelVersion": "4.0.0",
+  "preprocessingVersion": "historical-sharp-0.34.5-board256-gray-tile-minmax-v1",
+  "model": {
+    "hashes": {
+      "model.json": "AA29183FBE73D8E6DB3B144BBC505558A04F64FC2C373C99009C9D6429F6CE8E",
+      "weights.bin": "2FF117276E1D22BEAC35F2DBDBC4D8A29650917A9D657E81FFDFB026ADD2C458",
+      "metadata.json": "9248660D4131FCAF219A7C7C7370B0EA2EAE58D046E7CA700DD54692FC0B31B2"
+    },
+    "framework": "tfjs-node 4.22.0",
+    "sharpVersion": "0.34.5",
+    "parameterCount": 544909,
+    "inputShape": [
+      null,
+      32,
+      32,
+      1
+    ],
+    "classOrder": [
+      "empty",
+      "P",
+      "N",
+      "B",
+      "R",
+      "Q",
+      "K",
+      "p",
+      "n",
+      "b",
+      "r",
+      "q",
+      "k"
+    ],
+    "syntheticTrainingTiles": 115200,
+    "verifiedRealTrainingTiles": 0,
+    "historicalSyntheticValidationAccuracy": 0.9655092592592592
+  },
+  "corpus": {
+    "v01PositiveBoards": 14,
+    "v03PositiveBoards": 33,
+    "v03LegacyExactByteOverlaps": 14,
+    "excludedOutOfMvp3d": 1,
+    "unique2dSources": 32,
+    "duplicateSourceIdsExcluded": [
+      "real-v03-positive-020",
+      "real-v03-positive-021",
+      "real-v03-positive-022",
+      "real-v03-positive-023",
+      "real-v03-positive-024",
+      "real-v03-positive-025",
+      "real-v03-positive-026",
+      "real-v03-positive-027",
+      "real-v03-positive-028",
+      "real-v03-positive-029",
+      "real-v03-positive-030",
+      "real-v03-positive-031",
+      "real-v03-positive-032",
+      "real-v03-positive-033"
+    ],
+    "additionalDuplicateIds": [],
+    "humanCornerBoards": 32,
+    "inferenceBoards": 32,
+    "eligibleTruthBoards": 0,
+    "eligibleTruthSquares": 0,
+    "missingTruthSampleIds": [
+      "cv-failure-001-old-newspaper-mackenzie-97",
+      "cv-failure-002-old-newspaper-problem-196",
+      "cv-success-001-ui-overlay-board",
+      "cv-success-002-lichess-photo-of-screen",
+      "cv-success-003-lichess-endgame-photo",
+      "cv-success-004-lichess-complex-screen-photo",
+      "cv-success-005-puzzle-diagram-no-kings",
+      "cv-success-006-printed-book-classic-diagram",
+      "cv-success-007-printed-skewer-hatched",
+      "cv-success-008-printed-perspective-sparse",
+      "cv-success-009-small-printed-diagram-in-page",
+      "cv-success-010-digital-board-photo-with-ui",
+      "cv-success-011-printed-driving-off",
+      "real-v03-positive-001",
+      "real-v03-positive-002",
+      "real-v03-positive-003",
+      "real-v03-positive-004",
+      "real-v03-positive-005",
+      "real-v03-positive-006",
+      "real-v03-positive-007",
+      "real-v03-positive-008",
+      "real-v03-positive-009",
+      "real-v03-positive-010",
+      "real-v03-positive-011",
+      "real-v03-positive-012",
+      "real-v03-positive-013",
+      "real-v03-positive-014",
+      "real-v03-positive-015",
+      "real-v03-positive-016",
+      "real-v03-positive-017",
+      "real-v03-positive-018",
+      "real-v03-positive-019"
+    ]
+  },
+  "realMetrics": null,
+  "realAccuracyUnavailableReason": "No human-verified 64-square labels or FEN plus orientation in either real corpus; reference recognizer output is not ground truth.",
+  "performance": {
+    "measurementsFile": "historical-tfjs-performance.json",
+    "note": "Separate environment-dependent wall-time measurements; no iPhone claim."
+  },
+  "specialCasesAwaitingVerifiedMapping": [
+    {
+      "id": "A",
+      "knownPartialTruth": "White Re1 Bc1 Bf1 Qe3; Black Ke8 Qd8 Bd6 Ba6"
+    },
+    {
+      "id": "B",
+      "knownPartialTruth": "Black Be7 Bc8 Na5"
+    },
+    {
+      "id": "C",
+      "knownPartialTruth": "e1 White King; reference recognizer said Black King"
+    }
+  ],
+  "productDomain": "2D chessboards and diagrams; physical/volumetric 3D out of MVP; abstain on 3D-like inputs"
+}
