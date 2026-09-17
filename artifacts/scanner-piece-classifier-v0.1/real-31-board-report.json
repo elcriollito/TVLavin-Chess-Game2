@@ -1,0 +1,1751 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-real-31/1",
+  "modelVersion": "caissa-piece-classifier-v0.1-baseline",
+  "benchmarkPolicy": "single post-freeze evaluation; human corners; exact 64 visual-order tiles; no detector corners or corrections",
+  "stateSha256": "EA12AAF00ED8E330C572B51F73FF1545696208ECC58458E5AFC20DC78F6DDABB",
+  "torchscriptSha256": "40A2390BD17919058B230CB489EB4E3366A611C8D6DEB832B536BD41CE85A8D9",
+  "predictionBundleSha256": "AEC7A95297F702A6A5A92DCEBDA0EE1546004CF91C5B37413A2EE7D00FD3435E",
+  "realPixelsSha256": "3277B8B4321A1FE2625B0F97ADA3AA05DABD4F1FC4472B50A5D1C1CC9C254712",
+  "truthManifestSha256": "AA471439A1EE78301591424A92FC9C425D3B7C3FCF12AC18A2CFE83B2A4EF855",
+  "boardCount": 31,
+  "squareCount": 1984,
+  "classOrder": [
+    "empty",
+    "P",
+    "N",
+    "B",
+    "R",
+    "Q",
+    "K",
+    "p",
+    "n",
+    "b",
+    "r",
+    "q",
+    "k"
+  ],
+  "accuracy13": 0.6270161290322581,
+  "occupiedMacroF1": 0.31212692769126815,
+  "occupiedVsEmptyAccuracy": 0.8729838709677419,
+  "pieceTypeAccuracyOnTrueOccupied": 0.4445927903871829,
+  "colorAccuracyOnTrueOccupied": 0.7049399198931909,
+  "whitePieceAccuracy": 0.21635883905013192,
+  "blackPieceAccuracy": 0.47297297297297297,
+  "occupiedTruthSquares": 749,
+  "whiteTruthSquares": 379,
+  "blackTruthSquares": 370,
+  "perClass": [
+    {
+      "label": "empty",
+      "support": 1235,
+      "predicted": 991,
+      "precision": 0.9959636730575177,
+      "recall": 0.7991902834008097,
+      "f1": 0.8867924528301887
+    },
+    {
+      "label": "P",
+      "support": 184,
+      "predicted": 23,
+      "precision": 0.8260869565217391,
+      "recall": 0.10326086956521739,
+      "f1": 0.18357487922705312
+    },
+    {
+      "label": "N",
+      "support": 40,
+      "predicted": 58,
+      "precision": 0.20689655172413793,
+      "recall": 0.3,
+      "f1": 0.24489795918367346
+    },
+    {
+      "label": "B",
+      "support": 44,
+      "predicted": 74,
+      "precision": 0.17567567567567569,
+      "recall": 0.29545454545454547,
+      "f1": 0.22033898305084745
+    },
+    {
+      "label": "R",
+      "support": 54,
+      "predicted": 24,
+      "precision": 0.875,
+      "recall": 0.3888888888888889,
+      "f1": 0.5384615384615385
+    },
+    {
+      "label": "Q",
+      "support": 26,
+      "predicted": 13,
+      "precision": 0.5384615384615384,
+      "recall": 0.2692307692307692,
+      "f1": 0.3589743589743589
+    },
+    {
+      "label": "K",
+      "support": 31,
+      "predicted": 52,
+      "precision": 0.19230769230769232,
+      "recall": 0.3225806451612903,
+      "f1": 0.24096385542168675
+    },
+    {
+      "label": "p",
+      "support": 183,
+      "predicted": 100,
+      "precision": 0.84,
+      "recall": 0.45901639344262296,
+      "f1": 0.5936395759717314
+    },
+    {
+      "label": "n",
+      "support": 44,
+      "predicted": 98,
+      "precision": 0.09183673469387756,
+      "recall": 0.20454545454545456,
+      "f1": 0.1267605633802817
+    },
+    {
+      "label": "b",
+      "support": 40,
+      "predicted": 82,
+      "precision": 0.0975609756097561,
+      "recall": 0.2,
+      "f1": 0.13114754098360656
+    },
+    {
+      "label": "r",
+      "support": 51,
+      "predicted": 67,
+      "precision": 0.4925373134328358,
+      "recall": 0.6470588235294118,
+      "f1": 0.5593220338983051
+    },
+    {
+      "label": "q",
+      "support": 21,
+      "predicted": 52,
+      "precision": 0.28846153846153844,
+      "recall": 0.7142857142857143,
+      "f1": 0.410958904109589
+    },
+    {
+      "label": "k",
+      "support": 31,
+      "predicted": 350,
+      "precision": 0.07428571428571429,
+      "recall": 0.8387096774193549,
+      "f1": 0.13648293963254593
+    }
+  ],
+  "confusionMatrix": [
+    [
+      987,
+      0,
+      20,
+      27,
+      0,
+      2,
+      15,
+      0,
+      24,
+      5,
+      7,
+      14,
+      134
+    ],
+    [
+      2,
+      19,
+      24,
+      34,
+      0,
+      0,
+      8,
+      14,
+      5,
+      41,
+      7,
+      2,
+      28
+    ],
+    [
+      0,
+      0,
+      12,
+      0,
+      0,
+      1,
+      0,
+      0,
+      5,
+      1,
+      0,
+      10,
+      11
+    ],
+    [
+      0,
+      3,
+      0,
+      13,
+      0,
+      1,
+      8,
+      0,
+      0,
+      4,
+      0,
+      0,
+      15
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      21,
+      0,
+      6,
+      0,
+      1,
+      0,
+      18,
+      0,
+      7
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      7,
+      1,
+      0,
+      0,
+      0,
+      0,
+      8,
+      10
+    ],
+    [
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      20
+    ],
+    [
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      84,
+      48,
+      23,
+      1,
+      0,
+      25
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      9,
+      0,
+      0,
+      3,
+      31
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      2,
+      1,
+      8,
+      1,
+      0,
+      27
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      3,
+      0,
+      0,
+      0,
+      3,
+      0,
+      33,
+      0,
+      11
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      15,
+      5
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      4,
+      0,
+      1,
+      0,
+      0,
+      0,
+      26
+    ]
+  ],
+  "confusionHighlights": [
+    {
+      "truth": "empty",
+      "predicted": "k",
+      "count": 134
+    },
+    {
+      "truth": "p",
+      "predicted": "n",
+      "count": 48
+    },
+    {
+      "truth": "P",
+      "predicted": "b",
+      "count": 41
+    },
+    {
+      "truth": "P",
+      "predicted": "B",
+      "count": 34
+    },
+    {
+      "truth": "n",
+      "predicted": "k",
+      "count": 31
+    },
+    {
+      "truth": "P",
+      "predicted": "k",
+      "count": 28
+    },
+    {
+      "truth": "b",
+      "predicted": "k",
+      "count": 27
+    },
+    {
+      "truth": "empty",
+      "predicted": "B",
+      "count": 27
+    },
+    {
+      "truth": "p",
+      "predicted": "k",
+      "count": 25
+    },
+    {
+      "truth": "empty",
+      "predicted": "n",
+      "count": 24
+    },
+    {
+      "truth": "P",
+      "predicted": "N",
+      "count": 24
+    },
+    {
+      "truth": "p",
+      "predicted": "b",
+      "count": 23
+    }
+  ],
+  "totalColorSwaps": 76,
+  "colorSwap": {
+    "P": {
+      "whiteToBlack": 14,
+      "blackToWhite": 0
+    },
+    "N": {
+      "whiteToBlack": 5,
+      "blackToWhite": 0
+    },
+    "B": {
+      "whiteToBlack": 4,
+      "blackToWhite": 0
+    },
+    "R": {
+      "whiteToBlack": 18,
+      "blackToWhite": 3
+    },
+    "Q": {
+      "whiteToBlack": 8,
+      "blackToWhite": 0
+    },
+    "K": {
+      "whiteToBlack": 20,
+      "blackToWhite": 4
+    }
+  },
+  "totalPieceTypeConfusions": 412,
+  "pieceTypeConfusion": {
+    "B->K": 50,
+    "Q->K": 16,
+    "N->K": 42,
+    "P->K": 61,
+    "R->K": 24,
+    "P->N": 77,
+    "P->B": 98,
+    "B->P": 5,
+    "P->R": 8,
+    "N->Q": 15,
+    "R->N": 6,
+    "B->R": 1,
+    "N->B": 1,
+    "K->P": 1,
+    "K->N": 1,
+    "Q->N": 1,
+    "B->N": 1,
+    "P->Q": 2,
+    "B->Q": 2
+  },
+  "exactBoardAccuracy": 0,
+  "correctionBurden": {
+    "mean": 23.870967741935484,
+    "median": 21,
+    "zero": 0,
+    "one": 0,
+    "two": 0,
+    "threePlus": 31
+  },
+  "bestBoard": {
+    "sampleId": "cv-success-001-ui-overlay-board",
+    "wrongSquares": 3
+  },
+  "worstBoard": {
+    "sampleId": "cv-failure-001-old-newspaper-mackenzie-97",
+    "wrongSquares": 63
+  },
+  "perBoard": [
+    {
+      "sampleId": "cv-failure-001-old-newspaper-mackenzie-97",
+      "wrongSquares": 63,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "cv-failure-002-old-newspaper-problem-196",
+      "wrongSquares": 55,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "cv-success-001-ui-overlay-board",
+      "wrongSquares": 3,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings"
+      ]
+    },
+    {
+      "sampleId": "cv-success-002-lichess-photo-of-screen",
+      "wrongSquares": 11,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings"
+      ]
+    },
+    {
+      "sampleId": "cv-success-003-lichess-endgame-photo",
+      "wrongSquares": 6,
+      "exact": false,
+      "structuralWarnings": []
+    },
+    {
+      "sampleId": "cv-success-004-lichess-complex-screen-photo",
+      "wrongSquares": 19,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces",
+        "pawn-on-back-rank"
+      ]
+    },
+    {
+      "sampleId": "cv-success-006-printed-book-classic-diagram",
+      "wrongSquares": 59,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "cv-success-007-printed-skewer-hatched",
+      "wrongSquares": 46,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "cv-success-008-printed-perspective-sparse",
+      "wrongSquares": 46,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "cv-success-009-small-printed-diagram-in-page",
+      "wrongSquares": 41,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-white-pieces",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "cv-success-010-digital-board-photo-with-ui",
+      "wrongSquares": 10,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "missing-black-king"
+      ]
+    },
+    {
+      "sampleId": "cv-success-011-printed-driving-off",
+      "wrongSquares": 42,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-white-pieces",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-001",
+      "wrongSquares": 17,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-002",
+      "wrongSquares": 22,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-003",
+      "wrongSquares": 21,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-004",
+      "wrongSquares": 15,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-005",
+      "wrongSquares": 9,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "more-than-16-black-pieces",
+        "pawn-on-back-rank"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-006",
+      "wrongSquares": 9,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-007",
+      "wrongSquares": 22,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-black-pieces",
+        "pawn-on-back-rank"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-008",
+      "wrongSquares": 14,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-009",
+      "wrongSquares": 27,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-010",
+      "wrongSquares": 17,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-011",
+      "wrongSquares": 28,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-012",
+      "wrongSquares": 22,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-black-kings",
+        "missing-white-king",
+        "more-than-16-black-pieces",
+        "pawn-on-back-rank"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-013",
+      "wrongSquares": 13,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-014",
+      "wrongSquares": 26,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-015",
+      "wrongSquares": 9,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-016",
+      "wrongSquares": 21,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-017",
+      "wrongSquares": 19,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-black-pieces"
+      ]
+    },
+    {
+      "sampleId": "real-v03-positive-018",
+      "wrongSquares": 6,
+      "exact": false,
+      "structuralWarnings": []
+    },
+    {
+      "sampleId": "real-v03-positive-019",
+      "wrongSquares": 22,
+      "exact": false,
+      "structuralWarnings": [
+        "multiple-white-kings",
+        "multiple-black-kings",
+        "more-than-16-white-pieces"
+      ]
+    }
+  ],
+  "groups": {
+    "pieceSetFamily": {
+      "unknown": {
+        "boards": 31,
+        "squares": 1984,
+        "correctSquares": 1244,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 749,
+        "colorSwapErrors": 76,
+        "pieceTypeConfusionErrors": 412,
+        "squareAccuracy": 0.6270161290322581,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.10146862483311081,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5500667556742324
+      }
+    },
+    "pieceSetStyle": {
+      "unknown": {
+        "boards": 31,
+        "squares": 1984,
+        "correctSquares": 1244,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 749,
+        "colorSwapErrors": 76,
+        "pieceTypeConfusionErrors": 412,
+        "squareAccuracy": 0.6270161290322581,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.10146862483311081,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5500667556742324
+      }
+    },
+    "sourceCategory": {
+      "degraded-print": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 10,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 24,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8333333333333334
+      },
+      "digital-photo": {
+        "boards": 5,
+        "squares": 320,
+        "correctSquares": 271,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 89,
+        "colorSwapErrors": 7,
+        "pieceTypeConfusionErrors": 41,
+        "squareAccuracy": 0.846875,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.07865168539325842,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.4606741573033708
+      },
+      "printed-diagram": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 5,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 32,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 27,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09375,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.84375
+      },
+      "hatched-print": {
+        "boards": 3,
+        "squares": 192,
+        "correctSquares": 58,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 54,
+        "colorSwapErrors": 5,
+        "pieceTypeConfusionErrors": 46,
+        "squareAccuracy": 0.3020833333333333,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09259259259259259,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8518518518518519
+      },
+      "small-board-print": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 23,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 18,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 16,
+        "squareAccuracy": 0.359375,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.05555555555555555,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8888888888888888
+      },
+      "digital-2d": {
+        "boards": 16,
+        "squares": 1024,
+        "correctSquares": 747,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 444,
+        "colorSwapErrors": 48,
+        "pieceTypeConfusionErrors": 216,
+        "squareAccuracy": 0.7294921875,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.10810810810810811,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.4864864864864865
+      },
+      "printed": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 85,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 60,
+        "colorSwapErrors": 8,
+        "pieceTypeConfusionErrors": 35,
+        "squareAccuracy": 0.6640625,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.13333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5833333333333334
+      },
+      "livestream": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 45,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 28,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 11,
+        "squareAccuracy": 0.703125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.07142857142857142,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.39285714285714285
+      }
+    },
+    "sourcePlatform": {
+      "unrecorded": {
+        "boards": 31,
+        "squares": 1984,
+        "correctSquares": 1244,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 749,
+        "colorSwapErrors": 76,
+        "pieceTypeConfusionErrors": 412,
+        "squareAccuracy": 0.6270161290322581,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.10146862483311081,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5500667556742324
+      }
+    },
+    "difficultyTag": {
+      "degraded-monochrome-print": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 10,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 24,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8333333333333334
+      },
+      "old-newspaper": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 10,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 24,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8333333333333334
+      },
+      "low-contrast": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 10,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 24,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8333333333333334
+      },
+      "piece-color-confusion": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 10,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 24,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8333333333333334
+      },
+      "missed-piece": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 10,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 24,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8333333333333334
+      },
+      "illegal-output": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 10,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 24,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8333333333333334
+      },
+      "photo-of-screen": {
+        "boards": 5,
+        "squares": 320,
+        "correctSquares": 271,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 89,
+        "colorSwapErrors": 7,
+        "pieceTypeConfusionErrors": 41,
+        "squareAccuracy": 0.846875,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.07865168539325842,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.4606741573033708
+      },
+      "board-overlay": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 61,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 6,
+        "colorSwapErrors": 0,
+        "pieceTypeConfusionErrors": 3,
+        "squareAccuracy": 0.953125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5
+      },
+      "arrows": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 61,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 6,
+        "colorSwapErrors": 0,
+        "pieceTypeConfusionErrors": 3,
+        "squareAccuracy": 0.953125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5
+      },
+      "highlighted-squares": {
+        "boards": 3,
+        "squares": 192,
+        "correctSquares": 160,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 53,
+        "colorSwapErrors": 6,
+        "pieceTypeConfusionErrors": 26,
+        "squareAccuracy": 0.8333333333333334,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.11320754716981132,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.49056603773584906
+      },
+      "surrounding-ui": {
+        "boards": 5,
+        "squares": 320,
+        "correctSquares": 271,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 89,
+        "colorSwapErrors": 7,
+        "pieceTypeConfusionErrors": 41,
+        "squareAccuracy": 0.846875,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.07865168539325842,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.4606741573033708
+      },
+      "mild-perspective": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 119,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 22,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 8,
+        "squareAccuracy": 0.9296875,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.045454545454545456,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.36363636363636365
+      },
+      "lichess-board": {
+        "boards": 3,
+        "squares": 192,
+        "correctSquares": 156,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 64,
+        "colorSwapErrors": 6,
+        "pieceTypeConfusionErrors": 29,
+        "squareAccuracy": 0.8125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09375,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.453125
+      },
+      "rotated-orientation": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 53,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 20,
+        "colorSwapErrors": 0,
+        "pieceTypeConfusionErrors": 10,
+        "squareAccuracy": 0.828125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5
+      },
+      "highlights": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 53,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 20,
+        "colorSwapErrors": 0,
+        "pieceTypeConfusionErrors": 10,
+        "squareAccuracy": 0.828125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5
+      },
+      "move-arrows": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 53,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 20,
+        "colorSwapErrors": 0,
+        "pieceTypeConfusionErrors": 10,
+        "squareAccuracy": 0.828125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5
+      },
+      "moderate-perspective": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 107,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 39,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 19,
+        "squareAccuracy": 0.8359375,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.02564102564102564,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.48717948717948717
+      },
+      "highlighted-square": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 58,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 16,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 5,
+        "squareAccuracy": 0.90625,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.0625,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.3125
+      },
+      "standard-2d-pieces": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 112,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 35,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 14,
+        "squareAccuracy": 0.875,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.05714285714285714,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.4
+      },
+      "moderate-piece-density": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 45,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 28,
+        "colorSwapErrors": 5,
+        "pieceTypeConfusionErrors": 14,
+        "squareAccuracy": 0.703125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.17857142857142858,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5
+      },
+      "perspective-light": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 68,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 46,
+        "colorSwapErrors": 6,
+        "pieceTypeConfusionErrors": 30,
+        "squareAccuracy": 0.53125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.13043478260869565,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.6521739130434783
+      },
+      "printed-book": {
+        "boards": 5,
+        "squares": 320,
+        "correctSquares": 86,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 104,
+        "colorSwapErrors": 9,
+        "pieceTypeConfusionErrors": 89,
+        "squareAccuracy": 0.26875,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08653846153846154,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8557692307692307
+      },
+      "classic-diagram": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 5,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 32,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 27,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09375,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.84375
+      },
+      "monochrome-print": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 5,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 32,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 27,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09375,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.84375
+      },
+      "surrounding-text": {
+        "boards": 4,
+        "squares": 256,
+        "correctSquares": 68,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 97,
+        "colorSwapErrors": 7,
+        "pieceTypeConfusionErrors": 85,
+        "squareAccuracy": 0.265625,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.07216494845360824,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8762886597938144
+      },
+      "reversed-orientation": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 5,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 32,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 27,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09375,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.84375
+      },
+      "old-piece-style": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 5,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 32,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 27,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09375,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.84375
+      },
+      "page-background": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 5,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 32,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 27,
+        "squareAccuracy": 0.078125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.09375,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.84375
+      },
+      "tactical-diagram": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 18,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 27,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 24,
+        "squareAccuracy": 0.28125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.07407407407407407,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8888888888888888
+      },
+      "perspective-skew": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 40,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 47,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 42,
+        "squareAccuracy": 0.3125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.06382978723404255,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8936170212765957
+      },
+      "hatched-dark-squares": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 40,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 47,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 42,
+        "squareAccuracy": 0.3125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.06382978723404255,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8936170212765957
+      },
+      "classic-piece-style": {
+        "boards": 4,
+        "squares": 256,
+        "correctSquares": 81,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 72,
+        "colorSwapErrors": 6,
+        "pieceTypeConfusionErrors": 62,
+        "squareAccuracy": 0.31640625,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.08333333333333333,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8611111111111112
+      },
+      "book-page-photo": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 18,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 27,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 24,
+        "squareAccuracy": 0.28125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.07407407407407407,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8888888888888888
+      },
+      "strong-perspective": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 18,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 7,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 4,
+        "squareAccuracy": 0.28125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.2857142857142857,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5714285714285714
+      },
+      "page-curvature": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 40,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 27,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 22,
+        "squareAccuracy": 0.3125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.1111111111111111,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8148148148148148
+      },
+      "hatched-squares": {
+        "boards": 2,
+        "squares": 128,
+        "correctSquares": 41,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 25,
+        "colorSwapErrors": 3,
+        "pieceTypeConfusionErrors": 20,
+        "squareAccuracy": 0.3203125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.12,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8
+      },
+      "sparse-position": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 18,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 7,
+        "colorSwapErrors": 2,
+        "pieceTypeConfusionErrors": 4,
+        "squareAccuracy": 0.28125,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.2857142857142857,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.5714285714285714
+      },
+      "small-board-in-page": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 23,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 18,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 16,
+        "squareAccuracy": 0.359375,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.05555555555555555,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8888888888888888
+      },
+      "dense-page-layout": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 23,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 18,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 16,
+        "squareAccuracy": 0.359375,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.05555555555555555,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.8888888888888888
+      },
+      "digital-board": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 54,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 19,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 9,
+        "squareAccuracy": 0.84375,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.05263157894736842,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.47368421052631576
+      },
+      "mixed-piece-density": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 54,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 19,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 9,
+        "squareAccuracy": 0.84375,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.05263157894736842,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.47368421052631576
+      },
+      "book-photo": {
+        "boards": 1,
+        "squares": 64,
+        "correctSquares": 22,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 20,
+        "colorSwapErrors": 1,
+        "pieceTypeConfusionErrors": 18,
+        "squareAccuracy": 0.34375,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.05,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.9
+      },
+      "untagged": {
+        "boards": 19,
+        "squares": 1216,
+        "correctSquares": 877,
+        "exactBoards": 0,
+        "occupiedTruthSquares": 532,
+        "colorSwapErrors": 58,
+        "pieceTypeConfusionErrors": 262,
+        "squareAccuracy": 0.7212171052631579,
+        "exactBoardAccuracy": 0,
+        "colorSwapRateOnTrueOccupied": 0.10902255639097744,
+        "pieceTypeConfusionRateOnTrueOccupied": 0.4924812030075188
+      }
+    }
+  },
+  "hardSubsets": [
+    {
+      "name": "bishop-knight-queen",
+      "squares": 215,
+      "accuracy13": 0.29767441860465116,
+      "pieceTypeAccuracyOnTrueOccupied": 0.3767441860465116,
+      "colorAccuracyOnTrueOccupied": 0.6930232558139535
+    },
+    {
+      "name": "king-color",
+      "squares": 62,
+      "accuracy13": 0.5806451612903226,
+      "pieceTypeAccuracyOnTrueOccupied": 0.967741935483871,
+      "colorAccuracyOnTrueOccupied": 0.6129032258064516
+    },
+    {
+      "name": "low-contrast-tags",
+      "squares": 128,
+      "accuracy13": 0.078125,
+      "pieceTypeAccuracyOnTrueOccupied": 0.16666666666666666,
+      "colorAccuracyOnTrueOccupied": 0.4166666666666667
+    },
+    {
+      "name": "printed-source",
+      "squares": 576,
+      "accuracy13": 0.3142361111111111,
+      "pieceTypeAccuracyOnTrueOccupied": 0.23404255319148937,
+      "colorAccuracyOnTrueOccupied": 0.6063829787234043
+    },
+    {
+      "name": "digital-photo-source",
+      "squares": 1344,
+      "accuracy13": 0.7574404761904762,
+      "pieceTypeAccuracyOnTrueOccupied": 0.5140712945590994,
+      "colorAccuracyOnTrueOccupied": 0.7392120075046904
+    },
+    {
+      "name": "livestream-source",
+      "squares": 64,
+      "accuracy13": 0.703125,
+      "pieceTypeAccuracyOnTrueOccupied": 0.5357142857142857,
+      "colorAccuracyOnTrueOccupied": 0.7142857142857143
+    },
+    {
+      "name": "book-tag",
+      "squares": 320,
+      "accuracy13": 0.26875,
+      "pieceTypeAccuracyOnTrueOccupied": 0.14423076923076922,
+      "colorAccuracyOnTrueOccupied": 0.5576923076923077
+    }
+  ],
+  "confidence": {
+    "meanTop1": 0.8366097318263904,
+    "meanTop2": 0.09575400514358806,
+    "meanTop1Correct": 0.9313443285739499,
+    "meanTop1Incorrect": 0.677353193510223,
+    "meanMargin": 0.7408557266828024,
+    "brier13": 0.5589112095139387,
+    "ece10": 0.20959360279413247,
+    "bins": [
+      {
+        "range": [
+          0,
+          0.1
+        ],
+        "count": 0,
+        "accuracy": null,
+        "meanConfidence": null
+      },
+      {
+        "range": [
+          0.1,
+          0.2
+        ],
+        "count": 1,
+        "accuracy": 0,
+        "meanConfidence": 0.15680135786533356
+      },
+      {
+        "range": [
+          0.2,
+          0.3
+        ],
+        "count": 14,
+        "accuracy": 0.14285714285714285,
+        "meanConfidence": 0.2618982834475381
+      },
+      {
+        "range": [
+          0.3,
+          0.4
+        ],
+        "count": 66,
+        "accuracy": 0.18181818181818182,
+        "meanConfidence": 0.35411814351876575
+      },
+      {
+        "range": [
+          0.4,
+          0.5
+        ],
+        "count": 142,
+        "accuracy": 0.20422535211267606,
+        "meanConfidence": 0.4566702815428586
+      },
+      {
+        "range": [
+          0.5,
+          0.6
+        ],
+        "count": 155,
+        "accuracy": 0.2967741935483871,
+        "meanConfidence": 0.5488560641965559
+      },
+      {
+        "range": [
+          0.6,
+          0.7
+        ],
+        "count": 155,
+        "accuracy": 0.2903225806451613,
+        "meanConfidence": 0.6486714240043394
+      },
+      {
+        "range": [
+          0.7,
+          0.8
+        ],
+        "count": 125,
+        "accuracy": 0.248,
+        "meanConfidence": 0.7544940900802612
+      },
+      {
+        "range": [
+          0.8,
+          0.9
+        ],
+        "count": 171,
+        "accuracy": 0.39766081871345027,
+        "meanConfidence": 0.8525506264982168
+      },
+      {
+        "range": [
+          0.9,
+          1
+        ],
+        "count": 1155,
+        "accuracy": 0.8753246753246753,
+        "meanConfidence": 0.9888109732499887
+      }
+    ],
+    "wrongAtLeast090": 144,
+    "highestConfidenceErrors": [
+      {
+        "sampleId": "cv-success-007-printed-skewer-hatched",
+        "visualSquareIndex": 1,
+        "square": "b8",
+        "truth": "r",
+        "predicted": "k",
+        "confidence": 0.998964786529541,
+        "top2": "q",
+        "top2Confidence": 0.0004811589897144586
+      },
+      {
+        "sampleId": "real-v03-positive-019",
+        "visualSquareIndex": 59,
+        "square": "e8",
+        "truth": "k",
+        "predicted": "K",
+        "confidence": 0.9982981085777283,
+        "top2": "k",
+        "top2Confidence": 0.001524895429611206
+      },
+      {
+        "sampleId": "real-v03-positive-002",
+        "visualSquareIndex": 63,
+        "square": "h1",
+        "truth": "R",
+        "predicted": "r",
+        "confidence": 0.9975662231445312,
+        "top2": "R",
+        "top2Confidence": 0.002084797713905573
+      },
+      {
+        "sampleId": "cv-failure-002-old-newspaper-problem-196",
+        "visualSquareIndex": 55,
+        "square": "h2",
+        "truth": "P",
+        "predicted": "k",
+        "confidence": 0.995297372341156,
+        "top2": "q",
+        "top2Confidence": 0.0023580219130963087
+      },
+      {
+        "sampleId": "cv-success-009-small-printed-diagram-in-page",
+        "visualSquareIndex": 31,
+        "square": "h5",
+        "truth": "p",
+        "predicted": "n",
+        "confidence": 0.9948398470878601,
+        "top2": "k",
+        "top2Confidence": 0.0034252747427672148
+      },
+      {
+        "sampleId": "real-v03-positive-008",
+        "visualSquareIndex": 1,
+        "square": "g1",
+        "truth": "K",
+        "predicted": "k",
+        "confidence": 0.9941668510437012,
+        "top2": "r",
+        "top2Confidence": 0.0036817779764533043
+      },
+      {
+        "sampleId": "cv-success-009-small-printed-diagram-in-page",
+        "visualSquareIndex": 22,
+        "square": "g6",
+        "truth": "p",
+        "predicted": "n",
+        "confidence": 0.9934426546096802,
+        "top2": "k",
+        "top2Confidence": 0.003912840038537979
+      },
+      {
+        "sampleId": "cv-success-008-printed-perspective-sparse",
+        "visualSquareIndex": 39,
+        "square": "h4",
+        "truth": "empty",
+        "predicted": "n",
+        "confidence": 0.9931877851486206,
+        "top2": "k",
+        "top2Confidence": 0.0039031198248267174
+      },
+      {
+        "sampleId": "cv-success-007-printed-skewer-hatched",
+        "visualSquareIndex": 7,
+        "square": "h8",
+        "truth": "r",
+        "predicted": "k",
+        "confidence": 0.9926722049713135,
+        "top2": "q",
+        "top2Confidence": 0.005057343281805515
+      },
+      {
+        "sampleId": "cv-success-011-printed-driving-off",
+        "visualSquareIndex": 47,
+        "square": "h3",
+        "truth": "P",
+        "predicted": "k",
+        "confidence": 0.9926602840423584,
+        "top2": "n",
+        "top2Confidence": 0.002627846784889698
+      }
+    ]
+  },
+  "chessAwareSignals": {
+    "duplicateWhiteKing": 15,
+    "duplicateBlackKing": 27,
+    "missingWhiteKing": 10,
+    "missingBlackKing": 1,
+    "moreThan16White": 3,
+    "moreThan16Black": 23,
+    "pawnOnBackRank": 4,
+    "boardsWithAnyWarning": 29,
+    "warningBoardRate": 0.9354838709677419
+  },
+  "sourceCategoryPolicy": "exploratory small groups; unidentified platform/style stays unknown",
+  "modelChangedAfterBenchmark": false,
+  "scannerRuntimeIntegrated": false
+}

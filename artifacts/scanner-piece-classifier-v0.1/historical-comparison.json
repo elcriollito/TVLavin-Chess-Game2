@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-historical-comparison/1",
+  "modelVersion": "caissa-piece-classifier-v0.1-baseline",
+  "truthManifestSha256": "AA471439A1EE78301591424A92FC9C425D3B7C3FCF12AC18A2CFE83B2A4EF855",
+  "stateSha256": "EA12AAF00ED8E330C572B51F73FF1545696208ECC58458E5AFC20DC78F6DDABB",
+  "sourceReportSha256": {
+    "historical": "EA133B2D7C5D145632D166983DC84109BD9BB8474BFD53FE740B7249B83D6F83",
+    "historicalPerformance": "A9A244D5C417C1506512300B21B914D639DD2A2B01503853EBE629692E9E7293",
+    "current": "7CCDE79F58B6B5EBF562D40136D7A705AFE0F650D60CE707239949FBDC3D84F0",
+    "freeze": "F4A61230C747366ADEF0AE6732CAD8B4A3F0FE00D796A3AB0CA1FD573D0EC8E9",
+    "performance": "C76FB4B2C22506980E985D42274DFA5D7098D6B5E20199554017394DD6408A3F"
+  },
+  "comparisonCaveats": [
+    "Both accuracy reports score the same 31 human-verified boards using human corners and exact 64 visual-order tiles.",
+    "Historical 32x32 grayscale/Sharp 0.34.5 and new 64x64 RGB/Sharp 0.35.3 preprocessing differ; this is a system-level model-plus-preprocessing comparison.",
+    "Historical native TFJS timing includes real-board processing on a separate Node environment; new PyTorch CPU timing uses pre-extracted synthetic tiles and excludes warp/crop. Timings are not apples-to-apples.",
+    "Historical model binary byte count was not captured in the certified report; parameter count alone does not establish artifact size."
+  ],
+  "rows": [
+    {
+      "name": "13-class square accuracy",
+      "historical": 0.6592741935483871,
+      "newBaseline": 0.6270161290322581,
+      "delta": -0.032258064516129004,
+      "unit": "fraction"
+    },
+    {
+      "name": "occupied macro-F1 (12 classes; missing-class F1=0)",
+      "historical": 0.10127777953786672,
+      "newBaseline": 0.31212692769126815,
+      "delta": 0.21084914815340144,
+      "unit": "fraction"
+    },
+    {
+      "name": "occupied/empty accuracy",
+      "historical": 0.9778225806451613,
+      "newBaseline": 0.8729838709677419,
+      "delta": -0.10483870967741937,
+      "unit": "fraction"
+    },
+    {
+      "name": "piece-type accuracy on occupied truth",
+      "historical": 0.17089452603471295,
+      "newBaseline": 0.4445927903871829,
+      "delta": 0.27369826435246997,
+      "unit": "fraction"
+    },
+    {
+      "name": "color accuracy on occupied truth",
+      "historical": 0.7730307076101469,
+      "newBaseline": 0.7049399198931909,
+      "delta": -0.06809078771695598,
+      "unit": "fraction"
+    },
+    {
+      "name": "white exact-class accuracy",
+      "historical": 0.1741424802110818,
+      "newBaseline": 0.21635883905013192,
+      "delta": 0.04221635883905012,
+      "unit": "fraction"
+    },
+    {
+      "name": "black exact-class accuracy",
+      "historical": 0.05405405405405406,
+      "newBaseline": 0.47297297297297297,
+      "delta": 0.4189189189189189,
+      "unit": "fraction"
+    },
+    {
+      "name": "exact-board accuracy",
+      "historical": 0,
+      "newBaseline": 0,
+      "delta": 0,
+      "unit": "fraction"
+    },
+    {
+      "name": "mean corrections per board",
+      "historical": 21.806451612903224,
+      "newBaseline": 23.870967741935484,
+      "delta": 2.06451612903226,
+      "unit": "squares"
+    },
+    {
+      "name": "color swaps",
+      "historical": 42,
+      "newBaseline": 76,
+      "delta": 34,
+      "unit": "errors"
+    },
+    {
+      "name": "high-confidence wrong >=0.90",
+      "historical": 97,
+      "newBaseline": 144,
+      "delta": 47,
+      "unit": "errors"
+    },
+    {
+      "name": "Brier score",
+      "historical": 0.49030088905376545,
+      "newBaseline": 0.5589112095139387,
+      "delta": 0.06861032046017324,
+      "unit": "score"
+    },
+    {
+      "name": "ECE 10-bin",
+      "historical": 0.18122979520159144,
+      "newBaseline": 0.20959360279413247,
+      "delta": 0.028363807592541035,
+      "unit": "score"
+    },
+    {
+      "name": "native model bytes",
+      "historical": null,
+      "newBaseline": 2489733,
+      "delta": null,
+      "unit": "bytes"
+    },
+    {
+      "name": "desktop model-load milliseconds",
+      "historical": 11.80880000000002,
+      "newBaseline": 12.71660000202246,
+      "delta": 0.9078000020224408,
+      "unit": "milliseconds"
+    },
+    {
+      "name": "desktop inference milliseconds per board",
+      "historical": 16.87128709677415,
+      "newBaseline": 228.30679999970016,
+      "delta": 211.435512902926,
+      "unit": "milliseconds"
+    }
+  ],
+  "failureComparison": {
+    "bishopKnightQueenTypeConfusions": {
+      "historical": 101,
+      "newBaseline": 20
+    },
+    "pawnBishopTypeConfusions": {
+      "historical": 265,
+      "newBaseline": 103
+    },
+    "kingIdentity": {
+      "historical": {
+        "missingWhiteKing": 24,
+        "missingBlackKing": 29,
+        "duplicateWhiteKing": 1,
+        "duplicateBlackKing": 0
+      },
+      "newBaseline": {
+        "missingWhiteKing": 10,
+        "missingBlackKing": 1,
+        "duplicateWhiteKing": 15,
+        "duplicateBlackKing": 27
+      }
+    }
+  },
+  "decision": "DATASET / ARCHITECTURE NEEDS REVISION",
+  "decisionRationale": "Occupied macro-F1, piece-type and black exact accuracy improve, but total 13-class accuracy, occupancy, mean correction burden, color swaps and high-confidence errors worsen; no runtime integration or post-test tuning is justified."
+}

@@ -21,6 +21,8 @@ yarn-error.log*
 # Dependencies (if added later)
 node_modules/
 yarn.lock
+__pycache__/
+*.pyc
 
 # Build outputs (if added later)
 dist/

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-freeze/1",
+  "modelVersion": "caissa-piece-classifier-v0.1-baseline",
+  "architectureVersion": "compact-rgb-cnn-v1",
+  "datasetManifestSha256": "DCDF1799CC8D25F8D9CEEE6FFCE37FF7214958BA36C27331A48BA0D5EE9AB531",
+  "syntheticPixelsSha256": "188AFD2146BBE70B3CA5A6F2D9B2A2A5CC140E73737E092F48E64E1A4E348BE4",
+  "configSha256": "775F02A0226F0309841A999CC43AA0057D70B867AC5B9DACEFFA3B149B4F6E76",
+  "classOrder": [
+    "empty",
+    "P",
+    "N",
+    "B",
+    "R",
+    "Q",
+    "K",
+    "p",
+    "n",
+    "b",
+    "r",
+    "q",
+    "k"
+  ],
+  "inputShape": [
+    null,
+    3,
+    64,
+    64
+  ],
+  "preprocessing": "RGB64 uint8 / 255",
+  "parameterCount": 617453,
+  "selectedSeed": 1702,
+  "bestEpoch": 10,
+  "stateSha256": "EA12AAF00ED8E330C572B51F73FF1545696208ECC58458E5AFC20DC78F6DDABB",
+  "torchscriptSha256": "40A2390BD17919058B230CB489EB4E3366A611C8D6DEB832B536BD41CE85A8D9",
+  "stateBytes": 2489733,
+  "torchscriptBytes": 2536300,
+  "selectionEvidence": "validation occupied macro-F1 only; synthetic test and real benchmark not yet read",
+  "thresholdPolicy": "argmax 13-class softmax; no abstention or chess correction"
+}

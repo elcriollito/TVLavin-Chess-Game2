@@ -1,0 +1,3213 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-training-summary/1",
+  "modelVersion": "caissa-piece-classifier-v0.1-baseline",
+  "architectureVersion": "compact-rgb-cnn-v1",
+  "datasetVersion": "scanner-piece-dataset-v0.3",
+  "datasetManifestSha256": "DCDF1799CC8D25F8D9CEEE6FFCE37FF7214958BA36C27331A48BA0D5EE9AB531",
+  "syntheticPixelsSha256": "188AFD2146BBE70B3CA5A6F2D9B2A2A5CC140E73737E092F48E64E1A4E348BE4",
+  "framework": "PyTorch 2.13.0+cu130",
+  "device": "cuda",
+  "inputShape": [
+    null,
+    3,
+    64,
+    64
+  ],
+  "classOrder": [
+    "empty",
+    "P",
+    "N",
+    "B",
+    "R",
+    "Q",
+    "K",
+    "p",
+    "n",
+    "b",
+    "r",
+    "q",
+    "k"
+  ],
+  "parameterCount": 617453,
+  "optimizer": "AdamW",
+  "learningRate": 0.001,
+  "weightDecay": 0.0001,
+  "batchSize": 128,
+  "maximumEpochs": 35,
+  "earlyStoppingPatience": 6,
+  "selectionMetric": "validation-occupied-macro-f1",
+  "seedResults": [
+    {
+      "trainingSeed": 1701,
+      "bestEpoch": 12,
+      "epochsRun": 18,
+      "bestValidationOccupiedMacroF1": 0.9728461410800523,
+      "checkpointSha256": "6FAC1630D5CC96AF24D815C410D1FD9810441D30D3FD492A71C8B9F8C703E5CE",
+      "validation": {
+        "sampleCount": 960,
+        "accuracy13": 0.9864583333333333,
+        "occupiedMacroF1": 0.9728461410800523,
+        "occupiedVsEmptyAccuracy": 1.0,
+        "pieceTypeAccuracyOnTrueOccupied": 0.9729166666666667,
+        "colorAccuracyOnTrueOccupied": 1.0,
+        "whitePieceAccuracy": 0.9875,
+        "blackPieceAccuracy": 0.9583333333333334,
+        "classOrder": [
+          "empty",
+          "P",
+          "N",
+          "B",
+          "R",
+          "Q",
+          "K",
+          "p",
+          "n",
+          "b",
+          "r",
+          "q",
+          "k"
+        ],
+        "perClass": [
+          {
+            "label": "empty",
+            "support": 480,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "P",
+            "support": 40,
+            "precision": 0.9302325581395349,
+            "recall": 1.0,
+            "f1": 0.963855421686747
+          },
+          {
+            "label": "N",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "B",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.925,
+            "f1": 0.961038961038961
+          },
+          {
+            "label": "R",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "Q",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "K",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "p",
+            "support": 40,
+            "precision": 0.9523809523809523,
+            "recall": 1.0,
+            "f1": 0.975609756097561
+          },
+          {
+            "label": "n",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "b",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.95,
+            "f1": 0.9743589743589743
+          },
+          {
+            "label": "r",
+            "support": 40,
+            "precision": 0.9523809523809523,
+            "recall": 1.0,
+            "f1": 0.975609756097561
+          },
+          {
+            "label": "q",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.85,
+            "f1": 0.9189189189189189
+          },
+          {
+            "label": "k",
+            "support": 40,
+            "precision": 0.8636363636363636,
+            "recall": 0.95,
+            "f1": 0.9047619047619048
+          }
+        ],
+        "confusionMatrix": [
+          [
+            480,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            3,
+            0,
+            37,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            38,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            34,
+            6
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            38
+          ]
+        ]
+      },
+      "validationByFamily": {
+        "lichess-celtic": {
+          "sampleCount": 480,
+          "accuracy13": 0.9833333333333333,
+          "occupiedMacroF1": 0.9661743485272897,
+          "occupiedVsEmptyAccuracy": 1.0,
+          "pieceTypeAccuracyOnTrueOccupied": 0.9666666666666667,
+          "colorAccuracyOnTrueOccupied": 1.0,
+          "whitePieceAccuracy": 1.0,
+          "blackPieceAccuracy": 0.9333333333333333,
+          "classOrder": [
+            "empty",
+            "P",
+            "N",
+            "B",
+            "R",
+            "Q",
+            "K",
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ],
+          "perClass": [
+            {
+              "label": "empty",
+              "support": 240,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "P",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "N",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "B",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "R",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "Q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "K",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "p",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "n",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "b",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "r",
+              "support": 20,
+              "precision": 0.9090909090909091,
+              "recall": 1.0,
+              "f1": 0.9523809523809523
+            },
+            {
+              "label": "q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.7,
+              "f1": 0.8235294117647058
+            },
+            {
+              "label": "k",
+              "support": 20,
+              "precision": 0.75,
+              "recall": 0.9,
+              "f1": 0.8181818181818182
+            }
+          ],
+          "confusionMatrix": [
+            [
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              14,
+              6
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0,
+              18
+            ]
+          ]
+        },
+        "livius": {
+          "sampleCount": 480,
+          "accuracy13": 0.9895833333333334,
+          "occupiedMacroF1": 0.9790750708743365,
+          "occupiedVsEmptyAccuracy": 1.0,
+          "pieceTypeAccuracyOnTrueOccupied": 0.9791666666666666,
+          "colorAccuracyOnTrueOccupied": 1.0,
+          "whitePieceAccuracy": 0.975,
+          "blackPieceAccuracy": 0.9833333333333333,
+          "classOrder": [
+            "empty",
+            "P",
+            "N",
+            "B",
+            "R",
+            "Q",
+            "K",
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ],
+          "perClass": [
+            {
+              "label": "empty",
+              "support": 240,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "P",
+              "support": 20,
+              "precision": 0.8695652173913043,
+              "recall": 1.0,
+              "f1": 0.9302325581395349
+            },
+            {
+              "label": "N",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "B",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.85,
+              "f1": 0.9189189189189189
+            },
+            {
+              "label": "R",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "Q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "K",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "p",
+              "support": 20,
+              "precision": 0.9090909090909091,
+              "recall": 1.0,
+              "f1": 0.9523809523809523
+            },
+            {
+              "label": "n",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "b",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.9,
+              "f1": 0.9473684210526316
+            },
+            {
+              "label": "r",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "k",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            }
+          ],
+          "confusionMatrix": [
+            [
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              3,
+              0,
+              17,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0,
+              18,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20
+            ]
+          ]
+        }
+      },
+      "history": [
+        {
+          "epoch": 1,
+          "trainCrossEntropy": 1.359983219419207,
+          "validationOccupiedMacroF1": 0.04088050314465409,
+          "validationAccuracy13": 0.5135416666666667
+        },
+        {
+          "epoch": 2,
+          "trainCrossEntropy": 0.8686122434479849,
+          "validationOccupiedMacroF1": 0.34108606045121553,
+          "validationAccuracy13": 0.7145833333333333
+        },
+        {
+          "epoch": 3,
+          "trainCrossEntropy": 0.5931045038359506,
+          "validationOccupiedMacroF1": 0.34220842994506867,
+          "validationAccuracy13": 0.7145833333333333
+        },
+        {
+          "epoch": 4,
+          "trainCrossEntropy": 0.3204350119545346,
+          "validationOccupiedMacroF1": 0.1298468660968661,
+          "validationAccuracy13": 0.590625
+        },
+        {
+          "epoch": 5,
+          "trainCrossEntropy": 0.1442943927787599,
+          "validationOccupiedMacroF1": 0.16699760900192004,
+          "validationAccuracy13": 0.6385416666666667
+        },
+        {
+          "epoch": 6,
+          "trainCrossEntropy": 0.07249640879176912,
+          "validationOccupiedMacroF1": 0.0894081468037911,
+          "validationAccuracy13": 0.5895833333333333
+        },
+        {
+          "epoch": 7,
+          "trainCrossEntropy": 0.05618196661983218,
+          "validationOccupiedMacroF1": 0.5347378581099775,
+          "validationAccuracy13": 0.7927083333333333
+        },
+        {
+          "epoch": 8,
+          "trainCrossEntropy": 0.046556327562956586,
+          "validationOccupiedMacroF1": 0.2628750891102552,
+          "validationAccuracy13": 0.6572916666666667
+        },
+        {
+          "epoch": 9,
+          "trainCrossEntropy": 0.028310840009223848,
+          "validationOccupiedMacroF1": 0.6701225768645273,
+          "validationAccuracy13": 0.8447916666666667
+        },
+        {
+          "epoch": 10,
+          "trainCrossEntropy": 0.03184627230678286,
+          "validationOccupiedMacroF1": 0.18154999751035475,
+          "validationAccuracy13": 0.6489583333333333
+        },
+        {
+          "epoch": 11,
+          "trainCrossEntropy": 0.024739857541308516,
+          "validationOccupiedMacroF1": 0.4791500827412038,
+          "validationAccuracy13": 0.75
+        },
+        {
+          "epoch": 12,
+          "trainCrossEntropy": 0.011896343750967866,
+          "validationOccupiedMacroF1": 0.9728461410800523,
+          "validationAccuracy13": 0.9864583333333333
+        },
+        {
+          "epoch": 13,
+          "trainCrossEntropy": 0.011137829548014061,
+          "validationOccupiedMacroF1": 0.7499073430340056,
+          "validationAccuracy13": 0.8947916666666667
+        },
+        {
+          "epoch": 14,
+          "trainCrossEntropy": 0.031947875927601545,
+          "validationOccupiedMacroF1": 0.4829246819779848,
+          "validationAccuracy13": 0.76875
+        },
+        {
+          "epoch": 15,
+          "trainCrossEntropy": 0.017456250504723617,
+          "validationOccupiedMacroF1": 0.748831700223672,
+          "validationAccuracy13": 0.884375
+        },
+        {
+          "epoch": 16,
+          "trainCrossEntropy": 0.01705486008986121,
+          "validationOccupiedMacroF1": 0.820988272547157,
+          "validationAccuracy13": 0.9239583333333333
+        },
+        {
+          "epoch": 17,
+          "trainCrossEntropy": 0.008063405956186,
+          "validationOccupiedMacroF1": 0.6519664281177262,
+          "validationAccuracy13": 0.84375
+        },
+        {
+          "epoch": 18,
+          "trainCrossEntropy": 0.010820881215234597,
+          "validationOccupiedMacroF1": 0.8920742590895246,
+          "validationAccuracy13": 0.9479166666666666
+        }
+      ]
+    },
+    {
+      "trainingSeed": 1702,
+      "bestEpoch": 10,
+      "epochsRun": 16,
+      "bestValidationOccupiedMacroF1": 0.9874765086575099,
+      "checkpointSha256": "EA12AAF00ED8E330C572B51F73FF1545696208ECC58458E5AFC20DC78F6DDABB",
+      "validation": {
+        "sampleCount": 960,
+        "accuracy13": 0.99375,
+        "occupiedMacroF1": 0.9874765086575099,
+        "occupiedVsEmptyAccuracy": 1.0,
+        "pieceTypeAccuracyOnTrueOccupied": 0.9958333333333333,
+        "colorAccuracyOnTrueOccupied": 0.9916666666666667,
+        "whitePieceAccuracy": 0.975,
+        "blackPieceAccuracy": 1.0,
+        "classOrder": [
+          "empty",
+          "P",
+          "N",
+          "B",
+          "R",
+          "Q",
+          "K",
+          "p",
+          "n",
+          "b",
+          "r",
+          "q",
+          "k"
+        ],
+        "perClass": [
+          {
+            "label": "empty",
+            "support": 480,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "P",
+            "support": 40,
+            "precision": 0.9523809523809523,
+            "recall": 1.0,
+            "f1": 0.975609756097561
+          },
+          {
+            "label": "N",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "B",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.95,
+            "f1": 0.9743589743589743
+          },
+          {
+            "label": "R",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.9,
+            "f1": 0.9473684210526316
+          },
+          {
+            "label": "Q",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "K",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "p",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "n",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "b",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "r",
+            "support": 40,
+            "precision": 0.9090909090909091,
+            "recall": 1.0,
+            "f1": 0.9523809523809523
+          },
+          {
+            "label": "q",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "k",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          }
+        ],
+        "confusionMatrix": [
+          [
+            480,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            2,
+            0,
+            38,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            36,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40
+          ]
+        ]
+      },
+      "validationByFamily": {
+        "lichess-celtic": {
+          "sampleCount": 480,
+          "accuracy13": 0.9916666666666667,
+          "occupiedMacroF1": 0.9831649831649831,
+          "occupiedVsEmptyAccuracy": 1.0,
+          "pieceTypeAccuracyOnTrueOccupied": 1.0,
+          "colorAccuracyOnTrueOccupied": 0.9833333333333333,
+          "whitePieceAccuracy": 0.9666666666666667,
+          "blackPieceAccuracy": 1.0,
+          "classOrder": [
+            "empty",
+            "P",
+            "N",
+            "B",
+            "R",
+            "Q",
+            "K",
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ],
+          "perClass": [
+            {
+              "label": "empty",
+              "support": 240,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "P",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "N",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "B",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "R",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.8,
+              "f1": 0.888888888888889
+            },
+            {
+              "label": "Q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "K",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "p",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "n",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "b",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "r",
+              "support": 20,
+              "precision": 0.8333333333333334,
+              "recall": 1.0,
+              "f1": 0.9090909090909091
+            },
+            {
+              "label": "q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "k",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            }
+          ],
+          "confusionMatrix": [
+            [
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              16,
+              0,
+              0,
+              0,
+              0,
+              0,
+              4,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20
+            ]
+          ]
+        },
+        "livius": {
+          "sampleCount": 480,
+          "accuracy13": 0.9958333333333333,
+          "occupiedMacroF1": 0.9916457811194653,
+          "occupiedVsEmptyAccuracy": 1.0,
+          "pieceTypeAccuracyOnTrueOccupied": 0.9916666666666667,
+          "colorAccuracyOnTrueOccupied": 1.0,
+          "whitePieceAccuracy": 0.9833333333333333,
+          "blackPieceAccuracy": 1.0,
+          "classOrder": [
+            "empty",
+            "P",
+            "N",
+            "B",
+            "R",
+            "Q",
+            "K",
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ],
+          "perClass": [
+            {
+              "label": "empty",
+              "support": 240,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "P",
+              "support": 20,
+              "precision": 0.9090909090909091,
+              "recall": 1.0,
+              "f1": 0.9523809523809523
+            },
+            {
+              "label": "N",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "B",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.9,
+              "f1": 0.9473684210526316
+            },
+            {
+              "label": "R",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "Q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "K",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "p",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "n",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "b",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "r",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "k",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            }
+          ],
+          "confusionMatrix": [
+            [
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              2,
+              0,
+              18,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20
+            ]
+          ]
+        }
+      },
+      "history": [
+        {
+          "epoch": 1,
+          "trainCrossEntropy": 1.4195643436341059,
+          "validationOccupiedMacroF1": 0.0,
+          "validationAccuracy13": 0.5
+        },
+        {
+          "epoch": 2,
+          "trainCrossEntropy": 0.8718991676966349,
+          "validationOccupiedMacroF1": 0.16309884029333313,
+          "validationAccuracy13": 0.6260416666666667
+        },
+        {
+          "epoch": 3,
+          "trainCrossEntropy": 0.5407811105251312,
+          "validationOccupiedMacroF1": 0.19323358717179448,
+          "validationAccuracy13": 0.6697916666666667
+        },
+        {
+          "epoch": 4,
+          "trainCrossEntropy": 0.29054173004059564,
+          "validationOccupiedMacroF1": 0.5764145281631308,
+          "validationAccuracy13": 0.7979166666666667
+        },
+        {
+          "epoch": 5,
+          "trainCrossEntropy": 0.13393061189424424,
+          "validationOccupiedMacroF1": 0.21242088476307744,
+          "validationAccuracy13": 0.64375
+        },
+        {
+          "epoch": 6,
+          "trainCrossEntropy": 0.06803750573169617,
+          "validationOccupiedMacroF1": 0.07669547183346927,
+          "validationAccuracy13": 0.5614583333333333
+        },
+        {
+          "epoch": 7,
+          "trainCrossEntropy": 0.03760464113383066,
+          "validationOccupiedMacroF1": 0.20128916350744075,
+          "validationAccuracy13": 0.6302083333333334
+        },
+        {
+          "epoch": 8,
+          "trainCrossEntropy": 0.022568609938025473,
+          "validationOccupiedMacroF1": 0.33726650921093276,
+          "validationAccuracy13": 0.721875
+        },
+        {
+          "epoch": 9,
+          "trainCrossEntropy": 0.030540442342559496,
+          "validationOccupiedMacroF1": 0.2727266271160203,
+          "validationAccuracy13": 0.6895833333333333
+        },
+        {
+          "epoch": 10,
+          "trainCrossEntropy": 0.010273650439367408,
+          "validationOccupiedMacroF1": 0.9874765086575099,
+          "validationAccuracy13": 0.99375
+        },
+        {
+          "epoch": 11,
+          "trainCrossEntropy": 0.010591577414778017,
+          "validationOccupiedMacroF1": 0.612530010450372,
+          "validationAccuracy13": 0.8104166666666667
+        },
+        {
+          "epoch": 12,
+          "trainCrossEntropy": 0.009913520630271662,
+          "validationOccupiedMacroF1": 0.6532558283139812,
+          "validationAccuracy13": 0.840625
+        },
+        {
+          "epoch": 13,
+          "trainCrossEntropy": 0.005254231734822193,
+          "validationOccupiedMacroF1": 0.8894103927088236,
+          "validationAccuracy13": 0.946875
+        },
+        {
+          "epoch": 14,
+          "trainCrossEntropy": 0.004769382876388374,
+          "validationOccupiedMacroF1": 0.8217986417503488,
+          "validationAccuracy13": 0.9135416666666667
+        },
+        {
+          "epoch": 15,
+          "trainCrossEntropy": 0.009684035186434075,
+          "validationOccupiedMacroF1": 0.5731947939005662,
+          "validationAccuracy13": 0.81875
+        },
+        {
+          "epoch": 16,
+          "trainCrossEntropy": 0.0229514069589121,
+          "validationOccupiedMacroF1": 0.4376773287746194,
+          "validationAccuracy13": 0.7416666666666667
+        }
+      ]
+    },
+    {
+      "trainingSeed": 1703,
+      "bestEpoch": 10,
+      "epochsRun": 16,
+      "bestValidationOccupiedMacroF1": 0.9488042338414239,
+      "checkpointSha256": "9E96F43533B2D3F64DD2DD391983413ED4AC6AAB11F858C1EE0A5A901812A3D6",
+      "validation": {
+        "sampleCount": 960,
+        "accuracy13": 0.9760416666666667,
+        "occupiedMacroF1": 0.9488042338414239,
+        "occupiedVsEmptyAccuracy": 1.0,
+        "pieceTypeAccuracyOnTrueOccupied": 0.95625,
+        "colorAccuracyOnTrueOccupied": 0.9958333333333333,
+        "whitePieceAccuracy": 0.9208333333333333,
+        "blackPieceAccuracy": 0.9833333333333333,
+        "classOrder": [
+          "empty",
+          "P",
+          "N",
+          "B",
+          "R",
+          "Q",
+          "K",
+          "p",
+          "n",
+          "b",
+          "r",
+          "q",
+          "k"
+        ],
+        "perClass": [
+          {
+            "label": "empty",
+            "support": 480,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "P",
+            "support": 40,
+            "precision": 0.7142857142857143,
+            "recall": 1.0,
+            "f1": 0.8333333333333333
+          },
+          {
+            "label": "N",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "B",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.525,
+            "f1": 0.6885245901639345
+          },
+          {
+            "label": "R",
+            "support": 40,
+            "precision": 0.9302325581395349,
+            "recall": 1.0,
+            "f1": 0.963855421686747
+          },
+          {
+            "label": "Q",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "K",
+            "support": 40,
+            "precision": 0.9523809523809523,
+            "recall": 1.0,
+            "f1": 0.975609756097561
+          },
+          {
+            "label": "p",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.95,
+            "f1": 0.9743589743589743
+          },
+          {
+            "label": "n",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "b",
+            "support": 40,
+            "precision": 0.9523809523809523,
+            "recall": 1.0,
+            "f1": 0.975609756097561
+          },
+          {
+            "label": "r",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "q",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          {
+            "label": "k",
+            "support": 40,
+            "precision": 1.0,
+            "recall": 0.95,
+            "f1": 0.9743589743589743
+          }
+        ],
+        "confusionMatrix": [
+          [
+            480,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            16,
+            0,
+            21,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            38,
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            40,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0,
+            38
+          ]
+        ]
+      },
+      "validationByFamily": {
+        "lichess-celtic": {
+          "sampleCount": 480,
+          "accuracy13": 1.0,
+          "occupiedMacroF1": 1.0,
+          "occupiedVsEmptyAccuracy": 1.0,
+          "pieceTypeAccuracyOnTrueOccupied": 1.0,
+          "colorAccuracyOnTrueOccupied": 1.0,
+          "whitePieceAccuracy": 1.0,
+          "blackPieceAccuracy": 1.0,
+          "classOrder": [
+            "empty",
+            "P",
+            "N",
+            "B",
+            "R",
+            "Q",
+            "K",
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ],
+          "perClass": [
+            {
+              "label": "empty",
+              "support": 240,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "P",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "N",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "B",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "R",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "Q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "K",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "p",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "n",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "b",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "r",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "k",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            }
+          ],
+          "confusionMatrix": [
+            [
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20
+            ]
+          ]
+        },
+        "livius": {
+          "sampleCount": 480,
+          "accuracy13": 0.9520833333333333,
+          "occupiedMacroF1": 0.8782712595442094,
+          "occupiedVsEmptyAccuracy": 1.0,
+          "pieceTypeAccuracyOnTrueOccupied": 0.9125,
+          "colorAccuracyOnTrueOccupied": 0.9916666666666667,
+          "whitePieceAccuracy": 0.8416666666666667,
+          "blackPieceAccuracy": 0.9666666666666667,
+          "classOrder": [
+            "empty",
+            "P",
+            "N",
+            "B",
+            "R",
+            "Q",
+            "K",
+            "p",
+            "n",
+            "b",
+            "r",
+            "q",
+            "k"
+          ],
+          "perClass": [
+            {
+              "label": "empty",
+              "support": 240,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "P",
+              "support": 20,
+              "precision": 0.5555555555555556,
+              "recall": 1.0,
+              "f1": 0.7142857142857143
+            },
+            {
+              "label": "N",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "B",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.05,
+              "f1": 0.09523809523809523
+            },
+            {
+              "label": "R",
+              "support": 20,
+              "precision": 0.8695652173913043,
+              "recall": 1.0,
+              "f1": 0.9302325581395349
+            },
+            {
+              "label": "Q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "K",
+              "support": 20,
+              "precision": 0.9090909090909091,
+              "recall": 1.0,
+              "f1": 0.9523809523809523
+            },
+            {
+              "label": "p",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.9,
+              "f1": 0.9473684210526316
+            },
+            {
+              "label": "n",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "b",
+              "support": 20,
+              "precision": 0.9090909090909091,
+              "recall": 1.0,
+              "f1": 0.9523809523809523
+            },
+            {
+              "label": "r",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "q",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0
+            },
+            {
+              "label": "k",
+              "support": 20,
+              "precision": 1.0,
+              "recall": 0.9,
+              "f1": 0.9473684210526316
+            }
+          ],
+          "confusionMatrix": [
+            [
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              16,
+              0,
+              1,
+              3,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              18,
+              0,
+              2,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              20,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              18
+            ]
+          ]
+        }
+      },
+      "history": [
+        {
+          "epoch": 1,
+          "trainCrossEntropy": 1.343273301351638,
+          "validationOccupiedMacroF1": 0.043209876543209874,
+          "validationAccuracy13": 0.5145833333333333
+        },
+        {
+          "epoch": 2,
+          "trainCrossEntropy": 0.8791429389090765,
+          "validationOccupiedMacroF1": 0.2149732956469553,
+          "validationAccuracy13": 0.6416666666666667
+        },
+        {
+          "epoch": 3,
+          "trainCrossEntropy": 0.5976488039607093,
+          "validationOccupiedMacroF1": 0.047619047619047616,
+          "validationAccuracy13": 0.5833333333333334
+        },
+        {
+          "epoch": 4,
+          "trainCrossEntropy": 0.39173367818196614,
+          "validationOccupiedMacroF1": 0.6078373764761589,
+          "validationAccuracy13": 0.828125
+        },
+        {
+          "epoch": 5,
+          "trainCrossEntropy": 0.17750362299737477,
+          "validationOccupiedMacroF1": 0.34729246873957775,
+          "validationAccuracy13": 0.7125
+        },
+        {
+          "epoch": 6,
+          "trainCrossEntropy": 0.11344591435931978,
+          "validationOccupiedMacroF1": 0.4478682628220456,
+          "validationAccuracy13": 0.7697916666666667
+        },
+        {
+          "epoch": 7,
+          "trainCrossEntropy": 0.06808949212233226,
+          "validationOccupiedMacroF1": 0.23097457462830193,
+          "validationAccuracy13": 0.63125
+        },
+        {
+          "epoch": 8,
+          "trainCrossEntropy": 0.0302757784369446,
+          "validationOccupiedMacroF1": 0.9006921403985398,
+          "validationAccuracy13": 0.953125
+        },
+        {
+          "epoch": 9,
+          "trainCrossEntropy": 0.03508947530672664,
+          "validationOccupiedMacroF1": 0.6248353939184084,
+          "validationAccuracy13": 0.8458333333333333
+        },
+        {
+          "epoch": 10,
+          "trainCrossEntropy": 0.015821910308053095,
+          "validationOccupiedMacroF1": 0.9488042338414239,
+          "validationAccuracy13": 0.9760416666666667
+        },
+        {
+          "epoch": 11,
+          "trainCrossEntropy": 0.010943897441029549,
+          "validationOccupiedMacroF1": 0.6985284651625595,
+          "validationAccuracy13": 0.8625
+        },
+        {
+          "epoch": 12,
+          "trainCrossEntropy": 0.008433701718846958,
+          "validationOccupiedMacroF1": 0.46410562935683625,
+          "validationAccuracy13": 0.7833333333333333
+        },
+        {
+          "epoch": 13,
+          "trainCrossEntropy": 0.013390811798827989,
+          "validationOccupiedMacroF1": 0.7757734778461974,
+          "validationAccuracy13": 0.9010416666666666
+        },
+        {
+          "epoch": 14,
+          "trainCrossEntropy": 0.009422137308865786,
+          "validationOccupiedMacroF1": 0.6837837457491335,
+          "validationAccuracy13": 0.8614583333333333
+        },
+        {
+          "epoch": 15,
+          "trainCrossEntropy": 0.004519201012416965,
+          "validationOccupiedMacroF1": 0.8596693792997732,
+          "validationAccuracy13": 0.93125
+        },
+        {
+          "epoch": 16,
+          "trainCrossEntropy": 0.0021664967782618035,
+          "validationOccupiedMacroF1": 0.9472013366750209,
+          "validationAccuracy13": 0.975
+        }
+      ]
+    }
+  ],
+  "selectedSeed": 1702,
+  "selectedBestEpoch": 10,
+  "realTrainingTiles": 0,
+  "syntheticTestSeenBeforeFreeze": false
+}

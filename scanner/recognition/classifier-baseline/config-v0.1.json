@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-baseline-config/1",
+  "modelVersion": "caissa-piece-classifier-v0.1-baseline",
+  "architectureVersion": "compact-rgb-cnn-v1",
+  "datasetVersion": "scanner-piece-dataset-v0.3",
+  "datasetManifestSha256": "DCDF1799CC8D25F8D9CEEE6FFCE37FF7214958BA36C27331A48BA0D5EE9AB531",
+  "catalogSha256": "4D71DC062A494DBA8E030FFE31A5FA44522DBDE1C2F0280B1193E8D0B48865CC",
+  "classOrder": ["empty", "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"],
+  "input": { "width": 64, "height": 64, "channels": 3, "colorOrder": "RGB", "scaleDivisor": 255,
+    "resize": "Sharp Lanczos3 from certified 128x128 synthetic tile; real human-corner rectified 512x512 board supplies exact 64x64 cells" },
+  "architecture": { "convolutionChannels": [32, 32, 64, 64, 128, 128, 256],
+    "kernelSize": 3, "padding": 1, "poolAfterBlocks": [2, 4, 6], "globalAveragePooling": true,
+    "denseUnits": 128, "dropout": 0.2, "outputUnits": 13, "pretrained": false },
+  "training": { "datasetSeed": 306, "seeds": [1701, 1702, 1703], "batchSize": 128,
+    "optimizer": "AdamW", "learningRate": 0.001, "weightDecay": 0.0001,
+    "loss": "cross-entropy", "classWeights": "none", "maximumEpochs": 35,
+    "earlyStoppingPatience": 6, "selectionMetric": "validation-occupied-macro-f1",
+    "trainingRole": "TRAINING-ELIGIBLE", "validationFamilies": ["lichess-celtic", "livius"],
+    "testFamilies": ["lichess-rhosgfx", "p4wn-svg"] },
+  "evaluationPolicy": "choose one seed/epoch on whole-family validation, freeze and hash checkpoint, evaluate synthetic test once, then evaluate the 31 real boards once without tuning"
+}
