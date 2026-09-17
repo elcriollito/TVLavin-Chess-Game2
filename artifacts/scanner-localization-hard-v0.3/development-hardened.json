@@ -1,0 +1,1373 @@
+{
+  "schemaVersion": "caissa-scanner-localization-support-report/1",
+  "corpusVersion": "scanner-localization-hard-v0.3",
+  "corpusSha256": {
+    "starter": "46700321AFDF531D3D295CC7B31EFC0CFD59DFA68833C505208B0ADC65AD44F1",
+    "annotated": "D059F172747921D6D5AEF3106099ABCF6C8553074E4961ACDA626C2312248BA6"
+  },
+  "splitCounts": {
+    "developmentPositive": 13,
+    "developmentNegative": 8,
+    "evaluationPositive": 6,
+    "evaluationNegative": 5,
+    "legacyOverlap": 14
+  },
+  "leakageGroups": [
+    {
+      "group": "digital-001",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-001"
+      ]
+    },
+    {
+      "group": "playchess-session",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-002",
+        "real-v03-positive-003"
+      ]
+    },
+    {
+      "group": "digital-004",
+      "split": "evaluation",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-004"
+      ]
+    },
+    {
+      "group": "digital-005",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-005"
+      ]
+    },
+    {
+      "group": "digital-006",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-006"
+      ]
+    },
+    {
+      "group": "digital-007",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-007"
+      ]
+    },
+    {
+      "group": "digital-008",
+      "split": "evaluation",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-008"
+      ]
+    },
+    {
+      "group": "digital-009",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-009"
+      ]
+    },
+    {
+      "group": "digital-010",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-010"
+      ]
+    },
+    {
+      "group": "digital-011",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-011"
+      ]
+    },
+    {
+      "group": "print-012",
+      "split": "evaluation",
+      "category": "printed",
+      "sampleIds": [
+        "real-v03-positive-012"
+      ]
+    },
+    {
+      "group": "mobile-theme-013-014",
+      "split": "evaluation",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-013",
+        "real-v03-positive-014"
+      ]
+    },
+    {
+      "group": "digital-015",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-015"
+      ]
+    },
+    {
+      "group": "print-016",
+      "split": "development",
+      "category": "printed",
+      "sampleIds": [
+        "real-v03-positive-016"
+      ]
+    },
+    {
+      "group": "stream-017",
+      "split": "development",
+      "category": "livestream",
+      "sampleIds": [
+        "real-v03-positive-017"
+      ]
+    },
+    {
+      "group": "digital-018",
+      "split": "development",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-018"
+      ]
+    },
+    {
+      "group": "digital-019",
+      "split": "evaluation",
+      "category": "digital-2d",
+      "sampleIds": [
+        "real-v03-positive-019"
+      ]
+    },
+    {
+      "group": "math-001",
+      "split": "development",
+      "category": "math-notebook",
+      "sampleIds": [
+        "real-v03-negative-001"
+      ]
+    },
+    {
+      "group": "checkers-002",
+      "split": "evaluation",
+      "category": "checkers-board",
+      "sampleIds": [
+        "real-v03-negative-002"
+      ]
+    },
+    {
+      "group": "grid-paper-003-004",
+      "split": "development",
+      "category": "grid-paper",
+      "sampleIds": [
+        "real-v03-negative-003",
+        "real-v03-negative-004"
+      ]
+    },
+    {
+      "group": "grid-paper-005",
+      "split": "evaluation",
+      "category": "grid-paper",
+      "sampleIds": [
+        "real-v03-negative-005"
+      ]
+    },
+    {
+      "group": "notebook-006-009",
+      "split": "development",
+      "category": "math-notebook",
+      "sampleIds": [
+        "real-v03-negative-006",
+        "real-v03-negative-009"
+      ]
+    },
+    {
+      "group": "checker-pattern-007",
+      "split": "evaluation",
+      "category": "checker-pattern",
+      "sampleIds": [
+        "real-v03-negative-007"
+      ]
+    },
+    {
+      "group": "notebook-008",
+      "split": "development",
+      "category": "math-notebook",
+      "sampleIds": [
+        "real-v03-negative-008"
+      ]
+    },
+    {
+      "group": "rectangular-layout-010-011",
+      "split": "evaluation",
+      "category": "rectangular-layout",
+      "sampleIds": [
+        "real-v03-negative-010",
+        "real-v03-negative-011"
+      ]
+    },
+    {
+      "group": "checkers-012",
+      "split": "development",
+      "category": "checkers-board",
+      "sampleIds": [
+        "real-v03-negative-012"
+      ]
+    },
+    {
+      "group": "checker-pattern-013",
+      "split": "development",
+      "category": "checker-pattern",
+      "sampleIds": [
+        "real-v03-negative-013"
+      ]
+    }
+  ],
+  "detector": {
+    "label": "hardened",
+    "split": "development",
+    "localizerVersion": "caissa-scanner-board-localizer/4",
+    "localizerSha256": "83495B446583DA4B966EC0C0CE1DE4C944DE74EB092C1883706F31A3C5768FE2",
+    "analysisEdge": 256,
+    "boardSize": 512,
+    "preprocessing": "none",
+    "runtime": "node-sharp-rgba-plus-shared-js-localizer"
+  },
+  "metrics": {
+    "all": {
+      "sampleCount": 21,
+      "positives": 13,
+      "negatives": 8,
+      "boardFound": 16,
+      "accepted": 0,
+      "reviewNeeded": 16,
+      "deferred": 0,
+      "ambiguous": 2,
+      "wrongBoard": 0,
+      "outerFrame": 0,
+      "wrongBoardRate": 0,
+      "falsePositives": 0,
+      "geometryFalseCandidates": 5,
+      "geometryFalseCandidateRate": 0.625,
+      "falsePositiveRate": 0,
+      "trueNegativeRate": 1,
+      "medianCornerRmse": 0.006,
+      "worstCornerError": 0.023907,
+      "homographySuccess": 16,
+      "geometryPass": 16,
+      "medianLatencyMs": 1224.546,
+      "worstLatencyMs": 1586.522
+    },
+    "positives": {
+      "sampleCount": 13,
+      "positives": 13,
+      "negatives": 0,
+      "boardFound": 11,
+      "accepted": 0,
+      "reviewNeeded": 11,
+      "deferred": 0,
+      "ambiguous": 2,
+      "wrongBoard": 0,
+      "outerFrame": 0,
+      "wrongBoardRate": 0,
+      "falsePositives": 0,
+      "geometryFalseCandidates": 0,
+      "geometryFalseCandidateRate": null,
+      "falsePositiveRate": null,
+      "trueNegativeRate": null,
+      "medianCornerRmse": 0.006,
+      "worstCornerError": 0.023907,
+      "homographySuccess": 11,
+      "geometryPass": 11,
+      "medianLatencyMs": 1127.243,
+      "worstLatencyMs": 1586.522
+    },
+    "negatives": {
+      "sampleCount": 8,
+      "positives": 0,
+      "negatives": 8,
+      "boardFound": 5,
+      "accepted": 0,
+      "reviewNeeded": 5,
+      "deferred": 0,
+      "ambiguous": 0,
+      "wrongBoard": 0,
+      "outerFrame": 0,
+      "wrongBoardRate": null,
+      "falsePositives": 0,
+      "geometryFalseCandidates": 5,
+      "geometryFalseCandidateRate": 0.625,
+      "falsePositiveRate": 0,
+      "trueNegativeRate": 1,
+      "medianCornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": 5,
+      "geometryPass": 5,
+      "medianLatencyMs": 1307.334,
+      "worstLatencyMs": 1416.838
+    },
+    "byCategory": {
+      "checker-pattern": {
+        "sampleCount": 1,
+        "positives": 0,
+        "negatives": 1,
+        "boardFound": 1,
+        "accepted": 0,
+        "reviewNeeded": 1,
+        "deferred": 0,
+        "ambiguous": 0,
+        "wrongBoard": 0,
+        "outerFrame": 0,
+        "wrongBoardRate": null,
+        "falsePositives": 0,
+        "geometryFalseCandidates": 1,
+        "geometryFalseCandidateRate": 1,
+        "falsePositiveRate": 0,
+        "trueNegativeRate": 1,
+        "medianCornerRmse": null,
+        "worstCornerError": null,
+        "homographySuccess": 1,
+        "geometryPass": 1,
+        "medianLatencyMs": 1336.548,
+        "worstLatencyMs": 1336.548
+      },
+      "checkers-board": {
+        "sampleCount": 1,
+        "positives": 0,
+        "negatives": 1,
+        "boardFound": 1,
+        "accepted": 0,
+        "reviewNeeded": 1,
+        "deferred": 0,
+        "ambiguous": 0,
+        "wrongBoard": 0,
+        "outerFrame": 0,
+        "wrongBoardRate": null,
+        "falsePositives": 0,
+        "geometryFalseCandidates": 1,
+        "geometryFalseCandidateRate": 1,
+        "falsePositiveRate": 0,
+        "trueNegativeRate": 1,
+        "medianCornerRmse": null,
+        "worstCornerError": null,
+        "homographySuccess": 1,
+        "geometryPass": 1,
+        "medianLatencyMs": 1269.767,
+        "worstLatencyMs": 1269.767
+      },
+      "digital-2d": {
+        "sampleCount": 11,
+        "positives": 11,
+        "negatives": 0,
+        "boardFound": 10,
+        "accepted": 0,
+        "reviewNeeded": 10,
+        "deferred": 0,
+        "ambiguous": 1,
+        "wrongBoard": 0,
+        "outerFrame": 0,
+        "wrongBoardRate": 0,
+        "falsePositives": 0,
+        "geometryFalseCandidates": 0,
+        "geometryFalseCandidateRate": null,
+        "falsePositiveRate": null,
+        "trueNegativeRate": null,
+        "medianCornerRmse": 0.006,
+        "worstCornerError": 0.023907,
+        "homographySuccess": 10,
+        "geometryPass": 10,
+        "medianLatencyMs": 1127.243,
+        "worstLatencyMs": 1586.522
+      },
+      "grid-paper": {
+        "sampleCount": 2,
+        "positives": 0,
+        "negatives": 2,
+        "boardFound": 1,
+        "accepted": 0,
+        "reviewNeeded": 1,
+        "deferred": 0,
+        "ambiguous": 0,
+        "wrongBoard": 0,
+        "outerFrame": 0,
+        "wrongBoardRate": null,
+        "falsePositives": 0,
+        "geometryFalseCandidates": 1,
+        "geometryFalseCandidateRate": 0.5,
+        "falsePositiveRate": 0,
+        "trueNegativeRate": 1,
+        "medianCornerRmse": null,
+        "worstCornerError": null,
+        "homographySuccess": 1,
+        "geometryPass": 1,
+        "medianLatencyMs": 1335.126,
+        "worstLatencyMs": 1360.22
+      },
+      "livestream": {
+        "sampleCount": 1,
+        "positives": 1,
+        "negatives": 0,
+        "boardFound": 0,
+        "accepted": 0,
+        "reviewNeeded": 0,
+        "deferred": 0,
+        "ambiguous": 1,
+        "wrongBoard": 0,
+        "outerFrame": 0,
+        "wrongBoardRate": 0,
+        "falsePositives": 0,
+        "geometryFalseCandidates": 0,
+        "geometryFalseCandidateRate": null,
+        "falsePositiveRate": null,
+        "trueNegativeRate": null,
+        "medianCornerRmse": null,
+        "worstCornerError": null,
+        "homographySuccess": 0,
+        "geometryPass": 0,
+        "medianLatencyMs": 1130.252,
+        "worstLatencyMs": 1130.252
+      },
+      "math-notebook": {
+        "sampleCount": 4,
+        "positives": 0,
+        "negatives": 4,
+        "boardFound": 2,
+        "accepted": 0,
+        "reviewNeeded": 2,
+        "deferred": 0,
+        "ambiguous": 0,
+        "wrongBoard": 0,
+        "outerFrame": 0,
+        "wrongBoardRate": null,
+        "falsePositives": 0,
+        "geometryFalseCandidates": 2,
+        "geometryFalseCandidateRate": 0.5,
+        "falsePositiveRate": 0,
+        "trueNegativeRate": 1,
+        "medianCornerRmse": null,
+        "worstCornerError": null,
+        "homographySuccess": 2,
+        "geometryPass": 2,
+        "medianLatencyMs": 1264.591,
+        "worstLatencyMs": 1416.838
+      },
+      "printed": {
+        "sampleCount": 1,
+        "positives": 1,
+        "negatives": 0,
+        "boardFound": 1,
+        "accepted": 0,
+        "reviewNeeded": 1,
+        "deferred": 0,
+        "ambiguous": 0,
+        "wrongBoard": 0,
+        "outerFrame": 0,
+        "wrongBoardRate": 0,
+        "falsePositives": 0,
+        "geometryFalseCandidates": 0,
+        "geometryFalseCandidateRate": null,
+        "falsePositiveRate": null,
+        "trueNegativeRate": null,
+        "medianCornerRmse": 0.008,
+        "worstCornerError": 0.013013,
+        "homographySuccess": 1,
+        "geometryPass": 1,
+        "medianLatencyMs": 1065.4,
+        "worstLatencyMs": 1065.4
+      }
+    }
+  },
+  "samples": [
+    {
+      "sampleId": "real-v03-positive-001",
+      "split": "development",
+      "group": "digital-001",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.015719,
+      "worstCornerError": 0.023907,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.914885,
+        "gridScore": 0.960493,
+        "checkerScore": 0.920022,
+        "gridPhaseScore": 0.807059,
+        "geometryScore": 0.967777,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.099377,
+        "playableFieldEvidence": 0.883354,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 449.075,
+        "candidateScoringMs": 39.867,
+        "candidateGenerationMs": 449.075,
+        "periodicityScoringMs": 10.214,
+        "insetRefinementMs": 7.372,
+        "cornerRefinementMs": 29.455,
+        "homographyMs": 32.061,
+        "geometryValidationMs": 0.328,
+        "totalGeometryMs": 529.008
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-002",
+      "split": "development",
+      "group": "playchess-session",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.009423,
+      "worstCornerError": 0.01423,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.950681,
+        "gridScore": 0.977939,
+        "checkerScore": 0.940941,
+        "gridPhaseScore": 0.858604,
+        "geometryScore": 0.985032,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.030574,
+        "playableFieldEvidence": 0.916839,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 481.871,
+        "candidateScoringMs": 54.277,
+        "candidateGenerationMs": 481.871,
+        "periodicityScoringMs": 12.996,
+        "insetRefinementMs": 8.672,
+        "cornerRefinementMs": 41.175,
+        "homographyMs": 38.305,
+        "geometryValidationMs": 0.091,
+        "totalGeometryMs": 583.368
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-003",
+      "split": "development",
+      "group": "playchess-session",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.004627,
+      "worstCornerError": 0.005792,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.953906,
+        "gridScore": 0.987953,
+        "checkerScore": 0.92535,
+        "gridPhaseScore": 0.890678,
+        "geometryScore": 0.986084,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.048378,
+        "playableFieldEvidence": 0.931659,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 471.405,
+        "candidateScoringMs": 44.881,
+        "candidateGenerationMs": 471.405,
+        "periodicityScoringMs": 11.59,
+        "insetRefinementMs": 8.998,
+        "cornerRefinementMs": 33.224,
+        "homographyMs": 35.433,
+        "geometryValidationMs": 0.143,
+        "totalGeometryMs": 560.927
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-005",
+      "split": "development",
+      "group": "digital-005",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "multiple-board-candidates",
+      "decisionReasons": [],
+      "boardFound": false,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": false,
+      "geometryPass": false,
+      "failureCode": "multiple-board-candidates",
+      "candidate": {
+        "candidateScore": 0.93561,
+        "gridScore": 0.933128,
+        "checkerScore": 0.920087,
+        "gridPhaseScore": 0.913927,
+        "geometryScore": 0.978839,
+        "outerFrameRisk": null,
+        "perspectiveRisk": 0.062493,
+        "playableFieldEvidence": 0.92188,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 440.739,
+        "candidateScoringMs": 73.195,
+        "candidateGenerationMs": 440.739,
+        "periodicityScoringMs": 12.102,
+        "insetRefinementMs": 0.027,
+        "cornerRefinementMs": 60.98,
+        "homographyMs": 0,
+        "geometryValidationMs": 0,
+        "totalGeometryMs": 513.934
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-006",
+      "split": "development",
+      "group": "digital-006",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.013993,
+      "worstCornerError": 0.019403,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.935495,
+        "gridScore": 0.963506,
+        "checkerScore": 0.943392,
+        "gridPhaseScore": 0.845443,
+        "geometryScore": 0.970919,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.090122,
+        "playableFieldEvidence": 0.906355,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 448.474,
+        "candidateScoringMs": 73.54,
+        "candidateGenerationMs": 448.474,
+        "periodicityScoringMs": 9.696,
+        "insetRefinementMs": 8.221,
+        "cornerRefinementMs": 63.789,
+        "homographyMs": 66.737,
+        "geometryValidationMs": 0.272,
+        "totalGeometryMs": 597.316
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-007",
+      "split": "development",
+      "group": "digital-007",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.005657,
+      "worstCornerError": 0.008028,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.974079,
+        "gridScore": 0.976498,
+        "checkerScore": 0.964323,
+        "gridPhaseScore": 0.918488,
+        "geometryScore": 0.979743,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.019992,
+        "playableFieldEvidence": 0.947958,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1171.95,
+        "candidateScoringMs": 67.406,
+        "candidateGenerationMs": 1171.95,
+        "periodicityScoringMs": 17.875,
+        "insetRefinementMs": 11.127,
+        "cornerRefinementMs": 49.495,
+        "homographyMs": 54.379,
+        "geometryValidationMs": 0.116,
+        "totalGeometryMs": 1305.173
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-009",
+      "split": "development",
+      "group": "digital-009",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.004223,
+      "worstCornerError": 0.004676,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.964341,
+        "gridScore": 0.98414,
+        "checkerScore": 0.940919,
+        "gridPhaseScore": 0.915328,
+        "geometryScore": 0.984376,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.044466,
+        "playableFieldEvidence": 0.94453,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1250.159,
+        "candidateScoringMs": 116.859,
+        "candidateGenerationMs": 1250.159,
+        "periodicityScoringMs": 27.501,
+        "insetRefinementMs": 16.998,
+        "cornerRefinementMs": 89.287,
+        "homographyMs": 69.18,
+        "geometryValidationMs": 0.197,
+        "totalGeometryMs": 1454.733
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-010",
+      "split": "development",
+      "group": "digital-010",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.003981,
+      "worstCornerError": 0.00617,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.968471,
+        "gridScore": 0.966155,
+        "checkerScore": 0.951759,
+        "gridPhaseScore": 0.928111,
+        "geometryScore": 0.988579,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.022969,
+        "playableFieldEvidence": 0.946156,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1202.012,
+        "candidateScoringMs": 158.313,
+        "candidateGenerationMs": 1202.012,
+        "periodicityScoringMs": 39.969,
+        "insetRefinementMs": 28.788,
+        "cornerRefinementMs": 118.2,
+        "homographyMs": 120.156,
+        "geometryValidationMs": 0.425,
+        "totalGeometryMs": 1509.804
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-011",
+      "split": "development",
+      "group": "digital-011",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.00492,
+      "worstCornerError": 0.006765,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.972108,
+        "gridScore": 0.978899,
+        "checkerScore": 0.959356,
+        "gridPhaseScore": 0.914771,
+        "geometryScore": 0.990266,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.027274,
+        "playableFieldEvidence": 0.946133,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1113.785,
+        "candidateScoringMs": 317.955,
+        "candidateGenerationMs": 1113.785,
+        "periodicityScoringMs": 49.183,
+        "insetRefinementMs": 69.092,
+        "cornerRefinementMs": 236.446,
+        "homographyMs": 117.364,
+        "geometryValidationMs": 0.143,
+        "totalGeometryMs": 1586.522
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-015",
+      "split": "development",
+      "group": "digital-015",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.015578,
+      "worstCornerError": 0.021026,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.857354,
+        "gridScore": 0.722189,
+        "checkerScore": 0.909093,
+        "gridPhaseScore": 0.760503,
+        "geometryScore": 0.983966,
+        "outerFrameRisk": 0.12593,
+        "perspectiveRisk": 0.025427,
+        "playableFieldEvidence": 0.776811,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 816.283,
+        "candidateScoringMs": 198.245,
+        "candidateGenerationMs": 816.283,
+        "periodicityScoringMs": 41.425,
+        "insetRefinementMs": 23.252,
+        "cornerRefinementMs": 156.529,
+        "homographyMs": 89.089,
+        "geometryValidationMs": 0.151,
+        "totalGeometryMs": 1127.243
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-016",
+      "split": "development",
+      "group": "print-016",
+      "category": "printed",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.008218,
+      "worstCornerError": 0.013013,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.800743,
+        "gridScore": 0.719546,
+        "checkerScore": 0.837541,
+        "gridPhaseScore": 0.701547,
+        "geometryScore": 0.974173,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.06862,
+        "playableFieldEvidence": 0.735045,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 765.224,
+        "candidateScoringMs": 178.418,
+        "candidateGenerationMs": 765.224,
+        "periodicityScoringMs": 47.862,
+        "insetRefinementMs": 46.248,
+        "cornerRefinementMs": 99.828,
+        "homographyMs": 105.545,
+        "geometryValidationMs": 0.204,
+        "totalGeometryMs": 1065.4
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-017",
+      "split": "development",
+      "group": "stream-017",
+      "category": "livestream",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "multiple-board-candidates",
+      "decisionReasons": [],
+      "boardFound": false,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": false,
+      "geometryPass": false,
+      "failureCode": "multiple-board-candidates",
+      "candidate": {
+        "candidateScore": 0.836345,
+        "gridScore": 0.787843,
+        "checkerScore": 0.851595,
+        "gridPhaseScore": 0.77636,
+        "geometryScore": 0.978691,
+        "outerFrameRisk": null,
+        "perspectiveRisk": 0.050423,
+        "playableFieldEvidence": 0.795426,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 887.413,
+        "candidateScoringMs": 242.838,
+        "candidateGenerationMs": 887.413,
+        "periodicityScoringMs": 37.739,
+        "insetRefinementMs": 0.055,
+        "cornerRefinementMs": 204.857,
+        "homographyMs": 0,
+        "geometryValidationMs": 0,
+        "totalGeometryMs": 1130.252
+      }
+    },
+    {
+      "sampleId": "real-v03-positive-018",
+      "split": "development",
+      "group": "digital-018",
+      "category": "digital-2d",
+      "boardPresent": true,
+      "negativeCategory": null,
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": 0.006387,
+      "worstCornerError": 0.009435,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.952026,
+        "gridScore": 0.958947,
+        "checkerScore": 0.968572,
+        "gridPhaseScore": 0.978376,
+        "geometryScore": 0.994958,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0,
+        "playableFieldEvidence": 0.969615,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 910.813,
+        "candidateScoringMs": 154.226,
+        "candidateGenerationMs": 910.813,
+        "periodicityScoringMs": 44.729,
+        "insetRefinementMs": 43.338,
+        "cornerRefinementMs": 82.667,
+        "homographyMs": 57.296,
+        "geometryValidationMs": 0.104,
+        "totalGeometryMs": 1139.258
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-001",
+      "split": "development",
+      "group": "math-001",
+      "category": "math-notebook",
+      "boardPresent": false,
+      "negativeCategory": "math-notebook",
+      "decision": "review-needed",
+      "decisionReasons": [
+        "uncertain-grid-phase"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.747234,
+        "gridScore": 0.826066,
+        "checkerScore": 0.727685,
+        "gridPhaseScore": 0.509262,
+        "geometryScore": 0.943922,
+        "outerFrameRisk": 0.045354,
+        "perspectiveRisk": 0.073386,
+        "playableFieldEvidence": 0.663828,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1169.823,
+        "candidateScoringMs": 118.385,
+        "candidateGenerationMs": 1169.823,
+        "periodicityScoringMs": 33.02,
+        "insetRefinementMs": 29.135,
+        "cornerRefinementMs": 85.077,
+        "homographyMs": 99.365,
+        "geometryValidationMs": 0.066,
+        "totalGeometryMs": 1416.838
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-003",
+      "split": "development",
+      "group": "grid-paper-003-004",
+      "category": "grid-paper",
+      "boardPresent": false,
+      "negativeCategory": "grid-paper",
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.69851,
+        "gridScore": 0.856464,
+        "checkerScore": 0.597605,
+        "gridPhaseScore": 0.584815,
+        "geometryScore": 0.943838,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.12596,
+        "playableFieldEvidence": 0.68245,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1058.023,
+        "candidateScoringMs": 147.973,
+        "candidateGenerationMs": 1058.023,
+        "periodicityScoringMs": 43.541,
+        "insetRefinementMs": 14.378,
+        "cornerRefinementMs": 104.353,
+        "homographyMs": 89.51,
+        "geometryValidationMs": 0.11,
+        "totalGeometryMs": 1310.032
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-004",
+      "split": "development",
+      "group": "grid-paper-003-004",
+      "category": "grid-paper",
+      "boardPresent": false,
+      "negativeCategory": "grid-paper",
+      "decision": "board-not-found",
+      "decisionReasons": [],
+      "boardFound": false,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": false,
+      "geometryPass": false,
+      "failureCode": "board-not-found",
+      "candidate": {
+        "candidateScore": 0.627163,
+        "gridScore": 0.648368,
+        "checkerScore": 0.617809,
+        "gridPhaseScore": 0.514908,
+        "geometryScore": 0.827573,
+        "outerFrameRisk": null,
+        "perspectiveRisk": 0.219748,
+        "playableFieldEvidence": 0.582199,
+        "rejectionReasons": [
+          "grid-continues-outside-playable-field"
+        ]
+      },
+      "timingMs": {
+        "localizationMs": 1340.27,
+        "candidateScoringMs": 19.95,
+        "candidateGenerationMs": 1340.27,
+        "periodicityScoringMs": 19.814,
+        "insetRefinementMs": 0.014,
+        "cornerRefinementMs": 0.08,
+        "homographyMs": 0,
+        "geometryValidationMs": 0,
+        "totalGeometryMs": 1360.22
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-006",
+      "split": "development",
+      "group": "notebook-006-009",
+      "category": "math-notebook",
+      "boardPresent": false,
+      "negativeCategory": "math-notebook",
+      "decision": "board-not-found",
+      "decisionReasons": [],
+      "boardFound": false,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": false,
+      "geometryPass": false,
+      "failureCode": "board-not-found",
+      "candidate": {
+        "candidateScore": 0.549076,
+        "gridScore": 0.832227,
+        "checkerScore": 0.365513,
+        "gridPhaseScore": 0.48573,
+        "geometryScore": 0.936073,
+        "outerFrameRisk": null,
+        "perspectiveRisk": 0.145191,
+        "playableFieldEvidence": 0.582961,
+        "rejectionReasons": [
+          "unbalanced-playable-border",
+          "candidate-score-too-low"
+        ]
+      },
+      "timingMs": {
+        "localizationMs": 1206.868,
+        "candidateScoringMs": 17.679,
+        "candidateGenerationMs": 1206.868,
+        "periodicityScoringMs": 17.586,
+        "insetRefinementMs": 0.02,
+        "cornerRefinementMs": 0.054,
+        "homographyMs": 0,
+        "geometryValidationMs": 0,
+        "totalGeometryMs": 1224.546
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-008",
+      "split": "development",
+      "group": "notebook-008",
+      "category": "math-notebook",
+      "boardPresent": false,
+      "negativeCategory": "math-notebook",
+      "decision": "board-not-found",
+      "decisionReasons": [],
+      "boardFound": false,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": false,
+      "geometryPass": false,
+      "failureCode": "board-not-found",
+      "candidate": {
+        "candidateScore": 0.563792,
+        "gridScore": 0.658985,
+        "checkerScore": 0.443012,
+        "gridPhaseScore": 0.577806,
+        "geometryScore": 0.868375,
+        "outerFrameRisk": null,
+        "perspectiveRisk": 0.382917,
+        "playableFieldEvidence": 0.57926,
+        "rejectionReasons": [
+          "candidate-score-too-low"
+        ]
+      },
+      "timingMs": {
+        "localizationMs": 1268.502,
+        "candidateScoringMs": 36.135,
+        "candidateGenerationMs": 1268.502,
+        "periodicityScoringMs": 35.954,
+        "insetRefinementMs": 0.035,
+        "cornerRefinementMs": 0.115,
+        "homographyMs": 0,
+        "geometryValidationMs": 0,
+        "totalGeometryMs": 1304.637
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-009",
+      "split": "development",
+      "group": "notebook-006-009",
+      "category": "math-notebook",
+      "boardPresent": false,
+      "negativeCategory": "math-notebook",
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.725234,
+        "gridScore": 0.917788,
+        "checkerScore": 0.627048,
+        "gridPhaseScore": 0.592021,
+        "geometryScore": 0.957742,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.132323,
+        "playableFieldEvidence": 0.713045,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 919.986,
+        "candidateScoringMs": 159.545,
+        "candidateGenerationMs": 919.986,
+        "periodicityScoringMs": 39.567,
+        "insetRefinementMs": 21.43,
+        "cornerRefinementMs": 119.826,
+        "homographyMs": 74.012,
+        "geometryValidationMs": 0.106,
+        "totalGeometryMs": 1175.223
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-012",
+      "split": "development",
+      "group": "checkers-012",
+      "category": "checkers-board",
+      "boardPresent": false,
+      "negativeCategory": "checkers-board",
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.981365,
+        "gridScore": 0.971022,
+        "checkerScore": 0.965528,
+        "gridPhaseScore": 0.956773,
+        "geometryScore": 0.996458,
+        "outerFrameRisk": 0,
+        "perspectiveRisk": 0.004164,
+        "playableFieldEvidence": 0.963511,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1061.095,
+        "candidateScoringMs": 135.057,
+        "candidateGenerationMs": 1061.095,
+        "periodicityScoringMs": 47.079,
+        "insetRefinementMs": 42.358,
+        "cornerRefinementMs": 61.314,
+        "homographyMs": 57.691,
+        "geometryValidationMs": 0.072,
+        "totalGeometryMs": 1269.767
+      }
+    },
+    {
+      "sampleId": "real-v03-negative-013",
+      "split": "development",
+      "group": "checker-pattern-013",
+      "category": "checker-pattern",
+      "boardPresent": false,
+      "negativeCategory": "checker-pattern",
+      "decision": "review-needed",
+      "decisionReasons": [
+        "chess-identity-unconfirmed"
+      ],
+      "boardFound": true,
+      "wrongBoard": false,
+      "outerFrame": false,
+      "cornerRmse": null,
+      "worstCornerError": null,
+      "homographySuccess": true,
+      "geometryPass": true,
+      "failureCode": null,
+      "candidate": {
+        "candidateScore": 0.880541,
+        "gridScore": 0.788203,
+        "checkerScore": 0.921983,
+        "gridPhaseScore": 0.768303,
+        "geometryScore": 0.952596,
+        "outerFrameRisk": 0.131985,
+        "perspectiveRisk": 0.051694,
+        "playableFieldEvidence": 0.806004,
+        "rejectionReasons": []
+      },
+      "timingMs": {
+        "localizationMs": 1164.394,
+        "candidateScoringMs": 79.387,
+        "candidateGenerationMs": 1164.394,
+        "periodicityScoringMs": 16.619,
+        "insetRefinementMs": 14.513,
+        "cornerRefinementMs": 62.728,
+        "homographyMs": 78.032,
+        "geometryValidationMs": 0.143,
+        "totalGeometryMs": 1336.548
+      }
+    }
+  ]
+}

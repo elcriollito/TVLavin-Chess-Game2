@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "caissa-scanner-localization-support-boundary/1",
+  "corpusVersion": "scanner-localization-hard-v0.3",
+  "starterManifestSha256": "46700321AFDF531D3D295CC7B31EFC0CFD59DFA68833C505208B0ADC65AD44F1",
+  "annotatedManifestSha256": "D059F172747921D6D5AEF3106099ABCF6C8553074E4961ACDA626C2312248BA6",
+  "frozenLocalizerSha256": "83495B446583DA4B966EC0C0CE1DE4C944DE74EB092C1883706F31A3C5768FE2",
+  "preprocessing": "none",
+  "analysisEdge": 256,
+  "freshSplit": {
+    "development": { "positives": 13, "negatives": 8 },
+    "evaluation": { "positives": 6, "negatives": 5 },
+    "legacyOverlapExcluded": 14
+  },
+  "decisionPolicy": {
+    "geometryWithoutIndependentChessIdentity": "review-needed",
+    "ambiguousCandidates": "multiple-board-candidates",
+    "noTrustworthyGeometry": "board-not-found",
+    "strongPerspective": "deferred-unsupported",
+    "outerFrameOrWeakGridPhase": "review-needed",
+    "acceptedRequires": ["trustworthy-geometry", "unambiguous-candidate", "independent-chess-identity"]
+  },
+  "supportBoundary": {
+    "supportedForClassifierBaseline": ["digital-2d"],
+    "supportedWithReview": ["printed-classic-clean", "printed-moderate-perspective"],
+    "deferred": ["livestream-tiny-or-ambiguous", "3d", "severe-occlusion", "extreme-perspective"]
+  },
+  "development": {
+    "positivesFound": 11,
+    "positivesTotal": 13,
+    "wrongBoard": 0,
+    "negativesWithGeometryCandidates": 5,
+    "negativesTotal": 8,
+    "negativesAutoAccepted": 0
+  },
+  "freshEvaluation": {
+    "positivesFound": 6,
+    "positivesTotal": 6,
+    "wrongBoard": 0,
+    "outerFrame": 0,
+    "negativesWithGeometryCandidates": 2,
+    "negativesTotal": 5,
+    "negativesAutoAccepted": 0,
+    "automaticallyAcceptedPositiveBoards": 0
+  },
+  "readinessDecision": "ADEQUATE FOR CLASSIFIER BASELINE ON SUPPORTED CATEGORIES",
+  "scopeNote": "Classifier baseline means geometry candidates plus review-only policy, not autonomous chessboard acceptance. No classifier or public UI was changed."
+}

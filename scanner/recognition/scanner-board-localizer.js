@@ -4,7 +4,7 @@
   const geometry = global.CaissaScannerBoardGeometry;
   if (!geometry) throw new Error('CAISSA Scanner board geometry must load before localization.');
 
-  const LOCALIZER_VERSION = 'caissa-scanner-board-localizer/3';
+  const LOCALIZER_VERSION = 'caissa-scanner-board-localizer/4';
   const MAX_ANALYSIS_EDGE = 256;
   const MAX_CANDIDATES = 12;
   const MIN_CANDIDATE_SCORE = 0.6;
@@ -556,8 +556,67 @@
       outerBoundary,
       gridContinuationSides,
       evidenceDiagnostics: evidence.diagnostics,
+      playableFieldEvidence: clamp(0.45 * evidence.gridPhaseEvidenceScore
+        + 0.35 * evidence.gridEvidenceScore + 0.2 * evidence.checkerEvidenceScore),
+      perspectiveRisk: perspectiveRisk(validation.metrics),
       rejectionReasons: Object.freeze(rejectionReasons)
     });
+  }
+
+  function perspectiveRisk(shapeMetrics) {
+    if (!shapeMetrics) return 1;
+    const edgeRisk = (Math.max(...shapeMetrics.opposingEdgeRatios) - 1) / 1.5;
+    const angleRisk = Math.max(...shapeMetrics.angles.map((angle) => Math.abs(90 - angle))) / 60;
+    return clamp(0.55 * edgeRisk + 0.45 * angleRisk);
+  }
+
+  function insetCorners(corners, top, right, bottom, left) {
+    const [tl, tr, br, bl] = corners;
+    const point = (u, v) => [
+      (1 - u) * (1 - v) * tl[0] + u * (1 - v) * tr[0] + u * v * br[0] + (1 - u) * v * bl[0],
+      (1 - u) * (1 - v) * tl[1] + u * (1 - v) * tr[1] + u * v * br[1] + (1 - u) * v * bl[1]
+    ];
+    return [point(left, top), point(1 - right, top), point(1 - right, 1 - bottom), point(left, 1 - bottom)];
+  }
+
+  function insetTrials(corners) {
+    const trials = [0.03, 0.06, 0.09, 0.12].map((ratio) => insetCorners(corners, ratio, ratio, ratio, ratio));
+    for (const side of [0, 1, 2, 3]) {
+      const adjustments = [0, 0, 0, 0];
+      adjustments[side] = 0.06;
+      trials.push(insetCorners(corners, ...adjustments));
+    }
+    return trials;
+  }
+
+  function outerFrameRisk(candidate, analysis) {
+    if (!candidate?.corners || !candidate.gridPhaseEvidenceScore) return 0;
+    let bestGain = 0;
+    for (const corners of insetTrials(candidate.corners)) {
+      const inner = scoreCandidate({ source: 'playable-inset-risk', corners }, analysis);
+      if (!inner.accepted) continue;
+      const phaseGain = inner.gridPhaseEvidenceScore - candidate.gridPhaseEvidenceScore;
+      const gridGain = inner.gridEvidenceScore - candidate.gridEvidenceScore;
+      const scoreGain = inner.candidateScore - candidate.candidateScore;
+      bestGain = Math.max(bestGain, 3 * Math.max(0, phaseGain)
+        + 2 * Math.max(0, gridGain) + 3 * Math.max(0, scoreGain));
+    }
+    return clamp(bestGain);
+  }
+
+  function assessSupportBoundary({ candidate, identityConfirmed = false, ambiguity = false } = {}) {
+    if (!candidate?.accepted) return Object.freeze({ decision: 'board-not-found', reasons: Object.freeze(['no-trustworthy-geometry']) });
+    if (ambiguity) return Object.freeze({ decision: 'multiple-board-candidates', reasons: Object.freeze(['candidate-margin-too-small']) });
+    const reasons = [];
+    if ((candidate.outerFrameRisk || 0) >= 0.35) reasons.push('outer-frame-risk');
+    if ((candidate.perspectiveRisk || 0) >= 0.7) reasons.push('strong-perspective');
+    if ((candidate.gridPhaseEvidenceScore || 0) < 0.55) reasons.push('uncertain-grid-phase');
+    if (reasons.length) return Object.freeze({
+      decision: reasons.includes('strong-perspective') ? 'deferred-unsupported' : 'review-needed',
+      reasons: Object.freeze(reasons)
+    });
+    if (!identityConfirmed) reasons.push('chess-identity-unconfirmed');
+    return Object.freeze({ decision: reasons.length ? 'review-needed' : 'accepted', reasons: Object.freeze(reasons) });
   }
 
   function searchPositions(limit, extent, step) {
@@ -629,14 +688,14 @@
 
   function refinePlayableInset(candidate, analysis) {
     if (!candidate.source.startsWith('edge-component-') || candidate.candidateScore < 0.48) return null;
-    const center = [mean(candidate.corners.map((point) => point[0])), mean(candidate.corners.map((point) => point[1]))];
     let best = null;
-    for (const ratio of [0.03, 0.06, 0.09, 0.12]) {
-      const corners = candidate.corners.map(([x, y]) => [x + (center[0] - x) * ratio, y + (center[1] - y) * ratio]);
+    for (const corners of insetTrials(candidate.corners)) {
       const scored = scoreCandidate({ source: `${candidate.source}-playable-inset`, corners }, analysis);
       if (!best || scored.candidateScore > best.candidateScore) best = scored;
     }
-    return best && best.accepted && best.candidateScore >= candidate.candidateScore + 0.025 ? best : null;
+    return best && best.accepted && best.candidateScore >= candidate.candidateScore + 0.025
+      && (best.gridPhaseEvidenceScore >= candidate.gridPhaseEvidenceScore + 0.025
+        || best.gridEvidenceScore >= candidate.gridEvidenceScore + 0.04) ? best : null;
   }
 
   function refineCandidateCorners(candidate, analysis) {
@@ -692,7 +751,8 @@
   function scoreSourceCorners({ pixels, width, height, corners }) {
     const analysis = rgbaToAnalysis(pixels, width, height);
     const analysisCorners = corners.map(([x, y]) => [x / analysis.scaleX, y / analysis.scaleY]);
-    return summarizeCandidate(scoreCandidate({ source: 'diagnostic-source-corners', corners: analysisCorners }, analysis), analysis);
+    const candidate = scoreCandidate({ source: 'diagnostic-source-corners', corners: analysisCorners }, analysis);
+    return summarizeCandidate({ ...candidate, outerFrameRisk: outerFrameRisk(candidate, analysis) }, analysis);
   }
 
   function summarizeCandidate(candidate, analysis) {
@@ -707,6 +767,9 @@
       checkerEvidenceScore: candidate.checkerEvidenceScore,
       gridPhaseEvidenceScore: candidate.gridPhaseEvidenceScore,
       edgeEvidenceScore: candidate.edgeEvidenceScore,
+      playableFieldEvidence: candidate.playableFieldEvidence ?? null,
+      perspectiveRisk: candidate.perspectiveRisk ?? null,
+      outerFrameRisk: candidate.outerFrameRisk ?? null,
       candidateScore: candidate.candidateScore,
       outerBoundary: candidate.outerBoundary || null,
       gridContinuationSides: candidate.gridContinuationSides || 0,
@@ -797,6 +860,12 @@
     }
 
     const selected = accepted[0];
+    const riskStartedAt = now();
+    const selectedWithRisk = Object.freeze({ ...selected, outerFrameRisk: outerFrameRisk(selected, analysis) });
+    const riskCompletedAt = now();
+    const supportBoundary = assessSupportBoundary({ candidate: selectedWithRisk });
+    const auditedSummaries = Object.freeze(summaries.map((summary, index) => index === 0
+      ? summarizeCandidate(selectedWithRisk, analysis) : summary));
     const corners = toWorkingCorners(selected.corners, analysis);
     const validation = geometry.validateQuadrilateral(corners, { imageWidth: width, imageHeight: height });
     if (!validation.ok) {
@@ -867,6 +936,9 @@
         gridPhaseEvidenceScore: selected.gridPhaseEvidenceScore,
         checkerEvidenceScore: selected.checkerEvidenceScore,
         edgeEvidenceScore: selected.edgeEvidenceScore,
+        playableFieldEvidence: selected.playableFieldEvidence,
+        perspectiveRisk: selected.perspectiveRisk,
+        outerFrameRisk: selectedWithRisk.outerFrameRisk,
         orientation: 'unknown',
         transformMetadata,
         geometry: tileGeometry
@@ -880,14 +952,16 @@
         insetCandidateCount: insetCandidates.length,
         cornerRefinedCount,
         scoreSeparation: accepted.length > 1 ? accepted[0].candidateScore - accepted[1].candidateScore : null,
-        candidateSummaries: summaries
+        candidateSummaries: auditedSummaries
       }),
+      supportBoundary,
       timing: Object.freeze({
         localizationMs: Math.max(0, candidatesGeneratedAt - startedAt),
         candidateScoringMs: Math.max(0, scoringCompletedAt - candidatesGeneratedAt),
         candidateGenerationMs: Math.max(0, candidatesGeneratedAt - startedAt),
         periodicityScoringMs: Math.max(0, periodicityScoringCompletedAt - candidatesGeneratedAt),
-        insetRefinementMs: Math.max(0, insetCompletedAt - periodicityScoringCompletedAt),
+        insetRefinementMs: Math.max(0, insetCompletedAt - periodicityScoringCompletedAt)
+          + Math.max(0, riskCompletedAt - riskStartedAt),
         cornerRefinementMs: Math.max(0, cornerRefinementCompletedAt - insetCompletedAt),
         homographyMs: Math.max(0, homographyCompletedAt - homographyStartedAt),
         geometryValidationMs: Math.max(0, completedAt - geometryStartedAt),
@@ -958,6 +1032,9 @@
     rgbaToAnalysis,
     scoreRectifiedGrid,
     scoreSourceCorners,
+    assessSupportBoundary,
+    perspectiveRisk,
+    insetCorners,
     cornerErrorMetrics,
     toBenchmarkOutput,
     localizeAndRectify

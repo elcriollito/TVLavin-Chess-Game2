@@ -152,6 +152,7 @@
         requestId: message.requestId,
         metadata: message.metadata,
         board: result.board,
+        supportBoundary: result.supportBoundary,
         diagnostics: result.diagnostics,
         timing: {
           workerProcessMs: Math.max(0, completedAt - startedAt),

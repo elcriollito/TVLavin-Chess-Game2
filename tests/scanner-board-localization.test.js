@@ -336,7 +336,7 @@ test('timing and score fields remain measurable diagnostics rather than probabil
   for (const field of ['candidateScore', 'geometryScore', 'gridEvidenceScore']) {
     assert.ok(result.board[field] >= 0 && result.board[field] <= 1);
   }
-  assert.equal(result.diagnostics.localizerVersion, 'caissa-scanner-board-localizer/3');
+  assert.equal(result.diagnostics.localizerVersion, 'caissa-scanner-board-localizer/4');
   assert.ok(result.diagnostics.candidateCount <= localizer.MAX_CANDIDATES);
   const selected = result.diagnostics.candidateSummaries.find((candidate) => candidate.accepted);
   assert.equal(selected.shapeMetrics.edgeLengths.length, 4);
@@ -354,7 +354,7 @@ test('benchmark adapter records detection, corners, geometry, scores, and timing
   assert.equal(success.status, 'candidate');
   assert.equal(success.predictedCorners.length, 4);
   assert.equal(validateHomographyOutput(success.geometry).ok, true);
-  assert.equal(success.localization.localizerVersion, 'caissa-scanner-board-localizer/3');
+  assert.equal(success.localization.localizerVersion, 'caissa-scanner-board-localizer/4');
   assert.equal('predictedClasses' in success, false);
   const failure = localizer.toBenchmarkOutput('plain-fixture', run(fixtures.nonBoard, 128));
   assert.deepEqual({ boardDetected: failure.boardDetected, status: failure.status, failureCode: failure.failureCode }, {
