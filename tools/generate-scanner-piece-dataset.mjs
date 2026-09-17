@@ -2,9 +2,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 import { buildSyntheticPlan, DATASET_VERSION, qualityReport, sha256, stableJson,
   validateCatalog, validateSampleManifest, validateThemes } from '../scanner/recognition/datasets/pieces/dataset-core.js';
 import { renderSyntheticSvg, validateGeneratedSvg } from '../scanner/recognition/datasets/pieces/synthetic-svg.js';
+import { verifyAssetCatalog } from '../scanner/recognition/datasets/pieces/asset-integrity.js';
 import { loadVerifiedRealEvaluation } from '../scanner/recognition/datasets/pieces/real-evaluation.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -38,34 +40,58 @@ const coverageBytes = await readFile(coveragePath);
 const catalog = validateCatalog(JSON.parse(catalogBytes));
 const themes = validateThemes(JSON.parse(themesBytes));
 const coverage = JSON.parse(coverageBytes);
+const assetAudit = await verifyAssetCatalog(catalog, root);
+if (assetAudit.exactDuplicates.length) throw new Error('cross-family exact asset duplicates require review');
 const real = await loadVerifiedRealEvaluation({ truthPath, corpusV01, corpusV03, repoRoot: root });
 const synthetic = buildSyntheticPlan(catalog, themes, seed);
 if (new Set(synthetic.map((sample) => sample.imageFile.toLowerCase())).size !== synthetic.length) {
   throw new Error('case-insensitive generated image filename collision');
 }
 const themeById = new Map(themes.themes.map((theme) => [theme.boardThemeId, theme]));
+const setById = new Map(catalog.pieceSets.map((set) => [set.pieceSetId, set]));
+const piecePngs = new Map();
+for (const set of catalog.pieceSets.filter((item) => item.sourceType === 'open-source-asset')) {
+  for (const symbol of Object.keys(set.assetChecksums)) piecePngs.set(`${set.pieceSetId}/${symbol}`,
+    await readFile(join(root, set.assetPath, 'normalized', `${symbol}.png`)));
+}
 const imageBytes = new Map();
 for (const sample of synthetic) {
-  const svg = renderSyntheticSvg(sample, themeById.get(sample.boardThemeId));
-  sample.imageSha256 = sha256(svg);
-  validateGeneratedSvg(svg, sample.imageSha256, sha256);
-  imageBytes.set(sample.sampleId, svg);
+  const symbol = sample.classLabel === 'empty' ? null : `${sample.color === 'white' ? 'w' : 'b'}${sample.classLabel.toUpperCase()}`;
+  const set = setById.get(sample.pieceSetId);
+  const svg = renderSyntheticSvg(sample, themeById.get(sample.boardThemeId),
+    set.sourceType === 'open-source-asset' && symbol ? piecePngs.get(`${set.pieceSetId}/${symbol}`) : null);
+  const bytes = sample.imageFormat === 'svg' ? Buffer.from(svg) : await sharp(Buffer.from(svg))
+    .toFormat(sample.augmentationId === 'jpeg-roundtrip' ? 'jpeg' : 'webp', { quality: 84 })
+    .toBuffer().then((lossy) => sharp(lossy).png().toBuffer());
+  sample.imageSha256 = sha256(bytes);
+  if (sample.imageFormat === 'svg') validateGeneratedSvg(svg, sample.imageSha256, sha256);
+  else {
+    const info = await sharp(bytes).metadata();
+    if (info.format !== 'png' || info.width !== 128 || info.height !== 128) throw new Error(`${sample.sampleId}: invalid roundtrip PNG`);
+  }
+  imageBytes.set(sample.sampleId, bytes);
 }
 const manifest = {
-  schemaVersion: 'caissa-scanner-piece-dataset/1', datasetVersion: DATASET_VERSION, seed,
+  schemaVersion: 'caissa-scanner-piece-dataset/2', datasetVersion: DATASET_VERSION, seed,
   catalogSha256: sha256(catalogBytes), boardThemeCatalogSha256: sha256(themesBytes),
   platformCoverageSha256: sha256(coverageBytes),
   truthManifestSha256: real.truthManifestSha256,
   realEvaluation: { boardCount: real.sourceBoardCount, squareCount: real.tiles.length,
     exactByteAliasesExcluded: real.aliasCount, excludedEdgeCase: real.excludedEdgeCase,
     sourcePixelsCommitted: false, trainingPermitted: false },
-  splitPolicy: 'whole-piece-family/source-image/augmentation-family/platform-session; real truth test-only; no tile-random split',
-  augmentationPolicy: 'bounded v0.1 SVG clean/low-contrast/soft-blur/print-fade/highlight/coordinate; no identity-changing transform',
-  syntheticFormat: { format: 'SVG RGB', width: 128, height: 128, grayscaleForced: false },
+  splitPolicy: 'whole-piece-family/source-image/augmentation-family/platform-session; shared board themes; real truth test-only; no tile-random split',
+  augmentationPolicy: 'bounded v0.2 SVG backgrounds/effects plus Sharp JPEG/WebP lossy roundtrip to PNG; no identity-changing transform',
+  syntheticFormat: { format: 'SVG RGB or PNG after lossy roundtrip', width: 128, height: 128, grayscaleForced: false },
   samples: [...synthetic, ...real.tiles]
 };
+const seenImages = new Map();
+for (const sample of synthetic) {
+  const prior = seenImages.get(sample.imageSha256);
+  if (prior) throw new Error(`duplicate generated image bytes: ${prior} and ${sample.sampleId}`);
+  seenImages.set(sample.imageSha256, sample.sampleId);
+}
 validateSampleManifest(manifest.samples);
-const report = qualityReport(manifest, catalog, themes, coverage);
+const report = qualityReport(manifest, catalog, themes, coverage, assetAudit);
 if (sha256(await readFile(truthPath)) !== real.truthManifestSha256) throw new Error('truth changed during generation');
 await mkdir(join(outputDir, 'tiles'), { recursive: true });
 for (const sample of synthetic) {

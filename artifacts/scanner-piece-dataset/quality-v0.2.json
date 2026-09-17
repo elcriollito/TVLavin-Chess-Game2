@@ -1,0 +1,407 @@
+{
+  "schemaVersion": "caissa-scanner-piece-dataset-quality/2",
+  "datasetVersion": "scanner-piece-dataset-v0.2",
+  "manifestSha256": "5CEC28972193C6E2F5FD59695B13082887227BB88E686027A345F32E71FBBA46",
+  "catalogSha256": "9F82EF3E783D8DCE70EEC74B7A8CB10C0991AEA30EE12ADCE6A9C65A0400A1A5",
+  "boardThemeCatalogSha256": "8CF1AD77987C9710035AD8C894578112F29FA28BA972824091D6C23830E61B20",
+  "platformCoverageSha256": "6C69EC83988FCF0BC507FCADB47FE38F8B0D436B8FFB1EDF5DD83EFC21976ADA",
+  "realTruthSha256": "AA471439A1EE78301591424A92FC9C425D3B7C3FCF12AC18A2CFE83B2A4EF855",
+  "realEvaluation": {
+    "boardCount": 31,
+    "squareCount": 1984,
+    "exactByteAliasesExcluded": 14,
+    "excludedEdgeCase": {
+      "sampleId": "cv-success-005-puzzle-diagram-no-kings",
+      "benchmarkEligibility": "excluded",
+      "exclusionReason": "nonstandard-artistic-composition",
+      "classifierHeadlineScoring": false,
+      "chessLogicScoring": false,
+      "retainForEdgeCaseResearch": true,
+      "annotationStatus": "draft"
+    },
+    "sourcePixelsCommitted": false,
+    "trainingPermitted": false
+  },
+  "totalSamples": 5824,
+  "countsByClass": {
+    "B": 204,
+    "K": 191,
+    "N": 200,
+    "P": 344,
+    "Q": 186,
+    "R": 214,
+    "b": 200,
+    "empty": 3155,
+    "k": 191,
+    "n": 204,
+    "p": 343,
+    "q": 181,
+    "r": 211
+  },
+  "trainCountsByClass": {
+    "B": 120,
+    "K": 120,
+    "N": 120,
+    "P": 120,
+    "Q": 120,
+    "R": 120,
+    "b": 120,
+    "empty": 1440,
+    "k": 120,
+    "n": 120,
+    "p": 120,
+    "q": 120,
+    "r": 120
+  },
+  "testCountsByClass": {
+    "B": 44,
+    "K": 31,
+    "N": 40,
+    "P": 184,
+    "Q": 26,
+    "R": 54,
+    "b": 40,
+    "empty": 1235,
+    "k": 31,
+    "n": 44,
+    "p": 183,
+    "q": 21,
+    "r": 51
+  },
+  "countsByColor": {
+    "black": 1330,
+    "empty": 3155,
+    "white": 1339
+  },
+  "testCountsByColor": {
+    "black": 370,
+    "empty": 1235,
+    "white": 379
+  },
+  "countsByPieceType": {
+    "bishop": 404,
+    "empty": 3155,
+    "king": 382,
+    "knight": 404,
+    "pawn": 687,
+    "queen": 367,
+    "rook": 425
+  },
+  "testCountsByPieceType": {
+    "bishop": 84,
+    "empty": 1235,
+    "king": 62,
+    "knight": 84,
+    "pawn": 367,
+    "queen": 47,
+    "rook": 105
+  },
+  "countsByPieceSet": {
+    "caissa-procedural-geometry-v1": 480,
+    "lichess-celtic": 480,
+    "lichess-chessnut": 480,
+    "lichess-fantasy": 480,
+    "lichess-firi": 480,
+    "lichess-kiwen-suwi": 480,
+    "lichess-rhosgfx": 480,
+    "lichess-spatial": 480,
+    "unknown-real-family": 1984
+  },
+  "countsBySourceFamily": {
+    "caissa-procedural-geometry-v1": 480,
+    "lichess-celtic": 480,
+    "lichess-chessnut": 480,
+    "lichess-fantasy": 480,
+    "lichess-firi": 480,
+    "lichess-kiwen-suwi": 480,
+    "lichess-rhosgfx": 480,
+    "lichess-spatial": 480,
+    "unattributed-real-source-family": 1984
+  },
+  "countsBySourceCategory": {
+    "degraded-print": 128,
+    "digital-2d": 1024,
+    "digital-photo": 320,
+    "hatched-print": 192,
+    "livestream": 64,
+    "printed": 128,
+    "printed-diagram": 64,
+    "small-board-print": 64
+  },
+  "countsByBoardTheme": {
+    "blue-white": 384,
+    "brown-beige": 384,
+    "cream-gray": 384,
+    "dark-digital": 384,
+    "grayscale": 384,
+    "green-white": 384,
+    "hatched-print": 384,
+    "light-digital": 384,
+    "low-contrast-print": 384,
+    "unknown-real-theme": 1984,
+    "wood": 384
+  },
+  "countsByRole": {
+    "EVALUATION-ONLY": 1984,
+    "TRAINING-ELIGIBLE": 3840
+  },
+  "countsBySplit": {
+    "test": 2464,
+    "train": 2880,
+    "validation": 480
+  },
+  "familyCount": 10,
+  "trainingEligibleFamilyCount": 8,
+  "familyCompleteness": {
+    "completeTrainingFamilies": [
+      "caissa-procedural-geometry-v1",
+      "lichess-celtic",
+      "lichess-chessnut",
+      "lichess-fantasy",
+      "lichess-firi",
+      "lichess-kiwen-suwi",
+      "lichess-rhosgfx",
+      "lichess-spatial"
+    ],
+    "incompleteTrainingFamilies": []
+  },
+  "familyCountsBySplit": {
+    "train": 6,
+    "validation": 1,
+    "test": 1
+  },
+  "familyChecksums": {
+    "lichess-chessnut": "22E9E90D65FF94CEE362D57E7777CA35E8766AAEDCB7B1C340488B55503E17C1",
+    "lichess-rhosgfx": "D9E4D938A0C96DAFDF4F97D4EA36B546D930678696627EFD00EB7C24AFF71E4A",
+    "lichess-fantasy": "62301F6184600784C5902E6CAC1A77B576BB63953295B5CEF79059D8424686AC",
+    "lichess-spatial": "67CA63AE3E0592DFA668C8922CD1C7B46FF0632047041DB17EBCCDAEB03854D4",
+    "lichess-celtic": "74B06608992B976A4D25EDB746EDE172CAC5A0EB4DC0E7F9983B7BE52D25F2AE",
+    "lichess-kiwen-suwi": "0AE92198EF52DED57E258386A7DA64EDA234BD665F97ED90F914B02C5E438AB4",
+    "lichess-firi": "402D9218820A80D06D70CE7EF30F1A2F177C99FDD8486AFA9D7B4AAD6CBE0EC2"
+  },
+  "countsByStyle": {
+    "blocky": 1,
+    "classic": 1,
+    "geometric": 2,
+    "high-detail": 1,
+    "minimalist": 1,
+    "ornamental": 1,
+    "stylized": 1
+  },
+  "countsByAugmentation": {
+    "arrow": 216,
+    "brightness-gradient": 208,
+    "clean": 216,
+    "coordinate": 264,
+    "desaturated-print": 200,
+    "glare": 248,
+    "highlight": 264,
+    "jpeg-roundtrip": 216,
+    "low-contrast": 240,
+    "perspective-residual": 192,
+    "print-fade": 264,
+    "screen-moire": 232,
+    "soft-blur": 264,
+    "speckle": 216,
+    "subpixel-scale": 192,
+    "webp-roundtrip": 216,
+    "yellowed-paper": 192
+  },
+  "generatedCountsByClass": {
+    "B": 160,
+    "K": 160,
+    "N": 160,
+    "P": 160,
+    "Q": 160,
+    "R": 160,
+    "b": 160,
+    "empty": 1920,
+    "k": 160,
+    "n": 160,
+    "p": 160,
+    "q": 160,
+    "r": 160
+  },
+  "generatedCountsByColor": {
+    "black": 960,
+    "empty": 1920,
+    "white": 960
+  },
+  "generatedCountsByPieceType": {
+    "bishop": 320,
+    "empty": 1920,
+    "king": 320,
+    "knight": 320,
+    "pawn": 320,
+    "queen": 320,
+    "rook": 320
+  },
+  "trainBalance": {
+    "occupied": 1440,
+    "empty": 1440,
+    "white": 720,
+    "black": 720
+  },
+  "hardSubsets": {
+    "bishopKnightQueen": 215,
+    "kingColor": 62,
+    "whiteKingE1Candidates": 10,
+    "lowContrast": 128,
+    "printed": 576,
+    "mobileWeb": 1344,
+    "broadcast": 64
+  },
+  "hardGenerated": {
+    "colorPairs": 1920,
+    "bishopKnightQueen": 960,
+    "kingColor": 320,
+    "lowContrast": 240,
+    "print": 1536
+  },
+  "holdoutFamilies": {
+    "train": [
+      "caissa-procedural-geometry-v1",
+      "lichess-chessnut",
+      "lichess-fantasy",
+      "lichess-firi",
+      "lichess-kiwen-suwi",
+      "lichess-spatial"
+    ],
+    "validation": [
+      "lichess-celtic"
+    ],
+    "test": [
+      "lichess-rhosgfx"
+    ]
+  },
+  "assetAudit": {
+    "acquiredFamilies": 7,
+    "originalAssets": 84,
+    "normalizedAssets": 84,
+    "uniqueOriginalHashes": 84,
+    "uniqueNormalizedHashes": 84,
+    "exactDuplicates": [],
+    "nearDuplicates": [],
+    "silhouetteAudit": "six white piece alpha masks, 16x16 each; Hamming threshold <=0.08 (screening only)"
+  },
+  "licenseSummary": {
+    "REFERENCE-ONLY:unverified-per-file": 1,
+    "REFERENCE-ONLY:unverified-recovered-project": 1,
+    "TRAINING-ELIGIBLE:Apache-2.0": 1,
+    "TRAINING-ELIGIBLE:CAISSA project-authored internal contribution": 1,
+    "TRAINING-ELIGIBLE:CC-BY-4.0": 2,
+    "TRAINING-ELIGIBLE:CC0-1.0": 1,
+    "TRAINING-ELIGIBLE:MIT": 3
+  },
+  "assetStatusSummary": {
+    "REFERENCE-ONLY:available-unlicensed-for-dataset": 1,
+    "REFERENCE-ONLY:isolated-audit-only": 1,
+    "TRAINING-ELIGIBLE:available": 8
+  },
+  "platformCoverage": [
+    {
+      "platformFamily": "Chess.com",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified representative or platform-identified real sample; no proprietary sprites copied."
+    },
+    {
+      "platformFamily": "Lichess",
+      "directTrainingAssetAvailable": true,
+      "trainingRepresentativeFamily": true,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": true,
+      "missing": true,
+      "note": "Seven pinned, rights-documented Lichess families; no platform-identified human-verified real evaluation sample."
+    },
+    {
+      "platformFamily": "ChessBase/Playchess",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified representative or platform-identified real sample."
+    },
+    {
+      "platformFamily": "ICC",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified representative or platform-identified real sample."
+    },
+    {
+      "platformFamily": "PlayOK",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified representative or platform-identified real sample."
+    },
+    {
+      "platformFamily": "FIDE/event boards",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "One real livestream-category board exists, but its event/platform identity is unrecorded."
+    },
+    {
+      "platformFamily": "Chessworld",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "No certified representative or platform-identified real sample."
+    },
+    {
+      "platformFamily": "mobile/web games",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "Generic digital real boards exist but their apps are not recorded."
+    },
+    {
+      "platformFamily": "broadcast boards",
+      "directTrainingAssetAvailable": false,
+      "trainingRepresentativeFamily": false,
+      "evaluationSampleAvailable": false,
+      "humanPieceTruth": false,
+      "localizationTruth": false,
+      "styleRepresentedIndirectly": false,
+      "missing": true,
+      "note": "One real livestream-category board exists but broadcast identity is unrecorded."
+    }
+  ],
+  "warnings": [
+    "fewer-than-10-meaningful-piece-families",
+    "real-piece-families-not-attributed"
+  ],
+  "trainingReadiness": "NEEDS MORE PIECE-SET DIVERSITY"
+}

@@ -9,6 +9,7 @@
     { "boardThemeId": "hatched-print", "family": "print", "light": "#f3f0e8", "dark": "#c4c0b9", "texture": "hatch" },
     { "boardThemeId": "cream-gray", "family": "print", "light": "#f0eadb", "dark": "#aaa69d", "texture": "none" },
     { "boardThemeId": "dark-digital", "family": "digital", "light": "#778a90", "dark": "#344b56", "texture": "none" },
-    { "boardThemeId": "light-digital", "family": "digital", "light": "#faf9f4", "dark": "#c7d0c8", "texture": "none" }
+    { "boardThemeId": "light-digital", "family": "digital", "light": "#faf9f4", "dark": "#c7d0c8", "texture": "none" },
+    { "boardThemeId": "low-contrast-print", "family": "print", "light": "#e9e4d8", "dark": "#c9c4bb", "texture": "grain" }
   ]
 }

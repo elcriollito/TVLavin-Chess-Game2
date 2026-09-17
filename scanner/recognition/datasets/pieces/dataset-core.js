@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 
-export const DATASET_VERSION = 'scanner-piece-dataset-v0.1';
+export const DATASET_VERSION = 'scanner-piece-dataset-v0.2';
 export const CLASSES = Object.freeze(['empty', 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']);
 export const PIECE_TYPES = Object.freeze(['pawn', 'knight', 'bishop', 'rook', 'queen', 'king']);
 export const ROLES = Object.freeze(['TRAINING-ELIGIBLE', 'EVALUATION-ONLY', 'REFERENCE-ONLY']);
 export const EXCLUDED_SAMPLE_ID = 'cv-success-005-puzzle-diagram-no-kings';
 const TYPES = { P: 'pawn', N: 'knight', B: 'bishop', R: 'rook', Q: 'queen', K: 'king' };
-const styles = new Set(['classic', 'outline', 'solid', 'geometric', 'stylized', 'book', 'mobile', 'broadcast', 'unknown']);
+const styles = new Set(['classic', 'outline', 'solid', 'geometric', 'stylized', 'book', 'mobile', 'broadcast', 'high-detail', 'ornamental', 'minimalist', 'blocky', 'unknown']);
+const supportedAssetLicenses = { 'Apache-2.0': true, MIT: true, 'CC-BY-4.0': true, 'CC0-1.0': false };
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex').toUpperCase();
 export const sha256 = hash;
 export const stableJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
@@ -33,11 +34,23 @@ export function validateCatalog(catalog) {
       || new Set(set.colorVariants).size !== set.colorVariants.length) throw new Error(`${set.pieceSetId}: invalid availability`);
     if (set.trainingRole === 'TRAINING-ELIGIBLE' && (!set.trainingAllowed || set.evaluationOnly
       || set.assetStatus !== 'available' || set.pieceAvailability.length !== 6 || set.colorVariants.length !== 2
+      || !['train', 'validation', 'test'].includes(set.datasetSplit)
       || /unknown|unverified|pending/i.test(set.license))) throw new Error(`${set.pieceSetId}: unlicensed or incomplete training family`);
     if (set.trainingRole === 'EVALUATION-ONLY' && (!set.evaluationOnly || set.trainingAllowed)) throw new Error(`${set.pieceSetId}: evaluation role conflict`);
     if (set.trainingRole === 'REFERENCE-ONLY' && (set.trainingAllowed || set.evaluationOnly)) throw new Error(`${set.pieceSetId}: reference role conflict`);
     if (set.sourceType === 'project-authored-procedural' && set.trainingRole === 'TRAINING-ELIGIBLE'
       && set.sourceReference !== 'generator:caissa-procedural-geometry-v1') throw new Error('unknown procedural generator');
+    if (set.sourceType === 'open-source-asset' && (!set.sourceProject || !set.sourceUrl || !/^[a-f0-9]{40}$/.test(set.sourceVersion || '')
+      || !set.author || !set.licenseTextPath || !/^[A-F0-9]{64}$/.test(set.licenseTextSha256 || '')
+      || !set.sourceNoticePath || !/^[A-F0-9]{64}$/.test(set.sourceNoticeSha256 || '')
+      || !set.assetPath || !set.assetChecksums || !/^[A-F0-9]{64}$/.test(set.familyChecksum || '')
+      || !Object.hasOwn(supportedAssetLicenses, set.license)
+      || set.attributionRequired !== supportedAssetLicenses[set.license] || !set.redistributionAllowed
+      || Object.keys(set.assetChecksums).length !== 12
+      || Object.values(set.assetChecksums).some((meta) => !/^[A-F0-9]{64}$/.test(meta.sourceSha256 || '')
+        || !/^[A-F0-9]{64}$/.test(meta.normalizedSha256 || '') || meta.originalFormat !== 'svg'
+        || meta.normalizedFormat !== 'png' || !meta.intrinsicWidth || !meta.intrinsicHeight || meta.alpha !== true)))
+      throw new Error(`${set.pieceSetId}: incomplete acquired-asset provenance`);
   }
   return catalog;
 }
@@ -61,7 +74,8 @@ export function validatePlatformCoverage(coverage) {
   const seen = new Set();
   for (const platform of coverage.platforms) {
     if (!platform.platformFamily || seen.has(platform.platformFamily) || !platform.note
-      || ['directTrainingAssetAvailable', 'evaluationSampleAvailable', 'styleRepresentedIndirectly', 'missing']
+      || ['directTrainingAssetAvailable', 'evaluationSampleAvailable', 'styleRepresentedIndirectly', 'missing',
+        'trainingRepresentativeFamily', 'humanPieceTruth', 'localizationTruth']
         .some((field) => typeof platform[field] !== 'boolean')) throw new Error('invalid platform coverage row');
     seen.add(platform.platformFamily);
   }
@@ -81,22 +95,27 @@ export function buildSyntheticPlan(catalog, themes, seed) {
   validateCatalog(catalog); validateThemes(themes);
   const random = seededRandom(seed);
   const samples = [];
-  const augmentationIds = ['clean', 'low-contrast', 'soft-blur', 'print-fade', 'highlight', 'coordinate'];
+  const augmentationIds = ['clean', 'low-contrast', 'soft-blur', 'print-fade', 'highlight', 'coordinate',
+    'glare', 'screen-moire', 'arrow', 'speckle', 'jpeg-roundtrip', 'webp-roundtrip',
+    'brightness-gradient', 'desaturated-print', 'yellowed-paper', 'subpixel-scale', 'perspective-residual'];
   for (const set of catalog.pieceSets.filter((item) => item.trainingRole === 'TRAINING-ELIGIBLE')) {
-    if (set.sourceType !== 'project-authored-procedural') throw new Error(`${set.pieceSetId}: generator unavailable for acquired assets`);
-    for (const theme of themes.themes) for (const squareTone of ['light', 'dark']) {
+    for (const [themeIndex, theme] of themes.themes.entries()) for (const squareTone of ['light', 'dark']) {
       // One of each occupied class plus twelve varied empties: 1:1 occupancy and equal per-piece support.
       for (const classLabel of [...CLASSES.slice(1), ...Array(12).fill('empty')]) {
         const variant = samples.filter((item) => item.pieceSetId === set.pieceSetId
           && item.boardThemeId === theme.boardThemeId && item.squareTone === squareTone && item.classLabel === classLabel).length;
         const labelId = classLabel === 'empty' ? 'empty' : `${classLabel === classLabel.toUpperCase() ? 'white' : 'black'}-${classLabel.toUpperCase()}`;
         const id = `syn-${set.pieceSetId}-${theme.boardThemeId}-${squareTone}-${labelId}-${variant}`;
-        const augmentationId = augmentationIds[Math.floor(random() * augmentationIds.length)];
+        // Same-type white/black pairs share conditions; the family split, not a tile split, governs holdouts.
+        const typeIndex = classLabel === 'empty' ? variant : PIECE_TYPES.indexOf(TYPES[classLabel.toUpperCase()]);
+        const augmentationId = augmentationIds[(themeIndex * 2 + (squareTone === 'dark' ? 1 : 0) + typeIndex) % augmentationIds.length];
+        const imageFormat = ['jpeg-roundtrip', 'webp-roundtrip'].includes(augmentationId) ? 'png' : 'svg';
         const renderingSeed = Math.floor(random() * 0x100000000);
         const target = labelParts(classLabel);
         const hardCaseTags = [
           ...(target.pieceType && ['bishop', 'knight', 'queen'].includes(target.pieceType) ? ['bishop-knight-queen-type'] : []),
           ...(target.pieceType === 'king' ? ['king-color'] : []),
+          ...(target.pieceType ? ['same-type-color-pair'] : []),
           ...(augmentationId === 'low-contrast' ? ['low-contrast-generated'] : []),
           ...(theme.family === 'print' ? ['print-generated'] : [])
         ];
@@ -105,8 +124,8 @@ export function buildSyntheticPlan(catalog, themes, seed) {
           squareTone, sourceType: set.sourceType, sourceFamilyGroup: set.pieceFamilyGroup,
           sourceImageId: id, squareName: null,
           augmentationId, augmentationFamily: id, renderingSeed, hardCaseTags,
-          split: 'train', trainingRole: set.trainingRole,
-          license: set.license, width: 128, height: 128, imageFormat: 'svg', imageFile: `tiles/${id}.svg` });
+          split: set.datasetSplit, trainingRole: set.trainingRole,
+          license: set.license, width: 128, height: 128, imageFormat, imageFile: `tiles/${id}.${imageFormat}` });
       }
     }
   }
@@ -116,7 +135,8 @@ export function buildSyntheticPlan(catalog, themes, seed) {
 export function validateSampleManifest(samples) {
   if (!Array.isArray(samples)) throw new Error('samples required');
   const ids = new Set(), hashes = new Map();
-  const exclusiveGroups = ['sourceImageId', 'sourceFamilyGroup', 'pieceFamilyGroup', 'boardThemeFamily', 'augmentationFamily', 'platformSession'];
+  // Board/augmentation types intentionally cross splits so piece-art family remains the isolated variable.
+  const exclusiveGroups = ['sourceImageId', 'sourceFamilyGroup', 'pieceFamilyGroup', 'augmentationFamily', 'platformSession'];
   const seenGroups = Object.fromEntries(exclusiveGroups.map((group) => [group, new Map()]));
   for (const sample of samples) {
     if (!sample.sampleId || ids.has(sample.sampleId)) throw new Error('duplicate sample ID');
@@ -154,7 +174,7 @@ export function validateSampleManifest(samples) {
 
 const counts = (samples, value) => Object.fromEntries([...new Set(samples.map(value))].sort()
   .map((key) => [key, samples.filter((sample) => value(sample) === key).length]));
-export function qualityReport(manifest, catalog, themes, coverage = null) {
+export function qualityReport(manifest, catalog, themes, coverage = null, assetAudit = null) {
   validateSampleManifest(manifest.samples);
   if (coverage) validatePlatformCoverage(coverage);
   const train = manifest.samples.filter((sample) => sample.split === 'train');
@@ -164,15 +184,20 @@ export function qualityReport(manifest, catalog, themes, coverage = null) {
   const occupied = white + black, empty = train.length - occupied;
   const availableFamilies = catalog.pieceSets.filter((set) => set.trainingRole === 'TRAINING-ELIGIBLE');
   const warnings = [];
-  if (availableFamilies.length < 15) warnings.push('fewer-than-15-training-eligible-piece-families');
-  if (availableFamilies.length < 3) warnings.push('no-credible-whole-family-validation-and-test-holdouts');
+  if (availableFamilies.length < 10) warnings.push('fewer-than-10-meaningful-piece-families');
+  else if (availableFamilies.length < 15) warnings.push('fewer-than-15-preferred-piece-families');
+  const validationFamilies = availableFamilies.filter((set) => set.datasetSplit === 'validation');
+  const testFamilies = availableFamilies.filter((set) => set.datasetSplit === 'test');
+  if (!validationFamilies.length || validationFamilies.length + testFamilies.length < 2)
+    warnings.push('fewer-than-two-whole-family-holdouts');
   if (white !== black) warnings.push('white-black-imbalance');
   if (empty !== occupied) warnings.push('empty-occupied-imbalance');
   const occupiedClassCounts = CLASSES.slice(1).map((label) => train.filter((sample) => sample.classLabel === label).length);
   if (Math.max(...occupiedClassCounts) - Math.min(...occupiedClassCounts) > 1) warnings.push('occupied-class-imbalance');
   if (real.length !== 1984) warnings.push('real-evaluation-square-count-not-1984');
   if (real.some((sample) => sample.pieceSetId === 'unknown-real-family')) warnings.push('real-piece-families-not-attributed');
-  warnings.push('perceptual-near-duplicate-audit-pending');
+  if (assetAudit?.exactDuplicates.length) warnings.push('cross-family-exact-asset-duplicates');
+  if (assetAudit?.nearDuplicates.length) warnings.push('possible-near-duplicate-piece-families');
   const sourceCategories = counts(real, (sample) => sample.sourceCategory || 'unknown');
   const hardSubsets = {
     bishopKnightQueen: real.filter((sample) => ['bishop', 'knight', 'queen'].includes(sample.pieceType)).length,
@@ -183,11 +208,24 @@ export function qualityReport(manifest, catalog, themes, coverage = null) {
     mobileWeb: real.filter((sample) => /digital|photo/.test(sample.sourceCategory || '')).length,
     broadcast: real.filter((sample) => sample.sourceCategory === 'livestream').length
   };
+  const generated = manifest.samples.filter((sample) => sample.imageFile);
+  const hardGenerated = {
+    colorPairs: generated.filter((sample) => sample.hardCaseTags.includes('same-type-color-pair')).length,
+    bishopKnightQueen: generated.filter((sample) => sample.hardCaseTags.includes('bishop-knight-queen-type')).length,
+    kingColor: generated.filter((sample) => sample.hardCaseTags.includes('king-color')).length,
+    lowContrast: generated.filter((sample) => sample.augmentationId === 'low-contrast').length,
+    print: generated.filter((sample) => sample.boardThemeFamily === 'print').length
+  };
+  const splitFamilies = { train: availableFamilies.filter((set) => set.datasetSplit === 'train').map((set) => set.pieceSetId).sort(),
+    validation: validationFamilies.map((set) => set.pieceSetId).sort(), test: testFamilies.map((set) => set.pieceSetId).sort() };
   return {
-    schemaVersion: 'caissa-scanner-piece-dataset-quality/1', datasetVersion: DATASET_VERSION,
+    schemaVersion: 'caissa-scanner-piece-dataset-quality/2', datasetVersion: DATASET_VERSION,
     manifestSha256: hash(stableJson(manifest)), catalogSha256: manifest.catalogSha256,
     boardThemeCatalogSha256: manifest.boardThemeCatalogSha256,
-    platformCoverageSha256: manifest.platformCoverageSha256 || null, totalSamples: manifest.samples.length,
+    platformCoverageSha256: manifest.platformCoverageSha256 || null,
+    realTruthSha256: manifest.truthManifestSha256 || null,
+    realEvaluation: manifest.realEvaluation || null,
+    totalSamples: manifest.samples.length,
     countsByClass: counts(manifest.samples, (sample) => sample.classLabel),
     trainCountsByClass: counts(train, (sample) => sample.classLabel),
     testCountsByClass: counts(real, (sample) => sample.classLabel),
@@ -201,17 +239,26 @@ export function qualityReport(manifest, catalog, themes, coverage = null) {
     countsByBoardTheme: counts(manifest.samples, (sample) => sample.boardThemeId),
     countsByRole: counts(manifest.samples, (sample) => sample.trainingRole),
     countsBySplit: counts(manifest.samples, (sample) => sample.split),
-    trainBalance: { occupied, empty, white, black }, hardSubsets,
-    holdoutFamilies: { train: [...new Set(train.map((sample) => sample.pieceFamilyGroup))].sort(),
-      validation: [...new Set(manifest.samples.filter((sample) => sample.split === 'validation').map((sample) => sample.pieceFamilyGroup))].sort(),
-      test: [...new Set(manifest.samples.filter((sample) => sample.split === 'test').map((sample) => sample.pieceFamilyGroup))].sort() },
-    licenseSummary: counts(catalog.pieceSets, (set) => `${set.trainingRole}:${set.assetStatus}`),
+    familyCount: catalog.pieceSets.length, trainingEligibleFamilyCount: availableFamilies.length,
+    familyCompleteness: { completeTrainingFamilies: availableFamilies.filter((set) => set.pieceAvailability.length === 6
+      && set.colorVariants.length === 2).map((set) => set.pieceSetId).sort(),
+    incompleteTrainingFamilies: availableFamilies.filter((set) => set.pieceAvailability.length !== 6
+      || set.colorVariants.length !== 2).map((set) => set.pieceSetId).sort() },
+    familyCountsBySplit: Object.fromEntries(Object.entries(splitFamilies).map(([key, ids]) => [key, ids.length])),
+    familyChecksums: Object.fromEntries(availableFamilies.filter((set) => set.familyChecksum).map((set) => [set.pieceSetId, set.familyChecksum])),
+    countsByStyle: counts(availableFamilies, (set) => set.style),
+    countsByAugmentation: counts(generated, (sample) => sample.augmentationId),
+    generatedCountsByClass: counts(generated, (sample) => sample.classLabel),
+    generatedCountsByColor: counts(generated, (sample) => sample.color || 'empty'),
+    generatedCountsByPieceType: counts(generated, (sample) => sample.pieceType || 'empty'),
+    trainBalance: { occupied, empty, white, black }, hardSubsets, hardGenerated,
+    holdoutFamilies: splitFamilies, assetAudit,
+    licenseSummary: counts(catalog.pieceSets, (set) => `${set.trainingRole}:${set.license}`),
+    assetStatusSummary: counts(catalog.pieceSets, (set) => `${set.trainingRole}:${set.assetStatus}`),
     platformCoverage: coverage?.platforms || null,
-    warnings, trainingReadiness: availableFamilies.length < 15
-      || !manifest.samples.some((sample) => sample.split === 'validation')
-      || !manifest.samples.some((sample) => sample.split === 'test' && sample.trainingRole === 'TRAINING-ELIGIBLE')
-      ? 'NEEDS MORE PIECE-SET DIVERSITY'
-      : real.some((sample) => sample.pieceSetId === 'unknown-real-family')
-        ? 'NEEDS MORE LICENSING / PROVENANCE WORK' : 'READY FOR BASELINE TRAINING'
+    warnings, trainingReadiness: availableFamilies.length < 10 || !validationFamilies.length
+      || validationFamilies.length + testFamilies.length < 2 || assetAudit?.exactDuplicates.length
+      || white !== black || empty !== occupied || Math.max(...occupiedClassCounts) - Math.min(...occupiedClassCounts) > 1
+      ? 'NEEDS MORE PIECE-SET DIVERSITY' : 'READY FOR BASELINE TRAINING'
   };
 }

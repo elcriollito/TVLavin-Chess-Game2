@@ -60,4 +60,5 @@ data/pgn_smoke/
 
 # Local artifacts
 *.png
+!scanner/recognition/datasets/piece-sets/assets/*/normalized/*.png
 r2_v2_list.json
