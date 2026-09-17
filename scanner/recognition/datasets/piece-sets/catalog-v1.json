@@ -6,6 +6,9 @@
       "datasetSplit": "train",
       "displayName": "CAISSA procedural geometry (pilot only)",
       "sourceType": "project-authored-procedural",
+      "sourceProject": "CAISSA Chess",
+      "sourceVersion": "scanner-piece-dataset-v0.1",
+      "author": "CAISSA Chess",
       "license": "CAISSA project-authored internal contribution",
       "licenseUrl": null,
       "redistributionAllowed": false,
@@ -1236,6 +1239,498 @@
       "colorPolicy": "separate upstream white/black artwork; never synthesized",
       "notes": "COPYING.md spells Firi with uppercase F; source directory is lowercase firi at pinned commit.",
       "familyChecksum": "402D9218820A80D06D70CE7EF30F1A2F177C99FDD8486AFA9D7B4AAD6CBE0EC2"
+    },
+    {
+      "pieceSetId": "livius",
+      "datasetSplit": "validation",
+      "displayName": "Livius",
+      "sourceType": "open-source-asset",
+      "sourceProject": "kmar/chess_svg_piece_sets",
+      "sourceUrl": "https://github.com/kmar/chess_svg_piece_sets/tree/af40ea51e87eddee1ae7ee35ae312893a1271233/livius",
+      "sourceVersion": "af40ea51e87eddee1ae7ee35ae312893a1271233",
+      "sourceReference": "livius",
+      "author": "Martin Sedlák",
+      "license": "Public-Domain-Dedication",
+      "licenseUrl": "https://raw.githubusercontent.com/kmar/chess_svg_piece_sets/af40ea51e87eddee1ae7ee35ae312893a1271233/livius/LICENSE",
+      "licenseTextPath": "scanner/recognition/datasets/piece-sets/licenses/livius-LICENSE.txt",
+      "licenseTextSha256": "CE370B6E6D250544B2A59325F446DBDEE192F888D07D147ABD714BA31949856C",
+      "sourceNoticePath": "scanner/recognition/datasets/piece-sets/licenses/livius-NOTICE.md",
+      "sourceNoticeSha256": "DCC9AA22D377AEEC106B3102FF988A5438E3A04FA77969604DE55FA2F54BBC10",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "attributionRequired": false,
+      "evaluationOnly": false,
+      "trainingRole": "TRAINING-ELIGIBLE",
+      "assetStatus": "available",
+      "platformFamily": "none",
+      "pieceFamilyGroup": "livius",
+      "style": "monochrome",
+      "assetPath": "scanner/recognition/datasets/piece-sets/assets/livius",
+      "assetChecksums": {
+        "wP": {
+          "sourceSha256": "CBFF11223709D419494ECC49C254126A49FE237B46773D23282B3A891A00FF52",
+          "normalizedSha256": "B5DD8747D7CE368381F2356E67EC6EDED1E2FFC0404DC2C9956B06234DA8E6CD",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "wN": {
+          "sourceSha256": "C392243FB0549A2D64B5C32904DF8A3DFC4FB5DA508B572562D0458AE909FED7",
+          "normalizedSha256": "923A21190AE433629D85A61CFFD49B96741F0BA814424313AFF4756F18132605",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "wB": {
+          "sourceSha256": "3B948D7A594BE5A3B9C239B80ED99BBD428829BA9E9622C186C898A161E4088C",
+          "normalizedSha256": "13D0CC30CB5DBB71227834BFA823ACE1DA7AF7E85AEEFB1708886821B416B7F8",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "wR": {
+          "sourceSha256": "E6A05E313646A1B1FE2008CBCD23A5C0AD79E655469F3B9FB7D8337865F46441",
+          "normalizedSha256": "C925BE82A9EFFE46AB36B5EF08755CC6BE608F618969289F0C2D403A7A80BB85",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "wQ": {
+          "sourceSha256": "E9FBA3C8D04853C07A9B76B3EC4F8D70AD602EB75E9A0014162A6EA30D10F760",
+          "normalizedSha256": "19CB07C6F0709E92D4C887F8132481958D3008878D6DD8164D61245C59F80A9F",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "wK": {
+          "sourceSha256": "78F45C5EC3BFBD507E75A7F48480DD7D2B3CEDD466B80C2C645915235139F9E4",
+          "normalizedSha256": "8F1A202C4D51C1E5FD40311F151EA95D4E13D398E3C35D3506D2D76DDA69E764",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "bP": {
+          "sourceSha256": "FD94A745B9FA60C20163DFF89AE8EEDF131B5264C5FB4FD89F186E7F4D9EBB65",
+          "normalizedSha256": "EA34B575618422D1C8FC6160A0FE6B60E6EB02BA51DE587F82E9B1BEE614D271",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "bN": {
+          "sourceSha256": "9EA4CA9398B3479146BAD78A1151F98784183D2EB8A677A2987CC06B9164DD33",
+          "normalizedSha256": "74F15D3E46B77DEC51A71C28D66FBD6F829124AAEBEC1CBB152F701777F728AE",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "bB": {
+          "sourceSha256": "D049D290B62EDFF7A2C45EE9F5C64DA97851D72C71AD3B48693D22C8951A2E3F",
+          "normalizedSha256": "55DEF1C28850D4414F5B59EE564192268EE061BEFEABD2283A8BA783486C324E",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "bR": {
+          "sourceSha256": "FA8E53B5A1E7EBF211CC5E1EC1681292F31ECD97854010AFD6430BB6BDC03747",
+          "normalizedSha256": "6C59E8520688FD149BE33B996A42EB2CB3CA77EBC1BCBE51A6F73E0FA96FFA13",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "bQ": {
+          "sourceSha256": "EDEEE70030DAC37A915B982CB1CAD7112C9C467228DCC29C846D0984985A3330",
+          "normalizedSha256": "5AE943A11B7545E6D7339D30938587469003C10E084D485599A9BCE58CE9CBED",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        },
+        "bK": {
+          "sourceSha256": "C78FD321B18A151E0A01E59BCD6043EB3D73AE4E3F80C6E2074E7763316BA607",
+          "normalizedSha256": "781BFB0235F59F6E2B10637704E7FD7ACAB91B87A9B130CFB54E9B6987E254AD",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 128,
+          "intrinsicHeight": 128,
+          "viewBox": null,
+          "alpha": true
+        }
+      },
+      "pieceAvailability": [
+        "pawn",
+        "knight",
+        "bishop",
+        "rook",
+        "queen",
+        "king"
+      ],
+      "colorVariants": [
+        "white",
+        "black"
+      ],
+      "colorPolicy": "separate upstream white/black artwork; never synthesized",
+      "notes": "Original author-designated monochrome print-like set; unlike Meridian, not copied from the 1952 newspaper. Original SVG bytes retained; normalized to 112x112 transparent PNG.",
+      "familyChecksum": "FA387142CF3A581BD3551D1B5FC5D5944A8523B51C236F4A7DF18F9524D3D0E8"
+    },
+    {
+      "pieceSetId": "p4wn-svg",
+      "datasetSplit": "test",
+      "displayName": "P4wn SVG",
+      "sourceType": "open-source-asset",
+      "sourceProject": "douglasbagnall/p4wn",
+      "sourceUrl": "https://github.com/douglasbagnall/p4wn/tree/fcdda9f5d7ae34bbbacc4caacdc78507b6a20394/src/images",
+      "sourceVersion": "fcdda9f5d7ae34bbbacc4caacdc78507b6a20394",
+      "sourceReference": "src/images",
+      "author": "Oliver Merkel",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenseTextPath": "scanner/recognition/datasets/piece-sets/licenses/CC0-1.0.txt",
+      "licenseTextSha256": "A2010F343487D3F7618AFFE54F789F5487602331C0A8D03F49E9A7C547CF0499",
+      "sourceNoticePath": "scanner/recognition/datasets/piece-sets/licenses/p4wn-svg-NOTICE.rst",
+      "sourceNoticeSha256": "BFFEECBB6B8DE189C18940A814A2138F49652FB0F0AA029594A4F5ABD8D553B2",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "attributionRequired": false,
+      "evaluationOnly": false,
+      "trainingRole": "TRAINING-ELIGIBLE",
+      "assetStatus": "available",
+      "platformFamily": "mobile/web games",
+      "pieceFamilyGroup": "p4wn-svg",
+      "style": "mobile",
+      "assetPath": "scanner/recognition/datasets/piece-sets/assets/p4wn-svg",
+      "assetChecksums": {
+        "wP": {
+          "sourceSha256": "35CD9FB92FD3ED12F9B20656393CDE2C2B862E5FD5A8C963DE3A40ACCD69813F",
+          "normalizedSha256": "E24C121D6D161E73269CE1B942221544D679B0D32140F42305DE7B2E826C2A22",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "wN": {
+          "sourceSha256": "286FE43F0113359DFE1901385B6AD5757203555ED9E66DB0E6CDB5E7E6AE9C16",
+          "normalizedSha256": "79BF84D4297D0DB0A455D1E7DB869CCF5AC137AD732686C8518E42398BE9322E",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "wB": {
+          "sourceSha256": "9D801AAEE728D4C1A7A57F4284FDE15150EEBC9158AA25D6148BE8128305DE3F",
+          "normalizedSha256": "318805DC378C41742923D9444191D59E74C9BBCEE7935CA44A2391646B315E41",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "wR": {
+          "sourceSha256": "88582DFA477C4996A6E9A8C4993E13AFB479A9426FD996E719376F585916A72C",
+          "normalizedSha256": "07D568D68D5D674452EE6EDF171D42642252C824386958130B48A4669D27A8CE",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "wQ": {
+          "sourceSha256": "D256B1E64EC28E47C147667AE32D1DB886D87BC93F67FCA3540F08CA3EB1566B",
+          "normalizedSha256": "7496DD36CF9CDD2A6B8D15395DBE5C2B0163086F22436955366E91E224B5DBD6",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "wK": {
+          "sourceSha256": "E2F402845EF55C54074084AEEBA2E721A3D2B66B920F55D09D5889AA58E13109",
+          "normalizedSha256": "C3D1F6EA29A819080B654A40D9B4B5B74D13884FD76C43B2C7A7C1ADA6EC320D",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "bP": {
+          "sourceSha256": "E4B52BC73AB95D9209DF00F2A46C0218F74D1AF8C12FDDA5B06BDEDDC249925B",
+          "normalizedSha256": "16373CC6FB2C4EA1AD67D0FF2CAE6804DB00B62C1EC0D25D27EB127756584FCA",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "bN": {
+          "sourceSha256": "2F5B8F3FB09799C2E6286581A1D079727E2579A2B1E72F03ECF58794287F7D86",
+          "normalizedSha256": "F9DF19A57FC6D15EC22BCBAEA0B674B4633A1D4917C6B5E0AB5C6F288D0E7D83",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "bB": {
+          "sourceSha256": "A5C4D481323A288CBD9BFC6F97E7342E2A21A72F19EF8C7FCCC0050FEC12A340",
+          "normalizedSha256": "556B819926986264A23B163431E06AF210A2EDE4C7C2127D22397778267F5260",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "bR": {
+          "sourceSha256": "94AAE5D91EED1B2AC009E861CD28E6992E3B66AE65A90E47CCEBE9A6FC247538",
+          "normalizedSha256": "FAB68D481461CDF6FE85FAA5F0931635858853BF9414C8C373E4B73D357EDA4D",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "bQ": {
+          "sourceSha256": "4B94D5E28EE2D42BAD2FAC72370B0947328E787FFCC0D26333D56A9570C8F323",
+          "normalizedSha256": "CB92A59A74DFCABB55E70BB8408707F29C7B038B19DF680682A04B4229BBC451",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        },
+        "bK": {
+          "sourceSha256": "9F64CF77DAB217D2A70E3F3F080F444BE6A0A669BB7D4DBC6C843829968A082F",
+          "normalizedSha256": "C9A9DF609E96424426EE929B6AE09C75A9C4DFF40BCAA535DD4D1C0B909B86FA",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 1024,
+          "intrinsicHeight": 1024,
+          "viewBox": "0 0 512 512",
+          "alpha": true
+        }
+      },
+      "pieceAvailability": [
+        "pawn",
+        "knight",
+        "bishop",
+        "rook",
+        "queen",
+        "king"
+      ],
+      "colorVariants": [
+        "white",
+        "black"
+      ],
+      "colorPolicy": "separate upstream white/black artwork; never synthesized",
+      "notes": "Mobile/offline web chess SVG set. The README names Oliver Merkel among CC0 contributors; upstream SVG addition is attributed to him. Original SVG bytes retained; normalized to 112x112 transparent PNG.",
+      "familyChecksum": "CB029D832B6F51E877B7616EC59A141388D93ACB61DD6D721E186BF3F897F0A6"
+    },
+    {
+      "pieceSetId": "kosal",
+      "datasetSplit": "train",
+      "displayName": "Kosal",
+      "sourceType": "open-source-asset",
+      "sourceProject": "philatype/kosal",
+      "sourceUrl": "https://github.com/philatype/kosal/tree/fea676adb94de83e19834a2160b9f19ab94fd104/.",
+      "sourceVersion": "fea676adb94de83e19834a2160b9f19ab94fd104",
+      "sourceReference": ".",
+      "author": "philatype",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://raw.githubusercontent.com/philatype/kosal/fea676adb94de83e19834a2160b9f19ab94fd104/LICENSE.txt",
+      "licenseTextPath": "scanner/recognition/datasets/piece-sets/licenses/kosal-LICENSE.txt",
+      "licenseTextSha256": "09AAD3DE45CD59C6DA78C1FB7BE12D1648D1A118BDC59CED87B57349BF20D158",
+      "sourceNoticePath": "scanner/recognition/datasets/piece-sets/licenses/kosal-NOTICE.md",
+      "sourceNoticeSha256": "6E0151C07E1BC08E18F522F635A0B0E8DB53ADEB12D6667702D37B0EFD655C14",
+      "trainingAllowed": true,
+      "redistributionAllowed": true,
+      "attributionRequired": true,
+      "evaluationOnly": false,
+      "trainingRole": "TRAINING-ELIGIBLE",
+      "assetStatus": "available",
+      "platformFamily": "none",
+      "pieceFamilyGroup": "kosal",
+      "style": "minimalist",
+      "assetPath": "scanner/recognition/datasets/piece-sets/assets/kosal",
+      "assetChecksums": {
+        "wP": {
+          "sourceSha256": "5B70C145B2F36B331EB41E2C7FC6223E79DAE720398A27D6E93ED926B4B30AD4",
+          "normalizedSha256": "4722F1A608545F913BE568AF7DC0A0E313F105533DEA934C9A191B97A3510C90",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "wN": {
+          "sourceSha256": "16F5D03A48D8E8B06D3953D514C1572C32498580BF6FC5602BEDCDEB0C4D8085",
+          "normalizedSha256": "32A0CA0505684E467EFE24E72180C61364648C53E5E3D6C641A349FAA37DBB5F",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "wB": {
+          "sourceSha256": "B3EDC4C12726482F30F2A597C695D85FAB8CE614D47E2C6E96360DA7E2E91C33",
+          "normalizedSha256": "8F45FFBB7D678B5625DE6D861B463F16EC1097BF04E67CD3DB7424D445E01CF4",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "wR": {
+          "sourceSha256": "33B98A25277FAC757C44C320CA99AEEA857B44EDF3CF12D259756EB58776F46B",
+          "normalizedSha256": "CCBEDA2DF1A3C418F3F88B725D6D41B1B2E2F2B4BFBDE0F348C3538A26AF38A2",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "wQ": {
+          "sourceSha256": "89128B10B247992D1366E4E6DA8FA426C06E629D8ABBFC2C955AAAD5C05022AB",
+          "normalizedSha256": "98305C54460BD06CC9BC72CF4748BFB140A26FDBA9233C620D7935F5D0AEBE03",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "wK": {
+          "sourceSha256": "443332572CA4C57C441C2467D0129432CDD9F9E1195649F84DF233A749E6DBF7",
+          "normalizedSha256": "49102E3B9F411A154D9BAFA3432201458AA29E1E7E4BB7647AEC82D052EDF537",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "bP": {
+          "sourceSha256": "1650805BC134A00B3BDB651B6531453C92C1A13B31FE5334E4E500CDE3226C4B",
+          "normalizedSha256": "795B023C91DEEB1DBBD2B987CFE2502B5463C5E2E19EDDB89696FC8D06A8F62E",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "bN": {
+          "sourceSha256": "27C69DF3CCA781F377CB1547C7B8E12D0740E1C257A70C6071895371CB28472A",
+          "normalizedSha256": "EAD964AEB2A4DF3EDAC4C5C279582E9DB80918782D27932B8CDFC15165ADA646",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "bB": {
+          "sourceSha256": "111C7540E6813435E2C6045475D55C56F0A299882C100691A982687AE63DBAB4",
+          "normalizedSha256": "966D47FFA203B0F793F195A16BA082EBC82F317DFFDC0113DE3BFCADE8E115D6",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "bR": {
+          "sourceSha256": "A59A7B3FC5EC3C95A3E68E0DA0AD2E1C0A7C72FB84BA66800C0C7857F74F8394",
+          "normalizedSha256": "279341A4E317C591BE7396BB500544E9817027DDFF83514CE026585E099BF339",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "bQ": {
+          "sourceSha256": "CCB10091B95197862AB25267EDB160E1723DEFF9CAF72E154E855F14C7DFE609",
+          "normalizedSha256": "54876A8EB68DCC649BA5A32E075045F28B5912761D85E59D7B43ED7758A38CD2",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        },
+        "bK": {
+          "sourceSha256": "1BD950BF5DFFBA8CB0302BD13DBD78E9157725C5E1CA3522C2120364790F4648",
+          "normalizedSha256": "617E377D7BE611FB346E7762A303958EB204F2B35E3379E4ADA1F704095B39F6",
+          "originalFormat": "svg",
+          "normalizedFormat": "png",
+          "intrinsicWidth": 162,
+          "intrinsicHeight": 162,
+          "viewBox": "0 0 81 81",
+          "alpha": true
+        }
+      },
+      "pieceAvailability": [
+        "pawn",
+        "knight",
+        "bishop",
+        "rook",
+        "queen",
+        "king"
+      ],
+      "colorVariants": [
+        "white",
+        "black"
+      ],
+      "colorPolicy": "separate upstream white/black artwork; never synthesized",
+      "notes": "Contemporary flat web/mobile artwork; CC BY attribution to philatype is required. Original SVG bytes retained; normalized to 112x112 transparent PNG.",
+      "familyChecksum": "49A7C135997FE89B312A4C20A3BBD1F20C9A7D4DFE38CB039A54F22E88C15D47"
     }
   ]
 }

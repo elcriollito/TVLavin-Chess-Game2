@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
 
-export const DATASET_VERSION = 'scanner-piece-dataset-v0.2';
+export const DATASET_VERSION = 'scanner-piece-dataset-v0.3';
 export const CLASSES = Object.freeze(['empty', 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']);
 export const PIECE_TYPES = Object.freeze(['pawn', 'knight', 'bishop', 'rook', 'queen', 'king']);
 export const ROLES = Object.freeze(['TRAINING-ELIGIBLE', 'EVALUATION-ONLY', 'REFERENCE-ONLY']);
 export const EXCLUDED_SAMPLE_ID = 'cv-success-005-puzzle-diagram-no-kings';
 const TYPES = { P: 'pawn', N: 'knight', B: 'bishop', R: 'rook', Q: 'queen', K: 'king' };
-const styles = new Set(['classic', 'outline', 'solid', 'geometric', 'stylized', 'book', 'mobile', 'broadcast', 'high-detail', 'ornamental', 'minimalist', 'blocky', 'unknown']);
-const supportedAssetLicenses = { 'Apache-2.0': true, MIT: true, 'CC-BY-4.0': true, 'CC0-1.0': false };
+const styles = new Set(['classic', 'outline', 'solid', 'geometric', 'stylized', 'book', 'monochrome', 'mobile', 'broadcast', 'high-detail', 'ornamental', 'minimalist', 'blocky', 'unknown']);
+const supportedAssetLicenses = { 'Apache-2.0': true, MIT: true, 'CC-BY-4.0': true,
+  'CC0-1.0': false, 'Public-Domain-Dedication': false };
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex').toUpperCase();
 export const sha256 = hash;
 export const stableJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
@@ -39,7 +40,9 @@ export function validateCatalog(catalog) {
     if (set.trainingRole === 'EVALUATION-ONLY' && (!set.evaluationOnly || set.trainingAllowed)) throw new Error(`${set.pieceSetId}: evaluation role conflict`);
     if (set.trainingRole === 'REFERENCE-ONLY' && (set.trainingAllowed || set.evaluationOnly)) throw new Error(`${set.pieceSetId}: reference role conflict`);
     if (set.sourceType === 'project-authored-procedural' && set.trainingRole === 'TRAINING-ELIGIBLE'
-      && set.sourceReference !== 'generator:caissa-procedural-geometry-v1') throw new Error('unknown procedural generator');
+      && (set.sourceReference !== 'generator:caissa-procedural-geometry-v1'
+        || set.sourceProject !== 'CAISSA Chess' || set.author !== 'CAISSA Chess'))
+      throw new Error('unknown procedural generator');
     if (set.sourceType === 'open-source-asset' && (!set.sourceProject || !set.sourceUrl || !/^[a-f0-9]{40}$/.test(set.sourceVersion || '')
       || !set.author || !set.licenseTextPath || !/^[A-F0-9]{64}$/.test(set.licenseTextSha256 || '')
       || !set.sourceNoticePath || !/^[A-F0-9]{64}$/.test(set.sourceNoticeSha256 || '')
@@ -80,6 +83,32 @@ export function validatePlatformCoverage(coverage) {
     seen.add(platform.platformFamily);
   }
   return coverage;
+}
+
+export function validateFreshEvaluationCandidates(pool) {
+  if (pool?.schemaVersion !== 'caissa-scanner-fresh-evaluation-candidates/1'
+    || !/^[A-F0-9]{64}$/.test(pool.sourceManifestSha256 || '')
+    || !Array.isArray(pool.candidates) || pool.candidates.length !== pool.sourceFileCount)
+    throw new Error('invalid fresh evaluation candidate pool');
+  const ids = new Set();
+  for (const candidate of pool.candidates) {
+    if (!candidate.candidateId || ids.has(candidate.candidateId)
+      || !/^[A-F0-9]{64}$/.test(candidate.originalSha256 || '')
+      || !/^[A-F0-9]{64}$/.test(candidate.referenceSha256 || '')
+      || !candidate.originalFile || !candidate.referenceScreenshot
+      || candidate.role !== 'fresh-evaluation-candidate' || candidate.trainingAllowed !== false
+      || candidate.formalBenchmarkEligible !== false
+      || !Array.isArray(candidate.remainingCertification) || !candidate.remainingCertification.length)
+      throw new Error('invalid or unsafe evaluation candidate');
+    ids.add(candidate.candidateId);
+    if (candidate.platformId && !candidate.platformIdentityEvidence)
+      throw new Error('platform identity has no evidence');
+    if (candidate.referenceOutcome !== 'unknown' && candidate.humanVerifiedOutcome === null)
+      throw new Error('reference outcome has no human verification');
+  }
+  if (pool.priorCorpusAliasCount !== pool.candidates.filter((item) => item.priorCorpusSampleId).length)
+    throw new Error('prior-corpus alias count mismatch');
+  return pool;
 }
 
 export function seededRandom(seed) {
@@ -174,22 +203,33 @@ export function validateSampleManifest(samples) {
 
 const counts = (samples, value) => Object.fromEntries([...new Set(samples.map(value))].sort()
   .map((key) => [key, samples.filter((sample) => value(sample) === key).length]));
-export function qualityReport(manifest, catalog, themes, coverage = null, assetAudit = null) {
+export function qualityReport(manifest, catalog, themes, coverage = null, assetAudit = null, candidates = null) {
+  validateCatalog(catalog); validateThemes(themes);
   validateSampleManifest(manifest.samples);
   if (coverage) validatePlatformCoverage(coverage);
+  if (candidates) validateFreshEvaluationCandidates(candidates);
   const train = manifest.samples.filter((sample) => sample.split === 'train');
   const real = manifest.samples.filter((sample) => sample.trainingRole === 'EVALUATION-ONLY');
   const white = train.filter((sample) => sample.color === 'white').length;
   const black = train.filter((sample) => sample.color === 'black').length;
   const occupied = white + black, empty = train.length - occupied;
   const availableFamilies = catalog.pieceSets.filter((set) => set.trainingRole === 'TRAINING-ELIGIBLE');
+  const upstreamCounts = counts(availableFamilies, (set) => set.sourceProject);
+  const authorCounts = counts(availableFamilies, (set) => set.author);
+  const externalProjects = Object.keys(upstreamCounts).filter((project) => project !== 'CAISSA Chess');
+  const dominantUpstream = Object.entries(upstreamCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
   const warnings = [];
   if (availableFamilies.length < 10) warnings.push('fewer-than-10-meaningful-piece-families');
   else if (availableFamilies.length < 15) warnings.push('fewer-than-15-preferred-piece-families');
+  if (externalProjects.length < 3) warnings.push('fewer-than-three-independent-external-upstreams');
+  if (dominantUpstream && dominantUpstream[1] / availableFamilies.length > 0.5)
+    warnings.push('single-upstream-over-half-of-families');
   const validationFamilies = availableFamilies.filter((set) => set.datasetSplit === 'validation');
   const testFamilies = availableFamilies.filter((set) => set.datasetSplit === 'test');
   if (!validationFamilies.length || validationFamilies.length + testFamilies.length < 2)
     warnings.push('fewer-than-two-whole-family-holdouts');
+  if (validationFamilies.length < 2 || testFamilies.length < 2)
+    warnings.push('fewer-than-two-families-in-each-holdout');
   if (white !== black) warnings.push('white-black-imbalance');
   if (empty !== occupied) warnings.push('empty-occupied-imbalance');
   const occupiedClassCounts = CLASSES.slice(1).map((label) => train.filter((sample) => sample.classLabel === label).length);
@@ -198,6 +238,8 @@ export function qualityReport(manifest, catalog, themes, coverage = null, assetA
   if (real.some((sample) => sample.pieceSetId === 'unknown-real-family')) warnings.push('real-piece-families-not-attributed');
   if (assetAudit?.exactDuplicates.length) warnings.push('cross-family-exact-asset-duplicates');
   if (assetAudit?.nearDuplicates.length) warnings.push('possible-near-duplicate-piece-families');
+  if (!assetAudit || assetAudit.acquiredFamilies !== availableFamilies.filter((set) => set.sourceType === 'open-source-asset').length)
+    warnings.push('asset-integrity-not-audited');
   const sourceCategories = counts(real, (sample) => sample.sourceCategory || 'unknown');
   const hardSubsets = {
     bishopKnightQueen: real.filter((sample) => ['bishop', 'knight', 'queen'].includes(sample.pieceType)).length,
@@ -219,10 +261,11 @@ export function qualityReport(manifest, catalog, themes, coverage = null, assetA
   const splitFamilies = { train: availableFamilies.filter((set) => set.datasetSplit === 'train').map((set) => set.pieceSetId).sort(),
     validation: validationFamilies.map((set) => set.pieceSetId).sort(), test: testFamilies.map((set) => set.pieceSetId).sort() };
   return {
-    schemaVersion: 'caissa-scanner-piece-dataset-quality/2', datasetVersion: DATASET_VERSION,
+    schemaVersion: 'caissa-scanner-piece-dataset-quality/3', datasetVersion: DATASET_VERSION,
     manifestSha256: hash(stableJson(manifest)), catalogSha256: manifest.catalogSha256,
     boardThemeCatalogSha256: manifest.boardThemeCatalogSha256,
     platformCoverageSha256: manifest.platformCoverageSha256 || null,
+    freshEvaluationCandidatesSha256: manifest.freshEvaluationCandidatesSha256 || null,
     realTruthSha256: manifest.truthManifestSha256 || null,
     realEvaluation: manifest.realEvaluation || null,
     totalSamples: manifest.samples.length,
@@ -240,6 +283,11 @@ export function qualityReport(manifest, catalog, themes, coverage = null, assetA
     countsByRole: counts(manifest.samples, (sample) => sample.trainingRole),
     countsBySplit: counts(manifest.samples, (sample) => sample.split),
     familyCount: catalog.pieceSets.length, trainingEligibleFamilyCount: availableFamilies.length,
+    sourceIndependence: { upstreamProjectCount: Object.keys(upstreamCounts).length,
+      externalUpstreamProjectCount: externalProjects.length, authorCount: Object.keys(authorCounts).length,
+      familiesPerUpstream: upstreamCounts, familiesPerAuthor: authorCounts,
+      dominantUpstream: dominantUpstream ? { sourceProject: dominantUpstream[0],
+        familyCount: dominantUpstream[1], share: Number((dominantUpstream[1] / availableFamilies.length).toFixed(4)) } : null },
     familyCompleteness: { completeTrainingFamilies: availableFamilies.filter((set) => set.pieceAvailability.length === 6
       && set.colorVariants.length === 2).map((set) => set.pieceSetId).sort(),
     incompleteTrainingFamilies: availableFamilies.filter((set) => set.pieceAvailability.length !== 6
@@ -256,8 +304,16 @@ export function qualityReport(manifest, catalog, themes, coverage = null, assetA
     licenseSummary: counts(catalog.pieceSets, (set) => `${set.trainingRole}:${set.license}`),
     assetStatusSummary: counts(catalog.pieceSets, (set) => `${set.trainingRole}:${set.assetStatus}`),
     platformCoverage: coverage?.platforms || null,
-    warnings, trainingReadiness: availableFamilies.length < 10 || !validationFamilies.length
-      || validationFamilies.length + testFamilies.length < 2 || assetAudit?.exactDuplicates.length
+    freshEvaluationCandidates: candidates ? { total: candidates.candidates.length,
+      priorCorpusAliases: candidates.priorCorpusAliasCount,
+      platformIdentified: candidates.candidates.filter((item) => item.platformId).length,
+      humanOutcomeVerified: candidates.candidates.filter((item) => item.humanVerifiedOutcome !== null).length,
+      benchmarkEligible: candidates.candidates.filter((item) => item.formalBenchmarkEligible).length } : null,
+    warnings, trainingReadiness: warnings.includes('asset-integrity-not-audited')
+      ? 'NEEDS MORE LICENSING / PROVENANCE WORK'
+      : availableFamilies.length < 10 || externalProjects.length < 3
+      || validationFamilies.length < 2 || testFamilies.length < 2 || assetAudit?.exactDuplicates.length
+      || assetAudit?.nearDuplicates.length
       || white !== black || empty !== occupied || Math.max(...occupiedClassCounts) - Math.min(...occupiedClassCounts) > 1
       ? 'NEEDS MORE PIECE-SET DIVERSITY' : 'READY FOR BASELINE TRAINING'
   };

@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { buildSyntheticPlan, DATASET_VERSION, qualityReport, sha256, stableJson,
-  validateCatalog, validateSampleManifest, validateThemes } from '../scanner/recognition/datasets/pieces/dataset-core.js';
+  validateCatalog, validateFreshEvaluationCandidates, validateSampleManifest, validateThemes } from '../scanner/recognition/datasets/pieces/dataset-core.js';
 import { renderSyntheticSvg, validateGeneratedSvg } from '../scanner/recognition/datasets/pieces/synthetic-svg.js';
 import { verifyAssetCatalog } from '../scanner/recognition/datasets/pieces/asset-integrity.js';
 import { loadVerifiedRealEvaluation } from '../scanner/recognition/datasets/pieces/real-evaluation.js';
@@ -35,11 +35,13 @@ if (protectedRoots.some((directory) => inside(outputDir, directory)
 const catalogPath = join(root, 'scanner/recognition/datasets/piece-sets/catalog-v1.json');
 const themesPath = join(root, 'scanner/recognition/datasets/pieces/catalog/board-themes-v1.json');
 const coveragePath = join(root, 'scanner/recognition/datasets/pieces/catalog/platform-coverage-v1.json');
+const candidatesPath = join(root, 'scanner/recognition/datasets/pieces/catalog/fresh-evaluation-candidates-v0.1.json');
 const catalogBytes = await readFile(catalogPath), themesBytes = await readFile(themesPath);
-const coverageBytes = await readFile(coveragePath);
+const coverageBytes = await readFile(coveragePath), candidatesBytes = await readFile(candidatesPath);
 const catalog = validateCatalog(JSON.parse(catalogBytes));
 const themes = validateThemes(JSON.parse(themesBytes));
 const coverage = JSON.parse(coverageBytes);
+const candidates = validateFreshEvaluationCandidates(JSON.parse(candidatesBytes));
 const assetAudit = await verifyAssetCatalog(catalog, root);
 if (assetAudit.exactDuplicates.length) throw new Error('cross-family exact asset duplicates require review');
 const real = await loadVerifiedRealEvaluation({ truthPath, corpusV01, corpusV03, repoRoot: root });
@@ -72,15 +74,16 @@ for (const sample of synthetic) {
   imageBytes.set(sample.sampleId, bytes);
 }
 const manifest = {
-  schemaVersion: 'caissa-scanner-piece-dataset/2', datasetVersion: DATASET_VERSION, seed,
+  schemaVersion: 'caissa-scanner-piece-dataset/3', datasetVersion: DATASET_VERSION, seed,
   catalogSha256: sha256(catalogBytes), boardThemeCatalogSha256: sha256(themesBytes),
   platformCoverageSha256: sha256(coverageBytes),
+  freshEvaluationCandidatesSha256: sha256(candidatesBytes),
   truthManifestSha256: real.truthManifestSha256,
   realEvaluation: { boardCount: real.sourceBoardCount, squareCount: real.tiles.length,
     exactByteAliasesExcluded: real.aliasCount, excludedEdgeCase: real.excludedEdgeCase,
     sourcePixelsCommitted: false, trainingPermitted: false },
   splitPolicy: 'whole-piece-family/source-image/augmentation-family/platform-session; shared board themes; real truth test-only; no tile-random split',
-  augmentationPolicy: 'bounded v0.2 SVG backgrounds/effects plus Sharp JPEG/WebP lossy roundtrip to PNG; no identity-changing transform',
+  augmentationPolicy: 'bounded v0.2 SVG backgrounds/effects plus Sharp JPEG/WebP lossy roundtrip to PNG; no identity-changing transform; unchanged in v0.3',
   syntheticFormat: { format: 'SVG RGB or PNG after lossy roundtrip', width: 128, height: 128, grayscaleForced: false },
   samples: [...synthetic, ...real.tiles]
 };
@@ -91,7 +94,7 @@ for (const sample of synthetic) {
   seenImages.set(sample.imageSha256, sample.sampleId);
 }
 validateSampleManifest(manifest.samples);
-const report = qualityReport(manifest, catalog, themes, coverage, assetAudit);
+const report = qualityReport(manifest, catalog, themes, coverage, assetAudit, candidates);
 if (sha256(await readFile(truthPath)) !== real.truthManifestSha256) throw new Error('truth changed during generation');
 await mkdir(join(outputDir, 'tiles'), { recursive: true });
 for (const sample of synthetic) {

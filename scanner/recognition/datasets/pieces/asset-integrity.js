@@ -10,6 +10,26 @@ export function familyChecksum(entry) {
     assets: Object.entries(entry.assetChecksums).sort(([a], [b]) => a.localeCompare(b)) }));
 }
 const maskDistance = (a, b) => a.reduce((sum, value, index) => sum + (value !== b[index] ? 1 : 0), 0) / a.length;
+const mean = (items) => items.reduce((sum, value) => sum + value, 0) / items.length;
+const rounded = (value) => Number(value.toFixed(4));
+const edgeMap = (mask, size) => mask.map((value, index) => {
+  const x = index % size, y = Math.floor(index / size);
+  return Number((x > 0 && value !== mask[index - 1]) || (y > 0 && value !== mask[index - size]));
+});
+export function familyDistanceAudit(families, occupancyThreshold = 0.08, edgeThreshold = 0.08) {
+  const ids = [...families.keys()].sort(), pairs = [], nearDuplicates = [];
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    const first = families.get(ids[i]), second = families.get(ids[j]);
+    const occupancyDistance = mean(SYMBOLS.map((symbol) => maskDistance(first[symbol].mask, second[symbol].mask)));
+    const edgeDistance = mean(SYMBOLS.map((symbol) => maskDistance(first[symbol].edges, second[symbol].edges)));
+    const pair = { first: ids[i], second: ids[j], occupancyDistance: rounded(occupancyDistance),
+      edgeDistance: rounded(edgeDistance), structuralSimilarity: rounded(1 - (occupancyDistance + edgeDistance) / 2) };
+    pairs.push(pair);
+    if (occupancyDistance <= occupancyThreshold && edgeDistance <= edgeThreshold) nearDuplicates.push(pair);
+  }
+  pairs.sort((a, b) => b.structuralSimilarity - a.structuralSimilarity || a.first.localeCompare(b.first) || a.second.localeCompare(b.second));
+  return { comparedFamilies: ids.length, pairCount: pairs.length, closestPairs: pairs.slice(0, 10), nearDuplicates };
+}
 export function silhouetteNearDuplicates(masks, threshold = 0.08) {
   const nearDuplicates = [];
   const ids = [...masks.keys()].sort();
@@ -21,8 +41,9 @@ export function silhouetteNearDuplicates(masks, threshold = 0.08) {
 }
 export async function verifyAssetCatalog(catalog, repoRoot) {
   const entries = catalog.pieceSets.filter((entry) => entry.sourceType === 'open-source-asset');
-  const originalHashes = new Map(), normalizedHashes = new Map(), masks = new Map();
+  const originalHashes = new Map(), normalizedHashes = new Map(), structures = new Map();
   const exactDuplicates = [];
+  const sameFamilyColorShapePairs = [];
   for (const entry of entries) {
     if (entry.familyChecksum !== familyChecksum(entry)) throw new Error(`${entry.pieceSetId}: family checksum mismatch`);
     const licenseBytes = await readFile(join(repoRoot, entry.licenseTextPath));
@@ -31,7 +52,7 @@ export async function verifyAssetCatalog(catalog, repoRoot) {
       throw new Error(`${entry.pieceSetId}: license text/notice mismatch`);
     if (SYMBOLS.some((symbol) => !entry.assetChecksums[symbol]) || Object.keys(entry.assetChecksums).length !== 12)
       throw new Error(`${entry.pieceSetId}: incomplete 12-class assets`);
-    const silhouette = [];
+    const structure = {};
     for (const symbol of SYMBOLS) {
       const meta = entry.assetChecksums[symbol];
       const svg = await readFile(join(repoRoot, entry.assetPath, 'original', `${symbol}.svg`));
@@ -46,16 +67,23 @@ export async function verifyAssetCatalog(catalog, repoRoot) {
         if (previous && previous.split('/')[0] !== entry.pieceSetId) exactDuplicates.push({ format, first: previous, second: `${entry.pieceSetId}/${symbol}` });
         map.set(digest, `${entry.pieceSetId}/${symbol}`);
       }
-      if (symbol.startsWith('w')) {
-        const { data } = await sharp(png).resize(16, 16).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-        for (let i = 3; i < data.length; i += 4) silhouette.push(data[i] > 32 ? 1 : 0);
-      }
+      const { data } = await sharp(png).resize(32, 32).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const mask = [];
+      for (let i = 3; i < data.length; i += 4) mask.push(Number(data[i] > 32));
+      structure[symbol] = { mask, edges: edgeMap(mask, 32) };
     }
-    masks.set(entry.pieceSetId, silhouette);
+    structures.set(entry.pieceSetId, structure);
+    for (const type of 'PNBRQK') {
+      const distance = maskDistance(structure[`w${type}`].mask, structure[`b${type}`].mask);
+      if (distance <= 0.02) sameFamilyColorShapePairs.push({ family: entry.pieceSetId, pieceType: type,
+        occupancyDistance: rounded(distance) });
+    }
   }
-  const nearDuplicates = silhouetteNearDuplicates(masks);
+  const structural = familyDistanceAudit(structures);
+  const nearDuplicates = structural.nearDuplicates;
   return { acquiredFamilies: entries.length, originalAssets: entries.length * 12,
     normalizedAssets: entries.length * 12, uniqueOriginalHashes: originalHashes.size,
     uniqueNormalizedHashes: normalizedHashes.size, exactDuplicates, nearDuplicates,
-    silhouetteAudit: 'six white piece alpha masks, 16x16 each; Hamming threshold <=0.08 (screening only)' };
+    sameFamilyColorShapePairs, structural,
+    silhouetteAudit: 'twelve 32x32 alpha occupancy and edge masks per acquired family; mean Hamming thresholds <=0.08 for both (screening only); procedural family has no asset mask' };
 }

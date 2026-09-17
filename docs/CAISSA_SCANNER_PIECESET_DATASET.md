@@ -1,4 +1,8 @@
-# CAISSA Scanner — Phase 3-006B 2D piece-set dataset
+# CAISSA Scanner — 2D piece-set dataset
+
+Current version: **`scanner-piece-dataset-v0.3` — READY FOR BASELINE TRAINING** for a separate baseline experiment, not production recognition. See the [Phase 3-006C certification](CAISSA_SCANNER_PIECESET_DATASET_V0_3.md) for acquisition rights, independent-source counts, split/balance, platform-evaluation governance, residual warnings, and the exact readiness decision. The record below is retained as the **historical v0.2 state**, not the current dataset assessment.
+
+## Historical Phase 3-006B v0.2 record
 
 Status: **NEEDS MORE PIECE-SET DIVERSITY. No classifier training authorized.** Dataset version `scanner-piece-dataset-v0.2`. The deterministic [quality report](../artifacts/scanner-piece-dataset/quality-v0.2.json) and pinned [catalog](../scanner/recognition/datasets/piece-sets/catalog-v1.json) describe the exact inputs. The [v0.1 report](../artifacts/scanner-piece-dataset/quality-v0.1.json) remains historical evidence.
 
