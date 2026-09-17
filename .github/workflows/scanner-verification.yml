@@ -5,7 +5,11 @@ on:
     paths:
       - '.github/workflows/scanner-verification.yml'
       - 'docs/CAISSA_SCANNER_VISUAL_FREEZE.md'
+      - 'docs/CAISSA_SCANNER_PIECE_LABEL_ANNOTATION.md'
       - 'scanner/**'
+      - 'tools/scanner-piece-label-annotator/**'
+      - 'tests/scanner-piece-label-annotator.test.js'
+      - 'tests/browser/scanner-piece-label-annotator.spec.js'
       - 'tests/scanner-visual-contract.test.js'
       - 'tests/scanner-mobile-workspace.test.js'
       - 'tests/browser/scanner-mobile-workspace.spec.js'
@@ -26,7 +30,11 @@ on:
     paths:
       - '.github/workflows/scanner-verification.yml'
       - 'docs/CAISSA_SCANNER_VISUAL_FREEZE.md'
+      - 'docs/CAISSA_SCANNER_PIECE_LABEL_ANNOTATION.md'
       - 'scanner/**'
+      - 'tools/scanner-piece-label-annotator/**'
+      - 'tests/scanner-piece-label-annotator.test.js'
+      - 'tests/browser/scanner-piece-label-annotator.spec.js'
       - 'tests/scanner-visual-contract.test.js'
       - 'tests/scanner-mobile-workspace.test.js'
       - 'tests/browser/scanner-mobile-workspace.spec.js'

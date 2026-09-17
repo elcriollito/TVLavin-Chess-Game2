@@ -9,7 +9,10 @@ const rate = (hits, count) => count ? hits / count : null;
 const mean = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 
 export function truthLabels(entry) {
-  if (!entry || typeof entry !== 'object' || !entry.verifiedBy || !entry.verifiedAt) throw new Error('human verifier and verification date required');
+  if (!entry || typeof entry !== 'object' || !entry.verifiedBy
+      || !(entry.verifiedAt || entry.reviewedAgainstRectifiedBoard === true)) {
+    throw new Error('human verifier and verification evidence required');
+  }
   if (!/^[A-F0-9]{64}$/.test(entry.sourceSha256 || '')) throw new Error('source SHA-256 required');
   let labels = entry.squareLabels;
   if (entry.fenPlacement) {

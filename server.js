@@ -351,7 +351,9 @@ const server = http.createServer(async (req, res) => {
   // Developer-only Scanner corpus tooling is served exclusively by its
   // loopback launcher and must never become a public application route.
   if (pathname === '/tools/scanner-localization-annotator'
-      || pathname.startsWith('/tools/scanner-localization-annotator/')) {
+      || pathname.startsWith('/tools/scanner-localization-annotator/')
+      || pathname === '/tools/scanner-piece-label-annotator'
+      || pathname.startsWith('/tools/scanner-piece-label-annotator/')) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end('Not found');
     return;

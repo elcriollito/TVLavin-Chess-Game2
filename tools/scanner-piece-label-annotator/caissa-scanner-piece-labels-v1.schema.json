@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:caissa:scanner:piece-labels:1",
+  "title": "CAISSA Scanner canonical 64-square piece-label manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "squareOrder", "corpusIdentity", "samples"],
+  "properties": {
+    "schemaVersion": { "const": "caissa-scanner-piece-labels/1" },
+    "squareOrder": { "const": "a8-to-h1" },
+    "corpusIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["v01CornerManifestSha256", "v03CornerManifestSha256"],
+      "properties": {
+        "v01CornerManifestSha256": { "$ref": "#/$defs/hash" },
+        "v03CornerManifestSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "samples": { "type": "array", "items": { "$ref": "#/$defs/sample" } }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[A-F0-9]{64}$" },
+    "label": { "enum": ["empty", "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"] },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampleId", "sourceFilename", "sourceSha256", "cornerManifestSha256", "boardOrientation",
+        "squareOrder", "labels", "placementFen", "annotation", "pieceSetFamily", "pieceSetStyle",
+        "boardThemeFamily", "difficultyTags", "sourcePlatform", "reference"],
+      "properties": {
+        "sampleId": { "type": "string", "minLength": 1 },
+        "sourceFilename": { "type": "string", "minLength": 1 },
+        "sourceSha256": { "$ref": "#/$defs/hash" },
+        "cornerManifestSha256": { "$ref": "#/$defs/hash" },
+        "boardOrientation": { "enum": [null, "white-at-bottom", "black-at-bottom"] },
+        "squareOrder": { "const": "a8-to-h1" },
+        "labels": { "type": "array", "minItems": 64, "maxItems": 64, "items": { "$ref": "#/$defs/label" } },
+        "placementFen": { "type": "string", "minLength": 15 },
+        "annotation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "source", "humanVerifiedBy", "reviewedAgainstRectifiedBoard"],
+          "properties": {
+            "status": { "enum": ["draft", "verified"] },
+            "source": { "enum": ["manual", "fen-prefill-unreviewed", "fen-prefill-reviewed"] },
+            "humanVerifiedBy": { "enum": [null, "Alexander"] },
+            "reviewedAgainstRectifiedBoard": { "type": "boolean" }
+          }
+        },
+        "pieceSetFamily": { "type": ["string", "null"] },
+        "pieceSetStyle": { "type": "string" },
+        "boardThemeFamily": { "type": ["string", "null"] },
+        "difficultyTags": { "type": "array", "items": { "type": "string" } },
+        "sourcePlatform": { "type": ["string", "null"] },
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["outcome", "predictedFen", "knownWrongSquares", "failureType"],
+          "properties": {
+            "outcome": { "type": ["string", "null"] },
+            "predictedFen": { "type": ["string", "null"] },
+            "knownWrongSquares": { "type": "array" },
+            "failureType": { "type": "array" }
+          }
+        }
+      },
+      "allOf": [{
+        "if": { "properties": { "annotation": { "properties": { "status": { "const": "verified" } } } } },
+        "then": {
+          "properties": {
+            "boardOrientation": { "enum": ["white-at-bottom", "black-at-bottom"] },
+            "annotation": {
+              "properties": {
+                "humanVerifiedBy": { "const": "Alexander" },
+                "reviewedAgainstRectifiedBoard": { "const": true },
+                "source": { "enum": ["manual", "fen-prefill-reviewed"] }
+              }
+            }
+          }
+        }
+      }]
+    }
+  }
+}

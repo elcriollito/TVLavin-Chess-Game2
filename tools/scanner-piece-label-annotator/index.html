@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
+  <title>CAISSA Scanner — local piece-label annotator</title>
+  <link rel="stylesheet" href="./annotator.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">DEV ONLY · LOOPBACK · NO UPLOAD</p>
+      <h1>Scanner piece-label ground truth</h1>
+      <p>Human-verified 64-square labels from certified 2D board corners. Source images remain unchanged.</p>
+    </div>
+    <div class="header-status"><strong id="progress">Loading corpus…</strong><small id="output-path"></small></div>
+  </header>
+
+  <main id="app" hidden>
+    <aside class="sidebar" aria-label="Corpus and piece controls">
+      <section class="panel">
+        <label class="inline-check"><input id="incomplete-only" type="checkbox"> Incomplete only</label>
+        <label for="sample-select">Jump to sample</label>
+        <select id="sample-select"></select>
+        <div class="navigation">
+          <button id="previous" type="button">← Previous</button>
+          <button id="next" type="button">Next →</button>
+        </div>
+        <dl id="metadata" class="metadata"></dl>
+      </section>
+
+      <section class="panel">
+        <h2>Orientation</h2>
+        <p>Choose explicitly. Changing this remaps square names and FEN while preserving the visible image and piece locations.</p>
+        <div class="orientation-controls" role="group" aria-label="Board orientation">
+          <button id="white-bottom" type="button" aria-pressed="false">White at bottom</button>
+          <button id="black-bottom" type="button" aria-pressed="false">Black at bottom</button>
+        </div>
+        <strong id="orientation-status" class="status-line">Not selected</strong>
+      </section>
+
+      <section class="panel palette-panel">
+        <h2>Piece palette</h2>
+        <p>Select a label, then apply it to any number of image squares.</p>
+        <div id="palette" class="palette"></div>
+        <p id="selected-label" class="status-line">Selected: Empty</p>
+      </section>
+    </aside>
+
+    <section class="workspace" aria-label="Board annotation workspace">
+      <div class="toolbar">
+        <strong id="sample-heading"></strong>
+        <div class="overlay-controls" role="group" aria-label="Overlay mode">
+          <button data-overlay="image" type="button">Image</button>
+          <button data-overlay="labels" type="button">Labels</button>
+          <button data-overlay="both" type="button" aria-pressed="true">Both</button>
+        </div>
+      </div>
+
+      <div class="board-frame">
+        <div id="board-stage" class="board-stage mode-both">
+          <img id="board-image" alt="Human-corner-rectified chessboard" draggable="false">
+          <div id="board-grid" class="board-grid" aria-label="64 equal board squares"></div>
+        </div>
+      </div>
+      <div class="square-status" role="status" aria-live="polite">
+        <span id="square-name">Square: —</span>
+        <span id="square-label">Ground-truth label: —</span>
+      </div>
+
+      <div class="fen-panel">
+        <label for="placement-fen">Generated placement FEN (no turn or castling fields)</label>
+        <output id="placement-fen">Choose orientation</output>
+        <div class="prefill">
+          <label for="trusted-fen">Optional, corpus-certified human FEN placement</label>
+          <div class="prefill-row"><input id="trusted-fen" type="text" readonly placeholder="No trusted FEN for this sample"><button id="prefill" type="button" disabled>Prefill unverified draft</button></div>
+          <small>Only a FEN already bound to the certified corpus can prefill. Model predictions are never truth; prefill still requires visual review and confirmation.</small>
+        </div>
+      </div>
+
+      <div class="warning-panel"><strong>Nonblocking chess checks</strong><ul id="warnings"></ul></div>
+      <div class="actions">
+        <button id="save-draft" type="button">Save draft</button>
+        <button id="review" type="button">Review labels</button>
+      </div>
+      <section id="review-panel" class="review-panel" hidden>
+        <h2>Human review before verified truth</h2>
+        <p>Compare the underlying rectified image against every rendered piece. The generated FEN and metadata are shown above; unusual puzzles/compositions are allowed.</p>
+        <label class="inline-check"><input id="review-confirm" type="checkbox"> I reviewed all 64 squares against the image, including orientation and piece colors.</label>
+        <button id="confirm" type="button" class="primary">Confirm verified as Alexander</button>
+      </section>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <section id="loading" class="loading">Certifying local corpus and reading the separate annotation manifest…</section>
+  <script type="module" src="./annotator-app.js"></script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import { certifyHistoricalArtifacts, HistoricalTFJSBaseline, HISTORICAL_CLASSES,
 import { evaluateHistoricalBoards, selectUniqueSources, truthLabels } from '../scanner/recognition/benchmark/historical-classifier-evaluation.js';
 import { orderedAnnotationCorners, validateLocalizationCorpus } from '../scanner/recognition/benchmark/localization-real-corpus.js';
 import { classifyV03Sample, verifyV03Split, V03_CORPUS_SHA256 } from '../scanner/recognition/benchmark/localization-v03-split.js';
+import { toVisualBenchmarkTruth, validateManifest as validatePieceLabelManifest } from './scanner-piece-label-annotator/piece-label-core.js';
 import '../scanner/recognition/scanner-board-geometry.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -51,6 +52,7 @@ for (const sample of v01Annotated.samples) {
   const splitRecord = v01Manifest.samples.find((entry) => entry.sampleId === sample.sampleId);
   if (splitRecord.categoryGroup === '3d-board') continue; // Outside the user-defined 2D MVP domain.
   entries.push({ sampleId: sample.sampleId, sourceSha256: sample.originalSha256, path: join(corpusV01, ...sample.originalFile.split('/')),
+    sourceFilename: sample.originalFile.split('/').at(-1), cornerManifestSha256: sha(v01AnnotatedBytes),
     width: sample.sourceWidth, height: sample.sourceHeight, corners: orderedAnnotationCorners(sample),
     sourceCategory: splitRecord.categoryGroup, pieceSetFamily: sample.pieceSetFamily || 'unknown', difficultyTags: sample.difficultyTags || [], cohort: 'v0.1' });
 }
@@ -62,6 +64,7 @@ for (const sample of v03Annotated.samples) {
   const split = classifyV03Sample(sample.sampleId);
   if (split.split === 'legacy-overlap') continue;
   entries.push({ sampleId: sample.sampleId, sourceSha256: sample.originalSha256, path: join(corpusV03, ...sample.originalFile.split('/')),
+    sourceFilename: sample.originalFile.split('/').at(-1), cornerManifestSha256: sha(v03AnnotatedBytes),
     width: sample.sourceWidth, height: sample.sourceHeight, corners: orderedAnnotationCorners(sample),
     sourceCategory: split.category, pieceSetFamily: sample.pieceSetFamily || 'unknown', difficultyTags: sample.difficultyTags || [], cohort: 'v0.3-fresh' });
 }
@@ -72,14 +75,25 @@ for (const entry of selected) if (await fileSha(entry.path) !== entry.sourceSha2
 let truthById = new Map();
 if (truthPath) {
   const manifest = JSON.parse(await readFile(resolve(truthPath), 'utf8'));
-  if (manifest.schemaVersion !== 'caissa-scanner-piece-truth/1' || !Array.isArray(manifest.samples)) throw new Error('unsupported piece-truth manifest');
   truthById = new Map();
-  for (const item of manifest.samples) {
-    if (truthById.has(item.sampleId)) throw new Error(`${item.sampleId}: duplicate truth record`);
-    truthLabels(item);
-    const source = selected.find((entry) => entry.sampleId === item.sampleId);
-    if (!source || source.sourceSha256 !== item.sourceSha256) throw new Error(`${item.sampleId}: truth source is ineligible or checksum differs`);
-    truthById.set(item.sampleId, item);
+  if (manifest.schemaVersion === 'caissa-scanner-piece-labels/1') {
+    validatePieceLabelManifest(manifest, { v01CornerManifestSha256: sha(v01AnnotatedBytes),
+      v03CornerManifestSha256: sha(v03AnnotatedBytes), samples: selected });
+    for (const item of manifest.samples.filter((entry) => entry.annotation.status === 'verified')) {
+      const truth = toVisualBenchmarkTruth(item);
+      truthLabels(truth);
+      truthById.set(item.sampleId, truth);
+    }
+  } else if (manifest.schemaVersion === 'caissa-scanner-piece-truth/1' && Array.isArray(manifest.samples)) {
+    for (const item of manifest.samples) {
+      if (truthById.has(item.sampleId)) throw new Error(`${item.sampleId}: duplicate truth record`);
+      truthLabels(item);
+      const source = selected.find((entry) => entry.sampleId === item.sampleId);
+      if (!source || source.sourceSha256 !== item.sourceSha256) throw new Error(`${item.sampleId}: truth source is ineligible or checksum differs`);
+      truthById.set(item.sampleId, item);
+    }
+  } else {
+    throw new Error('unsupported piece-truth manifest');
   }
 }
 

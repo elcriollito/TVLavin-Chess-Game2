@@ -1,5 +1,10 @@
 # CAISSA Scanner — separate real-piece-truth annotation task
 
+Phase 3-005A implementation note: the authoritative annotator/output specification is now
+[CAISSA_SCANNER_PIECE_LABEL_ANNOTATION.md](CAISSA_SCANNER_PIECE_LABEL_ANNOTATION.md).
+The earlier `caissa-scanner-piece-truth/1` sketch below is historical planning material;
+the implemented canonical a8-to-h1 schema is `caissa-scanner-piece-labels/1`.
+
 Phase 3-005 is blocked on verified classification truth, **not** localization: 32 unique in-scope 2D boards already have Alexander-verified corners, but zero have complete 64-square piece truth. This task should produce a separate immutable, reviewed `caissa-scanner-piece-truth/1` manifest. Do not edit original images, reference screenshots, the v0.1/v0.3 localization manifests, or the recovered ZIPs. Reference-recognizer screenshots are evidence of possible mistakes, never ground truth.
 
 For each board, show the original and a homography-rectified playable area. A human annotator records image-grid row-major labels (top-left to bottom-right), exactly 64 from `empty,P,N,B,R,Q,K,p,n,b,r,q,k`; records board orientation separately; and optionally enters FEN placement. A second human reviews all occupied squares, ambiguous colors/types and orientation against the original. Store annotator/reviewer names or IDs, verification date, source SHA-256, sample ID, and uncertainty notes. Only records with full verified truth enter accuracy metrics. Do not infer missing squares from a model or reference recognizer. If a source is genuinely unreadable, mark it unresolved outside the scored manifest.
