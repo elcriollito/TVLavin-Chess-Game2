@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'">
+  <title>CAISSA Scanner — real development annotation</title>
+  <link rel="stylesheet" href="/annotator.css">
+</head>
+<body>
+  <header>
+    <div><small>DEV-ONLY · LOOPBACK · NO UPLOAD</small><h1>Real 2D development cohort</h1>
+      <p>Human truth for development only. Protected final boards and public Scanner are separate.</p></div>
+    <div class="header-status"><strong id="progress">Loading audit…</strong><span id="save-status" role="status">Loading</span></div>
+  </header>
+  <main id="app" hidden>
+    <aside>
+      <section class="panel"><label><input id="incomplete-only" type="checkbox"> Pending only</label>
+        <label for="sample-select">Sample</label><select id="sample-select"></select>
+        <div class="row"><button id="previous">← Previous</button><button id="next">Next →</button></div>
+        <dl id="source-metadata"></dl><p id="governance" class="notice"></p></section>
+      <section class="panel"><h2>Source metadata</h2><p>Do not infer a platform from appearance. Set these after source review.</p>
+        <label>Platform<input id="platform" placeholder="unknown"></label>
+        <label>Platform subtype<input id="platform-subtype" placeholder="unknown"></label>
+        <label>Capture type<input id="capture-type" placeholder="unknown"></label>
+        <label>Source category<input id="source-category" placeholder="unknown"></label>
+        <label>Rights status<select id="rights-status"><option value="user-provided-internal-research">User-provided internal research</option>
+          <option value="evaluation-only">Evaluation only / unclear</option><option value="blocked">Blocked</option></select></label>
+        <label><input id="development-use-allowed" type="checkbox" checked> Development use allowed (never redistribution)</label>
+        <label>Source group<input id="source-group" placeholder="optional shared group"></label>
+        <label>Session group<input id="session-group" placeholder="optional shared session"></label>
+        <label>Development split<select id="split"><option value="unassigned">Unassigned</option>
+          <option value="train-development">Train / development</option><option value="validation">Validation</option></select></label>
+        <fieldset><legend>Optional empty-square subtypes (sample-level)</legend><div id="subtype-tags" class="tag-grid"></div></fieldset>
+        <label>Notes / exclusion reason<textarea id="notes" rows="3"></textarea></label>
+        <div id="near-review" hidden><p>Possible near-duplicate: review before development use.</p>
+          <label><input id="review-distinct" type="checkbox"> I, Alexander, reviewed this as a distinct source/position.</label>
+          <label>Review reason<input id="review-reason" placeholder="Explain why distinct"></label></div>
+      </section>
+    </aside>
+    <div class="workspaces">
+      <section class="panel" id="corner-panel"><h2>1 · Playable 8×8 corners</h2>
+        <p>Click TL, TR, BR, BL of the playable field—not the outer board frame. Save drafts automatically.</p>
+        <p id="corner-instruction"></p><div class="source-frame"><div id="source-stage">
+          <img id="source-image" alt="Original development source" draggable="false"><svg id="corner-overlay" aria-hidden="true"></svg>
+        </div></div>
+        <div class="row"><button id="undo-corner">Undo corner</button><button id="reset-corners">Reset corners</button>
+          <button id="verify-corners" class="primary">Verify corners as Alexander</button></div>
+      </section>
+      <section class="panel" id="piece-panel" hidden><h2>2 · Orientation and 64 square labels</h2>
+        <p>Choose orientation explicitly. Select a piece or Empty, then click squares. Drafts autosave.</p>
+        <div class="row"><button id="white-bottom">White at bottom</button><button id="black-bottom">Black at bottom</button>
+          <strong id="orientation-status">Orientation not selected</strong></div>
+        <div id="palette" class="palette"></div><p id="selected-label">Selected: Empty</p>
+        <div class="board-frame"><div id="board-stage"><img id="board-image" alt="Human-corner rectified 8 by 8 board">
+          <div id="board-grid" aria-label="64 board squares"></div></div></div>
+        <div class="row"><span id="square-status">Square: —</span><span id="placement-fen"></span></div>
+        <button id="review-labels">Review 64 labels</button>
+        <div id="review-panel" hidden><p>Compare every square, piece color, and orientation against the image.</p>
+          <label><input id="all64-reviewed" type="checkbox"> I, Alexander, reviewed all 64 squares.</label>
+          <button id="verify-pieces" class="primary">Save human-verified truth</button></div>
+      </section>
+      <section class="panel"><div class="row"><button id="save-draft">Save draft now</button>
+        <button id="exclude">Exclude with reason</button></div>
+        <p id="message" role="status" aria-live="polite"></p><small id="output-path"></small></section>
+    </div>
+  </main>
+  <section id="loading" class="panel">Checking the immutable source audit and external annotation file…</section>
+  <script type="module" src="/annotator-app.js"></script>
+</body>
+</html>

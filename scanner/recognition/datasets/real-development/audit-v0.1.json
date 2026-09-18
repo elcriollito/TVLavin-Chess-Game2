@@ -1,0 +1,43 @@
+{
+  "corpusVersion": "caissa-scanner-real-development-v0.1",
+  "sourceCount": 41,
+  "exactUniqueImages": 41,
+  "exactProtectedDuplicates": 0,
+  "nearDuplicateReviewCandidates": 3,
+  "admittedDevelopmentSamples": 38,
+  "excludedSamples": 0,
+  "annotated": 0,
+  "humanVerified": 0,
+  "platformKnown": 0,
+  "developmentUseAllowed": 41,
+  "redistributionAllowed": 0,
+  "splitStatus": "unassigned-until-human-governance",
+  "protectedUniqueSourceCount": 46,
+  "protectedFinalSourceCount": 31,
+  "unsupportedFiles": [],
+  "exactDuplicates": [],
+  "reviewCandidates": [
+    {
+      "sampleId": "dev-real-v0.1-021",
+      "possibleNearProtected": [],
+      "possibleNearPeers": [
+        "dev-real-v0.1-023",
+        "dev-real-v0.1-024"
+      ]
+    },
+    {
+      "sampleId": "dev-real-v0.1-023",
+      "possibleNearProtected": [],
+      "possibleNearPeers": [
+        "dev-real-v0.1-021"
+      ]
+    },
+    {
+      "sampleId": "dev-real-v0.1-024",
+      "possibleNearProtected": [],
+      "possibleNearPeers": [
+        "dev-real-v0.1-021"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0b1927; color: #f2f5fa; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { display: flex; justify-content: space-between; gap: 2rem; align-items: center; padding: 1rem 1.5rem; background: #10283d; border-bottom: 1px solid #36536b; }
+header h1 { margin: .15rem 0; font-size: 1.35rem; } header p { margin: .25rem 0; color: #c2d0dc; }
+header small { color: #f1bb79; font-weight: 700; letter-spacing: .08em; }
+.header-status { display: grid; gap: .3rem; min-width: 12rem; text-align: right; }
+#save-status { color: #9fc9dc; } #save-status.failed { color: #ff9494; } #save-status.saved { color: #9fe0b2; }
+main { max-width: 1500px; margin: auto; padding: 1rem; display: grid; grid-template-columns: minmax(260px, 330px) minmax(0, 1fr); gap: 1rem; }
+main[hidden], [hidden] { display: none !important; }
+aside, .workspaces { display: grid; align-content: start; gap: 1rem; min-width: 0; }
+.panel { background: #11263a; border: 1px solid #32506a; border-radius: .75rem; padding: 1rem; }
+.panel h2 { margin: 0 0 .45rem; font-size: 1.05rem; } .panel p { color: #c5d2dd; }
+label { display: block; margin: .6rem 0; font-size: .9rem; }
+input:not([type=checkbox]), select, textarea { display: block; width: 100%; margin-top: .25rem; color: #fff; background: #0b1b2b; border: 1px solid #4b6980; border-radius: .4rem; padding: .5rem; font: inherit; }
+input[type=checkbox] { margin-right: .4rem; }
+button { color: #fff; background: #223d56; border: 1px solid #55738e; border-radius: .45rem; padding: .55rem .7rem; cursor: pointer; font: inherit; }
+button:hover:not(:disabled) { background: #315b7c; } button:disabled { opacity: .45; cursor: default; }
+button.primary { background: #1768ad; border-color: #6bb9f7; font-weight: 700; }
+button[aria-pressed=true], .palette button[aria-pressed=true] { outline: 2px solid #f2bd74; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .75rem 0; }
+dl { display: grid; grid-template-columns: auto 1fr; gap: .35rem .7rem; font-size: .84rem; overflow-wrap: anywhere; }
+dt { color: #9ab0c2; } dd { margin: 0; } .notice { border-left: 3px solid #f1bd74; padding-left: .55rem; overflow-wrap: anywhere; }
+.source-frame { overflow: auto; max-height: 75vh; background: #07111b; }
+#source-stage { position: relative; width: min(100%, 960px); margin: auto; line-height: 0; cursor: crosshair; }
+#source-image { width: 100%; height: auto; display: block; }
+#corner-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#corner-overlay polyline { fill: rgba(75, 177, 255, .12); stroke: #73c5ff; stroke-width: 3; }
+#corner-overlay circle { fill: #ffbd72; stroke: #0b1927; stroke-width: 2; }
+#corner-overlay text { fill: #fff; stroke: #0b1927; stroke-width: 3; paint-order: stroke; font: 700 24px system-ui; }
+.tag-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .15rem .5rem; }
+.tag-grid label { margin: .1rem 0; font-size: .8rem; }
+.palette { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.palette button { min-width: 2.5rem; height: 2.7rem; padding: .2rem; }
+.palette img { width: 2rem; height: 2rem; object-fit: contain; }
+.palette strong { width: 100%; margin-top: .35rem; }
+.board-frame { max-width: 640px; margin: .75rem auto; }
+#board-stage { position: relative; width: 100%; aspect-ratio: 1; }
+#board-image { display: block; width: 100%; height: 100%; }
+#board-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8,1fr); grid-template-rows: repeat(8,1fr); }
+#board-grid button { border: 1px solid rgba(255,255,255,.1); border-radius: 0; background: transparent; padding: 0; }
+#board-grid button:hover { background: rgba(77,174,255,.25); }
+#board-grid button img { width: 90%; height: 90%; object-fit: contain; filter: drop-shadow(0 1px 2px #111); }
+#placement-fen { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+#message { min-height: 1.5rem; } #message.error { color: #ffa3a3; } #message.success { color: #9fe0b2; }
+@media (max-width: 820px) { header { display: block; } .header-status { text-align: left; } main { grid-template-columns: 1fr; } }

@@ -11,7 +11,9 @@ let folder;
 let outputPath;
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex').toUpperCase();
 
-test.beforeAll(async () => {
+// Each scenario owns a fresh store. The previous shared store let the autosave from
+// the placement test become the next test's starting position (notably in WebKit).
+test.beforeEach(async () => {
   folder = await mkdtemp(join(tmpdir(), 'caissa-piece-browser-'));
   outputPath = join(folder, 'truth', 'piece-labels.json');
   const samples = [];
@@ -42,12 +44,14 @@ test.beforeAll(async () => {
   running = await createPieceAnnotatorServer({ port: 0, outputPath, catalog });
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
   await running?.close();
   if (folder) {
     expect(resolve(folder).startsWith(resolve(tmpdir()))).toBe(true);
     await rm(folder, { recursive: true, force: true });
   }
+  running = undefined;
+  folder = undefined;
 });
 
 test('local tool loads a true 512 board with exactly 64 equal, gapless cells and no external requests', async ({ page }) => {
