@@ -13,6 +13,7 @@ import {
   injectPlayGameplayPreviewMarker,
   resolvePlayGameplayDeploymentConfig
 } from './api/_lib/play-gameplay-preview-config.js';
+import { createScannerBetaHttpAdapter } from './tools/scanner-beta-feedback/http-adapter.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +22,8 @@ const PORT = 8000;
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'";
+
+const scannerBeta = createScannerBetaHttpAdapter({ env: process.env });
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -348,6 +351,8 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = url.pathname;
 
+  if (await scannerBeta.handle(req, res, pathname)) return;
+
   // Developer-only Scanner corpus tooling is served exclusively by its
   // loopback launcher and must never become a public application route.
   if (pathname === '/tools/scanner-localization-annotator'
@@ -355,6 +360,14 @@ const server = http.createServer(async (req, res) => {
       || pathname === '/tools/scanner-piece-label-annotator'
       || pathname.startsWith('/tools/scanner-piece-label-annotator/')) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end('Not found');
+    return;
+  }
+
+  if ((pathname === '/scanner/beta' || pathname.startsWith('/scanner/beta/'))
+      && process.env.CAISSA_SCANNER_BETA_STAGE !== 'internal') {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive' });
     res.end('Not found');
     return;
   }
@@ -434,6 +447,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/blog') {
     filePath = './blog/index.html';
+  }
+  if (pathname === '/scanner/beta' || pathname === '/scanner/beta/') {
+    filePath = './scanner/beta/index.html';
   }
   if (pathname === '/about' || pathname === '/about/') {
     filePath = './about.html';

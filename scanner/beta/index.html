@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#071521">
+  <title>CAISSA Scanner Internal Beta</title>
+  <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
+  <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
+  <link rel="stylesheet" href="/scanner/beta/beta.css?v=0.1.0">
+</head>
+<body>
+  <main class="beta-shell" id="betaApp">
+    <header class="beta-head"><span class="beta-brand">CAISSA <b>Scanner</b></span><span class="beta-badge">INTERNAL BETA</span></header>
+
+    <section class="beta-view beta-capture" id="captureView" aria-labelledby="captureTitle">
+      <div class="beta-hero"><span class="beta-camera" aria-hidden="true">📷</span><h1 id="captureTitle">Scan a chess position</h1><p>Your confirmation helps improve recognition. Nothing is submitted silently.</p></div>
+      <label class="beta-field">Board orientation<select id="orientation"><option value="white-at-bottom">White at bottom</option><option value="black-at-bottom">Black at bottom</option></select></label>
+      <label class="beta-field">Platform (optional)<select id="platform"><option value="">Not specified</option><option>Chess.com</option><option>Lichess</option><option>ChessBase / Playchess</option><option>ICC</option><option>PlayOK</option><option>FIDE/event</option><option>Chessworld</option><option>CAISSA gateway</option><option>other</option></select></label>
+      <fieldset class="beta-consent"><legend>Help improve Scanner</legend><label><input type="checkbox" id="shareCorrection" checked> Share my confirmed correction</label><label><input type="checkbox" id="shareImage"> Share this image for model improvement</label></fieldset>
+      <div class="beta-capture-actions"><button id="takePhoto" class="primary" type="button">Take Photo</button><button id="choosePhoto" type="button">Choose Photo</button></div>
+      <input id="cameraInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden>
+      <input id="galleryInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+      <p class="beta-sync" id="syncStatus" aria-live="polite"></p>
+    </section>
+
+    <section class="beta-view beta-reading" id="readingView" hidden aria-labelledby="readingTitle"><div class="beta-spinner"></div><h1 id="readingTitle">Reading position…</h1><p>Finding the board and checking each square.</p></section>
+
+    <section class="beta-view beta-review" id="reviewView" hidden aria-labelledby="reviewTitle">
+      <div class="beta-review-head"><div><h1 id="reviewTitle">Check the position</h1><p>Tap a piece, then tap a square to fix it.</p></div><button id="newScan" type="button">New scan</button></div>
+      <div class="scanner-board beta-board" id="betaBoard" aria-label="Recognized chess position"></div>
+      <div class="beta-palette" id="piecePalette" aria-label="Correction pieces"></div>
+      <p class="beta-selection" id="selectionStatus">Selected: Clear square</p>
+      <div class="beta-actions"><button id="confirmPosition" class="primary" type="button">Confirm Correct</button><button id="localizationWrong" class="danger" type="button">Board Detection Wrong</button></div>
+      <details class="beta-diagnostics"><summary>Beta diagnostics</summary><dl id="diagnostics"></dl></details>
+      <p class="beta-sync" id="submitStatus" aria-live="polite"></p>
+    </section>
+
+    <section class="beta-view beta-done" id="workspaceView" hidden aria-labelledby="workspaceTitle">
+      <h1 id="workspaceTitle">Position ready</h1>
+      <p>Feedback saved in review quarantine. It will not train the model automatically.</p>
+      <div class="scanner-board beta-board beta-workspace-board" id="workspaceBoard" aria-label="Confirmed chess position"></div>
+      <button id="scanAnother" class="primary" type="button">Scan another position</button>
+    </section>
+  </main>
+  <script src="/scanner/scanner-fen.js?v=0.3.0"></script>
+  <script src="/scanner/recognition/scanner-image-decode.js?v=0.1.0"></script>
+  <script src="/scanner/recognition/scanner-recognition-runtime.js?v=0.2.0"></script>
+  <script type="module" src="/scanner/beta/beta-app.js?v=0.1.0"></script>
+</body>
+</html>
