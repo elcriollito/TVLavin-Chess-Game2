@@ -235,13 +235,17 @@ State rules:
 
 ### UI Architecture
 
-Recommended layout:
+Approved Spectator TV 2.0 layout:
 
-- Left panel: channels and live game list.
-- Center: broadcast board, player bars, clocks, status, optional opening label.
-- Right panel: move list, PGN/export, game metadata.
+- Left: one large, stable broadcast board with player bars and compact viewing controls.
+- Right: one interactive workspace divided into fixed `HEAD`, contextual `BODY`, and fixed `FOOT` wraps.
+- `HEAD`: the three-step workflow `Server -> Channels -> Watch`.
+- `BODY`: the only primary scroll owner. It shows server selection, channel/game discovery, or live game details.
+- `FOOT`: real FICS connection state and contextual actions.
 
-The layout should be distinct from the FICS Room Tables page. FICS is a play/lobby surface; Spectator TV is a curated watch surface.
+The earlier three-column Channels / Board / Details proposal is superseded. The board must remain the visual protagonist and must not move when the workspace changes steps. The layout remains distinct from the FICS Room Tables page: FICS is a play/lobby surface; Spectator TV is a curated watch surface.
+
+FICS is the only provider in the 2.0 project. Lichess must not appear as a disabled or placeholder provider; it will be integrated later as an independent project after the FICS experience is released and stable.
 
 ### Data Flow
 

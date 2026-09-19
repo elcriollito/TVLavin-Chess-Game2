@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const html = read('index.html');
+const css = read('css/spectator-tv-2.css');
+const script = read('js/spectator-tv-section.js');
+const section = html.match(/<!-- SECTION: Spectator TV -->([\s\S]*?)<!-- SECTION: FICS/)[1];
+
+test('Spectator TV 2.0 uses one board region and one HEAD BODY FOOT workspace', () => {
+    assert.match(section, /id="spectatorStage" class="spectator-stage"/);
+    assert.equal((section.match(/class="spectator-board-panel"/g) || []).length, 1);
+    assert.equal((section.match(/class="spectator-workspace"/g) || []).length, 1);
+    assert.equal((section.match(/spectator-workspace-head/g) || []).length, 1);
+    assert.equal((section.match(/spectator-workspace-body/g) || []).length, 1);
+    assert.equal((section.match(/spectator-workspace-foot/g) || []).length, 1);
+    assert.doesNotMatch(section, /spectator-browser-panel|spectator-side-panel/);
+});
+
+test('workflow exposes exactly Server, Channels, and Watch views', () => {
+    assert.equal((section.match(/data-spectator-tab=/g) || []).length, 3);
+    assert.equal((section.match(/data-spectator-view=/g) || []).length, 3);
+    for (const id of ['server', 'channels', 'watch']) {
+        assert.match(section, new RegExp(`data-spectator-tab="${id}"`));
+        assert.match(section, new RegExp(`data-spectator-view="${id}"`));
+    }
+});
+
+test('FICS is the only provider in the redesign scope', () => {
+    assert.match(section, /data-spectator-server="fics"/i);
+    assert.doesNotMatch(section, /lichess/i);
+    assert.equal((section.match(/data-spectator-server=/g) || []).length, 1);
+});
+
+test('new shell reuses existing FICS and Spectator owners', () => {
+    assert.match(script, /window\.CaissaFICSClient/);
+    assert.match(script, /window\.CaissaSpectatorTV/);
+    assert.match(script, /window\.CaissaSpectatorTVCatalog/);
+    assert.match(script, /switchObservedGame/);
+    assert.doesNotMatch(script, /new\s+WebSocket\s*\(/);
+    assert.doesNotMatch(script, /new\s+Chess\s*\(/);
+});
+
+test('workspace BODY is the scroll owner and desktop is a two-zone grid', () => {
+    assert.match(css, /\.spectator-v2 \.spectator-stage\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)\s+minmax\(360px, 410px\)/s);
+    assert.match(css, /\.spectator-v2 \.spectator-workspace\s*\{[^}]*overflow:\s*hidden/s);
+    assert.match(css, /\.spectator-v2 \.spectator-workspace-body\s*\{[^}]*overflow-y:\s*auto/s);
+    assert.doesNotMatch(css, /zoom\s*:/i);
+});
+
+test('approved board presentation controls are present', () => {
+    for (const id of ['spectatorFlipBoardBtn', 'spectatorTheaterBtn', 'spectatorFullscreenBtn', 'spectatorBoardRefreshBtn']) {
+        assert.match(section, new RegExp(`id="${id}"`));
+    }
+});
