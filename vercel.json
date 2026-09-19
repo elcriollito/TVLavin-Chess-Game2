@@ -20,6 +20,10 @@
     },
     "api/beta/scanner.js": {
       "includeFiles": "api/_private/scanner-beta-index.html"
+    },
+    "api/scanner/beta/recognize.js": {
+      "maxDuration": 30,
+      "includeFiles": "{api/_private/scanner-beta-model/**,node_modules/onnxruntime-node/{package.json,dist/**,bin/napi-v6/linux/x64/**},node_modules/onnxruntime-common/{package.json,dist/cjs/**}}"
     }
   },
   "crons": [

@@ -1,7 +1,7 @@
 import { createScannerBetaService } from '../../api/_lib/scanner-beta-service.js';
 import { SCANNER_BETA, betaEnabled, privateHeaders, sameOrigin } from '../../api/_lib/scanner-beta-policy.js';
 import { createScannerBetaLocalStore } from './local-store.mjs';
-import { inferFrozenV05 } from './inference-adapter.mjs';
+import { inferFrozenV05Onnx } from '../../api/_lib/scanner-beta-inference.js';
 import { createBetaProgramService } from '../../api/_lib/beta-program-service.js';
 
 async function readBytes(req, limit) {
@@ -57,7 +57,7 @@ export function createScannerBetaHttpAdapter({ env = process.env, store = null, 
         if (req.method !== 'POST') adapted.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
         else if (!sameOrigin(req)) adapted.status(403).json({ error: 'ORIGIN_REJECTED' });
         else {
-          try { adapted.status(200).json(await inferFrozenV05(req.body, { env })); }
+          try { adapted.status(200).json((await inferFrozenV05Onnx(req.body)).response); }
           catch (error) { adapted.status(503).json({ error: String(error.message || 'INFERENCE_FAILED') }); }
         }
       }
