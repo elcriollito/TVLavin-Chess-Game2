@@ -43,6 +43,7 @@ endgame-pools/authoring/**
 endgame-pools/private/**
 gateway/**
 scripts/**
+!scripts/prune-onnxruntime-node.mjs
 tests/**
 playwright.config.js
 tools/**
