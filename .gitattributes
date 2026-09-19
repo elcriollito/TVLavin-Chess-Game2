@@ -13,3 +13,12 @@
 /scanner/recognition/datasets/piece-sets/*.json text eol=lf
 /scanner/recognition/datasets/pieces/catalog/*.json text eol=lf
 /artifacts/scanner-piece-dataset/*.json text eol=lf
+/artifacts/scanner-classifier-baseline/*.json text eol=lf
+/artifacts/scanner-piece-classifier-v0.1/*.json text eol=lf
+/artifacts/scanner-piece-classifier-v0.2/*.json text eol=lf
+/artifacts/scanner-piece-classifier-v0.3/*.json text eol=lf
+/artifacts/scanner-piece-classifier-v0.4/*.json text eol=lf
+/artifacts/scanner-piece-classifier-v0.5/*.json text eol=lf
+/scanner/recognition/classifier-baseline/*.json text eol=lf
+/scanner/recognition/classifier-revision/*.json text eol=lf
+/scanner/recognition/production-inference/*.json text eol=lf
