@@ -11,6 +11,7 @@ let snapshot = null;
 let workingFen = '';
 let selectedPiece = '';
 let captureType = null;
+let activeRecognitionController = null;
 
 function show(id) { views.forEach((view) => { $(view).hidden = view !== id; }); }
 function consent() { return { shareImageForImprovement: $('shareImage').checked, shareCorrectionForImprovement: $('shareCorrection').checked }; }
@@ -34,18 +35,20 @@ function rgbaBase64(buffer) {
   return btoa(value);
 }
 
-async function recognizeBoard(body) {
+async function recognizeBoard(body, signal) {
   let lastError = new Error('CLASSIFIER_UNAVAILABLE');
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (signal.aborted) throw new DOMException('Recognition canceled.', 'AbortError');
     try {
       const response = await fetch('/api/scanner/beta/recognize', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal
       });
       if (!response.ok) {
         const retryable = [429, 503, 504].includes(response.status);
         if (!retryable || attempt === 1) throw new Error('CLASSIFIER_UNAVAILABLE');
       } else return response.json();
     } catch (error) {
+      if (signal.aborted) throw error;
       lastError = error;
       if (attempt === 1) break;
     }
@@ -78,12 +81,12 @@ function failureCode(value) {
   return String(value || 'UNKNOWN_FAILURE').toUpperCase().replace(/[^A-Z0-9_-]/g, '_').slice(0, 80) || 'UNKNOWN_FAILURE';
 }
 
-async function recordScanFailure({ scanId, hash, stage, code }) {
+async function recordScanFailure({ scanId, hash, stage, code, source = captureType }) {
   const failure = createScanFailureRecord({
     feedbackId: randomUuid(), scanId, timestamp: new Date().toISOString(), imageHash: hash,
     modelVersion: MODEL.version, modelChecksum: MODEL.checksum, occupancyThreshold: MODEL.occupancyThreshold,
     orientation: $('orientation').value, consent: consent(), platform: $('platform').value || null,
-    captureType, clientMetadata: clientMetadata(), failureStage: stage, errorCode: failureCode(code)
+    captureType: source, clientMetadata: clientMetadata(), failureStage: stage, errorCode: failureCode(code)
   });
   return submitOrQueue(`failure:${failure.feedbackId}`, '/api/scanner/beta/failure', { failure });
 }
@@ -134,34 +137,45 @@ function showDiagnostics(prepared) {
 
 async function selectFile(file, source) {
   if (!file) return;
+  generation += 1;
+  const activeGeneration = generation;
+  runtime.cancelActive('source-replaced');
+  activeRecognitionController?.abort();
+  activeRecognitionController = null;
   captureType = source;
   const scanId = randomUuid();
   let hash = null;
   if (!runtime.supportsMimeType(file.type)) {
     try {
       hash = await imageHash(file);
-      const stored = await recordScanFailure({ scanId, hash, stage: 'unsupported-input', code: 'UNSUPPORTED_INPUT' });
+      if (generation !== activeGeneration) return;
+      const stored = await recordScanFailure({ scanId, hash, stage: 'unsupported-input', code: 'UNSUPPORTED_INPUT', source });
+      if (generation !== activeGeneration) return;
       status(stored.synced ? 'Unsupported input recorded. Choose a JPEG, PNG, or WebP image.'
         : 'Unsupported input queued for safe retry. Choose a JPEG, PNG, or WebP image.', 'syncStatus');
     } catch (_) { status('Choose a JPEG, PNG, or WebP image.', 'syncStatus'); }
     return;
   }
-  generation += 1;
-  const activeGeneration = generation;
+  const recognitionController = new AbortController();
+  activeRecognitionController = recognitionController;
   show('readingView');
   try {
     hash = await imageHash(file);
+    if (generation !== activeGeneration) return;
     const prepared = await runtime.processImage(file, activeGeneration);
     if (generation !== activeGeneration) return;
     let imageStorageReference = null;
     try { imageStorageReference = await uploadImage(file, hash); }
     catch (_) { status('Image sharing is pending; correction collection can continue.', 'syncStatus'); }
+    if (generation !== activeGeneration) return;
     const prediction = await recognizeBoard({
       schemaVersion: 'caissa-scanner-beta-recognition-request/1',
       boardEncoding: 'rgba8', boardWidth: 512, boardHeight: 512,
       sourceImageType: file.type,
       boardRgbaBase64: rgbaBase64(prepared.board.pixels), orientation: $('orientation').value
-    });
+    }, recognitionController.signal);
+    if (activeRecognitionController === recognitionController) activeRecognitionController = null;
+    if (generation !== activeGeneration) return;
     snapshot = createPredictionSnapshot({
       scanId, timestamp: new Date().toISOString(), imageHash: hash,
       orientation: $('orientation').value, detectedCorners: prepared.board.corners,
@@ -169,20 +183,24 @@ async function selectFile(file, source) {
       modelVersion: prediction.modelVersion, modelChecksum: prediction.modelChecksum,
       occupancyThreshold: prediction.occupancyThreshold
     });
-    const metadata = { platform: $('platform').value || null, captureType, consent: consent(), clientMetadata: clientMetadata(), imageStorageReference };
+    const metadata = { platform: $('platform').value || null, captureType: source, consent: consent(), clientMetadata: clientMetadata(), imageStorageReference };
     const stored = await submitOrQueue(`scan:${snapshot.scanId}`, '/api/scanner/beta/scan', { snapshot, metadata });
+    if (generation !== activeGeneration) return;
     workingFen = snapshot.predictedFEN;
     renderBoard();
     showDiagnostics(prepared);
     show('reviewView');
     status(stored.synced ? 'Prediction saved. Confirm the final position.' : 'Offline: prediction queued for safe retry.');
   } catch (error) {
+    if (activeRecognitionController === recognitionController) activeRecognitionController = null;
+    if (generation !== activeGeneration || error.name === 'AbortError' || ['canceled', 'stale-generation'].includes(error.code)) return;
     if (hash) {
       const classifierFailure = error.message === 'CLASSIFIER_UNAVAILABLE';
       const localizationFailure = /BOARD|CORNER|HOMOGRAPHY|LOCALIZATION|AMBIGUOUS/i.test(String(error.code || error.message));
       try { await recordScanFailure({ scanId, hash, stage: classifierFailure ? 'classifier' : localizationFailure ? 'localization' : 'decode',
-        code: error.code || error.message }); } catch (_) { /* The visible error remains authoritative. */ }
+        code: error.code || error.message, source }); } catch (_) { /* The visible error remains authoritative. */ }
     }
+    if (generation !== activeGeneration) return;
     show('captureView');
     status(error.message === 'CLASSIFIER_UNAVAILABLE' ? 'Internal classifier is unavailable. Try again when connected to the beta server.' : 'Could not read this board. Try another image.', 'syncStatus');
   }
@@ -210,16 +228,31 @@ async function sendFeedback(type) {
 function reset() {
   generation += 1;
   runtime.cancelActive('new-scan');
+  activeRecognitionController?.abort();
+  activeRecognitionController = null;
   snapshot = null; workingFen = ''; selectedPiece = ''; captureType = null;
   $('cameraInput').value = ''; $('galleryInput').value = '';
   $('confirmPosition').textContent = 'Confirm Correct';
-  status('', 'submitStatus'); show('captureView'); buildPalette();
+  $('betaBoard').replaceChildren(); $('workspaceBoard').replaceChildren(); $('diagnostics').replaceChildren();
+  $('selectionStatus').textContent = 'Selected: Clear square';
+  status('', 'submitStatus'); status('', 'syncStatus'); show('captureView'); buildPalette();
 }
 
-$('takePhoto').addEventListener('click', () => $('cameraInput').click());
-$('choosePhoto').addEventListener('click', () => $('galleryInput').click());
-$('cameraInput').addEventListener('change', () => selectFile($('cameraInput').files[0], 'camera'));
-$('galleryInput').addEventListener('change', () => selectFile($('galleryInput').files[0], 'gallery'));
+function openFilePicker(input) {
+  input.value = '';
+  input.click();
+}
+
+function handleFileSelection(input, source) {
+  const file = input.files?.item(0) || null;
+  input.value = '';
+  void selectFile(file, source);
+}
+
+$('takePhoto').addEventListener('click', () => openFilePicker($('cameraInput')));
+$('choosePhoto').addEventListener('click', () => openFilePicker($('galleryInput')));
+$('cameraInput').addEventListener('change', () => handleFileSelection($('cameraInput'), 'camera'));
+$('galleryInput').addEventListener('change', () => handleFileSelection($('galleryInput'), 'gallery'));
 $('confirmPosition').addEventListener('click', () => sendFeedback());
 $('localizationWrong').addEventListener('click', () => sendFeedback('LOCALIZATION_FAILURE'));
 $('newScan').addEventListener('click', reset);

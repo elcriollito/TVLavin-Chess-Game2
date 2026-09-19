@@ -62,6 +62,31 @@ async function recognize(page) {
   await expect(page.locator('#betaBoard .sq')).toHaveCount(64);
 }
 
+async function chooseThroughButton(page, buttonName, file = imageFixture) {
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: buttonName, exact: true }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(file);
+}
+
+async function boardGeometry(page, selector) {
+  return page.locator(selector).evaluate((board) => {
+    const boardRect = board.getBoundingClientRect();
+    const squares = [...board.querySelectorAll('.sq')].map((square) => {
+      const rect = square.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    });
+    const style = getComputedStyle(board);
+    return {
+      width: boardRect.width,
+      height: boardRect.height,
+      gridColumns: style.gridTemplateColumns.split(' ').length,
+      gridRows: style.gridTemplateRows.split(' ').length,
+      squares
+    };
+  });
+}
+
 test.describe('Scanner internal mobile beta feedback', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -129,7 +154,9 @@ test.describe('Scanner internal mobile beta feedback', () => {
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('caissa-scanner-beta-pending-sync-v1')).length)).toBe(1);
     await page.evaluate(() => window.dispatchEvent(new Event('online')));
     await expect.poll(() => captured.feedbackAttempts).toBe(2);
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('caissa-scanner-beta-pending-sync-v1')).length)).toBe(0);
+    await expect.poll(() => page.evaluate(() => JSON.parse(
+      localStorage.getItem('caissa-scanner-beta-pending-sync-v1')
+    ).length)).toBe(0);
     expect(captured.feedback).toHaveLength(1);
   });
 
@@ -161,5 +188,100 @@ test.describe('Scanner internal mobile beta feedback', () => {
     expect(captured.recognitionAttempts).toBe(2);
     expect(captured.scans).toHaveLength(1);
     expect(captured.scans[0].metadata.captureType).toBe('camera');
+  });
+
+  test('Review/Edit board and every rendered cell remain square at iPhone display widths', async ({ page }) => {
+    await mockBeta(page);
+    for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto('/scanner/beta');
+      await recognize(page);
+      const geometry = await boardGeometry(page, '#betaBoard');
+      expect(Math.abs(geometry.width - geometry.height)).toBeLessThanOrEqual(0.5);
+      expect(geometry.gridColumns).toBe(8);
+      expect(geometry.gridRows).toBe(8);
+      expect(geometry.squares).toHaveLength(64);
+      for (const square of geometry.squares) {
+        expect(Math.abs(square.width - square.height)).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(square.width - geometry.width / 8)).toBeLessThanOrEqual(0.5);
+      }
+    }
+  });
+
+  test('camera and gallery re-arm after New scan and accept the same file repeatedly', async ({ page }) => {
+    const captured = await mockBeta(page);
+    await page.goto('/scanner/beta');
+
+    await chooseThroughButton(page, 'Take Photo');
+    await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#cameraInput')).toHaveValue('');
+
+    await page.getByRole('button', { name: 'New scan', exact: true }).click();
+    await expect(page.locator('#captureView')).toBeVisible();
+    await chooseThroughButton(page, 'Take Photo');
+    await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#cameraInput')).toHaveValue('');
+
+    await page.getByRole('button', { name: 'New scan', exact: true }).click();
+    await chooseThroughButton(page, 'Choose Photo');
+    await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#galleryInput')).toHaveValue('');
+
+    await page.getByRole('button', { name: 'New scan', exact: true }).click();
+    await chooseThroughButton(page, 'Choose Photo');
+    await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#galleryInput')).toHaveValue('');
+
+    await page.getByRole('button', { name: 'New scan', exact: true }).click();
+    await chooseThroughButton(page, 'Take Photo');
+    await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#cameraInput')).toHaveValue('');
+
+    expect(captured.recognition).toHaveLength(5);
+    expect(captured.scans).toHaveLength(5);
+    expect(captured.scans.map(({ metadata }) => metadata.captureType)).toEqual([
+      'camera', 'camera', 'gallery', 'gallery', 'camera'
+    ]);
+    expect(captured.feedback).toHaveLength(0);
+    expect(captured.failures).toHaveLength(0);
+  });
+
+  test('reset invalidates an in-flight recognition result without feedback or failure submission', async ({ page }) => {
+    await page.addInitScript((responseBody) => {
+      const originalFetch = window.fetch.bind(window);
+      window.__recognitionStarted = false;
+      window.__releaseRecognition = null;
+      window.fetch = (input, init) => {
+        const url = new URL(typeof input === 'string' ? input : input.url, location.href);
+        if (!url.pathname.endsWith('/api/scanner/beta/recognize')) return originalFetch(input, init);
+        window.__recognitionStarted = true;
+        return new Promise((resolve, reject) => {
+          const signal = init?.signal;
+          const onAbort = () => reject(new DOMException('Recognition canceled.', 'AbortError'));
+          if (signal?.aborted) return onAbort();
+          signal?.addEventListener('abort', onAbort, { once: true });
+          window.__releaseRecognition = () => {
+            signal?.removeEventListener('abort', onAbort);
+            resolve(new Response(JSON.stringify(responseBody), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            }));
+          };
+        });
+      };
+    }, prediction());
+    const captured = await mockBeta(page);
+    await page.goto('/scanner/beta');
+    await page.locator('#galleryInput').setInputFiles(imageFixture);
+    await expect(page.locator('#readingView')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__recognitionStarted), { timeout: 20_000 }).toBe(true);
+    await page.locator('#newScan').evaluate((button) => button.click());
+    await expect(page.locator('#captureView')).toBeVisible();
+    await page.evaluate(() => window.__releaseRecognition?.());
+    await page.waitForTimeout(100);
+    await expect(page.locator('#captureView')).toBeVisible();
+    expect(captured.scans).toHaveLength(0);
+    expect(captured.feedback).toHaveLength(0);
+    expect(captured.failures).toHaveLength(0);
   });
 });
