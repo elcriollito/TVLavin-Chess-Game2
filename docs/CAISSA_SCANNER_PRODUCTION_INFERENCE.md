@@ -27,7 +27,7 @@ The exporter verifies both source checksums, exports one 64-tile batch, runs the
 
 | Candidate | Decision | Evidence |
 | --- | --- | --- |
-| Vercel Node.js / Fluid Compute | Selected | Full Node APIs, lazy native loading, a 30-second endpoint cap, and a measured 111.99 MiB local prebuilt function package including mapped files. |
+| Vercel Node.js / Fluid Compute | Selected | Full Node APIs, lazy native loading, a 30-second endpoint cap, and an explicit Linux x64 runtime file set. |
 | Vercel Python + Torch | Rejected | It would ship the full Torch stack. Vercel's Python function limit is 500 MB and Python tracing does not remove unreachable dependencies, producing materially worse bundle and cold-start risk. |
 | ONNX Runtime Node CPU | Selected | Official Linux x64 CPU binaries are available. The Linux runtime plus model is roughly 49 MB before shared application dependencies. |
 | TensorFlow.js conversion | Rejected | It adds an additional conversion path with no correctness benefit over the directly certified ONNX export. |
@@ -35,7 +35,7 @@ The exporter verifies both source checksums, exports one 64-tile batch, runs the
 
 Vercel documents a standard 250 MB uncompressed Node function limit, 2 GB / 1 vCPU standard instances, and Fluid Compute duration limits above this endpoint's explicit 30-second cap. The implementation does not require the large-function opt-in. See the official [function limits](https://vercel.com/docs/functions/limitations), [Python runtime](https://vercel.com/docs/functions/runtimes/python), and [ONNX Runtime Node binding](https://onnxruntime.ai/docs/get-started/with-javascript/node.html) documentation.
 
-The upstream npm package contains native binaries for every supported operating system and architecture. An unpruned remote feasibility build measured `308.52 MB` and was correctly rejected by the 250 MB gate. The deterministic root `postinstall` script retains Linux x64 for Vercel plus the current host target for local certification, and removes only other `node_modules/onnxruntime-node/bin/napi-v6` platform directories after resolving and validating the exact dependency path. No model file or application source is removed.
+The upstream npm package contains native binaries for every supported operating system and architecture. A naively traced remote feasibility build measured `308.52 MB` and was correctly rejected by the 250 MB gate. Production therefore runtime-resolves the package and `vercel.json` explicitly includes only its required JavaScript, `onnxruntime-common`, the Linux x64 native pair, and the model. No dependency or model file is rewritten.
 
 ## Numerical parity
 

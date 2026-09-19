@@ -24,6 +24,10 @@ export const RECOGNITION_PROTOCOL = Object.freeze({
 
 const DEFAULT_MODEL_PATH = fileURLToPath(new URL('../_private/scanner-beta-model/frozen-v05.onnx', import.meta.url));
 const DEFAULT_MANIFEST_PATH = fileURLToPath(new URL('../_private/scanner-beta-model/manifest.json', import.meta.url));
+// Keep this module specifier runtime-resolved. Vercel otherwise traces every
+// operating-system binary shipped by the upstream package; vercel.json includes
+// the exact Linux x64 runtime files used by production.
+const ONNX_RUNTIME_MODULE = ['onnxruntime', 'node'].join('-');
 const TILE_SIZE = 64;
 const BOARD_SIZE = 512;
 const TILE_VALUES = 3 * TILE_SIZE * TILE_SIZE;
@@ -194,7 +198,7 @@ export function createFrozenV05Runtime({
   modelPath = DEFAULT_MODEL_PATH,
   manifestPath = DEFAULT_MANIFEST_PATH,
   read = readFile,
-  loadOrt = () => import('onnxruntime-node'),
+  loadOrt = () => import(ONNX_RUNTIME_MODULE),
   clock = () => performance.now()
 } = {}) {
   let sessionPromise = null;
