@@ -20,6 +20,12 @@ test('deployment rewrites protect canonical and direct Scanner documents', async
   const middleware = await readFile(new URL('../middleware.js', import.meta.url), 'utf8');
   assert.match(middleware, /normalizedPath === '\/scanner\/beta\/index\.html'/);
   assert.match(middleware, /Response\.redirect\(new URL\('\/scanner\/beta'/);
+  await assert.rejects(
+    readFile(new URL('../scanner/beta/index.html', import.meta.url), 'utf8'),
+    error => error?.code === 'ENOENT'
+  );
+  const protectedDocument = await readFile(new URL('../api/_private/scanner-beta-index.html', import.meta.url), 'utf8');
+  assert.match(protectedDocument, /CAISSA Scanner Internal Beta/);
 });
 
 test('beta schema is normalized, private by default, and seeds Scanner without deleting lifecycle history', async () => {

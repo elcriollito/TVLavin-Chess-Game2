@@ -19,7 +19,7 @@
       "maxDuration": 10
     },
     "api/beta/scanner.js": {
-      "includeFiles": "scanner/beta/index.html"
+      "includeFiles": "api/_private/scanner-beta-index.html"
     }
   },
   "crons": [

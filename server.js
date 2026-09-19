@@ -524,7 +524,7 @@ const server = http.createServer(async (req, res) => {
     filePath = './blog/index.html';
   }
   if (pathname === '/scanner/beta' || pathname === '/scanner/beta/' || pathname === '/scanner/beta/index.html') {
-    filePath = './scanner/beta/index.html';
+    filePath = './api/_private/scanner-beta-index.html';
   }
   if (pathname === '/about' || pathname === '/about/') {
     filePath = './about.html';

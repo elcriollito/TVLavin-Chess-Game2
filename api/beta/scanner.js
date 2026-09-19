@@ -3,7 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { createBetaProgramService, betaPrivateHeaders, safeBetaReturnPath } from '../_lib/beta-program-service.js';
 import { renderBetaDenied } from '../_lib/beta-center-document.js';
 
-const scannerDocument = fileURLToPath(new URL('../../scanner/beta/index.html', import.meta.url));
+// Keep the protected document out of the public static tree. Vercel serves a
+// physical index.html before applying rewrites, which would bypass this
+// authorization handler for the exact /scanner/beta URL.
+const scannerDocument = fileURLToPath(new URL('../_private/scanner-beta-index.html', import.meta.url));
 
 export function createScannerBetaPageHandler({ service = createBetaProgramService(), loadDocument = () => readFile(scannerDocument, 'utf8') } = {}) {
   return async function handler(req, res) {
