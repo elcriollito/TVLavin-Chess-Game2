@@ -20,6 +20,9 @@ test('deployment rewrites protect canonical and direct Scanner documents', async
   const middleware = await readFile(new URL('../middleware.js', import.meta.url), 'utf8');
   assert.match(middleware, /normalizedPath === '\/scanner\/beta\/index\.html'/);
   assert.match(middleware, /Response\.redirect\(new URL\('\/scanner\/beta'/);
+  assert.match(middleware, /'\/api\/_private\/:path\*'/);
+  assert.match(middleware, /normalizedPath\.startsWith\('\/api\/_private\/'\)/);
+  assert.match(middleware, /'X-Robots-Tag': 'noindex, nofollow, noarchive'/);
   await assert.rejects(
     readFile(new URL('../scanner/beta/index.html', import.meta.url), 'utf8'),
     error => error?.code === 'ENOENT'

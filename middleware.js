@@ -23,7 +23,8 @@ export const config = {
         '/api/play-beta/:path*',
         '/play-v2(.*)',
         '/beta/:path*',
-        '/scanner/beta/:path*'
+        '/scanner/beta/:path*',
+        '/api/_private/:path*'
     ]
 };
 
@@ -72,6 +73,17 @@ export default function middleware(request) {
     let decodedPath = url.pathname;
     try { decodedPath = decodeURIComponent(decodedPath); } catch (_) { /* malformed paths remain fail-closed */ }
     const normalizedPath = decodedPath.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+    if (normalizedPath.startsWith('/api/_private/')) {
+        return new Response('Not Found', {
+            status: 404,
+            headers: {
+                'Cache-Control': 'private, no-store, max-age=0',
+                'X-Robots-Tag': 'noindex, nofollow, noarchive',
+                'X-Content-Type-Options': 'nosniff',
+                'Referrer-Policy': 'no-referrer'
+            }
+        });
+    }
     if (normalizedPath === '/scanner/beta/index.html') {
         return Response.redirect(new URL('/scanner/beta', url), 307);
     }
