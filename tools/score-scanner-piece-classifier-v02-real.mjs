@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLASSES, sha256, stableJson } from '../scanner/recognition/datasets/pieces/dataset-core.js';
@@ -10,8 +10,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (name) => process.argv.find((item) => item.startsWith(`--${name}=`))?.slice(name.length + 3);
 if (!arg('model-dir') || !arg('real-dir')) throw new Error('provide frozen --model-dir and --real-dir');
 const modelDir = resolve(arg('model-dir')), realDir = resolve(arg('real-dir'));
-const reportPath = join(root, 'artifacts/scanner-piece-classifier-v0.2/real-31-board-report.json');
-const configBytes = await readFile(join(root, 'scanner/recognition/classifier-revision/config-v0.2.json'));
+const reportPath = resolve(arg('report-out') || join(root, 'artifacts/scanner-piece-classifier-v0.2/real-31-board-report.json'));
+const configPath = resolve(arg('config') || join(root, 'scanner/recognition/classifier-revision/config-v0.2.json'));
+const configBytes = await readFile(configPath);
 const config = JSON.parse(configBytes);
 const freeze = JSON.parse(await readFile(join(modelDir, 'freeze-manifest.json')));
 const predictionBytes = await readFile(join(modelDir, 'real-predictions.json'));
@@ -50,6 +51,7 @@ const boardsFor = (key) => predictions.boardIds.map((id, boardIndex) => {
     predictions: Array.from({ length: 64 }, (_, visualIndex) => {
       const index = boardIndex * 64 + visualIndex;
       return { predictedClass: CLASSES[predictions[`${key}PredictedIndices`][index]],
+        ...(key === 'calibrated' ? { decisionBasis: 'occupancy-threshold' } : {}),
         classProbabilities: predictions[`${key}Probabilities`][index] };
     }) };
 });
@@ -125,6 +127,7 @@ const compact = (metrics, key, boards) => {
       meanMargin: metrics.confidence.meanMargin, meanCorrect: metrics.confidence.meanTop1Correct,
       meanWrong: metrics.confidence.meanTop1Incorrect, brier13: metrics.confidence.brier13,
       ece10: metrics.confidence.ece10, wrongAtLeast090: metrics.confidence.highConfidenceErrors.length,
+      wrongAtLeast095: metrics.confidence.highConfidenceErrors.filter((item) => item.confidence >= .95).length,
       highestConfidenceErrors: topWrong }, uncertainty
   };
 };
@@ -140,6 +143,7 @@ const report = { schemaVersion: 'caissa-scanner-classifier-revision-real-31/1', 
   classOrder: CLASSES, temperature: freeze.temperature, raw, calibrated,
   sourceCategoryPolicy: 'small exploratory groups; unidentified platform/style remains unknown',
   modelChangedAfterBenchmark: false, scannerRuntimeIntegrated: false };
+await mkdir(dirname(reportPath), { recursive: true });
 await writeFile(reportPath, stableJson(report), { flag: 'wx' });
 process.stdout.write(`${JSON.stringify({ reportPath, rawAccuracy13: raw.accuracy13,
   calibratedAccuracy13: calibrated.accuracy13, calibratedOccupiedMacroF1: calibrated.occupiedMacroF1,

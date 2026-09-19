@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-config/2",
+  "modelVersion": "caissa-piece-classifier-v0.3-real-development",
+  "datasetVersion": "scanner-piece-dataset-v0.5",
+  "datasetMetadataSha256": "1D24EE08A888795C1858B58AB0212351C93F78D4D180B29BEDB3F54BDA5BC3ED",
+  "datasetPixelsSha256": "3622D06BE676E33E821A3371EE2945FE767A0A80FFC3B4E5A5E21CC4B758804D",
+  "humanTruthSha256": "D73983A07A5B92F0747D637CFC2E9AC4027BF1095A095D4C88D158F7B13D14E9",
+  "certifiedCorpusVersion": "caissa-scanner-real-development-v0.2-certified",
+  "classOrder": ["empty", "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"],
+  "inputShape": [null, 3, 64, 64],
+  "variants": [
+    { "id": "shared-hard-negative", "architecture": "shared", "realEmptyFraction": 0.75 },
+    { "id": "strong-occupancy", "architecture": "strong-occupancy", "realEmptyFraction": 0.75 },
+    { "id": "two-stage", "architecture": "two-stage", "realEmptyFraction": 0.75 }
+  ],
+  "training": {
+    "seeds": [1901, 1902],
+    "optimizer": "AdamW",
+    "learningRate": 0.001,
+    "weightDecay": 0.0001,
+    "batchSize": 128,
+    "maximumEpochs": 16,
+    "earlyStoppingPatience": 4,
+    "samplesPerEpoch": 3200,
+    "syntheticFractionPerEpoch": 0.8,
+    "realFractionPerEpoch": 0.2,
+    "occupancyClassWeights": [1.0, 2.0],
+    "loss": "1.75*weighted-CE(occupancy; empty=1, occupied=2)+0.75*CE(color|occupied)+1.0*CE(type|occupied)",
+    "selectionPolicy": "synthetic whole-family validation plus real development-validation; protected final benchmark unavailable until freeze"
+  },
+  "threshold": {
+    "grid": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
+    "criterion": "real development-validation occupancy F1 + 0.2*precision; recall no more than 0.03 below raw"
+  },
+  "calibration": {
+    "temperatureGrid": [0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0, 6.0],
+    "methods": ["none", "occupancy-temperature", "separate-head-temperatures"],
+    "criterion": "lowest real development-validation NLL without increasing >=0.90 wrong predictions"
+  },
+  "uncertainty": {
+    "lowOccupancyProbability": 0.65,
+    "lowColorMargin": 0.25,
+    "lowTypeMargin": 0.2,
+    "lowCanonicalTop1": 0.6,
+    "highEntropy": 1.2
+  },
+  "evaluationPolicy": "select, threshold and calibrate on synthetic validation plus certified real development-validation; freeze once; run synthetic unseen-family test once; run protected 31-board benchmark once; no post-benchmark tuning"
+}

@@ -1,0 +1,179 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-summary/1",
+  "modelVersion": "caissa-piece-classifier-v0.3-real-development",
+  "decision": "MORE DATA / ARCHITECTURE WORK REQUIRED",
+  "runtimeIntegrated": false,
+  "protectedBenchmarkPasses": 1,
+  "selected": {
+    "variant": "shared-hard-negative",
+    "architecture": "shared",
+    "seed": 1902,
+    "bestEpoch": 16,
+    "parameterCount": 649706,
+    "occupancyThreshold": 0.5,
+    "calibrationMethod": "separate-head-temperatures",
+    "temperature": {
+      "occupancy": 0.75,
+      "color": 0.75,
+      "type": 0.75
+    }
+  },
+  "matrix": [
+    {
+      "variant": "shared-hard-negative",
+      "seed": 1901,
+      "bestEpoch": 8,
+      "selectionScore": 1.5805149090025956,
+      "syntheticValidationAccuracy13": 0.9465277777777777,
+      "realValidationAccuracy13": 0.9627403846153846,
+      "realValidationOccupiedMacroF1": 0.8404131145257083
+    },
+    {
+      "variant": "shared-hard-negative",
+      "seed": 1902,
+      "bestEpoch": 16,
+      "selectionScore": 1.6776973836157134,
+      "syntheticValidationAccuracy13": 0.9986111111111111,
+      "realValidationAccuracy13": 0.984375,
+      "realValidationOccupiedMacroF1": 0.9411323698989262
+    },
+    {
+      "variant": "strong-occupancy",
+      "seed": 1901,
+      "bestEpoch": 9,
+      "selectionScore": 1.5497825847210638,
+      "syntheticValidationAccuracy13": 0.9388888888888889,
+      "realValidationAccuracy13": 0.9555288461538461,
+      "realValidationOccupiedMacroF1": 0.806229226354766
+    },
+    {
+      "variant": "strong-occupancy",
+      "seed": 1902,
+      "bestEpoch": 10,
+      "selectionScore": 1.5715059104038795,
+      "syntheticValidationAccuracy13": 0.9534722222222223,
+      "realValidationAccuracy13": 0.9591346153846154,
+      "realValidationOccupiedMacroF1": 0.8259677189008623
+    },
+    {
+      "variant": "two-stage",
+      "seed": 1901,
+      "bestEpoch": 10,
+      "selectionScore": 1.613895673999943,
+      "syntheticValidationAccuracy13": 0.9604166666666667,
+      "realValidationAccuracy13": 0.9735576923076923,
+      "realValidationOccupiedMacroF1": 0.8904460096780024
+    },
+    {
+      "variant": "two-stage",
+      "seed": 1902,
+      "bestEpoch": 13,
+      "selectionScore": 1.608966542522985,
+      "syntheticValidationAccuracy13": 0.9506944444444444,
+      "realValidationAccuracy13": 0.9747596153846154,
+      "realValidationOccupiedMacroF1": 0.9095187729450416
+    }
+  ],
+  "samplingRatio": {
+    "synthetic": 0.8,
+    "realDevelopment": 0.2,
+    "realEmptyWithinReal": 0.75
+  },
+  "hardNegativeMining": {
+    "model": "frozen-v0.2",
+    "role": "real-development-train-only",
+    "count": 3,
+    "predictedClassCounts": {
+      "p": 1,
+      "b": 1,
+      "n": 1
+    },
+    "developmentValidationUsed": false
+  },
+  "realDevelopmentValidation": {
+    "boards": 13,
+    "squares": 832,
+    "accuracy13": 0.984375,
+    "occupiedMacroF1": 0.9411323698989262,
+    "occupancyPrecision": 1,
+    "occupancyRecall": 1,
+    "occupancyF1": 1,
+    "pieceTypeAccuracy": 0.9580645161290322,
+    "colorAccuracy": 1,
+    "nll13": 0.04748550429940224,
+    "brier13": 0.025525549426674843,
+    "ece10": 0.007210917712545083
+  },
+  "syntheticUnseenFamilyTest": {
+    "squares": 1440,
+    "accuracy13": 0.8590277777777777,
+    "occupiedMacroF1": 0.5380348164094991,
+    "occupancyPrecision": 1,
+    "occupancyRecall": 1,
+    "occupancyF1": 1,
+    "pieceTypeAccuracy": 0.5791666666666667,
+    "colorAccuracy": 0.9916666666666667,
+    "predictedK": 26,
+    "trueK": 40,
+    "predictedk": 58,
+    "truek": 40
+  },
+  "protected31Calibrated": {
+    "boards": 31,
+    "squares": 1984,
+    "accuracy13": 0.8387096774193549,
+    "occupiedMacroF1": 0.6535784047529006,
+    "occupancyPrecision": 0.8322222222222222,
+    "occupancyRecall": 1,
+    "occupancyF1": 0.908429351121892,
+    "emptyToOccupied": 151,
+    "occupiedToEmpty": 0,
+    "pieceTypeAccuracy": 0.807743658210948,
+    "colorAccuracy": 0.9132176234979973,
+    "whiteExactAccuracy": 0.7519788918205804,
+    "blackExactAccuracy": 0.7972972972972973,
+    "predictedK": 36,
+    "trueK": 31,
+    "predictedk": 121,
+    "truek": 31,
+    "emptyToK": 9,
+    "emptyTok": 36,
+    "otherPieceTok": 55,
+    "colorSwaps": 25,
+    "exactBoards": 8,
+    "oneErrorBoards": 8,
+    "twoErrorBoards": 0,
+    "threePlusErrorBoards": 15,
+    "meanCorrections": 10.32258064516129,
+    "medianCorrections": 1,
+    "wrongAtLeast090": 122,
+    "wrongAtLeast095": 85
+  },
+  "abstentionDevelopmentValidation": {
+    "coverage": 0.9879807829856873,
+    "accepted": 822,
+    "abstained": 10,
+    "acceptedAccuracy": 0.989051103591919,
+    "abstainedErrorRate": 0.4000000059604645
+  },
+  "performance": {
+    "modelLoadMilliseconds": 21.045300003606826,
+    "preprocessMillisecondsPerBoard": 0.9581999911461025,
+    "inferenceMillisecondsPerBoard": 225.00430000945926,
+    "inferenceMillisecondsPerTileEffective": 3.515692187647801,
+    "nativeModelBytes": 2622865,
+    "nativeModelGzipBytes": 2418913,
+    "torchscriptBytes": 2676478,
+    "torchscriptGzipBytes": 2447220,
+    "measurement": "Windows desktop CPU; excludes decode, homography, I/O, browser and mobile"
+  },
+  "checksums": {
+    "humanTruthSha256": "D73983A07A5B92F0747D637CFC2E9AC4027BF1095A095D4C88D158F7B13D14E9",
+    "datasetMetadataSha256": "1D24EE08A888795C1858B58AB0212351C93F78D4D180B29BEDB3F54BDA5BC3ED",
+    "datasetPixelsSha256": "3622D06BE676E33E821A3371EE2945FE767A0A80FFC3B4E5A5E21CC4B758804D",
+    "stateSha256": "561BDE692A9C196151396CD4236A9F6B10BA516F001D4ED850A4076E30994029",
+    "torchscriptSha256": "AF15522A716A82656C52CF7118856ECFECEC30F623F2D2EF99FF93BE88138F5D",
+    "configSha256": "BEEEF79D961469F9DBD66558C75B59057F6345FEC02D0AFD83268BE76545951A",
+    "protectedPixelsSha256": "3277B8B4321A1FE2625B0F97ADA3AA05DABD4F1FC4472B50A5D1C1CC9C254712"
+  }
+}

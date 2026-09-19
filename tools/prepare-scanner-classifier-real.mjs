@@ -14,7 +14,8 @@ if (!arg('model-dir') || !arg('output-dir')) throw new Error('provide frozen --m
 const modelDir = resolve(arg('model-dir')), outputDir = resolve(arg('output-dir'));
 const outside = (path) => { const rel = relative(root, path); return rel.startsWith('..') || isAbsolute(rel); };
 if (!outside(modelDir) || !outside(outputDir)) throw new Error('model and real pixels must remain outside repository');
-const configBytes = await readFile(join(root, 'scanner/recognition/classifier-baseline/config-v0.1.json'));
+const configPath = resolve(arg('config') || join(root, 'scanner/recognition/classifier-baseline/config-v0.1.json'));
+const configBytes = await readFile(configPath);
 const config = JSON.parse(configBytes);
 const freeze = JSON.parse(await readFile(join(modelDir, 'freeze-manifest.json')));
 const syntheticTest = JSON.parse(await readFile(join(modelDir, 'synthetic-test-report.json')));

@@ -103,8 +103,13 @@ export function evaluateHistoricalBoards(boards) {
           || Math.abs(probabilities.reduce((sum, value) => sum + value, 0) - 1) > 0.0001) throw new Error(`${board.sampleId}: invalid prediction ${index}`);
       const ranking = probabilities.map((value, classIndex) => [value, classIndex])
         .sort((a, b) => b[0] - a[0] || a[1] - b[1]);
-      if (HISTORICAL_CLASSES.indexOf(prediction.predictedClass) !== ranking[0][1]) {
+      const predictedClassIndex = HISTORICAL_CLASSES.indexOf(prediction.predictedClass);
+      const policyDecision = prediction.decisionBasis === 'occupancy-threshold';
+      if (!policyDecision && predictedClassIndex !== ranking[0][1]) {
         throw new Error(`${board.sampleId}: predicted class does not match top probability at ${index}`);
+      }
+      if (prediction.decisionBasis && !policyDecision) {
+        throw new Error(`${board.sampleId}: unsupported prediction decision basis at ${index}`);
       }
       const predicted = prediction.predictedClass;
       const isCorrect = truth === predicted;
@@ -132,14 +137,18 @@ export function evaluateHistoricalBoards(boards) {
       }
       if (occupied(truth) === occupied(predicted)) occupiedHits++;
       brierSum += probabilities.reduce((sum, value, classIndex) => sum + (value - (HISTORICAL_CLASSES[classIndex] === truth ? 1 : 0)) ** 2, 0);
-      const topConfidence = ranking[0][0];
-      const topTwoMargin = ranking[0][0] - ranking[1][0];
+      const decisionRanking = policyDecision
+        ? [[probabilities[predictedClassIndex], predictedClassIndex],
+          ...ranking.filter(([, classIndex]) => classIndex !== predictedClassIndex)]
+        : ranking;
+      const topConfidence = decisionRanking[0][0];
+      const topTwoMargin = decisionRanking[0][0] - decisionRanking[1][0];
       confidence.push(topConfidence);
       (isCorrect ? correctConfidence : incorrectConfidence).push(topConfidence);
       margins.push(topTwoMargin);
       squarePredictions.push({ visualSquareIndex: index, square: squareName(index, board.truth.orientation), truth,
-        top1: predicted, top1Confidence: topConfidence, top2: HISTORICAL_CLASSES[ranking[1][1]],
-        top2Confidence: ranking[1][0], margin: topTwoMargin, correct: isCorrect,
+        top1: predicted, top1Confidence: topConfidence, top2: HISTORICAL_CLASSES[decisionRanking[1][1]],
+        top2Confidence: decisionRanking[1][0], margin: topTwoMargin, correct: isCorrect,
         classProbabilities: probabilities });
       const bin = confidenceBins[Math.min(9, Math.floor(topConfidence * 10))];
       bin.count++;
@@ -147,7 +156,7 @@ export function evaluateHistoricalBoards(boards) {
       bin.confidenceSum += topConfidence;
       if (!isCorrect && topConfidence >= 0.9) highConfidenceErrors.push({ sampleId: board.sampleId,
         visualSquareIndex: index, square: squareName(index, board.truth.orientation), truth, predicted,
-        confidence: topConfidence, top2: HISTORICAL_CLASSES[ranking[1][1]], top2Confidence: ranking[1][0] });
+        confidence: topConfidence, top2: HISTORICAL_CLASSES[decisionRanking[1][1]], top2Confidence: decisionRanking[1][0] });
     }
     const counts = (label) => predictedLabels.filter((value) => value === label).length;
     const structuralWarnings = [];

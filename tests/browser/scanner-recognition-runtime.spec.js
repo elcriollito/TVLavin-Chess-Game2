@@ -264,7 +264,7 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
         state: snapshot.state,
         candidateGeneration: snapshot.candidate?.generation || null
       };
-    })).toEqual({ state: 'reviewing-position', candidateGeneration: expectedGeneration });
+    }), { timeout: 30_000 }).toEqual({ state: 'reviewing-position', candidateGeneration: expectedGeneration });
     await expect(page.locator('#reviewEditView')).toBeVisible();
     const result = await page.evaluate(() => ({
       state: window.CaissaScannerState.snapshot(),

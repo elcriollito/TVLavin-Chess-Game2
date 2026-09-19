@@ -1,0 +1,308 @@
+{
+  "schemaVersion": "caissa-scanner-real-development-certification-report/2",
+  "corpusVersion": "caissa-scanner-real-development-v0.2-certified",
+  "sourceManifestSha256": "E3F62C6363E880B38C410295F792C01E0CC1E44FDC26D90423E20EC92A24E8FA",
+  "annotationTruthSha256": "D73983A07A5B92F0747D637CFC2E9AC4027BF1095A095D4C88D158F7B13D14E9",
+  "rawAnnotationFileSha256": "246147E34C74098A6948FF7F438AA873FEF07426B7A05ABFD35372E302EF9C0D",
+  "totalSourceBoards": 41,
+  "annotationRecords": 41,
+  "humanVerified": 41,
+  "pending": 0,
+  "cornerComplete": 41,
+  "orientationComplete": 41,
+  "label64Complete": 41,
+  "malformedRecords": 0,
+  "duplicateSampleIds": 0,
+  "missingSourceHashes": 0,
+  "invalidPieceLabels": 0,
+  "protectedLeakageAdmitted": 0,
+  "nearDuplicateDecisions": [
+    {
+      "sampleId": "dev-real-v0.1-021",
+      "decision": "ADMIT DEVELOPMENT",
+      "sourceGroup": "capture-session-2026-09-17/lichess",
+      "distinctPlacementFen": "8/p3PR2/1p6/7p/4rppP/4k3/PP4P1/2K5",
+      "possibleNearProtected": []
+    },
+    {
+      "sampleId": "dev-real-v0.1-023",
+      "decision": "ADMIT DEVELOPMENT",
+      "sourceGroup": "capture-session-2026-09-17/lichess",
+      "distinctPlacementFen": "8/6P1/pRp5/P1Pp1p1k/1P1PpP2/4P1K1/8/r7",
+      "possibleNearProtected": []
+    },
+    {
+      "sampleId": "dev-real-v0.1-024",
+      "decision": "ADMIT DEVELOPMENT",
+      "sourceGroup": "capture-session-2026-09-17/lichess",
+      "distinctPlacementFen": "4k1R1/8/3KB3/p7/5n2/1P6/P7/8",
+      "possibleNearProtected": []
+    }
+  ],
+  "splitCounts": {
+    "trainDevelopment": 28,
+    "validation": 13
+  },
+  "platformCounts": {
+    "Play chessbase": 1,
+    "chess,com": 2,
+    "chess.com": 12,
+    "https://play.chessbase.com/": 4,
+    "https://worldchess.com/": 5,
+    "lichess": 9,
+    "plaok.com": 1,
+    "playok": 1,
+    "playok.com": 4,
+    "unknown": 2
+  },
+  "captureTypeCounts": {
+    "unknown": 41
+  },
+  "sourceCategoryCounts": {
+    "unknown": 41
+  },
+  "subtypeTagCounts": {
+    "livestream": 15,
+    "photo-of-screen": 38,
+    "screen-glare": 3
+  },
+  "realEmptySquares": 1818,
+  "realOccupiedSquares": 806,
+  "pieceClassSupport": {
+    "empty": 1818,
+    "P": 210,
+    "N": 44,
+    "B": 37,
+    "R": 51,
+    "Q": 22,
+    "K": 41,
+    "p": 211,
+    "n": 42,
+    "b": 38,
+    "r": 46,
+    "q": 23,
+    "k": 41
+  },
+  "kingContrastSupport": {
+    "empty": 1818,
+    "N": 44,
+    "B": 37,
+    "R": 51,
+    "Q": 22,
+    "K": 41,
+    "n": 42,
+    "b": 38,
+    "r": 46,
+    "q": 23,
+    "k": 41
+  },
+  "admittedSourceChecksums": [
+    {
+      "sampleId": "dev-real-v0.1-001",
+      "sourceSha256": "55F551610B918DD33E48F5C8A2ADB191153F0539351E66B751E3720DE7C7ED43",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-002",
+      "sourceSha256": "CE02624FB1701C45C489B1C8AC0ADB0045FA8E10AC6F164B16E99F4FD4841350",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-003",
+      "sourceSha256": "C2BC0A77EAD8BEC9B065E60506508BEB4EB7E6E3D7D2399B1F98781D1B15320A",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-004",
+      "sourceSha256": "E526364CE769D5D5F14DA33E99A8C8D9D657771CC78534D494BED90E62E86A3A",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-005",
+      "sourceSha256": "3E606DFF57735A55E4D548DC987167F78C7880F29574F711EDAAF0B357FABFB9",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-006",
+      "sourceSha256": "E9596DABB2AF5943D2A2CF0D306A087A3314BE318EA85FDC22D71DB6EE217FD8",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-007",
+      "sourceSha256": "A4AF098D13B9E1FC3CE1DDA769A27E5E8CD54A7CEE1452A5E11AEE74EC085C25",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-008",
+      "sourceSha256": "722AAD0428ACFD8D7842830D01217B39B2CBFBED56C8C133DCDF7969618C5EE2",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-009",
+      "sourceSha256": "DD3F059160278D09AA4AF4CD2458BBB832087991685B7FF6F89C184E33BEE431",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-010",
+      "sourceSha256": "0F8E7E0DA2EFE893CE608B88626741D32BD96CBEFCC3F22AA7C600DC220A0004",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-011",
+      "sourceSha256": "C612DC5D36406C559F0881BD8F47AB8D6ADAF5A47195945DB84FA29785F4EC89",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-012",
+      "sourceSha256": "CDDACCB3C8E51D711A52079C4E974F5C5574E56BF694AF80B1F8D27BFCFADA79",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-013",
+      "sourceSha256": "CEF38F207CB6A5976FA5CAAB66AB8D896916B2CBDAE76C5B82AD819E6F6C4C33",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-014",
+      "sourceSha256": "7209C6D2DC69ED63E2F934DC1A7755BF3E294FF9B41AB795FE548C4781779064",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-015",
+      "sourceSha256": "B5BCCBDEF064D27E4F0DC492A59CE24AB59B12E86FFA973919DC8CC86AF42F70",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-016",
+      "sourceSha256": "46F398E8A098D5F24626710FEB56FD991D6CCA3F38D8D564FCE562D584614BB4",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-017",
+      "sourceSha256": "AA34024C0286449A314C11DF64C998E692B8FE75B806C8CB1031790FC96EF0E3",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-018",
+      "sourceSha256": "6ACE19FEA498F56DF1ABF8FA1D55ABFB8261A0808BB8E754B566447A433C6E3C",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-019",
+      "sourceSha256": "2AB60A8F2AD555D4D47A7E55F27CF65DFF5A6EAA49E2CDD9F128FA9EC4773C7B",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-020",
+      "sourceSha256": "4D001B3A27295DF82F8928E9170BE94277A7447B2B19F7DE5F45682B0F0E0724",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-021",
+      "sourceSha256": "437984BCC43994D59362D07387CA26B92755AFDE6E2AE7479F9CDE6349B9B43D",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-022",
+      "sourceSha256": "8E0B4ADCF4D0F83972413559A9B4AD16F39EAA9EAB8D7C4D1CD5C2276F229FF8",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-023",
+      "sourceSha256": "F94B6A083BCCAED6B439CF06B7BA1612627F44B3A3A79C44095C0E5A3C2ACD09",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-024",
+      "sourceSha256": "7D571F2EC0A60752A09E3F45B75CE877A9330DE30EE797BB1EAA81394AE647D4",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-025",
+      "sourceSha256": "E0C7ACBAD2EAA08CE141E8BD5C0C5C8EA289647FD7F460016C2FE643787F307C",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-026",
+      "sourceSha256": "A55900A30C8E1D3065ABC9E9C8DB26E41D672064EBEAC4C8B4A18BADAC7CC854",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-027",
+      "sourceSha256": "8C833D8797C8BFD16C9C045E9C8F4381C91FC2AFBCC98F43AE796347675F5C7D",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-028",
+      "sourceSha256": "823F3884A1EEBF419D07D08E5875860FE11575B6EF64801C38E3B944E6CD12E9",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-029",
+      "sourceSha256": "E50BE46CAA6D9338D7098E52183A4E54B9349DDFD0AA51CE845701EFF8042DC3",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-030",
+      "sourceSha256": "4D761D66245B0BF51AF059C545F690A123A17577C6BFB244B2674DB2FB133D74",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-031",
+      "sourceSha256": "8B627C2347577506A26691242259900ECD1D3BAE14F027EF8A8A266B8476FAC1",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-032",
+      "sourceSha256": "F316AE7B4F831A5EBB2649747C313CDB77A3AB691FF95A4883585D9D1B1EAE03",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-033",
+      "sourceSha256": "A4568608E4EFAFCDEB630BB0D3A5CC779155F6916A6584A8184F3106A2E09611",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-034",
+      "sourceSha256": "022DDA27C5473959320679BB918AC62B24069C92ADE7792380F3DC0A1018553B",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-035",
+      "sourceSha256": "AFDD217FF457D2C4DA9DC7816A7D4BD9B370A0D14909AC7C175FBFA30B4A219B",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-036",
+      "sourceSha256": "72D23747964D72651ADBBF3360CF882E900EC5B08A4D0F855C80FA79C42B11D5",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-037",
+      "sourceSha256": "4EA74ACDD24725A985AAF4DF29560D690F12B91C89C6927177478913D24CF891",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-038",
+      "sourceSha256": "38431497ACB7A464DC464AF7D3F2654E55869AD88D02F24292F7139256530CE3",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-039",
+      "sourceSha256": "605055D88B2E3AB58C6765C8C6F59407DC5DE8CBECF9F5BF504727C46A9FBB1D",
+      "split": "train-development"
+    },
+    {
+      "sampleId": "dev-real-v0.1-040",
+      "sourceSha256": "EF0E9BB512EB79553310FEF1EC404ECD96748DDA68E0B105A23886447F23582B",
+      "split": "validation"
+    },
+    {
+      "sampleId": "dev-real-v0.1-041",
+      "sourceSha256": "E2CB7CB70F4A846F35BB459CEC0840748686E795328AFD6823793CB994860F75",
+      "split": "validation"
+    }
+  ],
+  "held": [],
+  "excluded": []
+}

@@ -91,3 +91,61 @@ The [real report](../artifacts/scanner-piece-classifier-v0.2/real-31-board-repor
 On this Windows desktop CPU (eight PyTorch threads), five warmups and 30 synthetic batch-64 repeats gave median **23.0 ms** model load, **0.75 ms** RGB64 tensor conversion, **213.7 ms** canonical multi-head inference per board-sized batch, and **3.34 ms** effective per tile. Process RSS was 543 MB before load, 552 MB after load and 692 MB after benchmark; these process-level numbers include PyTorch and are not model-only memory. The 2.62 MB native / 2.68 MB TorchScript binaries meet the preferred <3 MB raw target, but TorchScript is not a proven TFJS/browser export. This measurement excludes image decode, homography, file I/O and browser/mobile overhead; do not claim iPhone performance.
 
 **Decision: MORE DATA / ARCHITECTURE WORK REQUIRED.** v0.2 preserves and extends occupied-piece gains, improves color and corrections, and roughly halves empty→black-king errors. It still has 172 raw empty false positives, 135 predicted black kings for 31 true, no exact board, 19 corrections per board and 183 raw (266 calibrated) highly confident wrong predictions. The target of materially fewer confident errors is unmet. Recommended next task: **PHASE 3-007C — TARGETED DATA / ARCHITECTURE REVISION**, with a fresh validation/calibration design that better reflects real 2D background complexity without using the protected 31-board cohort for tuning. The public UI is unchanged; a VISUAL-FREEZE exception requires Alexander's explicit approval. Do not integrate the model, merge, or deploy.
+
+---
+
+# Phase 3-007C-B — certified real-development cohort revision
+
+Status: offline experiment complete; no runtime or public UI integration.
+
+## Development data and controlled matrix
+
+The separately documented `caissa-scanner-real-development-v0.2-certified` cohort contributes 28 session-isolated training boards and 13 validation boards. The protected 31-board benchmark contributes zero training, selection, threshold, or calibration tiles. `scanner-piece-dataset-v0.5` combines the unchanged rights-cleared v0.4 synthetic corpus with certified development tiles. It contains 10,544 RGB64 tiles: 6,832 train, 2,272 validation, and 1,440 unseen-family test. Real support is 1,792 train tiles and 832 validation tiles. Training samples are 80% synthetic / 20% real development; real draws are 75% empty. Weighted occupancy CE uses weights 1:2 for empty:occupied. Focal loss and arbitrary king suppression were rejected as unjustified.
+
+The bounded 3×2 matrix compared (A) shared heads with real hard-negative curriculum, (B) a stronger occupancy branch with shared identity heads, and (C) strict two-stage occupancy then occupied-only identity. Seeds were 1901 and 1902. The selected run was shared-hard-negative seed 1902, epoch 16, because it led the preregistered combined synthetic-validation and held-out real-development criteria. The six-run matrix and exact metrics are committed in `artifacts/scanner-piece-classifier-v0.3/experiment-summary.json`.
+
+Frozen v0.2 mining used train-development only. It found three true-empty false positives (`p`, `b`, and `n`); no development-validation tile entered the curriculum. Separate v0.2 train/validation analysis supports a multiple-factor diagnosis: real-background occupancy shift plus type and color interaction under platform/style shift. It does not support a single-cause claim.
+
+## Threshold, calibration, and development validation
+
+Development-validation alone selected occupancy threshold 0.5: precision/recall/F1 1/1/1, with no false positives or false negatives on 832 tiles. Separate occupancy/color/type temperatures of 0.75 were selected over no calibration and occupancy-only scaling. Against no calibration, NLL improved from 0.05095 to 0.04749, Brier from 0.02607 to 0.02553, and ECE from 0.01284 to 0.00721; validation accuracy remained 98.44%. Occupied macro-F1 was 0.9411, piece type 95.81%, and color 100%.
+
+The benchmark-only abstention diagnostic accepted 822/832 development-validation tiles (98.80% coverage) at 98.91% accepted accuracy. Ten tiles were flagged; their error rate was 40%. This policy was not integrated.
+
+## Freeze and one-time evaluations
+
+Architecture, weights, preprocessing, threshold, calibration, and diagnostics were frozen before either test. The selected state SHA-256 is `561BDE692A9C196151396CD4236A9F6B10BA516F001D4ED850A4076E30994029`; TorchScript SHA-256 is `AF15522A716A82656C52CF7118856ECFECEC30F623F2D2EF99FF93BE88138F5D`. The unseen-family synthetic pass then scored 85.90% 13-class accuracy, 0.5380 occupied macro-F1, perfect occupancy separation, 57.92% piece type, and 99.17% color. RhosGFX remains weak (78.06%, 0.1949 macro-F1), while P4wn reached 93.75%, 0.7823 macro-F1.
+
+The protected 31-board model inference ran exactly once after freeze. Its saved truth-free predictions were scored without retuning. Calibrated frozen-policy results:
+
+| Protected metric | v0.2 calibrated | v0.3 calibrated |
+| --- | ---: | ---: |
+| 13-class accuracy | 69.96% | **83.87%** |
+| Occupied macro-F1 | 0.4048 | **0.6536** |
+| Occupancy precision | 80.84% | **83.22%** |
+| Occupancy recall | 99.73% | **100%** |
+| Occupancy F1 | 0.8930 | **0.9084** |
+| Empty→occupied | 177 | **151** |
+| Occupied→empty | 2 | **0** |
+| Piece type | 50.87% | **80.77%** |
+| Color | 85.45% | **91.32%** |
+| White exact | 35.88% | **75.20%** |
+| Black exact | 52.43% | **79.73%** |
+| Predicted K / true K | 43 / 31 | **36 / 31** |
+| Predicted k / true k | 138 / 31 | **121 / 31** |
+| Empty→K | 0 | 9 |
+| Empty→k | 69 | **36** |
+| Color swaps | 51 | **25** |
+| Exact boards | 0 / 31 | **8 / 31** |
+| Mean / median corrections | 19.23 / 16 | **10.32 / 1** |
+| Wrong ≥0.90 | 266 | **122** |
+
+Raw v0.3 scored 84.48% accuracy, 0.6615 occupied macro-F1, and 74/57 wrong predictions at ≥0.90/≥0.95. Calibration selected on development validation was counterproductive under protected-domain shift: calibrated counts rose to 122/85. No post-benchmark calibration adjustment is authorized.
+
+MVP-priority protected subsets remain exploratory: digital-2D 16 boards / 95.41% square accuracy; digital-photo five / 98.75%; livestream one / 93.75%. Print is the dominant unresolved domain: printed-source accuracy is 53.99%, low-contrast-tagged 25.78%. The worst board is the old-newspaper sample with 57 corrections; eight boards are exact, eight have one error, none has two, and 15 have at least three.
+
+## Size, performance, and decision
+
+The model has 649,706 parameters. Native state is 2,622,865 bytes (2,418,913 gzip); TorchScript is 2,676,478 bytes (2,447,220 gzip), both below the preferred 3 MB raw ceiling. On this Windows desktop CPU, five warmups and 30 batch-64 repeats measured 21.05 ms model load, 0.96 ms preprocessing per board, and 225.00 ms inference per board (3.52 ms effective per tile). These measurements exclude decode, homography, I/O, browser, and mobile overhead.
+
+**Decision: MORE DATA / ARCHITECTURE WORK REQUIRED.** General recognition, correction burden, and high-confidence errors improve substantially, but 121 predicted black kings for 31 true and 151 empty→occupied errors mean `k` remains a sink. The held-out development sessions did not predict this protected print/domain failure. Recommended next task: **PHASE 3-007D — TARGETED CLASSIFIER REVISION**, emphasizing session-diverse development data, print/low-contrast empty backgrounds, stricter external calibration validation, and architecture work without touching protected truth. The public UI remains frozen; do not integrate, merge, or deploy this model.
