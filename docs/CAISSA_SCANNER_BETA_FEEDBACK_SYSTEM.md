@@ -4,6 +4,8 @@
 
 `caissa-scanner-beta-feedback-v0.1` is an internal, mobile-first evidence-collection system. Access to `/scanner/beta` is governed by the server-side [CAISSA Beta Program](./CAISSA_BETA_PROGRAM.md): a verified account, an authorized role/entitlement, and an active Scanner registry record are all required. `CAISSA_SCANNER_BETA_STAGE=internal` remains an additive infrastructure kill switch. It is not the primary authorization mechanism. The route carries `noindex`, and the physically certified public `/scanner/` experience is unchanged.
 
+The system was provisioned on the normal CAISSA production domain on 2026-09-19 for a private authenticated beta. This is not a public Scanner launch: no public navigation or sitemap entry was added, and direct-route knowledge cannot bypass server authorization. Alexander's synchronized production account is activated through `beta_tester`; private authentication identifiers are never committed or documented.
+
 The feedback contract also records server-controlled `experimentId=scanner` and `betaStage=internal-beta` client metadata while preserving the corpus version and frozen model identity.
 
 The system does not train, tune, or update a model. Every submitted record begins in `pending-review` quarantine.
@@ -60,12 +62,12 @@ No image is uploaded unless image consent is selected. Correction consent does n
 
 The canonical server contract supports two adapters:
 
-- Supabase/Postgres plus a private `scanner-beta-images` Storage bucket for a future controlled internal environment;
+- production Supabase/Postgres plus the private `scanner-beta-images` Storage bucket;
 - an external-file development adapter at `../caissa_scanner_beta_feedback_v0_1`, outside Git, for local field testing.
 
-The versioned migrations create normalized scan, square-prediction, feedback, square-correction, and quarantined scan-failure tables. All public-schema tables have RLS enabled and forced, and `anon`/`authenticated` receive no table or RPC privileges. Only server-held `service_role` can call the bounded submission RPCs. The migrations are not applied by this task.
+The versioned migrations create normalized scan, square-prediction, feedback, square-correction, and quarantined scan-failure tables. All public-schema tables have RLS enabled and forced, and `anon`/`authenticated` receive no table or RPC privileges. Only server-held `service_role` can call the bounded submission RPCs. The production migrations were applied during the authorized private-beta release.
 
-Supabase Storage must be provisioned separately through the Storage API or dashboard as a private `scanner-beta-images` bucket. Storage credentials remain server-side. The local adapter stores image bytes by hash and exposes only an opaque storage reference in feedback records.
+Supabase Storage is provisioned as a private `scanner-beta-images` bucket with a 12,000,000-byte object limit and JPEG, PNG, and WebP allowlist. Storage credentials remain server-side, no public object URL is returned, and feedback receives only an opaque hash-derived storage reference. Image upload occurs only with separate image consent; image-upload failure does not block correction-only feedback.
 
 ## Idempotency and offline behavior
 
@@ -117,3 +119,11 @@ Fewer than 30 valid completed scans produce exploratory progress with `CONTINUE 
 - `beta-field-v0.1-platform-report.json`
 
 The snapshot checksum is calculated over canonical records sorted by scan and feedback identity. Output never embeds source images. A written certification directory is immutable; a later collection requires a new corpus version.
+
+## Production counter and field-collection state
+
+The Beta Center reports completed final dispositions, not raw attempts, as `X / 100 completed scans`. It also shows attempted, completed, confirmed-correct, corrected, localization-failure, scan-failure, pending, today, this-week, and all-time values for the signed-in account only. Immutable server receipt times, transaction locks, stable IDs, payload hashes, unique constraints, and distinct-scan aggregation keep retries from incrementing the counter.
+
+Before Alexander's physical iPhone smoke, the canonical production state is zero in every category. The physical smoke must use one real scan under Alexander's normal account and must change the primary display from `0 / 100` to `1 / 100` exactly once. Automated and QA submissions must use a separate account or isolated removable records so they never contaminate that baseline.
+
+Physical certification is still a human hold point. After Alexander confirms the complete iPhone flow, collection enters **MOBILE BETA DATA COLLECTION PAUSE** with no classifier work or online weight updates. Resume points are 30 completed scans for the minimum useful checkpoint, 50 for a strong interim sample, and 100 for the recommended `PHASE 3-008C` field-corpus certification.

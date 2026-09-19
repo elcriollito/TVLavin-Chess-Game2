@@ -41,6 +41,12 @@ Disabled, expired, released, and retired records disappear automatically and can
 
 Scanner is seeded as `scanner`, displayed as **CAISSA Scanner**, at `internal-beta`, enabled, routed to `/scanner/beta`, governed by `global-beta`, and marked feedback-enabled.
 
+## Private production activation
+
+The Beta Program and Scanner experiment were activated on the normal CAISSA production domain on 2026-09-19 as **private beta infrastructure**, not as a public Scanner release. Production requires the exact `CAISSA_SCANNER_BETA_STAGE=internal` deployment value in addition to the account and registry checks above. The public Scanner route, public navigation, sitemap, and frozen public Scanner UI are unchanged.
+
+Alexander's canonical Clerk identity was resolved through the existing CAISSA account synchronization. Because the synchronized account did not have an `owner` or `admin` role, it received the scoped, non-expiring `beta_tester` entitlement. No Clerk identifier or email is stored in this document. Ordinary authenticated accounts remain denied and do not receive the account-menu Beta Program entry.
+
 ## Beta activity summary
 
 The authorized `/beta` dashboard includes a compact **Your Beta Activity** card for Scanner. Its primary progress value is completed submissions out of the initial 100-submission field-test target; it is not the raw number of attempts.
@@ -53,6 +59,14 @@ The authorized `/beta` dashboard includes a compact **Your Beta Activity** card 
 The 30, 50, and 100 milestones respectively identify the minimum useful checkpoint, a strong initial field sample, and the recommended first certification target. Counts are produced by `getBetaActivitySummary(userId, experimentId)`. Scanner currently backs that experiment-scoped helper with `get_scanner_beta_activity_summary`; future experiments can provide their own aggregate without changing the dashboard contract.
 
 Scanner scan, feedback, and failure records created after the activity migration carry the immutable CAISSA `user_id`. Submission RPCs require that ID and reject cross-owner retries. Per-scan transaction locks, unique scan and feedback constraints, and distinct-scan aggregation ensure even concurrent idempotent retries count once. The summary RPC is callable only by the server-side service role, and the application always supplies the signed-in account ID. Historical pre-migration rows remain intact with no inferred owner and are intentionally excluded from personal totals.
+
+The production account began with no owned Scanner activity. Before the physical device smoke, every Scanner counter is therefore zero and the primary display is `0 / 100 completed scans`. Production QA must use a separate account or removable isolated records; it must never submit fabricated Scanner evidence under Alexander's account.
+
+## Physical certification and collection pause
+
+Production activation does not certify the physical iPhone flow. Alexander must sign in through the normal production account flow, open **Beta Program**, confirm the Scanner card and `0 / 100`, complete one real iPhone scan and one final disposition, then return to `/beta` and confirm that the primary counter and exactly one appropriate category increased to `1 / 100`. Take Photo, Choose Photo, recognition, Review/Edit, submission, pending-sync behavior, and session continuity are part of that physical certification.
+
+Until Alexander reports that result, the release state is **WAITING FOR ALEXANDER PHYSICAL BETA CERTIFICATION**. After a pass, the product enters **MOBILE BETA DATA COLLECTION PAUSE**: no classifier engineering, threshold changes, online training, or protected-benchmark tuning. Natural-use collection resumes evaluation at 30 completed scans, reaches a strong interim sample at 50, and reaches the recommended first field-corpus certification point at 100.
 
 ## Operations
 
