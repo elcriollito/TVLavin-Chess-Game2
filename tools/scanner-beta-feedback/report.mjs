@@ -8,6 +8,9 @@ const input = resolve(argument('input') || `${defaultScannerBetaRoot()}/feedback
 let state;
 try { state = JSON.parse(await readFile(input, 'utf8')); }
 catch (error) { if (error.code !== 'ENOENT') throw error; state = { feedback: [] }; }
-const records = state.feedback.map((item) => item.feedback);
+const records = [
+  ...(state.feedback || []).map((item) => item.feedback),
+  ...(state.failures || []).map((item) => item.failure)
+];
 process.stdout.write(`${JSON.stringify({ generatedAt: new Date().toISOString(), sourceImagesIncluded: false,
   ...aggregateFeedback(records) }, null, 2)}\n`);

@@ -1,6 +1,7 @@
 const CLASSES = Object.freeze(['empty', 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']);
 const CLASS_SET = new Set(CLASSES);
 const FEEDBACK_TYPES = Object.freeze(['CONFIRMED_CORRECT', 'PIECE_CORRECTION', 'LOCALIZATION_FAILURE', 'SCAN_FAILURE']);
+const FAILURE_STAGES = Object.freeze(['unsupported-input', 'decode', 'localization', 'classifier', 'feedback']);
 const GOVERNANCE_STATES = Object.freeze(['pending-review', 'human-confirmed', 'duplicate', 'held', 'excluded', 'eligible-for-training', 'consumed-in-dataset']);
 const PLATFORMS = Object.freeze(['Chess.com', 'Lichess', 'ChessBase / Playchess', 'ICC', 'PlayOK', 'FIDE/event', 'Chessworld', 'CAISSA gateway', 'other']);
 const MODEL = Object.freeze({
@@ -191,6 +192,51 @@ function createFeedbackRecord({ feedbackId, snapshot, feedbackType, correctedFEN
   });
 }
 
+function createScanFailureRecord({ feedbackId, scanId, timestamp = null, createdAt = timestamp || new Date().toISOString(), imageHash,
+  modelVersion, modelChecksum, occupancyThreshold, orientation, consent, platform = null,
+  captureType = null, clientMetadata = null, failureStage, errorCode }) {
+  invariant(UUID.test(feedbackId || ''), 'FEEDBACK_ID_INVALID');
+  invariant(UUID.test(scanId || ''), 'SCAN_ID_INVALID');
+  invariant(!Number.isNaN(Date.parse(createdAt)), 'TIMESTAMP_INVALID');
+  invariant(HASH.test(imageHash || ''), 'IMAGE_HASH_INVALID');
+  invariant(modelVersion === MODEL.version, 'MODEL_VERSION_MISMATCH');
+  invariant(modelChecksum === MODEL.checksum, 'MODEL_CHECKSUM_MISMATCH');
+  invariant(occupancyThreshold === MODEL.occupancyThreshold, 'OCCUPANCY_THRESHOLD_MISMATCH');
+  invariant(['white-at-bottom', 'black-at-bottom'].includes(orientation), 'ORIENTATION_INVALID');
+  invariant(FAILURE_STAGES.includes(failureStage), 'FAILURE_STAGE_INVALID');
+  invariant(typeof errorCode === 'string' && /^[A-Z0-9_-]{1,80}$/.test(errorCode), 'FAILURE_CODE_INVALID');
+  invariant(platform === null || PLATFORMS.includes(platform), 'PLATFORM_INVALID');
+  invariant(captureType === null || ['camera', 'gallery', 'screenshot', 'photo-of-screen'].includes(captureType), 'CAPTURE_TYPE_INVALID');
+  invariant(consent && typeof consent.shareImageForImprovement === 'boolean'
+    && typeof consent.shareCorrectionForImprovement === 'boolean', 'CONSENT_INVALID');
+  return deepFreeze({
+    schemaVersion: 'caissa-scanner-beta-scan-failure/1',
+    corpusVersion: CORPUS_VERSION,
+    feedbackId,
+    scanId,
+    createdAt,
+    feedbackType: 'SCAN_FAILURE',
+    trainingStatus: 'pending-review',
+    modelVersion,
+    modelChecksum,
+    occupancyThreshold,
+    imageHash,
+    orientation,
+    originalFEN: null,
+    correctedFEN: null,
+    changedSquareCount: 0,
+    changedSquares: [],
+    finalPositionConfirmed: false,
+    localizationValid: false,
+    failureStage,
+    errorCode,
+    consent: clone(consent),
+    platform,
+    captureType,
+    clientMetadata: clientMetadata ? clone(clientMetadata) : null
+  });
+}
+
 function correctionBand(count) {
   if (count === 0) return '0';
   if (count === 1) return '1';
@@ -280,7 +326,7 @@ function eligibleForTraining(record) {
 }
 
 export {
-  CLASSES, CORPUS_VERSION, FEEDBACK_TYPES, GOVERNANCE_STATES, MODEL, PLATFORMS, SCHEMA_VERSION,
-  aggregateFeedback, createFeedbackRecord, createPredictionSnapshot, eligibleForTraining,
+  CLASSES, CORPUS_VERSION, FAILURE_STAGES, FEEDBACK_TYPES, GOVERNANCE_STATES, MODEL, PLATFORMS, SCHEMA_VERSION,
+  aggregateFeedback, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord, eligibleForTraining,
   expandPlacement, fenDiff, placementFromLabels, placementOf, squareAt
 };

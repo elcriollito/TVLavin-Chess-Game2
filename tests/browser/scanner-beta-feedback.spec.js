@@ -21,12 +21,14 @@ function prediction() {
   };
 }
 
-async function mockBeta(page, { feedbackFailures = 0 } = {}) {
-  const captured = { scans: [], feedback: [], feedbackAttempts: 0 };
+async function mockBeta(page, { feedbackFailures = 0, recognitionFailure = false } = {}) {
+  const captured = { scans: [], feedback: [], failures: [], feedbackAttempts: 0 };
   await page.route('**/api/scanner/beta/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/status')) return route.fulfill({ status: 200, json: { available: true } });
-    if (path.endsWith('/recognize')) return route.fulfill({ status: 200, json: prediction() });
+    if (path.endsWith('/recognize')) return recognitionFailure
+      ? route.fulfill({ status: 503, json: { error: 'CLASSIFIER_UNAVAILABLE' } })
+      : route.fulfill({ status: 200, json: prediction() });
     if (path.endsWith('/scan')) {
       captured.scans.push(route.request().postDataJSON());
       return route.fulfill({ status: 200, json: { accepted: true } });
@@ -35,6 +37,10 @@ async function mockBeta(page, { feedbackFailures = 0 } = {}) {
       captured.feedbackAttempts += 1;
       if (captured.feedbackAttempts <= feedbackFailures) return route.fulfill({ status: 503, json: { error: 'OFFLINE' } });
       captured.feedback.push(route.request().postDataJSON());
+      return route.fulfill({ status: 200, json: { accepted: true } });
+    }
+    if (path.endsWith('/failure')) {
+      captured.failures.push(route.request().postDataJSON());
       return route.fulfill({ status: 200, json: { accepted: true } });
     }
     return route.fulfill({ status: 200, json: { accepted: true, imageStorageReference: 'test://image' } });
@@ -113,5 +119,17 @@ test.describe('Scanner internal mobile beta feedback', () => {
     await expect.poll(() => captured.feedbackAttempts).toBe(2);
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('caissa-scanner-beta-pending-sync-v1')).length)).toBe(0);
     expect(captured.feedback).toHaveLength(1);
+  });
+
+  test('classifier failure records a scan disposition without fabricated FEN', async ({ page }) => {
+    const captured = await mockBeta(page, { recognitionFailure: true });
+    await page.goto('/scanner/beta');
+    await page.locator('#galleryInput').setInputFiles(imageFixture);
+    await expect(page.locator('#captureView')).toBeVisible();
+    await expect.poll(() => captured.failures.length).toBe(1);
+    expect(captured.failures[0].failure).toMatchObject({
+      feedbackType: 'SCAN_FAILURE', failureStage: 'classifier', originalFEN: null,
+      finalPositionConfirmed: false, localizationValid: false
+    });
   });
 });

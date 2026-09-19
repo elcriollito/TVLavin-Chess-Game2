@@ -1,4 +1,4 @@
-import { PLATFORMS, createFeedbackRecord, createPredictionSnapshot } from '../../scanner/beta/scanner-beta-contract.js';
+import { PLATFORMS, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord } from '../../scanner/beta/scanner-beta-contract.js';
 import { SCANNER_BETA, betaEnabled, privateHeaders, sameOrigin, sha256, stableJson } from './scanner-beta-policy.js';
 import { createScannerBetaSupabaseStore } from './scanner-beta-store.js';
 
@@ -79,6 +79,20 @@ export function createScannerBetaService({ store = null, env = process.env } = {
           feedbackId: record.feedbackId, changedSquareCount: record.changedSquareCount, payloadHash });
       } catch (error) {
         const code = String(error?.message || 'INVALID_FEEDBACK');
+        return reply(res, failStatus(code), { error: code });
+      }
+    },
+    async failure(req, res) {
+      if (!guard(req, res)) return;
+      try {
+        const body = jsonBody(req);
+        const record = createScanFailureRecord(body.failure || {});
+        const payloadHash = sha256(stableJson(record));
+        const result = await data().putFailure({ failure: record, payloadHash });
+        return reply(res, 200, { accepted: true, duplicate: result?.duplicate === true,
+          feedbackId: record.feedbackId, scanId: record.scanId, payloadHash });
+      } catch (error) {
+        const code = String(error?.message || 'INVALID_SCAN_FAILURE');
         return reply(res, failStatus(code), { error: code });
       }
     },

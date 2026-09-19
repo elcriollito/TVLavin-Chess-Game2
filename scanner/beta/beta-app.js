@@ -1,4 +1,5 @@
-import { MODEL, createFeedbackRecord, createPredictionSnapshot, fenDiff } from './scanner-beta-contract.js';
+import { MODEL, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord, fenDiff } from './scanner-beta-contract.js';
+import { randomUuid, sha256Hex } from './scanner-beta-crypto.js';
 import { enqueueSubmission, flushSubmissions, pendingCount } from './scanner-beta-queue.js';
 
 const $ = (id) => document.getElementById(id);
@@ -23,9 +24,7 @@ function clientMetadata() {
 function status(message, target = 'submitStatus') { $(target).textContent = message; }
 
 async function imageHash(file) {
-  const bytes = await file.arrayBuffer();
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('').toUpperCase();
+  return sha256Hex(await file.arrayBuffer());
 }
 
 function rgbaBase64(buffer) {
@@ -53,6 +52,20 @@ async function uploadImage(file, hash) {
   });
   if (!response.ok) throw new Error('IMAGE_UPLOAD_FAILED');
   return (await response.json()).imageStorageReference;
+}
+
+function failureCode(value) {
+  return String(value || 'UNKNOWN_FAILURE').toUpperCase().replace(/[^A-Z0-9_-]/g, '_').slice(0, 80) || 'UNKNOWN_FAILURE';
+}
+
+async function recordScanFailure({ scanId, hash, stage, code }) {
+  const failure = createScanFailureRecord({
+    feedbackId: randomUuid(), scanId, timestamp: new Date().toISOString(), imageHash: hash,
+    modelVersion: MODEL.version, modelChecksum: MODEL.checksum, occupancyThreshold: MODEL.occupancyThreshold,
+    orientation: $('orientation').value, consent: consent(), platform: $('platform').value || null,
+    captureType, clientMetadata: clientMetadata(), failureStage: stage, errorCode: failureCode(code)
+  });
+  return submitOrQueue(`failure:${failure.feedbackId}`, '/api/scanner/beta/failure', { failure });
 }
 
 function renderBoard() {
@@ -100,13 +113,24 @@ function showDiagnostics(prepared) {
 }
 
 async function selectFile(file, source) {
-  if (!file || !runtime.supportsMimeType(file.type)) { status('Choose a JPEG, PNG, or WebP image.', 'syncStatus'); return; }
+  if (!file) return;
   captureType = source;
+  const scanId = randomUuid();
+  let hash = null;
+  if (!runtime.supportsMimeType(file.type)) {
+    try {
+      hash = await imageHash(file);
+      const stored = await recordScanFailure({ scanId, hash, stage: 'unsupported-input', code: 'UNSUPPORTED_INPUT' });
+      status(stored.synced ? 'Unsupported input recorded. Choose a JPEG, PNG, or WebP image.'
+        : 'Unsupported input queued for safe retry. Choose a JPEG, PNG, or WebP image.', 'syncStatus');
+    } catch (_) { status('Choose a JPEG, PNG, or WebP image.', 'syncStatus'); }
+    return;
+  }
   generation += 1;
   const activeGeneration = generation;
   show('readingView');
   try {
-    const hash = await imageHash(file);
+    hash = await imageHash(file);
     const prepared = await runtime.processImage(file, activeGeneration);
     if (generation !== activeGeneration) return;
     let imageStorageReference = null;
@@ -120,7 +144,7 @@ async function selectFile(file, source) {
     if (!response.ok) throw new Error('CLASSIFIER_UNAVAILABLE');
     const prediction = await response.json();
     snapshot = createPredictionSnapshot({
-      scanId: crypto.randomUUID(), timestamp: new Date().toISOString(), imageHash: hash,
+      scanId, timestamp: new Date().toISOString(), imageHash: hash,
       orientation: $('orientation').value, detectedCorners: prepared.board.corners,
       predictedFEN: prediction.predictedFEN, squarePredictions: prediction.squarePredictions,
       modelVersion: prediction.modelVersion, modelChecksum: prediction.modelChecksum,
@@ -134,6 +158,12 @@ async function selectFile(file, source) {
     show('reviewView');
     status(stored.synced ? 'Prediction saved. Confirm the final position.' : 'Offline: prediction queued for safe retry.');
   } catch (error) {
+    if (hash) {
+      const classifierFailure = error.message === 'CLASSIFIER_UNAVAILABLE';
+      const localizationFailure = /BOARD|CORNER|HOMOGRAPHY|LOCALIZATION|AMBIGUOUS/i.test(String(error.code || error.message));
+      try { await recordScanFailure({ scanId, hash, stage: classifierFailure ? 'classifier' : localizationFailure ? 'localization' : 'decode',
+        code: error.code || error.message }); } catch (_) { /* The visible error remains authoritative. */ }
+    }
     show('captureView');
     status(error.message === 'CLASSIFIER_UNAVAILABLE' ? 'Internal classifier is unavailable. Try again when connected to the beta server.' : 'Could not read this board. Try another image.', 'syncStatus');
   }
@@ -145,7 +175,7 @@ async function sendFeedback(type) {
   const feedbackType = type || (diff.length ? 'PIECE_CORRECTION' : 'CONFIRMED_CORRECT');
   try {
     const record = createFeedbackRecord({
-      feedbackId: crypto.randomUUID(), snapshot, feedbackType,
+      feedbackId: randomUuid(), snapshot, feedbackType,
       correctedFEN: feedbackType === 'LOCALIZATION_FAILURE' ? null : workingFen,
       finalPositionConfirmed: !['LOCALIZATION_FAILURE', 'SCAN_FAILURE'].includes(feedbackType),
       localizationValid: feedbackType !== 'LOCALIZATION_FAILURE', consent: consent(),

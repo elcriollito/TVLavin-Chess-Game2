@@ -4,10 +4,11 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  MODEL, aggregateFeedback, createFeedbackRecord, createPredictionSnapshot, eligibleForTraining,
+  MODEL, aggregateFeedback, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord, eligibleForTraining,
   expandPlacement, fenDiff, placementFromLabels
 } from '../scanner/beta/scanner-beta-contract.js';
 import { enqueueSubmission, flushSubmissions, pendingCount } from '../scanner/beta/scanner-beta-queue.js';
+import { randomUuid, sha256Hex } from '../scanner/beta/scanner-beta-crypto.js';
 import { sha256, stableJson } from '../api/_lib/scanner-beta-policy.js';
 import { createScannerBetaService } from '../api/_lib/scanner-beta-service.js';
 import { createScannerBetaLocalStore } from '../tools/scanner-beta-feedback/local-store.mjs';
@@ -44,6 +45,13 @@ function prediction(overrides = {}) {
 }
 
 const consent = { shareImageForImprovement: true, shareCorrectionForImprovement: true };
+
+test('LAN-safe beta crypto preserves SHA-256 and UUID contracts without a secure context', async () => {
+  const bytes = new TextEncoder().encode('abc');
+  assert.equal(await sha256Hex(bytes, {}), 'BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD');
+  const insecureCrypto = { getRandomValues(target) { target.forEach((_, index) => { target[index] = index; }); return target; } };
+  assert.equal(randomUuid(insecureCrypto), '00010203-0405-4607-8809-0a0b0c0d0e0f');
+});
 
 test('prediction snapshots are deeply immutable and trace frozen v0.5', () => {
   const snapshot = createPredictionSnapshot(prediction());
@@ -94,6 +102,27 @@ test('localization failures cannot become full-board truth', () => {
     feedbackType: 'SCAN_FAILURE', finalPositionConfirmed: false, localizationValid: true, consent });
   assert.equal(failed.feedbackType, 'SCAN_FAILURE');
   assert.equal(failed.finalPositionConfirmed, false);
+});
+
+test('scan failures are durable dispositions without fabricated board truth', async () => {
+  const failure = createScanFailureRecord({
+    feedbackId: '55555555-5555-4555-8555-555555555555', scanId: '66666666-6666-4666-8666-666666666666',
+    timestamp: '2026-09-19T14:00:00Z', imageHash: 'D'.repeat(64), modelVersion: MODEL.version,
+    modelChecksum: MODEL.checksum, occupancyThreshold: MODEL.occupancyThreshold, orientation: 'white-at-bottom',
+    consent, platform: 'Lichess', captureType: 'camera', failureStage: 'classifier', errorCode: 'CLASSIFIER_UNAVAILABLE'
+  });
+  assert.equal(failure.feedbackType, 'SCAN_FAILURE');
+  assert.equal(failure.originalFEN, null);
+  assert.equal(failure.finalPositionConfirmed, false);
+  assert.deepEqual(createScanFailureRecord(failure), failure);
+  const root = await mkdtemp(join(tmpdir(), 'caissa-scanner-beta-failure-'));
+  try {
+    const store = createScannerBetaLocalStore({ root });
+    const payloadHash = sha256(stableJson(failure));
+    assert.deepEqual(await store.putFailure({ failure, payloadHash }), { duplicate: false });
+    assert.deepEqual(await store.putFailure({ failure, payloadHash }), { duplicate: true });
+    assert.deepEqual(await store.allFeedback(), [failure]);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test('final-position and consent gates are mandatory for training eligibility', () => {
@@ -184,4 +213,14 @@ test('versioned database schema is normalized, private by default, and has immut
   assert.match(sql, /SCANNER_BETA_SNAPSHOT_IMMUTABLE/);
   assert.match(sql, /training_status <> 'eligible-for-training'/);
   assert.doesNotMatch(sql, /grant (?:all|select|insert|update|delete)[^;]+to (?:anon|authenticated)/i);
+});
+
+test('scan-failure migration is quarantined, private, and never training eligible', async () => {
+  const sql = await readFile(new URL('../supabase/migrations/20260919163937_scanner_beta_scan_failures_v01.sql', import.meta.url), 'utf8');
+  assert.match(sql, /create table public\.scanner_beta_scan_failures/);
+  assert.match(sql, /enable row level security/);
+  assert.match(sql, /force row level security/);
+  assert.match(sql, /revoke all on public\.scanner_beta_scan_failures from public, anon, authenticated/);
+  assert.match(sql, /training_status <> 'eligible-for-training'/);
+  assert.match(sql, /submit_scanner_beta_scan_failure/);
 });

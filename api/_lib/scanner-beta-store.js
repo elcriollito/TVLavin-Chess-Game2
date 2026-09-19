@@ -20,6 +20,11 @@ export function createScannerBetaSupabaseStore(client = getSupabase()) {
         p_feedback: feedback, p_payload_hash: payloadHash
       }), 'SCANNER_BETA_FEEDBACK');
     },
+    async putFailure({ failure, payloadHash }) {
+      return checked(await client.rpc('submit_scanner_beta_scan_failure', {
+        p_failure: failure, p_payload_hash: payloadHash
+      }), 'SCANNER_BETA_FAILURE');
+    },
     async putImage({ imageHash, bytes, contentType }) {
       const key = `${imageHash.slice(0, 2)}/${imageHash}`;
       const result = await client.storage.from('scanner-beta-images').upload(key, bytes, {

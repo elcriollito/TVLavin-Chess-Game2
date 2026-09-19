@@ -1,12 +1,17 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
 
-const EMPTY = Object.freeze({ schemaVersion: 'caissa-scanner-beta-local-store/1', scans: [], feedback: [] });
+const EMPTY = Object.freeze({ schemaVersion: 'caissa-scanner-beta-local-store/2', scans: [], feedback: [], failures: [] });
 
 async function readState(path) {
   try {
     const value = JSON.parse(await readFile(path, 'utf8'));
-    if (value?.schemaVersion !== EMPTY.schemaVersion || !Array.isArray(value.scans) || !Array.isArray(value.feedback)) {
+    if (value?.schemaVersion === 'caissa-scanner-beta-local-store/1'
+        && Array.isArray(value.scans) && Array.isArray(value.feedback)) {
+      return { ...value, schemaVersion: EMPTY.schemaVersion, failures: [] };
+    }
+    if (value?.schemaVersion !== EMPTY.schemaVersion || !Array.isArray(value.scans)
+        || !Array.isArray(value.feedback) || !Array.isArray(value.failures)) {
       throw new Error('LOCAL_STORE_CORRUPT');
     }
     return value;
@@ -76,6 +81,17 @@ export function createScannerBetaLocalStore({ root = defaultScannerBetaRoot(), s
         return { duplicate: false };
       });
     },
+    async putFailure({ failure, payloadHash }) {
+      return mutate((state) => {
+        const prior = state.failures.find((item) => item.feedbackId === failure.feedbackId || item.scanId === failure.scanId);
+        if (prior) {
+          if (prior.payloadHash !== payloadHash) throw new Error('SCAN_FAILURE_ID_CONFLICT');
+          return { duplicate: true };
+        }
+        state.failures.push({ feedbackId: failure.feedbackId, scanId: failure.scanId, payloadHash, failure });
+        return { duplicate: false };
+      });
+    },
     async putImage({ imageHash, bytes, contentType }) {
       const extension = contentType === 'image/png' ? '.png' : contentType === 'image/webp' ? '.webp' : '.jpg';
       if (!['.png', '.webp', '.jpg'].includes(extname(`x${extension}`))) throw new Error('IMAGE_TYPE_INVALID');
@@ -88,7 +104,7 @@ export function createScannerBetaLocalStore({ root = defaultScannerBetaRoot(), s
     },
     async allFeedback() {
       const state = await readState(statePath);
-      return state.feedback.map((item) => item.feedback);
+      return [...state.feedback.map((item) => item.feedback), ...state.failures.map((item) => item.failure)];
     },
     async state() { return readState(statePath); }
   });

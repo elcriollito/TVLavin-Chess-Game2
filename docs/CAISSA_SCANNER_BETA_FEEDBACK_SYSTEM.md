@@ -41,6 +41,8 @@ The browser deep-freezes the snapshot. The server hashes it. Both local storage 
 
 Canonical feedback types are `CONFIRMED_CORRECT`, `PIECE_CORRECTION`, `LOCALIZATION_FAILURE`, and `SCAN_FAILURE`. FEN comparison uses only the piece-placement field and expands it to exactly 64 allowed classes. Side-to-move, castling, en-passant, and counters never fabricate visual labels.
 
+If decode, localization, or classifier execution cannot produce a prediction snapshot, the beta writes a separate `SCAN_FAILURE` disposition containing the frozen model identity, image hash, failure stage, and consent metadata. It never fabricates a FEN or 64-square classifier truth for a failed scan. These records remain permanently ineligible for training.
+
 For corrections, the server re-derives changed squares from the immutable prediction rather than trusting a handwritten difference. Each correction retains the predicted class, corrected class, and original diagnostic probabilities. Full-board truth requires `finalPositionConfirmed=true`. Localization failures set `localizationValid=false` and are excluded from classifier candidate export.
 
 ## Consent and privacy
@@ -59,7 +61,7 @@ The canonical server contract supports two adapters:
 - Supabase/Postgres plus a private `scanner-beta-images` Storage bucket for a future controlled internal environment;
 - an external-file development adapter at `../caissa_scanner_beta_feedback_v0_1`, outside Git, for local field testing.
 
-The versioned migration creates normalized scan, square-prediction, feedback, and square-correction tables. All public-schema tables have RLS enabled and forced, and `anon`/`authenticated` receive no table or RPC privileges. Only server-held `service_role` can call the two bounded submission RPCs. The migration is not applied by this task.
+The versioned migrations create normalized scan, square-prediction, feedback, square-correction, and quarantined scan-failure tables. All public-schema tables have RLS enabled and forced, and `anon`/`authenticated` receive no table or RPC privileges. Only server-held `service_role` can call the bounded submission RPCs. The migrations are not applied by this task.
 
 Supabase Storage must be provisioned separately through the Storage API or dashboard as a private `scanner-beta-images` bucket. Storage credentials remain server-side. The local adapter stores image bytes by hash and exposes only an opaque storage reference in feedback records.
 
@@ -96,3 +98,20 @@ CAISSA_SCANNER_BETA_DATA_ROOT=<external feedback directory>
 ```
 
 Restrict the computer and phone to a trusted local network. No credentials or source images belong in Git. A future public opt-in flow requires a separate privacy, authentication, abuse-control, retention, and deployment review.
+
+### LAN/mobile requirement
+
+The internal server must bind to `0.0.0.0`; the phone must use the host's current LAN IPv4 address rather than `localhost`. The beta crypto adapter uses WebCrypto when available and a deterministic SHA-256 plus RFC 4122 UUID fallback on plain-HTTP LAN origins, where `crypto.subtle` and `crypto.randomUUID` are unavailable. Random bytes still come from `crypto.getRandomValues`; the flow fails closed if browser randomness is unavailable.
+
+### Field-corpus certification
+
+`npm run certify:scanner:beta-field` is read-only by default. It audits identity duplicates, retries, frozen-model metadata, final dispositions, FEN consistency, classifier/localization separation, correction burden, occupancy, piece/king/color errors, confidence, platform/capture groups, structural warnings, and an offline-only auto-accept candidate policy.
+
+Fewer than 30 valid completed scans produce exploratory progress with `CONTINUE MOBILE BETA COLLECTION`; no certification artifacts are written. Once the minimum is met, an explicit new directory may be supplied with `-- --write-dir=<new-path>`. The command then writes exactly:
+
+- `beta-field-v0.1-manifest.json`
+- `beta-field-v0.1-report.json`
+- `beta-field-v0.1-corrections.json`
+- `beta-field-v0.1-platform-report.json`
+
+The snapshot checksum is calculated over canonical records sorted by scan and feedback identity. Output never embeds source images. A written certification directory is immutable; a later collection requires a new corpus version.

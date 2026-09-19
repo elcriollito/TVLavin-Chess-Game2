@@ -57,6 +57,7 @@ export function createScannerBetaHttpAdapter({ env = process.env, store = null }
       }
       else if (target === 'scan') await service.scan(req, adapted);
       else if (target === 'feedback') await service.feedback(req, adapted);
+      else if (target === 'failure') await service.failure(req, adapted);
       else if (target === 'image') await service.image(req, adapted);
       else adapted.status(404).json({ error: 'NOT_FOUND' });
       return true;
