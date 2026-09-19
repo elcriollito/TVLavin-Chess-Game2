@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "caissa-scanner-production-model/1",
+  "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+  "sourceStateSha256": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+  "sourceTorchScriptSha256": "8025AA0F8455BE582AB718A70BC75C1CE4A583852DA4A3A8E540FEF035EE9801",
+  "format": "ONNX",
+  "opset": 18,
+  "artifact": "frozen-v05.onnx",
+  "artifactSha256": "FFF4C633613997C7C29ACD31FB233CF9A2150D173AAB4E38E0BF650644485211",
+  "artifactBytes": 2635093,
+  "input": {
+    "name": "tiles",
+    "dtype": "float32",
+    "shape": [
+      64,
+      3,
+      64,
+      64
+    ]
+  },
+  "outputs": [
+    {
+      "name": "occupancy_logits",
+      "dtype": "float32",
+      "shape": [
+        64,
+        2
+      ]
+    },
+    {
+      "name": "color_logits",
+      "dtype": "float32",
+      "shape": [
+        64,
+        2
+      ]
+    },
+    {
+      "name": "piece_type_logits",
+      "dtype": "float32",
+      "shape": [
+        64,
+        6
+      ]
+    },
+    {
+      "name": "king_logits",
+      "dtype": "float32",
+      "shape": [
+        64,
+        2
+      ]
+    }
+  ],
+  "preprocessingVersion": "caissa-rgb64-uint8-div255/1",
+  "occupancyThreshold": 0.99,
+  "classOrder": [
+    "empty",
+    "P",
+    "N",
+    "B",
+    "R",
+    "Q",
+    "K",
+    "p",
+    "n",
+    "b",
+    "r",
+    "q",
+    "k"
+  ]
+}

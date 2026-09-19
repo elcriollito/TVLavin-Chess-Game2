@@ -21,14 +21,21 @@ function prediction() {
   };
 }
 
-async function mockBeta(page, { feedbackFailures = 0, recognitionFailure = false } = {}) {
-  const captured = { scans: [], feedback: [], failures: [], feedbackAttempts: 0 };
+async function mockBeta(page, { feedbackFailures = 0, recognitionFailure = false,
+  recognitionFailures = 0, recognitionNetworkFailures = 0 } = {}) {
+  const captured = { scans: [], feedback: [], failures: [], recognition: [], feedbackAttempts: 0, recognitionAttempts: 0 };
   await page.route('**/api/scanner/beta/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/status')) return route.fulfill({ status: 200, json: { available: true } });
-    if (path.endsWith('/recognize')) return recognitionFailure
-      ? route.fulfill({ status: 503, json: { error: 'CLASSIFIER_UNAVAILABLE' } })
-      : route.fulfill({ status: 200, json: prediction() });
+    if (path.endsWith('/recognize')) {
+      captured.recognitionAttempts += 1;
+      captured.recognition.push(route.request().postDataJSON());
+      if (captured.recognitionAttempts <= recognitionNetworkFailures) return route.abort('connectionreset');
+      if (recognitionFailure || captured.recognitionAttempts <= recognitionFailures) {
+        return route.fulfill({ status: 503, json: { error: 'INFERENCE_FAILURE' } });
+      }
+      return route.fulfill({ status: 200, json: prediction() });
+    }
     if (path.endsWith('/scan')) {
       captured.scans.push(route.request().postDataJSON());
       return route.fulfill({ status: 200, json: { accepted: true } });
@@ -76,6 +83,11 @@ test.describe('Scanner internal mobile beta feedback', () => {
     await expect(page.locator('#workspaceView')).toBeVisible();
     await expect(page.locator('#workspaceBoard .sq')).toHaveCount(64);
     expect(captured.scans).toHaveLength(1);
+    expect(captured.recognition).toHaveLength(1);
+    expect(captured.recognition[0]).toMatchObject({
+      schemaVersion: 'caissa-scanner-beta-recognition-request/1', boardEncoding: 'rgba8',
+      boardWidth: 512, boardHeight: 512, sourceImageType: 'image/png', orientation: 'white-at-bottom'
+    });
     expect(captured.feedback).toHaveLength(1);
     expect(captured.feedback[0].feedback.feedbackType).toBe('CONFIRMED_CORRECT');
     expect(captured.feedback[0].feedback.changedSquareCount).toBe(0);
@@ -131,5 +143,23 @@ test.describe('Scanner internal mobile beta feedback', () => {
       feedbackType: 'SCAN_FAILURE', failureStage: 'classifier', originalFEN: null,
       finalPositionConfirmed: false, localizationValid: false
     });
+  });
+
+  test('one endpoint rejection is retried and then reaches review', async ({ page }) => {
+    const captured = await mockBeta(page, { recognitionFailures: 1 });
+    await page.goto('/scanner/beta');
+    await recognize(page);
+    expect(captured.recognitionAttempts).toBe(2);
+    expect(captured.failures).toHaveLength(0);
+  });
+
+  test('one network failure is retried and camera capture preserves its source metadata', async ({ page }) => {
+    const captured = await mockBeta(page, { recognitionNetworkFailures: 1 });
+    await page.goto('/scanner/beta');
+    await page.locator('#cameraInput').setInputFiles(imageFixture);
+    await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
+    expect(captured.recognitionAttempts).toBe(2);
+    expect(captured.scans).toHaveLength(1);
+    expect(captured.scans[0].metadata.captureType).toBe('camera');
   });
 });

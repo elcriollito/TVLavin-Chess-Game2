@@ -34,6 +34,26 @@ function rgbaBase64(buffer) {
   return btoa(value);
 }
 
+async function recognizeBoard(body) {
+  let lastError = new Error('CLASSIFIER_UNAVAILABLE');
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch('/api/scanner/beta/recognize', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        const retryable = [429, 503, 504].includes(response.status);
+        if (!retryable || attempt === 1) throw new Error('CLASSIFIER_UNAVAILABLE');
+      } else return response.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw lastError;
+}
+
 async function submitOrQueue(id, endpoint, body) {
   try {
     const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -136,13 +156,12 @@ async function selectFile(file, source) {
     let imageStorageReference = null;
     try { imageStorageReference = await uploadImage(file, hash); }
     catch (_) { status('Image sharing is pending; correction collection can continue.', 'syncStatus'); }
-    const response = await fetch('/api/scanner/beta/recognize', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-        boardRgbaBase64: rgbaBase64(prepared.board.pixels), orientation: $('orientation').value
-      })
+    const prediction = await recognizeBoard({
+      schemaVersion: 'caissa-scanner-beta-recognition-request/1',
+      boardEncoding: 'rgba8', boardWidth: 512, boardHeight: 512,
+      sourceImageType: file.type,
+      boardRgbaBase64: rgbaBase64(prepared.board.pixels), orientation: $('orientation').value
     });
-    if (!response.ok) throw new Error('CLASSIFIER_UNAVAILABLE');
-    const prediction = await response.json();
     snapshot = createPredictionSnapshot({
       scanId, timestamp: new Date().toISOString(), imageHash: hash,
       orientation: $('orientation').value, detectedCorners: prepared.board.corners,

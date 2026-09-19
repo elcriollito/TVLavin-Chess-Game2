@@ -4,7 +4,7 @@
 
 `caissa-scanner-beta-feedback-v0.1` is an internal, mobile-first evidence-collection system. Access to `/scanner/beta` is governed by the server-side [CAISSA Beta Program](./CAISSA_BETA_PROGRAM.md): a verified account, an authorized role/entitlement, and an active Scanner registry record are all required. `CAISSA_SCANNER_BETA_STAGE=internal` remains an additive infrastructure kill switch. It is not the primary authorization mechanism. The route carries `noindex`, and the physically certified public `/scanner/` experience is unchanged.
 
-The persistence, storage, account, and route infrastructure was provisioned on the normal CAISSA production domain on 2026-09-19 for a private authenticated beta. Release smoke proved that the approved source has no Vercel-compatible `/api/scanner/beta/recognize` handler; the only frozen-v0.5 adapter depends on a Windows-local Python environment. The Scanner experiment and production infrastructure gate are therefore disabled pending a separately reviewed inference deployment. This is not a public Scanner launch: no public navigation or sitemap entry was added, and direct-route knowledge cannot bypass server authorization. Alexander's synchronized production account retains `beta_tester`; private authentication identifiers are never committed or documented.
+The persistence, storage, account, and route infrastructure was provisioned on the normal CAISSA production domain on 2026-09-19 for a private authenticated beta. BETA-002A adds a Vercel-compatible `/api/scanner/beta/recognize` handler using the exact frozen-v0.5 weights converted to ONNX and certified against the Windows-local TorchScript reference. Activation remains a deliberate two-gate release: the Scanner experiment registry and `CAISSA_SCANNER_BETA_STAGE=internal` must both be active. This is not a public Scanner launch: no public navigation or sitemap entry was added, and direct-route knowledge cannot bypass server authorization. Alexander's synchronized production account retains `beta_tester`; private authentication identifiers are never committed or documented. Runtime architecture, parity evidence, operations, and rollback are documented in [CAISSA Scanner Production Inference](./CAISSA_SCANNER_PRODUCTION_INFERENCE.md).
 
 The feedback contract also records server-controlled `experimentId=scanner` and `betaStage=internal-beta` client metadata while preserving the corpus version and frozen model identity.
 
@@ -28,7 +28,7 @@ The system does not train, tune, or update a model. Every submitted record begin
 - Class order: `empty P N B R Q K p n b r q k`
 - Preprocessing: `RGB64 uint8 / 255`
 
-The local inference adapter verifies both the state checksum and the certified TorchScript checksum before every process start. It cannot silently substitute weights or threshold policy.
+The production runtime verifies its ONNX artifact checksum and conversion manifest before creating a session. The certification adapter independently verifies both the state checksum and the certified TorchScript checksum. Neither path can silently substitute weights or threshold policy.
 
 ## Immutable prediction snapshot
 
@@ -96,8 +96,6 @@ Set these environment variables before starting the local server:
 ```text
 CAISSA_SCANNER_BETA_STAGE=internal
 CAISSA_SERVER_HOST=0.0.0.0
-CAISSA_SCANNER_BETA_PYTHON=<absolute path to the v0.5 Python environment>
-CAISSA_SCANNER_BETA_MODEL_DIR=<absolute path to phase3-007e-v0.5-final1>
 CAISSA_SCANNER_BETA_DATA_ROOT=<external feedback directory>
 ```
 
@@ -126,4 +124,4 @@ The Beta Center reports completed final dispositions, not raw attempts, as `X / 
 
 Before Alexander's physical iPhone smoke, the canonical production state is zero in every category. The physical smoke must use one real scan under Alexander's normal account and must change the primary display from `0 / 100` to `1 / 100` exactly once. Automated and QA submissions must use a separate account or isolated removable records so they never contaminate that baseline.
 
-Physical certification remains blocked until the production inference endpoint exists and both gates are deliberately re-enabled. After Alexander confirms the complete iPhone flow, collection enters **MOBILE BETA DATA COLLECTION PAUSE** with no classifier work or online weight updates. Resume points are 30 completed scans for the minimum useful checkpoint, 50 for a strong interim sample, and 100 for the recommended `PHASE 3-008C` field-corpus certification.
+Physical certification begins only after the certified production inference endpoint is deployed and both gates are deliberately re-enabled. After Alexander confirms the complete iPhone flow, collection enters **MOBILE BETA DATA COLLECTION PAUSE** with no classifier work or online weight updates. Resume points are 30 completed scans for the minimum useful checkpoint, 50 for a strong interim sample, and 100 for the recommended `PHASE 3-008C` field-corpus certification.
