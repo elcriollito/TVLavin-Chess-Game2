@@ -53,6 +53,23 @@ test('Scanner kill switch is additive to account authorization', async () => {
   assert.equal(disabledAccess.code, 'BETA_DISABLED');
 });
 
+test('activity summaries use the resolved account ID and experiment scope', async () => {
+  const calls = [];
+  const store = { async getUserByClerkId() { return { ...user({ entitlements: ['beta_tester'] }), id: 'account-7' }; },
+    async listExperiments() { return [experiment({ feedbackEnabled: true })]; },
+    async getBetaActivitySummary(userId, experimentId) { calls.push([userId, experimentId]); return {
+      attempted: 1, completed: 1, confirmedCorrect: 1, corrected: 0, localizationFailures: 0,
+      scanFailures: 0, pending: 0, completedToday: 1, completedThisWeek: 1, completedAllTime: 1
+    }; }, async recordEvent() {} };
+  const service = createBetaProgramService({ store,
+    authenticate: async () => ({ authenticated: true, userId: 'clerk-7' }),
+    env: { CAISSA_SCANNER_BETA_STAGE: 'internal' }, now: () => now });
+  const access = await service.listForRequest({ headers: {} });
+  assert.equal(access.ok, true);
+  assert.deepEqual(calls, [['account-7', 'scanner']]);
+  assert.equal(access.activitySummaries.scanner.completed, 1);
+});
+
 test('browser authentication accepts the Clerk session cookie while API authentication stays Bearer-only', async () => {
   const payload = { sub: 'user_abc', email: 'beta@example.test' };
   const browser = createAuthenticateRequest({ allowSessionCookie: true, env: { CLERK_SECRET_KEY: 'secret' }, verifyToken: async token => {

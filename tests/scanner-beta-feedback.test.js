@@ -18,6 +18,7 @@ const ids = {
   scan: '11111111-1111-4111-8111-111111111111',
   feedback: '22222222-2222-4222-8222-222222222222'
 };
+const userId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
 function prediction(overrides = {}) {
   const labels = expandPlacement(overrides.predictedFEN || FEN);
@@ -119,8 +120,8 @@ test('scan failures are durable dispositions without fabricated board truth', as
   try {
     const store = createScannerBetaLocalStore({ root });
     const payloadHash = sha256(stableJson(failure));
-    assert.deepEqual(await store.putFailure({ failure, payloadHash }), { duplicate: false });
-    assert.deepEqual(await store.putFailure({ failure, payloadHash }), { duplicate: true });
+    assert.deepEqual(await store.putFailure({ userId, failure, payloadHash }), { duplicate: false });
+    assert.deepEqual(await store.putFailure({ userId, failure, payloadHash }), { duplicate: true });
     assert.deepEqual(await store.allFeedback(), [failure]);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
@@ -142,20 +143,20 @@ test('local canonical store enforces immutable snapshots and idempotency', async
     const store = createScannerBetaLocalStore({ root });
     const snapshot = createPredictionSnapshot(prediction());
     const snapshotHash = sha256(stableJson(snapshot));
-    assert.deepEqual(await store.putScan({ snapshot, snapshotHash, metadata: {} }), { duplicate: false });
-    assert.deepEqual(await store.putScan({ snapshot, snapshotHash, metadata: {} }), { duplicate: true });
-    await assert.rejects(store.putScan({ snapshot: { ...snapshot, timestamp: '2026-09-19T12:01:00Z' }, snapshotHash: 'B'.repeat(64), metadata: {} }), /SNAPSHOT_IMMUTABLE_CONFLICT/);
+    assert.deepEqual(await store.putScan({ userId, snapshot, snapshotHash, metadata: {} }), { duplicate: false });
+    assert.deepEqual(await store.putScan({ userId, snapshot, snapshotHash, metadata: {} }), { duplicate: true });
+    await assert.rejects(store.putScan({ userId, snapshot: { ...snapshot, timestamp: '2026-09-19T12:01:00Z' }, snapshotHash: 'B'.repeat(64), metadata: {} }), /SNAPSHOT_IMMUTABLE_CONFLICT/);
     const feedback = createFeedbackRecord({ feedbackId: ids.feedback, snapshot, feedbackType: 'CONFIRMED_CORRECT', finalPositionConfirmed: true, consent });
     const payloadHash = sha256(stableJson(feedback));
-    assert.deepEqual(await store.putFeedback({ feedback, payloadHash }), { duplicate: false });
-    assert.deepEqual(await store.putFeedback({ feedback, payloadHash }), { duplicate: true });
-    await assert.rejects(store.putFeedback({ feedback, payloadHash: 'C'.repeat(64) }), /FEEDBACK_ID_CONFLICT/);
+    assert.deepEqual(await store.putFeedback({ userId, feedback, payloadHash }), { duplicate: false });
+    assert.deepEqual(await store.putFeedback({ userId, feedback, payloadHash }), { duplicate: true });
+    await assert.rejects(store.putFeedback({ userId, feedback, payloadHash: 'C'.repeat(64) }), /FEEDBACK_ID_CONFLICT/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test('server rejects unapproved scan metadata and arbitrary storage references', async () => {
   let stored = false;
-  const service = createScannerBetaService({ env: { CAISSA_SCANNER_BETA_STAGE: 'internal' }, authorizeExperiment: async () => ({ ok: true }), store: {
+  const service = createScannerBetaService({ env: { CAISSA_SCANNER_BETA_STAGE: 'internal' }, authorizeExperiment: async () => ({ ok: true, user: { id: userId } }), store: {
     putScan: async () => { stored = true; return { duplicate: false }; }
   } });
   const invoke = async (metadata) => {

@@ -41,6 +41,19 @@ Disabled, expired, released, and retired records disappear automatically and can
 
 Scanner is seeded as `scanner`, displayed as **CAISSA Scanner**, at `internal-beta`, enabled, routed to `/scanner/beta`, governed by `global-beta`, and marked feedback-enabled.
 
+## Beta activity summary
+
+The authorized `/beta` dashboard includes a compact **Your Beta Activity** card for Scanner. Its primary progress value is completed submissions out of the initial 100-submission field-test target; it is not the raw number of attempts.
+
+- **Scans attempted** counts distinct, durable Scanner scan records owned by the current CAISSA account.
+- **Completed submissions** counts distinct scans with one final disposition: `CONFIRMED_CORRECT`, `PIECE_CORRECTION`, `LOCALIZATION_FAILURE`, or `SCAN_FAILURE`.
+- **Pending / incomplete** counts owned scan records without a final disposition.
+- **Today**, **This week**, and **All-time beta** count completed submissions using immutable server receipt timestamps rather than client clocks. The week begins Monday in the database session time zone.
+
+The 30, 50, and 100 milestones respectively identify the minimum useful checkpoint, a strong initial field sample, and the recommended first certification target. Counts are produced by `getBetaActivitySummary(userId, experimentId)`. Scanner currently backs that experiment-scoped helper with `get_scanner_beta_activity_summary`; future experiments can provide their own aggregate without changing the dashboard contract.
+
+Scanner scan, feedback, and failure records created after the activity migration carry the immutable CAISSA `user_id`. Submission RPCs require that ID and reject cross-owner retries. Per-scan transaction locks, unique scan and feedback constraints, and distinct-scan aggregation ensure even concurrent idempotent retries count once. The summary RPC is callable only by the server-side service role, and the application always supplies the signed-in account ID. Historical pre-migration rows remain intact with no inferred owner and are intentionally excluded from personal totals.
+
 ## Operations
 
 The versioned migration must be applied only during an authorized deployment. The internal CLI requires server-side `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; it is not exposed as a public API.

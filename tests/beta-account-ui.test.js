@@ -33,3 +33,22 @@ test('beta schema is normalized, private by default, and seeds Scanner without d
   assert.match(migration, /'internal-beta', true, '\/scanner\/beta', 'global-beta'/);
   assert.doesNotMatch(migration, /delete from public\.beta_experiments/i);
 });
+
+test('Scanner activity migration binds canonical records to users and keeps summary RPC service-only', async () => {
+  const migration = await readFile(new URL('../supabase/migrations/20260919173153_scanner_beta_user_activity_summary.sql', import.meta.url), 'utf8');
+  for (const table of ['scanner_beta_scans', 'scanner_beta_feedback', 'scanner_beta_scan_failures']) {
+    assert.match(migration, new RegExp(`alter table public\\.${table}[\\s\\S]+add column user_id uuid references public\\.users`));
+  }
+  assert.match(migration, /create function public\.get_scanner_beta_activity_summary\(p_user_id uuid\)/);
+  assert.match(migration, /add column submitted_at timestamptz not null default now\(\)/);
+  assert.match(migration, /count\(distinct d\.scan_id\)/);
+  assert.match(migration, /where s\.user_id=p_user_id/);
+  assert.match(migration, /where f\.user_id=p_user_id/);
+  assert.match(migration, /d\.submitted_at >= date_trunc\('day',now\(\)\)/);
+  assert.match(migration, /revoke all on function[\s\S]+from public, anon, authenticated/);
+  assert.match(migration, /get_scanner_beta_activity_summary\(uuid\) to service_role/);
+  assert.match(migration, /SCAN_OWNER_CONFLICT/);
+  assert.match(migration, /SCAN_DISPOSITION_CONFLICT/);
+  assert.match(migration, /SCANNER_BETA_ACTIVITY_SCOPE_IMMUTABLE/);
+  assert.equal((migration.match(/pg_advisory_xact_lock/g) || []).length, 3);
+});

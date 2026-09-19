@@ -32,8 +32,11 @@ test('authenticated non-beta account is denied without experiment leakage', asyn
 
 test('beta tester sees active Scanner card and the canonical direct link', async () => {
   const events = [];
+  const summary = { experimentId: 'scanner', target: 100, attempted: 0, completed: 0, confirmedCorrect: 0,
+    corrected: 0, localizationFailures: 0, scanFailures: 0, pending: 0, completedToday: 0,
+    completedThisWeek: 0, completedAllTime: 0, milestone: null };
   const handler = createBetaCenterHandler({ service: {
-    async listForRequest() { return { ok: true, user: { id: 'u1' }, experiments: [scanner] }; },
+    async listForRequest() { return { ok: true, user: { id: 'u1' }, experiments: [scanner], activitySummaries: { scanner: summary } }; },
     audit(event) { events.push(event); }
   } });
   const res = response();
@@ -42,7 +45,24 @@ test('beta tester sees active Scanner card and the canonical direct link', async
   assert.match(res.body, /CAISSA Scanner/);
   assert.match(res.body, /href="\/scanner\/beta"/);
   assert.match(res.body, /Internal Beta/);
+  assert.match(res.body, /Your Beta Activity/);
+  assert.match(res.body, /0 \/ 100/);
+  assert.match(res.body, /No beta submissions yet\./);
+  assert.match(res.body, /Pending \/ incomplete/);
   assert.equal(events[0].eventType, 'beta_center_viewed');
+});
+
+test('Beta Center renders the canonical breakdown and highest reached milestone', () => {
+  const document = renderBetaCenter([scanner], { scanner: { experimentId: 'scanner', target: 100,
+    attempted: 53, completed: 50, confirmedCorrect: 30, corrected: 15, localizationFailures: 3,
+    scanFailures: 2, pending: 3, completedToday: 4, completedThisWeek: 18, completedAllTime: 50,
+    milestone: { value: 50, label: 'Strong initial field sample' } } });
+  for (const value of ['Scans attempted', 'Completed submissions', 'Confirmed correct', 'Corrected',
+    'Localization failures', 'Scan failures', 'Pending / incomplete', 'Today', 'This week', 'All-time beta']) {
+    assert.match(document, new RegExp(value.replace('/', '\\/')));
+  }
+  assert.match(document, /50 \/ 100/);
+  assert.match(document, /Strong initial field sample/);
 });
 
 test('empty Beta Center is friendly, semantic, responsive, and noindex', () => {

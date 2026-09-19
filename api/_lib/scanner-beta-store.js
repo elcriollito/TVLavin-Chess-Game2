@@ -7,22 +7,23 @@ function checked(result, code) {
 
 export function createScannerBetaSupabaseStore(client = getSupabase()) {
   return Object.freeze({
-    async putScan({ snapshot, snapshotHash, metadata }) {
+    async putScan({ userId, snapshot, snapshotHash, metadata }) {
       return checked(await client.rpc('submit_scanner_beta_scan', {
-        p_snapshot: snapshot, p_snapshot_hash: snapshotHash, p_metadata: metadata
+        p_user_id: userId, p_snapshot: snapshot, p_snapshot_hash: snapshotHash, p_metadata: metadata
       }), 'SCANNER_BETA_SCAN');
     },
-    async getScan(scanId) {
-      return checked(await client.from('scanner_beta_scans').select('scan_id,snapshot,snapshot_hash,image_storage_reference').eq('scan_id', scanId).maybeSingle(), 'SCANNER_BETA_SCAN_READ');
+    async getScan(scanId, userId) {
+      return checked(await client.from('scanner_beta_scans').select('scan_id,snapshot,snapshot_hash,image_storage_reference')
+        .eq('scan_id', scanId).eq('user_id', userId).maybeSingle(), 'SCANNER_BETA_SCAN_READ');
     },
-    async putFeedback({ feedback, payloadHash }) {
+    async putFeedback({ userId, feedback, payloadHash }) {
       return checked(await client.rpc('submit_scanner_beta_feedback', {
-        p_feedback: feedback, p_payload_hash: payloadHash
+        p_user_id: userId, p_feedback: feedback, p_payload_hash: payloadHash
       }), 'SCANNER_BETA_FEEDBACK');
     },
-    async putFailure({ failure, payloadHash }) {
+    async putFailure({ userId, failure, payloadHash }) {
       return checked(await client.rpc('submit_scanner_beta_scan_failure', {
-        p_failure: failure, p_payload_hash: payloadHash
+        p_user_id: userId, p_failure: failure, p_payload_hash: payloadHash
       }), 'SCANNER_BETA_FAILURE');
     },
     async putImage({ imageHash, bytes, contentType }) {

@@ -51,8 +51,9 @@ export function createScannerBetaService({ store = null, env = process.env, auth
     if (req.method !== 'POST' && req.method !== 'PUT') { reply(res, 405, { error: 'METHOD_NOT_ALLOWED' }); return false; }
     if (!sameOrigin(req)) { reply(res, 403, { error: 'ORIGIN_REJECTED' }); return false; }
     const access = await authorize(req, 'scanner');
-    if (!access?.ok) { reply(res, access?.status || 403, { error: access?.code || 'BETA_ACCESS_DENIED' }); return false; }
-    return true;
+    if (!access?.ok) { reply(res, access?.status || 403, { error: access?.code || 'BETA_ACCESS_DENIED' }); return null; }
+    if (!access.user?.id) { reply(res, 503, { error: 'BETA_IDENTITY_UNAVAILABLE' }); return null; }
+    return access;
   };
   return Object.freeze({
     async status(req, res) {
@@ -63,13 +64,13 @@ export function createScannerBetaService({ store = null, env = process.env, auth
       return res.status(200).json({ available: true, stage: 'internal' });
     },
     async scan(req, res) {
-      if (!await guard(req, res)) return;
+      const access = await guard(req, res); if (!access) return;
       try {
         const body = jsonBody(req);
         const snapshot = createPredictionSnapshot(body.snapshot);
         const snapshotHash = sha256(stableJson(snapshot));
         const metadata = scanMetadata(body.metadata);
-        const result = await data().putScan({ snapshot, snapshotHash, metadata });
+        const result = await data().putScan({ userId: access.user.id, snapshot, snapshotHash, metadata });
         return reply(res, 200, { accepted: true, duplicate: result?.duplicate === true, scanId: snapshot.scanId, snapshotHash });
       } catch (error) {
         const code = String(error?.message || 'INVALID_SCAN');
@@ -77,15 +78,15 @@ export function createScannerBetaService({ store = null, env = process.env, auth
       }
     },
     async feedback(req, res) {
-      if (!await guard(req, res)) return;
+      const access = await guard(req, res); if (!access) return;
       try {
         const body = jsonBody(req);
-        const source = await data().getScan(body.feedback?.scanId);
+        const source = await data().getScan(body.feedback?.scanId, access.user.id);
         if (!source?.snapshot) throw new Error('SCAN_NOT_FOUND');
         const record = createFeedbackRecord({ ...body.feedback, snapshot: source.snapshot,
           clientMetadata: { ...(body.feedback?.clientMetadata || {}), experimentId: 'scanner', betaStage: 'internal-beta' } });
         const payloadHash = sha256(stableJson(record));
-        const result = await data().putFeedback({ feedback: record, payloadHash });
+        const result = await data().putFeedback({ userId: access.user.id, feedback: record, payloadHash });
         return reply(res, 200, { accepted: true, duplicate: result?.duplicate === true,
           feedbackId: record.feedbackId, changedSquareCount: record.changedSquareCount, payloadHash });
       } catch (error) {
@@ -94,13 +95,13 @@ export function createScannerBetaService({ store = null, env = process.env, auth
       }
     },
     async failure(req, res) {
-      if (!await guard(req, res)) return;
+      const access = await guard(req, res); if (!access) return;
       try {
         const body = jsonBody(req);
         const record = createScanFailureRecord({ ...(body.failure || {}),
           clientMetadata: { ...(body.failure?.clientMetadata || {}), experimentId: 'scanner', betaStage: 'internal-beta' } });
         const payloadHash = sha256(stableJson(record));
-        const result = await data().putFailure({ failure: record, payloadHash });
+        const result = await data().putFailure({ userId: access.user.id, failure: record, payloadHash });
         return reply(res, 200, { accepted: true, duplicate: result?.duplicate === true,
           feedbackId: record.feedbackId, scanId: record.scanId, payloadHash });
       } catch (error) {

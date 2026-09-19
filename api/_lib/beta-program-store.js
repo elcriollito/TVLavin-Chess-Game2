@@ -52,6 +52,25 @@ export function createBetaProgramStore(client = null) {
       throwIf(error);
       return data ? mapExperiment(data) : null;
     },
+    async getBetaActivitySummary(userId, experimentId) {
+      if (experimentId !== 'scanner') return null;
+      const { data, error } = await db().rpc('get_scanner_beta_activity_summary', { p_user_id: userId });
+      throwIf(error);
+      const value = Array.isArray(data) ? data[0] : data;
+      if (!value) return null;
+      return {
+        attempted: Number(value.attempted),
+        completed: Number(value.completed),
+        confirmedCorrect: Number(value.confirmed_correct),
+        corrected: Number(value.corrected),
+        localizationFailures: Number(value.localization_failures),
+        scanFailures: Number(value.scan_failures),
+        pending: Number(value.pending),
+        completedToday: Number(value.completed_today),
+        completedThisWeek: Number(value.completed_this_week),
+        completedAllTime: Number(value.completed_all_time)
+      };
+    },
     async recordEvent({ userId, experimentId = null, eventType }) {
       const { error } = await db().from('beta_audit_events').insert({
         user_id: userId, experiment_id: experimentId, event_type: eventType

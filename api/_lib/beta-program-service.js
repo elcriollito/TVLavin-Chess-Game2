@@ -2,6 +2,7 @@ import { authenticateBrowserRequest } from './auth.js';
 import { betaEnabled, privateHeaders } from './scanner-beta-policy.js';
 import { canAccessBetaProgram, canAccessExperiment, listAccessibleExperiments } from './beta-program-policy.js';
 import { createBetaProgramStore } from './beta-program-store.js';
+import { getBetaActivitySummary } from './beta-activity-summary.js';
 
 export function scannerInfrastructureEnabled(env = process.env) {
   return betaEnabled(env);
@@ -62,7 +63,15 @@ export function createBetaProgramService({ store = null, authenticate = authenti
       if (!canAccessBetaProgram(access.user) && experiments.length === 0) {
         return { ok: false, authenticated: true, status: 403, code: 'BETA_ACCESS_DENIED' };
       }
-      return { ...access, experiments };
+      const activitySummaries = {};
+      if (typeof data().getBetaActivitySummary === 'function') {
+        await Promise.all(experiments.filter(experiment => experiment.feedbackEnabled).map(async experiment => {
+          const summary = await getBetaActivitySummary(access.user.id, experiment.id,
+            (userId, experimentId) => data().getBetaActivitySummary(userId, experimentId));
+          if (summary) activitySummaries[experiment.id] = summary;
+        }));
+      }
+      return { ...access, experiments, activitySummaries };
     } catch (_) {
       return { ok: false, authenticated: true, status: 503, code: 'BETA_ACCESS_UNAVAILABLE' };
     }

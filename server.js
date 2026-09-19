@@ -33,6 +33,9 @@ const testBetaBypass = process.env.NODE_ENV === 'test' && process.env.CAISSA_BET
 const localBetaStore = testBetaBypass ? Object.freeze({
   async getUserByClerkId() { return { authenticated: true, id: 'test-user', role: 'member', entitlements: ['beta_tester'] }; },
   async listExperiments() { return [scannerExperiment]; },
+  async getBetaActivitySummary() { return { attempted: 0, completed: 0, confirmedCorrect: 0, corrected: 0,
+    localizationFailures: 0, scanFailures: 0, pending: 0, completedToday: 0, completedThisWeek: 0,
+    completedAllTime: 0 }; },
   async getExperiment(id) { return id === 'scanner' ? scannerExperiment : null; },
   async recordEvent() {}
 }) : null;
@@ -405,7 +408,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     res.writeHead(access.ok ? 200 : (access.status || 403), betaHeaders);
-    res.end(req.method === 'HEAD' ? '' : access.ok ? renderBetaCenter(access.experiments) : renderBetaDenied());
+    res.end(req.method === 'HEAD' ? '' : access.ok ? renderBetaCenter(access.experiments, access.activitySummaries) : renderBetaDenied());
     if (access.ok) betaProgram.audit({ userId: access.user.id, eventType: 'beta_center_viewed' });
     return;
   }

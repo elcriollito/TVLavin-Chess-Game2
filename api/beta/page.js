@@ -16,7 +16,7 @@ export function createBetaCenterHandler({ service = createBetaProgramService() }
     }
     service.audit({ userId: access.user.id, eventType: 'beta_center_viewed' });
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(200).send(req.method === 'HEAD' ? '' : renderBetaCenter(access.experiments));
+    return res.status(200).send(req.method === 'HEAD' ? '' : renderBetaCenter(access.experiments, access.activitySummaries));
   };
 }
 
