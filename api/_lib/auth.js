@@ -1,6 +1,7 @@
 /**
  * Shared Clerk token verification for Vercel serverless functions.
- * Reads Bearer token from Authorization header and verifies with Clerk.
+ * Reads a Clerk token from the Authorization header. Protected browser
+ * handlers may explicitly opt into the standard Clerk __session cookie too.
  */
 
 import { verifyToken } from '@clerk/backend';
@@ -30,14 +31,20 @@ export function createAuthenticateRequest(dependencies = {}) {
   const env = dependencies.env || process.env;
   const log = dependencies.log || (() => {});
 
+  const allowSessionCookie = dependencies.allowSessionCookie === true;
+
   return async function authenticateRequest(req) {
     const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-
-    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-        return failure(401, 'AUTH_REQUIRED');
+    let token = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7).trim() : '';
+    if (!token && allowSessionCookie) {
+        const cookieHeader = String(req.headers?.cookie || req.headers?.Cookie || '');
+        const session = cookieHeader.split(';').map(value => value.trim()).find(value => value.startsWith('__session='));
+        if (session) {
+            try { token = decodeURIComponent(session.slice('__session='.length)); }
+            catch (_) { return failure(401, 'INVALID_TOKEN'); }
+        }
     }
-
-    const token = authHeader.slice(7).trim();
     if (!token) return failure(401, 'AUTH_REQUIRED');
 
     if (!env.CLERK_SECRET_KEY) {
@@ -67,6 +74,7 @@ export function createAuthenticateRequest(dependencies = {}) {
 }
 
 export const authenticateRequest = createAuthenticateRequest();
+export const authenticateBrowserRequest = createAuthenticateRequest({ allowSessionCookie: true });
 
 /**
  * Legacy name for compatibility

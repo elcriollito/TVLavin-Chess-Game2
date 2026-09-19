@@ -17,6 +17,9 @@
     },
     "api/cron/mentor-economic-maintenance.js": {
       "maxDuration": 10
+    },
+    "api/beta/scanner.js": {
+      "includeFiles": "scanner/beta/index.html"
     }
   },
   "crons": [
@@ -36,6 +39,11 @@
     { "source": "/play/beta/coach", "destination": "/play/coach", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/beta", "destination": "/api/beta/page" },
+    { "source": "/beta/", "destination": "/api/beta/page" },
+    { "source": "/scanner/beta", "destination": "/api/beta/scanner" },
+    { "source": "/scanner/beta/", "destination": "/api/beta/scanner" },
+    { "source": "/scanner/beta/index.html", "destination": "/api/beta/scanner" },
     { "source": "/blog", "destination": "/blog/index.html" },
     { "source": "/endgame-trainer", "destination": "/endgame-trainer.html" },
     { "source": "/endgame-trainer/", "destination": "/endgame-trainer.html" },
@@ -113,6 +121,20 @@
     { "source": "/favicon-test.html", "destination": "/public/favicon-test.html" }
   ],
   "headers": [
+    {
+      "source": "/beta/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/scanner/beta/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

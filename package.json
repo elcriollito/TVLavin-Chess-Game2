@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "test:beta-program": "node --test tests/beta-program.test.js tests/beta-program-routes.test.js tests/beta-account-ui.test.js && playwright test tests/browser/beta-center.spec.js --project=chromium",
+    "beta:manage": "node tools/beta-program/manage.mjs",
     "test:scanner:contract": "node --test tests/scanner-visual-contract.test.js",
     "test:scanner:unit": "node --test tests/scanner-mobile-workspace.test.js tests/play/analyze-handoff.test.js",
     "test:scanner:benchmark": "node --test tests/scanner-recognition-benchmark.test.js tests/scanner-historical-tfjs-baseline.test.js tests/scanner-historical-verified-real.test.js tests/scanner-generalized-classifier.test.js tests/scanner-classifier-revision.test.js tests/scanner-classifier-v03.test.js tests/scanner-classifier-v04.test.js tests/scanner-classifier-v05.test.js",

@@ -2,6 +2,7 @@ import { createScannerBetaService } from '../../api/_lib/scanner-beta-service.js
 import { SCANNER_BETA, betaEnabled, privateHeaders, sameOrigin } from '../../api/_lib/scanner-beta-policy.js';
 import { createScannerBetaLocalStore } from './local-store.mjs';
 import { inferFrozenV05 } from './inference-adapter.mjs';
+import { createBetaProgramService } from '../../api/_lib/beta-program-service.js';
 
 async function readBytes(req, limit) {
   const chunks = [];
@@ -27,9 +28,11 @@ function responseAdapter(res) {
   };
 }
 
-export function createScannerBetaHttpAdapter({ env = process.env, store = null } = {}) {
+export function createScannerBetaHttpAdapter({ env = process.env, store = null, authorizeExperiment = null } = {}) {
   const localStore = store || createScannerBetaLocalStore({ root: env.CAISSA_SCANNER_BETA_DATA_ROOT });
-  const service = createScannerBetaService({ store: localStore, env });
+  const centralAuthorize = authorizeExperiment || createBetaProgramService({ env }).authorizeExperiment;
+  const service = createScannerBetaService({ store: localStore, env,
+    authorizeExperiment: (req, id) => req.caissaBetaAccess || centralAuthorize(req, id) });
   return Object.freeze({
     store: localStore,
     async handle(req, res, pathname) {
@@ -39,6 +42,9 @@ export function createScannerBetaHttpAdapter({ env = process.env, store = null }
       const adapted = responseAdapter(res);
       if (target === 'status') { await service.status(req, adapted); return true; }
       if (!betaEnabled(env)) { adapted.status(404).json({ error: 'BETA_DISABLED' }); return true; }
+      const access = await centralAuthorize(req, 'scanner');
+      if (!access?.ok) { adapted.status(access?.status || 403).json({ error: access?.code || 'BETA_ACCESS_DENIED' }); return true; }
+      req.caissaBetaAccess = access;
       try {
         const limit = target === 'image' ? SCANNER_BETA.maxImageBytes : target === 'recognize' ? 2_000_000 : SCANNER_BETA.maxJsonBytes;
         const bytes = await readBytes(req, limit);

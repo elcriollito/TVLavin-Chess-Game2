@@ -21,7 +21,9 @@ export const config = {
         '/play/:path*',
         '/play/beta/:path*',
         '/api/play-beta/:path*',
-        '/play-v2(.*)'
+        '/play-v2(.*)',
+        '/beta/:path*',
+        '/scanner/beta/:path*'
     ]
 };
 
@@ -70,6 +72,9 @@ export default function middleware(request) {
     let decodedPath = url.pathname;
     try { decodedPath = decodeURIComponent(decodedPath); } catch (_) { /* malformed paths remain fail-closed */ }
     const normalizedPath = decodedPath.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+    if (normalizedPath === '/scanner/beta/index.html') {
+        return Response.redirect(new URL('/scanner/beta', url), 307);
+    }
     const directDocument = [...directPlayV2Documents].some(path =>
         normalizedPath === path || normalizedPath.startsWith(`${path}/`)
     );

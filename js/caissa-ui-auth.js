@@ -18,6 +18,7 @@
         // State
         isDropdownOpen: false,
         isInitialized: false,
+        betaAccessRequest: 0,
 
         /**
          * Initialize the auth UI
@@ -119,6 +120,50 @@
 
             // Also update sidebar auth area
             this._updateSidebarAuth(authState);
+            this._refreshBetaEntry(authState);
+        },
+
+        _removeBetaEntries: function() {
+            document.querySelectorAll('[data-caissa-beta-entry]').forEach(node => node.remove());
+        },
+
+        _refreshBetaEntry: async function(authState) {
+            const request = ++this.betaAccessRequest;
+            this._removeBetaEntries();
+            if (!authState?.isSignedIn || typeof window.CAISSA_AUTH?.getToken !== 'function') return;
+            try {
+                const token = await window.CAISSA_AUTH.getToken();
+                if (!token || request !== this.betaAccessRequest) return;
+                const response = await fetch('/api/beta/access', {
+                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: 'same-origin'
+                });
+                const result = response.ok ? await response.json() : null;
+                if (request !== this.betaAccessRequest || result?.authorized !== true) return;
+
+                const sidebarSignOut = document.getElementById('sidebarSignOutBtn');
+                if (sidebarSignOut?.parentElement) {
+                    const link = document.createElement('a');
+                    link.href = '/beta';
+                    link.className = 'nav-auth-menu-item';
+                    link.setAttribute('role', 'menuitem');
+                    link.dataset.caissaBetaEntry = 'sidebar';
+                    link.innerHTML = '<i class="fas fa-flask" aria-hidden="true"></i><span>Beta Program</span>';
+                    sidebarSignOut.before(link);
+                }
+
+                const dropdownSignOut = this.elements.container?.querySelector('.auth-dropdown-item.signout');
+                if (dropdownSignOut?.parentElement) {
+                    const link = document.createElement('a');
+                    link.href = '/beta';
+                    link.className = 'auth-dropdown-item';
+                    link.dataset.caissaBetaEntry = 'header';
+                    link.innerHTML = '<i class="fas fa-flask" aria-hidden="true"></i><span>Beta Program</span>';
+                    dropdownSignOut.before(link);
+                }
+            } catch (_) {
+                this._removeBetaEntries();
+            }
         },
 
         _setLifecycle: function(state) {

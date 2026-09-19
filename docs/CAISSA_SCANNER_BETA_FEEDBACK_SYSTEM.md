@@ -2,7 +2,9 @@
 
 ## Status and boundary
 
-`caissa-scanner-beta-feedback-v0.1` is an internal, mobile-first evidence-collection system. It is available only at `/scanner/beta` when `CAISSA_SCANNER_BETA_STAGE=internal`. It is absent from public navigation, carries `noindex`, and returns 404 while the gate is closed. The physically certified public `/scanner/` experience is unchanged.
+`caissa-scanner-beta-feedback-v0.1` is an internal, mobile-first evidence-collection system. Access to `/scanner/beta` is governed by the server-side [CAISSA Beta Program](./CAISSA_BETA_PROGRAM.md): a verified account, an authorized role/entitlement, and an active Scanner registry record are all required. `CAISSA_SCANNER_BETA_STAGE=internal` remains an additive infrastructure kill switch. It is not the primary authorization mechanism. The route carries `noindex`, and the physically certified public `/scanner/` experience is unchanged.
+
+The feedback contract also records server-controlled `experimentId=scanner` and `betaStage=internal-beta` client metadata while preserving the corpus version and frozen model identity.
 
 The system does not train, tune, or update a model. Every submitted record begins in `pending-review` quarantine.
 

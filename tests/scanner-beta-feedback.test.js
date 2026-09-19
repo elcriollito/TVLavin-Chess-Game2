@@ -155,7 +155,7 @@ test('local canonical store enforces immutable snapshots and idempotency', async
 
 test('server rejects unapproved scan metadata and arbitrary storage references', async () => {
   let stored = false;
-  const service = createScannerBetaService({ env: { CAISSA_SCANNER_BETA_STAGE: 'internal' }, store: {
+  const service = createScannerBetaService({ env: { CAISSA_SCANNER_BETA_STAGE: 'internal' }, authorizeExperiment: async () => ({ ok: true }), store: {
     putScan: async () => { stored = true; return { duplicate: false }; }
   } });
   const invoke = async (metadata) => {

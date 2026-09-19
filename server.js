@@ -14,6 +14,8 @@ import {
   resolvePlayGameplayDeploymentConfig
 } from './api/_lib/play-gameplay-preview-config.js';
 import { createScannerBetaHttpAdapter } from './tools/scanner-beta-feedback/http-adapter.mjs';
+import { createBetaProgramService } from './api/_lib/beta-program-service.js';
+import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-document.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,8 +24,23 @@ const PORT = 8000;
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'";
+const BETA_PRIVATE_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
-const scannerBeta = createScannerBetaHttpAdapter({ env: process.env });
+const scannerExperiment = Object.freeze({ id: 'scanner', slug: 'scanner', displayName: 'CAISSA Scanner',
+  description: 'Scan chess positions from your phone or screen.', stage: 'internal-beta', enabled: true,
+  route: '/scanner/beta', accessPolicy: 'global-beta', feedbackEnabled: true, sortOrder: 10 });
+const testBetaBypass = process.env.NODE_ENV === 'test' && process.env.CAISSA_BETA_TEST_BYPASS === '1';
+const localBetaStore = testBetaBypass ? Object.freeze({
+  async getUserByClerkId() { return { authenticated: true, id: 'test-user', role: 'member', entitlements: ['beta_tester'] }; },
+  async listExperiments() { return [scannerExperiment]; },
+  async getExperiment(id) { return id === 'scanner' ? scannerExperiment : null; },
+  async recordEvent() {}
+}) : null;
+const betaProgram = createBetaProgramService({
+  env: process.env,
+  ...(testBetaBypass ? { store: localBetaStore, authenticate: async () => ({ authenticated: true, ok: true, userId: 'test-clerk' }) } : {})
+});
+const scannerBeta = createScannerBetaHttpAdapter({ env: process.env, authorizeExperiment: betaProgram.authorizeExperiment });
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -350,8 +367,48 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = url.pathname;
+  let decodedPathname = pathname;
+  try { decodedPathname = decodeURIComponent(pathname); } catch (_) { /* malformed paths remain unavailable */ }
+  const normalizedPathname = decodedPathname.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+
+  if (normalizedPathname === '/scanner/beta/index.html' && pathname !== '/scanner/beta/index.html') {
+    res.writeHead(307, { Location: '/scanner/beta', 'Cache-Control': 'private, no-store, max-age=0',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive' });
+    res.end();
+    return;
+  }
 
   if (await scannerBeta.handle(req, res, pathname)) return;
+
+  if (pathname === '/api/beta/access') {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    if (req.method !== 'GET') {
+      res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'METHOD_NOT_ALLOWED' }));
+      return;
+    }
+    const access = await betaProgram.listForRequest(req);
+    res.writeHead(access.ok ? 200 : (access.status || 403), { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(access.ok
+      ? { authorized: true, activeExperimentCount: access.experiments.length }
+      : { authorized: false }));
+    return;
+  }
+
+  if (pathname === '/beta' || pathname === '/beta/') {
+    const access = await betaProgram.listForRequest(req);
+    const betaHeaders = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'private, no-store, max-age=0',
+      'Content-Security-Policy': BETA_PRIVATE_CSP, 'X-Robots-Tag': 'noindex, nofollow, noarchive' };
+    if (!access.ok && !access.authenticated && access.status === 401) {
+      res.writeHead(302, { ...betaHeaders, Location: `/signin?redirect_url=${encodeURIComponent('/beta')}` });
+      res.end();
+      return;
+    }
+    res.writeHead(access.ok ? 200 : (access.status || 403), betaHeaders);
+    res.end(req.method === 'HEAD' ? '' : access.ok ? renderBetaCenter(access.experiments) : renderBetaDenied());
+    if (access.ok) betaProgram.audit({ userId: access.user.id, eventType: 'beta_center_viewed' });
+    return;
+  }
 
   // Developer-only Scanner corpus tooling is served exclusively by its
   // loopback launcher and must never become a public application route.
@@ -364,8 +421,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if ((pathname === '/scanner/beta' || pathname.startsWith('/scanner/beta/'))
-      && process.env.CAISSA_SCANNER_BETA_STAGE !== 'internal') {
+  if (pathname === '/scanner/beta' || pathname === '/scanner/beta/' || pathname === '/scanner/beta/index.html') {
+    const access = await betaProgram.authorizeExperiment(req, 'scanner');
+    const betaHeaders = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'private, no-store, max-age=0',
+      'Content-Security-Policy': BETA_PRIVATE_CSP, 'X-Robots-Tag': 'noindex, nofollow, noarchive' };
+    if (!access.ok && !access.authenticated && access.status === 401) {
+      res.writeHead(302, { ...betaHeaders, Location: `/signin?redirect_url=${encodeURIComponent('/scanner/beta')}` });
+      res.end();
+      return;
+    }
+    if (!access.ok) {
+      res.writeHead(access.status || 403, betaHeaders);
+      res.end(renderBetaDenied());
+      return;
+    }
+    betaProgram.audit({ userId: access.user.id, experimentId: 'scanner', eventType: 'experiment_opened' });
+  }
+  if (pathname.startsWith('/scanner/beta/') && process.env.CAISSA_SCANNER_BETA_STAGE !== 'internal') {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store',
       'X-Robots-Tag': 'noindex, nofollow, noarchive' });
     res.end('Not found');
@@ -448,7 +520,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/blog') {
     filePath = './blog/index.html';
   }
-  if (pathname === '/scanner/beta' || pathname === '/scanner/beta/') {
+  if (pathname === '/scanner/beta' || pathname === '/scanner/beta/' || pathname === '/scanner/beta/index.html') {
     filePath = './scanner/beta/index.html';
   }
   if (pathname === '/about' || pathname === '/about/') {

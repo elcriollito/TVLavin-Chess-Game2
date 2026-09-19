@@ -1,6 +1,7 @@
 import { PLATFORMS, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord } from '../../scanner/beta/scanner-beta-contract.js';
 import { SCANNER_BETA, betaEnabled, privateHeaders, sameOrigin, sha256, stableJson } from './scanner-beta-policy.js';
 import { createScannerBetaSupabaseStore } from './scanner-beta-store.js';
+import { createBetaProgramService } from './beta-program-service.js';
 
 function reply(res, status, body) {
   privateHeaders(res);
@@ -35,25 +36,34 @@ function scanMetadata(value) {
   if (metadata.clientMetadata != null && (typeof metadata.clientMetadata !== 'object' || Array.isArray(metadata.clientMetadata))) {
     throw new Error('CLIENT_METADATA_INVALID');
   }
-  return { ...metadata, consent };
+  return {
+    ...metadata,
+    consent,
+    clientMetadata: { ...(metadata.clientMetadata || {}), experimentId: 'scanner', betaStage: 'internal-beta' }
+  };
 }
 
-export function createScannerBetaService({ store = null, env = process.env } = {}) {
+export function createScannerBetaService({ store = null, env = process.env, authorizeExperiment = null } = {}) {
   const data = () => store || createScannerBetaSupabaseStore();
-  const guard = (req, res) => {
+  const authorize = authorizeExperiment || createBetaProgramService({ env }).authorizeExperiment;
+  const guard = async (req, res) => {
     if (!betaEnabled(env)) { reply(res, 404, { error: 'BETA_DISABLED' }); return false; }
     if (req.method !== 'POST' && req.method !== 'PUT') { reply(res, 405, { error: 'METHOD_NOT_ALLOWED' }); return false; }
     if (!sameOrigin(req)) { reply(res, 403, { error: 'ORIGIN_REJECTED' }); return false; }
+    const access = await authorize(req, 'scanner');
+    if (!access?.ok) { reply(res, access?.status || 403, { error: access?.code || 'BETA_ACCESS_DENIED' }); return false; }
     return true;
   };
   return Object.freeze({
     async status(req, res) {
       privateHeaders(res);
       if (!betaEnabled(env)) return res.status(404).json({ available: false });
+      const access = await authorize(req, 'scanner');
+      if (!access?.ok) return res.status(access?.status || 403).json({ available: false, error: access?.code || 'BETA_ACCESS_DENIED' });
       return res.status(200).json({ available: true, stage: 'internal' });
     },
     async scan(req, res) {
-      if (!guard(req, res)) return;
+      if (!await guard(req, res)) return;
       try {
         const body = jsonBody(req);
         const snapshot = createPredictionSnapshot(body.snapshot);
@@ -67,12 +77,13 @@ export function createScannerBetaService({ store = null, env = process.env } = {
       }
     },
     async feedback(req, res) {
-      if (!guard(req, res)) return;
+      if (!await guard(req, res)) return;
       try {
         const body = jsonBody(req);
         const source = await data().getScan(body.feedback?.scanId);
         if (!source?.snapshot) throw new Error('SCAN_NOT_FOUND');
-        const record = createFeedbackRecord({ ...body.feedback, snapshot: source.snapshot });
+        const record = createFeedbackRecord({ ...body.feedback, snapshot: source.snapshot,
+          clientMetadata: { ...(body.feedback?.clientMetadata || {}), experimentId: 'scanner', betaStage: 'internal-beta' } });
         const payloadHash = sha256(stableJson(record));
         const result = await data().putFeedback({ feedback: record, payloadHash });
         return reply(res, 200, { accepted: true, duplicate: result?.duplicate === true,
@@ -83,10 +94,11 @@ export function createScannerBetaService({ store = null, env = process.env } = {
       }
     },
     async failure(req, res) {
-      if (!guard(req, res)) return;
+      if (!await guard(req, res)) return;
       try {
         const body = jsonBody(req);
-        const record = createScanFailureRecord(body.failure || {});
+        const record = createScanFailureRecord({ ...(body.failure || {}),
+          clientMetadata: { ...(body.failure?.clientMetadata || {}), experimentId: 'scanner', betaStage: 'internal-beta' } });
         const payloadHash = sha256(stableJson(record));
         const result = await data().putFailure({ failure: record, payloadHash });
         return reply(res, 200, { accepted: true, duplicate: result?.duplicate === true,
@@ -97,7 +109,7 @@ export function createScannerBetaService({ store = null, env = process.env } = {
       }
     },
     async image(req, res) {
-      if (!guard(req, res)) return;
+      if (!await guard(req, res)) return;
       try {
         const contentType = String(req.headers['content-type'] || '').split(';')[0];
         if (!SCANNER_BETA.imageTypes.includes(contentType)) throw new Error('IMAGE_TYPE_INVALID');
