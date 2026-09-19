@@ -12,6 +12,7 @@
 /scanner/recognition/datasets/piece-sets/licenses/* -text -diff
 /scanner/recognition/datasets/piece-sets/*.json text eol=lf
 /scanner/recognition/datasets/pieces/catalog/*.json text eol=lf
+/scanner/recognition/datasets/real-development/*.json text eol=lf
 /artifacts/scanner-piece-dataset/*.json text eol=lf
 /artifacts/scanner-classifier-baseline/*.json text eol=lf
 /artifacts/scanner-piece-classifier-v0.1/*.json text eol=lf
