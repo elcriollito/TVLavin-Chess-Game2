@@ -35,7 +35,7 @@ The exporter verifies both source checksums, exports one 64-tile batch, runs the
 
 Vercel documents a standard 250 MB uncompressed Node function limit, 2 GB / 1 vCPU standard instances, and Fluid Compute duration limits above this endpoint's explicit 30-second cap. The implementation does not require the large-function opt-in. See the official [function limits](https://vercel.com/docs/functions/limitations), [Python runtime](https://vercel.com/docs/functions/runtimes/python), and [ONNX Runtime Node binding](https://onnxruntime.ai/docs/get-started/with-javascript/node.html) documentation.
 
-The upstream npm package contains native binaries for every supported operating system and architecture. A naively traced remote feasibility build measured `308.52 MB` and was correctly rejected by the 250 MB gate. Production therefore runtime-resolves the package and `vercel.json` explicitly includes only its required JavaScript, `onnxruntime-common`, the Linux x64 native pair, and the model. No dependency or model file is rewritten.
+The upstream npm package contains native binaries for every supported operating system and architecture and can download optional CUDA artifacts during Linux installation. Naively packaged remote feasibility builds measured `308.52 MB` and `333.97 MB` and were correctly rejected by the 250 MB gate. Production therefore disables that optional CUDA download, runtime-resolves the package, and uses `vercel.json` to include only its required JavaScript, `onnxruntime-common`, the Linux x64 native pair, and the model. No dependency or model file is rewritten.
 
 ## Numerical parity
 
