@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "caissa-scanner-king-occupancy-development-analysis/1",
+  "sourceModel": "caissa-piece-classifier-v0.3-real-development",
+  "protectedBenchmarkUsedForSelection": false,
+  "blackKingDecomposition": {
+    "developmentTrain": {
+      "falseK": 0,
+      "allBucketsZero": true,
+      "highestNonKNearMiss": { "truth": "b", "kProbability": 0.0507962591946125 }
+    },
+    "developmentValidation": {
+      "falseK": 2,
+      "emptyTok": 0,
+      "KTok": 0,
+      "QTok": 0,
+      "RTok": 0,
+      "BTok": 0,
+      "NTok": 0,
+      "PTok": 0,
+      "qTok": 0,
+      "rTok": 0,
+      "bTok": 0,
+      "nTok": 2,
+      "pTok": 0,
+      "meanConfidence": 0.6125482714176178,
+      "platform": { "playok": 1, "playok.com": 1 },
+      "captureType": { "unknown": 2 },
+      "subtypeTags": { "photo-of-screen": 2 }
+    }
+  },
+  "occupancyAnalysis": {
+    "v03DevelopmentTrainFalsePositive": 3,
+    "v03DevelopmentTrainFalseNegative": 0,
+    "v03DevelopmentTrainFalsePositiveMetadata": {
+      "captureType": { "unknown": 3 },
+      "sourceCategory": { "unknown": 3 },
+      "subtypeTags": { "photo-of-screen": 3, "screen-glare": 1 },
+      "platform": { "worldchess.com": 1, "chess.com": 2 }
+    },
+    "developmentValidationFalsePositive": 0,
+    "developmentValidationFalseNegative": 0,
+    "finding": "Three train-only false occupancies are photo-of-screen samples, including one screen-glare tag. Validation has none. The cohort does not reproduce protected print/background occupancy errors at useful scale; the remaining failure is domain shift rather than a threshold identifiable from development validation."
+  },
+  "morphologyAudit": {
+    "familyCount": 11,
+    "features": ["occupancy masks", "edge maps", "silhouette Jaccard", "top/bottom mass", "center mass", "width/height ratio"],
+    "highestKingOverlap": { "family": "lichess-rhosgfx", "comparison": "K:B", "jaccard": 0.8901174844505875 },
+    "queenLikeFamilies": ["kosal", "lichess-celtic", "lichess-chessnut", "lichess-kiwen-suwi"],
+    "finding": "King silhouettes frequently overlap queens; RhosGFX kings overlap bishops most strongly. The auxiliary occupied-only king objective is justified, but style-general occupancy remains unresolved."
+  },
+  "selectionUse": "Development train/validation only; morphology from unseen synthetic families was descriptive and did not enter selection."
+}

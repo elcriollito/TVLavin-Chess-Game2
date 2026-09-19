@@ -49,14 +49,16 @@ export async function createPieceAnnotatorServer({ port = 4179, outputPath = DEF
   const startupState = await store.readState();
   const boardCache = new Map(); // Compressed 512px boards only; original decoded buffers are never retained.
   const pieceCache = new Map();
+  // Capture the bound origin once. server.address() becomes null as soon as
+  // teardown starts, while a browser may still finish an already accepted request.
+  let localOrigin = '';
   const server = createServer(async (request, response) => {
-    const localOrigin = `http://127.0.0.1:${server.address().port}`;
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('Content-Security-Policy', CSP);
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
     response.setHeader('Referrer-Policy', 'no-referrer');
-    if (request.headers.host !== `127.0.0.1:${server.address().port}`) {
+    if (!localOrigin || request.headers.host !== new URL(localOrigin).host) {
       send(response, 403, 'Forbidden', 'text/plain; charset=utf-8', request.method);
       return;
     }
@@ -158,7 +160,8 @@ export async function createPieceAnnotatorServer({ port = 4179, outputPath = DEF
     server.once('error', reject);
     server.listen(port, '127.0.0.1', () => {
       const address = server.address();
-      resolveReady({ server, url: `http://127.0.0.1:${address.port}`, catalog: certified, store,
+      localOrigin = `http://127.0.0.1:${address.port}`;
+      resolveReady({ server, url: localOrigin, catalog: certified, store,
         close: () => new Promise((resolveClose, rejectClose) => server.close((error) => error ? rejectClose(error) : resolveClose())) });
     });
   });

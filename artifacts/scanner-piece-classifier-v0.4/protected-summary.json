@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-protected-summary/1",
+  "modelVersion": "caissa-piece-classifier-v0.4-king-occupancy",
+  "policy": "single protected inference after freeze; no post-benchmark tuning",
+  "boards": 31,
+  "squares": 1984,
+  "accuracy13": 0.8220766129032258,
+  "occupancy": {
+    "precision": 0.7942735949098622,
+    "recall": 1.0,
+    "f1": 0.8853427895981087,
+    "emptyToOccupied": 194,
+    "occupiedToEmpty": 0,
+    "falsePositivePerBoard": 6.258064516129032
+  },
+  "occupiedMacroF1": 0.649707119960485,
+  "pieceTypeAccuracy": 0.8411214953271028,
+  "colorAccuracy": 0.8998664886515354,
+  "whiteExactAccuracy": 0.7361477572559367,
+  "blackExactAccuracy": 0.8405405405405405,
+  "kingSink": {
+    "predictedK": 21,
+    "trueK": 31,
+    "falseK": 2,
+    "falseKRate": 0.09523809523809523,
+    "predictedk": 44,
+    "truek": 31,
+    "correctk": 28,
+    "falsek": 16,
+    "falseKingRate": 0.36363636363636365,
+    "emptyToK": 0,
+    "emptyTok": 6,
+    "otherPieceTok": 10
+  },
+  "colorSwaps": 40,
+  "exactBoards": 11,
+  "oneErrorBoards": 4,
+  "twoErrorBoards": 2,
+  "threePlusErrorBoards": 14,
+  "meanCorrections": 11.387096774193548,
+  "medianCorrections": 2,
+  "bestBoard": { "sampleId": "cv-success-003-lichess-endgame-photo", "wrongSquares": 0 },
+  "worstBoard": { "sampleId": "cv-failure-001-old-newspaper-mackenzie-97", "wrongSquares": 62 },
+  "confidence": {
+    "meanTop1": 0.9428797682086306,
+    "brier13": 0.28269901649086177,
+    "ece10": 0.12080315530540486,
+    "wrongAtLeast090": 121,
+    "wrongAtLeast095": 78
+  },
+  "mvp": {
+    "digital2dAccuracy13": 0.953125,
+    "photoOfScreenAccuracy13": 0.990625,
+    "livestreamAccuracy13": 0.984375
+  },
+  "secondary": {
+    "printedSourceAccuracy13": 0.4774305555555556,
+    "bookTagAccuracy13": 0.45625,
+    "degradedPrintAccuracy13": 0.140625
+  },
+  "v03Comparison": {
+    "accuracy13": 0.8387096774193549,
+    "occupancyPrecision": 0.8322222222222222,
+    "emptyToOccupied": 151,
+    "predictedk": 121,
+    "falseKingRate": 0.7520661157024794,
+    "emptyTok": 36,
+    "otherPieceTok": 55,
+    "occupiedMacroF1": 0.6535784047529006,
+    "meanCorrections": 10.32258064516129,
+    "medianCorrections": 1,
+    "exactBoards": 8
+  },
+  "decision": "MORE TARGETED CLASSIFIER WORK REQUIRED"
+}

@@ -7,7 +7,7 @@
     "start": "node server.js",
     "test:scanner:contract": "node --test tests/scanner-visual-contract.test.js",
     "test:scanner:unit": "node --test tests/scanner-mobile-workspace.test.js tests/play/analyze-handoff.test.js",
-    "test:scanner:benchmark": "node --test tests/scanner-recognition-benchmark.test.js tests/scanner-historical-tfjs-baseline.test.js tests/scanner-historical-verified-real.test.js tests/scanner-generalized-classifier.test.js tests/scanner-classifier-revision.test.js tests/scanner-classifier-v03.test.js",
+    "test:scanner:benchmark": "node --test tests/scanner-recognition-benchmark.test.js tests/scanner-historical-tfjs-baseline.test.js tests/scanner-historical-verified-real.test.js tests/scanner-generalized-classifier.test.js tests/scanner-classifier-revision.test.js tests/scanner-classifier-v03.test.js tests/scanner-classifier-v04.test.js",
     "test:scanner:localization": "node --test tests/scanner-board-localization.test.js tests/scanner-localization-real-evaluator.test.js tests/scanner-localization-support-boundary.test.js",
     "benchmark:scanner:localization-real": "node tools/run-scanner-localization-real.mjs",
     "benchmark:scanner:localization-real:merge": "node tools/merge-scanner-localization-real-reports.mjs",

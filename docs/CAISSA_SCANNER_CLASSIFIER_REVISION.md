@@ -149,3 +149,64 @@ MVP-priority protected subsets remain exploratory: digital-2D 16 boards / 95.41%
 The model has 649,706 parameters. Native state is 2,622,865 bytes (2,418,913 gzip); TorchScript is 2,676,478 bytes (2,447,220 gzip), both below the preferred 3 MB raw ceiling. On this Windows desktop CPU, five warmups and 30 batch-64 repeats measured 21.05 ms model load, 0.96 ms preprocessing per board, and 225.00 ms inference per board (3.52 ms effective per tile). These measurements exclude decode, homography, I/O, browser, and mobile overhead.
 
 **Decision: MORE DATA / ARCHITECTURE WORK REQUIRED.** General recognition, correction burden, and high-confidence errors improve substantially, but 121 predicted black kings for 31 true and 151 empty→occupied errors mean `k` remains a sink. The held-out development sessions did not predict this protected print/domain failure. Recommended next task: **PHASE 3-007D — TARGETED CLASSIFIER REVISION**, emphasizing session-diverse development data, print/low-contrast empty backgrounds, stricter external calibration validation, and architecture work without touching protected truth. The public UI remains frozen; do not integrate, merge, or deploy this model.
+
+---
+
+# Phase 3-007D — targeted king-sink and occupancy-precision revision
+
+Status: offline experiment complete; no runtime or public UI integration.
+
+## Root-cause and morphology update
+
+The frozen v0.3 model produced no false black kings on the 28 development-training boards and only two on the 13 development-validation boards. Both were black knights from PlayOK photo-of-screen captures (mean `k` confidence 0.6125). Every other requested truth-to-`k` bucket was zero. This is evidence that the protected king sink is primarily a style/domain-generalization defect, not a large in-cohort error cluster suitable for ordinary hard-negative mining. The curriculum therefore used no validation examples and no protected examples; it emphasized kings, queen/rook/bishop/knight contrasts, and empty squares from the existing certified synthetic and real-development training data.
+
+The descriptive morphology audit covered all 11 synthetic families using foreground masks, edge maps, silhouette Jaccard, top/bottom mass, center of mass, and width/height ratios. King silhouettes frequently overlap queens. RhosGFX was the clearest exception: white-king-to-bishop Jaccard reached 0.8901. These audit statistics did not enter model selection, and the unseen RhosGFX/P4wn labels were not used to tune the result.
+
+The v0.3 occupancy gate had three false positives on development train and none on development validation. All three train errors were photo-of-screen samples (World Chess once, Chess.com twice), with one explicit screen-glare tag; source category and capture type were otherwise human-recorded as unknown. No development error carried print texture, coordinate, arrow, moiré, or rectification-artifact metadata. This sparse evidence supports glare/background domain shift, but it cannot explain or select against the protected print-heavy failure.
+
+## Controlled matrix and selection
+
+The preregistered 3×2 matrix compared: (A) frozen-v0.3 initialization plus the king-focused curriculum; (B) the same model with a small occupied-only king-vs-non-king auxiliary head; and (C) the auxiliary head plus occupancy cross-entropy weights 2:1 for empty:occupied. Seeds were 2001 and 2002. All runs kept the 80% synthetic / 20% real-development sampling ratio. The selector balanced synthetic validation, real-development validation, occupancy precision/F1, occupied macro-F1, type/color quality, false-king rate, and confidence honesty.
+
+The selected model was variant B, seed 2002, epoch 11. On 832 real-development validation tiles it scored 99.40% 13-class accuracy, 0.9748 occupied macro-F1, perfect occupancy precision/recall, 98.71% piece-type accuracy, 99.68% color accuracy, zero false black kings, and one wrong prediction at confidence >=0.90. Variant C did not win: its best selection score was 1.8748 versus 1.8779 for variant B and it had one validation occupancy false positive.
+
+Development validation selected occupancy threshold 0.5. The bounded king confidence/margin grid selected no additional black-king restriction: minimum type probability 0, type margin 0, and occupancy probability 0.5. This is a visual policy only; no one-king chess rule is encoded. Calibration compared raw/no calibration, fixed 1.0, occupancy-only scaling, and separate temperatures constrained to >=1.0. Every fitted head temperature was 1.0, so the simpler raw/no-calibration policy was frozen. Sharpening is prohibited.
+
+## Frozen evaluations
+
+Architecture, weights, preprocessing, occupancy threshold, king policy, and calibration were frozen before testing. State SHA-256 is `90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E`; TorchScript SHA-256 is `F5677FA906104D2B62DCB5B47C853B5F7DAE797F1E271677E3B115DA45B4F7D6`. The one-time unseen-family synthetic pass improved over v0.3: 87.22% accuracy, 0.6304 occupied macro-F1, perfect occupancy separation, 62.50% type accuracy, and 98.33% color accuracy. Predicted black kings fell from 58 to 29 for 40 true; nine were false black kings.
+
+The protected model inference then ran exactly once. No checkpoint, threshold, policy, calibration, or preprocessing was changed afterward.
+
+| Protected metric | v0.3 frozen policy | v0.4 frozen policy |
+| --- | ---: | ---: |
+| 13-class accuracy | **83.87%** | 82.21% |
+| Occupied macro-F1 | **0.6536** | 0.6497 |
+| Occupancy precision | **83.22%** | 79.43% |
+| Occupancy recall | 100% | 100% |
+| Occupancy F1 | **0.9084** | 0.8853 |
+| Empty to occupied | **151** | 194 |
+| Occupied to empty | 0 | 0 |
+| False occupancy / board | **4.87** | 6.26 |
+| Piece type | 80.77% | **84.11%** |
+| Color | **91.32%** | 89.99% |
+| Predicted K / true K | 36 / 31 | **21 / 31** |
+| Predicted k / true k | 121 / 31 | **44 / 31** |
+| False-`k` rate | 75.21% | **36.36%** |
+| Empty to `k` | 36 | **6** |
+| Other piece to `k` | 55 | **10** |
+| Exact boards | 8 / 31 | **11 / 31** |
+| Mean / median corrections | **10.32 / 1** | 11.39 / 2 |
+| Wrong >=0.90 / >=0.95 | 122 / 85 | **121 / 78** |
+
+The king intervention generalizes materially: predicted black kings fall 64%, false-`k` rate falls from 75.21% to 36.36%, empty-to-`k` falls 83%, and other-piece-to-`k` falls 82%. Piece-type accuracy and exact-board count also improve. The occupancy objective does not generalize: empty false positives rise by 43, precision falls 3.79 percentage points, and correction burden worsens. Raw/no-calibration confidence remains poor under domain shift (Brier 0.2827, ECE 0.1208, 121 errors at >=0.90). The selected policy's canonical probabilities are already raw; the scorer's raw argmax is reported separately only to explain the occupancy-gate delta, not as a post-freeze alternative.
+
+MVP categories are preserved: digital-2D 95.31%, photo-of-screen 99.06%, and livestream 98.44%. Secondary print remains the dominant failure: printed-source 47.74%, book-tagged 45.63%, degraded print 14.06%. The worst board remains `cv-failure-001-old-newspaper-mackenzie-97` with 62 corrections, driven by severe print degradation/background texture and class confusion rather than an authorized localization change. Eleven boards are exact; four have one error, two have two, and 14 have at least three.
+
+The development-only abstention diagnostic covers 99.40% (827/832) at 99.64% accepted accuracy; five squares are abstained and concentrate 40% error. This is analysis only and is not integrated.
+
+## Size, performance, and decision
+
+The selected auxiliary model has 657,996 parameters. Native state is 2,656,885 bytes (2,450,738 gzip); TorchScript is 2,716,714 bytes (2,480,255 gzip), below the preferred 3 MB raw ceiling. On this Windows desktop CPU, five warmups and 30 batch-64 repeats measured 18.40 ms load, 0.32 ms preprocessing, and 69.62 ms inference per 64-tile board (1.09 ms effective per tile). The measurement excludes decode, homography, I/O, browser, and mobile overhead.
+
+**Decision: MORE TARGETED CLASSIFIER WORK REQUIRED.** The highest-priority king sink is substantially reduced and digital MVP performance is preserved, but occupancy precision, overall accuracy, mean/median corrections, print robustness, and high-confidence-error reduction do not meet the requested direction. The next task is **PHASE 3-007E — FINAL TARGETED CLASSIFIER REVISION**, using new development-only background/print hard negatives or an occupancy architecture whose selection cohort actually represents the remaining shift. Do not reuse protected truth for training or selection. The public UI remains frozen; do not integrate, merge, or deploy this model.

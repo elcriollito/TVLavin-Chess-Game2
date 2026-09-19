@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-config/3",
+  "modelVersion": "caissa-piece-classifier-v0.4-king-occupancy",
+  "datasetVersion": "scanner-piece-dataset-v0.5",
+  "datasetMetadataSha256": "1D24EE08A888795C1858B58AB0212351C93F78D4D180B29BEDB3F54BDA5BC3ED",
+  "datasetPixelsSha256": "3622D06BE676E33E821A3371EE2945FE767A0A80FFC3B4E5A5E21CC4B758804D",
+  "humanTruthSha256": "D73983A07A5B92F0747D637CFC2E9AC4027BF1095A095D4C88D158F7B13D14E9",
+  "certifiedCorpusVersion": "caissa-scanner-real-development-v0.2-certified",
+  "classOrder": ["empty", "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"],
+  "inputShape": [null, 3, 64, 64],
+  "variants": [
+    { "id": "king-curriculum", "architecture": "shared", "kingAuxiliary": false, "occupancyWeights": [1.0, 2.0] },
+    { "id": "king-auxiliary", "architecture": "shared-king-aux", "kingAuxiliary": true, "occupancyWeights": [1.0, 2.0] },
+    { "id": "king-auxiliary-asymmetric-occupancy", "architecture": "shared-king-aux", "kingAuxiliary": true, "occupancyWeights": [2.0, 1.0] }
+  ],
+  "training": {
+    "seeds": [2001, 2002],
+    "optimizer": "AdamW",
+    "learningRate": 0.00025,
+    "weightDecay": 0.0001,
+    "batchSize": 128,
+    "maximumEpochs": 16,
+    "earlyStoppingPatience": 4,
+    "samplesPerEpoch": 3200,
+    "syntheticFractionPerEpoch": 0.8,
+    "realFractionPerEpoch": 0.2,
+    "realEmptyFraction": 0.75,
+    "kingFocusedSyntheticFraction": 0.25,
+    "kingAuxiliaryWeight": 0.65,
+    "loss": "1.75*weighted-CE(occupancy)+0.75*CE(color|occupied)+CE(type|occupied)+optional 0.65*CE(king|occupied)",
+    "selectionPolicy": "synthetic whole-family validation plus certified real development-validation only; protected benchmark unavailable until freeze"
+  },
+  "threshold": {
+    "grid": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8],
+    "minimumRecallDrop": 0.03
+  },
+  "kingPolicy": {
+    "minimumTypeProbability": [0.0, 0.5, 0.6, 0.7, 0.8],
+    "minimumTypeMargin": [0.0, 0.1, 0.2, 0.3],
+    "minimumOccupancyProbability": [0.5, 0.6, 0.7],
+    "appliesTo": "black-king-visual-predictions-only",
+    "fallback": "next-highest black non-king identity"
+  },
+  "calibration": {
+    "temperatureGrid": [1.0, 1.25, 1.5, 2.0, 3.0, 4.0, 6.0],
+    "methods": ["raw-no-calibration", "fixed-1.0", "occupancy-only", "separate-heads"],
+    "minimumNllImprovementFraction": 0.02,
+    "criterion": "prefer raw/no calibration unless NLL improves at least 2% without increasing >=0.90 wrong predictions"
+  },
+  "uncertainty": {
+    "lowOccupancyProbability": 0.65,
+    "lowColorMargin": 0.25,
+    "lowTypeMargin": 0.2,
+    "lowCanonicalTop1": 0.6,
+    "highEntropy": 1.2
+  },
+  "evaluationPolicy": "select, threshold and calibrate on synthetic validation plus certified real development-validation; freeze once; run synthetic unseen-family test once; run protected 31-board benchmark once; no post-benchmark tuning"
+}
