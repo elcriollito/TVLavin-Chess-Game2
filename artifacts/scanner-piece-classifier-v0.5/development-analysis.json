@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "caissa-scanner-occupancy-development-analysis/1",
+  "modelVersion": "caissa-piece-classifier-v0.4-king-occupancy",
+  "protectedBenchmarkUsed": false,
+  "developmentTrainBoards": 28,
+  "developmentValidationBoards": 13,
+  "falseOccupancy": {
+    "train": 3,
+    "validation": 0,
+    "rankedPredictedClasses": [
+      { "class": "n", "count": 2 },
+      { "class": "p", "count": 1 }
+    ],
+    "failures": [
+      { "sampleId": "dev-real-v0.1-006/15", "sourceBoard": "dev-real-v0.1-006", "squareIndex": 15, "predictedClass": "p", "canonicalConfidence": 0.9773700833320618, "occupiedProbability": 0.9777370095252991, "platform": "https://worldchess.com/", "captureType": "unknown", "subtypeTags": ["photo-of-screen"], "squareTone": "light", "borderProximitySquares": 0, "highlightStatus": "unrecorded", "artifactTags": [] },
+      { "sampleId": "dev-real-v0.1-034/6", "sourceBoard": "dev-real-v0.1-034", "squareIndex": 6, "predictedClass": "n", "canonicalConfidence": 0.9893045425415039, "occupiedProbability": 0.9896300435066223, "platform": "chess,com", "captureType": "unknown", "subtypeTags": ["screen-glare", "photo-of-screen"], "squareTone": "light", "borderProximitySquares": 0, "highlightStatus": "unrecorded", "artifactTags": ["screen-glare"] },
+      { "sampleId": "dev-real-v0.1-035/6", "sourceBoard": "dev-real-v0.1-035", "squareIndex": 6, "predictedClass": "n", "canonicalConfidence": 0.9884698390960693, "occupiedProbability": 0.9891476631164551, "platform": "chess.com", "captureType": "unknown", "subtypeTags": ["photo-of-screen"], "squareTone": "light", "borderProximitySquares": 0, "highlightStatus": "unrecorded", "artifactTags": [] }
+    ]
+  },
+  "occupancyDistributions": {
+    "trueEmpty": { "count": 1818, "logitMean": -11.29868221282959, "logitMedian": -11.378011703491211, "logitP10": -12.094417572021484, "logitP90": -10.720844268798828, "probabilityMaximum": 0.9896300435066223 },
+    "trueOccupied": { "count": 806, "logitMean": 11.537059783935547, "logitMedian": 11.17078971862793, "logitP10": 8.676291465759277, "logitP90": 14.781106948852539, "probabilityMinimum": 0.9950037598609924 },
+    "hardNegative": { "count": 1818, "logitMean": -11.29868221282959, "logitMedian": -11.378011703491211, "logitP10": -12.094417572021484, "logitP90": -10.720844268798828 },
+    "photoOfScreen": { "count": 2432, "logitMean": -4.496342182159424, "logitMedian": -11.092026710510254, "logitP10": -11.824565887451172, "logitP90": 12.47127628326416 },
+    "digitalScreenshot": { "count": 0, "reason": "No development record has this explicit metadata tag." },
+    "print": { "count": 0, "reason": "No development record has this explicit metadata tag." },
+    "lowContrast": { "count": 0, "reason": "No development record has this explicit metadata tag." }
+  },
+  "overlap": {
+    "central80LogitOverlap": null,
+    "interpretation": "Central 80% bands are disjoint. Three development-train empty outliers are genuinely overconfident at occupied probability 0.977737–0.989630, while every true occupied tile is >=0.995004."
+  },
+  "rootCause": "The residual development error is a sparse, overconfident photo-of-screen border-square cluster dominated by black-knight and black-pawn sinks; it is not a near-0.50 threshold cluster and not a remaining black-king sink."
+}

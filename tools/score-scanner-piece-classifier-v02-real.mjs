@@ -80,8 +80,15 @@ const compact = (metrics, key, boards) => {
   const topWrong = [...metrics.confidence.highConfidenceErrors]
     .sort((a, b) => b.confidence - a.confidence || a.sampleId.localeCompare(b.sampleId)).slice(0, 10);
   const top = allSquares.map((item) => item.top1Confidence);
+  const falseOccupancy = allSquares.filter((item) => item.truth === 'empty' && item.top1 !== 'empty');
+  const correctionCounts = sorted.map((item) => item.wrongSquares);
+  const trimmedMean = (removeWorst) => {
+    const retained = correctionCounts.slice(0, Math.max(0, correctionCounts.length - removeWorst));
+    return retained.length ? retained.reduce((sum, value) => sum + value, 0) / retained.length : null;
+  };
   const uncertainty = { lowOccupancyProbability: 0, lowColorMargin: 0, lowTypeMargin: 0,
-    lowCanonicalTop1: 0, anySignal: 0, errorsWithAnySignal: 0 };
+    lowCanonicalTop1: 0, anySignal: 0, errorsWithAnySignal: 0,
+    falseOccupancyTotal: falseOccupancy.length, falseOccupancyWithAnySignal: 0 };
   for (let index = 0; index < allSquares.length; index++) {
     const flags = [allSquares[index].top1 !== 'empty' && headProb[index] < config.uncertainty.lowOccupancyProbability,
       predictions.diagnostics[key].colorMargin[index] < config.uncertainty.lowColorMargin,
@@ -92,6 +99,8 @@ const compact = (metrics, key, boards) => {
       .forEach((label, i) => { uncertainty[label] += Number(flags[i]); });
     uncertainty.anySignal += Number(flags.some(Boolean));
     uncertainty.errorsWithAnySignal += Number(!allSquares[index].correct && flags.some(Boolean));
+    uncertainty.falseOccupancyWithAnySignal += Number(allSquares[index].truth === 'empty'
+      && allSquares[index].top1 !== 'empty' && flags.some(Boolean));
   }
   return {
     accuracy13: metrics.accuracy13, occupiedVsEmptyAccuracy: metrics.occupiedVsEmptyAccuracy,
@@ -108,6 +117,7 @@ const compact = (metrics, key, boards) => {
     perClass: metrics.perClass, confusionMatrix: matrix, colorSwap: metrics.colorSwap,
     totalColorSwaps: metrics.totalColorSwaps, pieceTypeConfusion: metrics.pieceTypeConfusion,
     exactBoardAccuracy: metrics.exactBoardAccuracy, correctionBurden: metrics.correctionBurden,
+    trimmedCorrectionBurden: { meanExcludingWorstOne: trimmedMean(1), meanExcludingWorstTwo: trimmedMean(2) },
     bestBoard: { sampleId: sorted[0].sampleId, wrongSquares: sorted[0].wrongSquares },
     worstBoard: { sampleId: sorted.at(-1).sampleId, wrongSquares: sorted.at(-1).wrongSquares },
     perBoard: metrics.perBoard.map((board) => ({ sampleId: board.sampleId, wrongSquares: board.wrongSquares,
@@ -128,7 +138,9 @@ const compact = (metrics, key, boards) => {
       meanWrong: metrics.confidence.meanTop1Incorrect, brier13: metrics.confidence.brier13,
       ece10: metrics.confidence.ece10, wrongAtLeast090: metrics.confidence.highConfidenceErrors.length,
       wrongAtLeast095: metrics.confidence.highConfidenceErrors.filter((item) => item.confidence >= .95).length,
-      highestConfidenceErrors: topWrong }, uncertainty
+      highestConfidenceErrors: topWrong,
+      falseOccupancyAtLeast090: falseOccupancy.filter((item) => item.top1Confidence >= .9).length,
+      falseOccupancyAtLeast095: falseOccupancy.filter((item) => item.top1Confidence >= .95).length }, uncertainty
   };
 };
 

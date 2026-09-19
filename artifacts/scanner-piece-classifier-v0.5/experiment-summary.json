@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-summary/3",
+  "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+  "datasetVersion": "scanner-piece-dataset-v0.5",
+  "decision": "PROMISING REVISION — READY FOR PHASE 3-008",
+  "runtimeIntegrated": false,
+  "protectedBenchmarkPasses": 1,
+  "selected": {
+    "variant": "threshold-only",
+    "architecture": "shared-king-aux",
+    "seed": null,
+    "bestEpoch": 0,
+    "parameterCount": 657996,
+    "occupancyThreshold": 0.99,
+    "occupancyLossWeights": [1.0, 2.0],
+    "sampling": { "synthetic": 0.8, "real": 0.2, "realEmptyWithinReal": 0.75, "hardNegative": 0.0 },
+    "occupancyOnlyFineTune": false,
+    "kingAuxiliary": true,
+    "kingPolicy": {
+      "minimumTypeProbability": 0.0,
+      "minimumTypeMargin": 0.0,
+      "minimumOccupancyProbability": 0.5
+    },
+    "calibrationMethod": "raw-no-calibration",
+    "temperature": { "occupancy": 1.0, "color": 1.0, "type": 1.0 }
+  },
+  "matrix": [
+    { "variant": "threshold-only", "seed": null, "bestEpoch": 0, "selectionScore": 1.8453780337546428, "threshold": 0.99, "realValidationAccuracy13": 0.9939903846153846, "realValidationOccupiedMacroF1": 0.974815509246968, "realValidationOccupancyPrecision": 1.0, "realValidationOccupancyRecall": 1.0, "realValidationBlackExact": 0.9935064935064936, "kingPreservationPassed": true },
+    { "variant": "loss-rebalance", "seed": 2101, "bestEpoch": 7, "selectionScore": 1.8445967801300671, "threshold": 0.9, "realValidationAccuracy13": 0.9915865384615384, "realValidationOccupiedMacroF1": 0.967677598608789, "realValidationOccupancyPrecision": 1.0, "realValidationOccupancyRecall": 1.0, "realValidationBlackExact": 0.9935064935064936, "kingPreservationPassed": true },
+    { "variant": "loss-rebalance", "seed": 2102, "bestEpoch": 3, "selectionScore": 1.8397584481708897, "threshold": 0.75, "realValidationAccuracy13": 0.9927884615384616, "realValidationOccupiedMacroF1": 0.9685034149942023, "realValidationOccupancyPrecision": 1.0, "realValidationOccupancyRecall": 1.0, "realValidationBlackExact": 0.9935064935064936, "kingPreservationPassed": true },
+    { "variant": "occupancy-head-hard-negative", "seed": 2101, "bestEpoch": 1, "selectionScore": 1.823995540051641, "threshold": 0.7, "realValidationAccuracy13": 0.9915865384615384, "realValidationOccupiedMacroF1": 0.9559251500593634, "realValidationOccupancyPrecision": 1.0, "realValidationOccupancyRecall": 1.0, "realValidationBlackExact": 0.9935064935064936, "kingPreservationPassed": true },
+    { "variant": "occupancy-head-hard-negative", "seed": 2102, "bestEpoch": 1, "selectionScore": 1.8221772587062712, "threshold": 0.75, "realValidationAccuracy13": 0.9915865384615384, "realValidationOccupiedMacroF1": 0.9559251500593634, "realValidationOccupancyPrecision": 1.0, "realValidationOccupancyRecall": 1.0, "realValidationBlackExact": 0.9935064935064936, "kingPreservationPassed": true },
+    { "variant": "occupancy-head-real-empty-30", "seed": 2101, "bestEpoch": 1, "selectionScore": 1.824662104038454, "threshold": 0.75, "realValidationAccuracy13": 0.9927884615384616, "realValidationOccupiedMacroF1": 0.9593579973940853, "realValidationOccupancyPrecision": 1.0, "realValidationOccupancyRecall": 1.0, "realValidationBlackExact": 0.9935064935064936, "kingPreservationPassed": true },
+    { "variant": "occupancy-head-real-empty-30", "seed": 2102, "bestEpoch": 1, "selectionScore": 1.8212304213496875, "threshold": 0.75, "realValidationAccuracy13": 0.9915865384615384, "realValidationOccupiedMacroF1": 0.9554755827771273, "realValidationOccupancyPrecision": 1.0, "realValidationOccupancyRecall": 1.0, "realValidationBlackExact": 0.9935064935064936, "kingPreservationPassed": true }
+  ],
+  "thresholdSelection": {
+    "grid": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.975, 0.99],
+    "cost": "2 * false-positive + false-negative",
+    "selected": 0.99,
+    "validationPrecision": 1.0,
+    "validationRecall": 1.0,
+    "validationF1": 1.0,
+    "validationFalsePositive": 0,
+    "validationFalseNegative": 0,
+    "validationFalsePositivePerBoard": 0.0,
+    "reasonForExtendedTail": "All lower thresholds tied on validation; the deterministic tie-break selected the highest conservative threshold, supported by occupied validation probability >=0.995925 and development-train false positives <=0.989630."
+  },
+  "syntheticUnseenFamilyTest": {
+    "squares": 1440,
+    "accuracy13": 0.8722222222222222,
+    "occupiedMacroF1": 0.6304153347613622,
+    "occupancyPrecision": 1.0,
+    "occupancyRecall": 1.0,
+    "occupancyF1": 1.0,
+    "pieceTypeAccuracy": 0.625,
+    "colorAccuracy": 0.9833333333333333,
+    "predictedK": 20,
+    "trueK": 40,
+    "predictedk": 29,
+    "truek": 40,
+    "falseKingRate": 0.3103448275862069
+  },
+  "performance": {
+    "modelLoadMilliseconds": 20.562900026561692,
+    "preprocessMillisecondsPerBoard": 0.9034500108100474,
+    "inferenceMillisecondsPerBoard": 204.2891999881249,
+    "inferenceMillisecondsPerTileEffective": 3.1920187498144514,
+    "nativeModelBytes": 2656885,
+    "nativeModelGzipBytes": 2450738,
+    "torchscriptBytes": 2716800,
+    "torchscriptGzipBytes": 2480175,
+    "measurement": "Windows desktop CPU; excludes decode, homography, I/O, browser and mobile"
+  },
+  "checksums": {
+    "humanTruthSha256": "D73983A07A5B92F0747D637CFC2E9AC4027BF1095A095D4C88D158F7B13D14E9",
+    "datasetMetadataSha256": "1D24EE08A888795C1858B58AB0212351C93F78D4D180B29BEDB3F54BDA5BC3ED",
+    "datasetPixelsSha256": "3622D06BE676E33E821A3371EE2945FE767A0A80FFC3B4E5A5E21CC4B758804D",
+    "stateSha256": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+    "torchscriptSha256": "8025AA0F8455BE582AB718A70BC75C1CE4A583852DA4A3A8E540FEF035EE9801",
+    "configSha256": "ADAC37495E071AAD7918BCAAFC95AFB0573DF89EE685AE905F96EE2578325BB1",
+    "syntheticTestReportSha256": "DFC77FD93C1BFE0F2C4EAB24ABA6BD292678315F7B001F0F2B3149433478AA2E",
+    "protectedReportSha256": "4F57C61F694133042D95EF411A399B57E8AB967AC8989674E58D9CEF12A5B567",
+    "developmentAnalysisSha256": "80ABB28763AFC7D91CC95B29FFC7306CC426367205DA30D228CE873B4D928664",
+    "trainingSummarySha256": "90269920D3F8DF60D5869C91AC50DE158B79D68707ADC07B51D576B1B95387C3",
+    "validationReportSha256": "D1998D517E585550B1948B354CEAA174D7E6CFF2CE04327D1C612412068AA640",
+    "performanceReportSha256": "2A0D03B0C3A0C837C5C296E84FE000E4B5E2DB26BD67F84A4976E1ECF113B7C7",
+    "protectedPredictionsSha256": "DEB22BD9E1EF341F2571A2260C2EB1C263628F91FD0224C889D702BCD5A954A5"
+  }
+}

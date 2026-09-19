@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "caissa-scanner-classifier-revision-config/4",
+  "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+  "datasetVersion": "scanner-piece-dataset-v0.5",
+  "datasetMetadataSha256": "1D24EE08A888795C1858B58AB0212351C93F78D4D180B29BEDB3F54BDA5BC3ED",
+  "datasetPixelsSha256": "3622D06BE676E33E821A3371EE2945FE767A0A80FFC3B4E5A5E21CC4B758804D",
+  "humanTruthSha256": "D73983A07A5B92F0747D637CFC2E9AC4027BF1095A095D4C88D158F7B13D14E9",
+  "certifiedCorpusVersion": "caissa-scanner-real-development-v0.2-certified",
+  "classOrder": ["empty", "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"],
+  "inputShape": [null, 3, 64, 64],
+  "baselineModelVersion": "caissa-piece-classifier-v0.4-king-occupancy",
+  "variants": [
+    { "id": "threshold-only", "training": false, "occupancyOnly": false, "occupancyWeights": [1.0, 2.0], "realFraction": 0.20, "realEmptyFraction": 0.75, "hardNegativeFraction": 0.0 },
+    { "id": "loss-rebalance", "training": true, "occupancyOnly": false, "occupancyWeights": [1.5, 1.0], "realFraction": 0.20, "realEmptyFraction": 0.75, "hardNegativeFraction": 0.02 },
+    { "id": "occupancy-head-hard-negative", "training": true, "occupancyOnly": true, "occupancyWeights": [1.5, 1.0], "realFraction": 0.20, "realEmptyFraction": 0.75, "hardNegativeFraction": 0.02 },
+    { "id": "occupancy-head-real-empty-30", "training": true, "occupancyOnly": true, "occupancyWeights": [1.5, 1.0], "realFraction": 0.30, "realEmptyFraction": 0.80, "hardNegativeFraction": 0.02 }
+  ],
+  "training": {
+    "seeds": [2101, 2102],
+    "optimizer": "AdamW",
+    "learningRateAllHeads": 0.0001,
+    "learningRateOccupancyOnly": 0.00025,
+    "weightDecay": 0.0001,
+    "batchSize": 128,
+    "maximumEpochs": 8,
+    "earlyStoppingPatience": 3,
+    "samplesPerEpoch": 3200,
+    "kingAuxiliaryWeight": 0.65,
+    "selectionPolicy": "synthetic validation plus certified real development-validation only; king-preservation hard gate; protected benchmark unavailable until freeze"
+  },
+  "threshold": {
+    "grid": [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.975, 0.99],
+    "falsePositiveCost": 2.0,
+    "falseNegativeCost": 1.0,
+    "selection": "minimum 2*FP+FN, then F1, precision, then highest conservative threshold"
+  },
+  "kingPolicy": {
+    "minimumTypeProbability": 0.0,
+    "minimumTypeMargin": 0.0,
+    "minimumOccupancyProbability": 0.5,
+    "appliesTo": "black-king-visual-predictions-only",
+    "fallback": "next-highest black non-king identity"
+  },
+  "calibration": {
+    "method": "raw-no-calibration",
+    "temperature": { "occupancy": 1.0, "color": 1.0, "type": 1.0 },
+    "reason": "v0.4 transfer evidence rejects sharpening; post-freeze synthetic test cannot authorize retuning"
+  },
+  "uncertainty": {
+    "lowOccupancyProbability": 0.995,
+    "lowColorMargin": 0.25,
+    "lowTypeMargin": 0.2,
+    "lowCanonicalTop1": 0.6,
+    "highEntropy": 1.2
+  },
+  "evaluationPolicy": "freeze from synthetic validation plus development-validation; run synthetic unseen-family once; run protected 31-board benchmark once; no post-benchmark tuning"
+}

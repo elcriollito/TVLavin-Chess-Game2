@@ -210,3 +210,54 @@ The development-only abstention diagnostic covers 99.40% (827/832) at 99.64% acc
 The selected auxiliary model has 657,996 parameters. Native state is 2,656,885 bytes (2,450,738 gzip); TorchScript is 2,716,714 bytes (2,480,255 gzip), below the preferred 3 MB raw ceiling. On this Windows desktop CPU, five warmups and 30 batch-64 repeats measured 18.40 ms load, 0.32 ms preprocessing, and 69.62 ms inference per 64-tile board (1.09 ms effective per tile). The measurement excludes decode, homography, I/O, browser, and mobile overhead.
 
 **Decision: MORE TARGETED CLASSIFIER WORK REQUIRED.** The highest-priority king sink is substantially reduced and digital MVP performance is preserved, but occupancy precision, overall accuracy, mean/median corrections, print robustness, and high-confidence-error reduction do not meet the requested direction. The next task is **PHASE 3-007E — FINAL TARGETED CLASSIFIER REVISION**, using new development-only background/print hard negatives or an occupancy architecture whose selection cohort actually represents the remaining shift. Do not reuse protected truth for training or selection. The public UI remains frozen; do not integrate, merge, or deploy this model.
+
+---
+
+# Phase 3-007E — final targeted occupancy recovery
+
+Status: frozen offline experiment complete; no runtime or public UI integration.
+
+## Occupancy failure analysis
+
+The frozen v0.4 model has only three development-train empty-to-occupied errors and none on the 13-board development-validation split. The ranked sinks are black knight (`n`, two) and black pawn (`p`, one), not black king. All three are light border squares from photo-of-screen sessions; one has an explicit screen-glare tag. Their occupied probabilities are 0.977737, 0.989148, and 0.989630, so these are genuinely overconfident outliers rather than scores near 0.50. Capture type and highlight state were not recorded; no development record carries an explicit screenshot, print, or low-contrast tag, and that missing metadata is reported rather than inferred.
+
+Across development train plus validation, the occupancy-logit margin for 1,818 true-empty tiles has mean -11.2987, median -11.3780, P10 -12.0944, and P90 -10.7208. For 806 true-occupied tiles it has mean 11.5371, median 11.1708, P10 8.6763, and P90 14.7811. The central 80% bands do not overlap. The minimum occupied probability is 0.995004, while the maximum empty probability is 0.989630. This clean validation separation justifies testing a conservative tail above 0.90; it does not imply that protected-domain print squares are equally separated.
+
+## Bounded matrix and frozen selection
+
+The preregistered matrix contained threshold-only frozen v0.4 plus six trained runs: loss rebalance, occupancy-only hard-negative fine-tune, and occupancy-only fine-tune with a 30% real mix, each at seeds 2101 and 2102. Trained variants used empty:occupied loss weights 1.5:1 and a 2% hard-negative draw. The baseline and loss-rebalance variants used 80% synthetic / 20% real development, with 75% empty within real; the final occupancy-only variant used 70% synthetic / 30% real, with 80% empty within real. No protected tile entered training or selection.
+
+The validation-only threshold grid was 0.50 through 0.90 plus a justified conservative tail at 0.95, 0.975, and 0.99. Selection minimized `2 * FP + FN`, then maximized F1, precision, and threshold. Every threshold had zero FP and zero FN on development validation. The deterministic tie-break selected 0.99, which remains below every development occupied probability. Threshold-only scored 1.845378, narrowly above loss-rebalance seed 2101 at 1.844597; occupancy-only candidates scored 1.8212–1.8247 and did not win. Therefore the frozen v0.4 weights and shared multi-head plus occupied-only king auxiliary are preserved exactly. The selected policy has occupancy threshold 0.99, original 1:2 training-loss provenance, no occupancy fine-tune, the unchanged visual king policy, and raw/no calibration.
+
+Development validation at the frozen policy is 99.40% 13-class accuracy, 0.9748 occupied macro-F1, perfect occupancy precision/recall, 98.71% piece-type accuracy, 99.68% color accuracy, 99.35% black exact, zero false black kings, and one wrong white-king prediction. The king-preservation gate passes. State SHA-256 remains `90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E`; the newly exported TorchScript SHA-256 is `8025AA0F8455BE582AB718A70BC75C1CE4A583852DA4A3A8E540FEF035EE9801`.
+
+## Post-freeze evaluations
+
+The one-time unseen-family synthetic test scored 87.22% 13-class accuracy, 0.6304 occupied macro-F1, perfect occupancy precision/recall, 62.50% piece-type accuracy, and 98.33% color accuracy. It predicted 20 white kings and 29 black kings for 40 true of each; false-black-king rate was 31.03%. RhosGFX identity transfer remains weak while P4wn remains strong. No result was used to retune the frozen policy.
+
+The protected 31-board inference then ran exactly once. Relative to v0.4, the threshold policy trades 22 occupied false negatives for 106 fewer empty false positives, consistent with the preregistered higher FP cost.
+
+| Protected metric | v0.3 | v0.4 | v0.5 |
+| --- | ---: | ---: | ---: |
+| 13-class accuracy | 83.87% | 82.21% | **87.05%** |
+| Occupancy precision | 83.22% | 79.43% | **89.20%** |
+| Occupancy recall | **100%** | **100%** | 97.06% |
+| Occupancy F1 | 0.9084 | 0.8853 | **0.9297** |
+| Empty to occupied | 151 | 194 | **88** |
+| Occupied to empty | **0** | **0** | 22 |
+| False occupancy / board | 4.87 | 6.26 | **2.84** |
+| Occupied macro-F1 | 0.6536 | 0.6497 | **0.6933** |
+| Predicted `k` / true `k` | 121 / 31 | 44 / 31 | **40 / 31** |
+| Empty to `k` | 36 | 6 | **2** |
+| Other piece to `k` | 55 | **10** | **10** |
+| Exact boards | 8 / 31 | **11 / 31** | **11 / 31** |
+| Mean / median corrections | 10.32 / **1** | 11.39 / 2 | **8.29 / 2** |
+| Wrong >=0.90 / >=0.95 | 122 / 85 | 121 / 78 | **107 / 71** |
+
+The white/black king counts are 21/31 and 40/31. White false-king rate is 9.52% (zero empty-to-`K`, two other-piece-to-`K`); black false-king rate is 30.00% (two empty-to-`k`, ten other-piece-to-`k`). Piece-type accuracy is 82.78%, color accuracy 87.58%, white exact 72.82%, black exact 82.16%, and color swaps remain 40. There are 11 zero-error, two one-error, five two-error, and 13 three-plus-error boards. Mean corrections excluding the worst one and two boards are 7.10 and 6.17. The worst degraded-newspaper board improves from 62 to 44 corrections.
+
+MVP preservation is acceptable: digital-2D is 95.02%, photo-of-screen 99.06%, and livestream 96.88%. Printed-source rises to 65.10%, book-tagged to 63.75%, and degraded print to 44.53%, although all remain secondary and exploratory. Forty-six false occupied predictions are at confidence >=0.90 and 37 at >=0.95; the remaining errors are often truly overconfident, especially on degraded print. The existing analysis-only uncertainty policy covers 89.72% (1,780/1,984) at 89.83% accepted accuracy; 204 squares are abstained with a 37.25% error rate. It captures 76 errors and 23 of 88 false occupancies (26.14%). It remains unsuitable as a runtime gate without platform validation.
+
+The frozen model still has 657,996 parameters. Native state is 2,656,885 bytes (2,450,738 gzip); TorchScript is 2,716,800 bytes (2,480,175 gzip). This Windows desktop CPU run measured 20.56 ms load, 0.90 ms preprocessing, and 204.29 ms inference per 64-tile board (3.19 ms effective per tile). These environment-dependent figures exclude decode, homography, I/O, browser, and mobile overhead and are not an iPhone claim.
+
+**Decision: PROMISING REVISION — READY FOR PHASE 3-008.** Occupancy precision improves 9.78 points, empty false positives fall below 100, false occupancy per board more than halves, occupied macro-F1 rises, black-king behavior remains controlled, correction burden improves, exact boards do not regress, and primary digital/photo performance remains strong. Recall, color/identity quality, livestream, and high-confidence print errors remain explicit follow-up risks. Next: **PHASE 3-008 — REAL-PLATFORM VALIDATION + CLASSIFIER HARDENING**. Do not integrate runtime, change the public UI, merge, or deploy this model.
