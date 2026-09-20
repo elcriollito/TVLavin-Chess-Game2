@@ -1,7 +1,10 @@
 const CLASSES = Object.freeze(['empty', 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']);
 const CLASS_SET = new Set(CLASSES);
 const FEEDBACK_TYPES = Object.freeze(['CONFIRMED_CORRECT', 'PIECE_CORRECTION', 'LOCALIZATION_FAILURE', 'SCAN_FAILURE']);
-const FAILURE_STAGES = Object.freeze(['unsupported-input', 'decode', 'localization', 'classifier', 'feedback']);
+const FAILURE_STAGES = Object.freeze([
+  'unsupported-input', 'decode', 'localization', 'classifier', 'network',
+  'rate-limit', 'authorization', 'service', 'feedback'
+]);
 const GOVERNANCE_STATES = Object.freeze(['pending-review', 'human-confirmed', 'duplicate', 'held', 'excluded', 'eligible-for-training', 'consumed-in-dataset']);
 const PLATFORMS = Object.freeze(['Chess.com', 'Lichess', 'ChessBase / Playchess', 'ICC', 'PlayOK', 'FIDE/event', 'Chessworld', 'CAISSA gateway', 'other']);
 const MODEL = Object.freeze({
