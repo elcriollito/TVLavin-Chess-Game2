@@ -90,6 +90,9 @@ const CaissaFICSClient = {
     observeRecoveryTarget: null,
     pendingGameActions: { resign: false, draw: false },
     observationExitInFlight: false,
+    observedHistoryRequest: null,
+    observedHistoryRequestedKey: null,
+    observedHistoryRequestTimeoutMs: 8000,
     lobbyRefreshTimer: null,
     lobbyRefreshInFlight: false,
     lobbyLastRefreshAt: 0,
@@ -734,6 +737,7 @@ const CaissaFICSClient = {
             blackClock: null,
             initialTime: null,
             increment: null,
+            moveNumber: null,
             currentFen: null,
             gameActive: false,
             observedGame: false,
@@ -745,6 +749,7 @@ const CaissaFICSClient = {
     },
 
     resetLiveSessionState() {
+        this.invalidateObservedGameHistory('SESSION_RESET');
         this.gameActive = false;
         this.myColor = null;
         this.gameNumber = null;
@@ -957,6 +962,7 @@ const CaissaFICSClient = {
         try { window.ClassicFicsObservability?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicFicsMatchResearch?.observeRawInbound(String(text)); } catch {}
         try { window.ClassicComputerChallenge?.observeRawInbound(String(text)); } catch {}
+        this.consumeObservedGameHistoryData(String(text));
         this.consumePlayersData(String(text));
         this.rawBuffer = `${this.rawBuffer}${text}`.slice(-16384);
         this.logToConsole(this.sanitizeFicsConsoleText(text), 'FICS');
@@ -1131,6 +1137,7 @@ const CaissaFICSClient = {
     handleRawMessage(message) {
         const line = message.text;
         this.logToConsole(line, 'FICS');
+        this.consumeObservedGameHistoryData(line, { lineFramed: true });
         this.consumePlayersData(line, { lineFramed: true });
 
         // Basic parsing for game events
@@ -1304,6 +1311,7 @@ const CaissaFICSClient = {
             blackClock: state.blackClock,
             initialTime: state.initialTime,
             increment: state.increment,
+            moveNumber: state.moveNumber,
             currentFen: state.fen,
             gameActive: playing,
             observedGame: state.observedGame,
@@ -1731,6 +1739,7 @@ const CaissaFICSClient = {
             : null;
         if (current === target) return Object.freeze({ ok: false, code: 'ALREADY_OBSERVING' });
         if (this.pendingObservation) return Object.freeze({ ok: false, code: 'OBSERVE_IN_PROGRESS' });
+        this.invalidateObservedGameHistory('GAME_SWITCHED');
 
         const request = {
             target,
@@ -1835,6 +1844,7 @@ const CaissaFICSClient = {
                 ? String(this.liveGame.gameNumber)
                 : '';
         this.clearObserveRecovery();
+        this.invalidateObservedGameHistory('OBSERVATION_LEFT');
         this.gameActive = false;
         this.myColor = null;
         this.gameNumber = null;
@@ -2122,6 +2132,133 @@ const CaissaFICSClient = {
         this.pgnStartFen = null;
         this.pendingGameActions = { resign: false, draw: false };
         this.renderMoveList();
+    },
+
+    requestObservedGameHistory(gameNumber, selectionGeneration) {
+        const target = String(gameNumber ?? '').trim();
+        const generation = Number(selectionGeneration);
+        if (!/^\d+$/.test(target)) return Object.freeze({ ok: false, code: 'INVALID_GAME' });
+        if (!this.authenticated || !this.connected) return Object.freeze({ ok: false, code: 'NOT_CONNECTED' });
+        if (!this.liveGame?.observedGame || String(this.liveGame.gameNumber) !== target) {
+            return Object.freeze({ ok: false, code: 'NOT_OBSERVING_GAME' });
+        }
+
+        const requestKey = `${this.sessionGeneration}:${target}:${generation}`;
+        if (this.observedHistoryRequestedKey === requestKey) {
+            return Object.freeze({ ok: true, code: 'HISTORY_ALREADY_REQUESTED', gameNumber: target });
+        }
+        this.invalidateObservedGameHistory('HISTORY_REPLACED', { preserveRequestedKey: true });
+
+        const request = {
+            gameNumber: target,
+            selectionGeneration: generation,
+            sessionGeneration: this.sessionGeneration,
+            buffer: '',
+            started: false,
+            timeoutId: null
+        };
+        this.observedHistoryRequest = request;
+        this.observedHistoryRequestedKey = requestKey;
+        this.logToConsole(`> moves ${target}`, 'COMMAND');
+        const delivery = this.send(`moves ${target}`);
+        if (!delivery.ok) {
+            this.observedHistoryRequest = null;
+            this.notifySpectator('observed-history-error', {
+                gameNumber: target,
+                selectionGeneration: generation,
+                code: delivery.code
+            });
+            return Object.freeze({ ...delivery, gameNumber: target });
+        }
+
+        this.notifySpectator('observed-history-loading', {
+            gameNumber: target,
+            selectionGeneration: generation
+        });
+        request.timeoutId = setTimeout(() => {
+            if (this.observedHistoryRequest !== request) return;
+            this.observedHistoryRequest = null;
+            this.notifySpectator('observed-history-error', {
+                gameNumber: target,
+                selectionGeneration: generation,
+                code: 'HISTORY_TIMEOUT'
+            });
+        }, this.observedHistoryRequestTimeoutMs);
+        return Object.freeze({ ...delivery, gameNumber: target });
+    },
+
+    invalidateObservedGameHistory(reason = 'INVALIDATED', options = {}) {
+        const request = this.observedHistoryRequest;
+        if (request?.timeoutId) clearTimeout(request.timeoutId);
+        this.observedHistoryRequest = null;
+        if (!options.preserveRequestedKey) this.observedHistoryRequestedKey = null;
+        return reason;
+    },
+
+    consumeObservedGameHistoryData(text) {
+        const request = this.observedHistoryRequest;
+        if (!request || request.sessionGeneration !== this.sessionGeneration) return false;
+        if (!this.liveGame?.observedGame || String(this.liveGame.gameNumber) !== request.gameNumber) {
+            this.invalidateObservedGameHistory('STALE_GAME', { preserveRequestedKey: true });
+            return false;
+        }
+
+        request.buffer = `${request.buffer}${String(text || '').replace(/\r/g, '')}`.slice(-65536);
+        const header = new RegExp(`Movelist for game\\s+${request.gameNumber}:`, 'i');
+        if (!request.started) request.started = header.test(request.buffer);
+        if (!request.started) {
+            if (/There is no such game|not playing|not observing/i.test(request.buffer)) {
+                this.invalidateObservedGameHistory('HISTORY_UNAVAILABLE', { preserveRequestedKey: true });
+                this.notifySpectator('observed-history-error', {
+                    gameNumber: request.gameNumber,
+                    selectionGeneration: request.selectionGeneration,
+                    code: 'HISTORY_UNAVAILABLE'
+                });
+            }
+            return false;
+        }
+        if (!/(?:^|\n)fics%\s*$/i.test(request.buffer)) return false;
+
+        const parsed = this.parseObservedGameHistory(request.buffer);
+        const byPly = new Map();
+        [...parsed, ...this.moveHistory].forEach((move) => {
+            if (!move?.san) return;
+            byPly.set(`${move.moveNumber}:${move.color}`, { ...move });
+        });
+        const combined = [...byPly.values()].sort((a, b) => {
+            const moveDelta = Number(a.moveNumber) - Number(b.moveNumber);
+            if (moveDelta) return moveDelta;
+            return a.color === b.color ? 0 : a.color === 'white' ? -1 : 1;
+        });
+
+        if (request.timeoutId) clearTimeout(request.timeoutId);
+        this.observedHistoryRequest = null;
+        this.moveHistory = combined;
+        this.pgnStartFen = FICS_STANDARD_START_FEN;
+        this.renderMoveList();
+        this.notifySpectator('observed-history', {
+            gameNumber: request.gameNumber,
+            selectionGeneration: request.selectionGeneration,
+            sessionGeneration: request.sessionGeneration,
+            moveHistory: combined.map((move) => ({ ...move }))
+        });
+        return true;
+    },
+
+    parseObservedGameHistory(text) {
+        const moves = [];
+        const rowPattern = /^\s*(\d+)\.\s+(\S+)\s+\(\d+:\d+(?:\.\d+)?\)(?:\s+(\S+)\s+\(\d+:\d+(?:\.\d+)?\))?/gm;
+        let row;
+        while ((row = rowPattern.exec(String(text || ''))) !== null) {
+            const moveNumber = Number(row[1]);
+            if (row[2] && !/^\{/.test(row[2])) {
+                moves.push({ moveNumber, color: 'white', san: row[2], verbose: '', fen: null, source: 'fics-movelist' });
+            }
+            if (row[3] && !/^\{/.test(row[3])) {
+                moves.push({ moveNumber, color: 'black', san: row[3], verbose: '', fen: null, source: 'fics-movelist' });
+            }
+        }
+        return moves;
     },
 
     recordStyle12Move(state, previousFen = null) {

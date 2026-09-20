@@ -22,6 +22,9 @@
         contextSnapshot: '',
         selectedGame: null,
         selectionGeneration: 0,
+        ecoCatalog: [],
+        ecoCatalogPromise: null,
+        openingHistoryRequestKey: null,
         queuedGameId: null,
         activeWorkspaceTab: 'server',
         selectedServer: 'fics',
@@ -34,7 +37,27 @@
             this.catalog = window.CaissaSpectatorTVCatalog?.createCatalog?.() || null;
             this.bindEvents();
             this.subscribeToFics();
+            this.loadEcoCatalog();
             this.render();
+        },
+
+        loadEcoCatalog() {
+            if (this.ecoCatalogPromise) return this.ecoCatalogPromise;
+            const resolver = window.CaissaEcoOpeningResolver;
+            this.ecoCatalogPromise = resolver?.loadCatalog?.()
+                .then((rows) => {
+                    this.ecoCatalog = Array.isArray(rows) ? rows : [];
+                    const liveGame = window.CaissaFICSClient?.liveGame;
+                    if (this.isSelectedGameUpdate(liveGame || {})) {
+                        this.renderLiveContext(liveGame, window.CaissaFICSClient?.moveHistory || []);
+                    }
+                    return this.ecoCatalog;
+                })
+                .catch(() => {
+                    this.ecoCatalog = [];
+                    return this.ecoCatalog;
+                });
+            return this.ecoCatalogPromise;
         },
 
         cacheElements() {
@@ -137,6 +160,8 @@
                 this.updateCatalog(activeTables);
             } else if (detail.event === 'style12') {
                 this.renderStyle12(detail.payload);
+            } else if (detail.event === 'observed-history') {
+                this.renderObservedHistory(detail.payload);
             } else if (detail.event === 'game-ended') {
                 this.renderGameEnded(detail.payload);
             } else if (detail.event === 'observation-settled') {
@@ -172,6 +197,7 @@
             }
             this.selectedGame = null;
             this.selectionGeneration += 1;
+            this.openingHistoryRequestKey = null;
             this.queuedGameId = null;
             this.lastRenderedFen = null;
             this.contextSnapshot = '';
@@ -277,6 +303,8 @@
             const unobserveGameId = observedGameId || pendingGameId || selectedGameId;
 
             this.selectionGeneration += 1;
+            this.openingHistoryRequestKey = null;
+            client?.invalidateObservedGameHistory?.('SELECTION_EXITED');
             this.queuedGameId = null;
             this.selectedGame = null;
             const states = window.CaissaSpectatorTV?.STATES || {};
@@ -566,6 +594,7 @@
             if (!gameId) return null;
             const generation = this.selectionGeneration + 1;
             this.selectionGeneration = generation;
+            this.openingHistoryRequestKey = null;
             this.selectedGame = Object.freeze({
                 gameId,
                 whitePlayer: game.whitePlayer || game.white || 'White',
@@ -716,10 +745,31 @@
             }
 
             this.renderPlayers(liveGame);
+            this.requestOpeningHistory(liveGame, payload.moveHistory || []);
             this.renderLiveContext(liveGame, payload.moveHistory || []);
             this.renderMoveList(payload.moveHistory || []);
             this.renderGameStatus(liveGame);
             this.render();
+        },
+
+        requestOpeningHistory(liveGame, moveHistory = []) {
+            if (!liveGame?.observedGame || !this.isSelectedGameUpdate(liveGame)) return null;
+            const history = Array.isArray(moveHistory) ? moveHistory : [];
+            const startsAtInitialPosition = history[0]?.moveNumber === 1 && history[0]?.color === 'white';
+            if (startsAtInitialPosition) return null;
+            const gameNumber = String(liveGame.gameNumber);
+            const requestKey = `${gameNumber}:${this.selectionGeneration}`;
+            if (this.openingHistoryRequestKey === requestKey) return null;
+            this.openingHistoryRequestKey = requestKey;
+            return window.CaissaFICSClient?.requestObservedGameHistory?.(gameNumber, this.selectionGeneration) || null;
+        },
+
+        renderObservedHistory(payload = {}) {
+            const liveGame = window.CaissaFICSClient?.liveGame || {};
+            if (!this.isSelectedGameUpdate(liveGame, payload)) return;
+            const history = Array.isArray(payload.moveHistory) ? payload.moveHistory : [];
+            this.renderLiveContext(liveGame, history);
+            this.renderMoveList(history);
         },
 
         renderGameEnded(payload = {}) {
@@ -796,10 +846,13 @@
                 label: context.rated,
                 variant: context.rated === 'Rated' ? 'success' : context.rated === 'Unrated' ? 'disabled' : 'info'
             });
+            const openingContent = context.openingHref
+                ? `<a class="spectator-opening-link" href="${this.escapeHtml(context.openingHref)}" target="_blank" rel="noopener noreferrer" title="${this.escapeHtml(context.openingName)}" aria-label="${this.escapeHtml(`Open ${context.openingName} in the CAISSA Opening Database`)}">${this.escapeHtml(context.openingName)}</a>`
+                : `<strong title="${this.escapeHtml(context.openingName)}">${this.escapeHtml(context.openingName)}</strong>`;
 
             this.elements.liveContext.innerHTML = `
                 <div class="spectator-context-row spectator-context-row--opening">
-                    <div class="spectator-context-cell" data-spectator-detail="opening"><span>Opening</span><strong title="${this.escapeHtml(context.openingName)}">${this.escapeHtml(context.openingName)}</strong></div>
+                    <div class="spectator-context-cell" data-spectator-detail="opening"><span>Opening</span>${openingContent}</div>
                     <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>${this.escapeHtml(context.ecoCode)}</strong></div>
                 </div>
                 <div class="spectator-context-row">
@@ -828,7 +881,7 @@
         getLiveContextData(liveGame, moveHistory = []) {
             const game = this.selectedGame;
             const current = liveGame && this.isSelectedGameUpdate(liveGame) ? liveGame : null;
-            const opening = this.resolveOpening(moveHistory);
+            const opening = game ? this.resolveOpening(moveHistory) : { name: '—', eco: '', href: null, status: 'idle' };
             const plyCount = Array.isArray(moveHistory) ? moveHistory.length : 0;
             const result = this.normalizeGameResult(current?.result || game?.result);
             const finished = !!game && (game.status === 'finished' || result !== '—');
@@ -840,6 +893,8 @@
             return {
                 openingName: opening.name,
                 ecoCode: opening.eco || '—',
+                openingHref: opening.href || null,
+                openingStatus: opening.status,
                 variant: game?.variant ? this.titleCase(game.variant) : '—',
                 rated: game?.rated === true ? 'Rated' : game?.rated === false ? 'Unrated' : '—',
                 timeControl: game?.timeControl || '—',
@@ -864,45 +919,11 @@
         },
 
         resolveOpening(moveHistory = []) {
-            const playedSAN = (moveHistory || [])
-                .map((move) => this.normalizeSan(move?.san))
-                .filter(Boolean);
-            if (!playedSAN.length) return { name: '—', eco: '' };
-
-            const candidates = [];
-            if (Array.isArray(window.App?.openings)) candidates.push(...window.App.openings);
-            if (Array.isArray(window.App?.ecoCodeRows)) candidates.push(...window.App.ecoCodeRows);
-
-            let best = null;
-            let bestDepth = 0;
-            candidates.forEach((candidate) => {
-                const moves = this.extractOpeningMoves(candidate).map((move) => this.normalizeSan(move)).filter(Boolean);
-                if (!moves.length || moves.length > playedSAN.length || moves.length <= bestDepth) return;
-                const match = moves.every((move, index) => move === playedSAN[index]);
-                if (!match) return;
-                best = {
-                    name: candidate.name || candidate.opening || candidate.title || 'Unknown Opening',
-                    eco: candidate.eco || candidate.code || ''
-                };
-                bestDepth = moves.length;
-            });
-
-            return best || { name: '—', eco: '' };
-        },
-
-        extractOpeningMoves(candidate = {}) {
-            const source = Array.isArray(candidate.moves)
-                ? candidate.moves
-                : String(candidate.moves || candidate.ecoMovesText || candidate.movesText || '').split(/\s+/);
-            return source.filter((move) => move && !/^(?:1-0|0-1|1\/2-1\/2|\*)$/.test(String(move)));
-        },
-
-        normalizeSan(value) {
-            return String(value || '')
-                .replace(/^\d+\.(?:\.\.)?/, '')
-                .replace(/[!?+#]+/g, '')
-                .replace(/\s+/g, '')
-                .trim();
+            const resolver = window.CaissaEcoOpeningResolver;
+            if (!Array.isArray(moveHistory) || !moveHistory.length || !this.ecoCatalog.length || !resolver?.resolve) {
+                return { status: 'insufficient', name: 'Detecting…', eco: '', href: null, matchedDepth: 0 };
+            }
+            return resolver.resolve(moveHistory, this.ecoCatalog, { ChessConstructor: window.Chess });
         },
 
         getGamePhase(fen, plyCount) {

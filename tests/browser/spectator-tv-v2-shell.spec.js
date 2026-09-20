@@ -665,6 +665,125 @@ test('compact details and simplified FOOT adapt across desktop and mobile', asyn
   expect(await page.evaluate(() => window.CaissaFICSClient.authenticated)).toBe(true);
 });
 
+test('advanced FICS history resolves ECO, links the canonical page, and isolates selections', async ({ page, context }) => {
+  await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/spectator-tv?hotfix=001c');
+  await expect.poll(() => page.evaluate(() => window.CaissaSpectatorTVSection.ecoCatalog.length)).toBe(364);
+
+  const setup = await page.evaluate(() => {
+    const section = window.CaissaSpectatorTVSection;
+    const client = window.CaissaFICSClient;
+    client.authenticated = true;
+    client.connected = true;
+    client.connectionState = 'connected';
+    client.sessionGeneration = 11;
+    client.ws = { id: 'existing-fics-socket' };
+    window.__openingSocket = client.ws;
+    window.__openingWire = [];
+    client.send = command => {
+      window.__openingWire.push(command);
+      return { ok: true, code: 'COMMAND_SENT' };
+    };
+    client.refreshLobby = () => {};
+    section.beginGameSelection({
+      gameId: '42', whitePlayer: 'RuyWhite', blackPlayer: 'RuyBlack',
+      whiteRating: 1800, blackRating: 1810, timeControl: '5+0', variant: 'standard', rated: true
+    }, { requestObservation: false });
+    client.liveGame = {
+      ...client.liveGame, currentFen: new Chess().fen(), gameNumber: 42, moveNumber: 12,
+      whiteName: 'RuyWhite', blackName: 'RuyBlack', whiteClock: 210, blackClock: 205,
+      sideToMove: 'w', observedGame: true, gameActive: false, status: 'observing'
+    };
+    section.renderStyle12({ liveGame: { ...client.liveGame }, moveHistory: [] });
+    window.__openingGenerationA = section.selectionGeneration;
+    return { wire: window.__openingWire.slice(), generation: section.selectionGeneration };
+  });
+  expect(setup.wire).toEqual(['moves 42']);
+  await expect(page.locator('[data-spectator-detail="opening"]')).toContainText('Detecting…');
+  await expect(page.locator('[data-spectator-detail="opening"] a')).toHaveCount(0);
+
+  await page.evaluate(() => {
+    window.CaissaFICSClient.consumeObservedGameHistoryData([
+      'Movelist for game 42:\n\n',
+      'Move  RuyWhite                RuyBlack\n',
+      '----  --------                --------\n',
+      '  1.  e4      (0:01)     e5      (0:01)\n',
+      '  2.  Nf3     (0:01)     Nc6     (0:01)\n',
+      '  3.  Bb5     (0:01)     a6      (0:01)\n',
+      '      {Still in progress} *\nfics%'
+    ].join(''));
+  });
+
+  const opening = page.locator('[data-spectator-detail="opening"] a');
+  await expect(opening).toHaveText('Ruy Lopez');
+  await expect(opening).toHaveAttribute('href', '/eco/C60');
+  await expect(opening).toHaveAttribute('target', '_blank');
+  await expect(opening).toHaveAttribute('rel', 'noopener noreferrer');
+  await expect(opening).toHaveAccessibleName('Open Ruy Lopez in the CAISSA Opening Database');
+  await expect(page.locator('[data-spectator-detail="eco"]')).toContainText('C60');
+  await opening.focus();
+  await expect(opening).toBeFocused();
+  expect(await opening.evaluate(element => getComputedStyle(element).color)).toBe('rgb(96, 165, 250)');
+
+  const popupPromise = context.waitForEvent('page');
+  await opening.click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState('domcontentloaded');
+  expect(new URL(popup.url()).pathname).toBe('/eco/C60');
+  await popup.close();
+  expect(await page.evaluate(() => ({
+    game: window.CaissaSpectatorTVSection.selectedGame.gameId,
+    socket: window.CaissaFICSClient.ws === window.__openingSocket
+  }))).toEqual({ game: '42', socket: true });
+
+  await page.evaluate(() => {
+    const section = window.CaissaSpectatorTVSection;
+    const client = window.CaissaFICSClient;
+    section.renderGameEnded({
+      selectionGeneration: section.selectionGeneration,
+      result: '1-0', liveGame: { ...client.liveGame, result: '1-0', status: 'ended' },
+      moveHistory: client.moveHistory.map(move => ({ ...move }))
+    });
+  });
+  await expect(opening).toHaveText('Ruy Lopez');
+
+  await page.evaluate(() => {
+    const section = window.CaissaSpectatorTVSection;
+    const client = window.CaissaFICSClient;
+    section.beginGameSelection({
+      gameId: '77', whitePlayer: 'QueenWhite', blackPlayer: 'QueenBlack',
+      timeControl: '3+2', variant: 'standard', rated: false
+    }, { requestObservation: false });
+    client.liveGame = {
+      ...client.liveGame, currentFen: new Chess().fen(), gameNumber: 77, moveNumber: 20,
+      whiteName: 'QueenWhite', blackName: 'QueenBlack', whiteClock: 90, blackClock: 88,
+      sideToMove: 'b', observedGame: true, gameActive: false, result: null, status: 'observing'
+    };
+    section.renderStyle12({ liveGame: { ...client.liveGame }, moveHistory: [] });
+    section.renderObservedHistory({
+      gameNumber: '42', selectionGeneration: window.__openingGenerationA,
+      moveHistory: [{ moveNumber: 1, color: 'white', san: 'e4' }]
+    });
+  });
+  await expect(page.locator('[data-spectator-detail="opening"]')).toContainText('Detecting…');
+  await expect(page.locator('[data-spectator-detail="opening"] a')).toHaveCount(0);
+  await expect(page.locator('[data-spectator-detail="eco"]')).toContainText('—');
+  expect(await page.evaluate(() => window.__openingWire)).toEqual(['moves 42', 'moves 77']);
+
+  await page.locator('#spectatorWorkspaceBackBtn').click();
+  await expect(page.locator('#spectatorChannelsView')).toBeVisible();
+  await page.evaluate(() => window.CaissaFICSClient.consumeObservedGameHistoryData(
+    'Movelist for game 77:\n  1. d4 (0:01) d5 (0:01)\nfics%'
+  ));
+  await expect(page.locator('[data-spectator-detail="opening"] a')).toHaveCount(0);
+  expect(await page.evaluate(() => ({
+    selected: window.CaissaSpectatorTVSection.selectedGame,
+    sameSocket: window.CaissaFICSClient.ws === window.__openingSocket,
+    wire: window.__openingWire.slice()
+  }))).toEqual({ selected: null, sameSocket: true, wire: ['moves 42', 'moves 77', 'unobserve 77'] });
+});
+
 test('Exit table unobserves once, clears the watch authority, and rejects late events', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
   await page.setViewportSize({ width: 1366, height: 768 });
@@ -754,7 +873,7 @@ test('Exit table unobserves once, clears the watch authority, and rejects late e
   });
 
   expect(afterExit).toMatchObject({
-    wire: ['unobserve 404'], tab: 'channels', selectedGame: null, observedId: null,
+    wire: ['moves 404', 'unobserve 404'], tab: 'channels', selectedGame: null, observedId: null,
     lastRenderedFen: null, queuedGameId: null, generationAdvanced: true,
     watchingRows: 0, watchText: 'Watch', watchDisabled: false,
     authenticated: true, sameSocket: true, sameRoot: true
@@ -783,7 +902,7 @@ test('Exit table unobserves once, clears the watch authority, and rejects late e
   await page.getByRole('tab', { name: /1 Server/ }).click();
   await expect(page.locator('#spectatorServerView')).toBeVisible();
   expect(await page.evaluate(() => window.__spectatorWire)).toEqual([
-    'unobserve 404', 'unobserve 404', 'unobserve 404'
+    'moves 404', 'unobserve 404', 'moves 404', 'unobserve 404', 'moves 404', 'unobserve 404'
   ]);
   expect(await page.evaluate(() => window.CaissaFICSClient.ws === window.__spectatorSocket)).toBe(true);
 });

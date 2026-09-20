@@ -7,6 +7,7 @@ const html = read('index.html');
 const css = read('css/spectator-tv-2.css');
 const script = read('js/spectator-tv-section.js');
 const ficsClient = read('js/fics-client.js');
+const ecoResolver = read('js/eco-opening-resolver.js');
 const navigation = read('js/caissa-primary-navigation.js');
 const routePolicy = read('js/legacy-canonical-section-route-policy.js');
 const section = html.match(/<!-- SECTION: Spectator TV -->([\s\S]*?)<!-- SECTION: FICS/)[1];
@@ -142,4 +143,21 @@ test('rapid selection queues the newest game and rejects stale updates by id and
     assert.match(script, /payload\.selectionGeneration/);
     assert.match(script, /this\.lastRenderedFen = null/);
     assert.match(script, /this\.board\.position\('start', false\)/);
+});
+
+test('live opening recognition reuses the canonical ECO catalog and secure internal links', () => {
+    assert.match(html, /js\/eco-opening-resolver\.js\?v=1\.0\.0/);
+    assert.match(ecoResolver, /CATALOG_URL = '\/data\/eco\/eco_codes\.json'/);
+    assert.doesNotMatch(ecoResolver, /Grob Opening|Ruy Lopez|King's Indian Defense/);
+    assert.match(script, /window\.CaissaEcoOpeningResolver/);
+    assert.match(script, /class="spectator-opening-link"/);
+    assert.match(script, /target="_blank" rel="noopener noreferrer"/);
+    assert.match(script, /Open \$\{context\.openingName\} in the CAISSA Opening Database/);
+    assert.match(ficsClient, /this\.send\(`moves \$\{target\}`\)/);
+    assert.match(ficsClient, /selectionGeneration/);
+    assert.match(ficsClient, /invalidateObservedGameHistory\('OBSERVATION_LEFT'\)/);
+    assert.doesNotMatch(script, /new\s+WebSocket\s*\(/);
+    assert.match(css, /\.spectator-v2 \.spectator-opening-link\s*\{[^}]*color:\s*#60a5fa/s);
+    assert.match(css, /\.spectator-v2 \.spectator-opening-link:hover/);
+    assert.match(css, /\.spectator-v2 \.spectator-opening-link:focus-visible/);
 });

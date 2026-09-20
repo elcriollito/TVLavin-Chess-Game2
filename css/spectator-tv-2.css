@@ -670,6 +670,31 @@
     white-space: nowrap;
 }
 
+.spectator-v2 .spectator-opening-link {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: #60a5fa;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spectator-v2 .spectator-opening-link:hover {
+    color: #93c5fd;
+    text-decoration: underline;
+}
+
+.spectator-v2 .spectator-opening-link:focus-visible {
+    border-radius: 3px;
+    outline: 2px solid #93c5fd;
+    outline-offset: 2px;
+    text-decoration: underline;
+}
+
 .spectator-v2 .spectator-context-cell > .caissa-ui-badge {
     justify-self: start;
     max-width: 100%;
