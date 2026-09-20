@@ -96,6 +96,7 @@ const CaissaArena = {
         }
         this.renderEngineSelectors();
         this.renderTournamentEngineList();
+        this.updateTournamentUI();
         this.initEvalGraph();
         this.initGame();
         requestAnimationFrame(() => {
@@ -561,6 +562,7 @@ const CaissaArena = {
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
+        this.elements.tournamentEngineList?.addEventListener('change', () => this.updateTournamentUI());
 
         // Listen for engine moves
         window.addEventListener('caissa-engine-move', (e) => this.onEngineMove(e.detail));
@@ -2292,6 +2294,7 @@ const CaissaArena = {
                 pairings.push({
                     white: sorted[i].engine,
                     black: sorted[j].engine,
+                    round: currentRound,
                     result: null
                 });
 
@@ -2355,57 +2358,133 @@ const CaissaArena = {
 
     finishTournament() {
         console.log('[Arena] Tournament finished!');
-        // Sort final standings
-        this.state.tournament.standings.sort((a, b) => b.points - a.points);
         this.updateTournamentUI();
 
         // Show winner
-        const winner = this.state.tournament.standings[0];
+        const winner = this.getRankedTournamentStandings()[0]?.standing;
         if (this.elements.tournamentProgress) {
             this.elements.tournamentProgress.innerHTML = `
                 <div class="tournament-winner">
-                    <i class="fas fa-trophy"></i>
-                    Winner: ${winner.engine.name} (${winner.points} points)
+                    <i class="fas fa-trophy" aria-hidden="true"></i>
+                    Winner: ${this.escapeTournamentText(winner?.engine?.name || 'Participant')} (${this.formatTournamentPoints(winner?.points || 0)} points)
                 </div>
             `;
         }
     },
 
+    escapeTournamentText(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    },
+
+    formatTournamentPoints(points) {
+        const numericPoints = Number(points) || 0;
+        return Number.isInteger(numericPoints) ? String(numericPoints) : numericPoints.toFixed(1);
+    },
+
+    getRankedTournamentStandings() {
+        const tournament = this.state.tournament;
+        const standings = tournament.standings.length > 0
+            ? tournament.standings
+            : this.getSelectedTournamentEngines().map(engine => ({ engine, points: 0, games: 0 }));
+        const participantOrder = new Map(
+            (tournament.engines.length > 0 ? tournament.engines : standings.map(item => item.engine))
+                .map((participant, index) => [participant.id, index])
+        );
+        const ranked = standings
+            .map((standing, index) => ({ standing, seedIndex: participantOrder.get(standing.engine.id) ?? index }))
+            .sort((a, b) => b.standing.points - a.standing.points || a.seedIndex - b.seedIndex);
+
+        return ranked.map((entry, index) => {
+            const tied = ranked.some((candidate, candidateIndex) => (
+                candidateIndex !== index && candidate.standing.points === entry.standing.points
+            ));
+            const rank = ranked.findIndex(candidate => candidate.standing.points === entry.standing.points) + 1;
+            return { ...entry, rank, tied };
+        });
+    },
+
+    getTournamentHeadToHead(participantId, opponentId) {
+        if (participantId === opponentId) {
+            return { notation: '\u2014', label: 'Same participant', state: 'self' };
+        }
+
+        const notations = this.state.tournament.games
+            .filter(game => game.result !== null && (
+                (game.white.id === participantId && game.black.id === opponentId)
+                || (game.white.id === opponentId && game.black.id === participantId)
+            ))
+            .map((game) => {
+                if (game.result === '1/2-1/2') return '\u00bd';
+                const participantIsWhite = game.white.id === participantId;
+                const participantWon = (participantIsWhite && game.result === '1-0')
+                    || (!participantIsWhite && game.result === '0-1');
+                return participantWon ? '1' : '0';
+            });
+
+        if (notations.length === 0) {
+            return { notation: '', label: 'Not played', state: 'unplayed' };
+        }
+        return {
+            notation: notations.join(' \u00b7 '),
+            label: notations.join(', '),
+            state: 'played'
+        };
+    },
+
     updateTournamentUI() {
-        // Update standings table
         if (this.elements.tournamentStandings) {
-            const standings = this.state.tournament.standings;
-            this.elements.tournamentStandings.innerHTML = `
-                <table class="standings-table">
+            const rankedStandings = this.getRankedTournamentStandings();
+            const participants = rankedStandings.map(entry => entry.standing.engine);
+            this.elements.tournamentStandings.innerHTML = rankedStandings.length > 0 ? `
+                <table class="standings-table" aria-label="Live tournament crosstable">
+                    <caption class="sr-only">Live tournament standings and head-to-head results</caption>
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Engine</th>
-                            <th>Pts</th>
-                            <th>Games</th>
+                            <th class="standings-rank" scope="col">#</th>
+                            <th class="standings-participant" scope="col">Participant</th>
+                            ${participants.map((participant, index) => `
+                                <th class="standings-opponent" scope="col" aria-label="Opponent ${index + 1}: ${this.escapeTournamentText(participant.name)}" title="${this.escapeTournamentText(participant.name)}">${index + 1}</th>
+                            `).join('')}
+                            <th class="standings-points" scope="col">Pts</th>
+                            <th class="standings-games" scope="col">Games</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${standings.map((s, i) => `
-                            <tr>
-                                <td>${i + 1}</td>
-                                <td>${s.engine.name}</td>
-                                <td>${s.points}</td>
-                                <td>${s.games}</td>
+                        ${rankedStandings.map(({ standing, rank, tied }) => `
+                            <tr data-participant-id="${this.escapeTournamentText(standing.engine.id)}">
+                                <td class="standings-rank" aria-label="Rank ${rank}${tied ? ', tied' : ''}">${rank}${tied ? '<span aria-hidden="true">=</span>' : ''}</td>
+                                <th class="standings-participant" scope="row">${this.escapeTournamentText(standing.engine.name)}</th>
+                                ${participants.map((opponent) => {
+                                    const result = this.getTournamentHeadToHead(standing.engine.id, opponent.id);
+                                    return `<td class="standings-result is-${result.state}" aria-label="${result.label}">${result.notation}</td>`;
+                                }).join('')}
+                                <td class="standings-points">${this.formatTournamentPoints(standing.points)}</td>
+                                <td class="standings-games">${standing.games}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
-            `;
+            ` : '<div class="tournament-standings-empty">Select at least three participants to preview standings.</div>';
         }
 
-        // Update progress
         if (this.elements.tournamentProgress) {
-            const { currentRound, rounds, games } = this.state.tournament;
-            const completedGames = games.filter(g => g.result !== null).length;
-            this.elements.tournamentProgress.innerHTML = `
-                Round ${currentRound + 1} of ${rounds} | Games: ${completedGames}/${games.length}
-            `;
+            const { engines, currentRound, rounds, games } = this.state.tournament;
+            if (engines.length === 0) {
+                const selectedCount = this.getSelectedTournamentEngines().length;
+                this.elements.tournamentProgress.textContent = `Ready \u2022 ${selectedCount} participants selected`;
+            } else if (currentRound >= rounds) {
+                const completedGames = games.filter(game => game.result !== null).length;
+                this.elements.tournamentProgress.textContent = `Tournament complete \u2022 ${completedGames} games`;
+            } else {
+                const roundGames = games.filter(game => (game.round ?? currentRound) === currentRound);
+                const completedRoundGames = roundGames.filter(game => game.result !== null).length;
+                this.elements.tournamentProgress.textContent = `Round ${currentRound + 1} of ${rounds} \u2022 Games ${completedRoundGames}/${roundGames.length}`;
+            }
         }
     },
 
@@ -2425,6 +2504,7 @@ const CaissaArena = {
         requestAnimationFrame(() => {
             this.renderEngineSelectors();
             this.renderTournamentEngineList();
+            this.updateTournamentUI();
         });
 
         // Disable controls while board mounts

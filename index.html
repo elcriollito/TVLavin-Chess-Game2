@@ -99,7 +99,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.18">
+    <link rel="stylesheet" href="styles.css?v=2.0.19">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.6.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.0">
@@ -1228,16 +1228,26 @@
                             <div class="arena-panel-body arena-panel-scroll">
                             <div class="arena-section">
                                 <h4 class="arena-section-title">
-                                    <span class="engine-color-dot white"></span> White Engine
+                                    <span class="engine-color-dot white"></span> White Participant
                                 </h4>
+                                <div class="arena-participant-kind">Engines</div>
                                 <select id="arenaWhiteEngine" class="form-control arena-engine-select" aria-label="Select White Engine"></select>
+                                <div class="arena-bot-reservation">
+                                    <span class="arena-bot-reservation-label">Bots</span>
+                                    <span class="arena-bot-reservation-state">Coming Soon</span>
+                                </div>
                             </div>
 
                             <div class="arena-section">
                                 <h4 class="arena-section-title">
-                                    <span class="engine-color-dot black"></span> Black Engine
+                                    <span class="engine-color-dot black"></span> Black Participant
                                 </h4>
+                                <div class="arena-participant-kind">Engines</div>
                                 <select id="arenaBlackEngine" class="form-control arena-engine-select" aria-label="Select Black Engine"></select>
+                                <div class="arena-bot-reservation">
+                                    <span class="arena-bot-reservation-label">Bots</span>
+                                    <span class="arena-bot-reservation-state">Coming Soon</span>
+                                </div>
                             </div>
 
                             <button id="arenaSwapEngines" class="btn btn-block btn-secondary arena-swap-btn" aria-label="Swap engines">
@@ -1295,14 +1305,19 @@
                                  aria-labelledby="arenaTabTournament" tabindex="0" hidden>
                             <div class="arena-panel-body arena-panel-scroll">
                             <div class="arena-section">
-                                <h4 class="arena-section-title">Engines (min 3)</h4>
+                                <h4 class="arena-section-title">Participants (min 3)</h4>
+                                <div class="arena-participant-kind">Engines</div>
                                 <div id="arenaTournamentEngines" class="tournament-engine-list"></div>
+                                <div class="arena-bot-reservation">
+                                    <span class="arena-bot-reservation-label">Bots</span>
+                                    <span class="arena-bot-reservation-state">Coming Soon</span>
+                                </div>
                             </div>
 
                             <div class="arena-section">
                                 <h4 class="arena-section-title">Settings</h4>
                                 <div class="arena-setting-row">
-                                    <label>Rounds:</label>
+                                    <label for="arenaTournamentRounds">Rounds:</label>
                                     <select id="arenaTournamentRounds" class="form-control form-control-sm">
                                         <option value="3">3</option>
                                         <option value="5">5</option>
@@ -1310,7 +1325,7 @@
                                     </select>
                                 </div>
                                 <div class="arena-setting-row">
-                                    <label>Opening:</label>
+                                    <label for="arenaTournamentOpening">Opening:</label>
                                     <select id="arenaTournamentOpening" class="form-control form-control-sm">
                                         <option value="free">Free</option>
                                         <option value="e4">1.e4</option>
@@ -1318,8 +1333,13 @@
                                     </select>
                                 </div>
                             </div>
-                            <div id="arenaTournamentProgress" class="tournament-progress"></div>
-                            <div id="arenaTournamentStandings" class="tournament-standings"></div>
+                            <div id="arenaTournamentProgress" class="tournament-progress" role="status" aria-live="polite"></div>
+                            <section class="arena-section tournament-standings-section" aria-labelledby="arenaTournamentStandingsTitle">
+                                <h4 id="arenaTournamentStandingsTitle" class="arena-section-title">Live Standings</h4>
+                                <p id="arenaTournamentStandingsHelp" class="sr-only">Standings show rank, participant, head-to-head results, points, and games played.</p>
+                                <div id="arenaTournamentStandings" class="tournament-standings" role="region"
+                                     aria-label="Live tournament standings" aria-describedby="arenaTournamentStandingsHelp" tabindex="0"></div>
+                            </section>
                             </div>
                             <footer class="arena-panel-foot">
                                 <div class="arena-status-label">Tournament Status</div>
@@ -5051,7 +5071,7 @@
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.0"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.4.1"></script>
+    <script src="js/caissa-arena.js?v=1.5.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>

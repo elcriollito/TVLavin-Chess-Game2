@@ -22,6 +22,17 @@ test('Arena uses one board stage and one three-tab control panel', () => {
     ['Match', 'Tournament', 'Game']
   );
   assert.doesNotMatch(arena, /arena-left-panel|arena-right-panel|arena-eval-sidebar/);
+  assert.doesNotMatch(arena, /id="arenaTabBots"|id="arenaPanelBots"/);
+});
+
+test('Bots are reserved as non-interactive participants inside Match and Tournament', () => {
+  const arena = arenaMarkup();
+  assert.equal((arena.match(/class="arena-bot-reservation"/g) || []).length, 3);
+  assert.equal((arena.match(/class="arena-bot-reservation-state">Coming Soon/g) || []).length, 3);
+  assert.match(arena, /White Participant/);
+  assert.match(arena, /Black Participant/);
+  assert.match(arena, /Participants \(min 3\)/);
+  assert.doesNotMatch(arena, /play against bots|human[- ]vs[- ]bot/i);
 });
 
 test('Game tab owns evaluation, moves, active controls, and graph while preserving runtime IDs', () => {
@@ -67,4 +78,17 @@ test('Arena sizing is viewport-aware and its move list scrolls internally', () =
   assert.match(styles, /#arenaSection \.arena-board-mount[\s\S]*?aspect-ratio:\s*1\s*\/\s*1/);
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);
+});
+
+test('Tournament standings are sourced from participants, games, and standard scoring', () => {
+  const arena = arenaMarkup();
+  assert.match(arena, /id="arenaTournamentStandings"[\s\S]{0,180}?role="region"/);
+  assert.match(controller, /getRankedTournamentStandings\(\)/);
+  assert.match(controller, /getTournamentHeadToHead\(participantId, opponentId\)/);
+  assert.match(controller, /result === '1-0'[\s\S]{0,100}?points \+= 1/);
+  assert.match(controller, /result === '0-1'[\s\S]{0,100}?points \+= 1/);
+  assert.match(controller, /points \+= 0\.5/g);
+  assert.match(controller, /whiteStanding\.games\+\+[\s\S]{0,80}?blackStanding\.games\+\+/);
+  assert.match(controller, /<th class="standings-participant" scope="col">Participant<\/th>/);
+  assert.match(styles, /#arenaSection \.tournament-standings[\s\S]*?overflow-x:\s*auto/);
 });
