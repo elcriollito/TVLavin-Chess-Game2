@@ -8951,6 +8951,7 @@ body.debug-layout #arena-right {
     gap: 9px;
     min-width: 0;
     width: 100%;
+    contain: inline-size;
 }
 
 #arenaSection .arena-player-bar {
@@ -8959,6 +8960,7 @@ body.debug-layout #arena-right {
     justify-content: space-between;
     gap: 16px;
     width: min(100%, var(--arena-rendered-board-size));
+    height: 58px;
     min-height: 58px;
     padding: 9px 14px;
     box-sizing: border-box;
@@ -8967,6 +8969,7 @@ body.debug-layout #arena-right {
     border: 1px solid rgba(122, 156, 195, 0.18);
     border-radius: 10px;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
 }
 
 #arenaSection .arena-player {
@@ -9139,6 +9142,7 @@ body.debug-layout #arena-right {
     margin: 0 auto;
     aspect-ratio: 1 / 1;
     flex: 0 0 auto;
+    box-sizing: border-box;
     overflow: visible;
 }
 
@@ -9173,6 +9177,8 @@ body.debug-layout #arena-right {
     padding: 12px;
     box-sizing: border-box;
     overflow: hidden;
+    contain: inline-size;
+    scrollbar-gutter: stable;
     background: linear-gradient(180deg, rgba(17, 34, 53, 0.98), rgba(10, 24, 39, 0.98));
     border: 1px solid rgba(122, 156, 195, 0.2);
     border-radius: 12px;
@@ -9605,6 +9611,7 @@ body.debug-layout #arena-right {
     }
 
     #arenaSection .arena-player-bar {
+        height: 52px;
         min-height: 52px;
         padding: 7px 10px;
     }
@@ -9697,7 +9704,58 @@ body.debug-layout #arena-right {
     }
 
     #arenaSection .arena-player-bar {
+        height: 50px;
         min-height: 50px;
         padding-block: 6px;
+    }
+}
+
+@media (max-width: 1050px) and (max-height: 720px) {
+    #arenaSection .arena-layout-v2 {
+        padding: 8px 10px;
+    }
+
+    #arenaSection .arena-page-header {
+        min-height: 38px;
+        margin-bottom: 6px;
+    }
+
+    #arenaSection .arena-board-zone {
+        gap: 6px;
+    }
+
+    #arenaSection .arena-player-bar {
+        height: 48px;
+        min-height: 48px;
+        gap: 4px;
+        padding: 5px;
+    }
+
+    #arenaSection .arena-player-avatar,
+    #arenaSection .arena-player-detail,
+    #arenaSection .arena-engine-badge,
+    #arenaSection .arena-move-counter {
+        display: none;
+    }
+
+    #arenaSection .arena-player {
+        flex: 1 1 52px;
+        gap: 0;
+    }
+
+    #arenaSection .arena-player-name {
+        max-width: 54px;
+        font-size: 10px;
+    }
+
+    #arenaSection .arena-stage-meta {
+        flex: 0 1 70px;
+        gap: 3px;
+        max-width: 70px;
+    }
+
+    #arenaSection .arena-turn-label {
+        max-width: 54px;
+        font-size: 10px;
     }
 }

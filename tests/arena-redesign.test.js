@@ -99,12 +99,20 @@ test('Arena tabs are accessible and do not own competition lifecycle state', () 
   assert.doesNotMatch(switchTab, /state\.mode\s*=\s*tab/);
 });
 
-test('Arena sizing is viewport-aware and its move list scrolls internally', () => {
+test('Arena sizing snapshots stable inputs and isolates game content from board geometry', () => {
   assert.match(controller, /Math\.min\(arenaMax, availableWidth, availableHeight\)/);
+  assert.match(controller, /boardContainer\.clientWidth - horizontalPadding/);
+  assert.match(controller, /Math\.abs\(width - observedWidth\) < 0\.5/);
+  assert.match(controller, /mobileLayout && previous && !widthChanged && !orientationChanged/);
+  assert.match(controller, /sizeChanged \|\| force/);
+  assert.match(controller, /teardownBoardSizing\(\)/);
+  assert.doesNotMatch(controller, /setupLayoutObserver/, 'the board-owned height must not be observed');
   assert.match(controller, /container\.scrollTop = container\.scrollHeight/);
   assert.match(styles, /#arenaSection \.arena-board-mount[\s\S]*?aspect-ratio:\s*1\s*\/\s*1/);
+  assert.match(styles, /#arenaSection \.arena-player-bar[\s\S]*?height:\s*58px[\s\S]*?overflow:\s*hidden/);
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);
+  assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?scrollbar-gutter:\s*stable/);
 });
 
 test('Tournament standings are sourced from participants, games, and standard scoring', () => {
