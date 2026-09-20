@@ -6,7 +6,28 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 const html = read('index.html');
 const css = read('css/spectator-tv-2.css');
 const script = read('js/spectator-tv-section.js');
+const navigation = read('js/caissa-primary-navigation.js');
+const routePolicy = read('js/legacy-canonical-section-route-policy.js');
 const section = html.match(/<!-- SECTION: Spectator TV -->([\s\S]*?)<!-- SECTION: FICS/)[1];
+
+test('visible identity is Chess TV while the spectator-tv contract remains canonical', () => {
+    assert.match(section, /<h2 class="spectator-title">[\s\S]*?Chess TV<\/h2>/);
+    assert.match(section, /aria-label="Chess TV controls"/);
+    assert.doesNotMatch(section, /aria-label="Spectator TV/);
+
+    const navigationLinks = html.match(/<a href="\/spectator-tv"[^>]*data-nav-key="spectator"[^>]*>[\s\S]*?<\/a>/g) || [];
+    assert.equal(navigationLinks.length, 1);
+    assert.match(navigationLinks[0], /aria-label="Chess TV"/);
+    assert.match(navigationLinks[0], />Chess TV<\/span>/);
+    assert.match(navigation, /id: 'spectator', label: 'Chess TV',[^\r\n]*route: '\/spectator-tv'/);
+    assert.doesNotMatch(navigation, /route: '\/chess-tv'/);
+    assert.match(routePolicy, /'\/spectator-tv':[^\r\n]*title: 'Chess TV \| CAISSA Chess'/);
+    assert.doesNotMatch(routePolicy, /'\/chess-tv'/);
+
+    for (const id of ['spectatorSection', 'spectatorStage', 'spectatorWorkspace', 'spectatorBoard']) {
+        assert.match(section, new RegExp(`id="${id}"`));
+    }
+});
 
 test('Spectator TV 2.0 uses one board region and one HEAD BODY FOOT workspace', () => {
     assert.match(section, /id="spectatorStage" class="spectator-stage"/);

@@ -5,7 +5,7 @@ const legacy = [
   ['Analyze', '/analyze', 'analyze', '#analyzeSection'],
   ['Arena', '/arena', 'arena', '#arenaSection'],
   ['FICS', '/fics', 'fics', '#ficsSection'],
-  ['Spectator TV', '/spectator-tv', 'spectator-tv', '#spectatorSection'],
+  ['Chess TV', '/spectator-tv', 'spectator-tv', '#spectatorSection'],
   ['Cheater Insight', '/cheater-insight', 'cheater-insight', '#cheater-insightSection'],
   ['History', '/history', 'history', '#historySection'],
   ['DOS Chess', '/dos-chess', 'dos-chess', '#dosChessSection']
@@ -35,7 +35,7 @@ for (const [label, route, surface, marker] of legacy) {
     await expect(page).toHaveURL(new RegExp(`${route.replaceAll('/', '\\/')}$`));
     await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', surface);
     await expect(page.locator(marker)).toBeVisible();
-    await expect(page.locator(`#mainNav [data-nav-key="${label === 'Spectator TV' ? 'spectator' : label === 'Game Library' ? 'library' : label === 'DOS Chess' ? 'dosChess' : label.toLowerCase().replaceAll(' ', '-')}"]`)).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator(`#mainNav [data-nav-key="${label === 'Chess TV' ? 'spectator' : label === 'Game Library' ? 'library' : label === 'DOS Chess' ? 'dosChess' : label.toLowerCase().replaceAll(' ', '-')}"]`)).toHaveAttribute('aria-current', 'page');
     await expect(page).toHaveTitle(/CAISSA Chess/);
     expect(failures).toEqual([]);
   });

@@ -16,7 +16,7 @@ test('homepage enters official Play and canonical navigation is responsive', asy
   const nav=page.getByRole('navigation',{name:'CAISSA main navigation'});await expect(nav).toBeVisible();
   await expect(nav.getByRole('link',{name:'Play',exact:true})).toHaveAttribute('aria-current','page');
   expect(await nav.locator('.nav-item').evaluateAll(nodes=>nodes.filter(node=>getComputedStyle(node).display!=='none')[0]?.textContent.trim())).toBe('Play');
-  const restored=[['CAISSA Classic','/yahoo-classic'],['Academy','/academy'],['Endgame Trainer','/endgame-trainer'],['Endgame Practice','/endgame-practice'],['Endgame Library','/endgame-library'],['FICS','/fics'],['Spectator TV','/spectator-tv']];
+  const restored=[['CAISSA Classic','/yahoo-classic'],['Academy','/academy'],['Endgame Trainer','/endgame-trainer'],['Endgame Practice','/endgame-practice'],['Endgame Library','/endgame-library'],['FICS','/fics'],['Chess TV','/spectator-tv']];
   for(const[label,href]of restored){const link=nav.getByRole('link',{name:label,exact:true});await expect(link).toHaveCount(1);await expect(link).toHaveAttribute('href',href);}
   await expect(nav.getByRole('link',{name:'Mentor',exact:true})).toHaveCount(0);
   const desktopBoard=await page.locator('#chessboard').boundingBox();expect(Math.abs(desktopBoard.width-desktopBoard.height)).toBeLessThanOrEqual(1);expect(desktopBoard.width).toBeGreaterThan(400);
@@ -33,7 +33,7 @@ test('restored global destinations remain lazy and Discord opens only by explici
   const popupPromise=context.waitForEvent('page');await discord.click();const popup=await popupPromise;expect(popup.url()).toBe('https://discord.gg/TM7GJPUVfr');await popup.close();
   for(const[label,route]of[['CAISSA Classic','/yahoo-classic'],['Academy','/academy'],['Endgame Trainer','/endgame-trainer'],['Endgame Practice','/endgame-practice'],['Endgame Library','/endgame-library']]){await nav.getByRole('link',{name:label,exact:true}).click();await expect(page).toHaveURL(new RegExp(`${route.replaceAll('/','\\/')}$`));await page.goBack();await expect(page).toHaveURL(/\/play$/);}
   await nav.getByRole('link',{name:'FICS',exact:true}).click();await expect(page).toHaveURL(/\/fics$/);await expect(page.locator('#ficsSection')).toHaveClass(/active/);await expect(page.locator('#ficsConnectionStatus')).toBeVisible();await page.goBack();await expect(page).toHaveURL(/\/play$/);
-  await nav.getByRole('link',{name:'Spectator TV',exact:true}).click();await expect(page).toHaveURL(/\/spectator-tv$/);await expect(page.locator('#spectatorSection')).toHaveClass(/active/);await expect(page.locator('#spectatorSection')).toBeVisible();await page.goBack();await expect(page).toHaveURL(/\/play$/);
+  await nav.getByRole('link',{name:'Chess TV',exact:true}).click();await expect(page).toHaveURL(/\/spectator-tv$/);await expect(page.locator('#spectatorSection')).toHaveClass(/active/);await expect(page.locator('#spectatorSection')).toBeVisible();await page.goBack();await expect(page).toHaveURL(/\/play$/);
 });
 
 test('Games Bots Coach work while Players invite QA and direct HTML fail closed', async ({ page }) => {

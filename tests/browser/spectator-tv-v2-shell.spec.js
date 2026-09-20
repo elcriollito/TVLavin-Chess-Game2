@@ -1,5 +1,23 @@
 import { test, expect } from '@playwright/test';
 
+test('Chess TV identity keeps the canonical route and one accessible navigation link', async ({ page, request }) => {
+  const response = await page.goto('/spectator-tv');
+  expect(response.status()).toBe(200);
+  await expect(page).toHaveTitle('Chess TV | CAISSA Chess');
+  await expect(page.getByRole('heading', { name: 'Chess TV', exact: true })).toBeVisible();
+
+  const navigationLink = page.locator('#mainNav a[href="/spectator-tv"]');
+  await expect(navigationLink).toHaveCount(1);
+  await expect(navigationLink).toHaveAccessibleName('Chess TV');
+  await expect(navigationLink).toHaveAttribute('data-nav-key', 'spectator');
+  await expect(page.locator('#spectatorSection')).toBeVisible();
+  await expect(page.locator('#spectatorWorkspace')).toHaveAttribute('aria-label', 'Chess TV controls');
+  await expect(page.getByRole('link', { name: 'Spectator TV', exact: true })).toHaveCount(0);
+
+  const aliasResponse = await request.get('/chess-tv');
+  expect(aliasResponse.status()).toBe(404);
+});
+
 test('desktop keeps the large board left of one fixed workspace', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.goto('/spectator-tv');

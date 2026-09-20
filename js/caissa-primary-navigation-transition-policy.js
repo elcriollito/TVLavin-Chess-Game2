@@ -11,7 +11,7 @@
         const names = {
             '/play': 'Play', '/yahoo-classic': 'CAISSA Classic', '/academy': 'Academy',
             '/insights': 'Insights', '/fics': 'FICS', '/analyze': 'Analyze',
-            '/spectator-tv': 'Spectator TV', '/arena': 'Arena', '/cheater-insight': 'Cheater Insight',
+            '/spectator-tv': 'Chess TV', '/arena': 'Arena', '/cheater-insight': 'Cheater Insight',
             '/game-library': 'Game Library', '/history': 'History', '/dos-chess': 'DOS Chess'
         };
         return names[pathname] || pathname.split('/').filter(Boolean).pop()?.replace(/[-_]+/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) || 'page';

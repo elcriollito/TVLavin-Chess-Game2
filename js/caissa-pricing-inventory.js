@@ -7,7 +7,7 @@
         'Tactics, Academy and interactive diagrams',
         'Endgame Trainer, Practice and Library',
         'Opening Database, ECO and Polyglot tools',
-        'FICS, PlayChess, Fritz and Spectator TV',
+        'FICS, PlayChess, Fritz and Chess TV',
         'Local Game Library and Arena workflows'
     ];
     const creditBased = [

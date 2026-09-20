@@ -41,7 +41,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 12 | analyze-and-watch | Insights | /insights | internal-page | CaissaPrimaryNavigation |
 | 13 | analyze-and-watch | Analyze | /analyze | internal-page | CaissaPrimaryNavigation |
 | 14 | analyze-and-watch | CAISSA PGN Reader | /pgn-replayer | internal-page | CaissaPrimaryNavigation |
-| 15 | analyze-and-watch | Spectator TV | /spectator-tv | internal-page | CaissaPrimaryNavigation |
+| 15 | analyze-and-watch | Chess TV | /spectator-tv | internal-page | CaissaPrimaryNavigation |
 | 16 | analyze-and-watch | Lichess TV | /watch/lichess-tv | internal-page | CaissaPrimaryNavigation |
 | 17 | analyze-and-watch | Live Blitz | /watch/live-blitz | internal-page | CaissaPrimaryNavigation |
 | 18 | analyze-and-watch | Live Tournaments | /watch/live-tournaments | internal-page | CaissaPrimaryNavigation |
