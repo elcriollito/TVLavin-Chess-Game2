@@ -9373,6 +9373,175 @@ body.debug-layout #arena-right {
     max-height: none;
 }
 
+#arenaSection .arena-participant-kind {
+    margin: 2px 0 6px;
+    color: #91a7c1;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#arenaSection .arena-bot-reservation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 32px;
+    margin-top: 8px;
+    padding: 7px 9px;
+    color: #9aacca;
+    background: rgba(86, 66, 139, 0.12);
+    border: 1px dashed rgba(179, 136, 255, 0.28);
+    border-radius: 7px;
+}
+
+#arenaSection .arena-bot-reservation-label {
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#arenaSection .arena-bot-reservation-state {
+    color: #c6b2ef;
+    font-size: 10px;
+    font-weight: 650;
+}
+
+#arenaSection .tournament-progress {
+    margin: 0;
+    padding: 9px 10px;
+    color: #c8d5e6;
+    background: rgba(4, 13, 24, 0.38);
+    border: 1px solid rgba(122, 156, 195, 0.16);
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 650;
+    text-align: left;
+}
+
+#arenaSection .tournament-standings-section {
+    min-width: 0;
+}
+
+#arenaSection .tournament-standings {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    background: rgba(4, 13, 24, 0.3);
+    border: 1px solid rgba(122, 156, 195, 0.16);
+    border-radius: 8px;
+    scrollbar-gutter: stable;
+}
+
+#arenaSection .tournament-standings:focus-visible {
+    outline: 3px solid #b388ff;
+    outline-offset: 2px;
+}
+
+#arenaSection .standings-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+#arenaSection .standings-table th,
+#arenaSection .standings-table td {
+    height: 34px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(122, 156, 195, 0.12);
+    text-align: center;
+}
+
+#arenaSection .standings-table thead th {
+    color: #9fb2ca;
+    background: #10253a;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+#arenaSection .standings-table tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+#arenaSection .standings-table .standings-rank {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    width: 34px;
+    min-width: 34px;
+    color: #91a7c1;
+    background: #0b1c2d;
+}
+
+#arenaSection .standings-table thead .standings-rank {
+    z-index: 4;
+    background: #10253a;
+}
+
+#arenaSection .standings-table .standings-participant {
+    position: sticky;
+    left: 34px;
+    z-index: 2;
+    min-width: 142px;
+    max-width: 190px;
+    overflow: hidden;
+    color: #e8eef7;
+    background: #0b1c2d;
+    font-weight: 650;
+    text-align: left;
+    text-overflow: ellipsis;
+}
+
+#arenaSection .standings-table thead .standings-participant {
+    z-index: 4;
+    color: #9fb2ca;
+    background: #10253a;
+}
+
+#arenaSection .standings-table .standings-opponent,
+#arenaSection .standings-table .standings-result {
+    width: 32px;
+    min-width: 32px;
+    padding-inline: 5px;
+}
+
+#arenaSection .standings-table .standings-result.is-self {
+    color: #64748b;
+}
+
+#arenaSection .standings-table .standings-result.is-played {
+    color: #f8fbff;
+    font-weight: 750;
+}
+
+#arenaSection .standings-table .standings-points,
+#arenaSection .standings-table .standings-games {
+    min-width: 48px;
+    color: #dce7f5;
+    font-weight: 700;
+}
+
+#arenaSection .tournament-standings-empty {
+    padding: 14px;
+    color: #91a7c1;
+    font-size: 11px;
+    text-align: center;
+}
+
+#arenaSection .tournament-winner {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #f2c463;
+}
+
 @media (max-width: 1050px) {
     #arenaSection .arena-grid {
         grid-template-columns: minmax(0, 1fr);
@@ -9474,6 +9643,11 @@ body.debug-layout #arena-right {
     #arenaSection .arena-game-action {
         min-width: 68px;
         padding-inline: 8px;
+    }
+
+    #arenaSection .standings-table .standings-participant {
+        min-width: 118px;
+        max-width: 142px;
     }
 
     #arenaSection .arena-tabs {

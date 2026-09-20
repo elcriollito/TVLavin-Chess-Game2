@@ -65,6 +65,168 @@ test('Arena tabs support arrow navigation', async ({ page }) => {
   await expect(game).toBeFocused();
 });
 
+test('Bots remain non-interactive participant reservations inside Match and Tournament', async ({ page }) => {
+  await openArena(page);
+  await expect(page.getByRole('tab')).toHaveText(['Match', 'Tournament', 'Game']);
+  await expect(page.getByRole('tab', { name: 'Bots' })).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Match' }).click();
+  const matchReservations = page.locator('#arenaPanelMatch .arena-bot-reservation');
+  await expect(matchReservations).toHaveCount(2);
+  await expect(matchReservations).toContainText(['Bots', 'Bots']);
+  await expect(matchReservations).toContainText(['Coming Soon', 'Coming Soon']);
+  await expect(matchReservations.locator('button, input, select, a')).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  const tournamentReservation = page.locator('#arenaPanelTournament .arena-bot-reservation');
+  await expect(tournamentReservation).toHaveCount(1);
+  await expect(tournamentReservation).toContainText('Coming Soon');
+  await expect(tournamentReservation.locator('button, input, select, a')).toHaveCount(0);
+});
+
+test('live tournament crosstable scores and reorders real tournament state', async ({ page }) => {
+  await openArena(page);
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+
+  const selectedCount = await page.locator('#arenaTournamentEngines input:checked').count();
+  await expect(page.locator('#arenaTournamentStandings tbody tr')).toHaveCount(selectedCount);
+  await expect(page.locator('#arenaTournamentStandings tbody .standings-points')).toHaveText(Array(selectedCount).fill('0'));
+  await expect(page.locator('#arenaTournamentStandings tbody .standings-games')).toHaveText(Array(selectedCount).fill('0'));
+
+  const ids = await page.evaluate(() => {
+    const participants = window.CaissaArena.engines.slice(0, 3);
+    window.CaissaArena.state.mode = 'tournament';
+    window.CaissaArena.state.tournament = {
+      engines: participants,
+      format: 'swiss',
+      rounds: 3,
+      openingMode: 'free',
+      standings: participants.map(engine => ({ engine, points: 0, games: 0 })),
+      currentRound: 0,
+      games: [
+        { white: participants[0], black: participants[1], round: 0, result: null },
+        { white: participants[2], black: participants[0], round: 0, result: null },
+        { white: participants[1], black: participants[2], round: 0, result: null }
+      ]
+    };
+    window.CaissaArena.updateTournamentUI();
+    return participants.map(participant => participant.id);
+  });
+
+  const row = id => page.locator(`#arenaTournamentStandings tr[data-participant-id="${id}"]`);
+  await expect(row(ids[0]).locator('.standings-result')).toHaveText(['—', '', '']);
+  await expect(page.locator('#arenaTournamentProgress')).toHaveText('Round 1 of 3 • Games 0/3');
+
+  await page.evaluate(() => window.CaissaArena.recordTournamentResult('1-0'));
+  await expect(row(ids[0]).locator('.standings-points')).toHaveText('1');
+  await expect(row(ids[0]).locator('.standings-games')).toHaveText('1');
+  await expect(row(ids[1]).locator('.standings-points')).toHaveText('0');
+  await expect(row(ids[1]).locator('.standings-games')).toHaveText('1');
+
+  await page.evaluate(() => window.CaissaArena.recordTournamentResult('1/2-1/2'));
+  expect(await page.locator('#arenaTournamentStandings tbody tr').evaluateAll(rows => rows.map(row => row.dataset.participantId))).toEqual([ids[0], ids[2], ids[1]]);
+  await expect(row(ids[0]).locator('.standings-result')).toHaveText(['—', '½', '1']);
+  await expect(row(ids[2]).locator('.standings-result')).toHaveText(['½', '—', '']);
+  await expect(row(ids[1]).locator('.standings-result')).toHaveText(['0', '', '—']);
+  await expect(row(ids[0]).locator('.standings-points')).toHaveText('1.5');
+  await expect(row(ids[2]).locator('.standings-points')).toHaveText('0.5');
+
+  const standingsBeforeTabs = await page.locator('#arenaTournamentStandings').textContent();
+  await page.getByRole('tab', { name: 'Game' }).click();
+  await page.getByRole('tab', { name: 'Match' }).click();
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  expect(await page.locator('#arenaTournamentStandings').textContent()).toBe(standingsBeforeTabs);
+
+  await page.evaluate(() => window.CaissaArena.recordTournamentResult('1-0'));
+  expect(await page.locator('#arenaTournamentStandings tbody tr').evaluateAll(rows => rows.map(row => row.dataset.participantId))).toEqual([ids[0], ids[1], ids[2]]);
+  await expect(row(ids[1]).locator('.standings-result')).toHaveText(['0', '—', '1']);
+  await expect(row(ids[2]).locator('.standings-result')).toHaveText(['½', '0', '—']);
+  await expect(page.locator('#arenaTournamentStandings tbody .standings-games')).toHaveText(['2', '2', '2']);
+  await expect(page.locator('#arenaTournamentProgress')).toHaveText('Round 1 of 3 • Games 3/3');
+});
+
+test('active tournament continues across tabs without worker recreation', async ({ page }) => {
+  await openArena(page);
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.enginesReady), { timeout: 15_000 }).toBe(true);
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  await expect.poll(async () => page.locator('#arenaTournamentEngines input:checked').count()).toBeGreaterThanOrEqual(3);
+
+  const boardWidth = await page.locator('#arenaBoardMount').evaluate(element => element.getBoundingClientRect().width);
+  await page.evaluate(() => {
+    window.__arenaTournamentWorkers = [
+      window.CaissaArena.whiteEngineInstance,
+      window.CaissaArena.blackEngineInstance,
+      window.CaissaArena.evaluatorEngine
+    ];
+  });
+  await page.locator('#arenaStartTournament').click();
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.mode)).toBe('tournament');
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('running');
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.game.history().length), { timeout: 15_000 }).toBeGreaterThan(0);
+  const firstMoveCount = await page.evaluate(() => window.CaissaArena.game.history().length);
+
+  await page.getByRole('tab', { name: 'Game' }).click();
+  await page.getByRole('tab', { name: 'Match' }).click();
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.game.history().length), { timeout: 15_000 }).toBeGreaterThan(firstMoveCount);
+
+  const continuity = await page.evaluate(() => ({
+    mode: window.CaissaArena.state.mode,
+    matchState: window.CaissaArena.state.matchState,
+    sameWorkers: window.__arenaTournamentWorkers.every((worker, index) => worker === [
+      window.CaissaArena.whiteEngineInstance,
+      window.CaissaArena.blackEngineInstance,
+      window.CaissaArena.evaluatorEngine
+    ][index]),
+    standingsCount: window.CaissaArena.state.tournament.standings.length
+  }));
+  expect(continuity.mode).toBe('tournament');
+  expect(continuity.matchState).toBe('running');
+  expect(continuity.sameWorkers).toBe(true);
+  expect(continuity.standingsCount).toBeGreaterThanOrEqual(3);
+  expect(Math.abs(await page.locator('#arenaBoardMount').evaluate(element => element.getBoundingClientRect().width) - boardWidth)).toBeLessThanOrEqual(1);
+
+  await page.getByRole('tab', { name: 'Game' }).click();
+  await page.locator('#arenaStopMatch').click();
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('idle');
+});
+
+test('long tournament fields scroll inside the crosstable on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openArena(page);
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  await page.evaluate(() => {
+    const source = window.CaissaArena.engines[0];
+    const participants = Array.from({ length: 12 }, (_, index) => ({
+      ...source,
+      id: `layout-participant-${index + 1}`,
+      name: `Participant ${String(index + 1).padStart(2, '0')}`
+    }));
+    window.CaissaArena.state.tournament = {
+      engines: participants,
+      format: 'swiss',
+      rounds: 3,
+      openingMode: 'free',
+      standings: participants.map(engine => ({ engine, points: 0, games: 0 })),
+      currentRound: 0,
+      games: []
+    };
+    window.CaissaArena.updateTournamentUI();
+  });
+
+  const layout = await page.evaluate(() => {
+    const scroller = document.querySelector('#arenaTournamentStandings');
+    const panel = document.querySelector('.arena-control-panel');
+    return {
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      internalOverflow: scroller.scrollWidth > scroller.clientWidth,
+      scrollerInsidePanel: scroller.getBoundingClientRect().right <= panel.getBoundingClientRect().right
+    };
+  });
+  expect(layout).toEqual({ pageOverflow: false, internalOverflow: true, scrollerInsidePanel: true });
+  await expect(page.locator('#arenaTournamentStandings tbody tr')).toHaveCount(12);
+});
+
 test('turn LED follows the board state and finished games never claim a side to move', async ({ page }) => {
   await openArena(page);
   const turnStatus = page.locator('#arenaTurnStatus');
