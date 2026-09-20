@@ -25,13 +25,20 @@ test('Arena uses one board stage and one three-tab control panel', () => {
   assert.doesNotMatch(arena, /id="arenaTabBots"|id="arenaPanelBots"/);
 });
 
+test('Arena presents the approved Engine Arena product naming', () => {
+  const arena = arenaMarkup();
+  assert.match(arena, /<strong>CAISSA Engine Arena<\/strong>/);
+  assert.match(arena, /<small>Engine matches, tournaments and analysis<\/small>/);
+  assert.match(html, /data-nav-key="arena" aria-label="Engine Arena"/);
+});
+
 test('Bots are reserved as non-interactive participants inside Match and Tournament', () => {
   const arena = arenaMarkup();
   assert.equal((arena.match(/class="arena-bot-reservation"/g) || []).length, 3);
   assert.equal((arena.match(/class="arena-bot-reservation-state">Coming Soon/g) || []).length, 3);
   assert.match(arena, /White Participant/);
   assert.match(arena, /Black Participant/);
-  assert.match(arena, /Participants \(min 3\)/);
+  assert.match(arena, /Participants \(min 2\)/);
   assert.doesNotMatch(arena, /play against bots|human[- ]vs[- ]bot/i);
 });
 
@@ -43,13 +50,33 @@ test('Game tab owns evaluation, moves, active controls, and graph while preservi
   const match = arena.slice(matchStart, gameStart);
   const game = arena.slice(gameStart, gameEnd);
 
-  for (const id of ['arenaEvalScore', 'arenaEvalDepth', 'arenaEvalNodes', 'arenaEvalPV', 'arenaPauseMatch', 'arenaStopMatch', 'arenaMoveHistory', 'arenaEvalGraph']) {
+  for (const id of ['arenaEvalScore', 'arenaEvalDepth', 'arenaEvalNodes', 'arenaEvalPV', 'arenaDeclareDraw', 'arenaPauseMatch', 'arenaStopMatch', 'arenaMoveHistory', 'arenaEvalGraph']) {
     assert.match(game, new RegExp(`id="${id}"`), `${id} must remain in Game`);
     assert.equal((arena.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `${id} must stay unique`);
   }
   assert.doesNotMatch(match, /id="arena(?:Pause|Stop)Match"/, 'active controls must not be duplicated in Match');
   assert.ok(game.indexOf('arenaPauseMatch') < game.indexOf('arenaMoveHistory'), 'active controls stay in the Moves header');
   assert.ok(game.indexOf('arenaMoveHistory') < game.indexOf('arenaEvalGraph'), 'graph remains the Game footer');
+});
+
+test('Match and Tournament share runnable engine availability', () => {
+  assert.match(controller, /getRunnableEngines\(\)/);
+  assert.match(controller, /filter\(engine => this\.isEngineRunnable\(engine\)\)/);
+  assert.match(controller, /class="tournament-engine-item\$\{runnable \? '' : ' is-unavailable'\}"/);
+  assert.match(controller, /\$\{runnable \? ' checked' : ' disabled'\}/);
+  assert.match(controller, /playerInstancesMatchSelections\(\)/);
+  assert.match(controller, /arena-engine-selection-changed/);
+});
+
+test('Tournament draw adjudication is confirmed and uses the normal result pipeline', () => {
+  const arena = arenaMarkup();
+  assert.match(arena, /id="arenaDeclareDraw"/);
+  assert.match(arena, /id="arenaDrawModal"[^>]+role="dialog"[^>]+aria-modal="true"/);
+  assert.match(controller, /isActiveTournamentGame\(\)/);
+  assert.match(controller, /adjudicateTournamentDraw\(\)/);
+  assert.match(controller, /this\.recordTournamentResult\('1\/2-1\/2'\)/);
+  assert.match(controller, /this\.scheduleNextTournamentGame\(\)/);
+  assert.match(controller, /termination = 'Draw by adjudication'/);
 });
 
 test('turn status is a stateful LED derived from the game and neutral when finished', () => {

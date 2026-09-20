@@ -141,6 +141,7 @@ const CaissaArena = {
             startMatchBtn: document.getElementById('arenaStartMatch'),
             pauseMatchBtn: document.getElementById('arenaPauseMatch'),
             stopMatchBtn: document.getElementById('arenaStopMatch'),
+            declareDrawBtn: document.getElementById('arenaDeclareDraw'),
             infiniteAnalysisBtn: document.getElementById('arenaInfiniteAnalysis'),
             setPositionBtn: document.getElementById('arenaSetPositionBtn'),
             manualSetupBtn: document.getElementById('arenaManualSetupBtn'),
@@ -162,6 +163,9 @@ const CaissaArena = {
             setupResetBtn: document.getElementById('arenaSetupReset'),
             setupApplyBtn: document.getElementById('arenaSetupApply'),
             setupMessage: document.getElementById('arenaSetupMessage'),
+            drawModal: document.getElementById('arenaDrawModal'),
+            drawCancelBtn: document.getElementById('arenaDrawCancel'),
+            drawConfirmBtn: document.getElementById('arenaDrawConfirm'),
 
             // Game status
             statusWhiteName: document.getElementById('arenaStatusWhite'),
@@ -549,6 +553,7 @@ const CaissaArena = {
         this.elements.startMatchBtn?.addEventListener('click', () => this.startMatch());
         this.elements.pauseMatchBtn?.addEventListener('click', () => this.togglePause());
         this.elements.stopMatchBtn?.addEventListener('click', () => this.stopMatch());
+        this.elements.declareDrawBtn?.addEventListener('click', () => this.openDrawConfirmation());
         this.elements.infiniteAnalysisBtn?.addEventListener('click', () => this.toggleInfiniteAnalysis());
         this.elements.setPositionBtn?.addEventListener('click', () => this.togglePositionPanel());
         this.elements.manualSetupBtn?.addEventListener('click', () => this.openManualSetup());
@@ -559,6 +564,12 @@ const CaissaArena = {
         this.elements.setupResetBtn?.addEventListener('click', () => this.resetManualSetup());
         this.elements.setupApplyBtn?.addEventListener('click', () => this.applyManualSetup());
         this.elements.setupBoard?.addEventListener('click', (event) => this.onManualSetupSquareClick(event));
+        this.elements.drawCancelBtn?.addEventListener('click', () => this.closeDrawConfirmation());
+        this.elements.drawConfirmBtn?.addEventListener('click', () => this.adjudicateTournamentDraw());
+        this.elements.drawModal?.addEventListener('click', (event) => {
+            if (event.target === this.elements.drawModal) this.closeDrawConfirmation();
+        });
+        document.addEventListener('keydown', (event) => this.onDrawDialogKeydown(event));
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
@@ -721,6 +732,50 @@ const CaissaArena = {
         this.elements.setupModal?.classList.remove('show');
     },
 
+    isActiveTournamentGame() {
+        if (this.state.mode !== 'tournament' || this.state.matchState !== 'running') return false;
+        const pendingGame = this.state.tournament.games.find(game => game.result === null);
+        return !!pendingGame
+            && pendingGame.white.id === this.state.currentGame?.white?.id
+            && pendingGame.black.id === this.state.currentGame?.black?.id;
+    },
+
+    openDrawConfirmation() {
+        if (!this.isActiveTournamentGame() || !this.elements.drawModal) return;
+        this._drawDialogReturnFocus = document.activeElement;
+        this.elements.drawModal.classList.add('show');
+        this.elements.drawModal.setAttribute('aria-hidden', 'false');
+        requestAnimationFrame(() => this.elements.drawCancelBtn?.focus());
+    },
+
+    closeDrawConfirmation({ restoreFocus = true } = {}) {
+        if (!this.elements.drawModal) return;
+        this.elements.drawModal.classList.remove('show');
+        this.elements.drawModal.setAttribute('aria-hidden', 'true');
+        if (restoreFocus && this._drawDialogReturnFocus?.focus) {
+            this._drawDialogReturnFocus.focus();
+        }
+        this._drawDialogReturnFocus = null;
+    },
+
+    onDrawDialogKeydown(event) {
+        if (!this.elements.drawModal?.classList.contains('show')) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            this.closeDrawConfirmation();
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = [this.elements.drawCancelBtn, this.elements.drawConfirmBtn].filter(Boolean);
+        if (controls.length < 2) return;
+        const currentIndex = controls.indexOf(document.activeElement);
+        const nextIndex = event.shiftKey
+            ? (currentIndex <= 0 ? controls.length - 1 : currentIndex - 1)
+            : (currentIndex === controls.length - 1 ? 0 : currentIndex + 1);
+        event.preventDefault();
+        controls[nextIndex].focus();
+    },
+
     renderSetupPalette() {
         if (!this.elements.setupPalette || this.elements.setupPalette.children.length) return;
         const pieces = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
@@ -866,9 +921,9 @@ const CaissaArena = {
             this.engines.forEach(engine => {
                 const option = document.createElement('option');
                 option.value = engine.id;
-                const disabledLabel = engine.enabled === false ? ' (WASM build needed)' : '';
+                const disabledLabel = this.isEngineRunnable(engine) ? '' : ` (${engine.reason || 'Unavailable'})`;
                 option.textContent = `${engine.name} (Tier ${engine.tier})${disabledLabel}`;
-                if (engine.enabled === false) {
+                if (!this.isEngineRunnable(engine)) {
                     option.disabled = true;
                 }
                 if (engine.id === selectedId) {
@@ -890,13 +945,13 @@ const CaissaArena = {
         }
 
         // Default selections (prefer stored + enabled engines)
-        const enabledEngines = this.engines.filter(e => e.enabled !== false);
+        const enabledEngines = this.getRunnableEngines();
         const savedWhiteId = window.localStorage?.getItem('caissa.arena.whiteEngineId') || '';
         const savedBlackId = window.localStorage?.getItem('caissa.arena.blackEngineId') || '';
-        this.state.whiteEngine = this.engines.find(e => e.id === savedWhiteId && e.enabled !== false)
+        this.state.whiteEngine = this.engines.find(e => e.id === savedWhiteId && this.isEngineRunnable(e))
             || enabledEngines[0]
             || this.engines[0];
-        this.state.blackEngine = this.engines.find(e => e.id === savedBlackId && e.enabled !== false)
+        this.state.blackEngine = this.engines.find(e => e.id === savedBlackId && this.isEngineRunnable(e))
             || enabledEngines[1]
             || enabledEngines[0]
             || this.engines[0];
@@ -916,8 +971,8 @@ const CaissaArena = {
         const adapterAvailable = typeof EngineAdapter !== 'undefined';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
-            && this.state.whiteEngine?.enabled !== false
-            && this.state.blackEngine?.enabled !== false;
+            && this.isEngineRunnable(this.state.whiteEngine)
+            && this.isEngineRunnable(this.state.blackEngine);
         this.state.engineBinaryAvailable = adapterAvailable && selectedEnginesValid;
         if (!this.state.engineBinaryAvailable) {
             if (this.elements.startMatchBtn) {
@@ -934,7 +989,7 @@ const CaissaArena = {
     selectEngine(color, engineId) {
         const engine = this.engines.find(e => e.id === engineId);
         if (!engine) return;
-        if (engine.enabled === false) {
+        if (!this.isEngineRunnable(engine)) {
             console.warn('[Arena] Engine not available yet:', engine.name);
             return;
         }
@@ -952,11 +1007,12 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
+        this.prewarmEngines();
         const adapterAvailable = typeof EngineAdapter !== 'undefined';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
-            && this.state.whiteEngine?.enabled !== false
-            && this.state.blackEngine?.enabled !== false;
+            && this.isEngineRunnable(this.state.whiteEngine)
+            && this.isEngineRunnable(this.state.blackEngine);
         if (this.elements.startMatchBtn) {
             this.elements.startMatchBtn.disabled = !(adapterAvailable && selectedEnginesValid);
         }
@@ -981,6 +1037,7 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
+        this.prewarmEngines();
     },
 
     updateEngineInfo() {
@@ -995,6 +1052,19 @@ const CaissaArena = {
 
     getEngineById(id) {
         return this.engines.find(e => e.id === id);
+    },
+
+    isEngineRunnable(engine) {
+        return !!engine && engine.enabled !== false && !!engine.workerPath;
+    },
+
+    getRunnableEngines() {
+        return this.engines.filter(engine => this.isEngineRunnable(engine));
+    },
+
+    playerInstancesMatchSelections() {
+        return this.whiteEngineInstance?.id === this.state.whiteEngine?.id
+            && this.blackEngineInstance?.id === this.state.blackEngine?.id;
     },
 
     /**
@@ -1081,8 +1151,11 @@ const CaissaArena = {
             }
         }
 
+        // Let any selection-triggered prewarm converge before starting.
+        if (this._prewarmPromise) await this._prewarmPromise;
+
         // Initialize engines if not ready
-        if (!this.enginesReady) {
+        if (!this.enginesReady || !this.playerInstancesMatchSelections()) {
             console.log('[Arena] Engines not ready, initializing...');
             const success = await this.initEngines();
             if (!success) {
@@ -1205,7 +1278,10 @@ const CaissaArena = {
 
     updateMatchControls() {
         const { matchState, analysisRunning } = this.state;
-        const { startMatchBtn, pauseMatchBtn, stopMatchBtn, infiniteAnalysisBtn } = this.elements;
+        const {
+            startMatchBtn, pauseMatchBtn, stopMatchBtn, declareDrawBtn, infiniteAnalysisBtn,
+            whiteEngineSelect, blackEngineSelect, swapEnginesBtn
+        } = this.elements;
 
         if (startMatchBtn) {
             startMatchBtn.style.display = matchState === 'idle' && !analysisRunning ? 'block' : 'none';
@@ -1222,6 +1298,13 @@ const CaissaArena = {
         if (stopMatchBtn) {
             stopMatchBtn.style.display = matchState !== 'idle' ? 'block' : 'none';
         }
+        if (declareDrawBtn) {
+            declareDrawBtn.style.display = this.isActiveTournamentGame() ? 'block' : 'none';
+        }
+        const selectionLocked = matchState === 'running' || matchState === 'paused';
+        if (whiteEngineSelect) whiteEngineSelect.disabled = selectionLocked;
+        if (blackEngineSelect) blackEngineSelect.disabled = selectionLocked;
+        if (swapEnginesBtn) swapEnginesBtn.disabled = selectionLocked;
         if (infiniteAnalysisBtn) {
             infiniteAnalysisBtn.style.display = matchState === 'idle' ? 'block' : 'none';
             infiniteAnalysisBtn.innerHTML = analysisRunning
@@ -1410,14 +1493,23 @@ const CaissaArena = {
      * Creates three independent engine workers (white, black, evaluator)
      */
     prewarmEngines() {
-        if (this.enginesReady || this._prewarming) return;
-        if (this.state.engineBinaryAvailable === false) return;
+        if (this.enginesReady && this.playerInstancesMatchSelections()) return Promise.resolve(true);
+        if (this._prewarmPromise) return this._prewarmPromise;
+        if (this.state.engineBinaryAvailable === false) return Promise.resolve(false);
         this._prewarming = true;
-        this.initEngines()
-            .catch(() => {})
+        this._prewarmPromise = (async () => {
+            let initialized = false;
+            do {
+                initialized = await this.initEngines();
+            } while (initialized && !this.playerInstancesMatchSelections());
+            return initialized;
+        })()
+            .catch(() => false)
             .finally(() => {
                 this._prewarming = false;
+                this._prewarmPromise = null;
             });
+        return this._prewarmPromise;
     },
 
     async initEngines() {
@@ -1433,22 +1525,30 @@ const CaissaArena = {
             const blackConfig = this.state.blackEngine || this.engines[1] || this.engines[0];
             const evalConfig = this.engines.find(e => e.id === 'stockfish') || whiteConfig;
 
-            // Create white engine
-            this.whiteEngineInstance = this.createEngineInstance(whiteConfig);
+            const reconcileInstance = (property, config) => {
+                const current = this[property];
+                if (current?.id === config?.id && current?.workerPath === config?.workerPath) return current;
+                current?.terminate?.('arena-engine-selection-changed');
+                const replacement = this.createEngineInstance(config);
+                this[property] = replacement;
+                return replacement;
+            };
 
-            // Create black engine
-            this.blackEngineInstance = this.createEngineInstance(blackConfig);
+            const whiteInstance = reconcileInstance('whiteEngineInstance', whiteConfig);
+            const blackInstance = reconcileInstance('blackEngineInstance', blackConfig);
+            const evaluatorInstance = reconcileInstance('evaluatorEngine', evalConfig);
 
-            // Create evaluator engine
-            this.evaluatorEngine = this.createEngineInstance(evalConfig);
-
-            if (!this.whiteEngineInstance || !this.blackEngineInstance || !this.evaluatorEngine) {
+            if (!whiteInstance || !blackInstance || !evaluatorInstance) {
                 console.error('[Arena] Failed to create engine instances');
                 return false;
             }
 
-            // Wait for all engines to be ready
-            await this.waitForEngines();
+            // Constructors auto-start; start() safely returns the same in-flight promise.
+            await Promise.all([
+                whiteInstance.start(),
+                blackInstance.start(),
+                evaluatorInstance.start()
+            ]);
 
             this.enginesReady = true;
             this.evaluatorReady = true;
@@ -2024,11 +2124,48 @@ const CaissaArena = {
         // Record tournament result if in tournament mode
         if (this.state.mode === 'tournament') {
             this.recordTournamentResult(resultCode);
-            // Play next game after delay
-            setTimeout(() => {
-                this.playNextTournamentGame();
-            }, 2000);
+            this.scheduleNextTournamentGame();
         }
+    },
+
+    adjudicateTournamentDraw() {
+        if (!this.isActiveTournamentGame()) {
+            this.closeDrawConfirmation();
+            return false;
+        }
+
+        this.closeDrawConfirmation({ restoreFocus: false });
+        this.state.matchState = 'finished';
+        this.state.loopActive = false;
+        this.cancelActiveSearch('tournament draw adjudicated');
+        this.state.loopRunning = false;
+        this.whiteEngineInstance?.stop?.();
+        this.blackEngineInstance?.stop?.();
+        this.evaluatorEngine?.stop?.();
+
+        if (this.state.currentGame) {
+            this.state.currentGame.result = '1/2-1/2';
+            this.state.currentGame.termination = 'Draw by adjudication';
+            this.state.currentGame.endTime = Date.now();
+        }
+
+        this.updateMatchControls();
+        this.updateGameStatus({
+            result: 'Draw by adjudication',
+            moveCount: this.game?.history().length || 0
+        });
+        this.recordTournamentResult('1/2-1/2');
+        window.dispatchEvent(new CustomEvent('caissa-arena-tournament-draw'));
+        this.scheduleNextTournamentGame();
+        return true;
+    },
+
+    scheduleNextTournamentGame() {
+        clearTimeout(this._tournamentAdvanceTimer);
+        this._tournamentAdvanceTimer = setTimeout(() => {
+            this._tournamentAdvanceTimer = null;
+            this.playNextTournamentGame();
+        }, 2000);
     },
 
     /**
@@ -2251,27 +2388,36 @@ const CaissaArena = {
     renderTournamentEngineList() {
         if (!this.elements.tournamentEngineList) return;
 
-        this.elements.tournamentEngineList.innerHTML = this.engines.map(engine => `
-            <label class="tournament-engine-item">
-                <input type="checkbox" value="${engine.id}" checked>
+        this.elements.tournamentEngineList.innerHTML = this.engines.map(engine => {
+            const runnable = this.isEngineRunnable(engine);
+            const availability = runnable
+                ? ''
+                : `<span class="engine-availability">${engine.reason || 'Unavailable'}</span>`;
+            return `
+            <label class="tournament-engine-item${runnable ? '' : ' is-unavailable'}">
+                <input type="checkbox" value="${engine.id}"${runnable ? ' checked' : ' disabled'}>
                 <span class="engine-name">${engine.name}</span>
                 <span class="engine-tier">Tier ${engine.tier}</span>
+                ${availability}
             </label>
-        `).join('');
+        `;
+        }).join('');
     },
 
     getSelectedTournamentEngines() {
         if (!this.elements.tournamentEngineList) return [];
 
         const checkboxes = this.elements.tournamentEngineList.querySelectorAll('input[type="checkbox"]:checked');
-        return Array.from(checkboxes).map(cb => this.getEngineById(cb.value)).filter(Boolean);
+        return Array.from(checkboxes)
+            .map(cb => this.getEngineById(cb.value))
+            .filter(engine => this.isEngineRunnable(engine));
     },
 
     startTournament() {
         const selectedEngines = this.getSelectedTournamentEngines();
 
-        if (selectedEngines.length < 3) {
-            alert('Please select at least 3 engines for the tournament');
+        if (selectedEngines.length < 2) {
+            alert('Please select at least 2 engines for the tournament');
             return;
         }
 
@@ -2362,6 +2508,10 @@ const CaissaArena = {
         if (!pendingGame) return;
 
         pendingGame.result = result;
+        pendingGame.moves = (this.state.currentGame?.moves || []).map(move => ({ ...move }));
+        pendingGame.startFen = this.state.currentGame?.startFen || '';
+        pendingGame.endFen = this.game?.fen?.() || '';
+        pendingGame.termination = this.state.currentGame?.termination || '';
 
         // Update standings
         const whiteStanding = this.state.tournament.standings.find(s => s.engine.id === pendingGame.white.id);
@@ -2519,7 +2669,7 @@ const CaissaArena = {
         console.log('[Arena] Section entered');
         this.state.hasEntered = true;
         const mobileSectionName = document.getElementById('headerSectionName');
-        if (mobileSectionName) mobileSectionName.textContent = 'CAISSA Arena';
+        if (mobileSectionName) mobileSectionName.textContent = 'CAISSA Engine Arena';
 
         // Re-cache elements (in case they weren't ready on init)
         // CRITICAL: Always re-cache on enter to ensure fresh DOM references

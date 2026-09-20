@@ -730,7 +730,7 @@ const CaissaNavigation = {
                 analyze: ['nav.item.analyze', 'Analyze'],
                 insights: ['nav.item.insights', 'Insights'],
                 history: ['nav.item.history', 'History'],
-                arena: ['nav.item.arena', 'Arena'],
+                arena: ['nav.item.arena', 'Engine Arena'],
                 spectator: ['nav.item.spectator', 'Chess TV'],
                 'cheater-insight': ['nav.item.cheater-insight', 'Cheater Insight'],
                 yahooClassic: ['nav.item.yahooClassic', 'CAISSA Classic'],

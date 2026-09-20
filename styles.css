@@ -6000,6 +6000,16 @@ button:focus,
     border-radius: 4px;
 }
 
+.tournament-engine-item.is-unavailable {
+    cursor: not-allowed;
+    opacity: 0.62;
+}
+
+.tournament-engine-item .engine-availability {
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
 /* Tournament Progress & Standings */
 .tournament-progress {
     font-size: 12px;
@@ -9312,10 +9322,15 @@ body.debug-layout #arena-right {
 
 #arenaSection .arena-game-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
     min-width: 0;
+}
+
+#arenaSection .arena-draw-modal-content {
+    max-width: 430px;
 }
 
 #arenaSection .arena-game-action {

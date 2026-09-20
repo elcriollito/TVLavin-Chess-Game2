@@ -54,6 +54,66 @@ test('desktop Arena is board-first with one stable three-tab panel', async ({ pa
   expect(Math.abs(finalBoardWidth - originalBoardWidth)).toBeLessThanOrEqual(1);
 });
 
+test('Engine Arena naming is consistent while the canonical route stays /arena', async ({ page }) => {
+  await openArena(page);
+  await expect(page.locator('.arena-page-header strong')).toHaveText('CAISSA Engine Arena');
+  await expect(page.locator('.arena-page-header small')).toHaveText('Engine matches, tournaments and analysis');
+  await expect(page.locator('[data-nav-key="arena"] .nav-label')).toHaveText('Engine Arena');
+  expect(new URL(page.url()).pathname).toBe('/arena');
+});
+
+test('Match and Tournament expose the same runnable engines and execute the selected worker identities', async ({ page }) => {
+  await openArena(page);
+  await page.getByRole('tab', { name: 'Match' }).click();
+
+  const matchAvailability = await page.locator('#arenaWhiteEngine option').evaluateAll(options => options.map(option => ({
+    id: option.value,
+    disabled: option.disabled,
+    label: option.textContent
+  })));
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  const tournamentAvailability = await page.locator('#arenaTournamentEngines input').evaluateAll(inputs => inputs.map(input => ({
+    id: input.value,
+    disabled: input.disabled,
+    checked: input.checked
+  })));
+
+  expect(tournamentAvailability.filter(engine => !engine.disabled).map(engine => engine.id))
+    .toEqual(matchAvailability.filter(engine => !engine.disabled).map(engine => engine.id));
+  expect(tournamentAvailability.filter(engine => engine.checked).every(engine => !engine.disabled)).toBe(true);
+  expect(matchAvailability.find(engine => engine.id === 'arasan')).toMatchObject({ disabled: true });
+  expect(matchAvailability.find(engine => engine.id === 'arasan').label).toContain('WASM build needed');
+  expect(matchAvailability.find(engine => engine.id === 'fairy-stockfish')).toMatchObject({ disabled: true });
+  expect(matchAvailability.find(engine => engine.id === 'fairy-stockfish').label).toContain('cross-origin-isolated');
+  await expect(page.locator('#arenaTournamentEngines input[value="arasan"]')).toBeDisabled();
+  await expect(page.locator('#arenaTournamentEngines input[value="arasan"] + .engine-name')).toHaveText('Arasan');
+
+  await page.getByRole('tab', { name: 'Match' }).click();
+  await page.locator('#arenaWhiteEngine').selectOption('stockfish-lite');
+  await page.locator('#arenaBlackEngine').selectOption('stockfish');
+  await expect.poll(async () => page.evaluate(() => ({
+    white: window.CaissaArena.whiteEngineInstance?.id,
+    black: window.CaissaArena.blackEngineInstance?.id,
+    ready: window.CaissaArena.enginesReady
+  })), { timeout: 15_000 }).toEqual({ white: 'stockfish-lite', black: 'stockfish', ready: true });
+
+  await page.locator('#arenaStartMatch').click();
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.game.history().length), { timeout: 20_000 }).toBeGreaterThan(0);
+  expect(await page.evaluate(() => ({
+    whiteSelection: window.CaissaArena.state.currentGame.white.id,
+    blackSelection: window.CaissaArena.state.currentGame.black.id,
+    whiteWorker: window.CaissaArena.whiteEngineInstance.id,
+    blackWorker: window.CaissaArena.blackEngineInstance.id
+  }))).toEqual({
+    whiteSelection: 'stockfish-lite',
+    blackSelection: 'stockfish',
+    whiteWorker: 'stockfish-lite',
+    blackWorker: 'stockfish'
+  });
+  await page.getByRole('tab', { name: 'Game' }).click();
+  await page.locator('#arenaStopMatch').click();
+});
+
 test('Arena tabs support arrow navigation', async ({ page }) => {
   await openArena(page);
   const game = page.getByRole('tab', { name: 'Game' });
@@ -149,7 +209,7 @@ test('active tournament continues across tabs without worker recreation', async 
   await openArena(page);
   await expect.poll(async () => page.evaluate(() => window.CaissaArena.enginesReady), { timeout: 15_000 }).toBe(true);
   await page.getByRole('tab', { name: 'Tournament' }).click();
-  await expect.poll(async () => page.locator('#arenaTournamentEngines input:checked').count()).toBeGreaterThanOrEqual(3);
+  await expect.poll(async () => page.locator('#arenaTournamentEngines input:checked').count()).toBeGreaterThanOrEqual(2);
 
   const boardWidth = await page.locator('#arenaBoardMount').evaluate(element => element.getBoundingClientRect().width);
   await page.evaluate(() => {
@@ -183,12 +243,104 @@ test('active tournament continues across tabs without worker recreation', async 
   expect(continuity.mode).toBe('tournament');
   expect(continuity.matchState).toBe('running');
   expect(continuity.sameWorkers).toBe(true);
-  expect(continuity.standingsCount).toBeGreaterThanOrEqual(3);
+  expect(continuity.standingsCount).toBeGreaterThanOrEqual(2);
   expect(Math.abs(await page.locator('#arenaBoardMount').evaluate(element => element.getBoundingClientRect().width) - boardWidth)).toBeLessThanOrEqual(1);
 
   await page.getByRole('tab', { name: 'Game' }).click();
   await page.locator('#arenaStopMatch').click();
   await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('idle');
+});
+
+test('tournament draw adjudication confirms, records, finishes, and continues normally', async ({ page }) => {
+  await openArena(page);
+  await expect(page.locator('#arenaDeclareDraw')).toBeHidden();
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  await page.locator('#arenaStartTournament').click();
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState), { timeout: 15_000 }).toBe('running');
+  await page.getByRole('tab', { name: 'Game' }).click();
+
+  const draw = page.locator('#arenaDeclareDraw');
+  await expect(draw).toBeVisible();
+  await page.evaluate(() => {
+    window.__drawWorkers = [
+      window.CaissaArena.whiteEngineInstance,
+      window.CaissaArena.blackEngineInstance,
+      window.CaissaArena.evaluatorEngine
+    ];
+  });
+  const beforeCancel = await page.evaluate(() => ({
+    result: window.CaissaArena.state.tournament.games[0].result,
+    points: window.CaissaArena.state.tournament.standings.map(standing => standing.points),
+    games: window.CaissaArena.state.tournament.standings.map(standing => standing.games)
+  }));
+  await draw.click();
+  await expect(page.locator('#arenaDrawModal')).toHaveClass(/show/);
+  await expect(page.locator('#arenaDrawCancel')).toBeFocused();
+  await page.locator('#arenaDrawCancel').click();
+  expect(await page.evaluate(() => ({
+    result: window.CaissaArena.state.tournament.games[0].result,
+    points: window.CaissaArena.state.tournament.standings.map(standing => standing.points),
+    games: window.CaissaArena.state.tournament.standings.map(standing => standing.games)
+  }))).toEqual(beforeCancel);
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('running');
+
+  await draw.click();
+  await page.locator('#arenaDrawConfirm').click();
+  const adjudicated = await page.evaluate(() => {
+    const game = window.CaissaArena.state.tournament.games[0];
+    const participants = [game.white.id, game.black.id];
+    return {
+      matchState: window.CaissaArena.state.matchState,
+      turnLabel: document.querySelector('#arenaStatusTurn').textContent,
+      turnState: document.querySelector('#arenaTurnStatus').dataset.turn,
+      statusText: document.querySelector('#arenaStatusText').textContent,
+      drawVisible: getComputedStyle(document.querySelector('#arenaDeclareDraw')).display !== 'none',
+      searchesStopped: [
+        window.CaissaArena.whiteEngineInstance,
+        window.CaissaArena.blackEngineInstance,
+        window.CaissaArena.evaluatorEngine
+      ].every(engine => !engine.analyzing),
+      drawCells: Array.from(document.querySelectorAll('#arenaTournamentStandings .standings-result.is-played'))
+        .filter(cell => cell.textContent === '\u00bd').length,
+      result: game.result,
+      termination: game.termination,
+      preservedMoves: game.moves.length,
+      participantScores: window.CaissaArena.state.tournament.standings
+        .filter(standing => participants.includes(standing.engine.id))
+        .map(standing => ({ points: standing.points, games: standing.games })),
+      currentMoves: window.CaissaArena.game.history().length
+    };
+  });
+  expect(adjudicated.matchState).toBe('finished');
+  expect(adjudicated.turnLabel).toBe('Finished');
+  expect(adjudicated.turnState).toBe('neutral');
+  expect(adjudicated.statusText).toBe('Finished: Draw by adjudication');
+  expect(adjudicated.drawVisible).toBe(false);
+  expect(adjudicated.searchesStopped).toBe(true);
+  expect(adjudicated.drawCells).toBe(2);
+  expect(adjudicated.result).toBe('1/2-1/2');
+  expect(adjudicated.termination).toBe('Draw by adjudication');
+  expect(adjudicated.preservedMoves).toBe(adjudicated.currentMoves);
+  expect(adjudicated.participantScores).toEqual([{ points: 0.5, games: 1 }, { points: 0.5, games: 1 }]);
+
+  await expect.poll(async () => page.evaluate(() => ({
+    state: window.CaissaArena.state.matchState,
+    pendingResults: window.CaissaArena.state.tournament.games.filter(game => game.result === null).length,
+    sameWorkers: window.__drawWorkers.every((worker, index) => worker === [
+      window.CaissaArena.whiteEngineInstance,
+      window.CaissaArena.blackEngineInstance,
+      window.CaissaArena.evaluatorEngine
+    ][index])
+  })), { timeout: 15_000 }).toEqual({ state: 'running', pendingResults: 1, sameWorkers: true });
+  await expect(draw).toBeVisible();
+  await page.locator('#arenaStopMatch').click();
+
+  await page.getByRole('tab', { name: 'Match' }).click();
+  await page.locator('#arenaStartMatch').click();
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState), { timeout: 15_000 }).toBe('running');
+  await page.getByRole('tab', { name: 'Game' }).click();
+  await expect(draw).toBeHidden();
+  await page.locator('#arenaStopMatch').click();
 });
 
 test('long tournament fields scroll inside the crosstable on narrow screens', async ({ page }) => {
@@ -442,7 +594,7 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   await expect(page.locator('#arenaTurnStatus')).toHaveAttribute('data-turn', 'neutral');
 
   await page.getByRole('tab', { name: 'Tournament' }).click();
-  await expect.poll(async () => page.locator('#arenaTournamentEngines input:checked').count()).toBeGreaterThanOrEqual(3);
+  await expect.poll(async () => page.locator('#arenaTournamentEngines input:checked').count()).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#arenaStartTournament')).toBeVisible();
 });
 
