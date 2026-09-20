@@ -117,7 +117,7 @@
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.1.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
     <link rel="stylesheet" href="css/fics-client.css?v=1.2.5">
-    <link rel="stylesheet" href="css/spectator-tv-2.css?v=2.0.1">
+    <link rel="stylesheet" href="css/spectator-tv-2.css?v=2.0.3">
     <link rel="stylesheet" href="css/fics-redesign-shell.css?v=1.5.2">
     <link rel="stylesheet" href="css/yahoo-classic.css?v=1.1.0">
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
@@ -3441,10 +3441,6 @@
                                 <span class="spectator-player-rating">FICS</span>
                                 <strong class="spectator-player-clock">--:--</strong>
                             </div>
-                            <div class="spectator-clock-row" hidden aria-hidden="true">
-                                <span>White <strong id="spectatorWhiteClock">--:--</strong></span>
-                                <span>Black <strong id="spectatorBlackClock">--:--</strong></span>
-                            </div>
                         </main>
 
                         <aside id="spectatorWorkspace" class="spectator-workspace" aria-label="Chess TV controls">
@@ -3528,32 +3524,31 @@
                                         <span class="spectator-live-pill"><span aria-hidden="true"></span> Live</span>
                                     </div>
                                     <div class="spectator-detail-section">
-                                        <h4>Players</h4>
-                                        <div class="spectator-player-cards" aria-live="polite">
-                                            <div id="spectatorWhitePlayerCard" class="spectator-player-card white" role="group" aria-label="White player card">
-                                                <div class="spectator-player-card__header"><span class="spectator-color-dot" aria-hidden="true"></span><strong class="spectator-player-card__name">White</strong><span class="spectator-player-card__clock">--:--</span></div>
-                                                <div class="spectator-player-card__details"><span>Rating unavailable</span><span>Waiting for game</span></div>
-                                            </div>
-                                            <div id="spectatorBlackPlayerCard" class="spectator-player-card black" role="group" aria-label="Black player card">
-                                                <div class="spectator-player-card__header"><span class="spectator-color-dot" aria-hidden="true"></span><strong class="spectator-player-card__name">Black</strong><span class="spectator-player-card__clock">--:--</span></div>
-                                                <div class="spectator-player-card__details"><span>Rating unavailable</span><span>Waiting for game</span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="spectator-detail-section">
                                         <h4>Game details</h4>
                                         <div id="spectatorLiveContext" class="spectator-live-context" aria-live="polite">
-                                            <div class="spectator-context-row"><span>Opening</span><strong>Unknown Opening</strong></div>
-                                            <div class="spectator-context-row"><span>ECO</span><strong>--</strong></div>
-                                            <div class="spectator-context-row"><span>Phase</span><strong>Waiting</strong></div>
-                                            <div class="spectator-context-row"><span>Result</span><strong>—</strong></div>
-                                            <div class="spectator-context-row"><span>Status</span><strong>Not watching</strong></div>
-                                        </div>
-                                        <div id="spectatorMetadata" class="spectator-metadata">
-                                            <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
-                                                <i class="fas fa-tv caissa-ui-empty-state__icon" aria-hidden="true"></i>
-                                                <p class="caissa-ui-empty-state__title">No live game selected.</p>
-                                                <p class="caissa-ui-empty-state__message">Choose a game from Channels to begin watching.</p>
+                                            <div class="spectator-context-row spectator-context-row--opening">
+                                                <div class="spectator-context-cell" data-spectator-detail="opening"><span>Opening</span><strong title="—">—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="variant"><span>Variant</span><strong>—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="rated"><span>Rated</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="status"><span>Status</span><strong>Not watching</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="time-control"><span>Time control</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="move"><span>Move</span><strong>—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="phase"><span>Phase</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="result"><span>Result</span><strong>—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="game"><span>Game #</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row spectator-context-row--players">
+                                                <div class="spectator-context-cell" data-spectator-detail="rating"><span>Rating</span><strong>— / —</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="players"><span>Players</span><strong title="—">—</strong></div>
                                             </div>
                                         </div>
                                     </div>
@@ -3574,8 +3569,6 @@
                                 <span id="spectatorConnectionStatus" class="spectator-status spectator-status-disconnected">Disconnected</span>
                                 <div class="spectator-foot-actions">
                                     <button id="spectatorWorkspaceBackBtn" class="fics-btn fics-btn-secondary spectator-foot-back" type="button"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back</button>
-                                    <button id="spectatorRefreshFeaturedBtn" class="fics-btn fics-btn-secondary spectator-foot-channels" type="button" aria-label="Refresh FICS live games"><i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh</button>
-                                    <button id="spectatorWatchFeaturedBtn" class="fics-btn fics-btn-primary spectator-foot-channels" type="button" aria-label="Watch featured FICS game"><i class="fas fa-play" aria-hidden="true"></i> Watch featured</button>
                                     <button id="spectatorServerContinueBtn" class="fics-btn fics-btn-primary spectator-foot-server" type="button"><span>Connect &amp; continue</span><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                                 </div>
                             </div>
@@ -5123,14 +5116,15 @@
 <script src="js/fics-players-protocol.js?v=1.0.0" defer></script>
 <script src="js/fics-board-view.js?v=1.0.2" defer></script>
 <script src="js/fics-observe-recovery.js?v=1.0.0" defer></script>
-<script src="js/fics-client.js?v=1.8.1" defer></script>
+<script src="js/fics-client.js?v=1.8.2" defer></script>
 <script src="js/fics-presentation-contract.js?v=1.3.0" defer></script>
 <script src="js/fics-analyze-handoff.js?v=1.0.0" defer></script>
 <script src="js/fics-layout-shell.js?v=1.5.0" defer></script>
 <script src="js/fics-match-research.js?v=1.0.1" defer></script>
 <script src="js/fics-research-actions.js?v=1.0.1" defer></script>
 <script src="js/fics-computer-challenge.js?v=1.0.0" defer></script>
-    <script src="js/spectator-tv-section.js?v=2.0.1" defer></script>
+    <script src="js/eco-opening-resolver.js?v=1.0.0" defer></script>
+    <script src="js/spectator-tv-section.js?v=2.0.3" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>

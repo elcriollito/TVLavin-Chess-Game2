@@ -39,6 +39,7 @@ wss.on('connection', (ws, req) => {
     const state = {
         ws,
         ficsSocket: null,
+        connecting: false,
         connected: false,
         authenticated: false,
         clientId,
@@ -50,17 +51,17 @@ wss.on('connection', (ws, req) => {
 
     // Handle WebSocket messages from browser
     ws.on('message', (data) => {
-        try {
-            const message = JSON.parse(data);
-            console.log(`[FICS Gateway] ${clientId} - Received: ${message.type}`);
-            handleClientMessage(state, message);
-        } catch (error) {
-            console.error(`[FICS Gateway] ${clientId} - ❌ Invalid JSON:`, error.message);
-            sendToClient(state, {
-                type: 'error',
-                message: 'Invalid message format'
-            });
+        if (!checkRateLimit(state)) {
+            sendToClient(state, 'Gateway error: rate limit exceeded.');
+            return;
         }
+
+        const command = data.toString('utf8');
+        if (!state.connected) {
+            sendToClient(state, 'Gateway error: not connected to FICS.');
+            return;
+        }
+        sendToFICS(state, command);
     });
 
     // Handle WebSocket close
@@ -77,74 +78,13 @@ wss.on('connection', (ws, req) => {
         cleanupConnection(state);
     });
 
-    // Send initial status
-    sendToClient(state, {
-        type: 'status',
-        connected: false,
-        message: 'Ready to connect to FICS'
-    });
-    console.log(`[FICS Gateway] ${clientId} - Sent initial status`);
+    // Match the production gateway contract: the WebSocket is a transparent
+    // text bridge and the FICS TCP session starts immediately.
+    connectToFICS(state);
 });
-
-function handleClientMessage(state, message) {
-    const { type } = message;
-
-    // Rate limiting check
-    if (!checkRateLimit(state)) {
-        sendToClient(state, {
-            type: 'error',
-            message: 'Rate limit exceeded. Please slow down.'
-        });
-        return;
-    }
-
-    switch (type) {
-        case 'connectGuest':
-            connectToFICS(state, message.handlePrefix || 'CAISSA');
-            break;
-
-        case 'command':
-            if (!state.connected) {
-                sendToClient(state, {
-                    type: 'error',
-                    message: 'Not connected to FICS'
-                });
-                return;
-            }
-            sendToFICS(state, message.text);
-            break;
-
-        case 'move':
-            if (!state.connected) {
-                sendToClient(state, {
-                    type: 'error',
-                    message: 'Not connected to FICS'
-                });
-                return;
-            }
-            // Convert UCI to FICS format if needed (FICS uses algebraic like e2e4)
-            sendToFICS(state, message.text || message.uci);
-            break;
-
-        case 'disconnect':
-            cleanupConnection(state);
-            break;
-
-        default:
-            sendToClient(state, {
-                type: 'error',
-                message: `Unknown message type: ${type}`
-            });
-    }
-}
-
-function connectToFICS(state, handlePrefix) {
-    if (state.connected) {
+function connectToFICS(state) {
+    if (state.connected || state.connecting) {
         console.log(`[FICS Gateway] ${state.clientId} - Already connected to FICS`);
-        sendToClient(state, {
-            type: 'error',
-            message: 'Already connected to FICS'
-        });
         return;
     }
 
@@ -152,61 +92,17 @@ function connectToFICS(state, handlePrefix) {
 
     const socket = new net.Socket();
     state.ficsSocket = socket;
-
-    let buffer = '';
-    let loginComplete = false;
+    state.connecting = true;
 
     socket.connect(FICS_PORT, FICS_HOST, () => {
         console.log(`[FICS Gateway] ${state.clientId} - ✅ TCP connected to FICS successfully`);
+        state.connecting = false;
         state.connected = true;
-
-        sendToClient(state, {
-            type: 'status',
-            connected: true,
-            message: 'Connected to FICS, logging in as guest...'
-        });
     });
 
     socket.on('data', (data) => {
         const text = data.toString('utf8');
-        buffer += text;
-
-        // Process complete lines
-        let lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-        for (let line of lines) {
-            line = line.trim();
-            if (!line) continue;
-
-            // Send raw line to client
-            sendToClient(state, {
-                type: 'raw',
-                text: line
-            });
-
-            // Handle login prompts
-            if (!loginComplete) {
-                if (line.includes('login:') || line.includes('Press return')) {
-                    // Send guest login
-                    socket.write('guest\n');
-                    console.log(`[FICS Gateway] ${state.clientId} - Sent guest login`);
-                } else if (line.includes('Starting FICS session') || line.includes('fics%')) {
-                    loginComplete = true;
-                    state.authenticated = true;
-                    console.log(`[FICS Gateway] ${state.clientId} - Guest login successful`);
-
-                    sendToClient(state, {
-                        type: 'authenticated',
-                        message: 'Logged in as guest'
-                    });
-
-                    // Set some initial preferences
-                    socket.write('set style 12\n'); // Use style 12 for board updates
-                    socket.write('set interface CAISSA Chess\n');
-                }
-            }
-        }
+        sendToClient(state, text);
     });
 
     socket.on('error', (error) => {
@@ -217,21 +113,14 @@ function connectToFICS(state, handlePrefix) {
         console.error(`  - Network/firewall blocking outbound TCP to FICS`);
         console.error(`  - DNS resolution failed for ${FICS_HOST}`);
 
-        sendToClient(state, {
-            type: 'error',
-            message: `FICS connection error: ${error.message}\n\nGateway cannot reach FICS server.`
-        });
+        sendToClient(state, `Gateway error: unable to connect to FICS (${error.message}).`);
         cleanupConnection(state);
     });
 
     socket.on('close', () => {
         console.log(`[FICS Gateway] ${state.clientId} - 🔌 FICS TCP connection closed`);
+        state.connecting = false;
         state.connected = false;
-        sendToClient(state, {
-            type: 'status',
-            connected: false,
-            message: 'Disconnected from FICS'
-        });
     });
 
     socket.on('timeout', () => {
@@ -254,7 +143,7 @@ function sendToFICS(state, text) {
 
 function sendToClient(state, message) {
     if (state.ws.readyState === WebSocket.OPEN) {
-        state.ws.send(JSON.stringify(message));
+        state.ws.send(String(message));
     }
 }
 
@@ -285,6 +174,7 @@ function cleanupConnection(state) {
         state.ficsSocket = null;
     }
 
+    state.connecting = false;
     state.connected = false;
     state.authenticated = false;
 
@@ -292,11 +182,7 @@ function cleanupConnection(state) {
 
     // Try to send final status
     try {
-        sendToClient(state, {
-            type: 'status',
-            connected: false,
-            message: 'Disconnected'
-        });
+        sendToClient(state, 'Gateway status: disconnected.');
     } catch (e) {
         // Ignore if WebSocket already closed
     }
