@@ -20,7 +20,7 @@
     --spectator-muted: #9aa7bb;
     width: 100%;
     max-width: 1500px;
-    height: calc(100dvh - 80px);
+    height: 100dvh;
     min-height: 620px;
     margin: 0 auto;
     padding: 14px 20px 18px;

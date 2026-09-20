@@ -185,6 +185,90 @@ test('requested desktop zoom geometry keeps the header controls visible and sepa
   }
 });
 
+test('native Chrome zoom matrix keeps White, FOOT, board, and aligned columns fully unclipped', async ({ page }) => {
+  const profiles = [
+    { zoom: 67, width: 2304, height: 959 },
+    { zoom: 75, width: 2048, height: 853 },
+    { zoom: 80, width: 1920, height: 800 },
+    { zoom: 90, width: 1707, height: 711 },
+    { zoom: 100, width: 1536, height: 640 }
+  ];
+  const consoleErrors = [];
+  const pageErrors = [];
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', error => pageErrors.push(error.message));
+
+  for (const profile of profiles) {
+    await page.setViewportSize({ width: profile.width, height: profile.height });
+    await page.goto('/spectator-tv');
+
+    const geometry = await page.evaluate(() => {
+      const box = selector => document.querySelector(selector).getBoundingClientRect();
+      const layout = box('#spectatorLayout');
+      const panel = box('.spectator-board-panel');
+      const workspace = box('#spectatorWorkspace');
+      const whiteBar = box('#spectatorBottomPlayer');
+      const foot = box('.spectator-workspace-foot');
+      const board = box('.spectator-board-frame');
+      const head = document.querySelector('.spectator-workspace-head');
+      const body = document.querySelector('.spectator-workspace-body');
+      const footElement = document.querySelector('.spectator-workspace-foot');
+      const controls = Array.from(document.querySelectorAll('.spectator-board-tools .spectator-tool-button'), element => element.getBoundingClientRect());
+      const visibleBottom = Math.min(window.innerHeight, layout.bottom);
+      return {
+        viewportBottom: window.innerHeight,
+        visualViewportHeight: window.visualViewport.height,
+        layoutBottom: layout.bottom,
+        panelBottom: panel.bottom,
+        workspaceBottom: workspace.bottom,
+        whiteBar: { top: whiteBar.top, bottom: whiteBar.bottom },
+        foot: { top: foot.top, bottom: foot.bottom },
+        board: { top: board.top, bottom: board.bottom, width: board.width, height: board.height },
+        whiteFullyVisible: whiteBar.top >= 0 && whiteBar.bottom <= visibleBottom,
+        footFullyVisible: foot.top >= 0 && foot.bottom <= visibleBottom,
+        boardFullyVisible: board.top >= 0 && board.bottom <= visibleBottom,
+        panelsWithinViewport: panel.bottom <= window.innerHeight && workspace.bottom <= window.innerHeight,
+        bottomDifference: Math.abs(panel.bottom - workspace.bottom),
+        pageScroll: document.documentElement.scrollHeight > window.innerHeight || window.scrollY !== 0,
+        horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
+        headFixed: getComputedStyle(head).overflowY !== 'auto' && getComputedStyle(head).overflowY !== 'scroll',
+        bodyScrollOwner: getComputedStyle(body).overflowY === 'auto',
+        footFixed: getComputedStyle(footElement).overflowY !== 'auto' && getComputedStyle(footElement).position !== 'fixed',
+        controlsPresent: controls.length === 4 && controls.every(control => control.width > 0 && control.height > 0),
+        heading: document.querySelector('.spectator-title')?.textContent.trim(),
+        route: window.location.pathname,
+        boardRoots: document.querySelectorAll('#spectatorBoard').length
+      };
+    });
+
+    expect(geometry, `${profile.zoom}%`).toMatchObject({
+      viewportBottom: profile.height,
+      visualViewportHeight: profile.height,
+      whiteFullyVisible: true,
+      footFullyVisible: true,
+      boardFullyVisible: true,
+      panelsWithinViewport: true,
+      pageScroll: false,
+      horizontalOverflow: false,
+      headFixed: true,
+      bodyScrollOwner: true,
+      footFixed: true,
+      controlsPresent: true,
+      heading: 'Chess TV',
+      route: '/spectator-tv',
+      boardRoots: 1
+    });
+    expect(geometry.bottomDifference, `${profile.zoom}% column bottoms`).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.board.width - geometry.board.height), `${profile.zoom}% square board`).toBeLessThanOrEqual(1);
+    expect(geometry.board.width, `${profile.zoom}% nonzero board`).toBeGreaterThan(0);
+  }
+
+  expect(consoleErrors).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
 test('theater and fullscreen keep both desktop columns stable and nonzero', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto('/spectator-tv');

@@ -66,6 +66,7 @@ test('new shell reuses existing FICS and Spectator owners', () => {
 });
 
 test('workspace BODY is the scroll owner and desktop is a two-zone grid', () => {
+    assert.match(css, /\.spectator-layout\.spectator-v2\s*\{[^}]*height:\s*100dvh/s);
     assert.match(css, /\.spectator-v2 \.spectator-stage\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)\s+minmax\(360px, 410px\)/s);
     assert.match(css, /\.spectator-v2 \.spectator-stage\s*\{[^}]*align-items:\s*stretch/s);
     assert.match(css, /\.spectator-v2 \.spectator-workspace\s*\{[^}]*overflow:\s*hidden/s);
