@@ -224,7 +224,7 @@
             };
         }
         return {
-            message: String(error.message || 'Spectator TV error'),
+            message: String(error.message || 'Chess TV error'),
             code: error.code ? String(error.code) : null,
             detail: error.detail ? String(error.detail) : null,
             at: error.at || nowIso()

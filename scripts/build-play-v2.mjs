@@ -21,6 +21,7 @@ let html = sourceHtml;
 
 const forbiddenElements = [
   /\s*<link[^>]+href="css\/fics-(?:client|redesign-shell)\.css[^>]*>\r?\n/gi,
+  /\s*<link[^>]+href="css\/spectator-tv-2\.css[^>]*>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-style12\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-client\.js[^>]*><\/script>\r?\n/gi,
   /\s*<script[^>]+src="js\/fics-board-view\.js[^>]*><\/script>\r?\n/gi,

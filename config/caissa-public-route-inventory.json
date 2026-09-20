@@ -245,7 +245,7 @@
     },
     {
       "id": "spectator",
-      "label": "Spectator TV",
+      "label": "Chess TV",
       "canonicalPath": "/spectator-tv",
       "absoluteUrl": "https://www.caissa-chess.org/spectator-tv",
       "type": "internal-page",

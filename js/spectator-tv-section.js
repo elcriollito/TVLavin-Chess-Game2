@@ -1,10 +1,9 @@
 /**
- * CAISSA Spectator TV Featured Game MVP
+ * CAISSA Spectator TV 2.0 — FICS Broadcast Experience
  *
- * First visible Spectator TV surface. It reuses the existing FICS connection,
- * lobby refresh, observe helper, Style12 parser path, state model, and live
- * game catalog. It does not add channels, analysis, opening coach, or engine
- * features.
+ * Board-first workflow shell over the existing FICS connection, lobby refresh,
+ * observe helper, Style12 parser path, state model, and live game catalog.
+ * It does not create another socket, board authority, or engine lifecycle.
  */
 (function() {
     'use strict';
@@ -14,13 +13,19 @@
         state: null,
         catalog: null,
         board: null,
+        boardView: null,
         lastRenderedFen: null,
+        boardResizeFrame: null,
+        lastBoardGeometry: null,
         pendingFeaturedWatch: false,
         catalogLoadCompleted: false,
         unsubscribeFics: null,
         playerCardSnapshots: Object.create(null),
         contextSnapshot: '',
+        activeWorkspaceTab: 'server',
+        selectedServer: 'fics',
         visibleChannelIds: Object.freeze(['featured', 'top-rated', 'blitz', 'bullet', 'rapid']),
+        workspaceTabs: Object.freeze(['server', 'channels', 'watch']),
 
         init() {
             this.cacheElements();
@@ -53,7 +58,19 @@
                 channelList: document.getElementById('spectatorChannelList'),
                 gameList: document.getElementById('spectatorGameList'),
                 gameCount: document.getElementById('spectatorGameCount'),
-                viewingState: document.getElementById('spectatorViewingState')
+                viewingState: document.getElementById('spectatorViewingState'),
+                layout: document.getElementById('spectatorLayout'),
+                stage: document.getElementById('spectatorStage'),
+                workspace: document.getElementById('spectatorWorkspace'),
+                workspaceHeading: document.getElementById('spectatorWorkspaceHeading'),
+                workspaceTabs: Array.from(document.querySelectorAll('[data-spectator-tab]')),
+                workspaceViews: Array.from(document.querySelectorAll('[data-spectator-view]')),
+                serverContinueBtn: document.getElementById('spectatorServerContinueBtn'),
+                workspaceBackBtn: document.getElementById('spectatorWorkspaceBackBtn'),
+                flipBoardBtn: document.getElementById('spectatorFlipBoardBtn'),
+                theaterBtn: document.getElementById('spectatorTheaterBtn'),
+                fullscreenBtn: document.getElementById('spectatorFullscreenBtn'),
+                boardRefreshBtn: document.getElementById('spectatorBoardRefreshBtn')
             };
         },
 
@@ -68,6 +85,23 @@
                 const button = event.target.closest('[data-game-id]');
                 if (button) this.watchGame(button.dataset.gameId);
             });
+            this.elements.serverContinueBtn?.addEventListener('click', () => this.connectSelectedServer());
+            this.elements.workspaceBackBtn?.addEventListener('click', () => this.goBackInWorkspace());
+            this.elements.workspaceTabs.forEach((button) => {
+                button.addEventListener('click', () => this.selectWorkspaceTab(button.dataset.spectatorTab));
+                button.addEventListener('keydown', (event) => this.handleWorkspaceTabKeydown(event));
+            });
+            this.elements.flipBoardBtn?.addEventListener('click', () => this.flipBoard());
+            this.elements.theaterBtn?.addEventListener('click', () => this.toggleTheaterMode());
+            this.elements.fullscreenBtn?.addEventListener('click', () => this.toggleFullscreen());
+            this.elements.boardRefreshBtn?.addEventListener('click', () => this.refreshFromBoard());
+            document.addEventListener('fullscreenchange', () => {
+                this.renderFullscreenControl();
+                this.scheduleBoardResize();
+            });
+            window.addEventListener('resize', () => this.scheduleBoardResize(), { passive: true });
+            window.addEventListener('orientationchange', () => this.scheduleBoardResize(), { passive: true });
+            window.visualViewport?.addEventListener?.('resize', () => this.scheduleBoardResize(), { passive: true });
         },
 
         subscribeToFics() {
@@ -80,8 +114,15 @@
             this.initBoard();
             this.syncFromFicsClient();
             this.renderChannels();
+            if (this.state?.currentObservedGameId || this.lastRenderedFen) {
+                this.selectWorkspaceTab('watch');
+            } else if (window.CaissaFICSClient?.authenticated) {
+                this.selectWorkspaceTab('channels');
+            } else {
+                this.selectWorkspaceTab('server');
+            }
             this.render();
-            requestAnimationFrame(() => this.board?.resize?.());
+            this.scheduleBoardResize();
         },
 
         onExit() {
@@ -96,7 +137,10 @@
                 this.handleConnectionState(detail.payload);
             } else if (detail.event === 'authenticated') {
                 this.enterLoadingGames();
-                if (this.pendingFeaturedWatch) this.refreshCatalog(true);
+                if (this.elements.section?.classList.contains('active')) {
+                    this.selectWorkspaceTab('channels');
+                    this.refreshCatalog(true);
+                }
             } else if (detail.event === 'lobby-updated') {
                 const activeTables = detail.payload?.activeTables || [];
                 this.updateCatalog(activeTables);
@@ -139,7 +183,152 @@
             if (this.board) this.board.position('start', false);
             this.renderPlayerCards(null);
             this.renderLiveContext(null, []);
+            this.selectWorkspaceTab('server');
             this.render();
+        },
+
+        selectWorkspaceTab(tabId, options = {}) {
+            const nextTab = this.workspaceTabs.includes(tabId) ? tabId : 'server';
+            this.activeWorkspaceTab = nextTab;
+            this.renderWorkspace();
+            if (options.focus) {
+                this.elements.workspaceTabs.find((button) => button.dataset.spectatorTab === nextTab)?.focus();
+            }
+            if (nextTab === 'channels' && !window.CaissaFICSClient?.authenticated) {
+                this.showMessage('Connect to FICS from Server to load live games.', 'info');
+            }
+            if (nextTab === 'watch' && !this.state?.currentObservedGameId && !this.lastRenderedFen) {
+                this.showMessage('Choose a live game from Channels to begin watching.', 'info');
+            }
+        },
+
+        renderWorkspace() {
+            const labels = {
+                server: 'Pick server',
+                channels: 'Pick channel',
+                watch: 'Watch live'
+            };
+            if (this.elements.layout) this.elements.layout.dataset.workspaceTab = this.activeWorkspaceTab;
+            if (this.elements.workspaceHeading) {
+                this.elements.workspaceHeading.textContent = labels[this.activeWorkspaceTab] || labels.server;
+            }
+            this.elements.workspaceTabs.forEach((button) => {
+                const active = button.dataset.spectatorTab === this.activeWorkspaceTab;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-selected', active ? 'true' : 'false');
+                button.tabIndex = active ? 0 : -1;
+            });
+            this.elements.workspaceViews.forEach((view) => {
+                const active = view.dataset.spectatorView === this.activeWorkspaceTab;
+                view.hidden = !active;
+                view.classList.toggle('active', active);
+            });
+            if (this.elements.workspaceBackBtn) {
+                const target = this.activeWorkspaceTab === 'watch' ? 'Channels' : 'Server';
+                this.elements.workspaceBackBtn.setAttribute('aria-label', `Back to ${target}`);
+            }
+        },
+
+        handleWorkspaceTabKeydown(event) {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const currentIndex = this.workspaceTabs.indexOf(this.activeWorkspaceTab);
+            let nextIndex = currentIndex;
+            if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + this.workspaceTabs.length) % this.workspaceTabs.length;
+            if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % this.workspaceTabs.length;
+            if (event.key === 'Home') nextIndex = 0;
+            if (event.key === 'End') nextIndex = this.workspaceTabs.length - 1;
+            this.selectWorkspaceTab(this.workspaceTabs[nextIndex], { focus: true });
+        },
+
+        goBackInWorkspace() {
+            if (this.activeWorkspaceTab === 'watch') {
+                this.selectWorkspaceTab('channels', { focus: true });
+            } else {
+                this.selectWorkspaceTab('server', { focus: true });
+            }
+        },
+
+        connectSelectedServer() {
+            const client = window.CaissaFICSClient;
+            if (!client) {
+                this.showMessage('FICS is not available yet.', 'error');
+                return;
+            }
+            if (client.authenticated) {
+                this.selectWorkspaceTab('channels');
+                this.refreshCatalog(true);
+                return;
+            }
+            this.pendingFeaturedWatch = false;
+            this.transition(window.CaissaSpectatorTV?.STATES?.CONNECTING, { error: null });
+            this.showMessage('Connecting to FICS as a guest…', 'info');
+            client.connect?.('guest');
+            this.render();
+        },
+
+        refreshFromBoard() {
+            if (!window.CaissaFICSClient?.authenticated) {
+                this.selectWorkspaceTab('server');
+                this.showMessage('Connect to FICS before refreshing live games.', 'info');
+                return;
+            }
+            this.refreshCatalog(true);
+        },
+
+        toggleTheaterMode() {
+            if (!this.elements.layout) return;
+            const active = this.elements.layout.classList.toggle('is-theater');
+            this.elements.theaterBtn?.setAttribute('aria-pressed', active ? 'true' : 'false');
+            this.lastBoardGeometry = null;
+            this.scheduleBoardResize();
+        },
+
+        async toggleFullscreen() {
+            try {
+                if (document.fullscreenElement) {
+                    await document.exitFullscreen?.();
+                } else {
+                    await this.elements.stage?.requestFullscreen?.();
+                }
+            } catch (error) {
+                this.showMessage('Fullscreen is not available in this browser.', 'warning');
+            }
+            this.renderFullscreenControl();
+            this.lastBoardGeometry = null;
+            this.scheduleBoardResize();
+        },
+
+        flipBoard() {
+            if (!this.board?.orientation) return;
+            const next = this.board.orientation() === 'black' ? 'white' : 'black';
+            this.board.orientation(next);
+            this.scheduleBoardResize();
+        },
+
+        scheduleBoardResize() {
+            if (this.boardResizeFrame !== null) return;
+            const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 0));
+            this.boardResizeFrame = schedule(() => {
+                this.boardResizeFrame = null;
+                if (!this.elements.section?.classList.contains('active')) return;
+                if (!this.board) this.initBoard();
+                const geometry = this.elements.board?.getBoundingClientRect?.();
+                if (!this.board || !geometry || geometry.width <= 0 || geometry.height <= 0) return;
+                const unchanged = this.lastBoardGeometry
+                    && Math.abs(this.lastBoardGeometry.width - geometry.width) <= 0.5
+                    && Math.abs(this.lastBoardGeometry.height - geometry.height) <= 0.5;
+                if (unchanged) return;
+                this.lastBoardGeometry = { width: geometry.width, height: geometry.height };
+                this.board.resize?.();
+            });
+        },
+
+        renderFullscreenControl() {
+            const active = document.fullscreenElement === this.elements.stage;
+            this.elements.fullscreenBtn?.setAttribute('aria-pressed', active ? 'true' : 'false');
+            const label = this.elements.fullscreenBtn?.querySelector('span');
+            if (label) label.textContent = active ? 'Exit full screen' : 'Fullscreen';
         },
 
         transition(toState, updates = {}) {
@@ -172,12 +361,33 @@
         },
 
         initBoard() {
-            if (!this.elements.board || this.board || typeof Chessboard === 'undefined') return;
-            if (!this.elements.section?.classList.contains('active')) return;
-            this.board = Chessboard(this.elements.board, {
+            if (!this.elements.board || this.board || typeof Chessboard === 'undefined') return false;
+            if (!this.elements.section?.classList.contains('active')) return false;
+            const geometry = this.elements.board.getBoundingClientRect();
+            if (geometry.width <= 0 || geometry.height <= 0) return false;
+            const createLegacy = (position = 'start', orientation = 'white') => Chessboard(this.elements.board, {
                 draggable: false,
-                position: 'start'
+                position,
+                orientation
             });
+            if (window.CaissaFICSBoardView?.createFicsBoardView) {
+                this.boardView = window.CaissaFICSBoardView.createFicsBoardView({
+                    container: this.elements.board,
+                    position: 'start',
+                    orientation: 'white',
+                    createLegacy,
+                    onRendererChange: () => {
+                        this.lastBoardGeometry = null;
+                        this.scheduleBoardResize();
+                    },
+                    onError: error => console.error('[Spectator TV] Persistent board unavailable:', error)
+                });
+                this.board = this.boardView.board;
+            } else {
+                this.board = createLegacy();
+            }
+            this.lastBoardGeometry = { width: geometry.width, height: geometry.height };
+            return true;
         },
 
         syncFromFicsClient() {
@@ -326,6 +536,7 @@
 
             this.state = window.CaissaSpectatorTV.setObservedGame(this.state, targetGame.gameId, targetGame);
             this.transition(window.CaissaSpectatorTV.STATES.SWITCHING_GAME);
+            this.selectWorkspaceTab('watch');
             this.showMessage(`Opening game #${targetGame.gameId}...`, 'info');
             if (typeof client.switchObservedGame === 'function') {
                 client.switchObservedGame(targetGame.gameId);
@@ -346,7 +557,28 @@
 
             this.initBoard();
             if (this.board && liveGame.currentFen !== this.lastRenderedFen) {
-                this.board.position(liveGame.currentFen, false);
+                const previousFen = this.lastRenderedFen;
+                const style12 = { ...(payload.style12 || {}), fen: liveGame.currentFen };
+                const semanticMove = window.CaissaFICSClient?.deriveStyle12BoardMove?.(style12, previousFen) || null;
+                if (this.boardView) {
+                    this.boardView.presentCanonicalState({
+                        state: {
+                            ...liveGame,
+                            observedGame: true,
+                            status: 'observing',
+                            gameActive: false,
+                            relation: 0
+                        },
+                        position: liveGame.currentFen,
+                        previousFen,
+                        semanticMove,
+                        orientation: this.board.orientation?.() || 'white',
+                        animate: Boolean(previousFen && semanticMove),
+                        reviewing: false
+                    });
+                } else {
+                    this.board.position(liveGame.currentFen, false);
+                }
                 this.lastRenderedFen = liveGame.currentFen;
             }
 
@@ -356,6 +588,7 @@
                     blackPlayer: liveGame.blackName
                 });
                 this.enterWatching();
+                this.selectWorkspaceTab('watch');
             }
 
             this.renderPlayers(liveGame);
@@ -731,7 +964,7 @@
         renderGameList() {
             if (!this.elements.gameList) return;
             const games = this.getVisibleGames();
-            if (this.elements.gameCount) this.elements.gameCount.textContent = String(games.length);
+            if (this.elements.gameCount) this.elements.gameCount.textContent = `${games.length} ${games.length === 1 ? 'game' : 'games'}`;
             if (!games.length) {
                 this.renderEmptyState(this.elements.gameList, {
                     icon: 'fa-search',
@@ -787,6 +1020,8 @@
             this.renderGameList();
             this.renderCatalogSummary();
             this.renderViewingState();
+            this.renderWorkspace();
+            this.renderFullscreenControl();
         },
 
         renderViewingState() {

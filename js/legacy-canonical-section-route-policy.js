@@ -6,7 +6,7 @@
         '/insights': Object.freeze({ section: 'insights', surface: 'insights', title: 'Insights | CAISSA Chess' }),
         '/fics': Object.freeze({ section: 'fics', surface: 'fics', title: 'FICS | CAISSA Chess' }),
         '/analyze': Object.freeze({ section: 'analyze', surface: 'analyze', title: 'Analyze | CAISSA Chess' }),
-        '/spectator-tv': Object.freeze({ section: 'spectator', surface: 'spectator-tv', title: 'Spectator TV | CAISSA Chess' }),
+        '/spectator-tv': Object.freeze({ section: 'spectator', surface: 'spectator-tv', title: 'Chess TV | CAISSA Chess' }),
         '/arena': Object.freeze({ section: 'arena', surface: 'arena', title: 'Arena | CAISSA Chess' }),
         '/cheater-insight': Object.freeze({ section: 'cheater-insight', surface: 'cheater-insight', title: 'Cheater Insight | CAISSA Chess' }),
         '/game-library': Object.freeze({ section: 'library', surface: 'game-library', title: 'Game Library | CAISSA Chess' }),

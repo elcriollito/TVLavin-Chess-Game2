@@ -34,7 +34,7 @@ for (const [path, section, id] of [['/fics', 'fics', 'ficsSection'], ['/spectato
 
 test('canonical hard-navigation reentry and Back/Forward preserve surface identity', async ({ page }) => {
   await page.goto('/fics');
-  for (const [name, surface] of [['Play', 'play'], ['FICS', 'fics'], ['Play', 'play'], ['Spectator TV', 'spectator-tv'], ['Play', 'play'], ['Spectator TV', 'spectator-tv']]) {
+  for (const [name, surface] of [['Play', 'play'], ['FICS', 'fics'], ['Play', 'play'], ['Chess TV', 'spectator-tv'], ['Play', 'play'], ['Chess TV', 'spectator-tv']]) {
     await page.getByRole('link', { name, exact: true }).click();
     await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', surface);
   }

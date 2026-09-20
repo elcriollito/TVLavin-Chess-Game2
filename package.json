@@ -46,6 +46,8 @@
     "build:fics:preview": "node scripts/build-fics-preview-artifact.mjs",
     "test:fics:preview-config": "node --test tests/fics-preview-config.test.js tests/fics-gateway-config.test.js",
     "test:fics:preview-smoke": "playwright test tests/browser/fics-live-preview-smoke.spec.js --project=chromium",
+    "test:spectator-tv2": "node --test tests/spectator-tv-v2-shell.test.js && playwright test tests/browser/spectator-tv-v2-shell.spec.js --project=chromium",
+    "lint:spectator-tv2": "node --check js/spectator-tv-section.js && node --check tests/spectator-tv-v2-shell.test.js && node --check tests/browser/spectator-tv-v2-shell.spec.js",
     "build:blog": "node scripts/build-blog.mjs",
     "build:yahoo-classic": "node scripts/build-yahoo-classic.mjs",
     "test:generator-eol": "node --test tests/generator-eol-reproducibility.test.js",
