@@ -614,27 +614,58 @@
     margin-bottom: 10px;
 }
 
-.spectator-v2 .spectator-player-cards {
-    gap: 8px;
-}
-
-.spectator-v2 .spectator-player-card {
-    min-height: 86px;
-    padding: 10px;
-    background: rgba(30, 40, 58, 0.72);
-}
-
 .spectator-v2 .spectator-live-context {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
     height: auto;
     max-height: none;
     overflow: visible;
 }
 
-.spectator-v2 .spectator-context-row {
-    grid-template-columns: 78px minmax(0, 1fr);
-    min-height: 30px;
-    padding: 5px 2px;
+.spectator-v2 .spectator-context-cell {
+    display: grid;
+    align-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 7px 8px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 8px;
+    background: rgba(30, 40, 58, 0.58);
+}
+
+.spectator-v2 .spectator-context-cell > span:first-child {
+    overflow: hidden;
+    color: var(--spectator-muted);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.045em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.spectator-v2 .spectator-context-cell > strong {
+    min-width: 0;
+    overflow: hidden;
+    color: #edf2f8;
     font-size: 0.78rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spectator-v2 .spectator-context-cell > .caissa-ui-badge {
+    justify-self: start;
+    max-width: 100%;
+}
+
+.spectator-v2 .spectator-context-cell--opening {
+    grid-column: span 2;
+}
+
+.spectator-v2 .spectator-context-cell--players {
+    grid-column: 1 / -1;
 }
 
 .spectator-v2 .spectator-metadata {
@@ -677,13 +708,11 @@
 }
 
 .spectator-v2 .spectator-foot-server,
-.spectator-v2 .spectator-foot-channels,
 .spectator-v2 .spectator-foot-back {
     display: none;
 }
 
 .spectator-v2[data-workspace-tab="server"] .spectator-foot-server,
-.spectator-v2[data-workspace-tab="channels"] .spectator-foot-channels,
 .spectator-v2[data-workspace-tab="channels"] .spectator-foot-back,
 .spectator-v2[data-workspace-tab="watch"] .spectator-foot-back {
     display: inline-flex;
@@ -867,6 +896,15 @@
 
     .spectator-v2 .spectator-workspace-body {
         padding: 12px 10px 16px;
+    }
+
+    .spectator-v2 .spectator-live-context {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .spectator-v2 .spectator-context-cell--opening,
+    .spectator-v2 .spectator-context-cell--players {
+        grid-column: 1 / -1;
     }
 
     .spectator-v2 .spectator-workspace-foot {

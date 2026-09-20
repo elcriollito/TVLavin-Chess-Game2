@@ -17,11 +17,12 @@
         lastRenderedFen: null,
         boardResizeFrame: null,
         lastBoardGeometry: null,
-        pendingFeaturedWatch: false,
         catalogLoadCompleted: false,
         unsubscribeFics: null,
-        playerCardSnapshots: Object.create(null),
         contextSnapshot: '',
+        selectedGame: null,
+        selectionGeneration: 0,
+        queuedGameId: null,
         activeWorkspaceTab: 'server',
         selectedServer: 'fics',
         visibleChannelIds: Object.freeze(['featured', 'top-rated', 'blitz', 'bullet', 'rapid']),
@@ -41,20 +42,13 @@
                 section: document.getElementById('spectatorSection'),
                 connectionStatus: document.getElementById('spectatorConnectionStatus'),
                 featuredBadge: document.getElementById('spectatorFeaturedBadge'),
-                watchBtn: document.getElementById('spectatorWatchFeaturedBtn'),
-                refreshBtn: document.getElementById('spectatorRefreshFeaturedBtn'),
                 message: document.getElementById('spectatorMessage'),
                 board: document.getElementById('spectatorBoard'),
                 topPlayer: document.getElementById('spectatorTopPlayer'),
                 bottomPlayer: document.getElementById('spectatorBottomPlayer'),
-                whiteClock: document.getElementById('spectatorWhiteClock'),
-                blackClock: document.getElementById('spectatorBlackClock'),
                 gameStatus: document.getElementById('spectatorGameStatus'),
-                metadata: document.getElementById('spectatorMetadata'),
                 moveList: document.getElementById('spectatorMoveList'),
                 liveContext: document.getElementById('spectatorLiveContext'),
-                whitePlayerCard: document.getElementById('spectatorWhitePlayerCard'),
-                blackPlayerCard: document.getElementById('spectatorBlackPlayerCard'),
                 channelList: document.getElementById('spectatorChannelList'),
                 gameList: document.getElementById('spectatorGameList'),
                 gameCount: document.getElementById('spectatorGameCount'),
@@ -75,8 +69,6 @@
         },
 
         bindEvents() {
-            this.elements.watchBtn?.addEventListener('click', () => this.watchFeaturedGame());
-            this.elements.refreshBtn?.addEventListener('click', () => this.refreshCatalog(true));
             this.elements.channelList?.addEventListener('click', (event) => {
                 const button = event.target.closest('[data-channel]');
                 if (button) this.selectChannel(button.dataset.channel);
@@ -114,7 +106,7 @@
             this.initBoard();
             this.syncFromFicsClient();
             this.renderChannels();
-            if (this.state?.currentObservedGameId || this.lastRenderedFen) {
+            if (this.selectedGame || this.lastRenderedFen) {
                 this.selectWorkspaceTab('watch');
             } else if (window.CaissaFICSClient?.authenticated) {
                 this.selectWorkspaceTab('channels');
@@ -126,7 +118,6 @@
         },
 
         onExit() {
-            this.pendingFeaturedWatch = false;
             this.catalogLoadCompleted = false;
         },
 
@@ -144,11 +135,14 @@
             } else if (detail.event === 'lobby-updated') {
                 const activeTables = detail.payload?.activeTables || [];
                 this.updateCatalog(activeTables);
-                if (this.pendingFeaturedWatch && activeTables.length) this.observeFeaturedCandidate();
             } else if (detail.event === 'style12') {
                 this.renderStyle12(detail.payload);
             } else if (detail.event === 'game-ended') {
                 this.renderGameEnded(detail.payload);
+            } else if (detail.event === 'observation-settled') {
+                this.handleObservationSettled(detail.payload);
+            } else if (detail.event === 'observation-error') {
+                this.handleObservationError(detail.payload);
             } else if (detail.event === 'disconnected') {
                 this.handleDisconnected();
             }
@@ -176,13 +170,16 @@
             if (window.CaissaSpectatorTVCatalog?.clearCatalog) {
                 this.catalog = window.CaissaSpectatorTVCatalog.clearCatalog();
             }
-            this.pendingFeaturedWatch = false;
+            this.selectedGame = null;
+            this.selectionGeneration += 1;
+            this.queuedGameId = null;
             this.lastRenderedFen = null;
-            this.playerCardSnapshots = Object.create(null);
             this.contextSnapshot = '';
             if (this.board) this.board.position('start', false);
-            this.renderPlayerCards(null);
+            this.renderPlayers(null);
             this.renderLiveContext(null, []);
+            this.renderMoveList([]);
+            this.renderGameStatus(null);
             this.selectWorkspaceTab('server');
             this.render();
         },
@@ -197,7 +194,7 @@
             if (nextTab === 'channels' && !window.CaissaFICSClient?.authenticated) {
                 this.showMessage('Connect to FICS from Server to load live games.', 'info');
             }
-            if (nextTab === 'watch' && !this.state?.currentObservedGameId && !this.lastRenderedFen) {
+            if (nextTab === 'watch' && !this.selectedGame && !this.lastRenderedFen) {
                 this.showMessage('Choose a live game from Channels to begin watching.', 'info');
             }
         },
@@ -260,7 +257,6 @@
                 this.refreshCatalog(true);
                 return;
             }
-            this.pendingFeaturedWatch = false;
             this.transition(window.CaissaSpectatorTV?.STATES?.CONNECTING, { error: null });
             this.showMessage('Connecting to FICS as a guest…', 'info');
             client.connect?.('guest');
@@ -400,30 +396,21 @@
                 this.enterLoadingGames();
             }
             if (client.liveGame?.currentFen) {
+                const gameId = String(client.liveGame.gameNumber || '');
+                if (gameId && String(this.selectedGame?.gameId || '') !== gameId) {
+                    const catalogGame = this.catalog?.gameMap?.[gameId] || {};
+                    this.beginGameSelection({
+                        ...catalogGame,
+                        gameId,
+                        whitePlayer: client.liveGame.whiteName || catalogGame.whitePlayer,
+                        blackPlayer: client.liveGame.blackName || catalogGame.blackPlayer
+                    }, { requestObservation: false });
+                }
                 this.renderStyle12({
                     liveGame: { ...client.liveGame },
                     moveHistory: client.moveHistory?.map((move) => ({ ...move })) || []
                 });
             }
-        },
-
-        watchFeaturedGame() {
-            const client = window.CaissaFICSClient;
-            if (!client) {
-                this.showMessage('FICS client is not available yet.', 'error');
-                return;
-            }
-
-            this.pendingFeaturedWatch = true;
-            if (!client.authenticated) {
-                this.transition(window.CaissaSpectatorTV.STATES.CONNECTING);
-                this.showMessage('Connecting to FICS...', 'info');
-                client.connect?.('guest');
-                this.render();
-                return;
-            }
-
-            this.refreshCatalog(true);
         },
 
         selectChannel(channelId) {
@@ -439,7 +426,6 @@
             }) || this.catalog;
             this.renderChannels();
             this.renderGameList();
-            this.renderCatalogSummary();
         },
 
         refreshCatalog(manual = false) {
@@ -451,16 +437,10 @@
 
             this.enterLoadingGames();
             this.showMessage('Loading live games...', 'info');
-            window.CaissaUI?.setButtonLoading(this.elements.refreshBtn, true, { label: 'Refreshing...' });
-            window.CaissaUI?.setButtonLoading(this.elements.watchBtn, true, { label: 'Loading...' });
+            window.CaissaUI?.setButtonLoading(this.elements.boardRefreshBtn, true, { label: 'Refreshing...' });
             client.refreshLobby?.(manual);
             setTimeout(() => {
-                window.CaissaUI?.setButtonLoading(this.elements.refreshBtn, false);
-                window.CaissaUI?.setButtonLoading(this.elements.watchBtn, false);
-                if (this.pendingFeaturedWatch && !this.catalog?.games?.length) {
-                    this.showMessage('No live games found yet. Try refreshing again.', 'warning');
-                    this.render();
-                }
+                window.CaissaUI?.setButtonLoading(this.elements.boardRefreshBtn, false);
             }, 3200);
             this.render();
         },
@@ -487,7 +467,10 @@
                 selectedChannelId: this.state?.selectedChannelId || 'featured'
             });
             this.catalogLoadCompleted = true;
-            this.renderCatalogSummary();
+            const selected = this.selectedGame?.gameId
+                ? this.catalog?.gameMap?.[String(this.selectedGame.gameId)]
+                : null;
+            if (selected) this.mergeSelectedGame(selected);
             this.renderGameList();
             this.renderViewingState();
         },
@@ -498,25 +481,6 @@
                 && !!table?.white
                 && !!table?.black
                 && /\b[WB]:\s*\d+\b/.test(label);
-        },
-
-        observeFeaturedCandidate() {
-            const client = window.CaissaFICSClient;
-            const candidate = window.CaissaSpectatorTVCatalog?.selectFeaturedGame?.(this.catalog?.games || []);
-
-            if (!client?.authenticated) {
-                this.showMessage('Connect to FICS before watching.', 'info');
-                return;
-            }
-
-            if (!candidate) {
-                this.showMessage('No featured live game is available right now.', 'warning');
-                this.render();
-                return;
-            }
-
-            this.pendingFeaturedWatch = false;
-            this.watchGame(candidate.gameId);
         },
 
         watchGame(gameId) {
@@ -534,26 +498,129 @@
                 return;
             }
 
-            this.state = window.CaissaSpectatorTV.setObservedGame(this.state, targetGame.gameId, targetGame);
-            this.transition(window.CaissaSpectatorTV.STATES.SWITCHING_GAME);
+            this.beginGameSelection(targetGame, { requestObservation: true });
+        },
+
+        beginGameSelection(game, options = {}) {
+            const gameId = String(game?.gameId ?? game?.number ?? '').trim();
+            if (!gameId) return null;
+            const generation = this.selectionGeneration + 1;
+            this.selectionGeneration = generation;
+            this.selectedGame = Object.freeze({
+                gameId,
+                whitePlayer: game.whitePlayer || game.white || 'White',
+                blackPlayer: game.blackPlayer || game.black || 'Black',
+                whiteRating: game.whiteRating || null,
+                blackRating: game.blackRating || null,
+                averageRating: game.averageRating || null,
+                timeControl: game.timeControl || null,
+                variant: game.variant || null,
+                rated: typeof game.rated === 'boolean' ? game.rated : null,
+                observers: game.observers || 0,
+                result: null,
+                status: 'loading',
+                generation
+            });
+            this.queuedGameId = null;
+            this.state = window.CaissaSpectatorTV.setObservedGame(this.state, gameId, this.selectedGame);
+            this.transition(window.CaissaSpectatorTV.STATES.SWITCHING_GAME, { metadata: this.selectedGame });
+            this.clearSelectedGamePresentation();
             this.selectWorkspaceTab('watch');
-            this.showMessage(`Opening game #${targetGame.gameId}...`, 'info');
-            if (typeof client.switchObservedGame === 'function') {
-                client.switchObservedGame(targetGame.gameId);
-            } else {
-                client.send?.(`observe ${targetGame.gameId}`);
-            }
+            this.showMessage(`Opening game #${gameId}...`, 'info');
             this.renderGameList();
             this.render();
+            if (options.requestObservation !== false) this.requestSelectedGameObservation(generation);
+            return this.selectedGame;
+        },
+
+        mergeSelectedGame(updates = {}) {
+            if (!this.selectedGame) return null;
+            const updateId = String(updates.gameId ?? updates.number ?? this.selectedGame.gameId);
+            if (updateId !== String(this.selectedGame.gameId)) return this.selectedGame;
+            this.selectedGame = Object.freeze({
+                ...this.selectedGame,
+                whitePlayer: updates.whitePlayer || updates.white || this.selectedGame.whitePlayer,
+                blackPlayer: updates.blackPlayer || updates.black || this.selectedGame.blackPlayer,
+                whiteRating: updates.whiteRating || this.selectedGame.whiteRating,
+                blackRating: updates.blackRating || this.selectedGame.blackRating,
+                averageRating: updates.averageRating || this.selectedGame.averageRating,
+                timeControl: updates.timeControl || this.selectedGame.timeControl,
+                variant: updates.variant || this.selectedGame.variant,
+                rated: typeof updates.rated === 'boolean' ? updates.rated : this.selectedGame.rated,
+                result: Object.prototype.hasOwnProperty.call(updates, 'result') ? updates.result : this.selectedGame.result,
+                status: updates.status || this.selectedGame.status
+            });
+            this.state = window.CaissaSpectatorTV.setObservedGame(this.state, this.selectedGame.gameId, this.selectedGame);
+            return this.selectedGame;
+        },
+
+        clearSelectedGamePresentation() {
+            this.lastRenderedFen = null;
+            this.contextSnapshot = '';
+            if (this.board) this.board.position('start', false);
+            this.renderPlayers(null);
+            this.renderLiveContext(null, []);
+            this.renderMoveList([]);
+            this.renderGameStatus(null);
+        },
+
+        requestSelectedGameObservation(generation) {
+            if (!this.selectedGame || generation !== this.selectionGeneration) return;
+            const client = window.CaissaFICSClient;
+            const gameId = String(this.selectedGame.gameId);
+            const delivery = typeof client?.switchObservedGame === 'function'
+                ? client.switchObservedGame(gameId)
+                : client?.send?.(`observe ${gameId}`);
+            if (delivery?.ok === false && delivery.code === 'OBSERVE_IN_PROGRESS') {
+                this.queuedGameId = gameId;
+                return;
+            }
+            if (delivery?.ok === false && delivery.code !== 'ALREADY_OBSERVING') {
+                this.queuedGameId = null;
+                this.showMessage(`Could not open game #${gameId}. Refresh Channels and try again.`, 'error');
+                return;
+            }
+            this.queuedGameId = null;
+        },
+
+        handleObservationSettled(payload = {}) {
+            const queued = this.queuedGameId;
+            if (!queued || queued !== String(this.selectedGame?.gameId || '')) return;
+            if (payload.gameNumber && String(payload.gameNumber) === queued) {
+                this.queuedGameId = null;
+                return;
+            }
+            this.requestSelectedGameObservation(this.selectionGeneration);
+        },
+
+        handleObservationError(payload = {}) {
+            const gameId = String(payload.gameNumber || '');
+            if (!this.selectedGame || gameId !== String(this.selectedGame.gameId)) return;
+            this.queuedGameId = null;
+            this.showMessage(`Game #${gameId} is no longer available. Return to Channels and refresh.`, 'warning');
+        },
+
+        isSelectedGameUpdate(liveGame = {}, payload = {}) {
+            if (!this.selectedGame) return false;
+            const eventGameId = String(liveGame.gameNumber ?? payload.gameNumber ?? '').trim();
+            if (!eventGameId || eventGameId !== String(this.selectedGame.gameId)) return false;
+            if (payload.selectionGeneration !== undefined
+                && Number(payload.selectionGeneration) !== this.selectionGeneration) return false;
+            return true;
         },
 
         renderStyle12(payload = {}) {
             const liveGame = payload.liveGame || {};
             if (!liveGame.currentFen) return;
-            const expectedGameId = this.state?.currentObservedGameId;
-            if (expectedGameId && liveGame.gameNumber && String(expectedGameId) !== String(liveGame.gameNumber)) {
-                return;
-            }
+            if (!this.isSelectedGameUpdate(liveGame, payload)) return;
+            const selectionGeneration = this.selectionGeneration;
+            this.mergeSelectedGame({
+                gameId: liveGame.gameNumber,
+                whitePlayer: liveGame.whiteName,
+                blackPlayer: liveGame.blackName,
+                result: null,
+                status: 'live'
+            });
 
             this.initBoard();
             if (this.board && liveGame.currentFen !== this.lastRenderedFen) {
@@ -582,19 +649,14 @@
                 this.lastRenderedFen = liveGame.currentFen;
             }
 
+            if (selectionGeneration !== this.selectionGeneration) return;
             if (liveGame.observedGame || liveGame.gameNumber) {
-                this.state = window.CaissaSpectatorTV.setObservedGame(this.state, liveGame.gameNumber, {
-                    whitePlayer: liveGame.whiteName,
-                    blackPlayer: liveGame.blackName
-                });
                 this.enterWatching();
                 this.selectWorkspaceTab('watch');
             }
 
             this.renderPlayers(liveGame);
-            this.renderPlayerCards(liveGame);
             this.renderLiveContext(liveGame, payload.moveHistory || []);
-            this.renderClocks(liveGame);
             this.renderMoveList(payload.moveHistory || []);
             this.renderGameStatus(liveGame);
             this.render();
@@ -602,16 +664,11 @@
 
         renderGameEnded(payload = {}) {
             const liveGame = payload.liveGame || {};
-            if (!liveGame.gameNumber && !this.state?.currentObservedGameId) return;
-            const expectedGameId = this.state?.currentObservedGameId;
-            if (expectedGameId && liveGame.gameNumber && String(expectedGameId) !== String(liveGame.gameNumber)) {
-                return;
-            }
+            if (!this.isSelectedGameUpdate(liveGame, payload)) return;
+            const result = payload.result || this.normalizeGameResult(payload.resultLine || liveGame.result);
+            this.mergeSelectedGame({ gameId: liveGame.gameNumber, result, status: 'finished' });
             this.transition(window.CaissaSpectatorTV.STATES.GAME_FINISHED, {
-                metadata: {
-                    ...(this.state?.metadata || {}),
-                    result: payload.result || this.normalizeGameResult(payload.resultLine || liveGame.result)
-                }
+                metadata: this.selectedGame
             });
             this.renderLiveContext(liveGame, payload.moveHistory || []);
             this.renderGameStatus(liveGame);
@@ -619,20 +676,24 @@
         },
 
         renderPlayers(liveGame) {
-            const table = window.CaissaFICSClient?.getActiveTableForGame?.(liveGame.gameNumber);
+            const selected = this.selectedGame;
+            const current = liveGame && this.isSelectedGameUpdate(liveGame) ? liveGame : null;
+            const table = selected?.gameId
+                ? window.CaissaFICSClient?.getActiveTableForGame?.(selected.gameId)
+                : null;
             this.renderPlayerBar(this.elements.topPlayer, {
                 color: 'black',
-                name: liveGame.blackName || 'Black',
-                rating: table?.blackRating || 'FICS',
-                clock: this.formatClock(liveGame.blackClock),
-                active: liveGame.sideToMove === 'b'
+                name: current?.blackName || selected?.blackPlayer || 'Black',
+                rating: selected?.blackRating || table?.blackRating || 'FICS',
+                clock: current ? this.formatClock(current.blackClock) : '--:--',
+                active: current?.sideToMove === 'b'
             });
             this.renderPlayerBar(this.elements.bottomPlayer, {
                 color: 'white',
-                name: liveGame.whiteName || 'White',
-                rating: table?.whiteRating || 'FICS',
-                clock: this.formatClock(liveGame.whiteClock),
-                active: liveGame.sideToMove === 'w'
+                name: current?.whiteName || selected?.whitePlayer || 'White',
+                rating: selected?.whiteRating || table?.whiteRating || 'FICS',
+                clock: current ? this.formatClock(current.whiteClock) : '--:--',
+                active: current?.sideToMove === 'w'
             });
         },
 
@@ -653,101 +714,6 @@
                 <span class="spectator-player-rating">${this.escapeHtml(player.rating || '')}</span>
                 <strong class="spectator-player-clock">${this.escapeHtml(player.clock)}</strong>
             `;
-        },
-
-        renderPlayerCards(liveGame) {
-            this.renderPlayerCard(this.elements.whitePlayerCard, this.getPlayerCardData(liveGame, 'white'));
-            this.renderPlayerCard(this.elements.blackPlayerCard, this.getPlayerCardData(liveGame, 'black'));
-        },
-
-        getPlayerCardData(liveGame, color) {
-            const table = liveGame?.gameNumber
-                ? window.CaissaFICSClient?.getActiveTableForGame?.(liveGame.gameNumber)
-                : null;
-            const game = liveGame?.gameNumber
-                ? this.catalog?.gameMap?.[String(liveGame.gameNumber)]
-                : null;
-            const isWhite = color === 'white';
-            const name = liveGame
-                ? (isWhite ? liveGame.whiteName : liveGame.blackName) || (isWhite ? 'White' : 'Black')
-                : (isWhite ? 'White' : 'Black');
-            const rating = isWhite
-                ? table?.whiteRating || game?.whiteRating || null
-                : table?.blackRating || game?.blackRating || null;
-            const clock = liveGame
-                ? this.formatClock(isWhite ? liveGame.whiteClock : liveGame.blackClock)
-                : '--:--';
-            const active = !!liveGame && liveGame.sideToMove === (isWhite ? 'w' : 'b');
-            const timeControl = game?.timeControl || table?.timeControl || 'live';
-            const variant = game?.variant || 'standard';
-            const rated = game?.rated;
-
-            return {
-                color,
-                name,
-                rating,
-                clock,
-                active,
-                timeControl,
-                variant,
-                rated,
-                hasGame: !!liveGame?.gameNumber
-            };
-        },
-
-        renderPlayerCard(element, player) {
-            if (!element || !player) return;
-            const ficsClient = window.CaissaFICSClient;
-            const computer = !!ficsClient?.isLikelyComputerPlayer?.(player.name);
-            const displayName = ficsClient?.stripComputerMarker?.(player.name) || player.name;
-            const titleName = ficsClient?.formatComputerPlayerName?.(player.name) || player.name;
-            const identity = this.getPlayerIdentity(player.name, player.hasGame);
-            const badgeData = [
-                { label: identity, variant: identity === 'Guest' ? 'warning' : 'info' },
-                computer ? { label: 'Computer', variant: 'info', title: 'Computer / engine account' } : null,
-                player.rated === true ? { label: 'Rated', variant: 'success' } : null,
-                player.rated === false ? { label: 'Unrated', variant: 'disabled' } : null,
-                player.active ? { label: 'To move', variant: 'playing' } : null
-            ].filter(Boolean);
-            const details = [
-                player.rating ? `Rating ${player.rating}` : 'Rating unavailable',
-                player.timeControl || 'live',
-                player.variant || 'standard'
-            ];
-            const snapshot = JSON.stringify({
-                ...player,
-                computer,
-                identity,
-                displayName,
-                titleName,
-                badgeData,
-                details
-            });
-
-            if (this.playerCardSnapshots[player.color] === snapshot) return;
-            this.playerCardSnapshots[player.color] = snapshot;
-
-            element.className = `spectator-player-card ${player.color}${player.active ? ' turn-active' : ''}`;
-            element.setAttribute('aria-label', `${player.color} player card: ${titleName}, ${player.active ? 'to move' : 'waiting'}`);
-            element.innerHTML = `
-                <div class="spectator-player-card__header">
-                    <span class="spectator-color-dot" aria-hidden="true"></span>
-                    <strong class="spectator-player-card__name" title="${this.escapeHtml(titleName)}">${this.escapeHtml(displayName)}${computer ? '<span class="fics-computer-marker" title="Computer / engine account" aria-label="Computer / engine account">(C)</span>' : ''}</strong>
-                    <span class="spectator-player-card__clock">${this.escapeHtml(player.clock)}</span>
-                </div>
-                <div class="spectator-player-card__details">
-                    ${details.map((detail) => `<span>${this.escapeHtml(detail)}</span>`).join('')}
-                </div>
-                <div class="spectator-player-card__badges" aria-label="Player status">
-                    ${badgeData.map((badge) => this.renderBadge(badge)).join('')}
-                </div>
-            `;
-        },
-
-        getPlayerIdentity(name, hasGame) {
-            if (!hasGame) return 'Waiting';
-            const value = String(name || '');
-            return /^guest/i.test(value) ? 'Guest' : 'Registered';
         },
 
         renderBadge(badge) {
@@ -772,35 +738,47 @@
             });
 
             this.elements.liveContext.innerHTML = `
-                <div class="spectator-context-row"><span>Opening</span><strong title="${this.escapeHtml(context.openingName)}">${this.escapeHtml(context.openingName)}</strong></div>
-                <div class="spectator-context-row"><span>ECO</span><strong>${this.escapeHtml(context.ecoCode)}</strong></div>
-                <div class="spectator-context-row"><span>Variant</span><strong>${this.escapeHtml(context.variant)}</strong></div>
-                <div class="spectator-context-row"><span>Rated</span>${ratedBadge}</div>
-                <div class="spectator-context-row"><span>Time</span><strong>${this.escapeHtml(context.timeControl)}</strong></div>
-                <div class="spectator-context-row"><span>Move</span><strong>${this.escapeHtml(context.currentMove)}</strong></div>
-                <div class="spectator-context-row"><span>Phase</span><strong>${this.escapeHtml(context.phase)}</strong></div>
-                <div class="spectator-context-row"><span>Result</span><strong>${this.escapeHtml(context.result)}</strong></div>
-                <div class="spectator-context-row"><span>Status</span>${statusBadge}</div>
+                <div class="spectator-context-cell spectator-context-cell--opening" data-spectator-detail="opening"><span>Opening</span><strong title="${this.escapeHtml(context.openingName)}">${this.escapeHtml(context.openingName)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>${this.escapeHtml(context.ecoCode)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="variant"><span>Variant</span><strong>${this.escapeHtml(context.variant)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="rated"><span>Rated</span>${ratedBadge}</div>
+                <div class="spectator-context-cell" data-spectator-detail="status"><span>Status</span>${statusBadge}</div>
+                <div class="spectator-context-cell" data-spectator-detail="time-control"><span>Time control</span><strong>${this.escapeHtml(context.timeControl)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="move"><span>Move</span><strong>${this.escapeHtml(context.currentMove)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="phase"><span>Phase</span><strong>${this.escapeHtml(context.phase)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="result"><span>Result</span><strong>${this.escapeHtml(context.result)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="game"><span>Game #</span><strong>${this.escapeHtml(context.gameNumber)}</strong></div>
+                <div class="spectator-context-cell" data-spectator-detail="rating"><span>Rating</span><strong title="${this.escapeHtml(context.ratingTitle)}">${this.escapeHtml(context.rating)}</strong></div>
+                <div class="spectator-context-cell spectator-context-cell--players" data-spectator-detail="players"><span>Players</span><strong title="${this.escapeHtml(context.players)}">${this.escapeHtml(context.players)}</strong></div>
             `;
         },
 
         getLiveContextData(liveGame, moveHistory = []) {
-            const gameId = liveGame?.gameNumber;
-            const game = gameId ? this.catalog?.gameMap?.[String(gameId)] : null;
+            const game = this.selectedGame;
+            const current = liveGame && this.isSelectedGameUpdate(liveGame) ? liveGame : null;
             const opening = this.resolveOpening(moveHistory);
             const plyCount = Array.isArray(moveHistory) ? moveHistory.length : 0;
-            const result = this.normalizeGameResult(liveGame?.result || this.state?.metadata?.result);
-            const finished = result !== '—' || liveGame?.status === 'ended' || this.state?.status === window.CaissaSpectatorTV?.STATES.GAME_FINISHED;
+            const result = this.normalizeGameResult(current?.result || game?.result);
+            const finished = !!game && (game.status === 'finished' || result !== '—');
+            const live = !!current?.currentFen && !finished;
+            const whitePlayer = current?.whiteName || game?.whitePlayer || '—';
+            const blackPlayer = current?.blackName || game?.blackPlayer || '—';
+            const whiteRating = game?.whiteRating || '—';
+            const blackRating = game?.blackRating || '—';
             return {
                 openingName: opening.name,
-                ecoCode: opening.eco || '--',
-                variant: this.titleCase(game?.variant || 'standard'),
-                rated: game?.rated === true ? 'Rated' : game?.rated === false ? 'Unrated' : 'Live',
-                timeControl: game?.timeControl || 'live',
-                currentMove: plyCount ? String(Math.ceil(plyCount / 2)) : '--',
-                phase: this.getGamePhase(liveGame?.currentFen, plyCount),
+                ecoCode: opening.eco || '—',
+                variant: game?.variant ? this.titleCase(game.variant) : '—',
+                rated: game?.rated === true ? 'Rated' : game?.rated === false ? 'Unrated' : '—',
+                timeControl: game?.timeControl || '—',
+                currentMove: current?.moveNumber ? String(current.moveNumber) : plyCount ? String(Math.ceil(plyCount / 2)) : '—',
+                phase: current?.currentFen ? this.getGamePhase(current.currentFen, plyCount) : '—',
                 result,
-                status: finished ? 'Finished' : liveGame?.gameNumber ? 'Live' : 'Not watching'
+                status: finished ? 'Finished' : live ? 'Live' : game ? 'Loading' : 'Not watching',
+                gameNumber: game?.gameId ? String(game.gameId) : '—',
+                rating: `${whiteRating} / ${blackRating}`,
+                ratingTitle: `White ${whiteRating} / Black ${blackRating}`,
+                players: game ? `${whitePlayer} vs ${blackPlayer}` : '—'
             };
         },
 
@@ -817,7 +795,7 @@
             const playedSAN = (moveHistory || [])
                 .map((move) => this.normalizeSan(move?.san))
                 .filter(Boolean);
-            if (!playedSAN.length) return { name: 'Unknown Opening', eco: '' };
+            if (!playedSAN.length) return { name: '—', eco: '' };
 
             const candidates = [];
             if (Array.isArray(window.App?.openings)) candidates.push(...window.App.openings);
@@ -837,7 +815,7 @@
                 bestDepth = moves.length;
             });
 
-            return best || { name: 'Unknown Opening', eco: '' };
+            return best || { name: '—', eco: '' };
         },
 
         extractOpeningMoves(candidate = {}) {
@@ -856,7 +834,7 @@
         },
 
         getGamePhase(fen, plyCount) {
-            if (!plyCount) return 'Waiting';
+            if (!fen || !plyCount) return '—';
             if (plyCount <= 16) return 'Opening';
             if (this.isEndgameFen(fen) || plyCount >= 60) return 'Endgame';
             return 'Middlegame';
@@ -877,17 +855,24 @@
                 .replace(/\b\w/g, (char) => char.toUpperCase());
         },
 
-        renderClocks(liveGame) {
-            if (this.elements.whiteClock) this.elements.whiteClock.textContent = this.formatClock(liveGame.whiteClock);
-            if (this.elements.blackClock) this.elements.blackClock.textContent = this.formatClock(liveGame.blackClock);
-        },
-
         renderGameStatus(liveGame) {
             if (!this.elements.gameStatus) return;
-            const side = liveGame.sideToMove === 'b' ? 'Black' : 'White';
-            this.elements.gameStatus.textContent = liveGame.gameNumber
-                ? `Game #${liveGame.gameNumber} - ${side} to move`
-                : 'No featured game selected';
+            const selected = this.selectedGame;
+            if (!selected) {
+                this.elements.gameStatus.textContent = 'No live game selected';
+                return;
+            }
+            if (selected.status === 'finished') {
+                this.elements.gameStatus.textContent = `Game #${selected.gameId} - Finished`;
+                return;
+            }
+            const current = liveGame && this.isSelectedGameUpdate(liveGame) ? liveGame : null;
+            if (!current?.currentFen) {
+                this.elements.gameStatus.textContent = `Game #${selected.gameId} - Loading`;
+                return;
+            }
+            const side = current.sideToMove === 'b' ? 'Black' : 'White';
+            this.elements.gameStatus.textContent = `Game #${selected.gameId} - ${side} to move`;
         },
 
         renderMoveList(moveHistory) {
@@ -923,28 +908,6 @@
             }));
         },
 
-        renderCatalogSummary() {
-            if (!this.elements.metadata) return;
-            const currentGameId = this.state?.currentObservedGameId;
-            const current = currentGameId ? this.catalog?.gameMap?.[String(currentGameId)] : null;
-            const candidate = current || window.CaissaSpectatorTVCatalog?.selectFeaturedGame?.(this.catalog?.games || []);
-            if (!candidate) {
-                this.renderEmptyState(this.elements.metadata, {
-                    icon: 'fa-tv',
-                    title: 'No featured candidate yet.',
-                    message: 'Refresh live games to select a featured board.'
-                });
-                return;
-            }
-
-            this.elements.metadata.innerHTML = `
-                <div class="spectator-meta-row"><span>Game</span><strong>#${this.escapeHtml(candidate.gameId)}</strong></div>
-                <div class="spectator-meta-row"><span>Players</span><strong>${this.escapeHtml(candidate.whitePlayer)} vs ${this.escapeHtml(candidate.blackPlayer)}</strong></div>
-                <div class="spectator-meta-row"><span>Time</span><strong>${this.escapeHtml(candidate.timeControl)}</strong></div>
-                <div class="spectator-meta-row"><span>Rating</span><strong>${this.escapeHtml(candidate.averageRating || 'FICS')}</strong></div>
-            `;
-        },
-
         renderChannels() {
             const selected = this.state?.selectedChannelId || 'featured';
             this.elements.channelList?.querySelectorAll('[data-channel]').forEach((button) => {
@@ -976,7 +939,7 @@
 
             this.elements.gameList.replaceChildren(...games.map((game) => {
                 const row = document.createElement('div');
-                const current = String(this.state?.currentObservedGameId || '') === String(game.gameId);
+                const current = String(this.selectedGame?.gameId || '') === String(game.gameId);
                 row.className = `spectator-game-row${current ? ' is-current' : ''}`;
                 row.innerHTML = `
                     <div class="spectator-game-main">
@@ -1006,10 +969,10 @@
         },
 
         render() {
-            const status = this.state?.status || 'disconnected';
+            const connection = this.getConnectionFootState();
             if (this.elements.connectionStatus) {
-                this.elements.connectionStatus.textContent = this.labelForStatus(status);
-                this.elements.connectionStatus.className = `spectator-status spectator-status-${status}`;
+                this.elements.connectionStatus.textContent = connection.label;
+                this.elements.connectionStatus.className = `spectator-status spectator-status-${connection.status}`;
             }
             if (this.elements.featuredBadge) {
                 this.elements.featuredBadge.textContent = this.catalog?.featuredGameId
@@ -1018,7 +981,6 @@
             }
             this.renderChannels();
             this.renderGameList();
-            this.renderCatalogSummary();
             this.renderViewingState();
             this.renderWorkspace();
             this.renderFullscreenControl();
@@ -1030,9 +992,13 @@
             if (!panel || !target) return;
             const states = window.CaissaSpectatorTV?.STATES || {};
             const status = this.state?.status;
-            const hasGame = !!(this.state?.currentObservedGameId || this.lastRenderedFen);
-            const loading = !hasGame && !this.catalogLoadCompleted
-                && [states.CONNECTING, states.LOADING_GAMES, states.SWITCHING_GAME].includes(status);
+            const hasGame = !!this.lastRenderedFen;
+            const hasSelection = !!this.selectedGame;
+            const loading = !hasGame && (
+                (hasSelection && status === states.SWITCHING_GAME)
+                || (!hasSelection && !this.catalogLoadCompleted
+                    && [states.CONNECTING, states.LOADING_GAMES].includes(status))
+            );
             panel.classList.toggle('is-loading', loading);
             panel.classList.toggle('is-empty', !loading && !hasGame);
             target.hidden = hasGame;
@@ -1067,8 +1033,14 @@
             target.textContent = options.message || options.title || '';
         },
 
-        labelForStatus(status) {
-            return window.CaissaSpectatorTV?.STATE_LABELS?.[status] || 'Disconnected';
+        getConnectionFootState() {
+            const client = window.CaissaFICSClient;
+            if (client?.authenticated) return { label: 'Connected · FICS', status: 'connected' };
+            const connectionState = String(client?.connectionState || '').toLowerCase();
+            const connecting = ['connecting', 'reconnecting'].includes(connectionState)
+                || this.state?.status === window.CaissaSpectatorTV?.STATES?.CONNECTING;
+            if (connecting) return { label: 'Connecting…', status: 'connecting' };
+            return { label: 'Disconnected', status: 'disconnected' };
         },
 
         formatClock(seconds) {

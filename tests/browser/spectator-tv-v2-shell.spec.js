@@ -367,6 +367,10 @@ test('live Spectator updates reuse the persistent FICS renderer without board ge
 
   const result = await page.evaluate(async () => {
     const section = window.CaissaSpectatorTVSection;
+    section.beginGameSelection({
+      gameId: '919', whitePlayer: 'Alpha', blackPlayer: 'Beta',
+      timeControl: '5+0', variant: 'standard', rated: true
+    }, { requestObservation: false });
     const game = new Chess();
     const emit = san => {
       const move = game.move(san);
@@ -422,4 +426,232 @@ test('live Spectator updates reuse the persistent FICS renderer without board ge
   }
   expect(pageErrors).toEqual([]);
   expect(consoleErrors.filter(message => !/favicon/i.test(message))).toEqual([]);
+});
+
+test('rapid Game A to Game B selection rejects stale metadata and preserves one board root', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/spectator-tv');
+
+  const result = await page.evaluate(async () => {
+    const section = window.CaissaSpectatorTVSection;
+    const client = window.CaissaFICSClient;
+    const calls = [];
+    client.authenticated = true;
+    client.connected = true;
+    client.connectionState = 'connected';
+    client.switchObservedGame = gameId => {
+      calls.push(String(gameId));
+      return calls.length === 1
+        ? { ok: true, code: 'SWITCH_REQUESTED' }
+        : { ok: false, code: 'OBSERVE_IN_PROGRESS' };
+    };
+    section.state = window.CaissaSpectatorTV.createInitialState({
+      status: window.CaissaSpectatorTV.STATES.LOADING_GAMES
+    });
+    section.catalog = window.CaissaSpectatorTVCatalog.createCatalog({
+      games: [
+        { gameId: '101', whitePlayer: 'Alpha White', blackPlayer: 'Alpha Black', whiteRating: 1701, blackRating: 1702, timeControl: '15+0', variant: 'standard', rated: true },
+        { gameId: '202', whitePlayer: 'Beta White With A Long Accessible Name', blackPlayer: 'Beta Black With A Long Accessible Name', whiteRating: 1901, blackRating: 1902, timeControl: '5+2', variant: 'standard', rated: false }
+      ]
+    });
+    section.renderGameList();
+    section.beginGameSelection(section.catalog.gameMap['101'], { requestObservation: false });
+    section.renderStyle12({
+      liveGame: {
+        currentFen: new Chess().fen(), gameNumber: 101,
+        whiteName: 'Alpha White', blackName: 'Alpha Black',
+        whiteClock: 900, blackClock: 900, sideToMove: 'w', observedGame: true, status: 'observing'
+      },
+      moveHistory: []
+    });
+    await section.boardView.whenIdle();
+    const root = document.querySelector('#spectatorBoard > *');
+
+    section.watchGame('101');
+    const generationA = section.selectionGeneration;
+    section.watchGame('202');
+    const generationB = section.selectionGeneration;
+    const afterSelection = {
+      selected: section.selectedGame.gameId,
+      result: document.querySelector('[data-spectator-detail="result"] strong')?.textContent.trim(),
+      status: document.querySelector('[data-spectator-detail="status"] .caissa-ui-badge')?.textContent.trim(),
+      players: document.querySelector('[data-spectator-detail="players"] strong')?.textContent.trim(),
+      header: document.querySelector('#spectatorGameStatus')?.textContent.trim(),
+      fen: section.lastRenderedFen
+    };
+
+    const gameA = new Chess();
+    gameA.move('e4');
+    section.renderStyle12({
+      selectionGeneration: generationA,
+      liveGame: {
+        currentFen: gameA.fen(), gameNumber: 101, whiteName: 'Alpha White', blackName: 'Alpha Black',
+        whiteClock: 899, blackClock: 900, sideToMove: 'b', observedGame: true, result: '1-0'
+      },
+      moveHistory: [{ moveNumber: 1, color: 'white', san: 'e4' }]
+    });
+    const afterStaleA = {
+      selected: section.selectedGame.gameId,
+      fen: section.lastRenderedFen,
+      players: document.querySelector('[data-spectator-detail="players"] strong')?.textContent.trim(),
+      header: document.querySelector('#spectatorGameStatus')?.textContent.trim()
+    };
+
+    section.handleObservationSettled({ gameNumber: '101' });
+    const gameB = new Chess();
+    gameB.move('d4');
+    section.renderStyle12({
+      selectionGeneration: generationB,
+      liveGame: {
+        currentFen: gameB.fen(), gameNumber: 202,
+        whiteName: 'Beta White With A Long Accessible Name',
+        blackName: 'Beta Black With A Long Accessible Name',
+        whiteClock: 111, blackClock: 222, sideToMove: 'b', observedGame: true, status: 'observing'
+      },
+      moveHistory: [{ moveNumber: 1, color: 'white', san: 'd4' }]
+    });
+    await section.boardView.whenIdle();
+    section.renderGameEnded({
+      selectionGeneration: generationA,
+      result: '1-0',
+      liveGame: { gameNumber: 101, status: 'ended', result: '1-0' },
+      moveHistory: []
+    });
+
+    const details = Object.fromEntries(Array.from(document.querySelectorAll('[data-spectator-detail]'), cell => [
+      cell.dataset.spectatorDetail,
+      cell.querySelector('strong, .caissa-ui-badge')?.textContent.trim() || ''
+    ]));
+    const liveSnapshot = {
+      details,
+      header: document.querySelector('#spectatorGameStatus').textContent.trim(),
+      topPlayer: document.querySelector('#spectatorTopPlayer .spectator-player-name').textContent.trim(),
+      bottomPlayer: document.querySelector('#spectatorBottomPlayer .spectator-player-name').textContent.trim(),
+      clocks: Array.from(document.querySelectorAll('.spectator-player-clock'), element => element.textContent.trim())
+    };
+    section.renderGameEnded({
+      selectionGeneration: generationB,
+      result: '0-1',
+      liveGame: {
+        gameNumber: 202, status: 'ended', result: '0-1',
+        whiteName: 'Beta White With A Long Accessible Name',
+        blackName: 'Beta Black With A Long Accessible Name'
+      },
+      moveHistory: [{ moveNumber: 1, color: 'white', san: 'd4' }]
+    });
+    const finishedSnapshot = {
+      status: document.querySelector('[data-spectator-detail="status"] .caissa-ui-badge').textContent.trim(),
+      result: document.querySelector('[data-spectator-detail="result"] strong').textContent.trim(),
+      header: document.querySelector('#spectatorGameStatus').textContent.trim(),
+      foot: document.querySelector('.spectator-workspace-foot').textContent.replace(/\s+/g, ' ').trim()
+    };
+    return {
+      calls,
+      generationA,
+      generationB,
+      afterSelection,
+      afterStaleA,
+      selected: section.selectedGame.gameId,
+      liveSnapshot,
+      finishedSnapshot,
+      visibleClockCount: Array.from(document.querySelectorAll('.spectator-player-clock')).filter(element => element.getBoundingClientRect().width > 0).length,
+      duplicateClockRows: document.querySelectorAll('.spectator-clock-row, .spectator-player-card__clock').length,
+      sameRoot: root === document.querySelector('#spectatorBoard > *'),
+      roots: document.querySelectorAll('#spectatorBoard > *').length,
+      renderer: section.boardView.getSnapshot().renderer,
+      foot: document.querySelector('.spectator-workspace-foot').textContent.replace(/\s+/g, ' ').trim()
+    };
+  });
+
+  expect(result.generationB).toBeGreaterThan(result.generationA);
+  expect(result.afterSelection).toMatchObject({
+    selected: '202', result: '—', status: 'Loading',
+    players: 'Beta White With A Long Accessible Name vs Beta Black With A Long Accessible Name',
+    header: 'Game #202 - Loading', fen: null
+  });
+  expect(result.afterStaleA).toMatchObject({
+    selected: '202', fen: null,
+    players: 'Beta White With A Long Accessible Name vs Beta Black With A Long Accessible Name',
+    header: 'Game #202 - Loading'
+  });
+  expect(result.calls).toEqual(['101', '202', '202']);
+  expect(result.selected).toBe('202');
+  expect(result.liveSnapshot.details.game).toBe('202');
+  expect(result.liveSnapshot.details.players).toContain('Beta White With A Long Accessible Name vs Beta Black With A Long Accessible Name');
+  expect(result.liveSnapshot.details['time-control']).toBe('5+2');
+  expect(result.liveSnapshot.details.status).toBe('Live');
+  expect(result.liveSnapshot.details.result).toBe('—');
+  expect(result.liveSnapshot.header).toBe('Game #202 - Black to move');
+  expect(result.liveSnapshot.topPlayer).toContain('Beta Black With A Long Accessible Name');
+  expect(result.liveSnapshot.bottomPlayer).toContain('Beta White With A Long Accessible Name');
+  expect(result.liveSnapshot.clocks).toEqual(['3:42', '1:51']);
+  expect(result.finishedSnapshot).toMatchObject({
+    status: 'Finished', result: '0-1', header: 'Game #202 - Finished'
+  });
+  expect(result.finishedSnapshot.foot).toContain('Connected · FICS');
+  expect(result.finishedSnapshot.foot).not.toContain('Game Finished');
+  expect(result.visibleClockCount).toBe(2);
+  expect(result.duplicateClockRows).toBe(0);
+  expect(result.sameRoot).toBe(true);
+  expect(result.roots).toBe(1);
+  expect(result.renderer).toBe('persistent');
+  expect(result.foot).toContain('Connected · FICS');
+  expect(result.foot).not.toContain('Game Finished');
+});
+
+test('compact details and simplified FOOT adapt across desktop and mobile', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+  await page.goto('/spectator-tv');
+  await page.evaluate(() => {
+    const section = window.CaissaSpectatorTVSection;
+    const client = window.CaissaFICSClient;
+    client.authenticated = true;
+    client.connected = true;
+    client.connectionState = 'connected';
+    client.refreshLobby = () => { window.__spectatorRefreshCalls = (window.__spectatorRefreshCalls || 0) + 1; };
+    section.state = window.CaissaSpectatorTV.createInitialState({ status: window.CaissaSpectatorTV.STATES.LOADING_GAMES });
+    section.catalog = window.CaissaSpectatorTVCatalog.createCatalog({
+      games: [{ gameId: '303', whitePlayer: 'A Very Long White Player Name', blackPlayer: 'A Very Long Black Player Name', whiteRating: 2001, blackRating: 2002, timeControl: '3+0', variant: 'standard', rated: true }]
+    });
+    section.beginGameSelection(section.catalog.gameMap['303'], { requestObservation: false });
+  });
+
+  for (const profile of [{ width: 1366, height: 768, columns: 3 }, { width: 390, height: 844, columns: 2 }, { width: 844, height: 390, columns: 3 }]) {
+    await page.setViewportSize({ width: profile.width, height: profile.height });
+    const layout = await page.evaluate(() => {
+      const grid = document.querySelector('#spectatorLiveContext');
+      const body = document.querySelector('.spectator-workspace-body');
+      const players = document.querySelector('[data-spectator-detail="players"] strong');
+      return {
+        columns: getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length,
+        gridOverflow: grid.scrollWidth > grid.clientWidth,
+        pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
+        bodyOverflowY: getComputedStyle(body).overflowY,
+        playerTitle: players.getAttribute('title'),
+        playerText: players.textContent.trim()
+      };
+    });
+    expect(layout.columns, JSON.stringify(profile)).toBe(profile.columns);
+    expect(layout.gridOverflow, JSON.stringify(profile)).toBe(false);
+    expect(layout.pageOverflow, JSON.stringify(profile)).toBe(false);
+    expect(layout.bodyOverflowY, JSON.stringify(profile)).toBe('auto');
+    expect(layout.playerTitle, JSON.stringify(profile)).toBe(layout.playerText);
+  }
+
+  const foot = page.locator('.spectator-workspace-foot');
+  await expect(foot.getByRole('button', { name: /Refresh/i })).toHaveCount(0);
+  await expect(foot.getByRole('button', { name: /Watch featured/i })).toHaveCount(0);
+  await expect(page.locator('#spectatorBoardRefreshBtn')).toBeVisible();
+  await expect(page.locator('.spectator-game-watch')).toHaveCount(1);
+
+  await page.locator('#spectatorWorkspaceBackBtn').click();
+  await expect(page.locator('#spectatorChannelsView')).toBeVisible();
+  await page.locator('#spectatorBoardRefreshBtn').click();
+  await expect.poll(() => page.evaluate(() => window.__spectatorRefreshCalls || 0)).toBe(1);
+  await expect(foot.getByRole('button', { name: 'Back to Server' })).toBeVisible();
+  await page.locator('#spectatorWorkspaceBackBtn').click();
+  await expect(page.locator('#spectatorServerView')).toBeVisible();
+  await expect(foot.getByRole('button', { name: /Connect & continue/i })).toBeVisible();
+  expect(await page.evaluate(() => window.CaissaFICSClient.authenticated)).toBe(true);
 });
