@@ -43,6 +43,16 @@ test('Spectator TV 2.0 uses one board region and one HEAD BODY FOOT workspace', 
     assert.doesNotMatch(section, /spectator-browser-panel|spectator-side-panel/);
 });
 
+test('one board alignment rail owns the broadcast header, player bars, and board width', () => {
+    assert.equal((section.match(/class="spectator-board-rail"/g) || []).length, 1);
+    assert.match(section, /spectator-board-rail[\s\S]*spectator-broadcast-bar[\s\S]*id="spectatorTopPlayer"[\s\S]*spectator-board-frame[\s\S]*id="spectatorBottomPlayer"/);
+    assert.match(css, /\.spectator-v2 \.spectator-board-rail\s*\{[^}]*width:\s*min\(100%,\s*calc\(100dvh - 260px\),\s*720px\)/s);
+    assert.match(css, /\.spectator-v2 \.spectator-board-frame\s*\{[^}]*width:\s*100%/s);
+    assert.doesNotMatch(css, /\.spectator-v2 \.spectator-board-frame\s*\{[^}]*width:\s*min\(/s);
+    assert.match(css, /\.spectator-v2 \.spectator-player-name\s*\{[^}]*min-width:\s*0[^}]*text-overflow:\s*ellipsis/s);
+    assert.doesNotMatch(css, /\.spectator-v2 \.spectator-player-rating\s*\{[^}]*display:\s*none/s);
+});
+
 test('workflow exposes exactly Server, Channels, and Watch views', () => {
     assert.equal((section.match(/data-spectator-tab=/g) || []).length, 3);
     assert.equal((section.match(/data-spectator-view=/g) || []).length, 3);
