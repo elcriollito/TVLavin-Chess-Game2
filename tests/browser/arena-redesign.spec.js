@@ -261,6 +261,82 @@ test('turn LED follows the board state and finished games never claim a side to 
   await expect(turnStatus).not.toContainText(/to move/i);
 });
 
+test('Moves renders canonical SAN for standard and special chess moves', async ({ page }) => {
+  await openArena(page);
+
+  const sanCases = await page.evaluate(() => {
+    const fromPosition = (fen, move) => (fen ? new Chess(fen) : new Chess()).move(move)?.san;
+    const fromSequence = (moves) => {
+      const game = new Chess();
+      let result = null;
+      moves.forEach(move => { result = game.move(move); });
+      return result?.san;
+    };
+
+    return {
+      pawn: fromPosition(undefined, { from: 'e2', to: 'e4' }),
+      knight: fromPosition(undefined, { from: 'g1', to: 'f3' }),
+      bishop: fromSequence(['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5']),
+      queen: fromPosition('4k3/8/8/8/8/8/8/3Q2K1 w - - 0 1', { from: 'd1', to: 'f1' }),
+      pawnCapture: fromPosition('4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1', { from: 'e4', to: 'd5' }),
+      pieceCapture: fromPosition('7k/8/2n5/1B6/8/8/8/4K3 w - - 0 1', { from: 'b5', to: 'c6' }),
+      check: fromPosition('4k3/8/8/8/2B5/8/8/4K3 w - - 0 1', { from: 'c4', to: 'b5' }),
+      checkmate: fromPosition('6k1/5pp1/8/8/1B6/3B3Q/8/6K1 w - - 0 1', { from: 'h3', to: 'h7' }),
+      kingsideCastle: fromPosition('4k3/8/8/8/8/8/8/4K2R w K - 0 1', { from: 'e1', to: 'g1' }),
+      queensideCastle: fromPosition('4k3/8/8/8/8/8/8/R3K3 w Q - 0 1', { from: 'e1', to: 'c1' }),
+      promotion: fromPosition('8/k3P3/8/8/8/8/8/K7 w - - 0 1', { from: 'e7', to: 'e8', promotion: 'q' }),
+      promotionCheck: fromPosition('k7/4P3/8/8/8/8/8/K7 w - - 0 1', { from: 'e7', to: 'e8', promotion: 'q' }),
+      disambiguation: fromPosition('4k3/8/8/8/8/1N3N2/8/4K3 w - - 0 1', { from: 'b3', to: 'd2' }),
+      enPassant: fromPosition('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 2', { from: 'e5', to: 'd6' })
+    };
+  });
+
+  expect(sanCases).toEqual({
+    pawn: 'e4',
+    knight: 'Nf3',
+    bishop: 'Bc5',
+    queen: 'Qf1',
+    pawnCapture: 'exd5',
+    pieceCapture: 'Bxc6',
+    check: 'Bb5+',
+    checkmate: 'Qh7#',
+    kingsideCastle: 'O-O',
+    queensideCastle: 'O-O-O',
+    promotion: 'e8=Q',
+    promotionCheck: 'e8=Q+',
+    disambiguation: 'Nbd2',
+    enPassant: 'exd6'
+  });
+
+  await page.evaluate(() => {
+    const arena = window.CaissaArena;
+    arena.game = new Chess();
+    arena.state.currentGame = { startFen: arena.game.fen(), moves: [] };
+    ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'a6', 'Be3', 'e5', 'Nf3', 'Be7'].forEach(move => arena.game.move(move));
+    arena.renderMoveHistory();
+  });
+
+  const expectedRows = [
+    ['1.', 'e4', 'c5'],
+    ['2.', 'Nf3', 'd6'],
+    ['3.', 'd4', 'cxd4'],
+    ['4.', 'Nxd4', 'Nf6'],
+    ['5.', 'Nc3', 'a6'],
+    ['6.', 'Be3', 'e5'],
+    ['7.', 'Nf3', 'Be7']
+  ];
+  const readRows = () => page.locator('#arenaMoveHistory .arena-move-row').evaluateAll(rows => rows.map(row => (
+    Array.from(row.children, cell => cell.textContent)
+  )));
+  expect(await readRows()).toEqual(expectedRows);
+
+  await page.getByRole('tab', { name: 'Match' }).click();
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  await page.getByRole('tab', { name: 'Game' }).click();
+  expect(await readRows()).toEqual(expectedRows);
+  expect((await page.locator('#arenaMoveHistory').innerText()).match(/\b[a-h][1-8][a-h][1-8][qrbn]?\b/g)).toBeNull();
+});
+
 test('preserved Match controls work and tab changes keep active workers alive', async ({ page }) => {
   await openArena(page);
   await page.getByRole('tab', { name: 'Match' }).click();
@@ -314,6 +390,13 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   }));
   expect(running).toEqual({ state: 'running', mode: 'match', sameWorkers: true });
   await expect(page.locator('.arena-move-row').first()).toBeVisible();
+  const liveNotation = await page.evaluate(() => ({
+    storedSan: window.CaissaArena.state.currentGame.moves.map(move => move.move),
+    storedUci: window.CaissaArena.state.currentGame.moves.map(move => move.uci),
+    canonicalSan: window.CaissaArena.game.history({ verbose: true }).map(move => move.san)
+  }));
+  expect(liveNotation.storedSan).toEqual(liveNotation.canonicalSan);
+  expect(liveNotation.storedUci.every(move => /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move))).toBe(true);
   await expect(page.locator('#arenaPauseMatch')).toBeVisible();
   await expect(page.locator('#arenaStopMatch')).toBeVisible();
   await expect(page.locator('#arenaStatusTurn')).toHaveText(/^(White|Black) to move$/);

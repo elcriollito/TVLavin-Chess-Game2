@@ -74,7 +74,7 @@ test('Arena tabs are accessible and do not own competition lifecycle state', () 
 
 test('Arena sizing is viewport-aware and its move list scrolls internally', () => {
   assert.match(controller, /Math\.min\(arenaMax, availableWidth, availableHeight\)/);
-  assert.match(controller, /moveHistory\.scrollTop = this\.elements\.moveHistory\.scrollHeight/);
+  assert.match(controller, /container\.scrollTop = container\.scrollHeight/);
   assert.match(styles, /#arenaSection \.arena-board-mount[\s\S]*?aspect-ratio:\s*1\s*\/\s*1/);
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);
@@ -91,4 +91,16 @@ test('Tournament standings are sourced from participants, games, and standard sc
   assert.match(controller, /whiteStanding\.games\+\+[\s\S]{0,80}?blackStanding\.games\+\+/);
   assert.match(controller, /<th class="standings-participant" scope="col">Participant<\/th>/);
   assert.match(styles, /#arenaSection \.tournament-standings[\s\S]*?overflow-x:\s*auto/);
+});
+
+test('Arena move presentation uses canonical SAN while engine transport remains UCI', () => {
+  const renderStart = controller.indexOf('    renderMoveHistory() {');
+  const renderEnd = controller.indexOf('// ===== EVALUATION PANEL =====', renderStart);
+  const renderer = controller.slice(renderStart, renderEnd);
+  assert.match(renderer, /history\(\{ verbose: true \}\)/);
+  assert.match(renderer, /move\.san/);
+  assert.doesNotMatch(renderer, /game\.move\(/, 'rendering must not replay moves into the live game');
+  assert.match(controller, /playUciMove\(uciMove, isWhiteTurn/);
+  assert.match(controller, /uci:\s*uciMove/);
+  assert.match(controller, /this\.playUciMove\(bestMove, isWhiteTurn, 'engine'\)/);
 });

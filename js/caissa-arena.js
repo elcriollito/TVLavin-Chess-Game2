@@ -599,6 +599,7 @@ const CaissaArena = {
 
         if (options.focus !== false) tabs[tab]?.focus();
         if (tab === 'game') {
+            this.renderMoveHistory();
             requestAnimationFrame(() => this.syncBoardAndGraphSize());
         }
     },
@@ -1650,7 +1651,7 @@ const CaissaArena = {
             });
         }
 
-        this.updateMoveHistory(moveResult);
+        this.updateMoveHistory();
 
         this.updateGameStatus({
             turn: this.game.turn() === 'w' ? 'white' : 'black',
@@ -2045,35 +2046,60 @@ const CaissaArena = {
     },
 
     /**
-     * Update move history display
+     * Render the human-facing score sheet from chess.js's canonical SAN history.
+     * Engine communication remains UCI; this method never mutates the game.
      */
-    updateMoveHistory(move) {
-        if (!this.elements.moveHistory) return;
+    renderMoveHistory() {
+        const container = this.elements.moveHistory;
+        if (!container || !this.game) return;
 
-        const moveNum = Math.ceil(this.game.history().length / 2);
-        const isWhite = move.color === 'w';
+        const moves = this.game.history({ verbose: true });
+        const startFen = this.state.currentGame?.startFen || this.state.customStartFen || '';
+        const fenParts = startFen.split(/\s+/);
+        let moveNumber = Number.parseInt(fenParts[5], 10) || 1;
+        let currentRow = null;
 
-        if (isWhite) {
-            // Start new row for white move
+        container.replaceChildren();
+
+        const createRow = (number) => {
             const row = document.createElement('div');
             row.className = 'arena-move-row';
-            row.innerHTML = `<span class="move-num">${moveNum}.</span>
-                            <span class="move-white">${move.san}</span>
-                            <span class="move-black">-</span>`;
-            this.elements.moveHistory.appendChild(row);
-        } else {
-            // Fill in black move in last row
-            const lastRow = this.elements.moveHistory.querySelector('.arena-move-row:last-child');
-            if (lastRow) {
-                const blackSpan = lastRow.querySelector('.move-black');
-                if (blackSpan) {
-                    blackSpan.textContent = move.san;
-                }
-            }
-        }
 
-        // Scroll to bottom
-        this.elements.moveHistory.scrollTop = this.elements.moveHistory.scrollHeight;
+            const numberCell = document.createElement('span');
+            numberCell.className = 'move-num';
+            numberCell.textContent = `${number}.`;
+
+            const whiteCell = document.createElement('span');
+            whiteCell.className = 'move-white';
+            whiteCell.textContent = '\u2026';
+
+            const blackCell = document.createElement('span');
+            blackCell.className = 'move-black';
+            blackCell.textContent = '\u2026';
+
+            row.append(numberCell, whiteCell, blackCell);
+            container.appendChild(row);
+            return row;
+        };
+
+        moves.forEach((move) => {
+            if (move.color === 'w') {
+                currentRow = createRow(moveNumber);
+                currentRow.querySelector('.move-white').textContent = move.san;
+                return;
+            }
+
+            if (!currentRow) currentRow = createRow(moveNumber);
+            currentRow.querySelector('.move-black').textContent = move.san;
+            currentRow = null;
+            moveNumber += 1;
+        });
+
+        container.scrollTop = container.scrollHeight;
+    },
+
+    updateMoveHistory() {
+        this.renderMoveHistory();
     },
 
     // ===== EVALUATION PANEL =====
