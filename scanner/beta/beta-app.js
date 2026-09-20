@@ -12,6 +12,12 @@ let workingFen = '';
 let selectedPiece = '';
 let captureType = null;
 let activeRecognitionController = null;
+let selectedFileMetadata = null;
+
+const RECOGNITION_TIMEOUT_MS = 25_000;
+const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const EXTENSION_TYPES = Object.freeze({ jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' });
+const HEIC_TYPES = new Set(['image/heic', 'image/heif', 'image/x-heic', 'image/x-heif']);
 
 function show(id) { views.forEach((view) => { $(view).hidden = view !== id; }); }
 function consent() { return { shareImageForImprovement: $('shareImage').checked, shareCorrectionForImprovement: $('shareCorrection').checked }; }
@@ -19,7 +25,8 @@ function clientMetadata() {
   return {
     viewport: { width: innerWidth, height: innerHeight },
     screenOrientation: screen.orientation?.type || null,
-    browser: navigator.userAgent.slice(0, 180)
+    browser: navigator.userAgent.slice(0, 180),
+    selectedImage: selectedFileMetadata ? { ...selectedFileMetadata } : null
   };
 }
 function status(message, target = 'submitStatus') { $(target).textContent = message; }
@@ -35,26 +42,59 @@ function rgbaBase64(buffer) {
   return btoa(value);
 }
 
-async function recognizeBoard(body, signal) {
-  let lastError = new Error('CLASSIFIER_UNAVAILABLE');
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    if (signal.aborted) throw new DOMException('Recognition canceled.', 'AbortError');
-    try {
-      const response = await fetch('/api/scanner/beta/recognize', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal
-      });
-      if (!response.ok) {
-        const retryable = [429, 503, 504].includes(response.status);
-        if (!retryable || attempt === 1) throw new Error('CLASSIFIER_UNAVAILABLE');
-      } else return response.json();
-    } catch (error) {
-      if (signal.aborted) throw error;
-      lastError = error;
-      if (attempt === 1) break;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
+function typedError(code, details = {}) {
+  const error = new Error(code);
+  error.code = code;
+  Object.assign(error, details);
+  return error;
+}
+
+function responseError(statusCode, body = {}, retryAfter = null) {
+  const serverCode = String(body?.error || '').toUpperCase();
+  if (statusCode === 401) return typedError('AUTH_REQUIRED', { statusCode });
+  if (statusCode === 403) return typedError('BETA_ACCESS_DENIED', { statusCode });
+  if (statusCode === 404) return typedError('BETA_DISABLED', { statusCode });
+  if (statusCode === 413) return typedError('PAYLOAD_TOO_LARGE', { statusCode });
+  if (statusCode === 415) return typedError('UNSUPPORTED_IMAGE', { statusCode });
+  if (statusCode === 422) return typedError('INVALID_PAYLOAD', { statusCode });
+  if (statusCode === 429 || serverCode === 'RATE_LIMITED') {
+    return typedError('RATE_LIMIT', { statusCode, retryAfter });
   }
-  throw lastError;
+  if (statusCode === 504 || serverCode === 'TIMEOUT') return typedError('TIMEOUT', { statusCode });
+  if (serverCode === 'INVALID_IMAGE' || serverCode === 'INVALID_PAYLOAD') {
+    return typedError('INVALID_PAYLOAD', { statusCode });
+  }
+  return typedError('INFERENCE_FAILURE', { statusCode });
+}
+
+async function recognizeBoard(body, parentSignal) {
+  if (parentSignal.aborted) throw new DOMException('Recognition canceled.', 'AbortError');
+  const requestController = new AbortController();
+  let timedOut = false;
+  const cancelRequest = () => requestController.abort();
+  parentSignal.addEventListener('abort', cancelRequest, { once: true });
+  const timer = setTimeout(() => {
+    timedOut = true;
+    requestController.abort();
+  }, RECOGNITION_TIMEOUT_MS);
+  try {
+    const response = await fetch('/api/scanner/beta/recognize', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: requestController.signal
+    });
+    let responseBody = {};
+    try { responseBody = await response.json(); } catch (_) { /* Status remains authoritative. */ }
+    if (!response.ok) throw responseError(response.status, responseBody, response.headers.get('Retry-After'));
+    return responseBody;
+  } catch (error) {
+    if (timedOut) throw typedError('TIMEOUT');
+    if (parentSignal.aborted) throw new DOMException('Recognition canceled.', 'AbortError');
+    if (error?.code) throw error;
+    throw typedError('NETWORK_FAILURE');
+  } finally {
+    clearTimeout(timer);
+    parentSignal.removeEventListener('abort', cancelRequest);
+  }
 }
 
 async function submitOrQueue(id, endpoint, body) {
@@ -77,8 +117,63 @@ async function uploadImage(file, hash) {
   return (await response.json()).imageStorageReference;
 }
 
+function extensionOf(name) {
+  const match = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/);
+  return match?.[1] || '';
+}
+
+function normalizeSelectedFile(file, source) {
+  const declaredType = String(file?.type || '').trim().toLowerCase();
+  const extension = extensionOf(file?.name);
+  const observed = { source, name: String(file?.name || ''), type: declaredType, size: Number(file?.size || 0) };
+  console.info('caissa_scanner_selected_file', observed);
+  selectedFileMetadata = Object.freeze({
+    declaredType: declaredType || null,
+    resolvedType: SUPPORTED_IMAGE_TYPES.has(declaredType) ? declaredType : (!declaredType ? EXTENSION_TYPES[extension] || null : null),
+    extension: extension || null,
+    size: observed.size
+  });
+  if (HEIC_TYPES.has(declaredType) || ['heic', 'heif'].includes(extension)) throw typedError('UNSUPPORTED_IMAGE');
+  const resolvedType = selectedFileMetadata.resolvedType;
+  if (!resolvedType) throw typedError('UNSUPPORTED_IMAGE');
+  return Object.freeze({
+    blob: declaredType === resolvedType ? file : file.slice(0, file.size, resolvedType),
+    sourceImageType: resolvedType
+  });
+}
+
 function failureCode(value) {
   return String(value || 'UNKNOWN_FAILURE').toUpperCase().replace(/[^A-Z0-9_-]/g, '_').slice(0, 80) || 'UNKNOWN_FAILURE';
+}
+
+function normalizedFailure(error) {
+  const raw = String(error?.code || error?.message || 'DECODE_FAILURE');
+  if (/UNSUPPORTED|HEIC|HEIF/i.test(raw)) return { code: 'UNSUPPORTED_IMAGE', stage: 'unsupported-input' };
+  if (/BOARD|CORNER|HOMOGRAPHY|LOCALIZATION|AMBIGUOUS/i.test(raw)) return { code: 'LOCALIZATION_FAILURE', stage: 'localization' };
+  if (/RATE_LIMIT/i.test(raw)) return { code: 'RATE_LIMIT', stage: 'rate-limit' };
+  if (/AUTH_REQUIRED|ACCESS_DENIED/i.test(raw)) return { code: raw.toUpperCase(), stage: 'authorization' };
+  if (/NETWORK/i.test(raw)) return { code: 'NETWORK_FAILURE', stage: 'network' };
+  if (/INFERENCE|MODEL_INTEGRITY/i.test(raw)) return { code: 'INFERENCE_FAILURE', stage: 'classifier' };
+  if (/TIMEOUT|BETA_DISABLED|PAYLOAD|HTTP_5/i.test(raw)) return { code: failureCode(raw), stage: 'service' };
+  return { code: 'DECODE_FAILURE', stage: 'decode' };
+}
+
+function userMessage(code) {
+  const messages = {
+    UNSUPPORTED_IMAGE: 'Unsupported photo format. Choose a JPEG, PNG, or WebP image.',
+    DECODE_FAILURE: 'Could not read this image. Choose another photo.',
+    LOCALIZATION_FAILURE: 'Board could not be detected. Try another image.',
+    INFERENCE_FAILURE: 'Recognition service temporarily unavailable. Try again in a moment.',
+    RATE_LIMIT: 'Too many scan attempts. Wait a moment and try again.',
+    NETWORK_FAILURE: 'Could not reach the recognition service. Check your connection and try again.',
+    TIMEOUT: 'Recognition service took too long. Try again.',
+    AUTH_REQUIRED: 'Your beta session expired. Sign in again and retry.',
+    BETA_ACCESS_DENIED: 'This account does not have Scanner beta access.',
+    BETA_DISABLED: 'Scanner beta is temporarily unavailable.',
+    PAYLOAD_TOO_LARGE: 'This photo is too large to process.',
+    INVALID_PAYLOAD: 'This image could not be prepared for recognition.'
+  };
+  return messages[code] || 'Could not read this image. Choose another photo.';
 }
 
 async function recordScanFailure({ scanId, hash, stage, code, source = captureType }) {
@@ -160,35 +255,27 @@ async function selectFile(file, source) {
   activeRecognitionController?.abort();
   activeRecognitionController = null;
   captureType = source;
+  selectedFileMetadata = null;
   const scanId = randomUuid();
   let hash = null;
-  if (!runtime.supportsMimeType(file.type)) {
-    try {
-      hash = await imageHash(file);
-      if (generation !== activeGeneration) return;
-      const stored = await recordScanFailure({ scanId, hash, stage: 'unsupported-input', code: 'UNSUPPORTED_INPUT', source });
-      if (generation !== activeGeneration) return;
-      status(stored.synced ? 'Unsupported input recorded. Choose a JPEG, PNG, or WebP image.'
-        : 'Unsupported input queued for safe retry. Choose a JPEG, PNG, or WebP image.', 'syncStatus');
-    } catch (_) { status('Choose a JPEG, PNG, or WebP image.', 'syncStatus'); }
-    return;
-  }
   const recognitionController = new AbortController();
   activeRecognitionController = recognitionController;
-  show('readingView');
   try {
+    const selected = normalizeSelectedFile(file, source);
+    if (!runtime.supportsMimeType(selected.sourceImageType)) throw typedError('UNSUPPORTED_IMAGE');
+    show('readingView');
     hash = await imageHash(file);
     if (generation !== activeGeneration) return;
-    const prepared = await runtime.processImage(file, activeGeneration);
+    const prepared = await runtime.processImage(selected.blob, activeGeneration);
     if (generation !== activeGeneration) return;
     let imageStorageReference = null;
-    try { imageStorageReference = await uploadImage(file, hash); }
+    try { imageStorageReference = await uploadImage(selected.blob, hash); }
     catch (_) { status('Image sharing is pending; correction collection can continue.', 'syncStatus'); }
     if (generation !== activeGeneration) return;
     const prediction = await recognizeBoard({
       schemaVersion: 'caissa-scanner-beta-recognition-request/1',
       boardEncoding: 'rgba8', boardWidth: 512, boardHeight: 512,
-      sourceImageType: file.type,
+      sourceImageType: selected.sourceImageType,
       boardRgbaBase64: rgbaBase64(prepared.board.pixels), orientation: $('orientation').value
     }, recognitionController.signal);
     if (activeRecognitionController === recognitionController) activeRecognitionController = null;
@@ -211,15 +298,17 @@ async function selectFile(file, source) {
   } catch (error) {
     if (activeRecognitionController === recognitionController) activeRecognitionController = null;
     if (generation !== activeGeneration || error.name === 'AbortError' || ['canceled', 'stale-generation'].includes(error.code)) return;
+    const failure = normalizedFailure(error);
+    if (!hash) {
+      try { hash = await imageHash(file); } catch (_) { /* Empty or unreadable files cannot be recorded. */ }
+    }
     if (hash) {
-      const classifierFailure = error.message === 'CLASSIFIER_UNAVAILABLE';
-      const localizationFailure = /BOARD|CORNER|HOMOGRAPHY|LOCALIZATION|AMBIGUOUS/i.test(String(error.code || error.message));
-      try { await recordScanFailure({ scanId, hash, stage: classifierFailure ? 'classifier' : localizationFailure ? 'localization' : 'decode',
-        code: error.code || error.message, source }); } catch (_) { /* The visible error remains authoritative. */ }
+      try { await recordScanFailure({ scanId, hash, stage: failure.stage, code: failure.code, source }); }
+      catch (_) { /* The visible error remains authoritative. */ }
     }
     if (generation !== activeGeneration) return;
     show('captureView');
-    status(error.message === 'CLASSIFIER_UNAVAILABLE' ? 'Internal classifier is unavailable. Try again when connected to the beta server.' : 'Could not read this board. Try another image.', 'syncStatus');
+    status(userMessage(failure.code), 'syncStatus');
   }
 }
 
@@ -247,7 +336,7 @@ function reset() {
   runtime.cancelActive('new-scan');
   activeRecognitionController?.abort();
   activeRecognitionController = null;
-  snapshot = null; workingFen = ''; selectedPiece = ''; captureType = null;
+  snapshot = null; workingFen = ''; selectedPiece = ''; captureType = null; selectedFileMetadata = null;
   $('cameraInput').value = ''; $('galleryInput').value = '';
   $('confirmPosition').textContent = 'Confirm Correct';
   mountBoard($('reviewBoardSlot'));
@@ -285,6 +374,14 @@ window.addEventListener('online', async () => {
 });
 
 buildPalette();
+const bootstrapGeneration = generation;
 fetch('/api/scanner/beta/status').then((response) => { if (!response.ok) throw new Error(); return flushSubmissions(); })
-  .then((result) => status(result.pending ? `${result.pending} submission${result.pending === 1 ? '' : 's'} pending-sync.` : '', 'syncStatus'))
-  .catch(() => status(`${pendingCount()} queued. Connect to the internal beta server to continue.`, 'syncStatus'));
+  .then((result) => {
+    if (generation !== bootstrapGeneration || $('syncStatus').textContent) return;
+    status(result.pending ? `${result.pending} submission${result.pending === 1 ? '' : 's'} pending-sync.` : '', 'syncStatus');
+  })
+  .catch(() => {
+    if (generation === bootstrapGeneration && !$('syncStatus').textContent) {
+      status(`${pendingCount()} queued. Connect to the internal beta server to continue.`, 'syncStatus');
+    }
+  });

@@ -1,7 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { scannerBoardImage as imageFixture } from './fixtures/scanner-board-image.js';
+import sharp from 'sharp';
+import { scannerBoardImage as imageFixture, scannerPlainImage } from './fixtures/scanner-board-image.js';
 
 const FEN = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+const jpegFixture = Object.freeze({
+  name: 'scanner-board.jpg', mimeType: 'image/jpeg', buffer: await sharp(imageFixture.buffer).jpeg().toBuffer()
+});
+const webpFixture = Object.freeze({
+  name: 'scanner-board.webp', mimeType: 'image/webp', buffer: await sharp(imageFixture.buffer).webp().toBuffer()
+});
 
 function labels() {
   const output = Array(64).fill('empty'); output[4] = 'k'; output[60] = 'K'; return output;
@@ -22,14 +29,20 @@ function prediction() {
 }
 
 async function mockBeta(page, { feedbackFailures = 0, recognitionFailure = false,
-  recognitionFailures = 0, recognitionNetworkFailures = 0 } = {}) {
+  recognitionFailures = 0, recognitionNetworkFailures = 0, recognitionResponses = [], statusDelayMs = 0 } = {}) {
   const captured = { scans: [], feedback: [], failures: [], recognition: [], feedbackAttempts: 0, recognitionAttempts: 0 };
   await page.route('**/api/scanner/beta/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path.endsWith('/status')) return route.fulfill({ status: 200, json: { available: true } });
+    if (path.endsWith('/status')) {
+      if (statusDelayMs) await new Promise((resolve) => setTimeout(resolve, statusDelayMs));
+      return route.fulfill({ status: 200, json: { available: true } });
+    }
     if (path.endsWith('/recognize')) {
       captured.recognitionAttempts += 1;
       captured.recognition.push(route.request().postDataJSON());
+      const scripted = recognitionResponses[captured.recognitionAttempts - 1];
+      if (scripted?.networkFailure) return route.abort(scripted.networkFailure);
+      if (scripted) return route.fulfill({ status: scripted.status, json: scripted.json || {} });
       if (captured.recognitionAttempts <= recognitionNetworkFailures) return route.abort('connectionreset');
       if (recognitionFailure || captured.recognitionAttempts <= recognitionFailures) {
         return route.fulfill({ status: 503, json: { error: 'INFERENCE_FAILURE' } });
@@ -198,26 +211,125 @@ test.describe('Scanner internal mobile beta feedback', () => {
     await expect.poll(() => captured.failures.length).toBe(1);
     expect(captured.failures[0].failure).toMatchObject({
       feedbackType: 'SCAN_FAILURE', failureStage: 'classifier', originalFEN: null,
-      finalPositionConfirmed: false, localizationValid: false
+      finalPositionConfirmed: false, localizationValid: false, errorCode: 'INFERENCE_FAILURE'
     });
+    expect(captured.recognitionAttempts).toBe(1);
+    await expect(page.locator('#syncStatus')).toContainText('temporarily unavailable');
   });
 
-  test('one endpoint rejection is retried and then reaches review', async ({ page }) => {
+  test('endpoint failure is not automatically retried or charged twice', async ({ page }) => {
     const captured = await mockBeta(page, { recognitionFailures: 1 });
     await page.goto('/scanner/beta');
-    await recognize(page);
-    expect(captured.recognitionAttempts).toBe(2);
-    expect(captured.failures).toHaveLength(0);
+    await page.locator('#galleryInput').setInputFiles(imageFixture);
+    await expect(page.locator('#syncStatus')).toContainText('temporarily unavailable');
+    expect(captured.recognitionAttempts).toBe(1);
+    expect(captured.failures).toHaveLength(1);
   });
 
-  test('one network failure is retried and camera capture preserves its source metadata', async ({ page }) => {
+  test('network failure remains distinct and a manual New scan retry makes exactly one new request', async ({ page }) => {
     const captured = await mockBeta(page, { recognitionNetworkFailures: 1 });
     await page.goto('/scanner/beta');
+    await page.locator('#cameraInput').setInputFiles(imageFixture);
+    await expect(page.locator('#syncStatus')).toContainText('Check your connection');
+    expect(captured.recognitionAttempts).toBe(1);
+    expect(captured.failures[0].failure).toMatchObject({ failureStage: 'network', errorCode: 'NETWORK_FAILURE' });
     await page.locator('#cameraInput').setInputFiles(imageFixture);
     await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
     expect(captured.recognitionAttempts).toBe(2);
     expect(captured.scans).toHaveLength(1);
     expect(captured.scans[0].metadata.captureType).toBe('camera');
+  });
+
+  test('gallery accepts JPEG, PNG, WebP, and an empty MIME with a supported extension', async ({ page }) => {
+    const captured = await mockBeta(page);
+    await page.goto('/scanner/beta');
+    const fixtures = [jpegFixture, imageFixture, webpFixture, { ...imageFixture, name: 'ios-gallery.png', mimeType: '' }];
+    for (const fixture of fixtures) {
+      await page.locator('#galleryInput').setInputFiles(fixture);
+      await expect(page.locator('#reviewView')).toBeVisible({ timeout: 20_000 });
+      await page.getByRole('button', { name: 'New scan', exact: true }).click();
+    }
+    expect(captured.recognitionAttempts).toBe(4);
+    expect(captured.recognition.map(({ sourceImageType }) => sourceImageType)).toEqual([
+      'image/jpeg', 'image/png', 'image/webp', 'image/png'
+    ]);
+    expect(captured.scans).toHaveLength(4);
+  });
+
+  test('HEIC, HEIF, and unsupported MIME values fail clearly without recognition', async ({ page }) => {
+    const captured = await mockBeta(page);
+    await page.goto('/scanner/beta');
+    for (const fixture of [
+      { name: 'iphone.heic', mimeType: 'image/heic', buffer: Buffer.from('not-uploaded') },
+      { name: 'iphone.heif', mimeType: '', buffer: Buffer.from('not-uploaded') },
+      { name: 'board.gif', mimeType: 'image/gif', buffer: Buffer.from('not-uploaded') }
+    ]) {
+      await page.locator('#galleryInput').setInputFiles(fixture);
+      await expect(page.locator('#captureView')).toBeVisible();
+      await expect(page.locator('#syncStatus')).toContainText('Unsupported photo format');
+    }
+    expect(captured.recognitionAttempts).toBe(0);
+    expect(captured.failures).toHaveLength(3);
+    expect(captured.failures.map(({ failure }) => [failure.failureStage, failure.errorCode])).toEqual([
+      ['unsupported-input', 'UNSUPPORTED_IMAGE'],
+      ['unsupported-input', 'UNSUPPORTED_IMAGE'],
+      ['unsupported-input', 'UNSUPPORTED_IMAGE']
+    ]);
+  });
+
+  test('a late startup status response cannot erase a gallery error', async ({ page }) => {
+    const captured = await mockBeta(page, { statusDelayMs: 500 });
+    await page.goto('/scanner/beta');
+    await page.locator('#galleryInput').setInputFiles({
+      name: 'iphone.heic', mimeType: 'image/heic', buffer: Buffer.from('not-uploaded')
+    });
+    await expect(page.locator('#syncStatus')).toContainText('Unsupported photo format');
+    await page.waitForTimeout(700);
+    await expect(page.locator('#syncStatus')).toContainText('Unsupported photo format');
+    expect(captured.recognitionAttempts).toBe(0);
+  });
+
+  test('decode and localization failures stay visible and do not call recognition', async ({ page }) => {
+    const captured = await mockBeta(page);
+    await page.goto('/scanner/beta');
+    await page.locator('#galleryInput').setInputFiles({
+      name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('invalid-png')
+    });
+    await expect(page.locator('#syncStatus')).toContainText('Could not read this image');
+    await page.locator('#galleryInput').setInputFiles(scannerPlainImage);
+    await expect(page.locator('#syncStatus')).toContainText('Board could not be detected', { timeout: 20_000 });
+    expect(captured.recognitionAttempts).toBe(0);
+    expect(captured.failures.map(({ failure }) => [failure.failureStage, failure.errorCode])).toEqual([
+      ['decode', 'DECODE_FAILURE'],
+      ['localization', 'LOCALIZATION_FAILURE']
+    ]);
+  });
+
+  test('typed endpoint and transport failures show distinct messages with one request each', async ({ page }) => {
+    test.setTimeout(120_000);
+    const cases = [
+      [401, { error: 'AUTH_REQUIRED' }, 'session expired', 'authorization', 'AUTH_REQUIRED'],
+      [403, { error: 'BETA_ACCESS_DENIED' }, 'does not have Scanner beta access', 'authorization', 'BETA_ACCESS_DENIED'],
+      [404, { error: 'BETA_DISABLED' }, 'temporarily unavailable', 'service', 'BETA_DISABLED'],
+      [413, { error: 'INVALID_PAYLOAD' }, 'too large', 'service', 'PAYLOAD_TOO_LARGE'],
+      [415, { error: 'INVALID_IMAGE' }, 'Unsupported photo format', 'unsupported-input', 'UNSUPPORTED_IMAGE'],
+      [422, { error: 'INVALID_PAYLOAD' }, 'could not be prepared', 'service', 'INVALID_PAYLOAD'],
+      [429, { error: 'RATE_LIMITED' }, 'Too many scan attempts', 'rate-limit', 'RATE_LIMIT'],
+      [500, { error: 'INFERENCE_FAILURE' }, 'temporarily unavailable', 'classifier', 'INFERENCE_FAILURE'],
+      [504, { error: 'TIMEOUT' }, 'took too long', 'service', 'TIMEOUT']
+    ];
+    const captured = await mockBeta(page, {
+      recognitionResponses: cases.map(([status, json]) => ({ status, json }))
+    });
+    await page.goto('/scanner/beta');
+    for (let index = 0; index < cases.length; index += 1) {
+      const [, , message, stage, code] = cases[index];
+      await page.locator('#galleryInput').setInputFiles(imageFixture);
+      await expect(page.locator('#syncStatus')).toContainText(message, { timeout: 20_000 });
+      expect(captured.recognitionAttempts).toBe(index + 1);
+      expect(captured.failures[index].failure).toMatchObject({ failureStage: stage, errorCode: code });
+    }
+    expect(captured.scans).toHaveLength(0);
   });
 
   test('Review/Edit board and every rendered cell remain square at iPhone display widths', async ({ page }) => {
