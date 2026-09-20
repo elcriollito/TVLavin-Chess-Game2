@@ -3400,6 +3400,20 @@
                         <main class="spectator-board-panel" aria-label="Live FICS broadcast board">
                             <div class="spectator-broadcast-bar">
                                 <span><i class="fas fa-satellite-dish" aria-hidden="true"></i> FICS broadcast</span>
+                                <div class="spectator-board-tools" aria-label="Broadcast board controls">
+                                    <button id="spectatorFlipBoardBtn" class="spectator-tool-button" type="button" aria-label="Flip the board">
+                                        <i class="fas fa-exchange-alt" aria-hidden="true"></i><span>Flip</span>
+                                    </button>
+                                    <button id="spectatorTheaterBtn" class="spectator-tool-button" type="button" aria-pressed="false">
+                                        <i class="fas fa-expand" aria-hidden="true"></i><span>Theater</span>
+                                    </button>
+                                    <button id="spectatorFullscreenBtn" class="spectator-tool-button" type="button">
+                                        <i class="fas fa-expand-arrows-alt" aria-hidden="true"></i><span>Fullscreen</span>
+                                    </button>
+                                    <button id="spectatorBoardRefreshBtn" class="spectator-tool-button" type="button">
+                                        <i class="fas fa-sync-alt" aria-hidden="true"></i><span>Refresh</span>
+                                    </button>
+                                </div>
                                 <strong id="spectatorGameStatus">No live game selected</strong>
                             </div>
 
@@ -3430,20 +3444,6 @@
                             <div class="spectator-clock-row" hidden aria-hidden="true">
                                 <span>White <strong id="spectatorWhiteClock">--:--</strong></span>
                                 <span>Black <strong id="spectatorBlackClock">--:--</strong></span>
-                            </div>
-                            <div class="spectator-board-tools" aria-label="Broadcast board controls">
-                                <button id="spectatorFlipBoardBtn" class="spectator-tool-button" type="button" aria-label="Flip the board">
-                                    <i class="fas fa-exchange-alt" aria-hidden="true"></i><span>Flip</span>
-                                </button>
-                                <button id="spectatorTheaterBtn" class="spectator-tool-button" type="button" aria-pressed="false">
-                                    <i class="fas fa-expand" aria-hidden="true"></i><span>Theater</span>
-                                </button>
-                                <button id="spectatorFullscreenBtn" class="spectator-tool-button" type="button">
-                                    <i class="fas fa-expand-arrows-alt" aria-hidden="true"></i><span>Fullscreen</span>
-                                </button>
-                                <button id="spectatorBoardRefreshBtn" class="spectator-tool-button" type="button">
-                                    <i class="fas fa-sync-alt" aria-hidden="true"></i><span>Refresh</span>
-                                </button>
                             </div>
                         </main>
 

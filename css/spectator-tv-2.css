@@ -74,7 +74,7 @@
 .spectator-v2 .spectator-board-panel {
     position: relative;
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     gap: 8px;
     min-width: 0;
     padding: 10px;
@@ -87,31 +87,40 @@
 }
 
 .spectator-v2 .spectator-broadcast-bar {
-    display: flex;
+    display: grid;
+    grid-template-areas: "provider controls status";
+    grid-template-columns: minmax(max-content, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    min-height: 30px;
+    column-gap: 12px;
+    row-gap: 6px;
+    min-height: 36px;
     padding: 0 4px;
     color: var(--spectator-muted);
     font-size: 0.78rem;
 }
 
 .spectator-v2 .spectator-broadcast-bar > span {
+    grid-area: provider;
     display: inline-flex;
     align-items: center;
+    justify-self: start;
     gap: 7px;
     color: var(--spectator-gold);
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .spectator-v2 .spectator-broadcast-bar strong {
+    grid-area: status;
+    justify-self: end;
     min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     color: #dbe3ef;
     font-weight: 650;
+    text-align: right;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -168,10 +177,13 @@
 }
 
 .spectator-v2 .spectator-board-tools {
+    grid-area: controls;
     display: flex;
+    align-items: center;
     justify-content: center;
+    justify-self: center;
     gap: 6px;
-    padding-top: 2px;
+    min-width: 0;
 }
 
 .spectator-v2 .spectator-tool-button {
@@ -218,7 +230,7 @@
 }
 
 .spectator-v2 .spectator-board-panel:is(.is-loading, .is-empty) > .spectator-broadcast-bar {
-    display: flex;
+    display: grid;
 }
 
 .spectator-v2 .spectator-board-panel:is(.is-loading, .is-empty) > .spectator-player-bar {
@@ -228,10 +240,6 @@
 .spectator-v2 .spectator-board-panel:is(.is-loading, .is-empty) > .spectator-board-frame {
     display: block;
     filter: saturate(0.55) brightness(0.66);
-}
-
-.spectator-v2 .spectator-board-panel:is(.is-loading, .is-empty) > .spectator-board-tools {
-    display: flex;
 }
 
 .spectator-v2 .spectator-workspace {
@@ -723,6 +731,13 @@
     .spectator-v2 .spectator-board-frame {
         width: min(100%, calc(100dvh - 270px), 650px);
     }
+
+    .spectator-v2 .spectator-broadcast-bar {
+        grid-template-areas:
+            "provider status"
+            "controls controls";
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
 }
 
 @media (max-width: 860px) {
@@ -782,11 +797,8 @@
     }
 
     .spectator-v2 .spectator-broadcast-bar {
-        min-height: 26px;
-    }
-
-    .spectator-v2 .spectator-broadcast-bar strong {
-        max-width: 54%;
+        min-height: 0;
+        padding-top: 2px;
     }
 
     .spectator-v2 .spectator-player-bar {
@@ -806,6 +818,7 @@
     .spectator-v2 .spectator-board-tools {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
+        width: min(100%, 220px);
     }
 
     .spectator-v2 .spectator-tool-button {
@@ -897,7 +910,11 @@
     }
 
     .spectator-v2 .spectator-broadcast-bar {
-        display: none;
+        grid-template-areas: "provider controls status";
+        grid-template-columns: minmax(max-content, 1fr) auto minmax(0, 1fr);
+        column-gap: 6px;
+        min-height: 32px;
+        padding: 0 2px;
     }
 
     .spectator-v2 .spectator-board-frame {
@@ -910,16 +927,33 @@
     }
 
     .spectator-v2 .spectator-board-tools {
-        padding: 0;
+        display: flex;
+        gap: 4px;
     }
 
     .spectator-v2 .spectator-tool-button {
         min-height: 32px;
+        min-width: 30px;
+        padding: 4px 6px;
+        font-size: 0;
+    }
+
+    .spectator-v2 .spectator-tool-button i {
+        font-size: 0.8rem;
     }
 
     .spectator-v2 .spectator-workspace {
         order: initial;
         height: calc(100dvh - 76px);
         min-height: 0;
+    }
+}
+
+@media (max-width: 720px) and (max-height: 620px) and (orientation: landscape) {
+    .spectator-v2 .spectator-broadcast-bar {
+        grid-template-areas:
+            "provider status"
+            "controls controls";
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 }

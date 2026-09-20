@@ -52,5 +52,11 @@ test('workspace BODY is the scroll owner and desktop is a two-zone grid', () => 
 test('approved board presentation controls are present', () => {
     for (const id of ['spectatorFlipBoardBtn', 'spectatorTheaterBtn', 'spectatorFullscreenBtn', 'spectatorBoardRefreshBtn']) {
         assert.match(section, new RegExp(`id="${id}"`));
+        assert.equal((section.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1);
     }
+
+    const broadcastBar = section.match(/<div class="spectator-broadcast-bar">([\s\S]*?)<\/div>\s*<div id="spectatorViewingState"/)[1];
+    assert.match(broadcastBar, /FICS broadcast[\s\S]*spectator-board-tools[\s\S]*id="spectatorGameStatus"/i);
+    assert.match(css, /\.spectator-v2 \.spectator-broadcast-bar\s*\{[^}]*grid-template-areas:\s*"provider controls status"/s);
+    assert.doesNotMatch(css, /\.spectator-v2 \.spectator-board-tools\s*\{[^}]*position:\s*absolute/s);
 });
