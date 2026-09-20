@@ -91,16 +91,33 @@ async function recordScanFailure({ scanId, hash, stage, code, source = captureTy
   return submitOrQueue(`failure:${failure.feedbackId}`, '/api/scanner/beta/failure', { failure });
 }
 
-function renderBoard() {
-  fenTools.renderDraft($('betaBoard'), workingFen, false, (row, col) => {
-    const next = fenTools.mutateSquare(workingFen, row, col, selectedPiece);
-    if (!next) return;
-    workingFen = next;
-    renderBoard();
-    const count = fenDiff(snapshot.predictedFEN, workingFen).length;
-    $('confirmPosition').textContent = count ? 'Position Correct Now' : 'Confirm Correct';
-    status(count ? `${count} correction${count === 1 ? '' : 's'} ready to submit.` : 'No corrections. Confirm if the board is exact.');
-  });
+function boardFlipped() {
+  return (snapshot?.orientation || $('orientation').value) === 'black-at-bottom';
+}
+
+function mountBoard(slot) {
+  const shell = $('betaBoardShell');
+  if (shell.parentElement !== slot) slot.appendChild(shell);
+}
+
+function editSquare(row, col) {
+  const next = fenTools.mutateSquare(workingFen, row, col, selectedPiece);
+  if (!next) return;
+  workingFen = next;
+  renderBoard(true);
+  const count = fenDiff(snapshot.predictedFEN, workingFen).length;
+  $('confirmPosition').textContent = count ? 'Position Correct Now' : 'Confirm Correct';
+  status(count ? `${count} correction${count === 1 ? '' : 's'} ready to submit.` : 'No corrections. Confirm if the board is exact.');
+}
+
+function renderBoard(editable) {
+  const board = $('betaBoard');
+  mountBoard(editable ? $('reviewBoardSlot') : $('workspaceBoardSlot'));
+  fenTools.renderDraft(board, workingFen, boardFlipped(), editable ? editSquare : null);
+  board.dataset.fen = workingFen;
+  board.dataset.orientation = boardFlipped() ? 'black-at-bottom' : 'white-at-bottom';
+  board.dataset.editable = String(editable);
+  board.setAttribute('aria-label', editable ? 'Recognized chess position' : 'Confirmed chess position');
 }
 
 function buildPalette() {
@@ -187,7 +204,7 @@ async function selectFile(file, source) {
     const stored = await submitOrQueue(`scan:${snapshot.scanId}`, '/api/scanner/beta/scan', { snapshot, metadata });
     if (generation !== activeGeneration) return;
     workingFen = snapshot.predictedFEN;
-    renderBoard();
+    renderBoard(true);
     showDiagnostics(prepared);
     show('reviewView');
     status(stored.synced ? 'Prediction saved. Confirm the final position.' : 'Offline: prediction queued for safe retry.');
@@ -219,7 +236,7 @@ async function sendFeedback(type) {
       platform: $('platform').value || null, captureType, clientMetadata: clientMetadata()
     });
     const stored = await submitOrQueue(`feedback:${record.feedbackId}`, '/api/scanner/beta/feedback', { feedback: record });
-    fenTools.renderDraft($('workspaceBoard'), workingFen, false, null);
+    renderBoard(false);
     show('workspaceView');
     status(stored.synced ? '' : 'Feedback is pending-sync and will retry safely.', 'syncStatus');
   } catch (_) { status('Please confirm the corrected position before submitting.'); }
@@ -233,7 +250,12 @@ function reset() {
   snapshot = null; workingFen = ''; selectedPiece = ''; captureType = null;
   $('cameraInput').value = ''; $('galleryInput').value = '';
   $('confirmPosition').textContent = 'Confirm Correct';
-  $('betaBoard').replaceChildren(); $('workspaceBoard').replaceChildren(); $('diagnostics').replaceChildren();
+  mountBoard($('reviewBoardSlot'));
+  $('betaBoard').replaceChildren();
+  delete $('betaBoard').dataset.fen;
+  delete $('betaBoard').dataset.orientation;
+  delete $('betaBoard').dataset.editable;
+  $('diagnostics').replaceChildren();
   $('selectionStatus').textContent = 'Selected: Clear square';
   status('', 'submitStatus'); status('', 'syncStatus'); show('captureView'); buildPalette();
 }
