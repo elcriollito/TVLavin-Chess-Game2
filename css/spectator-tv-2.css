@@ -615,11 +615,26 @@
 }
 
 .spectator-v2 .spectator-live-context {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 7px;
     height: auto;
     max-height: none;
     overflow: visible;
+}
+
+.spectator-v2 .spectator-context-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    min-width: 0;
+}
+
+.spectator-v2 .spectator-context-row--opening {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+}
+
+.spectator-v2 .spectator-context-row--players {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
 }
 
 .spectator-v2 .spectator-context-cell {
@@ -658,14 +673,6 @@
 .spectator-v2 .spectator-context-cell > .caissa-ui-badge {
     justify-self: start;
     max-width: 100%;
-}
-
-.spectator-v2 .spectator-context-cell--opening {
-    grid-column: span 2;
-}
-
-.spectator-v2 .spectator-context-cell--players {
-    grid-column: 1 / -1;
 }
 
 .spectator-v2 .spectator-metadata {
@@ -898,13 +905,10 @@
         padding: 12px 10px 16px;
     }
 
-    .spectator-v2 .spectator-live-context {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .spectator-v2 .spectator-context-cell--opening,
-    .spectator-v2 .spectator-context-cell--players {
-        grid-column: 1 / -1;
+    .spectator-v2 .spectator-context-row,
+    .spectator-v2 .spectator-context-row--opening,
+    .spectator-v2 .spectator-context-row--players {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .spectator-v2 .spectator-workspace-foot {

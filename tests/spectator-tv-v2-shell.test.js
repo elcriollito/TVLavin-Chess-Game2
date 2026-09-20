@@ -6,6 +6,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 const html = read('index.html');
 const css = read('css/spectator-tv-2.css');
 const script = read('js/spectator-tv-section.js');
+const ficsClient = read('js/fics-client.js');
 const navigation = read('js/caissa-primary-navigation.js');
 const routePolicy = read('js/legacy-canonical-section-route-policy.js');
 const section = html.match(/<!-- SECTION: Spectator TV -->([\s\S]*?)<!-- SECTION: FICS/)[1];
@@ -101,6 +102,7 @@ test('only the authoritative player-bar clocks remain', () => {
     assert.equal((section.match(/class="spectator-player-clock"/g) || []).length, 2);
     assert.doesNotMatch(section, /spectator-clock-row|spectatorWhiteClock|spectatorBlackClock/);
     assert.doesNotMatch(section, /spectator-player-card__clock/);
+    assert.doesNotMatch(section, /White\s+(?:\d{1,2}:\d{2}|--:--)\s*\|\s*Black\s+(?:\d{1,2}:\d{2}|--:--)/i);
     assert.doesNotMatch(script, /renderClocks|elements\.whiteClock|elements\.blackClock/);
 });
 
@@ -110,8 +112,9 @@ test('Game details is one compact selected-game projection', () => {
         assert.match(section, new RegExp(`data-spectator-detail="${detail}"`));
     }
     assert.doesNotMatch(section, /id="spectatorMetadata"|spectator-player-cards/);
-    assert.match(css, /\.spectator-v2 \.spectator-live-context\s*\{[^}]*grid-template-columns:\s*repeat\(3,/s);
-    assert.match(css, /\.spectator-v2 \.spectator-context-cell--players\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s);
+    assert.equal((section.match(/class="spectator-context-row(?:\s[^"']*)?"/g) || []).length, 6);
+    assert.match(css, /\.spectator-v2 \.spectator-context-row\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
+    assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*\.spectator-v2 \.spectator-context-row[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
     assert.match(script, /selectedGame:\s*null/);
     assert.match(script, /selectionGeneration:\s*0/);
     assert.match(script, /isSelectedGameUpdate\(liveGame/);
@@ -126,6 +129,10 @@ test('FOOT keeps only connection, Back, and the Server continue action', () => {
     assert.doesNotMatch(foot, /Refresh|Watch featured|spectator-foot-channels/);
     assert.match(section, /id="spectatorBoardRefreshBtn"/);
     assert.match(script, /className = 'fics-btn fics-btn-secondary spectator-game-watch'/);
+    assert.match(script, /Exit table/);
+    assert.match(script, /exitObservedGame\(targetStage/);
+    assert.match(script, /client\.leaveObservedGame\(unobserveGameId\)/);
+    assert.match(ficsClient, /this\.send\(`unobserve \$\{target\}`\)/);
 });
 
 test('rapid selection queues the newest game and rejects stale updates by id and generation', () => {

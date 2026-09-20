@@ -557,6 +557,8 @@ test('rapid Game A to Game B selection rejects stale metadata and preserves one 
       finishedSnapshot,
       visibleClockCount: Array.from(document.querySelectorAll('.spectator-player-clock')).filter(element => element.getBoundingClientRect().width > 0).length,
       duplicateClockRows: document.querySelectorAll('.spectator-clock-row, .spectator-player-card__clock').length,
+      duplicateClockSummary: /White\s+(?:\d{1,2}:\d{2}|--:--)\s*\|\s*Black\s+(?:\d{1,2}:\d{2}|--:--)/i
+        .test(document.querySelector('.spectator-board-panel').innerText),
       sameRoot: root === document.querySelector('#spectatorBoard > *'),
       roots: document.querySelectorAll('#spectatorBoard > *').length,
       renderer: section.boardView.getSnapshot().renderer,
@@ -593,6 +595,7 @@ test('rapid Game A to Game B selection rejects stale metadata and preserves one 
   expect(result.finishedSnapshot.foot).not.toContain('Game Finished');
   expect(result.visibleClockCount).toBe(2);
   expect(result.duplicateClockRows).toBe(0);
+  expect(result.duplicateClockSummary).toBe(false);
   expect(result.sameRoot).toBe(true);
   expect(result.roots).toBe(1);
   expect(result.renderer).toBe('persistent');
@@ -617,14 +620,18 @@ test('compact details and simplified FOOT adapt across desktop and mobile', asyn
     section.beginGameSelection(section.catalog.gameMap['303'], { requestObservation: false });
   });
 
-  for (const profile of [{ width: 1366, height: 768, columns: 3 }, { width: 390, height: 844, columns: 2 }, { width: 844, height: 390, columns: 3 }]) {
+  for (const profile of [{ width: 1366, height: 768, columns: 2 }, { width: 390, height: 844, columns: 1 }, { width: 844, height: 390, columns: 2 }]) {
     await page.setViewportSize({ width: profile.width, height: profile.height });
     const layout = await page.evaluate(() => {
       const grid = document.querySelector('#spectatorLiveContext');
+      const rows = Array.from(grid.querySelectorAll('.spectator-context-row'));
       const body = document.querySelector('.spectator-workspace-body');
       const players = document.querySelector('[data-spectator-detail="players"] strong');
+      const cells = Array.from(grid.querySelectorAll('.spectator-context-cell'));
       return {
-        columns: getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length,
+        rowColumns: rows.map(row => getComputedStyle(row).gridTemplateColumns.split(' ').filter(Boolean).length),
+        rowCellCounts: rows.map(row => row.querySelectorAll('.spectator-context-cell').length),
+        borderedCells: cells.filter(cell => parseFloat(getComputedStyle(cell).borderTopWidth) > 0).length,
         gridOverflow: grid.scrollWidth > grid.clientWidth,
         pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
         bodyOverflowY: getComputedStyle(body).overflowY,
@@ -632,7 +639,9 @@ test('compact details and simplified FOOT adapt across desktop and mobile', asyn
         playerText: players.textContent.trim()
       };
     });
-    expect(layout.columns, JSON.stringify(profile)).toBe(profile.columns);
+    expect(layout.rowColumns, JSON.stringify(profile)).toEqual(Array(6).fill(profile.columns));
+    expect(layout.rowCellCounts, JSON.stringify(profile)).toEqual(Array(6).fill(2));
+    expect(layout.borderedCells, JSON.stringify(profile)).toBe(12);
     expect(layout.gridOverflow, JSON.stringify(profile)).toBe(false);
     expect(layout.pageOverflow, JSON.stringify(profile)).toBe(false);
     expect(layout.bodyOverflowY, JSON.stringify(profile)).toBe('auto');
@@ -654,4 +663,127 @@ test('compact details and simplified FOOT adapt across desktop and mobile', asyn
   await expect(page.locator('#spectatorServerView')).toBeVisible();
   await expect(foot.getByRole('button', { name: /Connect & continue/i })).toBeVisible();
   expect(await page.evaluate(() => window.CaissaFICSClient.authenticated)).toBe(true);
+});
+
+test('Exit table unobserves once, clears the watch authority, and rejects late events', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/spectator-tv?hotfix=001b');
+
+  await page.evaluate(async () => {
+    const section = window.CaissaSpectatorTVSection;
+    const client = window.CaissaFICSClient;
+    client.authenticated = true;
+    client.connected = true;
+    client.connectionState = 'connected';
+    client.ws = { id: 'existing-fics-socket' };
+    window.__spectatorSocket = client.ws;
+    window.__spectatorWire = [];
+    client.send = command => {
+      window.__spectatorWire.push(command);
+      return { ok: true, code: 'COMMAND_SENT' };
+    };
+    client.refreshLobby = () => {};
+    client.activeTables = [{
+      number: '404', white: 'Exit White', black: 'Exit Black',
+      whiteRating: 1801, blackRating: 1802, timeControl: '5+2',
+      variant: 'standard', rated: true, observers: 4,
+      label: '404 W: 1801 B: 1802 Exit White vs Exit Black'
+    }];
+    section.state = window.CaissaSpectatorTV.createInitialState({
+      status: window.CaissaSpectatorTV.STATES.LOADING_GAMES
+    });
+    section.catalog = window.CaissaSpectatorTVCatalog.createCatalog({
+      games: [{
+        gameId: '404', whitePlayer: 'Exit White', blackPlayer: 'Exit Black',
+        whiteRating: 1801, blackRating: 1802, timeControl: '5+2', variant: 'standard', rated: true
+      }]
+    });
+    section.catalogLoadCompleted = true;
+    section.beginGameSelection(section.catalog.gameMap['404'], { requestObservation: false });
+    client.liveGame = {
+      ...client.liveGame, currentFen: new Chess().fen(), gameNumber: 404,
+      whiteName: 'Exit White', blackName: 'Exit Black', whiteClock: 299, blackClock: 298,
+      sideToMove: 'w', observedGame: true, gameActive: false, status: 'observing'
+    };
+    section.renderStyle12({ liveGame: { ...client.liveGame }, moveHistory: [] });
+    await section.boardView.whenIdle();
+    window.__spectatorRoot = document.querySelector('#spectatorBoard > *');
+    window.__spectatorGeneration = section.selectionGeneration;
+  });
+
+  await expect(page.locator('#spectatorWorkspaceBackBtn')).toHaveText(/Exit table/);
+  await page.locator('#spectatorWorkspaceBackBtn').click();
+  await expect(page.locator('#spectatorChannelsView')).toBeVisible();
+  await expect(page.locator('#spectatorWorkspaceBackBtn')).toHaveText(/Back/);
+
+  const afterExit = await page.evaluate(() => {
+    const section = window.CaissaSpectatorTVSection;
+    const staleGame = new Chess();
+    staleGame.move('e4');
+    section.renderStyle12({
+      selectionGeneration: window.__spectatorGeneration,
+      liveGame: {
+        currentFen: staleGame.fen(), gameNumber: 404,
+        whiteName: 'Exit White', blackName: 'Exit Black', whiteClock: 295, blackClock: 298,
+        sideToMove: 'b', observedGame: true, status: 'observing'
+      },
+      moveHistory: [{ moveNumber: 1, color: 'white', san: 'e4' }]
+    });
+    section.renderGameEnded({
+      selectionGeneration: window.__spectatorGeneration,
+      result: '1-0', liveGame: { gameNumber: 404, status: 'ended', result: '1-0' }
+    });
+    const watchButton = document.querySelector('.spectator-game-watch');
+    return {
+      wire: window.__spectatorWire.slice(),
+      tab: section.activeWorkspaceTab,
+      selectedGame: section.selectedGame,
+      observedId: section.state.currentObservedGameId,
+      lastRenderedFen: section.lastRenderedFen,
+      queuedGameId: section.queuedGameId,
+      generationAdvanced: section.selectionGeneration > window.__spectatorGeneration,
+      watchingRows: document.querySelectorAll('.spectator-game-row.is-current').length,
+      watchText: watchButton?.textContent.trim(),
+      watchDisabled: watchButton?.disabled,
+      authenticated: window.CaissaFICSClient.authenticated,
+      sameSocket: window.CaissaFICSClient.ws === window.__spectatorSocket,
+      sameRoot: window.__spectatorRoot === document.querySelector('#spectatorBoard > *'),
+      foot: document.querySelector('.spectator-workspace-foot').textContent.replace(/\s+/g, ' ').trim()
+    };
+  });
+
+  expect(afterExit).toMatchObject({
+    wire: ['unobserve 404'], tab: 'channels', selectedGame: null, observedId: null,
+    lastRenderedFen: null, queuedGameId: null, generationAdvanced: true,
+    watchingRows: 0, watchText: 'Watch', watchDisabled: false,
+    authenticated: true, sameSocket: true, sameRoot: true
+  });
+  expect(afterExit.foot).toContain('Connected · FICS');
+  expect(afterExit.foot).toContain('Back');
+  expect(afterExit.foot).not.toMatch(/Game Finished|Refresh|Watch featured/);
+
+  const reopenObservedGame = async () => page.evaluate(async () => {
+    const section = window.CaissaSpectatorTVSection;
+    const client = window.CaissaFICSClient;
+    section.beginGameSelection(section.catalog.gameMap['404'], { requestObservation: false });
+    client.liveGame = {
+      ...client.liveGame, currentFen: new Chess().fen(), gameNumber: 404,
+      whiteName: 'Exit White', blackName: 'Exit Black', whiteClock: 299, blackClock: 298,
+      sideToMove: 'w', observedGame: true, gameActive: false, status: 'observing'
+    };
+    section.renderStyle12({ liveGame: { ...client.liveGame }, moveHistory: [] });
+    await section.boardView.whenIdle();
+  });
+
+  await reopenObservedGame();
+  await page.getByRole('tab', { name: /2 Channels/ }).click();
+  await expect(page.locator('#spectatorChannelsView')).toBeVisible();
+  await reopenObservedGame();
+  await page.getByRole('tab', { name: /1 Server/ }).click();
+  await expect(page.locator('#spectatorServerView')).toBeVisible();
+  expect(await page.evaluate(() => window.__spectatorWire)).toEqual([
+    'unobserve 404', 'unobserve 404', 'unobserve 404'
+  ]);
+  expect(await page.evaluate(() => window.CaissaFICSClient.ws === window.__spectatorSocket)).toBe(true);
 });

@@ -5,6 +5,17 @@ import vm from 'node:vm';
 
 const clientSource = fs.readFileSync(new URL('../js/fics-client.js', import.meta.url), 'utf8');
 const style12Source = fs.readFileSync(new URL('../js/fics-style12.js', import.meta.url), 'utf8');
+const localGatewaySource = fs.readFileSync(
+    new URL('../gateway/fics-local-node/fics-gateway.cjs', import.meta.url),
+    'utf8'
+);
+
+test('local gateway matches the production raw-text bridge contract', () => {
+    assert.match(localGatewaySource, /connectToFICS\(state\);/);
+    assert.match(localGatewaySource, /state\.ws\.send\(String\(message\)\)/);
+    assert.match(localGatewaySource, /state\.ficsSocket\.write\(text \+ '\\n'\)/);
+    assert.doesNotMatch(localGatewaySource, /JSON\.(?:parse|stringify)|connectGuest/);
+});
 
 function createHarness() {
     const timeoutTasks = [];
@@ -409,6 +420,26 @@ test('observation exit clears canonical state only after successful unobserve de
     assert.deepEqual(socket.sent, ['unobserve 91']);
     assert.equal(client.liveGame.status, 'idle');
     assert.equal(client.moveHistory.length, 0);
+});
+
+test('observation exit cancels a pending observe through the canonical unobserve command', () => {
+    const { client, FakeWebSocket } = createHarness();
+    const socket = new FakeWebSocket(client.gatewayUrl);
+    client.ws = socket;
+    client.connected = true;
+    client.authenticated = true;
+    client.connectionState = 'connected';
+    client.pendingObservation = { target: '77', generation: client.sessionGeneration, status: 'sent' };
+    client.updateGameStatus = () => {};
+    client.logToConsole = () => {};
+    client.refreshLobby = () => {};
+    socket.readyState = FakeWebSocket.OPEN;
+
+    const delivered = client.leaveObservedGame(77);
+    assert.equal(delivered.ok, true);
+    assert.deepEqual(socket.sent, ['unobserve 77']);
+    assert.equal(client.pendingObservation, null);
+    assert.equal(client.liveGame.status, 'idle');
 });
 
 test('console buffering is capped and expansion remains legacy DOM presentation state', () => {

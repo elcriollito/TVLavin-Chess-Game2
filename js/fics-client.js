@@ -1785,15 +1785,26 @@ const CaissaFICSClient = {
     },
 
     leaveObservedGame(gameNumber = null) {
+        const pendingTarget = this.pendingObservation?.target !== undefined
+            && this.pendingObservation?.target !== null
+            ? String(this.pendingObservation.target)
+            : '';
         const target = gameNumber !== null && gameNumber !== undefined
             ? String(gameNumber)
             : this.liveGame?.gameNumber !== null && this.liveGame?.gameNumber !== undefined
                 ? String(this.liveGame.gameNumber)
-                : '';
+                : pendingTarget;
         const commandChannelAvailable = this.authenticated && this.connected
             && String(this.connectionState || '').toLowerCase() === 'connected';
         if (!commandChannelAvailable) return Object.freeze({ ok: false, code: 'CONNECTION_UNAVAILABLE' });
-        if (!target || !this.liveGame?.observedGame) {
+        const observedTarget = this.liveGame?.observedGame
+            && this.liveGame?.gameNumber !== null
+            && this.liveGame?.gameNumber !== undefined
+            ? String(this.liveGame.gameNumber)
+            : '';
+        const matchesObserved = !!observedTarget && observedTarget === target;
+        const matchesPending = !!pendingTarget && pendingTarget === target;
+        if (!target || (!matchesObserved && !matchesPending)) {
             return Object.freeze({ ok: false, code: 'OBSERVATION_UNAVAILABLE' });
         }
         if (this.observationExitInFlight) {

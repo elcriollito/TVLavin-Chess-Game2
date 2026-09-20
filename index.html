@@ -117,7 +117,7 @@
     <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.1.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
     <link rel="stylesheet" href="css/fics-client.css?v=1.2.5">
-    <link rel="stylesheet" href="css/spectator-tv-2.css?v=2.0.1">
+    <link rel="stylesheet" href="css/spectator-tv-2.css?v=2.0.2">
     <link rel="stylesheet" href="css/fics-redesign-shell.css?v=1.5.2">
     <link rel="stylesheet" href="css/yahoo-classic.css?v=1.1.0">
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
@@ -3526,18 +3526,30 @@
                                     <div class="spectator-detail-section">
                                         <h4>Game details</h4>
                                         <div id="spectatorLiveContext" class="spectator-live-context" aria-live="polite">
-                                            <div class="spectator-context-cell spectator-context-cell--opening" data-spectator-detail="opening"><span>Opening</span><strong title="—">—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="variant"><span>Variant</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="rated"><span>Rated</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="status"><span>Status</span><strong>Not watching</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="time-control"><span>Time control</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="move"><span>Move</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="phase"><span>Phase</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="result"><span>Result</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="game"><span>Game #</span><strong>—</strong></div>
-                                            <div class="spectator-context-cell" data-spectator-detail="rating"><span>Rating</span><strong>— / —</strong></div>
-                                            <div class="spectator-context-cell spectator-context-cell--players" data-spectator-detail="players"><span>Players</span><strong title="—">—</strong></div>
+                                            <div class="spectator-context-row spectator-context-row--opening">
+                                                <div class="spectator-context-cell" data-spectator-detail="opening"><span>Opening</span><strong title="—">—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="variant"><span>Variant</span><strong>—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="rated"><span>Rated</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="status"><span>Status</span><strong>Not watching</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="time-control"><span>Time control</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="move"><span>Move</span><strong>—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="phase"><span>Phase</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row">
+                                                <div class="spectator-context-cell" data-spectator-detail="result"><span>Result</span><strong>—</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="game"><span>Game #</span><strong>—</strong></div>
+                                            </div>
+                                            <div class="spectator-context-row spectator-context-row--players">
+                                                <div class="spectator-context-cell" data-spectator-detail="rating"><span>Rating</span><strong>— / —</strong></div>
+                                                <div class="spectator-context-cell" data-spectator-detail="players"><span>Players</span><strong title="—">—</strong></div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="spectator-detail-section">
@@ -5111,7 +5123,7 @@
 <script src="js/fics-match-research.js?v=1.0.1" defer></script>
 <script src="js/fics-research-actions.js?v=1.0.1" defer></script>
 <script src="js/fics-computer-challenge.js?v=1.0.0" defer></script>
-    <script src="js/spectator-tv-section.js?v=2.0.1" defer></script>
+    <script src="js/spectator-tv-section.js?v=2.0.2" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 
     <style>

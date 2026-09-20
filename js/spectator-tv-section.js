@@ -80,7 +80,7 @@
             this.elements.serverContinueBtn?.addEventListener('click', () => this.connectSelectedServer());
             this.elements.workspaceBackBtn?.addEventListener('click', () => this.goBackInWorkspace());
             this.elements.workspaceTabs.forEach((button) => {
-                button.addEventListener('click', () => this.selectWorkspaceTab(button.dataset.spectatorTab));
+                button.addEventListener('click', () => this.requestWorkspaceTab(button.dataset.spectatorTab));
                 button.addEventListener('keydown', (event) => this.handleWorkspaceTabKeydown(event));
             });
             this.elements.flipBoardBtn?.addEventListener('click', () => this.flipBoard());
@@ -199,6 +199,19 @@
             }
         },
 
+        requestWorkspaceTab(tabId, options = {}) {
+            const nextTab = this.workspaceTabs.includes(tabId) ? tabId : 'server';
+            if (nextTab !== 'watch' && this.activeWorkspaceTab === 'watch' && this.hasObservedTable()) {
+                return this.exitObservedGame(nextTab, options);
+            }
+            this.selectWorkspaceTab(nextTab, options);
+            return null;
+        },
+
+        hasObservedTable() {
+            return !!(this.selectedGame || this.state?.currentObservedGameId || this.lastRenderedFen);
+        },
+
         renderWorkspace() {
             const labels = {
                 server: 'Pick server',
@@ -221,8 +234,11 @@
                 view.classList.toggle('active', active);
             });
             if (this.elements.workspaceBackBtn) {
-                const target = this.activeWorkspaceTab === 'watch' ? 'Channels' : 'Server';
-                this.elements.workspaceBackBtn.setAttribute('aria-label', `Back to ${target}`);
+                const exitTable = this.activeWorkspaceTab === 'watch' && this.hasObservedTable();
+                this.elements.workspaceBackBtn.innerHTML = exitTable
+                    ? '<i class="fas fa-sign-out-alt" aria-hidden="true"></i> Exit table'
+                    : '<i class="fas fa-arrow-left" aria-hidden="true"></i> Back';
+                this.elements.workspaceBackBtn.setAttribute('aria-label', exitTable ? 'Exit table' : 'Back to Server');
             }
         },
 
@@ -235,15 +251,59 @@
             if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % this.workspaceTabs.length;
             if (event.key === 'Home') nextIndex = 0;
             if (event.key === 'End') nextIndex = this.workspaceTabs.length - 1;
-            this.selectWorkspaceTab(this.workspaceTabs[nextIndex], { focus: true });
+            this.requestWorkspaceTab(this.workspaceTabs[nextIndex], { focus: true });
         },
 
         goBackInWorkspace() {
             if (this.activeWorkspaceTab === 'watch') {
-                this.selectWorkspaceTab('channels', { focus: true });
+                if (this.hasObservedTable()) {
+                    this.exitObservedGame('channels', { focus: true });
+                } else {
+                    this.selectWorkspaceTab('channels', { focus: true });
+                }
             } else {
                 this.selectWorkspaceTab('server', { focus: true });
             }
+        },
+
+        exitObservedGame(targetStage = 'channels', options = {}) {
+            const client = window.CaissaFICSClient;
+            const nextStage = targetStage === 'server' ? 'server' : 'channels';
+            const selectedGameId = String(this.selectedGame?.gameId || this.state?.currentObservedGameId || '').trim();
+            const observedGameId = client?.liveGame?.observedGame
+                ? String(client.liveGame.gameNumber || '').trim()
+                : '';
+            const pendingGameId = String(client?.pendingObservation?.target || '').trim();
+            const unobserveGameId = observedGameId || pendingGameId || selectedGameId;
+
+            this.selectionGeneration += 1;
+            this.queuedGameId = null;
+            this.selectedGame = null;
+            const states = window.CaissaSpectatorTV?.STATES || {};
+            const nextStatus = client?.authenticated ? states.LOADING_GAMES : states.DISCONNECTED;
+            if (window.CaissaSpectatorTV?.createInitialState) {
+                this.state = window.CaissaSpectatorTV.createInitialState({
+                    status: nextStatus,
+                    selectedChannelId: this.state?.selectedChannelId || 'featured'
+                });
+            } else if (window.CaissaSpectatorTV?.setObservedGame) {
+                this.state = window.CaissaSpectatorTV.setObservedGame(this.state, null, {});
+            }
+            this.clearSelectedGamePresentation();
+
+            let delivery = Object.freeze({ ok: false, code: 'OBSERVATION_UNAVAILABLE' });
+            if (unobserveGameId && typeof client?.leaveObservedGame === 'function') {
+                delivery = client.leaveObservedGame(unobserveGameId);
+                if (delivery?.ok === false) client.clearObservedGameState?.(unobserveGameId);
+            }
+
+            this.selectWorkspaceTab(nextStage, options);
+            this.renderGameList();
+            this.showMessage(unobserveGameId
+                ? `Left game #${unobserveGameId}. The FICS connection remains available.`
+                : 'Returned to the game list.', delivery?.ok === false && delivery.code !== 'OBSERVATION_UNAVAILABLE' ? 'warning' : 'info');
+            this.render();
+            return Object.freeze({ ok: true, gameNumber: unobserveGameId || null, delivery });
         },
 
         connectSelectedServer() {
@@ -738,18 +798,30 @@
             });
 
             this.elements.liveContext.innerHTML = `
-                <div class="spectator-context-cell spectator-context-cell--opening" data-spectator-detail="opening"><span>Opening</span><strong title="${this.escapeHtml(context.openingName)}">${this.escapeHtml(context.openingName)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>${this.escapeHtml(context.ecoCode)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="variant"><span>Variant</span><strong>${this.escapeHtml(context.variant)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="rated"><span>Rated</span>${ratedBadge}</div>
-                <div class="spectator-context-cell" data-spectator-detail="status"><span>Status</span>${statusBadge}</div>
-                <div class="spectator-context-cell" data-spectator-detail="time-control"><span>Time control</span><strong>${this.escapeHtml(context.timeControl)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="move"><span>Move</span><strong>${this.escapeHtml(context.currentMove)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="phase"><span>Phase</span><strong>${this.escapeHtml(context.phase)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="result"><span>Result</span><strong>${this.escapeHtml(context.result)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="game"><span>Game #</span><strong>${this.escapeHtml(context.gameNumber)}</strong></div>
-                <div class="spectator-context-cell" data-spectator-detail="rating"><span>Rating</span><strong title="${this.escapeHtml(context.ratingTitle)}">${this.escapeHtml(context.rating)}</strong></div>
-                <div class="spectator-context-cell spectator-context-cell--players" data-spectator-detail="players"><span>Players</span><strong title="${this.escapeHtml(context.players)}">${this.escapeHtml(context.players)}</strong></div>
+                <div class="spectator-context-row spectator-context-row--opening">
+                    <div class="spectator-context-cell" data-spectator-detail="opening"><span>Opening</span><strong title="${this.escapeHtml(context.openingName)}">${this.escapeHtml(context.openingName)}</strong></div>
+                    <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>${this.escapeHtml(context.ecoCode)}</strong></div>
+                </div>
+                <div class="spectator-context-row">
+                    <div class="spectator-context-cell" data-spectator-detail="variant"><span>Variant</span><strong>${this.escapeHtml(context.variant)}</strong></div>
+                    <div class="spectator-context-cell" data-spectator-detail="rated"><span>Rated</span>${ratedBadge}</div>
+                </div>
+                <div class="spectator-context-row">
+                    <div class="spectator-context-cell" data-spectator-detail="status"><span>Status</span>${statusBadge}</div>
+                    <div class="spectator-context-cell" data-spectator-detail="time-control"><span>Time control</span><strong>${this.escapeHtml(context.timeControl)}</strong></div>
+                </div>
+                <div class="spectator-context-row">
+                    <div class="spectator-context-cell" data-spectator-detail="move"><span>Move</span><strong>${this.escapeHtml(context.currentMove)}</strong></div>
+                    <div class="spectator-context-cell" data-spectator-detail="phase"><span>Phase</span><strong>${this.escapeHtml(context.phase)}</strong></div>
+                </div>
+                <div class="spectator-context-row">
+                    <div class="spectator-context-cell" data-spectator-detail="result"><span>Result</span><strong>${this.escapeHtml(context.result)}</strong></div>
+                    <div class="spectator-context-cell" data-spectator-detail="game"><span>Game #</span><strong>${this.escapeHtml(context.gameNumber)}</strong></div>
+                </div>
+                <div class="spectator-context-row spectator-context-row--players">
+                    <div class="spectator-context-cell" data-spectator-detail="rating"><span>Rating</span><strong title="${this.escapeHtml(context.ratingTitle)}">${this.escapeHtml(context.rating)}</strong></div>
+                    <div class="spectator-context-cell" data-spectator-detail="players"><span>Players</span><strong title="${this.escapeHtml(context.players)}">${this.escapeHtml(context.players)}</strong></div>
+                </div>
             `;
         },
 
@@ -1035,8 +1107,10 @@
 
         getConnectionFootState() {
             const client = window.CaissaFICSClient;
-            if (client?.authenticated) return { label: 'Connected · FICS', status: 'connected' };
             const connectionState = String(client?.connectionState || '').toLowerCase();
+            if (client?.authenticated && client?.connected && connectionState === 'connected') {
+                return { label: 'Connected · FICS', status: 'connected' };
+            }
             const connecting = ['connecting', 'reconnecting'].includes(connectionState)
                 || this.state?.status === window.CaissaSpectatorTV?.STATES?.CONNECTING;
             if (connecting) return { label: 'Connecting…', status: 'connecting' };
