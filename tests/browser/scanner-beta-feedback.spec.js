@@ -74,7 +74,13 @@ async function boardGeometry(page, selector) {
     const boardRect = board.getBoundingClientRect();
     const squares = [...board.querySelectorAll('.sq')].map((square) => {
       const rect = square.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
+      const squareStyle = getComputedStyle(square);
+      return {
+        left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+        width: rect.width, height: rect.height,
+        borderRadius: squareStyle.borderRadius,
+        margin: squareStyle.margin
+      };
     });
     const style = getComputedStyle(board);
     return {
@@ -82,6 +88,16 @@ async function boardGeometry(page, selector) {
       height: boardRect.height,
       gridColumns: style.gridTemplateColumns.split(' ').length,
       gridRows: style.gridTemplateRows.split(' ').length,
+      columnGap: style.columnGap,
+      rowGap: style.rowGap,
+      horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
+      overflowElements: [...document.body.querySelectorAll('*')].flatMap((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.left < -0.5 || rect.right > innerWidth + 0.5
+          ? [{ tag: element.tagName, id: element.id, className: String(element.className), left: rect.left, right: rect.right }]
+          : [];
+      }).slice(0, 10),
+      pieceSources: [...board.querySelectorAll('.piece-img:not([hidden])')].map((image) => new URL(image.src).pathname),
       squares
     };
   });
@@ -104,9 +120,20 @@ test.describe('Scanner internal mobile beta feedback', () => {
     const captured = await mockBeta(page);
     await page.goto('/scanner/beta');
     await recognize(page);
+    const reviewState = await page.locator('#betaBoard').evaluate((board) => {
+      window.__caissaBetaBoardReference = board;
+      return { fen: board.dataset.fen, orientation: board.dataset.orientation, editable: board.dataset.editable };
+    });
     await page.getByRole('button', { name: 'Confirm Correct', exact: true }).click();
     await expect(page.locator('#workspaceView')).toBeVisible();
-    await expect(page.locator('#workspaceBoard .sq')).toHaveCount(64);
+    await expect(page.locator('#workspaceBoardSlot > #betaBoardShell #betaBoard .sq')).toHaveCount(64);
+    const readyState = await page.locator('#betaBoard').evaluate((board) => ({
+      fen: board.dataset.fen,
+      orientation: board.dataset.orientation,
+      editable: board.dataset.editable,
+      sameNode: window.__caissaBetaBoardReference === board
+    }));
+    expect(readyState).toEqual({ ...reviewState, editable: 'false', sameNode: true });
     expect(captured.scans).toHaveLength(1);
     expect(captured.recognition).toHaveLength(1);
     expect(captured.recognition[0]).toMatchObject({
@@ -124,9 +151,12 @@ test.describe('Scanner internal mobile beta feedback', () => {
     await recognize(page);
     await page.locator('#piecePalette button[data-piece="B"]').click();
     await page.locator('#betaBoard .sq[aria-label="f2 empty"]').click();
+    const correctedFen = await page.locator('#betaBoard').getAttribute('data-fen');
     await expect(page.getByRole('button', { name: 'Position Correct Now' })).toBeVisible();
     await page.getByRole('button', { name: 'Position Correct Now' }).click();
     await expect(page.locator('#workspaceView')).toBeVisible();
+    await expect(page.locator('#betaBoard')).toHaveAttribute('data-fen', correctedFen);
+    await expect(page.locator('#betaBoard')).toHaveAttribute('data-editable', 'false');
     const feedback = captured.feedback[0].feedback;
     expect(feedback.feedbackType).toBe('PIECE_CORRECTION');
     expect(feedback.changedSquares).toHaveLength(1);
@@ -200,12 +230,56 @@ test.describe('Scanner internal mobile beta feedback', () => {
       expect(Math.abs(geometry.width - geometry.height)).toBeLessThanOrEqual(0.5);
       expect(geometry.gridColumns).toBe(8);
       expect(geometry.gridRows).toBe(8);
+      expect(geometry.columnGap).toBe('0px');
+      expect(geometry.rowGap).toBe('0px');
+      expect(geometry.horizontalOverflow, JSON.stringify(geometry.overflowElements)).toBe(false);
+      expect(geometry.pieceSources).toEqual(expect.arrayContaining([
+        '/img/chesspieces/wikipedia/bK.png', '/img/chesspieces/wikipedia/wK.png'
+      ]));
       expect(geometry.squares).toHaveLength(64);
-      for (const square of geometry.squares) {
+      for (const [index, square] of geometry.squares.entries()) {
         expect(Math.abs(square.width - square.height)).toBeLessThanOrEqual(0.5);
         expect(Math.abs(square.width - geometry.width / 8)).toBeLessThanOrEqual(0.5);
+        expect(square.borderRadius).toBe('0px');
+        expect(square.margin).toBe('0px');
+        if (index % 8 !== 7) expect(Math.abs(square.right - geometry.squares[index + 1].left)).toBeLessThanOrEqual(0.5);
+        if (index < 56) expect(Math.abs(square.bottom - geometry.squares[index + 8].top)).toBeLessThanOrEqual(0.5);
       }
     }
+  });
+
+  test('Review and Position Ready use the canonical presentation on the same persistent board', async ({ page }) => {
+    await mockBeta(page);
+    await page.goto('/scanner/beta');
+    await recognize(page);
+    await expect(page.locator('link[href^="/scanner/scanner-experience.css"]')).toHaveCount(1);
+    const reviewGeometry = await boardGeometry(page, '#betaBoard');
+    const reviewFen = await page.locator('#betaBoard').getAttribute('data-fen');
+    await page.locator('#betaBoard').evaluate((board) => { window.__caissaBetaBoardReference = board; });
+    await page.getByRole('button', { name: 'Confirm Correct', exact: true }).click();
+    await expect(page.locator('#workspaceView')).toBeVisible();
+    const readyGeometry = await boardGeometry(page, '#betaBoard');
+    expect(await page.locator('#betaBoard').evaluate((board) => window.__caissaBetaBoardReference === board)).toBe(true);
+    expect(await page.locator('#betaBoard').getAttribute('data-fen')).toBe(reviewFen);
+    expect(readyGeometry.width).toBeCloseTo(reviewGeometry.width, 1);
+    expect(readyGeometry.height).toBeCloseTo(reviewGeometry.height, 1);
+    expect(readyGeometry.squares.map(({ borderRadius }) => borderRadius)).toEqual(Array(64).fill('0px'));
+  });
+
+  test('explicit black-bottom orientation is stable from Review through Position Ready', async ({ page }) => {
+    const captured = await mockBeta(page);
+    await page.goto('/scanner/beta');
+    await page.locator('#orientation').selectOption('black-at-bottom');
+    await recognize(page);
+    await expect(page.locator('#betaBoard')).toHaveAttribute('data-orientation', 'black-at-bottom');
+    await expect(page.locator('#betaBoard .sq').first()).toHaveAttribute('aria-label', 'h1 empty');
+    await expect(page.locator('#betaBoard .sq').last()).toHaveAttribute('aria-label', 'a8 empty');
+    await page.getByRole('button', { name: 'Confirm Correct', exact: true }).click();
+    await expect(page.locator('#workspaceView')).toBeVisible();
+    await expect(page.locator('#betaBoard')).toHaveAttribute('data-orientation', 'black-at-bottom');
+    await expect(page.locator('#betaBoard .sq').first()).toHaveAttribute('aria-label', 'h1 empty');
+    expect(captured.recognition[0].orientation).toBe('black-at-bottom');
+    expect(captured.scans[0].snapshot.orientation).toBe('black-at-bottom');
   });
 
   test('camera and gallery re-arm after New scan and accept the same file repeatedly', async ({ page }) => {

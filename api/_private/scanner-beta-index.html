@@ -8,7 +8,8 @@
   <title>CAISSA Scanner Internal Beta</title>
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
-  <link rel="stylesheet" href="/scanner/beta/beta.css?v=0.1.1">
+  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.4.0">
+  <link rel="stylesheet" href="/scanner/beta/beta.css?v=0.1.2">
 </head>
 <body>
   <main class="beta-shell" id="betaApp">
@@ -29,7 +30,11 @@
 
     <section class="beta-view beta-review" id="reviewView" hidden aria-labelledby="reviewTitle">
       <div class="beta-review-head"><div><h1 id="reviewTitle">Check the position</h1><p>Tap a piece, then tap a square to fix it.</p></div><button id="newScan" type="button">New scan</button></div>
-      <div class="scanner-board beta-board" id="betaBoard" aria-label="Recognized chess position"></div>
+      <div class="beta-board-slot" id="reviewBoardSlot">
+        <div class="board-shell beta-board-shell" id="betaBoardShell">
+          <div class="scanner-board beta-board" id="betaBoard" aria-label="Recognized chess position"></div>
+        </div>
+      </div>
       <div class="beta-palette" id="piecePalette" aria-label="Correction pieces"></div>
       <p class="beta-selection" id="selectionStatus">Selected: Clear square</p>
       <div class="beta-actions"><button id="confirmPosition" class="primary" type="button">Confirm Correct</button><button id="localizationWrong" class="danger" type="button">Board Detection Wrong</button></div>
@@ -40,13 +45,13 @@
     <section class="beta-view beta-done" id="workspaceView" hidden aria-labelledby="workspaceTitle">
       <h1 id="workspaceTitle">Position ready</h1>
       <p>Feedback saved in review quarantine. It will not train the model automatically.</p>
-      <div class="scanner-board beta-board beta-workspace-board" id="workspaceBoard" aria-label="Confirmed chess position"></div>
+      <div class="beta-board-slot beta-workspace-board" id="workspaceBoardSlot"></div>
       <button id="scanAnother" class="primary" type="button">Scan another position</button>
     </section>
   </main>
   <script src="/scanner/scanner-fen.js?v=0.3.0"></script>
   <script src="/scanner/recognition/scanner-image-decode.js?v=0.1.0"></script>
   <script src="/scanner/recognition/scanner-recognition-runtime.js?v=0.2.0"></script>
-  <script type="module" src="/scanner/beta/beta-app.js?v=0.1.2"></script>
+  <script type="module" src="/scanner/beta/beta-app.js?v=0.1.3"></script>
 </body>
 </html>
