@@ -257,8 +257,15 @@ const CaissaArena = {
         return null;
     },
 
-    // ResizeObserver for dynamic board sizing
+    // Stable board geometry follows the same snapshot/unchanged-guard pattern
+    // used by the certified Play shell. Content updates never own board size.
     resizeObserver: null,
+    boardResizeFrame: null,
+    boardResizeForce: false,
+    boardResizeReason: 'layout',
+    boardLayout: null,
+    boardViewportHandler: null,
+    boardOrientationHandler: null,
 
     /**
      * Mount the chessboard in Arena
@@ -281,17 +288,16 @@ const CaissaArena = {
             this.board = App.board;
             this.state.boardMounted = true;
             this.setupResizeObserver();
-            requestAnimationFrame(() => {
-                if (this.board) this.board.resize();
-            });
+            this.requestBoardResize('shared-board-mounted', true);
             this.enableMatchControls();
             return;
         }
 
         // Check if board is already mounted and valid
         if (this.board && this.state.boardMounted) {
-            console.log('[Arena] Board already mounted, resizing...');
-            this.board.resize();
+            console.log('[Arena] Board already mounted, restoring stable sizing...');
+            this.setupResizeObserver();
+            this.requestBoardResize('section-enter', true);
             return;
         }
 
@@ -324,8 +330,9 @@ const CaissaArena = {
         const checkAndMount = () => {
             const rect = container.getBoundingClientRect();
 
-            if (rect.width < 100) {
-                // Container not ready, retry
+            if (rect.width < 48) {
+                // Container is not laid out yet. Short landscape viewports can
+                // legitimately produce a compact board below 100px.
                 setTimeout(checkAndMount, 50);
                 return;
             }
@@ -347,19 +354,10 @@ const CaissaArena = {
                 // Set up ResizeObserver for dynamic sizing
                 this.setupResizeObserver();
                 this.settleLayout();
-                this.resizeBoardNow();
 
-                // Resize after short delay to ensure proper rendering
+                // Enable controls after the mounted board has settled.
                 setTimeout(() => {
                     if (this.board) {
-                        this.board.resize();
-                    }
-                }, 100);
-
-                // Another resize for safety and enable controls
-                setTimeout(() => {
-                    if (this.board) {
-                        this.board.resize();
                         console.log('[Arena] Board resize complete');
 
                         // Enable Start Match button now that board is ready
@@ -377,70 +375,102 @@ const CaissaArena = {
     },
 
     /**
-     * Set up ResizeObserver for dynamic board sizing (chess.com style)
+     * Observe only the stable board-container width. The board's own height is
+     * deliberately ignored so applying a square size cannot feed the observer
+     * back into another measure -> resize cycle.
      */
     setupResizeObserver() {
-        // Clean up existing observer
-        if (this.resizeObserver) {
-            this.resizeObserver.disconnect();
-        }
+        this.teardownBoardSizing();
 
         const boardContainer = document.querySelector('.arena-board-container');
-        const boardMount = this.elements.boardMount;
+        if (!boardContainer || !this.elements.boardMount) return;
 
-        if (!boardContainer || !boardMount || typeof ResizeObserver === 'undefined') return;
+        if (typeof ResizeObserver !== 'undefined') {
+            let observedWidth = 0;
+            this.resizeObserver = new ResizeObserver((entries) => {
+                const width = entries[0]?.contentRect?.width || 0;
+                if (!width || Math.abs(width - observedWidth) < 0.5) return;
+                observedWidth = width;
+                this.requestBoardResize('container-width');
+            });
+            this.resizeObserver.observe(boardContainer);
+        }
 
-        let resizeTimeout = null;
-
-        this.resizeObserver = new ResizeObserver((entries) => {
-            // Debounce resize events
-            if (resizeTimeout) clearTimeout(resizeTimeout);
-
-            resizeTimeout = setTimeout(() => {
-                if (!this.board || !this.state.boardMounted) return;
-
-                const boardSize = this.calculateBoardSize(boardContainer);
-
-                // Apply size to board mount container
-                boardMount.style.width = `${boardSize}px`;
-                boardMount.style.height = `${boardSize}px`;
-                boardContainer.closest('.arena-board-zone')?.style.setProperty('--arena-rendered-board-size', `${boardSize}px`);
-
-                console.log(`[Arena] Resizing board: ${boardSize}px`);
-
-                // Trigger chessboard.js resize
-                this.board.resize();
-                requestAnimationFrame(() => this.syncBoardAndGraphSize(boardSize));
-            }, 150);
-        });
-
-        this.resizeObserver.observe(boardContainer);
-        console.log('[Arena] ResizeObserver set up with auto-sizing');
+        this.boardViewportHandler = () => this.requestBoardResize('viewport');
+        this.boardOrientationHandler = () => this.requestBoardResize('orientation', true);
+        window.addEventListener('resize', this.boardViewportHandler, { passive: true });
+        window.addEventListener('orientationchange', this.boardOrientationHandler, { passive: true });
+        window.visualViewport?.addEventListener('resize', this.boardViewportHandler, { passive: true });
+        this.requestBoardResize('setup', true);
+        console.log('[Arena] Stable board sizing active');
     },
 
     calculateBoardSize(boardContainer) {
         if (!boardContainer) return 0;
 
-        const containerRect = boardContainer.getBoundingClientRect();
         const containerStyle = getComputedStyle(boardContainer);
         const horizontalPadding = parseFloat(containerStyle.paddingLeft || 0)
             + parseFloat(containerStyle.paddingRight || 0);
-        const availableWidth = Math.max(0, containerRect.width - horizontalPadding);
+        // clientWidth excludes borders and includes padding, yielding the true
+        // content box after padding is removed. Using the border box here made
+        // mobile mounts two pixels taller than they were wide.
+        const availableWidth = Math.max(0, boardContainer.clientWidth - horizontalPadding);
 
+        const arenaSection = document.getElementById('arenaSection');
+        const layout = arenaSection?.querySelector('.arena-layout-v2');
+        const containerRect = boardContainer.getBoundingClientRect();
+        const sectionRect = arenaSection?.getBoundingClientRect();
         const bottomBar = document.querySelector('#arenaSection .arena-player-bar-bottom');
         const bottomBarHeight = bottomBar?.getBoundingClientRect().height || 56;
-        const viewportHeight = window.visualViewport?.height || window.innerHeight;
-        const availableHeight = Math.max(0, viewportHeight - containerRect.top - bottomBarHeight - 28);
+        const sectionWidth = arenaSection?.clientWidth || window.innerWidth;
+        const measuredSectionHeight = arenaSection?.clientHeight || window.innerHeight;
+        const orientation = sectionWidth >= measuredSectionHeight ? 'landscape' : 'portrait';
+        const mobileLayout = window.matchMedia('(max-width: 1050px)').matches;
+        const previous = this.boardLayout;
+        const widthChanged = !previous || Math.abs(sectionWidth - previous.sectionWidth) >= 1;
+        const orientationChanged = !previous || orientation !== previous.orientation;
+        // Mobile browser chrome produces height-only visual viewport events.
+        // Retain the section-height snapshot until width/orientation changes so
+        // active games do not breathe as the address bar appears or disappears.
+        const sectionHeight = mobileLayout && previous && !widthChanged && !orientationChanged
+            ? previous.sectionHeight
+            : measuredSectionHeight;
+        const layoutTop = layout?.getBoundingClientRect().top ?? sectionRect?.top ?? 0;
+        const boardTopInLayout = containerRect.top - layoutTop;
+        const availableHeight = Math.max(0, sectionHeight - boardTopInLayout - bottomBarHeight - 28);
 
         const arenaMax = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--arena-board-max')) || 760;
         const boardSize = Math.min(arenaMax, availableWidth, availableHeight);
 
+        this.boardLayout = {
+            sectionWidth,
+            sectionHeight,
+            orientation,
+            boardTopInLayout,
+            availableWidth,
+            availableHeight,
+            size: Math.max(1, Math.floor(boardSize))
+        };
+
         // Never enforce a minimum larger than the measured viewport room; that
         // would clip ranks/files in short mobile-landscape viewports.
-        return Math.max(1, Math.floor(boardSize));
+        return this.boardLayout.size;
     },
 
-    resizeBoardNow() {
+    requestBoardResize(reason = 'layout', force = false) {
+        this.boardResizeForce = this.boardResizeForce || force;
+        this.boardResizeReason = reason;
+        if (this.boardResizeFrame) cancelAnimationFrame(this.boardResizeFrame);
+        this.boardResizeFrame = requestAnimationFrame(() => {
+            this.boardResizeFrame = null;
+            const pendingForce = this.boardResizeForce;
+            const pendingReason = this.boardResizeReason;
+            this.boardResizeForce = false;
+            this.resizeBoardNow(pendingForce, pendingReason);
+        });
+    },
+
+    resizeBoardNow(force = false, reason = 'layout') {
         const host = document.querySelector('#arenaSection .arena-board-zone');
         const boardContainer = document.querySelector('#arenaSection .arena-board-container');
         const boardMount = this.elements.boardMount;
@@ -451,13 +481,18 @@ const CaissaArena = {
         if (!hostWidth || hostWidth < 50) return;
 
         const boardSize = this.calculateBoardSize(boardContainer);
+        const renderedSize = Number.parseFloat(boardMount.style.width) || 0;
+        const sizeChanged = Math.abs(renderedSize - boardSize) >= 0.5;
 
-        boardMount.style.width = `${boardSize}px`;
-        boardMount.style.height = `${boardSize}px`;
-        host.style.setProperty('--arena-rendered-board-size', `${boardSize}px`);
+        if (sizeChanged || force) {
+            boardMount.style.width = `${boardSize}px`;
+            boardMount.style.height = `${boardSize}px`;
+            host.style.setProperty('--arena-rendered-board-size', `${boardSize}px`);
+        }
 
-        if (this.board) {
+        if (this.board && (sizeChanged || force)) {
             this.board.resize();
+            console.log(`[Arena] Board geometry ${boardSize}px (${reason})`);
         }
         requestAnimationFrame(() => this.syncBoardAndGraphSize(boardSize));
     },
@@ -485,45 +520,30 @@ const CaissaArena = {
     },
 
     settleLayout() {
-        // Stage 1: Immediate resize (before any layout)
-        this.resizeBoardNow();
+        this.requestBoardResize('layout-settle');
 
-        // Stage 2: Next animation frame (after paint)
-        requestAnimationFrame(() => {
-            this.resizeBoardNow();
-        });
-
-        // Stage 3: Font load settlement (if supported)
         if (document.fonts?.ready) {
             document.fonts.ready.then(() => {
-                this.resizeBoardNow();
+                this.requestBoardResize('fonts-ready');
             });
         }
-
-        // Stage 4: Short timeout for late shifts
-        setTimeout(() => {
-            this.resizeBoardNow();
-        }, 100);
-
-        // Stage 5: Setup continuous layout observer
-        this.setupLayoutObserver();
     },
 
-    setupLayoutObserver() {
-        if (this.layoutObserver) {
-            this.layoutObserver.disconnect();
+    teardownBoardSizing() {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
+        if (this.boardResizeFrame) cancelAnimationFrame(this.boardResizeFrame);
+        this.boardResizeFrame = null;
+        this.boardResizeForce = false;
+        if (this.boardViewportHandler) {
+            window.removeEventListener('resize', this.boardViewportHandler);
+            window.visualViewport?.removeEventListener('resize', this.boardViewportHandler);
         }
-
-        const container = document.querySelector('.arena-board-zone');
-        if (!container || typeof ResizeObserver === 'undefined') return;
-
-        this.layoutObserver = new ResizeObserver(() => {
-            requestAnimationFrame(() => {
-                this.resizeBoardNow();
-            });
-        });
-
-        this.layoutObserver.observe(container);
+        if (this.boardOrientationHandler) {
+            window.removeEventListener('orientationchange', this.boardOrientationHandler);
+        }
+        this.boardViewportHandler = null;
+        this.boardOrientationHandler = null;
     },
 
     bindEvents() {
@@ -2709,10 +2729,7 @@ const CaissaArena = {
             // Optionally stop - for now we let it run
             // this.stopMatch();
         }
-        if (this.layoutObserver) {
-            this.layoutObserver.disconnect();
-            this.layoutObserver = null;
-        }
+        this.teardownBoardSizing();
     },
 
     /**
