@@ -518,6 +518,7 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   await expect(page.locator('#arenaStatusText')).toContainText('Infinite analysis running');
   await page.getByRole('tab', { name: 'Game' }).click();
   await expect.poll(async () => page.locator('#arenaEvalPV').textContent()).not.toBe('--');
+  await expect(page.locator('#arenaEvalPV')).not.toHaveText(/\b[a-h][1-8][a-h][1-8][qrbn]?\b/i);
   const analysisContinuity = await page.evaluate(() => ({
     active: window.CaissaArena.state.analysisRunning,
     mode: window.CaissaArena.state.mode

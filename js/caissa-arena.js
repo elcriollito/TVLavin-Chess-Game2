@@ -2052,6 +2052,7 @@ const CaissaArena = {
             depth: info.depth,
             nodes: info.nodes,
             pv: info.pv,
+            fen: this.game.fen(),
             turn: this.game.turn() === 'w' ? 'white' : 'black'
         });
 
@@ -2100,9 +2101,39 @@ const CaissaArena = {
         }
 
         if (evalPV && data.pv) {
-            // Show first 5 moves of PV
-            const pvMoves = data.pv.slice(0, 5).join(' ');
-            evalPV.textContent = pvMoves;
+            evalPV.textContent = this.formatPvAsSan(data.pv, data.fen);
+        }
+    },
+
+    /**
+     * Convert an engine PV from UCI transport notation to human-readable SAN.
+     * Replaying on an isolated position keeps the live Arena game untouched.
+     */
+    formatPvAsSan(pv, fen) {
+        if (!Array.isArray(pv) || pv.length === 0 || typeof Chess === 'undefined') return '--';
+
+        try {
+            const analysisGame = new Chess();
+            if (fen && analysisGame.load(fen) === false) return '--';
+
+            const sanMoves = [];
+            for (const uciMove of pv.slice(0, 5)) {
+                const parsed = String(uciMove || '').match(/^([a-h][1-8])([a-h][1-8])([qrbn])?$/i);
+                if (!parsed) break;
+
+                const move = analysisGame.move({
+                    from: parsed[1].toLowerCase(),
+                    to: parsed[2].toLowerCase(),
+                    promotion: parsed[3]?.toLowerCase()
+                });
+                if (!move) break;
+                sanMoves.push(move.san);
+            }
+
+            return sanMoves.length > 0 ? sanMoves.join(' ') : '--';
+        } catch (error) {
+            console.warn('[Arena] Could not format evaluation PV as SAN', error);
+            return '--';
         }
     },
 

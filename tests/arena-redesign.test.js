@@ -138,4 +138,8 @@ test('Arena move presentation uses canonical SAN while engine transport remains 
   assert.match(controller, /playUciMove\(uciMove, isWhiteTurn/);
   assert.match(controller, /uci:\s*uciMove/);
   assert.match(controller, /this\.playUciMove\(bestMove, isWhiteTurn, 'engine'\)/);
+  assert.match(controller, /formatPvAsSan\(pv, fen\)/);
+  assert.match(controller, /const analysisGame = new Chess\(\)/);
+  assert.match(controller, /analysisGame\.move\(/);
+  assert.match(controller, /evalPV\.textContent = this\.formatPvAsSan\(data\.pv, data\.fen\)/);
 });
