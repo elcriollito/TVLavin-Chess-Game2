@@ -3,6 +3,8 @@ import sharp from 'sharp';
 import { scannerBoardImage as imageFixture, scannerPlainImage } from './fixtures/scanner-board-image.js';
 
 const FEN = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+const SEVERE_FEN = '8/6nn/8/8/8/8/NNNNNN2/3KK3 w - - 0 1';
+const SOFT_FEN = '4k3/8/8/8/8/8/NNNN4/4K3 w - - 0 1';
 const jpegFixture = Object.freeze({
   name: 'scanner-board.jpg', mimeType: 'image/jpeg', buffer: await sharp(imageFixture.buffer).jpeg().toBuffer()
 });
@@ -10,17 +12,19 @@ const webpFixture = Object.freeze({
   name: 'scanner-board.webp', mimeType: 'image/webp', buffer: await sharp(imageFixture.buffer).webp().toBuffer()
 });
 
-function labels() {
-  const output = Array(64).fill('empty'); output[4] = 'k'; output[60] = 'K'; return output;
+function labels(fen = FEN) {
+  return fen.split(/\s+/)[0].split('/').flatMap((rank) => [...rank].flatMap((token) => (
+    /^[1-8]$/.test(token) ? Array(Number(token)).fill('empty') : [token]
+  )));
 }
 
-function prediction() {
+function prediction(fen = FEN) {
   return {
     modelVersion: 'caissa-piece-classifier-v0.5-occupancy-recovery',
     modelChecksum: '90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E',
     occupancyThreshold: .99,
-    predictedFEN: FEN,
-    squarePredictions: labels().map((label, index) => ({
+    predictedFEN: fen,
+    squarePredictions: labels(fen).map((label, index) => ({
       square: String.fromCharCode(97 + index % 8) + String(8 - Math.floor(index / 8)),
       predictedClass: label, confidence: .98, occupancyProbability: label === 'empty' ? .01 : .999,
       colorProbabilities: [.5, .5], pieceTypeProbabilities: [0, 0, 0, 0, 0, 1], kingAuxiliaryProbability: label.toLowerCase() === 'k' ? .99 : .01
@@ -133,6 +137,7 @@ test.describe('Scanner internal mobile beta feedback', () => {
     const captured = await mockBeta(page);
     await page.goto('/scanner/beta');
     await recognize(page);
+    await expect(page.locator('#structuralWarning')).toBeHidden();
     const reviewState = await page.locator('#betaBoard').evaluate((board) => {
       window.__caissaBetaBoardReference = board;
       return { fen: board.dataset.fen, orientation: board.dataset.orientation, editable: board.dataset.editable };
@@ -156,6 +161,62 @@ test.describe('Scanner internal mobile beta feedback', () => {
     expect(captured.feedback).toHaveLength(1);
     expect(captured.feedback[0].feedback.feedbackType).toBe('CONFIRMED_CORRECT');
     expect(captured.feedback[0].feedback.changedSquareCount).toBe(0);
+    expect(captured.feedback[0].feedback.structuralStatus).toBe('NORMAL');
+    expect(captured.feedback[0].feedback.warningCodes).toEqual([]);
+  });
+
+  test('hard structural alerts require explicit review while preserving board correction controls', async ({ page }) => {
+    const captured = await mockBeta(page, {
+      recognitionResponses: [{ status: 200, json: prediction(SEVERE_FEN) }]
+    });
+    await page.goto('/scanner/beta');
+    await recognize(page);
+    const warning = page.locator('#structuralWarning');
+    await expect(warning).toBeVisible();
+    await expect(warning).toHaveAttribute('data-status', 'REVIEW_REQUIRED');
+    await expect(page.locator('#structuralWarningTitle')).toHaveText('Review required — unusual position detected.');
+    await expect(page.locator('#structuralAcknowledgeRow')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Confirm Correct', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Board Detection Wrong', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'New scan', exact: true })).toBeVisible();
+    await expect(page.locator('#piecePalette button')).toHaveCount(13);
+    expect(captured.scans).toHaveLength(1);
+    expect(captured.feedback).toHaveLength(0);
+    expect(captured.scans[0].snapshot.structuralGuardrails.status).toBe('REVIEW_REQUIRED');
+    expect(captured.scans[0].snapshot.structuralGuardrails.warningCodes).toEqual(expect.arrayContaining([
+      'MULTIPLE_WHITE_KINGS', 'MISSING_BLACK_KING', 'UNUSUAL_WHITE_KNIGHT_COUNT'
+    ]));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const warningSize = await warning.evaluate((node) => ({ width: node.getBoundingClientRect().width, text: node.innerText }));
+    expect(warningSize.width).toBeLessThanOrEqual(390);
+    expect(warningSize.text).toContain('missing or duplicate king');
+
+    await page.locator('#structuralAcknowledge').check();
+    await expect(page.getByRole('button', { name: 'Confirm Correct', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Confirm Correct', exact: true }).click();
+    await expect(page.locator('#workspaceView')).toBeVisible();
+    expect(captured.feedback).toHaveLength(1);
+    const feedback = captured.feedback[0].feedback;
+    expect(feedback.structuralStatus).toBe('REVIEW_REQUIRED');
+    expect(feedback.warningCodes).toEqual(captured.scans[0].snapshot.structuralGuardrails.warningCodes);
+    expect(feedback.clientMetadata.structuralStatus).toBe('REVIEW_REQUIRED');
+    expect(feedback.trainingStatus).toBe('pending-review');
+  });
+
+  test('soft structural alerts recommend review without blocking confirmation', async ({ page }) => {
+    const captured = await mockBeta(page, {
+      recognitionResponses: [{ status: 200, json: prediction(SOFT_FEN) }]
+    });
+    await page.goto('/scanner/beta');
+    await recognize(page);
+    await expect(page.locator('#structuralWarning')).toHaveAttribute('data-status', 'REVIEW_RECOMMENDED');
+    await expect(page.locator('#structuralWarningTitle')).toHaveText('Review recommended — unusual material detected.');
+    await expect(page.locator('#structuralAcknowledgeRow')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Confirm Correct', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Confirm Correct', exact: true }).click();
+    await expect(page.locator('#workspaceView')).toBeVisible();
+    expect(captured.feedback[0].feedback.structuralStatus).toBe('REVIEW_RECOMMENDED');
+    expect(captured.feedback[0].feedback.warningCodes).toContain('UNUSUAL_WHITE_KNIGHT_COUNT');
   });
 
   test('piece correction derives changed square and requires final-position confirmation', async ({ page }) => {

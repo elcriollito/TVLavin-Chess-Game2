@@ -1,3 +1,5 @@
+import { STRUCTURAL_GUARDRAIL_VERSION, analyzeStructuralPosition } from './scanner-structural-guardrails.js';
+
 const CLASSES = Object.freeze(['empty', 'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k']);
 const CLASS_SET = new Set(CLASSES);
 const FEEDBACK_TYPES = Object.freeze(['CONFIRMED_CORRECT', 'PIECE_CORRECTION', 'LOCALIZATION_FAILURE', 'SCAN_FAILURE']);
@@ -125,12 +127,14 @@ function createPredictionSnapshot(input) {
   invariant(Array.isArray(input.squarePredictions) && input.squarePredictions.length === 64, 'PREDICTION_COUNT');
   input.squarePredictions.forEach(validateSquarePrediction);
   invariant(input.squarePredictions.every((item, index) => item.predictedClass === labels[index]), 'PREDICTION_FEN_MISMATCH');
+  const structuralGuardrails = analyzeStructuralPosition(input.predictedFEN);
   return deepFreeze(clone({
     schemaVersion: 'caissa-scanner-beta-prediction-snapshot/1',
     corpusVersion: CORPUS_VERSION,
     ...input,
     classOrder: [...MODEL.classOrder],
-    preprocessing: MODEL.preprocessing
+    preprocessing: MODEL.preprocessing,
+    structuralGuardrails
   }));
 }
 
@@ -172,6 +176,9 @@ function createFeedbackRecord({ feedbackId, snapshot, feedbackType, correctedFEN
     confirmed = null;
     if (feedbackType === 'LOCALIZATION_FAILURE') localizationValid = false;
   }
+  const structural = original.structuralGuardrails || analyzeStructuralPosition(original.predictedFEN);
+  const structuralWarnings = clone(structural.warnings);
+  const warningCodes = [...structural.warningCodes];
   return deepFreeze({
     schemaVersion: SCHEMA_VERSION,
     corpusVersion: CORPUS_VERSION,
@@ -188,10 +195,19 @@ function createFeedbackRecord({ feedbackId, snapshot, feedbackType, correctedFEN
     changedSquares: correctionRows(original, diff),
     finalPositionConfirmed,
     localizationValid,
+    structuralStatus: structural.status,
+    structuralWarnings,
+    warningCodes,
     consent: clone(consent),
     platform,
     captureType,
-    clientMetadata: clientMetadata ? clone(clientMetadata) : null
+    clientMetadata: {
+      ...(clientMetadata ? clone(clientMetadata) : {}),
+      structuralStatus: structural.status,
+      structuralWarnings: clone(structuralWarnings),
+      warningCodes: [...warningCodes],
+      structuralGuardrailVersion: structural.schemaVersion
+    }
   });
 }
 
@@ -330,6 +346,7 @@ function eligibleForTraining(record) {
 
 export {
   CLASSES, CORPUS_VERSION, FAILURE_STAGES, FEEDBACK_TYPES, GOVERNANCE_STATES, MODEL, PLATFORMS, SCHEMA_VERSION,
+  STRUCTURAL_GUARDRAIL_VERSION, analyzeStructuralPosition,
   aggregateFeedback, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord, eligibleForTraining,
   expandPlacement, fenDiff, placementFromLabels, placementOf, squareAt
 };
