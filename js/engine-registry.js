@@ -41,13 +41,13 @@
             author: 'Fabian Fichter and contributors',
             license: 'GPLv3',
             execution: 'wasm',
-            workerPath: 'public/engines/fairy-stockfish/engine-worker.js',
-            wasmPath: 'public/engines/fairy-stockfish/stockfish.wasm',
+            workerPath: '/public/engines/fairy-stockfish/engine-worker.js',
+            wasmPath: '/public/engines/fairy-stockfish/stockfish.wasm',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: true,
-            enabled: true,
-            notes: 'WASM build (browser)'
+            enabled: false,
+            notes: 'Requires cross-origin-isolated threaded WASM runtime'
         },
         arasan: {
             id: 'arasan',

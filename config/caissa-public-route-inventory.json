@@ -325,7 +325,7 @@
     },
     {
       "id": "arena",
-      "label": "Arena",
+      "label": "Engine Arena",
       "canonicalPath": "/arena",
       "absoluteUrl": "https://www.caissa-chess.org/arena",
       "type": "internal-page",

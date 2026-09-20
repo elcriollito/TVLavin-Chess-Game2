@@ -27,7 +27,7 @@
             { id: 'live-tournaments', label: 'Live Tournaments', icon: 'fas fa-trophy', route: '/watch/live-tournaments' },
             { id: 'lichess-broadcasts', label: 'Lichess Broadcasts', icon: 'fas fa-satellite-dish', route: '/watch/lichess-broadcasts' },
             { id: 'game-replayer', label: 'Game Replayer', icon: 'fas fa-chess-board', route: '/watch/game-replayer' },
-            { id: 'arena', label: 'Arena', icon: 'fas fa-robot', section: 'arena', route: '/arena', canonicalNavigation: true }
+            { id: 'arena', label: 'Engine Arena', icon: 'fas fa-robot', section: 'arena', route: '/arena', canonicalNavigation: true }
         ]),
         Object.freeze([
             { id: 'cheater-insight', label: 'Cheater Insight', icon: 'fas fa-user-shield', section: 'cheater-insight', route: '/cheater-insight', canonicalNavigation: true },

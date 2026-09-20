@@ -722,7 +722,7 @@ const CaissaNavigation = {
                 analyze: 'Analyze',
                 insights: 'Insights',
                 history: 'History',
-                arena: 'Arena',
+                arena: 'Engine Arena',
                 spectator: 'Spectator TV',
                 'cheater-insight': 'Cheater Insight',
                 yahooClassic: 'Yahoo Classic',

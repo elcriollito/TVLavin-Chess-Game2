@@ -46,7 +46,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 17 | analyze-and-watch | Live Tournaments | /watch/live-tournaments | internal-page | CaissaPrimaryNavigation |
 | 18 | analyze-and-watch | Lichess Broadcasts | /watch/lichess-broadcasts | internal-page | CaissaPrimaryNavigation |
 | 19 | analyze-and-watch | Game Replayer | /watch/game-replayer | internal-page | CaissaPrimaryNavigation |
-| 20 | analyze-and-watch | Arena | /arena | internal-page | CaissaPrimaryNavigation |
+| 20 | analyze-and-watch | Engine Arena | /arena | internal-page | CaissaPrimaryNavigation |
 | 21 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
 | 22 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
 | 23 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
