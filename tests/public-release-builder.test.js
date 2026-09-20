@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  CHESS_TV_CONTRACTS,
   DEFAULT_OUTPUT,
+  auditChessTVContracts,
   auditPublicFiles,
   buildPublicRelease,
   isProtectedPublicPath,
   trackedPublicFiles
 } from '../scripts/build-public-release.mjs';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 
@@ -32,6 +35,7 @@ test('public release excludes internal architecture and authored Knowledge sourc
     'scripts/build-public-release.mjs',
     'tools/indexnow-ping.mjs',
     'client/package.json',
+    'data/eco/eco_codes.json',
     'supabase-schema.sql',
     'TVLavin-Chess-Game2.zip'
   ]) assert.equal(isProtectedPublicPath(path), true, `${path} was not protected`);
@@ -49,7 +53,7 @@ test('built artifact enforces disclosure boundaries on rendered public content',
   assert.doesNotMatch(about, /Supabase|serverless|open source|auditable on GitHub/i);
   assert.match(about, /Vercel Web Analytics/);
   assert.doesNotMatch(roadmap, /schema|provider integration|season 9|API endpoint/i);
-  assert.match(premium, /not currently available/i);
+  assert.match(premium, /Coming Soon|not represented as currently available/i);
   assert.doesNotMatch(premium, /No tracking, no selling/i);
   assert.doesNotMatch(classic, /No data is sent to external servers/i);
   assert.doesNotMatch(vault, /github\.com\/anthropics\/caissa/i);
@@ -77,8 +81,32 @@ test('committed-tree audit has no protected paths and all required runtime files
   const files = trackedPublicFiles();
   const result = auditPublicFiles(files);
   assert.equal(result.protectedPaths, 0);
-  assert.equal(result.requiredPaths, 18);
+  assert.equal(result.requiredPaths, 23);
   assert.ok(result.files > 500);
+});
+
+test('public release audit enforces all permanent Chess TV contracts', () => {
+  const files = trackedPublicFiles();
+  const result = auditChessTVContracts({ files });
+  assert.equal(CHESS_TV_CONTRACTS.length, 24);
+  assert.equal(result.chessTvContracts, 24);
+  assert.deepEqual(files.filter(path => path.endsWith('/eco_codes.json')), ['public/data/eco/eco_codes.json']);
+});
+
+test('Chess TV guard rejects a missing board control and a duplicate ECO catalog', () => {
+  const files = trackedPublicFiles();
+  const index = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.throws(
+    () => auditChessTVContracts({
+      files,
+      sources: { 'index.html': index.replace('id="spectatorFullscreenBtn"', 'id="removedFullscreenBtn"') }
+    }),
+    /board controls include Flip, Theater, Fullscreen, and Refresh/
+  );
+  assert.throws(
+    () => auditChessTVContracts({ files: [...files, 'data/eco/eco_codes.json'] }),
+    /public artifact contains one eco_codes\.json/
+  );
 });
 
 test('default release output is outside the repository to prevent parent-worktree scanning', () => {
