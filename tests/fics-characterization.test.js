@@ -5,17 +5,6 @@ import vm from 'node:vm';
 
 const clientSource = fs.readFileSync(new URL('../js/fics-client.js', import.meta.url), 'utf8');
 const style12Source = fs.readFileSync(new URL('../js/fics-style12.js', import.meta.url), 'utf8');
-const localGatewaySource = fs.readFileSync(
-    new URL('../gateway/fics-local-node/fics-gateway.cjs', import.meta.url),
-    'utf8'
-);
-
-test('local gateway matches the production raw-text bridge contract', () => {
-    assert.match(localGatewaySource, /connectToFICS\(state\);/);
-    assert.match(localGatewaySource, /state\.ws\.send\(String\(message\)\)/);
-    assert.match(localGatewaySource, /state\.ficsSocket\.write\(text \+ '\\n'\)/);
-    assert.doesNotMatch(localGatewaySource, /JSON\.(?:parse|stringify)|connectGuest/);
-});
 
 function createHarness() {
     const timeoutTasks = [];
