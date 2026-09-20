@@ -165,6 +165,7 @@ const CaissaArena = {
             // Game status
             statusWhiteName: document.getElementById('arenaStatusWhite'),
             statusBlackName: document.getElementById('arenaStatusBlack'),
+            turnStatus: document.getElementById('arenaTurnStatus'),
             statusTurn: document.getElementById('arenaStatusTurn'),
             statusMoves: document.getElementById('arenaStatusMoves'),
             statusText: document.getElementById('arenaStatusText'),
@@ -1208,9 +1209,12 @@ const CaissaArena = {
         }
         if (pauseMatchBtn) {
             pauseMatchBtn.style.display = matchState === 'running' || matchState === 'paused' ? 'block' : 'none';
-            pauseMatchBtn.innerHTML = matchState === 'paused'
-                ? '<i class="fas fa-play"></i> Resume'
-                : '<i class="fas fa-pause"></i> Pause';
+            const isPaused = matchState === 'paused';
+            pauseMatchBtn.innerHTML = isPaused
+                ? '<i class="fas fa-play" aria-hidden="true"></i> Resume'
+                : '<i class="fas fa-pause" aria-hidden="true"></i> Pause';
+            pauseMatchBtn.setAttribute('aria-label', isPaused ? 'Resume Arena match' : 'Pause Arena match');
+            pauseMatchBtn.title = isPaused ? 'Resume match' : 'Pause match';
         }
         if (stopMatchBtn) {
             stopMatchBtn.style.display = matchState !== 'idle' ? 'block' : 'none';
@@ -1311,13 +1315,43 @@ const CaissaArena = {
 
     // ===== GAME STATUS =====
     updateGameStatus(data = {}) {
-        const { statusTurn, statusMoves, statusText, boardStatus } = this.elements;
+        const { turnStatus, statusTurn, statusMoves, statusText, boardStatus } = this.elements;
+        const sideToMove = this.game?.turn?.() === 'b' ? 'black' : 'white';
+        const sideLabel = sideToMove === 'white' ? 'White' : 'Black';
+        const result = typeof data.result === 'string' ? data.result : '';
+        let turnState = this.state.matchState;
+        let turnLabel = `${sideLabel} to move`;
+        let turnDetail = '';
 
-        if (statusTurn && data.turn) {
-            const engineName = data.turn === 'white'
-                ? this.state.whiteEngine?.name
-                : this.state.blackEngine?.name;
-            statusTurn.textContent = `${data.turn === 'white' ? 'White' : 'Black'} (${engineName})`;
+        if (this.state.matchState === 'finished') {
+            turnState = 'finished';
+            turnLabel = 'Finished';
+            turnDetail = result || 'Game over';
+        } else if (this.state.matchState === 'paused') {
+            turnState = 'paused';
+            turnLabel = 'Paused';
+            turnDetail = `${sideLabel} to move when resumed`;
+        } else if (this.state.analysisRunning) {
+            turnState = 'analysis';
+            turnLabel = 'Analysis';
+            turnDetail = result || 'Infinite analysis running';
+        } else if (/\bstopped\b/i.test(result)) {
+            turnState = 'stopped';
+            turnLabel = 'Stopped';
+            turnDetail = result;
+        } else if (this.state.matchState === 'idle') {
+            turnState = 'idle';
+            turnDetail = result || 'Ready';
+        }
+
+        if (turnStatus) {
+            turnStatus.dataset.state = turnState;
+            turnStatus.dataset.turn = turnState === 'running' || turnState === 'idle' ? sideToMove : 'neutral';
+        }
+        if (statusTurn) statusTurn.textContent = turnLabel;
+        if (boardStatus) {
+            boardStatus.textContent = turnDetail;
+            boardStatus.hidden = !turnDetail;
         }
 
         if (statusMoves && data.moveCount !== undefined) {
@@ -1340,7 +1374,6 @@ const CaissaArena = {
                 text = 'Ready';
             }
             statusText.textContent = text;
-            if (boardStatus) boardStatus.textContent = text;
         }
     },
 
