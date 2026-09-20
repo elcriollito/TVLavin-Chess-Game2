@@ -1,5 +1,73 @@
 import { test, expect } from '@playwright/test';
 
+const measureBoardAlignment = page => page.evaluate(() => {
+  const box = selector => document.querySelector(selector).getBoundingClientRect();
+  const board = box('.spectator-board-frame');
+  const rail = box('.spectator-board-rail');
+  const rows = {
+    header: document.querySelector('.spectator-broadcast-bar'),
+    blackBar: document.querySelector('#spectatorTopPlayer'),
+    whiteBar: document.querySelector('#spectatorBottomPlayer')
+  };
+  const edges = Object.fromEntries(Object.entries(rows).map(([name, element]) => {
+    const rect = element.getBoundingClientRect();
+    return [name, {
+      left: rect.left,
+      right: rect.right,
+      leftDelta: Math.abs(rect.left - board.left),
+      rightDelta: Math.abs(rect.right - board.right)
+    }];
+  }));
+  const visibleDescendantViolations = element => {
+    const bounds = element.getBoundingClientRect();
+    return Array.from(element.querySelectorAll('*')).flatMap(child => {
+      const style = getComputedStyle(child);
+      const rect = child.getBoundingClientRect();
+      const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+      const contained = !visible || (
+        rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1
+        && rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1
+      );
+      return contained ? [] : [{
+        element: `${child.tagName.toLowerCase()}${child.id ? `#${child.id}` : ''}${child.className ? `.${String(child.className).trim().replace(/\s+/g, '.')}` : ''}`,
+        rect: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom },
+        bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom }
+      }];
+    });
+  };
+  const playerBars = Array.from(document.querySelectorAll('.spectator-player-bar'));
+  return {
+    board: { left: board.left, right: board.right, width: board.width, height: board.height },
+    rail: { left: rail.left, right: rail.right, width: rail.width, height: rail.height },
+    edges,
+    containmentViolations: Object.fromEntries(Object.entries(rows).map(([name, element]) => [name, visibleDescendantViolations(element)])),
+    clocks: document.querySelectorAll('.spectator-player-clock').length,
+    boardRoots: document.querySelectorAll('#spectatorBoard > *').length,
+    nonzero: [board, rail, ...Object.values(rows).map(element => element.getBoundingClientRect())]
+      .every(rect => rect.width > 0 && rect.height > 0),
+    horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
+    namesTruncated: playerBars.every(bar => {
+      const name = bar.querySelector('.spectator-player-name');
+      return name.scrollWidth > name.clientWidth;
+    }),
+    rightDataVisible: playerBars.every(bar => {
+      const bounds = bar.getBoundingClientRect();
+      return ['.spectator-player-rating', '.spectator-player-clock'].every(selector => {
+        const element = bar.querySelector(selector);
+        const rect = element.getBoundingClientRect();
+        return getComputedStyle(element).display !== 'none' && rect.width > 0 && rect.right <= bounds.right + 1;
+      });
+    })
+  };
+});
+
+const installLongPlayerNames = page => page.evaluate(() => {
+  document.querySelector('#spectatorTopPlayer .spectator-player-name').textContent = 'BlackPlayerWithAnExceptionallyLongFICSHandleThatMustAlwaysTruncateWithoutMovingTheRatingOrClock';
+  document.querySelector('#spectatorBottomPlayer .spectator-player-name').textContent = 'WhitePlayerWithAnExceptionallyLongFICSHandleThatMustAlwaysTruncateWithoutMovingTheRatingOrClock';
+  document.querySelector('#spectatorTopPlayer .spectator-player-rating').textContent = '2999';
+  document.querySelector('#spectatorBottomPlayer .spectator-player-rating').textContent = '2998';
+});
+
 test('Chess TV identity keeps the canonical route and one accessible navigation link', async ({ page, request }) => {
   const response = await page.goto('/spectator-tv');
   expect(response.status()).toBe(200);
@@ -128,7 +196,7 @@ test('requested desktop zoom geometry keeps the header controls visible and sepa
     { width: 1920, height: 1080 },
     { width: 1366, height: 768 }
   ];
-  const zoomLevels = [1, 0.9, 0.8, 0.7, 0.6];
+  const zoomLevels = [1, 0.9, 0.8, 0.75, 0.67];
 
   await page.goto('/spectator-tv');
   for (const physical of physicalViewports) {
@@ -137,6 +205,8 @@ test('requested desktop zoom geometry keeps the header controls visible and sepa
         width: Math.round(physical.width / zoom),
         height: Math.round(physical.height / zoom)
       });
+      await installLongPlayerNames(page);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
       const geometry = await page.evaluate(() => {
         const box = selector => document.querySelector(selector).getBoundingClientRect();
@@ -181,6 +251,21 @@ test('requested desktop zoom geometry keeps the header controls visible and sepa
         footFixed: true,
         noHorizontalOverflow: true
       });
+
+      const alignment = await measureBoardAlignment(page);
+      for (const row of ['header', 'blackBar', 'whiteBar']) {
+        expect(alignment.edges[row].leftDelta, `${row} left at ${physical.width}x${physical.height} ${Math.round(zoom * 100)}%`).toBeLessThanOrEqual(1);
+        expect(alignment.edges[row].rightDelta, `${row} right at ${physical.width}x${physical.height} ${Math.round(zoom * 100)}%`).toBeLessThanOrEqual(1);
+        expect(alignment.containmentViolations[row], `${row} children at ${physical.width}x${physical.height} ${Math.round(zoom * 100)}%`).toEqual([]);
+      }
+      expect(Math.abs(alignment.rail.left - alignment.board.left)).toBeLessThanOrEqual(1);
+      expect(Math.abs(alignment.rail.right - alignment.board.right)).toBeLessThanOrEqual(1);
+      expect(alignment.clocks).toBe(2);
+      expect(alignment.boardRoots).toBe(1);
+      expect(alignment.nonzero).toBe(true);
+      expect(alignment.horizontalOverflow).toBe(false);
+      expect(alignment.namesTruncated).toBe(true);
+      expect(alignment.rightDataVisible).toBe(true);
     }
   }
 });
@@ -294,11 +379,15 @@ test('theater and fullscreen keep both desktop columns stable and nonzero', asyn
   await page.locator('#spectatorTheaterBtn').click();
   await expect(page.locator('#spectatorTheaterBtn')).toHaveAttribute('aria-pressed', 'true');
   expectStable(await measure());
+  let alignment = await measureBoardAlignment(page);
+  expect(Object.values(alignment.edges).every(row => row.leftDelta <= 1 && row.rightDelta <= 1)).toBe(true);
   await page.locator('#spectatorTheaterBtn').click();
 
   await page.locator('#spectatorFullscreenBtn').click();
   await expect.poll(() => page.evaluate(() => document.fullscreenElement?.id || null)).toBe('spectatorStage');
   expectStable(await measure());
+  alignment = await measureBoardAlignment(page);
+  expect(Object.values(alignment.edges).every(row => row.leftDelta <= 1 && row.rightDelta <= 1)).toBe(true);
   await page.locator('#spectatorFullscreenBtn').click();
   await expect.poll(() => page.evaluate(() => document.fullscreenElement?.id || null)).toBeNull();
   expectStable(await measure());
@@ -314,6 +403,8 @@ test('mobile portrait and landscape keep board first with a complete HEAD BODY F
   await page.goto('/spectator-tv');
   for (const profile of profiles) {
     await page.setViewportSize(profile);
+    await installLongPlayerNames(page);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const layout = await page.evaluate(() => {
       const box = selector => document.querySelector(selector).getBoundingClientRect();
       const board = box('.spectator-v2 .spectator-board-panel');
@@ -345,6 +436,19 @@ test('mobile portrait and landscape keep board first with a complete HEAD BODY F
     expect(layout.footClosesPanel, JSON.stringify(profile)).toBe(true);
     expect(layout.bodyOverflow, JSON.stringify(profile)).toBe('auto');
     expect(layout.documentWidth, JSON.stringify(profile)).toBeLessThanOrEqual(layout.viewportWidth);
+
+    const alignment = await measureBoardAlignment(page);
+    for (const row of ['header', 'blackBar', 'whiteBar']) {
+      expect(alignment.edges[row].leftDelta, `${row} left ${JSON.stringify(profile)}`).toBeLessThanOrEqual(1);
+      expect(alignment.edges[row].rightDelta, `${row} right ${JSON.stringify(profile)}`).toBeLessThanOrEqual(1);
+      expect(alignment.containmentViolations[row], `${row} children ${JSON.stringify(profile)}`).toEqual([]);
+    }
+    expect(alignment.clocks).toBe(2);
+    expect(alignment.boardRoots).toBe(1);
+    expect(alignment.nonzero).toBe(true);
+    expect(alignment.horizontalOverflow).toBe(false);
+    expect(alignment.namesTruncated).toBe(true);
+    expect(alignment.rightDataVisible, JSON.stringify({ profile, alignment })).toBe(true);
   }
 
   for (const id of ['spectatorFlipBoardBtn', 'spectatorTheaterBtn', 'spectatorFullscreenBtn', 'spectatorBoardRefreshBtn']) {
