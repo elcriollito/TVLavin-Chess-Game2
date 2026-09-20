@@ -102,7 +102,7 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.17">
+    <link rel="stylesheet" href="styles.css?v=2.0.18">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.48.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.1">
@@ -1166,8 +1166,13 @@
                                 </span>
                                 <span class="arena-engine-badge">Engine</span>
                             </div>
-                            <div class="arena-stage-meta" aria-live="polite">
-                                <span id="arenaStatusTurn" class="arena-turn-badge">White</span>
+                            <div id="arenaTurnStatus" class="arena-stage-meta arena-turn-status"
+                                 data-state="idle" data-turn="white" role="status" aria-live="polite" aria-atomic="true">
+                                <span class="arena-turn-led" aria-hidden="true"></span>
+                                <span class="arena-turn-copy">
+                                    <span id="arenaStatusTurn" class="arena-turn-label">White to move</span>
+                                    <span class="arena-board-status">Ready</span>
+                                </span>
                                 <span class="arena-move-counter">Move <span id="arenaStatusMoves">0</span></span>
                             </div>
                         </div>
@@ -1185,7 +1190,6 @@
                                 </span>
                                 <span class="arena-engine-badge">Engine</span>
                             </div>
-                            <span class="arena-board-status" aria-label="Current game status">Arena ready</span>
                         </div>
                     </div>
 
@@ -1277,12 +1281,6 @@
                                 <button id="arenaStartMatch" class="btn btn-block btn-primary btn-lg" aria-label="Start Match">
                                     <i class="fas fa-play"></i> Start Match
                                 </button>
-                                <button id="arenaPauseMatch" class="btn btn-block btn-secondary" style="display: none;" aria-label="Pause Arena match">
-                                    <i class="fas fa-pause"></i> Pause
-                                </button>
-                                <button id="arenaStopMatch" class="btn btn-block btn-danger" style="display: none;" aria-label="Stop Arena match">
-                                    <i class="fas fa-stop"></i> Stop
-                                </button>
                             </div>
                             </footer>
                         </section>
@@ -1346,7 +1344,19 @@
                         </div>
 
                         <div class="panel arena-moves-panel">
-                            <h4 class="panel-title-sm">Moves</h4>
+                            <div class="arena-moves-header">
+                                <h4 class="panel-title-sm">Moves</h4>
+                                <div class="arena-game-actions" role="group" aria-label="Active game controls">
+                                    <button id="arenaPauseMatch" class="btn btn-secondary arena-game-action" type="button"
+                                            style="display: none;" aria-label="Pause Arena match" title="Pause match">
+                                        <i class="fas fa-pause" aria-hidden="true"></i> Pause
+                                    </button>
+                                    <button id="arenaStopMatch" class="btn btn-danger arena-game-action" type="button"
+                                            style="display: none;" aria-label="Stop Arena match" title="Stop match">
+                                        <i class="fas fa-stop" aria-hidden="true"></i> Stop
+                                    </button>
+                                </div>
+                            </div>
                             <div id="arenaMoveHistory" class="arena-move-list"></div>
                         </div>
                             </div>
@@ -5083,7 +5093,7 @@
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.1"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.4.0"></script>
+    <script src="js/caissa-arena.js?v=1.4.1"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>

@@ -24,17 +24,30 @@ test('Arena uses one board stage and one three-tab control panel', () => {
   assert.doesNotMatch(arena, /arena-left-panel|arena-right-panel|arena-eval-sidebar/);
 });
 
-test('Game tab owns evaluation, moves, and graph while preserving runtime IDs', () => {
+test('Game tab owns evaluation, moves, active controls, and graph while preserving runtime IDs', () => {
   const arena = arenaMarkup();
+  const matchStart = arena.indexOf('id="arenaPanelMatch"');
   const gameStart = arena.indexOf('id="arenaPanelGame"');
   const gameEnd = arena.indexOf('id="arenaSetupModal"', gameStart);
+  const match = arena.slice(matchStart, gameStart);
   const game = arena.slice(gameStart, gameEnd);
 
-  for (const id of ['arenaEvalScore', 'arenaEvalDepth', 'arenaEvalNodes', 'arenaEvalPV', 'arenaMoveHistory', 'arenaEvalGraph']) {
+  for (const id of ['arenaEvalScore', 'arenaEvalDepth', 'arenaEvalNodes', 'arenaEvalPV', 'arenaPauseMatch', 'arenaStopMatch', 'arenaMoveHistory', 'arenaEvalGraph']) {
     assert.match(game, new RegExp(`id="${id}"`), `${id} must remain in Game`);
     assert.equal((arena.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `${id} must stay unique`);
   }
+  assert.doesNotMatch(match, /id="arena(?:Pause|Stop)Match"/, 'active controls must not be duplicated in Match');
+  assert.ok(game.indexOf('arenaPauseMatch') < game.indexOf('arenaMoveHistory'), 'active controls stay in the Moves header');
   assert.ok(game.indexOf('arenaMoveHistory') < game.indexOf('arenaEvalGraph'), 'graph remains the Game footer');
+});
+
+test('turn status is a stateful LED derived from the game and neutral when finished', () => {
+  const arena = arenaMarkup();
+  assert.match(arena, /id="arenaTurnStatus"[\s\S]{0,220}?role="status"[\s\S]{0,220}?class="arena-turn-led"/);
+  assert.match(arena, /id="arenaStatusTurn" class="arena-turn-label">White to move/);
+  assert.match(controller, /const sideToMove = this\.game\?\.turn\?\.\(\) === 'b' \? 'black' : 'white'/);
+  assert.match(controller, /this\.state\.matchState === 'finished'[\s\S]{0,180}?turnLabel = 'Finished'/);
+  assert.match(controller, /turnState === 'running' \|\| turnState === 'idle' \? sideToMove : 'neutral'/);
 });
 
 test('Arena tabs are accessible and do not own competition lifecycle state', () => {
@@ -50,6 +63,7 @@ test('Arena tabs are accessible and do not own competition lifecycle state', () 
 
 test('Arena sizing is viewport-aware and its move list scrolls internally', () => {
   assert.match(controller, /Math\.min\(arenaMax, availableWidth, availableHeight\)/);
+  assert.match(controller, /moveHistory\.scrollTop = this\.elements\.moveHistory\.scrollHeight/);
   assert.match(styles, /#arenaSection \.arena-board-mount[\s\S]*?aspect-ratio:\s*1\s*\/\s*1/);
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);

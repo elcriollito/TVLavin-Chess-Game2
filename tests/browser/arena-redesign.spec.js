@@ -65,6 +65,40 @@ test('Arena tabs support arrow navigation', async ({ page }) => {
   await expect(game).toBeFocused();
 });
 
+test('turn LED follows the board state and finished games never claim a side to move', async ({ page }) => {
+  await openArena(page);
+  const turnStatus = page.locator('#arenaTurnStatus');
+  const turnLabel = page.locator('#arenaStatusTurn');
+
+  await page.evaluate(() => {
+    window.CaissaArena.game.reset();
+    window.CaissaArena.state.matchState = 'idle';
+    window.CaissaArena.updateGameStatus({ moveCount: 0 });
+  });
+  await expect(turnStatus).toHaveAttribute('data-state', 'idle');
+  await expect(turnStatus).toHaveAttribute('data-turn', 'white');
+  await expect(turnLabel).toHaveText('White to move');
+
+  await page.evaluate(() => {
+    window.CaissaArena.game.move('e4');
+    window.CaissaArena.state.matchState = 'running';
+    window.CaissaArena.updateGameStatus({ moveCount: 1 });
+  });
+  await expect(turnStatus).toHaveAttribute('data-state', 'running');
+  await expect(turnStatus).toHaveAttribute('data-turn', 'black');
+  await expect(turnLabel).toHaveText('Black to move');
+
+  await page.evaluate(() => {
+    window.CaissaArena.state.matchState = 'finished';
+    window.CaissaArena.updateGameStatus({ result: 'Draw by threefold repetition', moveCount: 106 });
+  });
+  await expect(turnStatus).toHaveAttribute('data-state', 'finished');
+  await expect(turnStatus).toHaveAttribute('data-turn', 'neutral');
+  await expect(turnLabel).toHaveText('Finished');
+  await expect(turnStatus.locator('.arena-board-status')).toHaveText('Draw by threefold repetition');
+  await expect(turnStatus).not.toContainText(/to move/i);
+});
+
 test('preserved Match controls work and tab changes keep active workers alive', async ({ page }) => {
   await openArena(page);
   await page.getByRole('tab', { name: 'Match' }).click();
@@ -118,10 +152,49 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   }));
   expect(running).toEqual({ state: 'running', mode: 'match', sameWorkers: true });
   await expect(page.locator('.arena-move-row').first()).toBeVisible();
+  await expect(page.locator('#arenaPauseMatch')).toBeVisible();
+  await expect(page.locator('#arenaStopMatch')).toBeVisible();
+  await expect(page.locator('#arenaStatusTurn')).toHaveText(/^(White|Black) to move$/);
 
-  await page.getByRole('tab', { name: 'Match' }).click();
+  const pause = page.locator('#arenaPauseMatch');
+  await pause.focus();
+  await page.keyboard.press('Space');
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('paused');
+  await expect(pause).toHaveAttribute('aria-label', 'Resume Arena match');
+  await expect(page.locator('#arenaStatusTurn')).toHaveText('Paused');
+  await expect(page.locator('#arenaTurnStatus')).toHaveAttribute('data-turn', 'neutral');
+  const pausedMoveCount = await page.evaluate(() => window.CaissaArena.game.history().length);
+
+  const headerPosition = await page.locator('.arena-moves-header').evaluate(el => el.getBoundingClientRect().top);
+  await page.evaluate(() => {
+    const history = document.querySelector('#arenaMoveHistory');
+    for (let index = 0; index < 60; index += 1) {
+      const row = document.createElement('div');
+      row.className = 'arena-move-row';
+      row.innerHTML = `<span class="move-num">${index + 20}.</span><span class="move-white">e4</span><span class="move-black">e5</span>`;
+      history.appendChild(row);
+    }
+    history.scrollTop = history.scrollHeight;
+  });
+  await expect.poll(async () => page.locator('#arenaMoveHistory').evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  const scrolledHeaderPosition = await page.locator('.arena-moves-header').evaluate(el => el.getBoundingClientRect().top);
+  expect(Math.abs(scrolledHeaderPosition - headerPosition)).toBeLessThanOrEqual(1);
+
+  await pause.focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('running');
+  await expect(pause).toHaveAttribute('aria-label', 'Pause Arena match');
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.game.history().length), { timeout: 15_000 }).toBeGreaterThan(pausedMoveCount);
+  const resumedStatus = await page.evaluate(() => ({
+    label: document.querySelector('#arenaStatusTurn').textContent,
+    expected: `${window.CaissaArena.game.turn() === 'w' ? 'White' : 'Black'} to move`,
+    sameWorkers: window.__arenaWorkerRefs.every((worker, index) => worker === [window.CaissaArena.whiteEngineInstance, window.CaissaArena.blackEngineInstance, window.CaissaArena.evaluatorEngine][index])
+  }));
+  expect(resumedStatus).toEqual({ label: resumedStatus.expected, expected: resumedStatus.expected, sameWorkers: true });
   await page.locator('#arenaStopMatch').click();
   await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('idle');
+  await expect(page.locator('#arenaStatusTurn')).toHaveText('Stopped');
+  await expect(page.locator('#arenaTurnStatus')).toHaveAttribute('data-turn', 'neutral');
 
   await page.getByRole('tab', { name: 'Tournament' }).click();
   await expect.poll(async () => page.locator('#arenaTournamentEngines input:checked').count()).toBeGreaterThanOrEqual(3);
