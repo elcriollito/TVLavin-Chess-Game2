@@ -15,6 +15,8 @@ test('Spectator TV 2.0 uses one board region and one HEAD BODY FOOT workspace', 
     assert.equal((section.match(/spectator-workspace-head/g) || []).length, 1);
     assert.equal((section.match(/spectator-workspace-body/g) || []).length, 1);
     assert.equal((section.match(/spectator-workspace-foot/g) || []).length, 1);
+    assert.match(section, /spectator-workspace-head[\s\S]*spectator-workspace-body[\s\S]*spectator-workspace-foot/);
+    assert.match(section, /<div class="spectator-workspace-foot">[\s\S]*?<\/div>\s*<\/aside>/);
     assert.doesNotMatch(section, /spectator-browser-panel|spectator-side-panel/);
 });
 
@@ -44,9 +46,21 @@ test('new shell reuses existing FICS and Spectator owners', () => {
 
 test('workspace BODY is the scroll owner and desktop is a two-zone grid', () => {
     assert.match(css, /\.spectator-v2 \.spectator-stage\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)\s+minmax\(360px, 410px\)/s);
+    assert.match(css, /\.spectator-v2 \.spectator-stage\s*\{[^}]*align-items:\s*stretch/s);
     assert.match(css, /\.spectator-v2 \.spectator-workspace\s*\{[^}]*overflow:\s*hidden/s);
-    assert.match(css, /\.spectator-v2 \.spectator-workspace-body\s*\{[^}]*overflow-y:\s*auto/s);
+    assert.match(css, /\.spectator-v2 \.spectator-workspace-body\s*\{[^}]*min-height:\s*0[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
+    assert.doesNotMatch(css, /\.spectator-v2 \.spectator-workspace-(?:head|foot)\s*\{[^}]*overflow-y:\s*(?:auto|scroll)/s);
+    assert.doesNotMatch(css, /\.spectator-v2 \.spectator-workspace-foot\s*\{[^}]*position:\s*fixed/s);
     assert.doesNotMatch(css, /zoom\s*:/i);
+});
+
+test('Spectator TV reuses the certified FICS board projection and a guarded resize scheduler', () => {
+    assert.match(script, /window\.CaissaFICSBoardView\.createFicsBoardView/);
+    assert.match(script, /boardView\.presentCanonicalState/);
+    assert.match(script, /deriveStyle12BoardMove/);
+    assert.match(script, /geometry\.width <= 0 \|\| geometry\.height <= 0/);
+    assert.match(script, /boardResizeFrame !== null/);
+    assert.doesNotMatch(script, /new\s+(?:window\.)?ResizeObserver/);
 });
 
 test('approved board presentation controls are present', () => {

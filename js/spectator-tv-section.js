@@ -13,7 +13,10 @@
         state: null,
         catalog: null,
         board: null,
+        boardView: null,
         lastRenderedFen: null,
+        boardResizeFrame: null,
+        lastBoardGeometry: null,
         pendingFeaturedWatch: false,
         catalogLoadCompleted: false,
         unsubscribeFics: null,
@@ -88,11 +91,17 @@
                 button.addEventListener('click', () => this.selectWorkspaceTab(button.dataset.spectatorTab));
                 button.addEventListener('keydown', (event) => this.handleWorkspaceTabKeydown(event));
             });
-            this.elements.flipBoardBtn?.addEventListener('click', () => this.board?.flip?.());
+            this.elements.flipBoardBtn?.addEventListener('click', () => this.flipBoard());
             this.elements.theaterBtn?.addEventListener('click', () => this.toggleTheaterMode());
             this.elements.fullscreenBtn?.addEventListener('click', () => this.toggleFullscreen());
             this.elements.boardRefreshBtn?.addEventListener('click', () => this.refreshFromBoard());
-            document.addEventListener('fullscreenchange', () => this.renderFullscreenControl());
+            document.addEventListener('fullscreenchange', () => {
+                this.renderFullscreenControl();
+                this.scheduleBoardResize();
+            });
+            window.addEventListener('resize', () => this.scheduleBoardResize(), { passive: true });
+            window.addEventListener('orientationchange', () => this.scheduleBoardResize(), { passive: true });
+            window.visualViewport?.addEventListener?.('resize', () => this.scheduleBoardResize(), { passive: true });
         },
 
         subscribeToFics() {
@@ -113,7 +122,7 @@
                 this.selectWorkspaceTab('server');
             }
             this.render();
-            requestAnimationFrame(() => this.board?.resize?.());
+            this.scheduleBoardResize();
         },
 
         onExit() {
@@ -271,7 +280,8 @@
             if (!this.elements.layout) return;
             const active = this.elements.layout.classList.toggle('is-theater');
             this.elements.theaterBtn?.setAttribute('aria-pressed', active ? 'true' : 'false');
-            requestAnimationFrame(() => this.board?.resize?.());
+            this.lastBoardGeometry = null;
+            this.scheduleBoardResize();
         },
 
         async toggleFullscreen() {
@@ -285,7 +295,33 @@
                 this.showMessage('Fullscreen is not available in this browser.', 'warning');
             }
             this.renderFullscreenControl();
-            requestAnimationFrame(() => this.board?.resize?.());
+            this.lastBoardGeometry = null;
+            this.scheduleBoardResize();
+        },
+
+        flipBoard() {
+            if (!this.board?.orientation) return;
+            const next = this.board.orientation() === 'black' ? 'white' : 'black';
+            this.board.orientation(next);
+            this.scheduleBoardResize();
+        },
+
+        scheduleBoardResize() {
+            if (this.boardResizeFrame !== null) return;
+            const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 0));
+            this.boardResizeFrame = schedule(() => {
+                this.boardResizeFrame = null;
+                if (!this.elements.section?.classList.contains('active')) return;
+                if (!this.board) this.initBoard();
+                const geometry = this.elements.board?.getBoundingClientRect?.();
+                if (!this.board || !geometry || geometry.width <= 0 || geometry.height <= 0) return;
+                const unchanged = this.lastBoardGeometry
+                    && Math.abs(this.lastBoardGeometry.width - geometry.width) <= 0.5
+                    && Math.abs(this.lastBoardGeometry.height - geometry.height) <= 0.5;
+                if (unchanged) return;
+                this.lastBoardGeometry = { width: geometry.width, height: geometry.height };
+                this.board.resize?.();
+            });
         },
 
         renderFullscreenControl() {
@@ -325,12 +361,33 @@
         },
 
         initBoard() {
-            if (!this.elements.board || this.board || typeof Chessboard === 'undefined') return;
-            if (!this.elements.section?.classList.contains('active')) return;
-            this.board = Chessboard(this.elements.board, {
+            if (!this.elements.board || this.board || typeof Chessboard === 'undefined') return false;
+            if (!this.elements.section?.classList.contains('active')) return false;
+            const geometry = this.elements.board.getBoundingClientRect();
+            if (geometry.width <= 0 || geometry.height <= 0) return false;
+            const createLegacy = (position = 'start', orientation = 'white') => Chessboard(this.elements.board, {
                 draggable: false,
-                position: 'start'
+                position,
+                orientation
             });
+            if (window.CaissaFICSBoardView?.createFicsBoardView) {
+                this.boardView = window.CaissaFICSBoardView.createFicsBoardView({
+                    container: this.elements.board,
+                    position: 'start',
+                    orientation: 'white',
+                    createLegacy,
+                    onRendererChange: () => {
+                        this.lastBoardGeometry = null;
+                        this.scheduleBoardResize();
+                    },
+                    onError: error => console.error('[Spectator TV] Persistent board unavailable:', error)
+                });
+                this.board = this.boardView.board;
+            } else {
+                this.board = createLegacy();
+            }
+            this.lastBoardGeometry = { width: geometry.width, height: geometry.height };
+            return true;
         },
 
         syncFromFicsClient() {
@@ -500,7 +557,28 @@
 
             this.initBoard();
             if (this.board && liveGame.currentFen !== this.lastRenderedFen) {
-                this.board.position(liveGame.currentFen, false);
+                const previousFen = this.lastRenderedFen;
+                const style12 = { ...(payload.style12 || {}), fen: liveGame.currentFen };
+                const semanticMove = window.CaissaFICSClient?.deriveStyle12BoardMove?.(style12, previousFen) || null;
+                if (this.boardView) {
+                    this.boardView.presentCanonicalState({
+                        state: {
+                            ...liveGame,
+                            observedGame: true,
+                            status: 'observing',
+                            gameActive: false,
+                            relation: 0
+                        },
+                        position: liveGame.currentFen,
+                        previousFen,
+                        semanticMove,
+                        orientation: this.board.orientation?.() || 'white',
+                        animate: Boolean(previousFen && semanticMove),
+                        reviewing: false
+                    });
+                } else {
+                    this.board.position(liveGame.currentFen, false);
+                }
                 this.lastRenderedFen = liveGame.currentFen;
             }
 

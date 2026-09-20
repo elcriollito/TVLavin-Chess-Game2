@@ -14,9 +14,10 @@ test('desktop keeps the large board left of one fixed workspace', async ({ page 
     const workspace = document.querySelector('#spectatorWorkspace').getBoundingClientRect();
     const body = document.querySelector('.spectator-workspace-body');
     return {
-      board: { x: board.x, y: board.y, width: board.width },
-      workspace: { x: workspace.x, y: workspace.y, width: workspace.width },
+      board: { x: board.x, y: board.y, width: board.width, bottom: board.bottom },
+      workspace: { x: workspace.x, y: workspace.y, width: workspace.width, bottom: workspace.bottom },
       bodyOverflow: getComputedStyle(body).overflowY,
+      bodyOverflowX: getComputedStyle(body).overflowX,
       workspaceOverflow: getComputedStyle(document.querySelector('#spectatorWorkspace')).overflow
     };
   });
@@ -24,7 +25,9 @@ test('desktop keeps the large board left of one fixed workspace', async ({ page 
   expect(geometry.board.x).toBeLessThan(geometry.workspace.x);
   expect(geometry.board.width).toBeGreaterThan(geometry.workspace.width);
   expect(Math.abs(geometry.board.y - geometry.workspace.y)).toBeLessThanOrEqual(2);
+  expect(Math.abs(geometry.board.bottom - geometry.workspace.bottom)).toBeLessThanOrEqual(1);
   expect(geometry.bodyOverflow).toBe('auto');
+  expect(geometry.bodyOverflowX).toBe('hidden');
   expect(geometry.workspaceOverflow).toBe('hidden');
 });
 
@@ -68,8 +71,14 @@ test('workflow tabs replace only BODY content and preserve board geometry', asyn
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto('/spectator-tv');
 
-  const board = page.locator('#spectatorBoard');
-  const before = await board.boundingBox();
+  const before = await page.evaluate(() => {
+    const box = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
+    return {
+      board: box('#spectatorBoard'),
+      head: box('.spectator-workspace-head'),
+      foot: box('.spectator-workspace-foot')
+    };
+  });
   await expect(page.locator('#spectatorServerView')).toBeVisible();
 
   await page.getByRole('tab', { name: /2 Channels/ }).click();
@@ -79,11 +88,20 @@ test('workflow tabs replace only BODY content and preserve board geometry', asyn
   await page.getByRole('tab', { name: /3 Watch/ }).click();
   await expect(page.locator('#spectatorWatchView')).toBeVisible();
   await expect(page.locator('#spectatorChannelsView')).toBeHidden();
-  const after = await board.boundingBox();
+  const after = await page.evaluate(() => {
+    const box = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
+    return {
+      board: box('#spectatorBoard'),
+      head: box('.spectator-workspace-head'),
+      foot: box('.spectator-workspace-foot')
+    };
+  });
 
-  expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(1);
-  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
-  expect(Math.abs(after.width - before.width)).toBeLessThanOrEqual(1);
+  for (const area of ['board', 'head', 'foot']) {
+    for (const dimension of ['x', 'y', 'width', 'height']) {
+      expect(Math.abs(after[area][dimension] - before[area][dimension]), `${area}.${dimension}`).toBeLessThanOrEqual(1);
+    }
+  }
 });
 
 test('requested desktop zoom geometry keeps the header controls visible and separated', async ({ page }) => {
@@ -124,6 +142,11 @@ test('requested desktop zoom geometry keeps the header controls visible and sepa
             && button.bottom <= header.bottom
           )),
           workspaceAligned: Math.abs(workspace.top - panel.top) <= 2,
+          workspaceBottomAligned: Math.abs(workspace.bottom - panel.bottom) <= 1,
+          boardNonzero: board.width > 0 && board.height > 0,
+          headFixed: getComputedStyle(document.querySelector('.spectator-workspace-head')).overflowY !== 'auto',
+          bodyScrollOwner: getComputedStyle(document.querySelector('.spectator-workspace-body')).overflowY === 'auto',
+          footFixed: getComputedStyle(document.querySelector('.spectator-workspace-foot')).position !== 'fixed',
           noHorizontalOverflow: document.documentElement.scrollWidth <= window.innerWidth
         };
       });
@@ -133,38 +156,168 @@ test('requested desktop zoom geometry keeps the header controls visible and sepa
         noHeaderOverlap: true,
         buttonsUncut: true,
         workspaceAligned: true,
+        workspaceBottomAligned: true,
+        boardNonzero: true,
+        headFixed: true,
+        bodyScrollOwner: true,
+        footFixed: true,
         noHorizontalOverflow: true
       });
     }
   }
 });
 
-test('mobile keeps board priority and avoids horizontal overflow', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('theater and fullscreen keep both desktop columns stable and nonzero', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto('/spectator-tv');
 
-  const layout = await page.evaluate(() => {
-    const board = document.querySelector('.spectator-v2 .spectator-board-panel').getBoundingClientRect();
+  const measure = () => page.evaluate(() => {
+    const board = document.querySelector('.spectator-board-panel').getBoundingClientRect();
     const boardFrame = document.querySelector('.spectator-board-frame').getBoundingClientRect();
-    const controls = document.querySelector('.spectator-board-tools').getBoundingClientRect();
     const workspace = document.querySelector('#spectatorWorkspace').getBoundingClientRect();
     return {
-      boardBottom: board.bottom,
-      boardFrameTop: boardFrame.top,
-      controlsBottom: controls.bottom,
-      workspaceTop: workspace.top,
-      documentWidth: document.documentElement.scrollWidth,
-      viewportWidth: window.innerWidth
+      bottomDifference: Math.abs(board.bottom - workspace.bottom),
+      boardWidth: boardFrame.width,
+      boardHeight: boardFrame.height,
+      horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth
     };
   });
+  const expectStable = geometry => {
+    expect(geometry.bottomDifference).toBeLessThanOrEqual(1);
+    expect(geometry.boardWidth).toBeGreaterThan(0);
+    expect(geometry.boardHeight).toBeGreaterThan(0);
+    expect(geometry.horizontalOverflow).toBe(false);
+  };
 
-  expect(layout.boardBottom).toBeLessThanOrEqual(layout.workspaceTop + 2);
-  expect(layout.controlsBottom).toBeLessThanOrEqual(layout.boardFrameTop);
-  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  await page.locator('#spectatorTheaterBtn').click();
+  await expect(page.locator('#spectatorTheaterBtn')).toHaveAttribute('aria-pressed', 'true');
+  expectStable(await measure());
+  await page.locator('#spectatorTheaterBtn').click();
+
+  await page.locator('#spectatorFullscreenBtn').click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement?.id || null)).toBe('spectatorStage');
+  expectStable(await measure());
+  await page.locator('#spectatorFullscreenBtn').click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement?.id || null)).toBeNull();
+  expectStable(await measure());
+});
+
+test('mobile portrait and landscape keep board first with a complete HEAD BODY FOOT panel', async ({ page }) => {
+  const profiles = [
+    { width: 390, height: 844 },
+    { width: 430, height: 932 },
+    { width: 844, height: 390 },
+    { width: 932, height: 430 }
+  ];
+  await page.goto('/spectator-tv');
+  for (const profile of profiles) {
+    await page.setViewportSize(profile);
+    const layout = await page.evaluate(() => {
+      const box = selector => document.querySelector(selector).getBoundingClientRect();
+      const board = box('.spectator-v2 .spectator-board-panel');
+      const boardFrame = box('.spectator-board-frame');
+      const controls = box('.spectator-board-tools');
+      const workspace = box('#spectatorWorkspace');
+      const head = box('.spectator-workspace-head');
+      const body = box('.spectator-workspace-body');
+      const foot = box('.spectator-workspace-foot');
+      return {
+        boardBottom: board.bottom,
+        boardFrame: { width: boardFrame.width, height: boardFrame.height, top: boardFrame.top },
+        controlsBottom: controls.bottom,
+        workspace: { top: workspace.top, bottom: workspace.bottom },
+        orderedRegions: head.top < body.top && body.bottom <= foot.top + 1 && foot.bottom <= workspace.bottom + 1,
+        footClosesPanel: Math.abs(foot.bottom - workspace.bottom) <= 1,
+        bodyOverflow: getComputedStyle(document.querySelector('.spectator-workspace-body')).overflowY,
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: window.innerWidth
+      };
+    });
+
+    expect(layout.boardBottom, JSON.stringify(profile)).toBeLessThanOrEqual(layout.workspace.top + 2);
+    expect(layout.controlsBottom, JSON.stringify(profile)).toBeLessThanOrEqual(layout.boardFrame.top);
+    expect(layout.boardFrame.width, JSON.stringify(profile)).toBeGreaterThan(0);
+    expect(layout.boardFrame.height, JSON.stringify(profile)).toBeGreaterThan(0);
+    expect(Math.abs(layout.boardFrame.width - layout.boardFrame.height), JSON.stringify(profile)).toBeLessThanOrEqual(1);
+    expect(layout.orderedRegions, JSON.stringify(profile)).toBe(true);
+    expect(layout.footClosesPanel, JSON.stringify(profile)).toBe(true);
+    expect(layout.bodyOverflow, JSON.stringify(profile)).toBe('auto');
+    expect(layout.documentWidth, JSON.stringify(profile)).toBeLessThanOrEqual(layout.viewportWidth);
+  }
+
   for (const id of ['spectatorFlipBoardBtn', 'spectatorTheaterBtn', 'spectatorFullscreenBtn', 'spectatorBoardRefreshBtn']) {
     await expect(page.locator(`#${id}`)).toHaveCount(1);
     await expect(page.locator(`#${id}`)).toBeVisible();
   }
   await expect(page.getByRole('tab', { name: /1 Server/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Connect & continue/i })).toBeVisible();
+});
+
+test('live Spectator updates reuse the persistent FICS renderer without board geometry drift', async ({ page }) => {
+  const consoleErrors = [];
+  const pageErrors = [];
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/spectator-tv');
+
+  const result = await page.evaluate(async () => {
+    const section = window.CaissaSpectatorTVSection;
+    const game = new Chess();
+    const emit = san => {
+      const move = game.move(san);
+      const style12 = {
+        fen: game.fen(), gameNumber: 919, whiteName: 'Alpha', blackName: 'Beta',
+        relation: 0, sideToMove: game.turn(), lastMove: move.san, lastMoveVerbose: move,
+        whiteClock: 300, blackClock: 300, observedGame: true
+      };
+      section.renderStyle12({
+        style12,
+        liveGame: {
+          currentFen: style12.fen, gameNumber: 919, whiteName: 'Alpha', blackName: 'Beta',
+          sideToMove: style12.sideToMove, whiteClock: 300, blackClock: 300,
+          observedGame: true, gameActive: false, status: 'observing'
+        },
+        moveHistory: []
+      });
+    };
+    emit('e4');
+    await section.boardView.whenIdle();
+    const root = document.querySelector('#spectatorBoard > *');
+    const before = document.querySelector('.spectator-board-frame').getBoundingClientRect().toJSON();
+    for (const san of ['e5', 'Nf3', 'Nc6', 'Bb5']) emit(san);
+    await section.boardView.whenIdle();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const after = document.querySelector('.spectator-board-frame').getBoundingClientRect().toJSON();
+    const snapshot = section.boardView.getSnapshot();
+    const sameRootAfterUpdates = root === document.querySelector('#spectatorBoard > *');
+    section.handleDisconnected();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return {
+      renderer: snapshot.renderer,
+      sameRoot: sameRootAfterUpdates,
+      sameRootAfterDisconnect: root === document.querySelector('#spectatorBoard > *'),
+      before,
+      after,
+      width: document.querySelector('#spectatorBoard').getBoundingClientRect().width,
+      height: document.querySelector('#spectatorBoard').getBoundingClientRect().height,
+      pendingVisual: snapshot.pendingVisual,
+      horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth
+    };
+  });
+
+  expect(result.renderer).toBe('persistent');
+  expect(result.sameRoot).toBe(true);
+  expect(result.sameRootAfterDisconnect).toBe(true);
+  expect(result.width).toBeGreaterThan(0);
+  expect(result.height).toBeGreaterThan(0);
+  expect(result.pendingVisual).toBe(false);
+  expect(result.horizontalOverflow).toBe(false);
+  for (const dimension of ['x', 'y', 'width', 'height']) {
+    expect(Math.abs(result.after[dimension] - result.before[dimension]), dimension).toBeLessThanOrEqual(1);
+  }
+  expect(pageErrors).toEqual([]);
+  expect(consoleErrors.filter(message => !/favicon/i.test(message))).toEqual([]);
 });

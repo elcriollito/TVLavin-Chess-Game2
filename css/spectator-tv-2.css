@@ -66,7 +66,8 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(360px, 410px);
     gap: clamp(14px, 1.7vw, 24px);
-    align-items: start;
+    align-items: stretch;
+    height: min(884px, calc(100dvh - 96px));
     min-width: 0;
     min-height: 0;
 }
@@ -76,6 +77,7 @@
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     gap: 8px;
+    height: 100%;
     min-width: 0;
     padding: 10px;
     border: 1px solid rgba(214, 176, 74, 0.18);
@@ -246,8 +248,8 @@
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     width: 100%;
-    height: min(820px, calc(100dvh - 138px));
-    min-height: 610px;
+    height: 100%;
+    min-height: 0;
     min-width: 0;
     overflow: hidden;
     border: 1px solid rgba(148, 163, 184, 0.18);
@@ -346,6 +348,7 @@
 
 .spectator-v2 .spectator-workspace-body {
     min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 14px 15px 18px;
@@ -695,8 +698,12 @@
     display: none;
 }
 
+.spectator-v2.is-theater .spectator-stage {
+    height: min(944px, calc(100dvh - 48px));
+}
+
 .spectator-v2.is-theater .spectator-workspace {
-    height: calc(100dvh - 100px);
+    height: 100%;
 }
 
 .spectator-v2.is-theater .spectator-board-frame {
@@ -704,13 +711,14 @@
 }
 
 .spectator-stage:fullscreen {
-    align-items: center;
+    align-items: stretch;
+    height: 100%;
     padding: 18px;
     background: #080c15;
 }
 
 .spectator-stage:fullscreen .spectator-workspace {
-    height: calc(100dvh - 36px);
+    height: 100%;
 }
 
 .spectator-stage:fullscreen .spectator-board-frame {
@@ -759,6 +767,8 @@
 
     .spectator-v2 .spectator-stage {
         grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        height: auto;
     }
 
     .spectator-v2 .spectator-board-panel {
@@ -890,9 +900,10 @@
 
 @media (max-width: 950px) and (max-height: 620px) and (orientation: landscape) {
     .spectator-layout.spectator-v2 {
-        height: calc(100dvh - 64px);
+        height: auto;
+        min-height: 0;
         padding: 6px 8px;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .spectator-v2 .spectator-header {
@@ -900,12 +911,14 @@
     }
 
     .spectator-v2 .spectator-stage {
-        grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
         gap: 8px;
     }
 
     .spectator-v2 .spectator-board-panel {
-        order: initial;
+        order: 1;
+        height: auto;
         padding: 6px;
     }
 
@@ -943,9 +956,9 @@
     }
 
     .spectator-v2 .spectator-workspace {
-        order: initial;
-        height: calc(100dvh - 76px);
-        min-height: 0;
+        order: 2;
+        height: min(520px, 132dvh);
+        min-height: 360px;
     }
 }
 
