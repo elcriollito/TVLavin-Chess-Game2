@@ -77,9 +77,9 @@ test('only approved proper names and established Portuguese UI terms remain iden
     const { api } = boot();
     const equal = Object.keys(api.catalogs.en).filter(key => api.catalogs.en[key] === api.catalogs.pt[key]).sort();
     assert.deepEqual(equal, [
-        'common.blitz', 'common.bullet', 'common.casual', 'common.elite', 'nav.item.arena',
+        'common.blitz', 'common.bullet', 'common.casual', 'common.elite',
         'nav.item.blog', 'nav.item.facebook', 'nav.item.fics', 'nav.item.fritz', 'nav.item.lichess-tv',
-        'nav.item.playchess', 'nav.item.yahooClassic', 'pgn.collectionDetailsTemplate', 'pgn.zoom',
+        'nav.item.playchess', 'nav.item.spectator', 'nav.item.yahooClassic', 'pgn.collectionDetailsTemplate', 'pgn.zoom',
         'play.menu', 'shell.avatar', 'shell.premium', 'shell.status'
     ]);
 });
