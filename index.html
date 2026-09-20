@@ -1146,23 +1146,77 @@
             <!-- SECTION: ARENA (Engine vs Engine) -->
             <section id="arenaSection" class="content-section">
                 <div class="arena-layout-v2">
+                    <header class="arena-page-header">
+                        <span class="arena-page-icon" aria-hidden="true"><i class="fas fa-bolt"></i></span>
+                        <span>
+                            <strong>CAISSA Arena</strong>
+                            <small>Play, analyze and improve with the strongest engines</small>
+                        </span>
+                    </header>
+
                     <div class="arena-grid">
-                    <!-- Left Sidebar: Controls -->
-                    <aside class="arena-sidebar arena-left-panel">
-                        <!-- Arena Tabs -->
-                        <div class="arena-tabs">
-                            <button id="arenaTabMatch" class="arena-tab active" aria-label="Create Match">
+                    <!-- Board Stage: players and the visual focus of Arena -->
+                    <div class="arena-board-zone" role="region" aria-label="Arena chessboard">
+                        <div class="arena-player-bar arena-player-bar-top">
+                            <div class="arena-player arena-player-black">
+                                <span class="arena-player-avatar" aria-hidden="true"><i class="fas fa-desktop"></i></span>
+                                <span class="arena-player-copy">
+                                    <span id="arenaStatusBlack" class="arena-player-name">Stockfish 2019 MV (Lite profile)</span>
+                                    <span class="arena-player-detail">Black engine</span>
+                                </span>
+                                <span class="arena-engine-badge">Engine</span>
+                            </div>
+                            <div class="arena-stage-meta" aria-live="polite">
+                                <span id="arenaStatusTurn" class="arena-turn-badge">White</span>
+                                <span class="arena-move-counter">Move <span id="arenaStatusMoves">0</span></span>
+                            </div>
+                        </div>
+
+                        <div class="arena-board-container">
+                            <div id="arenaBoardMount" class="arena-board-mount"></div>
+                        </div>
+
+                        <div class="arena-player-bar arena-player-bar-bottom">
+                            <div class="arena-player arena-player-white">
+                                <span class="arena-player-avatar" aria-hidden="true"><i class="fas fa-desktop"></i></span>
+                                <span class="arena-player-copy">
+                                    <span id="arenaStatusWhite" class="arena-player-name">Stockfish 2019 MV</span>
+                                    <span class="arena-player-detail">White engine</span>
+                                </span>
+                                <span class="arena-engine-badge">Engine</span>
+                            </div>
+                            <span class="arena-board-status" aria-label="Current game status">Arena ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Unified Control and Information Panel -->
+                    <aside class="arena-sidebar arena-control-panel" aria-label="Arena controls and game information">
+                        <div class="arena-panel-head">
+                        <div class="arena-tabs" role="tablist" aria-label="Arena panel">
+                            <button id="arenaTabMatch" class="arena-tab" type="button" role="tab"
+                                    aria-selected="false" aria-controls="arenaPanelMatch" tabindex="-1">
                                 <i class="fas fa-chess"></i>
                                 <span>Match</span>
                             </button>
-                            <button id="arenaTabTournament" class="arena-tab" aria-label="Create Tournament">
+                            <button id="arenaTabTournament" class="arena-tab" type="button" role="tab"
+                                    aria-selected="false" aria-controls="arenaPanelTournament" tabindex="-1">
                                 <i class="fas fa-trophy"></i>
                                 <span>Tournament</span>
                             </button>
+                            <button id="arenaTabGame" class="arena-tab active" type="button" role="tab"
+                                    aria-selected="true" aria-controls="arenaPanelGame" tabindex="0">
+                                <i class="fas fa-cog"></i>
+                                <span>Game</span>
+                            </button>
+                        </div>
                         </div>
 
+                        <div class="arena-panel-stack">
+
                         <!-- Match Panel -->
-                        <div id="arenaPanelMatch" class="arena-panel">
+                        <section id="arenaPanelMatch" class="arena-panel" role="tabpanel"
+                                 aria-labelledby="arenaTabMatch" tabindex="0" hidden>
+                            <div class="arena-panel-body arena-panel-scroll">
                             <div class="arena-section">
                                 <h4 class="arena-section-title">
                                     <span class="engine-color-dot white"></span> White Engine
@@ -1209,7 +1263,13 @@
                                     <i class="fas fa-edit"></i> Manual Setup
                                 </button>
                             </div>
+                            </div>
 
+                            <footer class="arena-panel-foot">
+                            <div id="arenaStatusBox" class="arena-status-box">
+                                <div class="arena-status-label">Game Status</div>
+                                <div id="arenaStatusText" class="arena-status-text">Ready</div>
+                            </div>
                             <div class="arena-controls">
                                 <button id="arenaInfiniteAnalysis" class="btn btn-block btn-secondary" type="button" aria-label="Start or stop Arena infinite analysis">
                                     <i class="fas fa-search"></i> Infinite Analysis
@@ -1224,14 +1284,13 @@
                                     <i class="fas fa-stop"></i> Stop
                                 </button>
                             </div>
-                            <div id="arenaStatusBox" class="arena-status-box">
-                                <div class="arena-status-label">Game Status</div>
-                                <div id="arenaStatusText" class="arena-status-text">Ready</div>
-                            </div>
-                        </div>
+                            </footer>
+                        </section>
 
                         <!-- Tournament Panel -->
-                        <div id="arenaPanelTournament" class="arena-panel" style="display: none;">
+                        <section id="arenaPanelTournament" class="arena-panel" role="tabpanel"
+                                 aria-labelledby="arenaTabTournament" tabindex="0" hidden>
+                            <div class="arena-panel-body arena-panel-scroll">
                             <div class="arena-section">
                                 <h4 class="arena-section-title">Engines (min 3)</h4>
                                 <div id="arenaTournamentEngines" class="tournament-engine-list"></div>
@@ -1256,49 +1315,21 @@
                                     </select>
                                 </div>
                             </div>
-
-                            <button id="arenaStartTournament" class="btn btn-block btn-primary btn-lg">
-                                <i class="fas fa-trophy"></i> Start Tournament
-                            </button>
-
                             <div id="arenaTournamentProgress" class="tournament-progress"></div>
                             <div id="arenaTournamentStandings" class="tournament-standings"></div>
-                        </div>
-                    </aside>
-
-                    <!-- Center: Board Zone -->
-                    <div class="arena-board-zone">
-                        <div class="arena-game-status">
-                            <div class="arena-player arena-player-white">
-                                <span class="arena-player-color white"></span>
-                                <span id="arenaStatusWhite" class="arena-player-name">Stockfish 2019 MV</span>
                             </div>
-                            <div class="arena-status-center">
-                                <span id="arenaStatusTurn" class="arena-turn-badge">White</span>
-                                <span class="arena-move-counter">Move <span id="arenaStatusMoves">0</span></span>
-                            </div>
-                            <div class="arena-player arena-player-black">
-                                <span id="arenaStatusBlack" class="arena-player-name">Stockfish 2019 MV (Lite profile)</span>
-                                <span class="arena-player-color black"></span>
-                            </div>
-                        </div>
+                            <footer class="arena-panel-foot">
+                                <div class="arena-status-label">Tournament Status</div>
+                                <button id="arenaStartTournament" class="btn btn-block btn-primary btn-lg">
+                                    <i class="fas fa-trophy"></i> Start Tournament
+                                </button>
+                            </footer>
+                        </section>
 
-                        <div class="arena-board-container">
-                            <div id="arenaBoardMount" class="arena-board-mount"></div>
-                        </div>
-
-                        <div id="arenaGraphPanel" class="panel arena-graph-panel arena-board-graph-panel">
-                            <h4 class="panel-title-sm">Eval Graph</h4>
-                            <canvas id="arenaEvalGraph" class="arena-eval-canvas" width="636" height="120"></canvas>
-                            <div class="arena-graph-legend">
-                                <span><span class="dot white"></span>White</span>
-                                <span><span class="dot black"></span>Black</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Sidebar: Evaluation -->
-                    <aside class="arena-eval-sidebar arena-right-panel">
+                        <!-- Game Panel: evaluation, moves, and persistent graph -->
+                        <section id="arenaPanelGame" class="arena-panel arena-game-panel active" role="tabpanel"
+                                 aria-labelledby="arenaTabGame" tabindex="0">
+                            <div class="arena-panel-body arena-game-body">
                         <div class="panel arena-eval-panel">
                             <div class="arena-eval-header">
                                 <h4 class="panel-title-sm">Evaluation</h4>
@@ -1317,6 +1348,20 @@
                         <div class="panel arena-moves-panel">
                             <h4 class="panel-title-sm">Moves</h4>
                             <div id="arenaMoveHistory" class="arena-move-list"></div>
+                        </div>
+                            </div>
+
+                            <footer class="arena-panel-foot arena-game-foot">
+                                <div id="arenaGraphPanel" class="panel arena-graph-panel">
+                                    <h4 class="panel-title-sm">Eval Graph</h4>
+                                    <canvas id="arenaEvalGraph" class="arena-eval-canvas" width="480" height="120"></canvas>
+                                    <div class="arena-graph-legend">
+                                        <span><span class="dot white"></span>White</span>
+                                        <span><span class="dot black"></span>Black</span>
+                                    </div>
+                                </div>
+                            </footer>
+                        </section>
                         </div>
                     </aside>
                     </div>
@@ -5038,7 +5083,7 @@
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.0.1"></script>
     <script src="js/engine-registry.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.3.2"></script>
+    <script src="js/caissa-arena.js?v=1.4.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
