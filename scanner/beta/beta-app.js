@@ -1,4 +1,6 @@
-import { MODEL, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord, fenDiff } from './scanner-beta-contract.js';
+import {
+  MODEL, analyzeStructuralPosition, createFeedbackRecord, createPredictionSnapshot, createScanFailureRecord, fenDiff
+} from './scanner-beta-contract.js';
 import { randomUuid, sha256Hex } from './scanner-beta-crypto.js';
 import { enqueueSubmission, flushSubmissions, pendingCount } from './scanner-beta-queue.js';
 
@@ -13,6 +15,7 @@ let selectedPiece = '';
 let captureType = null;
 let activeRecognitionController = null;
 let selectedFileMetadata = null;
+let structuralAcknowledged = false;
 
 const RECOGNITION_TIMEOUT_MS = 25_000;
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -199,7 +202,9 @@ function editSquare(row, col) {
   const next = fenTools.mutateSquare(workingFen, row, col, selectedPiece);
   if (!next) return;
   workingFen = next;
+  structuralAcknowledged = false;
   renderBoard(true);
+  renderStructuralGuardrail();
   const count = fenDiff(snapshot.predictedFEN, workingFen).length;
   $('confirmPosition').textContent = count ? 'Position Correct Now' : 'Confirm Correct';
   status(count ? `${count} correction${count === 1 ? '' : 's'} ready to submit.` : 'No corrections. Confirm if the board is exact.');
@@ -213,6 +218,33 @@ function renderBoard(editable) {
   board.dataset.orientation = boardFlipped() ? 'black-at-bottom' : 'white-at-bottom';
   board.dataset.editable = String(editable);
   board.setAttribute('aria-label', editable ? 'Recognized chess position' : 'Confirmed chess position');
+}
+
+function renderStructuralGuardrail() {
+  const panel = $('structuralWarning');
+  const acknowledgeRow = $('structuralAcknowledgeRow');
+  const acknowledge = $('structuralAcknowledge');
+  const result = analyzeStructuralPosition(workingFen);
+  panel.dataset.status = result.status;
+  if (result.status === 'NORMAL') {
+    panel.hidden = true;
+    acknowledgeRow.hidden = true;
+    acknowledge.checked = false;
+    $('confirmPosition').disabled = false;
+    return result;
+  }
+  const required = result.status === 'REVIEW_REQUIRED';
+  panel.hidden = false;
+  $('structuralWarningTitle').textContent = required
+    ? 'Review required — unusual position detected.'
+    : 'Review recommended — unusual material detected.';
+  $('structuralWarningMessage').textContent = required
+    ? 'CAISSA detected a structural issue such as a missing or duplicate king.'
+    : 'Promotions can create unusual material. Please check the position before confirming.';
+  acknowledgeRow.hidden = !required;
+  acknowledge.checked = required && structuralAcknowledged;
+  $('confirmPosition').disabled = required && !structuralAcknowledged;
+  return result;
 }
 
 function buildPalette() {
@@ -237,12 +269,15 @@ function buildPalette() {
 }
 
 function showDiagnostics(prepared) {
+  const structural = snapshot.structuralGuardrails;
   const values = {
     'Model': MODEL.version,
     'Threshold': String(MODEL.occupancyThreshold),
     'Image hash': snapshot.imageHash,
     'Scan ID': snapshot.scanId,
-    'Localization': prepared.status
+    'Localization': prepared.status,
+    'Structural review': structural.status,
+    'Structural warnings': structural.warningCodes.join(', ') || 'None'
   };
   $('diagnostics').innerHTML = Object.entries(values).map(([name, value]) => `<dt>${name}</dt><dd>${value}</dd>`).join('');
 }
@@ -291,7 +326,9 @@ async function selectFile(file, source) {
     const stored = await submitOrQueue(`scan:${snapshot.scanId}`, '/api/scanner/beta/scan', { snapshot, metadata });
     if (generation !== activeGeneration) return;
     workingFen = snapshot.predictedFEN;
+    structuralAcknowledged = false;
     renderBoard(true);
+    renderStructuralGuardrail();
     showDiagnostics(prepared);
     show('reviewView');
     status(stored.synced ? 'Prediction saved. Confirm the final position.' : 'Offline: prediction queued for safe retry.');
@@ -314,6 +351,11 @@ async function selectFile(file, source) {
 
 async function sendFeedback(type) {
   if (!snapshot) return;
+  const structural = analyzeStructuralPosition(workingFen);
+  if (structural.status === 'REVIEW_REQUIRED' && !structuralAcknowledged && type !== 'LOCALIZATION_FAILURE') {
+    status('Review and acknowledge the structural warning before confirming.');
+    return;
+  }
   const diff = fenDiff(snapshot.predictedFEN, workingFen);
   const feedbackType = type || (diff.length ? 'PIECE_CORRECTION' : 'CONFIRMED_CORRECT');
   try {
@@ -337,8 +379,14 @@ function reset() {
   activeRecognitionController?.abort();
   activeRecognitionController = null;
   snapshot = null; workingFen = ''; selectedPiece = ''; captureType = null; selectedFileMetadata = null;
+  structuralAcknowledged = false;
   $('cameraInput').value = ''; $('galleryInput').value = '';
   $('confirmPosition').textContent = 'Confirm Correct';
+  $('confirmPosition').disabled = false;
+  $('structuralAcknowledge').checked = false;
+  $('structuralAcknowledgeRow').hidden = true;
+  $('structuralWarning').hidden = true;
+  delete $('structuralWarning').dataset.status;
   mountBoard($('reviewBoardSlot'));
   $('betaBoard').replaceChildren();
   delete $('betaBoard').dataset.fen;
@@ -366,6 +414,10 @@ $('cameraInput').addEventListener('change', () => handleFileSelection($('cameraI
 $('galleryInput').addEventListener('change', () => handleFileSelection($('galleryInput'), 'gallery'));
 $('confirmPosition').addEventListener('click', () => sendFeedback());
 $('localizationWrong').addEventListener('click', () => sendFeedback('LOCALIZATION_FAILURE'));
+$('structuralAcknowledge').addEventListener('change', (event) => {
+  structuralAcknowledged = event.currentTarget.checked;
+  renderStructuralGuardrail();
+});
 $('newScan').addEventListener('click', reset);
 $('scanAnother').addEventListener('click', reset);
 window.addEventListener('online', async () => {
