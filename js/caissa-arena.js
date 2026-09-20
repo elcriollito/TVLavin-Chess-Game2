@@ -45,7 +45,8 @@ const CaissaArena = {
 
     // ===== STATE =====
     state: {
-        mode: 'match', // 'match' or 'tournament'
+        mode: 'match', // Active competition type: 'match' or 'tournament'
+        activeTab: 'game', // Presentation only; never controls worker or match lifecycle
         matchState: 'idle', // 'idle', 'running', 'paused', 'finished'
         whiteEngine: null, // Engine config (from registry)
         blackEngine: null, // Engine config (from registry)
@@ -58,6 +59,7 @@ const CaissaArena = {
         analysisFen: '',
         setupPiece: 'erase',
         boardMounted: false,
+        hasEntered: false,
         loopActive: false, // Is engine loop running
         searchToken: 0,
         loopRunning: false,
@@ -88,6 +90,7 @@ const CaissaArena = {
         }
         this.cacheElements();
         this.bindEvents();
+        this.switchTab(this.state.activeTab, { focus: false });
         if (this.elements.moveDelayInput) {
             this.elements.moveDelayInput.value = String(this.state.moveDelay);
         }
@@ -95,6 +98,12 @@ const CaissaArena = {
         this.renderTournamentEngineList();
         this.initEvalGraph();
         this.initGame();
+        requestAnimationFrame(() => {
+            const arenaSection = document.getElementById('arenaSection');
+            if (arenaSection?.classList.contains('active') && !this.state.hasEntered) {
+                this.onEnter();
+            }
+        });
         console.log('[Arena] Ready with', this.engines.length, 'engines');
     },
 
@@ -116,8 +125,10 @@ const CaissaArena = {
             // Tabs
             tabMatch: document.getElementById('arenaTabMatch'),
             tabTournament: document.getElementById('arenaTabTournament'),
+            tabGame: document.getElementById('arenaTabGame'),
             panelMatch: document.getElementById('arenaPanelMatch'),
             panelTournament: document.getElementById('arenaPanelTournament'),
+            panelGame: document.getElementById('arenaPanelGame'),
 
             // Engine selectors
             whiteEngineSelect: document.getElementById('arenaWhiteEngine'),
@@ -157,6 +168,7 @@ const CaissaArena = {
             statusTurn: document.getElementById('arenaStatusTurn'),
             statusMoves: document.getElementById('arenaStatusMoves'),
             statusText: document.getElementById('arenaStatusText'),
+            boardStatus: document.querySelector('#arenaSection .arena-board-status'),
 
             // Evaluation panel
             evalEngineName: document.getElementById('arenaEvalEngine'),
@@ -381,25 +393,14 @@ const CaissaArena = {
             resizeTimeout = setTimeout(() => {
                 if (!this.board || !this.state.boardMounted) return;
 
-                // Get container dimensions
-                const containerRect = boardContainer.getBoundingClientRect();
-                const containerWidth = containerRect.width - 32; // padding
-                const idealSize = containerWidth;
-
-                // Clamp to reasonable bounds
-                // Desktop: 480px target (~5" visual), Mobile: 280px min
-                const isMobile = window.innerWidth < 768;
-                const minSize = isMobile ? 280 : 380;
-                const cssBoardSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--board-size'));
-                const maxSize = Math.min(isMobile ? 520 : 660, cssBoardSize || Infinity);
-
-                const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
+                const boardSize = this.calculateBoardSize(boardContainer);
 
                 // Apply size to board mount container
                 boardMount.style.width = `${boardSize}px`;
                 boardMount.style.height = `${boardSize}px`;
+                boardContainer.closest('.arena-board-zone')?.style.setProperty('--arena-rendered-board-size', `${boardSize}px`);
 
-                console.log(`[Arena] Resizing board: ${boardSize}px (container width: ${containerWidth}px)`);
+                console.log(`[Arena] Resizing board: ${boardSize}px`);
 
                 // Trigger chessboard.js resize
                 this.board.resize();
@@ -411,26 +412,43 @@ const CaissaArena = {
         console.log('[Arena] ResizeObserver set up with auto-sizing');
     },
 
+    calculateBoardSize(boardContainer) {
+        if (!boardContainer) return 0;
+
+        const containerRect = boardContainer.getBoundingClientRect();
+        const containerStyle = getComputedStyle(boardContainer);
+        const horizontalPadding = parseFloat(containerStyle.paddingLeft || 0)
+            + parseFloat(containerStyle.paddingRight || 0);
+        const availableWidth = Math.max(0, containerRect.width - horizontalPadding);
+
+        const bottomBar = document.querySelector('#arenaSection .arena-player-bar-bottom');
+        const bottomBarHeight = bottomBar?.getBoundingClientRect().height || 56;
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const availableHeight = Math.max(0, viewportHeight - containerRect.top - bottomBarHeight - 28);
+
+        const arenaMax = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--arena-board-max')) || 760;
+        const boardSize = Math.min(arenaMax, availableWidth, availableHeight);
+
+        // Never enforce a minimum larger than the measured viewport room; that
+        // would clip ranks/files in short mobile-landscape viewports.
+        return Math.max(1, Math.floor(boardSize));
+    },
+
     resizeBoardNow() {
-        const host = document.querySelector('.arena-board-zone');
+        const host = document.querySelector('#arenaSection .arena-board-zone');
+        const boardContainer = document.querySelector('#arenaSection .arena-board-container');
         const boardMount = this.elements.boardMount;
-        if (!host || !boardMount) return;
+        if (!host || !boardContainer || !boardMount) return;
 
         const hostRect = host.getBoundingClientRect();
         const hostWidth = hostRect.width;
         if (!hostWidth || hostWidth < 50) return;
 
-        const containerWidth = hostWidth - 32;
-        const idealSize = containerWidth;
-
-        const isMobile = window.innerWidth < 768;
-        const minSize = isMobile ? 280 : 380;
-        const cssBoardSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--board-size'));
-        const maxSize = Math.min(isMobile ? 520 : 660, cssBoardSize || Infinity);
-        const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
+        const boardSize = this.calculateBoardSize(boardContainer);
 
         boardMount.style.width = `${boardSize}px`;
         boardMount.style.height = `${boardSize}px`;
+        host.style.setProperty('--arena-rendered-board-size', `${boardSize}px`);
 
         if (this.board) {
             this.board.resize();
@@ -447,12 +465,11 @@ const CaissaArena = {
         const boardSize = measuredWidth || fallbackSize;
         if (!boardSize) return;
 
-        if (graphPanel) {
-            graphPanel.style.width = `${boardSize}px`;
-        }
         if (!evalGraph) return;
 
-        const canvasWidth = Math.max(256, Math.floor(boardSize - 24));
+        const graphWidth = graphPanel?.getBoundingClientRect().width || 0;
+        if (!graphWidth) return;
+        const canvasWidth = Math.max(256, Math.floor(graphWidth - 24));
         if (evalGraph.width !== canvasWidth) {
             evalGraph.width = canvasWidth;
             this.evalGraphCtx = evalGraph.getContext('2d');
@@ -507,6 +524,10 @@ const CaissaArena = {
         // Tab switching
         this.elements.tabMatch?.addEventListener('click', () => this.switchTab('match'));
         this.elements.tabTournament?.addEventListener('click', () => this.switchTab('tournament'));
+        this.elements.tabGame?.addEventListener('click', () => this.switchTab('game'));
+        [this.elements.tabMatch, this.elements.tabTournament, this.elements.tabGame]
+            .filter(Boolean)
+            .forEach((tab) => tab.addEventListener('keydown', (event) => this.onTabKeydown(event)));
 
         // Engine selection
         this.elements.whiteEngineSelect?.addEventListener('change', (e) => {
@@ -546,20 +567,52 @@ const CaissaArena = {
     },
 
     // ===== TAB SWITCHING =====
-    switchTab(tab) {
-        this.state.mode = tab;
+    switchTab(tab, options = {}) {
+        if (!['match', 'tournament', 'game'].includes(tab)) return;
+        this.state.activeTab = tab;
 
-        // Update tab styles
-        this.elements.tabMatch?.classList.toggle('active', tab === 'match');
-        this.elements.tabTournament?.classList.toggle('active', tab === 'tournament');
+        const tabs = {
+            match: this.elements.tabMatch,
+            tournament: this.elements.tabTournament,
+            game: this.elements.tabGame
+        };
+        const panels = {
+            match: this.elements.panelMatch,
+            tournament: this.elements.panelTournament,
+            game: this.elements.panelGame
+        };
 
-        // Show/hide panels
-        if (this.elements.panelMatch) {
-            this.elements.panelMatch.style.display = tab === 'match' ? 'block' : 'none';
+        Object.entries(tabs).forEach(([name, element]) => {
+            const isActive = name === tab;
+            element?.classList.toggle('active', isActive);
+            element?.setAttribute('aria-selected', String(isActive));
+            element?.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+        Object.entries(panels).forEach(([name, element]) => {
+            const isActive = name === tab;
+            if (element) element.hidden = !isActive;
+            element?.classList.toggle('active', isActive);
+        });
+
+        if (options.focus !== false) tabs[tab]?.focus();
+        if (tab === 'game') {
+            requestAnimationFrame(() => this.syncBoardAndGraphSize());
         }
-        if (this.elements.panelTournament) {
-            this.elements.panelTournament.style.display = tab === 'tournament' ? 'block' : 'none';
-        }
+    },
+
+    onTabKeydown(event) {
+        const tabs = ['match', 'tournament', 'game'];
+        const currentIndex = tabs.indexOf(this.state.activeTab);
+        let nextIndex = currentIndex;
+
+        if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+        else if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        else if (event.key === 'Home') nextIndex = 0;
+        else if (event.key === 'End') nextIndex = tabs.length - 1;
+        else return;
+
+        event.preventDefault();
+        this.switchTab(tabs[nextIndex]);
     },
 
     togglePositionPanel() {
@@ -991,7 +1044,7 @@ const CaissaArena = {
     },
 
     // ===== MATCH CONTROLS =====
-    async startMatch() {
+    async startMatch(options = {}) {
         // Prevent double-start
         if (this.state.matchState === 'running') {
             console.warn('[Arena] Match already running');
@@ -1002,6 +1055,8 @@ const CaissaArena = {
             alert('Select both engines before starting a match.');
             return;
         }
+
+        this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
 
         window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, true, { label: 'Starting...' });
         this.stopInfiniteAnalysis(false);
@@ -1256,7 +1311,7 @@ const CaissaArena = {
 
     // ===== GAME STATUS =====
     updateGameStatus(data = {}) {
-        const { statusTurn, statusMoves, statusText } = this.elements;
+        const { statusTurn, statusMoves, statusText, boardStatus } = this.elements;
 
         if (statusTurn && data.turn) {
             const engineName = data.turn === 'white'
@@ -1285,6 +1340,7 @@ const CaissaArena = {
                 text = 'Ready';
             }
             statusText.textContent = text;
+            if (boardStatus) boardStatus.textContent = text;
         }
     },
 
@@ -2158,6 +2214,8 @@ const CaissaArena = {
             return;
         }
 
+        this.state.mode = 'tournament';
+
         const rounds = parseInt(this.elements.tournamentRounds?.value) || 3;
         const openingMode = this.elements.tournamentOpening?.value || 'free';
 
@@ -2234,7 +2292,7 @@ const CaissaArena = {
         this.updateEngineInfo();
 
         // Start the game
-        this.startMatch();
+        this.startMatch({ competitionMode: 'tournament' });
     },
 
     recordTournamentResult(result) {
@@ -2321,6 +2379,9 @@ const CaissaArena = {
     // ===== SECTION LIFECYCLE =====
     onEnter() {
         console.log('[Arena] Section entered');
+        this.state.hasEntered = true;
+        const mobileSectionName = document.getElementById('headerSectionName');
+        if (mobileSectionName) mobileSectionName.textContent = 'CAISSA Arena';
 
         // Re-cache elements (in case they weren't ready on init)
         // CRITICAL: Always re-cache on enter to ensure fresh DOM references

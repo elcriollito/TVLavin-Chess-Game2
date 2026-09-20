@@ -8867,3 +8867,541 @@ body.debug-layout #arena-right {
 [data-caissa-primary-groups]:not([data-caissa-navigation-order-ready]) {
     visibility: hidden;
 }
+
+/* ===== ARENA-RD-001..004: BOARD-FIRST UNIFIED PANEL ===== */
+:root {
+    --arena-board-max: 760px;
+}
+
+#arenaSection.active {
+    display: block;
+    overflow-x: hidden;
+}
+
+#arenaSection .arena-layout-v2 {
+    min-height: 100%;
+    padding: clamp(12px, 1.5vw, 24px);
+    background:
+        radial-gradient(circle at 55% -20%, rgba(59, 130, 246, 0.08), transparent 42%),
+        var(--bg-primary);
+}
+
+#arenaSection .arena-page-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: min(100%, 1540px);
+    min-height: 54px;
+    margin: 0 auto 14px;
+    padding: 0 4px;
+}
+
+#arenaSection .arena-page-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    color: #b388ff;
+    font-size: 24px;
+}
+
+#arenaSection .arena-page-header > span:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+#arenaSection .arena-page-header strong {
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+#arenaSection .arena-page-header small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+#arenaSection .arena-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(380px, 32vw, 520px);
+    gap: clamp(18px, 2vw, 30px);
+    align-items: start;
+    width: min(100%, 1540px);
+    margin: 0 auto;
+    overflow: visible;
+}
+
+#arenaSection .arena-board-zone {
+    --arena-rendered-board-size: min(100%, var(--arena-board-max));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    width: 100%;
+}
+
+#arenaSection .arena-player-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: min(100%, var(--arena-rendered-board-size));
+    min-height: 58px;
+    padding: 9px 14px;
+    box-sizing: border-box;
+    color: var(--text-primary);
+    background: linear-gradient(135deg, rgba(23, 39, 58, 0.96), rgba(13, 25, 40, 0.96));
+    border: 1px solid rgba(122, 156, 195, 0.18);
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+#arenaSection .arena-player {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+#arenaSection .arena-player-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    color: #172235;
+    background: #d8e1ee;
+    border-radius: 7px;
+    font-size: 18px;
+}
+
+#arenaSection .arena-player-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+#arenaSection .arena-player-name {
+    max-width: 260px;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#arenaSection .arena-player-detail,
+#arenaSection .arena-board-status {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+#arenaSection .arena-engine-badge {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    color: #c8d5e7;
+    background: rgba(115, 145, 180, 0.16);
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+#arenaSection .arena-stage-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
+#arenaSection .arena-turn-badge {
+    max-width: min(280px, 28vw);
+    overflow: hidden;
+    padding: 6px 10px;
+    color: #fff;
+    background: linear-gradient(135deg, #6d43d9, #2f7bdc);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#arenaSection .arena-board-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 8px 22px;
+    box-sizing: border-box;
+    overflow: visible;
+    background: rgba(9, 20, 33, 0.42);
+    border: 1px solid rgba(122, 156, 195, 0.12);
+    border-radius: 12px;
+}
+
+#arenaSection .arena-board-mount {
+    width: min(100%, var(--arena-board-max));
+    height: auto;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
+/* The legacy navigation controller may park the shared Play board beside the
+ * Arena-owned board before Arena mounts. Keep it available for navigation back
+ * to Play without letting it consume board-stage width. */
+#arenaSection .arena-board-container > #chessboard {
+    display: none !important;
+}
+
+#arenaSection .arena-board,
+#arenaSection #arenaBoardElement,
+#arenaSection .arena-board-mount > #chessboard {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+}
+
+#arenaSection .arena-control-panel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: calc(100dvh - 156px);
+    min-height: 590px;
+    max-height: 900px;
+    padding: 12px;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(17, 34, 53, 0.98), rgba(10, 24, 39, 0.98));
+    border: 1px solid rgba(122, 156, 195, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+#arenaSection .arena-panel-head {
+    padding-bottom: 12px;
+}
+
+#arenaSection .arena-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0;
+    background: transparent;
+}
+
+#arenaSection .arena-tab {
+    min-width: 0;
+    min-height: 46px;
+    padding: 9px 10px;
+    color: #d3dceb;
+    background: rgba(35, 55, 77, 0.72);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+#arenaSection .arena-tab:hover {
+    color: #fff;
+    background: rgba(49, 74, 101, 0.88);
+}
+
+#arenaSection .arena-tab.active {
+    color: #fff;
+    background: linear-gradient(135deg, #248ee8, #1d67c9);
+    border-color: rgba(90, 177, 255, 0.55);
+    box-shadow: 0 6px 18px rgba(20, 112, 211, 0.3);
+}
+
+#arenaSection .arena-tab:focus-visible,
+#arenaSection .arena-panel:focus-visible,
+#arenaSection .btn:focus-visible,
+#arenaSection .form-control:focus-visible {
+    outline: 3px solid #b388ff;
+    outline-offset: 2px;
+}
+
+#arenaSection .arena-panel-stack {
+    min-height: 0;
+    overflow: hidden;
+}
+
+#arenaSection .arena-panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#arenaSection .arena-panel[hidden] {
+    display: none;
+}
+
+#arenaSection .arena-panel-body {
+    min-height: 0;
+}
+
+#arenaSection .arena-panel-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 4px 5px 8px 2px;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+#arenaSection .arena-panel-foot {
+    flex: 0 0 auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(122, 156, 195, 0.18);
+}
+
+#arenaSection .arena-status-box {
+    margin: 0 0 9px;
+    padding: 9px 11px;
+    background: rgba(4, 13, 24, 0.38);
+    border-color: rgba(122, 156, 195, 0.16);
+}
+
+#arenaSection .arena-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 8px;
+    margin: 0;
+}
+
+#arenaSection .arena-controls #arenaPauseMatch,
+#arenaSection .arena-controls #arenaStopMatch {
+    grid-column: span 1;
+}
+
+#arenaSection .arena-controls .btn {
+    min-height: 42px;
+}
+
+#arenaSection .arena-game-body {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    overflow: hidden;
+}
+
+#arenaSection .arena-eval-panel,
+#arenaSection .arena-moves-panel,
+#arenaSection .arena-graph-panel {
+    padding: 12px;
+    box-sizing: border-box;
+    background: rgba(7, 20, 34, 0.55);
+    border: 1px solid rgba(122, 156, 195, 0.18);
+    border-radius: 10px;
+}
+
+#arenaSection .arena-eval-score {
+    font-size: clamp(28px, 3vw, 38px);
+}
+
+#arenaSection .arena-eval-pv {
+    max-height: 64px;
+    overflow-y: auto;
+}
+
+#arenaSection .arena-moves-panel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+}
+
+#arenaSection .arena-move-list {
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+#arenaSection .arena-move-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    padding: 6px 5px;
+}
+
+#arenaSection .arena-move-row:nth-child(even) {
+    background: rgba(82, 115, 151, 0.05);
+}
+
+#arenaSection .arena-move-row .move-num,
+#arenaSection .arena-move-row .move-white,
+#arenaSection .arena-move-row .move-black {
+    width: auto;
+    min-width: 0;
+}
+
+#arenaSection .arena-game-foot {
+    padding-top: 12px;
+}
+
+#arenaSection .arena-graph-panel {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+#arenaSection .arena-eval-canvas {
+    display: block;
+    width: 100%;
+    height: 104px;
+}
+
+#arenaSection .tournament-engine-list {
+    max-height: none;
+}
+
+@media (max-width: 1050px) {
+    #arenaSection .arena-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    #arenaSection .arena-board-zone {
+        order: 1;
+    }
+
+    #arenaSection .arena-control-panel {
+        order: 2;
+        width: min(100%, 760px);
+        height: min(760px, calc(100dvh - 110px));
+        min-height: 580px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --arena-board-max: 640px;
+    }
+
+    #arenaSection .arena-layout-v2 {
+        padding: 10px;
+    }
+
+    #arenaSection .arena-page-header {
+        min-height: 46px;
+        margin-bottom: 10px;
+    }
+
+    #arenaSection .arena-page-header strong {
+        font-size: 17px;
+    }
+
+    #arenaSection .arena-page-header small {
+        white-space: normal;
+    }
+
+    #arenaSection .arena-player-bar {
+        min-height: 52px;
+        padding: 7px 10px;
+    }
+
+    #arenaSection .arena-player-avatar {
+        flex-basis: 32px;
+        width: 32px;
+        height: 32px;
+    }
+
+    #arenaSection .arena-board-container {
+        min-height: 0;
+        padding: 6px 12px;
+    }
+
+    #arenaSection .arena-control-panel {
+        height: min(720px, 82dvh);
+        min-height: 560px;
+        padding: 9px;
+    }
+
+    #arenaSection .arena-tab {
+        min-height: 44px;
+        padding-inline: 7px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 520px) {
+    #arenaSection .arena-page-header small,
+    #arenaSection .arena-engine-badge,
+    #arenaSection .arena-board-status {
+        display: none;
+    }
+
+    #arenaSection .arena-player-bar {
+        gap: 8px;
+    }
+
+    #arenaSection .arena-player-name {
+        max-width: 132px;
+        font-size: 12px;
+    }
+
+    #arenaSection .arena-stage-meta {
+        gap: 6px;
+    }
+
+    #arenaSection .arena-turn-badge {
+        max-width: 116px;
+        padding-inline: 7px;
+    }
+
+    #arenaSection .arena-tabs {
+        gap: 5px;
+    }
+
+    #arenaSection .arena-tab {
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    #arenaSection .arena-controls {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-height: 720px) and (min-width: 1051px) {
+    #arenaSection .arena-page-header {
+        min-height: 42px;
+        margin-bottom: 8px;
+    }
+
+    #arenaSection .arena-control-panel {
+        height: calc(100dvh - 126px);
+        min-height: 510px;
+    }
+
+    #arenaSection .arena-player-bar {
+        min-height: 50px;
+        padding-block: 6px;
+    }
+}
