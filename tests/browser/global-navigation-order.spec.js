@@ -6,14 +6,14 @@ const routes = [
   ['/play-online/fritz', 'Fritz'],
   ['/puzzles/chessbase-tactics', 'Tactics'],
   ['/academy', 'Academy'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
-  ['/analyze', 'Analyze'], ['/spectator-tv', 'Chess TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/watch/lichess-broadcasts', 'Lichess Broadcasts'], ['/watch/game-replayer', 'Game Replayer'], ['/arena', 'Arena'],
+  ['/analyze', 'Analyze'], ['/spectator-tv', 'Chess TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/watch/lichess-broadcasts', 'Lichess Broadcasts'], ['/watch/game-replayer', 'Game Replayer'], ['/arena', 'Engine Arena'],
   ['/game-library', 'Game Library'], ['/blog', 'Blog']
 ];
 
 const canonicalOrder = [
   'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
   'Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
-  'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Arena',
+  'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
   'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog',
   'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'
@@ -80,8 +80,8 @@ test('Back Forward and rapid navigation change only active identity, never order
   await page.goto('/play');
   await page.getByRole('link', { name: 'Insights', exact: true }).click();
   await page.getByRole('link', { name: 'Analyze', exact: true }).click();
-  await page.getByRole('link', { name: 'Arena', exact: true }).click();
-  await assertOrderAndIdentity(page, 'Arena');
+  await page.getByRole('link', { name: 'Engine Arena', exact: true }).click();
+  await assertOrderAndIdentity(page, 'Engine Arena');
   await page.goBack();
   await assertOrderAndIdentity(page, 'Analyze');
   await page.goBack();

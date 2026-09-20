@@ -45,7 +45,8 @@ const CaissaArena = {
 
     // ===== STATE =====
     state: {
-        mode: 'match', // 'match' or 'tournament'
+        mode: 'match', // Active competition type: 'match' or 'tournament'
+        activeTab: 'game', // Presentation only; never controls worker or match lifecycle
         matchState: 'idle', // 'idle', 'running', 'paused', 'finished'
         whiteEngine: null, // Engine config (from registry)
         blackEngine: null, // Engine config (from registry)
@@ -58,6 +59,7 @@ const CaissaArena = {
         analysisFen: '',
         setupPiece: 'erase',
         boardMounted: false,
+        hasEntered: false,
         loopActive: false, // Is engine loop running
         searchToken: 0,
         loopRunning: false,
@@ -88,13 +90,21 @@ const CaissaArena = {
         }
         this.cacheElements();
         this.bindEvents();
+        this.switchTab(this.state.activeTab, { focus: false });
         if (this.elements.moveDelayInput) {
             this.elements.moveDelayInput.value = String(this.state.moveDelay);
         }
         this.renderEngineSelectors();
         this.renderTournamentEngineList();
+        this.updateTournamentUI();
         this.initEvalGraph();
         this.initGame();
+        requestAnimationFrame(() => {
+            const arenaSection = document.getElementById('arenaSection');
+            if (arenaSection?.classList.contains('active') && !this.state.hasEntered) {
+                this.onEnter();
+            }
+        });
         console.log('[Arena] Ready with', this.engines.length, 'engines');
     },
 
@@ -116,8 +126,10 @@ const CaissaArena = {
             // Tabs
             tabMatch: document.getElementById('arenaTabMatch'),
             tabTournament: document.getElementById('arenaTabTournament'),
+            tabGame: document.getElementById('arenaTabGame'),
             panelMatch: document.getElementById('arenaPanelMatch'),
             panelTournament: document.getElementById('arenaPanelTournament'),
+            panelGame: document.getElementById('arenaPanelGame'),
 
             // Engine selectors
             whiteEngineSelect: document.getElementById('arenaWhiteEngine'),
@@ -129,6 +141,7 @@ const CaissaArena = {
             startMatchBtn: document.getElementById('arenaStartMatch'),
             pauseMatchBtn: document.getElementById('arenaPauseMatch'),
             stopMatchBtn: document.getElementById('arenaStopMatch'),
+            declareDrawBtn: document.getElementById('arenaDeclareDraw'),
             infiniteAnalysisBtn: document.getElementById('arenaInfiniteAnalysis'),
             setPositionBtn: document.getElementById('arenaSetPositionBtn'),
             manualSetupBtn: document.getElementById('arenaManualSetupBtn'),
@@ -150,13 +163,18 @@ const CaissaArena = {
             setupResetBtn: document.getElementById('arenaSetupReset'),
             setupApplyBtn: document.getElementById('arenaSetupApply'),
             setupMessage: document.getElementById('arenaSetupMessage'),
+            drawModal: document.getElementById('arenaDrawModal'),
+            drawCancelBtn: document.getElementById('arenaDrawCancel'),
+            drawConfirmBtn: document.getElementById('arenaDrawConfirm'),
 
             // Game status
             statusWhiteName: document.getElementById('arenaStatusWhite'),
             statusBlackName: document.getElementById('arenaStatusBlack'),
+            turnStatus: document.getElementById('arenaTurnStatus'),
             statusTurn: document.getElementById('arenaStatusTurn'),
             statusMoves: document.getElementById('arenaStatusMoves'),
             statusText: document.getElementById('arenaStatusText'),
+            boardStatus: document.querySelector('#arenaSection .arena-board-status'),
 
             // Evaluation panel
             evalEngineName: document.getElementById('arenaEvalEngine'),
@@ -239,8 +257,15 @@ const CaissaArena = {
         return null;
     },
 
-    // ResizeObserver for dynamic board sizing
+    // Stable board geometry follows the same snapshot/unchanged-guard pattern
+    // used by the certified Play shell. Content updates never own board size.
     resizeObserver: null,
+    boardResizeFrame: null,
+    boardResizeForce: false,
+    boardResizeReason: 'layout',
+    boardLayout: null,
+    boardViewportHandler: null,
+    boardOrientationHandler: null,
 
     /**
      * Mount the chessboard in Arena
@@ -263,17 +288,16 @@ const CaissaArena = {
             this.board = App.board;
             this.state.boardMounted = true;
             this.setupResizeObserver();
-            requestAnimationFrame(() => {
-                if (this.board) this.board.resize();
-            });
+            this.requestBoardResize('shared-board-mounted', true);
             this.enableMatchControls();
             return;
         }
 
         // Check if board is already mounted and valid
         if (this.board && this.state.boardMounted) {
-            console.log('[Arena] Board already mounted, resizing...');
-            this.board.resize();
+            console.log('[Arena] Board already mounted, restoring stable sizing...');
+            this.setupResizeObserver();
+            this.requestBoardResize('section-enter', true);
             return;
         }
 
@@ -306,8 +330,9 @@ const CaissaArena = {
         const checkAndMount = () => {
             const rect = container.getBoundingClientRect();
 
-            if (rect.width < 100) {
-                // Container not ready, retry
+            if (rect.width < 48) {
+                // Container is not laid out yet. Short landscape viewports can
+                // legitimately produce a compact board below 100px.
                 setTimeout(checkAndMount, 50);
                 return;
             }
@@ -329,19 +354,10 @@ const CaissaArena = {
                 // Set up ResizeObserver for dynamic sizing
                 this.setupResizeObserver();
                 this.settleLayout();
-                this.resizeBoardNow();
 
-                // Resize after short delay to ensure proper rendering
+                // Enable controls after the mounted board has settled.
                 setTimeout(() => {
                     if (this.board) {
-                        this.board.resize();
-                    }
-                }, 100);
-
-                // Another resize for safety and enable controls
-                setTimeout(() => {
-                    if (this.board) {
-                        this.board.resize();
                         console.log('[Arena] Board resize complete');
 
                         // Enable Start Match button now that board is ready
@@ -359,81 +375,124 @@ const CaissaArena = {
     },
 
     /**
-     * Set up ResizeObserver for dynamic board sizing (chess.com style)
+     * Observe only the stable board-container width. The board's own height is
+     * deliberately ignored so applying a square size cannot feed the observer
+     * back into another measure -> resize cycle.
      */
     setupResizeObserver() {
-        // Clean up existing observer
-        if (this.resizeObserver) {
-            this.resizeObserver.disconnect();
-        }
+        this.teardownBoardSizing();
 
         const boardContainer = document.querySelector('.arena-board-container');
-        const boardMount = this.elements.boardMount;
+        if (!boardContainer || !this.elements.boardMount) return;
 
-        if (!boardContainer || !boardMount || typeof ResizeObserver === 'undefined') return;
+        if (typeof ResizeObserver !== 'undefined') {
+            let observedWidth = 0;
+            this.resizeObserver = new ResizeObserver((entries) => {
+                const width = entries[0]?.contentRect?.width || 0;
+                if (!width || Math.abs(width - observedWidth) < 0.5) return;
+                observedWidth = width;
+                this.requestBoardResize('container-width');
+            });
+            this.resizeObserver.observe(boardContainer);
+        }
 
-        let resizeTimeout = null;
-
-        this.resizeObserver = new ResizeObserver((entries) => {
-            // Debounce resize events
-            if (resizeTimeout) clearTimeout(resizeTimeout);
-
-            resizeTimeout = setTimeout(() => {
-                if (!this.board || !this.state.boardMounted) return;
-
-                // Get container dimensions
-                const containerRect = boardContainer.getBoundingClientRect();
-                const containerWidth = containerRect.width - 32; // padding
-                const idealSize = containerWidth;
-
-                // Clamp to reasonable bounds
-                // Desktop: 480px target (~5" visual), Mobile: 280px min
-                const isMobile = window.innerWidth < 768;
-                const minSize = isMobile ? 280 : 380;
-                const cssBoardSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--board-size'));
-                const maxSize = Math.min(isMobile ? 520 : 660, cssBoardSize || Infinity);
-
-                const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
-
-                // Apply size to board mount container
-                boardMount.style.width = `${boardSize}px`;
-                boardMount.style.height = `${boardSize}px`;
-
-                console.log(`[Arena] Resizing board: ${boardSize}px (container width: ${containerWidth}px)`);
-
-                // Trigger chessboard.js resize
-                this.board.resize();
-                requestAnimationFrame(() => this.syncBoardAndGraphSize(boardSize));
-            }, 150);
-        });
-
-        this.resizeObserver.observe(boardContainer);
-        console.log('[Arena] ResizeObserver set up with auto-sizing');
+        this.boardViewportHandler = () => this.requestBoardResize('viewport');
+        this.boardOrientationHandler = () => this.requestBoardResize('orientation', true);
+        window.addEventListener('resize', this.boardViewportHandler, { passive: true });
+        window.addEventListener('orientationchange', this.boardOrientationHandler, { passive: true });
+        window.visualViewport?.addEventListener('resize', this.boardViewportHandler, { passive: true });
+        this.requestBoardResize('setup', true);
+        console.log('[Arena] Stable board sizing active');
     },
 
-    resizeBoardNow() {
-        const host = document.querySelector('.arena-board-zone');
+    calculateBoardSize(boardContainer) {
+        if (!boardContainer) return 0;
+
+        const containerStyle = getComputedStyle(boardContainer);
+        const horizontalPadding = parseFloat(containerStyle.paddingLeft || 0)
+            + parseFloat(containerStyle.paddingRight || 0);
+        // clientWidth excludes borders and includes padding, yielding the true
+        // content box after padding is removed. Using the border box here made
+        // mobile mounts two pixels taller than they were wide.
+        const availableWidth = Math.max(0, boardContainer.clientWidth - horizontalPadding);
+
+        const arenaSection = document.getElementById('arenaSection');
+        const layout = arenaSection?.querySelector('.arena-layout-v2');
+        const containerRect = boardContainer.getBoundingClientRect();
+        const sectionRect = arenaSection?.getBoundingClientRect();
+        const bottomBar = document.querySelector('#arenaSection .arena-player-bar-bottom');
+        const bottomBarHeight = bottomBar?.getBoundingClientRect().height || 56;
+        const sectionWidth = arenaSection?.clientWidth || window.innerWidth;
+        const measuredSectionHeight = arenaSection?.clientHeight || window.innerHeight;
+        const orientation = sectionWidth >= measuredSectionHeight ? 'landscape' : 'portrait';
+        const mobileLayout = window.matchMedia('(max-width: 1050px)').matches;
+        const previous = this.boardLayout;
+        const widthChanged = !previous || Math.abs(sectionWidth - previous.sectionWidth) >= 1;
+        const orientationChanged = !previous || orientation !== previous.orientation;
+        // Mobile browser chrome produces height-only visual viewport events.
+        // Retain the section-height snapshot until width/orientation changes so
+        // active games do not breathe as the address bar appears or disappears.
+        const sectionHeight = mobileLayout && previous && !widthChanged && !orientationChanged
+            ? previous.sectionHeight
+            : measuredSectionHeight;
+        const layoutTop = layout?.getBoundingClientRect().top ?? sectionRect?.top ?? 0;
+        const boardTopInLayout = containerRect.top - layoutTop;
+        const availableHeight = Math.max(0, sectionHeight - boardTopInLayout - bottomBarHeight - 28);
+
+        const arenaMax = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--arena-board-max')) || 760;
+        const boardSize = Math.min(arenaMax, availableWidth, availableHeight);
+
+        this.boardLayout = {
+            sectionWidth,
+            sectionHeight,
+            orientation,
+            boardTopInLayout,
+            availableWidth,
+            availableHeight,
+            size: Math.max(1, Math.floor(boardSize))
+        };
+
+        // Never enforce a minimum larger than the measured viewport room; that
+        // would clip ranks/files in short mobile-landscape viewports.
+        return this.boardLayout.size;
+    },
+
+    requestBoardResize(reason = 'layout', force = false) {
+        this.boardResizeForce = this.boardResizeForce || force;
+        this.boardResizeReason = reason;
+        if (this.boardResizeFrame) cancelAnimationFrame(this.boardResizeFrame);
+        this.boardResizeFrame = requestAnimationFrame(() => {
+            this.boardResizeFrame = null;
+            const pendingForce = this.boardResizeForce;
+            const pendingReason = this.boardResizeReason;
+            this.boardResizeForce = false;
+            this.resizeBoardNow(pendingForce, pendingReason);
+        });
+    },
+
+    resizeBoardNow(force = false, reason = 'layout') {
+        const host = document.querySelector('#arenaSection .arena-board-zone');
+        const boardContainer = document.querySelector('#arenaSection .arena-board-container');
         const boardMount = this.elements.boardMount;
-        if (!host || !boardMount) return;
+        if (!host || !boardContainer || !boardMount) return;
 
         const hostRect = host.getBoundingClientRect();
         const hostWidth = hostRect.width;
         if (!hostWidth || hostWidth < 50) return;
 
-        const containerWidth = hostWidth - 32;
-        const idealSize = containerWidth;
+        const boardSize = this.calculateBoardSize(boardContainer);
+        const renderedSize = Number.parseFloat(boardMount.style.width) || 0;
+        const sizeChanged = Math.abs(renderedSize - boardSize) >= 0.5;
 
-        const isMobile = window.innerWidth < 768;
-        const minSize = isMobile ? 280 : 380;
-        const cssBoardSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--board-size'));
-        const maxSize = Math.min(isMobile ? 520 : 660, cssBoardSize || Infinity);
-        const boardSize = Math.max(minSize, Math.min(maxSize, idealSize));
+        if (sizeChanged || force) {
+            boardMount.style.width = `${boardSize}px`;
+            boardMount.style.height = `${boardSize}px`;
+            host.style.setProperty('--arena-rendered-board-size', `${boardSize}px`);
+        }
 
-        boardMount.style.width = `${boardSize}px`;
-        boardMount.style.height = `${boardSize}px`;
-
-        if (this.board) {
+        if (this.board && (sizeChanged || force)) {
             this.board.resize();
+            console.log(`[Arena] Board geometry ${boardSize}px (${reason})`);
         }
         requestAnimationFrame(() => this.syncBoardAndGraphSize(boardSize));
     },
@@ -447,12 +506,11 @@ const CaissaArena = {
         const boardSize = measuredWidth || fallbackSize;
         if (!boardSize) return;
 
-        if (graphPanel) {
-            graphPanel.style.width = `${boardSize}px`;
-        }
         if (!evalGraph) return;
 
-        const canvasWidth = Math.max(256, Math.floor(boardSize - 24));
+        const graphWidth = graphPanel?.getBoundingClientRect().width || 0;
+        if (!graphWidth) return;
+        const canvasWidth = Math.max(256, Math.floor(graphWidth - 24));
         if (evalGraph.width !== canvasWidth) {
             evalGraph.width = canvasWidth;
             this.evalGraphCtx = evalGraph.getContext('2d');
@@ -462,51 +520,40 @@ const CaissaArena = {
     },
 
     settleLayout() {
-        // Stage 1: Immediate resize (before any layout)
-        this.resizeBoardNow();
+        this.requestBoardResize('layout-settle');
 
-        // Stage 2: Next animation frame (after paint)
-        requestAnimationFrame(() => {
-            this.resizeBoardNow();
-        });
-
-        // Stage 3: Font load settlement (if supported)
         if (document.fonts?.ready) {
             document.fonts.ready.then(() => {
-                this.resizeBoardNow();
+                this.requestBoardResize('fonts-ready');
             });
         }
-
-        // Stage 4: Short timeout for late shifts
-        setTimeout(() => {
-            this.resizeBoardNow();
-        }, 100);
-
-        // Stage 5: Setup continuous layout observer
-        this.setupLayoutObserver();
     },
 
-    setupLayoutObserver() {
-        if (this.layoutObserver) {
-            this.layoutObserver.disconnect();
+    teardownBoardSizing() {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
+        if (this.boardResizeFrame) cancelAnimationFrame(this.boardResizeFrame);
+        this.boardResizeFrame = null;
+        this.boardResizeForce = false;
+        if (this.boardViewportHandler) {
+            window.removeEventListener('resize', this.boardViewportHandler);
+            window.visualViewport?.removeEventListener('resize', this.boardViewportHandler);
         }
-
-        const container = document.querySelector('.arena-board-zone');
-        if (!container || typeof ResizeObserver === 'undefined') return;
-
-        this.layoutObserver = new ResizeObserver(() => {
-            requestAnimationFrame(() => {
-                this.resizeBoardNow();
-            });
-        });
-
-        this.layoutObserver.observe(container);
+        if (this.boardOrientationHandler) {
+            window.removeEventListener('orientationchange', this.boardOrientationHandler);
+        }
+        this.boardViewportHandler = null;
+        this.boardOrientationHandler = null;
     },
 
     bindEvents() {
         // Tab switching
         this.elements.tabMatch?.addEventListener('click', () => this.switchTab('match'));
         this.elements.tabTournament?.addEventListener('click', () => this.switchTab('tournament'));
+        this.elements.tabGame?.addEventListener('click', () => this.switchTab('game'));
+        [this.elements.tabMatch, this.elements.tabTournament, this.elements.tabGame]
+            .filter(Boolean)
+            .forEach((tab) => tab.addEventListener('keydown', (event) => this.onTabKeydown(event)));
 
         // Engine selection
         this.elements.whiteEngineSelect?.addEventListener('change', (e) => {
@@ -526,6 +573,7 @@ const CaissaArena = {
         this.elements.startMatchBtn?.addEventListener('click', () => this.startMatch());
         this.elements.pauseMatchBtn?.addEventListener('click', () => this.togglePause());
         this.elements.stopMatchBtn?.addEventListener('click', () => this.stopMatch());
+        this.elements.declareDrawBtn?.addEventListener('click', () => this.openDrawConfirmation());
         this.elements.infiniteAnalysisBtn?.addEventListener('click', () => this.toggleInfiniteAnalysis());
         this.elements.setPositionBtn?.addEventListener('click', () => this.togglePositionPanel());
         this.elements.manualSetupBtn?.addEventListener('click', () => this.openManualSetup());
@@ -536,9 +584,16 @@ const CaissaArena = {
         this.elements.setupResetBtn?.addEventListener('click', () => this.resetManualSetup());
         this.elements.setupApplyBtn?.addEventListener('click', () => this.applyManualSetup());
         this.elements.setupBoard?.addEventListener('click', (event) => this.onManualSetupSquareClick(event));
+        this.elements.drawCancelBtn?.addEventListener('click', () => this.closeDrawConfirmation());
+        this.elements.drawConfirmBtn?.addEventListener('click', () => this.adjudicateTournamentDraw());
+        this.elements.drawModal?.addEventListener('click', (event) => {
+            if (event.target === this.elements.drawModal) this.closeDrawConfirmation();
+        });
+        document.addEventListener('keydown', (event) => this.onDrawDialogKeydown(event));
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
+        this.elements.tournamentEngineList?.addEventListener('change', () => this.updateTournamentUI());
 
         // Listen for engine moves
         window.addEventListener('caissa-engine-move', (e) => this.onEngineMove(e.detail));
@@ -546,20 +601,53 @@ const CaissaArena = {
     },
 
     // ===== TAB SWITCHING =====
-    switchTab(tab) {
-        this.state.mode = tab;
+    switchTab(tab, options = {}) {
+        if (!['match', 'tournament', 'game'].includes(tab)) return;
+        this.state.activeTab = tab;
 
-        // Update tab styles
-        this.elements.tabMatch?.classList.toggle('active', tab === 'match');
-        this.elements.tabTournament?.classList.toggle('active', tab === 'tournament');
+        const tabs = {
+            match: this.elements.tabMatch,
+            tournament: this.elements.tabTournament,
+            game: this.elements.tabGame
+        };
+        const panels = {
+            match: this.elements.panelMatch,
+            tournament: this.elements.panelTournament,
+            game: this.elements.panelGame
+        };
 
-        // Show/hide panels
-        if (this.elements.panelMatch) {
-            this.elements.panelMatch.style.display = tab === 'match' ? 'block' : 'none';
+        Object.entries(tabs).forEach(([name, element]) => {
+            const isActive = name === tab;
+            element?.classList.toggle('active', isActive);
+            element?.setAttribute('aria-selected', String(isActive));
+            element?.setAttribute('tabindex', isActive ? '0' : '-1');
+        });
+        Object.entries(panels).forEach(([name, element]) => {
+            const isActive = name === tab;
+            if (element) element.hidden = !isActive;
+            element?.classList.toggle('active', isActive);
+        });
+
+        if (options.focus !== false) tabs[tab]?.focus();
+        if (tab === 'game') {
+            this.renderMoveHistory();
+            requestAnimationFrame(() => this.syncBoardAndGraphSize());
         }
-        if (this.elements.panelTournament) {
-            this.elements.panelTournament.style.display = tab === 'tournament' ? 'block' : 'none';
-        }
+    },
+
+    onTabKeydown(event) {
+        const tabs = ['match', 'tournament', 'game'];
+        const currentIndex = tabs.indexOf(this.state.activeTab);
+        let nextIndex = currentIndex;
+
+        if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+        else if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        else if (event.key === 'Home') nextIndex = 0;
+        else if (event.key === 'End') nextIndex = tabs.length - 1;
+        else return;
+
+        event.preventDefault();
+        this.switchTab(tabs[nextIndex]);
     },
 
     togglePositionPanel() {
@@ -662,6 +750,50 @@ const CaissaArena = {
 
     closeManualSetup() {
         this.elements.setupModal?.classList.remove('show');
+    },
+
+    isActiveTournamentGame() {
+        if (this.state.mode !== 'tournament' || this.state.matchState !== 'running') return false;
+        const pendingGame = this.state.tournament.games.find(game => game.result === null);
+        return !!pendingGame
+            && pendingGame.white.id === this.state.currentGame?.white?.id
+            && pendingGame.black.id === this.state.currentGame?.black?.id;
+    },
+
+    openDrawConfirmation() {
+        if (!this.isActiveTournamentGame() || !this.elements.drawModal) return;
+        this._drawDialogReturnFocus = document.activeElement;
+        this.elements.drawModal.classList.add('show');
+        this.elements.drawModal.setAttribute('aria-hidden', 'false');
+        requestAnimationFrame(() => this.elements.drawCancelBtn?.focus());
+    },
+
+    closeDrawConfirmation({ restoreFocus = true } = {}) {
+        if (!this.elements.drawModal) return;
+        this.elements.drawModal.classList.remove('show');
+        this.elements.drawModal.setAttribute('aria-hidden', 'true');
+        if (restoreFocus && this._drawDialogReturnFocus?.focus) {
+            this._drawDialogReturnFocus.focus();
+        }
+        this._drawDialogReturnFocus = null;
+    },
+
+    onDrawDialogKeydown(event) {
+        if (!this.elements.drawModal?.classList.contains('show')) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            this.closeDrawConfirmation();
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const controls = [this.elements.drawCancelBtn, this.elements.drawConfirmBtn].filter(Boolean);
+        if (controls.length < 2) return;
+        const currentIndex = controls.indexOf(document.activeElement);
+        const nextIndex = event.shiftKey
+            ? (currentIndex <= 0 ? controls.length - 1 : currentIndex - 1)
+            : (currentIndex === controls.length - 1 ? 0 : currentIndex + 1);
+        event.preventDefault();
+        controls[nextIndex].focus();
     },
 
     renderSetupPalette() {
@@ -809,9 +941,9 @@ const CaissaArena = {
             this.engines.forEach(engine => {
                 const option = document.createElement('option');
                 option.value = engine.id;
-                const disabledLabel = engine.enabled === false ? ' (WASM build needed)' : '';
+                const disabledLabel = this.isEngineRunnable(engine) ? '' : ` (${engine.reason || 'Unavailable'})`;
                 option.textContent = `${engine.name} (Tier ${engine.tier})${disabledLabel}`;
-                if (engine.enabled === false) {
+                if (!this.isEngineRunnable(engine)) {
                     option.disabled = true;
                 }
                 if (engine.id === selectedId) {
@@ -833,13 +965,13 @@ const CaissaArena = {
         }
 
         // Default selections (prefer stored + enabled engines)
-        const enabledEngines = this.engines.filter(e => e.enabled !== false);
+        const enabledEngines = this.getRunnableEngines();
         const savedWhiteId = window.localStorage?.getItem('caissa.arena.whiteEngineId') || '';
         const savedBlackId = window.localStorage?.getItem('caissa.arena.blackEngineId') || '';
-        this.state.whiteEngine = this.engines.find(e => e.id === savedWhiteId && e.enabled !== false)
+        this.state.whiteEngine = this.engines.find(e => e.id === savedWhiteId && this.isEngineRunnable(e))
             || enabledEngines[0]
             || this.engines[0];
-        this.state.blackEngine = this.engines.find(e => e.id === savedBlackId && e.enabled !== false)
+        this.state.blackEngine = this.engines.find(e => e.id === savedBlackId && this.isEngineRunnable(e))
             || enabledEngines[1]
             || enabledEngines[0]
             || this.engines[0];
@@ -859,8 +991,8 @@ const CaissaArena = {
         const adapterAvailable = typeof EngineAdapter !== 'undefined';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
-            && this.state.whiteEngine?.enabled !== false
-            && this.state.blackEngine?.enabled !== false;
+            && this.isEngineRunnable(this.state.whiteEngine)
+            && this.isEngineRunnable(this.state.blackEngine);
         this.state.engineBinaryAvailable = adapterAvailable && selectedEnginesValid;
         if (!this.state.engineBinaryAvailable) {
             if (this.elements.startMatchBtn) {
@@ -877,7 +1009,7 @@ const CaissaArena = {
     selectEngine(color, engineId) {
         const engine = this.engines.find(e => e.id === engineId);
         if (!engine) return;
-        if (engine.enabled === false) {
+        if (!this.isEngineRunnable(engine)) {
             console.warn('[Arena] Engine not available yet:', engine.name);
             return;
         }
@@ -895,11 +1027,12 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
+        this.prewarmEngines();
         const adapterAvailable = typeof EngineAdapter !== 'undefined';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
-            && this.state.whiteEngine?.enabled !== false
-            && this.state.blackEngine?.enabled !== false;
+            && this.isEngineRunnable(this.state.whiteEngine)
+            && this.isEngineRunnable(this.state.blackEngine);
         if (this.elements.startMatchBtn) {
             this.elements.startMatchBtn.disabled = !(adapterAvailable && selectedEnginesValid);
         }
@@ -924,6 +1057,7 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
+        this.prewarmEngines();
     },
 
     updateEngineInfo() {
@@ -938,6 +1072,19 @@ const CaissaArena = {
 
     getEngineById(id) {
         return this.engines.find(e => e.id === id);
+    },
+
+    isEngineRunnable(engine) {
+        return !!engine && engine.enabled !== false && !!engine.workerPath;
+    },
+
+    getRunnableEngines() {
+        return this.engines.filter(engine => this.isEngineRunnable(engine));
+    },
+
+    playerInstancesMatchSelections() {
+        return this.whiteEngineInstance?.id === this.state.whiteEngine?.id
+            && this.blackEngineInstance?.id === this.state.blackEngine?.id;
     },
 
     /**
@@ -991,7 +1138,7 @@ const CaissaArena = {
     },
 
     // ===== MATCH CONTROLS =====
-    async startMatch() {
+    async startMatch(options = {}) {
         // Prevent double-start
         if (this.state.matchState === 'running') {
             console.warn('[Arena] Match already running');
@@ -1002,6 +1149,8 @@ const CaissaArena = {
             alert('Select both engines before starting a match.');
             return;
         }
+
+        this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
 
         window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, true, { label: 'Starting...' });
         this.stopInfiniteAnalysis(false);
@@ -1022,8 +1171,11 @@ const CaissaArena = {
             }
         }
 
+        // Let any selection-triggered prewarm converge before starting.
+        if (this._prewarmPromise) await this._prewarmPromise;
+
         // Initialize engines if not ready
-        if (!this.enginesReady) {
+        if (!this.enginesReady || !this.playerInstancesMatchSelections()) {
             console.log('[Arena] Engines not ready, initializing...');
             const success = await this.initEngines();
             if (!success) {
@@ -1146,20 +1298,33 @@ const CaissaArena = {
 
     updateMatchControls() {
         const { matchState, analysisRunning } = this.state;
-        const { startMatchBtn, pauseMatchBtn, stopMatchBtn, infiniteAnalysisBtn } = this.elements;
+        const {
+            startMatchBtn, pauseMatchBtn, stopMatchBtn, declareDrawBtn, infiniteAnalysisBtn,
+            whiteEngineSelect, blackEngineSelect, swapEnginesBtn
+        } = this.elements;
 
         if (startMatchBtn) {
             startMatchBtn.style.display = matchState === 'idle' && !analysisRunning ? 'block' : 'none';
         }
         if (pauseMatchBtn) {
             pauseMatchBtn.style.display = matchState === 'running' || matchState === 'paused' ? 'block' : 'none';
-            pauseMatchBtn.innerHTML = matchState === 'paused'
-                ? '<i class="fas fa-play"></i> Resume'
-                : '<i class="fas fa-pause"></i> Pause';
+            const isPaused = matchState === 'paused';
+            pauseMatchBtn.innerHTML = isPaused
+                ? '<i class="fas fa-play" aria-hidden="true"></i> Resume'
+                : '<i class="fas fa-pause" aria-hidden="true"></i> Pause';
+            pauseMatchBtn.setAttribute('aria-label', isPaused ? 'Resume Arena match' : 'Pause Arena match');
+            pauseMatchBtn.title = isPaused ? 'Resume match' : 'Pause match';
         }
         if (stopMatchBtn) {
             stopMatchBtn.style.display = matchState !== 'idle' ? 'block' : 'none';
         }
+        if (declareDrawBtn) {
+            declareDrawBtn.style.display = this.isActiveTournamentGame() ? 'block' : 'none';
+        }
+        const selectionLocked = matchState === 'running' || matchState === 'paused';
+        if (whiteEngineSelect) whiteEngineSelect.disabled = selectionLocked;
+        if (blackEngineSelect) blackEngineSelect.disabled = selectionLocked;
+        if (swapEnginesBtn) swapEnginesBtn.disabled = selectionLocked;
         if (infiniteAnalysisBtn) {
             infiniteAnalysisBtn.style.display = matchState === 'idle' ? 'block' : 'none';
             infiniteAnalysisBtn.innerHTML = analysisRunning
@@ -1256,13 +1421,43 @@ const CaissaArena = {
 
     // ===== GAME STATUS =====
     updateGameStatus(data = {}) {
-        const { statusTurn, statusMoves, statusText } = this.elements;
+        const { turnStatus, statusTurn, statusMoves, statusText, boardStatus } = this.elements;
+        const sideToMove = this.game?.turn?.() === 'b' ? 'black' : 'white';
+        const sideLabel = sideToMove === 'white' ? 'White' : 'Black';
+        const result = typeof data.result === 'string' ? data.result : '';
+        let turnState = this.state.matchState;
+        let turnLabel = `${sideLabel} to move`;
+        let turnDetail = '';
 
-        if (statusTurn && data.turn) {
-            const engineName = data.turn === 'white'
-                ? this.state.whiteEngine?.name
-                : this.state.blackEngine?.name;
-            statusTurn.textContent = `${data.turn === 'white' ? 'White' : 'Black'} (${engineName})`;
+        if (this.state.matchState === 'finished') {
+            turnState = 'finished';
+            turnLabel = 'Finished';
+            turnDetail = result || 'Game over';
+        } else if (this.state.matchState === 'paused') {
+            turnState = 'paused';
+            turnLabel = 'Paused';
+            turnDetail = `${sideLabel} to move when resumed`;
+        } else if (this.state.analysisRunning) {
+            turnState = 'analysis';
+            turnLabel = 'Analysis';
+            turnDetail = result || 'Infinite analysis running';
+        } else if (/\bstopped\b/i.test(result)) {
+            turnState = 'stopped';
+            turnLabel = 'Stopped';
+            turnDetail = result;
+        } else if (this.state.matchState === 'idle') {
+            turnState = 'idle';
+            turnDetail = result || 'Ready';
+        }
+
+        if (turnStatus) {
+            turnStatus.dataset.state = turnState;
+            turnStatus.dataset.turn = turnState === 'running' || turnState === 'idle' ? sideToMove : 'neutral';
+        }
+        if (statusTurn) statusTurn.textContent = turnLabel;
+        if (boardStatus) {
+            boardStatus.textContent = turnDetail;
+            boardStatus.hidden = !turnDetail;
         }
 
         if (statusMoves && data.moveCount !== undefined) {
@@ -1318,14 +1513,23 @@ const CaissaArena = {
      * Creates three independent engine workers (white, black, evaluator)
      */
     prewarmEngines() {
-        if (this.enginesReady || this._prewarming) return;
-        if (this.state.engineBinaryAvailable === false) return;
+        if (this.enginesReady && this.playerInstancesMatchSelections()) return Promise.resolve(true);
+        if (this._prewarmPromise) return this._prewarmPromise;
+        if (this.state.engineBinaryAvailable === false) return Promise.resolve(false);
         this._prewarming = true;
-        this.initEngines()
-            .catch(() => {})
+        this._prewarmPromise = (async () => {
+            let initialized = false;
+            do {
+                initialized = await this.initEngines();
+            } while (initialized && !this.playerInstancesMatchSelections());
+            return initialized;
+        })()
+            .catch(() => false)
             .finally(() => {
                 this._prewarming = false;
+                this._prewarmPromise = null;
             });
+        return this._prewarmPromise;
     },
 
     async initEngines() {
@@ -1341,22 +1545,30 @@ const CaissaArena = {
             const blackConfig = this.state.blackEngine || this.engines[1] || this.engines[0];
             const evalConfig = this.engines.find(e => e.id === 'stockfish') || whiteConfig;
 
-            // Create white engine
-            this.whiteEngineInstance = this.createEngineInstance(whiteConfig);
+            const reconcileInstance = (property, config) => {
+                const current = this[property];
+                if (current?.id === config?.id && current?.workerPath === config?.workerPath) return current;
+                current?.terminate?.('arena-engine-selection-changed');
+                const replacement = this.createEngineInstance(config);
+                this[property] = replacement;
+                return replacement;
+            };
 
-            // Create black engine
-            this.blackEngineInstance = this.createEngineInstance(blackConfig);
+            const whiteInstance = reconcileInstance('whiteEngineInstance', whiteConfig);
+            const blackInstance = reconcileInstance('blackEngineInstance', blackConfig);
+            const evaluatorInstance = reconcileInstance('evaluatorEngine', evalConfig);
 
-            // Create evaluator engine
-            this.evaluatorEngine = this.createEngineInstance(evalConfig);
-
-            if (!this.whiteEngineInstance || !this.blackEngineInstance || !this.evaluatorEngine) {
+            if (!whiteInstance || !blackInstance || !evaluatorInstance) {
                 console.error('[Arena] Failed to create engine instances');
                 return false;
             }
 
-            // Wait for all engines to be ready
-            await this.waitForEngines();
+            // Constructors auto-start; start() safely returns the same in-flight promise.
+            await Promise.all([
+                whiteInstance.start(),
+                blackInstance.start(),
+                evaluatorInstance.start()
+            ]);
 
             this.enginesReady = true;
             this.evaluatorReady = true;
@@ -1559,7 +1771,7 @@ const CaissaArena = {
             });
         }
 
-        this.updateMoveHistory(moveResult);
+        this.updateMoveHistory();
 
         this.updateGameStatus({
             turn: this.game.turn() === 'w' ? 'white' : 'black',
@@ -1840,6 +2052,7 @@ const CaissaArena = {
             depth: info.depth,
             nodes: info.nodes,
             pv: info.pv,
+            fen: this.game.fen(),
             turn: this.game.turn() === 'w' ? 'white' : 'black'
         });
 
@@ -1888,9 +2101,39 @@ const CaissaArena = {
         }
 
         if (evalPV && data.pv) {
-            // Show first 5 moves of PV
-            const pvMoves = data.pv.slice(0, 5).join(' ');
-            evalPV.textContent = pvMoves;
+            evalPV.textContent = this.formatPvAsSan(data.pv, data.fen);
+        }
+    },
+
+    /**
+     * Convert an engine PV from UCI transport notation to human-readable SAN.
+     * Replaying on an isolated position keeps the live Arena game untouched.
+     */
+    formatPvAsSan(pv, fen) {
+        if (!Array.isArray(pv) || pv.length === 0 || typeof Chess === 'undefined') return '--';
+
+        try {
+            const analysisGame = new Chess();
+            if (fen && analysisGame.load(fen) === false) return '--';
+
+            const sanMoves = [];
+            for (const uciMove of pv.slice(0, 5)) {
+                const parsed = String(uciMove || '').match(/^([a-h][1-8])([a-h][1-8])([qrbn])?$/i);
+                if (!parsed) break;
+
+                const move = analysisGame.move({
+                    from: parsed[1].toLowerCase(),
+                    to: parsed[2].toLowerCase(),
+                    promotion: parsed[3]?.toLowerCase()
+                });
+                if (!move) break;
+                sanMoves.push(move.san);
+            }
+
+            return sanMoves.length > 0 ? sanMoves.join(' ') : '--';
+        } catch (error) {
+            console.warn('[Arena] Could not format evaluation PV as SAN', error);
+            return '--';
         }
     },
 
@@ -1932,11 +2175,48 @@ const CaissaArena = {
         // Record tournament result if in tournament mode
         if (this.state.mode === 'tournament') {
             this.recordTournamentResult(resultCode);
-            // Play next game after delay
-            setTimeout(() => {
-                this.playNextTournamentGame();
-            }, 2000);
+            this.scheduleNextTournamentGame();
         }
+    },
+
+    adjudicateTournamentDraw() {
+        if (!this.isActiveTournamentGame()) {
+            this.closeDrawConfirmation();
+            return false;
+        }
+
+        this.closeDrawConfirmation({ restoreFocus: false });
+        this.state.matchState = 'finished';
+        this.state.loopActive = false;
+        this.cancelActiveSearch('tournament draw adjudicated');
+        this.state.loopRunning = false;
+        this.whiteEngineInstance?.stop?.();
+        this.blackEngineInstance?.stop?.();
+        this.evaluatorEngine?.stop?.();
+
+        if (this.state.currentGame) {
+            this.state.currentGame.result = '1/2-1/2';
+            this.state.currentGame.termination = 'Draw by adjudication';
+            this.state.currentGame.endTime = Date.now();
+        }
+
+        this.updateMatchControls();
+        this.updateGameStatus({
+            result: 'Draw by adjudication',
+            moveCount: this.game?.history().length || 0
+        });
+        this.recordTournamentResult('1/2-1/2');
+        window.dispatchEvent(new CustomEvent('caissa-arena-tournament-draw'));
+        this.scheduleNextTournamentGame();
+        return true;
+    },
+
+    scheduleNextTournamentGame() {
+        clearTimeout(this._tournamentAdvanceTimer);
+        this._tournamentAdvanceTimer = setTimeout(() => {
+            this._tournamentAdvanceTimer = null;
+            this.playNextTournamentGame();
+        }, 2000);
     },
 
     /**
@@ -1954,35 +2234,60 @@ const CaissaArena = {
     },
 
     /**
-     * Update move history display
+     * Render the human-facing score sheet from chess.js's canonical SAN history.
+     * Engine communication remains UCI; this method never mutates the game.
      */
-    updateMoveHistory(move) {
-        if (!this.elements.moveHistory) return;
+    renderMoveHistory() {
+        const container = this.elements.moveHistory;
+        if (!container || !this.game) return;
 
-        const moveNum = Math.ceil(this.game.history().length / 2);
-        const isWhite = move.color === 'w';
+        const moves = this.game.history({ verbose: true });
+        const startFen = this.state.currentGame?.startFen || this.state.customStartFen || '';
+        const fenParts = startFen.split(/\s+/);
+        let moveNumber = Number.parseInt(fenParts[5], 10) || 1;
+        let currentRow = null;
 
-        if (isWhite) {
-            // Start new row for white move
+        container.replaceChildren();
+
+        const createRow = (number) => {
             const row = document.createElement('div');
             row.className = 'arena-move-row';
-            row.innerHTML = `<span class="move-num">${moveNum}.</span>
-                            <span class="move-white">${move.san}</span>
-                            <span class="move-black">-</span>`;
-            this.elements.moveHistory.appendChild(row);
-        } else {
-            // Fill in black move in last row
-            const lastRow = this.elements.moveHistory.querySelector('.arena-move-row:last-child');
-            if (lastRow) {
-                const blackSpan = lastRow.querySelector('.move-black');
-                if (blackSpan) {
-                    blackSpan.textContent = move.san;
-                }
-            }
-        }
 
-        // Scroll to bottom
-        this.elements.moveHistory.scrollTop = this.elements.moveHistory.scrollHeight;
+            const numberCell = document.createElement('span');
+            numberCell.className = 'move-num';
+            numberCell.textContent = `${number}.`;
+
+            const whiteCell = document.createElement('span');
+            whiteCell.className = 'move-white';
+            whiteCell.textContent = '\u2026';
+
+            const blackCell = document.createElement('span');
+            blackCell.className = 'move-black';
+            blackCell.textContent = '\u2026';
+
+            row.append(numberCell, whiteCell, blackCell);
+            container.appendChild(row);
+            return row;
+        };
+
+        moves.forEach((move) => {
+            if (move.color === 'w') {
+                currentRow = createRow(moveNumber);
+                currentRow.querySelector('.move-white').textContent = move.san;
+                return;
+            }
+
+            if (!currentRow) currentRow = createRow(moveNumber);
+            currentRow.querySelector('.move-black').textContent = move.san;
+            currentRow = null;
+            moveNumber += 1;
+        });
+
+        container.scrollTop = container.scrollHeight;
+    },
+
+    updateMoveHistory() {
+        this.renderMoveHistory();
     },
 
     // ===== EVALUATION PANEL =====
@@ -2134,29 +2439,40 @@ const CaissaArena = {
     renderTournamentEngineList() {
         if (!this.elements.tournamentEngineList) return;
 
-        this.elements.tournamentEngineList.innerHTML = this.engines.map(engine => `
-            <label class="tournament-engine-item">
-                <input type="checkbox" value="${engine.id}" checked>
+        this.elements.tournamentEngineList.innerHTML = this.engines.map(engine => {
+            const runnable = this.isEngineRunnable(engine);
+            const availability = runnable
+                ? ''
+                : `<span class="engine-availability">${engine.reason || 'Unavailable'}</span>`;
+            return `
+            <label class="tournament-engine-item${runnable ? '' : ' is-unavailable'}">
+                <input type="checkbox" value="${engine.id}"${runnable ? ' checked' : ' disabled'}>
                 <span class="engine-name">${engine.name}</span>
                 <span class="engine-tier">Tier ${engine.tier}</span>
+                ${availability}
             </label>
-        `).join('');
+        `;
+        }).join('');
     },
 
     getSelectedTournamentEngines() {
         if (!this.elements.tournamentEngineList) return [];
 
         const checkboxes = this.elements.tournamentEngineList.querySelectorAll('input[type="checkbox"]:checked');
-        return Array.from(checkboxes).map(cb => this.getEngineById(cb.value)).filter(Boolean);
+        return Array.from(checkboxes)
+            .map(cb => this.getEngineById(cb.value))
+            .filter(engine => this.isEngineRunnable(engine));
     },
 
     startTournament() {
         const selectedEngines = this.getSelectedTournamentEngines();
 
-        if (selectedEngines.length < 3) {
-            alert('Please select at least 3 engines for the tournament');
+        if (selectedEngines.length < 2) {
+            alert('Please select at least 2 engines for the tournament');
             return;
         }
+
+        this.state.mode = 'tournament';
 
         const rounds = parseInt(this.elements.tournamentRounds?.value) || 3;
         const openingMode = this.elements.tournamentOpening?.value || 'free';
@@ -2201,6 +2517,7 @@ const CaissaArena = {
                 pairings.push({
                     white: sorted[i].engine,
                     black: sorted[j].engine,
+                    round: currentRound,
                     result: null
                 });
 
@@ -2234,7 +2551,7 @@ const CaissaArena = {
         this.updateEngineInfo();
 
         // Start the game
-        this.startMatch();
+        this.startMatch({ competitionMode: 'tournament' });
     },
 
     recordTournamentResult(result) {
@@ -2242,6 +2559,10 @@ const CaissaArena = {
         if (!pendingGame) return;
 
         pendingGame.result = result;
+        pendingGame.moves = (this.state.currentGame?.moves || []).map(move => ({ ...move }));
+        pendingGame.startFen = this.state.currentGame?.startFen || '';
+        pendingGame.endFen = this.game?.fen?.() || '';
+        pendingGame.termination = this.state.currentGame?.termination || '';
 
         // Update standings
         const whiteStanding = this.state.tournament.standings.find(s => s.engine.id === pendingGame.white.id);
@@ -2264,63 +2585,142 @@ const CaissaArena = {
 
     finishTournament() {
         console.log('[Arena] Tournament finished!');
-        // Sort final standings
-        this.state.tournament.standings.sort((a, b) => b.points - a.points);
         this.updateTournamentUI();
 
         // Show winner
-        const winner = this.state.tournament.standings[0];
+        const winner = this.getRankedTournamentStandings()[0]?.standing;
         if (this.elements.tournamentProgress) {
             this.elements.tournamentProgress.innerHTML = `
                 <div class="tournament-winner">
-                    <i class="fas fa-trophy"></i>
-                    Winner: ${winner.engine.name} (${winner.points} points)
+                    <i class="fas fa-trophy" aria-hidden="true"></i>
+                    Winner: ${this.escapeTournamentText(winner?.engine?.name || 'Participant')} (${this.formatTournamentPoints(winner?.points || 0)} points)
                 </div>
             `;
         }
     },
 
+    escapeTournamentText(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    },
+
+    formatTournamentPoints(points) {
+        const numericPoints = Number(points) || 0;
+        return Number.isInteger(numericPoints) ? String(numericPoints) : numericPoints.toFixed(1);
+    },
+
+    getRankedTournamentStandings() {
+        const tournament = this.state.tournament;
+        const standings = tournament.standings.length > 0
+            ? tournament.standings
+            : this.getSelectedTournamentEngines().map(engine => ({ engine, points: 0, games: 0 }));
+        const participantOrder = new Map(
+            (tournament.engines.length > 0 ? tournament.engines : standings.map(item => item.engine))
+                .map((participant, index) => [participant.id, index])
+        );
+        const ranked = standings
+            .map((standing, index) => ({ standing, seedIndex: participantOrder.get(standing.engine.id) ?? index }))
+            .sort((a, b) => b.standing.points - a.standing.points || a.seedIndex - b.seedIndex);
+
+        return ranked.map((entry, index) => {
+            const tied = ranked.some((candidate, candidateIndex) => (
+                candidateIndex !== index && candidate.standing.points === entry.standing.points
+            ));
+            const rank = ranked.findIndex(candidate => candidate.standing.points === entry.standing.points) + 1;
+            return { ...entry, rank, tied };
+        });
+    },
+
+    getTournamentHeadToHead(participantId, opponentId) {
+        if (participantId === opponentId) {
+            return { notation: '\u2014', label: 'Same participant', state: 'self' };
+        }
+
+        const notations = this.state.tournament.games
+            .filter(game => game.result !== null && (
+                (game.white.id === participantId && game.black.id === opponentId)
+                || (game.white.id === opponentId && game.black.id === participantId)
+            ))
+            .map((game) => {
+                if (game.result === '1/2-1/2') return '\u00bd';
+                const participantIsWhite = game.white.id === participantId;
+                const participantWon = (participantIsWhite && game.result === '1-0')
+                    || (!participantIsWhite && game.result === '0-1');
+                return participantWon ? '1' : '0';
+            });
+
+        if (notations.length === 0) {
+            return { notation: '', label: 'Not played', state: 'unplayed' };
+        }
+        return {
+            notation: notations.join(' \u00b7 '),
+            label: notations.join(', '),
+            state: 'played'
+        };
+    },
+
     updateTournamentUI() {
-        // Update standings table
         if (this.elements.tournamentStandings) {
-            const standings = this.state.tournament.standings;
-            this.elements.tournamentStandings.innerHTML = `
-                <table class="standings-table">
+            const rankedStandings = this.getRankedTournamentStandings();
+            const participants = rankedStandings.map(entry => entry.standing.engine);
+            this.elements.tournamentStandings.innerHTML = rankedStandings.length > 0 ? `
+                <table class="standings-table" aria-label="Live tournament crosstable">
+                    <caption class="sr-only">Live tournament standings and head-to-head results</caption>
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Engine</th>
-                            <th>Pts</th>
-                            <th>Games</th>
+                            <th class="standings-rank" scope="col">#</th>
+                            <th class="standings-participant" scope="col">Participant</th>
+                            ${participants.map((participant, index) => `
+                                <th class="standings-opponent" scope="col" aria-label="Opponent ${index + 1}: ${this.escapeTournamentText(participant.name)}" title="${this.escapeTournamentText(participant.name)}">${index + 1}</th>
+                            `).join('')}
+                            <th class="standings-points" scope="col">Pts</th>
+                            <th class="standings-games" scope="col">Games</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${standings.map((s, i) => `
-                            <tr>
-                                <td>${i + 1}</td>
-                                <td>${s.engine.name}</td>
-                                <td>${s.points}</td>
-                                <td>${s.games}</td>
+                        ${rankedStandings.map(({ standing, rank, tied }) => `
+                            <tr data-participant-id="${this.escapeTournamentText(standing.engine.id)}">
+                                <td class="standings-rank" aria-label="Rank ${rank}${tied ? ', tied' : ''}">${rank}${tied ? '<span aria-hidden="true">=</span>' : ''}</td>
+                                <th class="standings-participant" scope="row">${this.escapeTournamentText(standing.engine.name)}</th>
+                                ${participants.map((opponent) => {
+                                    const result = this.getTournamentHeadToHead(standing.engine.id, opponent.id);
+                                    return `<td class="standings-result is-${result.state}" aria-label="${result.label}">${result.notation}</td>`;
+                                }).join('')}
+                                <td class="standings-points">${this.formatTournamentPoints(standing.points)}</td>
+                                <td class="standings-games">${standing.games}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
-            `;
+            ` : '<div class="tournament-standings-empty">Select at least three participants to preview standings.</div>';
         }
 
-        // Update progress
         if (this.elements.tournamentProgress) {
-            const { currentRound, rounds, games } = this.state.tournament;
-            const completedGames = games.filter(g => g.result !== null).length;
-            this.elements.tournamentProgress.innerHTML = `
-                Round ${currentRound + 1} of ${rounds} | Games: ${completedGames}/${games.length}
-            `;
+            const { engines, currentRound, rounds, games } = this.state.tournament;
+            if (engines.length === 0) {
+                const selectedCount = this.getSelectedTournamentEngines().length;
+                this.elements.tournamentProgress.textContent = `Ready \u2022 ${selectedCount} participants selected`;
+            } else if (currentRound >= rounds) {
+                const completedGames = games.filter(game => game.result !== null).length;
+                this.elements.tournamentProgress.textContent = `Tournament complete \u2022 ${completedGames} games`;
+            } else {
+                const roundGames = games.filter(game => (game.round ?? currentRound) === currentRound);
+                const completedRoundGames = roundGames.filter(game => game.result !== null).length;
+                this.elements.tournamentProgress.textContent = `Round ${currentRound + 1} of ${rounds} \u2022 Games ${completedRoundGames}/${roundGames.length}`;
+            }
         }
     },
 
     // ===== SECTION LIFECYCLE =====
     onEnter() {
         console.log('[Arena] Section entered');
+        this.state.hasEntered = true;
+        const mobileSectionName = document.getElementById('headerSectionName');
+        if (mobileSectionName) mobileSectionName.textContent = 'CAISSA Engine Arena';
 
         // Re-cache elements (in case they weren't ready on init)
         // CRITICAL: Always re-cache on enter to ensure fresh DOM references
@@ -2331,6 +2731,7 @@ const CaissaArena = {
         requestAnimationFrame(() => {
             this.renderEngineSelectors();
             this.renderTournamentEngineList();
+            this.updateTournamentUI();
         });
 
         // Disable controls while board mounts
@@ -2359,10 +2760,7 @@ const CaissaArena = {
             // Optionally stop - for now we let it run
             // this.stopMatch();
         }
-        if (this.layoutObserver) {
-            this.layoutObserver.disconnect();
-            this.layoutObserver = null;
-        }
+        this.teardownBoardSizing();
     },
 
     /**
