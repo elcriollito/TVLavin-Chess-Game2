@@ -23,7 +23,8 @@
         },
         renderControls() {
             const target = document.getElementById('arenaPanelMatch');
-            if (!target || this.statusNode) return;
+            const body = target?.querySelector('.arena-panel-body');
+            if (!body || this.statusNode) return;
             const panel = document.createElement('div');
             panel.className = 'arena-lc0-preview-control';
             panel.style.cssText = 'margin:1rem 0;padding:1rem;border:1px solid currentColor;border-radius:8px';
@@ -56,7 +57,7 @@
             const info = document.createElement('p');
             info.setAttribute('aria-label', 'Lc0 search information');
             panel.append(heading, button, status, info);
-            target.prepend(panel);
+            body.append(panel);
             this.statusNode = status;
             this.infoNode = info;
             this.status('Lc0 available on this protected desktop preview only.');

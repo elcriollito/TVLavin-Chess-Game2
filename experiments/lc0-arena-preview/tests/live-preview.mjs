@@ -93,10 +93,12 @@ try {
       item.stage = 'popup';
       await page.waitForFunction(() => window.CaissaArenaPreview?.pendingPopup?.adapter?.sessionId,
         null, { timeout: 15_000 });
-      const [enginePage] = await Promise.all([
-        context.waitForEvent('page', { timeout: 10_000 }),
-        page.getByRole('button', { name: 'Start Lc0 Engine' }).click()
-      ]);
+      const beforePages = context.pages().length;
+      await page.locator('.arena-lc0-preview-control button').click({ timeout: 10_000 });
+      await page.waitForFunction(expected => window.CaissaArenaPreview.pendingPopup === null,
+        null, { timeout: 5_000 });
+      assert.ok(context.pages().length > beforePages, 'Isolated Lc0 popup did not open');
+      const enginePage = context.pages().at(-1);
       item.sessionId = await page.evaluate(() => window.CaissaArenaPreview.adapter.sessionId);
       item.stage = 'ready';
       await page.waitForFunction(() => CaissaArena.state.matchState === 'running' &&
@@ -151,6 +153,10 @@ try {
         }
       })).catch(() => null);
       report.failures.push({ cycle: i + 1, stage: item.stage, error: error.message, state });
+      try {
+        await page.evaluate(() => CaissaArena.stopMatch());
+        await page.evaluate(() => CaissaArena._cleanupPromise);
+      } catch { /* Failure evidence is kept; relay hard TTL is the final guard. */ }
       break; // A failed cycle is never hidden by later retries.
     }
   }
