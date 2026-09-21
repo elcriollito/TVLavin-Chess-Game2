@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const controller = fs.readFileSync(new URL('../js/caissa-arena.js', import.meta.url), 'utf8');
+const runtimeManager = fs.readFileSync(new URL('../js/arena-runtime-manager.js', import.meta.url), 'utf8');
 const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 
 function arenaMarkup() {
@@ -65,7 +66,8 @@ test('Match and Tournament share runnable engine availability', () => {
   assert.match(controller, /class="tournament-engine-item\$\{runnable \? '' : ' is-unavailable'\}"/);
   assert.match(controller, /\$\{runnable \? ' checked' : ' disabled'\}/);
   assert.match(controller, /playerInstancesMatchSelections\(\)/);
-  assert.match(controller, /arena-engine-selection-changed/);
+  assert.match(controller, /this\.runtimeManager\.acquire\('white'/);
+  assert.match(runtimeManager, /this\.terminate\(role, 'provider-replaced'\)/);
 });
 
 test('Tournament draw adjudication is confirmed and uses the normal result pipeline', () => {

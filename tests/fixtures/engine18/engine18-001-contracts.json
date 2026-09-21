@@ -180,8 +180,8 @@
   },
   "normalizedSourceGuards": {
     "engine/stockfish-working.js": { "sha256": "723fda70117bfa8d5053a7bc4ae50cdc96dc9e3fd41b57627e4dfa0a0025957a", "bytes": 1579948 },
-    "js/engine-registry.js": { "sha256": "4c92ad72e069ffb91e911768c6badcf822dc8f9b8b695178c7410cb51f053d21", "bytes": 24601 },
-    "js/engine-adapter.js": { "sha256": "c748894d552a6ad5ec9739c56618983479d2b21d0c79e7fb250c2d7300adae7c", "bytes": 38628 },
+    "js/engine-registry.js": { "sha256": "72ace6b0289fec21408f2c933d4f81e175c8291c17606abe87c3fff8d0547722", "bytes": 25841 },
+    "js/engine-adapter.js": { "sha256": "7aad8059d17547c2b8b58ca4f7233dfbd87631dbf2c3a02828aa6c0b7853daad", "bytes": 38952 },
     "app.js": { "sha256": "2dedc165ab5078322023247a2ff1fec4d090eff5eeb08ff8fcb830ff10b1de44", "bytes": 303006 },
     "js/play/opponent-strength.js": { "sha256": "abe4fbc16e6c8b2c91bb035d6e1f60abb6105f43bdbc53ae07e97c18b66c5b70", "bytes": 5675 },
     "js/play/engine-request-isolation.js": { "sha256": "e3656ce00b68b3995f8b3672fffd8e62c7b32cce12dccc7f2b8df5618627863e", "bytes": 25204 },
@@ -196,6 +196,6 @@
     "js/play/evaluation-rail.js": { "sha256": "462107bb2f6c7b641571a28306cff813c8f4c4c8c7c03496bf9099b63b3bcc51", "bytes": 18012 },
     "js/board/caissa-board-adapter.js": { "sha256": "4bfb6b0052c9eb7ca2200c3576afad630992c7aa0495304d402e487251476f66", "bytes": 5258 },
     "js/board/caissa-persistent-renderer.js": { "sha256": "a48f2f0b5ccf5816f1b2b065799c53e99ac3508679d0a8ab139e6649c197b058", "bytes": 38999 },
-    "index.html": { "sha256": "ee9deefaa115887c9620d7dbac3da4c4a157aae5256e93173f79a160661af84f", "bytes": 390147 }
+    "index.html": { "sha256": "059365be50ee4d14e22aba37439e9686c218c149a80a096fb07bf5a2542e02c5", "bytes": 390211 }
   }
 }

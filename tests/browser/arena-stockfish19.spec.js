@@ -238,7 +238,7 @@ for (const pairing of [
   });
 }
 
-test('three-runtime Tournament rotates byes, adjudicates an SF19 draw, and continues truthfully', async ({ page }) => {
+test('three-runtime Tournament completes three truthful rounds without worker growth', async ({ page }) => {
   await openArena(page, { width: 1920, height: 1080 });
   await page.getByRole('tab', { name: 'Tournament' }).click();
   await page.locator('#arenaTournamentEngines input[value="stockfish-lite"]').uncheck();
@@ -321,7 +321,57 @@ test('three-runtime Tournament rotates byes, adjudicates an SF19 draw, and conti
   expect(continuation.maxActive).toBeLessThanOrEqual(4);
   samples.push(await boardGeometry(page));
   expectStable(samples, 'Stockfish 19 Tournament');
+
+  await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
+    timeout: 20_000
+  }).toBeGreaterThan(0);
+  await page.getByRole('tab', { name: 'Game' }).click();
+  await page.locator('#arenaDeclareDraw').click();
+  await page.locator('#arenaDrawConfirm').click();
+  await expect.poll(() => page.evaluate(() => {
+    const tournament = window.CaissaArena.state.tournament;
+    return tournament.currentRound === tournament.rounds
+      && tournament.games.every(game => game.result !== null);
+  }), { timeout: 20_000 }).toBe(true);
+
+  const completed = await page.evaluate(() => {
+    const arena = window.CaissaArena;
+    const snapshot = arena.runtimeManager.getResourceSnapshot();
+    return {
+      games: arena.state.tournament.games.map(game => ({
+        white: game.white.id,
+        black: game.black.id,
+        result: game.result,
+        runtimeWhite: game.runtimeIdentities?.white?.providerId,
+        runtimeBlack: game.runtimeIdentities?.black?.providerId
+      })),
+      standings: arena.state.tournament.standings.map(standing => ({
+        id: standing.engine.id,
+        points: standing.points,
+        games: standing.games
+      })),
+      activeWorkers: snapshot.activeWorkers,
+      activeRecords: snapshot.activeRuntimeRecords,
+      managerPeak: snapshot.diagnostics.peakActiveWorkers,
+      auditPeak: window.__arenaWorkerAudit.maxActive
+    };
+  });
+  expect(completed.games).toHaveLength(3);
+  expect(completed.games.every(game => game.result === '1/2-1/2')).toBe(true);
+  expect(completed.games.every(game => game.white === game.runtimeWhite
+    && game.black === game.runtimeBlack)).toBe(true);
+  expect(completed.standings).toEqual(expect.arrayContaining([
+    { id: 'stockfish', points: 1, games: 2 },
+    { id: SF18_ID, points: 1, games: 2 },
+    { id: SF19_ID, points: 1, games: 2 }
+  ]));
+  expect(completed.activeWorkers).toBe(3);
+  expect(completed.activeRecords).toBe(3);
+  expect(completed.managerPeak).toBeLessThanOrEqual(3);
+  expect(completed.auditPeak).toBeLessThanOrEqual(4);
   await page.locator('#arenaStopMatch').click();
+  expect(await page.evaluate(() => window.CaissaArena.runtimeManager.getResourceSnapshot()
+    .activeWorkers)).toBe(0);
 });
 
 for (const viewport of [
@@ -398,6 +448,155 @@ test('SF19 replacement and section exit terminate workers and clear runtime reco
   });
 });
 
+test('runtime manager survives six legal-play replacement cycles and returns to zero', async ({ page }) => {
+  test.setTimeout(120_000);
+  await openArena(page);
+  const cycleSnapshots = [];
+
+  for (let cycle = 0; cycle < 6; cycle += 1) {
+    await selectPairing(page, SF18_ID, SF19_ID);
+    const finalWhite = cycle % 2 === 0 ? SF19_ID : 'stockfish';
+    await page.locator('#arenaWhiteEngine').selectOption(finalWhite);
+    await expect.poll(() => page.evaluate(() => window.CaissaArena.playerInstancesMatchSelections()), {
+      timeout: 15_000
+    }).toBe(true);
+
+    const ready = await page.evaluate(() => {
+      const arena = window.CaissaArena;
+      const snapshot = arena.runtimeManager.getResourceSnapshot();
+      return {
+        selected: [arena.state.whiteEngine.id, arena.state.blackEngine.id],
+        owned: [snapshot.roles.white.providerId, snapshot.roles.black.providerId],
+        runtimeIds: [snapshot.roles.white.runtimeInstanceId, snapshot.roles.black.runtimeInstanceId],
+        activeWorkers: snapshot.activeWorkers,
+        activeRecords: snapshot.activeRuntimeRecords,
+        managerPeak: snapshot.diagnostics.peakActiveWorkers
+      };
+    });
+    expect(ready.owned).toEqual(ready.selected);
+    expect(ready.activeWorkers).toBe(3);
+    expect(ready.activeRecords).toBe(3);
+    expect(ready.managerPeak).toBeLessThanOrEqual(3);
+    if (ready.selected[0] === ready.selected[1]) {
+      expect(ready.runtimeIds[0]).not.toBe(ready.runtimeIds[1]);
+    }
+
+    await page.locator('#arenaStartMatch').click();
+    await expect.poll(() => page.evaluate(() => window.CaissaArena.state.matchState), {
+      timeout: 20_000
+    }).toBe('running');
+    await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
+      timeout: 20_000
+    }).toBeGreaterThan(0);
+    await page.getByRole('tab', { name: 'Game' }).click();
+    await page.locator('#arenaStopMatch').click();
+    const stopped = await page.evaluate(() => {
+      const snapshot = window.CaissaArena.runtimeManager.getResourceSnapshot();
+      return {
+        activeWorkers: snapshot.activeWorkers,
+        activeRecords: snapshot.activeRuntimeRecords,
+        liveRuntimeIds: snapshot.liveRuntimeIds.length,
+        replacements: snapshot.diagnostics.replacements,
+        managerPeak: snapshot.diagnostics.peakActiveWorkers,
+        nativeActive: window.__arenaWorkerAudit.activeCount(),
+        nativePeak: window.__arenaWorkerAudit.maxActive
+      };
+    });
+    expect(stopped).toMatchObject({
+      activeWorkers: 0,
+      activeRecords: 0,
+      liveRuntimeIds: 0,
+      nativeActive: 1
+    });
+    expect(stopped.replacements).toBeGreaterThanOrEqual(cycle + 1);
+    expect(stopped.managerPeak).toBeLessThanOrEqual(3);
+    expect(stopped.nativePeak).toBeLessThanOrEqual(4);
+    cycleSnapshots.push(stopped);
+  }
+
+  expect(cycleSnapshots).toHaveLength(6);
+  expect(cycleSnapshots.every(snapshot => snapshot.activeWorkers === 0
+    && snapshot.activeRecords === 0)).toBe(true);
+});
+
+test('rapid start-stop, stop-start, tab changes, replacement, and exit ignore stale work', async ({ page }) => {
+  test.setTimeout(90_000);
+  await openArena(page);
+  await selectPairing(page, SF18_ID, SF19_ID);
+
+  const canceledStart = await page.evaluate(async () => {
+    const arena = window.CaissaArena;
+    arena.destroyEngines();
+    const pending = arena.startMatch();
+    arena.stopMatch();
+    await pending;
+    return arena.runtimeManager.getResourceSnapshot();
+  });
+  expect(canceledStart.activeWorkers).toBe(0);
+  expect(canceledStart.activeRuntimeRecords).toBe(0);
+  expect(canceledStart.liveRuntimeIds).toEqual([]);
+
+  await page.evaluate(() => window.CaissaArena.startMatch());
+  await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
+    timeout: 20_000
+  }).toBeGreaterThan(0);
+  const beforeTabs = await page.evaluate(() => window.CaissaArena.runtimeManager
+    .getResourceSnapshot().liveRuntimeIds);
+  for (let index = 0; index < 3; index += 1) {
+    await page.getByRole('tab', { name: 'Tournament' }).click();
+    await page.getByRole('tab', { name: 'Match' }).click();
+    await page.getByRole('tab', { name: 'Game' }).click();
+  }
+  const afterTabs = await page.evaluate(() => window.CaissaArena.runtimeManager
+    .getResourceSnapshot().liveRuntimeIds);
+  expect(afterTabs).toEqual(beforeTabs);
+
+  await page.evaluate(async () => {
+    const arena = window.CaissaArena;
+    arena.stopMatch();
+    await arena.startMatch();
+  });
+  await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
+    timeout: 20_000
+  }).toBeGreaterThan(0);
+  await page.evaluate(() => window.CaissaArena.stopMatch());
+
+  const replacement = await page.evaluate(async ({ sf18, sf19 }) => {
+    const manager = window.CaissaArena.runtimeManager;
+    const first = manager.acquire('white', sf18);
+    const second = manager.acquire('white', sf19);
+    await Promise.allSettled([first, second]);
+    const snapshot = manager.getResourceSnapshot();
+    const result = {
+      providerId: snapshot.roles.white?.providerId,
+      state: snapshot.roles.white?.state,
+      activeWorkers: snapshot.activeWorkers,
+      staleAcquisitions: snapshot.diagnostics.staleAcquisitions
+    };
+    manager.terminateAll('race-test-cleanup');
+    return result;
+  }, { sf18: SF18_ID, sf19: SF19_ID });
+  expect(replacement).toMatchObject({
+    providerId: SF19_ID,
+    state: 'READY',
+    activeWorkers: 1
+  });
+  expect(replacement.staleAcquisitions).toBeGreaterThan(0);
+
+  const exitDuringInit = await page.evaluate(async () => {
+    const arena = window.CaissaArena;
+    const pending = arena.initEngines();
+    arena.onExit();
+    await pending;
+    return arena.runtimeManager.getResourceSnapshot();
+  });
+  expect(exitDuringInit.activeWorkers).toBe(0);
+  expect(exitDuringInit.activeRuntimeRecords).toBe(0);
+  expect(exitDuringInit.liveRuntimeIds).toEqual([]);
+  expect(exitDuringInit.diagnostics.peakActiveWorkers).toBeLessThanOrEqual(3);
+  expect(await page.evaluate(() => window.__arenaWorkerAudit.activeCount())).toBe(1);
+});
+
 test('SF19 worker failure disables only SF19 without fallback or relabeling', async ({ page }) => {
   await page.addInitScript((workerPath) => {
     localStorage.setItem('caissa_onboarding_completed', 'true');
@@ -429,12 +628,14 @@ test('SF19 worker failure disables only SF19 without fallback or relabeling', as
     sf18: window.EngineRegistry.isArenaProviderAvailable('stockfish-18-lite'),
     legacy: window.EngineRegistry.isArenaProviderAvailable('stockfish'),
     label: document.querySelector('#arenaStatusWhite').textContent,
-    runtime: window.CaissaArena.whiteEngineInstance?.getRuntimeIdentity() || null
+    runtime: window.CaissaArena.whiteEngineInstance?.getRuntimeIdentity() || null,
+    failure: window.CaissaArena.runtimeManager.getResourceSnapshot().lastFailures.white
   }), SF19_ID)).toMatchObject({
     sf19: false,
     sf18: true,
     legacy: true,
     label: SF19_NAME,
-    runtime: { providerId: SF19_ID, status: 'failed', identityValidated: false }
+    runtime: null,
+    failure: { role: 'white', providerId: SF19_ID }
   });
 });
