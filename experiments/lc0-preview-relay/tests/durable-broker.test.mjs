@@ -180,6 +180,57 @@ test('duplicate command delivery is claimed once across broker instances', async
     session.engineCredential, 1)).execute, false);
 });
 
+test('store interruption fails closed and a retried POST commits only one command', async () => {
+  const f = fixture(), session = await open(f);
+  const original = f.store.compareSwap.bind(f.store);
+  let fault = true;
+  f.store.compareSwap = async (...args) => {
+    if (fault) { fault = false; throw new Error('TEMPORARY_STORE_ERROR'); }
+    return original(...args);
+  };
+  await assert.rejects(f.first.command(session.sessionId, userA,
+    { type: 'HELLO', seq: 1 }), /TEMPORARY_STORE_ERROR/);
+  assert.equal((await f.second.inspect(session.sessionId, userA)).state.lastCommandSeq, 0);
+  await f.second.command(session.sessionId, userA, { type: 'HELLO', seq: 1 });
+  await assert.rejects(f.first.command(session.sessionId, userA,
+    { type: 'HELLO', seq: 1 }), { code: 'SEQUENCE_INVALID' });
+  assert.equal((await f.store.get(session.sessionId)).state.events
+    .filter(item => item.value.type === 'HELLO').length, 1);
+});
+
+test('an abandoned server response cannot renew a lease without a client heartbeat', async () => {
+  const f = fixture(), session = await open(f);
+  const connection = await f.first.connect(session.sessionId, 'engine', session.engineCredential);
+  f.advance(2_000);
+  await f.first.poll(session.sessionId, 'engine', session.engineCredential,
+    connection.epoch, 0);
+  await f.second.heartbeat(session.sessionId, 'engine', session.engineCredential,
+    connection.epoch);
+  f.advance(7_999);
+  await f.second.poll(session.sessionId, 'engine', session.engineCredential,
+    connection.epoch, 0);
+  f.advance(2);
+  await assert.rejects(f.first.poll(session.sessionId, 'engine', session.engineCredential,
+    connection.epoch, 0), { code: 'ENGINE_LEASE_EXPIRED' });
+  await assert.rejects(f.first.connect(session.sessionId, 'engine', session.engineCredential),
+    { code: 'ENGINE_LEASE_EXPIRED' });
+  assert.equal(await f.store.countLive(), 0);
+});
+
+test('unknown fields, oversized payloads and replayed engine sequences are rejected', async () => {
+  const f = fixture(), session = await open(f);
+  await assert.rejects(f.first.command(session.sessionId, userA,
+    { type: 'HELLO', seq: 1, arbitrary: true }), { code: 'SCHEMA_INVALID' });
+  await assert.rejects(f.first.command(session.sessionId, userA,
+    { type: 'HELLO', seq: 1, fen: 'x'.repeat(3000) }), { code: 'COMMAND_TOO_LARGE' });
+  await f.first.command(session.sessionId, userA, { type: 'HELLO', seq: 1 });
+  await f.second.engineMessage(session.sessionId, session.engineCredential,
+    { type: 'ACK', seq: 1, command: 'HELLO', commandSeq: 1 });
+  await assert.rejects(f.second.engineMessage(session.sessionId, session.engineCredential,
+    { type: 'ACK', seq: 1, command: 'HELLO', commandSeq: 1 }),
+  { code: 'ENGINE_SEQUENCE_INVALID' });
+});
+
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {
   const claim = fixture();
   const unclaimed = await claim.first.create({ userId: userA, competitionId: 'expiry', participantRole: 'white' });
@@ -201,6 +252,12 @@ test('claim, idle, lease and hard expiry work from durable timestamps without ti
   await assert.rejects(lease.second.connect(leaseSession.sessionId, 'engine', leaseSession.engineCredential),
     { code: 'ENGINE_LEASE_EXPIRED' });
   assert.equal(await lease.store.countLive(), 0);
+
+  const hard = fixture(), hardSession = await open(hard);
+  hard.advance(120_001);
+  await assert.rejects(hard.second.command(hardSession.sessionId, userA,
+    { type: 'HELLO', seq: 1 }), { code: 'SESSION_EXPIRED' });
+  assert.equal(await hard.store.countLive(), 0);
 });
 
 test('ten concurrent sessions isolate credentials, lifecycle and durable cleanup', async () => {

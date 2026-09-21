@@ -313,10 +313,22 @@ export class DurableBroker {
     });
   }
 
+  async heartbeat(sessionId, role, authority, epoch) {
+    if (!['main', 'engine'].includes(role) || !Number.isSafeInteger(epoch) || epoch < 1)
+      throw new RelayError('HEARTBEAT_INVALID');
+    const authorize = role === 'main' ? this.owner(authority) : this.engine(authority);
+    return this.mutate(sessionId, authorize, (state, _row, now) => {
+      const key = role === 'main' ? 'mainEpoch' : 'engineEpoch';
+      const until = role === 'main' ? 'mainStreamUntil' : 'engineStreamUntil';
+      if (state[key] !== epoch) throw new RelayError('STREAM_REPLACED', 409);
+      state[until] = now + LIMITS.streamHeartbeatMs;
+      return { alive: true, epoch };
+    });
+  }
+
   async poll(sessionId, role, authority, epoch, cursor) {
     const authorize = role === 'main' ? this.owner(authority) : this.engine(authority);
     const key = role === 'main' ? 'mainEpoch' : 'engineEpoch';
-    const until = role === 'main' ? 'mainStreamUntil' : 'engineStreamUntil';
     const select = state => {
       const available = state.events.filter(item => item.role === role && item.id > cursor);
       const high = available.filter(item => item.priority === 'high');
@@ -330,12 +342,7 @@ export class DurableBroker {
     const expired = this.expired(row.state, now);
     if (expired) throw new RelayError(expired, 410);
     if (row.state[key] !== epoch) throw new RelayError('STREAM_REPLACED', 409);
-    if (row.state[until] - now > 1_000) return select(row.state);
-    return this.mutate(sessionId, authorize, (state, _row, current) => {
-      if (state[key] !== epoch) throw new RelayError('STREAM_REPLACED', 409);
-      state[until] = current + LIMITS.streamHeartbeatMs;
-      return select(state);
-    });
+    return select(row.state);
   }
 
   async close(sessionId, role, authority, epoch) {

@@ -8,8 +8,9 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const allowedActions = Object.freeze({
   create: ['main', 'POST'], inspect: ['main', 'GET'], command: ['main', 'POST'],
   advance: ['main', 'POST'], terminate: ['main', 'POST'], stream_main: ['main', 'GET'],
+  heartbeat_main: ['main', 'POST'],
   claim: ['engine', 'POST'], message: ['engine', 'POST'], stream_engine: ['engine', 'GET'],
-  engine_state: ['engine', 'GET'],
+  engine_state: ['engine', 'GET'], heartbeat_engine: ['engine', 'POST'],
   claim_command: ['engine', 'POST'],
   config: ['main', 'GET'], health: ['either', 'GET']
 });
@@ -67,7 +68,7 @@ async function stream(req, res, broker, sessionId, role, authority, cursor) {
   const connection = await broker.connect(sessionId, role, authority, cursor);
   res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'private, no-store', 'X-Accel-Buffering': 'no', Connection: 'keep-alive' });
-  res.write(': connected\n\n');
+  res.write(`event: lease\ndata: ${JSON.stringify({ epoch: connection.epoch })}\n\n`);
   let closed = false;
   res.on('close', () => { closed = true; });
   let currentCursor = cursor;
@@ -116,6 +117,10 @@ export default async function handler(req, res) {
       await broker.engineMessage(sessionId, bearer(req), input(req)));
     if (action === 'engine_state') return respond(res, 200,
       await broker.inspectEngine(sessionId, bearer(req)));
+    if (action === 'heartbeat_engine') {
+      const { epoch } = input(req);
+      return respond(res, 200, await broker.heartbeat(sessionId, 'engine', bearer(req), epoch));
+    }
     if (action === 'claim_command') {
       const { commandSeq } = input(req);
       return respond(res, 200, await broker.claimCommand(sessionId, bearer(req), commandSeq));
@@ -124,6 +129,10 @@ export default async function handler(req, res) {
       'engine', bearer(req), Number(req.query?.cursor || 0));
     const userId = await mainUser(req);
     if (action === 'inspect') return respond(res, 200, await broker.inspect(sessionId, userId));
+    if (action === 'heartbeat_main') {
+      const { epoch } = input(req);
+      return respond(res, 200, await broker.heartbeat(sessionId, 'main', userId, epoch));
+    }
     if (action === 'command') return respond(res, 202,
       await broker.command(sessionId, userId, input(req)));
     if (action === 'advance') {

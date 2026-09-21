@@ -21,7 +21,8 @@ async function api(action, { sessionId, credential, body, cursor, signal } = {})
 class EnginePreviewClient {
   constructor() {
     this.sessionId = null; this.credential = null; this.cursor = 0; this.seq = 0;
-    this.controller = null; this.infoTimer = null; this.outbound = Promise.resolve();
+    this.controller = null; this.infoTimer = null; this.heartbeatTimer = null;
+    this.outbound = Promise.resolve();
     this.inbound = Promise.resolve(); this.commands = [];
   }
 
@@ -56,13 +57,22 @@ class EnginePreviewClient {
     const response = await api('stream_engine', { sessionId: this.sessionId,
       credential: this.credential, cursor: this.cursor, signal: this.controller.signal });
     $('#disconnect').disabled = false; $('#reconnect').disabled = true;
-    this.consume(response.body).catch(error => { if (error.name !== 'AbortError') log(error.message); });
+    this.consume(response.body, this.controller).catch(error => {
+      if (error.name !== 'AbortError') log(error.message);
+    });
   }
 
-  async consume(body) {
+  heartbeat(epoch) {
+    clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = setInterval(() => api('heartbeat_engine', {
+      sessionId: this.sessionId, credential: this.credential, body: { epoch }
+    }).catch(error => { log(`heartbeat ${error.message}`); this.disconnect(); }), 1500);
+  }
+
+  async consume(body, controller) {
     const reader = body.getReader(), decoder = new TextDecoder();
     let buffer = '';
-    while (true) {
+    try { while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -71,6 +81,10 @@ class EnginePreviewClient {
         const frame = buffer.slice(0, boundary); buffer = buffer.slice(boundary + 2);
         const line = frame.split('\n').find(part => part.startsWith('data: '));
         const id = frame.split('\n').find(part => part.startsWith('id: '));
+        if (frame.startsWith('event: lease') && line) {
+          this.heartbeat(JSON.parse(line.slice(6)).epoch);
+          continue;
+        }
         if (!line || !id) continue;
         const item = JSON.parse(line.slice(6)), eventId = Number(id.slice(4));
         this.inbound = this.inbound.then(async () => {
@@ -84,7 +98,7 @@ class EnginePreviewClient {
           sessionStorage.setItem('eae011-engine-cursor', String(this.cursor));
         }).catch(error => log(`command error ${error.message}`));
       }
-    }
+    } } finally { if (this.controller === controller) clearInterval(this.heartbeatTimer); }
   }
 
   async message(type, rest = {}) {
@@ -137,6 +151,8 @@ class EnginePreviewClient {
       sessionStorage.removeItem('eae011-engine-session');
       sessionStorage.removeItem('eae011-engine-credential');
       sessionStorage.removeItem('eae011-engine-cursor');
+      clearInterval(this.heartbeatTimer);
+      this.controller?.abort();
       $('#status').textContent = 'CLEANED';
       $('#disconnect').disabled = true;
     }
@@ -144,6 +160,7 @@ class EnginePreviewClient {
 
   disconnect() {
     clearInterval(this.infoTimer); this.infoTimer = null;
+    clearInterval(this.heartbeatTimer);
     this.controller?.abort();
     $('#disconnect').disabled = true; $('#reconnect').disabled = false;
     $('#status').textContent = 'DISCONNECTED';

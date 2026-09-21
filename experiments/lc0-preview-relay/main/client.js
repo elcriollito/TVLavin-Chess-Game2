@@ -25,7 +25,7 @@ class MainPreviewClient {
   constructor() {
     this.sessionId = null; this.claimToken = null; this.seq = 0; this.cursor = 0;
     this.events = []; this.waiters = []; this.controller = null; this.running = false;
-    this.timings = [];
+    this.timings = []; this.heartbeatTimer = null;
   }
 
   emit(value) {
@@ -96,13 +96,21 @@ class MainPreviewClient {
     const response = await api('stream_main', { sessionId: this.sessionId,
       cursor: this.cursor, signal: this.controller.signal });
     $('#disconnect').disabled = false; $('#reconnect').disabled = true;
-    this.consume(response.body).catch(error => { if (error.name !== 'AbortError') log(error.message); });
+    this.consume(response.body, this.controller).catch(error => {
+      if (error.name !== 'AbortError') log(error.message);
+    });
   }
 
-  async consume(body) {
+  heartbeat(epoch) {
+    clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = setInterval(() => api('heartbeat_main', { sessionId: this.sessionId,
+      body: { epoch } }).catch(error => { log(`heartbeat ${error.message}`); this.disconnect(); }), 1500);
+  }
+
+  async consume(body, controller) {
     const reader = body.getReader(), decoder = new TextDecoder();
     let buffer = '';
-    while (true) {
+    try { while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -111,16 +119,21 @@ class MainPreviewClient {
         const frame = buffer.slice(0, boundary); buffer = buffer.slice(boundary + 2);
         const line = frame.split('\n').find(part => part.startsWith('data: '));
         const id = frame.split('\n').find(part => part.startsWith('id: '));
+        if (frame.startsWith('event: lease') && line) {
+          this.heartbeat(JSON.parse(line.slice(6)).epoch);
+          continue;
+        }
         if (id) {
           this.cursor = Math.max(this.cursor, Number(id.slice(4)));
           sessionStorage.setItem('eae011-main-cursor', String(this.cursor));
         }
         if (line) this.emit(JSON.parse(line.slice(6)));
       }
-    }
+    } } finally { if (this.controller === controller) clearInterval(this.heartbeatTimer); }
   }
 
   disconnect() {
+    clearInterval(this.heartbeatTimer);
     this.controller?.abort();
     $('#disconnect').disabled = true; $('#reconnect').disabled = false;
   }
