@@ -28,7 +28,10 @@
             return null;
         }
         const normalized = String(pathname || '').replace(/\/+$/, '') || '/';
-        const definition = definitions[normalized] || null;
+        // EAE-013 uses the existing Arena section on a separate preview URL;
+        // /arena remains the canonical navigation destination.
+        const definition = normalized === '/arena-preview'
+            ? definitions['/arena'] : definitions[normalized] || null;
         return definition ? Object.freeze({ route: normalized, ...definition }) : null;
     }
 

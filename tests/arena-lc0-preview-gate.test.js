@@ -36,3 +36,12 @@ test('normal Arena provider list is frozen without explicit preview registration
   assert.equal(registry.listArenaProviders().filter(item => item.id === 'lc0-maia-1100-preview').length, 1);
   assert.equal(registry.list().some(item => item.id === 'lc0-maia-1100-preview'), false);
 });
+
+test('preview URL resolves to the existing Arena section without changing its canonical route', () => {
+  const source = fs.readFileSync(new URL('../js/legacy-canonical-section-route-policy.js', import.meta.url), 'utf8');
+  const window = { location: { origin: 'https://eae013-main.vercel.app',
+    pathname: '/arena-preview' }, document: { documentElement: { setAttribute() {} } } };
+  vm.runInNewContext(source, { window, URL }, { filename: 'legacy-canonical-section-route-policy.js' });
+  assert.equal(window.LegacyCanonicalSectionRoutePolicy.resolve('/arena-preview').section, 'arena');
+  assert.equal(window.LegacyCanonicalSectionRoutePolicy.routeForSection('arena'), '/arena');
+});
