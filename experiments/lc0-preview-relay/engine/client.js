@@ -7428,7 +7428,17 @@ var RealLc0RelayClient = class {
     this.active = null;
     this.currentPosition = null;
     this.commandHistory = [];
-    this.metrics = { rawInfo: 0, sentInfo: 0, forced: 0 };
+    this.metrics = {
+      rawInfo: 0,
+      sentInfo: 0,
+      forced: 0,
+      claimMs: null,
+      artifactVerifyMs: null,
+      runtimeInitMs: null,
+      goToLocalBestmoveMs: [],
+      stopToLocalBestmoveMs: [],
+      cleanupLocalMs: null
+    };
     this.intentionalDisconnect = false;
     this.closed = false;
     this.heartbeatRequests = /* @__PURE__ */ new Set();
@@ -7440,10 +7450,12 @@ var RealLc0RelayClient = class {
     history.replaceState(null, "", location.pathname);
     if (handoff.has("sessionId") && handoff.has("claimToken")) {
       this.sessionId = handoff.get("sessionId");
+      const claimAt = performance.now();
       const claimed = await api("claim", { body: {
         sessionId: this.sessionId,
         claimToken: handoff.get("claimToken")
       } });
+      this.metrics.claimMs = performance.now() - claimAt;
       this.credential = claimed.engineCredential;
       sessionStorage.setItem("eae012-engine-session", this.sessionId);
       sessionStorage.setItem("eae012-engine-credential", this.credential);
@@ -7458,7 +7470,9 @@ var RealLc0RelayClient = class {
     this.seq = state.lastEngineSeq;
     if (state.phase !== "CLAIMED") throw new Error("ENGINE_PAGE_RELOAD_REQUIRES_NEW_RUNTIME");
     $("#status").textContent = "Claimed; verifying pinned assets";
+    const artifactsAt = performance.now();
     await verifyArtifacts();
+    this.metrics.artifactVerifyMs = performance.now() - artifactsAt;
     this.runtime = new Lc0LabRuntime({
       timeoutMs: 3e4,
       assetBase: ARTIFACTS,
@@ -7466,7 +7480,9 @@ var RealLc0RelayClient = class {
       network: { url: `${ARTIFACTS}/network/maia-1100.pb.gz` },
       onEvent: (event) => this.runtimeEvent(event)
     });
+    const runtimeAt = performance.now();
     const snapshot = await this.runtime.initialize();
+    this.metrics.runtimeInitMs = performance.now() - runtimeAt;
     this.identity = { ...PIN, runtimeInstanceId: this.runtimeInstanceId };
     if (snapshot.identity.name !== PIN.uciName || snapshot.identity.author !== PIN.uciAuthor || snapshot.identity.networkSha256 !== PIN.networkSha256 || snapshot.identity.sourceCommit !== PIN.sourceCommit)
       throw new Error("UCI_IDENTITY_MISMATCH");
@@ -7490,7 +7506,7 @@ var RealLc0RelayClient = class {
     }).finally(() => {
       if (!this.closed && !this.intentionalDisconnect && this.controller === controller) {
         this.transportLost();
-        this.reconnectTimer = setTimeout(() => this.reconnect().catch((error) => log(`reconnect ${error.message}`)), 500);
+        this.reconnectTimer = setTimeout(() => this.reconnect().catch((error) => this.fail(error)), 500);
       }
     });
   }
@@ -7603,6 +7619,7 @@ var RealLc0RelayClient = class {
       await ack();
     } else if (command.type === "STOP") {
       if (!this.active || this.active.searchId !== command.searchId) throw new Error("STOP_SEARCH_MISMATCH");
+      const stopAt = performance.now();
       this.active.stopRequested = true;
       await ack();
       const active = this.active;
@@ -7611,6 +7628,7 @@ var RealLc0RelayClient = class {
         (value) => /^bestmove\s+\S+/.test(value),
         { start: active.startLine, timeout: 2200 }
       );
+      this.metrics.stopToLocalBestmoveMs.push(performance.now() - stopAt);
       const move = /^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/.exec(line)?.[1];
       const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(move || "");
       if (!parts || !active.chess.move({ from: parts[1], to: parts[2], promotion: parts[3] || "q" }))
@@ -7628,6 +7646,7 @@ var RealLc0RelayClient = class {
       await ack();
       const ended = await this.runtime.terminate("relay-quit");
       this.metrics.forced = ended.forcedTerminations;
+      this.metrics.cleanupLocalMs = ended.timings.terminateMs;
       if (ended.parentWorkers || ended.pthreadWorkers || !ended.cleanupAcknowledged || ended.forcedTerminations)
         throw new Error("CLEANUP_NOT_COOPERATIVE");
       clearInterval(this.heartbeatTimer);
@@ -7658,9 +7677,14 @@ var RealLc0RelayClient = class {
           this.metrics.sentInfo += 1;
           this.message("INFO", { searchId: active.searchId, ...parsed }).catch((error) => log(`info ${error.message}`));
         }
-      } else if (line.startsWith("bestmove ") && this.active) this.active.bestmove = line;
+      } else if (line.startsWith("bestmove ") && this.active) {
+        this.active.bestmove = line;
+        this.metrics.goToLocalBestmoveMs.push(performance.now() - this.active.startedAt);
+      }
     } else if (event.type === "worker-error" || event.type === "failure" || event.type === "force-terminated") {
       log(`${event.type}: ${event.message || ""}`);
+      if (!this.closed && this.identity && (event.type === "worker-error" || event.type === "failure"))
+        this.fail(new Error("ENGINE_RUNTIME_FAILURE"));
     }
   }
   transportLost() {
@@ -7697,6 +7721,8 @@ var RealLc0RelayClient = class {
     clearTimeout(this.reconnectTimer);
     this.controller?.abort();
     if (this.runtime) await this.runtime.terminate("relay-failure").catch(() => {
+    });
+    if (this.credential) await this.message("ERROR", { code: "ENGINE_RUNTIME_FAILURE" }).catch(() => {
     });
     $("#status").textContent = `FAILED ${error.message}`;
     log(`FAILED ${error.message}`);

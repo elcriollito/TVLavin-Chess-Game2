@@ -12,13 +12,16 @@ const ENGINE = 'https://eae012-engine-elcriollitos-projects.vercel.app';
 const CYCLES = Number(process.env.EAE012_CYCLES || 1);
 const SEARCH_MODE = process.env.EAE012_SEARCH_MODE || 'infinite';
 const RECONNECT = process.env.EAE012_RECONNECT || 'none';
+const SECURITY = process.env.EAE012_SECURITY === '1';
+const MAIN_RECONNECT = process.env.EAE012_MAIN_RECONNECT === '1';
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 20 ||
     !['infinite', 'nodes'].includes(SEARCH_MODE) ||
     !['none', 'idle', 'search'].includes(RECONNECT)) throw new Error('TEST_MODE_INVALID');
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const browser = await chromium.launch({ headless: true });
-let user = null, ownerToken = null, clerkSessionId = null, tokenIssuedAt = 0;
+let user = null, userB = null, ownerToken = null, clerkSessionId = null, tokenIssuedAt = 0;
 let sessionId = null, page = null, mainStream = null;
+let sessionBId = null, tokenB = null;
 const report = { start: Date.now(), timings: {} };
 const networkErrors = [];
 
@@ -47,6 +50,21 @@ async function api(action, { origin = MAIN, auth, body, session = sessionId } = 
   return { value, ms: performance.now() - started };
 }
 
+async function rawRequest(origin, action, { auth, body, session = sessionId,
+  requestOrigin = origin } = {}) {
+  const url = new URL('/api/eae011', origin);
+  url.searchParams.set('action', action);
+  if (session) url.searchParams.set('sessionId', session);
+  const response = await fetch(url, { method: body ? 'POST' : 'GET',
+    signal: AbortSignal.timeout(10_000),
+    headers: { Origin: requestOrigin, 'x-vercel-protection-bypass': process.env.EAE012_BYPASS,
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+      ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    ...(body ? { body: JSON.stringify(body) } : {}) });
+  return { status: response.status, cors: response.headers.get('access-control-allow-origin'),
+    value: await response.json().catch(() => ({})) };
+}
+
 async function phase(expected, timeoutMs = 20_000) {
   const began = performance.now();
   while (performance.now() - began < timeoutMs) {
@@ -57,8 +75,8 @@ async function phase(expected, timeoutMs = 20_000) {
   throw new Error(`PHASE_TIMEOUT_${expected}`);
 }
 
-function openMainStream() {
-  const stream = { cursor: 0, events: [], stopped: false, controller: null, errors: [] };
+function openMainStream(initialCursor = 0) {
+  const stream = { cursor: initialCursor, events: [], stopped: false, controller: null, errors: [] };
   stream.task = (async () => {
     while (!stream.stopped) {
       const controller = new AbortController(); stream.controller = controller;
@@ -90,7 +108,7 @@ function openMainStream() {
                 }).catch(error => stream.errors.push(error.message)), 1500);
               } else if (line && id) {
                 stream.cursor = Math.max(stream.cursor, Number(id.slice(4)));
-                stream.events.push(JSON.parse(line.slice(6)));
+                stream.events.push({ ...JSON.parse(line.slice(6)), receivedAt: Date.now() });
               }
             }
           }
@@ -153,9 +171,58 @@ try {
     const result = await api('command', { body: { type, seq: ++seq, ...extra } });
     report.timings[`${type.toLowerCase()}AcceptanceMs`] = result.ms;
   };
+  const readyAt = performance.now();
   await command('HELLO');
   const ready = await phase('READY');
+  report.timings.helloToReadyMs = performance.now() - readyAt;
   assert.equal(ready.identity.runtimeInstanceId, initial.identity.runtimeInstanceId);
+  if (MAIN_RECONNECT) {
+    const began = performance.now();
+    while (!mainStream.events.some(item => item.type === 'READY') && performance.now() - began < 5_000)
+      await new Promise(resolve => setTimeout(resolve, 100));
+    assert.ok(mainStream.events.some(item => item.type === 'READY'));
+    const savedCursor = mainStream.cursor;
+    await mainStream.close();
+    mainStream = openMainStream(savedCursor);
+    report.mainReconnect = { savedCursor, recovered: true,
+      identity: ready.identity.runtimeInstanceId };
+  }
+  if (SECURITY) {
+    userB = await clerk.users.createUser({
+      emailAddress: [`eae012-cross-user-${crypto.randomUUID()}@example.com`],
+      skipPasswordRequirement: true });
+    const clerkB = await clerk.sessions.createSession({ userId: userB.id });
+    tokenB = (await clerk.sessions.getToken(clerkB.id)).jwt;
+    const rejected = [];
+    for (const [action, body] of [['inspect', null], ['stream_main', null],
+      ...['POSITION', 'GO', 'STOP', 'QUIT'].map(type => ['command', { type, seq: 2 }]),
+      ['terminate', {}]]) {
+      const result = await rawRequest(MAIN, action, { auth: tokenB, body });
+      assert.equal(result.status, 404, `${action}: ${result.status}`);
+      rejected.push(action);
+    }
+    const other = await api('create', { auth: tokenB, session: null,
+      body: { competitionId: `cross-${Date.now()}`, participantRole: 'black' } });
+    sessionBId = other.value.sessionId;
+    const otherClaim = await api('claim', { origin: ENGINE, auth: null,
+      body: { sessionId: sessionBId, claimToken: other.value.claimToken }, session: null });
+    const wrongEngine = await rawRequest(ENGINE, 'engine_state', {
+      auth: otherClaim.value.engineCredential });
+    assert.equal(wrongEngine.status, 403);
+    const thirdOrigin = await rawRequest(MAIN, 'command', { auth: await freshOwnerToken(),
+      requestOrigin: 'https://third-origin.example', body: { type: 'POSITION', seq: 2 } });
+    assert.equal(thirdOrigin.status, 403);
+    const health = await rawRequest(MAIN, 'health');
+    assert.equal(health.status, 200);
+    assert.notEqual(health.cors, '*');
+    const isolatedAuth = await page.evaluate(() => Boolean(window.CAISSA_AUTH));
+    assert.equal(isolatedAuth, false);
+    await api('terminate', { auth: tokenB, body: {}, session: sessionBId });
+    sessionBId = null;
+    report.security = { rejected, wrongEngineStatus: wrongEngine.status,
+      thirdOriginStatus: thirdOrigin.status, apiWildcardCors: health.cors === '*',
+      isolatedAuth };
+  }
   if (RECONNECT === 'idle') {
     await page.evaluate(() => window.Eae012Engine.disconnect());
     await new Promise(resolve => setTimeout(resolve, 350));
@@ -165,17 +232,22 @@ try {
     report.reconnect = { mode: 'idle', sameRuntime: true };
   }
   const chess = new Chess(), searches = [];
+  report.timings.positionAckMs = []; report.timings.goAckMs = [];
   let searchId;
   for (let cycle = 0; cycle < CYCLES; cycle += 1) {
     if (chess.isGameOver()) chess.reset();
     const fen = cycle === 0 ? 'startpos' : chess.fen();
+    const positionAt = performance.now();
     await command('POSITION', { fen, moves: [] });
     await phase('POSITION_ACKED');
+    report.timings.positionAckMs.push(performance.now() - positionAt);
     searchId = `search_${crypto.randomUUID()}`;
     const rawBefore = await page.evaluate(() => window.Eae012Engine.metrics.rawInfo);
+    const goAt = performance.now();
     await command('GO', { searchId, mode: SEARCH_MODE,
       ...(SEARCH_MODE === 'nodes' ? { nodes: 1 } : {}) });
     await phase('SEARCHING');
+    report.timings.goAckMs.push(performance.now() - goAt);
     if (SEARCH_MODE === 'infinite')
       await page.waitForFunction(before => window.Eae012Engine.metrics.rawInfo > before,
         rawBefore, { timeout: 10_000 });
@@ -242,8 +314,14 @@ try {
     maxWorkers: engineState.snapshot.maxWorkers, metrics: engineState.metrics };
   report.pageErrors = pageErrors;
   report.mainStream = { events: mainStream.events.length, errors: mainStream.errors,
-    ready: mainStream.events.some(item => item.type === 'READY'),
+    ready: mainStream.events.some(item => item.type === 'READY') || Boolean(report.mainReconnect),
     bestmoves: mainStream.events.filter(item => item.type === 'BESTMOVE').length };
+  report.timings.infoPropagationMs = mainStream.events
+    .filter(item => item.type === 'INFO' && item.emittedAt)
+    .map(item => item.receivedAt - item.emittedAt);
+  report.timings.bestmovePropagationMs = mainStream.events
+    .filter(item => item.type === 'BESTMOVE' && item.emittedAt)
+    .map(item => item.receivedAt - item.emittedAt);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(mainStream.errors, []);
   assert.equal(report.mainStream.bestmoves, CYCLES,
@@ -262,6 +340,8 @@ try {
 } finally {
   if (mainStream) await mainStream.close();
   if (sessionId && ownerToken) await api('terminate', { body: {} }).catch(() => {});
+  if (sessionBId && tokenB) await api('terminate', { auth: tokenB, body: {}, session: sessionBId }).catch(() => {});
   await browser.close();
   if (user) await clerk.users.deleteUser(user.id);
+  if (userB) await clerk.users.deleteUser(userB.id);
 }

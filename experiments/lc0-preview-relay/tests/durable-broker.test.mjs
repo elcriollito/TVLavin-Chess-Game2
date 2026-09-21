@@ -310,6 +310,19 @@ test('acknowledged role cursors prune only delivered events across twenty search
     { code: 'STREAM_CURSOR_STALE' });
 });
 
+test('acknowledged STOP without a real BESTMOVE expires instead of hanging indefinitely', async () => {
+  const f = fixture(), session = await open(f);
+  await readySearch(f, session);
+  await command(f.first, session, 'STOP', { searchId: searchA });
+  await ack(f.second, session, 'STOP', searchA);
+  f.advance(5_001);
+  await assert.rejects(f.first.inspect(session.sessionId, userA),
+    { code: 'STOP_RESULT_TIMEOUT' });
+  await assert.rejects(f.second.heartbeat(session.sessionId, 'engine', session.engineCredential, 1),
+    { code: 'STOP_RESULT_TIMEOUT' });
+  assert.equal(await f.store.countLive(), 0);
+});
+
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {
   const claim = fixture();
   const unclaimed = await claim.first.create({ userId: userA, competitionId: 'expiry', participantRole: 'white' });

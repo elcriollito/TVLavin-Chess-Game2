@@ -3,6 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 export const LIMITS = Object.freeze({
   claimMs: 30_000, idleMs: 30_000, hardMs: 120_000, leaseMs: 5_000,
   streamHeartbeatMs: 3_000, ackMs: 2_500, maxEvents: 128,
+  stopResultMs: 5_000,
   maxCommandsPerSecond: 30, maxInfoPerSecond: 100, maxReconnectsPerMinute: 20,
   maxClaimAttempts: 8, maxCommandBytes: 2_048, maxInfoBytes: 1_024,
   maxPvBytes: 512, maxBestmoveBytes: 128, maxErrorBytes: 256
@@ -78,6 +79,7 @@ export class DurableBroker {
       lastEngineCommandClaimedSeq: 0,
       pending: null, activeSearchId: null, completedSearchId: null,
       bestmove: null, stopped: false, cleanup: false, reuseReadyFor: null,
+      stopResultUntil: null,
       identity: null, cleanupEvidence: null,
       seenSearchIds: [], events: [], nextEventId: 0, lastAck: null,
       mainAckCursor: 0, engineAckCursor: 0,
@@ -108,6 +110,8 @@ export class DurableBroker {
       return 'MAIN_LEASE_EXPIRED';
     if (state.pending && now >= state.pending.deadline && ['STOP', 'QUIT'].includes(state.pending.type))
       return `${state.pending.type}_TIMEOUT`;
+    if (state.stopResultUntil != null && now >= state.stopResultUntil)
+      return 'STOP_RESULT_TIMEOUT';
     return null;
   }
 
@@ -248,6 +252,7 @@ export class DurableBroker {
         const next = { HELLO: 'HELLO_ACKED', POSITION: 'POSITION_ACKED', GO: 'SEARCHING',
           STOP: 'STOP_ACKED', RESET: 'RESET_ACKED', QUIT: 'QUIT_ACKED' };
         state.phase = next[pending.type];
+        if (pending.type === 'STOP') state.stopResultUntil = now + LIMITS.stopResultMs;
         event(state, 'main', { type: 'ACK', command: pending.type,
           commandSeq: pending.seq, searchId: pending.searchId });
       } else if (type === 'READY') {
@@ -286,7 +291,7 @@ export class DurableBroker {
       } else if (type === 'STOPPED') {
         if (state.phase !== 'STOP_ACKED' || !state.bestmove || searchId !== state.activeSearchId)
           throw new RelayError('STOPPED_STATE_INVALID', 409);
-        state.stopped = true; state.phase = 'STOPPED';
+        state.stopped = true; state.phase = 'STOPPED'; state.stopResultUntil = null;
         event(state, 'main', { type: 'STOPPED', searchId });
       } else if (type === 'CLEANUP') {
         if (state.phase !== 'QUIT_ACKED' || !state.stopped)
