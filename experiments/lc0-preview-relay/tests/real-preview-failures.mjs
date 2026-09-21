@@ -135,6 +135,8 @@ try {
         assert.ok(['STOP_RESULT_TIMEOUT', 'SESSION_GONE'].includes(expired.value.error));
         const state = await snapshot();
         assert.equal(state.runtime.workers, 0);
+        assert.doesNotMatch(state.log || '', /--> (?:BESTMOVE|STOPPED)/,
+          'A timed-out STOP must not publish a fabricated terminal result');
         report.state = state.status; report.expired = expired.value.error;
         report.workers = state.runtime.workers; report.forced = state.runtime.forcedTerminations;
       } else {

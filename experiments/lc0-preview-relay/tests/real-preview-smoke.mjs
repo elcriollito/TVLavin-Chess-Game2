@@ -15,6 +15,7 @@ const RECONNECT = process.env.EAE012_RECONNECT || 'none';
 const SECURITY = process.env.EAE012_SECURITY === '1';
 const MAIN_RECONNECT = process.env.EAE012_MAIN_RECONNECT === '1';
 const MAIN_UI_RELOAD = process.env.EAE012_MAIN_UI_RELOAD === '1';
+const LATE_GENERATION = process.env.EAE012_LATE_GENERATION === '1';
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 20 ||
     !['infinite', 'nodes'].includes(SEARCH_MODE) ||
     !['none', 'idle', 'search'].includes(RECONNECT)) throw new Error('TEST_MODE_INVALID');
@@ -25,6 +26,7 @@ let sessionId = null, page = null, mainStream = null, uiPage = null;
 let sessionBId = null, tokenB = null;
 const report = { start: Date.now(), timings: {} };
 const networkErrors = [];
+const uiTraffic = [];
 
 async function freshOwnerToken() {
   if (!ownerToken || Date.now() - tokenIssuedAt > 30_000) {
@@ -178,9 +180,17 @@ try {
   report.timings.helloToReadyMs = performance.now() - readyAt;
   assert.equal(ready.identity.runtimeInstanceId, initial.identity.runtimeInstanceId);
   if (MAIN_UI_RELOAD) {
+    await mainStream.close(); mainStream = null;
     // The UI uses a real, short-lived Clerk session JWT. Only the interactive sign-in
     // widget is replaced, because this test owner was created through Clerk's Backend API.
     await context.exposeBinding('eae012TestOwnerToken', () => freshOwnerToken());
+    const mainCookie = await context.request.get(`${MAIN}/api/eae011?action=health`, {
+      headers: { 'x-vercel-protection-bypass': process.env.EAE012_BYPASS,
+        'x-vercel-set-bypass-cookie': 'true' } });
+    assert.equal(mainCookie.status(), 200);
+    await context.route(/^https:\/\/eae012-main-elcriollitos-projects\.vercel\.app\//,
+      route => route.continue({ headers: { ...route.request().headers(),
+        'x-vercel-protection-bypass': process.env.EAE012_BYPASS } }));
     await context.addInitScript(savedSession => {
       if (location.origin !== 'https://eae012-main-elcriollitos-projects.vercel.app') return;
       if (!sessionStorage.getItem('eae012-main-session'))
@@ -192,14 +202,21 @@ try {
         `whenReady:async()=>{},getToken:()=>window.eae012TestOwnerToken()};`
     }));
     uiPage = await context.newPage();
+    uiPage.on('response', response => { if (response.url().includes('/api/eae011'))
+      uiTraffic.push({ action: new URL(response.url()).searchParams.get('action'), status: response.status() }); });
+    uiPage.on('requestfailed', request => uiTraffic.push({ failed: request.url(), error: request.failure() }));
+    uiPage.on('pageerror', error => uiTraffic.push({ pageError: error.message }));
     const uiResponse = await uiPage.goto(`${MAIN}/experiments/lc0-preview-relay/main/index.html`,
       { waitUntil: 'domcontentloaded' });
     assert.equal(uiResponse.status(), 200);
     await uiPage.waitForFunction(() => window.Eae012Main?.identity?.runtimeInstanceId &&
+      window.Eae012Main.cursor > 0 &&
       document.querySelector('#identity')?.textContent.includes(window.Eae012Main.identity.runtimeInstanceId),
-    null, { timeout: 10_000 });
+    null, { timeout: 20_000 });
     const savedCursor = await uiPage.evaluate(() => window.Eae012Main.cursor);
     assert.ok(savedCursor > 0);
+    await uiPage.evaluate(() => window.Eae012Main.disconnect());
+    await new Promise(resolve => setTimeout(resolve, 500));
     await uiPage.reload({ waitUntil: 'domcontentloaded' });
     await uiPage.waitForFunction(expected => window.Eae012Main?.sessionId === expected.session &&
       window.Eae012Main?.cursor >= expected.cursor &&
@@ -281,6 +298,16 @@ try {
       ...(SEARCH_MODE === 'nodes' ? { nodes: 1 } : {}) });
     await phase('SEARCHING');
     report.timings.goAckMs.push(performance.now() - goAt);
+    if (LATE_GENERATION && cycle === 1) {
+      const stale = await page.evaluate(async oldSearchId => {
+        try { await window.Eae012Engine.message('BESTMOVE', {
+          searchId: oldSearchId, move: 'a2a3', emittedAt: Date.now() });
+          return 'UNEXPECTED_ACCEPTANCE';
+        } catch (error) { return error.message; }
+      }, searches[0].searchId);
+      assert.match(stale, /BESTMOVE_STATE_INVALID/);
+      report.staleGeneration = { rejected: stale, activeSearchId: searchId };
+    }
     if (SEARCH_MODE === 'infinite')
       await page.waitForFunction(before => window.Eae012Engine.metrics.rawInfo > before,
         rawBefore, { timeout: 10_000 });
@@ -340,13 +367,19 @@ try {
       window.Eae012Main.events.filter(item => item.type === 'BESTMOVE').length);
     report.mainUiReload.finalCursor = await uiPage.evaluate(() => window.Eae012Main.cursor);
     assert.ok(report.mainUiReload.finalCursor > report.mainUiReload.savedCursor);
+    report.mainStream = { events: await uiPage.evaluate(() => window.Eae012Main.events.length),
+      errors: uiTraffic.filter(item => item.status >= 400 || item.pageError),
+      ready: report.mainUiReload.verifiedIdentity,
+      bestmoves: report.mainUiReload.bestmovesAfterReload };
     await uiPage.close(); uiPage = null;
   }
-  const streamWait = performance.now();
-  while (mainStream.events.filter(item => item.type === 'BESTMOVE').length < CYCLES &&
-      performance.now() - streamWait < 5_000)
-    await new Promise(resolve => setTimeout(resolve, 100));
-  await mainStream.close();
+  if (mainStream) {
+    const streamWait = performance.now();
+    while (mainStream.events.filter(item => item.type === 'BESTMOVE').length < CYCLES &&
+        performance.now() - streamWait < 5_000)
+      await new Promise(resolve => setTimeout(resolve, 100));
+    await mainStream.close();
+  }
   await api('terminate', { body: {} }); sessionId = null;
   report.runtime = { name: initial.runtime.identity.name, author: initial.runtime.identity.author,
     networkSha256: initial.runtime.identity.networkSha256, runtimeInstanceId: initial.identity.runtimeInstanceId };
@@ -355,19 +388,23 @@ try {
   report.engine = { state: engineState.snapshot.state, workers: engineState.snapshot.workers,
     maxWorkers: engineState.snapshot.maxWorkers, metrics: engineState.metrics };
   report.pageErrors = pageErrors;
-  report.mainStream = { events: mainStream.events.length, errors: mainStream.errors,
-    ready: mainStream.events.some(item => item.type === 'READY') || Boolean(report.mainReconnect),
-    bestmoves: mainStream.events.filter(item => item.type === 'BESTMOVE').length };
-  report.timings.infoPropagationMs = mainStream.events
-    .filter(item => item.type === 'INFO' && item.emittedAt)
-    .map(item => item.receivedAt - item.emittedAt);
-  report.timings.bestmovePropagationMs = mainStream.events
-    .filter(item => item.type === 'BESTMOVE' && item.emittedAt)
-    .map(item => item.receivedAt - item.emittedAt);
-  assert.deepEqual(pageErrors, []);
-  assert.deepEqual(mainStream.errors, []);
+  if (mainStream) {
+    report.mainStream = { events: mainStream.events.length, errors: mainStream.errors,
+      ready: mainStream.events.some(item => item.type === 'READY') || Boolean(report.mainReconnect),
+      bestmoves: mainStream.events.filter(item => item.type === 'BESTMOVE').length };
+    report.timings.infoPropagationMs = mainStream.events
+      .filter(item => item.type === 'INFO' && item.emittedAt)
+      .map(item => item.receivedAt - item.emittedAt);
+    report.timings.bestmovePropagationMs = mainStream.events
+      .filter(item => item.type === 'BESTMOVE' && item.emittedAt)
+      .map(item => item.receivedAt - item.emittedAt);
+  }
+  const unexpectedPageErrors = LATE_GENERATION ? pageErrors.filter(message =>
+    message !== 'Failed to load resource: the server responded with a status of 409 ()') : pageErrors;
+  assert.deepEqual(unexpectedPageErrors, []);
+  assert.deepEqual(report.mainStream.errors, []);
   assert.equal(report.mainStream.bestmoves, CYCLES,
-    `Main SSE events: ${mainStream.events.map(item => item.type).join(',')}`);
+    `Main SSE evidence: ${JSON.stringify(report.mainStream)}`);
   console.log(`EAE012_REAL_PREVIEW_SMOKE ${JSON.stringify(report)}`);
 } catch (error) {
   const state = page && !page.isClosed() ? await page.evaluate(() => ({
@@ -377,7 +414,15 @@ try {
     lines: window.Eae012Engine?.runtime?.lines?.slice(-15),
     stderr: window.Eae012Engine?.runtime?.stderr?.slice(-15)
   })).catch(() => null) : null;
-  console.error(`EAE012_REAL_PREVIEW_FAILURE ${JSON.stringify({ error: error.message, state, networkErrors })}`);
+  const uiState = uiPage && !uiPage.isClosed() ? await uiPage.evaluate(() => ({
+    status: document.querySelector('#status')?.textContent,
+    auth: document.querySelector('#auth')?.textContent,
+    identity: document.querySelector('#identity')?.textContent,
+    log: document.querySelector('#log')?.textContent.slice(-1200),
+    hasClient: Boolean(window.Eae012Main),
+    cursor: window.Eae012Main?.cursor
+  })).catch(() => null) : null;
+  console.error(`EAE012_REAL_PREVIEW_FAILURE ${JSON.stringify({ error: error.message, state, uiState, uiTraffic, networkErrors })}`);
   throw error;
 } finally {
   if (mainStream) await mainStream.close();
