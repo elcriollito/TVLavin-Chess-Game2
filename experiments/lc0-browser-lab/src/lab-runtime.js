@@ -63,8 +63,10 @@ export class Lc0LabRuntime {
     this.nestedWorkers = 0;
     this.maxWorkers = 0;
     this.cleanupAcknowledged = false;
+    this.forcedTerminations = 0;
     this.generation = 0;
     this.abortController = null;
+    this.stopSignal = null;
     this.identity = null;
     this.environment = null;
     this.timings = {};
@@ -82,6 +84,7 @@ export class Lc0LabRuntime {
       pthreadWorkers: this.nestedWorkers,
       maxWorkers: this.maxWorkers,
       cleanupAcknowledged: this.cleanupAcknowledged,
+      forcedTerminations: this.forcedTerminations,
       lines: [...this.lines],
       stderr: [...this.stderr]
     });
@@ -130,6 +133,7 @@ export class Lc0LabRuntime {
 
     this.state = 'INITIALIZING';
     const initializationStarted = performance.now();
+    this.stopSignal = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
     const workerUrl = new URL('/lc0-worker.js', location.origin);
     workerUrl.searchParams.set('testMode', this.testMode);
     const worker = new Worker(workerUrl, { type: 'module', name: 'caissa-lc0-lab' });
@@ -137,7 +141,9 @@ export class Lc0LabRuntime {
     this.parentWorkers = 1;
     this.nestedWorkers = 0;
     this.updateWorkerPeak();
-    worker.addEventListener('message', event => this.handleMessage(event.data));
+    worker.addEventListener('message', event => {
+      if (this.worker === worker && this.state !== 'TERMINATED') this.handleMessage(event.data);
+    });
     worker.addEventListener('error', event => {
       event.preventDefault();
       if (this.worker !== worker || this.state === 'TERMINATED') return;
@@ -150,7 +156,7 @@ export class Lc0LabRuntime {
     try {
       await this.waitForMessage('ready-for-network', this.timeoutMs);
       this.assertGeneration(generation);
-      worker.postMessage({ type: 'initialize', network: networkBytes }, [networkBytes]);
+      worker.postMessage({ type: 'initialize', network: networkBytes, stopSignal: this.stopSignal.buffer }, [networkBytes]);
       await this.waitForMessage('runtime-started', this.timeoutMs);
       this.assertGeneration(generation);
       this.timings.runtimeLoadMs = performance.now() - initializationStarted;
@@ -253,16 +259,20 @@ export class Lc0LabRuntime {
     this.send('stop');
     const stoppedLine = await this.waitForLine(line => /^bestmove\s+\S+/.test(line), { start, timeout: this.timeoutMs });
     const stopLatencyMs = performance.now() - stopSentAt;
+    const stoppedBestmove = stoppedLine.split(/\s+/)[1];
+    applyUciMove(new Chess(), stoppedBestmove);
     this.state = 'READY';
     const readyStart = this.lines.length;
     this.send('isready');
     await this.waitForLine(line => line === 'readyok', { start: readyStart, timeout: this.timeoutMs });
     const restarted = await this.startPositionTest();
-    return { stoppedBestmove: stoppedLine.split(/\s+/)[1], stopLatencyMs, restarted };
+    return { stoppedBestmove, stopLatencyMs, restarted };
   }
 
   send(command) {
     if (!this.worker) throw new Error('Lc0 worker is not active.');
+    if (command.startsWith('go ')) Atomics.store(this.stopSignal, 0, 0);
+    if (command === 'stop' || command === 'quit') Atomics.store(this.stopSignal, 0, 1);
     this.worker.postMessage(String(command));
     this.emit('stdin', { line: String(command) });
   }
@@ -287,10 +297,15 @@ export class Lc0LabRuntime {
     }
     this.state = 'TERMINATING';
     const started = performance.now();
+    Atomics.store(this.stopSignal, 0, 1);
     worker.postMessage({ type: 'terminate', reason });
     try { await this.waitForMessage('terminated', 3_000); }
-    catch { this.cleanupAcknowledged = false; }
-    worker.terminate();
+    catch {
+      this.cleanupAcknowledged = false;
+      worker.terminate();
+      this.forcedTerminations += 1;
+      this.emit('force-terminated', { reason: 'cooperative-timeout' });
+    }
     this.worker = null;
     this.parentWorkers = 0;
     if (this.cleanupAcknowledged) this.nestedWorkers = 0;
@@ -303,6 +318,7 @@ export class Lc0LabRuntime {
 
   forceTerminate(reason) {
     this.worker?.terminate();
+    this.forcedTerminations += 1;
     this.worker = null;
     this.parentWorkers = 0;
     this.nestedWorkers = 0;
@@ -337,12 +353,16 @@ export class Lc0LabRuntime {
       if (data.type === 'stdout') this.resolveLineWaiters(line);
       return;
     }
+    if (data.type === 'uci-trace') {
+      this.emit('uci-trace', { stage: data.stage, command: data.command, workerAt: data.at });
+      return;
+    }
     if (data.type === 'worker-count') {
       this.nestedWorkers = Number(data.pthreads || 0);
       this.updateWorkerPeak();
     }
     if (data.type === 'terminated') {
-      this.cleanupAcknowledged = data.pthreads === 0;
+      this.cleanupAcknowledged = data.pthreads === 0 && data.nativeExit === true;
       this.nestedWorkers = Number(data.pthreads || 0);
     }
     if (data.type === 'failure') {

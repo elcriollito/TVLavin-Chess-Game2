@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
@@ -16,6 +17,12 @@ test('lab pins source, CPU-only backend, toolchain, and network integrity', asyn
   assert.equal(manifest.toolchain.emscripten, '3.1.64');
   assert.equal(manifest.network.sha256, 'e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4');
   assert.equal(manifest.network.bytes, 1313193);
+  assert.equal(manifest.runtime.exitRuntime, true);
+  for (const [fileKey, hashKey] of [['patch', 'patchSha256'],
+    ['exitPatch', 'exitPatchSha256'], ['tracePatch', 'tracePatchSha256']]) {
+    const bytes = await readFile(path.join(lab, manifest.source[fileKey]));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), manifest.source[hashKey]);
+  }
   assert.deepEqual(Object.keys(manifest.artifacts).sort(), [
     'lc0.js',
     'lc0.wasm',

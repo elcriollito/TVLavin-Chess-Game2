@@ -25,3 +25,4 @@
 /scanner/recognition/production-inference/*.json text eol=lf
 /assets/vendor/stockfish/19.0.0/Copying.txt -text
 /assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js -text
+/experiments/lc0-browser-lab/patches/*.patch text eol=lf

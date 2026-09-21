@@ -24,6 +24,13 @@ if ($LASTEXITCODE) { throw 'Lc0 source fetch failed.' }
 & git -C $sourceRoot checkout --detach $sourceCommit
 if ($LASTEXITCODE) { throw 'Lc0 source checkout failed.' }
 if (& git -C $sourceRoot status --porcelain) { throw 'Lc0 source checkout is dirty; use a clean work root.' }
+$patch = Join-Path $labRoot 'patches\0001-browser-stop-signal.patch'
+& git -C $sourceRoot apply --check $patch
+if ($LASTEXITCODE) { throw 'Pinned Lc0 stop patch does not apply cleanly.' }
+$exitPatch = Join-Path $labRoot 'patches\0002-cooperative-exit.patch'
+& git -C $sourceRoot apply --check $exitPatch
+if ($LASTEXITCODE) { throw 'Pinned Lc0 exit patch does not apply cleanly.' }
+$tracePatch = Join-Path $labRoot 'patches\0003-opt-in-native-uci-trace.patch'
 
 if ($ProvisionToolchain -and !(Test-Path -LiteralPath (Join-Path $emsdkRoot '.git'))) {
   & git clone --depth 1 https://github.com/emscripten-core/emsdk.git $emsdkRoot
@@ -74,6 +81,7 @@ cpp_link_args = [
   '-sMODULARIZE', '-sEXPORT_ES6',
   '-sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=`$stringToNewUTF8',
   '-sALLOW_MEMORY_GROWTH',
+  '-sEXIT_RUNTIME=1',
   '-sWASM_BIGINT',
   '-sENVIRONMENT=web,worker,node',
   '-sEXPORTED_RUNTIME_METHODS=["FS"]'
@@ -88,6 +96,14 @@ if (Test-Path -LiteralPath (Join-Path $buildRoot 'build.ninja')) { $setupArgs +=
 $setupArgs += @($buildRoot, $sourceRoot)
 & $meson @setupArgs
 if ($LASTEXITCODE) { throw 'Meson setup failed.' }
+& git -C $sourceRoot apply $patch
+if ($LASTEXITCODE) { throw 'Pinned Lc0 stop patch failed.' }
+& git -C $sourceRoot apply $exitPatch
+if ($LASTEXITCODE) { throw 'Pinned Lc0 exit patch failed.' }
+& git -C $sourceRoot apply --check $tracePatch
+if ($LASTEXITCODE) { throw 'Pinned Lc0 trace patch does not apply cleanly.' }
+& git -C $sourceRoot apply $tracePatch
+if ($LASTEXITCODE) { throw 'Pinned Lc0 trace patch failed.' }
 & $meson compile -C $buildRoot lc0
 if ($LASTEXITCODE) { throw 'Lc0 browser build failed.' }
 

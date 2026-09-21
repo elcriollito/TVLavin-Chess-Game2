@@ -33,9 +33,11 @@ elements.stopRestart.addEventListener('click', () => action(async () => { log(JS
 elements.terminate.addEventListener('click', () => action(async () => { log(JSON.stringify(await runtime.terminate())); setControls(false); renderRuntime(); }));
 
 function createRuntime(options = {}) {
+  const observer = options.onEvent;
   return new Lc0LabRuntime({
     ...options,
     onEvent: event => {
+      observer?.(event);
       if (event.type === 'stdout' || event.type === 'stderr') log(`${event.type === 'stderr' ? '!' : '>'} ${event.line}`);
       renderRuntime();
     }

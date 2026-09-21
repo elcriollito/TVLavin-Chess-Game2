@@ -9,6 +9,10 @@ ortEnv.wasm.proxy = false;
 ortEnv.wasm.wasmPaths = '/artifacts/ort/';
 
 const testMode = new URL(import.meta.url).searchParams.get('testMode') || 'normal';
+const traceUci = testMode === 'trace-uci';
+function trace(stage, command) {
+  if (traceUci) postMessage({ type: 'uci-trace', stage, command, at: performance.now() });
+}
 const NativeWorker = globalThis.Worker;
 const pthreads = new Set();
 globalThis.Worker = class TrackedPthreadWorker extends NativeWorker {
@@ -28,13 +32,18 @@ let gotLine;
 const lines = [];
 let module;
 let networkBytes;
+let stopSignal;
 let terminating = false;
 let initialized = false;
+let runtimeLaunching = false;
+let resolveRuntimeExit;
+const runtimeExit = new Promise(resolve => { resolveRuntimeExit = resolve; });
 let nextId = 0;
 const values = new Map();
 
 addEventListener('message', ({ data }) => {
   if (typeof data === 'string') {
+    trace('worker-receive', data);
     if (testMode === 'uci-timeout' && data === 'uci') return;
     if (testMode === 'ready-timeout' && data === 'isready') return;
     deliverLine(data);
@@ -45,6 +54,7 @@ addEventListener('message', ({ data }) => {
     if (initialized) return;
     initialized = true;
     networkBytes = new Uint8Array(data.network);
+    stopSignal = new Int32Array(data.stopSignal);
     startRuntime().catch(error => fail(error));
   } else if (data.type === 'terminate') {
     cleanup(data.reason || 'requested').catch(error => fail(error));
@@ -58,7 +68,22 @@ addEventListener('error', event => {
 });
 
 Object.assign(globalThis, {
-  lc0web_get_line: () => lines.length ? lines.shift() : new Promise(resolve => { gotLine = resolve; }),
+  lc0web_trace_native: (stage, command) => trace(stage, command),
+  lc0web_take_stop: () => {
+    const requested = stopSignal && Atomics.exchange(stopSignal, 0, 0) === 1;
+    if (requested) trace('search-stop-requested', 'stop');
+    return requested;
+  },
+  lc0web_get_line: () => {
+    if (lines.length) {
+      const line = lines.shift();
+      trace('uci-dequeue', line);
+      return line;
+    }
+    return new Promise(resolve => {
+      gotLine = line => { trace('uci-dequeue', line); resolve(line); };
+    });
+  },
   lc0web_is_cpu: () => true,
   lc0web_computation: sessionId => {
     const id = nextId++;
@@ -106,9 +131,12 @@ async function startRuntime() {
   if (testMode === 'runtime-failure') throw new Error('Injected runtime initialization failure');
   const runtimeUrl = '/artifacts/runtime/lc0.js';
   const { default: Module } = await import(runtimeUrl);
+  if (terminating) return;
   const bytes = networkBytes;
   networkBytes = undefined;
+  runtimeLaunching = true;
   Module({
+    onExit: code => { trace('runtime-exit', String(code)); resolveRuntimeExit(code); },
     preRun: current => {
       module = current;
       const file = module.FS.open('net.pb.gz', 'w');
@@ -136,14 +164,19 @@ function deliverLine(line) {
 async function cleanup(reason) {
   if (terminating) return;
   terminating = true;
-  lines.unshift('quit');
-  deliverLine('stop');
-  await new Promise(resolve => setTimeout(resolve, 120));
+  trace('cleanup-request', reason);
+  if (!runtimeLaunching) {
+    networkBytes = undefined;
+    postMessage({ type: 'terminated', reason, pthreads: pthreads.size, nativeExit: true, neverStarted: true });
+    close();
+    return;
+  }
+  deliverLine('quit');
+  await runtimeExit;
   const sessions = new Set([...values.values()].filter(value => value && typeof value.release === 'function'));
   for (const session of sessions) await session.release().catch(() => {});
   values.clear();
-  for (const worker of [...pthreads]) worker.terminate();
-  postMessage({ type: 'terminated', reason, pthreads: pthreads.size });
+  postMessage({ type: 'terminated', reason, pthreads: pthreads.size, nativeExit: true });
   close();
 }
 

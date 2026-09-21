@@ -5,6 +5,12 @@
     "repository": "https://github.com/jalpp/lc0.js.git",
     "upstreamPullRequest": "https://github.com/LeelaChessZero/lc0/pull/2432",
     "commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+    "patch": "patches/0001-browser-stop-signal.patch",
+    "patchSha256": "89db61927a6e4709460ef8eabcdcd0b053d7f39793a333d4e21bc0595d5eb015",
+    "exitPatch": "patches/0002-cooperative-exit.patch",
+    "exitPatchSha256": "0d47b067fd237e4730233b2511de84b79d2d878628e86b3c104bb0f39554c9f4",
+    "tracePatch": "patches/0003-opt-in-native-uci-trace.patch",
+    "tracePatchSha256": "1a370fb23195d097c0ff3c12d0c1a004e5a6ab3ac952475334cc9cb06bd6f75d",
     "lc0ReportedVersion": "v0.33.0-dev+git.482bb4a",
     "license": "GPL-3.0-or-later"
   },
@@ -26,7 +32,8 @@
     "pthreads": true,
     "asyncifyStackBytes": 65536,
     "stackBytes": 1048576,
-    "allowMemoryGrowth": true
+    "allowMemoryGrowth": true,
+    "exitRuntime": true
   },
   "network": {
     "id": "CSSLab Maia 1100 v1.0",
@@ -41,12 +48,12 @@
   },
   "artifacts": {
     "lc0.js": {
-      "bytes": 254746,
-      "sha256": "b07dc929d686d0d3b2485038367857df63cf6d8dfb25c2fc53972c3fa2c70c6b"
+      "bytes": 255351,
+      "sha256": "c2b1786ff568d0d5042588b5b9bbf7a78623e47930ad4358803f2a37e3ca66a9"
     },
     "lc0.wasm": {
-      "bytes": 9369488,
-      "sha256": "9c8bc3da3b5100d93c5d1a7d357d6a5520971785126684c5a0d3ad337b3b7485"
+      "bytes": 9399301,
+      "sha256": "5c3cc8c72b5794092790ab2c7615a7a7e9757e1c899fa2a4cc1ca158547a07f0"
     },
     "lc0.worker.mjs": {
       "bytes": 299,
