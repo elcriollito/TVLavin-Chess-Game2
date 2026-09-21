@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EAE-010 Isolated Dummy Engine Client</title>
+  <style>body{font:16px system-ui;max-width:800px;margin:3rem auto;padding:0 1rem}button{margin:.3rem;padding:.6rem}pre{white-space:pre-wrap;word-break:break-word;background:#eee;padding:1rem;min-height:8rem}</style>
+  <script type="module" src="/engine.js"></script>
+</head>
+<body>
+  <h1>EAE-010 isolated-origin dummy client</h1>
+  <p>This page simulates engine messages. It loads no Lc0, ORT, WASM, Maia, or pthread worker.</p>
+  <p id="environment"></p>
+  <button id="disconnect" disabled>Disconnect stream</button>
+  <button id="reconnect" disabled>Reconnect within lease</button>
+  <p id="status">Waiting for one-time claim.</p>
+  <pre id="log" aria-live="polite"></pre>
+</body>
+</html>

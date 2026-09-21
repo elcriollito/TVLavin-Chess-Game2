@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EAE-010 Main-Origin Relay Client</title>
+  <style>body{font:16px system-ui;max-width:800px;margin:3rem auto;padding:0 1rem}button{margin:.3rem;padding:.6rem}pre{white-space:pre-wrap;word-break:break-word;background:#eee;padding:1rem;min-height:8rem}</style>
+  <script type="module" src="/main.js"></script>
+</head>
+<body>
+  <h1>EAE-010 main-origin dummy client</h1>
+  <p>No chess engine, Lc0, ORT, Maia, or Arena provider is loaded here; only the local dummy relay is contacted.</p>
+  <p id="environment"></p>
+  <button id="create">Create ephemeral session</button>
+  <button id="open" disabled>Open isolated client</button>
+  <button id="sequence" disabled>Run dummy Tournament sequence</button>
+  <p id="session"></p>
+  <pre id="log" aria-live="polite"></pre>
+</body>
+</html>
