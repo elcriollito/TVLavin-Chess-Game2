@@ -209,6 +209,7 @@ for (const pairing of [
 test('three-participant Tournament rotates the bye, runs Stockfish 18, and records canonical draws', async ({ page }) => {
   await openArena(page, { width: 1920, height: 1080 });
   await page.getByRole('tab', { name: 'Tournament' }).click();
+  await page.locator('#arenaTournamentEngines input[value="stockfish-19-lite"]').uncheck();
   await expect(page.locator('#arenaTournamentEngines input:checked')).toHaveCount(3);
   await expect(page.locator('#arenaTournamentStandings tbody tr')).toHaveCount(3);
   const geometry = [await boardGeometry(page)];

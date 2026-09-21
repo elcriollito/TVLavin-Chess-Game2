@@ -71,6 +71,13 @@ function completeSf18Handshake(worker, suffix = '') {
     worker.emit('readyok');
 }
 
+function completeSf19Handshake(worker, suffix = '') {
+    worker.emit(`id name Stockfish 19 Lite WASM${suffix}`);
+    worker.emit(`id author the Stockfish developers (see AUTHORS file)${suffix}`);
+    worker.emit('uciok');
+    worker.emit('readyok');
+}
+
 test('one Arena provider registry owns Match and Tournament availability metadata', () => {
     const { registry } = fixture();
     const providers = registry.listArenaProviders();
@@ -78,7 +85,7 @@ test('one Arena provider registry owns Match and Tournament availability metadat
     const unavailable = providers.filter(provider => !registry.isArenaProviderAvailable(provider.id));
 
     assert.deepEqual(Array.from(available, provider => provider.id), [
-        'stockfish', 'stockfish-lite', 'stockfish-18-lite'
+        'stockfish', 'stockfish-lite', 'stockfish-18-lite', 'stockfish-19-lite'
     ]);
     assert.deepEqual(Array.from(unavailable, provider => provider.id), [
         'fairy-stockfish', 'arasan', 'rodent3', 'texel'
@@ -107,10 +114,133 @@ test('one Arena provider registry owns Match and Tournament availability metadat
         mobileCompatible: true,
         requiresCrossOriginIsolation: false
     });
+    const sf19 = registry.getArenaProvider('stockfish-19-lite');
+    assert.equal(providers.filter(provider => provider.id === sf19.id).length, 1);
+    assert.equal(sf19.displayName, 'Stockfish 19 Lite');
+    assert.equal(sf19.family, 'Stockfish');
+    assert.equal(sf19.version, '19.0.0');
+    assert.equal(sf19.runtimeId, 'stockfish-19-lite-single-runtime');
+    assert.equal(sf19.runtimeType, 'wasm');
+    assert.equal(sf19.workerPath, '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js');
+    assert.equal(sf19.wasmPath, '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.wasm');
+    assert.deepEqual({ ...sf19.defaultOptions }, { MultiPV: 1, Hash: 16, Threads: 1 });
+    assert.deepEqual({ ...sf19.capabilities }, {
+        supportsThreads: false,
+        supportsNNUE: true,
+        supportsMultiPV: true,
+        supportsSyzygy: false,
+        browserCompatible: true,
+        mobileCompatible: true,
+        requiresCrossOriginIsolation: false
+    });
+    assert.equal(registry.get('stockfish-19-lite'), null,
+        'Arena registration must not broaden the unrelated legacy engine catalog');
     assert.equal(registry.get('stockfish-18-lite'), null,
         'Arena registration must not broaden the unrelated legacy engine catalog');
     assert.match(arenaSource, /EngineRegistry\.listArenaProviders\(\)/);
     assert.doesNotMatch(arenaSource, /Applying fallback list|const ArenaEngineRegistry|new StockfishEngine/);
+});
+
+test('matching Stockfish 19 identity reaches READY with bounded Lite configuration', async () => {
+    const { registry, workers } = fixture();
+    const engine = registry.createArenaEngine('stockfish-19-lite', { autoStart: false });
+    const started = engine.start();
+    completeSf19Handshake(workers[0], ' official');
+    await started;
+
+    assert.deepEqual(Array.from(workers[0].messages), [
+        'uci',
+        'setoption name MultiPV value 1',
+        'setoption name MultiPV value 1',
+        'setoption name Hash value 16',
+        'setoption name Threads value 1',
+        'isready'
+    ]);
+    const identity = engine.getRuntimeIdentity();
+    assert.equal(identity.providerId, 'stockfish-19-lite');
+    assert.equal(identity.requestedEngineId, 'stockfish-19-lite');
+    assert.equal(identity.reportedUciName, 'Stockfish 19 Lite WASM official');
+    assert.equal(identity.reportedAuthor,
+        'the Stockfish developers (see AUTHORS file) official');
+    assert.equal(identity.workerAsset,
+        '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js');
+    assert.equal(identity.identityValidated, true);
+    assert.equal(identity.status, 'ready');
+});
+
+test('Stockfish 19 can own two independent competitor workers', async () => {
+    const { registry, workers } = fixture();
+    const white = registry.createArenaEngine('stockfish-19-lite', { autoStart: false });
+    const black = registry.createArenaEngine('stockfish-19-lite', { autoStart: false });
+    const starts = [white.start(), black.start()];
+    completeSf19Handshake(workers[0]);
+    completeSf19Handshake(workers[1]);
+    await Promise.all(starts);
+
+    assert.equal(workers.length, 2);
+    assert.notEqual(workers[0], workers[1]);
+    assert.notEqual(white.getRuntimeIdentity().runtimeInstanceId,
+        black.getRuntimeIdentity().runtimeInstanceId);
+});
+
+test('Stockfish generation providers reject cross-version and legacy identities', async () => {
+    const cases = [
+        ['stockfish-19-lite', completeSf18Handshake],
+        ['stockfish-19-lite', completeLegacyHandshake],
+        ['stockfish-18-lite', completeSf19Handshake],
+        ['stockfish', completeSf19Handshake]
+    ];
+    for (const [providerId, handshake] of cases) {
+        const { registry, workers } = fixture();
+        const engine = registry.createArenaEngine(providerId, { autoStart: false });
+        const started = engine.start();
+        handshake(workers[0]);
+        await assert.rejects(started, error => error.code === 'ENGINE_IDENTITY_MISMATCH');
+        assert.equal(workers[0].terminated, true);
+        assert.equal(engine.getRuntimeIdentity().status, 'failed');
+    }
+});
+
+test('Stockfish 19 startup failures fail closed without affecting certified providers', async () => {
+    for (const missing of ['uciok', 'readyok']) {
+        const f = fixture();
+        const engine = f.registry.createArenaEngine('stockfish-19-lite', { autoStart: false });
+        const started = engine.start();
+        if (missing === 'readyok') {
+            f.workers[0].emit('id name Stockfish 19 Lite WASM');
+            f.workers[0].emit('id author the Stockfish developers (see AUTHORS file)');
+            f.workers[0].emit('uciok');
+        }
+        f.expireTimers();
+        await assert.rejects(started, error => error.code === 'ENGINE_HANDSHAKE_TIMEOUT');
+        assert.equal(f.workers[0].terminated, true);
+        assert.equal(f.registry.isArenaProviderAvailable('stockfish-19-lite'), false);
+        assert.equal(f.registry.isArenaProviderAvailable('stockfish-18-lite'), true);
+        assert.equal(f.registry.isArenaProviderAvailable('stockfish'), true);
+    }
+
+    const failed = fixture({ workerConstructionFails: true });
+    const engine = failed.registry.createArenaEngine('stockfish-19-lite', { autoStart: false });
+    await assert.rejects(engine.start(), error => error.code === 'ENGINE_CONSTRUCTION_FAILED');
+    assert.equal(failed.workers.length, 0);
+    assert.equal(failed.registry.isArenaProviderAvailable('stockfish-19-lite'), false);
+    assert.equal(failed.registry.isArenaProviderAvailable('stockfish-18-lite'), true);
+});
+
+test('Stockfish 19 worker crash clears READY and remains isolated', async () => {
+    const { registry, workers } = fixture();
+    const engine = registry.createArenaEngine('stockfish-19-lite', { autoStart: false });
+    const started = engine.start();
+    completeSf19Handshake(workers[0]);
+    await started;
+    workers[0].onerror();
+
+    assert.equal(engine.getRuntimeIdentity().status, 'failed');
+    assert.equal(engine.isReady(), false);
+    assert.equal(workers[0].terminated, true);
+    assert.equal(registry.isArenaProviderAvailable('stockfish-19-lite'), false);
+    assert.equal(registry.isArenaProviderAvailable('stockfish-18-lite'), true);
+    assert.equal(registry.isArenaProviderAvailable('stockfish'), true);
 });
 
 test('matching Stockfish 18 identity reaches READY with bounded Lite configuration', async () => {
