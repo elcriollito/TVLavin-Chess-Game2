@@ -423,12 +423,24 @@ test('tournament draw adjudication confirms, records, finishes, and continues no
   await expect.poll(async () => page.evaluate(() => ({
     state: window.CaissaArena.state.matchState,
     pendingResults: window.CaissaArena.state.tournament.games.filter(game => game.result === null).length,
-    sameWorkers: window.__drawWorkers.every((worker, index) => worker === [
-      window.CaissaArena.whiteEngineInstance,
-      window.CaissaArena.blackEngineInstance,
-      window.CaissaArena.evaluatorEngine
-    ][index])
-  })), { timeout: 15_000 }).toEqual({ state: 'running', pendingResults: 1, sameWorkers: true });
+    nextPairingIncludesStockfish18: [
+      window.CaissaArena.state.currentGame?.white?.id,
+      window.CaissaArena.state.currentGame?.black?.id
+    ].includes('stockfish-18-lite'),
+    participantIdentitiesMatch: ['white', 'black'].every(color => {
+      const participant = window.CaissaArena.state.currentGame?.[color];
+      const runtime = window.CaissaArena.state.currentGame?.runtimeIdentities?.[color];
+      return participant?.id === runtime?.providerId
+        && participant?.id === runtime?.requestedEngineId
+        && runtime?.identityValidated === true
+        && runtime?.status === 'ready';
+    })
+  })), { timeout: 15_000 }).toEqual({
+    state: 'running',
+    pendingResults: 1,
+    nextPairingIncludesStockfish18: true,
+    participantIdentitiesMatch: true
+  });
   await expect(draw).toBeVisible();
   await page.locator('#arenaStopMatch').click();
 

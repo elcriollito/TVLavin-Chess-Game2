@@ -2590,8 +2590,16 @@ const CaissaArena = {
             return [];
         }
 
-        // Sort by points for Swiss pairing
+        // Sort by points for Swiss pairing. With an odd field, rotate the bye by
+        // seeded participant so every registered provider can actually compete.
         const sorted = [...standings].sort((a, b) => b.points - a.points);
+        if (sorted.length % 2 === 1) {
+            const byeIndex = (engines.length - 1 - (currentRound % engines.length) + engines.length)
+                % engines.length;
+            const byeProviderId = engines[byeIndex]?.id;
+            const sortedByeIndex = sorted.findIndex(standing => standing.engine.id === byeProviderId);
+            if (sortedByeIndex >= 0) sorted.splice(sortedByeIndex, 1);
+        }
 
         const pairings = [];
         const paired = new Set();

@@ -202,6 +202,7 @@
     const ARENA_PROVIDER_IDS = Object.freeze([
         'stockfish',
         'stockfish-lite',
+        'stockfish-18-lite',
         'fairy-stockfish',
         'arasan',
         'rodent3',
@@ -232,8 +233,8 @@
         });
     }
 
-    // Analyze-only providers are intentionally excluded from list()/getEnabled().
-    // Arena and legacy consumers therefore retain their existing engine route.
+    // The Analyze provider remains excluded from the generic legacy list()/getEnabled()
+    // catalog. Arena registers a truthful competition profile from these same assets.
     const ANALYZE_ENGINES = {
         'stockfish-18-lite': {
             id: 'stockfish-18-lite',
@@ -255,6 +256,54 @@
             notes: 'Analyze V2 isolated single-threaded WASM/NNUE provider'
         }
     };
+
+    const STOCKFISH_18_ARENA_PROVIDER = Object.freeze({
+        id: 'stockfish-18-lite',
+        providerId: 'stockfish-18-lite',
+        displayName: 'Stockfish 18 Lite',
+        name: 'Stockfish 18 Lite',
+        family: 'Stockfish',
+        version: ANALYZE_ENGINES['stockfish-18-lite'].version,
+        author: ANALYZE_ENGINES['stockfish-18-lite'].author,
+        license: ANALYZE_ENGINES['stockfish-18-lite'].license,
+        protocol: 'uci',
+        runtimeType: 'wasm',
+        execution: ANALYZE_ENGINES['stockfish-18-lite'].execution,
+        runtimeId: 'stockfish-18-lite-single-runtime',
+        profile: Object.freeze({ id: 'lite-single', displayName: 'Lite single-thread', defaultDepth: 20 }),
+        workerPath: ANALYZE_ENGINES['stockfish-18-lite'].workerPath,
+        wasmPath: ANALYZE_ENGINES['stockfish-18-lite'].wasmPath,
+        defaultOptions: Object.freeze({ MultiPV: 1, Hash: 16, Threads: 1 }),
+        defaultDepth: ANALYZE_ENGINES['stockfish-18-lite'].defaultDepth,
+        supportsChess960: false,
+        capabilities: Object.freeze({
+            supportsThreads: false,
+            supportsNNUE: true,
+            supportsMultiPV: true,
+            supportsSyzygy: false,
+            browserCompatible: true,
+            mobileCompatible: true,
+            requiresCrossOriginIsolation: false
+        }),
+        availability: 'available',
+        unavailableReason: null,
+        runtimeIdentityExpectation: Object.freeze({
+            family: 'Stockfish',
+            namePattern: '^Stockfish\\s+18\\s+Lite\\s+WASM(?:\\s.*)?$',
+            authorPattern: '^the Stockfish developers \\(see AUTHORS file\\)(?:\\s.*)?$',
+            requireName: true,
+            requireAuthor: true
+        }),
+        enabled: true,
+        notes: 'Existing CAISSA Stockfish 18 Lite single-threaded WASM/NNUE runtime'
+    });
+
+    const ARENA_PROVIDERS = Object.freeze({
+        ...Object.fromEntries(ARENA_PROVIDER_IDS
+            .filter(id => id !== STOCKFISH_18_ARENA_PROVIDER.id)
+            .map(id => [id, ENGINES[id]])),
+        [STOCKFISH_18_ARENA_PROVIDER.id]: STOCKFISH_18_ARENA_PROVIDER
+    });
 
     const ENGINE_ROLES = Object.freeze({
         GAME: 'game',
@@ -408,10 +457,10 @@
 
     function markArenaProviderUnavailable(id, reason = 'Engine startup failed for this session') {
         if (!ARENA_PROVIDER_IDS.includes(id)) return false;
-        const provider = ENGINES[id];
+        const provider = ARENA_PROVIDERS[id];
         if (!provider || provider.availability !== 'available') return false;
         const affectedProviderIds = ARENA_PROVIDER_IDS.filter(providerId => {
-            const candidate = ENGINES[providerId];
+            const candidate = ARENA_PROVIDERS[providerId];
             return candidate?.availability === 'available'
                 && candidate.runtimeId === provider.runtimeId;
         });
@@ -443,17 +492,17 @@
             return createConfiguredEngine(this.get(id), options);
         },
         listArenaProviders() {
-            return ARENA_PROVIDER_IDS.map(id => arenaProviderSnapshot(ENGINES[id]));
+            return ARENA_PROVIDER_IDS.map(id => arenaProviderSnapshot(ARENA_PROVIDERS[id]));
         },
         getArenaProvider(id) {
             if (!ARENA_PROVIDER_IDS.includes(id)) return null;
-            return arenaProviderSnapshot(ENGINES[id]);
+            return arenaProviderSnapshot(ARENA_PROVIDERS[id]);
         },
         getArenaProviderAvailability(id) {
             if (!ARENA_PROVIDER_IDS.includes(id)) {
                 return Object.freeze({ available: false, reason: 'Unknown engine provider' });
             }
-            return arenaAvailability(ENGINES[id]);
+            return arenaAvailability(ARENA_PROVIDERS[id]);
         },
         isArenaProviderAvailable(id) {
             return this.getArenaProviderAvailability(id).available;

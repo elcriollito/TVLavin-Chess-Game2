@@ -180,7 +180,7 @@
   },
   "normalizedSourceGuards": {
     "engine/stockfish-working.js": { "sha256": "723fda70117bfa8d5053a7bc4ae50cdc96dc9e3fd41b57627e4dfa0a0025957a", "bytes": 1579948 },
-    "js/engine-registry.js": { "sha256": "42dbc88aff4a3fc13121063633da316bd65ed97dd5e416758903ed00f9739413", "bytes": 20536 },
+    "js/engine-registry.js": { "sha256": "84fb2f96888a92c94460bbcd0acd901c2205bc2b5368003216bf0acec7e7fb3b", "bytes": 22739 },
     "js/engine-adapter.js": { "sha256": "50ca6511602a3396c755abac065f542e98e1a972935a7ed7941c4acf44d784e7", "bytes": 38557 },
     "app.js": { "sha256": "2dedc165ab5078322023247a2ff1fec4d090eff5eeb08ff8fcb830ff10b1de44", "bytes": 303006 },
     "js/play/opponent-strength.js": { "sha256": "abe4fbc16e6c8b2c91bb035d6e1f60abb6105f43bdbc53ae07e97c18b66c5b70", "bytes": 5675 },
