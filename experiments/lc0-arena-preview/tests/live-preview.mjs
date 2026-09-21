@@ -1,6 +1,7 @@
 // Opt-in real EAE-013 Arena browser exercise. No credentials are stored here.
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { createClerkClient } from '@clerk/backend';
 
 if (process.env.EAE013_LIVE_PREVIEW !== '1' || !process.env.EAE013_BYPASS ||
@@ -41,6 +42,10 @@ try {
   session = await clerk.sessions.createSession({ userId: user.id });
   context = await browser.newContext({ viewport: { width: 1440, height: 900 },
     acceptDownloads: false });
+  await context.addInitScript(() => {
+    if (location.origin === 'https://eae013-main-elcriollitos-projects.vercel.app')
+      localStorage.setItem('caissa_onboarding_completed', 'true');
+  });
   await context.exposeBinding('eae013TestOwnerToken', token);
   for (const origin of [MAIN, ENGINE]) {
     const seed = await context.request.get(`${origin}/api/eae011?action=health`, {
@@ -66,6 +71,12 @@ try {
     document.getElementById('arenaSection')?.classList.contains('active') &&
     window.EngineRegistry?.getArenaProvider('lc0-maia-1100-preview')?.enabled === true,
     null, { timeout: 20_000 });
+  if (await page.locator('#onboardingSkip').isVisible()) await page.click('#onboardingSkip');
+  const axe = await new AxeBuilder({ page }).include('#arenaSection')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  report.axeSeriousOrCritical = axe.violations.filter(item =>
+    ['serious', 'critical'].includes(item.impact)).map(item => item.id);
+  assert.deepEqual(report.axeSeriousOrCritical, []);
   for (let i = 0; i < CYCLES; i++) {
     const began = performance.now();
     const color = i % 2 === 0 ? 'white' : 'black';
