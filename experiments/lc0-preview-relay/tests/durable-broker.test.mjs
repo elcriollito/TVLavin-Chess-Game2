@@ -58,6 +58,33 @@ async function stop(f, session, searchId = searchA) {
   await message(f.first, session, 'STOPPED', { searchId });
 }
 
+test('preview Arena can cooperatively quit a READY session before any search', async () => {
+  const f = fixture(), session = await open(f);
+  await command(f.first, session, 'HELLO');
+  await ack(f.second, session, 'HELLO');
+  await message(f.second, session, 'READY', { identity });
+  await command(f.first, session, 'QUIT');
+  await ack(f.second, session, 'QUIT');
+  await message(f.second, session, 'CLEANUP', { evidence: cleanupEvidence });
+  const state = (await f.first.inspect(session.sessionId, userA)).state;
+  assert.equal(state.phase, 'CLEANED');
+  assert.equal(state.cleanup, true);
+  await f.first.terminate(session.sessionId, userA);
+  assert.equal(await f.store.get(session.sessionId), null);
+});
+
+test('preview Arena RESET newGame preserves acknowledged reuse gate', async () => {
+  const f = fixture(), session = await open(f);
+  await readySearch(f, session);
+  await stop(f, session);
+  await command(f.first, session, 'RESET', { searchId: searchA, newGame: true });
+  await ack(f.second, session, 'RESET', searchA);
+  await message(f.second, session, 'READY', { identity });
+  assert.equal((await f.first.advance(session.sessionId, userA, 'reuse', searchA)).advanceAllowed, true);
+  const state = (await f.first.inspect(session.sessionId, userA)).state;
+  assert.equal(state.phase, 'REUSE_READY');
+});
+
 test('cross-instance claim is one-use and stores only token verifiers', async () => {
   const f = fixture();
   const created = await f.first.create({ userId: userA, competitionId: 'one', participantRole: 'black' });

@@ -577,7 +577,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/academy') {
     filePath = './index.html';
   }
-  if (['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight',
+  if (['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/arena-preview', '/cheater-insight',
     '/history', '/dos-chess'].includes(pathname)) {
     filePath = './index.html';
   }

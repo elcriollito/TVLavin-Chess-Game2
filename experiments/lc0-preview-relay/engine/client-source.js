@@ -245,7 +245,9 @@ class RealLc0RelayClient {
       this.runtime.state = 'READY'; this.active = null;
     } else if (command.type === 'RESET') {
       if (this.active || this.runtime.state !== 'READY') throw new Error('RESET_STATE_INVALID');
-      await ack(); await this.runtime.uciTest();
+      await ack();
+      if (command.newGame === true) this.runtime.send('ucinewgame');
+      await this.runtime.uciTest();
       await this.message('READY', { identity: this.identity });
     } else if (command.type === 'QUIT') {
       await ack();

@@ -84,6 +84,7 @@
     { "source": "/analyze", "destination": "/index.html" },
     { "source": "/spectator-tv", "destination": "/index.html" },
     { "source": "/arena", "destination": "/index.html" },
+    { "source": "/arena-preview", "destination": "/index.html" },
     { "source": "/cheater-insight", "destination": "/index.html" },
     { "source": "/game-library", "destination": "/game-library.html" },
     { "source": "/history", "destination": "/index.html" },

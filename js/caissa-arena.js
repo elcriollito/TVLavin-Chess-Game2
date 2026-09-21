@@ -1228,8 +1228,17 @@ const CaissaArena = {
             alert('Select both engines before starting a match.');
             return;
         }
+        const lc0 = 'lc0-maia-1100-preview';
+        if (this.state.whiteEngine.id === lc0 && this.state.blackEngine.id === lc0) {
+            this.updateGameStatus({ result: 'Choose one Lc0 participant and one other engine.' });
+            return;
+        }
+        if ([this.state.whiteEngine, this.state.blackEngine].some(engine =>
+            engine.id === lc0 && !window.CaissaArenaPreview?.enabled)) return;
 
         this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
+        if (window.CaissaArenaPreview?.enabled)
+            window.CaissaArenaPreview.matchStartAt = performance.now();
         const startToken = ++this.state.startToken;
         const startIsCurrent = () => startToken === this.state.startToken;
         const cancelStaleStart = () => {
@@ -1238,6 +1247,10 @@ const CaissaArena = {
         };
 
         window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, true, { label: 'Starting...' });
+        if (this._cleanupPromise) {
+            try { await this._cleanupPromise; }
+            catch (error) { this.handleError(error.message); return cancelStaleStart(); }
+        }
         this.stopInfiniteAnalysis(false);
         console.log('[Arena] Starting match:', this.state.whiteEngine.name, 'vs', this.state.blackEngine.name);
 
@@ -1280,10 +1293,12 @@ const CaissaArena = {
         this.resetBoard();
         this.cancelActiveSearch('match restart');
         this.state.loopRunning = false;
-        this.runtimeManager.newGame('white');
-        this.runtimeManager.newGame('black');
-        this.runtimeManager.newGame('evaluator');
         try {
+            await Promise.all([
+                this.runtimeManager.newGame('white'),
+                this.runtimeManager.newGame('black'),
+                this.runtimeManager.newGame('evaluator')
+            ]);
             await Promise.all([
                 this.waitForEngineReadyOk(this.whiteEngineInstance, 'white'),
                 this.waitForEngineReadyOk(this.blackEngineInstance, 'black'),
@@ -1347,14 +1362,20 @@ const CaissaArena = {
         }, 50); // Small delay to ensure UI is updated
     },
 
-    togglePause() {
+    async togglePause() {
+        if (this._pausePending) return;
         if (this.state.matchState === 'running') {
             // Pause the match
             this.state.matchState = 'paused';
             this.state.loopActive = false;
             this.cancelActiveSearch('match paused');
             this.state.loopRunning = false;
-            this.runtimeManager.stopAll();
+            try {
+                this._pausePending = Promise.resolve(this.runtimeManager.stopAll());
+                await this._pausePending;
+            }
+            catch (error) { this.handleError(error.message); return; }
+            finally { this._pausePending = null; }
             console.log('[Arena] Match paused');
             window.dispatchEvent(new CustomEvent('caissa-arena-pause'));
         } else if (this.state.matchState === 'paused') {
@@ -1391,7 +1412,11 @@ const CaissaArena = {
 
         // A stopped Match owns no live competition runtimes. A later start will
         // recreate the selected providers through the shared registry.
-        this.destroyEngines();
+        this._cleanupPromise = Promise.resolve(this.destroyEngines()).catch(error => {
+            this.updateGameStatus({ result: `Lc0 cleanup unverified: ${error.message}` });
+            throw error;
+        });
+        this._cleanupPromise.catch(() => {});
 
         window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
         // Stop can race a Tournament transition that temporarily marked the
@@ -1749,10 +1774,11 @@ const CaissaArena = {
      * Destroy engine instances to free resources
      */
     destroyEngines() {
-        this.runtimeManager?.terminateAll('arena-destroyed');
+        const cleanup = this.runtimeManager?.terminateAll('arena-destroyed');
         this.enginesReady = false;
         this.evaluatorReady = false;
         console.log('[Arena] All engines destroyed');
+        return cleanup;
     },
 
     getBookMove() {
@@ -2032,7 +2058,8 @@ const CaissaArena = {
                 if (this.state.cancelPendingSearch === cancelSearch) {
                     this.state.cancelPendingSearch = null;
                 }
-                if (runtimeRole) this.runtimeManager?.markIdle(runtimeRole, engine);
+                if (runtimeRole && (!engine.asyncLifecycle || (!engine.active && engine.lastPhase === 'STOPPED')))
+                    this.runtimeManager?.markIdle(runtimeRole, engine);
                 callback();
             };
             const cancelSearch = (reason) => {
@@ -2246,7 +2273,7 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('game over');
         this.state.loopRunning = false;
-        this.runtimeManager.stopAll();
+        Promise.resolve(this.runtimeManager.stopAll()).catch(error => this.handleError(error.message));
 
         let result = '';
         let resultCode = '1/2-1/2';
@@ -2292,7 +2319,7 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('tournament draw adjudicated');
         this.state.loopRunning = false;
-        this.runtimeManager.stopAll();
+        Promise.resolve(this.runtimeManager.stopAll()).catch(error => this.handleError(error.message));
 
         if (this.state.currentGame) {
             this.state.currentGame.result = '1/2-1/2';
@@ -2328,7 +2355,10 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('arena error');
         this.state.loopRunning = false;
-        this.runtimeManager?.terminateAll('arena-error');
+        this._cleanupPromise = Promise.resolve(this.runtimeManager?.terminateAll('arena-error'));
+        this._cleanupPromise.catch(error => {
+            this.updateGameStatus({ result: `Lc0 cleanup unverified: ${error.message}` });
+        });
         this.enginesReady = false;
         this.evaluatorReady = false;
         this.updateMatchControls();
@@ -2900,10 +2930,14 @@ const CaissaArena = {
 };
 
 // Initialize on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => CaissaArena.init());
-} else {
+const initializeArena = async () => {
+    if (location.pathname === '/arena-preview') await window.CaissaArenaPreview?.prepare?.();
     CaissaArena.init();
+};
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeArena);
+} else {
+    initializeArena();
 }
 
 // Register with navigation system
