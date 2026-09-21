@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 async function openArena(page) {
   await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
@@ -80,6 +81,8 @@ test('Match and Tournament expose the same runnable engines and execute the sele
 
   expect(tournamentAvailability.filter(engine => !engine.disabled).map(engine => engine.id))
     .toEqual(matchAvailability.filter(engine => !engine.disabled).map(engine => engine.id));
+  expect(tournamentAvailability.filter(engine => engine.disabled).map(engine => engine.id))
+    .toEqual(matchAvailability.filter(engine => engine.disabled).map(engine => engine.id));
   expect(tournamentAvailability.filter(engine => engine.checked).every(engine => !engine.disabled)).toBe(true);
   expect(matchAvailability.find(engine => engine.id === 'arasan')).toMatchObject({ disabled: true });
   expect(matchAvailability.find(engine => engine.id === 'arasan').label).toContain('WASM build needed');
@@ -87,6 +90,10 @@ test('Match and Tournament expose the same runnable engines and execute the sele
   expect(matchAvailability.find(engine => engine.id === 'fairy-stockfish').label).toContain('cross-origin-isolated');
   await expect(page.locator('#arenaTournamentEngines input[value="arasan"]')).toBeDisabled();
   await expect(page.locator('#arenaTournamentEngines input[value="arasan"] + .engine-name')).toHaveText('Arasan');
+  const arasanReason = await page.evaluate(() => window.EngineRegistry.getArenaProvider('arasan').unavailableReason);
+  expect(matchAvailability.find(engine => engine.id === 'arasan').label).toContain(arasanReason);
+  await expect(page.locator('#arenaTournamentEngines input[value="arasan"]')
+    .locator('xpath=..').locator('.engine-availability')).toHaveText(arasanReason);
 
   await page.getByRole('tab', { name: 'Match' }).click();
   await page.locator('#arenaWhiteEngine').selectOption('stockfish-lite');
@@ -103,15 +110,88 @@ test('Match and Tournament expose the same runnable engines and execute the sele
     whiteSelection: window.CaissaArena.state.currentGame.white.id,
     blackSelection: window.CaissaArena.state.currentGame.black.id,
     whiteWorker: window.CaissaArena.whiteEngineInstance.id,
-    blackWorker: window.CaissaArena.blackEngineInstance.id
+    blackWorker: window.CaissaArena.blackEngineInstance.id,
+    whiteRuntime: window.CaissaArena.whiteEngineInstance.getRuntimeIdentity(),
+    blackRuntime: window.CaissaArena.blackEngineInstance.getRuntimeIdentity(),
+    recordedRuntimes: window.CaissaArena.state.currentGame.runtimeIdentities,
+    visibleWhite: document.getElementById('arenaStatusWhite').textContent,
+    visibleBlack: document.getElementById('arenaStatusBlack').textContent
   }))).toEqual({
     whiteSelection: 'stockfish-lite',
     blackSelection: 'stockfish',
     whiteWorker: 'stockfish-lite',
-    blackWorker: 'stockfish'
+    blackWorker: 'stockfish',
+    whiteRuntime: expect.objectContaining({
+      providerId: 'stockfish-lite', requestedEngineId: 'stockfish-lite',
+      reportedUciName: 'Stockfish 2019-08-15 Multi-Variant', identityValidated: true, status: 'ready'
+    }),
+    blackRuntime: expect.objectContaining({
+      providerId: 'stockfish', requestedEngineId: 'stockfish',
+      reportedUciName: 'Stockfish 2019-08-15 Multi-Variant', identityValidated: true, status: 'ready'
+    }),
+    recordedRuntimes: expect.objectContaining({
+      white: expect.objectContaining({ providerId: 'stockfish-lite', identityValidated: true }),
+      black: expect.objectContaining({ providerId: 'stockfish', identityValidated: true })
+    }),
+    visibleWhite: 'Stockfish 2019 MV (Lite profile)',
+    visibleBlack: 'Stockfish 2019 MV'
   });
   await page.getByRole('tab', { name: 'Game' }).click();
   await page.locator('#arenaStopMatch').click();
+});
+
+test('Arena has no serious accessibility violations, page exceptions, or console errors', async ({ page }) => {
+  const pageErrors = [];
+  const consoleErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push({ text: message.text(), url: message.location().url });
+  });
+  await openArena(page);
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.enginesReady), { timeout: 15_000 }).toBe(true);
+  const audit = await new AxeBuilder({ page }).include('#arenaSection').analyze();
+  const serious = audit.violations.filter(violation => ['serious', 'critical'].includes(violation.impact));
+  expect(serious).toEqual([]);
+  expect(pageErrors).toEqual([]);
+  expect(consoleErrors).toEqual([]);
+});
+
+test('unavailable Arasan cannot borrow a prewarmed Stockfish runtime or label', async ({ page }) => {
+  await openArena(page);
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.enginesReady), { timeout: 15_000 }).toBe(true);
+
+  const result = await page.evaluate(() => {
+    const arena = window.CaissaArena;
+    const before = arena.inspectEngineDiagnostics();
+    const previousSelection = arena.state.whiteEngine.id;
+    const previousWorker = arena.whiteEngineInstance;
+    arena.selectEngine('white', 'arasan');
+    const forbiddenRuntime = window.EngineRegistry.createArenaEngine('arasan');
+    const after = arena.inspectEngineDiagnostics();
+    return {
+      previousSelection,
+      selectedAfterRequest: arena.state.whiteEngine.id,
+      sameWorker: previousWorker === arena.whiteEngineInstance,
+      forbiddenRuntimeCreated: forbiddenRuntime !== null,
+      workerProvider: after.runtimes.white.providerId,
+      workerUciName: after.runtimes.white.reportedUciName,
+      visibleLabel: document.getElementById('arenaStatusWhite').textContent,
+      arasanAvailable: after.availability.arasan.available,
+      runtimeInstanceStable: before.runtimes.white.runtimeInstanceId === after.runtimes.white.runtimeInstanceId
+    };
+  });
+
+  expect(result).toEqual({
+    previousSelection: 'stockfish',
+    selectedAfterRequest: 'stockfish',
+    sameWorker: true,
+    forbiddenRuntimeCreated: false,
+    workerProvider: 'stockfish',
+    workerUciName: 'Stockfish 2019-08-15 Multi-Variant',
+    visibleLabel: 'Stockfish 2019 MV',
+    arasanAvailable: false,
+    runtimeInstanceStable: true
+  });
 });
 
 test('Arena tabs support arrow navigation', async ({ page }) => {
@@ -218,6 +298,8 @@ test('active tournament continues across tabs without worker recreation', async 
       window.CaissaArena.blackEngineInstance,
       window.CaissaArena.evaluatorEngine
     ];
+    window.__arenaTournamentRuntimeIds = window.__arenaTournamentWorkers
+      .map(worker => worker.getRuntimeIdentity().runtimeInstanceId);
   });
   await page.locator('#arenaStartTournament').click();
   await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.mode)).toBe('tournament');
@@ -238,11 +320,26 @@ test('active tournament continues across tabs without worker recreation', async 
       window.CaissaArena.blackEngineInstance,
       window.CaissaArena.evaluatorEngine
     ][index]),
+    sameRuntimeIds: window.__arenaTournamentRuntimeIds.every((id, index) => id === [
+      window.CaissaArena.whiteEngineInstance,
+      window.CaissaArena.blackEngineInstance,
+      window.CaissaArena.evaluatorEngine
+    ][index].getRuntimeIdentity().runtimeInstanceId),
+    participantIdentityMatches: ['white', 'black'].every(color => {
+      const participant = window.CaissaArena.state.currentGame[color];
+      const runtime = window.CaissaArena.state.currentGame.runtimeIdentities[color];
+      return runtime.providerId === participant.id
+        && runtime.requestedEngineId === participant.id
+        && runtime.identityValidated === true
+        && runtime.status === 'ready';
+    }),
     standingsCount: window.CaissaArena.state.tournament.standings.length
   }));
   expect(continuity.mode).toBe('tournament');
   expect(continuity.matchState).toBe('running');
   expect(continuity.sameWorkers).toBe(true);
+  expect(continuity.sameRuntimeIds).toBe(true);
+  expect(continuity.participantIdentityMatches).toBe(true);
   expect(continuity.standingsCount).toBeGreaterThanOrEqual(2);
   expect(Math.abs(await page.locator('#arenaBoardMount').evaluate(element => element.getBoundingClientRect().width) - boardWidth)).toBeLessThanOrEqual(1);
 
