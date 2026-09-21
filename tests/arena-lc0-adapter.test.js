@@ -70,3 +70,32 @@ test('Lc0 STOP validates legal BESTMOVE then QUIT waits for cooperative cleanup'
   assert.equal(instance.metrics.cleanupEvidence.forcedTerminations, 0);
   assert.equal(instance.closed, true);
 });
+
+test('illegal relay BESTMOVE fails closed before the Arena callback', async () => {
+  const { instance, identity } = fixture();
+  instance.dispatch({ type: 'READY', identity });
+  const moves = [];
+  instance.active = { searchId: 'search_bad', gameId: instance.gameId,
+    fen: new Chess().fen(), callback: move => moves.push(move), started: true };
+  instance.command = async type => {
+    assert.equal(type, 'STOP');
+    instance.dispatch({ type: 'BESTMOVE', searchId: 'search_bad', move: 'e2e5' });
+    instance.dispatch({ type: 'STOPPED', searchId: 'search_bad' });
+  };
+  await assert.rejects(instance.stop(), /LC0_BESTMOVE_ILLEGAL/);
+  assert.deepEqual(moves, []);
+});
+
+test('reconnect ignores a not-yet-GO search but rejects a changed active generation', () => {
+  const { instance, identity } = fixture();
+  instance.dispatch({ type: 'READY', identity });
+  instance.active = { searchId: 'search_new', started: false };
+  instance.reconcile({ identity, activeSearchId: 'search_previous' });
+  assert.equal(instance.active.transportUncertain, undefined);
+  instance.active.started = true;
+  assert.throws(() => instance.reconcile({ identity, activeSearchId: 'search_previous' }),
+    /LC0_RECONNECT_SEARCH_MISMATCH/);
+  instance.stop = () => Promise.resolve(true);
+  instance.reconcile({ identity, activeSearchId: 'search_new' });
+  assert.equal(instance.active.transportUncertain, true);
+});

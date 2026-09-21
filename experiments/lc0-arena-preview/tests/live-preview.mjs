@@ -29,9 +29,11 @@ const inspectSession = async sessionId => {
   const url = new URL('/api/eae011', MAIN);
   url.searchParams.set('action', 'inspect');
   url.searchParams.set('sessionId', sessionId);
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${await token()}`,
-    Origin: MAIN, 'x-vercel-protection-bypass': process.env.EAE013_BYPASS } });
-  return response.status;
+  const response = await context.request.get(url.toString(), {
+    headers: { Authorization: `Bearer ${await token()}`,
+      Origin: MAIN, 'x-vercel-protection-bypass': process.env.EAE013_BYPASS }
+  });
+  return response.status();
 };
 
 try {

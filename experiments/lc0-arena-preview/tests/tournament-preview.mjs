@@ -116,6 +116,8 @@ try {
     console.log(`EAE013_TOURNAMENT_GAME ${JSON.stringify({ index: index + 1,
       pairing: game.pairing, moves: game.moves.length, result: draw.last })}`);
   }
+  await page.waitForFunction(() => CaissaArena.state.tournament.currentRound === 5,
+    null, { timeout: 10_000 });
   const final = await page.evaluate(() => ({
     round: CaissaArena.state.tournament.currentRound,
     results: CaissaArena.state.tournament.games.map(g => g.result),

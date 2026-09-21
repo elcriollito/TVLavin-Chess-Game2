@@ -149,6 +149,22 @@
             }
         }
 
+        reconcile(state) {
+            if (!checkIdentity(state.identity) ||
+                state.identity.runtimeInstanceId !== this.identity?.runtimeInstanceId)
+                throw new Error('LC0_RECONNECT_IDENTITY_INVALID');
+            // An operation exists before RESET/POSITION/GO. The broker may
+            // still own the prior search then; only a GO-acknowledged search
+            // has an active generation to reconcile.
+            if (!this.active?.started) return;
+            if (state.activeSearchId !== this.active.searchId)
+                throw new Error('LC0_RECONNECT_SEARCH_MISMATCH');
+            this.active.transportUncertain = true;
+            // The EAE-012 engine client stops locally on transport loss.
+            // Never send GO again; resolve or safely abort this same search.
+            this.stop().catch(error => this.fail(error));
+        }
+
         async consumeStream() {
             while (!this.closed && !this.terminating) {
                 const controller = new AbortController();
@@ -194,17 +210,7 @@
                 if (this.closed || this.terminating) break;
                 try {
                     const inspected = await this.api('inspect');
-                    if (!checkIdentity(inspected.state.identity) ||
-                        inspected.state.identity.runtimeInstanceId !== this.identity?.runtimeInstanceId)
-                        throw new Error('LC0_RECONNECT_IDENTITY_INVALID');
-                    if (this.active) {
-                        if (inspected.state.activeSearchId !== this.active.searchId)
-                            throw new Error('LC0_RECONNECT_SEARCH_MISMATCH');
-                        this.active.transportUncertain = true;
-                        // The EAE-012 engine client stops locally on transport loss.
-                        // Only the same search ID may be reconciled; never resend GO.
-                        this.stop().catch(error => this.fail(error));
-                    }
+                    this.reconcile(inspected.state);
                 } catch (error) { this.fail(error); break; }
                 await pause(250);
             }
