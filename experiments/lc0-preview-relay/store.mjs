@@ -45,8 +45,10 @@ export class MemoryStore {
 function dbError(error) {
   if (error) {
     // Code/status only: never emit SQL values, headers, keys or relay credentials.
-    console.error('EAE011_STORE_ERROR', String(error.code || 'NO_CODE'),
-      Number(error.status || 0));
+    const safeMessage = String(error.message || '').slice(0, 160)
+      .replace(/[A-Za-z0-9._-]{40,}/g, '[redacted]');
+    console.error('EAE011_STORE_ERROR', String(error.name || 'NO_NAME'),
+      String(error.code || 'NO_CODE'), Number(error.status || 0), safeMessage);
     throw new RelayError('STORE_UNAVAILABLE', 503);
   }
 }
