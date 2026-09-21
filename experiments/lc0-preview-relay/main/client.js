@@ -85,7 +85,7 @@ class MainPreviewClient {
 
   openIsolated() {
     if (!this.claimToken) throw new Error('CLAIM_NOT_AVAILABLE');
-    const url = new URL('/experiments/lc0-preview-relay/engine/', this.config.engineOrigin);
+    const url = new URL('/experiments/lc0-preview-relay/engine/index.html', this.config.engineOrigin);
     url.hash = new URLSearchParams({ sessionId: this.sessionId,
       claimToken: this.claimToken, mainOrigin: location.origin }).toString();
     window.open(url, '_blank', 'noopener');
