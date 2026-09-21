@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DurableBroker, internals } from '../durable-broker.mjs';
+import { DurableBroker, LC0_IDENTITY, internals } from '../durable-broker.mjs';
 import { MemoryStore } from '../store.mjs';
 
 const userA = 'user_AAAAAAAAAAAA';
 const userB = 'user_BBBBBBBBBBBB';
 const searchA = 'search_AAAAAAAA';
 const searchB = 'search_BBBBBBBB';
+const identity = { ...LC0_IDENTITY, runtimeInstanceId: '12345678-1234-4234-8234-123456789abc' };
+const cleanupEvidence = { parentWorkers: 0, pthreadWorkers: 0,
+  runtimeState: 'TERMINATED', cleanupAcknowledged: true, forcedTerminations: 0 };
 
 function fixture() {
   let time = Date.now();
@@ -41,10 +44,10 @@ async function ack(broker, session, commandType, searchId = null) {
 async function readySearch(f, session, searchId = searchA) {
   await command(f.first, session, 'HELLO');
   await ack(f.second, session, 'HELLO');
-  await message(f.second, session, 'READY');
+  await message(f.second, session, 'READY', { identity });
   await command(f.second, session, 'POSITION', { fen: 'startpos' });
   await ack(f.first, session, 'POSITION');
-  await command(f.first, session, 'GO', { searchId });
+  await command(f.first, session, 'GO', { searchId, mode: 'nodes', nodes: 1 });
   await ack(f.second, session, 'GO', searchId);
 }
 
@@ -94,7 +97,7 @@ test('ordered ACK gate, INFO coalescing and release cleanup survive broker recon
   await assert.rejects(f.first.command(session.sessionId, userA, { type: 'GO', seq: 3, searchId: searchA }),
     { code: 'SEQUENCE_INVALID' });
   for (let depth = 1; depth <= 30; depth++) await message(f.first, session, 'INFO',
-    { searchId: searchA, depth, pv: 'e2e4', score: depth });
+    { searchId: searchA, depth, nodes: depth, pv: 'e2e4', score: depth });
   const state = (await f.store.get(session.sessionId)).state;
   assert.equal(state.events.filter(item => item.value.type === 'INFO').length, 1);
   assert.equal(state.events.find(item => item.value.type === 'INFO').value.depth, 30);
@@ -106,7 +109,7 @@ test('ordered ACK gate, INFO coalescing and release cleanup survive broker recon
   await ack(f.second, session, 'QUIT');
   await assert.rejects(restarted.advance(session.sessionId, userA, 'release', searchA),
     { code: 'ADVANCE_GATE_CLOSED' });
-  await message(f.second, session, 'CLEANUP');
+  await message(f.second, session, 'CLEANUP', { evidence: cleanupEvidence });
   assert.deepEqual(await restarted.advance(session.sessionId, userA, 'release', searchA),
     { advanceAllowed: true, mode: 'release', searchId: searchA });
   await assert.rejects(message(f.second, session, 'BESTMOVE', { searchId: searchA, move: 'd2d4' }),
@@ -123,11 +126,11 @@ test('reused participant requires reset READY and rejects late BESTMOVE from pri
   await ack(f.second, session, 'RESET', searchA);
   await assert.rejects(f.first.advance(session.sessionId, userA, 'reuse', searchA),
     { code: 'ADVANCE_GATE_CLOSED' });
-  await message(f.second, session, 'READY');
+  await message(f.second, session, 'READY', { identity });
   assert.equal((await f.first.advance(session.sessionId, userA, 'reuse', searchA)).advanceAllowed, true);
   await command(f.first, session, 'POSITION', { fen: 'startpos' });
   await ack(f.second, session, 'POSITION');
-  await command(f.first, session, 'GO', { searchId: searchB });
+  await command(f.first, session, 'GO', { searchId: searchB, mode: 'nodes', nodes: 1 });
   await ack(f.second, session, 'GO', searchB);
   await assert.rejects(f.first.engineMessage(session.sessionId, session.engineCredential,
     { type: 'BESTMOVE', seq: session.engineSeq + 1, searchId: searchA, move: 'd2d4' }),
@@ -229,6 +232,46 @@ test('unknown fields, oversized payloads and replayed engine sequences are rejec
   await assert.rejects(f.second.engineMessage(session.sessionId, session.engineCredential,
     { type: 'ACK', seq: 1, command: 'HELLO', commandSeq: 1 }),
   { code: 'ENGINE_SEQUENCE_INVALID' });
+});
+
+test('READY refuses generic or mismatched Lc0 identity and binds the runtime instance', async () => {
+  const f = fixture(), session = await open(f);
+  await command(f.first, session, 'HELLO'); await ack(f.second, session, 'HELLO');
+  await assert.rejects(message(f.second, session, 'READY'), { code: 'SCHEMA_INVALID' });
+  session.engineSeq -= 1;
+  await assert.rejects(message(f.second, session, 'READY', {
+    identity: { ...identity, networkSha256: '0'.repeat(64) }
+  }), { code: 'ENGINE_IDENTITY_INVALID' });
+  session.engineSeq -= 1;
+  await message(f.second, session, 'READY', { identity });
+  assert.deepEqual((await f.first.inspect(session.sessionId, userA)).state.identity, identity);
+  await command(f.first, session, 'POSITION', { fen: 'startpos', moves: ['e2e4'] });
+  await ack(f.second, session, 'POSITION');
+  await command(f.first, session, 'GO', { searchId: searchA, mode: 'infinite' });
+  await ack(f.second, session, 'GO', searchA);
+  await stop(f, session);
+  await command(f.first, session, 'RESET', { searchId: searchA });
+  await ack(f.second, session, 'RESET', searchA);
+  await assert.rejects(message(f.second, session, 'READY', {
+    identity: { ...identity, runtimeInstanceId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }
+  }), { code: 'ENGINE_IDENTITY_CHANGED' });
+});
+
+test('normalized command bounds and cooperative cleanup evidence fail closed', async () => {
+  const f = fixture(), session = await open(f);
+  await readySearch(f, session);
+  await assert.rejects(f.first.command(session.sessionId, userA,
+    { type: 'STOP', seq: session.commandSeq + 1, searchId: searchA, rawUci: 'quit' }),
+  { code: 'SCHEMA_INVALID' });
+  await stop(f, session);
+  await command(f.first, session, 'QUIT'); await ack(f.second, session, 'QUIT');
+  await assert.rejects(message(f.second, session, 'CLEANUP', { evidence: {
+    ...cleanupEvidence, pthreadWorkers: 1
+  } }), { code: 'CLEANUP_EVIDENCE_INVALID' });
+  session.engineSeq -= 1;
+  await message(f.second, session, 'CLEANUP', { evidence: cleanupEvidence });
+  assert.deepEqual((await f.first.inspect(session.sessionId, userA)).state.cleanupEvidence,
+    cleanupEvidence);
 });
 
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {

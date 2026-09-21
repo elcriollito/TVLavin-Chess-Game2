@@ -42,9 +42,15 @@ test('lab server owns isolation headers without changing production configuratio
   assert.match(server, /Cross-Origin-Opener-Policy', 'same-origin'/);
   assert.match(server, /Cross-Origin-Embedder-Policy', 'require-corp'/);
   assert.match(server, /127\.0\.0\.1/);
-  const production = await read('vercel.json');
-  assert.doesNotMatch(production, /Cross-Origin-Embedder-Policy/);
-  assert.match(production, /Cross-Origin-Opener-Policy[^\n]*same-origin-allow-popups/);
+  const production = JSON.parse(await read('vercel.json'));
+  const globalHeaders = production.headers.find(entry => entry.source === '/(.*)').headers;
+  assert.equal(globalHeaders.some(header => header.key === 'Cross-Origin-Embedder-Policy'), false);
+  assert.equal(globalHeaders.find(header => header.key === 'Cross-Origin-Opener-Policy')?.value,
+    'same-origin-allow-popups');
+  const previewHeaders = production.headers.find(entry =>
+    entry.source === '/experiments/lc0-preview-relay/engine/:path*').headers;
+  assert.equal(previewHeaders.find(header => header.key === 'Cross-Origin-Embedder-Policy')?.value,
+    'require-corp');
 });
 
 test('production registry and navigation do not expose Lc0', async () => {

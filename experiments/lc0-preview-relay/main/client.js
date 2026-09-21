@@ -1,3 +1,5 @@
+import { Chess } from '/assets/vendor/chess.js/chess-1.4.0.esm.js';
+
 const $ = selector => document.querySelector(selector);
 const log = value => { $('#log').textContent += `${value}\n`; };
 $('#environment').textContent = `origin=${location.origin}; isolated=${crossOriginIsolated}`;
@@ -25,7 +27,8 @@ class MainPreviewClient {
   constructor() {
     this.sessionId = null; this.claimToken = null; this.seq = 0; this.cursor = 0;
     this.events = []; this.waiters = []; this.controller = null; this.running = false;
-    this.timings = []; this.heartbeatTimer = null;
+    this.timings = []; this.heartbeatTimer = null; this.identity = null;
+    this.chess = new Chess(); this.moves = [];
   }
 
   emit(value) {
@@ -58,25 +61,27 @@ class MainPreviewClient {
     if (!window.CAISSA_AUTH.isSignedIn) return;
     $('#create').disabled = false;
     this.config = await fetch('/api/eae011?action=config').then(response => response.json());
-    const saved = sessionStorage.getItem('eae011-main-session');
+    const saved = sessionStorage.getItem('eae012-main-session');
     if (saved) {
       try {
         const info = await api('inspect', { sessionId: saved });
         this.sessionId = saved; this.seq = info.state.lastCommandSeq;
-        this.cursor = Number(sessionStorage.getItem('eae011-main-cursor') || 0);
+        this.cursor = Number(sessionStorage.getItem('eae012-main-cursor') || 0);
+        this.identity = info.state.identity;
         await this.connect();
         $('#status').textContent = `Recovered ${saved}`;
-        $('#run').disabled = this.seq !== 0;
-      } catch { sessionStorage.removeItem('eae011-main-session'); }
+        $('#run').disabled = !this.identity;
+      } catch { sessionStorage.removeItem('eae012-main-session'); }
     }
   }
 
   async create(competitionId = `preview-${Date.now()}`) {
     const result = await api('create', { body: { competitionId, participantRole: 'white' } });
     this.sessionId = result.sessionId; this.claimToken = result.claimToken;
-    this.cursor = 0; this.seq = 0; this.events = [];
-    sessionStorage.setItem('eae011-main-session', this.sessionId);
-    sessionStorage.setItem('eae011-main-cursor', '0');
+    this.cursor = 0; this.seq = 0; this.events = []; this.identity = null;
+    this.chess = new Chess(); this.moves = [];
+    sessionStorage.setItem('eae012-main-session', this.sessionId);
+    sessionStorage.setItem('eae012-main-cursor', '0');
     await this.connect();
     $('#open').disabled = false; $('#run').disabled = false;
     $('#status').textContent = `Session ${this.sessionId}; claim expires ${new Date(result.expiresAt).toISOString()}`;
@@ -125,9 +130,17 @@ class MainPreviewClient {
         }
         if (id) {
           this.cursor = Math.max(this.cursor, Number(id.slice(4)));
-          sessionStorage.setItem('eae011-main-cursor', String(this.cursor));
+          sessionStorage.setItem('eae012-main-cursor', String(this.cursor));
         }
-        if (line) this.emit(JSON.parse(line.slice(6)));
+        if (line) {
+          const item = JSON.parse(line.slice(6));
+          if (item.type === 'READY') {
+            if (!this.verifyIdentity(item.identity)) { this.emit({ type: 'ERROR', code: 'ENGINE_IDENTITY_INVALID' }); continue; }
+            this.identity = item.identity;
+            $('#identity').textContent = `${item.identity.uciName} · ${item.identity.networkId} · ${item.identity.runtimeInstanceId}`;
+          }
+          this.emit(item);
+        }
       }
     } } finally { if (this.controller === controller) clearInterval(this.heartbeatTimer); }
   }
@@ -155,40 +168,97 @@ class MainPreviewClient {
     this.timings.push({ type, seq, ackMs: performance.now() - sent });
   }
 
+  verifyIdentity(identity) {
+    return identity?.providerClass === 'lc0-browser-experimental' &&
+      identity.version === 'v0.33.0-dev+git.482bb4a' &&
+      identity.sourceCommit === '482bb4a830287b726ebe7d42f14ab7f5f17c18a0' &&
+      identity.uciName === 'Lc0 v0.33.0-dev+git.482bb4a' &&
+      identity.uciAuthor === 'The LCZero Authors.' && identity.backend === 'cpu-wasm' &&
+      identity.networkId === 'CSSLab Maia 1100 v1.0' &&
+      identity.networkSha256 === 'e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4' &&
+      identity.manifestSha256 === 'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a' &&
+      /^[0-9a-f-]{36}$/.test(identity.runtimeInstanceId || '');
+  }
+
+  async startEngine() {
+    if (!this.identity) {
+      await this.sendAndAck('HELLO');
+      const ready = await this.waitFor(item => item.type === 'READY' && this.verifyIdentity(item.identity), 0, 40_000);
+      this.identity = ready.identity;
+    }
+    return this.identity;
+  }
+
+  async setPosition(fen = 'startpos', moves = []) {
+    const chess = fen === 'startpos' ? new Chess() : new Chess(fen);
+    for (const uci of moves) {
+      const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(uci);
+      if (!parts || !chess.move({ from: parts[1], to: parts[2], promotion: parts[3] || 'q' }))
+        throw new Error('POSITION_MOVE_ILLEGAL');
+    }
+    await this.sendAndAck('POSITION', { fen, moves });
+    this.chess = chess; this.moves = [...moves];
+  }
+
+  async search({ mode = 'nodes', nodes = 1, requireInfo = false } = {}) {
+    const searchId = `search_${crypto.randomUUID()}`;
+    await this.sendAndAck('GO', { searchId, mode, ...(mode === 'nodes' ? { nodes } : {}) });
+    if (requireInfo) await this.waitFor(item => item.type === 'INFO' && item.searchId === searchId, 0, 15_000);
+    else await new Promise(resolve => setTimeout(resolve, 200));
+    const stopStart = this.events.length, stopSent = performance.now();
+    await this.sendAndAck('STOP', { searchId });
+    const best = await this.waitFor(item => item.type === 'BESTMOVE' && item.searchId === searchId, stopStart, 15_000);
+    const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(best.move || '');
+    if (!parts) throw new Error('BESTMOVE_SYNTAX_INVALID');
+    const move = this.chess.move({ from: parts[1], to: parts[2], promotion: parts[3] || 'q' });
+    if (!move) throw new Error('BESTMOVE_ILLEGAL');
+    this.moves.push(best.move);
+    await this.waitFor(item => item.type === 'STOPPED' && item.searchId === searchId, stopStart, 15_000);
+    this.timings.push({ type: 'STOP', searchId, terminalMs: performance.now() - stopSent });
+    log(`Legal BESTMOVE ${best.move} (${move.san})`);
+    return { searchId, move: best.move, san: move.san };
+  }
+
+  async reuse(searchId) {
+    await this.sendAndAck('RESET', { searchId });
+    await this.waitFor(item => item.type === 'READY' && this.verifyIdentity(item.identity), 0, 15_000);
+    const gate = await api('advance', { sessionId: this.sessionId,
+      body: { mode: 'reuse', searchId } });
+    if (!gate.advanceAllowed) throw new Error('REUSE_GATE_CLOSED');
+  }
+
+  async finish(searchId) {
+    const quitStart = this.events.length, quitSent = performance.now();
+    await this.sendAndAck('QUIT');
+    const cleanup = await this.waitFor(item => item.type === 'CLEANUP', quitStart, 15_000);
+    if (cleanup.evidence?.parentWorkers !== 0 || cleanup.evidence?.pthreadWorkers !== 0 ||
+        cleanup.evidence?.runtimeState !== 'TERMINATED' || !cleanup.evidence?.cleanupAcknowledged ||
+        cleanup.evidence?.forcedTerminations !== 0) throw new Error('CLEANUP_EVIDENCE_INVALID');
+    this.timings.push({ type: 'QUIT', cleanupMs: performance.now() - quitSent });
+    const gate = await api('advance', { sessionId: this.sessionId,
+      body: { mode: 'release', searchId } });
+    if (!gate.advanceAllowed) throw new Error('GATE_CLOSED');
+    await api('terminate', { sessionId: this.sessionId, body: {} });
+    sessionStorage.removeItem('eae012-main-session');
+    sessionStorage.removeItem('eae012-main-cursor');
+    this.controller?.abort();
+    $('#status').textContent = `Real Lc0 clean; session terminated.`;
+    return { gate, cleanup };
+  }
+
   async runSequence() {
     if (this.running) throw new Error('SEQUENCE_RUNNING');
     this.running = true;
     try {
-      await this.sendAndAck('HELLO');
-      await this.waitFor(item => item.type === 'READY', 0);
-      await this.sendAndAck('POSITION', { fen: 'startpos' });
-      const searchId = `search_${crypto.randomUUID()}`;
-      await this.sendAndAck('GO', { searchId });
-      await this.waitFor(item => item.type === 'INFO' && item.searchId === searchId, 0);
-      const stopStart = this.events.length, stopSent = performance.now();
-      await this.sendAndAck('STOP', { searchId });
-      await this.waitFor(item => item.type === 'BESTMOVE' && item.searchId === searchId, stopStart);
-      await this.waitFor(item => item.type === 'STOPPED' && item.searchId === searchId, stopStart);
-      this.timings.push({ type: 'STOP', terminalMs: performance.now() - stopSent });
-      const quitStart = this.events.length, quitSent = performance.now();
-      await this.sendAndAck('QUIT');
-      await this.waitFor(item => item.type === 'CLEANUP', quitStart);
-      this.timings.push({ type: 'QUIT', cleanupMs: performance.now() - quitSent });
-      const gate = await api('advance', { sessionId: this.sessionId,
-        body: { mode: 'release', searchId } });
-      if (!gate.advanceAllowed) throw new Error('GATE_CLOSED');
-      await api('terminate', { sessionId: this.sessionId, body: {} });
-      sessionStorage.removeItem('eae011-main-session');
-      sessionStorage.removeItem('eae011-main-cursor');
-      this.controller?.abort();
-      $('#status').textContent = `Tournament gate passed; ${searchId}; session terminated.`;
-      return gate;
+      await this.startEngine(); await this.setPosition();
+      const result = await this.search({ mode: 'infinite', requireInfo: true });
+      return this.finish(result.searchId);
     } finally { this.running = false; }
   }
 }
 
-window.Eae011Main = new MainPreviewClient();
-const client = window.Eae011Main;
+window.Eae012Main = new MainPreviewClient();
+const client = window.Eae012Main;
 client.initialize().catch(error => { $('#status').textContent = error.message; log(error.message); });
 $('#create').addEventListener('click', () => client.create().catch(error => log(error.message)));
 $('#open').addEventListener('click', () => client.openIsolated());

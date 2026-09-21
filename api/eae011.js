@@ -1,4 +1,4 @@
-// EAE-011 preview-only dummy relay. No production Arena registration or engine runtime.
+// EAE-012 preview-only real Lc0 relay. No production Arena registration.
 import { once } from 'node:events';
 import { authenticateRequest } from './_lib/auth.js';
 import { DurableBroker, RelayError } from '../experiments/lc0-preview-relay/durable-broker.mjs';

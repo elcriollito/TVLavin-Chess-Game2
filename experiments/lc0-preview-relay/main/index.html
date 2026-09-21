@@ -3,24 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EAE-011 authenticated preview relay</title>
+  <title>EAE-012 real Lc0 preview relay</title>
   <style>body{font:16px system-ui;max-width:820px;margin:3rem auto;padding:0 1rem}button{margin:.3rem;padding:.6rem}pre{white-space:pre-wrap;word-break:break-word;background:#eee;padding:1rem;min-height:8rem}</style>
   <script src="/js/auth-config.js"></script>
   <script src="/js/caissa-auth.js" defer></script>
   <script type="module" src="./client.js"></script>
 </head>
 <body>
-  <h1>EAE-011 main-origin preview client</h1>
-  <p>Clerk-authenticated CAISSA preview harness. No Lc0 or Arena provider.</p>
+  <h1>EAE-012 real Lc0 preview relay</h1>
+  <p>Clerk-authenticated CAISSA preview harness. Lc0 runs only on the separate isolated origin; no Arena provider.</p>
   <p id="environment"></p>
   <p id="auth">Checking CAISSA sign-in…</p>
   <button id="sign-in">Open CAISSA Clerk sign-in here</button>
   <button id="create" disabled>Create ephemeral relay session</button>
-  <button id="open" disabled>Open isolated dummy client</button>
-  <button id="run" disabled>Run release-gated dummy search</button>
+  <button id="open" disabled>Open isolated Lc0 client</button>
+  <button id="run" disabled>Run real Lc0 search</button>
   <button id="disconnect" disabled>Disconnect main stream</button>
   <button id="reconnect" disabled>Reconnect main stream</button>
   <p id="status">Waiting.</p>
+  <p id="identity">No verified engine identity yet.</p>
   <pre id="log" aria-live="polite"></pre>
 </body>
 </html>

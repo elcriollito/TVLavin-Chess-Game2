@@ -22,6 +22,27 @@ const equal = (a, b) => {
 const bytes = value => Buffer.byteLength(JSON.stringify(value) ?? 'null');
 const idPattern = /^[A-Za-z0-9_-]{20,64}$/;
 const searchPattern = /^[A-Za-z0-9_-]{8,64}$/;
+const movePattern = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
+export const LC0_IDENTITY = Object.freeze({
+  providerClass: 'lc0-browser-experimental',
+  version: 'v0.33.0-dev+git.482bb4a',
+  sourceCommit: '482bb4a830287b726ebe7d42f14ab7f5f17c18a0',
+  uciName: 'Lc0 v0.33.0-dev+git.482bb4a',
+  uciAuthor: 'The LCZero Authors.',
+  backend: 'cpu-wasm',
+  networkId: 'CSSLab Maia 1100 v1.0',
+  networkSha256: 'e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4',
+  manifestSha256: 'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a'
+});
+
+function verifiedIdentity(value) {
+  keys(value, [...Object.keys(LC0_IDENTITY), 'runtimeInstanceId']);
+  if (Object.keys(value).length !== Object.keys(LC0_IDENTITY).length + 1 ||
+      Object.entries(LC0_IDENTITY).some(([key, expected]) => value[key] !== expected) ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.runtimeInstanceId || ''))
+    throw new RelayError('ENGINE_IDENTITY_INVALID');
+  return value;
+}
 
 function keys(value, allowed) {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
@@ -57,6 +78,7 @@ export class DurableBroker {
       lastEngineCommandClaimedSeq: 0,
       pending: null, activeSearchId: null, completedSearchId: null,
       bestmove: null, stopped: false, cleanup: false, reuseReadyFor: null,
+      identity: null, cleanupEvidence: null,
       seenSearchIds: [], events: [], nextEventId: 0, lastAck: null,
       commandTimes: [], infoTimes: [], reconnectTimes: [], claimAttempts: 0
     };
@@ -136,7 +158,7 @@ export class DurableBroker {
     const expired = this.expired(row.state, this.now());
     if (expired) throw new RelayError(expired, 410);
     return { sessionId, phase: row.state.phase, lastEngineSeq: row.state.lastEngineSeq,
-      activeSearchId: row.state.activeSearchId };
+      activeSearchId: row.state.activeSearchId, identity: row.state.identity };
   }
 
   async claim(sessionId, claimToken) {
@@ -156,10 +178,10 @@ export class DurableBroker {
   }
 
   async command(sessionId, userId, command) {
-    keys(command, ['type', 'seq', 'fen', 'searchId']);
+    keys(command, ['type', 'seq', 'fen', 'moves', 'searchId', 'mode', 'nodes']);
     if (bytes(command) > LIMITS.maxCommandBytes) throw new RelayError('COMMAND_TOO_LARGE', 413);
     return this.mutate(sessionId, this.owner(userId), (state, _row, now) => {
-      const { type, seq, fen, searchId } = command;
+      const { type, seq, fen, moves, searchId, mode, nodes } = command;
       if (!Number.isSafeInteger(seq) || seq !== state.lastCommandSeq + 1)
         throw new RelayError('SEQUENCE_INVALID', 409);
       if (!rate(state, 'commandTimes', now, 1_000, LIMITS.maxCommandsPerSecond))
@@ -169,9 +191,16 @@ export class DurableBroker {
         GO: ['POSITION_ACKED'], STOP: ['SEARCHING'], RESET: ['STOPPED'],
         QUIT: ['STOPPED', 'REUSE_READY'] };
       if (!phases[type]?.includes(state.phase)) throw new RelayError('COMMAND_STATE_INVALID', 409);
-      if (type === 'POSITION' && (typeof fen !== 'string' || fen.length > 256))
+      if (type === 'POSITION' && (typeof fen !== 'string' || fen.length > 256 ||
+          (fen !== 'startpos' && !/^[KQkqpnbrPNBR1-8a-h\s/-]+\s[wb]\s(?:-|[KQkq]{1,4})\s(?:-|[a-h][36])\s\d{1,3}\s\d{1,4}$/.test(fen)) ||
+          (moves !== undefined && (!Array.isArray(moves) || moves.length > 120 ||
+            moves.some(move => typeof move !== 'string' || !movePattern.test(move))))))
         throw new RelayError('POSITION_INVALID');
-      if (type !== 'POSITION' && fen !== undefined) throw new RelayError('SCHEMA_INVALID');
+      if (type !== 'POSITION' && (fen !== undefined || moves !== undefined)) throw new RelayError('SCHEMA_INVALID');
+      if (type === 'GO' && !((mode === 'infinite' && nodes === undefined) ||
+          (mode === 'nodes' && Number.isSafeInteger(nodes) && nodes >= 1 && nodes <= 64)))
+        throw new RelayError('GO_INVALID');
+      if (type !== 'GO' && (mode !== undefined || nodes !== undefined)) throw new RelayError('SCHEMA_INVALID');
       if (['GO', 'STOP', 'RESET'].includes(type)) {
         if (!searchPattern.test(searchId || '')) throw new RelayError('SEARCH_ID_INVALID');
         if (type === 'GO') {
@@ -186,16 +215,18 @@ export class DurableBroker {
       if (type === 'STOP') state.phase = 'STOPPING';
       if (type === 'RESET') state.phase = 'RESETTING';
       if (type === 'QUIT') state.phase = 'QUITTING';
-      event(state, 'engine', { type, seq, ...(fen ? { fen } : {}), ...(searchId ? { searchId } : {}) });
+      event(state, 'engine', { type, seq, ...(fen ? { fen, moves: moves || [] } : {}),
+        ...(searchId ? { searchId } : {}), ...(mode ? { mode } : {}),
+        ...(nodes ? { nodes } : {}) });
       return { accepted: true, seq, delivered: false };
     });
   }
 
   async engineMessage(sessionId, credential, message) {
     const shapes = { ACK: ['type', 'seq', 'command', 'commandSeq', 'searchId'],
-      READY: ['type', 'seq'], INFO: ['type', 'seq', 'searchId', 'depth', 'pv', 'score', 'emittedAt'],
+      READY: ['type', 'seq', 'identity'], INFO: ['type', 'seq', 'searchId', 'depth', 'nodes', 'pv', 'score', 'emittedAt'],
       BESTMOVE: ['type', 'seq', 'searchId', 'move', 'emittedAt'],
-      STOPPED: ['type', 'seq', 'searchId'], CLEANUP: ['type', 'seq'],
+      STOPPED: ['type', 'seq', 'searchId'], CLEANUP: ['type', 'seq', 'evidence'],
       ERROR: ['type', 'seq', 'code'] };
     keys(message, shapes[message?.type] || []);
     const size = bytes(message);
@@ -220,19 +251,26 @@ export class DurableBroker {
           commandSeq: pending.seq, searchId: pending.searchId });
       } else if (type === 'READY') {
         if (!['HELLO_ACKED', 'RESET_ACKED'].includes(state.phase)) throw new RelayError('READY_STATE_INVALID', 409);
+        const identity = verifiedIdentity(message.identity);
+        if (state.identity && Object.keys(LC0_IDENTITY).concat('runtimeInstanceId')
+          .some(key => state.identity[key] !== identity[key]))
+          throw new RelayError('ENGINE_IDENTITY_CHANGED', 409);
+        state.identity = identity;
         if (state.phase === 'RESET_ACKED') {
           state.phase = 'REUSE_READY'; state.reuseReadyFor = state.completedSearchId;
         } else state.phase = 'READY';
-        event(state, 'main', { type: 'READY' });
+        event(state, 'main', { type: 'READY', identity });
       } else if (type === 'INFO') {
         if (!['SEARCHING', 'STOPPING'].includes(state.phase) || searchId !== state.activeSearchId)
           throw new RelayError('INFO_STATE_INVALID', 409);
-        if (!Number.isSafeInteger(message.depth) || typeof message.pv !== 'string' ||
+        if (!Number.isSafeInteger(message.depth) || message.depth < 0 ||
+            !Number.isSafeInteger(message.nodes) || message.nodes < 0 ||
+            typeof message.pv !== 'string' ||
             bytes(message.pv) > LIMITS.maxPvBytes || typeof message.score !== 'number' ||
             !Number.isFinite(message.score)) throw new RelayError('INFO_INVALID');
         if (!rate(state, 'infoTimes', now, 1_000, LIMITS.maxInfoPerSecond))
           return { error: new RelayError('INFO_RATE_LIMIT', 429) };
-        event(state, 'main', { type: 'INFO', searchId, depth: message.depth,
+        event(state, 'main', { type: 'INFO', searchId, depth: message.depth, nodes: message.nodes,
           pv: message.pv, score: message.score,
           emittedAt: Number.isSafeInteger(message.emittedAt) ? message.emittedAt : null }, 'low');
       } else if (type === 'BESTMOVE') {
@@ -252,8 +290,14 @@ export class DurableBroker {
       } else if (type === 'CLEANUP') {
         if (state.phase !== 'QUIT_ACKED' || !state.stopped)
           throw new RelayError('CLEANUP_STATE_INVALID', 409);
+        const evidence = message.evidence;
+        keys(evidence, ['parentWorkers', 'pthreadWorkers', 'runtimeState', 'cleanupAcknowledged', 'forcedTerminations']);
+        if (evidence.parentWorkers !== 0 || evidence.pthreadWorkers !== 0 ||
+            evidence.runtimeState !== 'TERMINATED' || evidence.cleanupAcknowledged !== true ||
+            evidence.forcedTerminations !== 0) throw new RelayError('CLEANUP_EVIDENCE_INVALID');
         state.cleanup = true; state.phase = 'CLEANED'; state.engineHash = null;
-        event(state, 'main', { type: 'CLEANUP' });
+        state.cleanupEvidence = evidence;
+        event(state, 'main', { type: 'CLEANUP', evidence });
       } else if (type === 'ERROR') {
         if (typeof message.code !== 'string' || !/^[A-Z0-9_]{1,64}$/.test(message.code))
           throw new RelayError('ERROR_INVALID');

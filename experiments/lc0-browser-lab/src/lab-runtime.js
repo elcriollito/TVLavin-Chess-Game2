@@ -50,6 +50,8 @@ export async function validateEnvironment(runtimeUrl = '/artifacts/runtime/lc0.w
 export class Lc0LabRuntime {
   constructor(options = {}) {
     this.network = Object.freeze({ ...NETWORK, ...(options.network || {}) });
+    this.assetBase = options.assetBase || '/artifacts';
+    this.workerPath = options.workerPath || '/lc0-worker.js';
     this.testMode = options.testMode || 'normal';
     this.timeoutMs = options.timeoutMs || 30_000;
     this.onEvent = typeof options.onEvent === 'function' ? options.onEvent : () => {};
@@ -116,7 +118,7 @@ export class Lc0LabRuntime {
     this.abortController = new AbortController();
     this.state = 'VALIDATING';
     this.cleanupAcknowledged = false;
-    this.environment = await validateEnvironment();
+    this.environment = await validateEnvironment(`${this.assetBase}/runtime/lc0.wasm`);
     this.assertGeneration(generation);
     this.timings.runtimeCompileMs = this.environment.runtimeCompileMs;
     this.timings.runtimeWasmBytes = this.environment.runtimeWasmBytes;
@@ -134,8 +136,9 @@ export class Lc0LabRuntime {
     this.state = 'INITIALIZING';
     const initializationStarted = performance.now();
     this.stopSignal = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
-    const workerUrl = new URL('/lc0-worker.js', location.origin);
+    const workerUrl = new URL(this.workerPath, location.origin);
     workerUrl.searchParams.set('testMode', this.testMode);
+    workerUrl.searchParams.set('assetBase', this.assetBase);
     const worker = new Worker(workerUrl, { type: 'module', name: 'caissa-lc0-lab' });
     this.worker = worker;
     this.parentWorkers = 1;

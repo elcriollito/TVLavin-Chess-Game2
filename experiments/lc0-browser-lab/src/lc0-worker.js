@@ -6,7 +6,9 @@ import { env as ortEnv, InferenceSession, Tensor } from 'onnxruntime-web/wasm';
 
 ortEnv.wasm.numThreads = 1;
 ortEnv.wasm.proxy = false;
-ortEnv.wasm.wasmPaths = '/artifacts/ort/';
+const artifactBase = new URL(import.meta.url).searchParams.get('assetBase') || '/artifacts';
+if (!/^\/[A-Za-z0-9/_-]+$/.test(artifactBase)) throw new Error('Invalid artifact path');
+ortEnv.wasm.wasmPaths = `${artifactBase}/ort/`;
 
 const testMode = new URL(import.meta.url).searchParams.get('testMode') || 'normal';
 const traceUci = testMode === 'trace-uci';
@@ -129,7 +131,7 @@ postMessage({ type: 'ready-for-network' });
 
 async function startRuntime() {
   if (testMode === 'runtime-failure') throw new Error('Injected runtime initialization failure');
-  const runtimeUrl = '/artifacts/runtime/lc0.js';
+  const runtimeUrl = `${artifactBase}/runtime/lc0.js`;
   const { default: Module } = await import(runtimeUrl);
   if (terminating) return;
   const bytes = networkBytes;
