@@ -45,3 +45,14 @@ test('preview URL resolves to the existing Arena section without changing its ca
   assert.equal(window.LegacyCanonicalSectionRoutePolicy.resolve('/arena-preview').section, 'arena');
   assert.equal(window.LegacyCanonicalSectionRoutePolicy.routeForSection('arena'), '/arena');
 });
+
+test('Stockfish 19 worker receives the same WASM-only CSP as Stockfish 18 in preview', () => {
+  const config = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  const sf18 = config.headers.find(item => item.source === '/assets/vendor/stockfish/18.0.0/:path*');
+  const sf19 = config.headers.find(item => item.source === '/assets/vendor/stockfish/19.0.0/:path*');
+  assert.ok(sf18 && sf19);
+  assert.equal(sf19.headers.find(item => item.key === 'Content-Security-Policy').value,
+    sf18.headers.find(item => item.key === 'Content-Security-Policy').value);
+  assert.equal(config.headers.find(item => item.source === '/arena')?.headers?.some(item =>
+    item.key === 'Cross-Origin-Embedder-Policy'), undefined);
+});
