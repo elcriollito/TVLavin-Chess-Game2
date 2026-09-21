@@ -1795,6 +1795,11 @@ const CaissaArena = {
      */
     destroyEngines() {
         const cleanup = this.runtimeManager?.terminateAll('arena-destroyed');
+        if (cleanup && typeof cleanup.catch === 'function') {
+            cleanup.catch(error => {
+                this.updateGameStatus({ result: `Lc0 cleanup unverified: ${error.message}` });
+            });
+        }
         this.enginesReady = false;
         this.evaluatorReady = false;
         console.log('[Arena] All engines destroyed');

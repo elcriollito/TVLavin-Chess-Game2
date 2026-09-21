@@ -99,3 +99,17 @@ test('reconnect ignores a not-yet-GO search but rejects a changed active generat
   instance.reconcile({ identity, activeSearchId: 'search_new' });
   assert.equal(instance.active.transportUncertain, true);
 });
+
+test('failed startup revokes the relay without claiming local CLEANUP evidence', async () => {
+  const { instance } = fixture();
+  instance.sessionId = 'startup-session';
+  instance.startFailed = true;
+  const actions = [];
+  instance.api = async action => { actions.push(action); return { terminated: true }; };
+  await assert.rejects(instance.terminate(), /LC0_CLEANUP_UNVERIFIED_STARTUP_ABORTED/);
+  assert.deepEqual(actions, ['terminate']);
+  assert.equal(instance.closed, true);
+  assert.equal(instance.metrics.cleanupEvidence, null);
+  assert.equal(instance.metrics.cleanupFailureClassification,
+    'STARTUP_ABORTED_NO_LOCAL_CLEANUP_EVIDENCE');
+});

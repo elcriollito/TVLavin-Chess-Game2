@@ -239,42 +239,47 @@
         }
 
         async start() {
-            this.status('Connecting…');
-            await window.CAISSA_AUTH?.whenReady?.();
-            if (!window.CAISSA_AUTH?.isSignedIn) throw new Error('CAISSA_SIGN_IN_REQUIRED');
-            const created = await this.api('create', { sessionId: null,
-                body: { competitionId: `arena_${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
-                    participantRole: this.role } });
-            this.sessionId = created.sessionId;
-            if (this.closed) {
-                await this.api('terminate', { body: { reason: 'startup-cancelled' } });
-                throw new Error('LC0_ARENA_CLOSED');
+            try {
+                this.status('Connecting…');
+                await window.CAISSA_AUTH?.whenReady?.();
+                if (!window.CAISSA_AUTH?.isSignedIn) throw new Error('CAISSA_SIGN_IN_REQUIRED');
+                const created = await this.api('create', { sessionId: null,
+                    body: { competitionId: `arena_${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
+                        participantRole: this.role } });
+                this.sessionId = created.sessionId;
+                if (this.closed) {
+                    await this.api('terminate', { body: { reason: 'startup-cancelled' } });
+                    throw new Error('LC0_ARENA_CLOSED');
+                }
+                this.status('Open the isolated Lc0 window to claim the session…');
+                const popup = await this.coordinator.waitForPopup(this);
+                if (this.closed) throw new Error('LC0_ARENA_CLOSED');
+                const url = new URL('/experiments/lc0-preview-relay/engine/index.html',
+                    this.coordinator.config.engineOrigin);
+                url.hash = new URLSearchParams({ sessionId: this.sessionId,
+                    claimToken: created.claimToken }).toString();
+                this.status('Claiming isolated runtime…');
+                popup.opener = null;
+                popup.location.replace(url.href);
+                // Isolation severs the window reference; no opener, message or cookie
+                // is used after this one-way navigation.
+                this.streamTask = this.consumeStream();
+                await this.phase('CLAIMED', 28_000);
+                this.status('Verifying Maia network and initializing Lc0…');
+                const from = this.eventSerial;
+                await this.command('HELLO');
+                const ready = await this.waitEvent(item => item.type === 'READY', from, 40_000);
+                if (!checkIdentity(ready.identity)) throw new Error('LC0_RUNTIME_IDENTITY_INVALID');
+                this.identity = Object.freeze({ ...ready.identity });
+                this.ready = true;
+                this.metrics.selectionToReadyMs = performance.now() - this.createdAt;
+                this.onLine?.('uciok');
+                this.onLine?.('readyok');
+                return this;
+            } catch (error) {
+                this.startFailed = true;
+                throw error;
             }
-            this.status('Open the isolated Lc0 window to claim the session…');
-            const popup = await this.coordinator.waitForPopup(this);
-            if (this.closed) throw new Error('LC0_ARENA_CLOSED');
-            const url = new URL('/experiments/lc0-preview-relay/engine/index.html',
-                this.coordinator.config.engineOrigin);
-            url.hash = new URLSearchParams({ sessionId: this.sessionId,
-                claimToken: created.claimToken }).toString();
-            this.status('Claiming isolated runtime…');
-            popup.opener = null;
-            popup.location.replace(url.href);
-            // Isolation severs the window reference; no opener, message or cookie
-            // is used after this one-way navigation.
-            this.streamTask = this.consumeStream();
-            await this.phase('CLAIMED', 28_000);
-            this.status('Verifying Maia network and initializing Lc0…');
-            const from = this.eventSerial;
-            await this.command('HELLO');
-            const ready = await this.waitEvent(item => item.type === 'READY', from, 40_000);
-            if (!checkIdentity(ready.identity)) throw new Error('LC0_RUNTIME_IDENTITY_INVALID');
-            this.identity = Object.freeze({ ...ready.identity });
-            this.ready = true;
-            this.metrics.selectionToReadyMs = performance.now() - this.createdAt;
-            this.onLine?.('uciok');
-            this.onLine?.('readyok');
-            return this;
         }
 
         async reuse(newGame = false) {
@@ -386,6 +391,23 @@
                     this.coordinator.pendingPopup = null;
                 }
                 if (!this.sessionId) { this.closed = true; return true; }
+                if (this.startFailed && !this.ready) {
+                    // A vanished window cannot produce local CLEANUP evidence.
+                    // Fail closed and revoke the durable relay claim immediately;
+                    // report the missing evidence instead of claiming success.
+                    this.metrics.cleanupFailureClassification =
+                        'STARTUP_ABORTED_NO_LOCAL_CLEANUP_EVIDENCE';
+                    try {
+                        await this.api('terminate', { body: { reason: 'startup-failed' } })
+                            .catch(error => { if (error.status !== 410) throw error; });
+                    } finally {
+                        this.closed = true;
+                        this.ready = false;
+                        clearInterval(this.heartbeatTimer);
+                        this.streamController?.abort();
+                    }
+                    throw new Error('LC0_CLEANUP_UNVERIFIED_STARTUP_ABORTED');
+                }
                 if (this.active) await this.stop();
                 if (this.lastPhase === 'CLAIMED') {
                     // A claimed engine may still be validating assets. Never
