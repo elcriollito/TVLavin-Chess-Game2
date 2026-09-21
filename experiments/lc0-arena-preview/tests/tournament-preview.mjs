@@ -9,6 +9,7 @@ if (process.env.EAE013_TOURNAMENT_PREVIEW !== '1' || !process.env.EAE013_BYPASS 
 const MAIN = 'https://eae013-main-elcriollitos-projects.vercel.app';
 const ENGINE = 'https://eae013-engine-elcriollitos-projects.vercel.app';
 const FIELDS = ['stockfish-18-lite', 'stockfish-19-lite', 'lc0-maia-1100-preview'];
+const CLOSE_TOURNAMENT = process.env.EAE013_TOURNAMENT_CLOSE === '1';
 const report = { field: FIELDS, games: [], popups: [], errors: [] };
 const browser = await chromium.launch({ headless: true });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -97,6 +98,39 @@ try {
             game.identities[role].runtimeInstanceId);
       }
     }
+    if (CLOSE_TOURNAMENT) {
+      assert.equal(index, 0);
+      const sessionId = await page.evaluate(() => CaissaArenaPreview.adapter.sessionId);
+      await report.popups.at(-1).close();
+      await page.waitForFunction(() => CaissaArena.state.matchState === 'idle' &&
+        CaissaArena.runtimeManager.getResourceSnapshot().activeRuntimeRecords === 0,
+      null, { timeout: 90_000 });
+      const closed = await page.evaluate(() => ({
+        completed: CaissaArena.state.tournament.games.filter(g => g.result !== null).length,
+        records: CaissaArena.runtimeManager.getResourceSnapshot().activeRuntimeRecords,
+        moves: CaissaArena.game.history(),
+        failure: CaissaArena.runtimeManager.getResourceSnapshot().lastFailures
+      }));
+      const url = new URL('/api/eae011', MAIN);
+      url.searchParams.set('action', 'inspect');
+      url.searchParams.set('sessionId', sessionId);
+      let deletedStatus;
+      for (let attempt = 0; attempt < 40; attempt++) {
+        const response = await context.request.get(url.toString(), { headers: {
+          Authorization: `Bearer ${await token()}`, Origin: MAIN,
+          'x-vercel-protection-bypass': process.env.EAE013_BYPASS } });
+        deletedStatus = response.status();
+        if (deletedStatus === 410) break;
+        await sleep(500);
+      }
+      assert.equal(closed.completed, 0);
+      assert.equal(closed.records, 0);
+      assert.equal(deletedStatus, 410);
+      assert.deepEqual(report.errors, []);
+      report.closed = { pairing: game.pairing, ...closed, deletedStatus };
+      console.log(`EAE013_TOURNAMENT_CLOSE_REPORT ${JSON.stringify(report.closed)}`);
+      break;
+    }
     await page.click('#arenaTabGame');
     await page.click('#arenaDeclareDraw');
     await page.click('#arenaDrawConfirm');
@@ -116,35 +150,37 @@ try {
     console.log(`EAE013_TOURNAMENT_GAME ${JSON.stringify({ index: index + 1,
       pairing: game.pairing, moves: game.moves.length, result: draw.last })}`);
   }
-  await page.waitForFunction(() => CaissaArena.state.tournament.currentRound === 5,
-    null, { timeout: 10_000 });
-  const final = await page.evaluate(() => ({
-    round: CaissaArena.state.tournament.currentRound,
-    results: CaissaArena.state.tournament.games.map(g => g.result),
-    standings: CaissaArena.state.tournament.standings.map(s => ({ id: s.engine.id,
-      points: s.points, games: s.games }))
-  }));
-  assert.equal(final.round, 5);
-  assert.deepEqual(final.results, Array(5).fill('1/2-1/2'));
-  assert.ok(report.games.some(g => g.pairing[0] === 'lc0-maia-1100-preview'));
-  assert.ok(report.games.some(g => g.pairing[1] === 'lc0-maia-1100-preview'));
-  await page.click('#arenaTabGame');
-  await page.click('#arenaStopMatch');
-  await page.waitForFunction(() => CaissaArena.runtimeManager.getResourceSnapshot()
-    .activeRuntimeRecords === 0, null, { timeout: 30_000 });
-  const enginePages = await Promise.all(report.popups.map(async popup => {
-    const snapshot = await popup.evaluate(() => window.Eae012Engine.runtime.snapshot());
-    await popup.close();
-    return { state: snapshot.state, workers: snapshot.workers,
-      parentWorkers: snapshot.parentWorkers, pthreadWorkers: snapshot.pthreadWorkers,
-      forcedTerminations: snapshot.forcedTerminations };
-  }));
-  assert.ok(enginePages.every(item => item.state === 'TERMINATED' && !item.workers &&
-    !item.parentWorkers && !item.pthreadWorkers && !item.forcedTerminations));
-  assert.deepEqual(report.errors, []);
-  console.log(`EAE013_TOURNAMENT_REPORT ${JSON.stringify({ final, games: report.games.map(g => ({
-    pairing: g.pairing, moves: g.moves.length, result: g.draw.last })),
-    enginePages, errors: report.errors })}`);
+  if (!CLOSE_TOURNAMENT) {
+    await page.waitForFunction(() => CaissaArena.state.tournament.currentRound === 5,
+      null, { timeout: 10_000 });
+    const final = await page.evaluate(() => ({
+      round: CaissaArena.state.tournament.currentRound,
+      results: CaissaArena.state.tournament.games.map(g => g.result),
+      standings: CaissaArena.state.tournament.standings.map(s => ({ id: s.engine.id,
+        points: s.points, games: s.games }))
+    }));
+    assert.equal(final.round, 5);
+    assert.deepEqual(final.results, Array(5).fill('1/2-1/2'));
+    assert.ok(report.games.some(g => g.pairing[0] === 'lc0-maia-1100-preview'));
+    assert.ok(report.games.some(g => g.pairing[1] === 'lc0-maia-1100-preview'));
+    await page.click('#arenaTabGame');
+    await page.click('#arenaStopMatch');
+    await page.waitForFunction(() => CaissaArena.runtimeManager.getResourceSnapshot()
+      .activeRuntimeRecords === 0, null, { timeout: 30_000 });
+    const enginePages = await Promise.all(report.popups.map(async popup => {
+      const snapshot = await popup.evaluate(() => window.Eae012Engine.runtime.snapshot());
+      await popup.close();
+      return { state: snapshot.state, workers: snapshot.workers,
+        parentWorkers: snapshot.parentWorkers, pthreadWorkers: snapshot.pthreadWorkers,
+        forcedTerminations: snapshot.forcedTerminations };
+    }));
+    assert.ok(enginePages.every(item => item.state === 'TERMINATED' && !item.workers &&
+      !item.parentWorkers && !item.pthreadWorkers && !item.forcedTerminations));
+    assert.deepEqual(report.errors, []);
+    console.log(`EAE013_TOURNAMENT_REPORT ${JSON.stringify({ final, games: report.games.map(g => ({
+      pairing: g.pairing, moves: g.moves.length, result: g.draw.last })),
+      enginePages, errors: report.errors })}`);
+  }
 } catch (error) {
   const state = await page?.evaluate(() => ({
     match: CaissaArena?.state?.matchState,

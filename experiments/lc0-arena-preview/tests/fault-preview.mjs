@@ -98,7 +98,8 @@ try {
   report.after = await page.evaluate(() => ({
     match: CaissaArena.state.matchState,
     moves: CaissaArena.game?.history(),
-    resources: CaissaArena.runtimeManager.getResourceSnapshot(),
+    records: CaissaArena.runtimeManager.getResourceSnapshot().activeRuntimeRecords,
+    lastFailures: CaissaArena.runtimeManager.getResourceSnapshot().lastFailures,
     status: document.querySelector('#arenaPanelMatch [role=status]')?.textContent,
     phase: CaissaArenaPreview.adapter?.lastPhase,
     cleanupEvidence: CaissaArenaPreview.adapter?.metrics?.cleanupEvidence
@@ -109,7 +110,13 @@ try {
     await page.waitForFunction(() => CaissaArena.runtimeManager.getResourceSnapshot()
       .activeRuntimeRecords === 0, null, { timeout: 30_000 });
   }
-  report.deletedStatus = await inspect(report.sessionId);
+  const revocationStarted = performance.now();
+  for (let attempt = 0; attempt < 40; attempt++) {
+    report.deletedStatus = await inspect(report.sessionId);
+    if (report.deletedStatus === 410) break;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  report.revocationMs = performance.now() - revocationStarted;
   report.finalRecords = await page.evaluate(() => CaissaArena.runtimeManager
     .getResourceSnapshot().activeRuntimeRecords);
   console.log(`EAE013_FAULT_REPORT ${JSON.stringify(report)}`);
