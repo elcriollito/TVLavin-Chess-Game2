@@ -165,6 +165,21 @@ test('separate streams reconnect by cursor after turnover and old epochs stop po
     mainReload.epoch, firstMain.cursor)).events.length, 0);
 });
 
+test('duplicate command delivery is claimed once across broker instances', async () => {
+  const f = fixture(), session = await open(f);
+  await command(f.first, session, 'HELLO');
+  const [a, b] = await Promise.all([
+    f.first.claimCommand(session.sessionId, session.engineCredential, 1),
+    f.second.claimCommand(session.sessionId, session.engineCredential, 1)
+  ]);
+  assert.deepEqual([a.execute, b.execute].sort(), [false, true]);
+  await assert.rejects(f.second.claimCommand(session.sessionId, session.engineCredential, 2),
+    { code: 'COMMAND_DELIVERY_INVALID' });
+  const restarted = new DurableBroker(f.store, { now: f.now });
+  assert.equal((await restarted.claimCommand(session.sessionId,
+    session.engineCredential, 1)).execute, false);
+});
+
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {
   const claim = fixture();
   const unclaimed = await claim.first.create({ userId: userA, competitionId: 'expiry', participantRole: 'white' });
