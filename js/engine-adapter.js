@@ -7,7 +7,8 @@
     let runtimeInstanceSequence = 0;
     const APPROVED_WORKER_URLS = new Set([
         '/engine/stockfish-working.js',
-        '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js'
+        '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js',
+        '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js'
     ]);
 
     class EngineAdapter {

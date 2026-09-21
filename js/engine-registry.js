@@ -203,6 +203,7 @@
         'stockfish',
         'stockfish-lite',
         'stockfish-18-lite',
+        'stockfish-19-lite',
         'fairy-stockfish',
         'arasan',
         'rodent3',
@@ -298,11 +299,53 @@
         notes: 'Existing CAISSA Stockfish 18 Lite single-threaded WASM/NNUE runtime'
     });
 
+    const STOCKFISH_19_ARENA_PROVIDER = Object.freeze({
+        id: 'stockfish-19-lite',
+        providerId: 'stockfish-19-lite',
+        displayName: 'Stockfish 19 Lite',
+        name: 'Stockfish 19 Lite',
+        family: 'Stockfish',
+        version: '19.0.0',
+        author: 'the Stockfish developers (see AUTHORS file)',
+        license: 'GPLv3',
+        protocol: 'uci',
+        runtimeType: 'wasm',
+        execution: 'wasm',
+        runtimeId: 'stockfish-19-lite-single-runtime',
+        profile: Object.freeze({ id: 'lite-single', displayName: 'Lite single-thread', defaultDepth: 20 }),
+        workerPath: '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js',
+        wasmPath: '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.wasm',
+        defaultOptions: Object.freeze({ MultiPV: 1, Hash: 16, Threads: 1 }),
+        defaultDepth: 20,
+        supportsChess960: false,
+        capabilities: Object.freeze({
+            supportsThreads: false,
+            supportsNNUE: true,
+            supportsMultiPV: true,
+            supportsSyzygy: false,
+            browserCompatible: true,
+            mobileCompatible: true,
+            requiresCrossOriginIsolation: false
+        }),
+        availability: 'available',
+        unavailableReason: null,
+        runtimeIdentityExpectation: Object.freeze({
+            family: 'Stockfish',
+            namePattern: '^Stockfish\\s+19(?:\\.\\d+){0,2}\\s+Lite\\s+WASM(?:\\s.*)?$',
+            authorPattern: '^the Stockfish developers \\(see AUTHORS file\\)(?:\\s.*)?$',
+            requireName: true,
+            requireAuthor: true
+        }),
+        enabled: true,
+        notes: 'CAISSA Stockfish 19 Lite single-threaded WASM/NNUE runtime'
+    });
+
     const ARENA_PROVIDERS = Object.freeze({
         ...Object.fromEntries(ARENA_PROVIDER_IDS
-            .filter(id => id !== STOCKFISH_18_ARENA_PROVIDER.id)
+            .filter(id => ![STOCKFISH_18_ARENA_PROVIDER.id, STOCKFISH_19_ARENA_PROVIDER.id].includes(id))
             .map(id => [id, ENGINES[id]])),
-        [STOCKFISH_18_ARENA_PROVIDER.id]: STOCKFISH_18_ARENA_PROVIDER
+        [STOCKFISH_18_ARENA_PROVIDER.id]: STOCKFISH_18_ARENA_PROVIDER,
+        [STOCKFISH_19_ARENA_PROVIDER.id]: STOCKFISH_19_ARENA_PROVIDER
     });
 
     const ENGINE_ROLES = Object.freeze({

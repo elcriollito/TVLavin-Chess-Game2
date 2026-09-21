@@ -1366,6 +1366,10 @@ const CaissaArena = {
             this.blackEngineInstance.stop();
         }
 
+        // A stopped Match owns no live competition runtimes. A later start will
+        // recreate the selected providers through the shared registry.
+        this.destroyEngines();
+
         window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
         this.updateMatchControls();
 
@@ -2851,11 +2855,15 @@ const CaissaArena = {
 
     onExit() {
         console.log('[Arena] Section exited');
-        // Don't destroy the board, just leave it
-        // Stop any running match if needed
-        if (this.state.matchState === 'running') {
-            // Optionally stop - for now we let it run
-            // this.stopMatch();
+        clearTimeout(this._tournamentAdvanceTimer);
+        this._tournamentAdvanceTimer = null;
+        this.state.loopActive = false;
+        this.cancelActiveSearch('arena section exited');
+        this.state.loopRunning = false;
+        if (this.state.matchState !== 'idle') {
+            this.stopMatch();
+        } else {
+            this.destroyEngines();
         }
         this.teardownBoardSizing();
     },
