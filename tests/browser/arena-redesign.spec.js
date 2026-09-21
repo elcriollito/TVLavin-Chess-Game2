@@ -292,6 +292,10 @@ test('active tournament continues across tabs without worker recreation', async 
   await expect.poll(async () => page.locator('#arenaTournamentEngines input:checked').count()).toBeGreaterThanOrEqual(2);
 
   const boardWidth = await page.locator('#arenaBoardMount').evaluate(element => element.getBoundingClientRect().width);
+  await page.locator('#arenaStartTournament').click();
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.mode)).toBe('tournament');
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('running');
+  await expect.poll(async () => page.evaluate(() => window.CaissaArena.game.history().length), { timeout: 15_000 }).toBeGreaterThan(0);
   await page.evaluate(() => {
     window.__arenaTournamentWorkers = [
       window.CaissaArena.whiteEngineInstance,
@@ -301,10 +305,6 @@ test('active tournament continues across tabs without worker recreation', async 
     window.__arenaTournamentRuntimeIds = window.__arenaTournamentWorkers
       .map(worker => worker.getRuntimeIdentity().runtimeInstanceId);
   });
-  await page.locator('#arenaStartTournament').click();
-  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.mode)).toBe('tournament');
-  await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('running');
-  await expect.poll(async () => page.evaluate(() => window.CaissaArena.game.history().length), { timeout: 15_000 }).toBeGreaterThan(0);
   const firstMoveCount = await page.evaluate(() => window.CaissaArena.game.history().length);
 
   await page.getByRole('tab', { name: 'Game' }).click();

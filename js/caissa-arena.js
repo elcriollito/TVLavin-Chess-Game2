@@ -52,7 +52,7 @@ const CaissaArena = {
         cancelPendingSearch: null,
         tournament: {
             engines: [],
-            format: 'swiss',
+            format: 'round-robin',
             rounds: 3,
             openingMode: 'free',
             standings: [],
@@ -1267,6 +1267,7 @@ const CaissaArena = {
             const success = await this.initEngines();
             if (!startIsCurrent()) return cancelStaleStart();
             if (!success) {
+                this.destroyEngines();
                 const message = 'Selected engine could not verify its runtime identity and is unavailable for this session.';
                 this.updateGameStatus({ result: message });
                 alert(message);
@@ -1381,6 +1382,8 @@ const CaissaArena = {
         }
         console.log('[Arena] Stopping match');
         this.state.startToken += 1;
+        clearTimeout(this._tournamentAdvanceTimer);
+        this._tournamentAdvanceTimer = null;
         this.state.matchState = 'idle';
         this.state.loopActive = false;
         this.cancelActiveSearch('match stopped');
@@ -1391,6 +1394,16 @@ const CaissaArena = {
         this.destroyEngines();
 
         window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
+        // Stop can race a Tournament transition that temporarily marked the
+        // shared Match start button as loading. Always clear that snapshot and
+        // then derive disabled state from the currently selected providers.
+        window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
+        if (this.elements.startMatchBtn) {
+            const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
+            const selectedEnginesValid = this.isEngineRunnable(this.state.whiteEngine)
+                && this.isEngineRunnable(this.state.blackEngine);
+            this.elements.startMatchBtn.disabled = !(adapterAvailable && selectedEnginesValid);
+        }
         this.updateMatchControls();
 
         this.updateGameStatus({ result: 'Match stopped' });
@@ -1499,8 +1512,11 @@ const CaissaArena = {
     enableMatchControls() {
         const { startMatchBtn } = this.elements;
         if (startMatchBtn) {
-            if (this.state.engineBinaryAvailable === false) {
-                console.warn('[Arena] Not enabling controls: engine binary missing');
+            const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
+            const selectedEnginesValid = this.isEngineRunnable(this.state.whiteEngine)
+                && this.isEngineRunnable(this.state.blackEngine);
+            if (this.state.engineBinaryAvailable === false || !adapterAvailable || !selectedEnginesValid) {
+                console.warn('[Arena] Not enabling controls: selected engine runtime unavailable');
                 startMatchBtn.disabled = true;
                 return;
             }
@@ -2312,7 +2328,9 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('arena error');
         this.state.loopRunning = false;
-        this.runtimeManager?.stopAll();
+        this.runtimeManager?.terminateAll('arena-error');
+        this.enginesReady = false;
+        this.evaluatorReady = false;
         this.updateMatchControls();
 
         console.warn('[Arena] Match stopped after error:', message);
@@ -2568,7 +2586,7 @@ const CaissaArena = {
 
         this.state.tournament = {
             engines: selectedEngines,
-            format: 'swiss',
+            format: 'round-robin',
             rounds: rounds,
             openingMode: openingMode,
             standings: selectedEngines.map(e => ({ engine: e, points: 0, games: 0 })),
@@ -2576,51 +2594,24 @@ const CaissaArena = {
             games: []
         };
 
-        this.generateSwissPairings();
+        this.generateRoundRobinPairings();
         this.updateTournamentUI();
         this.playNextTournamentGame();
     },
 
-    generateSwissPairings() {
-        const { engines, standings, currentRound, rounds } = this.state.tournament;
+    generateRoundRobinPairings() {
+        const { engines, currentRound, rounds } = this.state.tournament;
 
         if (currentRound >= rounds) {
             console.log('[Arena] Tournament complete!');
             return [];
         }
 
-        // Sort by points for Swiss pairing. With an odd field, rotate the bye by
-        // seeded participant so every registered provider can actually compete.
-        const sorted = [...standings].sort((a, b) => b.points - a.points);
-        if (sorted.length % 2 === 1) {
-            const byeIndex = (engines.length - 1 - (currentRound % engines.length) + engines.length)
-                % engines.length;
-            const byeProviderId = engines[byeIndex]?.id;
-            const sortedByeIndex = sorted.findIndex(standing => standing.engine.id === byeProviderId);
-            if (sortedByeIndex >= 0) sorted.splice(sortedByeIndex, 1);
+        if (!window.ArenaTournamentScheduler?.getRoundPairings) {
+            throw new Error('Arena round-robin scheduler is unavailable.');
         }
-
-        const pairings = [];
-        const paired = new Set();
-
-        for (let i = 0; i < sorted.length; i++) {
-            if (paired.has(sorted[i].engine.id)) continue;
-
-            for (let j = i + 1; j < sorted.length; j++) {
-                if (paired.has(sorted[j].engine.id)) continue;
-
-                pairings.push({
-                    white: sorted[i].engine,
-                    black: sorted[j].engine,
-                    round: currentRound,
-                    result: null
-                });
-
-                paired.add(sorted[i].engine.id);
-                paired.add(sorted[j].engine.id);
-                break;
-            }
-        }
+        const pairings = ArenaTournamentScheduler.getRoundPairings(engines, currentRound)
+            .map(pairing => ({ ...pairing, result: null }));
 
         this.state.tournament.games.push(...pairings);
         return pairings;
@@ -2632,7 +2623,7 @@ const CaissaArena = {
         if (!pendingGame) {
             this.state.tournament.currentRound++;
             if (this.state.tournament.currentRound < this.state.tournament.rounds) {
-                this.generateSwissPairings();
+                this.generateRoundRobinPairings();
                 this.playNextTournamentGame();
             } else {
                 this.finishTournament();

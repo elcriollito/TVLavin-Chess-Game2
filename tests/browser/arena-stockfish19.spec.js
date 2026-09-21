@@ -295,8 +295,8 @@ test('three-runtime Tournament completes three truthful rounds without worker gr
   expect(recorded).toMatchObject({
     result: '1/2-1/2',
     termination: 'Draw by adjudication',
-    points: 0.5,
-    games: 1,
+    points: 1,
+    games: 2,
     searchesStopped: true
   });
   expect(recorded.moves).toBeGreaterThan(0);

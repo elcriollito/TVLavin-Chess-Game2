@@ -291,8 +291,8 @@ test('three-participant Tournament rotates the bye, runs Stockfish 18, and recor
   expect(recorded.result).toBe('1/2-1/2');
   expect(recorded.termination).toBe('Draw by adjudication');
   expect(recorded.preservedMoves).toBeGreaterThan(0);
-  expect(recorded.points).toBe(0.5);
-  expect(recorded.games).toBe(1);
+  expect(recorded.points).toBe(1);
+  expect(recorded.games).toBe(2);
   expect(recorded.drawCells).toBeGreaterThanOrEqual(4);
   expect(recorded.searchesStoppedAtRecord).toBe(true);
   expectSf18Runtime(recorded.runtime);
