@@ -238,10 +238,13 @@ class RealLc0RelayClient {
       this.metrics.forced = ended.forcedTerminations;
       if (ended.parentWorkers || ended.pthreadWorkers || !ended.cleanupAcknowledged || ended.forcedTerminations)
         throw new Error('CLEANUP_NOT_COOPERATIVE');
+      this.closed = true;
+      clearInterval(this.heartbeatTimer);
+      clearTimeout(this.reconnectTimer);
       await this.message('CLEANUP', { evidence: { parentWorkers: ended.parentWorkers,
         pthreadWorkers: ended.pthreadWorkers, runtimeState: ended.state,
         cleanupAcknowledged: ended.cleanupAcknowledged, forcedTerminations: ended.forcedTerminations } });
-      this.closed = true; this.controller?.abort(); clearInterval(this.heartbeatTimer);
+      this.controller?.abort();
       for (const key of ['session', 'credential', 'cursor']) sessionStorage.removeItem(`eae012-engine-${key}`);
       $('#status').textContent = 'CLEANED'; $('#disconnect').disabled = true;
     }

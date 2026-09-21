@@ -15,19 +15,29 @@ if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 20 ||
     !['infinite', 'nodes'].includes(SEARCH_MODE)) throw new Error('TEST_MODE_INVALID');
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const browser = await chromium.launch({ headless: true });
-let user = null, ownerToken = null, sessionId = null, page = null, mainStream = null;
+let user = null, ownerToken = null, clerkSessionId = null, tokenIssuedAt = 0;
+let sessionId = null, page = null, mainStream = null;
 const report = { start: Date.now(), timings: {} };
 const networkErrors = [];
 
-async function api(action, { origin = MAIN, auth = ownerToken, body, session = sessionId } = {}) {
+async function freshOwnerToken() {
+  if (!ownerToken || Date.now() - tokenIssuedAt > 30_000) {
+    ownerToken = (await clerk.sessions.getToken(clerkSessionId)).jwt;
+    tokenIssuedAt = Date.now();
+  }
+  return ownerToken;
+}
+
+async function api(action, { origin = MAIN, auth, body, session = sessionId } = {}) {
   const url = new URL('/api/eae011', origin);
   url.searchParams.set('action', action);
   if (session) url.searchParams.set('sessionId', session);
   const started = performance.now();
+  const credential = auth === undefined && origin === MAIN ? await freshOwnerToken() : auth;
   const response = await fetch(url, { method: body ? 'POST' : 'GET',
     signal: AbortSignal.timeout(20_000),
     headers: { Origin: origin, 'x-vercel-protection-bypass': process.env.EAE012_BYPASS,
-      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+      ...(credential ? { Authorization: `Bearer ${credential}` } : {}),
       ...(body ? { 'Content-Type': 'application/json' } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {}) });
   const value = await response.json().catch(() => ({}));
@@ -56,7 +66,7 @@ function openMainStream() {
       url.searchParams.set('cursor', String(stream.cursor));
       try {
         const response = await fetch(url, { signal: controller.signal,
-          headers: { Origin: MAIN, Authorization: `Bearer ${ownerToken}`,
+          headers: { Origin: MAIN, Authorization: `Bearer ${await freshOwnerToken()}`,
             'x-vercel-protection-bypass': process.env.EAE012_BYPASS } });
         if (!response.ok) throw new Error(`MAIN_STREAM_${response.status}`);
         const reader = response.body.getReader(), decoder = new TextDecoder();
@@ -97,7 +107,9 @@ try {
   user = await clerk.users.createUser({ emailAddress: [`eae012-smoke-${crypto.randomUUID()}@example.com`],
     skipPasswordRequirement: true });
   const clerkSession = await clerk.sessions.createSession({ userId: user.id });
-  ownerToken = (await clerk.sessions.getToken(clerkSession.id)).jwt;
+  clerkSessionId = clerkSession.id;
+  ownerToken = (await clerk.sessions.getToken(clerkSessionId)).jwt;
+  tokenIssuedAt = Date.now();
   const created = await api('create', { body: { competitionId: `eae012-${Date.now()}`,
     participantRole: 'white' }, session: null });
   sessionId = created.value.sessionId; report.timings.createMs = created.ms;
@@ -197,6 +209,10 @@ try {
   await api('advance', { body: { mode: 'release', searchId } });
   const engineState = await page.evaluate(() => ({ snapshot: window.Eae012Engine.runtime.snapshot(),
     metrics: window.Eae012Engine.metrics, status: document.querySelector('#status')?.textContent }));
+  const streamWait = performance.now();
+  while (mainStream.events.filter(item => item.type === 'BESTMOVE').length < CYCLES &&
+      performance.now() - streamWait < 5_000)
+    await new Promise(resolve => setTimeout(resolve, 100));
   await mainStream.close();
   await api('terminate', { body: {} }); sessionId = null;
   report.runtime = { name: initial.runtime.identity.name, author: initial.runtime.identity.author,
@@ -211,7 +227,8 @@ try {
     bestmoves: mainStream.events.filter(item => item.type === 'BESTMOVE').length };
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(mainStream.errors, []);
-  assert.equal(report.mainStream.bestmoves, CYCLES);
+  assert.equal(report.mainStream.bestmoves, CYCLES,
+    `Main SSE events: ${mainStream.events.map(item => item.type).join(',')}`);
   console.log(`EAE012_REAL_PREVIEW_SMOKE ${JSON.stringify(report)}`);
 } catch (error) {
   const state = page && !page.isClosed() ? await page.evaluate(() => ({
