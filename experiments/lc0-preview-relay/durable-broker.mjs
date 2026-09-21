@@ -80,6 +80,7 @@ export class DurableBroker {
       bestmove: null, stopped: false, cleanup: false, reuseReadyFor: null,
       identity: null, cleanupEvidence: null,
       seenSearchIds: [], events: [], nextEventId: 0, lastAck: null,
+      mainAckCursor: 0, engineAckCursor: 0,
       commandTimes: [], infoTimes: [], reconnectTimes: [], claimAttempts: 0
     };
     const result = await this.store.create({ sessionId, ownerId: userId, competitionId,
@@ -351,20 +352,28 @@ export class DurableBroker {
         return { error: new RelayError('RECONNECT_RATE_LIMIT', 429) };
       const key = role === 'main' ? 'mainEpoch' : 'engineEpoch';
       const until = role === 'main' ? 'mainStreamUntil' : 'engineStreamUntil';
+      const acknowledged = role === 'main' ? state.mainAckCursor : state.engineAckCursor;
+      if (cursor < acknowledged) throw new RelayError('STREAM_CURSOR_STALE', 409);
       state[key]++;
       state[until] = now + LIMITS.streamHeartbeatMs;
       return { epoch: state[key], cursor };
     });
   }
 
-  async heartbeat(sessionId, role, authority, epoch) {
-    if (!['main', 'engine'].includes(role) || !Number.isSafeInteger(epoch) || epoch < 1)
+  async heartbeat(sessionId, role, authority, epoch, cursor = 0) {
+    if (!['main', 'engine'].includes(role) || !Number.isSafeInteger(epoch) || epoch < 1 ||
+        !Number.isSafeInteger(cursor) || cursor < 0)
       throw new RelayError('HEARTBEAT_INVALID');
     const authorize = role === 'main' ? this.owner(authority) : this.engine(authority);
     return this.mutate(sessionId, authorize, (state, _row, now) => {
       const key = role === 'main' ? 'mainEpoch' : 'engineEpoch';
       const until = role === 'main' ? 'mainStreamUntil' : 'engineStreamUntil';
+      const acknowledged = role === 'main' ? 'mainAckCursor' : 'engineAckCursor';
       if (state[key] !== epoch) throw new RelayError('STREAM_REPLACED', 409);
+      if (cursor > state.nextEventId) throw new RelayError('STREAM_CURSOR_INVALID', 409);
+      state[acknowledged] = Math.max(state[acknowledged], cursor);
+      state.events = state.events.filter(item => item.id >
+        (item.role === 'main' ? state.mainAckCursor : state.engineAckCursor));
       state[until] = now + LIMITS.streamHeartbeatMs;
       return { alive: true, epoch };
     });

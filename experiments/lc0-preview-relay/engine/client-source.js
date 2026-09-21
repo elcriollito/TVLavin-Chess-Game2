@@ -149,7 +149,7 @@ class RealLc0RelayClient {
   heartbeat(epoch) {
     clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = setInterval(() => api('heartbeat_engine', {
-      sessionId: this.sessionId, credential: this.credential, body: { epoch }
+      sessionId: this.sessionId, credential: this.credential, body: { epoch, cursor: this.cursor }
     }).catch(error => { log(`heartbeat ${error.message}`); this.controller?.abort(); }), 1500);
   }
 

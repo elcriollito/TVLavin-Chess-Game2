@@ -118,8 +118,8 @@ export default async function handler(req, res) {
     if (action === 'engine_state') return respond(res, 200,
       await broker.inspectEngine(sessionId, bearer(req)));
     if (action === 'heartbeat_engine') {
-      const { epoch } = input(req);
-      return respond(res, 200, await broker.heartbeat(sessionId, 'engine', bearer(req), epoch));
+      const { epoch, cursor } = input(req);
+      return respond(res, 200, await broker.heartbeat(sessionId, 'engine', bearer(req), epoch, cursor));
     }
     if (action === 'claim_command') {
       const { commandSeq } = input(req);
@@ -130,8 +130,8 @@ export default async function handler(req, res) {
     const userId = await mainUser(req);
     if (action === 'inspect') return respond(res, 200, await broker.inspect(sessionId, userId));
     if (action === 'heartbeat_main') {
-      const { epoch } = input(req);
-      return respond(res, 200, await broker.heartbeat(sessionId, 'main', userId, epoch));
+      const { epoch, cursor } = input(req);
+      return respond(res, 200, await broker.heartbeat(sessionId, 'main', userId, epoch, cursor));
     }
     if (action === 'command') return respond(res, 202,
       await broker.command(sessionId, userId, input(req)));

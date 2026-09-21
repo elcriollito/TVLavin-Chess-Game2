@@ -274,6 +274,42 @@ test('normalized command bounds and cooperative cleanup evidence fail closed', a
     cleanupEvidence);
 });
 
+test('acknowledged role cursors prune only delivered events across twenty searches', async () => {
+  const f = fixture(), session = await open(f);
+  const main = await f.first.connect(session.sessionId, 'main', userA);
+  const engine = await f.second.connect(session.sessionId, 'engine', session.engineCredential);
+  let mainCursor = 0, engineCursor = 0;
+  await command(f.first, session, 'HELLO'); await ack(f.second, session, 'HELLO');
+  await message(f.second, session, 'READY', { identity });
+  for (let cycle = 0; cycle < 20; cycle += 1) {
+    f.advance(1_000);
+    const searchId = `search_${String(cycle).padStart(8, '0')}`;
+    await command(f.first, session, 'POSITION', { fen: 'startpos', moves: [] });
+    await ack(f.second, session, 'POSITION');
+    await command(f.first, session, 'GO', { searchId, mode: 'nodes', nodes: 1 });
+    await ack(f.second, session, 'GO', searchId);
+    await stop(f, session, searchId);
+    if (cycle < 19) {
+      await command(f.first, session, 'RESET', { searchId });
+      await ack(f.second, session, 'RESET', searchId);
+      await message(f.second, session, 'READY', { identity });
+    }
+    const mainPoll = await f.first.poll(session.sessionId, 'main', userA, main.epoch, mainCursor);
+    const enginePoll = await f.second.poll(session.sessionId, 'engine', session.engineCredential,
+      engine.epoch, engineCursor);
+    mainCursor = mainPoll.cursor; engineCursor = enginePoll.cursor;
+    await f.first.heartbeat(session.sessionId, 'main', userA, main.epoch, mainCursor);
+    await f.second.heartbeat(session.sessionId, 'engine', session.engineCredential,
+      engine.epoch, engineCursor);
+    assert.equal((await f.store.get(session.sessionId)).state.events.length, 0);
+  }
+  const state = (await f.store.get(session.sessionId)).state;
+  assert.equal(state.completedSearchId, 'search_00000019');
+  assert.ok(state.nextEventId > 128);
+  await assert.rejects(f.first.connect(session.sessionId, 'main', userA, 0),
+    { code: 'STREAM_CURSOR_STALE' });
+});
+
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {
   const claim = fixture();
   const unclaimed = await claim.first.create({ userId: userA, competitionId: 'expiry', participantRole: 'white' });

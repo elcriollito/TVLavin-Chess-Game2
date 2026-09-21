@@ -7498,7 +7498,7 @@ var RealLc0RelayClient = class {
     this.heartbeatTimer = setInterval(() => api("heartbeat_engine", {
       sessionId: this.sessionId,
       credential: this.credential,
-      body: { epoch }
+      body: { epoch, cursor: this.cursor }
     }).catch((error) => {
       log(`heartbeat ${error.message}`);
       this.controller?.abort();

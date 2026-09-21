@@ -9,9 +9,13 @@ if (process.env.EAE012_LIVE_PREVIEW !== '1' || !process.env.EAE012_BYPASS ||
   throw new Error('EAE012_PREVIEW_TEST_CREDENTIALS_REQUIRED');
 const MAIN = 'https://eae012-main-elcriollitos-projects.vercel.app';
 const ENGINE = 'https://eae012-engine-elcriollitos-projects.vercel.app';
+const CYCLES = Number(process.env.EAE012_CYCLES || 1);
+const SEARCH_MODE = process.env.EAE012_SEARCH_MODE || 'infinite';
+if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 20 ||
+    !['infinite', 'nodes'].includes(SEARCH_MODE)) throw new Error('TEST_MODE_INVALID');
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const browser = await chromium.launch({ headless: true });
-let user = null, ownerToken = null, sessionId = null, page = null;
+let user = null, ownerToken = null, sessionId = null, page = null, mainStream = null;
 const report = { start: Date.now(), timings: {} };
 const networkErrors = [];
 
@@ -41,6 +45,54 @@ async function phase(expected, timeoutMs = 20_000) {
   throw new Error(`PHASE_TIMEOUT_${expected}`);
 }
 
+function openMainStream() {
+  const stream = { cursor: 0, events: [], stopped: false, controller: null, errors: [] };
+  stream.task = (async () => {
+    while (!stream.stopped) {
+      const controller = new AbortController(); stream.controller = controller;
+      const url = new URL('/api/eae011', MAIN);
+      url.searchParams.set('action', 'stream_main');
+      url.searchParams.set('sessionId', sessionId);
+      url.searchParams.set('cursor', String(stream.cursor));
+      try {
+        const response = await fetch(url, { signal: controller.signal,
+          headers: { Origin: MAIN, Authorization: `Bearer ${ownerToken}`,
+            'x-vercel-protection-bypass': process.env.EAE012_BYPASS } });
+        if (!response.ok) throw new Error(`MAIN_STREAM_${response.status}`);
+        const reader = response.body.getReader(), decoder = new TextDecoder();
+        let buffer = '', heartbeatTimer = null;
+        try {
+          while (!stream.stopped) {
+            const { done, value } = await reader.read(); if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let boundary;
+            while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+              const frame = buffer.slice(0, boundary); buffer = buffer.slice(boundary + 2);
+              const line = frame.split('\n').find(part => part.startsWith('data: '));
+              const id = frame.split('\n').find(part => part.startsWith('id: '));
+              if (frame.startsWith('event: lease') && line) {
+                const epoch = JSON.parse(line.slice(6)).epoch;
+                clearInterval(heartbeatTimer);
+                heartbeatTimer = setInterval(() => api('heartbeat_main', {
+                  body: { epoch, cursor: stream.cursor }
+                }).catch(error => stream.errors.push(error.message)), 1500);
+              } else if (line && id) {
+                stream.cursor = Math.max(stream.cursor, Number(id.slice(4)));
+                stream.events.push(JSON.parse(line.slice(6)));
+              }
+            }
+          }
+        } finally { clearInterval(heartbeatTimer); }
+      } catch (error) {
+        if (!stream.stopped && error.name !== 'AbortError') stream.errors.push(error.message);
+      }
+      if (!stream.stopped) await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  })();
+  stream.close = async () => { stream.stopped = true; stream.controller?.abort(); await stream.task; };
+  return stream;
+}
+
 try {
   user = await clerk.users.createUser({ emailAddress: [`eae012-smoke-${crypto.randomUUID()}@example.com`],
     skipPasswordRequirement: true });
@@ -49,6 +101,7 @@ try {
   const created = await api('create', { body: { competitionId: `eae012-${Date.now()}`,
     participantRole: 'white' }, session: null });
   sessionId = created.value.sessionId; report.timings.createMs = created.ms;
+  mainStream = openMainStream();
   const context = await browser.newContext();
   const cookieResponse = await context.request.get(`${ENGINE}/api/eae011?action=health`, {
     headers: { 'x-vercel-protection-bypass': process.env.EAE012_BYPASS,
@@ -89,18 +142,51 @@ try {
   await command('HELLO');
   const ready = await phase('READY');
   assert.equal(ready.identity.runtimeInstanceId, initial.identity.runtimeInstanceId);
-  await command('POSITION', { fen: 'startpos', moves: [] });
-  await phase('POSITION_ACKED');
-  const searchId = `search_${crypto.randomUUID()}`;
-  await command('GO', { searchId, mode: 'infinite' });
-  await phase('SEARCHING');
-  await page.waitForFunction(() => window.Eae012Engine.metrics.rawInfo > 0, null, { timeout: 10_000 });
-  const stopAt = performance.now();
-  await command('STOP', { searchId });
-  const stopped = await phase('STOPPED');
-  report.timings.stopToStoppedMs = performance.now() - stopAt;
-  const move = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(stopped.bestmove || '');
-  assert.ok(move); assert.ok(new Chess().move({ from: move[1], to: move[2], promotion: move[3] || 'q' }));
+  const chess = new Chess(), searches = [];
+  let searchId;
+  for (let cycle = 0; cycle < CYCLES; cycle += 1) {
+    if (chess.isGameOver()) chess.reset();
+    const fen = cycle === 0 ? 'startpos' : chess.fen();
+    await command('POSITION', { fen, moves: [] });
+    await phase('POSITION_ACKED');
+    searchId = `search_${crypto.randomUUID()}`;
+    const rawBefore = await page.evaluate(() => window.Eae012Engine.metrics.rawInfo);
+    await command('GO', { searchId, mode: SEARCH_MODE,
+      ...(SEARCH_MODE === 'nodes' ? { nodes: 1 } : {}) });
+    await phase('SEARCHING');
+    if (SEARCH_MODE === 'infinite')
+      await page.waitForFunction(before => window.Eae012Engine.metrics.rawInfo > before,
+        rawBefore, { timeout: 10_000 });
+    else await new Promise(resolve => setTimeout(resolve, 200));
+    const stopAt = performance.now();
+    await command('STOP', { searchId });
+    const stopped = await phase('STOPPED');
+    const stopToStoppedMs = performance.now() - stopAt;
+    const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(stopped.bestmove || '');
+    assert.ok(parts);
+    const move = chess.move({ from: parts[1], to: parts[2], promotion: parts[3] || 'q' });
+    assert.ok(move, `Illegal bestmove for cycle ${cycle + 1}`);
+    searches.push({ cycle: cycle + 1, searchId, fen, move: stopped.bestmove,
+      san: move.san, stopToStoppedMs });
+    if (cycle + 1 < CYCLES) {
+      await command('RESET', { searchId });
+      const reused = await phase('REUSE_READY');
+      assert.equal(reused.identity.runtimeInstanceId, initial.identity.runtimeInstanceId);
+      const gate = await api('advance', { body: { mode: 'reuse', searchId } });
+      assert.equal(gate.value.advanceAllowed, true);
+      if (chess.isGameOver()) chess.reset();
+      else {
+        const reply = chess.moves({ verbose: true })
+          .map(candidate => ({ candidate, uci: `${candidate.from}${candidate.to}${candidate.promotion || ''}` }))
+          .sort((a, b) => a.uci.localeCompare(b.uci))[0];
+        assert.ok(reply);
+        chess.move({ from: reply.candidate.from, to: reply.candidate.to,
+          promotion: reply.candidate.promotion });
+      }
+    }
+  }
+  report.searches = searches;
+  report.timings.stopToStoppedMs = searches.map(item => item.stopToStoppedMs);
   const quitAt = performance.now();
   await command('QUIT');
   const cleaned = await phase('CLEANED');
@@ -111,15 +197,21 @@ try {
   await api('advance', { body: { mode: 'release', searchId } });
   const engineState = await page.evaluate(() => ({ snapshot: window.Eae012Engine.runtime.snapshot(),
     metrics: window.Eae012Engine.metrics, status: document.querySelector('#status')?.textContent }));
+  await mainStream.close();
   await api('terminate', { body: {} }); sessionId = null;
   report.runtime = { name: initial.runtime.identity.name, author: initial.runtime.identity.author,
     networkSha256: initial.runtime.identity.networkSha256, runtimeInstanceId: initial.identity.runtimeInstanceId };
-  report.bestmove = stopped.bestmove;
+  report.bestmove = searches.at(-1).move;
   report.cleanup = cleaned.cleanupEvidence;
   report.engine = { state: engineState.snapshot.state, workers: engineState.snapshot.workers,
     maxWorkers: engineState.snapshot.maxWorkers, metrics: engineState.metrics };
   report.pageErrors = pageErrors;
+  report.mainStream = { events: mainStream.events.length, errors: mainStream.errors,
+    ready: mainStream.events.some(item => item.type === 'READY'),
+    bestmoves: mainStream.events.filter(item => item.type === 'BESTMOVE').length };
   assert.deepEqual(pageErrors, []);
+  assert.deepEqual(mainStream.errors, []);
+  assert.equal(report.mainStream.bestmoves, CYCLES);
   console.log(`EAE012_REAL_PREVIEW_SMOKE ${JSON.stringify(report)}`);
 } catch (error) {
   const state = page && !page.isClosed() ? await page.evaluate(() => ({
@@ -132,6 +224,7 @@ try {
   console.error(`EAE012_REAL_PREVIEW_FAILURE ${JSON.stringify({ error: error.message, state, networkErrors })}`);
   throw error;
 } finally {
+  if (mainStream) await mainStream.close();
   if (sessionId && ownerToken) await api('terminate', { body: {} }).catch(() => {});
   await browser.close();
   if (user) await clerk.users.deleteUser(user.id);

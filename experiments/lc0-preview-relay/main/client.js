@@ -109,7 +109,7 @@ class MainPreviewClient {
   heartbeat(epoch) {
     clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = setInterval(() => api('heartbeat_main', { sessionId: this.sessionId,
-      body: { epoch } }).catch(error => { log(`heartbeat ${error.message}`); this.disconnect(); }), 1500);
+      body: { epoch, cursor: this.cursor } }).catch(error => { log(`heartbeat ${error.message}`); this.disconnect(); }), 1500);
   }
 
   async consume(body, controller) {
