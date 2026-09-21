@@ -125,7 +125,7 @@ export default async function handler(req, res) {
       const { commandSeq } = input(req);
       return respond(res, 200, await broker.claimCommand(sessionId, bearer(req), commandSeq));
     }
-    if (action === 'stream_engine') return stream(req, res, broker, sessionId,
+    if (action === 'stream_engine') return await stream(req, res, broker, sessionId,
       'engine', bearer(req), Number(req.query?.cursor || 0));
     const userId = await mainUser(req);
     if (action === 'inspect') return respond(res, 200, await broker.inspect(sessionId, userId));
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
       return respond(res, 200, await broker.advance(sessionId, userId, mode, searchId));
     }
     if (action === 'terminate') return respond(res, 200, await broker.terminate(sessionId, userId));
-    if (action === 'stream_main') return stream(req, res, broker, sessionId,
+    if (action === 'stream_main') return await stream(req, res, broker, sessionId,
       'main', userId, Number(req.query?.cursor || 0));
     throw new RelayError('ENDPOINT_NOT_FOUND', 404);
   } catch (error) {
