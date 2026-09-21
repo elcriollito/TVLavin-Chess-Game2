@@ -11,8 +11,10 @@ const MAIN = 'https://eae012-main-elcriollitos-projects.vercel.app';
 const ENGINE = 'https://eae012-engine-elcriollitos-projects.vercel.app';
 const CYCLES = Number(process.env.EAE012_CYCLES || 1);
 const SEARCH_MODE = process.env.EAE012_SEARCH_MODE || 'infinite';
+const RECONNECT = process.env.EAE012_RECONNECT || 'none';
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 20 ||
-    !['infinite', 'nodes'].includes(SEARCH_MODE)) throw new Error('TEST_MODE_INVALID');
+    !['infinite', 'nodes'].includes(SEARCH_MODE) ||
+    !['none', 'idle', 'search'].includes(RECONNECT)) throw new Error('TEST_MODE_INVALID');
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const browser = await chromium.launch({ headless: true });
 let user = null, ownerToken = null, clerkSessionId = null, tokenIssuedAt = 0;
@@ -154,6 +156,14 @@ try {
   await command('HELLO');
   const ready = await phase('READY');
   assert.equal(ready.identity.runtimeInstanceId, initial.identity.runtimeInstanceId);
+  if (RECONNECT === 'idle') {
+    await page.evaluate(() => window.Eae012Engine.disconnect());
+    await new Promise(resolve => setTimeout(resolve, 350));
+    await page.evaluate(() => window.Eae012Engine.reconnect());
+    assert.equal((await page.evaluate(() => window.Eae012Engine.identity.runtimeInstanceId)),
+      initial.identity.runtimeInstanceId);
+    report.reconnect = { mode: 'idle', sameRuntime: true };
+  }
   const chess = new Chess(), searches = [];
   let searchId;
   for (let cycle = 0; cycle < CYCLES; cycle += 1) {
@@ -170,6 +180,15 @@ try {
       await page.waitForFunction(before => window.Eae012Engine.metrics.rawInfo > before,
         rawBefore, { timeout: 10_000 });
     else await new Promise(resolve => setTimeout(resolve, 200));
+    if (RECONNECT === 'search' && cycle === 0) {
+      await page.evaluate(() => window.Eae012Engine.disconnect());
+      await new Promise(resolve => setTimeout(resolve, 350));
+      await page.evaluate(() => window.Eae012Engine.reconnect());
+      assert.equal((await page.evaluate(() => window.Eae012Engine.identity.runtimeInstanceId)),
+        initial.identity.runtimeInstanceId);
+      report.reconnect = { mode: 'search', sameRuntime: true,
+        policy: 'local stop, then await matching relay STOP' };
+    }
     const stopAt = performance.now();
     await command('STOP', { searchId });
     const stopped = await phase('STOPPED');

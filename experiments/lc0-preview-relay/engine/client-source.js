@@ -291,7 +291,8 @@ class RealLc0RelayClient {
   async reconnect() {
     clearTimeout(this.reconnectTimer);
     const state = await api('engine_state', { sessionId: this.sessionId, credential: this.credential });
-    if (state.identity && JSON.stringify(state.identity) !== JSON.stringify(this.identity))
+    if (state.identity && Object.keys(PIN).concat('runtimeInstanceId')
+      .some(key => state.identity[key] !== this.identity[key]))
       throw new Error('RECONNECT_IDENTITY_MISMATCH');
     if (this.active && state.activeSearchId !== this.active.searchId)
       throw new Error('RECONNECT_SEARCH_MISMATCH');
