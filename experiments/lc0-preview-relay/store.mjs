@@ -43,7 +43,12 @@ export class MemoryStore {
 }
 
 function dbError(error) {
-  if (error) throw new RelayError('STORE_UNAVAILABLE', 503);
+  if (error) {
+    // Code/status only: never emit SQL values, headers, keys or relay credentials.
+    console.error('EAE011_STORE_ERROR', String(error.code || 'NO_CODE'),
+      Number(error.status || 0));
+    throw new RelayError('STORE_UNAVAILABLE', 503);
+  }
 }
 
 export class SupabaseStore {
