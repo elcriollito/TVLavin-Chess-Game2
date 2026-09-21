@@ -1011,7 +1011,11 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
-        this.prewarmEngines();
+        // The relay participant is intentionally user-started, not prewarmed.
+        // Selection changes may momentarily show Lc0 on both sides while the
+        // other select is being updated; never acquire two isolated sessions.
+        if (![this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
         const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
@@ -1655,6 +1659,8 @@ const CaissaArena = {
      * Creates three independent engine workers (white, black, evaluator)
      */
     prewarmEngines() {
+        if ([this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) return Promise.resolve(false);
         if (this.enginesReady && this.playerInstancesMatchSelections()) return Promise.resolve(true);
         if (this._prewarmPromise) return this._prewarmPromise;
         if (this.state.engineBinaryAvailable === false) return Promise.resolve(false);
@@ -1662,6 +1668,8 @@ const CaissaArena = {
         this._prewarmPromise = (async () => {
             let initialized = false;
             do {
+                if ([this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+                    candidate?.id === 'lc0-maia-1100-preview')) break;
                 initialized = await this.initEngines();
             } while (initialized && !this.playerInstancesMatchSelections());
             return initialized;
@@ -1686,6 +1694,18 @@ const CaissaArena = {
             const whiteConfig = this.state.whiteEngine || this.engines[0];
             const blackConfig = this.state.blackEngine || this.engines[1] || this.engines[0];
             const evalConfig = this.engines.find(e => e.id === 'stockfish') || whiteConfig;
+            if (whiteConfig.id === 'lc0-maia-1100-preview' &&
+                blackConfig.id === 'lc0-maia-1100-preview')
+                throw new Error('Only one Lc0 preview participant is permitted per competition.');
+            // A Tournament can move its one Lc0 entrant between colors. Await
+            // the old role's cooperative cleanup before constructing the new
+            // role, so two isolated Lc0 runtimes never overlap transiently.
+            if (whiteConfig.id === 'lc0-maia-1100-preview' &&
+                this.blackEngineInstance?.providerId === whiteConfig.id)
+                await this.runtimeManager.terminate('black', 'lc0-role-transition');
+            if (blackConfig.id === 'lc0-maia-1100-preview' &&
+                this.whiteEngineInstance?.providerId === blackConfig.id)
+                await this.runtimeManager.terminate('white', 'lc0-role-transition');
 
             const [whiteInstance, blackInstance, evaluatorInstance] = await Promise.all([
                 this.runtimeManager.acquire('white', whiteConfig.id),
@@ -2319,22 +2339,27 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('tournament draw adjudicated');
         this.state.loopRunning = false;
-        Promise.resolve(this.runtimeManager.stopAll()).catch(error => this.handleError(error.message));
-
-        if (this.state.currentGame) {
-            this.state.currentGame.result = '1/2-1/2';
-            this.state.currentGame.termination = 'Draw by adjudication';
-            this.state.currentGame.endTime = Date.now();
+        const stopped = this.runtimeManager.stopAll();
+        const finishDraw = () => {
+            if (this.state.currentGame) {
+                this.state.currentGame.result = '1/2-1/2';
+                this.state.currentGame.termination = 'Draw by adjudication';
+                this.state.currentGame.endTime = Date.now();
+            }
+            this.updateMatchControls();
+            this.updateGameStatus({
+                result: 'Draw by adjudication',
+                moveCount: this.game?.history().length || 0
+            });
+            this.recordTournamentResult('1/2-1/2');
+            window.dispatchEvent(new CustomEvent('caissa-arena-tournament-draw'));
+            this.scheduleNextTournamentGame();
+        };
+        if (stopped && typeof stopped.then === 'function') {
+            stopped.then(finishDraw).catch(error => this.handleError(error.message));
+        } else {
+            finishDraw();
         }
-
-        this.updateMatchControls();
-        this.updateGameStatus({
-            result: 'Draw by adjudication',
-            moveCount: this.game?.history().length || 0
-        });
-        this.recordTournamentResult('1/2-1/2');
-        window.dispatchEvent(new CustomEvent('caissa-arena-tournament-draw'));
-        this.scheduleNextTournamentGame();
         return true;
     },
 

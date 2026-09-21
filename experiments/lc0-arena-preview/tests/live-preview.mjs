@@ -94,7 +94,8 @@ try {
       await page.waitForFunction(() => window.CaissaArenaPreview?.pendingPopup?.adapter?.sessionId,
         null, { timeout: 15_000 });
       const beforePages = context.pages().length;
-      await page.locator('.arena-lc0-preview-control button').click({ timeout: 10_000 });
+      await page.locator('#arenaPanelMatch .arena-lc0-preview-control button')
+        .click({ timeout: 10_000 });
       await page.waitForFunction(expected => window.CaissaArenaPreview.pendingPopup === null,
         null, { timeout: 5_000 });
       assert.ok(context.pages().length > beforePages, 'Isolated Lc0 popup did not open');
@@ -110,6 +111,16 @@ try {
       await page.waitForFunction(() => CaissaArena.game?.history().length >= 4,
         null, { timeout: 60_000 });
       item.movesBeforePause = await page.evaluate(() => CaissaArena.game.history());
+      await page.click('#arenaTabGame');
+      item.presentation = await page.evaluate(() => ({
+        san: document.getElementById('arenaMoveHistory')?.textContent || '',
+        evaluation: document.getElementById('arenaEvalScore')?.textContent || '',
+        pvSan: document.getElementById('arenaEvalPV')?.textContent || '',
+        evalPoints: CaissaArena.state.evalHistory.length,
+        graph: Boolean(document.getElementById('arenaEvalGraph'))
+      }));
+      assert.ok(item.presentation.san.includes(item.movesBeforePause[0]), 'Game SAN missing');
+      assert.equal(item.presentation.graph, true);
       await page.click('#arenaPauseMatch');
       await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
         !CaissaArena._pausePending, null, { timeout: 15_000 });
@@ -125,15 +136,21 @@ try {
         window.CaissaArenaPreview.adapter?.metrics?.cleanupEvidence,
         null, { timeout: 30_000 });
       item.metrics = await page.evaluate(() => window.CaissaArenaPreview.adapter.metrics);
-      item.engine = await enginePage.evaluate(() => ({ isolated: crossOriginIsolated,
-        snapshot: window.Eae012Engine.runtime.snapshot(),
-        forced: window.Eae012Engine.metrics.forced }));
+      item.engine = await enginePage.evaluate(() => {
+        const snapshot = window.Eae012Engine.runtime.snapshot();
+        return { isolated: crossOriginIsolated, state: snapshot.state,
+          workers: snapshot.workers, parentWorkers: snapshot.parentWorkers,
+          pthreadWorkers: snapshot.pthreadWorkers,
+          forced: window.Eae012Engine.metrics.forced };
+      });
       assert.equal(item.engine.isolated, true);
-      assert.equal(item.engine.snapshot.workers, 0);
+      assert.equal(item.engine.workers, 0);
+      assert.equal(item.engine.parentWorkers, 0);
+      assert.equal(item.engine.pthreadWorkers, 0);
       assert.equal(item.metrics.cleanupEvidence.parentWorkers, 0);
       assert.equal(item.metrics.cleanupEvidence.pthreadWorkers, 0);
       assert.equal(item.metrics.cleanupEvidence.forcedTerminations, 0);
-      assert.equal(await inspectSession(item.sessionId), 404);
+      assert.equal(await inspectSession(item.sessionId), 410);
       item.stage = 'complete';
       item.durationMs = performance.now() - began;
       await enginePage.close();
@@ -162,7 +179,26 @@ try {
   }
   report.pageErrors = pageErrors;
   report.finishedAt = Date.now();
-  console.log(`EAE013_ARENA_LIVE_REPORT ${JSON.stringify(report)}`);
+  const completed = report.cycles.filter(item => item.stage === 'complete');
+  const percentile = (values, fraction) => {
+    const sorted = values.slice().sort((a, b) => a - b);
+    return sorted.length ? sorted[Math.ceil(sorted.length * fraction) - 1] : null;
+  };
+  const compact = { cyclesRequested: CYCLES, completed: completed.length,
+    failures: report.failures,
+    colors: Object.fromEntries(['white', 'black'].map(color =>
+      [color, completed.filter(item => item.color === color).length])),
+    forcedKills: completed.reduce((sum, item) => sum + item.engine.forced, 0),
+    orphanWorkers: completed.reduce((sum, item) => sum + item.engine.workers +
+      item.engine.parentWorkers + item.engine.pthreadWorkers, 0),
+    cleanupEvidenceFailures: completed.filter(item =>
+      !item.metrics.cleanupEvidence?.cleanupAcknowledged).length,
+    selectionToReadyP95Ms: percentile(completed.map(item => item.metrics.selectionToReadyMs), 0.95),
+    stopP95Ms: percentile(completed.flatMap(item => item.metrics.stopMs), 0.95),
+    cleanupP95Ms: percentile(completed.map(item => item.metrics.cleanupMs), 0.95),
+    firstSearchP95Ms: percentile(completed.map(item => item.metrics.firstSearchAfterMatchStartMs), 0.95),
+    axeSeriousOrCritical: report.axeSeriousOrCritical, pageErrors };
+  console.log(`EAE013_ARENA_LIVE_REPORT ${JSON.stringify(CYCLES <= 2 ? report : compact)}`);
   assert.equal(report.failures.length, 0);
   assert.equal(report.cycles.filter(item => item.stage === 'complete').length, CYCLES);
   assert.deepEqual(pageErrors, []);

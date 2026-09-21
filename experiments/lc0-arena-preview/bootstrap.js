@@ -8,13 +8,14 @@
         adapter: null,
         pendingPopup: null,
         status(value) {
-            if (this.statusNode) this.statusNode.textContent = value;
+            for (const node of this.statusNodes || []) node.textContent = value;
         },
         info(value, fen) {
-            if (!this.infoNode || !this.adapter || this.adapter.active?.fen !== fen) return;
+            if (!this.adapter || this.adapter.active?.fen !== fen) return;
             const depth = Number.isFinite(value.depth) ? `depth ${value.depth}` : 'depth pending';
             const nodes = Number.isFinite(value.nodes) ? `, ${value.nodes} nodes` : '';
-            this.infoNode.textContent = `Lc0 search: ${depth}${nodes}. Stockfish evaluation remains separate.`;
+            for (const node of this.infoNodes || [])
+                node.textContent = `Lc0 search: ${depth}${nodes}. Stockfish evaluation remains separate.`;
         },
         waitForPopup(adapter) {
             if (this.adapter !== adapter) throw new Error('LC0_POPUP_OWNER_MISMATCH');
@@ -22,44 +23,48 @@
             return new Promise((resolve, reject) => { this.pendingPopup = { resolve, reject, adapter }; });
         },
         renderControls() {
-            const target = document.getElementById('arenaPanelMatch');
-            const body = target?.querySelector('.arena-panel-body');
-            if (!body || this.statusNode) return;
-            const panel = document.createElement('div');
-            panel.className = 'arena-lc0-preview-control';
-            panel.style.cssText = 'margin:1rem 0;padding:1rem;border:1px solid currentColor;border-radius:8px';
-            const heading = document.createElement('p');
-            heading.textContent = 'Experimental Lc0 — Maia 1100 (isolated preview)';
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'btn btn-secondary';
-            button.textContent = 'Start Lc0 Engine';
-            button.addEventListener('click', () => {
-                const pending = this.pendingPopup;
-                if (!pending) {
-                    this.status('Select Lc0 and start a Match or Tournament game first.');
-                    return;
-                }
-                // The popup is created synchronously in the user gesture. The
-                // resulting isolated page has no opener communication channel.
-                const popup = window.open('about:blank', '_blank');
-                if (!popup) {
-                    this.status('Popup blocked. Allow popups for this preview and try again.');
-                    return;
-                }
-                this.pendingPopup = null;
-                this.status('Opening isolated engine window…');
-                pending.resolve(popup);
-            });
-            const status = document.createElement('p');
-            status.setAttribute('role', 'status');
-            status.setAttribute('aria-live', 'polite');
-            const info = document.createElement('p');
-            info.setAttribute('aria-label', 'Lc0 search information');
-            panel.append(heading, button, status, info);
-            body.append(panel);
-            this.statusNode = status;
-            this.infoNode = info;
+            if (this.statusNodes?.length) return;
+            this.statusNodes = [];
+            this.infoNodes = [];
+            for (const panelId of ['arenaPanelMatch', 'arenaPanelTournament']) {
+                const body = document.getElementById(panelId)?.querySelector('.arena-panel-body');
+                if (!body) continue;
+                const panel = document.createElement('div');
+                panel.className = 'arena-lc0-preview-control';
+                panel.style.cssText = 'margin:1rem 0;padding:1rem;border:1px solid currentColor;border-radius:8px';
+                const heading = document.createElement('p');
+                heading.textContent = 'Experimental Lc0 — Maia 1100 (isolated preview)';
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-secondary';
+                button.textContent = 'Start Lc0 Engine';
+                button.addEventListener('click', () => {
+                    const pending = this.pendingPopup;
+                    if (!pending) {
+                        this.status('Select Lc0 and start a Match or Tournament game first.');
+                        return;
+                    }
+                    // The popup is created synchronously in the user gesture. The
+                    // resulting isolated page has no opener communication channel.
+                    const popup = window.open('about:blank', '_blank');
+                    if (!popup) {
+                        this.status('Popup blocked. Allow popups for this preview and try again.');
+                        return;
+                    }
+                    this.pendingPopup = null;
+                    this.status('Opening isolated engine window…');
+                    pending.resolve(popup);
+                });
+                const status = document.createElement('p');
+                status.setAttribute('role', 'status');
+                status.setAttribute('aria-live', 'polite');
+                const info = document.createElement('p');
+                info.setAttribute('aria-label', 'Lc0 search information');
+                panel.append(heading, button, status, info);
+                body.append(panel);
+                this.statusNodes.push(status);
+                this.infoNodes.push(info);
+            }
             this.status('Lc0 available on this protected desktop preview only.');
         },
         async prepare() {
