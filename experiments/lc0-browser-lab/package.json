@@ -1,0 +1,21 @@
+{
+  "name": "caissa-lc0-browser-lab",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-lab.mjs",
+    "stage": "node scripts/prepare-assets.mjs",
+    "serve": "node server.mjs",
+    "test:contracts": "node --test tests/contracts.test.mjs",
+    "test:browser": "playwright test --config playwright.config.mjs"
+  },
+  "dependencies": {
+    "chess.js": "1.4.0",
+    "onnxruntime-web": "1.27.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0",
+    "esbuild": "0.28.1"
+  }
+}

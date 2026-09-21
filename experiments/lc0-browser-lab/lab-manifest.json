@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "experiment": "CAISSA EAE-008 isolated Lc0 browser lab",
+  "source": {
+    "repository": "https://github.com/jalpp/lc0.js.git",
+    "upstreamPullRequest": "https://github.com/LeelaChessZero/lc0/pull/2432",
+    "commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+    "lc0ReportedVersion": "v0.33.0-dev+git.482bb4a",
+    "license": "GPL-3.0-or-later"
+  },
+  "toolchain": {
+    "emscripten": "3.1.64",
+    "meson": "1.8.3",
+    "ninja": "1.11.1.4",
+    "esbuild": "0.28.1",
+    "onnxruntimeWeb": "1.27.0"
+  },
+  "runtime": {
+    "backend": "onnxruntime-web-wasm-cpu",
+    "executionProviders": ["wasm"],
+    "ortThreads": 1,
+    "lc0Threads": 1,
+    "minibatchSize": 1,
+    "nnCacheSize": 2000,
+    "simd": true,
+    "pthreads": true,
+    "asyncifyStackBytes": 65536,
+    "stackBytes": 1048576,
+    "allowMemoryGrowth": true
+  },
+  "network": {
+    "id": "CSSLab Maia 1100 v1.0",
+    "sourceRepository": "https://github.com/CSSLab/maia-chess",
+    "sourceCommit": "37de81e2bef89336e03266b3b5f7e1155ba68f5d",
+    "sourceUrl": "https://github.com/CSSLab/maia-chess/releases/download/v1.0/maia-1100.pb.gz",
+    "license": "GPL-3.0",
+    "format": "Lc0 protobuf gzip",
+    "sha256": "e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4",
+    "bytes": 1313193,
+    "searchNodes": 1
+  },
+  "artifacts": {
+    "lc0.js": {
+      "bytes": 254746,
+      "sha256": "b07dc929d686d0d3b2485038367857df63cf6d8dfb25c2fc53972c3fa2c70c6b"
+    },
+    "lc0.wasm": {
+      "bytes": 9369488,
+      "sha256": "9c8bc3da3b5100d93c5d1a7d357d6a5520971785126684c5a0d3ad337b3b7485"
+    },
+    "lc0.worker.mjs": {
+      "bytes": 299,
+      "sha256": "7e6dad4bca61807357acfcb3789c781deaca3e20214ccd76dd82ddcb0be0a153"
+    },
+    "ort-wasm-simd-threaded.wasm": {
+      "bytes": 13479978,
+      "sha256": "d1ab1b94b16a65b29d710d0b587b29e7bed336827577623913479b8afe8113e6"
+    },
+    "ort-wasm-simd-threaded.mjs": {
+      "bytes": 24180,
+      "sha256": "0a1e718d99c41b22c21f2520ff4f9e883a6b5533856e398d21816ee8eb8185d3"
+    },
+    "maia-1100.pb.gz": {
+      "bytes": 1313193,
+      "sha256": "e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4"
+    }
+  }
+}
