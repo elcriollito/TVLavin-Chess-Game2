@@ -7,29 +7,12 @@
 
 console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 
-const ArenaEngineRegistry = (window.EngineRegistry && typeof EngineRegistry.list === 'function')
-    ? EngineRegistry.list()
-    : [
-        { id: 'stockfish', name: 'Stockfish 2019 MV', workerPath: 'engine/stockfish-working.js', enabled: true },
-        { id: 'stockfish-lite', name: 'Stockfish 2019 MV (Lite profile)', workerPath: 'engine/stockfish-working.js', enabled: true }
-    ];
-
 const ARENA_ENGINE_MOVETIME_MS = 2000;
 const ARENA_ENGINE_TIMEOUT_MS = 12000;
 
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
-    engines: ArenaEngineRegistry.map((engine, index) => ({
-        id: engine.id,
-        name: engine.name,
-        tier: engine.tier || (index === 0 ? 'A' : 'B'),
-        description: engine.description || (engine.id === 'stockfish' ? 'World champion engine' : 'Training mode'),
-        elo: engine.elo || (engine.id === 'stockfish' ? 3600 : 2800),
-        workerPath: engine.workerPath,
-        options: engine.options || { depth: engine.defaultDepth || 15, threads: 2 },
-        enabled: engine.enabled !== false,
-        reason: engine.notes || engine.reason || ''
-    })),
+    engines: [],
 
     // ===== BOARD INSTANCE =====
     board: null,
@@ -202,39 +185,40 @@ const CaissaArena = {
     },
 
     getEngineRegistry() {
-        if (Array.isArray(ArenaEngineRegistry)) {
-            return { engines: ArenaEngineRegistry, source: 'ArenaEngineRegistry' };
-        }
-        if (window.EngineRegistry && typeof EngineRegistry.list === 'function') {
-            return { engines: EngineRegistry.list(), source: 'EngineRegistry.list' };
+        if (window.EngineRegistry && typeof EngineRegistry.listArenaProviders === 'function') {
+            return { engines: EngineRegistry.listArenaProviders(), source: 'EngineRegistry.listArenaProviders' };
         }
         return { engines: [], source: 'none' };
     },
 
     ensureEngineRegistry() {
         const registry = this.getEngineRegistry();
-        let engines = Array.isArray(registry.engines) ? registry.engines : [];
-        let source = registry.source;
-
-        if (engines.length === 0) {
-            console.warn('[Arena] Engine registry empty. Applying fallback list.');
-            engines = [
-                { id: 'stockfish', name: 'Stockfish 2019 MV', workerPath: 'engine/stockfish-working.js', enabled: true },
-                { id: 'stockfish-lite', name: 'Stockfish 2019 MV (Lite profile)', workerPath: 'engine/stockfish-working.js', enabled: true }
-            ];
-            source = 'fallback';
-        }
+        const engines = Array.isArray(registry.engines) ? registry.engines : [];
+        const source = registry.source;
 
         this.engines = engines.map((engine, index) => ({
             id: engine.id,
-            name: engine.name,
+            providerId: engine.providerId || engine.id,
+            displayName: engine.displayName || engine.name,
+            name: engine.displayName || engine.name,
+            family: engine.family,
+            version: engine.version,
+            protocol: engine.protocol,
+            runtimeType: engine.runtimeType,
+            runtimeId: engine.runtimeId,
+            profile: engine.profile || null,
+            capabilities: engine.capabilities || {},
+            runtimeIdentityExpectation: engine.runtimeIdentityExpectation || null,
             tier: engine.tier || (index === 0 ? 'A' : 'B'),
             description: engine.description || (engine.id === 'stockfish' ? 'World champion engine' : 'Training mode'),
             elo: engine.elo || (engine.id === 'stockfish' ? 3600 : 2800),
             workerPath: engine.workerPath,
-            options: engine.options || { depth: engine.defaultDepth || 15, threads: 2 },
+            wasmPath: engine.wasmPath || '',
+            options: engine.options || { depth: engine.defaultDepth || 15 },
             enabled: engine.enabled !== false,
-            reason: engine.notes || engine.reason || ''
+            availability: engine.availability,
+            unavailableReason: engine.unavailableReason || null,
+            reason: engine.unavailableReason || engine.reason || engine.notes || ''
         }));
         this.state.enginesAvailable = engines.length > 0;
 
@@ -243,17 +227,13 @@ const CaissaArena = {
 
     createEngineInstance(engineConfig) {
         if (!engineConfig || engineConfig.enabled === false) return null;
-        if (window.EngineRegistry && typeof EngineRegistry.createEngine === 'function') {
-            const instance = EngineRegistry.createEngine(engineConfig.id);
-            if (instance) return instance;
+        if (window.EngineRegistry && typeof EngineRegistry.createArenaEngine === 'function') {
+            return EngineRegistry.createArenaEngine(engineConfig.id, {
+                owner: 'arena',
+                onRuntimeUnavailable: () => this.refreshEngineAvailabilityUI()
+            });
         }
-        if (typeof EngineAdapter !== 'undefined') {
-            return new EngineAdapter(engineConfig);
-        }
-        if (typeof StockfishEngine !== 'undefined') {
-            return new StockfishEngine();
-        }
-        console.warn('[Arena] No engine adapter available for', engineConfig?.id);
+        console.warn('[Arena] Arena provider factory unavailable for', engineConfig?.id);
         return null;
     },
 
@@ -598,6 +578,7 @@ const CaissaArena = {
         // Listen for engine moves
         window.addEventListener('caissa-engine-move', (e) => this.onEngineMove(e.detail));
         window.addEventListener('caissa-analysis-update', (e) => this.updateEvalPanel(e.detail));
+        window.addEventListener('caissa-arena-provider-availability', () => this.refreshEngineAvailabilityUI());
     },
 
     // ===== TAB SWITCHING =====
@@ -941,9 +922,10 @@ const CaissaArena = {
             this.engines.forEach(engine => {
                 const option = document.createElement('option');
                 option.value = engine.id;
-                const disabledLabel = this.isEngineRunnable(engine) ? '' : ` (${engine.reason || 'Unavailable'})`;
+                const availability = this.getEngineAvailability(engine);
+                const disabledLabel = availability.available ? '' : ` (${availability.reason || 'Unavailable'})`;
                 option.textContent = `${engine.name} (Tier ${engine.tier})${disabledLabel}`;
-                if (!this.isEngineRunnable(engine)) {
+                if (!availability.available) {
                     option.disabled = true;
                 }
                 if (engine.id === selectedId) {
@@ -968,10 +950,14 @@ const CaissaArena = {
         const enabledEngines = this.getRunnableEngines();
         const savedWhiteId = window.localStorage?.getItem('caissa.arena.whiteEngineId') || '';
         const savedBlackId = window.localStorage?.getItem('caissa.arena.blackEngineId') || '';
-        this.state.whiteEngine = this.engines.find(e => e.id === savedWhiteId && this.isEngineRunnable(e))
+        const currentWhite = this.engines.find(e => e.id === this.state.whiteEngine?.id);
+        const currentBlack = this.engines.find(e => e.id === this.state.blackEngine?.id);
+        this.state.whiteEngine = currentWhite
+            || this.engines.find(e => e.id === savedWhiteId && this.isEngineRunnable(e))
             || enabledEngines[0]
             || this.engines[0];
-        this.state.blackEngine = this.engines.find(e => e.id === savedBlackId && this.isEngineRunnable(e))
+        this.state.blackEngine = currentBlack
+            || this.engines.find(e => e.id === savedBlackId && this.isEngineRunnable(e))
             || enabledEngines[1]
             || enabledEngines[0]
             || this.engines[0];
@@ -988,7 +974,7 @@ const CaissaArena = {
         this.updateEngineInfo();
 
         // Disable Start Match if engine adapter or worker paths are missing
-        const adapterAvailable = typeof EngineAdapter !== 'undefined';
+        const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
             && this.isEngineRunnable(this.state.whiteEngine)
@@ -1028,7 +1014,7 @@ const CaissaArena = {
 
         this.updateEngineInfo();
         this.prewarmEngines();
-        const adapterAvailable = typeof EngineAdapter !== 'undefined';
+        const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
             && this.isEngineRunnable(this.state.whiteEngine)
@@ -1074,8 +1060,19 @@ const CaissaArena = {
         return this.engines.find(e => e.id === id);
     },
 
+    getEngineAvailability(engine) {
+        if (!engine) return { available: false, reason: 'Unknown engine provider' };
+        if (window.EngineRegistry?.getArenaProviderAvailability) {
+            return EngineRegistry.getArenaProviderAvailability(engine.id);
+        }
+        return {
+            available: engine.availability === 'available' && engine.enabled !== false && !!engine.workerPath,
+            reason: engine.unavailableReason || engine.reason || 'Engine unavailable'
+        };
+    },
+
     isEngineRunnable(engine) {
-        return !!engine && engine.enabled !== false && !!engine.workerPath;
+        return !!engine && !!engine.workerPath && this.getEngineAvailability(engine).available;
     },
 
     getRunnableEngines() {
@@ -1083,8 +1080,77 @@ const CaissaArena = {
     },
 
     playerInstancesMatchSelections() {
-        return this.whiteEngineInstance?.id === this.state.whiteEngine?.id
-            && this.blackEngineInstance?.id === this.state.blackEngine?.id;
+        return this.runtimeMatchesProvider(this.whiteEngineInstance, this.state.whiteEngine)
+            && this.runtimeMatchesProvider(this.blackEngineInstance, this.state.blackEngine);
+    },
+
+    runtimeMatchesProvider(instance, provider) {
+        if (!instance || !provider || !instance.isReady?.()) return false;
+        const runtime = instance.getRuntimeIdentity?.();
+        return !!runtime
+            && runtime.status === 'ready'
+            && runtime.identityValidated === true
+            && runtime.providerId === provider.id
+            && runtime.requestedEngineId === provider.id
+            && runtime.workerAsset === provider.workerPath;
+    },
+
+    inspectEngineDiagnostics() {
+        const snapshot = (instance) => instance?.getRuntimeIdentity?.() || null;
+        return Object.freeze({
+            selectedProviders: Object.freeze({
+                white: this.state.whiteEngine?.id || null,
+                black: this.state.blackEngine?.id || null
+            }),
+            runtimes: Object.freeze({
+                white: snapshot(this.whiteEngineInstance),
+                black: snapshot(this.blackEngineInstance),
+                evaluator: snapshot(this.evaluatorEngine)
+            }),
+            availability: Object.freeze(Object.fromEntries(this.engines.map(engine => [
+                engine.id,
+                Object.freeze({ ...this.getEngineAvailability(engine) })
+            ])))
+        });
+    },
+
+    refreshEngineAvailabilityUI() {
+        const applySelectAvailability = (select) => {
+            if (!select) return;
+            Array.from(select.options).forEach((option) => {
+                const provider = this.getEngineById(option.value);
+                if (!provider) return;
+                const availability = this.getEngineAvailability(provider);
+                option.disabled = !availability.available;
+                const suffix = availability.available ? '' : ` (${availability.reason || 'Unavailable'})`;
+                option.textContent = `${provider.name} (Tier ${provider.tier})${suffix}`;
+            });
+        };
+        applySelectAvailability(this.elements.whiteEngineSelect);
+        applySelectAvailability(this.elements.blackEngineSelect);
+        this.elements.tournamentEngineList?.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+            const provider = this.getEngineById(input.value);
+            const availability = this.getEngineAvailability(provider);
+            input.disabled = !availability.available;
+            if (!availability.available) input.checked = false;
+            const item = input.closest('.tournament-engine-item');
+            item?.classList.toggle('is-unavailable', !availability.available);
+            let message = item?.querySelector('.engine-availability');
+            if (!message && item && !availability.available) {
+                message = document.createElement('span');
+                message.className = 'engine-availability';
+                item.appendChild(message);
+            }
+            if (message) message.textContent = availability.reason || '';
+        });
+        const selectedAvailable = this.isEngineRunnable(this.state.whiteEngine)
+            && this.isEngineRunnable(this.state.blackEngine);
+        if (this.elements.startMatchBtn) this.elements.startMatchBtn.disabled = !selectedAvailable;
+        if (!selectedAvailable) {
+            this.enginesReady = false;
+            this.updateGameStatus({ result: 'Selected engine unavailable. Choose another engine.' });
+        }
+        this.updateTournamentUI();
     },
 
     /**
@@ -1179,7 +1245,9 @@ const CaissaArena = {
             console.log('[Arena] Engines not ready, initializing...');
             const success = await this.initEngines();
             if (!success) {
-                alert('Engines could not start. Try again.');
+                const message = 'Selected engine could not verify its runtime identity and is unavailable for this session.';
+                this.updateGameStatus({ result: message });
+                alert(message);
                 window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
                 return;
             }
@@ -1197,6 +1265,9 @@ const CaissaArena = {
                 this.waitForEngineReadyOk(this.whiteEngineInstance, 'white'),
                 this.waitForEngineReadyOk(this.blackEngineInstance, 'black')
             ]);
+            if (!this.playerInstancesMatchSelections()) {
+                throw new Error('Selected engine identity changed before match start.');
+            }
         } catch (error) {
             console.error('[Arena] Player engine readiness failed:', error);
             this.handleError(error.message);
@@ -1213,7 +1284,11 @@ const CaissaArena = {
             black: this.state.blackEngine,
             moves: [],
             startFen: this.game.fen(),
-            startTime: Date.now()
+            startTime: Date.now(),
+            runtimeIdentities: Object.freeze({
+                white: this.whiteEngineInstance.getRuntimeIdentity(),
+                black: this.blackEngineInstance.getRuntimeIdentity()
+            })
         };
 
         // Update UI
@@ -1231,6 +1306,7 @@ const CaissaArena = {
             detail: {
                 white: this.state.whiteEngine,
                 black: this.state.blackEngine,
+                runtimeIdentities: this.state.currentGame.runtimeIdentities,
                 moveDelay: this.state.moveDelay
             }
         }));
@@ -1535,8 +1611,8 @@ const CaissaArena = {
     async initEngines() {
         console.log('[Arena] Initializing engine instances...');
 
-        if (typeof EngineAdapter === 'undefined') {
-            console.error('[Arena] EngineAdapter class not found!');
+        if (typeof window.EngineRegistry?.createArenaEngine !== 'function') {
+            console.error('[Arena] Arena provider factory not found!');
             return false;
         }
 
@@ -1547,7 +1623,9 @@ const CaissaArena = {
 
             const reconcileInstance = (property, config) => {
                 const current = this[property];
-                if (current?.id === config?.id && current?.workerPath === config?.workerPath) return current;
+                if (current?.providerId === config?.id
+                    && current?.requestedEngineId === config?.id
+                    && current?.workerPath === config?.workerPath) return current;
                 current?.terminate?.('arena-engine-selection-changed');
                 const replacement = this.createEngineInstance(config);
                 this[property] = replacement;
@@ -1570,6 +1648,12 @@ const CaissaArena = {
                 evaluatorInstance.start()
             ]);
 
+            if (!this.runtimeMatchesProvider(whiteInstance, whiteConfig)
+                || !this.runtimeMatchesProvider(blackInstance, blackConfig)
+                || !this.runtimeMatchesProvider(evaluatorInstance, evalConfig)) {
+                throw new Error('Engine runtime identity did not match the selected provider.');
+            }
+
             this.enginesReady = true;
             this.evaluatorReady = true;
             console.log('[Arena] All engines ready (white, black, evaluator)!');
@@ -1577,6 +1661,9 @@ const CaissaArena = {
 
         } catch (error) {
             console.error('[Arena] Failed to initialize engines:', error);
+            this.enginesReady = false;
+            this.evaluatorReady = false;
+            this.refreshEngineAvailabilityUI();
             return false;
         }
     },
@@ -2440,15 +2527,16 @@ const CaissaArena = {
         if (!this.elements.tournamentEngineList) return;
 
         this.elements.tournamentEngineList.innerHTML = this.engines.map(engine => {
-            const runnable = this.isEngineRunnable(engine);
+            const engineAvailability = this.getEngineAvailability(engine);
+            const runnable = engineAvailability.available && !!engine.workerPath;
             const availability = runnable
                 ? ''
-                : `<span class="engine-availability">${engine.reason || 'Unavailable'}</span>`;
+                : `<span class="engine-availability">${this.escapeTournamentText(engineAvailability.reason || 'Unavailable')}</span>`;
             return `
             <label class="tournament-engine-item${runnable ? '' : ' is-unavailable'}">
-                <input type="checkbox" value="${engine.id}"${runnable ? ' checked' : ' disabled'}>
-                <span class="engine-name">${engine.name}</span>
-                <span class="engine-tier">Tier ${engine.tier}</span>
+                <input type="checkbox" value="${this.escapeTournamentText(engine.id)}"${runnable ? ' checked' : ' disabled'}>
+                <span class="engine-name">${this.escapeTournamentText(engine.name)}</span>
+                <span class="engine-tier">Tier ${this.escapeTournamentText(engine.tier)}</span>
                 ${availability}
             </label>
         `;
@@ -2560,6 +2648,7 @@ const CaissaArena = {
 
         pendingGame.result = result;
         pendingGame.moves = (this.state.currentGame?.moves || []).map(move => ({ ...move }));
+        pendingGame.runtimeIdentities = this.state.currentGame?.runtimeIdentities || null;
         pendingGame.startFen = this.state.currentGame?.startFen || '';
         pendingGame.endFen = this.game?.fen?.() || '';
         pendingGame.termination = this.state.currentGame?.termination || '';

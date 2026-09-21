@@ -3,98 +3,234 @@
  */
 
 (function () {
+    const availableCapabilities = Object.freeze({
+        supportsThreads: false,
+        supportsNNUE: false,
+        supportsMultiPV: true,
+        supportsSyzygy: false,
+        browserCompatible: true,
+        mobileCompatible: true,
+        requiresCrossOriginIsolation: false
+    });
+
+    function legacyStockfishIdentityExpectation() {
+        return Object.freeze({
+            family: 'Stockfish',
+            namePattern: '^Stockfish\\s+2019-08-15\\s+Multi-Variant(?:\\s.*)?$',
+            authorPattern: '^D\\. Dugovic, F\\. Fichter et al\\.(?:\\s.*)?$',
+            requireName: true,
+            requireAuthor: true
+        });
+    }
+
     const ENGINES = {
         stockfish: {
             id: 'stockfish',
+            providerId: 'stockfish',
+            displayName: 'Stockfish 2019 MV',
             name: 'Stockfish 2019 MV',
+            family: 'Stockfish',
             version: '2019-08-15-multi-variant',
             author: 'D. Dugovic, F. Fichter et al.',
             license: 'GPLv3',
+            protocol: 'uci',
+            runtimeType: 'worker',
             execution: 'asm-js',
+            runtimeId: 'stockfish-2019-mv-runtime',
+            profile: Object.freeze({ id: 'full', displayName: 'Full', defaultDepth: 20 }),
             workerPath: '/engine/stockfish-working.js',
             wasmPath: '',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 20,
             supportsChess960: false,
+            capabilities: availableCapabilities,
+            availability: 'available',
+            unavailableReason: null,
+            runtimeIdentityExpectation: legacyStockfishIdentityExpectation(),
             enabled: true,
             notes: 'Legacy multi-variant browser build'
         },
         'stockfish-lite': {
             id: 'stockfish-lite',
+            providerId: 'stockfish-lite',
+            displayName: 'Stockfish 2019 MV (Lite profile)',
             name: 'Stockfish 2019 MV (Lite profile)',
+            family: 'Stockfish',
             version: '2019-08-15-multi-variant',
             author: 'D. Dugovic, F. Fichter et al.',
             license: 'GPLv3',
+            protocol: 'uci',
+            runtimeType: 'worker',
             execution: 'asm-js',
+            runtimeId: 'stockfish-2019-mv-runtime',
+            profile: Object.freeze({ id: 'lite', displayName: 'Lite', defaultDepth: 12 }),
             workerPath: '/engine/stockfish-working.js',
             wasmPath: '',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 12,
             supportsChess960: false,
+            capabilities: availableCapabilities,
+            availability: 'available',
+            unavailableReason: null,
+            runtimeIdentityExpectation: legacyStockfishIdentityExpectation(),
             enabled: true,
             notes: 'Legacy multi-variant build with lightweight search profile'
         },
         'fairy-stockfish': {
             id: 'fairy-stockfish',
+            providerId: 'fairy-stockfish',
+            displayName: 'Fairy-Stockfish',
             name: 'Fairy-Stockfish',
+            family: 'Fairy-Stockfish',
             version: 'unknown',
             author: 'Fabian Fichter and contributors',
             license: 'GPLv3',
+            protocol: 'uci',
+            runtimeType: 'wasm',
             execution: 'wasm',
+            runtimeId: 'fairy-stockfish-browser-runtime',
+            profile: null,
             workerPath: '/public/engines/fairy-stockfish/engine-worker.js',
             wasmPath: '/public/engines/fairy-stockfish/stockfish.wasm',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: true,
+            capabilities: Object.freeze({
+                supportsMultiPV: true,
+                browserCompatible: false,
+                mobileCompatible: false,
+                requiresCrossOriginIsolation: true
+            }),
+            availability: 'unavailable',
+            unavailableReason: 'Requires cross-origin-isolated threaded WASM runtime',
+            runtimeIdentityExpectation: null,
             enabled: false,
             notes: 'Requires cross-origin-isolated threaded WASM runtime'
         },
         arasan: {
             id: 'arasan',
+            providerId: 'arasan',
+            displayName: 'Arasan',
             name: 'Arasan',
+            family: 'Arasan',
             version: 'unknown',
             author: 'Jon Dart',
             license: 'MIT',
+            protocol: 'uci',
+            runtimeType: 'wasm',
             execution: 'wasm',
+            runtimeId: 'arasan-browser-runtime',
+            profile: null,
             workerPath: 'public/engines/arasan/engine-worker.js',
             wasmPath: 'public/engines/arasan/engine.wasm',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: false,
+            capabilities: Object.freeze({
+                browserCompatible: false,
+                mobileCompatible: false,
+                requiresCrossOriginIsolation: false
+            }),
+            availability: 'unavailable',
+            unavailableReason: 'WASM build needed',
+            runtimeIdentityExpectation: null,
             enabled: false,
             notes: 'WASM build needed'
         },
         rodent3: {
             id: 'rodent3',
+            providerId: 'rodent3',
+            displayName: 'Rodent III',
             name: 'Rodent III',
+            family: 'Rodent',
             version: 'unknown',
             author: 'Pawel Koziol',
             license: 'GPLv3',
+            protocol: 'uci',
+            runtimeType: 'wasm',
             execution: 'wasm',
+            runtimeId: 'rodent3-browser-runtime',
+            profile: null,
             workerPath: 'public/engines/rodent3/engine-worker.js',
             wasmPath: 'public/engines/rodent3/engine.wasm',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: false,
+            capabilities: Object.freeze({
+                browserCompatible: false,
+                mobileCompatible: false,
+                requiresCrossOriginIsolation: false
+            }),
+            availability: 'unavailable',
+            unavailableReason: 'WASM build needed',
+            runtimeIdentityExpectation: null,
             enabled: false,
             notes: 'WASM build needed'
         },
         texel: {
             id: 'texel',
+            providerId: 'texel',
+            displayName: 'Texel',
             name: 'Texel',
+            family: 'Texel',
             version: 'unknown',
             author: 'Peter Osterlund',
             license: 'GPLv3',
+            protocol: 'uci',
+            runtimeType: 'wasm',
             execution: 'wasm',
+            runtimeId: 'texel-browser-runtime',
+            profile: null,
             workerPath: 'public/engines/texel/engine-worker.js',
             wasmPath: 'public/engines/texel/engine.wasm',
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: false,
+            capabilities: Object.freeze({
+                browserCompatible: false,
+                mobileCompatible: false,
+                requiresCrossOriginIsolation: false
+            }),
+            availability: 'unavailable',
+            unavailableReason: 'WASM build needed',
+            runtimeIdentityExpectation: null,
             enabled: false,
             notes: 'WASM build needed'
         }
     };
+
+    const ARENA_PROVIDER_IDS = Object.freeze([
+        'stockfish',
+        'stockfish-lite',
+        'fairy-stockfish',
+        'arasan',
+        'rodent3',
+        'texel'
+    ]);
+    const arenaSessionUnavailable = new Map();
+
+    function arenaAvailability(provider) {
+        if (!provider) return Object.freeze({ available: false, reason: 'Unknown engine provider' });
+        const sessionReason = arenaSessionUnavailable.get(provider.id);
+        if (sessionReason) return Object.freeze({ available: false, reason: sessionReason });
+        const available = provider.availability === 'available' && provider.enabled !== false;
+        return Object.freeze({
+            available,
+            reason: available ? null : (provider.unavailableReason || 'Engine unavailable')
+        });
+    }
+
+    function arenaProviderSnapshot(provider) {
+        if (!provider) return null;
+        const availability = arenaAvailability(provider);
+        return Object.freeze({
+            ...provider,
+            enabled: availability.available,
+            availability: availability.available ? 'available' : 'unavailable',
+            unavailableReason: availability.reason,
+            reason: availability.reason || provider.notes || ''
+        });
+    }
 
     // Analyze-only providers are intentionally excluded from list()/getEnabled().
     // Arena and legacy consumers therefore retain their existing engine route.
@@ -260,10 +396,33 @@
         return new window.EngineAdapter({
             ...config,
             ...options,
+            id: config.id,
+            providerId: options.providerId || config.providerId || config.id,
+            requestedEngineId: options.requestedEngineId || config.id,
             workerPath: config.workerPath,
             wasmPath: config.wasmPath,
-            expectedUci: config.expectedUci
+            expectedUci: config.expectedUci,
+            runtimeIdentityExpectation: config.runtimeIdentityExpectation || null
         });
+    }
+
+    function markArenaProviderUnavailable(id, reason = 'Engine startup failed for this session') {
+        if (!ARENA_PROVIDER_IDS.includes(id)) return false;
+        const provider = ENGINES[id];
+        if (!provider || provider.availability !== 'available') return false;
+        const affectedProviderIds = ARENA_PROVIDER_IDS.filter(providerId => {
+            const candidate = ENGINES[providerId];
+            return candidate?.availability === 'available'
+                && candidate.runtimeId === provider.runtimeId;
+        });
+        affectedProviderIds.forEach(providerId => arenaSessionUnavailable.set(
+            providerId,
+            String(reason || 'Engine startup failed for this session')
+        ));
+        window.dispatchEvent?.(new CustomEvent('caissa-arena-provider-availability', {
+            detail: { providerId: id, providerIds: affectedProviderIds, available: false }
+        }));
+        return true;
     }
 
     const EngineRegistry = {
@@ -281,8 +440,45 @@
             return Object.values(ENGINES).filter(e => e.enabled !== false);
         },
         createEngine(id, options = {}) {
-            const config = this.get(id) || this.get('stockfish');
-            return createConfiguredEngine(config, options);
+            return createConfiguredEngine(this.get(id), options);
+        },
+        listArenaProviders() {
+            return ARENA_PROVIDER_IDS.map(id => arenaProviderSnapshot(ENGINES[id]));
+        },
+        getArenaProvider(id) {
+            if (!ARENA_PROVIDER_IDS.includes(id)) return null;
+            return arenaProviderSnapshot(ENGINES[id]);
+        },
+        getArenaProviderAvailability(id) {
+            if (!ARENA_PROVIDER_IDS.includes(id)) {
+                return Object.freeze({ available: false, reason: 'Unknown engine provider' });
+            }
+            return arenaAvailability(ENGINES[id]);
+        },
+        isArenaProviderAvailable(id) {
+            return this.getArenaProviderAvailability(id).available;
+        },
+        markArenaProviderUnavailable(id, reason) {
+            return markArenaProviderUnavailable(id, reason);
+        },
+        resetArenaSessionAvailability() {
+            arenaSessionUnavailable.clear();
+        },
+        createArenaEngine(id, options = {}) {
+            const provider = this.getArenaProvider(id);
+            if (!provider || !provider.enabled) return null;
+            const externalUnavailable = options.onRuntimeUnavailable;
+            return createConfiguredEngine(provider, {
+                ...options,
+                providerId: provider.id,
+                requestedEngineId: id,
+                requireRuntimeIdentity: true,
+                onRuntimeUnavailable: (failure) => {
+                    const reason = failure?.message || 'Engine startup failed for this session';
+                    markArenaProviderUnavailable(provider.id, reason);
+                    externalUnavailable?.(failure);
+                }
+            });
         },
         getAnalyze(id) {
             return ANALYZE_ENGINES[id] || null;
