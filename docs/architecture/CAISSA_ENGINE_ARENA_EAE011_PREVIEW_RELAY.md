@@ -8,7 +8,7 @@ Scope: a dummy-message relay experiment only. There is no Lc0, ORT, Maia network
 - Experiment branch: `experiment/lc0-eae011-preview-relay`, forked from that baseline.
 - Main preview alias: `https://eae011-main-elcriollitos-projects.vercel.app`.
 - Isolated preview alias: `https://eae011-engine-elcriollitos-projects.vercel.app`.
-- Both are preview deployments of the existing Vercel project, not production aliases. Their immutable deployment IDs and final source commit are recorded in the certification report below.
+- Both are preview deployments of the existing Vercel project, not production aliases. Their immutable deployment IDs and deployed source commit are recorded in the certification report below.
 - Shared store: existing Supabase staging project `CAISSA-READER-STAGING` (`aqizagaskicotorfpwfn`), using dedicated `eae011_*` tables and RPCs. The relay refuses a database URL for any other project and refuses `VERCEL_ENV=production`.
 - The four relay configuration variables are restricted to the experiment branch's Vercel Preview environment: two exact origins, staging URL, and staging service-role secret. No project-wide production variable was changed.
 
@@ -36,6 +36,23 @@ The two immutable preview deployments prove requests can cross deployment/functi
 
 Latency is client-observed from the preview run, not the EAE-010 loopback benchmark. No SLA is inferred from this small sample. The per-message Postgres compare-and-swap and 250 ms SSE polling are intentionally simple and can increase database read/write and function-duration costs; no bill-level cost measurement is available. At 10+ streams or longer sessions, polling, the 120-second hard cap, and retained expired rows require a separate scale/cleanup design before any production consideration.
 
-## Certification report
+## Certification report — 2026-09-21
 
-Final source SHA, final deployment IDs, preview median/p95 measurements, cleanup count and verdict: see the EAE-011 final handoff. This document describes the committed protocol; the handoff records the immutable observed run.
+The certified runtime source is commit `18d5b19c350d6ba0ab071431b42ba26c6e830734`. The main alias points to preview deployment `dpl_4FjP4rpWgbsV5CpEeJ2q7wHt2Cew` (`tv-lavin-chess-game2-2ewu9fnlf-elcriollitos-projects.vercel.app`); the isolated alias points to separate preview deployment `dpl_8Uyx8cXZ7PYqL8HdgpKRAwhTz7tx` (`tv-lavin-chess-game2-hoqzm4lju-elcriollitos-projects.vercel.app`). Both were `Ready` and target `preview`. Subsequent test/documentation commits on the experiment branch do not change the deployed broker behavior or these two aliases.
+
+The final live run, with Arena-side API requests on the main deployment and engine-side API requests on the other deployment, passed 10 concurrent HELLO/POSITION/GO/INFO/STOP/BESTMOVE/STOPPED/QUIT/CLEANUP lifecycles in 46.8 seconds. An unauthenticated create, a different Clerk user attempting owner actions, a third Origin, an invalid claim, a simultaneous duplicate claim, and a replayed command were rejected. A separate streaming session resumed both streams from cursors after independent interruptions, then passed the terminal gate. Live unclaimed and idle expiry returned `CLAIM_EXPIRED` and `IDLE_EXPIRED`; the disconnected lease could not reconnect after its heartbeat stopped. The engine browser reloaded using its scoped credential only. The staging `eae011_sessions` table held **zero rows and zero unexpired rows** afterward. The unit suite passed 11/11, the staging-store test 1/1, the Arena provider/runtime/Generation Cup units 33/33, and the existing Generation Cup browser smoke 5/5. No production merge or deployment occurred.
+
+Client-observed preview latency (milliseconds; median / p95) in that final cross-deployment run:
+
+| Measure | n | Median | p95 |
+|---|---:|---:|---:|
+| Create | 10 | 203.8 | 317.4 |
+| Claim | 10 | 166.8 | 686.2 |
+| Command POST acceptance | 50 | 131.4 | 154.5 |
+| ACK POST completion from command send | 50 | 123.7 | 252.3 |
+| INFO POST acceptance | 10 | 143.0 | 311.2 |
+| INFO SSE propagation from INFO POST start | 1 | 211.9 | 211.9 |
+| STOP through BESTMOVE/STOPPED | 10 | 375.6 | 449.3 |
+| QUIT through CLEANUP | 10 | 249.4 | 335.0 |
+
+The single INFO propagation observation is not a statistically useful p95; it is shown only for completeness. The live ACK metric covers command send through the ACK HTTP response, while the SSE probe separately checks delivery. No performance SLA or cost estimate is inferred. Verdict: `LC0_PREVIEW_RELAY_CERTIFIED`, limited to the short-lived dummy preview architecture described here. This does not authorize a real Lc0 attachment or production Arena integration.
