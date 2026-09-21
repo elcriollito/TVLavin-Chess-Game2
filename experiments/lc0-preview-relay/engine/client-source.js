@@ -215,6 +215,7 @@ class RealLc0RelayClient {
       await ack();
     } else if (command.type === 'STOP') {
       if (!this.active || this.active.searchId !== command.searchId) throw new Error('STOP_SEARCH_MISMATCH');
+      this.active.stopRequested = true;
       await ack();
       const active = this.active;
       if (!active.bestmove) this.runtime.send('stop');
@@ -252,7 +253,8 @@ class RealLc0RelayClient {
       if (line.startsWith('info ')) {
         this.metrics.rawInfo += 1;
         const active = this.active, parsed = info(line);
-        if (active && parsed && !active.transportUncertain && performance.now() - active.lastInfoAt >= 150) {
+        if (active && parsed && !active.stopRequested && !active.transportUncertain &&
+            performance.now() - active.lastInfoAt >= 150) {
           active.lastInfoAt = performance.now(); this.metrics.sentInfo += 1;
           this.message('INFO', { searchId: active.searchId, ...parsed }).catch(error => log(`info ${error.message}`));
         }
