@@ -14,13 +14,14 @@ const SEARCH_MODE = process.env.EAE012_SEARCH_MODE || 'infinite';
 const RECONNECT = process.env.EAE012_RECONNECT || 'none';
 const SECURITY = process.env.EAE012_SECURITY === '1';
 const MAIN_RECONNECT = process.env.EAE012_MAIN_RECONNECT === '1';
+const MAIN_UI_RELOAD = process.env.EAE012_MAIN_UI_RELOAD === '1';
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 20 ||
     !['infinite', 'nodes'].includes(SEARCH_MODE) ||
     !['none', 'idle', 'search'].includes(RECONNECT)) throw new Error('TEST_MODE_INVALID');
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const browser = await chromium.launch({ headless: true });
 let user = null, userB = null, ownerToken = null, clerkSessionId = null, tokenIssuedAt = 0;
-let sessionId = null, page = null, mainStream = null;
+let sessionId = null, page = null, mainStream = null, uiPage = null;
 let sessionBId = null, tokenB = null;
 const report = { start: Date.now(), timings: {} };
 const networkErrors = [];
@@ -176,6 +177,38 @@ try {
   const ready = await phase('READY');
   report.timings.helloToReadyMs = performance.now() - readyAt;
   assert.equal(ready.identity.runtimeInstanceId, initial.identity.runtimeInstanceId);
+  if (MAIN_UI_RELOAD) {
+    // The UI uses a real, short-lived Clerk session JWT. Only the interactive sign-in
+    // widget is replaced, because this test owner was created through Clerk's Backend API.
+    await context.exposeBinding('eae012TestOwnerToken', () => freshOwnerToken());
+    await context.addInitScript(savedSession => {
+      if (location.origin !== 'https://eae012-main-elcriollitos-projects.vercel.app') return;
+      if (!sessionStorage.getItem('eae012-main-session'))
+        sessionStorage.setItem('eae012-main-session', savedSession);
+    }, sessionId);
+    await context.route(`${MAIN}/js/caissa-auth.js`, route => route.fulfill({
+      status: 200, contentType: 'text/javascript', body:
+        `window.CAISSA_AUTH={isSignedIn:true,userId:${JSON.stringify(user.id)},` +
+        `whenReady:async()=>{},getToken:()=>window.eae012TestOwnerToken()};`
+    }));
+    uiPage = await context.newPage();
+    const uiResponse = await uiPage.goto(`${MAIN}/experiments/lc0-preview-relay/main/index.html`,
+      { waitUntil: 'domcontentloaded' });
+    assert.equal(uiResponse.status(), 200);
+    await uiPage.waitForFunction(() => window.Eae012Main?.identity?.runtimeInstanceId &&
+      document.querySelector('#identity')?.textContent.includes(window.Eae012Main.identity.runtimeInstanceId),
+    null, { timeout: 10_000 });
+    const savedCursor = await uiPage.evaluate(() => window.Eae012Main.cursor);
+    assert.ok(savedCursor > 0);
+    await uiPage.reload({ waitUntil: 'domcontentloaded' });
+    await uiPage.waitForFunction(expected => window.Eae012Main?.sessionId === expected.session &&
+      window.Eae012Main?.cursor >= expected.cursor &&
+      window.Eae012Main?.identity?.runtimeInstanceId === expected.instance &&
+      document.querySelector('#identity')?.textContent.includes(expected.instance),
+    { session: sessionId, cursor: savedCursor, instance: initial.identity.runtimeInstanceId },
+    { timeout: 10_000 });
+    report.mainUiReload = { savedCursor, recovered: true, verifiedIdentity: true };
+  }
   if (MAIN_RECONNECT) {
     const began = performance.now();
     while (!mainStream.events.some(item => item.type === 'READY') && performance.now() - began < 5_000)
@@ -300,6 +333,15 @@ try {
   await api('advance', { body: { mode: 'release', searchId } });
   const engineState = await page.evaluate(() => ({ snapshot: window.Eae012Engine.runtime.snapshot(),
     metrics: window.Eae012Engine.metrics, status: document.querySelector('#status')?.textContent }));
+  if (MAIN_UI_RELOAD) {
+    await uiPage.waitForFunction(expected => window.Eae012Main?.events?.filter(item =>
+      item.type === 'BESTMOVE').length >= expected, CYCLES, { timeout: 8_000 });
+    report.mainUiReload.bestmovesAfterReload = await uiPage.evaluate(() =>
+      window.Eae012Main.events.filter(item => item.type === 'BESTMOVE').length);
+    report.mainUiReload.finalCursor = await uiPage.evaluate(() => window.Eae012Main.cursor);
+    assert.ok(report.mainUiReload.finalCursor > report.mainUiReload.savedCursor);
+    await uiPage.close(); uiPage = null;
+  }
   const streamWait = performance.now();
   while (mainStream.events.filter(item => item.type === 'BESTMOVE').length < CYCLES &&
       performance.now() - streamWait < 5_000)
@@ -339,6 +381,7 @@ try {
   throw error;
 } finally {
   if (mainStream) await mainStream.close();
+  if (uiPage && !uiPage.isClosed()) await uiPage.close();
   if (sessionId && ownerToken) await api('terminate', { body: {} }).catch(() => {});
   if (sessionBId && tokenB) await api('terminate', { auth: tokenB, body: {}, session: sessionBId }).catch(() => {});
   await browser.close();

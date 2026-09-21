@@ -67,7 +67,11 @@ class MainPreviewClient {
         const info = await api('inspect', { sessionId: saved });
         this.sessionId = saved; this.seq = info.state.lastCommandSeq;
         this.cursor = Number(sessionStorage.getItem('eae012-main-cursor') || 0);
+        if (info.state.identity && !this.verifyIdentity(info.state.identity))
+          throw new Error('ENGINE_IDENTITY_INVALID');
         this.identity = info.state.identity;
+        if (this.identity) $('#identity').textContent =
+          `${this.identity.uciName} · ${this.identity.networkId} · ${this.identity.runtimeInstanceId}`;
         await this.connect();
         $('#status').textContent = `Recovered ${saved}`;
         $('#run').disabled = !this.identity;
