@@ -7431,6 +7431,7 @@ var RealLc0RelayClient = class {
     this.metrics = { rawInfo: 0, sentInfo: 0, forced: 0 };
     this.intentionalDisconnect = false;
     this.closed = false;
+    this.heartbeatRequests = /* @__PURE__ */ new Set();
   }
   async initialize() {
     if (!crossOriginIsolated || typeof SharedArrayBuffer !== "function") throw new Error("ISOLATION_REQUIRED");
@@ -7495,14 +7496,17 @@ var RealLc0RelayClient = class {
   }
   heartbeat(epoch) {
     clearInterval(this.heartbeatTimer);
-    this.heartbeatTimer = setInterval(() => api("heartbeat_engine", {
-      sessionId: this.sessionId,
-      credential: this.credential,
-      body: { epoch, cursor: this.cursor }
-    }).catch((error) => {
-      log(`heartbeat ${error.message}`);
-      this.controller?.abort();
-    }), 1500);
+    this.heartbeatTimer = setInterval(() => {
+      const request = api("heartbeat_engine", {
+        sessionId: this.sessionId,
+        credential: this.credential,
+        body: { epoch, cursor: this.cursor }
+      }).catch((error) => {
+        log(`heartbeat ${error.message}`);
+        this.controller?.abort();
+      }).finally(() => this.heartbeatRequests.delete(request));
+      this.heartbeatRequests.add(request);
+    }, 1500);
   }
   async consume(body, controller) {
     const reader = body.getReader(), decoder = new TextDecoder();
@@ -7626,9 +7630,10 @@ var RealLc0RelayClient = class {
       this.metrics.forced = ended.forcedTerminations;
       if (ended.parentWorkers || ended.pthreadWorkers || !ended.cleanupAcknowledged || ended.forcedTerminations)
         throw new Error("CLEANUP_NOT_COOPERATIVE");
-      this.closed = true;
       clearInterval(this.heartbeatTimer);
       clearTimeout(this.reconnectTimer);
+      this.closed = true;
+      await Promise.allSettled([...this.heartbeatRequests]);
       await this.message("CLEANUP", { evidence: {
         parentWorkers: ended.parentWorkers,
         pthreadWorkers: ended.pthreadWorkers,

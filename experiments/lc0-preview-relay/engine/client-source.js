@@ -91,6 +91,7 @@ class RealLc0RelayClient {
     this.identity = null; this.active = null; this.currentPosition = null;
     this.commandHistory = []; this.metrics = { rawInfo: 0, sentInfo: 0, forced: 0 };
     this.intentionalDisconnect = false; this.closed = false;
+    this.heartbeatRequests = new Set();
   }
 
   async initialize() {
@@ -148,9 +149,13 @@ class RealLc0RelayClient {
 
   heartbeat(epoch) {
     clearInterval(this.heartbeatTimer);
-    this.heartbeatTimer = setInterval(() => api('heartbeat_engine', {
-      sessionId: this.sessionId, credential: this.credential, body: { epoch, cursor: this.cursor }
-    }).catch(error => { log(`heartbeat ${error.message}`); this.controller?.abort(); }), 1500);
+    this.heartbeatTimer = setInterval(() => {
+      const request = api('heartbeat_engine', { sessionId: this.sessionId,
+        credential: this.credential, body: { epoch, cursor: this.cursor } })
+        .catch(error => { log(`heartbeat ${error.message}`); this.controller?.abort(); })
+        .finally(() => this.heartbeatRequests.delete(request));
+      this.heartbeatRequests.add(request);
+    }, 1500);
   }
 
   async consume(body, controller) {
@@ -238,9 +243,10 @@ class RealLc0RelayClient {
       this.metrics.forced = ended.forcedTerminations;
       if (ended.parentWorkers || ended.pthreadWorkers || !ended.cleanupAcknowledged || ended.forcedTerminations)
         throw new Error('CLEANUP_NOT_COOPERATIVE');
-      this.closed = true;
       clearInterval(this.heartbeatTimer);
       clearTimeout(this.reconnectTimer);
+      this.closed = true;
+      await Promise.allSettled([...this.heartbeatRequests]);
       await this.message('CLEANUP', { evidence: { parentWorkers: ended.parentWorkers,
         pthreadWorkers: ended.pthreadWorkers, runtimeState: ended.state,
         cleanupAcknowledged: ended.cleanupAcknowledged, forcedTerminations: ended.forcedTerminations } });
