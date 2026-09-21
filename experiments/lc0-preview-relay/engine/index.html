@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EAE-011 isolated dummy relay client</title>
+  <style>body{font:16px system-ui;max-width:820px;margin:3rem auto;padding:0 1rem}button{margin:.3rem;padding:.6rem}pre{white-space:pre-wrap;word-break:break-word;background:#eee;padding:1rem;min-height:8rem}</style>
+  <script type="module" src="./client.js"></script>
+</head>
+<body>
+  <h1>EAE-011 isolated-origin dummy client</h1>
+  <p>No Lc0, ORT, Maia, WASM, pthread worker, or CAISSA login is loaded.</p>
+  <p id="environment"></p>
+  <button id="disconnect" disabled>Disconnect engine stream</button>
+  <button id="reconnect" disabled>Reconnect engine stream</button>
+  <p id="status">Waiting for claim.</p>
+  <pre id="log" aria-live="polite"></pre>
+</body>
+</html>
