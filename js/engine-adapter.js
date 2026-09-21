@@ -882,6 +882,7 @@
         }
 
         terminate(reason = 'owner-exit') {
+            const wasAnalyzing = this.analyzing;
             this.workerGeneration += 1;
             this.clearHandshakeTimer();
             this.clearSearchTimer();
@@ -904,6 +905,12 @@
             });
             const worker = this.engine;
             if (worker) {
+                try {
+                    if (wasAnalyzing) worker.postMessage('stop');
+                    worker.postMessage('quit');
+                } catch (_error) {
+                    // Native termination below remains the final ownership boundary.
+                }
                 worker.onmessage = null;
                 worker.onerror = null;
                 worker.onmessageerror = null;

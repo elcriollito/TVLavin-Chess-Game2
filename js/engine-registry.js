@@ -41,6 +41,15 @@
             workerPath: '/engine/stockfish-working.js',
             wasmPath: '',
             defaultOptions: { MultiPV: 1 },
+            resource: Object.freeze({
+                workerBytes: 1579996,
+                wasmBytes: 0,
+                defaultHashMiB: null,
+                threads: 1,
+                crossOriginIsolationRequired: false,
+                mobileCompatible: true,
+                estimatedWeightClass: 'light'
+            }),
             defaultDepth: 20,
             supportsChess960: false,
             capabilities: availableCapabilities,
@@ -67,6 +76,15 @@
             workerPath: '/engine/stockfish-working.js',
             wasmPath: '',
             defaultOptions: { MultiPV: 1 },
+            resource: Object.freeze({
+                workerBytes: 1579996,
+                wasmBytes: 0,
+                defaultHashMiB: null,
+                threads: 1,
+                crossOriginIsolationRequired: false,
+                mobileCompatible: true,
+                estimatedWeightClass: 'light'
+            }),
             defaultDepth: 12,
             supportsChess960: false,
             capabilities: availableCapabilities,
@@ -275,6 +293,15 @@
         workerPath: ANALYZE_ENGINES['stockfish-18-lite'].workerPath,
         wasmPath: ANALYZE_ENGINES['stockfish-18-lite'].wasmPath,
         defaultOptions: Object.freeze({ MultiPV: 1, Hash: 16, Threads: 1 }),
+        resource: Object.freeze({
+            workerBytes: 20680,
+            wasmBytes: 7295411,
+            defaultHashMiB: 16,
+            threads: 1,
+            crossOriginIsolationRequired: false,
+            mobileCompatible: true,
+            estimatedWeightClass: 'heavy'
+        }),
         defaultDepth: ANALYZE_ENGINES['stockfish-18-lite'].defaultDepth,
         supportsChess960: false,
         capabilities: Object.freeze({
@@ -316,6 +343,15 @@
         workerPath: '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js',
         wasmPath: '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.wasm',
         defaultOptions: Object.freeze({ MultiPV: 1, Hash: 16, Threads: 1 }),
+        resource: Object.freeze({
+            workerBytes: 21415,
+            wasmBytes: 1787571,
+            defaultHashMiB: 16,
+            threads: 1,
+            crossOriginIsolationRequired: false,
+            mobileCompatible: true,
+            estimatedWeightClass: 'light'
+        }),
         defaultDepth: 20,
         supportsChess960: false,
         capabilities: Object.freeze({
