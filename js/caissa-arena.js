@@ -7,39 +7,24 @@
 
 console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 
-const ArenaEngineRegistry = (window.EngineRegistry && typeof EngineRegistry.list === 'function')
-    ? EngineRegistry.list()
-    : [
-        { id: 'stockfish', name: 'Stockfish 2019 MV', workerPath: 'engine/stockfish-working.js', enabled: true },
-        { id: 'stockfish-lite', name: 'Stockfish 2019 MV (Lite profile)', workerPath: 'engine/stockfish-working.js', enabled: true }
-    ];
-
 const ARENA_ENGINE_MOVETIME_MS = 2000;
 const ARENA_ENGINE_TIMEOUT_MS = 12000;
 
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
-    engines: ArenaEngineRegistry.map((engine, index) => ({
-        id: engine.id,
-        name: engine.name,
-        tier: engine.tier || (index === 0 ? 'A' : 'B'),
-        description: engine.description || (engine.id === 'stockfish' ? 'World champion engine' : 'Training mode'),
-        elo: engine.elo || (engine.id === 'stockfish' ? 3600 : 2800),
-        workerPath: engine.workerPath,
-        options: engine.options || { depth: engine.defaultDepth || 15, threads: 2 },
-        enabled: engine.enabled !== false,
-        reason: engine.notes || engine.reason || ''
-    })),
+    engines: [],
 
     // ===== BOARD INSTANCE =====
     board: null,
     game: null,
 
     // ===== ENGINE INSTANCES =====
-    // Actual Stockfish engine workers for Arena
-    whiteEngineInstance: null,
-    blackEngineInstance: null,
-    evaluatorEngine: null, // Dedicated evaluation engine
+    // ArenaRuntimeManager is the sole owner; these getters preserve the
+    // certified Arena-facing API without duplicating worker references.
+    runtimeManager: null,
+    get whiteEngineInstance() { return this.runtimeManager?.getInstance('white') || null; },
+    get blackEngineInstance() { return this.runtimeManager?.getInstance('black') || null; },
+    get evaluatorEngine() { return this.runtimeManager?.getInstance('evaluator') || null; },
     enginesReady: false,
     evaluatorReady: false,
 
@@ -61,12 +46,13 @@ const CaissaArena = {
         boardMounted: false,
         hasEntered: false,
         loopActive: false, // Is engine loop running
+        startToken: 0,
         searchToken: 0,
         loopRunning: false,
         cancelPendingSearch: null,
         tournament: {
             engines: [],
-            format: 'swiss',
+            format: 'round-robin',
             rounds: 3,
             openingMode: 'free',
             standings: [],
@@ -84,6 +70,13 @@ const CaissaArena = {
         const registry = this.ensureEngineRegistry();
         console.log('[Arena] engine registry source =', registry.source);
         console.log('[Arena] engines found =', registry.engines.length);
+        if (typeof window.ArenaRuntimeManager !== 'function') {
+            throw new Error('ArenaRuntimeManager is required before Arena initialization.');
+        }
+        this.runtimeManager = new ArenaRuntimeManager({
+            registry: window.EngineRegistry,
+            onFailure: failure => this.onRuntimeFailure(failure)
+        });
         this.state.engineBinaryAvailable = typeof EngineAdapter !== 'undefined';
         if (!this.state.engineBinaryAvailable) {
             console.warn('[Arena] EngineAdapter class not found at init - engine adapter missing?');
@@ -202,59 +195,44 @@ const CaissaArena = {
     },
 
     getEngineRegistry() {
-        if (Array.isArray(ArenaEngineRegistry)) {
-            return { engines: ArenaEngineRegistry, source: 'ArenaEngineRegistry' };
-        }
-        if (window.EngineRegistry && typeof EngineRegistry.list === 'function') {
-            return { engines: EngineRegistry.list(), source: 'EngineRegistry.list' };
+        if (window.EngineRegistry && typeof EngineRegistry.listArenaProviders === 'function') {
+            return { engines: EngineRegistry.listArenaProviders(), source: 'EngineRegistry.listArenaProviders' };
         }
         return { engines: [], source: 'none' };
     },
 
     ensureEngineRegistry() {
         const registry = this.getEngineRegistry();
-        let engines = Array.isArray(registry.engines) ? registry.engines : [];
-        let source = registry.source;
-
-        if (engines.length === 0) {
-            console.warn('[Arena] Engine registry empty. Applying fallback list.');
-            engines = [
-                { id: 'stockfish', name: 'Stockfish 2019 MV', workerPath: 'engine/stockfish-working.js', enabled: true },
-                { id: 'stockfish-lite', name: 'Stockfish 2019 MV (Lite profile)', workerPath: 'engine/stockfish-working.js', enabled: true }
-            ];
-            source = 'fallback';
-        }
+        const engines = Array.isArray(registry.engines) ? registry.engines : [];
+        const source = registry.source;
 
         this.engines = engines.map((engine, index) => ({
             id: engine.id,
-            name: engine.name,
+            providerId: engine.providerId || engine.id,
+            displayName: engine.displayName || engine.name,
+            name: engine.displayName || engine.name,
+            family: engine.family,
+            version: engine.version,
+            protocol: engine.protocol,
+            runtimeType: engine.runtimeType,
+            runtimeId: engine.runtimeId,
+            profile: engine.profile || null,
+            capabilities: engine.capabilities || {},
+            runtimeIdentityExpectation: engine.runtimeIdentityExpectation || null,
             tier: engine.tier || (index === 0 ? 'A' : 'B'),
             description: engine.description || (engine.id === 'stockfish' ? 'World champion engine' : 'Training mode'),
             elo: engine.elo || (engine.id === 'stockfish' ? 3600 : 2800),
             workerPath: engine.workerPath,
-            options: engine.options || { depth: engine.defaultDepth || 15, threads: 2 },
+            wasmPath: engine.wasmPath || '',
+            options: engine.options || { depth: engine.defaultDepth || 15 },
             enabled: engine.enabled !== false,
-            reason: engine.notes || engine.reason || ''
+            availability: engine.availability,
+            unavailableReason: engine.unavailableReason || null,
+            reason: engine.unavailableReason || engine.reason || engine.notes || ''
         }));
         this.state.enginesAvailable = engines.length > 0;
 
         return { engines: this.engines, source };
-    },
-
-    createEngineInstance(engineConfig) {
-        if (!engineConfig || engineConfig.enabled === false) return null;
-        if (window.EngineRegistry && typeof EngineRegistry.createEngine === 'function') {
-            const instance = EngineRegistry.createEngine(engineConfig.id);
-            if (instance) return instance;
-        }
-        if (typeof EngineAdapter !== 'undefined') {
-            return new EngineAdapter(engineConfig);
-        }
-        if (typeof StockfishEngine !== 'undefined') {
-            return new StockfishEngine();
-        }
-        console.warn('[Arena] No engine adapter available for', engineConfig?.id);
-        return null;
     },
 
     // Stable board geometry follows the same snapshot/unchanged-guard pattern
@@ -598,6 +576,7 @@ const CaissaArena = {
         // Listen for engine moves
         window.addEventListener('caissa-engine-move', (e) => this.onEngineMove(e.detail));
         window.addEventListener('caissa-analysis-update', (e) => this.updateEvalPanel(e.detail));
+        window.addEventListener('caissa-arena-provider-availability', () => this.refreshEngineAvailabilityUI());
     },
 
     // ===== TAB SWITCHING =====
@@ -941,9 +920,10 @@ const CaissaArena = {
             this.engines.forEach(engine => {
                 const option = document.createElement('option');
                 option.value = engine.id;
-                const disabledLabel = this.isEngineRunnable(engine) ? '' : ` (${engine.reason || 'Unavailable'})`;
+                const availability = this.getEngineAvailability(engine);
+                const disabledLabel = availability.available ? '' : ` (${availability.reason || 'Unavailable'})`;
                 option.textContent = `${engine.name} (Tier ${engine.tier})${disabledLabel}`;
-                if (!this.isEngineRunnable(engine)) {
+                if (!availability.available) {
                     option.disabled = true;
                 }
                 if (engine.id === selectedId) {
@@ -968,10 +948,14 @@ const CaissaArena = {
         const enabledEngines = this.getRunnableEngines();
         const savedWhiteId = window.localStorage?.getItem('caissa.arena.whiteEngineId') || '';
         const savedBlackId = window.localStorage?.getItem('caissa.arena.blackEngineId') || '';
-        this.state.whiteEngine = this.engines.find(e => e.id === savedWhiteId && this.isEngineRunnable(e))
+        const currentWhite = this.engines.find(e => e.id === this.state.whiteEngine?.id);
+        const currentBlack = this.engines.find(e => e.id === this.state.blackEngine?.id);
+        this.state.whiteEngine = currentWhite
+            || this.engines.find(e => e.id === savedWhiteId && this.isEngineRunnable(e))
             || enabledEngines[0]
             || this.engines[0];
-        this.state.blackEngine = this.engines.find(e => e.id === savedBlackId && this.isEngineRunnable(e))
+        this.state.blackEngine = currentBlack
+            || this.engines.find(e => e.id === savedBlackId && this.isEngineRunnable(e))
             || enabledEngines[1]
             || enabledEngines[0]
             || this.engines[0];
@@ -988,7 +972,7 @@ const CaissaArena = {
         this.updateEngineInfo();
 
         // Disable Start Match if engine adapter or worker paths are missing
-        const adapterAvailable = typeof EngineAdapter !== 'undefined';
+        const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
             && this.isEngineRunnable(this.state.whiteEngine)
@@ -1028,7 +1012,7 @@ const CaissaArena = {
 
         this.updateEngineInfo();
         this.prewarmEngines();
-        const adapterAvailable = typeof EngineAdapter !== 'undefined';
+        const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
             && this.isEngineRunnable(this.state.whiteEngine)
@@ -1074,8 +1058,19 @@ const CaissaArena = {
         return this.engines.find(e => e.id === id);
     },
 
+    getEngineAvailability(engine) {
+        if (!engine) return { available: false, reason: 'Unknown engine provider' };
+        if (window.EngineRegistry?.getArenaProviderAvailability) {
+            return EngineRegistry.getArenaProviderAvailability(engine.id);
+        }
+        return {
+            available: engine.availability === 'available' && engine.enabled !== false && !!engine.workerPath,
+            reason: engine.unavailableReason || engine.reason || 'Engine unavailable'
+        };
+    },
+
     isEngineRunnable(engine) {
-        return !!engine && engine.enabled !== false && !!engine.workerPath;
+        return !!engine && !!engine.workerPath && this.getEngineAvailability(engine).available;
     },
 
     getRunnableEngines() {
@@ -1083,8 +1078,92 @@ const CaissaArena = {
     },
 
     playerInstancesMatchSelections() {
-        return this.whiteEngineInstance?.id === this.state.whiteEngine?.id
-            && this.blackEngineInstance?.id === this.state.blackEngine?.id;
+        return this.runtimeMatchesProvider(this.whiteEngineInstance, this.state.whiteEngine)
+            && this.runtimeMatchesProvider(this.blackEngineInstance, this.state.blackEngine);
+    },
+
+    runtimeMatchesProvider(instance, provider) {
+        if (!instance || !provider || !instance.isReady?.()) return false;
+        const runtime = instance.getRuntimeIdentity?.();
+        return !!runtime
+            && runtime.status === 'ready'
+            && runtime.identityValidated === true
+            && runtime.providerId === provider.id
+            && runtime.requestedEngineId === provider.id
+            && runtime.workerAsset === provider.workerPath;
+    },
+
+    inspectEngineDiagnostics() {
+        const snapshot = (instance) => instance?.getRuntimeIdentity?.() || null;
+        return Object.freeze({
+            selectedProviders: Object.freeze({
+                white: this.state.whiteEngine?.id || null,
+                black: this.state.blackEngine?.id || null
+            }),
+            runtimes: Object.freeze({
+                white: snapshot(this.whiteEngineInstance),
+                black: snapshot(this.blackEngineInstance),
+                evaluator: snapshot(this.evaluatorEngine)
+            }),
+            resources: this.runtimeManager?.getResourceSnapshot?.() || null,
+            availability: Object.freeze(Object.fromEntries(this.engines.map(engine => [
+                engine.id,
+                Object.freeze({ ...this.getEngineAvailability(engine) })
+            ])))
+        });
+    },
+
+    onRuntimeFailure(failure) {
+        if (failure?.role === 'evaluator') {
+            this.evaluatorReady = false;
+            this.state.analysisRunning = false;
+            this.state.analysisFen = '';
+        } else {
+            this.enginesReady = false;
+            if (['running', 'paused'].includes(this.state.matchState)) {
+                this.handleError(`${failure?.role || 'participant'} engine failed`);
+            }
+        }
+        this.refreshEngineAvailabilityUI();
+    },
+
+    refreshEngineAvailabilityUI() {
+        const applySelectAvailability = (select) => {
+            if (!select) return;
+            Array.from(select.options).forEach((option) => {
+                const provider = this.getEngineById(option.value);
+                if (!provider) return;
+                const availability = this.getEngineAvailability(provider);
+                option.disabled = !availability.available;
+                const suffix = availability.available ? '' : ` (${availability.reason || 'Unavailable'})`;
+                option.textContent = `${provider.name} (Tier ${provider.tier})${suffix}`;
+            });
+        };
+        applySelectAvailability(this.elements.whiteEngineSelect);
+        applySelectAvailability(this.elements.blackEngineSelect);
+        this.elements.tournamentEngineList?.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+            const provider = this.getEngineById(input.value);
+            const availability = this.getEngineAvailability(provider);
+            input.disabled = !availability.available;
+            if (!availability.available) input.checked = false;
+            const item = input.closest('.tournament-engine-item');
+            item?.classList.toggle('is-unavailable', !availability.available);
+            let message = item?.querySelector('.engine-availability');
+            if (!message && item && !availability.available) {
+                message = document.createElement('span');
+                message.className = 'engine-availability';
+                item.appendChild(message);
+            }
+            if (message) message.textContent = availability.reason || '';
+        });
+        const selectedAvailable = this.isEngineRunnable(this.state.whiteEngine)
+            && this.isEngineRunnable(this.state.blackEngine);
+        if (this.elements.startMatchBtn) this.elements.startMatchBtn.disabled = !selectedAvailable;
+        if (!selectedAvailable) {
+            this.enginesReady = false;
+            this.updateGameStatus({ result: 'Selected engine unavailable. Choose another engine.' });
+        }
+        this.updateTournamentUI();
     },
 
     /**
@@ -1151,6 +1230,12 @@ const CaissaArena = {
         }
 
         this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
+        const startToken = ++this.state.startToken;
+        const startIsCurrent = () => startToken === this.state.startToken;
+        const cancelStaleStart = () => {
+            window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
+            return undefined;
+        };
 
         window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, true, { label: 'Starting...' });
         this.stopInfiniteAnalysis(false);
@@ -1170,16 +1255,22 @@ const CaissaArena = {
                 return;
             }
         }
+        if (!startIsCurrent()) return cancelStaleStart();
 
         // Let any selection-triggered prewarm converge before starting.
         if (this._prewarmPromise) await this._prewarmPromise;
+        if (!startIsCurrent()) return cancelStaleStart();
 
         // Initialize engines if not ready
         if (!this.enginesReady || !this.playerInstancesMatchSelections()) {
             console.log('[Arena] Engines not ready, initializing...');
             const success = await this.initEngines();
+            if (!startIsCurrent()) return cancelStaleStart();
             if (!success) {
-                alert('Engines could not start. Try again.');
+                this.destroyEngines();
+                const message = 'Selected engine could not verify its runtime identity and is unavailable for this session.';
+                this.updateGameStatus({ result: message });
+                alert(message);
                 window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
                 return;
             }
@@ -1189,15 +1280,24 @@ const CaissaArena = {
         this.resetBoard();
         this.cancelActiveSearch('match restart');
         this.state.loopRunning = false;
-        this.whiteEngineInstance.newGame?.();
-        this.blackEngineInstance.newGame?.();
-        this.evaluatorEngine?.newGame?.();
+        this.runtimeManager.newGame('white');
+        this.runtimeManager.newGame('black');
+        this.runtimeManager.newGame('evaluator');
         try {
             await Promise.all([
                 this.waitForEngineReadyOk(this.whiteEngineInstance, 'white'),
-                this.waitForEngineReadyOk(this.blackEngineInstance, 'black')
+                this.waitForEngineReadyOk(this.blackEngineInstance, 'black'),
+                this.waitForEngineReadyOk(this.evaluatorEngine, 'evaluator')
             ]);
+            if (!startIsCurrent()) return cancelStaleStart();
+            this.runtimeManager.markReady('white');
+            this.runtimeManager.markReady('black');
+            this.runtimeManager.markReady('evaluator');
+            if (!this.playerInstancesMatchSelections()) {
+                throw new Error('Selected engine identity changed before match start.');
+            }
         } catch (error) {
+            if (!startIsCurrent()) return cancelStaleStart();
             console.error('[Arena] Player engine readiness failed:', error);
             this.handleError(error.message);
             window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
@@ -1213,7 +1313,11 @@ const CaissaArena = {
             black: this.state.blackEngine,
             moves: [],
             startFen: this.game.fen(),
-            startTime: Date.now()
+            startTime: Date.now(),
+            runtimeIdentities: Object.freeze({
+                white: this.whiteEngineInstance.getRuntimeIdentity(),
+                black: this.blackEngineInstance.getRuntimeIdentity()
+            })
         };
 
         // Update UI
@@ -1231,6 +1335,7 @@ const CaissaArena = {
             detail: {
                 white: this.state.whiteEngine,
                 black: this.state.blackEngine,
+                runtimeIdentities: this.state.currentGame.runtimeIdentities,
                 moveDelay: this.state.moveDelay
             }
         }));
@@ -1249,8 +1354,7 @@ const CaissaArena = {
             this.state.loopActive = false;
             this.cancelActiveSearch('match paused');
             this.state.loopRunning = false;
-            this.whiteEngineInstance?.stop?.();
-            this.blackEngineInstance?.stop?.();
+            this.runtimeManager.stopAll();
             console.log('[Arena] Match paused');
             window.dispatchEvent(new CustomEvent('caissa-arena-pause'));
         } else if (this.state.matchState === 'paused') {
@@ -1277,20 +1381,29 @@ const CaissaArena = {
             return;
         }
         console.log('[Arena] Stopping match');
+        this.state.startToken += 1;
+        clearTimeout(this._tournamentAdvanceTimer);
+        this._tournamentAdvanceTimer = null;
         this.state.matchState = 'idle';
         this.state.loopActive = false;
         this.cancelActiveSearch('match stopped');
         this.state.loopRunning = false;
 
-        // Stop any ongoing engine calculations
-        if (this.whiteEngineInstance) {
-            this.whiteEngineInstance.stop();
-        }
-        if (this.blackEngineInstance) {
-            this.blackEngineInstance.stop();
-        }
+        // A stopped Match owns no live competition runtimes. A later start will
+        // recreate the selected providers through the shared registry.
+        this.destroyEngines();
 
         window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
+        // Stop can race a Tournament transition that temporarily marked the
+        // shared Match start button as loading. Always clear that snapshot and
+        // then derive disabled state from the currently selected providers.
+        window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
+        if (this.elements.startMatchBtn) {
+            const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
+            const selectedEnginesValid = this.isEngineRunnable(this.state.whiteEngine)
+                && this.isEngineRunnable(this.state.blackEngine);
+            this.elements.startMatchBtn.disabled = !(adapterAvailable && selectedEnginesValid);
+        }
         this.updateMatchControls();
 
         this.updateGameStatus({ result: 'Match stopped' });
@@ -1359,7 +1472,7 @@ const CaissaArena = {
         }
 
         const fen = this.game.fen();
-        this.evaluatorEngine.stop?.();
+        this.runtimeManager.stop('evaluator');
         this.evaluatorEngine.currentFen = fen;
         this.evaluatorEngine.onBestMove = null;
         this.evaluatorEngine.onInfo = (info) => {
@@ -1372,13 +1485,14 @@ const CaissaArena = {
         this.updateMatchControls();
         this.updateGameStatus({ result: 'Infinite analysis running' });
         this.evaluatorEngine.setPosition(fen);
+        this.runtimeManager.markThinking('evaluator');
         this.evaluatorEngine.go({ infinite: true });
         console.log('[Arena] Infinite analysis started', { fen });
     },
 
     stopInfiniteAnalysis(updateStatus = true) {
         if (!this.state.analysisRunning) return;
-        this.evaluatorEngine?.stop?.();
+        this.runtimeManager?.stop('evaluator');
         if (this.evaluatorEngine) {
             this.evaluatorEngine.onInfo = null;
             this.evaluatorEngine.onBestMove = null;
@@ -1398,8 +1512,11 @@ const CaissaArena = {
     enableMatchControls() {
         const { startMatchBtn } = this.elements;
         if (startMatchBtn) {
-            if (this.state.engineBinaryAvailable === false) {
-                console.warn('[Arena] Not enabling controls: engine binary missing');
+            const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
+            const selectedEnginesValid = this.isEngineRunnable(this.state.whiteEngine)
+                && this.isEngineRunnable(this.state.blackEngine);
+            if (this.state.engineBinaryAvailable === false || !adapterAvailable || !selectedEnginesValid) {
+                console.warn('[Arena] Not enabling controls: selected engine runtime unavailable');
                 startMatchBtn.disabled = true;
                 return;
             }
@@ -1535,8 +1652,8 @@ const CaissaArena = {
     async initEngines() {
         console.log('[Arena] Initializing engine instances...');
 
-        if (typeof EngineAdapter === 'undefined') {
-            console.error('[Arena] EngineAdapter class not found!');
+        if (!this.runtimeManager) {
+            console.error('[Arena] Arena runtime manager not found!');
             return false;
         }
 
@@ -1545,30 +1662,18 @@ const CaissaArena = {
             const blackConfig = this.state.blackEngine || this.engines[1] || this.engines[0];
             const evalConfig = this.engines.find(e => e.id === 'stockfish') || whiteConfig;
 
-            const reconcileInstance = (property, config) => {
-                const current = this[property];
-                if (current?.id === config?.id && current?.workerPath === config?.workerPath) return current;
-                current?.terminate?.('arena-engine-selection-changed');
-                const replacement = this.createEngineInstance(config);
-                this[property] = replacement;
-                return replacement;
-            };
-
-            const whiteInstance = reconcileInstance('whiteEngineInstance', whiteConfig);
-            const blackInstance = reconcileInstance('blackEngineInstance', blackConfig);
-            const evaluatorInstance = reconcileInstance('evaluatorEngine', evalConfig);
-
-            if (!whiteInstance || !blackInstance || !evaluatorInstance) {
-                console.error('[Arena] Failed to create engine instances');
-                return false;
-            }
-
-            // Constructors auto-start; start() safely returns the same in-flight promise.
-            await Promise.all([
-                whiteInstance.start(),
-                blackInstance.start(),
-                evaluatorInstance.start()
+            const [whiteInstance, blackInstance, evaluatorInstance] = await Promise.all([
+                this.runtimeManager.acquire('white', whiteConfig.id),
+                this.runtimeManager.acquire('black', blackConfig.id),
+                this.runtimeManager.acquire('evaluator', evalConfig.id)
             ]);
+
+            if (!whiteInstance || !blackInstance || !evaluatorInstance
+                || !this.runtimeMatchesProvider(whiteInstance, whiteConfig)
+                || !this.runtimeMatchesProvider(blackInstance, blackConfig)
+                || !this.runtimeMatchesProvider(evaluatorInstance, evalConfig)) {
+                throw new Error('Engine runtime identity did not match the selected provider.');
+            }
 
             this.enginesReady = true;
             this.evaluatorReady = true;
@@ -1577,6 +1682,9 @@ const CaissaArena = {
 
         } catch (error) {
             console.error('[Arena] Failed to initialize engines:', error);
+            this.enginesReady = false;
+            this.evaluatorReady = false;
+            this.refreshEngineAvailabilityUI();
             return false;
         }
     },
@@ -1641,18 +1749,7 @@ const CaissaArena = {
      * Destroy engine instances to free resources
      */
     destroyEngines() {
-        if (this.whiteEngineInstance) {
-            this.whiteEngineInstance.terminate();
-            this.whiteEngineInstance = null;
-        }
-        if (this.blackEngineInstance) {
-            this.blackEngineInstance.terminate();
-            this.blackEngineInstance = null;
-        }
-        if (this.evaluatorEngine) {
-            this.evaluatorEngine.terminate();
-            this.evaluatorEngine = null;
-        }
+        this.runtimeManager?.terminateAll('arena-destroyed');
         this.enginesReady = false;
         this.evaluatorReady = false;
         console.log('[Arena] All engines destroyed');
@@ -1918,6 +2015,7 @@ const CaissaArena = {
             }
 
             const color = context.color || 'unknown';
+            const runtimeRole = ['white', 'black'].includes(color) ? color : null;
             const engineId = context.engineId || engine.id || 'unknown';
             const searchToken = ++this.state.searchToken;
             let timeout = null;
@@ -1934,6 +2032,7 @@ const CaissaArena = {
                 if (this.state.cancelPendingSearch === cancelSearch) {
                     this.state.cancelPendingSearch = null;
                 }
+                if (runtimeRole) this.runtimeManager?.markIdle(runtimeRole, engine);
                 callback();
             };
             const cancelSearch = (reason) => {
@@ -1967,6 +2066,7 @@ const CaissaArena = {
             });
 
             // Set up callback for best move
+            if (runtimeRole) this.runtimeManager?.markThinking(runtimeRole, engine);
             engine.getBestMove(fen, (bestMove) => {
                 if (settled || searchToken !== this.state.searchToken) {
                     console.warn('[Arena] Ignoring late or stale bestmove', {
@@ -2001,7 +2101,7 @@ const CaissaArena = {
 
             timeout = setTimeout(() => {
                 if (settled || searchToken !== this.state.searchToken) return;
-                engine.stop?.();
+                if (!runtimeRole || !this.runtimeManager?.stop(runtimeRole, engine)) engine.stop?.();
                 console.error('[Arena] Engine move timeout diagnostic', {
                     color,
                     engineId,
@@ -2028,7 +2128,7 @@ const CaissaArena = {
             return;
         }
 
-        this.evaluatorEngine.stop?.();
+        this.runtimeManager.stop('evaluator');
         this.evaluatorEngine.currentFen = fen;
 
         // Set up info callback to capture evaluation data
@@ -2039,6 +2139,7 @@ const CaissaArena = {
 
         // Start analysis with short movetime
         this.evaluatorEngine.setPosition(fen);
+        this.runtimeManager.markThinking('evaluator');
         this.evaluatorEngine.go({ movetime: 400 });
     },
 
@@ -2145,6 +2246,7 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('game over');
         this.state.loopRunning = false;
+        this.runtimeManager.stopAll();
 
         let result = '';
         let resultCode = '1/2-1/2';
@@ -2190,9 +2292,7 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('tournament draw adjudicated');
         this.state.loopRunning = false;
-        this.whiteEngineInstance?.stop?.();
-        this.blackEngineInstance?.stop?.();
-        this.evaluatorEngine?.stop?.();
+        this.runtimeManager.stopAll();
 
         if (this.state.currentGame) {
             this.state.currentGame.result = '1/2-1/2';
@@ -2223,10 +2323,14 @@ const CaissaArena = {
      * Handle errors during match
      */
     handleError(message) {
+        this.state.startToken += 1;
         this.state.matchState = 'idle';
         this.state.loopActive = false;
         this.cancelActiveSearch('arena error');
         this.state.loopRunning = false;
+        this.runtimeManager?.terminateAll('arena-error');
+        this.enginesReady = false;
+        this.evaluatorReady = false;
         this.updateMatchControls();
 
         console.warn('[Arena] Match stopped after error:', message);
@@ -2440,15 +2544,16 @@ const CaissaArena = {
         if (!this.elements.tournamentEngineList) return;
 
         this.elements.tournamentEngineList.innerHTML = this.engines.map(engine => {
-            const runnable = this.isEngineRunnable(engine);
+            const engineAvailability = this.getEngineAvailability(engine);
+            const runnable = engineAvailability.available && !!engine.workerPath;
             const availability = runnable
                 ? ''
-                : `<span class="engine-availability">${engine.reason || 'Unavailable'}</span>`;
+                : `<span class="engine-availability">${this.escapeTournamentText(engineAvailability.reason || 'Unavailable')}</span>`;
             return `
             <label class="tournament-engine-item${runnable ? '' : ' is-unavailable'}">
-                <input type="checkbox" value="${engine.id}"${runnable ? ' checked' : ' disabled'}>
-                <span class="engine-name">${engine.name}</span>
-                <span class="engine-tier">Tier ${engine.tier}</span>
+                <input type="checkbox" value="${this.escapeTournamentText(engine.id)}"${runnable ? ' checked' : ' disabled'}>
+                <span class="engine-name">${this.escapeTournamentText(engine.name)}</span>
+                <span class="engine-tier">Tier ${this.escapeTournamentText(engine.tier)}</span>
                 ${availability}
             </label>
         `;
@@ -2481,7 +2586,7 @@ const CaissaArena = {
 
         this.state.tournament = {
             engines: selectedEngines,
-            format: 'swiss',
+            format: 'round-robin',
             rounds: rounds,
             openingMode: openingMode,
             standings: selectedEngines.map(e => ({ engine: e, points: 0, games: 0 })),
@@ -2489,43 +2594,24 @@ const CaissaArena = {
             games: []
         };
 
-        this.generateSwissPairings();
+        this.generateRoundRobinPairings();
         this.updateTournamentUI();
         this.playNextTournamentGame();
     },
 
-    generateSwissPairings() {
-        const { engines, standings, currentRound, rounds } = this.state.tournament;
+    generateRoundRobinPairings() {
+        const { engines, currentRound, rounds } = this.state.tournament;
 
         if (currentRound >= rounds) {
             console.log('[Arena] Tournament complete!');
             return [];
         }
 
-        // Sort by points for Swiss pairing
-        const sorted = [...standings].sort((a, b) => b.points - a.points);
-
-        const pairings = [];
-        const paired = new Set();
-
-        for (let i = 0; i < sorted.length; i++) {
-            if (paired.has(sorted[i].engine.id)) continue;
-
-            for (let j = i + 1; j < sorted.length; j++) {
-                if (paired.has(sorted[j].engine.id)) continue;
-
-                pairings.push({
-                    white: sorted[i].engine,
-                    black: sorted[j].engine,
-                    round: currentRound,
-                    result: null
-                });
-
-                paired.add(sorted[i].engine.id);
-                paired.add(sorted[j].engine.id);
-                break;
-            }
+        if (!window.ArenaTournamentScheduler?.getRoundPairings) {
+            throw new Error('Arena round-robin scheduler is unavailable.');
         }
+        const pairings = ArenaTournamentScheduler.getRoundPairings(engines, currentRound)
+            .map(pairing => ({ ...pairing, result: null }));
 
         this.state.tournament.games.push(...pairings);
         return pairings;
@@ -2537,7 +2623,7 @@ const CaissaArena = {
         if (!pendingGame) {
             this.state.tournament.currentRound++;
             if (this.state.tournament.currentRound < this.state.tournament.rounds) {
-                this.generateSwissPairings();
+                this.generateRoundRobinPairings();
                 this.playNextTournamentGame();
             } else {
                 this.finishTournament();
@@ -2560,6 +2646,7 @@ const CaissaArena = {
 
         pendingGame.result = result;
         pendingGame.moves = (this.state.currentGame?.moves || []).map(move => ({ ...move }));
+        pendingGame.runtimeIdentities = this.state.currentGame?.runtimeIdentities || null;
         pendingGame.startFen = this.state.currentGame?.startFen || '';
         pendingGame.endFen = this.game?.fen?.() || '';
         pendingGame.termination = this.state.currentGame?.termination || '';
@@ -2585,6 +2672,7 @@ const CaissaArena = {
 
     finishTournament() {
         console.log('[Arena] Tournament finished!');
+        this.runtimeManager.stopAll();
         this.updateTournamentUI();
 
         // Show winner
@@ -2754,11 +2842,16 @@ const CaissaArena = {
 
     onExit() {
         console.log('[Arena] Section exited');
-        // Don't destroy the board, just leave it
-        // Stop any running match if needed
-        if (this.state.matchState === 'running') {
-            // Optionally stop - for now we let it run
-            // this.stopMatch();
+        this.state.startToken += 1;
+        clearTimeout(this._tournamentAdvanceTimer);
+        this._tournamentAdvanceTimer = null;
+        this.state.loopActive = false;
+        this.cancelActiveSearch('arena section exited');
+        this.state.loopRunning = false;
+        if (this.state.matchState !== 'idle') {
+            this.stopMatch();
+        } else {
+            this.destroyEngines();
         }
         this.teardownBoardSizing();
     },
