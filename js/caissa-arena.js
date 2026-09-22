@@ -318,7 +318,7 @@ const CaissaArena = {
             // Board configuration
             const config = {
                 draggable: false, // Arena boards are view-only (engine plays)
-                position: 'start',
+                position: this.getBoardPlacement(this.game?.fen()),
                 pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
                 showNotation: true,
                 orientation: 'white'
@@ -644,20 +644,14 @@ const CaissaArena = {
         const fen = this.elements.fenInput?.value.trim();
         if (!fen || typeof Chess === 'undefined') {
             this.setFenMessage('Enter a valid FEN position.', true);
-            return;
+            return false;
         }
 
-        try {
-            const candidate = new Chess();
-            const loaded = candidate.load(fen);
-            if (loaded === false) {
-                throw new Error('Invalid FEN');
-            }
-
-            this.applyArenaPosition(candidate.fen(), 'Custom position');
-        } catch (error) {
+        if (!this.applyArenaPosition(fen, 'Custom position')) {
             this.setFenMessage('FEN could not be loaded. Check the position and try again.', true);
+            return false;
         }
+        return true;
     },
 
     useInitialPosition() {
@@ -677,20 +671,30 @@ const CaissaArena = {
     },
 
     applyArenaPosition(fen, label = 'Custom position') {
+        if (typeof Chess === 'undefined') return false;
+        let normalizedFen = '';
+        try {
+            const candidate = new Chess();
+            if (candidate.load(String(fen || '').trim()) === false) return false;
+            normalizedFen = candidate.fen();
+        } catch (error) {
+            return false;
+        }
+
         if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
             this.stopMatch();
         }
         this.stopInfiniteAnalysis(false);
 
         this.state.matchState = 'idle';
-        this.state.customStartFen = fen;
+        this.state.customStartFen = normalizedFen;
         this.resetBoard();
-        this.updateBoardPosition(fen);
+        this.updateBoardPosition(normalizedFen);
         this.updateMatchControls();
 
         const side = this.game?.turn() === 'b' ? 'Black' : 'White';
         if (this.elements.fenInput) {
-            this.elements.fenInput.value = fen;
+            this.elements.fenInput.value = normalizedFen;
         }
         this.setFenMessage(`${label} ready. ${side} to move.`);
         this.updateGameStatus({ result: `Ready: ${label} (${side} to move)` });
@@ -698,6 +702,7 @@ const CaissaArena = {
             this.board?.resize?.();
             this.syncBoardAndGraphSize();
         });
+        return true;
     },
 
     setFenMessage(message, isError = false) {
@@ -2861,12 +2866,17 @@ const CaissaArena = {
      */
     updateBoardPosition(fen) {
         if (this.board && fen) {
-            this.board.position(fen, false);
+            this.board.position(this.getBoardPlacement(fen), false);
             requestAnimationFrame(() => {
                 this.board?.resize?.();
                 this.syncBoardAndGraphSize();
             });
         }
+    },
+
+    getBoardPlacement(fen) {
+        const placement = String(fen || '').trim().split(/\s+/)[0];
+        return placement || 'start';
     },
 
     /**
@@ -2881,7 +2891,7 @@ const CaissaArena = {
             }
         }
         if (this.board) {
-            this.board.position(this.game?.fen() || 'start', false);
+            this.board.position(this.getBoardPlacement(this.game?.fen()), false);
         }
         this.state.evalHistory = [];
         this.clearEvalGraph();
