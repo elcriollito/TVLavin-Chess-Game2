@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const legacy = [
   ['Insights', '/insights', 'insights', '#insightsSection'],
   ['Analyze', '/analyze', 'analyze', '#analyzeSection'],
-  ['Arena', '/arena', 'arena', '#arenaSection'],
+  ['Engine Arena', '/arena', 'arena', '#arenaSection'],
   ['FICS', '/fics', 'fics', '#ficsSection'],
   ['Chess TV', '/spectator-tv', 'spectator-tv', '#spectatorSection'],
   ['Cheater Insight', '/cheater-insight', 'cheater-insight', '#cheater-insightSection'],
@@ -35,7 +35,7 @@ for (const [label, route, surface, marker] of legacy) {
     await expect(page).toHaveURL(new RegExp(`${route.replaceAll('/', '\\/')}$`));
     await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', surface);
     await expect(page.locator(marker)).toBeVisible();
-    await expect(page.locator(`#mainNav [data-nav-key="${label === 'Chess TV' ? 'spectator' : label === 'Game Library' ? 'library' : label === 'DOS Chess' ? 'dosChess' : label.toLowerCase().replaceAll(' ', '-')}"]`)).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator(`#mainNav [data-nav-key="${label === 'Chess TV' ? 'spectator' : label === 'Game Library' ? 'library' : label === 'DOS Chess' ? 'dosChess' : label === 'Engine Arena' ? 'arena' : label.toLowerCase().replaceAll(' ', '-')}"]`)).toHaveAttribute('aria-current', 'page');
     await expect(page).toHaveTitle(/CAISSA Chess/);
     expect(failures).toEqual([]);
   });
@@ -51,13 +51,13 @@ test('standalone product links resolve to their own observable surfaces', async 
   }
 });
 
-test('Insights to Analyze to Arena never retains the preceding surface', async ({ page }) => {
+test('Insights to Analyze to Engine Arena never retains the preceding surface', async ({ page }) => {
   await page.goto('/insights');
   await page.getByRole('link', { name: 'Analyze', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'analyze');
   await expect(page.locator('#analyzeSection')).toBeVisible();
   await expect(page.locator('#insightsSection')).not.toBeVisible();
-  await page.getByRole('link', { name: 'Arena', exact: true }).click();
+  await page.getByRole('link', { name: 'Engine Arena', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'arena');
   await expect(page.locator('#arenaSection')).toBeVisible();
   await expect(page.locator('#analyzeSection')).not.toBeVisible();
@@ -123,7 +123,7 @@ test('cold load, reload, warm cache, and Back/Forward preserve route-to-surface 
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'insights');
   await page.reload();
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'insights');
-  await page.getByRole('link', { name: 'Arena', exact: true }).click();
+  await page.getByRole('link', { name: 'Engine Arena', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'arena');
   await page.goBack();
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'insights');
