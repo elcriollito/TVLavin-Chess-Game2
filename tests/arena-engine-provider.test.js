@@ -87,11 +87,12 @@ test('one Arena provider registry owns Match and Tournament availability metadat
     assert.deepEqual(Array.from(available, provider => provider.id), [
         'stockfish', 'stockfish-lite', 'stockfish-18-lite', 'stockfish-19-lite'
     ]);
-    assert.deepEqual(Array.from(unavailable, provider => provider.id), [
-        'fairy-stockfish', 'arasan', 'rodent3', 'texel'
-    ]);
-    assert.equal(registry.getArenaProviderAvailability('arasan').reason,
-        registry.getArenaProvider('arasan').unavailableReason);
+    assert.deepEqual(Array.from(unavailable, provider => provider.id), [],
+        'uncertified engines are absent, not disabled options');
+    for (const id of ['fairy-stockfish', 'arasan', 'rodent3', 'texel']) {
+        assert.equal(registry.getArenaProvider(id), null);
+        assert.equal(registry.getArenaProviderAvailability(id).available, false);
+    }
     assert.equal(registry.getArenaProvider('stockfish').runtimeId,
         registry.getArenaProvider('stockfish-lite').runtimeId);
     assert.notEqual(registry.getArenaProvider('stockfish').profile.id,
@@ -435,6 +436,6 @@ test('historical Arasan label with a prewarmed Stockfish worker is structurally 
     assert.equal(stockfish.getRuntimeIdentity().providerId, 'stockfish');
     assert.equal(stockfish.getRuntimeIdentity().reportedUciName,
         'Stockfish 2019-08-15 Multi-Variant');
-    assert.equal(registry.getArenaProvider('arasan').displayName, 'Arasan');
+    assert.equal(registry.getArenaProvider('arasan'), null);
     assert.equal(registry.isArenaProviderAvailable('arasan'), false);
 });

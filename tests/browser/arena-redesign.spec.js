@@ -84,16 +84,14 @@ test('Match and Tournament expose the same runnable engines and execute the sele
   expect(tournamentAvailability.filter(engine => engine.disabled).map(engine => engine.id))
     .toEqual(matchAvailability.filter(engine => engine.disabled).map(engine => engine.id));
   expect(tournamentAvailability.filter(engine => engine.checked).every(engine => !engine.disabled)).toBe(true);
-  expect(matchAvailability.find(engine => engine.id === 'arasan')).toMatchObject({ disabled: true });
-  expect(matchAvailability.find(engine => engine.id === 'arasan').label).toContain('WASM build needed');
-  expect(matchAvailability.find(engine => engine.id === 'fairy-stockfish')).toMatchObject({ disabled: true });
-  expect(matchAvailability.find(engine => engine.id === 'fairy-stockfish').label).toContain('cross-origin-isolated');
-  await expect(page.locator('#arenaTournamentEngines input[value="arasan"]')).toBeDisabled();
-  await expect(page.locator('#arenaTournamentEngines input[value="arasan"] + .engine-name')).toHaveText('Arasan');
-  const arasanReason = await page.evaluate(() => window.EngineRegistry.getArenaProvider('arasan').unavailableReason);
-  expect(matchAvailability.find(engine => engine.id === 'arasan').label).toContain(arasanReason);
-  await expect(page.locator('#arenaTournamentEngines input[value="arasan"]')
-    .locator('xpath=..').locator('.engine-availability')).toHaveText(arasanReason);
+  expect(matchAvailability.map(engine => engine.id)).toEqual([
+    'stockfish', 'stockfish-lite', 'stockfish-18-lite', 'stockfish-19-lite'
+  ]);
+  expect(tournamentAvailability.map(engine => engine.id)).toEqual(matchAvailability.map(engine => engine.id));
+  for (const id of ['fairy-stockfish', 'arasan', 'rodent3', 'texel']) {
+    expect(matchAvailability.some(engine => engine.id === id)).toBe(false);
+    expect(tournamentAvailability.some(engine => engine.id === id)).toBe(false);
+  }
 
   await page.getByRole('tab', { name: 'Match' }).click();
   await page.locator('#arenaWhiteEngine').selectOption('stockfish-lite');
@@ -176,7 +174,7 @@ test('unavailable Arasan cannot borrow a prewarmed Stockfish runtime or label', 
       workerProvider: after.runtimes.white.providerId,
       workerUciName: after.runtimes.white.reportedUciName,
       visibleLabel: document.getElementById('arenaStatusWhite').textContent,
-      arasanAvailable: after.availability.arasan.available,
+      arasanAvailable: window.EngineRegistry.isArenaProviderAvailable('arasan'),
       runtimeInstanceStable: before.runtimes.white.runtimeInstanceId === after.runtimes.white.runtimeInstanceId
     };
   });
