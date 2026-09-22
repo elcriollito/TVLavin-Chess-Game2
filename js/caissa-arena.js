@@ -17,6 +17,9 @@ const CaissaArena = {
     // ===== BOARD INSTANCE =====
     board: null,
     game: null,
+    setupBoardInstance: null,
+    manualSetupIgnoreClick: false,
+    manualSetupScrollSnapshot: null,
 
     // ===== ENGINE INSTANCES =====
     // ArenaRuntimeManager is the sole owner; these getters preserve the
@@ -42,7 +45,8 @@ const CaissaArena = {
         customStartFen: '',
         analysisRunning: false,
         analysisFen: '',
-        setupPiece: 'erase',
+        setupPiece: 'move',
+        setupSelectedSquare: null,
         boardMounted: false,
         hasEntered: false,
         loopActive: false, // Is engine loop running
@@ -558,10 +562,11 @@ const CaissaArena = {
         this.elements.applyFenBtn?.addEventListener('click', () => this.applyCustomPosition());
         this.elements.useStartPositionBtn?.addEventListener('click', () => this.useInitialPosition());
         this.elements.setupCloseBtn?.addEventListener('click', () => this.closeManualSetup());
-        this.elements.setupClearBtn?.addEventListener('click', () => this.setupBoardInstance?.position({}));
+        this.elements.setupClearBtn?.addEventListener('click', () => this.clearManualSetup());
         this.elements.setupResetBtn?.addEventListener('click', () => this.resetManualSetup());
         this.elements.setupApplyBtn?.addEventListener('click', () => this.applyManualSetup());
         this.elements.setupBoard?.addEventListener('click', (event) => this.onManualSetupSquareClick(event));
+        this.elements.setupBoard?.addEventListener('keydown', (event) => this.onManualSetupSquareKeydown(event));
         this.elements.drawCancelBtn?.addEventListener('click', () => this.closeDrawConfirmation());
         this.elements.drawConfirmBtn?.addEventListener('click', () => this.adjudicateTournamentDraw());
         this.elements.drawModal?.addEventListener('click', (event) => {
@@ -714,26 +719,57 @@ const CaissaArena = {
     openManualSetup() {
         if (!this.elements.setupModal || typeof Chessboard === 'undefined') return;
         this.renderSetupPalette();
+        this.selectSetupPiece('move');
+        this.setSetupMessage('Move pieces by dragging, or select a piece and then its destination.');
+        const arenaSection = document.getElementById('arenaSection');
+        this.manualSetupScrollSnapshot = {
+            windowX: window.scrollX,
+            windowY: window.scrollY,
+            sectionLeft: arenaSection?.scrollLeft || 0,
+            sectionTop: arenaSection?.scrollTop || 0
+        };
         this.elements.setupModal.classList.add('show');
+        this.elements.setupModal.setAttribute('aria-hidden', 'false');
 
         const fen = this.game?.fen() || this.state.customStartFen || 'start';
         const position = fen === 'start' ? 'start' : fen.split(' ')[0];
         if (!this.setupBoardInstance) {
             this.setupBoardInstance = Chessboard('arenaSetupBoard', {
-                draggable: false,
+                draggable: true,
+                dropOffBoard: 'snapback',
                 position,
                 pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-                showNotation: true
+                showNotation: true,
+                onDragStart: (source) => this.onManualSetupDragStart(source),
+                onDrop: (source, target) => this.onManualSetupDrop(source, target),
+                onSnapEnd: () => this.refreshManualSetupSquares()
             });
         } else {
             this.setupBoardInstance.position(position, false);
         }
         this.loadSetupOptionsFromFen(fen);
-        requestAnimationFrame(() => this.setupBoardInstance?.resize?.());
+        requestAnimationFrame(() => {
+            this.setupBoardInstance?.resize?.();
+            this.refreshManualSetupSquares();
+        });
     },
 
     closeManualSetup() {
         this.elements.setupModal?.classList.remove('show');
+        this.elements.setupModal?.setAttribute('aria-hidden', 'true');
+        this.state.setupSelectedSquare = null;
+        const restoreScroll = () => {
+            const snapshot = this.manualSetupScrollSnapshot;
+            if (!snapshot) return;
+            window.scrollTo(snapshot.windowX, snapshot.windowY);
+            const arenaSection = document.getElementById('arenaSection');
+            if (arenaSection) {
+                arenaSection.scrollLeft = snapshot.sectionLeft;
+                arenaSection.scrollTop = snapshot.sectionTop;
+            }
+        };
+        restoreScroll();
+        requestAnimationFrame(restoreScroll);
     },
 
     isActiveTournamentGame() {
@@ -782,21 +818,32 @@ const CaissaArena = {
 
     renderSetupPalette() {
         if (!this.elements.setupPalette || this.elements.setupPalette.children.length) return;
+        const move = document.createElement('button');
+        move.type = 'button';
+        move.className = 'arena-setup-piece active';
+        move.dataset.piece = 'move';
+        move.title = 'Move existing piece';
+        move.setAttribute('aria-label', 'Move existing piece');
+        move.innerHTML = '<i class="fas fa-arrows-alt" aria-hidden="true"></i>';
+        move.addEventListener('click', () => this.selectSetupPiece('move'));
+        this.elements.setupPalette.appendChild(move);
+
         const pieces = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
         pieces.forEach((piece) => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'arena-setup-piece';
             button.dataset.piece = piece;
-            button.title = piece;
-            button.setAttribute('aria-label', `Select ${piece} for manual setup`);
-            button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="${piece}">`;
+            const label = this.getSetupPieceLabel(piece);
+            button.title = label;
+            button.setAttribute('aria-label', `Add ${label}`);
+            button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="">`;
             button.addEventListener('click', () => this.selectSetupPiece(piece));
             this.elements.setupPalette.appendChild(button);
         });
         const erase = document.createElement('button');
         erase.type = 'button';
-        erase.className = 'arena-setup-piece active';
+        erase.className = 'arena-setup-piece';
         erase.dataset.piece = 'erase';
         erase.title = 'Erase piece';
         erase.setAttribute('aria-label', 'Select eraser for manual setup');
@@ -807,30 +854,150 @@ const CaissaArena = {
 
     selectSetupPiece(piece) {
         this.state.setupPiece = piece;
+        this.state.setupSelectedSquare = null;
         this.elements.setupPalette?.querySelectorAll('.arena-setup-piece').forEach((button) => {
             button.classList.toggle('active', button.dataset.piece === piece);
+            button.setAttribute('aria-pressed', String(button.dataset.piece === piece));
         });
+        this.refreshManualSetupSquares();
     },
 
     onManualSetupSquareClick(event) {
+        if (this.manualSetupIgnoreClick) return;
         const squareElement = event.target.closest('.square-55d63');
         if (!squareElement || !this.setupBoardInstance) return;
+        this.activateManualSetupSquare(squareElement);
+    },
+
+    onManualSetupSquareKeydown(event) {
+        if (!['Enter', ' '].includes(event.key)) return;
+        const squareElement = event.target.closest('.square-55d63');
+        if (!squareElement || !this.setupBoardInstance) return;
+        event.preventDefault();
+        this.activateManualSetupSquare(squareElement);
+    },
+
+    activateManualSetupSquare(squareElement) {
         const squareClass = Array.from(squareElement.classList).find((name) => /^square-[a-h][1-8]$/.test(name));
         if (!squareClass) return;
 
         const square = squareClass.replace('square-', '');
         const position = this.setupBoardInstance.position();
-        if (this.state.setupPiece === 'erase') {
+        if (this.state.setupPiece === 'move') {
+            const source = this.state.setupSelectedSquare;
+            if (!source) {
+                if (!position[square]) {
+                    this.setSetupMessage('Select an existing piece, then choose its destination.');
+                    return;
+                }
+                this.state.setupSelectedSquare = square;
+                this.setSetupMessage(`${this.getSetupPieceLabel(position[square])} on ${square} selected.`);
+                this.refreshManualSetupSquares({ focusSquare: square });
+                return;
+            }
+            if (source === square) {
+                this.state.setupSelectedSquare = null;
+                this.setSetupMessage('Piece selection cleared.');
+                this.refreshManualSetupSquares({ focusSquare: square });
+                return;
+            }
+            if (!position[source]) {
+                this.state.setupSelectedSquare = null;
+                this.refreshManualSetupSquares({ focusSquare: square });
+                return;
+            }
+            const movedPiece = position[source];
+            position[square] = movedPiece;
+            delete position[source];
+            this.state.setupSelectedSquare = null;
+            this.setupBoardInstance.position(position, false);
+            this.setSetupMessage(`${this.getSetupPieceLabel(movedPiece)} moved from ${source} to ${square}.`);
+        } else if (this.state.setupPiece === 'erase') {
             delete position[square];
+            this.setupBoardInstance.position(position, false);
+            this.setSetupMessage(`Square ${square} cleared.`);
         } else {
             position[square] = this.state.setupPiece;
+            this.setupBoardInstance.position(position, false);
+            this.setSetupMessage(`${this.getSetupPieceLabel(this.state.setupPiece)} placed on ${square}.`);
         }
-        this.setupBoardInstance.position(position, false);
+        requestAnimationFrame(() => this.refreshManualSetupSquares({ focusSquare: square }));
+    },
+
+    onManualSetupDragStart(source) {
+        if (!/^[a-h][1-8]$/.test(source)) return false;
+        const position = this.setupBoardInstance?.position?.() || {};
+        if (!position[source]) return false;
+        if (this.state.setupPiece !== 'move') return false;
+        if (this.state.setupSelectedSquare && this.state.setupSelectedSquare !== source) return false;
+        this.state.setupSelectedSquare = source;
+        this.refreshManualSetupSquares();
+        return true;
+    },
+
+    onManualSetupDrop(source, target) {
+        if (!/^[a-h][1-8]$/.test(source) || !/^[a-h][1-8]$/.test(target)) return 'snapback';
+        this.manualSetupIgnoreClick = true;
+        if (source === target) {
+            this.state.setupSelectedSquare = source;
+            const piece = this.setupBoardInstance?.position?.()[source];
+            this.setSetupMessage(`${this.getSetupPieceLabel(piece)} on ${source} selected.`);
+        } else {
+            this.state.setupSelectedSquare = null;
+            this.setSetupMessage(`Piece moved from ${source} to ${target}.`);
+        }
+        setTimeout(() => {
+            this.manualSetupIgnoreClick = false;
+            this.refreshManualSetupSquares({ focusSquare: source === target ? source : target });
+        }, 0);
+        return undefined;
+    },
+
+    getSetupPieceLabel(piece) {
+        const color = piece?.[0] === 'w' ? 'White' : 'Black';
+        const names = { P: 'pawn', N: 'knight', B: 'bishop', R: 'rook', Q: 'queen', K: 'king' };
+        return `${color} ${names[piece?.[1]] || 'piece'}`;
+    },
+
+    refreshManualSetupSquares({ focusSquare = '' } = {}) {
+        if (!this.elements.setupBoard || !this.setupBoardInstance) return;
+        const position = this.setupBoardInstance.position();
+        this.elements.setupBoard.querySelectorAll('.square-55d63').forEach((squareElement) => {
+            const squareClass = Array.from(squareElement.classList).find((name) => /^square-[a-h][1-8]$/.test(name));
+            if (!squareClass) return;
+            const square = squareClass.replace('square-', '');
+            const selected = this.state.setupSelectedSquare === square;
+            const piece = position[square];
+            squareElement.tabIndex = 0;
+            squareElement.setAttribute('role', 'button');
+            squareElement.setAttribute('aria-pressed', String(selected));
+            squareElement.setAttribute('aria-label', `${square}: ${piece ? this.getSetupPieceLabel(piece) : 'empty'}${selected ? ', selected for relocation' : ''}`);
+            squareElement.classList.toggle('arena-setup-source-selected', selected);
+            if (focusSquare === square && document.activeElement !== squareElement) {
+                squareElement.focus({ preventScroll: true });
+            }
+        });
+    },
+
+    clearManualSetup() {
+        this.state.setupSelectedSquare = null;
+        this.setupBoardInstance?.position({}, false);
+        this.setSetupMessage('Board cleared.');
+        requestAnimationFrame(() => this.refreshManualSetupSquares());
     },
 
     resetManualSetup() {
         this.setupBoardInstance?.start?.(false);
         this.loadSetupOptionsFromFen(new Chess().fen());
+        this.selectSetupPiece('move');
+        this.setSetupMessage('Initial position restored. Move pieces by dragging or click-click relocation.');
+        requestAnimationFrame(() => this.refreshManualSetupSquares());
+    },
+
+    setSetupMessage(message, isError = false) {
+        if (!this.elements.setupMessage) return;
+        this.elements.setupMessage.textContent = message;
+        this.elements.setupMessage.classList.toggle('error', isError);
     },
 
     loadSetupOptionsFromFen(fen) {
@@ -863,10 +1030,7 @@ const CaissaArena = {
             this.applyArenaPosition(candidate.fen(), 'Manual position');
             this.closeManualSetup();
         } catch (error) {
-            if (this.elements.setupMessage) {
-                this.elements.setupMessage.textContent = 'Invalid position. Place both kings before applying.';
-                this.elements.setupMessage.classList.add('error');
-            }
+            this.setSetupMessage('Invalid position. Place both kings before applying.', true);
         }
     },
 

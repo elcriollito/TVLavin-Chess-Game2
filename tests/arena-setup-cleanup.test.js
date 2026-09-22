@@ -32,3 +32,30 @@ test('visual board receives piece placement while Chess state retains full FEN',
     assert.match(reset, /this\.board\.position\(this\.getBoardPlacement\(this\.game\?\.fen\(\)\), false\)/);
     assert.match(arena, /position: this\.getBoardPlacement\(this\.game\?\.fen\(\)\)/);
 });
+
+test('manual setup supports drag and accessible click-click relocation without game moves', () => {
+    const open = method('openManualSetup', 'closeManualSetup');
+    const activate = method('activateManualSetupSquare', 'onManualSetupDragStart');
+    const drop = method('onManualSetupDrop', 'getSetupPieceLabel');
+    const accessibility = method('refreshManualSetupSquares', 'clearManualSetup');
+    assert.match(open, /draggable: true/);
+    assert.match(open, /onDragStart:/);
+    assert.match(open, /onDrop:/);
+    assert.match(activate, /position\[square\] = movedPiece/);
+    assert.match(activate, /delete position\[source\]/);
+    assert.match(drop, /return 'snapback'/);
+    assert.match(accessibility, /squareElement\.tabIndex = 0/);
+    assert.match(accessibility, /setAttribute\('aria-pressed'/);
+    assert.doesNotMatch(`${activate}\n${drop}`, /this\.game\.(?:move|load|undo)|runtimeManager|startTournament|runEngineLoop/);
+});
+
+test('manual setup keeps explicit turn and castling controls authoritative', () => {
+    const apply = method('applyManualSetup', 'renderEngineSelectors');
+    assert.match(apply, /const turn = this\.elements\.setupTurn\?\.value \|\| 'w'/);
+    assert.match(apply, /setupCastleWK\?\.checked/);
+    assert.match(apply, /setupCastleWQ\?\.checked/);
+    assert.match(apply, /setupCastleBK\?\.checked/);
+    assert.match(apply, /setupCastleBQ\?\.checked/);
+    assert.match(apply, /generateFENFromPosition\(position\)/);
+    assert.match(apply, /this\.applyArenaPosition\(candidate\.fen\(\), 'Manual position'\)/);
+});
