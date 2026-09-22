@@ -1401,10 +1401,11 @@
                     </div>
                 </div>
 
-                <div id="arenaSetupModal" class="modal arena-setup-modal">
+                <div id="arenaSetupModal" class="modal arena-setup-modal" role="dialog" aria-modal="true"
+                     aria-hidden="true" aria-labelledby="arenaSetupTitle">
                     <div class="modal-content arena-setup-modal-content">
                         <div class="modal-header">
-                            <h2>Manual Setup</h2>
+                            <h2 id="arenaSetupTitle">Manual Setup</h2>
                             <button id="arenaSetupClose" class="modal-close" type="button" aria-label="Close manual setup">&times;</button>
                         </div>
                         <div class="modal-body arena-setup-body">

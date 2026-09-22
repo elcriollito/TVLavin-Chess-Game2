@@ -6388,6 +6388,20 @@ button:focus,
     background: rgba(59, 130, 246, 0.18);
 }
 
+.arena-setup-piece:focus-visible,
+.arena-setup-board .square-55d63:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: -3px;
+}
+
+.arena-setup-board .square-55d63 {
+    cursor: pointer;
+}
+
+.arena-setup-board .square-55d63.arena-setup-source-selected {
+    box-shadow: inset 0 0 0 4px rgba(78, 205, 196, 0.9);
+}
+
 .arena-setup-options {
     display: flex;
     flex-direction: column;
