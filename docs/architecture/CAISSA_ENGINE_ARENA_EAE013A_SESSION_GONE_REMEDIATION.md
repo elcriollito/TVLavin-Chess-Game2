@@ -38,4 +38,6 @@ Deterministic broker tests run 25 cases each for rapid STOP→Resume, STOP→rec
 
 ## Verification record
 
+The first CLI Preview deployment (`dpl_HpWPNDbtRq9sjxf3g1M2BCHK4hp8`) built before Git-triggered branch environment selection. Its `/api/eae013` gate returned `PREVIEW_ONLY` and relay health returned `PREVIEW_ORIGINS_REQUIRED`; it is **not** a test candidate. A subsequent Git-triggered immutable deployment with EAE-013A branch-scoped variables must pass both origin health checks before any soak result can count.
+
 The immutable EAE-013A Preview deployment, pre-fix reproduction outcome, 100-cycle real Arena soak, separate real-browser race probes, Match/Tournament regressions, failure paths, latency medians/p95, zero-residue query and final verdict must be recorded here after execution. Until all gates pass, the verdict remains `LC0_ARENA_PREVIEW_PARTIAL`.
