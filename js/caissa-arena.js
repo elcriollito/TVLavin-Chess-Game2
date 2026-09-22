@@ -9,6 +9,7 @@ console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 
 const ARENA_ENGINE_MOVETIME_MS = 2000;
 const ARENA_ENGINE_TIMEOUT_MS = 12000;
+const ARENA_REVIEW_PLAYBACK_MS = 850;
 
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
@@ -25,6 +26,8 @@ const CaissaArena = {
     // ArenaRuntimeManager is the sole owner; these getters preserve the
     // certified Arena-facing API without duplicating worker references.
     runtimeManager: null,
+    reviewTimer: null,
+    reviewMarkerVersion: 0,
     get whiteEngineInstance() { return this.runtimeManager?.getInstance('white') || null; },
     get blackEngineInstance() { return this.runtimeManager?.getInstance('black') || null; },
     get evaluatorEngine() { return this.runtimeManager?.getInstance('evaluator') || null; },
@@ -47,6 +50,11 @@ const CaissaArena = {
         analysisFen: '',
         setupPiece: 'move',
         setupSelectedSquare: null,
+        review: {
+            cursor: null,
+            playing: false,
+            displayFen: ''
+        },
         boardMounted: false,
         hasEntered: false,
         loopActive: false, // Is engine loop running
@@ -112,6 +120,7 @@ const CaissaArena = {
         // Create a new chess.js instance for Arena
         if (typeof Chess !== 'undefined') {
             this.game = new Chess();
+            this.resetReviewState();
             console.log('[Arena] Game instance created');
         } else {
             console.warn('[Arena] Chess.js not loaded yet');
@@ -183,6 +192,17 @@ const CaissaArena = {
             // Eval graph canvas
             evalGraph: document.getElementById('arenaEvalGraph'),
             graphPanel: document.getElementById('arenaGraphPanel'),
+
+            // Visual game review (presentation only)
+            movesPanel: document.getElementById('arenaMovesPanel'),
+            reviewControls: document.getElementById('arenaReviewControls'),
+            reviewFirstBtn: document.getElementById('arenaReviewFirst'),
+            reviewPreviousBtn: document.getElementById('arenaReviewPrevious'),
+            reviewPlayBtn: document.getElementById('arenaReviewPlay'),
+            reviewNextBtn: document.getElementById('arenaReviewNext'),
+            reviewLastBtn: document.getElementById('arenaReviewLast'),
+            reviewLiveBtn: document.getElementById('arenaReviewLive'),
+            reviewStatus: document.getElementById('arenaReviewStatus'),
 
             // Tournament
             tournamentEngineList: document.getElementById('arenaTournamentEngines'),
@@ -573,6 +593,19 @@ const CaissaArena = {
             if (event.target === this.elements.drawModal) this.closeDrawConfirmation();
         });
         document.addEventListener('keydown', (event) => this.onDrawDialogKeydown(event));
+
+        // Historical review controls never call the live Chess instance's mutation API.
+        this.elements.reviewFirstBtn?.addEventListener('click', () => this.showReviewPosition(0));
+        this.elements.reviewPreviousBtn?.addEventListener('click', () => this.reviewPrevious());
+        this.elements.reviewPlayBtn?.addEventListener('click', () => this.toggleReviewPlayback());
+        this.elements.reviewNextBtn?.addEventListener('click', () => this.reviewNext());
+        this.elements.reviewLastBtn?.addEventListener('click', () => this.showReviewPosition(this.getReviewMoveCount()));
+        this.elements.reviewLiveBtn?.addEventListener('click', () => this.returnToLivePosition());
+        this.elements.moveHistory?.addEventListener('click', (event) => {
+            const move = event.target.closest('[data-review-ply]');
+            if (move) this.showReviewPosition(Number(move.dataset.reviewPly));
+        });
+        this.elements.movesPanel?.addEventListener('keydown', (event) => this.onReviewKeydown(event));
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
@@ -2020,7 +2053,9 @@ const CaissaArena = {
         }
 
         if (this.board) {
-            this.board.position(this.game.fen());
+            // A historical review owns only the displayed board. The live game
+            // continues to advance without pulling the user's cursor to Live.
+            if (!this.isReviewing()) this.board.position(this.game.fen());
         } else {
             console.error('[Arena] Board is null, cannot update position');
             this.handleError('Board not mounted');
@@ -2506,57 +2541,302 @@ const CaissaArena = {
         this.updateGameStatus({ result: 'Arena match stopped. Try starting a new match.' });
     },
 
+    // ===== VISUAL GAME REVIEW =====
+    isReviewing() {
+        return Number.isInteger(this.state.review.cursor);
+    },
+
+    getReviewMoves() {
+        return this.game?.history?.({ verbose: true }) || [];
+    },
+
+    getReviewMoveCount() {
+        return this.getReviewMoves().length;
+    },
+
+    getReviewStartFen() {
+        return this.state.currentGame?.startFen || this.state.customStartFen || '';
+    },
+
+    /**
+     * Reconstruct a display-only position. This isolated Chess instance is the
+     * sole state mutated by review navigation; `this.game` remains authoritative.
+     */
+    reconstructReviewPosition(cursor) {
+        if (typeof Chess === 'undefined') return null;
+        const reviewGame = new Chess();
+        const startFen = this.getReviewStartFen();
+        if (startFen && reviewGame.load(startFen) === false) return null;
+
+        const moves = this.game.history({ verbose: true });
+        const boundedCursor = Math.max(0, Math.min(Number(cursor) || 0, moves.length));
+        let lastMove = null;
+        for (const move of moves.slice(0, boundedCursor)) {
+            lastMove = reviewGame.move({
+                from: move.from,
+                to: move.to,
+                promotion: move.promotion
+            });
+            if (!lastMove) return null;
+        }
+        return Object.freeze({
+            cursor: boundedCursor,
+            fen: reviewGame.fen(),
+            lastMove: lastMove ? Object.freeze({ from: lastMove.from, to: lastMove.to }) : null
+        });
+    },
+
+    showReviewPosition(cursor, options = {}) {
+        const position = this.reconstructReviewPosition(cursor);
+        if (!position || !this.board) return false;
+        if (!options.keepPlaying) this.stopReviewPlayback({ render: false });
+
+        this.state.review.cursor = position.cursor;
+        this.state.review.displayFen = position.fen;
+        this.board.position(position.fen, false);
+        this.renderReviewLastMove(position.lastMove);
+        this.renderMoveHistory();
+        return true;
+    },
+
+    reviewPrevious() {
+        const count = this.getReviewMoveCount();
+        const cursor = this.isReviewing() ? this.state.review.cursor : count;
+        return this.showReviewPosition(Math.max(0, cursor - 1));
+    },
+
+    reviewNext() {
+        if (!this.isReviewing()) return false;
+        return this.showReviewPosition(Math.min(this.getReviewMoveCount(), this.state.review.cursor + 1));
+    },
+
+    returnToLivePosition() {
+        this.stopReviewPlayback({ render: false });
+        this.state.review.cursor = null;
+        this.state.review.displayFen = this.game?.fen?.() || '';
+        if (this.board && this.game) this.board.position(this.game.fen(), false);
+        this.renderReviewLastMove(null);
+        this.renderMoveHistory();
+        return true;
+    },
+
+    toggleReviewPlayback() {
+        if (this.state.review.playing) {
+            this.stopReviewPlayback();
+            return;
+        }
+        const moveCount = this.getReviewMoveCount();
+        if (!moveCount) return;
+        if (!this.isReviewing() || this.state.review.cursor >= moveCount) {
+            if (!this.showReviewPosition(0)) return;
+        }
+        this.state.review.playing = true;
+        this.updateReviewControls();
+        this.scheduleReviewStep();
+    },
+
+    scheduleReviewStep() {
+        clearTimeout(this.reviewTimer);
+        if (!this.state.review.playing) return;
+        this.reviewTimer = setTimeout(() => {
+            this.reviewTimer = null;
+            if (!this.state.review.playing || !this.isReviewing()) return;
+            const moveCount = this.getReviewMoveCount();
+            if (this.state.review.cursor >= moveCount) {
+                this.stopReviewPlayback();
+                return;
+            }
+            this.showReviewPosition(this.state.review.cursor + 1, { keepPlaying: true });
+            if (this.state.review.cursor >= this.getReviewMoveCount()) {
+                this.stopReviewPlayback();
+            } else {
+                this.scheduleReviewStep();
+            }
+        }, ARENA_REVIEW_PLAYBACK_MS);
+    },
+
+    stopReviewPlayback({ render = true } = {}) {
+        clearTimeout(this.reviewTimer);
+        this.reviewTimer = null;
+        this.state.review.playing = false;
+        if (render) this.updateReviewControls();
+    },
+
+    resetReviewState({ render = true } = {}) {
+        this.stopReviewPlayback({ render: false });
+        this.state.review.cursor = null;
+        this.state.review.displayFen = this.game?.fen?.() || '';
+        this.renderReviewLastMove(null);
+        if (render) this.renderMoveHistory();
+    },
+
+    onReviewKeydown(event) {
+        const target = event.target;
+        if (target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+        if (!target?.closest?.('#arenaReviewControls, #arenaMoveHistory')) return;
+        const action = {
+            ArrowLeft: () => this.reviewPrevious(),
+            ArrowRight: () => this.reviewNext(),
+            Home: () => this.showReviewPosition(0),
+            End: () => this.showReviewPosition(this.getReviewMoveCount()),
+            ' ': () => this.toggleReviewPlayback(),
+            Spacebar: () => this.toggleReviewPlayback()
+        }[event.key];
+        if (!action) return;
+        event.preventDefault();
+        action();
+    },
+
+    renderReviewLastMove(move) {
+        const boardElement = document.getElementById('arenaBoardElement');
+        if (!boardElement) return;
+        const markerVersion = ++this.reviewMarkerVersion;
+        boardElement.querySelectorAll('.arena-review-last-move')
+            .forEach(square => square.classList.remove('arena-review-last-move'));
+        if (!move) return;
+        requestAnimationFrame(() => {
+            if (markerVersion !== this.reviewMarkerVersion) return;
+            for (const squareName of [move.from, move.to]) {
+                boardElement.querySelector(`.square-${squareName}`)?.classList.add('arena-review-last-move');
+            }
+        });
+    },
+
+    updateReviewControls() {
+        const moveCount = this.getReviewMoveCount();
+        const reviewing = this.isReviewing();
+        const cursor = reviewing ? this.state.review.cursor : moveCount;
+        const hasMoves = moveCount > 0;
+        const {
+            reviewFirstBtn, reviewPreviousBtn, reviewPlayBtn, reviewNextBtn,
+            reviewLastBtn, reviewLiveBtn, reviewStatus, reviewControls
+        } = this.elements;
+
+        if (reviewFirstBtn) reviewFirstBtn.disabled = !hasMoves || (reviewing && cursor === 0);
+        if (reviewPreviousBtn) reviewPreviousBtn.disabled = !hasMoves || (reviewing && cursor === 0);
+        if (reviewPlayBtn) {
+            reviewPlayBtn.disabled = !hasMoves;
+            reviewPlayBtn.setAttribute('aria-label', this.state.review.playing ? 'Pause game review' : 'Play game review');
+            reviewPlayBtn.title = this.state.review.playing ? 'Pause game review' : 'Play game review';
+            reviewPlayBtn.innerHTML = this.state.review.playing
+                ? '<i class="fas fa-pause" aria-hidden="true"></i><span>Pause</span>'
+                : '<i class="fas fa-play" aria-hidden="true"></i><span>Play</span>';
+        }
+        if (reviewNextBtn) reviewNextBtn.disabled = !reviewing || cursor >= moveCount;
+        if (reviewLastBtn) reviewLastBtn.disabled = !hasMoves || (reviewing && cursor >= moveCount);
+        if (reviewLiveBtn) reviewLiveBtn.disabled = !reviewing;
+        reviewControls?.classList.toggle('is-reviewing', reviewing);
+
+        if (reviewStatus) {
+            if (!reviewing) {
+                reviewStatus.textContent = `Live position \u2022 ${moveCount} ${moveCount === 1 ? 'move' : 'moves'}`;
+            } else {
+                const newerMoves = Math.max(0, moveCount - cursor);
+                reviewStatus.textContent = `Reviewing move ${cursor} of ${moveCount}. ${newerMoves
+                    ? `${newerMoves} newer ${newerMoves === 1 ? 'move' : 'moves'} available. `
+                    : ''}Evaluation remains live.`;
+            }
+        }
+    },
+
+    ensureReviewMoveVisible() {
+        const container = this.elements.moveHistory;
+        if (!container || !this.isReviewing() || this.state.review.cursor < 1) return;
+        const selected = container.querySelector(`[data-review-ply="${this.state.review.cursor}"]`);
+        if (!selected) return;
+        const top = selected.offsetTop;
+        const bottom = top + selected.offsetHeight;
+        if (top < container.scrollTop) container.scrollTop = top;
+        else if (bottom > container.scrollTop + container.clientHeight) {
+            container.scrollTop = bottom - container.clientHeight;
+        }
+    },
+
+    inspectReviewState() {
+        const moveCount = this.getReviewMoveCount();
+        return Object.freeze({
+            mode: this.isReviewing() ? 'review' : 'live',
+            cursor: this.state.review.cursor,
+            playing: this.state.review.playing,
+            moveCount,
+            newerMoves: this.isReviewing() ? Math.max(0, moveCount - this.state.review.cursor) : 0,
+            startFen: this.getReviewStartFen(),
+            liveFen: this.game?.fen?.() || '',
+            displayFen: this.state.review.displayFen || this.game?.fen?.() || ''
+        });
+    },
+
     /**
      * Render the human-facing score sheet from chess.js's canonical SAN history.
      * Engine communication remains UCI; this method never mutates the game.
      */
     renderMoveHistory() {
         const container = this.elements.moveHistory;
-        if (!container || !this.game) return;
+        if (!container || !this.game) {
+            this.updateReviewControls();
+            return;
+        }
 
         const moves = this.game.history({ verbose: true });
-        const startFen = this.state.currentGame?.startFen || this.state.customStartFen || '';
+        const startFen = this.getReviewStartFen();
         const fenParts = startFen.split(/\s+/);
         let moveNumber = Number.parseInt(fenParts[5], 10) || 1;
         let currentRow = null;
 
         container.replaceChildren();
 
+        const createPlaceholder = (className) => {
+            const cell = document.createElement('span');
+            cell.className = className;
+            cell.textContent = '\u2026';
+            return cell;
+        };
         const createRow = (number) => {
             const row = document.createElement('div');
             row.className = 'arena-move-row';
+            row.setAttribute('role', 'group');
+            row.setAttribute('aria-label', `Move ${number}`);
 
             const numberCell = document.createElement('span');
             numberCell.className = 'move-num';
             numberCell.textContent = `${number}.`;
-
-            const whiteCell = document.createElement('span');
-            whiteCell.className = 'move-white';
-            whiteCell.textContent = '\u2026';
-
-            const blackCell = document.createElement('span');
-            blackCell.className = 'move-black';
-            blackCell.textContent = '\u2026';
-
-            row.append(numberCell, whiteCell, blackCell);
+            row.append(numberCell, createPlaceholder('move-white'), createPlaceholder('move-black'));
             container.appendChild(row);
             return row;
         };
+        const createMoveButton = (move, ply, number) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `arena-move-button move-${move.color === 'w' ? 'white' : 'black'}`;
+            button.dataset.reviewPly = String(ply);
+            button.textContent = move.san;
+            button.setAttribute('aria-label', `Review position after ${number}${move.color === 'w' ? '.' : '...'}${move.san}`);
+            if (this.isReviewing() && this.state.review.cursor === ply) {
+                button.classList.add('is-current');
+                button.setAttribute('aria-current', 'step');
+            }
+            return button;
+        };
 
-        moves.forEach((move) => {
+        moves.forEach((move, index) => {
+            const ply = index + 1;
             if (move.color === 'w') {
                 currentRow = createRow(moveNumber);
-                currentRow.querySelector('.move-white').textContent = move.san;
+                currentRow.querySelector('.move-white').replaceWith(createMoveButton(move, ply, moveNumber));
                 return;
             }
 
             if (!currentRow) currentRow = createRow(moveNumber);
-            currentRow.querySelector('.move-black').textContent = move.san;
+            currentRow.querySelector('.move-black').replaceWith(createMoveButton(move, ply, moveNumber));
             currentRow = null;
             moveNumber += 1;
         });
 
-        container.scrollTop = container.scrollHeight;
+        this.updateReviewControls();
+        requestAnimationFrame(() => {
+            if (this.isReviewing()) this.ensureReviewMoveVisible();
+            else container.scrollTop = container.scrollHeight;
+        });
     },
 
     updateMoveHistory() {
@@ -3011,6 +3291,7 @@ const CaissaArena = {
 
     onExit() {
         console.log('[Arena] Section exited');
+        this.stopReviewPlayback({ render: false });
         this.state.startToken += 1;
         clearTimeout(this._tournamentAdvanceTimer);
         this._tournamentAdvanceTimer = null;
@@ -3047,6 +3328,9 @@ const CaissaArena = {
      * Reset board to starting position
      */
     resetBoard() {
+        // A new Match or Tournament game always returns the display to Live.
+        // This is presentation cleanup only and precedes any live-game reset.
+        this.resetReviewState({ render: false });
         if (this.game) {
             if (this.state.customStartFen) {
                 this.game.load(this.state.customStartFen);
@@ -3060,10 +3344,8 @@ const CaissaArena = {
         this.state.evalHistory = [];
         this.clearEvalGraph();
 
-        // Clear move history display
-        if (this.elements.moveHistory) {
-            this.elements.moveHistory.innerHTML = '';
-        }
+        this.state.review.displayFen = this.game?.fen?.() || '';
+        this.renderMoveHistory();
 
         // Reset status
         this.updateGameStatus({
