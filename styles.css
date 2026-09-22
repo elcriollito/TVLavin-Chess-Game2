@@ -9312,7 +9312,7 @@ body.debug-layout #arena-right {
 
 #arenaSection .arena-moves-panel {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
     min-height: 0;
     overflow: hidden;
 }
@@ -9372,6 +9372,81 @@ body.debug-layout #arena-right {
 #arenaSection .arena-move-row .move-black {
     width: auto;
     min-width: 0;
+}
+
+#arenaSection .arena-move-button {
+    appearance: none;
+    width: 100%;
+    min-width: 0;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+}
+
+#arenaSection .arena-move-button:hover,
+#arenaSection .arena-move-button:focus-visible {
+    border-color: rgba(78, 205, 196, 0.68);
+    background: rgba(78, 205, 196, 0.1);
+    outline: none;
+}
+
+#arenaSection .arena-move-button.is-current {
+    border-color: rgba(78, 205, 196, 0.9);
+    background: rgba(78, 205, 196, 0.18);
+    color: #f4fffe;
+}
+
+#arenaSection .arena-review-controls {
+    display: grid;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(122, 156, 195, 0.18);
+}
+
+#arenaSection .arena-review-button-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(32px, 0.7fr)) minmax(66px, 1.45fr) repeat(2, minmax(32px, 0.7fr)) minmax(52px, 1fr);
+    gap: 5px;
+}
+
+#arenaSection .arena-review-button {
+    min-width: 0;
+    min-height: 32px;
+    padding: 5px 7px;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1;
+}
+
+#arenaSection .arena-review-play {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+#arenaSection .arena-review-live:not(:disabled) {
+    border-color: rgba(78, 205, 196, 0.9);
+    color: #dffffc;
+    box-shadow: inset 0 0 0 1px rgba(78, 205, 196, 0.18);
+}
+
+#arenaSection .arena-review-status {
+    min-height: 1.35em;
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+#arenaSection #arenaBoardElement .arena-review-last-move {
+    background: rgba(78, 205, 196, 0.3) !important;
+    box-shadow: inset 0 0 0 2px rgba(78, 205, 196, 0.38);
 }
 
 #arenaSection .arena-game-foot {
