@@ -176,6 +176,27 @@ async function openManualSetup(page) {
   await expect(page.getByRole('button', { name: 'Move existing piece' })).toHaveAttribute('aria-pressed', 'true');
 }
 
+async function expectOrganizedSetupPalette(page) {
+  const editorTools = page.locator('#arenaSetupEditorTools');
+  const palette = page.locator('#arenaSetupPalette');
+  const whiteGroup = palette.locator('.arena-setup-piece-group[data-color="white"]');
+  const blackGroup = palette.locator('.arena-setup-piece-group[data-color="black"]');
+  const move = page.getByRole('button', { name: 'Move existing piece' });
+  const erase = page.getByRole('button', { name: 'Erase piece' });
+
+  await expect(editorTools.locator('#arenaSetupPalette')).toHaveCount(0);
+  await expect(palette.locator('[data-piece="move"], [data-piece="erase"]')).toHaveCount(0);
+  await expect(editorTools.locator('[data-piece="move"], [data-piece="erase"]')).toHaveCount(2);
+  await expect(whiteGroup.locator('.arena-setup-piece-selector')).toHaveCount(6);
+  await expect(blackGroup.locator('.arena-setup-piece-selector')).toHaveCount(6);
+  await expect(whiteGroup.locator('.arena-setup-piece-selector').last()).toHaveAttribute('data-piece', 'wK');
+  await expect(blackGroup.locator('.arena-setup-piece-selector').last()).toHaveAttribute('data-piece', 'bK');
+  await expect(move).toHaveAttribute('title', 'Move existing piece');
+  await expect(move.locator('.fa-hand')).toHaveCount(1);
+  await expect(move).toHaveAttribute('aria-pressed', 'true');
+  await expect(erase).toHaveAttribute('title', 'Erase piece');
+}
+
 async function clickSquare(page, square) {
   await page.locator(`#arenaSetupBoard .square-${square}`).click();
 }
@@ -183,6 +204,7 @@ async function clickSquare(page, square) {
 test('manual setup supports click, keyboard, drag, palette, erase, clear, initial, turn and castling', async ({ page }) => {
   await openArena(page);
   await openManualSetup(page);
+  await expectOrganizedSetupPalette(page);
 
   await clickSquare(page, 'e2');
   await expect(page.locator('#arenaSetupBoard .square-e2')).toHaveAttribute('aria-pressed', 'true');
@@ -204,7 +226,7 @@ test('manual setup supports click, keyboard, drag, palette, erase, clear, initia
   await expect.poll(() => page.evaluate(() => window.CaissaArena.setupBoardInstance.position().f3)).toBe('wN');
   expect(await page.evaluate(() => window.CaissaArena.setupBoardInstance.position().g1)).toBeUndefined();
 
-  await page.getByRole('button', { name: 'Select eraser for manual setup' }).click();
+  await page.getByRole('button', { name: 'Erase piece' }).click();
   await clickSquare(page, 'a2');
   expect(await page.evaluate(() => window.CaissaArena.setupBoardInstance.position().a2)).toBeUndefined();
   await page.getByRole('button', { name: 'Add White queen' }).click();
@@ -295,6 +317,7 @@ for (const viewport of [
     const page = await context.newPage();
     await openArena(page, viewport);
     await openManualSetup(page);
+    await expectOrganizedSetupPalette(page);
     const before = await boardGeometry(page);
     for (const square of ['e2', 'e4']) {
       await page.locator(`#arenaSetupBoard .square-${square}`).tap();
@@ -302,9 +325,22 @@ for (const viewport of [
     await expect.poll(() => page.evaluate(() => window.CaissaArena.setupBoardInstance.position().e4)).toBe('wP');
     const layout = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      selected: window.CaissaArena.state.setupSelectedSquare
+      selected: window.CaissaArena.state.setupSelectedSquare,
+      paletteOverflow: document.getElementById('arenaSetupPalette').scrollWidth
+        > document.getElementById('arenaSetupPalette').clientWidth,
+      whiteCount: document.querySelectorAll('[data-color="white"] .arena-setup-piece-selector').length,
+      blackCount: document.querySelectorAll('[data-color="black"] .arena-setup-piece-selector').length,
+      setupBoardRows: new Set(Array.from(document.querySelectorAll('#arenaSetupBoard .square-55d63'))
+        .map((square) => Math.round(square.getBoundingClientRect().top))).size
     }));
-    expect(layout).toEqual({ overflow: false, selected: null });
+    expect(layout).toEqual({
+      overflow: false,
+      selected: null,
+      paletteOverflow: false,
+      whiteCount: 6,
+      blackCount: 6,
+      setupBoardRows: 8
+    });
     await page.locator('#arenaSetupApply').click();
     await page.waitForTimeout(50);
     const after = await boardGeometry(page);

@@ -4,6 +4,8 @@ import test from 'node:test';
 
 const arena = fs.readFileSync(new URL('../js/caissa-arena.js', import.meta.url), 'utf8');
 const registry = fs.readFileSync(new URL('../js/engine-registry.js', import.meta.url), 'utf8');
+const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
 
 function method(name, nextName) {
     const start = arena.indexOf(`    ${name}(`);
@@ -48,6 +50,20 @@ test('manual setup supports drag and accessible click-click relocation without g
     assert.match(accessibility, /squareElement\.tabIndex = 0/);
     assert.match(accessibility, /setAttribute\('aria-pressed'/);
     assert.doesNotMatch(`${activate}\n${drop}`, /this\.game\.(?:move|load|undo)|runtimeManager|startTournament|runEngineLoop/);
+});
+
+test('manual setup keeps editor tools separate from ordered six-piece color groups', () => {
+    const render = method('renderSetupPalette', 'selectSetupPiece');
+    assert.match(html, /id="arenaSetupEditorTools"[^>]*aria-label="Manual setup tools"/);
+    assert.match(html, /id="arenaSetupPalette"[^>]*aria-label="Chess piece palette"/);
+    assert.match(render, /pieces: \['wP', 'wN', 'wB', 'wR', 'wQ', 'wK'\]/);
+    assert.match(render, /pieces: \['bP', 'bN', 'bB', 'bR', 'bQ', 'bK'\]/);
+    assert.match(render, /this\.elements\.setupEditorTools\.appendChild\(move\)/);
+    assert.match(render, /this\.elements\.setupEditorTools\.appendChild\(erase\)/);
+    assert.doesNotMatch(render, /this\.elements\.setupPalette\.appendChild\((?:move|erase)\)/);
+    assert.match(render, /fa-hand/);
+    assert.doesNotMatch(render, /fa-arrows-alt/);
+    assert.match(styles, /\.arena-setup-piece-row\s*\{[^}]*grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/s);
 });
 
 test('manual setup keeps explicit turn and castling controls authoritative', () => {

@@ -1443,7 +1443,11 @@
                         <div class="modal-body arena-setup-body">
                             <div id="arenaSetupBoard" class="arena-setup-board"></div>
                             <div class="arena-setup-tools">
-                                <div id="arenaSetupPalette" class="arena-setup-palette"></div>
+                                <section class="arena-setup-toolbox" aria-labelledby="arenaSetupToolsLabel">
+                                    <h3 id="arenaSetupToolsLabel" class="arena-setup-group-label">Tools</h3>
+                                    <div id="arenaSetupEditorTools" class="arena-setup-tool-row" role="group" aria-label="Manual setup tools"></div>
+                                </section>
+                                <div id="arenaSetupPalette" class="arena-setup-palette" aria-label="Chess piece palette"></div>
                                 <div class="arena-setup-options">
                                     <label for="arenaSetupTurn">Side to move</label>
                                     <select id="arenaSetupTurn" class="form-control">

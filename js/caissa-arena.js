@@ -159,6 +159,7 @@ const CaissaArena = {
             setupModal: document.getElementById('arenaSetupModal'),
             setupCloseBtn: document.getElementById('arenaSetupClose'),
             setupBoard: document.getElementById('arenaSetupBoard'),
+            setupEditorTools: document.getElementById('arenaSetupEditorTools'),
             setupPalette: document.getElementById('arenaSetupPalette'),
             setupTurn: document.getElementById('arenaSetupTurn'),
             setupCastleWK: document.getElementById('arenaSetupCastleWK'),
@@ -850,45 +851,62 @@ const CaissaArena = {
     },
 
     renderSetupPalette() {
-        if (!this.elements.setupPalette || this.elements.setupPalette.children.length) return;
+        if (!this.elements.setupEditorTools || !this.elements.setupPalette) return;
+        if (this.elements.setupEditorTools.children.length || this.elements.setupPalette.children.length) return;
         const move = document.createElement('button');
         move.type = 'button';
-        move.className = 'arena-setup-piece active';
+        move.className = 'arena-setup-piece arena-setup-editor-tool active';
         move.dataset.piece = 'move';
         move.title = 'Move existing piece';
         move.setAttribute('aria-label', 'Move existing piece');
-        move.innerHTML = '<i class="fas fa-arrows-alt" aria-hidden="true"></i>';
+        move.innerHTML = '<i class="fas fa-hand" aria-hidden="true"></i><span>Move</span>';
         move.addEventListener('click', () => this.selectSetupPiece('move'));
-        this.elements.setupPalette.appendChild(move);
+        this.elements.setupEditorTools.appendChild(move);
 
-        const pieces = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
-        pieces.forEach((piece) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'arena-setup-piece';
-            button.dataset.piece = piece;
-            const label = this.getSetupPieceLabel(piece);
-            button.title = label;
-            button.setAttribute('aria-label', `Add ${label}`);
-            button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="">`;
-            button.addEventListener('click', () => this.selectSetupPiece(piece));
-            this.elements.setupPalette.appendChild(button);
+        const groups = [
+            { color: 'white', label: 'White pieces', pieces: ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK'] },
+            { color: 'black', label: 'Black pieces', pieces: ['bP', 'bN', 'bB', 'bR', 'bQ', 'bK'] }
+        ];
+        groups.forEach(({ color, label, pieces }) => {
+            const group = document.createElement('section');
+            group.className = 'arena-setup-piece-group';
+            group.dataset.color = color;
+            group.setAttribute('aria-label', label);
+            const heading = document.createElement('h3');
+            heading.className = 'arena-setup-group-label';
+            heading.textContent = label;
+            const row = document.createElement('div');
+            row.className = 'arena-setup-piece-row';
+            pieces.forEach((piece) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'arena-setup-piece arena-setup-piece-selector';
+                button.dataset.piece = piece;
+                const pieceLabel = this.getSetupPieceLabel(piece);
+                button.title = pieceLabel;
+                button.setAttribute('aria-label', `Add ${pieceLabel}`);
+                button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="">`;
+                button.addEventListener('click', () => this.selectSetupPiece(piece));
+                row.appendChild(button);
+            });
+            group.append(heading, row);
+            this.elements.setupPalette.appendChild(group);
         });
         const erase = document.createElement('button');
         erase.type = 'button';
-        erase.className = 'arena-setup-piece';
+        erase.className = 'arena-setup-piece arena-setup-editor-tool';
         erase.dataset.piece = 'erase';
         erase.title = 'Erase piece';
-        erase.setAttribute('aria-label', 'Select eraser for manual setup');
-        erase.innerHTML = '<i class="fas fa-eraser" aria-hidden="true"></i>';
+        erase.setAttribute('aria-label', 'Erase piece');
+        erase.innerHTML = '<i class="fas fa-eraser" aria-hidden="true"></i><span>Erase</span>';
         erase.addEventListener('click', () => this.selectSetupPiece('erase'));
-        this.elements.setupPalette.appendChild(erase);
+        this.elements.setupEditorTools.appendChild(erase);
     },
 
     selectSetupPiece(piece) {
         this.state.setupPiece = piece;
         this.state.setupSelectedSquare = null;
-        this.elements.setupPalette?.querySelectorAll('.arena-setup-piece').forEach((button) => {
+        this.elements.setupModal?.querySelectorAll('.arena-setup-piece').forEach((button) => {
             button.classList.toggle('active', button.dataset.piece === piece);
             button.setAttribute('aria-pressed', String(button.dataset.piece === piece));
         });
