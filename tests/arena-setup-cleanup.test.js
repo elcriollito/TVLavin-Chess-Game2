@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const arena = fs.readFileSync(new URL('../js/caissa-arena.js', import.meta.url), 'utf8');
+const registry = fs.readFileSync(new URL('../js/engine-registry.js', import.meta.url), 'utf8');
 
 function method(name, nextName) {
     const start = arena.indexOf(`    ${name}(`);
@@ -58,4 +59,12 @@ test('manual setup keeps explicit turn and castling controls authoritative', () 
     assert.match(apply, /setupCastleBQ\?\.checked/);
     assert.match(apply, /generateFENFromPosition\(position\)/);
     assert.match(apply, /this\.applyArenaPosition\(candidate\.fen\(\), 'Manual position'\)/);
+});
+
+test('standard Arena providers are capability-filtered and Fairy remains owned by Variants', () => {
+    assert.match(registry, /'fairy-stockfish': \{/);
+    assert.match(registry, /productOwner: 'caissa-variants'/);
+    assert.match(registry, /chessFamilies: 'non-standard'/);
+    assert.match(registry, /\.filter\(provider => provider\.supportsStandardArena === true\)/);
+    assert.doesNotMatch(registry, /const ARENA_PROVIDER_IDS = Object\.freeze\(\[\s*'stockfish'/);
 });

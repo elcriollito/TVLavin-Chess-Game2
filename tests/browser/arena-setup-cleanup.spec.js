@@ -264,6 +264,25 @@ test('manual setup position starts real Match and Infinite Analysis unchanged', 
   await page.evaluate(() => window.CaissaArena.stopMatch());
 });
 
+test('standard Arena catalogs expose only four certified Stockfish providers', async ({ page }) => {
+  await openArena(page);
+  const expected = ['stockfish', 'stockfish-lite', SF18, SF19];
+  const result = await page.evaluate(() => ({
+    registry: window.EngineRegistry.listArenaProviders().map(provider => provider.id),
+    fairy: window.EngineRegistry.get('fairy-stockfish'),
+    match: Array.from(document.querySelectorAll('#arenaWhiteEngine option'), option => option.value),
+    tournament: Array.from(document.querySelectorAll('#arenaTournamentEngines input'), input => input.value)
+  }));
+  expect(result.registry).toEqual(expected);
+  expect(result.match).toEqual(expected);
+  expect(result.tournament).toEqual(expected);
+  expect(result.fairy).toMatchObject({
+    supportsStandardArena: false,
+    productOwner: 'caissa-variants',
+    chessFamilies: 'non-standard'
+  });
+});
+
 for (const viewport of [
   { name: 'mobile portrait', width: 390, height: 844 },
   { name: 'mobile landscape', width: 844, height: 390 }

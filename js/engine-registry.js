@@ -52,6 +52,7 @@
             }),
             defaultDepth: 20,
             supportsChess960: false,
+            supportsStandardArena: true,
             capabilities: availableCapabilities,
             availability: 'available',
             unavailableReason: null,
@@ -87,6 +88,7 @@
             }),
             defaultDepth: 12,
             supportsChess960: false,
+            supportsStandardArena: true,
             capabilities: availableCapabilities,
             availability: 'available',
             unavailableReason: null,
@@ -106,8 +108,11 @@
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: true,
+            supportsStandardArena: false,
+            productOwner: 'caissa-variants',
+            chessFamilies: 'non-standard',
             enabled: false,
-            notes: 'Requires cross-origin-isolated threaded WASM runtime'
+            notes: 'Reserved for CAISSA Variants and non-standard chess families; excluded from standard Engine Arena'
         },
         arasan: {
             id: 'arasan',
@@ -121,6 +126,7 @@
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: false,
+            supportsStandardArena: false,
             enabled: false,
             notes: 'WASM build needed'
         },
@@ -136,6 +142,7 @@
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: false,
+            supportsStandardArena: false,
             enabled: false,
             notes: 'WASM build needed'
         },
@@ -151,17 +158,12 @@
             defaultOptions: { MultiPV: 1 },
             defaultDepth: 16,
             supportsChess960: false,
+            supportsStandardArena: false,
             enabled: false,
             notes: 'WASM build needed'
         }
     };
 
-    const ARENA_PROVIDER_IDS = Object.freeze([
-        'stockfish',
-        'stockfish-lite',
-        'stockfish-18-lite',
-        'stockfish-19-lite'
-    ]);
     const arenaSessionUnavailable = new Map();
 
     function arenaAvailability(provider) {
@@ -239,6 +241,7 @@
         }),
         defaultDepth: ANALYZE_ENGINES['stockfish-18-lite'].defaultDepth,
         supportsChess960: false,
+        supportsStandardArena: true,
         capabilities: Object.freeze({
             supportsThreads: false,
             supportsNNUE: true,
@@ -289,6 +292,7 @@
         }),
         defaultDepth: 20,
         supportsChess960: false,
+        supportsStandardArena: true,
         capabilities: Object.freeze({
             supportsThreads: false,
             supportsNNUE: true,
@@ -311,13 +315,13 @@
         notes: 'CAISSA Stockfish 19 Lite single-threaded WASM/NNUE runtime'
     });
 
-    const ARENA_PROVIDERS = Object.freeze({
-        ...Object.fromEntries(ARENA_PROVIDER_IDS
-            .filter(id => ![STOCKFISH_18_ARENA_PROVIDER.id, STOCKFISH_19_ARENA_PROVIDER.id].includes(id))
-            .map(id => [id, ENGINES[id]])),
-        [STOCKFISH_18_ARENA_PROVIDER.id]: STOCKFISH_18_ARENA_PROVIDER,
-        [STOCKFISH_19_ARENA_PROVIDER.id]: STOCKFISH_19_ARENA_PROVIDER
-    });
+    const ARENA_PROVIDERS = Object.freeze(Object.fromEntries([
+        ...Object.values(ENGINES),
+        STOCKFISH_18_ARENA_PROVIDER,
+        STOCKFISH_19_ARENA_PROVIDER
+    ].filter(provider => provider.supportsStandardArena === true)
+        .map(provider => [provider.id, provider])));
+    const ARENA_PROVIDER_IDS = Object.freeze(Object.keys(ARENA_PROVIDERS));
 
     const ENGINE_ROLES = Object.freeze({
         GAME: 'game',

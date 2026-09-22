@@ -93,6 +93,9 @@ test('one Arena provider registry owns Match and Tournament availability metadat
         assert.equal(registry.getArenaProvider(id), null);
         assert.equal(registry.getArenaProviderAvailability(id).available, false);
     }
+    assert.equal(registry.get('fairy-stockfish').supportsStandardArena, false);
+    assert.equal(registry.get('fairy-stockfish').productOwner, 'caissa-variants');
+    assert.equal(registry.get('fairy-stockfish').chessFamilies, 'non-standard');
     assert.equal(registry.getArenaProvider('stockfish').runtimeId,
         registry.getArenaProvider('stockfish-lite').runtimeId);
     assert.notEqual(registry.getArenaProvider('stockfish').profile.id,
