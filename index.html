@@ -1363,7 +1363,7 @@
                             </div>
                         </div>
 
-                        <div class="panel arena-moves-panel">
+                        <div id="arenaMovesPanel" class="panel arena-moves-panel">
                             <div class="arena-moves-header">
                                 <h4 class="panel-title-sm">Moves</h4>
                                 <div class="arena-game-actions" role="group" aria-label="Active game controls">
@@ -1382,6 +1382,38 @@
                                 </div>
                             </div>
                             <div id="arenaMoveHistory" class="arena-move-list"></div>
+                            <div id="arenaReviewControls" class="arena-review-controls" role="group"
+                                 aria-label="Game review controls" aria-controls="arenaMoveHistory">
+                                <div class="arena-review-button-row">
+                                    <button id="arenaReviewFirst" class="btn btn-secondary arena-review-button" type="button"
+                                            aria-label="First position" title="First position">
+                                        <i class="fas fa-fast-backward" aria-hidden="true"></i>
+                                    </button>
+                                    <button id="arenaReviewPrevious" class="btn btn-secondary arena-review-button" type="button"
+                                            aria-label="Previous move" title="Previous move">
+                                        <i class="fas fa-step-backward" aria-hidden="true"></i>
+                                    </button>
+                                    <button id="arenaReviewPlay" class="btn btn-secondary arena-review-button arena-review-play" type="button"
+                                            aria-label="Play game review" title="Play game review">
+                                        <i class="fas fa-play" aria-hidden="true"></i><span>Play</span>
+                                    </button>
+                                    <button id="arenaReviewNext" class="btn btn-secondary arena-review-button" type="button"
+                                            aria-label="Next move" title="Next move">
+                                        <i class="fas fa-step-forward" aria-hidden="true"></i>
+                                    </button>
+                                    <button id="arenaReviewLast" class="btn btn-secondary arena-review-button" type="button"
+                                            aria-label="Latest position" title="Latest position">
+                                        <i class="fas fa-fast-forward" aria-hidden="true"></i>
+                                    </button>
+                                    <button id="arenaReviewLive" class="btn btn-secondary arena-review-button arena-review-live" type="button"
+                                            aria-label="Return to live position" title="Return to live position">
+                                        <span>Live</span>
+                                    </button>
+                                </div>
+                                <div id="arenaReviewStatus" class="arena-review-status" role="status" aria-live="polite" aria-atomic="true">
+                                    Live position
+                                </div>
+                            </div>
                         </div>
                             </div>
 
@@ -1401,16 +1433,21 @@
                     </div>
                 </div>
 
-                <div id="arenaSetupModal" class="modal arena-setup-modal">
+                <div id="arenaSetupModal" class="modal arena-setup-modal" role="dialog" aria-modal="true"
+                     aria-hidden="true" aria-labelledby="arenaSetupTitle">
                     <div class="modal-content arena-setup-modal-content">
                         <div class="modal-header">
-                            <h2>Manual Setup</h2>
+                            <h2 id="arenaSetupTitle">Manual Setup</h2>
                             <button id="arenaSetupClose" class="modal-close" type="button" aria-label="Close manual setup">&times;</button>
                         </div>
                         <div class="modal-body arena-setup-body">
                             <div id="arenaSetupBoard" class="arena-setup-board"></div>
                             <div class="arena-setup-tools">
-                                <div id="arenaSetupPalette" class="arena-setup-palette"></div>
+                                <section class="arena-setup-toolbox" aria-labelledby="arenaSetupToolsLabel">
+                                    <h3 id="arenaSetupToolsLabel" class="arena-setup-group-label">Tools</h3>
+                                    <div id="arenaSetupEditorTools" class="arena-setup-tool-row" role="group" aria-label="Manual setup tools"></div>
+                                </section>
+                                <div id="arenaSetupPalette" class="arena-setup-palette" aria-label="Chess piece palette"></div>
                                 <div class="arena-setup-options">
                                     <label for="arenaSetupTurn">Side to move</label>
                                     <select id="arenaSetupTurn" class="form-control">

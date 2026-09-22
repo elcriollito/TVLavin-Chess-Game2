@@ -9,6 +9,7 @@ console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 
 const ARENA_ENGINE_MOVETIME_MS = 2000;
 const ARENA_ENGINE_TIMEOUT_MS = 12000;
+const ARENA_REVIEW_PLAYBACK_MS = 850;
 
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
@@ -17,11 +18,16 @@ const CaissaArena = {
     // ===== BOARD INSTANCE =====
     board: null,
     game: null,
+    setupBoardInstance: null,
+    manualSetupIgnoreClick: false,
+    manualSetupScrollSnapshot: null,
 
     // ===== ENGINE INSTANCES =====
     // ArenaRuntimeManager is the sole owner; these getters preserve the
     // certified Arena-facing API without duplicating worker references.
     runtimeManager: null,
+    reviewTimer: null,
+    reviewMarkerVersion: 0,
     get whiteEngineInstance() { return this.runtimeManager?.getInstance('white') || null; },
     get blackEngineInstance() { return this.runtimeManager?.getInstance('black') || null; },
     get evaluatorEngine() { return this.runtimeManager?.getInstance('evaluator') || null; },
@@ -42,7 +48,13 @@ const CaissaArena = {
         customStartFen: '',
         analysisRunning: false,
         analysisFen: '',
-        setupPiece: 'erase',
+        setupPiece: 'move',
+        setupSelectedSquare: null,
+        review: {
+            cursor: null,
+            playing: false,
+            displayFen: ''
+        },
         boardMounted: false,
         hasEntered: false,
         loopActive: false, // Is engine loop running
@@ -108,6 +120,7 @@ const CaissaArena = {
         // Create a new chess.js instance for Arena
         if (typeof Chess !== 'undefined') {
             this.game = new Chess();
+            this.resetReviewState();
             console.log('[Arena] Game instance created');
         } else {
             console.warn('[Arena] Chess.js not loaded yet');
@@ -146,6 +159,7 @@ const CaissaArena = {
             setupModal: document.getElementById('arenaSetupModal'),
             setupCloseBtn: document.getElementById('arenaSetupClose'),
             setupBoard: document.getElementById('arenaSetupBoard'),
+            setupEditorTools: document.getElementById('arenaSetupEditorTools'),
             setupPalette: document.getElementById('arenaSetupPalette'),
             setupTurn: document.getElementById('arenaSetupTurn'),
             setupCastleWK: document.getElementById('arenaSetupCastleWK'),
@@ -179,6 +193,17 @@ const CaissaArena = {
             // Eval graph canvas
             evalGraph: document.getElementById('arenaEvalGraph'),
             graphPanel: document.getElementById('arenaGraphPanel'),
+
+            // Visual game review (presentation only)
+            movesPanel: document.getElementById('arenaMovesPanel'),
+            reviewControls: document.getElementById('arenaReviewControls'),
+            reviewFirstBtn: document.getElementById('arenaReviewFirst'),
+            reviewPreviousBtn: document.getElementById('arenaReviewPrevious'),
+            reviewPlayBtn: document.getElementById('arenaReviewPlay'),
+            reviewNextBtn: document.getElementById('arenaReviewNext'),
+            reviewLastBtn: document.getElementById('arenaReviewLast'),
+            reviewLiveBtn: document.getElementById('arenaReviewLive'),
+            reviewStatus: document.getElementById('arenaReviewStatus'),
 
             // Tournament
             tournamentEngineList: document.getElementById('arenaTournamentEngines'),
@@ -318,7 +343,7 @@ const CaissaArena = {
             // Board configuration
             const config = {
                 draggable: false, // Arena boards are view-only (engine plays)
-                position: 'start',
+                position: this.getBoardPlacement(this.game?.fen()),
                 pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
                 showNotation: true,
                 orientation: 'white'
@@ -558,16 +583,30 @@ const CaissaArena = {
         this.elements.applyFenBtn?.addEventListener('click', () => this.applyCustomPosition());
         this.elements.useStartPositionBtn?.addEventListener('click', () => this.useInitialPosition());
         this.elements.setupCloseBtn?.addEventListener('click', () => this.closeManualSetup());
-        this.elements.setupClearBtn?.addEventListener('click', () => this.setupBoardInstance?.position({}));
+        this.elements.setupClearBtn?.addEventListener('click', () => this.clearManualSetup());
         this.elements.setupResetBtn?.addEventListener('click', () => this.resetManualSetup());
         this.elements.setupApplyBtn?.addEventListener('click', () => this.applyManualSetup());
         this.elements.setupBoard?.addEventListener('click', (event) => this.onManualSetupSquareClick(event));
+        this.elements.setupBoard?.addEventListener('keydown', (event) => this.onManualSetupSquareKeydown(event));
         this.elements.drawCancelBtn?.addEventListener('click', () => this.closeDrawConfirmation());
         this.elements.drawConfirmBtn?.addEventListener('click', () => this.adjudicateTournamentDraw());
         this.elements.drawModal?.addEventListener('click', (event) => {
             if (event.target === this.elements.drawModal) this.closeDrawConfirmation();
         });
         document.addEventListener('keydown', (event) => this.onDrawDialogKeydown(event));
+
+        // Historical review controls never call the live Chess instance's mutation API.
+        this.elements.reviewFirstBtn?.addEventListener('click', () => this.showReviewPosition(0));
+        this.elements.reviewPreviousBtn?.addEventListener('click', () => this.reviewPrevious());
+        this.elements.reviewPlayBtn?.addEventListener('click', () => this.toggleReviewPlayback());
+        this.elements.reviewNextBtn?.addEventListener('click', () => this.reviewNext());
+        this.elements.reviewLastBtn?.addEventListener('click', () => this.showReviewPosition(this.getReviewMoveCount()));
+        this.elements.reviewLiveBtn?.addEventListener('click', () => this.returnToLivePosition());
+        this.elements.moveHistory?.addEventListener('click', (event) => {
+            const move = event.target.closest('[data-review-ply]');
+            if (move) this.showReviewPosition(Number(move.dataset.reviewPly));
+        });
+        this.elements.movesPanel?.addEventListener('keydown', (event) => this.onReviewKeydown(event));
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
@@ -644,20 +683,14 @@ const CaissaArena = {
         const fen = this.elements.fenInput?.value.trim();
         if (!fen || typeof Chess === 'undefined') {
             this.setFenMessage('Enter a valid FEN position.', true);
-            return;
+            return false;
         }
 
-        try {
-            const candidate = new Chess();
-            const loaded = candidate.load(fen);
-            if (loaded === false) {
-                throw new Error('Invalid FEN');
-            }
-
-            this.applyArenaPosition(candidate.fen(), 'Custom position');
-        } catch (error) {
+        if (!this.applyArenaPosition(fen, 'Custom position')) {
             this.setFenMessage('FEN could not be loaded. Check the position and try again.', true);
+            return false;
         }
+        return true;
     },
 
     useInitialPosition() {
@@ -677,20 +710,30 @@ const CaissaArena = {
     },
 
     applyArenaPosition(fen, label = 'Custom position') {
+        if (typeof Chess === 'undefined') return false;
+        let normalizedFen = '';
+        try {
+            const candidate = new Chess();
+            if (candidate.load(String(fen || '').trim()) === false) return false;
+            normalizedFen = candidate.fen();
+        } catch (error) {
+            return false;
+        }
+
         if (this.state.matchState === 'running' || this.state.matchState === 'paused') {
             this.stopMatch();
         }
         this.stopInfiniteAnalysis(false);
 
         this.state.matchState = 'idle';
-        this.state.customStartFen = fen;
+        this.state.customStartFen = normalizedFen;
         this.resetBoard();
-        this.updateBoardPosition(fen);
+        this.updateBoardPosition(normalizedFen);
         this.updateMatchControls();
 
         const side = this.game?.turn() === 'b' ? 'Black' : 'White';
         if (this.elements.fenInput) {
-            this.elements.fenInput.value = fen;
+            this.elements.fenInput.value = normalizedFen;
         }
         this.setFenMessage(`${label} ready. ${side} to move.`);
         this.updateGameStatus({ result: `Ready: ${label} (${side} to move)` });
@@ -698,6 +741,7 @@ const CaissaArena = {
             this.board?.resize?.();
             this.syncBoardAndGraphSize();
         });
+        return true;
     },
 
     setFenMessage(message, isError = false) {
@@ -709,26 +753,57 @@ const CaissaArena = {
     openManualSetup() {
         if (!this.elements.setupModal || typeof Chessboard === 'undefined') return;
         this.renderSetupPalette();
+        this.selectSetupPiece('move');
+        this.setSetupMessage('Move pieces by dragging, or select a piece and then its destination.');
+        const arenaSection = document.getElementById('arenaSection');
+        this.manualSetupScrollSnapshot = {
+            windowX: window.scrollX,
+            windowY: window.scrollY,
+            sectionLeft: arenaSection?.scrollLeft || 0,
+            sectionTop: arenaSection?.scrollTop || 0
+        };
         this.elements.setupModal.classList.add('show');
+        this.elements.setupModal.setAttribute('aria-hidden', 'false');
 
         const fen = this.game?.fen() || this.state.customStartFen || 'start';
         const position = fen === 'start' ? 'start' : fen.split(' ')[0];
         if (!this.setupBoardInstance) {
             this.setupBoardInstance = Chessboard('arenaSetupBoard', {
-                draggable: false,
+                draggable: true,
+                dropOffBoard: 'snapback',
                 position,
                 pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-                showNotation: true
+                showNotation: true,
+                onDragStart: (source) => this.onManualSetupDragStart(source),
+                onDrop: (source, target) => this.onManualSetupDrop(source, target),
+                onSnapEnd: () => this.refreshManualSetupSquares()
             });
         } else {
             this.setupBoardInstance.position(position, false);
         }
         this.loadSetupOptionsFromFen(fen);
-        requestAnimationFrame(() => this.setupBoardInstance?.resize?.());
+        requestAnimationFrame(() => {
+            this.setupBoardInstance?.resize?.();
+            this.refreshManualSetupSquares();
+        });
     },
 
     closeManualSetup() {
         this.elements.setupModal?.classList.remove('show');
+        this.elements.setupModal?.setAttribute('aria-hidden', 'true');
+        this.state.setupSelectedSquare = null;
+        const restoreScroll = () => {
+            const snapshot = this.manualSetupScrollSnapshot;
+            if (!snapshot) return;
+            window.scrollTo(snapshot.windowX, snapshot.windowY);
+            const arenaSection = document.getElementById('arenaSection');
+            if (arenaSection) {
+                arenaSection.scrollLeft = snapshot.sectionLeft;
+                arenaSection.scrollTop = snapshot.sectionTop;
+            }
+        };
+        restoreScroll();
+        requestAnimationFrame(restoreScroll);
     },
 
     isActiveTournamentGame() {
@@ -776,56 +851,204 @@ const CaissaArena = {
     },
 
     renderSetupPalette() {
-        if (!this.elements.setupPalette || this.elements.setupPalette.children.length) return;
-        const pieces = ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK', 'bP', 'bN', 'bB', 'bR', 'bQ', 'bK'];
-        pieces.forEach((piece) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'arena-setup-piece';
-            button.dataset.piece = piece;
-            button.title = piece;
-            button.setAttribute('aria-label', `Select ${piece} for manual setup`);
-            button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="${piece}">`;
-            button.addEventListener('click', () => this.selectSetupPiece(piece));
-            this.elements.setupPalette.appendChild(button);
+        if (!this.elements.setupEditorTools || !this.elements.setupPalette) return;
+        if (this.elements.setupEditorTools.children.length || this.elements.setupPalette.children.length) return;
+        const move = document.createElement('button');
+        move.type = 'button';
+        move.className = 'arena-setup-piece arena-setup-editor-tool active';
+        move.dataset.piece = 'move';
+        move.title = 'Move existing piece';
+        move.setAttribute('aria-label', 'Move existing piece');
+        move.innerHTML = '<i class="fas fa-hand" aria-hidden="true"></i><span>Move</span>';
+        move.addEventListener('click', () => this.selectSetupPiece('move'));
+        this.elements.setupEditorTools.appendChild(move);
+
+        const groups = [
+            { color: 'white', label: 'White pieces', pieces: ['wP', 'wN', 'wB', 'wR', 'wQ', 'wK'] },
+            { color: 'black', label: 'Black pieces', pieces: ['bP', 'bN', 'bB', 'bR', 'bQ', 'bK'] }
+        ];
+        groups.forEach(({ color, label, pieces }) => {
+            const group = document.createElement('section');
+            group.className = 'arena-setup-piece-group';
+            group.dataset.color = color;
+            group.setAttribute('aria-label', label);
+            const heading = document.createElement('h3');
+            heading.className = 'arena-setup-group-label';
+            heading.textContent = label;
+            const row = document.createElement('div');
+            row.className = 'arena-setup-piece-row';
+            pieces.forEach((piece) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'arena-setup-piece arena-setup-piece-selector';
+                button.dataset.piece = piece;
+                const pieceLabel = this.getSetupPieceLabel(piece);
+                button.title = pieceLabel;
+                button.setAttribute('aria-label', `Add ${pieceLabel}`);
+                button.innerHTML = `<img src="img/chesspieces/wikipedia/${piece}.png" alt="">`;
+                button.addEventListener('click', () => this.selectSetupPiece(piece));
+                row.appendChild(button);
+            });
+            group.append(heading, row);
+            this.elements.setupPalette.appendChild(group);
         });
         const erase = document.createElement('button');
         erase.type = 'button';
-        erase.className = 'arena-setup-piece active';
+        erase.className = 'arena-setup-piece arena-setup-editor-tool';
         erase.dataset.piece = 'erase';
         erase.title = 'Erase piece';
-        erase.setAttribute('aria-label', 'Select eraser for manual setup');
-        erase.innerHTML = '<i class="fas fa-eraser" aria-hidden="true"></i>';
+        erase.setAttribute('aria-label', 'Erase piece');
+        erase.innerHTML = '<i class="fas fa-eraser" aria-hidden="true"></i><span>Erase</span>';
         erase.addEventListener('click', () => this.selectSetupPiece('erase'));
-        this.elements.setupPalette.appendChild(erase);
+        this.elements.setupEditorTools.appendChild(erase);
     },
 
     selectSetupPiece(piece) {
         this.state.setupPiece = piece;
-        this.elements.setupPalette?.querySelectorAll('.arena-setup-piece').forEach((button) => {
+        this.state.setupSelectedSquare = null;
+        this.elements.setupModal?.querySelectorAll('.arena-setup-piece').forEach((button) => {
             button.classList.toggle('active', button.dataset.piece === piece);
+            button.setAttribute('aria-pressed', String(button.dataset.piece === piece));
         });
+        this.refreshManualSetupSquares();
     },
 
     onManualSetupSquareClick(event) {
+        if (this.manualSetupIgnoreClick) return;
         const squareElement = event.target.closest('.square-55d63');
         if (!squareElement || !this.setupBoardInstance) return;
+        this.activateManualSetupSquare(squareElement);
+    },
+
+    onManualSetupSquareKeydown(event) {
+        if (!['Enter', ' '].includes(event.key)) return;
+        const squareElement = event.target.closest('.square-55d63');
+        if (!squareElement || !this.setupBoardInstance) return;
+        event.preventDefault();
+        this.activateManualSetupSquare(squareElement);
+    },
+
+    activateManualSetupSquare(squareElement) {
         const squareClass = Array.from(squareElement.classList).find((name) => /^square-[a-h][1-8]$/.test(name));
         if (!squareClass) return;
 
         const square = squareClass.replace('square-', '');
         const position = this.setupBoardInstance.position();
-        if (this.state.setupPiece === 'erase') {
+        if (this.state.setupPiece === 'move') {
+            const source = this.state.setupSelectedSquare;
+            if (!source) {
+                if (!position[square]) {
+                    this.setSetupMessage('Select an existing piece, then choose its destination.');
+                    return;
+                }
+                this.state.setupSelectedSquare = square;
+                this.setSetupMessage(`${this.getSetupPieceLabel(position[square])} on ${square} selected.`);
+                this.refreshManualSetupSquares({ focusSquare: square });
+                return;
+            }
+            if (source === square) {
+                this.state.setupSelectedSquare = null;
+                this.setSetupMessage('Piece selection cleared.');
+                this.refreshManualSetupSquares({ focusSquare: square });
+                return;
+            }
+            if (!position[source]) {
+                this.state.setupSelectedSquare = null;
+                this.refreshManualSetupSquares({ focusSquare: square });
+                return;
+            }
+            const movedPiece = position[source];
+            position[square] = movedPiece;
+            delete position[source];
+            this.state.setupSelectedSquare = null;
+            this.setupBoardInstance.position(position, false);
+            this.setSetupMessage(`${this.getSetupPieceLabel(movedPiece)} moved from ${source} to ${square}.`);
+        } else if (this.state.setupPiece === 'erase') {
             delete position[square];
+            this.setupBoardInstance.position(position, false);
+            this.setSetupMessage(`Square ${square} cleared.`);
         } else {
             position[square] = this.state.setupPiece;
+            this.setupBoardInstance.position(position, false);
+            this.setSetupMessage(`${this.getSetupPieceLabel(this.state.setupPiece)} placed on ${square}.`);
         }
-        this.setupBoardInstance.position(position, false);
+        requestAnimationFrame(() => this.refreshManualSetupSquares({ focusSquare: square }));
+    },
+
+    onManualSetupDragStart(source) {
+        if (!/^[a-h][1-8]$/.test(source)) return false;
+        const position = this.setupBoardInstance?.position?.() || {};
+        if (!position[source]) return false;
+        if (this.state.setupPiece !== 'move') return false;
+        if (this.state.setupSelectedSquare && this.state.setupSelectedSquare !== source) return false;
+        this.state.setupSelectedSquare = source;
+        this.refreshManualSetupSquares();
+        return true;
+    },
+
+    onManualSetupDrop(source, target) {
+        if (!/^[a-h][1-8]$/.test(source) || !/^[a-h][1-8]$/.test(target)) return 'snapback';
+        this.manualSetupIgnoreClick = true;
+        if (source === target) {
+            this.state.setupSelectedSquare = source;
+            const piece = this.setupBoardInstance?.position?.()[source];
+            this.setSetupMessage(`${this.getSetupPieceLabel(piece)} on ${source} selected.`);
+        } else {
+            this.state.setupSelectedSquare = null;
+            this.setSetupMessage(`Piece moved from ${source} to ${target}.`);
+        }
+        setTimeout(() => {
+            this.manualSetupIgnoreClick = false;
+            this.refreshManualSetupSquares({ focusSquare: source === target ? source : target });
+        }, 0);
+        return undefined;
+    },
+
+    getSetupPieceLabel(piece) {
+        const color = piece?.[0] === 'w' ? 'White' : 'Black';
+        const names = { P: 'pawn', N: 'knight', B: 'bishop', R: 'rook', Q: 'queen', K: 'king' };
+        return `${color} ${names[piece?.[1]] || 'piece'}`;
+    },
+
+    refreshManualSetupSquares({ focusSquare = '' } = {}) {
+        if (!this.elements.setupBoard || !this.setupBoardInstance) return;
+        const position = this.setupBoardInstance.position();
+        this.elements.setupBoard.querySelectorAll('.square-55d63').forEach((squareElement) => {
+            const squareClass = Array.from(squareElement.classList).find((name) => /^square-[a-h][1-8]$/.test(name));
+            if (!squareClass) return;
+            const square = squareClass.replace('square-', '');
+            const selected = this.state.setupSelectedSquare === square;
+            const piece = position[square];
+            squareElement.tabIndex = 0;
+            squareElement.setAttribute('role', 'button');
+            squareElement.setAttribute('aria-pressed', String(selected));
+            squareElement.setAttribute('aria-label', `${square}: ${piece ? this.getSetupPieceLabel(piece) : 'empty'}${selected ? ', selected for relocation' : ''}`);
+            squareElement.classList.toggle('arena-setup-source-selected', selected);
+            if (focusSquare === square && document.activeElement !== squareElement) {
+                squareElement.focus({ preventScroll: true });
+            }
+        });
+    },
+
+    clearManualSetup() {
+        this.state.setupSelectedSquare = null;
+        this.setupBoardInstance?.position({}, false);
+        this.setSetupMessage('Board cleared.');
+        requestAnimationFrame(() => this.refreshManualSetupSquares());
     },
 
     resetManualSetup() {
         this.setupBoardInstance?.start?.(false);
         this.loadSetupOptionsFromFen(new Chess().fen());
+        this.selectSetupPiece('move');
+        this.setSetupMessage('Initial position restored. Move pieces by dragging or click-click relocation.');
+        requestAnimationFrame(() => this.refreshManualSetupSquares());
+    },
+
+    setSetupMessage(message, isError = false) {
+        if (!this.elements.setupMessage) return;
+        this.elements.setupMessage.textContent = message;
+        this.elements.setupMessage.classList.toggle('error', isError);
     },
 
     loadSetupOptionsFromFen(fen) {
@@ -858,10 +1081,7 @@ const CaissaArena = {
             this.applyArenaPosition(candidate.fen(), 'Manual position');
             this.closeManualSetup();
         } catch (error) {
-            if (this.elements.setupMessage) {
-                this.elements.setupMessage.textContent = 'Invalid position. Place both kings before applying.';
-                this.elements.setupMessage.classList.add('error');
-            }
+            this.setSetupMessage('Invalid position. Place both kings before applying.', true);
         }
     },
 
@@ -1851,7 +2071,9 @@ const CaissaArena = {
         }
 
         if (this.board) {
-            this.board.position(this.game.fen());
+            // A historical review owns only the displayed board. The live game
+            // continues to advance without pulling the user's cursor to Live.
+            if (!this.isReviewing()) this.board.position(this.game.fen());
         } else {
             console.error('[Arena] Board is null, cannot update position');
             this.handleError('Board not mounted');
@@ -2337,57 +2559,302 @@ const CaissaArena = {
         this.updateGameStatus({ result: 'Arena match stopped. Try starting a new match.' });
     },
 
+    // ===== VISUAL GAME REVIEW =====
+    isReviewing() {
+        return Number.isInteger(this.state.review.cursor);
+    },
+
+    getReviewMoves() {
+        return this.game?.history?.({ verbose: true }) || [];
+    },
+
+    getReviewMoveCount() {
+        return this.getReviewMoves().length;
+    },
+
+    getReviewStartFen() {
+        return this.state.currentGame?.startFen || this.state.customStartFen || '';
+    },
+
+    /**
+     * Reconstruct a display-only position. This isolated Chess instance is the
+     * sole state mutated by review navigation; `this.game` remains authoritative.
+     */
+    reconstructReviewPosition(cursor) {
+        if (typeof Chess === 'undefined') return null;
+        const reviewGame = new Chess();
+        const startFen = this.getReviewStartFen();
+        if (startFen && reviewGame.load(startFen) === false) return null;
+
+        const moves = this.game.history({ verbose: true });
+        const boundedCursor = Math.max(0, Math.min(Number(cursor) || 0, moves.length));
+        let lastMove = null;
+        for (const move of moves.slice(0, boundedCursor)) {
+            lastMove = reviewGame.move({
+                from: move.from,
+                to: move.to,
+                promotion: move.promotion
+            });
+            if (!lastMove) return null;
+        }
+        return Object.freeze({
+            cursor: boundedCursor,
+            fen: reviewGame.fen(),
+            lastMove: lastMove ? Object.freeze({ from: lastMove.from, to: lastMove.to }) : null
+        });
+    },
+
+    showReviewPosition(cursor, options = {}) {
+        const position = this.reconstructReviewPosition(cursor);
+        if (!position || !this.board) return false;
+        if (!options.keepPlaying) this.stopReviewPlayback({ render: false });
+
+        this.state.review.cursor = position.cursor;
+        this.state.review.displayFen = position.fen;
+        this.board.position(position.fen, false);
+        this.renderReviewLastMove(position.lastMove);
+        this.renderMoveHistory();
+        return true;
+    },
+
+    reviewPrevious() {
+        const count = this.getReviewMoveCount();
+        const cursor = this.isReviewing() ? this.state.review.cursor : count;
+        return this.showReviewPosition(Math.max(0, cursor - 1));
+    },
+
+    reviewNext() {
+        if (!this.isReviewing()) return false;
+        return this.showReviewPosition(Math.min(this.getReviewMoveCount(), this.state.review.cursor + 1));
+    },
+
+    returnToLivePosition() {
+        this.stopReviewPlayback({ render: false });
+        this.state.review.cursor = null;
+        this.state.review.displayFen = this.game?.fen?.() || '';
+        if (this.board && this.game) this.board.position(this.game.fen(), false);
+        this.renderReviewLastMove(null);
+        this.renderMoveHistory();
+        return true;
+    },
+
+    toggleReviewPlayback() {
+        if (this.state.review.playing) {
+            this.stopReviewPlayback();
+            return;
+        }
+        const moveCount = this.getReviewMoveCount();
+        if (!moveCount) return;
+        if (!this.isReviewing() || this.state.review.cursor >= moveCount) {
+            if (!this.showReviewPosition(0)) return;
+        }
+        this.state.review.playing = true;
+        this.updateReviewControls();
+        this.scheduleReviewStep();
+    },
+
+    scheduleReviewStep() {
+        clearTimeout(this.reviewTimer);
+        if (!this.state.review.playing) return;
+        this.reviewTimer = setTimeout(() => {
+            this.reviewTimer = null;
+            if (!this.state.review.playing || !this.isReviewing()) return;
+            const moveCount = this.getReviewMoveCount();
+            if (this.state.review.cursor >= moveCount) {
+                this.stopReviewPlayback();
+                return;
+            }
+            this.showReviewPosition(this.state.review.cursor + 1, { keepPlaying: true });
+            if (this.state.review.cursor >= this.getReviewMoveCount()) {
+                this.stopReviewPlayback();
+            } else {
+                this.scheduleReviewStep();
+            }
+        }, ARENA_REVIEW_PLAYBACK_MS);
+    },
+
+    stopReviewPlayback({ render = true } = {}) {
+        clearTimeout(this.reviewTimer);
+        this.reviewTimer = null;
+        this.state.review.playing = false;
+        if (render) this.updateReviewControls();
+    },
+
+    resetReviewState({ render = true } = {}) {
+        this.stopReviewPlayback({ render: false });
+        this.state.review.cursor = null;
+        this.state.review.displayFen = this.game?.fen?.() || '';
+        this.renderReviewLastMove(null);
+        if (render) this.renderMoveHistory();
+    },
+
+    onReviewKeydown(event) {
+        const target = event.target;
+        if (target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+        if (!target?.closest?.('#arenaReviewControls, #arenaMoveHistory')) return;
+        const action = {
+            ArrowLeft: () => this.reviewPrevious(),
+            ArrowRight: () => this.reviewNext(),
+            Home: () => this.showReviewPosition(0),
+            End: () => this.showReviewPosition(this.getReviewMoveCount()),
+            ' ': () => this.toggleReviewPlayback(),
+            Spacebar: () => this.toggleReviewPlayback()
+        }[event.key];
+        if (!action) return;
+        event.preventDefault();
+        action();
+    },
+
+    renderReviewLastMove(move) {
+        const boardElement = document.getElementById('arenaBoardElement');
+        if (!boardElement) return;
+        const markerVersion = ++this.reviewMarkerVersion;
+        boardElement.querySelectorAll('.arena-review-last-move')
+            .forEach(square => square.classList.remove('arena-review-last-move'));
+        if (!move) return;
+        requestAnimationFrame(() => {
+            if (markerVersion !== this.reviewMarkerVersion) return;
+            for (const squareName of [move.from, move.to]) {
+                boardElement.querySelector(`.square-${squareName}`)?.classList.add('arena-review-last-move');
+            }
+        });
+    },
+
+    updateReviewControls() {
+        const moveCount = this.getReviewMoveCount();
+        const reviewing = this.isReviewing();
+        const cursor = reviewing ? this.state.review.cursor : moveCount;
+        const hasMoves = moveCount > 0;
+        const {
+            reviewFirstBtn, reviewPreviousBtn, reviewPlayBtn, reviewNextBtn,
+            reviewLastBtn, reviewLiveBtn, reviewStatus, reviewControls
+        } = this.elements;
+
+        if (reviewFirstBtn) reviewFirstBtn.disabled = !hasMoves || (reviewing && cursor === 0);
+        if (reviewPreviousBtn) reviewPreviousBtn.disabled = !hasMoves || (reviewing && cursor === 0);
+        if (reviewPlayBtn) {
+            reviewPlayBtn.disabled = !hasMoves;
+            reviewPlayBtn.setAttribute('aria-label', this.state.review.playing ? 'Pause game review' : 'Play game review');
+            reviewPlayBtn.title = this.state.review.playing ? 'Pause game review' : 'Play game review';
+            reviewPlayBtn.innerHTML = this.state.review.playing
+                ? '<i class="fas fa-pause" aria-hidden="true"></i><span>Pause</span>'
+                : '<i class="fas fa-play" aria-hidden="true"></i><span>Play</span>';
+        }
+        if (reviewNextBtn) reviewNextBtn.disabled = !reviewing || cursor >= moveCount;
+        if (reviewLastBtn) reviewLastBtn.disabled = !hasMoves || (reviewing && cursor >= moveCount);
+        if (reviewLiveBtn) reviewLiveBtn.disabled = !reviewing;
+        reviewControls?.classList.toggle('is-reviewing', reviewing);
+
+        if (reviewStatus) {
+            if (!reviewing) {
+                reviewStatus.textContent = `Live position \u2022 ${moveCount} ${moveCount === 1 ? 'move' : 'moves'}`;
+            } else {
+                const newerMoves = Math.max(0, moveCount - cursor);
+                reviewStatus.textContent = `Reviewing move ${cursor} of ${moveCount}. ${newerMoves
+                    ? `${newerMoves} newer ${newerMoves === 1 ? 'move' : 'moves'} available. `
+                    : ''}Evaluation remains live.`;
+            }
+        }
+    },
+
+    ensureReviewMoveVisible() {
+        const container = this.elements.moveHistory;
+        if (!container || !this.isReviewing() || this.state.review.cursor < 1) return;
+        const selected = container.querySelector(`[data-review-ply="${this.state.review.cursor}"]`);
+        if (!selected) return;
+        const top = selected.offsetTop;
+        const bottom = top + selected.offsetHeight;
+        if (top < container.scrollTop) container.scrollTop = top;
+        else if (bottom > container.scrollTop + container.clientHeight) {
+            container.scrollTop = bottom - container.clientHeight;
+        }
+    },
+
+    inspectReviewState() {
+        const moveCount = this.getReviewMoveCount();
+        return Object.freeze({
+            mode: this.isReviewing() ? 'review' : 'live',
+            cursor: this.state.review.cursor,
+            playing: this.state.review.playing,
+            moveCount,
+            newerMoves: this.isReviewing() ? Math.max(0, moveCount - this.state.review.cursor) : 0,
+            startFen: this.getReviewStartFen(),
+            liveFen: this.game?.fen?.() || '',
+            displayFen: this.state.review.displayFen || this.game?.fen?.() || ''
+        });
+    },
+
     /**
      * Render the human-facing score sheet from chess.js's canonical SAN history.
      * Engine communication remains UCI; this method never mutates the game.
      */
     renderMoveHistory() {
         const container = this.elements.moveHistory;
-        if (!container || !this.game) return;
+        if (!container || !this.game) {
+            this.updateReviewControls();
+            return;
+        }
 
         const moves = this.game.history({ verbose: true });
-        const startFen = this.state.currentGame?.startFen || this.state.customStartFen || '';
+        const startFen = this.getReviewStartFen();
         const fenParts = startFen.split(/\s+/);
         let moveNumber = Number.parseInt(fenParts[5], 10) || 1;
         let currentRow = null;
 
         container.replaceChildren();
 
+        const createPlaceholder = (className) => {
+            const cell = document.createElement('span');
+            cell.className = className;
+            cell.textContent = '\u2026';
+            return cell;
+        };
         const createRow = (number) => {
             const row = document.createElement('div');
             row.className = 'arena-move-row';
+            row.setAttribute('role', 'group');
+            row.setAttribute('aria-label', `Move ${number}`);
 
             const numberCell = document.createElement('span');
             numberCell.className = 'move-num';
             numberCell.textContent = `${number}.`;
-
-            const whiteCell = document.createElement('span');
-            whiteCell.className = 'move-white';
-            whiteCell.textContent = '\u2026';
-
-            const blackCell = document.createElement('span');
-            blackCell.className = 'move-black';
-            blackCell.textContent = '\u2026';
-
-            row.append(numberCell, whiteCell, blackCell);
+            row.append(numberCell, createPlaceholder('move-white'), createPlaceholder('move-black'));
             container.appendChild(row);
             return row;
         };
+        const createMoveButton = (move, ply, number) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `arena-move-button move-${move.color === 'w' ? 'white' : 'black'}`;
+            button.dataset.reviewPly = String(ply);
+            button.textContent = move.san;
+            button.setAttribute('aria-label', `Review position after ${number}${move.color === 'w' ? '.' : '...'}${move.san}`);
+            if (this.isReviewing() && this.state.review.cursor === ply) {
+                button.classList.add('is-current');
+                button.setAttribute('aria-current', 'step');
+            }
+            return button;
+        };
 
-        moves.forEach((move) => {
+        moves.forEach((move, index) => {
+            const ply = index + 1;
             if (move.color === 'w') {
                 currentRow = createRow(moveNumber);
-                currentRow.querySelector('.move-white').textContent = move.san;
+                currentRow.querySelector('.move-white').replaceWith(createMoveButton(move, ply, moveNumber));
                 return;
             }
 
             if (!currentRow) currentRow = createRow(moveNumber);
-            currentRow.querySelector('.move-black').textContent = move.san;
+            currentRow.querySelector('.move-black').replaceWith(createMoveButton(move, ply, moveNumber));
             currentRow = null;
             moveNumber += 1;
         });
 
-        container.scrollTop = container.scrollHeight;
+        this.updateReviewControls();
+        requestAnimationFrame(() => {
+            if (this.isReviewing()) this.ensureReviewMoveVisible();
+            else container.scrollTop = container.scrollHeight;
+        });
     },
 
     updateMoveHistory() {
@@ -2842,6 +3309,7 @@ const CaissaArena = {
 
     onExit() {
         console.log('[Arena] Section exited');
+        this.stopReviewPlayback({ render: false });
         this.state.startToken += 1;
         clearTimeout(this._tournamentAdvanceTimer);
         this._tournamentAdvanceTimer = null;
@@ -2861,7 +3329,7 @@ const CaissaArena = {
      */
     updateBoardPosition(fen) {
         if (this.board && fen) {
-            this.board.position(fen, false);
+            this.board.position(this.getBoardPlacement(fen), false);
             requestAnimationFrame(() => {
                 this.board?.resize?.();
                 this.syncBoardAndGraphSize();
@@ -2869,10 +3337,18 @@ const CaissaArena = {
         }
     },
 
+    getBoardPlacement(fen) {
+        const placement = String(fen || '').trim().split(/\s+/)[0];
+        return placement || 'start';
+    },
+
     /**
      * Reset board to starting position
      */
     resetBoard() {
+        // A new Match or Tournament game always returns the display to Live.
+        // This is presentation cleanup only and precedes any live-game reset.
+        this.resetReviewState({ render: false });
         if (this.game) {
             if (this.state.customStartFen) {
                 this.game.load(this.state.customStartFen);
@@ -2881,15 +3357,13 @@ const CaissaArena = {
             }
         }
         if (this.board) {
-            this.board.position(this.game?.fen() || 'start', false);
+            this.board.position(this.getBoardPlacement(this.game?.fen()), false);
         }
         this.state.evalHistory = [];
         this.clearEvalGraph();
 
-        // Clear move history display
-        if (this.elements.moveHistory) {
-            this.elements.moveHistory.innerHTML = '';
-        }
+        this.state.review.displayFen = this.game?.fen?.() || '';
+        this.renderMoveHistory();
 
         // Reset status
         this.updateGameStatus({
