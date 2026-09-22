@@ -13,6 +13,18 @@ const SF19 = Object.freeze({
   name: 'Stockfish 19 Lite WASM'
 });
 
+async function openHarnessPage(page) {
+  const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  if (bypass) {
+    const seed = await page.request.get('/favicon-test.html', { headers: {
+      'x-vercel-protection-bypass': bypass,
+      'x-vercel-set-bypass-cookie': 'true'
+    } });
+    expect(seed.status()).toBe(200);
+  }
+  await page.goto('/favicon-test.html');
+}
+
 async function runDirectWorker(page, engine) {
   const responses = [];
   const onResponse = response => {
@@ -86,7 +98,7 @@ async function runDirectWorker(page, engine) {
 }
 
 test('SF18 and SF19 direct workers complete truthful UCI readiness', async ({ page }) => {
-  await page.goto('/favicon-test.html');
+  await openHarnessPage(page);
 
   for (const engine of [SF18, SF19]) {
     const result = await runDirectWorker(page, engine);
@@ -107,7 +119,7 @@ test('SF18 and SF19 direct workers complete truthful UCI readiness', async ({ pa
 
 test('SF19 worker response grants only the scoped WASM compilation capability', async ({ page }) => {
   test.skip(!process.env.PLAYWRIGHT_BASE_URL, 'Deployed response headers are certified on immutable preview');
-  await page.goto('/favicon-test.html');
+  await openHarnessPage(page);
   const result = await runDirectWorker(page, SF19);
   const workerResponse = result.responses.find(item => item.pathname === SF19.worker);
 
