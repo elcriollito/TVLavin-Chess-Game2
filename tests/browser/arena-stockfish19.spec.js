@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { authorizeVercelPreview } from './helpers/vercel-preview.js';
 
 const SF19_ID = 'stockfish-19-lite';
 const SF19_NAME = 'Stockfish 19 Lite';
@@ -9,19 +10,26 @@ const SF19_WORKER = '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js
 const SF18_ID = 'stockfish-18-lite';
 
 async function openArena(page, viewport = { width: 1440, height: 900 }) {
+  await authorizeVercelPreview(page);
   await page.setViewportSize(viewport);
   await page.addInitScript((workerPath) => {
     localStorage.setItem('caissa_onboarding_completed', 'true');
     const NativeWorker = window.Worker;
     let sequence = 0;
     const active = new Set();
+    const arenaWorkerUrls = new Set([
+      '/engine/stockfish-working.js',
+      '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js',
+      workerPath
+    ]);
     const audit = { created: [], terminated: [], protocol: [], maxActive: 0 };
     window.Worker = class TrackedWorker extends NativeWorker {
       constructor(url, options) {
         super(url, options);
         this.__auditId = ++sequence;
         this.__auditUrl = String(url);
-        active.add(this.__auditId);
+        this.__arenaWorker = arenaWorkerUrls.has(this.__auditUrl);
+        if (this.__arenaWorker) active.add(this.__auditId);
         audit.maxActive = Math.max(audit.maxActive, active.size);
         audit.created.push({ id: this.__auditId, url: this.__auditUrl, at: performance.now() });
         this.addEventListener('message', event => {
@@ -598,6 +606,7 @@ test('rapid start-stop, stop-start, tab changes, replacement, and exit ignore st
 });
 
 test('SF19 worker failure disables only SF19 without fallback or relabeling', async ({ page }) => {
+  await authorizeVercelPreview(page);
   await page.addInitScript((workerPath) => {
     localStorage.setItem('caissa_onboarding_completed', 'true');
     const NativeWorker = window.Worker;

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { authorizeVercelPreview } from './helpers/vercel-preview.js';
 
 const FIELD = [
   { id: 'stockfish', name: 'Stockfish 2019 MV', uci: 'Stockfish 2019-08-15 Multi-Variant' },
@@ -18,19 +19,26 @@ const EXPECTED_SINGLE_ROUND_ROBIN = [
 ];
 
 async function openArena(page, viewport = { width: 1920, height: 1080 }) {
+  await authorizeVercelPreview(page);
   await page.setViewportSize(viewport);
   await page.addInitScript(() => {
     localStorage.setItem('caissa_onboarding_completed', 'true');
     const NativeWorker = window.Worker;
     let sequence = 0;
     const active = new Set();
+    const arenaWorkerUrls = new Set([
+      '/engine/stockfish-working.js',
+      '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js',
+      '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js'
+    ]);
     const audit = { created: [], terminated: [], maxActive: 0 };
     window.Worker = class TrackedWorker extends NativeWorker {
       constructor(url, options) {
         super(url, options);
         this.__auditId = ++sequence;
         this.__auditUrl = String(url);
-        active.add(this.__auditId);
+        this.__arenaWorker = arenaWorkerUrls.has(this.__auditUrl);
+        if (this.__arenaWorker) active.add(this.__auditId);
         audit.created.push({ id: this.__auditId, url: this.__auditUrl });
         audit.maxActive = Math.max(audit.maxActive, active.size);
       }
@@ -435,6 +443,7 @@ test('automatic insufficient-material draw records normally and explicit stop ca
 });
 
 test('controlled SF19 Tournament startup failure fails closed and cleans surviving roles', async ({ page }) => {
+  await authorizeVercelPreview(page);
   await page.addInitScript(() => {
     localStorage.setItem('caissa_onboarding_completed', 'true');
     const NativeWorker = window.Worker;
