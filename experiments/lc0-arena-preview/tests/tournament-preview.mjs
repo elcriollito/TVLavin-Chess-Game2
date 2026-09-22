@@ -6,8 +6,8 @@ import { createClerkClient } from '@clerk/backend';
 if (process.env.EAE013_TOURNAMENT_PREVIEW !== '1' || !process.env.EAE013_BYPASS ||
     !process.env.CLERK_SECRET_KEY?.startsWith('sk_test_'))
   throw new Error('EAE013_TOURNAMENT_CREDENTIALS_REQUIRED');
-const MAIN = 'https://eae013-main-elcriollitos-projects.vercel.app';
-const ENGINE = 'https://eae013-engine-elcriollitos-projects.vercel.app';
+const MAIN = process.env.EAE013_MAIN_ORIGIN || 'https://eae013-main-elcriollitos-projects.vercel.app';
+const ENGINE = process.env.EAE013_ENGINE_ORIGIN || 'https://eae013-engine-elcriollitos-projects.vercel.app';
 const FIELDS = ['stockfish-18-lite', 'stockfish-19-lite', 'lc0-maia-1100-preview'];
 const CLOSE_TOURNAMENT = process.env.EAE013_TOURNAMENT_CLOSE === '1';
 const report = { field: FIELDS, games: [], popups: [], errors: [] };
@@ -27,10 +27,10 @@ try {
     skipPasswordRequirement: true });
   clerkSession = await clerk.sessions.createSession({ userId: user.id });
   context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await context.addInitScript(() => {
-    if (location.origin === 'https://eae013-main-elcriollitos-projects.vercel.app')
+  await context.addInitScript(origin => {
+    if (location.origin === origin)
       localStorage.setItem('caissa_onboarding_completed', 'true');
-  });
+  }, MAIN);
   await context.exposeBinding('eae013TournamentToken', token);
   for (const origin of [MAIN, ENGINE]) {
     const seed = await context.request.get(`${origin}/api/eae011?action=health`, {
@@ -38,10 +38,10 @@ try {
         'x-vercel-set-bypass-cookie': 'true' } });
     assert.equal(seed.status(), 200);
   }
-  await context.route(/^https:\/\/eae013-(main|engine)-elcriollitos-projects\.vercel\.app\//,
+  await context.route(url => [MAIN, ENGINE].some(origin => url.href.startsWith(`${origin}/`)),
     route => route.continue({ headers: { ...route.request().headers(),
       'x-vercel-protection-bypass': process.env.EAE013_BYPASS } }));
-  await context.route(/^https:\/\/eae013-main-elcriollitos-projects\.vercel\.app\/js\/caissa-auth\.js(?:\?|$)/,
+  await context.route(url => url.href.startsWith(`${MAIN}/js/caissa-auth.js`),
     route => route.fulfill({ status: 200, contentType: 'text/javascript',
       body: `window.CAISSA_AUTH={isSignedIn:true,userId:${JSON.stringify(user.id)},` +
         'whenReady:async()=>{},getToken:()=>window.eae013TournamentToken()};' }));

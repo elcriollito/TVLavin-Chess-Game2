@@ -13,8 +13,12 @@ const ENGINE = process.env.EAE013_ENGINE_ORIGIN ||
   'https://eae013-engine-elcriollitos-projects.vercel.app';
 const CYCLES = Number(process.env.EAE013_CYCLES || 1);
 const RECONNECT_EVERY = Number(process.env.EAE013_RECONNECT_EVERY || 0);
+const PAUSE_REPEATS = Number(process.env.EAE013_PAUSE_REPEATS || 1);
+const LEASE_EDGE_EVERY = Number(process.env.EAE013_LEASE_EDGE_EVERY || 0);
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
-    !Number.isSafeInteger(RECONNECT_EVERY) || RECONNECT_EVERY < 0)
+    !Number.isSafeInteger(RECONNECT_EVERY) || RECONNECT_EVERY < 0 ||
+    !Number.isSafeInteger(PAUSE_REPEATS) || PAUSE_REPEATS < 1 || PAUSE_REPEATS > 3 ||
+    !Number.isSafeInteger(LEASE_EDGE_EVERY) || LEASE_EDGE_EVERY < 0)
   throw new Error('EAE013_CYCLES_INVALID');
 const browser = await chromium.launch({ headless: true });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -130,6 +134,21 @@ try {
       await page.click('#arenaPauseMatch');
       await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
         !CaissaArena._pausePending, null, { timeout: 15_000 });
+      if (LEASE_EDGE_EVERY && (i + 1) % LEASE_EDGE_EVERY === 0) {
+        await page.evaluate(async () => {
+          const adapter = window.CaissaArenaPreview.adapter;
+          clearInterval(adapter.heartbeatTimer);
+          await adapter.api('heartbeat_main', { body: {
+            epoch: adapter.mainLeaseEpoch, cursor: adapter.cursor } });
+        });
+        await page.waitForTimeout(6_500);
+        await page.evaluate(async () => {
+          const adapter = window.CaissaArenaPreview.adapter;
+          await adapter.api('heartbeat_main', { body: {
+            epoch: adapter.mainLeaseEpoch, cursor: adapter.cursor } });
+        });
+        item.leaseEdge = true;
+      }
       if (RECONNECT_EVERY && (i + 1) % RECONNECT_EVERY === 0) {
         const epoch = await page.evaluate(() => window.CaissaArenaPreview.adapter.mainLeaseEpoch);
         await page.evaluate(() => window.CaissaArenaPreview.adapter.streamController.abort());
@@ -140,9 +159,22 @@ try {
         item.reconnected = true;
       }
       item.stage = 'resume';
+      const resumeBegan = performance.now();
       await page.click('#arenaPauseMatch');
+      await page.waitForFunction(() => window.CaissaArenaPreview.adapter?.active?.started === true,
+        null, { timeout: 50_000 });
+      item.resumeToSearchMs = performance.now() - resumeBegan;
       await page.waitForFunction(() => CaissaArena.game?.history().length >= 6,
         null, { timeout: 50_000 });
+      for (let repeat = 1; repeat < PAUSE_REPEATS; repeat++) {
+        await page.click('#arenaPauseMatch');
+        await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
+          !CaissaArena._pausePending, null, { timeout: 15_000 });
+        await page.click('#arenaPauseMatch');
+        await page.waitForFunction(minimum => CaissaArena.game?.history().length >= minimum,
+          6 + 2 * repeat, { timeout: 50_000 });
+      }
+      item.pauseRepeats = PAUSE_REPEATS;
       item.moves = await page.evaluate(() => CaissaArena.game.history());
       item.stage = 'cleanup';
       await page.click('#arenaStopMatch');
@@ -204,6 +236,7 @@ try {
     startedAt: report.startedAt, finishedAt: report.finishedAt,
     sessionIds: completed.map(item => item.sessionId),
     reconnects: completed.filter(item => item.reconnected).length,
+    leaseEdgeProbes: completed.filter(item => item.leaseEdge).length,
     colors: Object.fromEntries(['white', 'black'].map(color =>
       [color, completed.filter(item => item.color === color).length])),
     forcedKills: completed.reduce((sum, item) => sum + item.engine.forced, 0),
@@ -219,6 +252,10 @@ try {
     cleanupP95Ms: percentile(completed.map(item => item.metrics.cleanupMs), 0.95),
     firstSearchMedianMs: percentile(completed.map(item => item.metrics.firstSearchAfterMatchStartMs), 0.5),
     firstSearchP95Ms: percentile(completed.map(item => item.metrics.firstSearchAfterMatchStartMs), 0.95),
+    resumeToSearchMedianMs: percentile(completed.map(item => item.resumeToSearchMs)
+      .filter(Number.isFinite), 0.5),
+    resumeToSearchP95Ms: percentile(completed.map(item => item.resumeToSearchMs)
+      .filter(Number.isFinite), 0.95),
     axeSeriousOrCritical: report.axeSeriousOrCritical, pageErrors };
   console.log(`EAE013_ARENA_LIVE_REPORT ${JSON.stringify(CYCLES <= 2 ? report : compact)}`);
   assert.equal(report.failures.length, 0);

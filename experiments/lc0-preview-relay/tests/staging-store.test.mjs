@@ -30,8 +30,18 @@ test('staging Supabase CAS survives broker reconstruction without raw secrets',
     } finally {
       if (id) {
         const row = await store.get(id);
-        if (row) await store.deleteIfVersion(id, row.version,
-          { reason: 'ADMIN_TEST_CLEANUP', actor: 'STAGING_TEST', source: 'staging-store.test' });
+        if (row) {
+          await store.deleteIfVersion(id, row.version,
+            { reason: 'ADMIN_TEST_CLEANUP', actor: 'STAGING_TEST', source: 'staging-store.test' });
+          const { data, error } = await store.client.from('eae013a_session_audit')
+            .select('delete_reason,delete_actor,state_before,cleanup_observed')
+            .eq('session_id', id).eq('event_kind', 'DELETE').single();
+          assert.equal(error, null);
+          assert.equal(data.delete_reason, 'ADMIN_TEST_CLEANUP');
+          assert.equal(data.delete_actor, 'STAGING_TEST');
+          assert.equal(data.state_before, 'HELLO_ACKED');
+          assert.equal(data.cleanup_observed, false);
+        }
       }
     }
   });

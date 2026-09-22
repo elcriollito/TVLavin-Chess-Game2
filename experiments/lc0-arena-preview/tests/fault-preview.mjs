@@ -4,11 +4,11 @@ import { chromium } from '@playwright/test';
 import { createClerkClient } from '@clerk/backend';
 
 const MODE = process.env.EAE013_FAULT_MODE;
-if (!['close-ready', 'close-match', 'network-match'].includes(MODE) ||
+if (!['close-ready', 'close-match', 'network-match', 'network-long'].includes(MODE) ||
     !process.env.EAE013_BYPASS || !process.env.CLERK_SECRET_KEY?.startsWith('sk_test_'))
   throw new Error('EAE013_FAULT_PROBE_CONFIG_REQUIRED');
-const MAIN = 'https://eae013-main-elcriollitos-projects.vercel.app';
-const ENGINE = 'https://eae013-engine-elcriollitos-projects.vercel.app';
+const MAIN = process.env.EAE013_MAIN_ORIGIN || 'https://eae013-main-elcriollitos-projects.vercel.app';
+const ENGINE = process.env.EAE013_ENGINE_ORIGIN || 'https://eae013-engine-elcriollitos-projects.vercel.app';
 const browser = await chromium.launch({ headless: true });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 let user, session, context, page, lastToken, lastTokenAt = 0;
@@ -37,10 +37,10 @@ try {
   });
   session = await clerk.sessions.createSession({ userId: user.id });
   context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await context.addInitScript(() => {
-    if (location.origin === 'https://eae013-main-elcriollitos-projects.vercel.app')
+  await context.addInitScript(origin => {
+    if (location.origin === origin)
       localStorage.setItem('caissa_onboarding_completed', 'true');
-  });
+  }, MAIN);
   await context.exposeBinding('eae013FaultToken', token);
   for (const origin of [MAIN, ENGINE]) {
     const seed = await context.request.get(`${origin}/api/eae011?action=health`, {
@@ -49,10 +49,10 @@ try {
     });
     assert.equal(seed.status(), 200);
   }
-  await context.route(/^https:\/\/eae013-(main|engine)-elcriollitos-projects\.vercel\.app\//,
+  await context.route(url => [MAIN, ENGINE].some(origin => url.href.startsWith(`${origin}/`)),
     route => route.continue({ headers: { ...route.request().headers(),
       'x-vercel-protection-bypass': process.env.EAE013_BYPASS } }));
-  await context.route(/^https:\/\/eae013-main-elcriollitos-projects\.vercel\.app\/js\/caissa-auth\.js(?:\?|$)/,
+  await context.route(url => url.href.startsWith(`${MAIN}/js/caissa-auth.js`),
     route => route.fulfill({ status: 200, contentType: 'text/javascript',
       body: `window.CAISSA_AUTH={isSignedIn:true,userId:${JSON.stringify(user.id)},` +
         'whenReady:async()=>{},getToken:()=>window.eae013FaultToken()};' }));
@@ -85,7 +85,7 @@ try {
     if (MODE === 'close-match') await enginePage.close();
     else {
       await context.setOffline(true);
-      await new Promise(resolve => setTimeout(resolve, 2_000));
+      await new Promise(resolve => setTimeout(resolve, MODE === 'network-long' ? 10_000 : 2_000));
       await context.setOffline(false);
     }
   }

@@ -471,6 +471,9 @@ test('EAE-013A broker races: 25 each of rapid Resume, reconnect, pause gap, leas
     await assert.rejects(f.first.engineMessage(session.sessionId, session.engineCredential,
       { type: 'STOPPED', seq: session.engineSeq + 1, searchId: searchA }),
     { code: 'STOPPED_STATE_INVALID' });
+    await assert.rejects(f.first.engineMessage(session.sessionId, session.engineCredential,
+      { type: 'CLEANUP', seq: session.engineSeq + 1, evidence: cleanupEvidence }),
+    { code: 'CLEANUP_STATE_INVALID' });
     assert.equal(f.store.audit.length, 0);
     await stop(f, session, searchB);
     await command(f.first, session, 'QUIT');
@@ -482,6 +485,16 @@ test('EAE-013A broker races: 25 each of rapid Resume, reconnect, pause gap, leas
     counts[scenario]++;
   }
   assert.deepEqual(counts, { rapid: 25, reconnect: 25, pauseGap: 25, leaseEdge: 25, reload: 25 });
+});
+
+test('late termination of session N cannot revoke the replacement session N+1', async () => {
+  const f = fixture(), old = await open(f, userA, 'old-session');
+  await f.first.terminate(old.sessionId, userA);
+  const next = await open(f, userA, 'new-session');
+  await assert.rejects(f.second.terminate(old.sessionId, userA), { code: 'SESSION_GONE' });
+  assert.ok(await f.store.get(next.sessionId));
+  assert.equal(f.store.audit.length, 1);
+  assert.equal(f.store.audit[0].sessionId, old.sessionId);
 });
 
 test('ten concurrent sessions isolate credentials, lifecycle and durable cleanup', async () => {

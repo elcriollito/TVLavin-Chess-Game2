@@ -4,7 +4,7 @@ import { chromium } from '@playwright/test';
 
 if (process.env.EAE013_GUARD_PREVIEW !== '1' || !process.env.EAE013_BYPASS)
   throw new Error('EAE013_GUARD_CREDENTIAL_REQUIRED');
-const MAIN = 'https://eae013-main-elcriollitos-projects.vercel.app';
+const MAIN = process.env.EAE013_MAIN_ORIGIN || 'https://eae013-main-elcriollitos-projects.vercel.app';
 const browser = await chromium.launch({ headless: true });
 const results = [];
 try {
@@ -16,7 +16,7 @@ try {
   ]) {
     const context = await browser.newContext({ viewport: { width, height } });
     await context.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
-    await context.route(/^https:\/\/eae013-main-elcriollitos-projects\.vercel\.app\//,
+    await context.route(url => url.href.startsWith(`${MAIN}/`),
       request => request.continue({ headers: { ...request.request().headers(),
         'x-vercel-protection-bypass': process.env.EAE013_BYPASS } }));
     const page = await context.newPage();

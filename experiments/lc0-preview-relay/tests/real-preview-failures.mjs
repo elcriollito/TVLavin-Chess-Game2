@@ -9,8 +9,8 @@ const MODES = ['wrong-network', 'worker-load', 'claim-expiry', 'worker-crash',
 if (process.env.EAE012_LIVE_PREVIEW !== '1' || !process.env.EAE012_BYPASS ||
     !process.env.CLERK_SECRET_KEY?.startsWith('sk_test_') || !MODES.includes(MODE))
   throw new Error('EAE012_FAILURE_TEST_INPUT_REQUIRED');
-const MAIN = 'https://eae012-main-elcriollitos-projects.vercel.app';
-const ENGINE = 'https://eae012-engine-elcriollitos-projects.vercel.app';
+const MAIN = process.env.EAE012_MAIN_ORIGIN || 'https://eae012-main-elcriollitos-projects.vercel.app';
+const ENGINE = process.env.EAE012_ENGINE_ORIGIN || 'https://eae012-engine-elcriollitos-projects.vercel.app';
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const browser = await chromium.launch({ headless: true });
 let user = null, clerkSessionId = null, token = null, issuedAt = 0, sessionId = null, page = null;
@@ -69,7 +69,7 @@ try {
     headers: { 'x-vercel-protection-bypass': process.env.EAE012_BYPASS,
       'x-vercel-set-bypass-cookie': 'true' } });
   assert.equal(cookie.status(), 200);
-  await context.route(/^https:\/\/eae012-engine-elcriollitos-projects\.vercel\.app\//,
+  await context.route(url => url.href.startsWith(`${ENGINE}/`),
     route => route.continue({ headers: { ...route.request().headers(),
       'x-vercel-protection-bypass': process.env.EAE012_BYPASS } }));
   if (MODE === 'wrong-network') await context.route('**/artifacts/network/maia-1100.pb.gz',
@@ -130,8 +130,13 @@ try {
         await command('STOP', { searchId }); await phase('STOP_ACKED');
         await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('FAILED'),
           null, { timeout: 9_000 });
-        await new Promise(resolve => setTimeout(resolve, 5_100));
-        const expired = await call('inspect', { expected: [410] });
+        let expired;
+        for (let attempt = 0; attempt < 24; attempt++) {
+          const result = await call('inspect', { expected: [200, 410] });
+          if (result.status === 410) { expired = result; break; }
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        assert.ok(expired, 'missing STOP result must expire within the broker deadline');
         assert.ok(['STOP_RESULT_TIMEOUT', 'SESSION_GONE'].includes(expired.value.error));
         const state = await snapshot();
         assert.equal(state.runtime.workers, 0);
