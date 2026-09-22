@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "engine": {
+    "name": "Stockfish",
+    "version": "19",
+    "release": "sf_19",
+    "commit": "edb0d9db6731067ec50ce619ff372b463bc4dd5d",
+    "repository": "https://github.com/official-stockfish/Stockfish"
+  },
+  "browserPort": {
+    "name": "stockfish.js",
+    "version": "19.0.0",
+    "release": "v19.0.0",
+    "commit": "9cb3e5066d48f1a35d792afeda36eff37ae60570",
+    "packageGitHead": "54fde71d90c7c403964f6cacef48f7bbec495df1",
+    "repository": "https://github.com/nmrugg/stockfish.js",
+    "package": "https://registry.npmjs.org/stockfish/-/stockfish-19.0.0.tgz",
+    "packageIntegrity": "sha512-jDyYLbqNpboQcMs5HodTHI2CrKL74zkQWb1+sgoNXw5HI6avTblW4G0X7afFt3BBOc6VbTSkOV64EUxm/DWSpg==",
+    "packageSha256": "b1579b00ca456768c637bd5e5313830fb535ade04e87a5da53182c0a5eb6e05d"
+  },
+  "profile": {
+    "id": "lite-single",
+    "displayName": "Stockfish 19 Lite",
+    "runtimeType": "wasm",
+    "singleThreaded": true,
+    "nnue": true,
+    "separateNetworkAsset": false,
+    "requiresCrossOriginIsolation": false,
+    "defaultOptions": {
+      "MultiPV": 1,
+      "Hash": 16,
+      "Threads": 1
+    },
+    "expectedUci": {
+      "name": "Stockfish 19 Lite WASM",
+      "author": "the Stockfish developers (see AUTHORS file)"
+    }
+  },
+  "license": "GPL-3.0",
+  "files": {
+    "stockfish-19-lite-single.js": {
+      "bytes": 21415,
+      "sha256": "d3344124ab067fb0b90ee77873bb8e9fbf5fc01bc525fe714b0f942581e889e6"
+    },
+    "stockfish-19-lite-single.wasm": {
+      "bytes": 1787571,
+      "sha256": "57ac2d72312aba346760e3f173f687a8c211208e97a87268436f7f0e10bb5387"
+    },
+    "Copying.txt": {
+      "bytes": 35821,
+      "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+    }
+  }
+}

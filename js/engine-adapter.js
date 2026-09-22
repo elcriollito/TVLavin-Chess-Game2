@@ -4,9 +4,11 @@
  */
 
 (function () {
+    let runtimeInstanceSequence = 0;
     const APPROVED_WORKER_URLS = new Set([
         '/engine/stockfish-working.js',
-        '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js'
+        '/assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js',
+        '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js'
     ]);
 
     class EngineAdapter {
@@ -18,6 +20,10 @@
             this.wasmPath = this.config.wasmPath || '';
             this.defaultOptions = this.config.defaultOptions || {};
             this.expectedUci = this.config.expectedUci || null;
+            this.runtimeIdentityExpectation = this.config.runtimeIdentityExpectation || null;
+            this.requireRuntimeIdentity = this.config.requireRuntimeIdentity === true;
+            this.providerId = this.config.providerId || this.id;
+            this.requestedEngineId = this.config.requestedEngineId || this.id;
             this.uciIdentity = { name: null, author: null, validated: false };
             this.supportsChess960 = !!this.config.supportsChess960;
             this.notes = this.config.notes || '';
@@ -33,6 +39,18 @@
             this.startReject = null;
             this.handshakeTimer = null;
             this.handshakePhase = 'absent';
+            this.runtimeIdentityRecord = Object.freeze({
+                runtimeInstanceId: null,
+                providerId: this.providerId,
+                requestedEngineId: this.requestedEngineId,
+                reportedUciName: null,
+                reportedAuthor: null,
+                workerAsset: this.workerPath,
+                createdAt: null,
+                identityValidated: false,
+                status: 'created'
+            });
+            this.runtimeUnavailableNotified = false;
             this.searchTimeoutMs = Math.max(500, Math.min(30000, Number(this.config.searchTimeoutMs) || 10000));
             this.searchTimer = null;
             this.ready = false;
@@ -72,6 +90,49 @@
             this.basePath = this.getBasePath();
 
             if (this.autoStart) this.start().catch(() => {});
+        }
+
+        updateRuntimeIdentity(status, fields = {}) {
+            this.runtimeIdentityRecord = Object.freeze({
+                ...this.runtimeIdentityRecord,
+                ...fields,
+                status
+            });
+            return this.runtimeIdentityRecord;
+        }
+
+        validateRuntimeIdentity() {
+            const identity = this.uciIdentity;
+            if (this.expectedUci) {
+                return identity.name === this.expectedUci.name
+                    && identity.author === this.expectedUci.author;
+            }
+            if (!this.requireRuntimeIdentity) return true;
+            const expectation = this.runtimeIdentityExpectation;
+            if (!expectation) return false;
+            if (expectation.requireName !== false && !identity.name) return false;
+            if (expectation.requireAuthor !== false && !identity.author) return false;
+            try {
+                if (expectation.namePattern
+                    && !(new RegExp(expectation.namePattern, 'i')).test(identity.name || '')) return false;
+                if (expectation.authorPattern
+                    && !(new RegExp(expectation.authorPattern, 'i')).test(identity.author || '')) return false;
+            } catch (_error) {
+                return false;
+            }
+            return true;
+        }
+
+        notifyRuntimeUnavailable(error) {
+            if (this.runtimeUnavailableNotified) return;
+            this.runtimeUnavailableNotified = true;
+            this.config.onRuntimeUnavailable?.(Object.freeze({
+                providerId: this.providerId,
+                requestedEngineId: this.requestedEngineId,
+                runtimeInstanceId: this.runtimeIdentityRecord.runtimeInstanceId,
+                code: error?.code || 'ENGINE_UNAVAILABLE',
+                message: error?.message || 'The chess engine is unavailable.'
+            }));
         }
 
         getBasePath() {
@@ -119,8 +180,14 @@
             const reject = this.startReject;
             this.startReject = null;
             this.terminate(code);
+            this.updateRuntimeIdentity('failed', {
+                reportedUciName: this.uciIdentity.name,
+                reportedAuthor: this.uciIdentity.author,
+                identityValidated: false
+            });
             reject?.(error);
             if (this.onError) this.onError(error);
+            this.notifyRuntimeUnavailable(error);
             window.dispatchEvent?.(new CustomEvent('caissa-engine-failure', { detail: { category: code } }));
             return true;
         }
@@ -155,6 +222,20 @@
                 }
                 this.uciIdentity = { name: null, author: null, validated: false };
                 const generation = ++this.workerGeneration;
+                this.runtimeUnavailableNotified = false;
+                const createdAt = new Date().toISOString();
+                const runtimeInstanceId = `${this.providerId}:${Date.now().toString(36)}:${generation}:${++runtimeInstanceSequence}`;
+                this.runtimeIdentityRecord = Object.freeze({
+                    runtimeInstanceId,
+                    providerId: this.providerId,
+                    requestedEngineId: this.requestedEngineId,
+                    reportedUciName: null,
+                    reportedAuthor: null,
+                    workerAsset: workerUrl,
+                    createdAt,
+                    identityValidated: false,
+                    status: 'starting'
+                });
                 const worker = new Worker(workerUrl);
                 this.engine = worker;
                 worker.onmessage = (event) => {
@@ -170,8 +251,8 @@
                 worker.onmessageerror = () => {
                     this.failGeneration(generation, 'ENGINE_MESSAGE_ERROR', 'The chess engine returned an unreadable response.');
                 };
-                this.send('uci');
                 this.armHandshakeDeadline('awaiting-uciok', generation);
+                this.send('uci');
             } catch (error) {
                 const generation = this.workerGeneration;
                 const wrapped = new Error('Could not load chess engine.');
@@ -179,8 +260,10 @@
                 const reject = this.startReject;
                 this.startReject = null;
                 this.terminate('constructor-failure');
+                this.updateRuntimeIdentity('failed', { identityValidated: false });
                 reject?.(wrapped);
                 if (this.onError) this.onError(wrapped);
+                this.notifyRuntimeUnavailable(wrapped);
             }
             return pending;
         }
@@ -198,27 +281,36 @@
                 this.uciIdentity.author = message.slice('id author '.length).trim();
             }
 
-            if (message.includes('uciok')) {
+            if (message.trim() === 'uciok') {
                 if (this.handshakePhase !== 'awaiting-uciok') return;
-                if (this.expectedUci && (this.uciIdentity.name !== this.expectedUci.name
-                    || this.uciIdentity.author !== this.expectedUci.author)) {
+                if (!this.validateRuntimeIdentity()) {
                     this.failGeneration(generation, 'ENGINE_IDENTITY_MISMATCH',
                         'The chess engine identity did not match the configured provider.');
                     return;
                 }
                 this.uciIdentity.validated = true;
+                this.updateRuntimeIdentity('identity-validated', {
+                    reportedUciName: this.uciIdentity.name,
+                    reportedAuthor: this.uciIdentity.author,
+                    identityValidated: true
+                });
                 this.clearHandshakeTimer();
                 // `uciok` confirms protocol identity, not search readiness.
                 this.configureEngine();
                 this.armHandshakeDeadline('awaiting-readyok', generation);
             }
 
-            if (message.includes('readyok')) {
+            if (message.trim() === 'readyok') {
                 if (!this.ready && this.handshakePhase !== 'awaiting-readyok') return;
                 this.clearHandshakeTimer();
                 const firstReady = !this.ready;
                 this.ready = true;
                 this.handshakePhase = 'ready';
+                this.updateRuntimeIdentity('ready', {
+                    reportedUciName: this.uciIdentity.name,
+                    reportedAuthor: this.uciIdentity.author,
+                    identityValidated: this.uciIdentity.validated
+                });
                 this.processCommandQueue();
                 this.completeAttributionBarrier();
                 if (firstReady) {
@@ -753,6 +845,10 @@
             return Object.freeze({ ...this.uciIdentity });
         }
 
+        getRuntimeIdentity() {
+            return this.runtimeIdentityRecord;
+        }
+
         isAnalyzing() {
             return this.analyzing;
         }
@@ -786,6 +882,7 @@
         }
 
         terminate(reason = 'owner-exit') {
+            const wasAnalyzing = this.analyzing;
             this.workerGeneration += 1;
             this.clearHandshakeTimer();
             this.clearSearchTimer();
@@ -801,8 +898,19 @@
             this.analyzing = false;
             this.gameplayStrengthOptions = null;
             this.handshakePhase = 'absent';
+            this.updateRuntimeIdentity('terminated', {
+                reportedUciName: this.uciIdentity.name,
+                reportedAuthor: this.uciIdentity.author,
+                identityValidated: this.uciIdentity.validated
+            });
             const worker = this.engine;
             if (worker) {
+                try {
+                    if (wasAnalyzing) worker.postMessage('stop');
+                    worker.postMessage('quit');
+                } catch (_error) {
+                    // Native termination below remains the final ownership boundary.
+                }
                 worker.onmessage = null;
                 worker.onerror = null;
                 worker.onmessageerror = null;

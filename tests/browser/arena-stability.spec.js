@@ -69,15 +69,29 @@ async function instrumentBoard(page) {
   });
 }
 
-async function assertRuntimeContinuity(page) {
-  expect(await page.evaluate(() => ({
+async function assertRuntimeContinuity(page, { pairingMayChange = false } = {}) {
+  const result = await page.evaluate(() => ({
     boardResizeCalls: window.__arenaStability.boardResizeCalls,
     sameWorkers: window.__arenaStability.workers.every((worker, index) => worker === [
       window.CaissaArena.whiteEngineInstance,
       window.CaissaArena.blackEngineInstance,
       window.CaissaArena.evaluatorEngine
-    ][index])
-  }))).toEqual({ boardResizeCalls: 0, sameWorkers: true });
+    ][index]),
+    participantIdentitiesMatch: ['white', 'black'].every(color => {
+      const participant = window.CaissaArena.state.currentGame?.[color];
+      const runtime = window.CaissaArena.state.currentGame?.runtimeIdentities?.[color];
+      return participant?.id === runtime?.providerId
+        && participant?.id === runtime?.requestedEngineId
+        && runtime?.identityValidated === true
+        && runtime?.status === 'ready';
+    }),
+    playerRuntimeIdsDistinct: window.CaissaArena.whiteEngineInstance.getRuntimeIdentity().runtimeInstanceId
+      !== window.CaissaArena.blackEngineInstance.getRuntimeIdentity().runtimeInstanceId
+  }));
+  expect(result.boardResizeCalls).toBe(0);
+  expect(result.participantIdentitiesMatch).toBe(true);
+  expect(result.playerRuntimeIdsDistinct).toBe(true);
+  if (!pairingMayChange) expect(result.sameWorkers).toBe(true);
 }
 
 async function runActiveMatchStability(page, { simulateBrowserChrome = false } = {}) {
@@ -137,7 +151,7 @@ async function runActiveTournamentStability(page) {
 
   await page.getByRole('tab', { name: 'Tournament' }).click();
   samples.push(await boardGeometry(page));
-  await assertRuntimeContinuity(page);
+  await assertRuntimeContinuity(page, { pairingMayChange: true });
   await page.getByRole('tab', { name: 'Game' }).click();
   await page.locator('#arenaStopMatch').click();
   return samples;
