@@ -30,7 +30,8 @@ test('staging Supabase CAS survives broker reconstruction without raw secrets',
     } finally {
       if (id) {
         const row = await store.get(id);
-        if (row) await store.deleteIfVersion(id, row.version);
+        if (row) await store.deleteIfVersion(id, row.version,
+          { reason: 'ADMIN_TEST_CLEANUP', actor: 'STAGING_TEST', source: 'staging-store.test' });
       }
     }
   });

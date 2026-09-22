@@ -7,10 +7,14 @@ import { createClerkClient } from '@clerk/backend';
 if (process.env.EAE013_LIVE_PREVIEW !== '1' || !process.env.EAE013_BYPASS ||
     !process.env.CLERK_SECRET_KEY?.startsWith('sk_test_'))
   throw new Error('EAE013_PREVIEW_TEST_CREDENTIALS_REQUIRED');
-const MAIN = 'https://eae013-main-elcriollitos-projects.vercel.app';
-const ENGINE = 'https://eae013-engine-elcriollitos-projects.vercel.app';
+const MAIN = process.env.EAE013_MAIN_ORIGIN ||
+  'https://eae013-main-elcriollitos-projects.vercel.app';
+const ENGINE = process.env.EAE013_ENGINE_ORIGIN ||
+  'https://eae013-engine-elcriollitos-projects.vercel.app';
 const CYCLES = Number(process.env.EAE013_CYCLES || 1);
-if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 50)
+const RECONNECT_EVERY = Number(process.env.EAE013_RECONNECT_EVERY || 0);
+if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
+    !Number.isSafeInteger(RECONNECT_EVERY) || RECONNECT_EVERY < 0)
   throw new Error('EAE013_CYCLES_INVALID');
 const browser = await chromium.launch({ headless: true });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -44,10 +48,10 @@ try {
   session = await clerk.sessions.createSession({ userId: user.id });
   context = await browser.newContext({ viewport: { width: 1440, height: 900 },
     acceptDownloads: false });
-  await context.addInitScript(() => {
-    if (location.origin === 'https://eae013-main-elcriollitos-projects.vercel.app')
+  await context.addInitScript(origin => {
+    if (location.origin === origin)
       localStorage.setItem('caissa_onboarding_completed', 'true');
-  });
+  }, MAIN);
   await context.exposeBinding('eae013TestOwnerToken', token);
   for (const origin of [MAIN, ENGINE]) {
     const seed = await context.request.get(`${origin}/api/eae011?action=health`, {
@@ -55,10 +59,10 @@ try {
         'x-vercel-set-bypass-cookie': 'true' } });
     assert.equal(seed.status(), 200, `Preview protection cookie for ${origin}`);
   }
-  await context.route(/^https:\/\/eae013-(main|engine)-elcriollitos-projects\.vercel\.app\//,
+  await context.route(url => [MAIN, ENGINE].some(origin => url.href.startsWith(`${origin}/`)),
     route => route.continue({ headers: { ...route.request().headers(),
       'x-vercel-protection-bypass': process.env.EAE013_BYPASS } }));
-  await context.route(/^https:\/\/eae013-main-elcriollitos-projects\.vercel\.app\/js\/caissa-auth\.js(?:\?|$)/,
+  await context.route(url => url.href.startsWith(`${MAIN}/js/caissa-auth.js`),
     route => route.fulfill({
     status: 200, contentType: 'text/javascript',
     body: `window.CAISSA_AUTH={isSignedIn:true,userId:${JSON.stringify(user.id)},` +
@@ -126,6 +130,15 @@ try {
       await page.click('#arenaPauseMatch');
       await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
         !CaissaArena._pausePending, null, { timeout: 15_000 });
+      if (RECONNECT_EVERY && (i + 1) % RECONNECT_EVERY === 0) {
+        const epoch = await page.evaluate(() => window.CaissaArenaPreview.adapter.mainLeaseEpoch);
+        await page.evaluate(() => window.CaissaArenaPreview.adapter.streamController.abort());
+        await page.waitForFunction(previous => window.CaissaArenaPreview.adapter.mainLeaseEpoch > previous,
+          epoch, { timeout: 8_000 });
+        await enginePage.evaluate(() => window.Eae012Engine.disconnect());
+        await enginePage.evaluate(() => window.Eae012Engine.reconnect());
+        item.reconnected = true;
+      }
       item.stage = 'resume';
       await page.click('#arenaPauseMatch');
       await page.waitForFunction(() => CaissaArena.game?.history().length >= 6,
@@ -188,6 +201,9 @@ try {
   };
   const compact = { cyclesRequested: CYCLES, completed: completed.length,
     failures: report.failures,
+    startedAt: report.startedAt, finishedAt: report.finishedAt,
+    sessionIds: completed.map(item => item.sessionId),
+    reconnects: completed.filter(item => item.reconnected).length,
     colors: Object.fromEntries(['white', 'black'].map(color =>
       [color, completed.filter(item => item.color === color).length])),
     forcedKills: completed.reduce((sum, item) => sum + item.engine.forced, 0),
@@ -195,9 +211,13 @@ try {
       item.engine.parentWorkers + item.engine.pthreadWorkers, 0),
     cleanupEvidenceFailures: completed.filter(item =>
       !item.metrics.cleanupEvidence?.cleanupAcknowledged).length,
+    selectionToReadyMedianMs: percentile(completed.map(item => item.metrics.selectionToReadyMs), 0.5),
     selectionToReadyP95Ms: percentile(completed.map(item => item.metrics.selectionToReadyMs), 0.95),
+    stopMedianMs: percentile(completed.flatMap(item => item.metrics.stopMs), 0.5),
     stopP95Ms: percentile(completed.flatMap(item => item.metrics.stopMs), 0.95),
+    cleanupMedianMs: percentile(completed.map(item => item.metrics.cleanupMs), 0.5),
     cleanupP95Ms: percentile(completed.map(item => item.metrics.cleanupMs), 0.95),
+    firstSearchMedianMs: percentile(completed.map(item => item.metrics.firstSearchAfterMatchStartMs), 0.5),
     firstSearchP95Ms: percentile(completed.map(item => item.metrics.firstSearchAfterMatchStartMs), 0.95),
     axeSeriousOrCritical: report.axeSeriousOrCritical, pageErrors };
   console.log(`EAE013_ARENA_LIVE_REPORT ${JSON.stringify(CYCLES <= 2 ? report : compact)}`);

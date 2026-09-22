@@ -18,6 +18,13 @@ test('preview API gate requires exact branch, flag, host, and separate HTTPS ori
     { EAE011_ENGINE_ORIGIN: 'http://eae013-engine.vercel.app' }
   ]) assert.equal(previewArenaEnabled({ ...config, ...change }, 'eae013-main.vercel.app'), false);
   assert.equal(previewArenaEnabled(config, 'www.caissa-chess.org'), false);
+  const eae013a = { ...config,
+    VERCEL_GIT_COMMIT_REF: 'experiment/lc0-eae013a-session-reliability',
+    EAE013_ARENA_PREVIEW: undefined,
+    EAE013A_SESSION_RELIABILITY_PREVIEW: '1' };
+  assert.equal(previewArenaEnabled(eae013a, 'eae013-main.vercel.app'), true);
+  assert.equal(previewArenaEnabled({ ...eae013a,
+    EAE013A_SESSION_RELIABILITY_PREVIEW: undefined }, 'eae013-main.vercel.app'), false);
 });
 
 test('normal Arena provider list is frozen without explicit preview registration', () => {

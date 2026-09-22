@@ -100,6 +100,30 @@ test('reconnect ignores a not-yet-GO search but rejects a changed active generat
   assert.equal(instance.active.transportUncertain, true);
 });
 
+test('a late heartbeat failure from a replaced stream cannot terminate Resume', async () => {
+  const { instance, failures } = fixture();
+  const old = { aborted: false, abort() { this.aborted = true; } };
+  const current = { aborted: false, abort() { this.aborted = true; } };
+  const actions = [];
+  instance.sessionId = 'session-current';
+  instance.api = async action => { actions.push(action); };
+  instance.streamController = current;
+  instance.mainLeaseEpoch = 2;
+  instance.heartbeatError(Object.assign(new Error('STREAM_REPLACED'), { status: 409 }), 1, old);
+  assert.equal(instance.closed, false);
+  assert.equal(current.aborted, false);
+  assert.deepEqual(actions, []);
+  instance.heartbeatError(Object.assign(new Error('network timeout'), { status: 503 }), 2, current);
+  assert.equal(current.aborted, true);
+  assert.equal(instance.closed, false);
+  assert.deepEqual(actions, []);
+  instance.heartbeatError(Object.assign(new Error('MAIN_LEASE_EXPIRED'), { status: 410 }), 2, current);
+  assert.equal(instance.closed, true);
+  assert.ok(failures.includes('MAIN_LEASE_EXPIRED'));
+  await Promise.resolve();
+  assert.deepEqual(actions, ['terminate']);
+});
+
 test('failed startup revokes the relay without claiming local CLEANUP evidence', async () => {
   const { instance } = fixture();
   instance.sessionId = 'startup-session';

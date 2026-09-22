@@ -1,9 +1,12 @@
 // EAE-013 is an opt-in Arena preview surface, never a production provider gate.
-const BRANCH = 'experiment/lc0-eae013-arena-preview-integration';
+const BRANCH_FLAGS = Object.freeze({
+  'experiment/lc0-eae013-arena-preview-integration': 'EAE013_ARENA_PREVIEW',
+  'experiment/lc0-eae013a-session-reliability': 'EAE013A_SESSION_RELIABILITY_PREVIEW'
+});
 
 export function previewArenaEnabled(env, host) {
-  if (env.VERCEL_ENV !== 'preview' || env.VERCEL_GIT_COMMIT_REF !== BRANCH ||
-      env.EAE013_ARENA_PREVIEW !== '1') return false;
+  const flag = BRANCH_FLAGS[env.VERCEL_GIT_COMMIT_REF];
+  if (env.VERCEL_ENV !== 'preview' || !flag || env[flag] !== '1') return false;
   try {
     const main = new URL(env.EAE011_MAIN_ORIGIN);
     const engine = new URL(env.EAE011_ENGINE_ORIGIN);

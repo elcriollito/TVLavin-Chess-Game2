@@ -4,7 +4,9 @@ import { RelayError } from './durable-broker.mjs';
 const previewRef = 'aqizagaskicotorfpwfn';
 
 export class MemoryStore {
-  constructor({ now = () => Date.now() } = {}) { this.now = now; this.rows = new Map(); }
+  constructor({ now = () => Date.now() } = {}) {
+    this.now = now; this.rows = new Map(); this.audit = [];
+  }
   async create(input) {
     const recent = [...this.rows.values()].filter(row => row.ownerId === input.ownerId &&
       this.now() - row.createdAt < 60_000);
@@ -21,8 +23,14 @@ export class MemoryStore {
       state: structuredClone(state) });
     return true;
   }
-  async deleteIfVersion(id, version) {
-    if (this.rows.get(id)?.version !== version) return false;
+  async deleteIfVersion(id, version, { reason = 'UNKNOWN', actor = 'UNKNOWN', source = '' } = {}) {
+    const row = this.rows.get(id);
+    if (row?.version !== version) return false;
+    this.audit.push({ sessionId: id, reason, actor, source, stateBefore: row.state.phase,
+      at: this.now(), mainLease: row.state.mainStreamUntil,
+      engineLease: row.state.engineStreamUntil, mainCursor: row.state.mainAckCursor,
+      engineCursor: row.state.engineAckCursor, lastCommandSeq: row.state.lastCommandSeq,
+      lastEngineSeq: row.state.lastEngineSeq, cleanupObserved: row.state.cleanup });
     this.rows.delete(id);
     return true;
   }
@@ -35,7 +43,12 @@ export class MemoryStore {
           (state.phase === 'UNCLAIMED' && now >= state.claimUntil) ||
           (state.engineStreamUntil != null && now > state.engineStreamUntil + 5_000) ||
           (state.mainStreamUntil != null && now > state.mainStreamUntil + 5_000)) {
-        this.rows.delete(id); removed++;
+        await this.deleteIfVersion(id, row.version, { reason: now >= row.expiresAt ?
+          'SESSION_HARD_EXPIRY' : now >= state.idleUntil ? 'IDLE_EXPIRED' :
+          state.phase === 'UNCLAIMED' && now >= state.claimUntil ? 'CLAIM_EXPIRED' :
+          state.engineStreamUntil != null && now > state.engineStreamUntil + 5_000 ?
+            'ENGINE_HEARTBEAT_EXPIRED' : 'MAIN_HEARTBEAT_EXPIRED',
+        actor: 'BROKER_GC', source: 'MemoryStore.cleanup' }); removed++;
       }
     }
     return removed;
@@ -86,11 +99,16 @@ export class SupabaseStore {
     return Boolean(data);
   }
 
-  async deleteIfVersion(id, version) {
-    const { data, error } = await this.client.from('eae011_sessions')
-      .delete().eq('session_id', id).eq('version', version).select('session_id').maybeSingle();
+  async deleteIfVersion(id, version, { reason = 'UNKNOWN', actor = 'UNKNOWN', source = '',
+    requestId = null } = {}) {
+    const { data, error } = await this.client.rpc('eae013a_delete_session', {
+      p_session_id: id, p_version: version, p_reason: reason, p_actor: actor,
+      p_source: source, p_deployment_id: process.env.VERCEL_DEPLOYMENT_ID ||
+        process.env.VERCEL_URL || null,
+      p_request_id: requestId
+    });
     dbError(error);
-    return Boolean(data);
+    return data === true;
   }
 
   async countLive() {

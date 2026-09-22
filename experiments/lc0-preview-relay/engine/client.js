@@ -7510,17 +7510,25 @@ var RealLc0RelayClient = class {
       }
     });
   }
-  heartbeat(epoch) {
+  heartbeat(epoch, controller) {
+    this.heartbeatEpoch = epoch;
     clearInterval(this.heartbeatTimer);
+    let inFlight = false;
     this.heartbeatTimer = setInterval(() => {
+      if (inFlight) return;
+      inFlight = true;
       const request = api("heartbeat_engine", {
         sessionId: this.sessionId,
         credential: this.credential,
         body: { epoch, cursor: this.cursor }
       }).catch((error) => {
+        if (this.closed || this.controller !== controller || this.heartbeatEpoch !== epoch) return;
         log(`heartbeat ${error.message}`);
-        this.controller?.abort();
-      }).finally(() => this.heartbeatRequests.delete(request));
+        controller.abort();
+      }).finally(() => {
+        inFlight = false;
+        this.heartbeatRequests.delete(request);
+      });
       this.heartbeatRequests.add(request);
     }, 1500);
   }
@@ -7539,7 +7547,7 @@ var RealLc0RelayClient = class {
           const line = frame.split("\n").find((part) => part.startsWith("data: "));
           const id = frame.split("\n").find((part) => part.startsWith("id: "));
           if (frame.startsWith("event: lease") && line) {
-            this.heartbeat(JSON.parse(line.slice(6)).epoch);
+            this.heartbeat(JSON.parse(line.slice(6)).epoch, controller);
             continue;
           }
           if (!line || !id) continue;

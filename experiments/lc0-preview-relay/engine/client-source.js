@@ -155,13 +155,21 @@ class RealLc0RelayClient {
     });
   }
 
-  heartbeat(epoch) {
+  heartbeat(epoch, controller) {
+    this.heartbeatEpoch = epoch;
     clearInterval(this.heartbeatTimer);
+    let inFlight = false;
     this.heartbeatTimer = setInterval(() => {
+      if (inFlight) return;
+      inFlight = true;
       const request = api('heartbeat_engine', { sessionId: this.sessionId,
         credential: this.credential, body: { epoch, cursor: this.cursor } })
-        .catch(error => { log(`heartbeat ${error.message}`); this.controller?.abort(); })
-        .finally(() => this.heartbeatRequests.delete(request));
+        .catch(error => {
+          if (this.closed || this.controller !== controller || this.heartbeatEpoch !== epoch) return;
+          log(`heartbeat ${error.message}`);
+          controller.abort();
+        })
+        .finally(() => { inFlight = false; this.heartbeatRequests.delete(request); });
       this.heartbeatRequests.add(request);
     }, 1500);
   }
@@ -177,7 +185,9 @@ class RealLc0RelayClient {
           const frame = buffer.slice(0, boundary); buffer = buffer.slice(boundary + 2);
           const line = frame.split('\n').find(part => part.startsWith('data: '));
           const id = frame.split('\n').find(part => part.startsWith('id: '));
-          if (frame.startsWith('event: lease') && line) { this.heartbeat(JSON.parse(line.slice(6)).epoch); continue; }
+          if (frame.startsWith('event: lease') && line) {
+            this.heartbeat(JSON.parse(line.slice(6)).epoch, controller); continue;
+          }
           if (!line || !id) continue;
           const item = JSON.parse(line.slice(6)), eventId = Number(id.slice(4));
           this.inbound = this.inbound.then(async () => {

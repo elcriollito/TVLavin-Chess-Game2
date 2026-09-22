@@ -63,6 +63,7 @@
             this.streamController = null;
             this.streamTask = null;
             this.heartbeatTimer = null;
+            this.mainLeaseEpoch = 0;
             this.searchPromise = null;
             this.stopPromise = null;
             this.terminatePromise = null;
@@ -165,6 +166,16 @@
             this.stop().catch(error => this.fail(error));
         }
 
+        heartbeatError(error, epoch, controller) {
+            // A heartbeat from the replaced SSE epoch may resolve after the
+            // replacement is already healthy. It has no authority to revoke
+            // this session (especially during Pause -> Resume).
+            if (this.closed || this.terminating || this.streamController !== controller ||
+                this.mainLeaseEpoch !== epoch) return;
+            if (error.status === 410) this.fail(error);
+            else controller.abort(); // Inspect and reconnect within the durable lease.
+        }
+
         async consumeStream() {
             while (!this.closed && !this.terminating) {
                 const controller = new AbortController();
@@ -187,10 +198,16 @@
                             const idLine = frame.split('\n').find(line => line.startsWith('id: '));
                             if (frame.startsWith('event: lease') && dataLine) {
                                 const epoch = JSON.parse(dataLine.slice(6)).epoch;
+                                this.mainLeaseEpoch = epoch;
                                 clearInterval(this.heartbeatTimer);
-                                this.heartbeatTimer = setInterval(() => this.api('heartbeat_main', {
-                                    body: { epoch, cursor: this.cursor }
-                                }).catch(error => this.fail(error)), 1_500);
+                                let inFlight = false;
+                                this.heartbeatTimer = setInterval(() => {
+                                    if (inFlight) return;
+                                    inFlight = true;
+                                    this.api('heartbeat_main', { body: { epoch, cursor: this.cursor } })
+                                        .catch(error => this.heartbeatError(error, epoch, controller))
+                                        .finally(() => { inFlight = false; });
+                                }, 1_500);
                             } else if (dataLine && idLine) {
                                 const id = Number(idLine.slice(4));
                                 if (id > this.cursor) {
@@ -204,8 +221,9 @@
                         }
                     }
                 } catch (error) {
-                    if (this.closed || this.terminating || error.name === 'AbortError') break;
-                    this.status(`Relay reconnecting: ${error.message}`);
+                    if (this.closed || this.terminating) break;
+                    if (error.name !== 'AbortError')
+                        this.status(`Relay reconnecting: ${error.message}`);
                 } finally { clearInterval(this.heartbeatTimer); }
                 if (this.closed || this.terminating) break;
                 try {

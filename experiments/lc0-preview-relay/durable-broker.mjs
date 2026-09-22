@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 export const LIMITS = Object.freeze({
   claimMs: 30_000, idleMs: 30_000, hardMs: 120_000, leaseMs: 5_000,
-  streamHeartbeatMs: 3_000, ackMs: 2_500, maxEvents: 128,
+  streamHeartbeatMs: 3_000, ackMs: 2_500, stopAckMs: 10_000, maxEvents: 128,
   stopResultMs: 5_000,
   maxCommandsPerSecond: 30, maxInfoPerSecond: 100, maxReconnectsPerMinute: 20,
   maxClaimAttempts: 8, maxCommandBytes: 2_048, maxInfoBytes: 1_024,
@@ -64,7 +64,9 @@ function rate(state, field, now, windowMs, maximum) {
 }
 
 export class DurableBroker {
-  constructor(store, { now = () => Date.now() } = {}) { this.store = store; this.now = now; }
+  constructor(store, { now = () => Date.now(), requestId = null } = {}) {
+    this.store = store; this.now = now; this.requestId = requestId;
+  }
 
   async create({ userId, competitionId, participantRole }) {
     if (!/^user_[A-Za-z0-9]{8,80}$/.test(userId || '')) throw new RelayError('AUTH_REQUIRED', 401);
@@ -75,6 +77,8 @@ export class DurableBroker {
       phase: 'UNCLAIMED', claimHash: hash(sessionId, claimToken), engineHash: null,
       engineClientId: null, claimUntil: now + LIMITS.claimMs, idleUntil: now + LIMITS.idleMs,
       expiresAt: now + LIMITS.hardMs, engineStreamUntil: null, mainStreamUntil: null,
+      engineHeartbeatAt: null, mainHeartbeatAt: null,
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_URL || null,
       engineEpoch: 0, mainEpoch: 0, lastCommandSeq: 0, lastEngineSeq: 0,
       lastEngineCommandClaimedSeq: 0,
       pending: null, activeSearchId: null, completedSearchId: null,
@@ -120,7 +124,12 @@ export class DurableBroker {
       const row = await this.get(sessionId), now = this.now();
       const expired = this.expired(row.state, now);
       if (expired) {
-        await this.store.deleteIfVersion(sessionId, row.version);
+        const reason = expired === 'SESSION_EXPIRED' ? 'SESSION_HARD_EXPIRY' :
+          expired === 'ENGINE_LEASE_EXPIRED' ? 'ENGINE_HEARTBEAT_EXPIRED' :
+          expired === 'MAIN_LEASE_EXPIRED' ? 'MAIN_HEARTBEAT_EXPIRED' : expired;
+        await this.store.deleteIfVersion(sessionId, row.version,
+          { reason, actor: 'BROKER_REQUEST', source: 'DurableBroker.mutate',
+            requestId: this.requestId });
         throw new RelayError(expired, 410);
       }
       authorize(row);
@@ -219,7 +228,11 @@ export class DurableBroker {
         } else if (searchId !== state.activeSearchId) throw new RelayError('SEARCH_ID_MISMATCH', 409);
       } else if (searchId !== undefined) throw new RelayError('SCHEMA_INVALID');
       state.lastCommandSeq = seq;
-      state.pending = { type, seq, searchId: searchId || null, deadline: now + LIMITS.ackMs };
+      // STOP can reach a busy isolated WASM client near a stream turnover.
+      // Keep its acknowledgement bounded, but do not delete a healthy session
+      // at the generic 2.5 s command deadline before cooperative STOP/CLEANUP.
+      state.pending = { type, seq, searchId: searchId || null,
+        deadline: now + (type === 'STOP' ? LIMITS.stopAckMs : LIMITS.ackMs) };
       if (type === 'STOP') state.phase = 'STOPPING';
       if (type === 'RESET') state.phase = 'RESETTING';
       if (type === 'QUIT') state.phase = 'QUITTING';
@@ -344,7 +357,10 @@ export class DurableBroker {
     for (let attempt = 0; attempt < 12; attempt++) {
       const row = await this.get(sessionId);
       this.owner(userId)(row);
-      if (await this.store.deleteIfVersion(sessionId, row.version)) return { terminated: true };
+      if (await this.store.deleteIfVersion(sessionId, row.version,
+        { reason: 'EXPLICIT_TERMINATE', actor: 'ARENA_OWNER',
+          source: 'DurableBroker.terminate', requestId: this.requestId }))
+        return { terminated: true };
     }
     throw new RelayError('CONCURRENT_UPDATE_RETRY', 503);
   }
@@ -362,8 +378,10 @@ export class DurableBroker {
       const until = role === 'main' ? 'mainStreamUntil' : 'engineStreamUntil';
       const acknowledged = role === 'main' ? state.mainAckCursor : state.engineAckCursor;
       if (cursor < acknowledged) throw new RelayError('STREAM_CURSOR_STALE', 409);
+      if (cursor > state.nextEventId) throw new RelayError('STREAM_CURSOR_INVALID', 409);
       state[key]++;
       state[until] = now + LIMITS.streamHeartbeatMs;
+      state[role === 'main' ? 'mainHeartbeatAt' : 'engineHeartbeatAt'] = now;
       return { epoch: state[key], cursor };
     });
   }
@@ -383,6 +401,7 @@ export class DurableBroker {
       state.events = state.events.filter(item => item.id >
         (item.role === 'main' ? state.mainAckCursor : state.engineAckCursor));
       state[until] = now + LIMITS.streamHeartbeatMs;
+      state[role === 'main' ? 'mainHeartbeatAt' : 'engineHeartbeatAt'] = now;
       return { alive: true, epoch };
     });
   }

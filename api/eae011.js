@@ -1,5 +1,6 @@
 // EAE-012 preview-only real Lc0 relay. No production Arena registration.
 import { once } from 'node:events';
+import { randomUUID } from 'node:crypto';
 import { authenticateRequest } from './_lib/auth.js';
 import { DurableBroker, RelayError } from '../experiments/lc0-preview-relay/durable-broker.mjs';
 import { configuredStore } from '../experiments/lc0-preview-relay/store.mjs';
@@ -100,7 +101,7 @@ export default async function handler(req, res) {
     const policy = allowedActions[action];
     if (!policy || req.method !== policy[1]) throw new RelayError('ENDPOINT_NOT_FOUND', 404);
     checkRequest(req, policy[0], pair, req.method);
-    const broker = new DurableBroker(configuredStore());
+    const broker = new DurableBroker(configuredStore(), { requestId: randomUUID() });
     const sessionId = String(req.query?.sessionId || '');
     if (action === 'health') return respond(res, 200, { ok: true, previewOnly: true });
     if (action === 'config') return respond(res, 200, { mainOrigin: pair.main, engineOrigin: pair.engine });

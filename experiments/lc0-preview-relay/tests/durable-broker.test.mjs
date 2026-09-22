@@ -350,6 +350,27 @@ test('acknowledged STOP without a real BESTMOVE expires instead of hanging indef
   assert.equal(await f.store.countLive(), 0);
 });
 
+test('STOP ACK tolerates the reproduced 2.65 s tail but remains bounded at 10 s', async () => {
+  const f = fixture(), session = await open(f);
+  await readySearch(f, session);
+  await command(f.first, session, 'STOP', { searchId: searchA });
+  f.advance(2_650);
+  assert.equal((await f.first.inspect(session.sessionId, userA)).state.phase, 'STOPPING');
+  assert.equal(f.store.audit.length, 0);
+  await ack(f.second, session, 'STOP', searchA);
+  await message(f.second, session, 'BESTMOVE', { searchId: searchA, move: 'e2e4' });
+  await message(f.second, session, 'STOPPED', { searchId: searchA });
+  assert.equal((await f.first.inspect(session.sessionId, userA)).state.phase, 'STOPPED');
+
+  const timed = fixture(), late = await open(timed);
+  await readySearch(timed, late);
+  await command(timed.first, late, 'STOP', { searchId: searchA });
+  timed.advance(10_001);
+  await assert.rejects(timed.second.heartbeat(late.sessionId, 'main', userA, 1),
+    { code: 'STOP_TIMEOUT' });
+  assert.equal(timed.store.audit.at(-1).reason, 'STOP_TIMEOUT');
+});
+
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {
   const claim = fixture();
   const unclaimed = await claim.first.create({ userId: userA, competitionId: 'expiry', participantRole: 'white' });
@@ -371,12 +392,96 @@ test('claim, idle, lease and hard expiry work from durable timestamps without ti
   await assert.rejects(lease.second.connect(leaseSession.sessionId, 'engine', leaseSession.engineCredential),
     { code: 'ENGINE_LEASE_EXPIRED' });
   assert.equal(await lease.store.countLive(), 0);
+  assert.equal(lease.store.audit.at(-1).reason, 'ENGINE_HEARTBEAT_EXPIRED');
+  assert.equal(lease.store.audit.at(-1).stateBefore, 'CLAIMED');
 
   const hard = fixture(), hardSession = await open(hard);
   hard.advance(120_001);
   await assert.rejects(hard.second.command(hardSession.sessionId, userA,
     { type: 'HELLO', seq: 1 }), { code: 'SESSION_EXPIRED' });
   assert.equal(await hard.store.countLive(), 0);
+  assert.equal(hard.store.audit.at(-1).reason, 'SESSION_HARD_EXPIRY');
+});
+
+test('a stale close and a stale heartbeat epoch cannot revoke a newer live stream', async () => {
+  const f = fixture(), session = await open(f);
+  const old = await f.first.connect(session.sessionId, 'main', userA);
+  const current = await f.second.connect(session.sessionId, 'main', userA);
+  await f.first.close(session.sessionId, 'main', userA, old.epoch);
+  await assert.rejects(f.first.heartbeat(session.sessionId, 'main', userA, old.epoch),
+    { code: 'STREAM_REPLACED' });
+  f.advance(5_001);
+  assert.equal((await f.second.heartbeat(session.sessionId, 'main', userA, current.epoch)).alive, true);
+  assert.equal(f.store.audit.length, 0);
+});
+
+test('stale and future reconnect cursors reject deterministically without deleting the session', async () => {
+  const f = fixture(), session = await open(f);
+  const stream = await f.first.connect(session.sessionId, 'engine', session.engineCredential);
+  await command(f.first, session, 'HELLO');
+  await f.second.heartbeat(session.sessionId, 'engine', session.engineCredential, stream.epoch, 1);
+  await assert.rejects(f.first.connect(session.sessionId, 'engine', session.engineCredential, 0),
+    { code: 'STREAM_CURSOR_STALE' });
+  await assert.rejects(f.first.connect(session.sessionId, 'engine', session.engineCredential, 99),
+    { code: 'STREAM_CURSOR_INVALID' });
+  const replacement = await f.second.connect(session.sessionId, 'engine', session.engineCredential, 1);
+  assert.equal(replacement.cursor, 1);
+  assert.equal(f.store.audit.length, 0);
+  assert.ok(await f.store.get(session.sessionId));
+});
+
+test('EAE-013A broker races: 25 each of rapid Resume, reconnect, pause gap, lease edge, and reload', async () => {
+  const counts = { rapid: 0, reconnect: 0, pauseGap: 0, leaseEdge: 0, reload: 0 };
+  for (const scenario of Object.keys(counts)) for (let iteration = 0; iteration < 25; iteration++) {
+    const f = fixture(), session = await open(f, userA, `race-${scenario}-${iteration}`);
+    const main = await f.first.connect(session.sessionId, 'main', userA);
+    const engine = await f.second.connect(session.sessionId, 'engine', session.engineCredential);
+    await readySearch(f, session);
+    await stop(f, session);
+    if (scenario === 'reconnect') {
+      await f.first.close(session.sessionId, 'main', userA, main.epoch);
+      await f.second.connect(session.sessionId, 'main', userA);
+    } else if (scenario === 'pauseGap') {
+      await f.first.close(session.sessionId, 'main', userA, main.epoch);
+      await f.second.close(session.sessionId, 'engine', session.engineCredential, engine.epoch);
+      f.advance(4_900);
+      await f.second.connect(session.sessionId, 'main', userA);
+      await f.first.connect(session.sessionId, 'engine', session.engineCredential);
+    } else if (scenario === 'leaseEdge') {
+      f.advance(7_900);
+      await f.second.heartbeat(session.sessionId, 'main', userA, main.epoch);
+      await f.first.heartbeat(session.sessionId, 'engine', session.engineCredential, engine.epoch);
+    } else if (scenario === 'reload') {
+      const reloaded = new DurableBroker(f.store, { now: f.now });
+      const replacement = await reloaded.connect(session.sessionId, 'main', userA);
+      await f.first.close(session.sessionId, 'main', userA, main.epoch);
+      await assert.rejects(f.first.heartbeat(session.sessionId, 'main', userA, main.epoch),
+        { code: 'STREAM_REPLACED' });
+      await reloaded.heartbeat(session.sessionId, 'main', userA, replacement.epoch);
+    }
+    await command(f.first, session, 'RESET', { searchId: searchA });
+    await ack(f.second, session, 'RESET', searchA);
+    await message(f.second, session, 'READY', { identity });
+    assert.equal((await f.first.advance(session.sessionId, userA, 'reuse', searchA)).advanceAllowed, true);
+    await command(f.first, session, 'POSITION', { fen: 'startpos' });
+    await ack(f.second, session, 'POSITION');
+    await command(f.first, session, 'GO', { searchId: searchB, mode: 'nodes', nodes: 1 });
+    await ack(f.second, session, 'GO', searchB);
+    assert.equal((await f.store.get(session.sessionId)).state.activeSearchId, searchB);
+    await assert.rejects(f.first.engineMessage(session.sessionId, session.engineCredential,
+      { type: 'STOPPED', seq: session.engineSeq + 1, searchId: searchA }),
+    { code: 'STOPPED_STATE_INVALID' });
+    assert.equal(f.store.audit.length, 0);
+    await stop(f, session, searchB);
+    await command(f.first, session, 'QUIT');
+    await ack(f.second, session, 'QUIT');
+    await message(f.second, session, 'CLEANUP', { evidence: cleanupEvidence });
+    await f.first.terminate(session.sessionId, userA);
+    assert.equal(f.store.audit.at(-1).reason, 'EXPLICIT_TERMINATE');
+    assert.equal(f.store.audit.at(-1).cleanupObserved, true);
+    counts[scenario]++;
+  }
+  assert.deepEqual(counts, { rapid: 25, reconnect: 25, pauseGap: 25, leaseEdge: 25, reload: 25 });
 });
 
 test('ten concurrent sessions isolate credentials, lifecycle and durable cleanup', async () => {
