@@ -464,6 +464,18 @@
             throw new Error(`LC0_RELAY_PHASE_TIMEOUT_${expected}`);
         }
 
+        async waitForTransportConnected(timeoutMs = TRANSPORT_RECONNECT_MS) {
+            const deadline = performance.now() + timeoutMs;
+            while (!this.closed && performance.now() < deadline) {
+                if (this.transportState === 'CONNECTED') return true;
+                if (this.transportState === 'TRANSPORT_FAILED')
+                    throw new Error('LC0_TRANSPORT_RECONNECT_EXHAUSTED');
+                await pause(50);
+            }
+            throw new Error(this.closed ? 'LC0_ARENA_CLOSED' :
+                'LC0_TRANSPORT_RECONNECT_EXHAUSTED');
+        }
+
         async start() {
             try {
                 this.status('Connecting…');
@@ -551,7 +563,6 @@
 
         getBestMove(fen, callback, options = {}) {
             if (!this.ready || this.closed) throw new Error('LC0_ARENA_NOT_READY');
-            if (this.transportState !== 'CONNECTED') throw new Error('LC0_TRANSPORT_SUSPENDED');
             if (this.active || this.searchPromise) throw new Error('LC0_SEARCH_ALREADY_ACTIVE');
             if (typeof callback !== 'function') throw new Error('LC0_BESTMOVE_CALLBACK_REQUIRED');
             const searchId = `search_${crypto.randomUUID()}`;
@@ -561,6 +572,7 @@
             this.active = operation;
             this.recordLifecycle('SEARCH_ALLOCATED', { searchId, fen });
             this.searchPromise = (async () => {
+                await this.waitForTransportConnected();
                 await this.reuse();
                 await this.command('POSITION', { fen, moves: [] });
                 this.recordLifecycle('POSITION_SENT', { searchId, fen });

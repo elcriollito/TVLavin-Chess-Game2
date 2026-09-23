@@ -148,13 +148,20 @@ test('failed startup revokes the relay without claiming local CLEANUP evidence',
     'STARTUP_ABORTED_NO_LOCAL_CLEANUP_EVIDENCE');
 });
 
-test('transport suspension rejects a new GO without replacing the runtime', () => {
+test('transport suspension queues a new search until reconnect without replacing the runtime', async () => {
   const { instance, identity } = fixture();
   instance.dispatch({ type: 'READY', identity });
   instance.transportState = 'TRANSPORT_SUSPENDED';
-  const callback = () => assert.fail('No BESTMOVE callback is allowed while suspended');
-  assert.throws(() => instance.getBestMove(new Chess().fen(), callback),
-    /LC0_TRANSPORT_SUSPENDED/);
+  const commands = [];
+  instance.reuse = async () => { commands.push('RESET_READY'); };
+  instance.command = async type => { commands.push(type); };
+  instance.stop = async () => { instance.active = null; return true; };
+  instance.getBestMove(new Chess().fen(), () => assert.fail('mock stop has no BESTMOVE'));
+  await new Promise(resolve => setTimeout(resolve, 5));
+  assert.deepEqual(commands, []);
+  instance.transportState = 'CONNECTED';
+  await instance.searchPromise;
+  assert.deepEqual(commands, ['RESET_READY', 'POSITION', 'GO']);
   assert.equal(instance.active, null);
   assert.equal(instance.getRuntimeIdentity().runtimeInstanceId, identity.runtimeInstanceId);
 });
