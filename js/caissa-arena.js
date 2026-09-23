@@ -2042,11 +2042,6 @@ const CaissaArena = {
                 this.updateGameStatus({ result: `Lc0 cleanup unverified: ${error.message}` });
             });
         }
-        this.captureLifecycleTrace('MOVE_APPLIED', {
-            move: uciMove,
-            source,
-            color: isWhiteTurn ? 'white' : 'black'
-        });
         this.enginesReady = false;
         this.evaluatorReady = false;
         console.log('[Arena] All engines destroyed');
@@ -2205,6 +2200,11 @@ const CaissaArena = {
                 source: source
             });
         }
+        this.captureLifecycleTrace('MOVE_APPLIED', {
+            move: uciMove,
+            source,
+            color: isWhiteTurn ? 'white' : 'black'
+        });
 
         this.updateMoveHistory();
 

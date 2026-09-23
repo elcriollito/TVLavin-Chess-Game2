@@ -34,3 +34,12 @@ test('Arena errors and stale callbacks have deterministic reason telemetry', () 
   assert.match(arena, /staleBestmovesIgnored/);
   assert.match(arena, /duplicateBestmovesIgnored/);
 });
+
+test('move telemetry is emitted only from the move application path', () => {
+  const destroy = arena.slice(arena.indexOf('destroyEngines()'),
+    arena.indexOf('captureLifecycleTrace(event'));
+  const playMove = arena.slice(arena.indexOf('playUciMove(uciMove'),
+    arena.indexOf('/**\n     * Main engine loop'));
+  assert.doesNotMatch(destroy, /MOVE_APPLIED|uciMove|isWhiteTurn/);
+  assert.match(playMove, /captureLifecycleTrace\('MOVE_APPLIED'/);
+});
