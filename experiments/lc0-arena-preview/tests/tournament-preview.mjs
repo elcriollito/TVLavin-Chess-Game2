@@ -33,6 +33,7 @@ const seedProtectionHeaders = origin => ({ ...protectionHeaders(origin),
 const FIELDS = ['stockfish-18-lite', 'stockfish-19-lite', 'lc0-maia-1100-preview'];
 const CLOSE_TOURNAMENT = process.env.EAE013_TOURNAMENT_CLOSE === '1';
 const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
+const DISCOVER_INTERNAL_USER = process.env.EAE015B_DISCOVER_INTERNAL_USER === '1';
 const report = { field: FIELDS, games: [], popups: [], errors: [] };
 const browser = await chromium.launch({ headless: true,
   ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
@@ -46,8 +47,44 @@ async function token() {
   return ownerToken;
 }
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const createWithBearer = async bearer => {
+  const response = await fetch(new URL('/api/eae011?action=create', RELAY), {
+    method: 'POST', headers: { Origin: MAIN, Authorization: `Bearer ${bearer}`,
+      'Content-Type': 'application/json', ...protectionHeaders(RELAY) },
+    body: JSON.stringify({ participantRole: 'white' })
+  });
+  return { status: response.status, body: await response.json().catch(() => ({})) };
+};
+const discoverInternalIdentity = async () => {
+  const users = (await clerk.users.getUserList({ limit: 500 })).data;
+  let tested = 0;
+  for (const candidate of users) {
+    const sessions = (await clerk.sessions.getSessionList({ userId: candidate.id,
+      status: 'active', limit: 100 })).data;
+    for (const candidateSession of sessions.sort((a, b) => b.lastActiveAt - a.lastActiveAt)) {
+      const bearer = (await clerk.sessions.getToken(candidateSession.id)).jwt;
+      const probe = await createWithBearer(bearer);
+      tested++;
+      if (probe.status === 403 && probe.body.error === 'LC0_INTERNAL_ONLY') continue;
+      assert.equal(probe.status, 201, 'Unexpected allowlist discovery response');
+      const url = new URL('/api/eae011', RELAY);
+      url.searchParams.set('action', 'terminate');
+      url.searchParams.set('sessionId', probe.body.sessionId);
+      const cleanup = await fetch(url, { method: 'POST', headers: { Origin: MAIN,
+        Authorization: `Bearer ${bearer}`, ...protectionHeaders(RELAY) } });
+      assert.equal(cleanup.status, 200, 'Allowlist discovery probe cleanup failed');
+      return { user: candidate, session: candidateSession, tested };
+    }
+  }
+  throw new Error('INTERNAL_ALLOWLIST_IDENTITY_NOT_FOUND');
+};
 try {
-  if (internalEmail) {
+  if (DISCOVER_INTERNAL_USER) {
+    const discovered = await discoverInternalIdentity();
+    user = discovered.user;
+    clerkSession = discovered.session;
+    report.internalIdentityDiscovery = { matches: 1, sessionsTested: discovered.tested };
+  } else if (internalEmail) {
     const users = (await clerk.users.getUserList({ limit: 500 })).data;
     const matches = users.filter(candidate => candidate.emailAddresses
       .some(address => address.emailAddress.toLowerCase() === internalEmail));
@@ -135,6 +172,31 @@ try {
     assert.equal(game.records, 3);
     assert.ok(game.pairing.filter(id => id === 'lc0-maia-1100-preview').length <= 1);
     assert.ok(game.identities.every(identity => identity.identityValidated));
+    if (!report.pauseResume && game.pairing.includes('lc0-maia-1100-preview')) {
+      const lc0Role = game.pairing[0] === 'lc0-maia-1100-preview' ? 0 : 1;
+      const movesBefore = game.moves.length;
+      await page.click('#arenaTabGame');
+      await page.click('#arenaPauseMatch');
+      await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
+        !CaissaArena._pausePending, null, { timeout: 15_000 });
+      await page.click('#arenaPauseMatch');
+      await page.waitForFunction(minimum => CaissaArena.state.matchState === 'running' &&
+        CaissaArena.game?.history().length >= minimum, movesBefore + 2, { timeout: 50_000 });
+      const after = await page.evaluate(() => ({
+        identities: [CaissaArena.whiteEngineInstance.getRuntimeIdentity(),
+          CaissaArena.blackEngineInstance.getRuntimeIdentity()],
+        arenaError: CaissaArena.lastArenaError,
+        reliability: structuredClone(CaissaArena.reliabilityMetrics)
+      }));
+      assert.equal(after.identities[lc0Role].runtimeInstanceId,
+        game.identities[lc0Role].runtimeInstanceId);
+      assert.equal(after.arenaError, null);
+      assert.equal(Object.values(after.reliability.arenaErrorsByReason)
+        .reduce((sum, value) => sum + value, 0), 0);
+      report.pauseResume = { game: index + 1, role: lc0Role === 0 ? 'white' : 'black',
+        runtimeInstancePreserved: true, movesBefore,
+        movesAfter: await page.evaluate(() => CaissaArena.game.history().length) };
+    }
     if (previous) {
       for (let role = 0; role < 2; role++) {
         if (previous.pairing[role] === game.pairing[role])

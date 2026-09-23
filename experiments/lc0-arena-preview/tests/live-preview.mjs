@@ -39,6 +39,9 @@ const PAUSE_REPEATS = Number(process.env.EAE013_PAUSE_REPEATS || 1);
 const SKIP_PAUSE = process.env.EAE015B_SKIP_PAUSE === '1';
 const LEASE_EDGE_EVERY = Number(process.env.EAE013_LEASE_EDGE_EVERY || 0);
 const DRAIN_CYCLE = Number(process.env.EAE015A_DRAIN_CYCLE || 0);
+const DISCOVER_INTERNAL_USER = process.env.EAE015B_DISCOVER_INTERNAL_USER === '1';
+const TRANSPORT_FAULTS = process.env.EAE015B2_TRANSPORT_FAULTS === '1';
+const EXPECT_EXPIRY = process.env.EAE015B2_EXPECT_EXPIRY === '1';
 const stagingRef = process.env.EAE015B_SUPABASE_REF || 'aqizagaskicotorfpwfn';
 const stagingSecret = process.env.EAE015A_SUPABASE_SERVICE_ROLE_KEY || '';
 const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
@@ -48,7 +51,8 @@ if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
     !Number.isSafeInteger(LEASE_EDGE_EVERY) || LEASE_EDGE_EVERY < 0 ||
     !Number.isSafeInteger(DRAIN_CYCLE) || DRAIN_CYCLE < 0 || DRAIN_CYCLE > CYCLES ||
     (DRAIN_CYCLE !== 0 && DRAIN_CYCLE !== CYCLES) ||
-    (DRAIN_CYCLE !== 0 && !stagingSecret.startsWith('sb_secret_')))
+    (DRAIN_CYCLE !== 0 && !stagingSecret.startsWith('sb_secret_')) ||
+    (EXPECT_EXPIRY && CYCLES !== 1))
   throw new Error('EAE013_CYCLES_INVALID');
 const browser = await chromium.launch({ headless: true,
   ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
@@ -96,10 +100,51 @@ const inspectSession = async sessionId => {
   });
   return response.status();
 };
+const createWithBearer = async bearer => {
+  const response = await fetch(new URL('/api/eae011?action=create', RELAY), {
+    method: 'POST', headers: { Origin: MAIN, 'Content-Type': 'application/json',
+      ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+      ...protectionHeaders(RELAY) },
+    body: JSON.stringify({ participantRole: 'white' })
+  });
+  return { status: response.status, body: await response.json().catch(() => ({})) };
+};
+const terminateProbe = async (bearer, sessionId) => {
+  const url = new URL('/api/eae011', RELAY);
+  url.searchParams.set('action', 'terminate');
+  url.searchParams.set('sessionId', sessionId);
+  const response = await fetch(url, { method: 'POST', headers: { Origin: MAIN,
+    Authorization: `Bearer ${bearer}`, ...protectionHeaders(RELAY) } });
+  assert.equal(response.status, 200, 'Allowlist discovery probe cleanup failed');
+};
+const discoverInternalIdentity = async () => {
+  const users = (await clerk.users.getUserList({ limit: 500 })).data;
+  let tested = 0;
+  for (const candidate of users) {
+    const sessions = (await clerk.sessions.getSessionList({ userId: candidate.id,
+      status: 'active', limit: 100 })).data;
+    for (const candidateSession of sessions.sort((a, b) => b.lastActiveAt - a.lastActiveAt)) {
+      const bearer = (await clerk.sessions.getToken(candidateSession.id)).jwt;
+      const probe = await createWithBearer(bearer);
+      tested++;
+      if (probe.status === 403 && probe.body.error === 'LC0_INTERNAL_ONLY') continue;
+      assert.equal(probe.status, 201, 'Unexpected allowlist discovery response');
+      assert.ok(probe.body.sessionId, 'Allowlist discovery did not create a relay session');
+      await terminateProbe(bearer, probe.body.sessionId);
+      return { user: candidate, session: candidateSession, tested };
+    }
+  }
+  throw new Error('INTERNAL_ALLOWLIST_IDENTITY_NOT_FOUND');
+};
 
 try {
   if (DRAIN_CYCLE) await setControlMode('ENABLED', 'EAE-015B.1 internal production soak');
-  if (internalEmail) {
+  if (DISCOVER_INTERNAL_USER) {
+    const discovered = await discoverInternalIdentity();
+    user = discovered.user;
+    session = discovered.session;
+    report.internalIdentityDiscovery = { matches: 1, sessionsTested: discovered.tested };
+  } else if (internalEmail) {
     const users = (await clerk.users.getUserList({ limit: 500 })).data;
     const matches = users.filter(candidate => candidate.emailAddresses
       .some(address => address.emailAddress.toLowerCase() === internalEmail));
@@ -117,16 +162,7 @@ try {
     temporaryUser = true;
     session = await clerk.sessions.createSession({ userId: user.id });
   }
-  if (internalEmail) {
-    const createWithBearer = async bearer => {
-      const response = await fetch(new URL('/api/eae011?action=create', RELAY), {
-        method: 'POST', headers: { Origin: MAIN, 'Content-Type': 'application/json',
-          ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
-          ...protectionHeaders(RELAY) },
-        body: JSON.stringify({ participantRole: 'white' })
-      });
-      return { status: response.status, body: await response.json().catch(() => ({})) };
-    };
+  if (internalEmail || DISCOVER_INTERNAL_USER) {
     const unauthenticated = await createWithBearer('');
     assert.equal(unauthenticated.status, 401);
     assert.equal(unauthenticated.body.error, 'AUTH_REQUIRED');
@@ -148,6 +184,7 @@ try {
   }
   context = await browser.newContext({ viewport: { width: 1440, height: 900 },
     acceptDownloads: false });
+  let blockRelay = false;
   const relayNetwork = [];
   const networkFailures = [];
   context.on('request', request => {
@@ -194,6 +231,7 @@ try {
   await context.route(url => [MAIN, ENGINE, RELAY]
     .some(origin => url.href.startsWith(`${origin}/`)), route => {
       const origin = new URL(route.request().url()).origin;
+      if (blockRelay && origin === RELAY) return route.abort('internetdisconnected');
       return route.continue({ headers: { ...route.request().headers(),
         ...protectionHeaders(origin) } });
     });
@@ -295,6 +333,65 @@ try {
       await page.waitForFunction(() => CaissaArena.game?.history().length >= 4,
         null, { timeout: 60_000 });
       item.movesBeforePause = await page.evaluate(() => CaissaArena.game.history());
+      if (EXPECT_EXPIRY) {
+        item.stage = 'transport-expiry';
+        blockRelay = true;
+        await page.evaluate(() => window.CaissaArenaPreview.adapter.streamController.abort());
+        await enginePage.evaluate(() => window.Eae012Engine.controller.abort());
+        await enginePage.waitForFunction(() => window.Eae012Engine.metrics.localCleanupObserved === true,
+          null, { timeout: 35_000 });
+        item.engine = await enginePage.evaluate(() => ({
+          transportState: Eae012Engine.transportState,
+          metrics: structuredClone(Eae012Engine.metrics),
+          runtime: Eae012Engine.runtime.snapshot(),
+          workers: Eae012Engine.runtime.snapshot().workers,
+          parentWorkers: Eae012Engine.runtime.snapshot().parentWorkers,
+          pthreadWorkers: Eae012Engine.runtime.snapshot().pthreadWorkers,
+          forced: Eae012Engine.metrics.forced
+        }));
+        assert.equal(item.engine.metrics.localCleanupObserved, true);
+        assert.equal(item.engine.metrics.brokerCleanupAcknowledged, false);
+        assert.equal(item.engine.metrics.localCleanupEvidence.parentWorkers, 0);
+        assert.equal(item.engine.metrics.localCleanupEvidence.pthreadWorkers, 0);
+        assert.equal(item.engine.metrics.localCleanupEvidence.forcedTerminations, 0);
+        blockRelay = false;
+        let deletedStatus = 0;
+        for (let attempt = 0; attempt < 40; attempt++) {
+          deletedStatus = await inspectSession(item.sessionId);
+          if (deletedStatus === 410) break;
+          await sleep(500);
+        }
+        assert.equal(deletedStatus, 410, 'Expired transport session was not removed');
+        await page.evaluate(() => CaissaArena.stopMatch()).catch(() => {});
+        await page.waitForFunction(() => CaissaArena.runtimeManager
+          .getResourceSnapshot().activeRuntimeRecords === 0, null, { timeout: 30_000 });
+        item.metrics = await page.evaluate(() => structuredClone(CaissaArenaPreview.adapter.metrics));
+        item.transportTrace = await page.evaluate(() =>
+          CaissaArenaPreview.adapter.transportTrace.slice(-120));
+        item.expectedExpiry = { deletedStatus, localCleanupObserved: true,
+          brokerCleanupAcknowledged: false };
+        item.moves = item.movesBeforePause;
+        item.pauseRepeats = 0;
+        item.durationMs = performance.now() - began;
+        item.stage = 'complete';
+        await enginePage.close();
+        console.log(`EAE015B2_EXPIRY_CYCLE ${JSON.stringify({ cycle: item.cycle,
+          deletedStatus, localCleanupObserved: true, brokerCleanupAcknowledged: false,
+          durationMs: item.durationMs })}`);
+        continue;
+      }
+      if (TRANSPORT_FAULTS && (i + 1) % 2 === 1) {
+        const before = await page.evaluate(() => ({
+          epoch: CaissaArenaPreview.adapter.mainLeaseEpoch,
+          recovered: CaissaArenaPreview.adapter.metrics.reconnectSuccess
+        }));
+        await page.evaluate(() => CaissaArenaPreview.adapter.streamController.abort());
+        await page.waitForFunction(previous => CaissaArenaPreview.adapter.mainLeaseEpoch > previous.epoch &&
+          CaissaArenaPreview.adapter.metrics.reconnectSuccess > previous.recovered &&
+          CaissaArenaPreview.adapter.transportState === 'CONNECTED', before, { timeout: 12_000 });
+        item.transportFault = 'main-stream-during-search';
+        item.reconnected = true;
+      }
       if (DRAIN_CYCLE === i + 1) {
         await setControlMode('DRAINING', 'EAE-015B.1 active match draining');
         report.drain = { cycle: i + 1, mode: 'DRAINING',
@@ -316,6 +413,14 @@ try {
         await page.click('#arenaPauseMatch');
         await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
           !CaissaArena._pausePending, null, { timeout: 15_000 });
+      }
+      if (TRANSPORT_FAULTS && !SKIP_PAUSE && (i + 1) % 2 === 0) {
+        const recovered = await enginePage.evaluate(() => Eae012Engine.metrics.reconnectSuccess);
+        await enginePage.evaluate(() => Eae012Engine.controller.abort());
+        await enginePage.waitForFunction(previous => Eae012Engine.metrics.reconnectSuccess > previous &&
+          Eae012Engine.transportState === 'CONNECTED', recovered, { timeout: 12_000 });
+        item.transportFault = 'engine-stream-while-paused';
+        item.reconnected = true;
       }
       if (!SKIP_PAUSE && LEASE_EDGE_EVERY && (i + 1) % LEASE_EDGE_EVERY === 0) {
         await page.evaluate(async () => {
@@ -477,6 +582,9 @@ try {
     startedAt: report.startedAt, finishedAt: report.finishedAt,
     sessionIds: completed.map(item => item.sessionId),
     reconnects: completed.filter(item => item.reconnected).length,
+    transportFaults: Object.fromEntries(['main-stream-during-search', 'engine-stream-while-paused']
+      .map(kind => [kind, completed.filter(item => item.transportFault === kind).length])),
+    expectedExpiryCycles: completed.filter(item => item.expectedExpiry).length,
     leaseEdgeProbes: completed.filter(item => item.leaseEdge).length,
     colors: Object.fromEntries(['white', 'black'].map(color =>
       [color, completed.filter(item => item.color === color).length])),
