@@ -175,10 +175,30 @@ test('transport exhaustion preserves truthful local-vs-broker cleanup accounting
     'LOCAL_CLEANUP_DELEGATED_BROKER_ACK_MISSING');
 });
 
+test('a skipped SSE ACK is recovered from durable broker truth without replaying a command', async () => {
+  const { instance } = fixture();
+  instance.sessionId = 'durable-ack-session';
+  const actions = [];
+  instance.api = async (action, options) => {
+    actions.push({ action, body: options?.body });
+    if (action === 'command') return { accepted: true };
+    if (action === 'inspect') return { state: {
+      phase: 'SEARCHING', lastAck: { command: 'GO', seq: 1, searchId: 'search_durable' }
+    } };
+    throw new Error(`unexpected ${action}`);
+  };
+  await instance.command('GO', { searchId: 'search_durable', mode: 'infinite' });
+  assert.deepEqual(actions.map(item => item.action), ['command', 'inspect']);
+  assert.equal(instance.seq, 1);
+  assert.equal(instance.metrics.durableEventRecoveries.ACK_GO, 1);
+  assert.equal(instance.transportTrace.at(-1).event, 'DURABLE_EVENT_RECOVERED');
+});
+
 test('adapter source keeps bounded reconnect and reason-coded transport evidence', () => {
   assert.match(source, /TRANSPORT_RECONNECT_MS = 20_000/);
   assert.match(source, /LC0_TRANSPORT_RECONNECT_EXHAUSTED/);
   assert.match(source, /transportSuspended/);
   assert.match(source, /brokerCleanupAcknowledged/);
+  assert.match(source, /durableEventRecoveries/);
   assert.match(source, /correlationId/);
 });

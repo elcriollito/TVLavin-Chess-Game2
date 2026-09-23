@@ -81,6 +81,7 @@
                 firstSearchAfterMatchStartMs: null, infoReceived: 0, infoPresented: 0,
                 cleanupFailureClassification: null, cleanupEvidence: null,
                 transportSuspended: 0, reconnectSuccess: 0, reconnectFailure: 0,
+                durableEventRecoveries: {},
                 localCleanupObserved: false, brokerCleanupAcknowledged: false,
                 brokerCleanupAckMissing: 0, forcedTerminations: 0 };
             if (!this.role) throw new Error('LC0_ARENA_ROLE_INVALID');
@@ -227,6 +228,35 @@
             this.stop().catch(error => this.fail(error));
         }
 
+        async waitEventOrDurable(predicate, durable, from = this.eventSerial,
+            timeoutMs = 12_000, eventType = 'UNKNOWN') {
+            const deadline = performance.now() + timeoutMs;
+            let lastInspectError = null;
+            while (!this.closed && performance.now() < deadline) {
+                const found = this.events.find(item => item._localSeq > from && predicate(item));
+                if (found) return found;
+                try {
+                    const state = (await this.api('inspect')).state;
+                    const recovered = durable?.(state);
+                    if (recovered) {
+                        this.metrics.durableEventRecoveries[eventType] =
+                            (this.metrics.durableEventRecoveries[eventType] || 0) + 1;
+                        this.recordTransport('DURABLE_EVENT_RECOVERED', { eventType,
+                            relayPhase: state.phase, lastAck: state.lastAck || null });
+                        return recovered;
+                    }
+                    lastInspectError = null;
+                } catch (error) {
+                    if (error.status === 410) throw error;
+                    lastInspectError = error;
+                }
+                await pause(500);
+            }
+            const error = new Error('LC0_RELAY_EVENT_TIMEOUT');
+            if (lastInspectError) error.cause = lastInspectError;
+            throw error;
+        }
+
         setTransportState(state, detail = {}) {
             if (state === this.transportState && state !== 'TRANSPORT_SUSPENDED') return;
             this.transportState = state;
@@ -353,8 +383,11 @@
                 searchId: rest.searchId || this.active?.searchId || null });
             await this.api('command', { body: { type, seq, ...rest } });
             this.seq = seq;
-            await this.waitEvent(item => item.type === 'ACK' && item.command === type &&
-                item.commandSeq === seq, from);
+            await this.waitEventOrDurable(item => item.type === 'ACK' && item.command === type &&
+                item.commandSeq === seq, state => state.lastAck?.command === type &&
+                state.lastAck?.seq === seq ? { type: 'ACK', command: type,
+                    commandSeq: seq, searchId: state.lastAck.searchId || null } : null,
+            from, 12_000, `ACK_${type}`);
             this.recordLifecycle('COMMAND_ACKNOWLEDGED', { command: type, commandSeq: seq,
                 searchId: rest.searchId || this.active?.searchId || null });
             return seq;
@@ -405,7 +438,10 @@
                 this.status('Verifying Maia network and initializing Lc0…');
                 const from = this.eventSerial;
                 await this.command('HELLO');
-                const ready = await this.waitEvent(item => item.type === 'READY', from, 40_000);
+                const ready = await this.waitEventOrDurable(item => item.type === 'READY',
+                    state => state.phase === 'READY' && this.identityValid(state.identity)
+                        ? { type: 'READY', identity: state.identity } : null,
+                    from, 40_000, 'READY');
                 if (!this.identityValid(ready.identity)) throw new Error('LC0_RUNTIME_IDENTITY_INVALID');
                 this.identity = Object.freeze({ ...ready.identity });
                 this.ready = true;
@@ -424,7 +460,11 @@
             const previous = this.lastSearchId;
             const from = this.eventSerial;
             await this.command('RESET', { searchId: previous, ...(newGame ? { newGame: true } : {}) });
-            await this.waitEvent(item => item.type === 'READY' && this.identityValid(item.identity), from);
+            await this.waitEventOrDurable(item => item.type === 'READY' &&
+                this.identityValid(item.identity), state => state.phase === 'REUSE_READY' &&
+                state.reuseReadyFor === previous && this.identityValid(state.identity)
+                ? { type: 'READY', identity: state.identity } : null,
+            from, 12_000, 'REUSE_READY');
             const gate = await this.api('advance', { body: { mode: 'reuse', searchId: previous } });
             if (!gate.advanceAllowed) throw new Error('LC0_REUSE_GATE_CLOSED');
             this.lastSearchId = null;
@@ -492,8 +532,13 @@
                 if (this.closed || this.active !== operation) throw new Error('LC0_STOP_LOST_OWNERSHIP');
                 const from = this.eventSerial;
                 await this.command('STOP', { searchId: operation.searchId });
-                const stopped = await this.waitEvent(item => item.type === 'STOPPED' &&
-                    item.searchId === operation.searchId, from, 8_000);
+                const stopped = await this.waitEventOrDurable(item => item.type === 'STOPPED' &&
+                    item.searchId === operation.searchId, state => state.phase === 'STOPPED' &&
+                    state.completedSearchId === operation.searchId && state.stopped === true &&
+                    typeof state.bestmove === 'string' ? { type: 'STOPPED',
+                        searchId: operation.searchId, move: state.bestmove } : null,
+                from, 8_000, 'STOPPED');
+                operation.bestmove ||= stopped.move || null;
                 if (!stopped || !legalMove(operation.fen, operation.bestmove))
                     throw new Error('LC0_BESTMOVE_ILLEGAL');
                 this.metrics.stopMs.push(performance.now() - began);
@@ -577,7 +622,10 @@
                     await this.command('QUIT');
                     let cleanup;
                     try {
-                        cleanup = await this.waitEvent(item => item.type === 'CLEANUP', from, 15_000);
+                        cleanup = await this.waitEventOrDurable(item => item.type === 'CLEANUP',
+                            state => state.phase === 'CLEANED' && state.cleanupEvidence
+                                ? { type: 'CLEANUP', evidence: state.cleanupEvidence } : null,
+                            from, 15_000, 'CLEANUP');
                     } catch (error) {
                         const durable = await this.api('inspect').catch(() => null);
                         this.metrics.cleanupFailureClassification = durable?.state?.phase === 'CLEANED'

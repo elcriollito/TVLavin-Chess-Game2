@@ -51,6 +51,15 @@ test('SSE delivery rewinds to the durable ACK cursor after a silent socket gap',
   assert.match(relayApi, /claim_command keeps execution exactly-once/);
 });
 
+test('main adapter recovers lifecycle events from durable state after a selective SSE gap', () => {
+  const adapter = fs.readFileSync(new URL(
+    '../experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js', import.meta.url), 'utf8');
+  assert.match(adapter, /waitEventOrDurable/);
+  assert.match(adapter, /DURABLE_EVENT_RECOVERED/);
+  for (const event of ['ACK_', 'READY', 'REUSE_READY', 'STOPPED', 'CLEANUP'])
+    assert.match(adapter, new RegExp(event));
+});
+
 test('remote async runtime readiness has a bounded production-network allowance', () => {
   assert.match(arena, /engine\.asyncLifecycle \? 15000 : 5000/);
   assert.match(arena, /engine\.asyncLifecycle \? 30000 : ARENA_ENGINE_TIMEOUT_MS/);
