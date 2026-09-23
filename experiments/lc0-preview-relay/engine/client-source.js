@@ -16,6 +16,9 @@ const RELAY_ORIGIN = RUNTIME_CONFIG.relayOrigin || location.origin;
 const MANIFEST_URL = RUNTIME_CONFIG.manifestUrl || `${BASE}/lab-manifest.json`;
 const MANIFEST_SHA256 = RUNTIME_CONFIG.manifestSha256 ||
   'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a';
+const TRANSPORT_RECONNECT_MS = 20_000;
+const TRANSPORT_RETRY_MAX_MS = 2_000;
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const PIN = Object.freeze({
   providerClass: 'lc0-browser-experimental', version: 'v0.33.0-dev+git.482bb4a',
   sourceCommit: '482bb4a830287b726ebe7d42f14ab7f5f17c18a0',
@@ -36,7 +39,9 @@ async function api(action, { sessionId, credential, body, cursor, signal } = {})
     ...(body ? { body: JSON.stringify(body) } : {}), ...(signal ? { signal } : {}) });
   if (!response.ok) {
     const value = await response.json().catch(() => ({}));
-    throw new Error(value.error || `HTTP_${response.status}`);
+    const error = new Error(value.error || `HTTP_${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return action === 'stream_engine' ? response : response.json();
 }
@@ -99,14 +104,26 @@ class RealLc0RelayClient {
   constructor() {
     this.sessionId = null; this.credential = null; this.cursor = 0; this.seq = 0;
     this.controller = null; this.heartbeatTimer = null; this.reconnectTimer = null;
+    this.reconnectPromise = null; this.transportState = 'CONNECTING'; this.transportTrace = [];
     this.inbound = Promise.resolve(); this.outbound = Promise.resolve();
     this.runtime = null; this.runtimeInstanceId = crypto.randomUUID();
     this.identity = null; this.active = null; this.currentPosition = null;
     this.commandHistory = []; this.metrics = { rawInfo: 0, sentInfo: 0, forced: 0,
       claimMs: null, artifactVerifyMs: null, runtimeInitMs: null,
-      goToLocalBestmoveMs: [], stopToLocalBestmoveMs: [], cleanupLocalMs: null };
+      goToLocalBestmoveMs: [], stopToLocalBestmoveMs: [], cleanupLocalMs: null,
+      transportSuspended: 0, reconnectSuccess: 0, reconnectFailure: 0,
+      localCleanupObserved: false, brokerCleanupAcknowledged: false,
+      localCleanupReason: null, localCleanupEvidence: null };
     this.intentionalDisconnect = false; this.closed = false;
     this.heartbeatRequests = new Set();
+  }
+
+  recordTransport(event, detail = {}) {
+    const entry = Object.freeze({ at: Date.now(), event,
+      online: navigator.onLine !== false, visibility: document.visibilityState, ...detail });
+    this.transportTrace.push(entry);
+    if (this.transportTrace.length > 120) this.transportTrace.splice(0, 40);
+    return entry;
   }
 
   async initialize() {
@@ -161,13 +178,24 @@ class RealLc0RelayClient {
     const controller = new AbortController(); this.controller = controller;
     const response = await api('stream_engine', { sessionId: this.sessionId,
       credential: this.credential, cursor: this.cursor, signal: controller.signal });
+    const recovered = this.transportState === 'TRANSPORT_SUSPENDED';
+    this.transportState = 'CONNECTED';
+    this.recordTransport(recovered ? 'RECONNECT_SUCCESS' : 'CONNECTED', {
+      action: 'stream_engine', direction: 'engine-to-relay',
+      correlationId: response.headers.get('x-vercel-id') || response.headers.get('x-request-id')
+    });
+    if (recovered) this.metrics.reconnectSuccess += 1;
     $('#disconnect').disabled = false; $('#reconnect').disabled = true;
     this.consume(response.body, controller).catch(error => {
-      if (error.name !== 'AbortError') log(`stream ${error.message}`);
+      if (error.name !== 'AbortError') {
+        this.recordTransport('STREAM_FAILED', { action: 'stream_engine',
+          errorName: error.name, errorCode: error.code || null, error: error.message });
+        log(`stream ${error.message}`);
+      }
     }).finally(() => {
       if (!this.closed && !this.intentionalDisconnect && this.controller === controller) {
         this.transportLost();
-        this.reconnectTimer = setTimeout(() => this.reconnect().catch(error => this.fail(error)), 500);
+        this.scheduleReconnect();
       }
     });
   }
@@ -321,6 +349,13 @@ class RealLc0RelayClient {
 
   transportLost() {
     clearInterval(this.heartbeatTimer);
+    if (this.transportState !== 'TRANSPORT_SUSPENDED') {
+      this.transportState = 'TRANSPORT_SUSPENDED';
+      this.metrics.transportSuspended += 1;
+      this.recordTransport('TRANSPORT_SUSPENDED', {
+        action: 'stream_engine', direction: 'engine-to-relay'
+      });
+    }
     if (this.active && !this.active.bestmove) {
       this.active.transportUncertain = true;
       this.runtime.send('stop');
@@ -347,11 +382,96 @@ class RealLc0RelayClient {
     $('#status').textContent = `RECONNECTED ${state.phase}`;
   }
 
+  scheduleReconnect() {
+    if (this.reconnectPromise || this.closed || this.intentionalDisconnect) return this.reconnectPromise;
+    this.reconnectPromise = (async () => {
+      const deadline = performance.now() + TRANSPORT_RECONNECT_MS;
+      let retryMs = 250;
+      let lastError = null;
+      while (!this.closed && !this.intentionalDisconnect && performance.now() < deadline) {
+        try {
+          await this.reconnect();
+          return true;
+        } catch (error) {
+          lastError = error;
+          this.recordTransport('RECONNECT_RETRY', { errorName: error.name,
+            errorCode: error.code || null, error: error.message, retryMs });
+          if (error.status === 410) break;
+          await delay(retryMs);
+          retryMs = Math.min(TRANSPORT_RETRY_MAX_MS, retryMs * 2);
+        }
+      }
+      if (!this.closed && !this.intentionalDisconnect) {
+        this.metrics.reconnectFailure += 1;
+        this.recordTransport('RECONNECT_EXHAUSTED', {
+          errorName: lastError?.name || null, errorCode: lastError?.code || null,
+          error: lastError?.message || 'lease window exhausted'
+        });
+        await this.localFailsafeCleanup(lastError?.status === 410
+          ? 'transport-lease-expired' : 'transport-reconnect-exhausted');
+      }
+      return false;
+    })().finally(() => {
+      this.reconnectPromise = null;
+      if (!this.closed && !this.intentionalDisconnect &&
+          this.transportState === 'TRANSPORT_SUSPENDED')
+        queueMicrotask(() => this.scheduleReconnect());
+    });
+    return this.reconnectPromise;
+  }
+
+  async localFailsafeCleanup(reason) {
+    if (this.closed) return this.metrics.localCleanupEvidence;
+    clearInterval(this.heartbeatTimer); clearTimeout(this.reconnectTimer);
+    this.controller?.abort();
+    this.transportState = 'LOCAL_CLEANUP';
+    this.metrics.localCleanupReason = reason;
+    const active = this.active;
+    if (active) {
+      try {
+        if (!active.bestmove) {
+          this.runtime.send('stop');
+          active.bestmove = await this.runtime.waitForLine(value => /^bestmove\s+\S+/.test(value),
+            { start: active.startLine, timeout: 5_000 });
+        }
+      } catch (error) {
+        this.recordTransport('LOCAL_STOP_FAILED', { errorName: error.name, error: error.message });
+      } finally {
+        this.runtime.state = 'READY';
+        this.active = null;
+      }
+    }
+    const ended = this.runtime ? await this.runtime.terminate(reason) : {
+      parentWorkers: 0, pthreadWorkers: 0, state: 'TERMINATED',
+      cleanupAcknowledged: true, forcedTerminations: 0, timings: { terminateMs: 0 }
+    };
+    this.metrics.forced = ended.forcedTerminations;
+    this.metrics.cleanupLocalMs = ended.timings?.terminateMs ?? null;
+    this.metrics.localCleanupEvidence = {
+      parentWorkers: ended.parentWorkers, pthreadWorkers: ended.pthreadWorkers,
+      runtimeState: ended.state, cleanupAcknowledged: ended.cleanupAcknowledged,
+      forcedTerminations: ended.forcedTerminations
+    };
+    this.metrics.localCleanupObserved = ended.parentWorkers === 0 && ended.pthreadWorkers === 0 &&
+      ended.cleanupAcknowledged === true && ended.forcedTerminations === 0;
+    this.metrics.brokerCleanupAcknowledged = false;
+    this.closed = true;
+    this.transportState = 'CLEANED_LOCAL';
+    for (const key of ['session', 'credential', 'cursor'])
+      sessionStorage.removeItem(`eae012-engine-${key}`);
+    $('#status').textContent = this.metrics.localCleanupObserved
+      ? 'CLEANED LOCALLY; broker acknowledgement unavailable'
+      : 'LOCAL CLEANUP FAILED';
+    this.recordTransport('LOCAL_CLEANUP_COMPLETE', {
+      reason, localCleanupObserved: this.metrics.localCleanupObserved,
+      brokerCleanupAcknowledged: false, ...this.metrics.localCleanupEvidence
+    });
+    return this.metrics.localCleanupEvidence;
+  }
+
   async fail(error) {
     if (this.closed) return;
-    this.closed = true; clearInterval(this.heartbeatTimer); clearTimeout(this.reconnectTimer);
-    this.controller?.abort();
-    if (this.runtime) await this.runtime.terminate('relay-failure').catch(() => {});
+    await this.localFailsafeCleanup('relay-failure').catch(() => {});
     if (this.credential) await this.message('ERROR', { code: 'ENGINE_RUNTIME_FAILURE' }).catch(() => {});
     $('#status').textContent = `FAILED ${error.message}`;
     log(`FAILED ${error.message}`);

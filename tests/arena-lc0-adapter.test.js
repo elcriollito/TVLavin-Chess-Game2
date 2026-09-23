@@ -147,3 +147,38 @@ test('failed startup revokes the relay without claiming local CLEANUP evidence',
   assert.equal(instance.metrics.cleanupFailureClassification,
     'STARTUP_ABORTED_NO_LOCAL_CLEANUP_EVIDENCE');
 });
+
+test('transport suspension rejects a new GO without replacing the runtime', () => {
+  const { instance, identity } = fixture();
+  instance.dispatch({ type: 'READY', identity });
+  instance.transportState = 'TRANSPORT_SUSPENDED';
+  const callback = () => assert.fail('No BESTMOVE callback is allowed while suspended');
+  assert.throws(() => instance.getBestMove(new Chess().fen(), callback),
+    /LC0_TRANSPORT_SUSPENDED/);
+  assert.equal(instance.active, null);
+  assert.equal(instance.getRuntimeIdentity().runtimeInstanceId, identity.runtimeInstanceId);
+});
+
+test('transport exhaustion preserves truthful local-vs-broker cleanup accounting', async () => {
+  const { instance, identity } = fixture();
+  instance.dispatch({ type: 'READY', identity });
+  instance.sessionId = 'transport-failed-session';
+  instance.transportState = 'TRANSPORT_FAILED';
+  const actions = [];
+  instance.api = async action => { actions.push(action); return {}; };
+  assert.equal(await instance.terminate('transport-failed'), true);
+  assert.deepEqual(actions, []);
+  assert.equal(instance.metrics.localCleanupObserved, false);
+  assert.equal(instance.metrics.brokerCleanupAcknowledged, false);
+  assert.equal(instance.metrics.brokerCleanupAckMissing, 1);
+  assert.equal(instance.metrics.cleanupFailureClassification,
+    'LOCAL_CLEANUP_DELEGATED_BROKER_ACK_MISSING');
+});
+
+test('adapter source keeps bounded reconnect and reason-coded transport evidence', () => {
+  assert.match(source, /TRANSPORT_RECONNECT_MS = 20_000/);
+  assert.match(source, /LC0_TRANSPORT_RECONNECT_EXHAUSTED/);
+  assert.match(source, /transportSuspended/);
+  assert.match(source, /brokerCleanupAcknowledged/);
+  assert.match(source, /correlationId/);
+});

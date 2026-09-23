@@ -11,6 +11,18 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 
+function arenaFixture() {
+  const window = { addEventListener() {}, dispatchEvent() {} };
+  const document = { readyState: 'loading', addEventListener() {} };
+  class CustomEvent { constructor(type, options = {}) { this.type = type; this.detail = options.detail; } }
+  vm.runInNewContext(fs.readFileSync(new URL('../js/caissa-arena.js', import.meta.url), 'utf8'), {
+    window, document, location: { pathname: '/arena' }, CustomEvent, console,
+    performance, crypto, setTimeout: callback => { queueMicrotask(callback); return 1; },
+    clearTimeout() {}
+  }, { filename: 'caissa-arena.js' });
+  return window.CaissaArena;
+}
+
 test('relay STOP and TERMINATE remain owned until acknowledgements resolve', async () => {
   const stopGate = deferred(), cleanupGate = deferred();
   const instance = {
@@ -44,4 +56,38 @@ test('relay STOP and TERMINATE remain owned until acknowledgements resolve', asy
   await terminated;
   assert.equal(manager.getActiveInstances().length, 0);
   assert.equal(manager.getResourceSnapshot().activeRuntimeRecords, 0);
+});
+
+test('Pause blocks Resume until the asynchronous relay STOP reaches IDLE', async () => {
+  const arena = arenaFixture();
+  const stopGate = deferred();
+  let loopStarts = 0;
+  arena.state.matchState = 'running';
+  arena.state.loopActive = true;
+  arena.state.loopRunning = true;
+  arena.state.currentGame = { id: 'game-pause-barrier' };
+  arena.game = { turn: () => 'w', history: () => [] };
+  arena.runtimeManager = {
+    stopAll: () => stopGate.promise,
+    getResourceSnapshot: () => ({ roles: { white: { state: 'STOPPING' } } })
+  };
+  arena.updateMatchControls = () => {};
+  arena.updateGameStatus = () => {};
+  arena.runEngineLoop = () => { loopStarts += 1; };
+
+  const pausing = arena.togglePause();
+  assert.equal(arena.state.matchState, 'paused');
+  const resuming = arena.togglePause();
+  assert.equal(arena.state.matchState, 'paused');
+  assert.equal(loopStarts, 0);
+
+  stopGate.resolve(true);
+  await pausing;
+  assert.equal(await resuming, true);
+  await Promise.resolve();
+  assert.equal(arena.state.matchState, 'running');
+  assert.equal(loopStarts, 1);
+  assert.deepEqual(Array.from(arena.lifecycleTrace, item => item.event), [
+    'PAUSE_REQUESTED', 'RESUME_REQUESTED', 'PAUSE_STOPPED', 'RESUME_STARTED'
+  ]);
 });

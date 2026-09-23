@@ -14,6 +14,8 @@
         manifestSha256: 'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a'
     });
     const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const TRANSPORT_RECONNECT_MS = 20_000;
+    const TRANSPORT_RETRY_MAX_MS = 2_000;
 
     function checkIdentity(value, manifestSha256 = EXPECTED.manifestSha256) {
         return !!value && Object.entries(EXPECTED).every(([key, expected]) =>
@@ -66,18 +68,48 @@
             this.streamTask = null;
             this.heartbeatTimer = null;
             this.mainLeaseEpoch = 0;
+            this.competitionId = null;
+            this.transportState = 'CONNECTING';
+            this.transportTrace = [];
+            this.lifecycleTrace = [];
+            this.lastRequest = null;
             this.searchPromise = null;
             this.stopPromise = null;
             this.terminatePromise = null;
             this.createdAt = performance.now();
             this.metrics = { selectionToReadyMs: null, stopMs: [], cleanupMs: null,
                 firstSearchAfterMatchStartMs: null, infoReceived: 0, infoPresented: 0,
-                cleanupFailureClassification: null, cleanupEvidence: null };
+                cleanupFailureClassification: null, cleanupEvidence: null,
+                transportSuspended: 0, reconnectSuccess: 0, reconnectFailure: 0,
+                localCleanupObserved: false, brokerCleanupAcknowledged: false,
+                brokerCleanupAckMissing: 0, forcedTerminations: 0 };
             if (!this.role) throw new Error('LC0_ARENA_ROLE_INVALID');
             coordinator.adapter = this;
         }
 
         status(value) { this.coordinator.status(value); }
+
+        recordTransport(event, detail = {}) {
+            const entry = Object.freeze({ at: Date.now(), event,
+                online: typeof navigator === 'undefined' || navigator.onLine !== false,
+                visibility: typeof document === 'undefined'
+                    ? 'unknown' : document.visibilityState || 'unknown', ...detail });
+            this.transportTrace.push(entry);
+            if (this.transportTrace.length > 120) this.transportTrace.splice(0, 40);
+            return entry;
+        }
+
+        recordLifecycle(event, detail = {}) {
+            const entry = Object.freeze({ at: Date.now(), event, role: this.role,
+                competitionId: this.competitionId, gameId: this.gameId,
+                runtimeInstanceId: this.identity?.runtimeInstanceId || null,
+                searchId: this.active?.searchId || this.lastSearchId || null,
+                relayState: this.lastPhase, transportState: this.transportState,
+                lastCommandSeq: this.seq, ...detail });
+            this.lifecycleTrace.push(entry);
+            if (this.lifecycleTrace.length > 240) this.lifecycleTrace.splice(0, 80);
+            return entry;
+        }
 
         async api(action, { body, sessionId = this.sessionId, cursor, signal } = {}) {
             const token = await window.CAISSA_AUTH?.getToken?.();
@@ -86,11 +118,26 @@
             url.searchParams.set('action', action);
             if (sessionId) url.searchParams.set('sessionId', sessionId);
             if (cursor != null) url.searchParams.set('cursor', String(cursor));
-            const response = await fetch(url, { method: body ? 'POST' : 'GET',
-                headers: { Authorization: `Bearer ${token}`,
-                    ...(body ? { 'Content-Type': 'application/json' } : {}) },
-                ...(body ? { body: JSON.stringify(body) } : {}),
-                ...(signal ? { signal } : {}) });
+            const request = { action, method: body ? 'POST' : 'GET', direction: 'main-to-relay',
+                startedAt: Date.now(), correlationId: null, status: null, error: null };
+            this.lastRequest = request;
+            let response;
+            try {
+                response = await fetch(url, { method: body ? 'POST' : 'GET',
+                    headers: { Authorization: `Bearer ${token}`,
+                        ...(body ? { 'Content-Type': 'application/json' } : {}) },
+                    ...(body ? { body: JSON.stringify(body) } : {}),
+                    ...(signal ? { signal } : {}) });
+                request.status = response.status;
+                request.correlationId = response.headers.get('x-vercel-id') ||
+                    response.headers.get('x-request-id');
+            } catch (error) {
+                request.error = error?.message || String(error);
+                request.errorName = error?.name || 'Error';
+                request.errorCode = error?.code || null;
+                this.recordTransport('REQUEST_FAILED', { ...request });
+                throw error;
+            }
             if (!response.ok) {
                 const value = await response.json().catch(() => ({}));
                 const error = new Error(value.error || `RELAY_HTTP_${response.status}`);
@@ -130,6 +177,10 @@
                 this.status('Ready — verified Lc0 / Maia 1100');
             } else if (value.type === 'INFO' && this.active?.searchId === value.searchId) {
                 this.metrics.infoReceived += 1;
+                if (!this.active.infoSeen) {
+                    this.active.infoSeen = true;
+                    this.recordLifecycle('INFO_RECEIVED', { searchId: value.searchId });
+                }
                 if (performance.now() - (this.lastInfoPresentedAt || 0) >= 250) {
                     this.lastInfoPresentedAt = performance.now();
                     this.metrics.infoPresented += 1;
@@ -140,8 +191,12 @@
                 }
             } else if (value.type === 'BESTMOVE' && this.active?.searchId === value.searchId) {
                 this.active.bestmove = value.move;
+                this.recordLifecycle('BESTMOVE_RECEIVED', {
+                    searchId: value.searchId, move: value.move
+                });
             } else if (value.type === 'STOPPED' && this.active?.searchId === value.searchId) {
                 this.lastPhase = 'STOPPED';
+                this.recordLifecycle('STOPPED', { searchId: value.searchId });
             } else if (value.type === 'CLEANUP') {
                 this.lastPhase = 'CLEANED';
                 this.terminating = true;
@@ -172,6 +227,12 @@
             this.stop().catch(error => this.fail(error));
         }
 
+        setTransportState(state, detail = {}) {
+            if (state === this.transportState && state !== 'TRANSPORT_SUSPENDED') return;
+            this.transportState = state;
+            this.recordTransport(state, detail);
+        }
+
         heartbeatError(error, epoch, controller) {
             // A heartbeat from the replaced SSE epoch may resolve after the
             // replacement is already healthy. It has no authority to revoke
@@ -189,6 +250,9 @@
                 try {
                     const response = await this.api('stream_main', { cursor: this.cursor,
                         signal: controller.signal });
+                    const recovered = this.transportState === 'TRANSPORT_SUSPENDED';
+                    this.setTransportState('CONNECTED', { action: 'stream_main' });
+                    if (recovered) this.metrics.reconnectSuccess += 1;
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let buffer = '';
@@ -228,26 +292,71 @@
                     }
                 } catch (error) {
                     if (this.closed || this.terminating) break;
-                    if (error.name !== 'AbortError')
+                    if (error.name !== 'AbortError') {
                         this.status(`Relay reconnecting: ${error.message}`);
+                        this.recordTransport('STREAM_FAILED', {
+                            errorName: error.name, errorCode: error.code || null,
+                            error: error.message, action: 'stream_main'
+                        });
+                    }
                 } finally { clearInterval(this.heartbeatTimer); }
                 if (this.closed || this.terminating) break;
-                try {
-                    const inspected = await this.api('inspect');
-                    this.reconcile(inspected.state);
-                } catch (error) { this.fail(error); break; }
+                this.metrics.transportSuspended += 1;
+                this.setTransportState('TRANSPORT_SUSPENDED', {
+                    action: this.lastRequest?.action || 'stream_main',
+                    errorName: this.lastRequest?.errorName || null,
+                    errorCode: this.lastRequest?.errorCode || null,
+                    error: this.lastRequest?.error || null
+                });
+                const deadline = performance.now() + TRANSPORT_RECONNECT_MS;
+                let retryMs = 250;
+                let reconciled = false;
+                let lastError = null;
+                while (!this.closed && !this.terminating && performance.now() < deadline) {
+                    try {
+                        const inspected = await this.api('inspect');
+                        this.reconcile(inspected.state);
+                        reconciled = true;
+                        break;
+                    } catch (error) {
+                        lastError = error;
+                        if (error.status === 410) break;
+                        await pause(retryMs);
+                        retryMs = Math.min(TRANSPORT_RETRY_MAX_MS, retryMs * 2);
+                    }
+                }
+                if (!reconciled) {
+                    this.metrics.reconnectFailure += 1;
+                    const failure = new Error(lastError?.status === 410
+                        ? lastError.message : 'LC0_TRANSPORT_RECONNECT_EXHAUSTED');
+                    failure.code = lastError?.status === 410
+                        ? 'LC0_TRANSPORT_LEASE_EXPIRED' : 'LC0_TRANSPORT_RECONNECT_EXHAUSTED';
+                    this.setTransportState('TRANSPORT_FAILED', {
+                        errorName: lastError?.name || null, errorCode: failure.code,
+                        error: lastError?.message || failure.message
+                    });
+                    this.fail(failure);
+                    break;
+                }
                 await pause(250);
             }
         }
 
         async command(type, rest = {}) {
             if (this.closed) throw new Error('LC0_ARENA_CLOSED');
+            if (this.transportState === 'TRANSPORT_SUSPENDED' &&
+                !['STOP', 'QUIT'].includes(type))
+                throw new Error('LC0_TRANSPORT_SUSPENDED');
             const from = this.eventSerial;
             const seq = this.seq + 1;
+            this.recordLifecycle('COMMAND_REQUESTED', { command: type, commandSeq: seq,
+                searchId: rest.searchId || this.active?.searchId || null });
             await this.api('command', { body: { type, seq, ...rest } });
             this.seq = seq;
             await this.waitEvent(item => item.type === 'ACK' && item.command === type &&
                 item.commandSeq === seq, from);
+            this.recordLifecycle('COMMAND_ACKNOWLEDGED', { command: type, commandSeq: seq,
+                searchId: rest.searchId || this.active?.searchId || null });
             return seq;
         }
 
@@ -267,8 +376,9 @@
                 this.status('Connecting…');
                 await window.CAISSA_AUTH?.whenReady?.();
                 if (!window.CAISSA_AUTH?.isSignedIn) throw new Error('CAISSA_SIGN_IN_REQUIRED');
+                this.competitionId = `arena_${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`;
                 const created = await this.api('create', { sessionId: null,
-                    body: { competitionId: `arena_${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
+                    body: { competitionId: this.competitionId,
                         participantRole: this.role } });
                 this.sessionId = created.sessionId;
                 if (this.closed) {
@@ -341,15 +451,19 @@
 
         getBestMove(fen, callback, options = {}) {
             if (!this.ready || this.closed) throw new Error('LC0_ARENA_NOT_READY');
+            if (this.transportState !== 'CONNECTED') throw new Error('LC0_TRANSPORT_SUSPENDED');
             if (this.active || this.searchPromise) throw new Error('LC0_SEARCH_ALREADY_ACTIVE');
             if (typeof callback !== 'function') throw new Error('LC0_BESTMOVE_CALLBACK_REQUIRED');
             const searchId = `search_${crypto.randomUUID()}`;
             const operation = { searchId, gameId: this.gameId, fen, callback,
-                started: false, stopRequested: false, bestmove: null, transportUncertain: false };
+                started: false, stopRequested: false, bestmove: null, transportUncertain: false,
+                infoSeen: false };
             this.active = operation;
+            this.recordLifecycle('SEARCH_ALLOCATED', { searchId, fen });
             this.searchPromise = (async () => {
                 await this.reuse();
                 await this.command('POSITION', { fen, moves: [] });
+                this.recordLifecycle('POSITION_SENT', { searchId, fen });
                 await this.command('GO', { searchId, mode: 'infinite' });
                 if (this.metrics.firstSearchAfterMatchStartMs === null &&
                     this.coordinator.matchStartAt != null)
@@ -357,6 +471,7 @@
                         this.coordinator.matchStartAt;
                 operation.started = true;
                 this.analyzing = true;
+                this.recordLifecycle('SEARCH_STARTED', { searchId });
                 if (!operation.stopRequested)
                     await Promise.race([pause(Math.max(250, Math.min(2_000, options.movetime || 1_200))),
                         new Promise(resolve => { operation.wakeStop = resolve; })]);
@@ -368,6 +483,7 @@
             const operation = this.active;
             if (!operation) return Promise.resolve(true);
             operation.stopRequested = true;
+            this.recordLifecycle('STOP_REQUESTED', { searchId: operation.searchId });
             operation.wakeStop?.();
             if (this.stopPromise) return this.stopPromise;
             this.stopPromise = (async () => {
@@ -385,6 +501,8 @@
                 this.lastSearchId = operation.searchId;
                 this.lastPhase = 'STOPPED';
                 this.active = null;
+                this.recordLifecycle('STOP_COMPLETE', { searchId: operation.searchId,
+                    bestmove: operation.bestmove });
                 if (operation.gameId === this.gameId && !this.closed)
                     operation.callback(operation.bestmove);
                 return true;
@@ -418,6 +536,19 @@
                     this.coordinator.pendingPopup = null;
                 }
                 if (!this.sessionId) { this.closed = true; return true; }
+                if (this.transportState === 'TRANSPORT_FAILED') {
+                    // The isolated engine page owns the local failsafe. Main-side
+                    // relay loss cannot truthfully claim broker CLEANUP.
+                    this.metrics.cleanupFailureClassification =
+                        'LOCAL_CLEANUP_DELEGATED_BROKER_ACK_MISSING';
+                    this.metrics.brokerCleanupAckMissing += 1;
+                    this.terminating = true;
+                    this.closed = true;
+                    this.ready = false;
+                    clearInterval(this.heartbeatTimer);
+                    this.streamController?.abort();
+                    return true;
+                }
                 if (this.startFailed && !this.ready) {
                     // A vanished window cannot produce local CLEANUP evidence.
                     // Fail closed and revoke the durable relay claim immediately;
@@ -462,6 +593,9 @@
                         evidence?.runtimeState !== 'TERMINATED' || evidence?.forcedTerminations !== 0 ||
                         evidence?.cleanupAcknowledged !== true)
                         throw new Error('LC0_CLEANUP_EVIDENCE_INVALID');
+                    this.metrics.localCleanupObserved = true;
+                    this.metrics.brokerCleanupAcknowledged = true;
+                    this.metrics.forcedTerminations += evidence.forcedTerminations;
                     const state = (await this.api('inspect')).state;
                     if (state.completedSearchId) {
                         const gate = await this.api('advance', { body: { mode: 'release',
@@ -496,7 +630,11 @@
             }
             clearInterval(this.heartbeatTimer);
             this.streamController?.abort();
-            if (this.sessionId) this.api('terminate', { body: {} }).catch(() => {});
+            // On transport exhaustion the broker lease is authoritative and the
+            // isolated page performs local cleanup. Deleting the row here would
+            // fabricate neither a CLEANUP acknowledgement nor its evidence.
+            if (this.sessionId && !String(error?.code || '').startsWith('LC0_TRANSPORT_'))
+                this.api('terminate', { body: { reason: 'adapter-failure' } }).catch(() => {});
         }
     }
 

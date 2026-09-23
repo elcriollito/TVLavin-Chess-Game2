@@ -45,6 +45,15 @@ test('candidate bootstrap is internal-only and blocks unsupported browsers and m
   assert.match(source, /supported desktop browsers only/);
 });
 
+test('EAE-015B.2 remediation branch reuses the exact internal-only gate', () => {
+  const hotfix = { ...config,
+    VERCEL_GIT_COMMIT_REF: 'hotfix/lc0-eae015b2-stage1-reliability',
+    EAE013_ARENA_PREVIEW: undefined, EAE015B_INTERNAL_PREVIEW: '1' };
+  assert.equal(previewArenaEnabled(hotfix, 'eae013-main.vercel.app'), true);
+  assert.equal(previewArenaEnabled({ ...hotfix, EAE015B_INTERNAL_PREVIEW: '0' },
+    'eae013-main.vercel.app'), false);
+});
+
 test('normal Arena provider list is frozen without explicit preview registration', () => {
   const source = fs.readFileSync(new URL('../js/engine-registry.js', import.meta.url), 'utf8');
   const window = { location: { pathname: '/arena' }, WebAssembly: {},

@@ -6,7 +6,8 @@ const BRANCH_FLAGS = Object.freeze({
   'experiment/lc0-eae013-arena-preview-integration': 'EAE013_ARENA_PREVIEW',
   'experiment/lc0-eae013a-session-reliability': 'EAE013A_SESSION_RELIABILITY_PREVIEW',
   'experiment/lc0-eae015a-production-infrastructure': 'EAE015A_ARENA_PREVIEW',
-  'integration/lc0-limited-production-rc': 'EAE015B_INTERNAL_PREVIEW'
+  'integration/lc0-limited-production-rc': 'EAE015B_INTERNAL_PREVIEW',
+  'hotfix/lc0-eae015b2-stage1-reliability': 'EAE015B_INTERNAL_PREVIEW'
 });
 
 export function previewArenaEnabled(env, host) {

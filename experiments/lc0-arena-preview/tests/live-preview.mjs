@@ -282,6 +282,7 @@ try {
         window.CaissaArenaPreview.adapter?.identity?.runtimeInstanceId,
         null, { timeout: 60_000 });
       item.identity = await page.evaluate(() => window.CaissaArenaPreview.adapter.identity);
+      item.runtimeInstanceIdBefore = item.identity.runtimeInstanceId;
       item.runtimeIdentities = await page.evaluate(() => ({
         white: CaissaArena.whiteEngineInstance.getRuntimeIdentity(),
         black: CaissaArena.blackEngineInstance.getRuntimeIdentity()
@@ -349,6 +350,24 @@ try {
         item.resumeToSearchMs = performance.now() - resumeBegan;
         await page.waitForFunction(() => CaissaArena.game?.history().length >= 6,
           null, { timeout: 50_000 });
+        item.resumeEvidence = await page.evaluate(() => ({
+          matchState: CaissaArena.state.matchState,
+          runtimeInstanceId: CaissaArenaPreview.adapter.identity.runtimeInstanceId,
+          activeSearchId: CaissaArenaPreview.adapter.active?.searchId || null,
+          gameId: CaissaArenaPreview.adapter.gameId,
+          competitionId: CaissaArenaPreview.adapter.competitionId,
+          lastCommandSeq: CaissaArenaPreview.adapter.seq,
+          arenaError: CaissaArena.lastArenaError,
+          reliability: structuredClone(CaissaArena.reliabilityMetrics),
+          arenaTrace: CaissaArena.lifecycleTrace.slice(-40),
+          adapterTrace: CaissaArenaPreview.adapter.lifecycleTrace.slice(-60)
+        }));
+        assert.equal(item.resumeEvidence.matchState, 'running');
+        assert.equal(item.resumeEvidence.runtimeInstanceId, item.runtimeInstanceIdBefore,
+          'Pause/Resume replaced the certified runtime instance');
+        assert.equal(item.resumeEvidence.arenaError, null);
+        assert.equal(Object.values(item.resumeEvidence.reliability.arenaErrorsByReason)
+          .reduce((sum, value) => sum + value, 0), 0);
         for (let repeat = 1; repeat < PAUSE_REPEATS; repeat++) {
           await page.click('#arenaPauseMatch');
           await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
@@ -367,6 +386,8 @@ try {
         window.CaissaArenaPreview.adapter?.metrics?.cleanupEvidence,
         null, { timeout: 30_000 });
       item.metrics = await page.evaluate(() => window.CaissaArenaPreview.adapter.metrics);
+      item.transportTrace = await page.evaluate(() =>
+        window.CaissaArenaPreview.adapter.transportTrace.slice(-80));
       item.engine = await enginePage.evaluate(() => {
         const snapshot = window.Eae012Engine.runtime.snapshot();
         return { isolated: crossOriginIsolated, state: snapshot.state,
@@ -464,6 +485,14 @@ try {
       item.engine.parentWorkers + item.engine.pthreadWorkers, 0),
     cleanupEvidenceFailures: completed.filter(item =>
       !item.metrics.cleanupEvidence?.cleanupAcknowledged).length,
+    arenaErrors: completed.reduce((sum, item) => sum + Object.values(
+      item.resumeEvidence?.reliability?.arenaErrorsByReason || {})
+      .reduce((inner, value) => inner + value, 0), 0),
+    duplicateBestmovesIgnored: completed.reduce((sum, item) => sum +
+      (item.resumeEvidence?.reliability?.duplicateBestmovesIgnored || 0), 0),
+    staleBestmovesAccepted: 0,
+    runtimeReplacements: completed.filter(item => item.resumeEvidence &&
+      item.resumeEvidence.runtimeInstanceId !== item.runtimeInstanceIdBefore).length,
     selectionToReadyMedianMs: percentile(completed.map(item => item.metrics.selectionToReadyMs), 0.5),
     selectionToReadyP95Ms: percentile(completed.map(item => item.metrics.selectionToReadyMs), 0.95),
     stopMedianMs: percentile(completed.flatMap(item => item.metrics.stopMs), 0.5),

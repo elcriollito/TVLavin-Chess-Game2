@@ -33,6 +33,17 @@ const CaissaArena = {
     get evaluatorEngine() { return this.runtimeManager?.getInstance('evaluator') || null; },
     enginesReady: false,
     evaluatorReady: false,
+    _pausePending: null,
+    _resumePending: null,
+    _cleanupPromise: null,
+    lifecycleTrace: [],
+    lastArenaError: null,
+    reliabilityMetrics: {
+        arenaErrorsByReason: {},
+        staleBestmovesIgnored: 0,
+        duplicateBestmovesIgnored: 0,
+        acceptedBestmoves: 0
+    },
 
     // ===== STATE =====
     state: {
@@ -1344,7 +1355,8 @@ const CaissaArena = {
         } else {
             this.enginesReady = false;
             if (['running', 'paused'].includes(this.state.matchState)) {
-                this.handleError(`${failure?.role || 'participant'} engine failed`);
+                this.handleError(`${failure?.role || 'participant'} engine failed`,
+                    'ARENA_ERROR_RUNTIME_FAILURE', { failure });
             }
         }
         this.refreshEngineAvailabilityUI();
@@ -1532,7 +1544,7 @@ const CaissaArena = {
         } catch (error) {
             if (!startIsCurrent()) return cancelStaleStart();
             console.error('[Arena] Player engine readiness failed:', error);
-            this.handleError(error.message);
+            this.handleError(error.message, 'ARENA_ERROR_START_READINESS', { error });
             window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
             return;
         }
@@ -1542,6 +1554,7 @@ const CaissaArena = {
         this.state.loopActive = true;
         this.state.evalHistory = [];
         this.state.currentGame = {
+            id: globalThis.crypto?.randomUUID?.() || `arena-${Date.now()}`,
             white: this.state.whiteEngine,
             black: this.state.blackEngine,
             moves: [],
@@ -1585,27 +1598,53 @@ const CaissaArena = {
             // Pause the match
             this.state.matchState = 'paused';
             this.state.loopActive = false;
+            this.captureLifecycleTrace('PAUSE_REQUESTED');
             this.cancelActiveSearch('match paused');
             this.state.loopRunning = false;
-            this.runtimeManager.stopAll();
+            const stopping = this.runtimeManager.stopAll();
+            this._pausePending = Promise.resolve(stopping).then(() => {
+                this.captureLifecycleTrace('PAUSE_STOPPED');
+                return true;
+            }).catch(error => {
+                if (this.state.matchState === 'paused') {
+                    this.handleError(error.message, 'ARENA_ERROR_PAUSE_STOP', { error });
+                }
+                return false;
+            });
             console.log('[Arena] Match paused');
             window.dispatchEvent(new CustomEvent('caissa-arena-pause'));
         } else if (this.state.matchState === 'paused') {
-            // Resume the match
-            this.state.matchState = 'running';
-            this.state.loopActive = true;
-            console.log('[Arena] Match resumed');
-            window.dispatchEvent(new CustomEvent('caissa-arena-resume'));
-            // Resume the loop
-            setTimeout(() => {
-                this.runEngineLoop();
-            }, 100);
+            if (this._resumePending) return this._resumePending;
+            // The relay-backed STOP is asynchronous. Resume may not allocate a
+            // new search generation until every role has reached IDLE.
+            this.captureLifecycleTrace('RESUME_REQUESTED');
+            this._resumePending = (async () => {
+                const stopped = await (this._pausePending || Promise.resolve(true));
+                if (!stopped || this.state.matchState !== 'paused') return false;
+                this.state.matchState = 'running';
+                this.state.loopActive = true;
+                this.captureLifecycleTrace('RESUME_STARTED');
+                console.log('[Arena] Match resumed');
+                window.dispatchEvent(new CustomEvent('caissa-arena-resume'));
+                setTimeout(() => this.runEngineLoop(), 100);
+                return true;
+            })().catch(error => {
+                if (this.state.matchState === 'paused') {
+                    this.handleError(error.message, 'ARENA_ERROR_RESUME_BARRIER', { error });
+                }
+                return false;
+            }).finally(() => {
+                this._pausePending = null;
+                this._resumePending = null;
+                this.updateMatchControls();
+            });
         }
         this.updateMatchControls();
         this.updateGameStatus({
             turn: this.game?.turn() === 'w' ? 'white' : 'black',
             moveCount: this.game?.history().length || 0
         });
+        return this._resumePending || this._pausePending;
     },
 
     stopMatch() {
@@ -1621,10 +1660,11 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('match stopped');
         this.state.loopRunning = false;
+        this._pausePending = null;
 
         // A stopped Match owns no live competition runtimes. A later start will
         // recreate the selected providers through the shared registry.
-        this.destroyEngines();
+        this._cleanupPromise = Promise.resolve(this.destroyEngines());
 
         window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
         // Stop can race a Tournament transition that temporarily marked the
@@ -1698,7 +1738,8 @@ const CaissaArena = {
         if (!this.enginesReady || !this.evaluatorReady) {
             const initialized = await this.initEngines();
             if (!initialized) {
-                this.handleError('Unable to initialize analysis engine');
+                this.handleError('Unable to initialize analysis engine',
+                    'ARENA_ERROR_ANALYSIS_INITIALIZATION');
                 window.CaissaUI?.setButtonLoading(this.elements.infiniteAnalysisBtn, false);
                 return;
             }
@@ -2001,10 +2042,53 @@ const CaissaArena = {
                 this.updateGameStatus({ result: `Lc0 cleanup unverified: ${error.message}` });
             });
         }
+        this.captureLifecycleTrace('MOVE_APPLIED', {
+            move: uciMove,
+            source,
+            color: isWhiteTurn ? 'white' : 'black'
+        });
         this.enginesReady = false;
         this.evaluatorReady = false;
         console.log('[Arena] All engines destroyed');
         return cleanup;
+    },
+
+    captureLifecycleTrace(event, detail = {}) {
+        const adapter = window.CaissaArenaPreview?.adapter || null;
+        const identity = adapter?.getRuntimeIdentity?.() || null;
+        const entry = Object.freeze({
+            at: Date.now(),
+            event,
+            matchState: this.state.matchState,
+            loopRunning: this.state.loopRunning,
+            searchGeneration: this.state.searchToken,
+            competitionId: adapter?.competitionId || null,
+            gameId: this.state.currentGame?.id || adapter?.gameId || null,
+            runtimeInstanceId: identity?.runtimeInstanceId || null,
+            relayState: adapter?.lastPhase || null,
+            transportState: adapter?.transportState || null,
+            relaySearchId: adapter?.active?.searchId || adapter?.lastSearchId || null,
+            lastCommandSeq: adapter?.seq ?? null,
+            roles: this.runtimeManager?.getResourceSnapshot?.().roles || null,
+            ...detail
+        });
+        this.lifecycleTrace.push(entry);
+        if (this.lifecycleTrace.length > 240) this.lifecycleTrace.splice(0, 80);
+        window.dispatchEvent(new CustomEvent('caissa-arena-lifecycle-trace', { detail: entry }));
+        return entry;
+    },
+
+    classifyArenaError(error) {
+        const code = String(error?.code || error?.message || '');
+        if (code.includes('STALE')) return 'ARENA_ERROR_STALE_SEARCH';
+        if (code.includes('SEARCH_ALREADY_ACTIVE')) return 'ARENA_ERROR_DUPLICATE_SEARCH';
+        if (code.includes('TRANSITION_INVALID') || code.includes('READY_STATE_INVALID'))
+            return 'ARENA_ERROR_RUNTIME_STATE';
+        if (code.includes('BESTMOVE_ILLEGAL')) return 'ARENA_ERROR_ILLEGAL_BESTMOVE';
+        if (code.includes('TIMEOUT')) return 'ARENA_ERROR_SEARCH_TIMEOUT';
+        if (code.includes('RECONNECT') || code.includes('TRANSPORT'))
+            return 'ARENA_ERROR_TRANSPORT_RECONCILIATION';
+        return 'ARENA_ERROR_NEXT_SEARCH_START';
     },
 
     getBookMove() {
@@ -2108,7 +2192,7 @@ const CaissaArena = {
             if (!this.isReviewing()) this.board.position(this.game.fen());
         } else {
             console.error('[Arena] Board is null, cannot update position');
-            this.handleError('Board not mounted');
+            this.handleError('Board not mounted', 'ARENA_ERROR_BOARD_STATE');
             return false;
         }
 
@@ -2138,6 +2222,7 @@ const CaissaArena = {
 
         const delay = source === 'book' ? 0 : this.state.moveDelay;
         setTimeout(() => {
+            this.captureLifecycleTrace('NEXT_SEARCH_SCHEDULED');
             this.runEngineLoop();
         }, delay);
 
@@ -2231,7 +2316,9 @@ const CaissaArena = {
 
             if (!bestMove) {
                 console.error('[Arena] Engine returned no move');
-                this.handleError('Engine returned no move');
+                this.handleError('Engine returned no move', 'ARENA_ERROR_NO_BESTMOVE', {
+                    color, engineId: engineConfig?.id, requestedFen: fen
+                });
                 return;
             }
 
@@ -2247,14 +2334,17 @@ const CaissaArena = {
                     this.runEngineLoop(invalidRetryCount + 1);
                     return;
                 }
-                this.handleError(`Illegal move from ${color} ${engineConfig?.name || 'engine'}: ${bestMove}`);
+                this.handleError(`Illegal move from ${color} ${engineConfig?.name || 'engine'}: ${bestMove}`,
+                    'ARENA_ERROR_ILLEGAL_BESTMOVE', {
+                        color, engineId: engineConfig?.id, requestedFen: fen, bestMove
+                    });
             }
 
         } catch (error) {
             this.state.loopRunning = false;
             if (error?.name === 'ArenaStaleSearchError') return;
             console.error('[Arena] Engine loop error:', error);
-            this.handleError(error.message);
+            this.handleError(error.message, this.classifyArenaError(error), { error });
         }
     },
 
@@ -2323,6 +2413,9 @@ const CaissaArena = {
             if (runtimeRole) this.runtimeManager?.markThinking(runtimeRole, engine);
             engine.getBestMove(fen, (bestMove) => {
                 if (settled || searchToken !== this.state.searchToken) {
+                    if (searchToken !== this.state.searchToken)
+                        this.reliabilityMetrics.staleBestmovesIgnored += 1;
+                    else this.reliabilityMetrics.duplicateBestmovesIgnored += 1;
                     console.warn('[Arena] Ignoring late or stale bestmove', {
                         color,
                         engineId,
@@ -2334,6 +2427,10 @@ const CaissaArena = {
                     return;
                 }
                 bestMoveReceived = true;
+                this.reliabilityMetrics.acceptedBestmoves += 1;
+                this.captureLifecycleTrace('BESTMOVE_ACCEPTED', {
+                    color, engineId, requestedFen: fen, searchToken, bestMove
+                });
                 console.log('[Arena] Engine bestmove received', {
                     color,
                     engineId,
@@ -2576,7 +2673,21 @@ const CaissaArena = {
     /**
      * Handle errors during match
      */
-    handleError(message) {
+    handleError(message, reasonCode, context = {}) {
+        const code = reasonCode || 'ARENA_ERROR_UNCLASSIFIED';
+        const errorContext = {
+            reasonCode: code,
+            message,
+            role: context.failure?.role || context.color || null,
+            runtimeState: context.failure?.state || null,
+            searchId: window.CaissaArenaPreview?.adapter?.active?.searchId || null,
+            gameId: this.state.currentGame?.id || null,
+            runtimeInstanceId: window.CaissaArenaPreview?.adapter?.identity?.runtimeInstanceId || null
+        };
+        this.lastArenaError = Object.freeze({ ...errorContext, at: Date.now() });
+        this.reliabilityMetrics.arenaErrorsByReason[code] =
+            (this.reliabilityMetrics.arenaErrorsByReason[code] || 0) + 1;
+        this.captureLifecycleTrace('ARENA_ERROR', errorContext);
         this.state.startToken += 1;
         this.state.matchState = 'idle';
         this.state.loopActive = false;
@@ -2587,7 +2698,7 @@ const CaissaArena = {
         this.evaluatorReady = false;
         this.updateMatchControls();
 
-        console.warn('[Arena] Match stopped after error:', message);
+        console.warn('[Arena] Match stopped after error:', code, message, errorContext);
         this.updateGameStatus({ result: 'Arena match stopped. Try starting a new match.' });
     },
 
