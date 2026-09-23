@@ -15,6 +15,15 @@ test('isolated runtime retries transport within the certified lease window', () 
   assert.doesNotMatch(engineClient, /this\.runtime\.send\(['"]go/);
 });
 
+test('isolated runtime reconciles uncertain engine-event delivery before advancing sequence', () => {
+  assert.match(engineClient, /ENGINE_MESSAGE_RETRY_MS = 4_000/);
+  assert.match(engineClient, /state\?\.lastEngineSeq === payload\.seq/);
+  assert.match(engineClient, /state\.lastEngineSeq !== payload\.seq - 1/);
+  assert.match(engineClient, /OUTBOUND_RECONCILED/);
+  assert.match(engineClient, /OUTBOUND_RETRY/);
+  assert.match(engineClient, /body: payload/);
+});
+
 test('transport expiry performs STOP then cooperative local termination without broker claims', () => {
   assert.match(engineClient, /async localFailsafeCleanup\(reason\)/);
   assert.match(engineClient, /this\.runtime\.send\('stop'\)/);

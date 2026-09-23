@@ -18,6 +18,8 @@ const MANIFEST_SHA256 = RUNTIME_CONFIG.manifestSha256 ||
   'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a';
 const TRANSPORT_RECONNECT_MS = 20_000;
 const TRANSPORT_RETRY_MAX_MS = 2_000;
+const ENGINE_MESSAGE_RETRY_MS = 4_000;
+const CLEANUP_MESSAGE_RETRY_MS = 15_000;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const PIN = Object.freeze({
   providerClass: 'lc0-browser-experimental', version: 'v0.33.0-dev+git.482bb4a',
@@ -249,15 +251,37 @@ class RealLc0RelayClient {
 
   async message(type, rest = {}) {
     this.outbound = this.outbound.catch(() => {}).then(async () => {
-      try {
-        const result = await api('message', { sessionId: this.sessionId,
-          credential: this.credential, body: { type, seq: this.seq + 1, ...rest } });
-        this.seq += 1; log(`--> ${type} ${this.seq}`); return result;
-      } catch (error) {
-        const state = await api('engine_state', { sessionId: this.sessionId,
-          credential: this.credential }).catch(() => null);
-        if (state) this.seq = state.lastEngineSeq;
-        throw error;
+      const payload = { type, seq: this.seq + 1, ...rest };
+      const deadline = performance.now() +
+        (type === 'CLEANUP' ? CLEANUP_MESSAGE_RETRY_MS : ENGINE_MESSAGE_RETRY_MS);
+      let retryMs = 100, lastError = null;
+      while (true) {
+        try {
+          const result = await api('message', { sessionId: this.sessionId,
+            credential: this.credential, body: payload });
+          this.seq = payload.seq; log(`--> ${type} ${this.seq}`); return result;
+        } catch (error) {
+          lastError = error;
+          const state = await api('engine_state', { sessionId: this.sessionId,
+            credential: this.credential }).catch(() => null);
+          if (state?.lastEngineSeq === payload.seq) {
+            this.seq = payload.seq;
+            this.recordTransport('OUTBOUND_RECONCILED', { type, seq: payload.seq });
+            log(`--> ${type} ${this.seq} (reconciled)`);
+            return { accepted: true, type, reconciled: true };
+          }
+          if (state && state.lastEngineSeq !== payload.seq - 1)
+            throw new Error('ENGINE_SEQUENCE_DIVERGED');
+          if (state) this.seq = state.lastEngineSeq;
+          const retryable = !error.status || error.status >= 500 ||
+            error.message === 'ENGINE_SEQUENCE_INVALID';
+          if (!retryable || error.status === 410 || performance.now() >= deadline) throw lastError;
+          this.recordTransport('OUTBOUND_RETRY', { type, seq: payload.seq,
+            errorName: error.name, errorCode: error.code || null,
+            error: error.message, retryMs });
+          await delay(retryMs);
+          retryMs = Math.min(500, retryMs * 2);
+        }
       }
     });
     return this.outbound;
