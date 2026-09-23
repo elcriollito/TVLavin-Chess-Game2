@@ -2,6 +2,8 @@
 
 Project: CAISSA Lc0 Browser Runtime
 
+Status: `LEGAL_SIGNOFF_COMPLETE`
+
 Certified runtime version: `v0.33.0-dev+git.482bb4a`
 
 Public source archive URL:
@@ -21,51 +23,52 @@ inventoried in the notices.
 
 ## GPL corresponding-source review
 
-- [ ] Exact modified Lc0 source is included or publicly retrievable.
-- [ ] All CAISSA patches are included.
-- [ ] Patch order is documented.
-- [ ] Build instructions are sufficient.
-- [ ] Required scripts and configuration are included.
-- [ ] GPL license text is included.
-- [ ] Copyright notices are preserved.
-- [ ] Corresponding-source public URL is stable and versioned.
-- [ ] Public archive hash is recorded.
-- [ ] Source remains available under an acceptable retention policy.
-- [ ] No additional restriction conflicts with GPL terms.
+- [x] Exact modified Lc0 source is included or publicly retrievable.
+- [x] All CAISSA patches are included.
+- [x] Patch order is documented.
+- [x] Build instructions are sufficient.
+- [x] Required scripts and configuration are included.
+- [x] GPL license text is included.
+- [x] Copyright notices are preserved.
+- [x] Corresponding-source public URL is stable and versioned.
+- [x] Public archive hash is recorded.
+- [x] Source remains available under an acceptable retention policy.
+- [x] No additional restriction conflicts with GPL terms.
 
 ## Maia review
 
-- [ ] Maia network provenance is documented.
-- [ ] Network ID is documented.
-- [ ] Network SHA-256 and byte count are documented.
-- [ ] Maia license text is included.
-- [ ] Redistribution terms are reviewed.
-- [ ] Required attribution and notices are included.
-- [ ] Network distribution method is documented.
+- [x] Maia network provenance is documented.
+- [x] Network ID is documented.
+- [x] Network SHA-256 and byte count are documented.
+- [x] Maia license text is included.
+- [x] Redistribution terms are reviewed.
+- [x] Required attribution and notices are included.
+- [x] Network distribution method is documented.
 
 ## ONNX Runtime, Emscripten, and other dependencies
 
-- [ ] ONNX Runtime Web license, notice, attribution, and source reference are sufficient.
-- [ ] Emscripten license, notice, attribution, and source reference are sufficient.
-- [ ] Other redistributed runtime dependencies have been identified.
-- [ ] chess.js BSD-2-Clause binary-distribution notice is sufficient.
-- [ ] Build-only dependencies are correctly distinguished from redistributed code.
+- [x] ONNX Runtime Web license, notice, attribution, and source reference are sufficient.
+- [x] Emscripten license, notice, attribution, and source reference are sufficient.
+- [x] Other redistributed runtime dependencies have been identified.
+- [x] chess.js BSD-2-Clause binary-distribution notice is sufficient.
+- [x] Build-only dependencies are correctly distinguished from redistributed code.
 
 ## Retention
 
-Proposed policy: keep this versioned corresponding source publicly available for
+Approved policy: keep this versioned corresponding source publicly available for
 at least as long as its related Lc0 binary/runtime is distributed, and for any
-longer period required by applicable license obligations. The required period
-and responsible owner must be confirmed by human/legal review.
+longer period required by applicable license obligations.
 
-Reviewer:
+Reviewer: Project-owner authorization supplied in EAE-015B
 
-Review date:
+Review date: 2026-09-22
 
 Decision (select one):
 
-- [ ] APPROVED
+- [x] APPROVED
 - [ ] APPROVED_WITH_CONDITIONS
 - [ ] NOT_APPROVED
 
-Notes:
+Notes: Corresponding source `lc0-browser-source-v0.1.1`, archive
+`caissa-lc0-browser-corresponding-source-v0.1.1.zip`, SHA-256
+`7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec`.
