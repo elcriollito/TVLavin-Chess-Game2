@@ -10,7 +10,8 @@ const BRANCH_FLAGS = Object.freeze({
 });
 
 export function previewArenaEnabled(env, host) {
-  const branch = env.VERCEL_GIT_COMMIT_REF || env.EAE015A_BRANCH_GUARD;
+  const branch = [env.VERCEL_GIT_COMMIT_REF, env.EAE015A_BRANCH_GUARD]
+    .find(candidate => BRANCH_FLAGS[candidate]);
   const flag = BRANCH_FLAGS[branch];
   if (env.VERCEL_ENV !== 'preview' || !flag || env[flag] !== '1') return false;
   try {
