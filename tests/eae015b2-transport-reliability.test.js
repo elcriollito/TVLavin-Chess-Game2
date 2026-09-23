@@ -60,6 +60,15 @@ test('main adapter recovers lifecycle events from durable state after a selectiv
     assert.match(adapter, new RegExp(event));
 });
 
+test('suspended command requests reconcile durable sequence state before any retry', () => {
+  const adapter = fs.readFileSync(new URL(
+    '../experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js', import.meta.url), 'utf8');
+  assert.match(adapter, /reconcileCommandDelivery/);
+  assert.match(adapter, /state\.lastCommandSeq === command\.seq/);
+  assert.match(adapter, /state\.lastCommandSeq === command\.seq - 1 && !state\.pending && retryAllowed/);
+  assert.match(adapter, /lost first response can race this retry/);
+});
+
 test('remote async runtime readiness has a bounded production-network allowance', () => {
   assert.match(arena, /engine\.asyncLifecycle \? 15000 : 5000/);
   assert.match(arena, /engine\.asyncLifecycle \? 30000 : ARENA_ENGINE_TIMEOUT_MS/);

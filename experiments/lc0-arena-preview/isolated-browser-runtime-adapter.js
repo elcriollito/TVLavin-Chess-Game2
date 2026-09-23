@@ -381,7 +381,12 @@
             const seq = this.seq + 1;
             this.recordLifecycle('COMMAND_REQUESTED', { command: type, commandSeq: seq,
                 searchId: rest.searchId || this.active?.searchId || null });
-            await this.api('command', { body: { type, seq, ...rest } });
+            const body = { type, seq, ...rest };
+            try {
+                await this.api('command', { body });
+            } catch (error) {
+                await this.reconcileCommandDelivery(body, error);
+            }
             this.seq = seq;
             await this.waitEventOrDurable(item => item.type === 'ACK' && item.command === type &&
                 item.commandSeq === seq, state => state.lastAck?.command === type &&
@@ -391,6 +396,61 @@
             this.recordLifecycle('COMMAND_ACKNOWLEDGED', { command: type, commandSeq: seq,
                 searchId: rest.searchId || this.active?.searchId || null });
             return seq;
+        }
+
+        async reconcileCommandDelivery(command, initialError) {
+            this.metrics.transportSuspended += 1;
+            this.setTransportState('TRANSPORT_SUSPENDED', { action: 'command',
+                command: command.type, commandSeq: command.seq,
+                errorName: initialError?.name || null, errorCode: initialError?.code || null,
+                error: initialError?.message || String(initialError) });
+            const deadline = performance.now() + TRANSPORT_RECONNECT_MS;
+            let retryMs = 250;
+            let retryAllowed = true;
+            let lastError = initialError;
+            while (!this.closed && performance.now() < deadline) {
+                try {
+                    const state = (await this.api('inspect')).state;
+                    if (state.lastCommandSeq === command.seq) {
+                        this.metrics.reconnectSuccess += 1;
+                        this.setTransportState('CONNECTED', { action: 'command-reconcile',
+                            command: command.type, commandSeq: command.seq, accepted: true });
+                        return true;
+                    }
+                    if (state.lastCommandSeq > command.seq)
+                        throw new Error('LC0_COMMAND_RECONCILE_SEQUENCE_ADVANCED');
+                    if (state.lastCommandSeq === command.seq - 1 && !state.pending && retryAllowed) {
+                        retryAllowed = false;
+                        try {
+                            await this.api('command', { body: command });
+                            this.metrics.reconnectSuccess += 1;
+                            this.setTransportState('CONNECTED', { action: 'command-reconcile',
+                                command: command.type, commandSeq: command.seq,
+                                accepted: true, retried: true });
+                            return true;
+                        } catch (error) {
+                            // A lost first response can race this retry. Inspect again;
+                            // the durable sequence decides whether either request committed.
+                            lastError = error;
+                        }
+                    }
+                } catch (error) {
+                    if (error.status === 410) throw error;
+                    if (error.message === 'LC0_COMMAND_RECONCILE_SEQUENCE_ADVANCED') throw error;
+                    lastError = error;
+                }
+                await pause(retryMs);
+                retryMs = Math.min(TRANSPORT_RETRY_MAX_MS, retryMs * 2);
+            }
+            this.metrics.reconnectFailure += 1;
+            const failure = new Error('LC0_TRANSPORT_RECONNECT_EXHAUSTED');
+            failure.code = 'LC0_TRANSPORT_RECONNECT_EXHAUSTED';
+            failure.cause = lastError;
+            this.setTransportState('TRANSPORT_FAILED', { action: 'command-reconcile',
+                command: command.type, commandSeq: command.seq,
+                errorName: lastError?.name || null, errorCode: failure.code,
+                error: lastError?.message || failure.message });
+            throw failure;
         }
 
         async phase(expected, timeoutMs = 30_000) {

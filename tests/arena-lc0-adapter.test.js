@@ -194,6 +194,50 @@ test('a skipped SSE ACK is recovered from durable broker truth without replaying
   assert.equal(instance.transportTrace.at(-1).event, 'DURABLE_EVENT_RECOVERED');
 });
 
+test('a suspended command fetch retries only after durable state proves it was not accepted', async () => {
+  const { instance } = fixture();
+  instance.sessionId = 'command-retry-session';
+  let commandAttempts = 0;
+  instance.api = async (action, options) => {
+    if (action === 'command' && ++commandAttempts === 1) throw new TypeError('Failed to fetch');
+    if (action === 'command') return { accepted: true };
+    if (action === 'inspect' && commandAttempts === 1)
+      return { state: { lastCommandSeq: 0, pending: null } };
+    if (action === 'inspect') return { state: {
+      lastCommandSeq: 1, pending: null,
+      lastAck: { command: 'POSITION', seq: 1, searchId: null }
+    } };
+    throw new Error(`unexpected ${action}:${JSON.stringify(options)}`);
+  };
+  await instance.command('POSITION', { fen: 'startpos', moves: [] });
+  assert.equal(commandAttempts, 2);
+  assert.equal(instance.metrics.transportSuspended, 1);
+  assert.equal(instance.metrics.reconnectSuccess, 1);
+  assert.equal(instance.metrics.reconnectFailure, 0);
+  assert.equal(instance.transportState, 'CONNECTED');
+});
+
+test('a lost command response reconciles the accepted sequence without replay', async () => {
+  const { instance } = fixture();
+  instance.sessionId = 'command-response-lost-session';
+  let commandAttempts = 0;
+  instance.api = async action => {
+    if (action === 'command') {
+      commandAttempts += 1;
+      throw new TypeError('Failed to fetch');
+    }
+    if (action === 'inspect') return { state: {
+      lastCommandSeq: 1, pending: null,
+      lastAck: { command: 'GO', seq: 1, searchId: 'search_response_lost' }
+    } };
+    throw new Error(`unexpected ${action}`);
+  };
+  await instance.command('GO', { searchId: 'search_response_lost', mode: 'infinite' });
+  assert.equal(commandAttempts, 1);
+  assert.equal(instance.metrics.reconnectSuccess, 1);
+  assert.equal(instance.metrics.durableEventRecoveries.ACK_GO, 1);
+});
+
 test('adapter source keeps bounded reconnect and reason-coded transport evidence', () => {
   assert.match(source, /TRANSPORT_RECONNECT_MS = 20_000/);
   assert.match(source, /LC0_TRANSPORT_RECONNECT_EXHAUSTED/);
