@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import { previewArenaEnabled } from '../api/eae013.js';
+import { renderPreviewDocument } from '../api/eae015a-preview-page.js';
 
 const branch = 'experiment/lc0-eae013-arena-preview-integration';
 const config = { VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: branch,
@@ -62,4 +63,26 @@ test('Stockfish 19 worker receives the same WASM-only CSP as Stockfish 18 in pre
     sf18.headers.find(item => item.key === 'Content-Security-Policy').value);
   assert.equal(config.headers.find(item => item.source === '/arena')?.headers?.some(item =>
     item.key === 'Cross-Origin-Embedder-Policy'), undefined);
+});
+
+test('isolated relay is permitted only by the dormant Arena preview route CSP', () => {
+  const config = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  const relay = 'https://eae015a-lc0-relay-elcriollitos-projects.vercel.app';
+  const global = config.headers.find(item => item.source === '/(.*)').headers
+    .find(item => item.key === 'Content-Security-Policy').value;
+  const preview = config.headers.find(item => item.source === '/arena-preview').headers
+    .find(item => item.key === 'Content-Security-Policy').value;
+  assert.doesNotMatch(global, new RegExp(relay.replaceAll('.', '\\.')));
+  assert.match(preview, new RegExp(`connect-src[^;]*${relay.replaceAll('.', '\\.')}`));
+  assert.doesNotMatch(preview, /connect-src[^;]*https:\/\/\*\.vercel\.app/);
+});
+
+test('preview document gateway amends only its meta connect-src with the exact relay', () => {
+  const document = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const relay = 'https://eae015a-lc0-relay-elcriollitos-projects.vercel.app';
+  assert.doesNotMatch(document, new RegExp(relay.replaceAll('.', '\\.')));
+  const rendered = renderPreviewDocument(document, relay);
+  assert.equal(rendered.split(relay).length - 1, 1);
+  assert.match(rendered, new RegExp(`connect-src[^;]*${relay.replaceAll('.', '\\.')}`));
+  assert.equal(rendered.replace(` ${relay}`, ''), document);
 });

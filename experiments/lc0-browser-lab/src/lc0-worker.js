@@ -7,7 +7,10 @@ import { env as ortEnv, InferenceSession, Tensor } from 'onnxruntime-web/wasm';
 ortEnv.wasm.numThreads = 1;
 ortEnv.wasm.proxy = false;
 const artifactBase = new URL(import.meta.url).searchParams.get('assetBase') || '/artifacts';
-if (!/^\/[A-Za-z0-9/_-]+$/.test(artifactBase)) throw new Error('Invalid artifact path');
+const artifactSegments = artifactBase.split('/').slice(1);
+if (!artifactBase.startsWith('/') || artifactSegments.length === 0 ||
+    artifactSegments.some(segment => !segment || segment === '..' ||
+      !/^[A-Za-z0-9._-]+$/.test(segment))) throw new Error('Invalid artifact path');
 ortEnv.wasm.wasmPaths = `${artifactBase}/ort/`;
 
 const testMode = new URL(import.meta.url).searchParams.get('testMode') || 'normal';

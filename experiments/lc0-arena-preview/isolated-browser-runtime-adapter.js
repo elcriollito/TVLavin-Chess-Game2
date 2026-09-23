@@ -15,8 +15,10 @@
     });
     const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-    function checkIdentity(value) {
-        return !!value && Object.entries(EXPECTED).every(([key, expected]) => value[key] === expected)
+    function checkIdentity(value, manifestSha256 = EXPECTED.manifestSha256) {
+        return !!value && Object.entries(EXPECTED).every(([key, expected]) =>
+            key === 'manifestSha256' || value[key] === expected)
+            && value.manifestSha256 === manifestSha256
             && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(value.runtimeInstanceId || '');
     }
 
@@ -110,12 +112,16 @@
             });
         }
 
+        identityValid(value) {
+            return checkIdentity(value, this.coordinator.config?.manifestSha256);
+        }
+
         dispatch(value) {
             value._localSeq = ++this.eventSerial;
             this.events.push(value);
             if (this.events.length > 160) this.events.splice(0, this.events.length - 120);
             if (value.type === 'READY') {
-                if (!checkIdentity(value.identity) ||
+                if (!this.identityValid(value.identity) ||
                     (this.identity && this.identity.runtimeInstanceId !== value.identity.runtimeInstanceId))
                     return this.fail(new Error('LC0_RUNTIME_IDENTITY_INVALID'));
                 this.identity = Object.freeze({ ...value.identity });
@@ -151,7 +157,7 @@
         }
 
         reconcile(state) {
-            if (!checkIdentity(state.identity) ||
+            if (!this.identityValid(state.identity) ||
                 state.identity.runtimeInstanceId !== this.identity?.runtimeInstanceId)
                 throw new Error('LC0_RECONNECT_IDENTITY_INVALID');
             // An operation exists before RESET/POSITION/GO. The broker may
@@ -290,7 +296,7 @@
                 const from = this.eventSerial;
                 await this.command('HELLO');
                 const ready = await this.waitEvent(item => item.type === 'READY', from, 40_000);
-                if (!checkIdentity(ready.identity)) throw new Error('LC0_RUNTIME_IDENTITY_INVALID');
+                if (!this.identityValid(ready.identity)) throw new Error('LC0_RUNTIME_IDENTITY_INVALID');
                 this.identity = Object.freeze({ ...ready.identity });
                 this.ready = true;
                 this.metrics.selectionToReadyMs = performance.now() - this.createdAt;
@@ -308,7 +314,7 @@
             const previous = this.lastSearchId;
             const from = this.eventSerial;
             await this.command('RESET', { searchId: previous, ...(newGame ? { newGame: true } : {}) });
-            await this.waitEvent(item => item.type === 'READY' && checkIdentity(item.identity), from);
+            await this.waitEvent(item => item.type === 'READY' && this.identityValid(item.identity), from);
             const gate = await this.api('advance', { body: { mode: 'reuse', searchId: previous } });
             if (!gate.advanceAllowed) throw new Error('LC0_REUSE_GATE_CLOSED');
             this.lastSearchId = null;
@@ -325,7 +331,7 @@
         send(command) {
             if (command !== 'isready') throw new Error('LC0_ARBITRARY_UCI_FORBIDDEN');
             this.api('inspect').then(value => {
-                if (!checkIdentity(value.state.identity) ||
+                if (!this.identityValid(value.state.identity) ||
                     value.state.identity.runtimeInstanceId !== this.identity?.runtimeInstanceId ||
                     !['READY', 'REUSE_READY'].includes(value.state.phase))
                     throw new Error('LC0_READY_STATE_INVALID');
@@ -391,7 +397,7 @@
         getRuntimeIdentity() {
             return Object.freeze({ id: this.id, providerId: ID, requestedEngineId: ID,
                 workerAsset: this.workerPath, status: this.ready && !this.closed ? 'ready' : 'terminated',
-                identityValidated: this.ready && checkIdentity(this.identity),
+                identityValidated: this.ready && this.identityValid(this.identity),
                 runtimeInstanceId: this.identity?.runtimeInstanceId || null,
                 reportedUciName: this.identity?.uciName || null,
                 reportedAuthor: this.identity?.uciAuthor || null,

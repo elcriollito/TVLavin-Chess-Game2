@@ -20,11 +20,19 @@ export default async function handler(req, res) {
   if (!equalSecret(supplied, process.env.CRON_SECRET))
     return res.status(401).json({ error: 'CRON_AUTH_REQUIRED' });
   const started = Date.now();
+  let store;
   try {
-    const result = await configuredStore().cleanupDetailed({
+    store = configuredStore();
+    const result = await store.cleanupDetailed({
       batchSize: PRODUCTION_POLICY.cleanupBatchSize,
       terminalRetentionMs: PRODUCTION_POLICY.terminalRetentionMs
     });
+    const activeSessions = await store.countLive();
+    await store.recordMetrics([
+      { metric: 'scheduled_cleanup', value: 1, latencyMs: Date.now() - started },
+      { metric: 'cleanup_success', value: 1, latencyMs: Date.now() - started },
+      { metric: 'active_sessions', kind: 'gauge', value: activeSessions }
+    ]);
     console.info('LC0_SCHEDULED_CLEANUP', JSON.stringify({
       removed: result.removed,
       reasons: result.reasons,
@@ -34,6 +42,10 @@ export default async function handler(req, res) {
     }));
     return res.status(200).json({ ok: true, ...result, latencyMs: Date.now() - started });
   } catch (error) {
+    try { await store?.recordMetrics([
+      { metric: 'scheduled_cleanup_failure', value: 1, latencyMs: Date.now() - started },
+      { metric: 'cleanup_failure', value: 1, latencyMs: Date.now() - started }
+    ]); } catch { /* The primary safe error log remains the fallback signal. */ }
     console.error('LC0_SCHEDULED_CLEANUP_FAILED', String(error?.code || error?.name || 'ERROR'));
     return res.status(503).json({ error: 'CLEANUP_FAILED' });
   }

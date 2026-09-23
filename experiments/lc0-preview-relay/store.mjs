@@ -9,6 +9,7 @@ export class MemoryStore {
     this.now = now; this.rows = new Map(); this.audit = []; this.rateWindows = new Map();
     this.controlMode = normalizeControlMode(controlMode);
     this.io = { reads: 0, fullWrites: 0, minimalWrites: 0, cleanupScans: 0 };
+    this.metrics = [];
   }
   async create(input) {
     const recent = [...this.rows.values()].filter(row => row.ownerId === input.ownerId &&
@@ -57,6 +58,7 @@ export class MemoryStore {
     this.io.minimalWrites++;
     return this.controlMode;
   }
+  async recordMetrics(metrics) { this.metrics.push(...structuredClone(metrics)); }
   stats() { return structuredClone(this.io); }
   async cleanupDetailed({ now = this.now(), batchSize = PRODUCTION_POLICY.cleanupBatchSize,
     terminalRetentionMs = PRODUCTION_POLICY.terminalRetentionMs } = {}) {
@@ -103,7 +105,10 @@ function dbError(error) {
 }
 
 export class SupabaseStore {
-  constructor(client) { this.client = client; }
+  constructor(client) {
+    this.client = client;
+    this.io = { reads: 0, fullWrites: 0, minimalWrites: 0, cleanupScans: 0 };
+  }
 
   async create(input) {
     const { data, error } = await this.client.rpc('eae011_create_session', {
@@ -112,6 +117,7 @@ export class SupabaseStore {
       p_created_at: input.createdAt, p_expires_at: input.expiresAt, p_state: input.state
     });
     dbError(error);
+    this.io.fullWrites++;
     return data === 'OK' ? true : data;
   }
 
@@ -120,6 +126,7 @@ export class SupabaseStore {
       .select('session_id,owner_id,competition_id,participant_role,created_at,expires_at,version,state')
       .eq('session_id', id).maybeSingle();
     dbError(error);
+    this.io.reads++;
     if (!data) return null;
     return { sessionId: data.session_id, ownerId: data.owner_id,
       competitionId: data.competition_id, participantRole: data.participant_role,
@@ -132,6 +139,7 @@ export class SupabaseStore {
       .update({ version: version + 1, state, expires_at: state.expiresAt })
       .eq('session_id', id).eq('version', version).select('version').maybeSingle();
     dbError(error);
+    this.io.fullWrites++;
     return Boolean(data);
   }
 
@@ -141,6 +149,7 @@ export class SupabaseStore {
       p_window_ms: windowMs, p_maximum: maximum
     });
     dbError(error);
+    this.io.minimalWrites++;
     return data === true;
   }
 
@@ -148,6 +157,7 @@ export class SupabaseStore {
     const { data, error } = await this.client.from('eae015a_control')
       .select('mode').eq('control_id', 'arena').single();
     dbError(error);
+    this.io.reads++;
     return normalizeControlMode(data?.mode);
   }
 
@@ -161,6 +171,7 @@ export class SupabaseStore {
       p_request_id: requestId
     });
     dbError(error);
+    this.io.fullWrites++;
     return data === true;
   }
 
@@ -168,6 +179,7 @@ export class SupabaseStore {
     const { count, error } = await this.client.from('eae011_sessions')
       .select('session_id', { count: 'exact', head: true }).gt('expires_at', Date.now());
     dbError(error);
+    this.io.reads++;
     return count;
   }
 
@@ -181,10 +193,21 @@ export class SupabaseStore {
       p_now: now, p_batch_size: batchSize, p_terminal_retention_ms: terminalRetentionMs
     });
     dbError(error);
+    this.io.cleanupScans++;
+    this.io.fullWrites++;
     const result = Array.isArray(data) ? data[0] : data;
     return { removed: Number(result?.removed || 0), reasons: result?.reasons || {},
       tombstonesPruned: Number(result?.tombstones_pruned || 0),
       rateWindowsPruned: Number(result?.rate_windows_pruned || 0) };
+  }
+
+  stats() { return structuredClone(this.io); }
+
+  async recordMetrics(metrics) {
+    const safe = metrics.filter(item => item && typeof item.metric === 'string');
+    if (!safe.length) return;
+    const { error } = await this.client.rpc('eae015a_record_metrics', { p_metrics: safe });
+    dbError(error);
   }
 }
 

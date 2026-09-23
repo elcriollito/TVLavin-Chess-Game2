@@ -77,6 +77,7 @@
                     config.mainOrigin !== location.origin ||
                     !/^https:\/\/[^/]+\.vercel\.app$/.test(config.engineOrigin) ||
                     !/^https:\/\/[^/]+\.vercel\.app$/.test(config.relayOrigin) ||
+                    !/^[a-f0-9]{64}$/.test(config.manifestSha256 || '') ||
                     config.engineOrigin === location.origin) return false;
                 if (window.matchMedia('(max-width: 1050px)').matches) return false;
                 this.config = config;

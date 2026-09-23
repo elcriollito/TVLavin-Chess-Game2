@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "eae015a-lc0-0.33.0-maia1100",
+  "runtimeManifestSha256": "492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f",
+  "lc0": {
+    "repository": "https://github.com/jalpp/lc0.js.git",
+    "upstreamRepository": "https://github.com/LeelaChessZero/lc0.git",
+    "commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+    "license": "GPL-3.0-or-later"
+  },
+  "patches": [
+    { "path": "experiments/lc0-browser-lab/patches/0001-browser-stop-signal.patch", "sha256": "89db61927a6e4709460ef8eabcdcd0b053d7f39793a333d4e21bc0595d5eb015" },
+    { "path": "experiments/lc0-browser-lab/patches/0002-cooperative-exit.patch", "sha256": "0d47b067fd237e4730233b2511de84b79d2d878628e86b3c104bb0f39554c9f4" },
+    { "path": "experiments/lc0-browser-lab/patches/0003-opt-in-native-uci-trace.patch", "sha256": "1a370fb23195d097c0ff3c12d0c1a004e5a6ab3ac952475334cc9cb06bd6f75d" }
+  ],
+  "maiaNetwork": {
+    "repository": "https://github.com/CSSLab/maia-chess",
+    "commit": "37de81e2bef89336e03266b3b5f7e1155ba68f5d",
+    "url": "https://github.com/CSSLab/maia-chess/releases/download/v1.0/maia-1100.pb.gz",
+    "sha256": "e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4",
+    "license": "GPL-3.0"
+  },
+  "correspondingSourceLocation": null,
+  "locationStatus": "PENDING_PUBLICATION_AND_HUMAN_LEGAL_APPROVAL",
+  "legalStatus": "LEGAL_SIGNOFF_REQUIRED"
+}

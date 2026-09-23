@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 const lab = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repository = path.resolve(lab, '..', '..');
 const engine = path.resolve(lab, '../lc0-preview-relay/engine');
 const dist = path.join(engine, 'dist');
 const template = JSON.parse(await readFile(path.join(engine,
@@ -21,10 +22,10 @@ await mkdir(releaseDir, { recursive: true });
 await Promise.all([
   build({ entryPoints: [path.join(engine, 'client-source.js')],
     outfile: path.join(releaseDir, 'client.js'), bundle: true, format: 'esm',
-    platform: 'browser', target: ['es2022'], legalComments: 'none' }),
+    platform: 'browser', target: ['es2022'], legalComments: 'none', absWorkingDir: repository }),
   build({ entryPoints: [path.join(lab, 'src/lc0-worker.js')],
     outfile: path.join(releaseDir, 'lc0-worker.js'), bundle: true, format: 'esm',
-    platform: 'browser', target: ['es2022'], legalComments: 'none' })
+    platform: 'browser', target: ['es2022'], legalComments: 'none', absWorkingDir: repository })
 ]);
 
 const copies = [
@@ -131,18 +132,7 @@ await writeFile(path.join(dist, 'vercel.json'), `${JSON.stringify(vercel, null, 
 // Vercel CLI otherwise inherits the repository's broad dist/ ignore rule and
 // silently uploads only the shell. This deployment allowlist is generated with
 // the appliance so every manifest-listed asset is present on the origin.
-await writeFile(path.join(dist, '.vercelignore'), [
-  '*',
-  '!index.html',
-  '!appliance.css',
-  '!health.json',
-  '!vercel.json',
-  '!assets/',
-  '!assets/lc0/',
-  `!assets/lc0/${template.releaseId}/`,
-  `!assets/lc0/${template.releaseId}/**`,
-  ''
-].join('\n'));
+await writeFile(path.join(dist, '.vercelignore'), ['.vercel', '.env*', ''].join('\n'));
 console.log(JSON.stringify({ releaseId: template.releaseId, releaseRoot, relayOrigin,
   mainOrigin, manifestSha256: manifestDigest, clientSri, artifacts: manifest.artifacts }, null, 2));
 

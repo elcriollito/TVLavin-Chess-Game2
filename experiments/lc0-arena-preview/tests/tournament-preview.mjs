@@ -3,11 +3,31 @@ import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { createClerkClient } from '@clerk/backend';
 
-if (process.env.EAE013_TOURNAMENT_PREVIEW !== '1' || !process.env.EAE013_BYPASS ||
+if (process.env.EAE013_TOURNAMENT_PREVIEW !== '1' ||
     !process.env.CLERK_SECRET_KEY?.startsWith('sk_test_'))
   throw new Error('EAE013_TOURNAMENT_CREDENTIALS_REQUIRED');
 const MAIN = process.env.EAE013_MAIN_ORIGIN || 'https://eae013-main-elcriollitos-projects.vercel.app';
 const ENGINE = process.env.EAE013_ENGINE_ORIGIN || 'https://eae013-engine-elcriollitos-projects.vercel.app';
+const RELAY = process.env.EAE015A_RELAY_ORIGIN || MAIN;
+const bypass = process.env.EAE013_BYPASS || '';
+const protectionBypasses = new Map([
+  [MAIN, process.env.EAE015A_MAIN_BYPASS || bypass],
+  [ENGINE, process.env.EAE015A_RUNTIME_BYPASS || bypass],
+  [RELAY, process.env.EAE015A_RELAY_BYPASS || bypass]
+]);
+const protectionCookies = new Map([
+  [MAIN, process.env.EAE015A_MAIN_VERCEL_JWT],
+  [ENGINE, process.env.EAE015A_RUNTIME_VERCEL_JWT],
+  [RELAY, process.env.EAE015A_RELAY_VERCEL_JWT]
+]);
+if ([...new Set([MAIN, ENGINE, RELAY])]
+  .some(origin => !protectionBypasses.get(origin) && !protectionCookies.get(origin)))
+  throw new Error('EAE015A_PROTECTION_CREDENTIALS_REQUIRED');
+const protectionHeaders = origin => protectionBypasses.get(origin)
+  ? { 'x-vercel-protection-bypass': protectionBypasses.get(origin) }
+  : { cookie: `_vercel_jwt=${protectionCookies.get(origin)}` };
+const seedProtectionHeaders = origin => ({ ...protectionHeaders(origin),
+  ...(protectionBypasses.get(origin) ? { 'x-vercel-set-bypass-cookie': 'true' } : {}) });
 const FIELDS = ['stockfish-18-lite', 'stockfish-19-lite', 'lc0-maia-1100-preview'];
 const CLOSE_TOURNAMENT = process.env.EAE013_TOURNAMENT_CLOSE === '1';
 const report = { field: FIELDS, games: [], popups: [], errors: [] };
@@ -27,20 +47,27 @@ try {
     skipPasswordRequirement: true });
   clerkSession = await clerk.sessions.createSession({ userId: user.id });
   context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  if ([...protectionCookies.values()].some(Boolean)) await context.addCookies([...protectionCookies]
+    .filter(([, value]) => value).map(([url, value]) => ({ name: '_vercel_jwt', value, url })));
   await context.addInitScript(origin => {
     if (location.origin === origin)
       localStorage.setItem('caissa_onboarding_completed', 'true');
   }, MAIN);
   await context.exposeBinding('eae013TournamentToken', token);
-  for (const origin of [MAIN, ENGINE]) {
-    const seed = await context.request.get(`${origin}/api/eae011?action=health`, {
-      headers: { 'x-vercel-protection-bypass': process.env.EAE013_BYPASS,
-        'x-vercel-set-bypass-cookie': 'true' } });
+  for (const [origin, path] of [[MAIN, '/api/eae013'], [ENGINE, '/health.json'],
+    [RELAY, '/health']]) {
+    const seed = await context.request.get(`${origin}${path}`, {
+      headers: seedProtectionHeaders(origin) });
     assert.equal(seed.status(), 200);
   }
-  await context.route(url => [MAIN, ENGINE].some(origin => url.href.startsWith(`${origin}/`)),
-    route => route.continue({ headers: { ...route.request().headers(),
-      'x-vercel-protection-bypass': process.env.EAE013_BYPASS } }));
+  for (const origin of protectionBypasses.keys()) assert.ok((await context.cookies(origin))
+    .some(cookie => cookie.name === '_vercel_jwt'), `Bypass cookie for ${origin}`);
+  await context.route(url => [MAIN, ENGINE, RELAY]
+    .some(origin => url.href.startsWith(`${origin}/`)), route => {
+      const origin = new URL(route.request().url()).origin;
+      return route.continue({ headers: { ...route.request().headers(),
+        ...protectionHeaders(origin) } });
+    });
   await context.route(url => url.href.startsWith(`${MAIN}/js/caissa-auth.js`),
     route => route.fulfill({ status: 200, contentType: 'text/javascript',
       body: `window.CAISSA_AUTH={isSignedIn:true,userId:${JSON.stringify(user.id)},` +
@@ -111,14 +138,14 @@ try {
         moves: CaissaArena.game.history(),
         failure: CaissaArena.runtimeManager.getResourceSnapshot().lastFailures
       }));
-      const url = new URL('/api/eae011', MAIN);
+      const url = new URL('/api/eae011', RELAY);
       url.searchParams.set('action', 'inspect');
       url.searchParams.set('sessionId', sessionId);
       let deletedStatus;
       for (let attempt = 0; attempt < 40; attempt++) {
         const response = await context.request.get(url.toString(), { headers: {
           Authorization: `Bearer ${await token()}`, Origin: MAIN,
-          'x-vercel-protection-bypass': process.env.EAE013_BYPASS } });
+          ...protectionHeaders(RELAY) } });
         deletedStatus = response.status();
         if (deletedStatus === 410) break;
         await sleep(500);

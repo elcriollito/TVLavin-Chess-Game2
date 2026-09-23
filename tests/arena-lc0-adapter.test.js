@@ -6,20 +6,30 @@ import { Chess } from 'chess.js';
 
 const source = fs.readFileSync(new URL('../experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js',
   import.meta.url), 'utf8');
-function fixture() {
+function fixture(manifestSha256 = null) {
   const failures = [], statuses = [];
   const window = { EngineRegistry: { markArenaProviderUnavailable: (_id, reason) => failures.push(reason) } };
   vm.runInNewContext(source, { window, Chess, crypto, performance,
     setTimeout, clearTimeout, setInterval, clearInterval },
     { filename: 'isolated-browser-runtime-adapter.js' });
   const provider = { id: 'lc0-maia-1100-preview', workerPath: '/isolated-lc0' };
-  const coordinator = { status: value => statuses.push(value), info() {} };
+  const coordinator = { status: value => statuses.push(value), info() {},
+    ...(manifestSha256 ? { config: { manifestSha256 } } : {}) };
   const instance = new window.IsolatedBrowserRuntimeAdapter(provider,
     { owner: 'arena:white', onRuntimeUnavailable: error => failures.push(error.message) }, coordinator);
   const identity = { ...window.Eae013Identity,
     runtimeInstanceId: '12345678-1234-4234-8234-123456789abc' };
   return { instance, identity, failures, statuses };
 }
+
+test('Lc0 identity pin follows the server-authoritative preview manifest digest', () => {
+  const manifestSha256 = '4'.repeat(64);
+  const { instance, identity } = fixture(manifestSha256);
+  instance.dispatch({ type: 'READY', identity: { ...identity, manifestSha256 } });
+  assert.equal(instance.isReady(), true);
+  instance.dispatch({ type: 'READY', identity });
+  assert.equal(instance.isReady(), false);
+});
 
 test('Lc0 READY binds every pinned identity field and rejects old search traffic', () => {
   const { instance, identity, failures } = fixture();

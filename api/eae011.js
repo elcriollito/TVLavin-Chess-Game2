@@ -18,6 +18,59 @@ const allowedActions = Object.freeze({
   config: ['main', 'GET'], health: ['either', 'GET']
 });
 
+export function relayMetrics({ action, messageType, messageCode, status, errorCode, latencyMs,
+  dbReads = 0, dbWrites = 0, activeSessions = null }) {
+  const metrics = [{ metric: 'relay_request', value: 1, latencyMs }];
+  if (dbReads) metrics.push({ metric: 'db_read', value: dbReads });
+  if (dbWrites) metrics.push({ metric: 'db_write', value: dbWrites });
+  if (Number.isSafeInteger(activeSessions))
+    metrics.push({ metric: 'active_sessions', kind: 'gauge', value: activeSessions });
+  if (action === 'create') {
+    metrics.push({ metric: 'create_attempt', value: 1, latencyMs });
+    if (status === 201) metrics.push({ metric: 'create_success', value: 1, latencyMs });
+  }
+  if (action === 'claim') metrics.push({
+    metric: status === 200 ? 'claim_success' : 'claim_failure', value: 1, latencyMs
+  });
+  if (action === 'message' && messageType === 'READY') metrics.push({
+    metric: status === 202 ? 'ready_success' : 'ready_failure', value: 1, latencyMs
+  });
+  if (action === 'message' && messageType === 'CLEANUP') metrics.push({
+    metric: status === 202 ? 'cleanup_success' : 'cleanup_failure', value: 1, latencyMs
+  });
+  if (['stream_main', 'stream_engine'].includes(action)) metrics.push({
+    metric: status === 200 ? 'stream_reconnect' : 'stream_reconnect_failure', value: 1,
+    latencyMs
+  });
+  const code = String(errorCode || messageCode || '');
+  // A post-termination owner inspection is the cleanup proof, not an outage.
+  // Count SESSION_GONE only when an operational action unexpectedly loses state.
+  if (code === 'SESSION_GONE' && action !== 'inspect')
+    metrics.push({ metric: 'session_gone', value: 1 });
+  if (code.includes('STOP_TIMEOUT') || code === 'STOP_RESULT_TIMEOUT')
+    metrics.push({ metric: 'stop_timeout', value: 1 });
+  if (code.includes('LEASE_EXPIRED')) metrics.push({ metric: 'lease_expiry', value: 1 });
+  if (code.endsWith('_RATE_LIMIT') || status === 429)
+    metrics.push({ metric: 'rate_limit_reject', value: 1 });
+  if (['AUTH_REQUIRED', 'INVALID_TOKEN', 'BEARER_REQUIRED', 'ENGINE_CREDENTIAL_INVALID']
+    .includes(code)) metrics.push({ metric: 'auth_rejection', value: 1 });
+  if (['ORIGIN_REJECTED', 'ORIGIN_REQUIRED', 'HOST_REJECTED', 'CROSS_SITE_REJECTED']
+    .includes(code)) metrics.push({ metric: 'origin_rejection', value: 1 });
+  if (code.includes('FORCED_TERMINATION')) metrics.push({ metric: 'forced_termination', value: 1 });
+  if (code.includes('WORKER') || code.includes('RUNTIME_FAILURE'))
+    metrics.push({ metric: 'worker_crash', value: 1 });
+  if (code.includes('NETWORK') && (code.includes('HASH') || code.includes('INTEGRITY')))
+    metrics.push({ metric: 'network_hash_failure', value: 1 });
+  if (status >= 500 && !['LC0_DISABLED', 'LC0_DRAINING'].includes(code))
+    metrics.push({ metric: 'relay_error', value: 1, latencyMs });
+  return metrics;
+}
+
+export function crossSiteAllowed(site, origin, pair) {
+  return site !== 'cross-site' || (pair.productionShape &&
+    [pair.main, pair.engine].includes(origin));
+}
+
 function origins(env) {
   const main = new URL(env.EAE011_MAIN_ORIGIN || 'https://invalid.local');
   const engine = new URL(env.EAE011_ENGINE_ORIGIN || 'https://invalid.local');
@@ -48,7 +101,8 @@ function checkRequest(req, role, pair, method) {
       ![pair.main, pair.engine, `https://${host}`].includes(req.headers.origin) :
       req.headers.origin !== expected)) throw new RelayError('ORIGIN_REJECTED', 403);
   if (method === 'POST' && req.headers.origin !== expected) throw new RelayError('ORIGIN_REQUIRED', 403);
-  if (req.headers['sec-fetch-site'] === 'cross-site') throw new RelayError('CROSS_SITE_REJECTED', 403);
+  if (!crossSiteAllowed(req.headers['sec-fetch-site'], req.headers.origin, pair))
+    throw new RelayError('CROSS_SITE_REJECTED', 403);
 }
 
 function input(req) {
@@ -128,6 +182,9 @@ async function stream(req, res, broker, sessionId, role, authority, cursor) {
 }
 
 export default async function handler(req, res) {
+  const started = Date.now();
+  let store = null, ioBefore = null, action = '', messageType = null, messageCode = null,
+    errorCode = null;
   try {
     if (process.env.VERCEL_ENV !== 'preview') throw new RelayError('PREVIEW_ONLY', 503);
     const pair = origins(process.env);
@@ -137,11 +194,12 @@ export default async function handler(req, res) {
       cors(req, res, pair);
       return res.status(204).end();
     }
-    const action = String(req.query?.action || '');
-    const policy = allowedActions[action];
-    if (!policy || req.method !== policy[1]) throw new RelayError('ENDPOINT_NOT_FOUND', 404);
-    checkRequest(req, policy[0], pair, req.method);
-    const store = configuredStore();
+    action = String(req.query?.action || '');
+    const actionPolicy = allowedActions[action];
+    if (!actionPolicy || req.method !== actionPolicy[1]) throw new RelayError('ENDPOINT_NOT_FOUND', 404);
+    checkRequest(req, actionPolicy[0], pair, req.method);
+    store = configuredStore();
+    ioBefore = store.stats();
     const mode = await store.getControlMode();
     const broker = new DurableBroker(store, { requestId: randomUUID() });
     const sessionId = String(req.query?.sessionId || '');
@@ -165,6 +223,7 @@ export default async function handler(req, res) {
     }
     if (action === 'message') {
       const body = input(req), policy = controlPolicy(mode, action, body.type);
+      messageType = body.type; messageCode = body.code || null;
       if (!policy.allowed) throw new RelayError(policy.code, 503);
       return respond(res, 202,
         await broker.engineMessage(sessionId, bearer(req), body), req, pair);
@@ -189,6 +248,7 @@ export default async function handler(req, res) {
     }
     if (action === 'command') {
       const body = input(req), policy = controlPolicy(mode, action, body.type);
+      messageType = body.type;
       if (!policy.allowed) throw new RelayError(policy.code, 503);
       return respond(res, 202, await broker.command(sessionId, userId, body), req, pair);
     }
@@ -201,8 +261,28 @@ export default async function handler(req, res) {
       'main', userId, Number(req.query?.cursor || 0));
     throw new RelayError('ENDPOINT_NOT_FOUND', 404);
   } catch (error) {
+    errorCode = error instanceof RelayError ? error.code : 'INTERNAL_ERROR';
     if (res.headersSent) { res.end(); return; }
     return respond(res, error instanceof RelayError ? error.status : 500,
       { error: error instanceof RelayError ? error.code : 'INTERNAL_ERROR' });
+  } finally {
+    if (store && ioBefore) {
+      try {
+        let activeSessions = null;
+        if (['health', 'create', 'terminate'].includes(action))
+          activeSessions = await store.countLive();
+        const ioAfter = store.stats();
+        const dbReads = Math.max(0, ioAfter.reads - ioBefore.reads);
+        const dbWrites = Math.max(0,
+          (ioAfter.fullWrites + ioAfter.minimalWrites) -
+          (ioBefore.fullWrites + ioBefore.minimalWrites));
+        await store.recordMetrics(relayMetrics({ action, messageType, messageCode,
+          status: Number(res.statusCode || 500), errorCode,
+          latencyMs: Math.max(0, Date.now() - started), dbReads, dbWrites, activeSessions }));
+      } catch (metricError) {
+        console.error('EAE015A_METRICS_SINK_FAILED',
+          String(metricError?.code || metricError?.name || 'ERROR'));
+      }
+    }
   }
 }

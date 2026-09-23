@@ -45,6 +45,8 @@ for (const forbidden of ['clerk', 'stripe', 'checkout', 'caissa-primary-navigati
   assert.equal(index.toLowerCase().includes(forbidden), false, `APPLIANCE_SURFACE_FORBIDDEN:${forbidden}`);
 
 const config = JSON.parse(await readFile(path.join(dist, 'vercel.json'), 'utf8'));
+const deploymentIgnore = await readFile(path.join(dist, '.vercelignore'), 'utf8');
+assert.equal(deploymentIgnore, '.vercel\n.env*\n');
 const headers = Object.fromEntries(config.headers[0].headers.map(item => [item.key, item.value]));
 assert.equal(headers['Cross-Origin-Opener-Policy'], 'same-origin');
 assert.equal(headers['Cross-Origin-Embedder-Policy'], 'require-corp');

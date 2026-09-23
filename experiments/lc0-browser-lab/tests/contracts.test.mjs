@@ -71,5 +71,8 @@ test('lab rejects uploads and limits the backend to ONNX Runtime Web WASM', asyn
   const worker = await readFile(path.join(lab, 'src/lc0-worker.js'), 'utf8');
   assert.match(server, /\['GET', 'HEAD'\]/);
   assert.match(worker, /executionProviders: \['wasm'\]/);
+  assert.match(worker, /artifactSegments\.some/);
+  assert.match(worker, /segment === '\.\.'/);
+  assert.match(worker, /\[A-Za-z0-9\._-\]/);
   assert.doesNotMatch(worker, /webgpu/i);
 });

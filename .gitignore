@@ -67,3 +67,6 @@ r2_v2_list.json
 .env
 .env.local
 .env.*.local
+.caissa-eae015a-relay/
+
+.env*

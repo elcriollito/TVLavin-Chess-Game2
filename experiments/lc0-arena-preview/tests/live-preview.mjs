@@ -4,26 +4,53 @@ import { chromium } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { createClerkClient } from '@clerk/backend';
 
-if (process.env.EAE013_LIVE_PREVIEW !== '1' || !process.env.EAE013_BYPASS ||
+if (process.env.EAE013_LIVE_PREVIEW !== '1' ||
     !process.env.CLERK_SECRET_KEY?.startsWith('sk_test_'))
   throw new Error('EAE013_PREVIEW_TEST_CREDENTIALS_REQUIRED');
 const MAIN = process.env.EAE013_MAIN_ORIGIN ||
   'https://eae013-main-elcriollitos-projects.vercel.app';
 const ENGINE = process.env.EAE013_ENGINE_ORIGIN ||
   'https://eae013-engine-elcriollitos-projects.vercel.app';
+const RELAY = process.env.EAE015A_RELAY_ORIGIN || MAIN;
+const bypass = process.env.EAE013_BYPASS || '';
+const protectionBypasses = new Map([
+  [MAIN, process.env.EAE015A_MAIN_BYPASS || bypass],
+  [ENGINE, process.env.EAE015A_RUNTIME_BYPASS || bypass],
+  [RELAY, process.env.EAE015A_RELAY_BYPASS || bypass]
+]);
+const protectionCookies = new Map([
+  [MAIN, process.env.EAE015A_MAIN_VERCEL_JWT],
+  [ENGINE, process.env.EAE015A_RUNTIME_VERCEL_JWT],
+  [RELAY, process.env.EAE015A_RELAY_VERCEL_JWT]
+]);
+if ([...new Set([MAIN, ENGINE, RELAY])]
+  .some(origin => !protectionBypasses.get(origin) && !protectionCookies.get(origin)))
+  throw new Error('EAE015A_PROTECTION_CREDENTIALS_REQUIRED');
+const protectionHeaders = origin => protectionBypasses.get(origin)
+  ? { 'x-vercel-protection-bypass': protectionBypasses.get(origin) }
+  : { cookie: `_vercel_jwt=${protectionCookies.get(origin)}` };
+const seedProtectionHeaders = origin => ({ ...protectionHeaders(origin),
+  ...(protectionBypasses.get(origin) ? { 'x-vercel-set-bypass-cookie': 'true' } : {}) });
 const CYCLES = Number(process.env.EAE013_CYCLES || 1);
 const RECONNECT_EVERY = Number(process.env.EAE013_RECONNECT_EVERY || 0);
 const PAUSE_REPEATS = Number(process.env.EAE013_PAUSE_REPEATS || 1);
 const LEASE_EDGE_EVERY = Number(process.env.EAE013_LEASE_EDGE_EVERY || 0);
+const DRAIN_CYCLE = Number(process.env.EAE015A_DRAIN_CYCLE || 0);
+const stagingRef = 'aqizagaskicotorfpwfn';
+const stagingSecret = process.env.EAE015A_SUPABASE_SERVICE_ROLE_KEY || '';
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
     !Number.isSafeInteger(RECONNECT_EVERY) || RECONNECT_EVERY < 0 ||
     !Number.isSafeInteger(PAUSE_REPEATS) || PAUSE_REPEATS < 1 || PAUSE_REPEATS > 3 ||
-    !Number.isSafeInteger(LEASE_EDGE_EVERY) || LEASE_EDGE_EVERY < 0)
+    !Number.isSafeInteger(LEASE_EDGE_EVERY) || LEASE_EDGE_EVERY < 0 ||
+    !Number.isSafeInteger(DRAIN_CYCLE) || DRAIN_CYCLE < 0 || DRAIN_CYCLE > CYCLES ||
+    (DRAIN_CYCLE !== 0 && DRAIN_CYCLE !== CYCLES) ||
+    (DRAIN_CYCLE !== 0 && !stagingSecret.startsWith('sb_secret_')))
   throw new Error('EAE013_CYCLES_INVALID');
 const browser = await chromium.launch({ headless: true });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const report = { cyclesRequested: CYCLES, cycles: [], failures: [], startedAt: Date.now() };
 let user, session, context, page;
+const engineBrowserErrors = [];
 let lastToken, lastTokenAt = 0;
 const token = async () => {
   if (!lastToken || Date.now() - lastTokenAt > 30_000) {
@@ -33,18 +60,40 @@ const token = async () => {
   return lastToken;
 };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const setControlMode = async (mode, reason) => {
+  const response = await fetch(`https://${stagingRef}.supabase.co/rest/v1/eae015a_control?control_id=eq.arena`, {
+    method: 'PATCH', headers: { apikey: stagingSecret, 'content-type': 'application/json',
+      prefer: 'return=representation' }, body: JSON.stringify({ mode, reason })
+  });
+  const rows = await response.json().catch(() => []);
+  assert.equal(response.status, 200, `control ${mode}: ${response.status}`);
+  assert.equal(rows[0]?.mode, mode);
+  return mode;
+};
+const probeCreate = async (expectedStatus, expectedCode) => {
+  const response = await fetch(new URL('/api/eae011?action=create', RELAY), {
+    method: 'POST', headers: { Origin: MAIN, Authorization: `Bearer ${await token()}`,
+      'Content-Type': 'application/json', ...protectionHeaders(RELAY) },
+    body: JSON.stringify({ participantRole: 'white' })
+  });
+  const body = await response.json().catch(() => ({}));
+  assert.equal(response.status, expectedStatus);
+  assert.equal(body.error, expectedCode);
+  return { status: response.status, code: body.error };
+};
 const inspectSession = async sessionId => {
-  const url = new URL('/api/eae011', MAIN);
+  const url = new URL('/api/eae011', RELAY);
   url.searchParams.set('action', 'inspect');
   url.searchParams.set('sessionId', sessionId);
   const response = await context.request.get(url.toString(), {
     headers: { Authorization: `Bearer ${await token()}`,
-      Origin: MAIN, 'x-vercel-protection-bypass': process.env.EAE013_BYPASS }
+      Origin: MAIN, ...protectionHeaders(RELAY) }
   });
   return response.status();
 };
 
 try {
+  if (DRAIN_CYCLE) await setControlMode('ENABLED', 'EAE-015A.1 active-drain certification');
   user = await clerk.users.createUser({
     emailAddress: [`eae013-arena-${crypto.randomUUID()}@example.com`],
     skipPasswordRequirement: true
@@ -52,20 +101,55 @@ try {
   session = await clerk.sessions.createSession({ userId: user.id });
   context = await browser.newContext({ viewport: { width: 1440, height: 900 },
     acceptDownloads: false });
+  const relayNetwork = [];
+  const networkFailures = [];
+  context.on('request', request => {
+    if (request.url().includes('/api/eae011')) relayNetwork.push({
+      type: 'request', method: request.method(), origin: new URL(request.url()).origin,
+      path: new URL(request.url()).pathname
+    });
+  });
+  context.on('requestfailed', request => {
+    networkFailures.push({ method: request.method(), origin: new URL(request.url()).origin,
+      path: new URL(request.url()).pathname,
+      error: request.failure()?.errorText || 'unknown' });
+    if (request.url().includes('/api/eae011')) relayNetwork.push({
+      type: 'requestfailed', method: request.method(),
+      origin: new URL(request.url()).origin, path: new URL(request.url()).pathname,
+      error: request.failure()?.errorText || 'unknown'
+    });
+  });
+  context.on('response', response => {
+    if (response.url().includes('/api/eae011')) relayNetwork.push({
+      type: 'response', method: response.request().method(),
+      origin: new URL(response.url()).origin, path: new URL(response.url()).pathname,
+      status: response.status()
+    });
+  });
+  if ([...protectionCookies.values()].some(Boolean)) await context.addCookies([...protectionCookies]
+    .filter(([, value]) => value).map(([url, value]) => ({ name: '_vercel_jwt', value, url })));
   await context.addInitScript(origin => {
     if (location.origin === origin)
       localStorage.setItem('caissa_onboarding_completed', 'true');
   }, MAIN);
   await context.exposeBinding('eae013TestOwnerToken', token);
-  for (const origin of [MAIN, ENGINE]) {
-    const seed = await context.request.get(`${origin}/api/eae011?action=health`, {
-      headers: { 'x-vercel-protection-bypass': process.env.EAE013_BYPASS,
-        'x-vercel-set-bypass-cookie': 'true' } });
-    assert.equal(seed.status(), 200, `Preview protection cookie for ${origin}`);
+  for (const [origin, path] of [[MAIN, '/api/eae013'], [ENGINE, '/health.json'],
+    [RELAY, '/health']]) {
+    const seed = await context.request.get(`${origin}${path}`, {
+      headers: seedProtectionHeaders(origin) });
+    assert.equal(seed.status(), 200, `Preview protection for ${origin}`);
   }
-  await context.route(url => [MAIN, ENGINE].some(origin => url.href.startsWith(`${origin}/`)),
-    route => route.continue({ headers: { ...route.request().headers(),
-      'x-vercel-protection-bypass': process.env.EAE013_BYPASS } }));
+  report.protectionCookies = Object.fromEntries(await Promise.all([...new Set([MAIN, ENGINE, RELAY])]
+    .map(async origin => [origin, (await context.cookies(origin))
+      .some(cookie => cookie.name === '_vercel_jwt')])));
+  for (const origin of protectionBypasses.keys())
+    assert.equal(report.protectionCookies[origin], true, `Bypass cookie for ${origin}`);
+  await context.route(url => [MAIN, ENGINE, RELAY]
+    .some(origin => url.href.startsWith(`${origin}/`)), route => {
+      const origin = new URL(route.request().url()).origin;
+      return route.continue({ headers: { ...route.request().headers(),
+        ...protectionHeaders(origin) } });
+    });
   await context.route(url => url.href.startsWith(`${MAIN}/js/caissa-auth.js`),
     route => route.fulfill({
     status: 200, contentType: 'text/javascript',
@@ -81,6 +165,20 @@ try {
     document.getElementById('arenaSection')?.classList.contains('active') &&
     window.EngineRegistry?.getArenaProvider('lc0-maia-1100-preview')?.enabled === true,
     null, { timeout: 20_000 });
+  try {
+    report.browserBoundary = await page.evaluate(async relayOrigin => {
+      const bearer = await window.CAISSA_AUTH.getToken();
+      const response = await fetch(new URL('/api/eae011?action=health', relayOrigin), {
+        headers: { Authorization: `Bearer ${bearer}` }, cache: 'no-store'
+      });
+      return { tokenPresent: typeof bearer === 'string' && bearer.length > 20,
+        status: response.status, body: await response.json().catch(() => null) };
+    }, RELAY);
+  } catch (error) {
+    console.log(`EAE015A_BROWSER_BOUNDARY ${JSON.stringify({ error: error.message,
+      relayNetwork, networkFailures })}`);
+    throw error;
+  }
   if (await page.locator('#onboardingSkip').isVisible()) await page.click('#onboardingSkip');
   const axe = await new AxeBuilder({ page }).include('#arenaSection')
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -110,17 +208,36 @@ try {
         null, { timeout: 5_000 });
       assert.ok(context.pages().length > beforePages, 'Isolated Lc0 popup did not open');
       const enginePage = context.pages().at(-1);
+      enginePage.on('pageerror', error => engineBrowserErrors.push({ type: 'pageerror',
+        message: error.message }));
+      enginePage.on('console', message => {
+        if (message.type() === 'error') engineBrowserErrors.push({ type: 'console',
+          message: message.text() });
+      });
       item.sessionId = await page.evaluate(() => window.CaissaArenaPreview.adapter.sessionId);
       item.stage = 'ready';
       await page.waitForFunction(() => CaissaArena.state.matchState === 'running' &&
         window.CaissaArenaPreview.adapter?.identity?.runtimeInstanceId,
         null, { timeout: 60_000 });
       item.identity = await page.evaluate(() => window.CaissaArenaPreview.adapter.identity);
+      item.runtimeIdentities = await page.evaluate(() => ({
+        white: CaissaArena.whiteEngineInstance.getRuntimeIdentity(),
+        black: CaissaArena.blackEngineInstance.getRuntimeIdentity()
+      }));
+      assert.equal(item.runtimeIdentities[color].providerId, 'lc0-maia-1100-preview');
+      assert.equal(item.runtimeIdentities[other].providerId, 'stockfish-19-lite');
+      assert.ok(Object.values(item.runtimeIdentities).every(value => value.identityValidated));
       item.readyMs = performance.now() - began;
       item.stage = 'moves';
       await page.waitForFunction(() => CaissaArena.game?.history().length >= 4,
         null, { timeout: 60_000 });
       item.movesBeforePause = await page.evaluate(() => CaissaArena.game.history());
+      if (DRAIN_CYCLE === i + 1) {
+        await setControlMode('DRAINING', 'EAE-015A.1 active match draining');
+        report.drain = { cycle: i + 1, mode: 'DRAINING',
+          newSession: await probeCreate(503, 'LC0_DRAINING'),
+          activeMovesBeforeDrain: item.movesBeforePause.length };
+      }
       await page.click('#arenaTabGame');
       item.presentation = await page.evaluate(() => ({
         san: document.getElementById('arenaMoveHistory')?.textContent || '',
@@ -130,6 +247,7 @@ try {
         graph: Boolean(document.getElementById('arenaEvalGraph'))
       }));
       assert.ok(item.presentation.san.includes(item.movesBeforePause[0]), 'Game SAN missing');
+      assert.ok(item.presentation.pvSan.trim().length > 0, 'PV SAN missing');
       assert.equal(item.presentation.graph, true);
       await page.click('#arenaPauseMatch');
       await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
@@ -198,6 +316,13 @@ try {
       assert.equal(item.metrics.cleanupEvidence.pthreadWorkers, 0);
       assert.equal(item.metrics.cleanupEvidence.forcedTerminations, 0);
       assert.equal(await inspectSession(item.sessionId), 410);
+      if (DRAIN_CYCLE === i + 1) {
+        await setControlMode('DISABLED', 'EAE-015A.1 active drain complete; hold restored');
+        report.drain.disabledNewSession = await probeCreate(503, 'LC0_DISABLED');
+        report.drain.cleanup = { sessionRemoved: true, workers: item.engine.workers,
+          parentWorkers: item.engine.parentWorkers, pthreadWorkers: item.engine.pthreadWorkers,
+          forcedTerminations: item.engine.forced };
+      }
       item.stage = 'complete';
       item.durationMs = performance.now() - began;
       await enginePage.close();
@@ -214,9 +339,18 @@ try {
           sessionId: window.CaissaArenaPreview.adapter.sessionId,
           phase: window.CaissaArenaPreview.adapter.lastPhase,
           metrics: window.CaissaArenaPreview.adapter.metrics
-        }
+        }, config: window.CaissaArenaPreview?.config || null
       })).catch(() => null);
-      report.failures.push({ cycle: i + 1, stage: item.stage, error: error.message, state });
+      const popupState = await Promise.all(context.pages().filter(candidate => candidate !== page)
+        .map(async candidate => ({ url: candidate.url(), state: await candidate.evaluate(() => ({
+          status: document.querySelector('[role=status]')?.textContent || '',
+          engine: window.Eae012Engine && {
+            metrics: window.Eae012Engine.metrics,
+            runtime: window.Eae012Engine.runtime?.snapshot?.()
+          }
+        })).catch(error => ({ evaluationError: error.message })) })));
+      report.failures.push({ cycle: i + 1, stage: item.stage, error: error.message, state,
+        popupState, engineBrowserErrors });
       try {
         await page.evaluate(() => CaissaArena.stopMatch());
         await page.evaluate(() => CaissaArena._cleanupPromise);
@@ -225,6 +359,26 @@ try {
     }
   }
   report.pageErrors = pageErrors;
+  report.relayNetwork = relayNetwork;
+  report.networkFailures = networkFailures;
+  if (DRAIN_CYCLE && report.drain) {
+    await page.click('#arenaTabMatch');
+    await page.selectOption('#arenaWhiteEngine', 'stockfish-18-lite');
+    await page.selectOption('#arenaBlackEngine', 'stockfish-19-lite');
+    await page.click('#arenaStartMatch');
+    await page.waitForFunction(() => CaissaArena.state.matchState === 'running' &&
+      CaissaArena.game?.history().length >= 4, null, { timeout: 35_000 });
+    report.drain.stockfishWhileDisabled = await page.evaluate(() => ({
+      moves: CaissaArena.game.history(),
+      white: CaissaArena.whiteEngineInstance.getRuntimeIdentity(),
+      black: CaissaArena.blackEngineInstance.getRuntimeIdentity()
+    }));
+    await page.click('#arenaTabGame');
+    await page.click('#arenaStopMatch');
+    await page.waitForFunction(() => CaissaArena.runtimeManager
+      .getResourceSnapshot().activeRuntimeRecords === 0, null, { timeout: 20_000 });
+    report.drain.stockfishWhileDisabled.cleaned = true;
+  }
   report.finishedAt = Date.now();
   const completed = report.cycles.filter(item => item.stage === 'complete');
   const percentile = (values, fraction) => {
@@ -257,11 +411,13 @@ try {
     resumeToSearchP95Ms: percentile(completed.map(item => item.resumeToSearchMs)
       .filter(Number.isFinite), 0.95),
     axeSeriousOrCritical: report.axeSeriousOrCritical, pageErrors };
-  console.log(`EAE013_ARENA_LIVE_REPORT ${JSON.stringify(CYCLES <= 2 ? report : compact)}`);
+  console.log(`EAE013_ARENA_LIVE_REPORT ${JSON.stringify(DRAIN_CYCLE ? report : compact)}`);
   assert.equal(report.failures.length, 0);
   assert.equal(report.cycles.filter(item => item.stage === 'complete').length, CYCLES);
   assert.deepEqual(pageErrors, []);
 } finally {
+  if (DRAIN_CYCLE && stagingSecret) await setControlMode('DISABLED',
+    'EAE-015A.1 certification final hold').catch(() => {});
   await context?.close().catch(() => {});
   await browser.close();
   if (user) await clerk.users.deleteUser(user.id);

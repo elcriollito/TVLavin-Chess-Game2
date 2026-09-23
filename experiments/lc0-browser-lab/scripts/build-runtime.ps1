@@ -9,6 +9,7 @@ $sourceCommit = '482bb4a830287b726ebe7d42f14ab7f5f17c18a0'
 $emscriptenVersion = '3.1.64'
 $mesonVersion = '1.8.3'
 $ninjaVersion = '1.11.1.4'
+$sourceDateEpoch = '1789992000' # 2026-09-21T12:00:00Z, certified release epoch.
 $labRoot = Split-Path $PSScriptRoot -Parent
 $sourceRoot = Join-Path $WorkRoot 'lc0.js'
 $emsdkRoot = Join-Path $WorkRoot 'emsdk'
@@ -54,6 +55,7 @@ if ($LASTEXITCODE) { throw 'Meson/Ninja installation failed.' }
 
 $emsdkPython = (Get-ChildItem (Join-Path $emsdkRoot 'python') -Filter python.exe -Recurse | Select-Object -First 1).FullName
 $emscriptenRoot = (Resolve-Path (Join-Path $emsdkRoot 'upstream\emscripten')).Path
+$env:SOURCE_DATE_EPOCH = $sourceDateEpoch
 function Posix([string]$value) { return $value.Replace('\', '/') }
 $pythonPath = Posix $emsdkPython
 $emRoot = Posix $emscriptenRoot
@@ -87,7 +89,11 @@ cpp_link_args = [
   '-sEXPORTED_RUNTIME_METHODS=["FS"]'
   ]
 "@
-Set-Content -LiteralPath $crossFile -Value $crossFileText -Encoding utf8
+[System.IO.File]::WriteAllText(
+  $crossFile,
+  $crossFileText,
+  [System.Text.UTF8Encoding]::new($false)
+)
 
 $meson = Join-Path $venvRoot 'Scripts\meson.exe'
 $buildRoot = Join-Path $sourceRoot 'js\build-caissa-eae008'

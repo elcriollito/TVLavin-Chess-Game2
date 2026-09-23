@@ -32,6 +32,7 @@ export default async function handler(req, res) {
     mainOrigin: process.env.EAE011_MAIN_ORIGIN,
     engineOrigin: process.env.EAE011_ENGINE_ORIGIN,
     relayOrigin: process.env.EAE015A_RELAY_ORIGIN || process.env.EAE011_MAIN_ORIGIN,
+    manifestSha256: process.env.EAE015A_MANIFEST_SHA256,
     enginePath: process.env.EAE015A_PRODUCTION_SHAPE === '1' ? '/' :
       '/experiments/lc0-preview-relay/engine/index.html' });
 }
