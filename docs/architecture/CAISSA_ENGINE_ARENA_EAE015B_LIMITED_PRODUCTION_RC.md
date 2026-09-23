@@ -179,8 +179,10 @@ used real searches and legal moves, and reached clean STOP/QUIT/CLEANUP with no
 forced termination or worker residue. Cycle 10 encountered
 `ERR_NETWORK_IO_SUSPENDED`; local cleanup was not acknowledged, the snapshot
 reported one forced termination and four pthread workers, and one relay row
-remained temporarily. Scheduled cleanup subsequently removed that row with no
-manual deletion. The mandatory result is therefore **9/25**, not 25/25.
+remained temporarily. Automated broker cleanup subsequently removed that row
+with the known reason `ENGINE_HEARTBEAT_EXPIRED` from `DurableBroker.poll`, with
+no manual deletion. Scheduled cleanup continued succeeding independently. The
+mandatory result is therefore **9/25**, not 25/25.
 
 Successful-cycle browser latency (milliseconds): selection-to-READY median
 4,983 / p95 5,246; STOP median 1,960 / p95 5,137; cleanup median 6,192 / p95
