@@ -1,6 +1,6 @@
 # EAE-015A.2 Lc0 corresponding-source closeout
 
-Status: publication in progress; `LEGAL_SIGNOFF_REQUIRED`.
+Status: technical compliance package certified; `LEGAL_SIGNOFF_REQUIRED`.
 
 This work is compliance-only. It does not change the Lc0 runtime, lifecycle
 patches, relay, Runtime Manager, Stockfish engines, Arena UI, Tournament, Maia
@@ -23,7 +23,7 @@ not activate an Lc0 provider.
 
 The versioned ZIP contains the complete pinned Lc0 source snapshot, exact
 three-patch series, CAISSA build scripts/configuration and browser source,
-network metadata (not the network binary), four license/notice files, build
+network metadata (not the network binary), five license/notice files, build
 instructions, a corresponding-source record, and a per-file SHA-256 manifest.
 The package also records the pinned source Git tree, every blob ID, and original
 file modes so Windows ZIP extraction cannot erase the Unix executable-mode
@@ -41,7 +41,7 @@ archive bytes. `manifest.json` binds every other archive member.
 
 Canonical release/tag: `lc0-browser-source-v0.1.1`
 
-Title: CAISSA Lc0 Browser Runtime — Corresponding Source
+Title: CAISSA Lc0 Browser Runtime — Corresponding Source v0.1.1
 
 Public archive URL:
 `https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.1/caissa-lc0-browser-corresponding-source-v0.1.1.zip`
@@ -51,16 +51,39 @@ Clean reconstruction exposed an omitted lab-to-appliance staging command, so
 `v0.1.1` adds a hash-verifying staging script and is the only canonical package.
 No source, patch, runtime, network, or license input changed.
 
-Archive byte count and SHA-256: pending package generation and external fetch.
+Archive byte count: `1,430,117`
+
+Archive SHA-256:
+`7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec`
+
+GitHub reports the published release as immutable. The asset was then fetched
+from the exact versioned URL by an unauthenticated HTTP client: status 200,
+Content-Length 1,430,117, and downloaded SHA-256 exactly matched the local
+archive. Fresh extraction succeeded; all 441 content-manifest entries matched,
+all required files existed, all 407 source blobs matched Git object IDs for
+tree `45e2b5939f7794f6a4e478ed81fed5fd869a91fd`, and all three patches
+hash-checked and applied in order.
 
 The release description states that it is a source/compliance publication and
-does not activate Lc0 in CAISSA Engine Arena. Post-publication evidence will
-record unauthenticated HTTP status, Content-Length, downloaded digest,
-extraction, required-file validation, targeted secret scan, and reconstruction.
+does not activate Lc0 in CAISSA Engine Arena. The targeted archive secret scan
+found no environment files, Supabase or Clerk credentials, Vercel credentials,
+private JWTs, private signing keys, or high-confidence secret patterns.
+
+## Clean reconstruction
+
+A clean reconstruction used only the package, its BUILD.md, and public pinned
+dependencies. Lc0 commit `482bb4a830287b726ebe7d42f14ab7f5f17c18a0`
+was reconstructed as all 407 Git blobs/tree
+`45e2b5939f7794f6a4e478ed81fed5fd869a91fd`; the three patches applied
+cleanly. The full 203-target Emscripten build completed with the pinned
+toolchain. The generated appliance then matched the certified manifest exactly:
+8 artifacts, 24,785,017 bytes, manifest SHA-256
+`492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f`.
+Its tamper self-test detected the deliberate mutation.
 
 ## Notices and legal status
 
-The package inventories Lc0, Maia, ONNX Runtime Web, Emscripten, and build-only
+The package inventories Lc0, Maia, ONNX Runtime Web, Emscripten, chess.js, and build-only
 dependencies, including versions/commits, licenses, sources, copyrights, and
 redistribution status. Human review must resolve Maia network redistribution,
 GPL completeness/terms, attribution placement, and retention. The checklist is
@@ -68,3 +91,16 @@ GPL completeness/terms, attribution placement, and retention. The checklist is
 
 Final legal status remains `LEGAL_SIGNOFF_REQUIRED` until an authorized human
 reviewer records a decision.
+
+## Current Arena regression and state
+
+EngineRegistry, Runtime Manager, Generation Cup scheduling, Lc0 preview-gate,
+Lc0 adapter, and compliance unit coverage passed 48/48. The Generation Cup
+Chromium suite passed 5/5. The normal Arena registry continues to exclude the
+Lc0 preview provider unless the isolated preview registration gate is
+explicitly present; production-equivalent Lc0 state is therefore `DISABLED`.
+
+Technical compliance status: `LC0_COMPLIANCE_PACKAGE_CERTIFIED`.
+
+No merge, product deployment, DNS assignment, production environment change,
+Supabase change, or public Lc0 activation occurred.

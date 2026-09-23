@@ -7,7 +7,12 @@ Certified runtime version: `v0.33.0-dev+git.482bb4a`
 Public source archive URL:
 `https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.1/caissa-lc0-browser-corresponding-source-v0.1.1.zip`
 
-Archive SHA-256: pending publication
+Archive bytes: `1,430,117`
+
+Archive SHA-256:
+`7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec`
+
+GitHub release/tag: `lc0-browser-source-v0.1.1` (immutable)
 
 Applicable licenses: GPL-3.0-or-later (Lc0), GPL-3.0 (Maia project/network
 declaration), MIT (ONNX Runtime), and MIT plus Apache-2.0 with LLVM exception

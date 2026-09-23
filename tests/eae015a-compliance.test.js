@@ -20,6 +20,17 @@ test('EAE-015A.2 manifest pins complete corresponding source and stays pending l
   assert.equal(source.buildManifestSha256,
     '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f');
   assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\.1\//);
+  assert.equal(source.sourceArchiveSha256,
+    '7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec');
+  assert.equal(source.sourceArchiveBytes, 1430117);
+  assert.equal(source.releaseImmutable, true);
+  assert.deepEqual(source.publicVerification, {
+    httpStatus: 200,
+    authenticationRequired: false,
+    contentLength: 1430117,
+    downloadedSha256: source.sourceArchiveSha256,
+    archiveExtracted: true
+  });
   assert.equal(source.runtimeArtifactCount, 8);
   assert.equal(source.runtimeArtifactBytes, 24785017);
   assert.equal(source.complianceStatus, 'LEGAL_SIGNOFF_REQUIRED');
