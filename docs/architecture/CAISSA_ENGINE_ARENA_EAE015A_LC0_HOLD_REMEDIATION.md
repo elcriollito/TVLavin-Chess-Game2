@@ -182,6 +182,8 @@ Safe structured cleanup logs include reason counts and latency. Memory-store tes
 
 The staging database advisor also reports unrelated baseline INFO notices (RLS-with-no-policy tables, three unindexed foreign keys, and unused indexes). The two EAE-015A cleanup indexes are new and naturally reported unused in the new staging workload. See the Supabase remediation references for [RLS policy lint](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy), [unindexed foreign keys](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys), and [unused indexes](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index).
 
+During staging credential discovery, the legacy staging service-role JWT appeared in a local tool transcript. It was not written to the repository and no production credential was involved. Rotate that staging legacy key and update the protected preview environment before any further live exercise.
+
 ## Verification summary
 
 - focused relay/infrastructure/store tests: 28 passed, 0 failed, 1 explicitly skipped staging integration case
@@ -207,5 +209,6 @@ The staging database advisor also reports unrelated baseline INFO notices (RLS-w
 5. Wire and verify the complete production metrics sink/dashboard/alerts rather than relying on cleanup logs and unit counters.
 6. Complete human/legal sign-off and publish the exact corresponding modified source/patch/build and third-party notice delivery plan.
 7. Perform a clean-host rebuild comparison and document whether the pinned compiler output is byte-identical; if it is not, document deterministic provenance/functional equivalence acceptance.
+8. Rotate the exposed legacy staging service-role JWT, update only the protected preview environment, and verify the old key is invalid.
 
-These gaps prevent a truthful `LC0_HOLD_BLOCKERS_CLEARED` result. The next step is not EAE-015B yet; close the seven items above in a follow-up preview-only remediation pass.
+These gaps prevent a truthful `LC0_HOLD_BLOCKERS_CLEARED` result. The next step is not EAE-015B yet; close the eight items above in a follow-up preview-only remediation pass.
