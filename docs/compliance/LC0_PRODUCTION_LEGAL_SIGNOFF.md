@@ -5,13 +5,14 @@ Project: CAISSA Lc0 Browser Runtime
 Certified runtime version: `v0.33.0-dev+git.482bb4a`
 
 Public source archive URL:
-`https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1/caissa-lc0-browser-corresponding-source-v0.1.zip`
+`https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.1/caissa-lc0-browser-corresponding-source-v0.1.1.zip`
 
 Archive SHA-256: pending publication
 
 Applicable licenses: GPL-3.0-or-later (Lc0), GPL-3.0 (Maia project/network
 declaration), MIT (ONNX Runtime), and MIT plus Apache-2.0 with LLVM exception
-(Emscripten). Build-only dependency licenses are inventoried in the notices.
+(Emscripten), and BSD-2-Clause (chess.js). Build-only dependency licenses are
+inventoried in the notices.
 
 ## GPL corresponding-source review
 
@@ -42,6 +43,7 @@ declaration), MIT (ONNX Runtime), and MIT plus Apache-2.0 with LLVM exception
 - [ ] ONNX Runtime Web license, notice, attribution, and source reference are sufficient.
 - [ ] Emscripten license, notice, attribution, and source reference are sufficient.
 - [ ] Other redistributed runtime dependencies have been identified.
+- [ ] chess.js BSD-2-Clause binary-distribution notice is sufficient.
 - [ ] Build-only dependencies are correctly distinguished from redistributed code.
 
 ## Retention
@@ -62,4 +64,3 @@ Decision (select one):
 - [ ] NOT_APPROVED
 
 Notes:
-

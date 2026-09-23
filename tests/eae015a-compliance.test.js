@@ -9,7 +9,7 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('EAE-015A.2 manifest pins complete corresponding source and stays pending legal review', async () => {
   const source = JSON.parse(await readFile(new URL('corresponding-source.json', compliance)));
-  assert.equal(source.releaseId, 'lc0-browser-source-v0.1');
+  assert.equal(source.releaseId, 'lc0-browser-source-v0.1.1');
   assert.equal(source.lc0Version, 'v0.33.0-dev+git.482bb4a');
   assert.equal(source.lc0Commit, '482bb4a830287b726ebe7d42f14ab7f5f17c18a0');
   assert.equal(source.source.commit, source.lc0Commit);
@@ -19,7 +19,7 @@ test('EAE-015A.2 manifest pins complete corresponding source and stays pending l
   assert.equal(source.network.bytes, 1313193);
   assert.equal(source.buildManifestSha256,
     '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f');
-  assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\//);
+  assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\.1\//);
   assert.equal(source.runtimeArtifactCount, 8);
   assert.equal(source.runtimeArtifactBytes, 24785017);
   assert.equal(source.complianceStatus, 'LEGAL_SIGNOFF_REQUIRED');
@@ -36,10 +36,12 @@ test('EAE-015A compliance bundle carries upstream license texts and notices', as
     'LICENSES/maia-GPL-3.0.txt',
     'LICENSES/onnxruntime-MIT.txt',
     'LICENSES/emscripten.txt',
+    'LICENSES/chess.js-BSD-2-Clause.txt',
     'THIRD_PARTY_NOTICES.md',
     'BUILD.md',
     'network/maia-1100.json',
-    'scripts/build-source-archive.ps1'
+    'scripts/build-source-archive.ps1',
+    'scripts/stage-production-inputs.ps1'
   ]) {
     const text = await readFile(new URL(path, compliance), 'utf8');
     assert.ok(text.length > 100, `${path}: incomplete`);

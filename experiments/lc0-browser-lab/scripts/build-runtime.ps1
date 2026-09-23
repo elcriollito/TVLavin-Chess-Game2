@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
   [string]$WorkRoot = (Join-Path $env:TEMP 'caissa-lc0-eae008-repro'),
-  [switch]$ProvisionToolchain
+  [switch]$ProvisionToolchain,
+  [string]$ToolchainRoot,
+  [string]$PythonEnvironmentRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,8 +14,8 @@ $ninjaVersion = '1.11.1.4'
 $sourceDateEpoch = '1789992000' # 2026-09-21T12:00:00Z, certified release epoch.
 $labRoot = Split-Path $PSScriptRoot -Parent
 $sourceRoot = Join-Path $WorkRoot 'lc0.js'
-$emsdkRoot = Join-Path $WorkRoot 'emsdk'
-$venvRoot = Join-Path $WorkRoot 'pyenv'
+$emsdkRoot = if ($ToolchainRoot) { $ToolchainRoot } else { Join-Path $WorkRoot 'emsdk' }
+$venvRoot = if ($PythonEnvironmentRoot) { $PythonEnvironmentRoot } else { Join-Path $WorkRoot 'pyenv' }
 
 New-Item -ItemType Directory -Path $WorkRoot -Force | Out-Null
 if (!(Test-Path -LiteralPath (Join-Path $sourceRoot '.git'))) {

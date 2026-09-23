@@ -22,10 +22,12 @@ await mkdir(releaseDir, { recursive: true });
 await Promise.all([
   build({ entryPoints: [path.join(engine, 'client-source.js')],
     outfile: path.join(releaseDir, 'client.js'), bundle: true, format: 'esm',
-    platform: 'browser', target: ['es2022'], legalComments: 'none', absWorkingDir: repository }),
+    platform: 'browser', target: ['es2022'], legalComments: 'none', absWorkingDir: repository,
+    nodePaths: [path.join(lab, 'node_modules')] }),
   build({ entryPoints: [path.join(lab, 'src/lc0-worker.js')],
     outfile: path.join(releaseDir, 'lc0-worker.js'), bundle: true, format: 'esm',
-    platform: 'browser', target: ['es2022'], legalComments: 'none', absWorkingDir: repository })
+    platform: 'browser', target: ['es2022'], legalComments: 'none', absWorkingDir: repository,
+    nodePaths: [path.join(lab, 'node_modules')] })
 ]);
 
 const copies = [

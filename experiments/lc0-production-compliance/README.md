@@ -14,11 +14,15 @@ The public package contains:
 - Lc0 source commit `482bb4a830287b726ebe7d42f14ab7f5f17c18a0`
   from `https://github.com/jalpp/lc0.js.git`;
 - the exact three-patch browser lifecycle series, in documented order;
-- the CAISSA browser worker/client sources and pinned build scripts/config;
+- the complete CAISSA lab/worker/client build sources and pinned scripts/config;
 - metadata for the separately distributed CSSLab Maia 1100 network;
 - the applicable GPL, Maia, ONNX Runtime, and Emscripten license texts;
 - a content manifest with SHA-256 and byte count for every member except the
   content manifest itself.
+
+The three patches also appear in their expected reconstructed CAISSA build path
+under `caissa-build/`; the copies are byte-identical to the canonical root
+`patches/` series.
 
 `source-git-tree.json` additionally records every original Lc0 Git object ID
 and file mode, including the seven executable files whose mode a Windows ZIP
@@ -26,6 +30,11 @@ extractor cannot preserve.
 
 The Maia network binary is not duplicated. Its exact upstream versioned URL,
 1,313,193-byte length, and SHA-256 are recorded in `network/maia-1100.json`.
+
+The corrected canonical source release is `lc0-browser-source-v0.1.1`. It
+supersedes the sealed prepublication `v0.1` package, whose rehearsal exposed a
+missing lab-to-appliance staging command. Source, patches, licenses, network,
+and certified runtime provenance did not change.
 
 Build the package with:
 

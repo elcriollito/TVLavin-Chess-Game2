@@ -39,12 +39,17 @@ archive bytes. `manifest.json` binds every other archive member.
 
 ## Publication and verification
 
-Release/tag: `lc0-browser-source-v0.1`
+Canonical release/tag: `lc0-browser-source-v0.1.1`
 
 Title: CAISSA Lc0 Browser Runtime — Corresponding Source
 
 Public archive URL:
-`https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1/caissa-lc0-browser-corresponding-source-v0.1.zip`
+`https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.1/caissa-lc0-browser-corresponding-source-v0.1.1.zip`
+
+The immutable `v0.1` prepublication asset is retained as historical evidence.
+Clean reconstruction exposed an omitted lab-to-appliance staging command, so
+`v0.1.1` adds a hash-verifying staging script and is the only canonical package.
+No source, patch, runtime, network, or license input changed.
 
 Archive byte count and SHA-256: pending package generation and external fetch.
 

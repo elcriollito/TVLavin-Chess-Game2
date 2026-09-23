@@ -7,18 +7,18 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $sourceCommit = '482bb4a830287b726ebe7d42f14ab7f5f17c18a0'
-$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.zip'
+$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.1.zip'
 $fixedTimestamp = [DateTimeOffset]::FromUnixTimeSeconds(1789992000)
 $complianceRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path (Join-Path $complianceRoot '..\..')).Path
 $sourceRoot = (Resolve-Path -LiteralPath $SourceCheckout).Path
 
 if (-not $OutputDirectory) {
-  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1'
+  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1.1'
 }
 [System.IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
 $outputRoot = (Resolve-Path -LiteralPath $OutputDirectory).Path
-$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1'
+$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1.1'
 $archivePath = Join-Path $outputRoot $archiveName
 $checksumPath = "$archivePath.sha256"
 
@@ -29,7 +29,7 @@ if (& git -C $sourceRoot status --porcelain) {
   throw 'Source checkout is dirty.'
 }
 if (-not $stageRoot.StartsWith($outputRoot, [StringComparison]::OrdinalIgnoreCase) -or
-    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1') {
+    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1.1') {
   throw 'Unsafe staging path.'
 }
 
@@ -88,6 +88,7 @@ try {
     'LICENSES\maia-GPL-3.0.txt' = 'LICENSE-MAIA.txt'
     'LICENSES\onnxruntime-MIT.txt' = 'LICENSE-ONNX-RUNTIME.txt'
     'LICENSES\emscripten.txt' = 'LICENSE-EMSCRIPTEN.txt'
+    'LICENSES\chess.js-BSD-2-Clause.txt' = 'LICENSE-CHESSJS.txt'
     'network\maia-1100.json' = 'network\maia-1100.json'
   }
   foreach ($item in $rootFiles.GetEnumerator()) {
@@ -96,10 +97,12 @@ try {
 
   foreach ($patch in Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'experiments\lc0-browser-lab\patches') -Filter '*.patch') {
     Copy-BundleFile $patch.FullName (Join-Path $stageRoot "patches\$($patch.Name)")
+    Copy-BundleFile $patch.FullName (Join-Path $stageRoot "caissa-build\experiments\lc0-browser-lab\patches\$($patch.Name)")
   }
 
   $buildFiles = @{
     'experiments\lc0-browser-lab\scripts\build-runtime.ps1' = 'caissa-build\experiments\lc0-browser-lab\scripts\build-runtime.ps1'
+    'experiments\lc0-browser-lab\scripts\build-lab.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\build-lab.mjs'
     'experiments\lc0-browser-lab\scripts\prepare-assets.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\prepare-assets.mjs'
     'experiments\lc0-browser-lab\scripts\build-production-appliance.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\build-production-appliance.mjs'
     'experiments\lc0-browser-lab\scripts\verify-production-appliance.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\verify-production-appliance.mjs'
@@ -107,9 +110,14 @@ try {
     'experiments\lc0-browser-lab\package-lock.json' = 'caissa-build\experiments\lc0-browser-lab\package-lock.json'
     'experiments\lc0-browser-lab\lab-manifest.json' = 'caissa-build\experiments\lc0-browser-lab\lab-manifest.json'
     'experiments\lc0-browser-lab\src\lc0-worker.js' = 'caissa-build\experiments\lc0-browser-lab\src\lc0-worker.js'
+    'experiments\lc0-browser-lab\src\index.html' = 'caissa-build\experiments\lc0-browser-lab\src\index.html'
+    'experiments\lc0-browser-lab\src\lab-app.js' = 'caissa-build\experiments\lc0-browser-lab\src\lab-app.js'
+    'experiments\lc0-browser-lab\src\lab-runtime.js' = 'caissa-build\experiments\lc0-browser-lab\src\lab-runtime.js'
+    'experiments\lc0-browser-lab\src\lab.css' = 'caissa-build\experiments\lc0-browser-lab\src\lab.css'
     'experiments\lc0-preview-relay\engine\client-source.js' = 'caissa-build\experiments\lc0-preview-relay\engine\client-source.js'
     'experiments\lc0-preview-relay\engine\release-manifest.template.json' = 'caissa-build\experiments\lc0-preview-relay\engine\release-manifest.template.json'
     'experiments\lc0-production-compliance\scripts\build-source-archive.ps1' = 'packaging\build-source-archive.ps1'
+    'experiments\lc0-production-compliance\scripts\stage-production-inputs.ps1' = 'packaging\stage-production-inputs.ps1'
   }
   foreach ($item in $buildFiles.GetEnumerator()) {
     Copy-BundleFile (Join-Path $repositoryRoot $item.Key) (Join-Path $stageRoot $item.Value)
@@ -132,7 +140,7 @@ try {
   }
   $contentManifest = [ordered]@{
     schemaVersion = 1
-    releaseId = 'lc0-browser-source-v0.1'
+    releaseId = 'lc0-browser-source-v0.1.1'
     generatedFromCaissaCommit = '2b24d2c682eb74e6605df4c850e6fa9197c5d233'
     lc0Commit = $sourceCommit
     sourceDateEpoch = 1789992000

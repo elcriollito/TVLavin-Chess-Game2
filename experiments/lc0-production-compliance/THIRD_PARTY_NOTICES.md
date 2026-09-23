@@ -53,17 +53,26 @@ of the released network weights in the intended production context.
 - Redistribution status: Emscripten-generated support code is present in the
   certified runtime; the upstream license/notice bundle is included.
 
+## chess.js
+
+- Project: chess.js
+- Version: `1.4.0`
+- Source package: `https://registry.npmjs.org/chess.js/-/chess.js-1.4.0.tgz`
+- Source repository: `https://github.com/jhlywa/chess.js/tree/v1.4.0`
+- Copyright: Copyright (c) 2025, Jeff Hlywa
+- License: BSD-2-Clause
+- License text: `LICENSES/chess.js-BSD-2-Clause.txt`
+- Redistribution status: bundled in the certified browser client. The exact
+  root/lab module resolution graph is reproduced for byte identity.
+
 ## Build-only dependencies
 
 Meson 1.8.3 (Apache-2.0; `https://github.com/mesonbuild/meson/tree/1.8.3`),
 Ninja 1.11.1.4 (Apache-2.0;
 `https://github.com/ninja-build/ninja/tree/v1.11.1`), and esbuild 0.28.1
 (MIT; `https://registry.npmjs.org/esbuild/-/esbuild-0.28.1.tgz`) are pinned
-build tools and are not redistributed as runtime libraries. `chess.js@1.4.0`
-(BSD-2-Clause; `https://registry.npmjs.org/chess.js/-/chess.js-1.4.0.tgz`)
-is used by the isolated validation lab and is not included in the runtime
-appliance manifest. Their copyrights remain with their respective authors and
-contributors.
+build tools and are not redistributed as runtime libraries. Their copyrights
+remain with their respective authors and contributors.
 
 No third-party runtime dependency is left unidentified in this compliance
 package. Human/legal review remains required to confirm the license analysis,

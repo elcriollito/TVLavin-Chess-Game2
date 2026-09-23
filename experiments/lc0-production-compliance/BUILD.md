@@ -51,6 +51,9 @@ The package also carries the build driver, bundler, verifier, lockfile, runtime
 manifest template, worker source, and relay client source under
 `caissa-build/`. Place those files at their documented CAISSA paths, or run the
 equivalent commands from a clean checkout of the certified CAISSA commit.
+`stage-production-inputs.ps1` performs the required lab-to-appliance copy and
+verifies every source and destination byte against the compliance manifest; no
+undocumented manual file copy is required.
 
 ## Build commands
 
@@ -59,18 +62,37 @@ From `experiments/lc0-browser-lab` in the reconstructed CAISSA layout:
 ```powershell
 $work = Join-Path $env:TEMP 'caissa-lc0-eae015a-repro'
 .\scripts\build-runtime.ps1 -WorkRoot $work -ProvisionToolchain
+$packageRoot = (Resolve-Path ..\..\..).Path
+& "$packageRoot\packaging\stage-production-inputs.ps1" `
+  -LabArtifacts (Resolve-Path .\.artifacts).Path `
+  -EngineArtifacts (Join-Path $packageRoot 'caissa-build\experiments\lc0-preview-relay\engine\artifacts') `
+  -ManifestPath (Join-Path $packageRoot 'corresponding-source.json') `
+  -CaissaBuildRoot (Join-Path $packageRoot 'caissa-build')
 $env:EAE015A_RELAY_ORIGIN = 'https://eae015a-lc0-relay-elcriollitos-projects.vercel.app'
 $env:EAE015A_MAIN_ORIGIN = 'https://eae015a-main-elcriollitos-projects.vercel.app'
 node .\scripts\build-production-appliance.mjs
 node .\scripts\verify-production-appliance.mjs
 ```
 
+For a clean rebuild that reuses an already provisioned copy of these exact
+tool versions, pass `-ToolchainRoot` and `-PythonEnvironmentRoot`. Do not use a
+directory junction for the Emscripten SDK on Windows: Emscripten's system
+library cache canonicalizes the physical path, and a junction alias can make
+its generated relative libc paths invalid. The default provisioning behavior
+and generated runtime are unchanged by these optional path parameters.
+
 `build-runtime.ps1` generates the Meson cross-file with
 `System.Text.UTF8Encoding($false)`. This BOM-free UTF-8 encoding is mandatory:
 a UTF-8 BOM caused Meson to reject the first section header. The script pins
 `SOURCE_DATE_EPOCH` because Lc0 embeds its compile date. The appliance bundler
 sets esbuild `absWorkingDir` to the CAISSA repository root because esbuild's
-source comments otherwise vary with the build directory.
+source comments otherwise vary with the build directory. It also pins
+esbuild's `nodePaths` to the lab's lockfile-installed `node_modules`, avoiding
+an undocumented dependency on a developer checkout's root dependencies. The
+staging step also reproduces the certified resolution graph by placing the
+pinned `chess.js@1.4.0` package at the reconstructed CAISSA root. The certified
+client contains separate root and lab module instances; deduplicating them is
+functional but not byte-identical.
 
 The expected output is the eight files listed under `runtimeArtifacts` in
 `corresponding-source.json`. Generate `release-manifest.json` with

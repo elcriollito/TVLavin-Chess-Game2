@@ -1,14 +1,14 @@
 {
   "schemaVersion": 2,
-  "releaseId": "lc0-browser-source-v0.1",
+  "releaseId": "lc0-browser-source-v0.1.1",
   "lc0Version": "v0.33.0-dev+git.482bb4a",
   "lc0Commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
-  "sourceArchiveFilename": "caissa-lc0-browser-corresponding-source-v0.1.zip",
+  "sourceArchiveFilename": "caissa-lc0-browser-corresponding-source-v0.1.1.zip",
   "sourceArchiveSha256": null,
   "sourceArchiveBytes": null,
-  "publicSourceUrl": "https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1/caissa-lc0-browser-corresponding-source-v0.1.zip",
+  "publicSourceUrl": "https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.1/caissa-lc0-browser-corresponding-source-v0.1.1.zip",
   "repository": "https://github.com/elcriollito/TVLavin-Chess-Game2",
-  "releaseTag": "lc0-browser-source-v0.1",
+  "releaseTag": "lc0-browser-source-v0.1.1",
   "source": {
     "repository": "https://github.com/jalpp/lc0.js.git",
     "upstreamRepository": "https://github.com/LeelaChessZero/lc0.git",
@@ -72,7 +72,8 @@
     "COPYING-LC0.txt",
     "LICENSE-MAIA.txt",
     "LICENSE-ONNX-RUNTIME.txt",
-    "LICENSE-EMSCRIPTEN.txt"
+    "LICENSE-EMSCRIPTEN.txt",
+    "LICENSE-CHESSJS.txt"
   ],
   "notices": ["THIRD_PARTY_NOTICES.md"],
   "buildManifestSha256": "492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f",
