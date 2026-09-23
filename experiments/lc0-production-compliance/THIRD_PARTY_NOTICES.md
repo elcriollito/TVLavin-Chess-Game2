@@ -1,4 +1,4 @@
-# Third-party notices
+# Third-party notices and redistribution inventory
 
 ## Lc0 browser runtime
 
@@ -11,6 +11,9 @@
 - Local modifications: the ordered patch series listed in
   `corresponding-source.json`, plus the CAISSA browser worker/client sources.
 - Copyright: the Lc0 contributors identified by the pinned source history.
+- Redistribution status: modified corresponding source included in full in the
+  source archive; runtime binary distribution remains subject to human/legal
+  approval.
 
 ## Maia 1100 network
 
@@ -22,6 +25,8 @@
 - License declared by the pinned project: GPL-3.0
 - License text: `LICENSES/maia-GPL-3.0.txt`
 - Copyright: the Maia Chess authors and contributors identified by the pinned source.
+- Redistribution status: the network binary is not duplicated in this archive;
+  its versioned upstream distribution URL and integrity metadata are included.
 
 Human legal review must confirm that the project license covers redistribution
 of the released network weights in the intended production context.
@@ -35,6 +40,8 @@ of the released network weights in the intended production context.
 - License: MIT
 - License text and Microsoft copyright notice:
   `LICENSES/onnxruntime-MIT.txt`
+- Redistribution status: the certified runtime redistributes the WebAssembly
+  loader/runtime; license and source reference are included.
 
 ## Emscripten
 
@@ -43,11 +50,22 @@ of the released network weights in the intended production context.
 - Source: `https://github.com/emscripten-core/emscripten/tree/3.1.64`
 - Declared license expression: MIT AND Apache-2.0 WITH LLVM-exception
 - Upstream license/notices: `LICENSES/emscripten.txt`
+- Redistribution status: Emscripten-generated support code is present in the
+  certified runtime; the upstream license/notice bundle is included.
 
 ## Build-only dependencies
 
-Meson 1.8.3 (Apache-2.0), Ninja 1.11.1.4 (Apache-2.0), and esbuild
-0.28.1 (MIT) are pinned build tools and are not shipped as runtime libraries.
-`chess.js@1.4.0` (BSD-2-Clause) is used by the isolated validation lab and is
-not included in the runtime appliance manifest.
+Meson 1.8.3 (Apache-2.0; `https://github.com/mesonbuild/meson/tree/1.8.3`),
+Ninja 1.11.1.4 (Apache-2.0;
+`https://github.com/ninja-build/ninja/tree/v1.11.1`), and esbuild 0.28.1
+(MIT; `https://registry.npmjs.org/esbuild/-/esbuild-0.28.1.tgz`) are pinned
+build tools and are not redistributed as runtime libraries. `chess.js@1.4.0`
+(BSD-2-Clause; `https://registry.npmjs.org/chess.js/-/chess.js-1.4.0.tgz`)
+is used by the isolated validation lab and is not included in the runtime
+appliance manifest. Their copyrights remain with their respective authors and
+contributors.
+
+No third-party runtime dependency is left unidentified in this compliance
+package. Human/legal review remains required to confirm the license analysis,
+attribution placement, Maia redistribution terms, and retention policy.
 

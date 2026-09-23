@@ -7,19 +7,26 @@ const root = new URL('../', import.meta.url);
 const compliance = new URL('experiments/lc0-production-compliance/', root);
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('EAE-015A compliance bundle pins corresponding source and stays pending legal review', async () => {
+test('EAE-015A.2 manifest pins complete corresponding source and stays pending legal review', async () => {
   const source = JSON.parse(await readFile(new URL('corresponding-source.json', compliance)));
-  assert.equal(source.lc0.commit, '482bb4a830287b726ebe7d42f14ab7f5f17c18a0');
-  assert.equal(source.maiaNetwork.commit, '37de81e2bef89336e03266b3b5f7e1155ba68f5d');
-  assert.equal(source.maiaNetwork.sha256,
+  assert.equal(source.releaseId, 'lc0-browser-source-v0.1');
+  assert.equal(source.lc0Version, 'v0.33.0-dev+git.482bb4a');
+  assert.equal(source.lc0Commit, '482bb4a830287b726ebe7d42f14ab7f5f17c18a0');
+  assert.equal(source.source.commit, source.lc0Commit);
+  assert.equal(source.network.sourceCommit, '37de81e2bef89336e03266b3b5f7e1155ba68f5d');
+  assert.equal(source.network.sha256,
     'e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4');
-  assert.equal(source.runtimeManifestSha256,
+  assert.equal(source.network.bytes, 1313193);
+  assert.equal(source.buildManifestSha256,
     '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f');
-  assert.equal(source.correspondingSourceLocation, null);
-  assert.equal(source.legalStatus, 'LEGAL_SIGNOFF_REQUIRED');
+  assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\//);
+  assert.equal(source.runtimeArtifactCount, 8);
+  assert.equal(source.runtimeArtifactBytes, 24785017);
+  assert.equal(source.complianceStatus, 'LEGAL_SIGNOFF_REQUIRED');
   for (const patch of source.patches) {
-    const bytes = await readFile(new URL(patch.path, root));
-    assert.equal(sha256(bytes), patch.sha256, patch.path);
+    const bytes = await readFile(new URL(`experiments/lc0-browser-lab/patches/${patch.filename}`, root));
+    assert.equal(sha256(bytes), patch.sha256, patch.filename);
+    assert.equal(patch.upstreamBaseCommit, source.lc0Commit);
   }
 });
 
@@ -30,7 +37,9 @@ test('EAE-015A compliance bundle carries upstream license texts and notices', as
     'LICENSES/onnxruntime-MIT.txt',
     'LICENSES/emscripten.txt',
     'THIRD_PARTY_NOTICES.md',
-    'BUILD.md'
+    'BUILD.md',
+    'network/maia-1100.json',
+    'scripts/build-source-archive.ps1'
   ]) {
     const text = await readFile(new URL(path, compliance), 'utf8');
     assert.ok(text.length > 100, `${path}: incomplete`);

@@ -1,27 +1,43 @@
-# EAE-015A Lc0 redistribution bundle
+# CAISSA Lc0 browser corresponding source
 
-This directory is the release-compliance companion for the isolated Lc0 browser
-appliance `eae015a-lc0-0.33.0-maia1100`. It records the exact source,
-patches, toolchain, network, license texts, and deterministic build procedure
-used by the preview artifact.
+This directory defines the compliance/source package for the isolated Lc0
+browser appliance `eae015a-lc0-0.33.0-maia1100`. It freezes the exact Lc0
+source, CAISSA patch series, build inputs, network provenance, licenses, and
+notices associated with the technically certified EAE-015A runtime.
 
-This is technical compliance evidence, not legal approval. Publication remains
-blocked on an authorized human review of GPL corresponding-source delivery,
-Maia network redistribution rights, attribution placement, and the proposed
-source-offer location. Current status: `LEGAL_SIGNOFF_REQUIRED`.
+This publication does **not** activate Lc0 in CAISSA Engine Arena. Lc0 remains
+disabled, and the package is not a product release or legal approval. Current
+status: `LEGAL_SIGNOFF_REQUIRED`.
 
-The corresponding source consists of:
+The public package contains:
 
 - Lc0 source commit `482bb4a830287b726ebe7d42f14ab7f5f17c18a0`
   from `https://github.com/jalpp/lc0.js.git`;
-- the three ordered patches in `../lc0-browser-lab/patches/`;
-- CAISSA runtime sources `../lc0-browser-lab/src/lc0-worker.js` and
-  `../lc0-preview-relay/engine/client-source.js`;
-- the reproducible build scripts in `../lc0-browser-lab/scripts/`;
-- this directory's license texts, notices, and provenance manifest.
+- the exact three-patch browser lifecycle series, in documented order;
+- the CAISSA browser worker/client sources and pinned build scripts/config;
+- metadata for the separately distributed CSSLab Maia 1100 network;
+- the applicable GPL, Maia, ONNX Runtime, and Emscripten license texts;
+- a content manifest with SHA-256 and byte count for every member except the
+  content manifest itself.
 
-No public corresponding-source URL is asserted yet. For a release, publish an
-archive containing the items above at the same time and for the same retention
-period as the binary appliance, then replace the pending location in
-`corresponding-source.json` with its immutable URL and SHA-256.
+`source-git-tree.json` additionally records every original Lc0 Git object ID
+and file mode, including the seven executable files whose mode a Windows ZIP
+extractor cannot preserve.
+
+The Maia network binary is not duplicated. Its exact upstream versioned URL,
+1,313,193-byte length, and SHA-256 are recorded in `network/maia-1100.json`.
+
+Build the package with:
+
+```powershell
+.\scripts\build-source-archive.ps1 `
+  -SourceCheckout C:\path\to\clean\lc0.js-at-482bb4a
+```
+
+The final external archive digest is recorded in `corresponding-source.json`
+and in the release checksum sidecar. The copy of `corresponding-source.json`
+inside the archive deliberately leaves the enclosing archive hash/length null:
+an archive cannot contain its own final digest without changing that digest.
+`manifest.json` authenticates the archive members; the detached repository
+manifest and `.sha256` asset authenticate the archive envelope.
 
