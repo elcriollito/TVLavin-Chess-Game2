@@ -1231,7 +1231,9 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
-        this.prewarmEngines();
+        // The isolated Lc0 participant must be opened by a visible user gesture.
+        if (![this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
         const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
@@ -1261,7 +1263,8 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
-        this.prewarmEngines();
+        if (![this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
     },
 
     updateEngineInfo() {
@@ -1449,7 +1452,17 @@ const CaissaArena = {
             return;
         }
 
+        const lc0 = 'lc0-maia-1100-preview';
+        if (this.state.whiteEngine.id === lc0 && this.state.blackEngine.id === lc0) {
+            this.updateGameStatus({ result: 'Choose one Lc0 participant and one other engine.' });
+            return;
+        }
+        if ([this.state.whiteEngine, this.state.blackEngine].some(engine =>
+            engine.id === lc0 && !window.CaissaArenaPreview?.enabled)) return;
+
         this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
+        if (window.CaissaArenaPreview?.enabled)
+            window.CaissaArenaPreview.matchStartAt = performance.now();
         const startToken = ++this.state.startToken;
         const startIsCurrent = () => startToken === this.state.startToken;
         const cancelStaleStart = () => {
@@ -1850,6 +1863,8 @@ const CaissaArena = {
      * Creates three independent engine workers (white, black, evaluator)
      */
     prewarmEngines() {
+        if ([this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) return Promise.resolve(false);
         if (this.enginesReady && this.playerInstancesMatchSelections()) return Promise.resolve(true);
         if (this._prewarmPromise) return this._prewarmPromise;
         if (this.state.engineBinaryAvailable === false) return Promise.resolve(false);
@@ -1857,6 +1872,8 @@ const CaissaArena = {
         this._prewarmPromise = (async () => {
             let initialized = false;
             do {
+                if ([this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+                    candidate?.id === 'lc0-maia-1100-preview')) break;
                 initialized = await this.initEngines();
             } while (initialized && !this.playerInstancesMatchSelections());
             return initialized;
@@ -1881,6 +1898,15 @@ const CaissaArena = {
             const whiteConfig = this.state.whiteEngine || this.engines[0];
             const blackConfig = this.state.blackEngine || this.engines[1] || this.engines[0];
             const evalConfig = this.engines.find(e => e.id === 'stockfish') || whiteConfig;
+            if (whiteConfig.id === 'lc0-maia-1100-preview' &&
+                blackConfig.id === 'lc0-maia-1100-preview')
+                throw new Error('Only one Lc0 participant is permitted per competition.');
+            if (whiteConfig.id === 'lc0-maia-1100-preview' &&
+                this.blackEngineInstance?.providerId === whiteConfig.id)
+                await this.runtimeManager.terminate('black', 'lc0-role-transition');
+            if (blackConfig.id === 'lc0-maia-1100-preview' &&
+                this.whiteEngineInstance?.providerId === blackConfig.id)
+                await this.runtimeManager.terminate('white', 'lc0-role-transition');
 
             const [whiteInstance, blackInstance, evaluatorInstance] = await Promise.all([
                 this.runtimeManager.acquire('white', whiteConfig.id),
@@ -1969,10 +1995,16 @@ const CaissaArena = {
      * Destroy engine instances to free resources
      */
     destroyEngines() {
-        this.runtimeManager?.terminateAll('arena-destroyed');
+        const cleanup = this.runtimeManager?.terminateAll('arena-destroyed');
+        if (cleanup && typeof cleanup.catch === 'function') {
+            cleanup.catch(error => {
+                this.updateGameStatus({ result: `Lc0 cleanup unverified: ${error.message}` });
+            });
+        }
         this.enginesReady = false;
         this.evaluatorReady = false;
         console.log('[Arena] All engines destroyed');
+        return cleanup;
     },
 
     getBookMove() {
@@ -3039,6 +3071,11 @@ const CaissaArena = {
     startTournament() {
         const selectedEngines = this.getSelectedTournamentEngines();
 
+        if (selectedEngines.filter(engine => engine.id === 'lc0-maia-1100-preview').length > 1) {
+            this.updateGameStatus({ result: 'Only one Lc0 participant is permitted per competition.' });
+            return;
+        }
+
         if (selectedEngines.length < 2) {
             alert('Please select at least 2 engines for the tournament');
             return;
@@ -3373,11 +3410,15 @@ const CaissaArena = {
     }
 };
 
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => CaissaArena.init());
-} else {
+// Resolve the internal candidate gate before Arena snapshots its providers.
+const initializeArena = async () => {
+    if (location.pathname === '/arena-preview') await window.CaissaArenaPreview?.prepare?.();
     CaissaArena.init();
+};
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeArena);
+} else {
+    initializeArena();
 }
 
 // Register with navigation system

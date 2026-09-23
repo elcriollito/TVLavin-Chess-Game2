@@ -28,7 +28,10 @@
             return null;
         }
         const normalized = String(pathname || '').replace(/\/+$/, '') || '/';
-        const definition = definitions[normalized] || null;
+        // The protected candidate reuses the existing Arena section while
+        // /arena remains the only canonical/public navigation destination.
+        const definition = normalized === '/arena-preview'
+            ? definitions['/arena'] : definitions[normalized] || null;
         return definition ? Object.freeze({ route: normalized, ...definition }) : null;
     }
 

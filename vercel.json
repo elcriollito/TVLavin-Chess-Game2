@@ -24,6 +24,9 @@
     "api/scanner/beta/recognize.js": {
       "maxDuration": 30,
       "includeFiles": "{api/_private/scanner-beta-model/**,node_modules/onnxruntime-node/{package.json,dist/**,bin/napi-v6/linux/x64/**},node_modules/onnxruntime-common/{package.json,dist/cjs/**}}"
+    },
+    "api/eae015a-preview-page.js": {
+      "includeFiles": "index.html"
     }
   },
   "crons": [
@@ -84,6 +87,7 @@
     { "source": "/analyze", "destination": "/index.html" },
     { "source": "/spectator-tv", "destination": "/index.html" },
     { "source": "/arena", "destination": "/index.html" },
+    { "source": "/arena-preview", "destination": "/api/eae015a-preview-page" },
     { "source": "/cheater-insight", "destination": "/index.html" },
     { "source": "/game-library", "destination": "/game-library.html" },
     { "source": "/history", "destination": "/index.html" },
@@ -150,6 +154,14 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-site" }
+      ]
+    },
+    {
+      "source": "/arena-preview",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' data: blob: https://img.clerk.com https://images.clerk.dev https://cdn.jsdelivr.net https://chessboardjs.com https://c.bing.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev wss://fics-gateway.caissa-chess.org https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://c.bing.com https://api.together.ai https://api.llama.com https://api.openai.com https://api.anthropic.com https://eae015a-lc0-relay-elcriollitos-projects.vercel.app; worker-src 'self' blob:; frame-src 'self' https://play.chessbase.com https://fritz.chessbase.com https://livetactics.chessbase.com https://liveblitz.chessbase.com https://live.chessbase.com https://lichess.org https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests" },
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
       ]
     },
     {

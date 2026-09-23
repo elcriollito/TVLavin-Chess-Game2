@@ -1,0 +1,105 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+import vm from 'node:vm';
+import { previewArenaEnabled } from '../api/eae013.js';
+import { renderPreviewDocument } from '../api/eae015a-preview-page.js';
+
+const branch = 'experiment/lc0-eae013-arena-preview-integration';
+const config = { VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: branch,
+  EAE013_ARENA_PREVIEW: '1', EAE011_MAIN_ORIGIN: 'https://eae013-main.vercel.app',
+  EAE011_ENGINE_ORIGIN: 'https://eae013-engine.vercel.app' };
+
+test('preview API gate requires exact branch, flag, host, and separate HTTPS origin', () => {
+  assert.equal(previewArenaEnabled(config, 'eae013-main.vercel.app'), true);
+  for (const change of [
+    { EAE013_ARENA_PREVIEW: '0' }, { VERCEL_ENV: 'production' },
+    { VERCEL_GIT_COMMIT_REF: 'main' },
+    { EAE011_ENGINE_ORIGIN: config.EAE011_MAIN_ORIGIN },
+    { EAE011_ENGINE_ORIGIN: 'http://eae013-engine.vercel.app' }
+  ]) assert.equal(previewArenaEnabled({ ...config, ...change }, 'eae013-main.vercel.app'), false);
+  assert.equal(previewArenaEnabled(config, 'www.caissa-chess.org'), false);
+  const eae013a = { ...config,
+    VERCEL_GIT_COMMIT_REF: 'experiment/lc0-eae013a-session-reliability',
+    EAE013_ARENA_PREVIEW: undefined,
+    EAE013A_SESSION_RELIABILITY_PREVIEW: '1' };
+  assert.equal(previewArenaEnabled(eae013a, 'eae013-main.vercel.app'), true);
+  assert.equal(previewArenaEnabled({ ...eae013a,
+    EAE013A_SESSION_RELIABILITY_PREVIEW: undefined }, 'eae013-main.vercel.app'), false);
+  const candidate = { ...config,
+    VERCEL_GIT_COMMIT_REF: 'integration/lc0-limited-production-rc',
+    EAE013_ARENA_PREVIEW: undefined,
+    EAE015B_INTERNAL_PREVIEW: '1' };
+  assert.equal(previewArenaEnabled(candidate, 'eae013-main.vercel.app'), true);
+  assert.equal(previewArenaEnabled({ ...candidate, EAE015B_INTERNAL_PREVIEW: '0' },
+    'eae013-main.vercel.app'), false);
+});
+
+test('candidate bootstrap is internal-only and blocks unsupported browsers and mobile', () => {
+  const source = fs.readFileSync(new URL('../experiments/lc0-arena-preview/bootstrap.js',
+    import.meta.url), 'utf8');
+  assert.match(source, /releaseStage !== 'INTERNAL_ONLY'/);
+  assert.match(source, /config\.mode !== 'ENABLED'/);
+  assert.match(source, /Google Chrome\|Microsoft Edge/);
+  assert.match(source, /Android\|iPhone\|iPad\|iPod\|Mobile/);
+  assert.match(source, /supported desktop browsers only/);
+});
+
+test('normal Arena provider list is frozen without explicit preview registration', () => {
+  const source = fs.readFileSync(new URL('../js/engine-registry.js', import.meta.url), 'utf8');
+  const window = { location: { pathname: '/arena' }, WebAssembly: {},
+    matchMedia: () => ({ matches: false }) };
+  vm.runInNewContext(source, { window, console }, { filename: 'engine-registry.js' });
+  const registry = window.EngineRegistry;
+  const before = registry.listArenaProviders().map(item => item.id);
+  assert.equal(before.includes('lc0-maia-1100-preview'), false);
+  assert.equal(registry.registerArenaPreviewProvider({ id: 'lc0-maia-1100-preview' }, () => {}), false);
+  assert.deepEqual(registry.listArenaProviders().map(item => item.id), before);
+  window.CaissaArenaPreview = { enabled: true };
+  assert.equal(registry.registerArenaPreviewProvider({ id: 'lc0-maia-1100-preview',
+    availability: 'available', enabled: true, workerPath: '/isolated' }, () => ({})), true);
+  assert.equal(registry.listArenaProviders().filter(item => item.id === 'lc0-maia-1100-preview').length, 1);
+  assert.equal(registry.list().some(item => item.id === 'lc0-maia-1100-preview'), false);
+});
+
+test('preview URL resolves to the existing Arena section without changing its canonical route', () => {
+  const source = fs.readFileSync(new URL('../js/legacy-canonical-section-route-policy.js', import.meta.url), 'utf8');
+  const window = { location: { origin: 'https://eae013-main.vercel.app',
+    pathname: '/arena-preview' }, document: { documentElement: { setAttribute() {} } } };
+  vm.runInNewContext(source, { window, URL }, { filename: 'legacy-canonical-section-route-policy.js' });
+  assert.equal(window.LegacyCanonicalSectionRoutePolicy.resolve('/arena-preview').section, 'arena');
+  assert.equal(window.LegacyCanonicalSectionRoutePolicy.routeForSection('arena'), '/arena');
+});
+
+test('Stockfish 19 worker receives the same WASM-only CSP as Stockfish 18 in preview', () => {
+  const config = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  const sf18 = config.headers.find(item => item.source === '/assets/vendor/stockfish/18.0.0/:path*');
+  const sf19 = config.headers.find(item => item.source === '/assets/vendor/stockfish/19.0.0/:path*');
+  assert.ok(sf18 && sf19);
+  assert.equal(sf19.headers.find(item => item.key === 'Content-Security-Policy').value,
+    sf18.headers.find(item => item.key === 'Content-Security-Policy').value);
+  assert.equal(config.headers.find(item => item.source === '/arena')?.headers?.some(item =>
+    item.key === 'Cross-Origin-Embedder-Policy'), undefined);
+});
+
+test('isolated relay is permitted only by the dormant Arena preview route CSP', () => {
+  const config = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  const relay = 'https://eae015a-lc0-relay-elcriollitos-projects.vercel.app';
+  const global = config.headers.find(item => item.source === '/(.*)').headers
+    .find(item => item.key === 'Content-Security-Policy').value;
+  const preview = config.headers.find(item => item.source === '/arena-preview').headers
+    .find(item => item.key === 'Content-Security-Policy').value;
+  assert.doesNotMatch(global, new RegExp(relay.replaceAll('.', '\\.')));
+  assert.match(preview, new RegExp(`connect-src[^;]*${relay.replaceAll('.', '\\.')}`));
+  assert.doesNotMatch(preview, /connect-src[^;]*https:\/\/\*\.vercel\.app/);
+});
+
+test('preview document gateway amends only its meta connect-src with the exact relay', () => {
+  const document = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const relay = 'https://eae015a-lc0-relay-elcriollitos-projects.vercel.app';
+  assert.doesNotMatch(document, new RegExp(relay.replaceAll('.', '\\.')));
+  const rendered = renderPreviewDocument(document, relay);
+  assert.equal(rendered.split(relay).length - 1, 1);
+  assert.match(rendered, new RegExp(`connect-src[^;]*${relay.replaceAll('.', '\\.')}`));
+  assert.equal(rendered.replace(` ${relay}`, ''), document);
+});

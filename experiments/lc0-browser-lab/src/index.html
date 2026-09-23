@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAISSA Lc0 Browser Lab</title>
+  <link rel="stylesheet" href="/lab.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">EAE-008 · isolated experiment</p>
+      <h1>CAISSA Lc0 Browser Lab</h1>
+      <p>This origin is not the production Arena. It runs one pinned CPU/WASM backend and one pinned network.</p>
+    </header>
+
+    <section aria-labelledby="environment-heading">
+      <h2 id="environment-heading">Environment</h2>
+      <dl id="environment"></dl>
+      <p id="environmentVerdict" class="status">Checking…</p>
+    </section>
+
+    <section aria-labelledby="identity-heading">
+      <h2 id="identity-heading">Experimental identity</h2>
+      <dl id="identity"></dl>
+    </section>
+
+    <section aria-labelledby="runtime-heading">
+      <h2 id="runtime-heading">Runtime</h2>
+      <dl id="runtimeStatus"></dl>
+      <div class="controls">
+        <button id="initialize">Initialize</button>
+        <button id="uciTest" disabled>UCI test</button>
+        <button id="positionTest" disabled>Start-position test</button>
+        <button id="repeatedTest" disabled>20-position test</button>
+        <button id="stopRestart" disabled>Stop / restart</button>
+        <button id="terminate" disabled>Terminate</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="console-heading">
+      <h2 id="console-heading">Diagnostic console</h2>
+      <pre id="console" aria-live="polite"></pre>
+    </section>
+  </main>
+  <script type="module" src="/lab-app.js"></script>
+</body>
+</html>

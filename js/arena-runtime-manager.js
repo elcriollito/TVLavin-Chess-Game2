@@ -149,6 +149,7 @@
 
         handleFailure(record, failure) {
             if (!record || !this.isCurrent(record)) return;
+            if (record.state === STATES.FAILED && record.instance?.asyncLifecycle) return;
             const identity = record.instance?.getRuntimeIdentity?.() || null;
             if (record.state !== STATES.FAILED && record.state !== STATES.TERMINATED) {
                 this.transition(record, STATES.FAILED);
@@ -167,6 +168,13 @@
             }
             this.lastFailures.set(record.role, diagnostic);
             this.diagnostics.failures += 1;
+            if (record.instance?.asyncLifecycle) {
+                this.onFailure?.(diagnostic);
+                // A relay-backed role remains owned until its cleanup or expiry is
+                // observed. Do not publish a synthetic TERMINATED state here.
+                this.terminate(record.role, 'arena-runtime-failure').catch(() => {});
+                return;
+            }
             const terminationStartedAt = this.now();
             record.instance?.terminate?.('arena-runtime-failure');
             this.recordTermination(record, 'arena-runtime-failure', terminationStartedAt,
@@ -200,7 +208,8 @@
 
             if (current) {
                 this.diagnostics.replacements += 1;
-                this.terminate(role, 'provider-replaced');
+                const ended = this.terminate(role, 'provider-replaced');
+                if (ended && typeof ended.then === 'function') await ended;
             }
 
             const generation = this.nextGeneration(role);
@@ -292,12 +301,26 @@
             if (!record) return false;
             if (expectedInstance && record.instance !== expectedInstance) return false;
             if ([STATES.CREATED, STATES.INITIALIZING].includes(record.state)) {
-                record.instance.stop?.();
+                const pending = record.instance.stop?.();
                 this.diagnostics.stops += 1;
-                return true;
+                return record.instance.asyncLifecycle ? Promise.resolve(pending).then(() => true) : true;
             }
             if (![STATES.FAILED, STATES.TERMINATED].includes(record.state)) {
                 this.transition(record, STATES.STOPPING);
+                if (record.instance.asyncLifecycle) {
+                    if (record.stopPromise) return record.stopPromise;
+                    record.stopPromise = Promise.resolve().then(() => record.instance.stop?.())
+                        .then(() => {
+                            if (this.isCurrent(record) && record.state === STATES.STOPPING)
+                                this.transition(record, STATES.IDLE);
+                            return true;
+                        }).catch(error => {
+                            this.handleFailure(record, error);
+                            throw error;
+                        }).finally(() => { record.stopPromise = null; });
+                    this.diagnostics.stops += 1;
+                    return record.stopPromise;
+                }
                 record.instance.stop?.();
                 this.transition(record, STATES.IDLE);
                 this.diagnostics.stops += 1;
@@ -306,7 +329,9 @@
         }
 
         stopAll() {
-            ROLES.forEach(role => this.stop(role));
+            const results = ROLES.map(role => this.stop(role));
+            return results.some(result => result && typeof result.then === 'function')
+                ? Promise.all(results) : undefined;
         }
 
         terminate(role, reason = 'role-terminated') {
@@ -315,6 +340,32 @@
             if (!record) {
                 this.nextGeneration(role);
                 return false;
+            }
+            if (record.instance.asyncLifecycle) {
+                if (record.terminationPromise) return record.terminationPromise;
+                const terminationStartedAt = this.now();
+                record.terminationPromise = Promise.resolve().then(() => record.instance.terminate?.(reason))
+                    .then(() => {
+                        if (this.isCurrent(record)) {
+                            this.transition(record, STATES.TERMINATED);
+                            this.records.delete(role);
+                            this.nextGeneration(role);
+                        }
+                        this.recordTermination(record, reason, terminationStartedAt);
+                        this.diagnostics.terminations += 1;
+                        return true;
+                    }).catch(error => {
+                        if (this.isCurrent(record)) {
+                            if (record.state !== STATES.FAILED) this.transition(record, STATES.FAILED);
+                            this.records.delete(role);
+                            this.nextGeneration(role);
+                        }
+                        this.lastFailures.set(role, Object.freeze({ role, providerId: record.providerId,
+                            generation: record.generation, code: error.code || 'CLEANUP_UNVERIFIED',
+                            message: error.message, at: this.now() }));
+                        throw error;
+                    });
+                return record.terminationPromise;
             }
             if (record.state !== STATES.TERMINATED) {
                 if (record.state === STATES.FAILED) this.transition(record, STATES.TERMINATED);
@@ -331,13 +382,29 @@
         }
 
         terminateAll(reason = 'arena-terminated') {
-            ROLES.forEach(role => this.terminate(role, reason));
+            const results = ROLES.map(role => this.terminate(role, reason));
+            return results.some(result => result && typeof result.then === 'function')
+                ? Promise.all(results) : undefined;
         }
 
         newGame(role) {
             this.assertRole(role);
             const record = this.records.get(role);
             if (!record?.instance?.isReady?.()) return false;
+            if (record.instance.asyncLifecycle) {
+                return (async () => {
+                    if ([STATES.THINKING, STATES.READY, STATES.STOPPING].includes(record.state))
+                        await this.stop(role);
+                    if (!this.isCurrent(record)) throw new Error('Arena runtime changed during new game');
+                    this.transition(record, STATES.INITIALIZING);
+                    await record.instance.newGame?.();
+                    if (!this.markReady(role)) throw new Error('Arena runtime did not become ready');
+                    return true;
+                })().catch(error => {
+                    this.handleFailure(record, error);
+                    throw error;
+                });
+            }
             if ([STATES.THINKING, STATES.READY].includes(record.state)) this.stop(role);
             this.transition(record, STATES.INITIALIZING);
             record.instance.newGame?.();
