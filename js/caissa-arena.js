@@ -2166,7 +2166,7 @@ const CaissaArena = {
             engine.send('isready');
             timeout = setTimeout(() => {
                 finish(() => reject(new Error(`${color} engine readyok timeout`)));
-            }, 5000);
+            }, engine.asyncLifecycle ? 15000 : 5000);
         });
     },
 

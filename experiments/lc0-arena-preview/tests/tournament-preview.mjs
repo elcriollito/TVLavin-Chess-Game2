@@ -38,7 +38,8 @@ const report = { field: FIELDS, games: [], popups: [], errors: [] };
 const browser = await chromium.launch({ headless: true,
   ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-let user, clerkSession, context, page, ownerToken, tokenAt = 0, temporaryUser = false;
+let user, clerkSession, context, page, ownerToken, tokenAt = 0, temporaryUser = false,
+  temporarySession = false;
 async function token() {
   if (!ownerToken || Date.now() - tokenAt > 30_000) {
     ownerToken = (await clerk.sessions.getToken(clerkSession.id)).jwt;
@@ -73,7 +74,8 @@ const discoverInternalIdentity = async () => {
       const cleanup = await fetch(url, { method: 'POST', headers: { Origin: MAIN,
         Authorization: `Bearer ${bearer}`, ...protectionHeaders(RELAY) } });
       assert.equal(cleanup.status, 200, 'Allowlist discovery probe cleanup failed');
-      return { user: candidate, session: candidateSession, tested };
+      const certificationSession = await clerk.sessions.createSession({ userId: candidate.id });
+      return { user: candidate, session: certificationSession, tested };
     }
   }
   throw new Error('INTERNAL_ALLOWLIST_IDENTITY_NOT_FOUND');
@@ -83,6 +85,7 @@ try {
     const discovered = await discoverInternalIdentity();
     user = discovered.user;
     clerkSession = discovered.session;
+    temporarySession = true;
     report.internalIdentityDiscovery = { matches: 1, sessionsTested: discovered.tested };
   } else if (internalEmail) {
     const users = (await clerk.users.getUserList({ limit: 500 })).data;
@@ -306,5 +309,7 @@ try {
 } finally {
   await context?.close().catch(() => {});
   await browser.close();
+  if (temporarySession && clerkSession)
+    await clerk.sessions.revokeSession(clerkSession.id).catch(() => {});
   if (temporaryUser && user) await clerk.users.deleteUser(user.id);
 }

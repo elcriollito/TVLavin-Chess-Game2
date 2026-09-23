@@ -50,3 +50,7 @@ test('SSE delivery rewinds to the durable ACK cursor after a silent socket gap',
   assert.match(relayApi, /currentCursor = next\.acknowledgedCursor/);
   assert.match(relayApi, /claim_command keeps execution exactly-once/);
 });
+
+test('remote async runtime readiness has a bounded production-network allowance', () => {
+  assert.match(arena, /engine\.asyncLifecycle \? 15000 : 5000/);
+});

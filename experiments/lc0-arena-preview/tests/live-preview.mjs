@@ -58,7 +58,7 @@ const browser = await chromium.launch({ headless: true,
   ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const report = { cyclesRequested: CYCLES, cycles: [], failures: [], startedAt: Date.now() };
-let user, session, context, page, temporaryUser = false;
+let user, session, context, page, temporaryUser = false, temporarySession = false;
 const engineBrowserErrors = [];
 let lastToken, lastTokenAt = 0;
 const token = async () => {
@@ -131,7 +131,8 @@ const discoverInternalIdentity = async () => {
       assert.equal(probe.status, 201, 'Unexpected allowlist discovery response');
       assert.ok(probe.body.sessionId, 'Allowlist discovery did not create a relay session');
       await terminateProbe(bearer, probe.body.sessionId);
-      return { user: candidate, session: candidateSession, tested };
+      const certificationSession = await clerk.sessions.createSession({ userId: candidate.id });
+      return { user: candidate, session: certificationSession, tested };
     }
   }
   throw new Error('INTERNAL_ALLOWLIST_IDENTITY_NOT_FOUND');
@@ -143,6 +144,7 @@ try {
     const discovered = await discoverInternalIdentity();
     user = discovered.user;
     session = discovered.session;
+    temporarySession = true;
     report.internalIdentityDiscovery = { matches: 1, sessionsTested: discovered.tested };
   } else if (internalEmail) {
     const users = (await clerk.users.getUserList({ limit: 500 })).data;
@@ -531,7 +533,9 @@ try {
           sessionId: window.CaissaArenaPreview.adapter.sessionId,
           phase: window.CaissaArenaPreview.adapter.lastPhase,
           metrics: window.CaissaArenaPreview.adapter.metrics
-        }, config: window.CaissaArenaPreview?.config || null
+        }, arenaError: CaissaArena?.lastArenaError || null,
+        arenaTrace: CaissaArena?.lifecycleTrace?.slice(-80) || [],
+        config: window.CaissaArenaPreview?.config || null
       })).catch(() => null);
       const popupState = await Promise.all(context.pages().filter(candidate => candidate !== page)
         .map(async candidate => ({ url: candidate.url(), state: await candidate.evaluate(() => ({
@@ -623,5 +627,6 @@ try {
     'EAE-015B.1 certification final hold').catch(() => {});
   await context?.close().catch(() => {});
   await browser.close();
+  if (temporarySession && session) await clerk.sessions.revokeSession(session.id).catch(() => {});
   if (temporaryUser && user) await clerk.users.deleteUser(user.id);
 }
