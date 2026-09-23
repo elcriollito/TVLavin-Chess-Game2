@@ -380,6 +380,21 @@ test('STOP ACK tolerates the reproduced 2.65 s tail but remains bounded at 10 s'
   assert.equal(timed.store.audit.at(-1).reason, 'STOP_TIMEOUT');
 });
 
+test('QUIT cleanup keeps a separate bounded window from ordinary command ACKs', async () => {
+  const f = fixture(), session = await open(f);
+  await command(f.first, session, 'HELLO');
+  await ack(f.second, session, 'HELLO');
+  await message(f.second, session, 'READY', { identity });
+  const quit = await command(f.first, session, 'QUIT');
+  assert.equal(quit.accepted, true);
+  f.advance(15_000);
+  assert.equal((await f.first.inspect(session.sessionId, userA)).state.phase, 'QUITTING');
+  f.advance(5_001);
+  await assert.rejects(f.first.inspect(session.sessionId, userA), error =>
+    error.code === 'QUIT_TIMEOUT' && error.status === 410);
+  assert.equal(f.store.audit.at(-1).reason, 'QUIT_TIMEOUT');
+});
+
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {
   const claim = fixture();
   const unclaimed = await claim.first.create({ userId: userA, competitionId: 'expiry', participantRole: 'white' });

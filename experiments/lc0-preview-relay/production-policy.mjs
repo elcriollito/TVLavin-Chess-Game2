@@ -16,6 +16,7 @@ export const PRODUCTION_POLICY = Object.freeze({
   absoluteMs: 2 * 60 * 60_000,
   stopWarningMs: 3_000,
   stopTimeoutMs: 10_000,
+  quitTimeoutMs: 20_000,
   stopResultMs: 5_000,
   terminalRetentionMs: 7 * 24 * 60 * 60_000,
   cleanupBatchSize: 100,

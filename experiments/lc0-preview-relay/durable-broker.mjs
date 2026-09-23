@@ -10,6 +10,7 @@ export const LIMITS = Object.freeze({
   streamHeartbeatMs: PRODUCTION_POLICY.heartbeatLeaseMs,
   heartbeatEveryMs: PRODUCTION_POLICY.heartbeatEveryMs,
   ackMs: 2_500, stopAckMs: PRODUCTION_POLICY.stopTimeoutMs, maxEvents: 128,
+  quitAckMs: PRODUCTION_POLICY.quitTimeoutMs,
   stopResultMs: PRODUCTION_POLICY.stopResultMs,
   maxCommandsPerSecond: 30,
   maxInfoPerSecond: PRODUCTION_POLICY.acceptedInfoPerSecond,
@@ -265,8 +266,10 @@ export class DurableBroker {
       // STOP can reach a busy isolated WASM client near a stream turnover.
       // Keep its acknowledgement bounded, but do not delete a healthy session
       // at the generic 2.5 s command deadline before cooperative STOP/CLEANUP.
+      const ackWindow = type === 'STOP' ? LIMITS.stopAckMs :
+        type === 'QUIT' ? LIMITS.quitAckMs : LIMITS.ackMs;
       state.pending = { type, seq, searchId: searchId || null,
-        deadline: now + (type === 'STOP' ? LIMITS.stopAckMs : LIMITS.ackMs) };
+        deadline: now + ackWindow };
       if (type === 'HELLO') transitionLifecycle(state, 'INITIALIZING', now);
       if (type === 'STOP') { state.phase = 'STOPPING'; transitionLifecycle(state, 'STOPPING', now); }
       if (type === 'RESET') { state.phase = 'RESETTING'; transitionLifecycle(state, 'INITIALIZING', now); }
