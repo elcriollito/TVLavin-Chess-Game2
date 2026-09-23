@@ -1602,7 +1602,7 @@ const CaissaArena = {
             this.cancelActiveSearch('match paused');
             this.state.loopRunning = false;
             const stopping = this.runtimeManager.stopAll();
-            this._pausePending = Promise.resolve(stopping).then(() => {
+            const pending = Promise.resolve(stopping).then(() => {
                 this.captureLifecycleTrace('PAUSE_STOPPED');
                 return true;
             }).catch(error => {
@@ -1610,6 +1610,11 @@ const CaissaArena = {
                     this.handleError(error.message, 'ARENA_ERROR_PAUSE_STOP', { error });
                 }
                 return false;
+            });
+            this._pausePending = pending;
+            pending.finally(() => {
+                if (this._pausePending === pending) this._pausePending = null;
+                this.updateMatchControls();
             });
             console.log('[Arena] Match paused');
             window.dispatchEvent(new CustomEvent('caissa-arena-pause'));

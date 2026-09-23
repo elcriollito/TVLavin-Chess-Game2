@@ -87,6 +87,7 @@ test('Pause blocks Resume until the asynchronous relay STOP reaches IDLE', async
   await Promise.resolve();
   assert.equal(arena.state.matchState, 'running');
   assert.equal(loopStarts, 1);
+  assert.equal(arena._pausePending, null);
   assert.deepEqual(Array.from(arena.lifecycleTrace, item => item.event), [
     'PAUSE_REQUESTED', 'RESUME_REQUESTED', 'PAUSE_STOPPED', 'RESUME_STARTED'
   ]);
