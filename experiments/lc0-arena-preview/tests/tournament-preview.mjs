@@ -20,20 +20,24 @@ const protectionCookies = new Map([
   [ENGINE, process.env.EAE015A_RUNTIME_VERCEL_JWT],
   [RELAY, process.env.EAE015A_RELAY_VERCEL_JWT]
 ]);
+const publicOrigins = new Set(process.env.EAE015B_RUNTIME_PUBLIC === '1' ? [ENGINE] : []);
 if ([...new Set([MAIN, ENGINE, RELAY])]
-  .some(origin => !protectionBypasses.get(origin) && !protectionCookies.get(origin)))
+  .some(origin => !publicOrigins.has(origin) && !protectionBypasses.get(origin) &&
+    !protectionCookies.get(origin)))
   throw new Error('EAE015A_PROTECTION_CREDENTIALS_REQUIRED');
 const protectionHeaders = origin => protectionBypasses.get(origin)
   ? { 'x-vercel-protection-bypass': protectionBypasses.get(origin) }
-  : { cookie: `_vercel_jwt=${protectionCookies.get(origin)}` };
+  : protectionCookies.get(origin) ? { cookie: `_vercel_jwt=${protectionCookies.get(origin)}` } : {};
 const seedProtectionHeaders = origin => ({ ...protectionHeaders(origin),
   ...(protectionBypasses.get(origin) ? { 'x-vercel-set-bypass-cookie': 'true' } : {}) });
 const FIELDS = ['stockfish-18-lite', 'stockfish-19-lite', 'lc0-maia-1100-preview'];
 const CLOSE_TOURNAMENT = process.env.EAE013_TOURNAMENT_CLOSE === '1';
+const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
 const report = { field: FIELDS, games: [], popups: [], errors: [] };
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true,
+  ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-let user, clerkSession, context, page, ownerToken, tokenAt = 0;
+let user, clerkSession, context, page, ownerToken, tokenAt = 0, temporaryUser = false;
 async function token() {
   if (!ownerToken || Date.now() - tokenAt > 30_000) {
     ownerToken = (await clerk.sessions.getToken(clerkSession.id)).jwt;
@@ -43,9 +47,22 @@ async function token() {
 }
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 try {
-  user = await clerk.users.createUser({ emailAddress: [`eae013-tournament-${crypto.randomUUID()}@example.com`],
-    skipPasswordRequirement: true });
-  clerkSession = await clerk.sessions.createSession({ userId: user.id });
+  if (internalEmail) {
+    const users = (await clerk.users.getUserList({ limit: 500 })).data;
+    const matches = users.filter(candidate => candidate.emailAddresses
+      .some(address => address.emailAddress.toLowerCase() === internalEmail));
+    assert.equal(matches.length, 1, 'Internal Clerk allowlist identity must resolve exactly once');
+    user = matches[0];
+    const sessions = (await clerk.sessions.getSessionList({ userId: user.id,
+      status: 'active', limit: 100 })).data;
+    assert.ok(sessions.length > 0, 'Internal Clerk identity needs an active session');
+    clerkSession = sessions.sort((a, b) => b.lastActiveAt - a.lastActiveAt)[0];
+  } else {
+    user = await clerk.users.createUser({ emailAddress: [`eae013-tournament-${crypto.randomUUID()}@example.com`],
+      skipPasswordRequirement: true });
+    temporaryUser = true;
+    clerkSession = await clerk.sessions.createSession({ userId: user.id });
+  }
   context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   if ([...protectionCookies.values()].some(Boolean)) await context.addCookies([...protectionCookies]
     .filter(([, value]) => value).map(([url, value]) => ({ name: '_vercel_jwt', value, url })));
@@ -60,7 +77,7 @@ try {
       headers: seedProtectionHeaders(origin) });
     assert.equal(seed.status(), 200);
   }
-  for (const origin of protectionBypasses.keys()) assert.ok((await context.cookies(origin))
+  for (const origin of [...protectionBypasses.keys()].filter(origin => !publicOrigins.has(origin))) assert.ok((await context.cookies(origin))
     .some(cookie => cookie.name === '_vercel_jwt'), `Bypass cookie for ${origin}`);
   await context.route(url => [MAIN, ENGINE, RELAY]
     .some(origin => url.href.startsWith(`${origin}/`)), route => {
@@ -227,5 +244,5 @@ try {
 } finally {
   await context?.close().catch(() => {});
   await browser.close();
-  if (user) await clerk.users.deleteUser(user.id);
+  if (temporaryUser && user) await clerk.users.deleteUser(user.id);
 }

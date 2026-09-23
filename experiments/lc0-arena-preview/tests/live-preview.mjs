@@ -23,21 +23,25 @@ const protectionCookies = new Map([
   [ENGINE, process.env.EAE015A_RUNTIME_VERCEL_JWT],
   [RELAY, process.env.EAE015A_RELAY_VERCEL_JWT]
 ]);
+const publicOrigins = new Set(process.env.EAE015B_RUNTIME_PUBLIC === '1' ? [ENGINE] : []);
 if ([...new Set([MAIN, ENGINE, RELAY])]
-  .some(origin => !protectionBypasses.get(origin) && !protectionCookies.get(origin)))
+  .some(origin => !publicOrigins.has(origin) && !protectionBypasses.get(origin) &&
+    !protectionCookies.get(origin)))
   throw new Error('EAE015A_PROTECTION_CREDENTIALS_REQUIRED');
 const protectionHeaders = origin => protectionBypasses.get(origin)
   ? { 'x-vercel-protection-bypass': protectionBypasses.get(origin) }
-  : { cookie: `_vercel_jwt=${protectionCookies.get(origin)}` };
+  : protectionCookies.get(origin) ? { cookie: `_vercel_jwt=${protectionCookies.get(origin)}` } : {};
 const seedProtectionHeaders = origin => ({ ...protectionHeaders(origin),
   ...(protectionBypasses.get(origin) ? { 'x-vercel-set-bypass-cookie': 'true' } : {}) });
 const CYCLES = Number(process.env.EAE013_CYCLES || 1);
 const RECONNECT_EVERY = Number(process.env.EAE013_RECONNECT_EVERY || 0);
 const PAUSE_REPEATS = Number(process.env.EAE013_PAUSE_REPEATS || 1);
+const SKIP_PAUSE = process.env.EAE015B_SKIP_PAUSE === '1';
 const LEASE_EDGE_EVERY = Number(process.env.EAE013_LEASE_EDGE_EVERY || 0);
 const DRAIN_CYCLE = Number(process.env.EAE015A_DRAIN_CYCLE || 0);
-const stagingRef = 'aqizagaskicotorfpwfn';
+const stagingRef = process.env.EAE015B_SUPABASE_REF || 'aqizagaskicotorfpwfn';
 const stagingSecret = process.env.EAE015A_SUPABASE_SERVICE_ROLE_KEY || '';
+const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
     !Number.isSafeInteger(RECONNECT_EVERY) || RECONNECT_EVERY < 0 ||
     !Number.isSafeInteger(PAUSE_REPEATS) || PAUSE_REPEATS < 1 || PAUSE_REPEATS > 3 ||
@@ -46,10 +50,11 @@ if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
     (DRAIN_CYCLE !== 0 && DRAIN_CYCLE !== CYCLES) ||
     (DRAIN_CYCLE !== 0 && !stagingSecret.startsWith('sb_secret_')))
   throw new Error('EAE013_CYCLES_INVALID');
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true,
+  ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const report = { cyclesRequested: CYCLES, cycles: [], failures: [], startedAt: Date.now() };
-let user, session, context, page;
+let user, session, context, page, temporaryUser = false;
 const engineBrowserErrors = [];
 let lastToken, lastTokenAt = 0;
 const token = async () => {
@@ -93,12 +98,54 @@ const inspectSession = async sessionId => {
 };
 
 try {
-  if (DRAIN_CYCLE) await setControlMode('ENABLED', 'EAE-015A.1 active-drain certification');
-  user = await clerk.users.createUser({
-    emailAddress: [`eae013-arena-${crypto.randomUUID()}@example.com`],
-    skipPasswordRequirement: true
-  });
-  session = await clerk.sessions.createSession({ userId: user.id });
+  if (DRAIN_CYCLE) await setControlMode('ENABLED', 'EAE-015B.1 internal production soak');
+  if (internalEmail) {
+    const users = (await clerk.users.getUserList({ limit: 500 })).data;
+    const matches = users.filter(candidate => candidate.emailAddresses
+      .some(address => address.emailAddress.toLowerCase() === internalEmail));
+    assert.equal(matches.length, 1, 'Internal Clerk allowlist identity must resolve exactly once');
+    user = matches[0];
+    const sessions = (await clerk.sessions.getSessionList({ userId: user.id,
+      status: 'active', limit: 100 })).data;
+    assert.ok(sessions.length > 0, 'Internal Clerk identity needs an active session');
+    session = sessions.sort((a, b) => b.lastActiveAt - a.lastActiveAt)[0];
+  } else {
+    user = await clerk.users.createUser({
+      emailAddress: [`eae013-arena-${crypto.randomUUID()}@example.com`],
+      skipPasswordRequirement: true
+    });
+    temporaryUser = true;
+    session = await clerk.sessions.createSession({ userId: user.id });
+  }
+  if (internalEmail) {
+    const createWithBearer = async bearer => {
+      const response = await fetch(new URL('/api/eae011?action=create', RELAY), {
+        method: 'POST', headers: { Origin: MAIN, 'Content-Type': 'application/json',
+          ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+          ...protectionHeaders(RELAY) },
+        body: JSON.stringify({ participantRole: 'white' })
+      });
+      return { status: response.status, body: await response.json().catch(() => ({})) };
+    };
+    const unauthenticated = await createWithBearer('');
+    assert.equal(unauthenticated.status, 401);
+    assert.equal(unauthenticated.body.error, 'AUTH_REQUIRED');
+    const outsider = await clerk.users.createUser({
+      emailAddress: [`eae015b1-outsider-${crypto.randomUUID()}@example.com`],
+      skipPasswordRequirement: true
+    });
+    try {
+      const outsiderSession = await clerk.sessions.createSession({ userId: outsider.id });
+      const outsiderToken = (await clerk.sessions.getToken(outsiderSession.id)).jwt;
+      const crossUser = await createWithBearer(outsiderToken);
+      assert.equal(crossUser.status, 403);
+      assert.equal(crossUser.body.error, 'LC0_INTERNAL_ONLY');
+      report.access = { unauthenticated: unauthenticated.status,
+        crossUser: crossUser.status, allowlistMatches: 1 };
+    } finally {
+      await clerk.users.deleteUser(outsider.id);
+    }
+  }
   context = await browser.newContext({ viewport: { width: 1440, height: 900 },
     acceptDownloads: false });
   const relayNetwork = [];
@@ -142,7 +189,7 @@ try {
   report.protectionCookies = Object.fromEntries(await Promise.all([...new Set([MAIN, ENGINE, RELAY])]
     .map(async origin => [origin, (await context.cookies(origin))
       .some(cookie => cookie.name === '_vercel_jwt')])));
-  for (const origin of protectionBypasses.keys())
+  for (const origin of [...protectionBypasses.keys()].filter(origin => !publicOrigins.has(origin)))
     assert.equal(report.protectionCookies[origin], true, `Bypass cookie for ${origin}`);
   await context.route(url => [MAIN, ENGINE, RELAY]
     .some(origin => url.href.startsWith(`${origin}/`)), route => {
@@ -161,10 +208,25 @@ try {
   page.on('pageerror', error => pageErrors.push(error.message));
   const response = await page.goto(`${MAIN}/arena-preview`, { waitUntil: 'domcontentloaded' });
   assert.equal(response.status(), 200);
-  await page.waitForFunction(() => window.CaissaArenaPreview?.enabled === true &&
-    document.getElementById('arenaSection')?.classList.contains('active') &&
-    window.EngineRegistry?.getArenaProvider('lc0-maia-1100-preview')?.enabled === true,
-    null, { timeout: 20_000 });
+  try {
+    await page.waitForFunction(() => window.CaissaArenaPreview?.enabled === true &&
+      document.getElementById('arenaSection')?.classList.contains('active') &&
+      window.EngineRegistry?.getArenaProvider('lc0-maia-1100-preview')?.enabled === true,
+      null, { timeout: 20_000 });
+  } catch (error) {
+    report.bootstrap = await page.evaluate(async () => {
+      const response = await fetch('/api/eae013', { cache: 'no-store' });
+      return { path: location.pathname,
+        previewEnabled: window.CaissaArenaPreview?.enabled,
+        previewConfig: window.CaissaArenaPreview?.config,
+        arenaActive: document.getElementById('arenaSection')?.classList.contains('active'),
+        provider: window.EngineRegistry?.getArenaProvider('lc0-maia-1100-preview') || null,
+        configProbe: { status: response.status, body: await response.json().catch(() => null) }
+      };
+    }).catch(() => null);
+    console.log(`EAE015B1_BOOTSTRAP_FAILURE ${JSON.stringify(report.bootstrap)}`);
+    throw error;
+  }
   try {
     report.browserBoundary = await page.evaluate(async relayOrigin => {
       const bearer = await window.CAISSA_AUTH.getToken();
@@ -233,7 +295,7 @@ try {
         null, { timeout: 60_000 });
       item.movesBeforePause = await page.evaluate(() => CaissaArena.game.history());
       if (DRAIN_CYCLE === i + 1) {
-        await setControlMode('DRAINING', 'EAE-015A.1 active match draining');
+        await setControlMode('DRAINING', 'EAE-015B.1 active match draining');
         report.drain = { cycle: i + 1, mode: 'DRAINING',
           newSession: await probeCreate(503, 'LC0_DRAINING'),
           activeMovesBeforeDrain: item.movesBeforePause.length };
@@ -249,10 +311,12 @@ try {
       assert.ok(item.presentation.san.includes(item.movesBeforePause[0]), 'Game SAN missing');
       assert.ok(item.presentation.pvSan.trim().length > 0, 'PV SAN missing');
       assert.equal(item.presentation.graph, true);
-      await page.click('#arenaPauseMatch');
-      await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
-        !CaissaArena._pausePending, null, { timeout: 15_000 });
-      if (LEASE_EDGE_EVERY && (i + 1) % LEASE_EDGE_EVERY === 0) {
+      if (!SKIP_PAUSE) {
+        await page.click('#arenaPauseMatch');
+        await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
+          !CaissaArena._pausePending, null, { timeout: 15_000 });
+      }
+      if (!SKIP_PAUSE && LEASE_EDGE_EVERY && (i + 1) % LEASE_EDGE_EVERY === 0) {
         await page.evaluate(async () => {
           const adapter = window.CaissaArenaPreview.adapter;
           clearInterval(adapter.heartbeatTimer);
@@ -267,7 +331,7 @@ try {
         });
         item.leaseEdge = true;
       }
-      if (RECONNECT_EVERY && (i + 1) % RECONNECT_EVERY === 0) {
+      if (!SKIP_PAUSE && RECONNECT_EVERY && (i + 1) % RECONNECT_EVERY === 0) {
         const epoch = await page.evaluate(() => window.CaissaArenaPreview.adapter.mainLeaseEpoch);
         await page.evaluate(() => window.CaissaArenaPreview.adapter.streamController.abort());
         await page.waitForFunction(previous => window.CaissaArenaPreview.adapter.mainLeaseEpoch > previous,
@@ -276,23 +340,25 @@ try {
         await enginePage.evaluate(() => window.Eae012Engine.reconnect());
         item.reconnected = true;
       }
-      item.stage = 'resume';
-      const resumeBegan = performance.now();
-      await page.click('#arenaPauseMatch');
-      await page.waitForFunction(() => window.CaissaArenaPreview.adapter?.active?.started === true,
-        null, { timeout: 50_000 });
-      item.resumeToSearchMs = performance.now() - resumeBegan;
-      await page.waitForFunction(() => CaissaArena.game?.history().length >= 6,
-        null, { timeout: 50_000 });
-      for (let repeat = 1; repeat < PAUSE_REPEATS; repeat++) {
+      if (!SKIP_PAUSE) {
+        item.stage = 'resume';
+        const resumeBegan = performance.now();
         await page.click('#arenaPauseMatch');
-        await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
-          !CaissaArena._pausePending, null, { timeout: 15_000 });
-        await page.click('#arenaPauseMatch');
-        await page.waitForFunction(minimum => CaissaArena.game?.history().length >= minimum,
-          6 + 2 * repeat, { timeout: 50_000 });
+        await page.waitForFunction(() => window.CaissaArenaPreview.adapter?.active?.started === true,
+          null, { timeout: 50_000 });
+        item.resumeToSearchMs = performance.now() - resumeBegan;
+        await page.waitForFunction(() => CaissaArena.game?.history().length >= 6,
+          null, { timeout: 50_000 });
+        for (let repeat = 1; repeat < PAUSE_REPEATS; repeat++) {
+          await page.click('#arenaPauseMatch');
+          await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
+            !CaissaArena._pausePending, null, { timeout: 15_000 });
+          await page.click('#arenaPauseMatch');
+          await page.waitForFunction(minimum => CaissaArena.game?.history().length >= minimum,
+            6 + 2 * repeat, { timeout: 50_000 });
+        }
       }
-      item.pauseRepeats = PAUSE_REPEATS;
+      item.pauseRepeats = SKIP_PAUSE ? 0 : PAUSE_REPEATS;
       item.moves = await page.evaluate(() => CaissaArena.game.history());
       item.stage = 'cleanup';
       await page.click('#arenaStopMatch');
@@ -317,7 +383,7 @@ try {
       assert.equal(item.metrics.cleanupEvidence.forcedTerminations, 0);
       assert.equal(await inspectSession(item.sessionId), 410);
       if (DRAIN_CYCLE === i + 1) {
-        await setControlMode('DISABLED', 'EAE-015A.1 active drain complete; hold restored');
+        await setControlMode('DISABLED', 'EAE-015B.1 active drain complete; hold restored');
         report.drain.disabledNewSession = await probeCreate(503, 'LC0_DISABLED');
         report.drain.cleanup = { sessionRemoved: true, workers: item.engine.workers,
           parentWorkers: item.engine.parentWorkers, pthreadWorkers: item.engine.pthreadWorkers,
@@ -417,8 +483,8 @@ try {
   assert.deepEqual(pageErrors, []);
 } finally {
   if (DRAIN_CYCLE && stagingSecret) await setControlMode('DISABLED',
-    'EAE-015A.1 certification final hold').catch(() => {});
+    'EAE-015B.1 certification final hold').catch(() => {});
   await context?.close().catch(() => {});
   await browser.close();
-  if (user) await clerk.users.deleteUser(user.id);
+  if (temporaryUser && user) await clerk.users.deleteUser(user.id);
 }

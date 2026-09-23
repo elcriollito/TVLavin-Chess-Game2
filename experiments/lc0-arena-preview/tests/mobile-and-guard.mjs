@@ -5,7 +5,8 @@ import { chromium } from '@playwright/test';
 if (process.env.EAE013_GUARD_PREVIEW !== '1' || !process.env.EAE013_BYPASS)
   throw new Error('EAE013_GUARD_CREDENTIAL_REQUIRED');
 const MAIN = process.env.EAE013_MAIN_ORIGIN || 'https://eae013-main-elcriollitos-projects.vercel.app';
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true,
+  ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
 const results = [];
 try {
   for (const { width, height, route, expectedLc0 } of [
