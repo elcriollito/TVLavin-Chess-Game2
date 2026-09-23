@@ -40,7 +40,8 @@ function Write-Utf8NoBom([string]$Path, [string]$Content) {
 function Copy-BundleFile([string]$Source, [string]$Destination) {
   $parent = Split-Path $Destination -Parent
   [System.IO.Directory]::CreateDirectory($parent) | Out-Null
-  Copy-Item -LiteralPath $Source -Destination $Destination
+  $text = [System.IO.File]::ReadAllText($Source)
+  Write-Utf8NoBom $Destination ($text.Replace("`r`n", "`n").Replace("`r", "`n"))
 }
 
 if (Test-Path -LiteralPath $stageRoot) {
@@ -108,6 +109,7 @@ try {
     'experiments\lc0-browser-lab\src\lc0-worker.js' = 'caissa-build\experiments\lc0-browser-lab\src\lc0-worker.js'
     'experiments\lc0-preview-relay\engine\client-source.js' = 'caissa-build\experiments\lc0-preview-relay\engine\client-source.js'
     'experiments\lc0-preview-relay\engine\release-manifest.template.json' = 'caissa-build\experiments\lc0-preview-relay\engine\release-manifest.template.json'
+    'experiments\lc0-production-compliance\scripts\build-source-archive.ps1' = 'packaging\build-source-archive.ps1'
   }
   foreach ($item in $buildFiles.GetEnumerator()) {
     Copy-BundleFile (Join-Path $repositoryRoot $item.Key) (Join-Path $stageRoot $item.Value)

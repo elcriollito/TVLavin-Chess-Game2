@@ -28,6 +28,8 @@ instructions, a corresponding-source record, and a per-file SHA-256 manifest.
 The package also records the pinned source Git tree, every blob ID, and original
 file modes so Windows ZIP extraction cannot erase the Unix executable-mode
 provenance.
+All CAISSA-supplied text is normalized to BOM-free UTF-8/LF during packaging;
+the package builder itself is included under `packaging/`.
 
 The final SHA-256 of an archive cannot be embedded inside that same archive
 without changing the archive. Therefore the in-archive corresponding-source

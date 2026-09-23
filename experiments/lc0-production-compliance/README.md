@@ -41,3 +41,7 @@ an archive cannot contain its own final digest without changing that digest.
 `manifest.json` authenticates the archive members; the detached repository
 manifest and `.sha256` asset authenticate the archive envelope.
 
+The packager normalizes CAISSA-supplied text files to BOM-free UTF-8 with LF
+line endings and exports the Lc0 snapshot with `core.autocrlf=false`. This keeps
+the source package identical across clean Windows and Unix checkouts.
+
