@@ -458,9 +458,10 @@ export class DurableBroker {
       const available = state.events.filter(item => item.role === role && item.id > cursor);
       const high = available.filter(item => item.priority === 'high');
       const newestInfo = available.filter(item => item.priority === 'low').at(-1);
+      const acknowledgedCursor = role === 'main' ? state.mainAckCursor : state.engineAckCursor;
       return { events: [...high, ...(newestInfo ? [newestInfo] : [])],
         cursor: available.length ? Math.max(...available.map(item => item.id)) : cursor,
-        phase: state.phase };
+        acknowledgedCursor, phase: state.phase };
     };
     const row = await this.get(sessionId), now = this.now();
     authorize(row);

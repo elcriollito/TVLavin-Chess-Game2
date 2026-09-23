@@ -169,6 +169,7 @@ async function stream(req, res, broker, sessionId, role, authority, cursor) {
   let closed = false;
   res.on('close', () => { closed = true; });
   let currentCursor = cursor;
+  let unacknowledgedSince = null;
   let pollDelay = PRODUCTION_POLICY.pollInitialMs;
   let lastCommentAt = Date.now();
   try {
@@ -180,6 +181,16 @@ async function stream(req, res, broker, sessionId, role, authority, cursor) {
         if (closed) break;
       }
       currentCursor = next.cursor;
+      if (next.acknowledgedCursor >= currentCursor) unacknowledgedSince = null;
+      else if (unacknowledgedSince === null) unacknowledgedSince = Date.now();
+      // res.write() only confirms acceptance by the host response object. A
+      // suspended downstream socket can lose that accepted frame without a
+      // close/error signal. Rewind to the durable client ACK cursor so command
+      // delivery remains at-least-once; claim_command keeps execution exactly-once.
+      if (unacknowledgedSince !== null && Date.now() - unacknowledgedSince >= 1_000) {
+        currentCursor = next.acknowledgedCursor;
+        unacknowledgedSince = Date.now();
+      }
       if (next.phase === 'CLEANED' && role === 'main') break;
       if (Date.now() - lastCommentAt >= PRODUCTION_POLICY.streamCommentMs) {
         res.write(': keepalive\n\n');

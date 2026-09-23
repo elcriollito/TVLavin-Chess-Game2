@@ -5,6 +5,7 @@ import test from 'node:test';
 const engineClient = fs.readFileSync(new URL(
   '../experiments/lc0-preview-relay/engine/client-source.js', import.meta.url), 'utf8');
 const arena = fs.readFileSync(new URL('../js/caissa-arena.js', import.meta.url), 'utf8');
+const relayApi = fs.readFileSync(new URL('../api/eae011.js', import.meta.url), 'utf8');
 
 test('isolated runtime retries transport within the certified lease window', () => {
   assert.match(engineClient, /TRANSPORT_RECONNECT_MS = 20_000/);
@@ -42,4 +43,10 @@ test('move telemetry is emitted only from the move application path', () => {
     arena.indexOf('/**\n     * Main engine loop'));
   assert.doesNotMatch(destroy, /MOVE_APPLIED|uciMove|isWhiteTurn/);
   assert.match(playMove, /captureLifecycleTrace\('MOVE_APPLIED'/);
+});
+
+test('SSE delivery rewinds to the durable ACK cursor after a silent socket gap', () => {
+  assert.match(relayApi, /acknowledgedCursor >= currentCursor/);
+  assert.match(relayApi, /currentCursor = next\.acknowledgedCursor/);
+  assert.match(relayApi, /claim_command keeps execution exactly-once/);
 });

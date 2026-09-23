@@ -185,8 +185,14 @@ test('separate streams reconnect by cursor after turnover and old epochs stop po
   const restart = new DurableBroker(f.store, { now: f.now });
   const reconnected = await restart.connect(session.sessionId, 'engine', session.engineCredential,
     firstEngine.cursor);
+  const awaitingHeartbeat = await restart.poll(session.sessionId, 'engine', session.engineCredential,
+    reconnected.epoch, firstEngine.cursor);
+  assert.equal(awaitingHeartbeat.events.length, 0);
+  assert.equal(awaitingHeartbeat.acknowledgedCursor, 0);
+  await restart.heartbeat(session.sessionId, 'engine', session.engineCredential,
+    reconnected.epoch, firstEngine.cursor);
   assert.equal((await restart.poll(session.sessionId, 'engine', session.engineCredential,
-    reconnected.epoch, firstEngine.cursor)).events.length, 0);
+    reconnected.epoch, firstEngine.cursor)).acknowledgedCursor, firstEngine.cursor);
   await assert.rejects(f.second.poll(session.sessionId, 'engine', session.engineCredential,
     engine.epoch, firstEngine.cursor), { code: 'STREAM_REPLACED' });
   await ack(restart, session, 'HELLO');
