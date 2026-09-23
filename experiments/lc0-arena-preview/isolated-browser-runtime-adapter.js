@@ -80,7 +80,7 @@
         async api(action, { body, sessionId = this.sessionId, cursor, signal } = {}) {
             const token = await window.CAISSA_AUTH?.getToken?.();
             if (!token) throw new Error('CAISSA_SIGN_IN_REQUIRED');
-            const url = new URL('/api/eae011', location.origin);
+            const url = new URL('/api/eae011', this.coordinator.config.relayOrigin || location.origin);
             url.searchParams.set('action', action);
             if (sessionId) url.searchParams.set('sessionId', sessionId);
             if (cursor != null) url.searchParams.set('cursor', String(cursor));
@@ -207,7 +207,7 @@
                                     this.api('heartbeat_main', { body: { epoch, cursor: this.cursor } })
                                         .catch(error => this.heartbeatError(error, epoch, controller))
                                         .finally(() => { inFlight = false; });
-                                }, 1_500);
+                                }, 5_000);
                             } else if (dataLine && idLine) {
                                 const id = Number(idLine.slice(4));
                                 if (id > this.cursor) {
@@ -272,10 +272,13 @@
                 this.status('Open the isolated Lc0 window to claim the session…');
                 const popup = await this.coordinator.waitForPopup(this);
                 if (this.closed) throw new Error('LC0_ARENA_CLOSED');
-                const url = new URL('/experiments/lc0-preview-relay/engine/index.html',
-                    this.coordinator.config.engineOrigin);
+                const url = new URL(this.coordinator.config.enginePath ||
+                    '/experiments/lc0-preview-relay/engine/index.html',
+                this.coordinator.config.engineOrigin);
                 url.hash = new URLSearchParams({ sessionId: this.sessionId,
-                    claimToken: created.claimToken }).toString();
+                    claimToken: created.claimToken,
+                    relayOrigin: this.coordinator.config.relayOrigin,
+                    mainOrigin: location.origin }).toString();
                 this.status('Claiming isolated runtime…');
                 popup.opener = null;
                 popup.location.replace(url.href);

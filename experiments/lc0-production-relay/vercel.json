@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/eae011.js": { "maxDuration": 60 },
+    "api/cron/eae015a-lc0-cleanup.js": { "maxDuration": 30 }
+  },
+  "routes": [
+    { "src": "/api/eae011", "dest": "/api/eae011.js" },
+    { "src": "/api/cron/eae015a-lc0-cleanup", "dest": "/api/cron/eae015a-lc0-cleanup.js" },
+    { "src": "/health", "dest": "/api/eae011.js?action=health" },
+    { "src": "/.*", "status": 404 }
+  ]
+}

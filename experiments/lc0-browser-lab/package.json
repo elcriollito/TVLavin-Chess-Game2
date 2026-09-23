@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build-lab.mjs",
+    "build:appliance": "node scripts/build-production-appliance.mjs",
+    "verify:appliance": "node scripts/verify-production-appliance.mjs",
     "stage": "node scripts/prepare-assets.mjs",
     "serve": "node server.mjs",
     "test:contracts": "node --test tests/contracts.test.mjs",

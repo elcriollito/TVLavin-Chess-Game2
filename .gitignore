@@ -64,3 +64,6 @@ data/pgn_smoke/
 *.png
 !scanner/recognition/datasets/piece-sets/assets/*/normalized/*.png
 r2_v2_list.json
+.env
+.env.local
+.env.*.local

@@ -76,6 +76,7 @@
                 if (config.enabled !== true || config.providerId !== ID ||
                     config.mainOrigin !== location.origin ||
                     !/^https:\/\/[^/]+\.vercel\.app$/.test(config.engineOrigin) ||
+                    !/^https:\/\/[^/]+\.vercel\.app$/.test(config.relayOrigin) ||
                     config.engineOrigin === location.origin) return false;
                 if (window.matchMedia('(max-width: 1050px)').matches) return false;
                 this.config = config;
@@ -89,7 +90,8 @@
                     backend: 'CPU/WASM', requiresIsolatedOrigin: true,
                     protocol: 'uci', runtimeType: 'isolated-browser-relay',
                     runtimeId: 'lc0-maia-1100-eae012-relay',
-                    workerPath: `${config.engineOrigin}/experiments/lc0-preview-relay/engine/index.html`,
+                    workerPath: new URL(config.enginePath ||
+                        '/experiments/lc0-preview-relay/engine/index.html', config.engineOrigin).href,
                     wasmPath: '', tier: 'Experimental',
                     options: { depth: 0 },
                     capabilities: { browserCompatible: true, mobileCompatible: false,

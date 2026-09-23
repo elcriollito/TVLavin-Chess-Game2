@@ -56,7 +56,13 @@ test('lab server owns isolation headers without changing production configuratio
 test('production registry and navigation do not expose Lc0', async () => {
   const registry = await read('js/engine-registry.js');
   const index = await read('index.html');
-  assert.doesNotMatch(registry, /\blc0\b|Leela Chess Zero/i);
+  const productionIds = registry.match(
+    /const ARENA_PROVIDER_IDS = Object\.freeze\(\[([\s\S]*?)\]\);/
+  )?.[1];
+  assert.ok(productionIds, 'production Arena provider allowlist must remain explicit');
+  assert.doesNotMatch(productionIds, /\blc0\b|Leela Chess Zero/i);
+  assert.match(registry, /const arenaPreviewProviders = new Map\(\)/);
+  assert.match(registry, /provider\?\.id !== 'lc0-maia-1100-preview'/);
   assert.doesNotMatch(index, /Lc0 Browser Lab|lc0-browser-lab/i);
 });
 

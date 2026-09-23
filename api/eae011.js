@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { authenticateRequest } from './_lib/auth.js';
 import { DurableBroker, RelayError } from '../experiments/lc0-preview-relay/durable-broker.mjs';
 import { configuredStore } from '../experiments/lc0-preview-relay/store.mjs';
+import { PRODUCTION_POLICY, controlPolicy, nextPollDelay } from
+  '../experiments/lc0-preview-relay/production-policy.mjs';
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const allowedActions = Object.freeze({
@@ -19,21 +21,32 @@ const allowedActions = Object.freeze({
 function origins(env) {
   const main = new URL(env.EAE011_MAIN_ORIGIN || 'https://invalid.local');
   const engine = new URL(env.EAE011_ENGINE_ORIGIN || 'https://invalid.local');
-  if (main.protocol !== 'https:' || engine.protocol !== 'https:' || main.origin === engine.origin ||
-      !main.hostname.endsWith('.vercel.app') || !engine.hostname.endsWith('.vercel.app') ||
-      main.pathname !== '/' || engine.pathname !== '/') throw new RelayError('PREVIEW_ORIGINS_REQUIRED', 503);
-  return { main: main.origin, engine: engine.origin };
+  const expectedBranch = 'experiment/lc0-eae015a-production-infrastructure';
+  const productionShape = env.EAE015A_PRODUCTION_SHAPE === '1' &&
+    (env.VERCEL_GIT_COMMIT_REF === expectedBranch ||
+      env.EAE015A_BRANCH_GUARD === expectedBranch);
+  const relay = new URL(productionShape ? env.EAE015A_RELAY_ORIGIN || 'https://invalid.local' : main);
+  if (main.protocol !== 'https:' || engine.protocol !== 'https:' || relay.protocol !== 'https:' ||
+      main.origin === engine.origin || main.pathname !== '/' || engine.pathname !== '/' ||
+      relay.pathname !== '/' || !main.hostname.endsWith('.vercel.app') ||
+      !engine.hostname.endsWith('.vercel.app') || !relay.hostname.endsWith('.vercel.app'))
+    throw new RelayError('PREVIEW_ORIGINS_REQUIRED', 503);
+  return { main: main.origin, engine: engine.origin, relay: relay.origin, productionShape };
 }
 
 function checkRequest(req, role, pair, method) {
   const host = String(req.headers.host || '').toLowerCase();
   const expected = role === 'main' ? pair.main : pair.engine;
+  const expectedHost = new URL(pair.productionShape ? pair.relay : expected).host;
   if (role === 'either') {
-    if (![new URL(pair.main).host, new URL(pair.engine).host].includes(host))
+    const hosts = pair.productionShape ? [new URL(pair.relay).host] :
+      [new URL(pair.main).host, new URL(pair.engine).host];
+    if (!hosts.includes(host))
       throw new RelayError('HOST_REJECTED', 403);
-  } else if (host !== new URL(expected).host) throw new RelayError('HOST_REJECTED', 403);
-  if (req.headers.origin && req.headers.origin !== (role === 'either' ? `https://${host}` : expected))
-    throw new RelayError('ORIGIN_REJECTED', 403);
+  } else if (host !== expectedHost) throw new RelayError('HOST_REJECTED', 403);
+  if (req.headers.origin && (role === 'either' ?
+      ![pair.main, pair.engine, `https://${host}`].includes(req.headers.origin) :
+      req.headers.origin !== expected)) throw new RelayError('ORIGIN_REJECTED', 403);
   if (method === 'POST' && req.headers.origin !== expected) throw new RelayError('ORIGIN_REQUIRED', 403);
   if (req.headers['sec-fetch-site'] === 'cross-site') throw new RelayError('CROSS_SITE_REJECTED', 403);
 }
@@ -59,7 +72,19 @@ async function mainUser(req) {
   return result.userId;
 }
 
-function respond(res, status, value) {
+function cors(req, res, pair) {
+  const origin = String(req.headers.origin || '');
+  if ([pair.main, pair.engine].includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Max-Age', '600');
+    res.setHeader('Vary', 'Origin');
+  }
+}
+
+function respond(res, status, value, req = null, pair = null) {
+  if (req && pair) cors(req, res, pair);
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.status(status).json(value);
@@ -67,12 +92,16 @@ function respond(res, status, value) {
 
 async function stream(req, res, broker, sessionId, role, authority, cursor) {
   const connection = await broker.connect(sessionId, role, authority, cursor);
+  const pair = origins(process.env);
+  cors(req, res, pair);
   res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'private, no-store', 'X-Accel-Buffering': 'no', Connection: 'keep-alive' });
   res.write(`event: lease\ndata: ${JSON.stringify({ epoch: connection.epoch })}\n\n`);
   let closed = false;
   res.on('close', () => { closed = true; });
   let currentCursor = cursor;
+  let pollDelay = PRODUCTION_POLICY.pollInitialMs;
+  let lastCommentAt = Date.now();
   try {
     while (!closed) {
       const next = await broker.poll(sessionId, role, authority, connection.epoch, currentCursor);
@@ -83,7 +112,12 @@ async function stream(req, res, broker, sessionId, role, authority, cursor) {
       }
       currentCursor = next.cursor;
       if (next.phase === 'CLEANED' && role === 'main') break;
-      await pause(250);
+      if (Date.now() - lastCommentAt >= PRODUCTION_POLICY.streamCommentMs) {
+        res.write(': keepalive\n\n');
+        lastCommentAt = Date.now();
+      }
+      pollDelay = nextPollDelay(pollDelay, next.events.length > 0);
+      await pause(pollDelay);
     }
   } catch (error) {
     if (!closed) res.write(`data: ${JSON.stringify({ type: 'ERROR', code: error instanceof RelayError ? error.code : 'STREAM_ERROR' })}\n\n`);
@@ -97,25 +131,44 @@ export default async function handler(req, res) {
   try {
     if (process.env.VERCEL_ENV !== 'preview') throw new RelayError('PREVIEW_ONLY', 503);
     const pair = origins(process.env);
+    cors(req, res, pair);
+    if (req.method === 'OPTIONS') {
+      checkRequest(req, 'either', pair, 'OPTIONS');
+      cors(req, res, pair);
+      return res.status(204).end();
+    }
     const action = String(req.query?.action || '');
     const policy = allowedActions[action];
     if (!policy || req.method !== policy[1]) throw new RelayError('ENDPOINT_NOT_FOUND', 404);
     checkRequest(req, policy[0], pair, req.method);
-    const broker = new DurableBroker(configuredStore(), { requestId: randomUUID() });
+    const store = configuredStore();
+    const mode = await store.getControlMode();
+    const broker = new DurableBroker(store, { requestId: randomUUID() });
     const sessionId = String(req.query?.sessionId || '');
-    if (action === 'health') return respond(res, 200, { ok: true, previewOnly: true });
-    if (action === 'config') return respond(res, 200, { mainOrigin: pair.main, engineOrigin: pair.engine });
+    if (action === 'health') return respond(res, 200,
+      { ok: true, previewOnly: true, productionShape: pair.productionShape, mode }, req, pair);
+    if (action === 'config') return respond(res, 200,
+      { mainOrigin: pair.main, engineOrigin: pair.engine, relayOrigin: pair.relay, mode }, req, pair);
     if (action === 'create') {
+      const policy = controlPolicy(mode, action);
+      if (!policy.allowed) throw new RelayError(policy.code, 503);
       const userId = await mainUser(req);
-      const { competitionId, participantRole } = input(req);
-      return respond(res, 201, await broker.create({ userId, competitionId, participantRole }));
+      const { participantRole } = input(req);
+      // A caller-provided competition label is not authority. Bind each relay
+      // session to a server-generated competition identifier instead.
+      const competitionId = `competition_${randomUUID().replaceAll('-', '')}`;
+      return respond(res, 201, await broker.create({ userId, competitionId, participantRole }), req, pair);
     }
     if (action === 'claim') {
       const { sessionId: id, claimToken } = input(req);
-      return respond(res, 200, await broker.claim(id, claimToken));
+      return respond(res, 200, await broker.claim(id, claimToken), req, pair);
     }
-    if (action === 'message') return respond(res, 202,
-      await broker.engineMessage(sessionId, bearer(req), input(req)));
+    if (action === 'message') {
+      const body = input(req), policy = controlPolicy(mode, action, body.type);
+      if (!policy.allowed) throw new RelayError(policy.code, 503);
+      return respond(res, 202,
+        await broker.engineMessage(sessionId, bearer(req), body), req, pair);
+    }
     if (action === 'engine_state') return respond(res, 200,
       await broker.inspectEngine(sessionId, bearer(req)));
     if (action === 'heartbeat_engine') {
@@ -134,8 +187,11 @@ export default async function handler(req, res) {
       const { epoch, cursor } = input(req);
       return respond(res, 200, await broker.heartbeat(sessionId, 'main', userId, epoch, cursor));
     }
-    if (action === 'command') return respond(res, 202,
-      await broker.command(sessionId, userId, input(req)));
+    if (action === 'command') {
+      const body = input(req), policy = controlPolicy(mode, action, body.type);
+      if (!policy.allowed) throw new RelayError(policy.code, 503);
+      return respond(res, 202, await broker.command(sessionId, userId, body), req, pair);
+    }
     if (action === 'advance') {
       const { mode, searchId } = input(req);
       return respond(res, 200, await broker.advance(sessionId, userId, mode, searchId));

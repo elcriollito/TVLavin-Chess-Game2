@@ -123,8 +123,11 @@ test('ordered ACK gate, INFO coalescing and release cleanup survive broker recon
   await readySearch(f, session);
   await assert.rejects(f.first.command(session.sessionId, userA, { type: 'GO', seq: 3, searchId: searchA }),
     { code: 'SEQUENCE_INVALID' });
-  for (let depth = 1; depth <= 30; depth++) await message(f.first, session, 'INFO',
-    { searchId: searchA, depth, nodes: depth, pv: 'e2e4', score: depth });
+  for (let depth = 1; depth <= 30; depth++) {
+    await message(f.first, session, 'INFO',
+      { searchId: searchA, depth, nodes: depth, pv: 'e2e4', score: depth });
+    f.advance(250);
+  }
   const state = (await f.store.get(session.sessionId)).state;
   assert.equal(state.events.filter(item => item.value.type === 'INFO').length, 1);
   assert.equal(state.events.find(item => item.value.type === 'INFO').value.depth, 30);
@@ -236,14 +239,14 @@ test('an abandoned server response cannot renew a lease without a client heartbe
     connection.epoch, 0);
   await f.second.heartbeat(session.sessionId, 'engine', session.engineCredential,
     connection.epoch);
-  f.advance(7_999);
+  f.advance(49_999);
   await f.second.poll(session.sessionId, 'engine', session.engineCredential,
     connection.epoch, 0);
   f.advance(2);
   await assert.rejects(f.first.poll(session.sessionId, 'engine', session.engineCredential,
     connection.epoch, 0), { code: 'ENGINE_LEASE_EXPIRED' });
   await assert.rejects(f.first.connect(session.sessionId, 'engine', session.engineCredential),
-    { code: 'ENGINE_LEASE_EXPIRED' });
+    { code: 'SESSION_GONE' });
   assert.equal(await f.store.countLive(), 0);
 });
 
@@ -346,7 +349,7 @@ test('acknowledged STOP without a real BESTMOVE expires instead of hanging indef
   await assert.rejects(f.first.inspect(session.sessionId, userA),
     { code: 'STOP_RESULT_TIMEOUT' });
   await assert.rejects(f.second.heartbeat(session.sessionId, 'engine', session.engineCredential, 1),
-    { code: 'STOP_RESULT_TIMEOUT' });
+    { code: 'SESSION_GONE' });
   assert.equal(await f.store.countLive(), 0);
 });
 
@@ -374,13 +377,13 @@ test('STOP ACK tolerates the reproduced 2.65 s tail but remains bounded at 10 s'
 test('claim, idle, lease and hard expiry work from durable timestamps without timers', async () => {
   const claim = fixture();
   const unclaimed = await claim.first.create({ userId: userA, competitionId: 'expiry', participantRole: 'white' });
-  claim.advance(30_001);
+  claim.advance(60_001);
   await assert.rejects(claim.second.claim(unclaimed.sessionId, unclaimed.claimToken),
     { code: 'CLAIM_EXPIRED' });
   assert.equal(await claim.store.countLive(), 0);
 
   const idle = fixture(), idleSession = await open(idle);
-  idle.advance(30_001);
+  idle.advance(600_001);
   await assert.rejects(idle.second.command(idleSession.sessionId, userA, { type: 'HELLO', seq: 1 }),
     { code: 'IDLE_EXPIRED' });
   assert.equal(await idle.store.countLive(), 0);
@@ -388,7 +391,7 @@ test('claim, idle, lease and hard expiry work from durable timestamps without ti
   const lease = fixture(), leaseSession = await open(lease);
   const connection = await lease.first.connect(leaseSession.sessionId, 'engine', leaseSession.engineCredential);
   await lease.first.close(leaseSession.sessionId, 'engine', leaseSession.engineCredential, connection.epoch);
-  lease.advance(5_001);
+  lease.advance(20_001);
   await assert.rejects(lease.second.connect(leaseSession.sessionId, 'engine', leaseSession.engineCredential),
     { code: 'ENGINE_LEASE_EXPIRED' });
   assert.equal(await lease.store.countLive(), 0);
@@ -396,7 +399,7 @@ test('claim, idle, lease and hard expiry work from durable timestamps without ti
   assert.equal(lease.store.audit.at(-1).stateBefore, 'CLAIMED');
 
   const hard = fixture(), hardSession = await open(hard);
-  hard.advance(120_001);
+  hard.advance(7_200_001);
   await assert.rejects(hard.second.command(hardSession.sessionId, userA,
     { type: 'HELLO', seq: 1 }), { code: 'SESSION_EXPIRED' });
   assert.equal(await hard.store.countLive(), 0);

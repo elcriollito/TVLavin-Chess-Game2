@@ -1,10 +1,19 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import {
+  PRODUCTION_POLICY, TERMINAL_LIFECYCLE_STATES, assertLifecycleLive,
+  restoreLifecycleAfterReconnect, transitionLifecycle
+} from './production-policy.mjs';
 
 export const LIMITS = Object.freeze({
-  claimMs: 30_000, idleMs: 30_000, hardMs: 120_000, leaseMs: 5_000,
-  streamHeartbeatMs: 3_000, ackMs: 2_500, stopAckMs: 10_000, maxEvents: 128,
-  stopResultMs: 5_000,
-  maxCommandsPerSecond: 30, maxInfoPerSecond: 100, maxReconnectsPerMinute: 20,
+  claimMs: PRODUCTION_POLICY.claimMs, idleMs: PRODUCTION_POLICY.idleMs,
+  hardMs: PRODUCTION_POLICY.absoluteMs, leaseMs: PRODUCTION_POLICY.reconnectGraceMs,
+  streamHeartbeatMs: PRODUCTION_POLICY.heartbeatLeaseMs,
+  heartbeatEveryMs: PRODUCTION_POLICY.heartbeatEveryMs,
+  ackMs: 2_500, stopAckMs: PRODUCTION_POLICY.stopTimeoutMs, maxEvents: 128,
+  stopResultMs: PRODUCTION_POLICY.stopResultMs,
+  maxCommandsPerSecond: 30,
+  maxInfoPerSecond: PRODUCTION_POLICY.acceptedInfoPerSecond,
+  maxReconnectsPerMinute: PRODUCTION_POLICY.reconnectsPerMinute,
   maxClaimAttempts: 8, maxCommandBytes: 2_048, maxInfoBytes: 1_024,
   maxPvBytes: 512, maxBestmoveBytes: 128, maxErrorBytes: 256
 });
@@ -33,7 +42,8 @@ export const LC0_IDENTITY = Object.freeze({
   backend: 'cpu-wasm',
   networkId: 'CSSLab Maia 1100 v1.0',
   networkSha256: 'e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4',
-  manifestSha256: 'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a'
+  manifestSha256: process.env.EAE015A_MANIFEST_SHA256 ||
+    'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a'
 });
 
 function verifiedIdentity(value) {
@@ -56,13 +66,6 @@ function event(state, role, value, priority = 'high') {
   state.events.push({ id: ++state.nextEventId, role, priority, value });
 }
 
-function rate(state, field, now, windowMs, maximum) {
-  state[field] = state[field].filter(at => now - at < windowMs);
-  if (state[field].length >= maximum) return false;
-  state[field].push(now);
-  return true;
-}
-
 export class DurableBroker {
   constructor(store, { now = () => Date.now(), requestId = null } = {}) {
     this.store = store; this.now = now; this.requestId = requestId;
@@ -74,7 +77,9 @@ export class DurableBroker {
     if (!['white', 'black'].includes(participantRole)) throw new RelayError('ROLE_INVALID');
     const now = this.now(), sessionId = secret(), claimToken = secret();
     const state = {
-      phase: 'UNCLAIMED', claimHash: hash(sessionId, claimToken), engineHash: null,
+      phase: 'UNCLAIMED', lifecycle: 'CREATED', lifecycleBeforeDisconnect: null,
+      lifecycleChangedAt: now, terminalAt: null,
+      claimHash: hash(sessionId, claimToken), engineHash: null,
       engineClientId: null, claimUntil: now + LIMITS.claimMs, idleUntil: now + LIMITS.idleMs,
       expiresAt: now + LIMITS.hardMs, engineStreamUntil: null, mainStreamUntil: null,
       engineHeartbeatAt: null, mainHeartbeatAt: null,
@@ -86,8 +91,7 @@ export class DurableBroker {
       stopResultUntil: null,
       identity: null, cleanupEvidence: null,
       seenSearchIds: [], events: [], nextEventId: 0, lastAck: null,
-      mainAckCursor: 0, engineAckCursor: 0,
-      commandTimes: [], infoTimes: [], reconnectTimes: [], claimAttempts: 0
+      mainAckCursor: 0, engineAckCursor: 0
     };
     const result = await this.store.create({ sessionId, ownerId: userId, competitionId,
       participantRole, createdAt: now, expiresAt: state.expiresAt, state });
@@ -117,6 +121,26 @@ export class DurableBroker {
     if (state.stopResultUntil != null && now >= state.stopResultUntil)
       return 'STOP_RESULT_TIMEOUT';
     return null;
+  }
+
+  async rejectExpired(sessionId, row, expired, source) {
+    const reason = expired === 'SESSION_EXPIRED' ? 'SESSION_HARD_EXPIRY' :
+      expired === 'ENGINE_LEASE_EXPIRED' ? 'ENGINE_HEARTBEAT_EXPIRED' :
+      expired === 'MAIN_LEASE_EXPIRED' ? 'MAIN_HEARTBEAT_EXPIRED' : expired;
+    await this.store.deleteIfVersion(sessionId, row.version,
+      { reason, actor: 'BROKER_REQUEST', source, requestId: this.requestId });
+    throw new RelayError(expired, 410);
+  }
+
+  async rateGuard(sessionId, authorize, bucket, windowMs, maximum) {
+    const row = await this.get(sessionId), now = this.now();
+    authorize(row);
+    const expired = this.expired(row.state, now);
+    if (expired) await this.rejectExpired(sessionId, row, expired, 'DurableBroker.rateGuard');
+    try { assertLifecycleLive(row.state); }
+    catch (error) { throw new RelayError(error.code || 'SESSION_TERMINAL', 410); }
+    if (!await this.store.allowRate(sessionId, bucket, now, windowMs, maximum))
+      throw new RelayError(`${bucket}_RATE_LIMIT`, 429);
   }
 
   async mutate(sessionId, authorize, apply) {
@@ -160,7 +184,7 @@ export class DurableBroker {
     const row = await this.get(sessionId);
     this.owner(userId)(row);
     const expired = this.expired(row.state, this.now());
-    if (expired) throw new RelayError(expired, 410);
+    if (expired) await this.rejectExpired(sessionId, row, expired, 'DurableBroker.inspect');
     const { claimHash, engineHash, events, ...safe } = row.state;
     return { sessionId, competitionId: row.competitionId,
       participantRole: row.participantRole, state: safe };
@@ -170,23 +194,33 @@ export class DurableBroker {
     const row = await this.get(sessionId);
     this.engine(credential)(row);
     const expired = this.expired(row.state, this.now());
-    if (expired) throw new RelayError(expired, 410);
+    if (expired) await this.rejectExpired(sessionId, row, expired, 'DurableBroker.inspectEngine');
     return { sessionId, phase: row.state.phase, lastEngineSeq: row.state.lastEngineSeq,
       activeSearchId: row.state.activeSearchId, identity: row.state.identity };
   }
 
   async claim(sessionId, claimToken) {
     if (typeof claimToken !== 'string' || claimToken.length > 128) throw new RelayError('CLAIM_INVALID', 403);
+    // Invalid claims are accounted in a minimal counter row, never in the
+    // session document. They therefore cannot exhaust or corrupt a valid claim.
+    const candidate = await this.get(sessionId), now = this.now();
+    const expired = this.expired(candidate.state, now);
+    if (expired) await this.rejectExpired(sessionId, candidate, expired, 'DurableBroker.claim');
+    if (candidate.state.phase !== 'UNCLAIMED') throw new RelayError('CLAIM_ALREADY_USED', 409);
+    if (!equal(candidate.state.claimHash, hash(candidate.sessionId, claimToken))) {
+      await this.store.allowRate(sessionId, 'CLAIM_INVALID', now, 60_000, LIMITS.maxClaimAttempts);
+      throw new RelayError('CLAIM_INVALID', 403);
+    }
     const credential = secret(), engineClientId = secret();
-    return this.mutate(sessionId, () => {}, (state, row) => {
+    return this.mutate(sessionId, () => {}, (state, row, now) => {
       if (state.phase !== 'UNCLAIMED') return { error: new RelayError('CLAIM_ALREADY_USED', 409) };
-      if (++state.claimAttempts > LIMITS.maxClaimAttempts) return { error: new RelayError('CLAIM_RATE_LIMIT', 429) };
       if (!equal(state.claimHash, hash(row.sessionId, claimToken)))
         return { error: new RelayError('CLAIM_INVALID', 403) };
       state.claimHash = null;
       state.engineHash = hash(row.sessionId, credential);
       state.engineClientId = engineClientId;
       state.phase = 'CLAIMED';
+      transitionLifecycle(state, 'CLAIMED', now);
       return { sessionId, engineCredential: credential, engineClientId };
     });
   }
@@ -194,12 +228,12 @@ export class DurableBroker {
   async command(sessionId, userId, command) {
     keys(command, ['type', 'seq', 'fen', 'moves', 'searchId', 'mode', 'nodes', 'newGame']);
     if (bytes(command) > LIMITS.maxCommandBytes) throw new RelayError('COMMAND_TOO_LARGE', 413);
+    await this.rateGuard(sessionId, this.owner(userId), 'COMMAND', 1_000,
+      LIMITS.maxCommandsPerSecond);
     return this.mutate(sessionId, this.owner(userId), (state, _row, now) => {
       const { type, seq, fen, moves, searchId, mode, nodes, newGame } = command;
       if (!Number.isSafeInteger(seq) || seq !== state.lastCommandSeq + 1)
         throw new RelayError('SEQUENCE_INVALID', 409);
-      if (!rate(state, 'commandTimes', now, 1_000, LIMITS.maxCommandsPerSecond))
-        return { error: new RelayError('COMMAND_RATE_LIMIT', 429) };
       if (state.pending) throw new RelayError('ACK_PENDING', 409);
       const phases = { HELLO: ['CLAIMED'], POSITION: ['READY', 'REUSE_READY'],
         GO: ['POSITION_ACKED'], STOP: ['SEARCHING'], RESET: ['STOPPED'],
@@ -233,9 +267,10 @@ export class DurableBroker {
       // at the generic 2.5 s command deadline before cooperative STOP/CLEANUP.
       state.pending = { type, seq, searchId: searchId || null,
         deadline: now + (type === 'STOP' ? LIMITS.stopAckMs : LIMITS.ackMs) };
-      if (type === 'STOP') state.phase = 'STOPPING';
-      if (type === 'RESET') state.phase = 'RESETTING';
-      if (type === 'QUIT') state.phase = 'QUITTING';
+      if (type === 'HELLO') transitionLifecycle(state, 'INITIALIZING', now);
+      if (type === 'STOP') { state.phase = 'STOPPING'; transitionLifecycle(state, 'STOPPING', now); }
+      if (type === 'RESET') { state.phase = 'RESETTING'; transitionLifecycle(state, 'INITIALIZING', now); }
+      if (type === 'QUIT') { state.phase = 'QUITTING'; transitionLifecycle(state, 'CLEANING', now); }
       event(state, 'engine', { type, seq, ...(fen ? { fen, moves: moves || [] } : {}),
         ...(searchId ? { searchId } : {}), ...(mode ? { mode } : {}),
         ...(nodes ? { nodes } : {}), ...(newGame === true ? { newGame: true } : {}) });
@@ -255,6 +290,8 @@ export class DurableBroker {
       message.type === 'BESTMOVE' ? LIMITS.maxBestmoveBytes :
       message.type === 'ERROR' ? LIMITS.maxErrorBytes : LIMITS.maxCommandBytes;
     if (size > maximum) throw new RelayError('MESSAGE_TOO_LARGE', 413);
+    if (message.type === 'INFO') await this.rateGuard(sessionId, this.engine(credential),
+      'INFO', 1_000, LIMITS.maxInfoPerSecond);
     return this.mutate(sessionId, this.engine(credential), (state, _row, now) => {
       const { type, seq, searchId } = message;
       if (!Number.isSafeInteger(seq) || seq !== state.lastEngineSeq + 1)
@@ -268,6 +305,7 @@ export class DurableBroker {
         const next = { HELLO: 'HELLO_ACKED', POSITION: 'POSITION_ACKED', GO: 'SEARCHING',
           STOP: 'STOP_ACKED', RESET: 'RESET_ACKED', QUIT: 'QUIT_ACKED' };
         state.phase = next[pending.type];
+        if (pending.type === 'GO') transitionLifecycle(state, 'SEARCHING', now);
         if (pending.type === 'STOP') state.stopResultUntil = now + LIMITS.stopResultMs;
         event(state, 'main', { type: 'ACK', command: pending.type,
           commandSeq: pending.seq, searchId: pending.searchId });
@@ -281,6 +319,7 @@ export class DurableBroker {
         if (state.phase === 'RESET_ACKED') {
           state.phase = 'REUSE_READY'; state.reuseReadyFor = state.completedSearchId;
         } else state.phase = 'READY';
+        transitionLifecycle(state, 'READY', now);
         event(state, 'main', { type: 'READY', identity });
       } else if (type === 'INFO') {
         if (!['SEARCHING', 'STOPPING'].includes(state.phase) || searchId !== state.activeSearchId)
@@ -290,8 +329,6 @@ export class DurableBroker {
             typeof message.pv !== 'string' ||
             bytes(message.pv) > LIMITS.maxPvBytes || typeof message.score !== 'number' ||
             !Number.isFinite(message.score)) throw new RelayError('INFO_INVALID');
-        if (!rate(state, 'infoTimes', now, 1_000, LIMITS.maxInfoPerSecond))
-          return { error: new RelayError('INFO_RATE_LIMIT', 429) };
         event(state, 'main', { type: 'INFO', searchId, depth: message.depth, nodes: message.nodes,
           pv: message.pv, score: message.score,
           emittedAt: Number.isSafeInteger(message.emittedAt) ? message.emittedAt : null }, 'low');
@@ -308,6 +345,7 @@ export class DurableBroker {
         if (state.phase !== 'STOP_ACKED' || !state.bestmove || searchId !== state.activeSearchId)
           throw new RelayError('STOPPED_STATE_INVALID', 409);
         state.stopped = true; state.phase = 'STOPPED'; state.stopResultUntil = null;
+        transitionLifecycle(state, 'IDLE', now);
         event(state, 'main', { type: 'STOPPED', searchId });
       } else if (type === 'CLEANUP') {
         if (state.phase !== 'QUIT_ACKED' || (!state.stopped && state.completedSearchId !== null))
@@ -318,12 +356,18 @@ export class DurableBroker {
             evidence.runtimeState !== 'TERMINATED' || evidence.cleanupAcknowledged !== true ||
             evidence.forcedTerminations !== 0) throw new RelayError('CLEANUP_EVIDENCE_INVALID');
         state.cleanup = true; state.phase = 'CLEANED'; state.engineHash = null;
+        transitionLifecycle(state, 'CLEANED', now);
         state.cleanupEvidence = evidence;
         event(state, 'main', { type: 'CLEANUP', evidence });
       } else if (type === 'ERROR') {
         if (typeof message.code !== 'string' || !/^[A-Z0-9_]{1,64}$/.test(message.code))
           throw new RelayError('ERROR_INVALID');
         event(state, 'main', { type: 'ERROR', code: message.code });
+        if (!TERMINAL_LIFECYCLE_STATES.includes(state.lifecycle)) {
+          state.phase = 'FAILED';
+          transitionLifecycle(state, 'FAILED', now);
+          state.engineHash = null;
+        }
       } else throw new RelayError('MESSAGE_TYPE_INVALID');
       state.lastEngineSeq = seq;
       return { accepted: true, type };
@@ -369,11 +413,12 @@ export class DurableBroker {
     if (!['main', 'engine'].includes(role) || !Number.isSafeInteger(cursor) || cursor < 0)
       throw new RelayError('STREAM_INVALID');
     const authorize = role === 'main' ? this.owner(authority) : this.engine(authority);
+    await this.rateGuard(sessionId, authorize, 'RECONNECT', 60_000,
+      LIMITS.maxReconnectsPerMinute);
     return this.mutate(sessionId, authorize, (state, _row, now) => {
       if (role === 'engine' && ['CLEANED', 'UNCLAIMED'].includes(state.phase))
         throw new RelayError('ENGINE_DETACHED', 410);
-      if (!rate(state, 'reconnectTimes', now, 60_000, LIMITS.maxReconnectsPerMinute))
-        return { error: new RelayError('RECONNECT_RATE_LIMIT', 429) };
+      restoreLifecycleAfterReconnect(state, now);
       const key = role === 'main' ? 'mainEpoch' : 'engineEpoch';
       const until = role === 'main' ? 'mainStreamUntil' : 'engineStreamUntil';
       const acknowledged = role === 'main' ? state.mainAckCursor : state.engineAckCursor;
@@ -420,7 +465,7 @@ export class DurableBroker {
     const row = await this.get(sessionId), now = this.now();
     authorize(row);
     const expired = this.expired(row.state, now);
-    if (expired) throw new RelayError(expired, 410);
+    if (expired) await this.rejectExpired(sessionId, row, expired, 'DurableBroker.poll');
     if (row.state[key] !== epoch) throw new RelayError('STREAM_REPLACED', 409);
     return select(row.state);
   }
@@ -431,7 +476,12 @@ export class DurableBroker {
       await this.mutate(sessionId, authorize, (state, _row, now) => {
         const key = role === 'main' ? 'mainEpoch' : 'engineEpoch';
         const until = role === 'main' ? 'mainStreamUntil' : 'engineStreamUntil';
-        if (state[key] === epoch) state[until] = now;
+        if (state[key] === epoch) {
+          state[until] = now;
+          if (!TERMINAL_LIFECYCLE_STATES.includes(state.lifecycle) &&
+              state.lifecycle !== 'DISCONNECTED_GRACE')
+            transitionLifecycle(state, 'DISCONNECTED_GRACE', now);
+        }
         return { closed: true };
       });
     } catch { /* A replaced or expired stream owns no authoritative state. */ }

@@ -3,9 +3,19 @@ import { Lc0LabRuntime, sha256 } from '../../lc0-browser-lab/src/lab-runtime.js'
 
 const $ = selector => document.querySelector(selector);
 const log = value => { $('#log').textContent += `${value}\n`; };
-const BASE = '/experiments/lc0-preview-relay/engine';
-const ARTIFACTS = `${BASE}/artifacts`;
-const MANIFEST_SHA256 = 'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a';
+const meta = name => document.querySelector(`meta[name="${name}"]`)?.content || null;
+const RUNTIME_CONFIG = Object.freeze(globalThis.__LC0_RUNTIME_CONFIG__ || {
+  basePath: meta('lc0-base-path'), assetBase: meta('lc0-asset-base'),
+  relayOrigin: meta('lc0-relay-origin'), mainOrigin: meta('lc0-main-origin'),
+  manifestUrl: meta('lc0-manifest-url'), manifestSha256: meta('lc0-manifest-sha256'),
+  workerPath: meta('lc0-worker-path')
+});
+const BASE = RUNTIME_CONFIG.basePath || '/experiments/lc0-preview-relay/engine';
+const ARTIFACTS = RUNTIME_CONFIG.assetBase || `${BASE}/artifacts`;
+const RELAY_ORIGIN = RUNTIME_CONFIG.relayOrigin || location.origin;
+const MANIFEST_URL = RUNTIME_CONFIG.manifestUrl || `${BASE}/lab-manifest.json`;
+const MANIFEST_SHA256 = RUNTIME_CONFIG.manifestSha256 ||
+  'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a';
 const PIN = Object.freeze({
   providerClass: 'lc0-browser-experimental', version: 'v0.33.0-dev+git.482bb4a',
   sourceCommit: '482bb4a830287b726ebe7d42f14ab7f5f17c18a0',
@@ -16,7 +26,7 @@ const PIN = Object.freeze({
 });
 
 async function api(action, { sessionId, credential, body, cursor, signal } = {}) {
-  const url = new URL('/api/eae011', location.origin);
+  const url = new URL('/api/eae011', RELAY_ORIGIN);
   url.searchParams.set('action', action);
   if (sessionId) url.searchParams.set('sessionId', sessionId);
   if (cursor != null) url.searchParams.set('cursor', String(cursor));
@@ -32,31 +42,34 @@ async function api(action, { sessionId, credential, body, cursor, signal } = {})
 }
 
 async function verifyArtifacts() {
-  const response = await fetch(`${BASE}/lab-manifest.json`, { cache: 'force-cache' });
+  const response = await fetch(MANIFEST_URL, { cache: 'force-cache' });
   if (!response.ok) throw new Error('MANIFEST_UNAVAILABLE');
   const raw = await response.arrayBuffer();
   if (await sha256(raw) !== MANIFEST_SHA256) throw new Error('MANIFEST_HASH_MISMATCH');
   const manifest = JSON.parse(new TextDecoder().decode(raw));
+  const version = value => typeof value === 'string' ? value : value?.version;
   if (manifest.source.commit !== PIN.sourceCommit ||
       manifest.source.lc0ReportedVersion !== PIN.version ||
       manifest.network.id !== PIN.networkId ||
       manifest.network.sha256 !== PIN.networkSha256 ||
-      manifest.toolchain.emscripten !== '3.1.64' ||
-      manifest.toolchain.meson !== '1.8.3' ||
-      manifest.toolchain.ninja !== '1.11.1.4' ||
-      manifest.toolchain.onnxruntimeWeb !== '1.27.0') throw new Error('MANIFEST_IDENTITY_MISMATCH');
-  for (const [folder, names] of Object.entries({
-    runtime: ['lc0.js', 'lc0.wasm', 'lc0.worker.mjs'],
-    ort: ['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm'],
-    network: ['maia-1100.pb.gz']
-  })) {
-    for (const name of names) {
-      const asset = await fetch(`${ARTIFACTS}/${folder}/${name}`, { cache: 'force-cache' });
-      if (!asset.ok) throw new Error(`ARTIFACT_UNAVAILABLE_${name}`);
-      const bytes = await asset.arrayBuffer(), expected = manifest.artifacts[name];
-      if (!expected || bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)
-        throw new Error(`ARTIFACT_HASH_MISMATCH_${name}`);
-    }
+      version(manifest.toolchain.emscripten) !== '3.1.64' ||
+      version(manifest.toolchain.meson) !== '1.8.3' ||
+      version(manifest.toolchain.ninja) !== '1.11.1.4' ||
+      version(manifest.toolchain.onnxruntimeWeb) !== '1.27.0')
+    throw new Error('MANIFEST_IDENTITY_MISMATCH');
+  const legacyFolders = { 'lc0.js': 'runtime', 'lc0.wasm': 'runtime',
+    'lc0.worker.mjs': 'runtime', 'ort-wasm-simd-threaded.mjs': 'ort',
+    'ort-wasm-simd-threaded.wasm': 'ort', 'maia-1100.pb.gz': 'network' };
+  for (const [name, expected] of Object.entries(manifest.artifacts || {})) {
+    if (expected.verifyBeforeReady === false) continue;
+    const url = expected.path ? new URL(expected.path,
+      new URL(MANIFEST_URL, location.origin)).href :
+      `${ARTIFACTS}/${legacyFolders[name]}/${name}`;
+    const asset = await fetch(url, { cache: 'force-cache' });
+    if (!asset.ok) throw new Error(`ARTIFACT_UNAVAILABLE_${name}`);
+    const bytes = await asset.arrayBuffer();
+    if (!expected || bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)
+      throw new Error(`ARTIFACT_HASH_MISMATCH_${name}`);
   }
   return manifest;
 }
@@ -101,6 +114,10 @@ class RealLc0RelayClient {
     $('#environment').textContent = `origin=${location.origin}; isolated=${crossOriginIsolated}; SAB=true`;
     const handoff = new URLSearchParams(location.hash.slice(1));
     history.replaceState(null, '', location.pathname);
+    if (handoff.has('relayOrigin') && handoff.get('relayOrigin') !== RELAY_ORIGIN)
+      throw new Error('RELAY_ORIGIN_MISMATCH');
+    if (RUNTIME_CONFIG.mainOrigin && handoff.get('mainOrigin') !== RUNTIME_CONFIG.mainOrigin)
+      throw new Error('MAIN_ORIGIN_MISMATCH');
     if (handoff.has('sessionId') && handoff.has('claimToken')) {
       this.sessionId = handoff.get('sessionId');
       const claimAt = performance.now();
@@ -125,7 +142,7 @@ class RealLc0RelayClient {
     await verifyArtifacts();
     this.metrics.artifactVerifyMs = performance.now() - artifactsAt;
     this.runtime = new Lc0LabRuntime({ timeoutMs: 30_000, assetBase: ARTIFACTS,
-      workerPath: `${BASE}/lc0-worker.js`,
+      workerPath: RUNTIME_CONFIG.workerPath || `${BASE}/lc0-worker.js`,
       network: { url: `${ARTIFACTS}/network/maia-1100.pb.gz` },
       onEvent: event => this.runtimeEvent(event) });
     const runtimeAt = performance.now();
@@ -171,7 +188,7 @@ class RealLc0RelayClient {
         })
         .finally(() => { inFlight = false; this.heartbeatRequests.delete(request); });
       this.heartbeatRequests.add(request);
-    }, 1500);
+    }, 5_000);
   }
 
   async consume(body, controller) {
@@ -286,7 +303,7 @@ class RealLc0RelayClient {
         this.metrics.rawInfo += 1;
         const active = this.active, parsed = info(line);
         if (active && parsed && !active.stopRequested && !active.transportUncertain &&
-            performance.now() - active.lastInfoAt >= 150) {
+            performance.now() - active.lastInfoAt >= 250) {
           active.lastInfoAt = performance.now(); this.metrics.sentInfo += 1;
           this.message('INFO', { searchId: active.searchId, ...parsed }).catch(error => log(`info ${error.message}`));
         }
