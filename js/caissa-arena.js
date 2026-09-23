@@ -2079,7 +2079,7 @@ const CaissaArena = {
     },
 
     classifyArenaError(error) {
-        const code = String(error?.code || error?.message || '');
+        const code = String(error?.code || error?.message || '').toUpperCase();
         if (code.includes('STALE')) return 'ARENA_ERROR_STALE_SEARCH';
         if (code.includes('SEARCH_ALREADY_ACTIVE')) return 'ARENA_ERROR_DUPLICATE_SEARCH';
         if (code.includes('TRANSITION_INVALID') || code.includes('READY_STATE_INVALID'))
@@ -2367,6 +2367,7 @@ const CaissaArena = {
             const runtimeRole = ['white', 'black'].includes(color) ? color : null;
             const engineId = context.engineId || engine.id || 'unknown';
             const searchToken = ++this.state.searchToken;
+            const moveTimeoutMs = engine.asyncLifecycle ? 30000 : ARENA_ENGINE_TIMEOUT_MS;
             let timeout = null;
             let settled = false;
             let goCommandSent = false;
@@ -2472,7 +2473,7 @@ const CaissaArena = {
                 finish(() => reject(new Error(
                     `Engine move timeout (${color}, ${engineId}, search ${searchToken}, FEN ${fen})`
                 )));
-            }, ARENA_ENGINE_TIMEOUT_MS);
+            }, moveTimeoutMs);
         });
     },
 

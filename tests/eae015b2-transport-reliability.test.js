@@ -53,4 +53,6 @@ test('SSE delivery rewinds to the durable ACK cursor after a silent socket gap',
 
 test('remote async runtime readiness has a bounded production-network allowance', () => {
   assert.match(arena, /engine\.asyncLifecycle \? 15000 : 5000/);
+  assert.match(arena, /engine\.asyncLifecycle \? 30000 : ARENA_ENGINE_TIMEOUT_MS/);
+  assert.match(arena, /String\(error\?\.code \|\| error\?\.message \|\| ''\)\.toUpperCase\(\)/);
 });
