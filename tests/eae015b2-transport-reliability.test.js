@@ -100,4 +100,5 @@ test('Lc0 cold startup has a distinct bounded allowance and reports backend timi
   assert.match(runtime, /this\.timings\.backendSessionMs/);
   assert.match(adapter, /from, 75_000, 'READY'/);
   assert.match(livePreview, /PAUSE_SETTLE_TIMEOUT_MS = 30_000/);
+  assert.match(livePreview, /BROKER_EXPIRY_TIMEOUT_MS = 70_000/);
 });

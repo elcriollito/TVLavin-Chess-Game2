@@ -44,6 +44,9 @@ const DISCOVER_INTERNAL_USER = process.env.EAE015B_DISCOVER_INTERNAL_USER === '1
 const TRANSPORT_FAULTS = process.env.EAE015B2_TRANSPORT_FAULTS === '1';
 const EXPECT_EXPIRY = process.env.EAE015B2_EXPECT_EXPIRY === '1';
 const PAUSE_SETTLE_TIMEOUT_MS = 30_000;
+// A stream may retain its last 30 s heartbeat lease before the broker applies
+// the 20 s reconnect grace. Allow both certified windows plus network margin.
+const BROKER_EXPIRY_TIMEOUT_MS = 70_000;
 const stagingRef = process.env.EAE015B_SUPABASE_REF || 'aqizagaskicotorfpwfn';
 const stagingSecret = process.env.EAE015A_SUPABASE_SERVICE_ROLE_KEY || '';
 const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
@@ -363,7 +366,8 @@ try {
         assert.equal(item.engine.metrics.localCleanupEvidence.forcedTerminations, 0);
         blockRelay = false;
         let deletedStatus = 0;
-        for (let attempt = 0; attempt < 40; attempt++) {
+        const brokerExpiryDeadline = Date.now() + BROKER_EXPIRY_TIMEOUT_MS;
+        while (Date.now() < brokerExpiryDeadline) {
           deletedStatus = await inspectSession(item.sessionId);
           if (deletedStatus === 410) break;
           await sleep(500);
