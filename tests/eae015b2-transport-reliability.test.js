@@ -87,3 +87,14 @@ test('remote async runtime readiness has a bounded production-network allowance'
   assert.match(arena, /engine\.asyncLifecycle \? 30000 : ARENA_ENGINE_TIMEOUT_MS/);
   assert.match(arena, /String\(error\?\.code \|\| error\?\.message \|\| ''\)\.toUpperCase\(\)/);
 });
+
+test('Lc0 cold startup has a distinct bounded allowance and reports backend timing', () => {
+  const runtime = fs.readFileSync(new URL(
+    '../experiments/lc0-browser-lab/src/lab-runtime.js', import.meta.url), 'utf8');
+  const adapter = fs.readFileSync(new URL(
+    '../experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js', import.meta.url), 'utf8');
+  assert.match(engineClient, /startupTimeoutMs: 60_000/);
+  assert.match(runtime, /timeout: this\.startupTimeoutMs/);
+  assert.match(runtime, /this\.timings\.backendSessionMs/);
+  assert.match(adapter, /from, 75_000, 'READY'/);
+});

@@ -50,6 +50,10 @@ addEventListener('message', ({ data }) => {
   if (typeof data === 'string') {
     trace('worker-receive', data);
     if (testMode === 'uci-timeout' && data === 'uci') return;
+    if (testMode === 'delayed-uci' && data === 'uci') {
+      setTimeout(() => deliverLine(data), 3_000);
+      return;
+    }
     if (testMode === 'ready-timeout' && data === 'isready') return;
     deliverLine(data);
     return;

@@ -34,6 +34,7 @@ const protectionHeaders = origin => protectionBypasses.get(origin)
 const seedProtectionHeaders = origin => ({ ...protectionHeaders(origin),
   ...(protectionBypasses.get(origin) ? { 'x-vercel-set-bypass-cookie': 'true' } : {}) });
 const CYCLES = Number(process.env.EAE013_CYCLES || 1);
+const CYCLE_OFFSET = Number(process.env.EAE013_CYCLE_OFFSET || 0);
 const RECONNECT_EVERY = Number(process.env.EAE013_RECONNECT_EVERY || 0);
 const PAUSE_REPEATS = Number(process.env.EAE013_PAUSE_REPEATS || 1);
 const SKIP_PAUSE = process.env.EAE015B_SKIP_PAUSE === '1';
@@ -46,6 +47,7 @@ const stagingRef = process.env.EAE015B_SUPABASE_REF || 'aqizagaskicotorfpwfn';
 const stagingSecret = process.env.EAE015A_SUPABASE_SERVICE_ROLE_KEY || '';
 const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
 if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
+    !Number.isSafeInteger(CYCLE_OFFSET) || CYCLE_OFFSET < 0 || CYCLE_OFFSET + CYCLES > 100 ||
     !Number.isSafeInteger(RECONNECT_EVERY) || RECONNECT_EVERY < 0 ||
     !Number.isSafeInteger(PAUSE_REPEATS) || PAUSE_REPEATS < 1 || PAUSE_REPEATS > 3 ||
     !Number.isSafeInteger(LEASE_EDGE_EVERY) || LEASE_EDGE_EVERY < 0 ||
@@ -57,7 +59,8 @@ if (!Number.isSafeInteger(CYCLES) || CYCLES < 1 || CYCLES > 100 ||
 const browser = await chromium.launch({ headless: true,
   ...(process.env.EAE015B_BROWSER_CHANNEL ? { channel: process.env.EAE015B_BROWSER_CHANNEL } : {}) });
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-const report = { cyclesRequested: CYCLES, cycles: [], failures: [], startedAt: Date.now() };
+const report = { cyclesRequested: CYCLES, cycleOffset: CYCLE_OFFSET,
+  cycles: [], failures: [], startedAt: Date.now() };
 let user, session, context, page, temporaryUser = false, temporarySession = false;
 const engineBrowserErrors = [];
 let lastToken, lastTokenAt = 0;
@@ -289,9 +292,10 @@ try {
   assert.deepEqual(report.axeSeriousOrCritical, []);
   for (let i = 0; i < CYCLES; i++) {
     const began = performance.now();
-    const color = i % 2 === 0 ? 'white' : 'black';
+    const cycle = CYCLE_OFFSET + i + 1;
+    const color = (cycle - 1) % 2 === 0 ? 'white' : 'black';
     const other = color === 'white' ? 'black' : 'white';
-    const item = { cycle: i + 1, color, stage: 'selection' };
+    const item = { cycle, color, stage: 'selection' };
     report.cycles.push(item);
     try {
       await page.click('#arenaTabMatch');
@@ -320,7 +324,7 @@ try {
       item.stage = 'ready';
       await page.waitForFunction(() => CaissaArena.state.matchState === 'running' &&
         window.CaissaArenaPreview.adapter?.identity?.runtimeInstanceId,
-        null, { timeout: 60_000 });
+        null, { timeout: 100_000 });
       item.identity = await page.evaluate(() => window.CaissaArenaPreview.adapter.identity);
       item.runtimeInstanceIdBefore = item.identity.runtimeInstanceId;
       item.runtimeIdentities = await page.evaluate(() => ({
@@ -545,7 +549,7 @@ try {
             runtime: window.Eae012Engine.runtime?.snapshot?.()
           }
         })).catch(error => ({ evaluationError: error.message })) })));
-      report.failures.push({ cycle: i + 1, stage: item.stage, error: error.message, state,
+      report.failures.push({ cycle: item.cycle, stage: item.stage, error: error.message, state,
         popupState, engineBrowserErrors });
       try {
         await page.evaluate(() => CaissaArena.stopMatch());
@@ -581,7 +585,8 @@ try {
     const sorted = values.slice().sort((a, b) => a - b);
     return sorted.length ? sorted[Math.ceil(sorted.length * fraction) - 1] : null;
   };
-  const compact = { cyclesRequested: CYCLES, completed: completed.length,
+  const compact = { cyclesRequested: CYCLES, cycleOffset: CYCLE_OFFSET,
+    completed: completed.length,
     failures: report.failures,
     startedAt: report.startedAt, finishedAt: report.finishedAt,
     sessionIds: completed.map(item => item.sessionId),

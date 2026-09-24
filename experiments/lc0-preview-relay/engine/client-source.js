@@ -160,7 +160,8 @@ class RealLc0RelayClient {
     const artifactsAt = performance.now();
     await verifyArtifacts();
     this.metrics.artifactVerifyMs = performance.now() - artifactsAt;
-    this.runtime = new Lc0LabRuntime({ timeoutMs: 30_000, assetBase: ARTIFACTS,
+    this.runtime = new Lc0LabRuntime({ timeoutMs: 30_000, startupTimeoutMs: 60_000,
+      assetBase: ARTIFACTS,
       workerPath: RUNTIME_CONFIG.workerPath || `${BASE}/lc0-worker.js`,
       network: { url: `${ARTIFACTS}/network/maia-1100.pb.gz` },
       onEvent: event => this.runtimeEvent(event) });

@@ -514,7 +514,7 @@
                 const ready = await this.waitEventOrDurable(item => item.type === 'READY',
                     state => state.phase === 'READY' && this.identityValid(state.identity)
                         ? { type: 'READY', identity: state.identity } : null,
-                    from, 40_000, 'READY');
+                    from, 75_000, 'READY');
                 if (!this.identityValid(ready.identity)) throw new Error('LC0_RUNTIME_IDENTITY_INVALID');
                 this.identity = Object.freeze({ ...ready.identity });
                 this.ready = true;

@@ -54,6 +54,7 @@ export class Lc0LabRuntime {
     this.workerPath = options.workerPath || '/lc0-worker.js';
     this.testMode = options.testMode || 'normal';
     this.timeoutMs = options.timeoutMs || 30_000;
+    this.startupTimeoutMs = options.startupTimeoutMs || this.timeoutMs;
     this.onEvent = typeof options.onEvent === 'function' ? options.onEvent : () => {};
     this.worker = null;
     this.state = 'CREATED';
@@ -167,7 +168,9 @@ export class Lc0LabRuntime {
       const uciStart = this.lines.length;
       const uciSentAt = performance.now();
       this.send('uci');
-      await this.waitForLine(line => line === 'uciok', { start: uciStart, timeout: this.timeoutMs });
+      await this.waitForLine(line => line === 'uciok', {
+        start: uciStart, timeout: this.startupTimeoutMs
+      });
       this.timings.uciOkMs = performance.now() - uciSentAt;
       const uciLines = this.lines.slice(uciStart);
       const name = uciLines.find(line => line.startsWith('id name '))?.slice(8) || null;
@@ -363,6 +366,11 @@ export class Lc0LabRuntime {
     if (data.type === 'worker-count') {
       this.nestedWorkers = Number(data.pthreads || 0);
       this.updateWorkerPeak();
+    }
+    if (data.type === 'backend-ready') {
+      this.timings.backendSessionMs = Number(data.sessionMs || 0);
+      this.emit('backend-ready', { backend: data.backend,
+        sessionMs: this.timings.backendSessionMs });
     }
     if (data.type === 'terminated') {
       this.cleanupAcknowledged = data.pthreads === 0 && data.nativeExit === true;

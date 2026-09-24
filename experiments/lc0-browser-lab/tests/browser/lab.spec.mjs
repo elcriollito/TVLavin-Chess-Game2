@@ -76,6 +76,24 @@ test('active search stops and restarts twenty times without force termination', 
   await expect.poll(() => dedicatedWorkerCount(page)).toBe(baselineWorkers);
 });
 
+test('cold-start allowance is independent from the normal UCI timeout', async ({ page }) => {
+  await openLab(page);
+  const baselineWorkers = await dedicatedWorkerCount(page);
+  const report = await page.evaluate(async () => {
+    const runtime = window.Lc0Lab.createRuntime({ timeoutMs: 2_500,
+      startupTimeoutMs: 6_000, testMode: 'delayed-uci' });
+    const initialized = await runtime.initialize();
+    const terminated = await runtime.terminate('delayed-startup-gate');
+    return { initialized, terminated };
+  });
+  expect(report.initialized.state).toBe('READY');
+  expect(report.initialized.timings.uciOkMs).toBeGreaterThanOrEqual(2_900);
+  expect(report.terminated.workers).toBe(0);
+  expect(report.terminated.forcedTerminations).toBe(0);
+  expect(report.terminated.cleanupAcknowledged).toBe(true);
+  await expect.poll(() => dedicatedWorkerCount(page)).toBe(baselineWorkers);
+});
+
 test('opt-in UCI trace locates the active stop boundary', async ({ page }) => {
   await openLab(page);
   const browserErrors = [];
