@@ -1,0 +1,30 @@
+diff --git a/src/search/classic/search.cc b/src/search/classic/search.cc
+--- a/src/search/classic/search.cc
++++ b/src/search/classic/search.cc
+@@ -40,6 +40,16 @@
+ #include <sstream>
+ #include <thread>
+ 
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++// The browser UCI loop shares a thread with RunBlocking(). The posted UCI
++// command is queued until this search returns; poll the one-shot signal at a
++// safe iteration boundary so the command can subsequently be dispatched.
++EM_JS(int, lc0web_take_stop, (), {
++  return globalThis.lc0web_take_stop?.() ? 1 : 0;
++});
++#endif
++
+ #include "neural/encoder.h"
+ #include "search/classic/node.h"
+ #include "utils/fastmath.h"
+@@ -1226,5 +1236,9 @@
+   // 6. Propagate the new nodes' information to all their parents in the tree.
+   DoBackupUpdate();
+ 
++#ifdef __EMSCRIPTEN__
++  if (lc0web_take_stop()) search_->Stop();
++#endif
++
+   // 7. Update the Search's status and progress information.
+   UpdateCounters();
