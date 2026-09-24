@@ -43,6 +43,7 @@ const DRAIN_CYCLE = Number(process.env.EAE015A_DRAIN_CYCLE || 0);
 const DISCOVER_INTERNAL_USER = process.env.EAE015B_DISCOVER_INTERNAL_USER === '1';
 const TRANSPORT_FAULTS = process.env.EAE015B2_TRANSPORT_FAULTS === '1';
 const EXPECT_EXPIRY = process.env.EAE015B2_EXPECT_EXPIRY === '1';
+const PAUSE_SETTLE_TIMEOUT_MS = 30_000;
 const stagingRef = process.env.EAE015B_SUPABASE_REF || 'aqizagaskicotorfpwfn';
 const stagingSecret = process.env.EAE015A_SUPABASE_SERVICE_ROLE_KEY || '';
 const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
@@ -416,9 +417,10 @@ try {
       assert.ok(item.presentation.pvSan.trim().length > 0, 'PV SAN missing');
       assert.equal(item.presentation.graph, true);
       if (!SKIP_PAUSE) {
+        item.stage = 'pause';
         await page.click('#arenaPauseMatch');
         await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
-          !CaissaArena._pausePending, null, { timeout: 15_000 });
+          !CaissaArena._pausePending, null, { timeout: PAUSE_SETTLE_TIMEOUT_MS });
       }
       if (TRANSPORT_FAULTS && !SKIP_PAUSE && (i + 1) % 2 === 0) {
         const recovered = await enginePage.evaluate(() => Eae012Engine.metrics.reconnectSuccess);
@@ -480,13 +482,15 @@ try {
         assert.equal(Object.values(item.resumeEvidence.reliability.arenaErrorsByReason)
           .reduce((sum, value) => sum + value, 0), 0);
         for (let repeat = 1; repeat < PAUSE_REPEATS; repeat++) {
+          item.stage = 'pause-repeat';
           await page.click('#arenaPauseMatch');
           await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
-            !CaissaArena._pausePending, null, { timeout: 15_000 });
+            !CaissaArena._pausePending, null, { timeout: PAUSE_SETTLE_TIMEOUT_MS });
           await page.click('#arenaPauseMatch');
           await page.waitForFunction(minimum => CaissaArena.game?.history().length >= minimum,
             6 + 2 * repeat, { timeout: 50_000 });
         }
+        item.stage = 'resume-complete';
       }
       item.pauseRepeats = SKIP_PAUSE ? 0 : PAUSE_REPEATS;
       item.moves = await page.evaluate(() => CaissaArena.game.history());

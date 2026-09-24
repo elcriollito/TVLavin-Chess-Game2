@@ -6,6 +6,8 @@ const engineClient = fs.readFileSync(new URL(
   '../experiments/lc0-preview-relay/engine/client-source.js', import.meta.url), 'utf8');
 const arena = fs.readFileSync(new URL('../js/caissa-arena.js', import.meta.url), 'utf8');
 const relayApi = fs.readFileSync(new URL('../api/eae011.js', import.meta.url), 'utf8');
+const livePreview = fs.readFileSync(new URL(
+  '../experiments/lc0-arena-preview/tests/live-preview.mjs', import.meta.url), 'utf8');
 
 test('isolated runtime retries transport within the certified lease window', () => {
   assert.match(engineClient, /TRANSPORT_RECONNECT_MS = 20_000/);
@@ -97,4 +99,5 @@ test('Lc0 cold startup has a distinct bounded allowance and reports backend timi
   assert.match(runtime, /timeout: this\.startupTimeoutMs/);
   assert.match(runtime, /this\.timings\.backendSessionMs/);
   assert.match(adapter, /from, 75_000, 'READY'/);
+  assert.match(livePreview, /PAUSE_SETTLE_TIMEOUT_MS = 30_000/);
 });
