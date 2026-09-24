@@ -16,6 +16,7 @@
     const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
     const TRANSPORT_RECONNECT_MS = 20_000;
     const TRANSPORT_RETRY_MAX_MS = 2_000;
+    const COMMAND_ACK_TIMEOUT_MS = TRANSPORT_RECONNECT_MS + 2_000;
 
     function checkIdentity(value, manifestSha256 = EXPECTED.manifestSha256) {
         return !!value && Object.entries(EXPECTED).every(([key, expected]) =>
@@ -392,7 +393,7 @@
                 item.commandSeq === seq, state => state.lastAck?.command === type &&
                 state.lastAck?.seq === seq ? { type: 'ACK', command: type,
                     commandSeq: seq, searchId: state.lastAck.searchId || null } : null,
-            from, 12_000, `ACK_${type}`);
+            from, COMMAND_ACK_TIMEOUT_MS, `ACK_${type}`);
             this.recordLifecycle('COMMAND_ACKNOWLEDGED', { command: type, commandSeq: seq,
                 searchId: rest.searchId || this.active?.searchId || null });
             return seq;

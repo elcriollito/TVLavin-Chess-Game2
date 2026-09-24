@@ -18,7 +18,7 @@ const MANIFEST_SHA256 = RUNTIME_CONFIG.manifestSha256 ||
   'b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a';
 const TRANSPORT_RECONNECT_MS = 20_000;
 const TRANSPORT_RETRY_MAX_MS = 2_000;
-const ENGINE_MESSAGE_RETRY_MS = 4_000;
+const ENGINE_MESSAGE_RETRY_MS = TRANSPORT_RECONNECT_MS;
 const CLEANUP_MESSAGE_RETRY_MS = 15_000;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const PIN = Object.freeze({

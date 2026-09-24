@@ -16,7 +16,7 @@ test('isolated runtime retries transport within the certified lease window', () 
 });
 
 test('isolated runtime reconciles uncertain engine-event delivery before advancing sequence', () => {
-  assert.match(engineClient, /ENGINE_MESSAGE_RETRY_MS = 4_000/);
+  assert.match(engineClient, /ENGINE_MESSAGE_RETRY_MS = TRANSPORT_RECONNECT_MS/);
   assert.match(engineClient, /state\?\.lastEngineSeq === payload\.seq/);
   assert.match(engineClient, /state\.lastEngineSeq !== payload\.seq - 1/);
   assert.match(engineClient, /OUTBOUND_RECONCILED/);
@@ -78,6 +78,8 @@ test('suspended command requests reconcile durable sequence state before any ret
   assert.match(adapter, /lost first response can race this retry/);
   assert.match(adapter, /await this\.waitForTransportConnected\(\)/);
   assert.match(adapter, /!\['STOP', 'QUIT'\]\.includes\(type\)\)\s*await this\.waitForTransportConnected\(\)/);
+  assert.match(adapter, /COMMAND_ACK_TIMEOUT_MS = TRANSPORT_RECONNECT_MS \+ 2_000/);
+  assert.match(adapter, /from, COMMAND_ACK_TIMEOUT_MS, `ACK_\$\{type\}`/);
 });
 
 test('remote async runtime readiness has a bounded production-network allowance', () => {
