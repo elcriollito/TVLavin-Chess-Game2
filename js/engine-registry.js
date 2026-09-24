@@ -537,6 +537,12 @@
             arenaPreviewFactories.set(provider.id, factory);
             return true;
         },
+        unregisterArenaPreviewProvider(id) {
+            if (id !== 'lc0-maia-1100-preview') return false;
+            arenaSessionUnavailable.delete(id);
+            arenaPreviewFactories.delete(id);
+            return arenaPreviewProviders.delete(id);
+        },
         isArenaProviderAvailable(id) {
             return this.getArenaProviderAvailability(id).available;
         },

@@ -60,6 +60,15 @@ export class MemoryStore {
     return this.controlMode;
   }
   async recordMetrics(metrics) { this.metrics.push(...structuredClone(metrics)); }
+
+  async recordRolloutEvent(actorHash, event, latencyMs = null) {
+    this.metrics.push({ metric: `eae016_${event}`, value: 1,
+      ...(Number.isFinite(latencyMs) ? { latencyMs } : {}), actorHash });
+  }
+
+  async rolloutDashboard() {
+    return { source: 'memory', metrics: structuredClone(this.metrics) };
+  }
   stats() { return structuredClone(this.io); }
   async cleanupDetailed({ now = this.now(), batchSize = PRODUCTION_POLICY.cleanupBatchSize,
     terminalRetentionMs = PRODUCTION_POLICY.terminalRetentionMs } = {}) {
@@ -210,19 +219,40 @@ export class SupabaseStore {
     const { error } = await this.client.rpc('eae015a_record_metrics', { p_metrics: safe });
     dbError(error);
   }
+
+  async recordRolloutEvent(actorHash, event, latencyMs = null) {
+    const { error } = await this.client.rpc('eae016_record_rollout_event', {
+      p_actor_hash: actorHash,
+      p_event: event,
+      p_latency_ms: Number.isFinite(latencyMs) ? Math.round(latencyMs) : null
+    });
+    dbError(error);
+  }
+
+  async rolloutDashboard(minutes = 60) {
+    const { data, error } = await this.client.rpc('eae016_rollout_dashboard', {
+      p_minutes: Math.max(1, Math.min(10_080, Math.round(minutes)))
+    });
+    dbError(error);
+    return data;
+  }
 }
 
 let singleton;
 export function configuredStore(env = process.env) {
-  const url = String(env.EAE011_SUPABASE_URL || '');
-  const key = String(env.EAE011_SUPABASE_SERVICE_ROLE_KEY || '');
+  const url = String(env.EAE011_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || '');
+  const key = String(env.EAE011_SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY || '');
   let host;
   try { host = new URL(url).hostname; } catch { host = ''; }
   const candidate = env.EAE015B_PRODUCTION_CANDIDATE === '1' &&
     [env.VERCEL_GIT_COMMIT_REF, env.EAE015A_BRANCH_GUARD]
       .includes('integration/lc0-limited-production-rc');
+  const publicRollout = env.EAE015B_PRODUCTION_CANDIDATE === '1' &&
+    env.EAE016_PUBLIC_ROLLOUT === '1' && env.EAE015A_PRODUCTION_SHAPE === '1' &&
+    ['preview', 'production'].includes(env.VERCEL_ENV);
   const previewStore = env.VERCEL_ENV === 'preview' && host === `${previewRef}.supabase.co`;
-  const productionStore = candidate && ['preview', 'production'].includes(env.VERCEL_ENV) &&
+  const productionStore = (candidate || publicRollout) &&
+    ['preview', 'production'].includes(env.VERCEL_ENV) &&
     host === `${productionRef}.supabase.co`;
   if (!key || (!previewStore && !productionStore))
     throw new RelayError('LC0_STORE_TARGET_REJECTED', 503);

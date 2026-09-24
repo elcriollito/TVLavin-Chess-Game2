@@ -22,7 +22,7 @@ test('EAE-015A relay artifact contains only the explicit function allowlist', as
     const result = await buildRelayArtifact({ output });
     const actual = await files(output);
     assert.deepEqual(actual, [...result.manifest.files, 'artifact-inventory.json'].sort());
-    assert.equal(RELAY_FILES.length, 9);
+    assert.equal(RELAY_FILES.length, 10);
     const config = JSON.parse(await readFile(join(output, 'vercel.json'), 'utf8'));
     assert.deepEqual(Object.keys(config.functions).sort(),
       ['api/cron/eae015a-lc0-cleanup.js', 'api/eae011.js']);

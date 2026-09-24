@@ -12,6 +12,7 @@ export const RELAY_FILES = Object.freeze([
   'api/_lib/auth.js',
   'experiments/lc0-preview-relay/durable-broker.mjs',
   'experiments/lc0-preview-relay/production-policy.mjs',
+  'experiments/lc0-preview-relay/rollout-policy.mjs',
   'experiments/lc0-preview-relay/store.mjs',
   'experiments/lc0-production-relay/package.json',
   'experiments/lc0-production-relay/package-lock.json',

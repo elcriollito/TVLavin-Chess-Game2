@@ -8999,6 +8999,94 @@ body.debug-layout #arena-right {
     font-size: 12px;
 }
 
+#arenaSection .arena-page-header {
+    position: relative;
+}
+
+.arena-experimental-shell {
+    margin-left: auto;
+    position: relative;
+    z-index: 30;
+}
+
+.arena-experimental-toggle {
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+.arena-experimental-popover {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: min(340px, calc(100vw - 2rem));
+    padding: 1rem;
+    border: 1px solid var(--border-color, #3a3a3a);
+    border-radius: 10px;
+    background: var(--card-bg, #181818);
+    color: var(--text-primary, #f4f4f4);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+}
+
+.arena-experimental-title,
+.arena-experimental-actions,
+.arena-experimental-details > div {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.arena-experimental-title {
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.arena-experimental-badge {
+    padding: 0.18rem 0.5rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.arena-experimental-details {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0 0 0.85rem;
+    font-size: 0.86rem;
+}
+
+.arena-experimental-details dt {
+    min-width: 72px;
+    font-weight: 700;
+}
+
+.arena-experimental-details dd {
+    margin: 0;
+}
+
+.arena-experimental-actions {
+    flex-wrap: wrap;
+}
+
+.arena-experimental-status,
+.arena-experimental-info {
+    margin: 0.7rem 0 0;
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+.arena-lc0-consent-content {
+    max-width: 520px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .arena-experimental-shell {
+        display: none !important;
+    }
+}
+
 #arenaSection .arena-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) clamp(380px, 32vw, 520px);

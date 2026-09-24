@@ -7,6 +7,8 @@ import { DurableBroker, RelayError } from '../experiments/lc0-preview-relay/dura
 import { configuredStore } from '../experiments/lc0-preview-relay/store.mjs';
 import { PRODUCTION_POLICY, controlPolicy, nextPollDelay } from
   '../experiments/lc0-preview-relay/production-policy.mjs';
+import { normalizeReleaseStage, rolloutEligibility } from
+  '../experiments/lc0-preview-relay/rollout-policy.mjs';
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const allowedActions = Object.freeze({
@@ -16,7 +18,8 @@ const allowedActions = Object.freeze({
   claim: ['engine', 'POST'], message: ['engine', 'POST'], stream_engine: ['engine', 'GET'],
   engine_state: ['engine', 'GET'], heartbeat_engine: ['engine', 'POST'],
   claim_command: ['engine', 'POST'],
-  config: ['main', 'GET'], health: ['either', 'GET']
+  config: ['main', 'GET'], health: ['either', 'GET'],
+  eligibility: ['main', 'GET'], internal_eligibility: ['main', 'GET']
 });
 
 export function relayMetrics({ action, messageType, messageCode, status, errorCode, latencyMs,
@@ -92,14 +95,7 @@ function origins(env) {
 }
 
 function releaseStage(env) {
-  const value = String(env.EAE015B_RELEASE_STAGE || 'DISABLED').toUpperCase();
-  return value === 'INTERNAL_ONLY' ? value : 'DISABLED';
-}
-
-function internalUserAllowed(userId, env) {
-  const allowed = String(env.EAE015B_INTERNAL_USER_IDS || '')
-    .split(',').map(value => value.trim()).filter(Boolean);
-  return allowed.length > 0 && allowed.includes(userId);
+  return normalizeReleaseStage(env.EAE016_RELEASE_STAGE || env.EAE015B_RELEASE_STAGE);
 }
 
 function checkRequest(req, role, pair, method) {
@@ -237,12 +233,28 @@ export default async function handler(req, res) {
     if (action === 'config') return respond(res, 200,
       { mainOrigin: pair.main, engineOrigin: pair.engine, relayOrigin: pair.relay,
         releaseStage: stage, mode }, req, pair);
+    if (action === 'eligibility' || action === 'internal_eligibility') {
+      const userId = await mainUser(req);
+      const eligibilityStage = action === 'internal_eligibility' ? 'INTERNAL_ONLY' : stage;
+      const rollout = rolloutEligibility(userId, eligibilityStage, process.env);
+      const enabled = action === 'internal_eligibility'
+        ? rollout.eligible : mode === 'ENABLED' && rollout.eligible;
+      return respond(res, 200, { eligible: enabled,
+        reason: enabled ? null : mode !== 'ENABLED' && action === 'eligibility'
+          ? (mode === 'DRAINING' ? 'RELEASE_DRAINING' : 'RELEASE_DISABLED')
+          : rollout.reason,
+        releaseStage: stage, mode }, req, pair);
+    }
     if (action === 'create') {
       const policy = controlPolicy(mode, action);
       if (!policy.allowed) throw new RelayError(policy.code, 503);
       const userId = await mainUser(req);
-      if (stage !== 'INTERNAL_ONLY' || !internalUserAllowed(userId, process.env))
-        throw new RelayError(stage === 'INTERNAL_ONLY' ? 'LC0_INTERNAL_ONLY' : 'LC0_DISABLED', 403);
+      const rollout = rolloutEligibility(userId, stage, process.env);
+      if (!rollout.eligible) {
+        const code = rollout.reason === 'CANARY_ONLY' ? 'LC0_CANARY_ONLY' :
+          rollout.reason === 'INTERNAL_ONLY' ? 'LC0_INTERNAL_ONLY' : 'LC0_DISABLED';
+        throw new RelayError(code, 403);
+      }
       const { participantRole } = input(req);
       // A caller-provided competition label is not authority. Bind each relay
       // session to a server-generated competition identifier instead.

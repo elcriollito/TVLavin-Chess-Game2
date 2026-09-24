@@ -1465,12 +1465,15 @@ const CaissaArena = {
         }
 
         const lc0 = 'lc0-maia-1100-preview';
+        const usesLc0 = [this.state.whiteEngine, this.state.blackEngine]
+            .some(engine => engine?.id === lc0);
         if (this.state.whiteEngine.id === lc0 && this.state.blackEngine.id === lc0) {
             this.updateGameStatus({ result: 'Choose one Lc0 participant and one other engine.' });
             return;
         }
         if ([this.state.whiteEngine, this.state.blackEngine].some(engine =>
             engine.id === lc0 && !window.CaissaArenaPreview?.enabled)) return;
+        if (usesLc0) window.CaissaArenaRollout?.metric?.('lc0_session_requested');
 
         this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
         if (window.CaissaArenaPreview?.enabled)
@@ -1565,6 +1568,7 @@ const CaissaArena = {
                 black: this.blackEngineInstance.getRuntimeIdentity()
             })
         };
+        if (usesLc0) window.CaissaArenaRollout?.metric?.('lc0_match_started');
 
         // Update UI
         window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
@@ -1658,6 +1662,10 @@ const CaissaArena = {
             return;
         }
         console.log('[Arena] Stopping match');
+        const stoppedLc0 = ['running', 'paused'].includes(this.state.matchState) &&
+            [this.state.whiteEngine, this.state.blackEngine]
+                .some(engine => engine?.id === 'lc0-maia-1100-preview');
+        if (stoppedLc0) window.CaissaArenaRollout?.metric?.('lc0_user_abort');
         this.state.startToken += 1;
         clearTimeout(this._tournamentAdvanceTimer);
         this._tournamentAdvanceTimer = null;
@@ -1969,6 +1977,12 @@ const CaissaArena = {
 
             this.enginesReady = true;
             this.evaluatorReady = true;
+            if ([whiteConfig, blackConfig].some(config => config.id === 'lc0-maia-1100-preview')) {
+                window.CaissaArenaRollout?.metric?.('lc0_session_created');
+                window.CaissaArenaRollout?.metric?.('lc0_ready',
+                    window.CaissaArenaRollout?.adapter?.metrics?.selectionToReadyMs);
+                window.CaissaArenaRollout?.status?.('Ready');
+            }
             console.log('[Arena] All engines ready (white, black, evaluator)!');
             return true;
 
@@ -1976,6 +1990,9 @@ const CaissaArena = {
             console.error('[Arena] Failed to initialize engines:', error);
             this.enginesReady = false;
             this.evaluatorReady = false;
+            if ([this.state.whiteEngine, this.state.blackEngine]
+                .some(config => config?.id === 'lc0-maia-1100-preview'))
+                window.CaissaArenaRollout?.metric?.('lc0_initialization_failed');
             this.refreshEngineAvailabilityUI();
             return false;
         }
@@ -2043,8 +2060,10 @@ const CaissaArena = {
     destroyEngines() {
         const cleanup = this.runtimeManager?.terminateAll('arena-destroyed');
         if (cleanup && typeof cleanup.catch === 'function') {
-            cleanup.catch(error => {
-                this.updateGameStatus({ result: `Lc0 cleanup unverified: ${error.message}` });
+            cleanup.catch(() => {
+                this.updateGameStatus({
+                    result: 'Lc0 cleanup could not be verified. Stockfish engines remain available.'
+                });
             });
         }
         this.enginesReady = false;
@@ -2626,6 +2645,9 @@ const CaissaArena = {
         }
 
         console.log('[Arena] Game ended:', result);
+        if ([this.state.whiteEngine, this.state.blackEngine]
+            .some(engine => engine?.id === 'lc0-maia-1100-preview'))
+            window.CaissaArenaRollout?.metric?.('lc0_match_completed');
 
         // Update UI
         this.updateMatchControls();
@@ -2662,6 +2684,9 @@ const CaissaArena = {
             result: 'Draw by adjudication',
             moveCount: this.game?.history().length || 0
         });
+        if ([this.state.whiteEngine, this.state.blackEngine]
+            .some(engine => engine?.id === 'lc0-maia-1100-preview'))
+            window.CaissaArenaRollout?.metric?.('lc0_match_completed');
         this.recordTournamentResult('1/2-1/2');
         window.dispatchEvent(new CustomEvent('caissa-arena-tournament-draw'));
         this.scheduleNextTournamentGame();
@@ -3529,8 +3554,8 @@ const CaissaArena = {
 
 // Resolve the internal candidate gate before Arena snapshots its providers.
 const initializeArena = async () => {
-    if (location.pathname === '/arena-preview') await window.CaissaArenaPreview?.prepare?.();
     CaissaArena.init();
+    if (location.pathname === '/arena') window.CaissaArenaRollout?.prepare?.();
 };
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeArena);
