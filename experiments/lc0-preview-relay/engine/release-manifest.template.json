@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "releaseId": "eae015b2-lc0-0.33.0-maia1100-r3",
+  "product": "CAISSA isolated Lc0 runtime appliance",
+  "source": {
+    "repository": "https://github.com/jalpp/lc0.js.git",
+    "upstreamRepository": "https://github.com/LeelaChessZero/lc0.git",
+    "upstreamPullRequest": "https://github.com/LeelaChessZero/lc0/pull/2432",
+    "commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+    "lc0ReportedVersion": "v0.33.0-dev+git.482bb4a",
+    "license": "GPL-3.0-or-later",
+    "licenseSourceUrl": "https://github.com/LeelaChessZero/lc0/blob/482bb4a830287b726ebe7d42f14ab7f5f17c18a0/COPYING"
+  },
+  "patches": [
+    {
+      "path": "experiments/lc0-browser-lab/patches/0001-browser-stop-signal.patch",
+      "sha256": "89db61927a6e4709460ef8eabcdcd0b053d7f39793a333d4e21bc0595d5eb015"
+    },
+    {
+      "path": "experiments/lc0-browser-lab/patches/0002-cooperative-exit.patch",
+      "sha256": "0d47b067fd237e4730233b2511de84b79d2d878628e86b3c104bb0f39554c9f4"
+    },
+    {
+      "path": "experiments/lc0-browser-lab/patches/0003-opt-in-native-uci-trace.patch",
+      "sha256": "1a370fb23195d097c0ff3c12d0c1a004e5a6ab3ac952475334cc9cb06bd6f75d"
+    }
+  ],
+  "toolchain": {
+    "emscripten": {
+      "version": "3.1.64",
+      "sourceUrl": "https://github.com/emscripten-core/emscripten/tree/3.1.64",
+      "license": "MIT AND Apache-2.0 WITH LLVM-exception"
+    },
+    "meson": {
+      "version": "1.8.3",
+      "sourceUrl": "https://github.com/mesonbuild/meson/tree/1.8.3",
+      "license": "Apache-2.0"
+    },
+    "ninja": {
+      "version": "1.11.1.4",
+      "sourceUrl": "https://github.com/ninja-build/ninja/tree/v1.11.1",
+      "license": "Apache-2.0"
+    },
+    "esbuild": {
+      "version": "0.28.1",
+      "sourceUrl": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.1.tgz",
+      "license": "MIT"
+    },
+    "onnxruntimeWeb": {
+      "version": "1.27.0",
+      "sourceUrl": "https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-1.27.0.tgz",
+      "license": "MIT"
+    },
+    "chessJs": {
+      "version": "1.4.0",
+      "sourceUrl": "https://registry.npmjs.org/chess.js/-/chess.js-1.4.0.tgz",
+      "license": "BSD-2-Clause"
+    }
+  },
+  "runtime": {
+    "backend": "onnxruntime-web-wasm-cpu",
+    "executionProviders": ["wasm"],
+    "ortThreads": 1,
+    "lc0Threads": 1,
+    "minibatchSize": 1,
+    "nnCacheSize": 2000,
+    "simd": true,
+    "pthreads": true,
+    "asyncifyStackBytes": 65536,
+    "stackBytes": 1048576,
+    "allowMemoryGrowth": true,
+    "exitRuntime": true
+  },
+  "network": {
+    "id": "CSSLab Maia 1100 v1.0",
+    "sourceRepository": "https://github.com/CSSLab/maia-chess",
+    "sourceCommit": "37de81e2bef89336e03266b3b5f7e1155ba68f5d",
+    "sourceUrl": "https://github.com/CSSLab/maia-chess/releases/download/v1.0/maia-1100.pb.gz",
+    "license": "GPL-3.0",
+    "format": "Lc0 protobuf gzip",
+    "sha256": "e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4",
+    "bytes": 1313193,
+    "searchNodes": 1
+  }
+}

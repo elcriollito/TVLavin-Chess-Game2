@@ -165,9 +165,16 @@
     };
 
     const arenaSessionUnavailable = new Map();
+    const arenaPreviewProviders = new Map();
+    const arenaPreviewFactories = new Map();
+    const arenaProviderIds = () => [...ARENA_PROVIDER_IDS, ...arenaPreviewProviders.keys()];
+    const arenaProviderById = id => ARENA_PROVIDERS[id] || arenaPreviewProviders.get(id) || null;
 
     function arenaAvailability(provider) {
         if (!provider) return Object.freeze({ available: false, reason: 'Unknown engine provider' });
+        if (provider.mobileCompatible === false && window.matchMedia?.('(max-width: 1050px)').matches)
+            return Object.freeze({ available: false,
+                reason: 'Lc0 experimental engine is currently available on supported desktop browsers only.' });
         const sessionReason = arenaSessionUnavailable.get(provider.id);
         if (sessionReason) return Object.freeze({ available: false, reason: sessionReason });
         const available = provider.availability === 'available' && provider.enabled !== false;
@@ -474,11 +481,11 @@
     }
 
     function markArenaProviderUnavailable(id, reason = 'Engine startup failed for this session') {
-        if (!ARENA_PROVIDER_IDS.includes(id)) return false;
-        const provider = ARENA_PROVIDERS[id];
+        if (!arenaProviderIds().includes(id)) return false;
+        const provider = arenaProviderById(id);
         if (!provider || provider.availability !== 'available') return false;
-        const affectedProviderIds = ARENA_PROVIDER_IDS.filter(providerId => {
-            const candidate = ARENA_PROVIDERS[providerId];
+        const affectedProviderIds = arenaProviderIds().filter(providerId => {
+            const candidate = arenaProviderById(providerId);
             return candidate?.availability === 'available'
                 && candidate.runtimeId === provider.runtimeId;
         });
@@ -510,17 +517,31 @@
             return createConfiguredEngine(this.get(id), options);
         },
         listArenaProviders() {
-            return ARENA_PROVIDER_IDS.map(id => arenaProviderSnapshot(ARENA_PROVIDERS[id]));
+            return arenaProviderIds().map(id => arenaProviderSnapshot(arenaProviderById(id)));
         },
         getArenaProvider(id) {
-            if (!ARENA_PROVIDER_IDS.includes(id)) return null;
-            return arenaProviderSnapshot(ARENA_PROVIDERS[id]);
+            return arenaProviderSnapshot(arenaProviderById(id));
         },
         getArenaProviderAvailability(id) {
-            if (!ARENA_PROVIDER_IDS.includes(id)) {
+            if (!arenaProviderById(id)) {
                 return Object.freeze({ available: false, reason: 'Unknown engine provider' });
             }
-            return arenaAvailability(ARENA_PROVIDERS[id]);
+            return arenaAvailability(arenaProviderById(id));
+        },
+        registerArenaPreviewProvider(provider, factory) {
+            if (provider?.id !== 'lc0-maia-1100-preview' ||
+                window.CaissaArenaPreview?.enabled !== true ||
+                typeof factory !== 'function' || arenaPreviewProviders.size)
+                return false;
+            arenaPreviewProviders.set(provider.id, Object.freeze({ ...provider }));
+            arenaPreviewFactories.set(provider.id, factory);
+            return true;
+        },
+        unregisterArenaPreviewProvider(id) {
+            if (id !== 'lc0-maia-1100-preview') return false;
+            arenaSessionUnavailable.delete(id);
+            arenaPreviewFactories.delete(id);
+            return arenaPreviewProviders.delete(id);
         },
         isArenaProviderAvailable(id) {
             return this.getArenaProviderAvailability(id).available;
@@ -534,6 +555,7 @@
         createArenaEngine(id, options = {}) {
             const provider = this.getArenaProvider(id);
             if (!provider || !provider.enabled) return null;
+            if (arenaPreviewFactories.has(id)) return arenaPreviewFactories.get(id)(provider, options);
             const externalUnavailable = options.onRuntimeUnavailable;
             return createConfiguredEngine(provider, {
                 ...options,

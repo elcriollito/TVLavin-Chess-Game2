@@ -1,0 +1,18 @@
+diff --git a/src/main.cc b/src/main.cc
+--- a/src/main.cc
++++ b/src/main.cc
+@@ -39,2 +39,5 @@
+ #include "version.h"
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++#endif
+ 
+@@ -138,5 +141,8 @@
+   } catch (std::exception& e) {
+     std::cerr << "Unhandled exception: " << e.what() << std::endl;
+     abort();
+   }
++#ifdef __EMSCRIPTEN__
++  emscripten_force_exit(0);
++#endif
+ }

@@ -499,6 +499,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Local development never grants rollout authority. Production uses the
+  // serverless EAE-016 gateway, while the local Arena stays deterministically disabled.
+  if (pathname === '/api/eae016') {
+    if (req.method !== 'GET') {
+      res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: 'METHOD_NOT_ALLOWED' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ enabled: false, eligible: false, authenticated: false,
+      reason: 'RELEASE_DISABLED', mode: 'DISABLED', releaseStage: 'DISABLED' }));
+    return;
+  }
+
   // Static file serving
   if (pathname === '/api/public-auth-config') {
     if (req.method !== 'GET') {

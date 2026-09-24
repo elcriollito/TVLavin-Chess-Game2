@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "releaseId": "lc0-browser-source-v0.1.1",
+  "lc0Version": "v0.33.0-dev+git.482bb4a",
+  "lc0Commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+  "sourceArchiveFilename": "caissa-lc0-browser-corresponding-source-v0.1.1.zip",
+  "sourceArchiveSha256": "7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec",
+  "sourceArchiveBytes": 1430117,
+  "publicSourceUrl": "https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.1/caissa-lc0-browser-corresponding-source-v0.1.1.zip",
+  "repository": "https://github.com/elcriollito/TVLavin-Chess-Game2",
+  "releaseTag": "lc0-browser-source-v0.1.1",
+  "releaseImmutable": true,
+  "publicVerification": {
+    "httpStatus": 200,
+    "authenticationRequired": false,
+    "contentLength": 1430117,
+    "downloadedSha256": "7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec",
+    "archiveExtracted": true
+  },
+  "source": {
+    "repository": "https://github.com/jalpp/lc0.js.git",
+    "upstreamRepository": "https://github.com/LeelaChessZero/lc0.git",
+    "commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+    "license": "GPL-3.0-or-later"
+  },
+  "patches": [
+    {
+      "order": 1,
+      "filename": "0001-browser-stop-signal.patch",
+      "purpose": "Poll a one-shot browser STOP signal at a safe search iteration boundary.",
+      "upstreamBaseCommit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+      "sha256": "89db61927a6e4709460ef8eabcdcd0b053d7f39793a333d4e21bc0595d5eb015"
+    },
+    {
+      "order": 2,
+      "filename": "0002-cooperative-exit.patch",
+      "purpose": "Request cooperative Emscripten runtime exit after the UCI loop returns.",
+      "upstreamBaseCommit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+      "sha256": "0d47b067fd237e4730233b2511de84b79d2d878628e86b3c104bb0f39554c9f4"
+    },
+    {
+      "order": 3,
+      "filename": "0003-opt-in-native-uci-trace.patch",
+      "purpose": "Expose opt-in native UCI lifecycle tracing for bounded diagnostics.",
+      "upstreamBaseCommit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
+      "sha256": "1a370fb23195d097c0ff3c12d0c1a004e5a6ab3ac952475334cc9cb06bd6f75d"
+    }
+  ],
+  "toolchain": {
+    "emscripten": "3.1.64",
+    "meson": "1.8.3",
+    "ninja": "1.11.1.4",
+    "esbuild": "0.28.1",
+    "onnxRuntimeWeb": "1.27.0",
+    "sourceDateEpoch": 1789992000
+  },
+  "runtimeArtifacts": [
+    { "filename": "client.js", "bytes": 203948, "sha256": "4fe91373197d1cdca3757949b5c955dab03b80211e5e2543566537d02fc723cb", "license": "GPL-3.0-or-later" },
+    { "filename": "lc0-worker.js", "bytes": 108767, "sha256": "16dc1a03a65316c2db7a5c4c306ba503fba6da95c43646eafff75d43271d5d7f", "license": "GPL-3.0-or-later" },
+    { "filename": "lc0.js", "bytes": 255351, "sha256": "c2b1786ff568d0d5042588b5b9bbf7a78623e47930ad4358803f2a37e3ca66a9", "license": "GPL-3.0-or-later" },
+    { "filename": "lc0.wasm", "bytes": 9399301, "sha256": "5c3cc8c72b5794092790ab2c7615a7a7e9757e1c899fa2a4cc1ca158547a07f0", "license": "GPL-3.0-or-later" },
+    { "filename": "lc0.worker.mjs", "bytes": 299, "sha256": "7e6dad4bca61807357acfcb3789c781deaca3e20214ccd76dd82ddcb0be0a153", "license": "GPL-3.0-or-later" },
+    { "filename": "ort-wasm-simd-threaded.mjs", "bytes": 24180, "sha256": "0a1e718d99c41b22c21f2520ff4f9e883a6b5533856e398d21816ee8eb8185d3", "license": "MIT" },
+    { "filename": "ort-wasm-simd-threaded.wasm", "bytes": 13479978, "sha256": "d1ab1b94b16a65b29d710d0b587b29e7bed336827577623913479b8afe8113e6", "license": "MIT" },
+    { "filename": "maia-1100.pb.gz", "bytes": 1313193, "sha256": "e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4", "license": "GPL-3.0" }
+  ],
+  "runtimeArtifactCount": 8,
+  "runtimeArtifactBytes": 24785017,
+  "network": {
+    "id": "CSSLab Maia 1100 v1.0",
+    "sourceRepository": "https://github.com/CSSLab/maia-chess",
+    "sourceCommit": "37de81e2bef89336e03266b3b5f7e1155ba68f5d",
+    "sourceUrl": "https://github.com/CSSLab/maia-chess/releases/download/v1.0/maia-1100.pb.gz",
+    "license": "GPL-3.0",
+    "sha256": "e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4",
+    "bytes": 1313193,
+    "includedInSourceArchive": false
+  },
+  "licenses": [
+    "COPYING-LC0.txt",
+    "LICENSE-MAIA.txt",
+    "LICENSE-ONNX-RUNTIME.txt",
+    "LICENSE-EMSCRIPTEN.txt",
+    "LICENSE-CHESSJS.txt"
+  ],
+  "notices": ["THIRD_PARTY_NOTICES.md"],
+  "buildManifestSha256": "492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f",
+  "publicationDate": "2026-09-22",
+  "complianceStatus": "LEGAL_SIGNOFF_REQUIRED"
+}

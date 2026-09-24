@@ -1,0 +1,13 @@
+{
+  "name": "caissa-lc0-relay-eae015a",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "@clerk/backend": "2.33.6",
+    "@supabase/supabase-js": "2.93.1"
+  }
+}

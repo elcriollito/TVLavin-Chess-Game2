@@ -33,6 +33,17 @@ const CaissaArena = {
     get evaluatorEngine() { return this.runtimeManager?.getInstance('evaluator') || null; },
     enginesReady: false,
     evaluatorReady: false,
+    _pausePending: null,
+    _resumePending: null,
+    _cleanupPromise: null,
+    lifecycleTrace: [],
+    lastArenaError: null,
+    reliabilityMetrics: {
+        arenaErrorsByReason: {},
+        staleBestmovesIgnored: 0,
+        duplicateBestmovesIgnored: 0,
+        acceptedBestmoves: 0
+    },
 
     // ===== STATE =====
     state: {
@@ -1231,7 +1242,9 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
-        this.prewarmEngines();
+        // The isolated Lc0 participant must be opened by a visible user gesture.
+        if (![this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
         const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
         const selectedEnginesValid = !!this.state.whiteEngine?.workerPath
             && !!this.state.blackEngine?.workerPath
@@ -1261,7 +1274,8 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
-        this.prewarmEngines();
+        if (![this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
     },
 
     updateEngineInfo() {
@@ -1341,7 +1355,8 @@ const CaissaArena = {
         } else {
             this.enginesReady = false;
             if (['running', 'paused'].includes(this.state.matchState)) {
-                this.handleError(`${failure?.role || 'participant'} engine failed`);
+                this.handleError(`${failure?.role || 'participant'} engine failed`,
+                    'ARENA_ERROR_RUNTIME_FAILURE', { failure });
             }
         }
         this.refreshEngineAvailabilityUI();
@@ -1449,7 +1464,20 @@ const CaissaArena = {
             return;
         }
 
+        const lc0 = 'lc0-maia-1100-preview';
+        const usesLc0 = [this.state.whiteEngine, this.state.blackEngine]
+            .some(engine => engine?.id === lc0);
+        if (this.state.whiteEngine.id === lc0 && this.state.blackEngine.id === lc0) {
+            this.updateGameStatus({ result: 'Choose one Lc0 participant and one other engine.' });
+            return;
+        }
+        if ([this.state.whiteEngine, this.state.blackEngine].some(engine =>
+            engine.id === lc0 && !window.CaissaArenaPreview?.enabled)) return;
+        if (usesLc0) window.CaissaArenaRollout?.metric?.('lc0_session_requested');
+
         this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
+        if (window.CaissaArenaPreview?.enabled)
+            window.CaissaArenaPreview.matchStartAt = performance.now();
         const startToken = ++this.state.startToken;
         const startIsCurrent = () => startToken === this.state.startToken;
         const cancelStaleStart = () => {
@@ -1519,7 +1547,7 @@ const CaissaArena = {
         } catch (error) {
             if (!startIsCurrent()) return cancelStaleStart();
             console.error('[Arena] Player engine readiness failed:', error);
-            this.handleError(error.message);
+            this.handleError(error.message, 'ARENA_ERROR_START_READINESS', { error });
             window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
             return;
         }
@@ -1529,6 +1557,7 @@ const CaissaArena = {
         this.state.loopActive = true;
         this.state.evalHistory = [];
         this.state.currentGame = {
+            id: globalThis.crypto?.randomUUID?.() || `arena-${Date.now()}`,
             white: this.state.whiteEngine,
             black: this.state.blackEngine,
             moves: [],
@@ -1539,6 +1568,7 @@ const CaissaArena = {
                 black: this.blackEngineInstance.getRuntimeIdentity()
             })
         };
+        if (usesLc0) window.CaissaArenaRollout?.metric?.('lc0_match_started');
 
         // Update UI
         window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
@@ -1572,27 +1602,58 @@ const CaissaArena = {
             // Pause the match
             this.state.matchState = 'paused';
             this.state.loopActive = false;
+            this.captureLifecycleTrace('PAUSE_REQUESTED');
             this.cancelActiveSearch('match paused');
             this.state.loopRunning = false;
-            this.runtimeManager.stopAll();
+            const stopping = this.runtimeManager.stopAll();
+            const pending = Promise.resolve(stopping).then(() => {
+                this.captureLifecycleTrace('PAUSE_STOPPED');
+                return true;
+            }).catch(error => {
+                if (this.state.matchState === 'paused') {
+                    this.handleError(error.message, 'ARENA_ERROR_PAUSE_STOP', { error });
+                }
+                return false;
+            });
+            this._pausePending = pending;
+            pending.finally(() => {
+                if (this._pausePending === pending) this._pausePending = null;
+                this.updateMatchControls();
+            });
             console.log('[Arena] Match paused');
             window.dispatchEvent(new CustomEvent('caissa-arena-pause'));
         } else if (this.state.matchState === 'paused') {
-            // Resume the match
-            this.state.matchState = 'running';
-            this.state.loopActive = true;
-            console.log('[Arena] Match resumed');
-            window.dispatchEvent(new CustomEvent('caissa-arena-resume'));
-            // Resume the loop
-            setTimeout(() => {
-                this.runEngineLoop();
-            }, 100);
+            if (this._resumePending) return this._resumePending;
+            // The relay-backed STOP is asynchronous. Resume may not allocate a
+            // new search generation until every role has reached IDLE.
+            this.captureLifecycleTrace('RESUME_REQUESTED');
+            this._resumePending = (async () => {
+                const stopped = await (this._pausePending || Promise.resolve(true));
+                if (!stopped || this.state.matchState !== 'paused') return false;
+                this.state.matchState = 'running';
+                this.state.loopActive = true;
+                this.captureLifecycleTrace('RESUME_STARTED');
+                console.log('[Arena] Match resumed');
+                window.dispatchEvent(new CustomEvent('caissa-arena-resume'));
+                setTimeout(() => this.runEngineLoop(), 100);
+                return true;
+            })().catch(error => {
+                if (this.state.matchState === 'paused') {
+                    this.handleError(error.message, 'ARENA_ERROR_RESUME_BARRIER', { error });
+                }
+                return false;
+            }).finally(() => {
+                this._pausePending = null;
+                this._resumePending = null;
+                this.updateMatchControls();
+            });
         }
         this.updateMatchControls();
         this.updateGameStatus({
             turn: this.game?.turn() === 'w' ? 'white' : 'black',
             moveCount: this.game?.history().length || 0
         });
+        return this._resumePending || this._pausePending;
     },
 
     stopMatch() {
@@ -1601,6 +1662,10 @@ const CaissaArena = {
             return;
         }
         console.log('[Arena] Stopping match');
+        const stoppedLc0 = ['running', 'paused'].includes(this.state.matchState) &&
+            [this.state.whiteEngine, this.state.blackEngine]
+                .some(engine => engine?.id === 'lc0-maia-1100-preview');
+        if (stoppedLc0) window.CaissaArenaRollout?.metric?.('lc0_user_abort');
         this.state.startToken += 1;
         clearTimeout(this._tournamentAdvanceTimer);
         this._tournamentAdvanceTimer = null;
@@ -1608,10 +1673,11 @@ const CaissaArena = {
         this.state.loopActive = false;
         this.cancelActiveSearch('match stopped');
         this.state.loopRunning = false;
+        this._pausePending = null;
 
         // A stopped Match owns no live competition runtimes. A later start will
         // recreate the selected providers through the shared registry.
-        this.destroyEngines();
+        this._cleanupPromise = Promise.resolve(this.destroyEngines());
 
         window.dispatchEvent(new CustomEvent('caissa-arena-stop'));
         // Stop can race a Tournament transition that temporarily marked the
@@ -1685,7 +1751,8 @@ const CaissaArena = {
         if (!this.enginesReady || !this.evaluatorReady) {
             const initialized = await this.initEngines();
             if (!initialized) {
-                this.handleError('Unable to initialize analysis engine');
+                this.handleError('Unable to initialize analysis engine',
+                    'ARENA_ERROR_ANALYSIS_INITIALIZATION');
                 window.CaissaUI?.setButtonLoading(this.elements.infiniteAnalysisBtn, false);
                 return;
             }
@@ -1850,6 +1917,8 @@ const CaissaArena = {
      * Creates three independent engine workers (white, black, evaluator)
      */
     prewarmEngines() {
+        if ([this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+            candidate?.id === 'lc0-maia-1100-preview')) return Promise.resolve(false);
         if (this.enginesReady && this.playerInstancesMatchSelections()) return Promise.resolve(true);
         if (this._prewarmPromise) return this._prewarmPromise;
         if (this.state.engineBinaryAvailable === false) return Promise.resolve(false);
@@ -1857,6 +1926,8 @@ const CaissaArena = {
         this._prewarmPromise = (async () => {
             let initialized = false;
             do {
+                if ([this.state.whiteEngine, this.state.blackEngine].some(candidate =>
+                    candidate?.id === 'lc0-maia-1100-preview')) break;
                 initialized = await this.initEngines();
             } while (initialized && !this.playerInstancesMatchSelections());
             return initialized;
@@ -1881,6 +1952,15 @@ const CaissaArena = {
             const whiteConfig = this.state.whiteEngine || this.engines[0];
             const blackConfig = this.state.blackEngine || this.engines[1] || this.engines[0];
             const evalConfig = this.engines.find(e => e.id === 'stockfish') || whiteConfig;
+            if (whiteConfig.id === 'lc0-maia-1100-preview' &&
+                blackConfig.id === 'lc0-maia-1100-preview')
+                throw new Error('Only one Lc0 participant is permitted per competition.');
+            if (whiteConfig.id === 'lc0-maia-1100-preview' &&
+                this.blackEngineInstance?.providerId === whiteConfig.id)
+                await this.runtimeManager.terminate('black', 'lc0-role-transition');
+            if (blackConfig.id === 'lc0-maia-1100-preview' &&
+                this.whiteEngineInstance?.providerId === blackConfig.id)
+                await this.runtimeManager.terminate('white', 'lc0-role-transition');
 
             const [whiteInstance, blackInstance, evaluatorInstance] = await Promise.all([
                 this.runtimeManager.acquire('white', whiteConfig.id),
@@ -1897,6 +1977,12 @@ const CaissaArena = {
 
             this.enginesReady = true;
             this.evaluatorReady = true;
+            if ([whiteConfig, blackConfig].some(config => config.id === 'lc0-maia-1100-preview')) {
+                window.CaissaArenaRollout?.metric?.('lc0_session_created');
+                window.CaissaArenaRollout?.metric?.('lc0_ready',
+                    window.CaissaArenaRollout?.adapter?.metrics?.selectionToReadyMs);
+                window.CaissaArenaRollout?.status?.('Ready');
+            }
             console.log('[Arena] All engines ready (white, black, evaluator)!');
             return true;
 
@@ -1904,6 +1990,9 @@ const CaissaArena = {
             console.error('[Arena] Failed to initialize engines:', error);
             this.enginesReady = false;
             this.evaluatorReady = false;
+            if ([this.state.whiteEngine, this.state.blackEngine]
+                .some(config => config?.id === 'lc0-maia-1100-preview'))
+                window.CaissaArenaRollout?.metric?.('lc0_initialization_failed');
             this.refreshEngineAvailabilityUI();
             return false;
         }
@@ -1969,10 +2058,56 @@ const CaissaArena = {
      * Destroy engine instances to free resources
      */
     destroyEngines() {
-        this.runtimeManager?.terminateAll('arena-destroyed');
+        const cleanup = this.runtimeManager?.terminateAll('arena-destroyed');
+        if (cleanup && typeof cleanup.catch === 'function') {
+            cleanup.catch(() => {
+                this.updateGameStatus({
+                    result: 'Lc0 cleanup could not be verified. Stockfish engines remain available.'
+                });
+            });
+        }
         this.enginesReady = false;
         this.evaluatorReady = false;
         console.log('[Arena] All engines destroyed');
+        return cleanup;
+    },
+
+    captureLifecycleTrace(event, detail = {}) {
+        const adapter = window.CaissaArenaPreview?.adapter || null;
+        const identity = adapter?.getRuntimeIdentity?.() || null;
+        const entry = Object.freeze({
+            at: Date.now(),
+            event,
+            matchState: this.state.matchState,
+            loopRunning: this.state.loopRunning,
+            searchGeneration: this.state.searchToken,
+            competitionId: adapter?.competitionId || null,
+            gameId: this.state.currentGame?.id || adapter?.gameId || null,
+            runtimeInstanceId: identity?.runtimeInstanceId || null,
+            relayState: adapter?.lastPhase || null,
+            transportState: adapter?.transportState || null,
+            relaySearchId: adapter?.active?.searchId || adapter?.lastSearchId || null,
+            lastCommandSeq: adapter?.seq ?? null,
+            roles: this.runtimeManager?.getResourceSnapshot?.().roles || null,
+            ...detail
+        });
+        this.lifecycleTrace.push(entry);
+        if (this.lifecycleTrace.length > 240) this.lifecycleTrace.splice(0, 80);
+        window.dispatchEvent(new CustomEvent('caissa-arena-lifecycle-trace', { detail: entry }));
+        return entry;
+    },
+
+    classifyArenaError(error) {
+        const code = String(error?.code || error?.message || '').toUpperCase();
+        if (code.includes('STALE')) return 'ARENA_ERROR_STALE_SEARCH';
+        if (code.includes('SEARCH_ALREADY_ACTIVE')) return 'ARENA_ERROR_DUPLICATE_SEARCH';
+        if (code.includes('TRANSITION_INVALID') || code.includes('READY_STATE_INVALID'))
+            return 'ARENA_ERROR_RUNTIME_STATE';
+        if (code.includes('BESTMOVE_ILLEGAL')) return 'ARENA_ERROR_ILLEGAL_BESTMOVE';
+        if (code.includes('TIMEOUT')) return 'ARENA_ERROR_SEARCH_TIMEOUT';
+        if (code.includes('RECONNECT') || code.includes('TRANSPORT'))
+            return 'ARENA_ERROR_TRANSPORT_RECONCILIATION';
+        return 'ARENA_ERROR_NEXT_SEARCH_START';
     },
 
     getBookMove() {
@@ -2050,7 +2185,7 @@ const CaissaArena = {
             engine.send('isready');
             timeout = setTimeout(() => {
                 finish(() => reject(new Error(`${color} engine readyok timeout`)));
-            }, 5000);
+            }, engine.asyncLifecycle ? 15000 : 5000);
         });
     },
 
@@ -2076,7 +2211,7 @@ const CaissaArena = {
             if (!this.isReviewing()) this.board.position(this.game.fen());
         } else {
             console.error('[Arena] Board is null, cannot update position');
-            this.handleError('Board not mounted');
+            this.handleError('Board not mounted', 'ARENA_ERROR_BOARD_STATE');
             return false;
         }
 
@@ -2089,6 +2224,11 @@ const CaissaArena = {
                 source: source
             });
         }
+        this.captureLifecycleTrace('MOVE_APPLIED', {
+            move: uciMove,
+            source,
+            color: isWhiteTurn ? 'white' : 'black'
+        });
 
         this.updateMoveHistory();
 
@@ -2106,6 +2246,7 @@ const CaissaArena = {
 
         const delay = source === 'book' ? 0 : this.state.moveDelay;
         setTimeout(() => {
+            this.captureLifecycleTrace('NEXT_SEARCH_SCHEDULED');
             this.runEngineLoop();
         }, delay);
 
@@ -2199,7 +2340,9 @@ const CaissaArena = {
 
             if (!bestMove) {
                 console.error('[Arena] Engine returned no move');
-                this.handleError('Engine returned no move');
+                this.handleError('Engine returned no move', 'ARENA_ERROR_NO_BESTMOVE', {
+                    color, engineId: engineConfig?.id, requestedFen: fen
+                });
                 return;
             }
 
@@ -2215,14 +2358,17 @@ const CaissaArena = {
                     this.runEngineLoop(invalidRetryCount + 1);
                     return;
                 }
-                this.handleError(`Illegal move from ${color} ${engineConfig?.name || 'engine'}: ${bestMove}`);
+                this.handleError(`Illegal move from ${color} ${engineConfig?.name || 'engine'}: ${bestMove}`,
+                    'ARENA_ERROR_ILLEGAL_BESTMOVE', {
+                        color, engineId: engineConfig?.id, requestedFen: fen, bestMove
+                    });
             }
 
         } catch (error) {
             this.state.loopRunning = false;
             if (error?.name === 'ArenaStaleSearchError') return;
             console.error('[Arena] Engine loop error:', error);
-            this.handleError(error.message);
+            this.handleError(error.message, this.classifyArenaError(error), { error });
         }
     },
 
@@ -2240,6 +2386,7 @@ const CaissaArena = {
             const runtimeRole = ['white', 'black'].includes(color) ? color : null;
             const engineId = context.engineId || engine.id || 'unknown';
             const searchToken = ++this.state.searchToken;
+            const moveTimeoutMs = engine.asyncLifecycle ? 30000 : ARENA_ENGINE_TIMEOUT_MS;
             let timeout = null;
             let settled = false;
             let goCommandSent = false;
@@ -2291,6 +2438,9 @@ const CaissaArena = {
             if (runtimeRole) this.runtimeManager?.markThinking(runtimeRole, engine);
             engine.getBestMove(fen, (bestMove) => {
                 if (settled || searchToken !== this.state.searchToken) {
+                    if (searchToken !== this.state.searchToken)
+                        this.reliabilityMetrics.staleBestmovesIgnored += 1;
+                    else this.reliabilityMetrics.duplicateBestmovesIgnored += 1;
                     console.warn('[Arena] Ignoring late or stale bestmove', {
                         color,
                         engineId,
@@ -2302,6 +2452,10 @@ const CaissaArena = {
                     return;
                 }
                 bestMoveReceived = true;
+                this.reliabilityMetrics.acceptedBestmoves += 1;
+                this.captureLifecycleTrace('BESTMOVE_ACCEPTED', {
+                    color, engineId, requestedFen: fen, searchToken, bestMove
+                });
                 console.log('[Arena] Engine bestmove received', {
                     color,
                     engineId,
@@ -2338,7 +2492,7 @@ const CaissaArena = {
                 finish(() => reject(new Error(
                     `Engine move timeout (${color}, ${engineId}, search ${searchToken}, FEN ${fen})`
                 )));
-            }, ARENA_ENGINE_TIMEOUT_MS);
+            }, moveTimeoutMs);
         });
     },
 
@@ -2491,6 +2645,9 @@ const CaissaArena = {
         }
 
         console.log('[Arena] Game ended:', result);
+        if ([this.state.whiteEngine, this.state.blackEngine]
+            .some(engine => engine?.id === 'lc0-maia-1100-preview'))
+            window.CaissaArenaRollout?.metric?.('lc0_match_completed');
 
         // Update UI
         this.updateMatchControls();
@@ -2527,6 +2684,9 @@ const CaissaArena = {
             result: 'Draw by adjudication',
             moveCount: this.game?.history().length || 0
         });
+        if ([this.state.whiteEngine, this.state.blackEngine]
+            .some(engine => engine?.id === 'lc0-maia-1100-preview'))
+            window.CaissaArenaRollout?.metric?.('lc0_match_completed');
         this.recordTournamentResult('1/2-1/2');
         window.dispatchEvent(new CustomEvent('caissa-arena-tournament-draw'));
         this.scheduleNextTournamentGame();
@@ -2544,7 +2704,21 @@ const CaissaArena = {
     /**
      * Handle errors during match
      */
-    handleError(message) {
+    handleError(message, reasonCode, context = {}) {
+        const code = reasonCode || 'ARENA_ERROR_UNCLASSIFIED';
+        const errorContext = {
+            reasonCode: code,
+            message,
+            role: context.failure?.role || context.color || null,
+            runtimeState: context.failure?.state || null,
+            searchId: window.CaissaArenaPreview?.adapter?.active?.searchId || null,
+            gameId: this.state.currentGame?.id || null,
+            runtimeInstanceId: window.CaissaArenaPreview?.adapter?.identity?.runtimeInstanceId || null
+        };
+        this.lastArenaError = Object.freeze({ ...errorContext, at: Date.now() });
+        this.reliabilityMetrics.arenaErrorsByReason[code] =
+            (this.reliabilityMetrics.arenaErrorsByReason[code] || 0) + 1;
+        this.captureLifecycleTrace('ARENA_ERROR', errorContext);
         this.state.startToken += 1;
         this.state.matchState = 'idle';
         this.state.loopActive = false;
@@ -2555,7 +2729,7 @@ const CaissaArena = {
         this.evaluatorReady = false;
         this.updateMatchControls();
 
-        console.warn('[Arena] Match stopped after error:', message);
+        console.warn('[Arena] Match stopped after error:', code, message, errorContext);
         this.updateGameStatus({ result: 'Arena match stopped. Try starting a new match.' });
     },
 
@@ -3039,6 +3213,11 @@ const CaissaArena = {
     startTournament() {
         const selectedEngines = this.getSelectedTournamentEngines();
 
+        if (selectedEngines.filter(engine => engine.id === 'lc0-maia-1100-preview').length > 1) {
+            this.updateGameStatus({ result: 'Only one Lc0 participant is permitted per competition.' });
+            return;
+        }
+
         if (selectedEngines.length < 2) {
             alert('Please select at least 2 engines for the tournament');
             return;
@@ -3373,11 +3552,15 @@ const CaissaArena = {
     }
 };
 
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => CaissaArena.init());
-} else {
+// Resolve the internal candidate gate before Arena snapshots its providers.
+const initializeArena = async () => {
     CaissaArena.init();
+    if (location.pathname === '/arena') window.CaissaArenaRollout?.prepare?.();
+};
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeArena);
+} else {
+    initializeArena();
 }
 
 // Register with navigation system

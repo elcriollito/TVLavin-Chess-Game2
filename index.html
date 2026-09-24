@@ -7,7 +7,7 @@
     <script src="js/play/mobile-initial-paint.js?v=1.0.0"></script>
     <meta name="caissa-production-release" content="caissa-production-2026-09-05">
     <!-- CSP: FICS WebSocket - local dev and the dedicated production WSS gateway only -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://c.bing.com ws://127.0.0.1:8787 wss://fics-gateway.caissa-chess.org https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://c.bing.com ws://127.0.0.1:8787 wss://fics-gateway.caissa-chess.org https://caissa-lc0-relay-eae015a.vercel.app https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.stripe.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://checkout.stripe.com https://js.stripe.com;">
 
     <!-- Primary Meta Tags -->
     <title>CAISSA Chess – Play Online, Stockfish Analysis & Training</title>
@@ -1152,6 +1152,33 @@
                             <strong>CAISSA Engine Arena</strong>
                             <small>Engine matches, tournaments and analysis</small>
                         </span>
+                        <div id="arenaExperimentalEngines" class="arena-experimental-shell" hidden>
+                            <button id="arenaExperimentalToggle" class="btn btn-secondary arena-experimental-toggle"
+                                    type="button" aria-expanded="false" aria-controls="arenaExperimentalPanel">
+                                <i class="fas fa-flask" aria-hidden="true"></i>
+                                Experimental Engines
+                            </button>
+                            <div id="arenaExperimentalPanel" class="arena-experimental-popover" hidden>
+                                <div class="arena-experimental-title">
+                                    <strong>Lc0 — Maia 1100</strong>
+                                    <span class="arena-experimental-badge">Experimental</span>
+                                </div>
+                                <dl class="arena-experimental-details">
+                                    <div><dt>Engine</dt><dd>Lc0</dd></div>
+                                    <div><dt>Network</dt><dd>Maia 1100</dd></div>
+                                    <div><dt>Backend</dt><dd>CPU/WASM</dd></div>
+                                    <div><dt>Platform</dt><dd>Desktop browser</dd></div>
+                                </dl>
+                                <div class="arena-experimental-actions">
+                                    <button id="arenaLc0Enable" class="btn btn-primary" type="button">Enable Lc0 — Maia 1100</button>
+                                    <button id="arenaLc0Disable" class="btn btn-secondary" type="button" hidden>Disable</button>
+                                    <button id="arenaLc0StartRuntime" class="btn btn-primary" type="button" hidden>Start Lc0 Engine</button>
+                                </div>
+                                <p id="arenaLc0Status" class="arena-experimental-status" role="status" aria-live="polite"></p>
+                                <p id="arenaLc0Info" class="arena-experimental-info" aria-label="Lc0 search information"></p>
+                                <a href="/about#engine-sources">Source and licenses</a>
+                            </div>
+                        </div>
                     </header>
 
                     <div class="arena-grid">
@@ -1469,6 +1496,25 @@
                             <button id="arenaSetupClear" class="btn btn-secondary" type="button">Clear Board</button>
                             <button id="arenaSetupReset" class="btn btn-secondary" type="button">Initial Position</button>
                             <button id="arenaSetupApply" class="btn btn-primary" type="button">Apply Position</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="arenaLc0ConsentModal" class="modal arena-lc0-consent-modal" role="dialog"
+                     aria-modal="true" aria-hidden="true" aria-labelledby="arenaLc0ConsentTitle"
+                     aria-describedby="arenaLc0ConsentDescription" hidden>
+                    <div class="modal-content arena-lc0-consent-content">
+                        <div class="modal-header">
+                            <h2 id="arenaLc0ConsentTitle">Experimental Engine</h2>
+                        </div>
+                        <div class="modal-body">
+                            <p id="arenaLc0ConsentDescription">Lc0 — Maia 1100 runs in a dedicated browser runtime.</p>
+                            <p>It may take several seconds to initialize and is currently supported only on desktop Chrome and Edge.</p>
+                            <p>This experimental engine uses additional browser memory and processing power.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="arenaLc0ConsentCancel" class="btn btn-secondary" type="button">Cancel</button>
+                            <button id="arenaLc0ConsentConfirm" class="btn btn-primary" type="button">Enable Experimental Lc0</button>
                         </div>
                     </div>
                 </div>
@@ -5170,6 +5216,7 @@
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.1.0"></script>
     <script src="js/engine-registry.js?v=1.1.0"></script>
+    <script src="js/arena-lc0-rollout.js?v=1.0.0"></script>
     <script src="js/arena-runtime-manager.js?v=1.0.0"></script>
     <script src="js/arena-tournament-scheduler.js?v=1.0.0"></script>
     <script src="js/caissa-arena.js?v=1.8.0"></script>

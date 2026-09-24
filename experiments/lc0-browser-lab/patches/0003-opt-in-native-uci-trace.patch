@@ -1,0 +1,73 @@
+diff --git a/src/engine_loop.cc b/src/engine_loop.cc
+--- a/src/engine_loop.cc
++++ b/src/engine_loop.cc
+@@ -50,4 +50,8 @@ EM_ASYNC_JS(char*, lc0web_get_line, (), {
+   return stringToNewUTF8(String(await globalThis.lc0web_get_line()))
+ });
+ 
++EM_JS(void, lc0web_trace_uci, (const char* stage, const char* command), {
++  globalThis.lc0web_trace_native?.(UTF8ToString(stage), UTF8ToString(command));
++});
++
+ }  // extern "C"
+@@ -110,4 +114,7 @@ void RunEngine(SearchFactory* factory) {
+   std::string line;
+   while (GetLine(line)) {
+     LOGFILE << ">> " << line;
++#ifdef __EMSCRIPTEN__
++    lc0web_trace_uci("uci-loop-receive", line.c_str());
++#endif
+     try {
+@@ -119,4 +126,7 @@ void RunEngine(SearchFactory* factory) {
+       uci_responder.SendRawResponse(std::string("error ") + ex.what());
+     }
+   }
++#ifdef __EMSCRIPTEN__
++  lc0web_trace_uci("uci-loop-exit", "quit");
++#endif
+ }
+diff --git a/src/search/classic/search.cc b/src/search/classic/search.cc
+--- a/src/search/classic/search.cc
++++ b/src/search/classic/search.cc
+@@ -47,3 +47,6 @@ EM_JS(int, lc0web_take_stop, (), {
+   return globalThis.lc0web_take_stop?.() ? 1 : 0;
+ });
++EM_JS(void, lc0web_trace_search, (const char* stage), {
++  globalThis.lc0web_trace_native?.(UTF8ToString(stage), "search");
++});
+ #endif
+@@ -907,5 +910,7 @@ void Search::StartThreads(size_t how_many) {
+ #ifdef __EMSCRIPTEN__
+   (void) how_many;
++  lc0web_trace_search("search-begins");
+   SearchWorker worker(this, params_);
+   worker.RunBlocking();
++  lc0web_trace_search("search-terminates");
+ #else
+diff --git a/src/chess/uciloop.cc b/src/chess/uciloop.cc
+--- a/src/chess/uciloop.cc
++++ b/src/chess/uciloop.cc
+@@ -37,4 +37,11 @@
+ #include <unordered_set>
+ #include <utility>
+ 
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++EM_JS(void, lc0web_trace_bestmove, (const char* stage, const char* move), {
++  globalThis.lc0web_trace_native?.(UTF8ToString(stage), UTF8ToString(move));
++});
++#endif
++
+ #include "utils/exception.h"
+@@ -291,5 +298,11 @@ void StringUciResponder::OutputBestMove(BestMoveInfo* info) {
+   if (info->game_id != -1) res += " gameid " + std::to_string(info->game_id);
+   if (info->is_black)
+     res += " side " + std::string(*info->is_black ? "black" : "white");
++#ifdef __EMSCRIPTEN__
++  lc0web_trace_bestmove("bestmove-generated", res.c_str());
++#endif
+   SendRawResponse(res);
++#ifdef __EMSCRIPTEN__
++  lc0web_trace_bestmove("bestmove-emitted", res.c_str());
++#endif
+ }
