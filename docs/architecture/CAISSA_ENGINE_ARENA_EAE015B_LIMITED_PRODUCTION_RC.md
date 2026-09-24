@@ -2,18 +2,31 @@
 
 Date: 2026-09-23
 
-Verdict: `LC0_LIMITED_PRODUCTION_RC_BLOCKED`
+Verdict: `LC0_LIMITED_PRODUCTION_RC_CERTIFIED`
 
 Final mode: `DISABLED`
 
 ## Checkpoint
 
-- Previous `origin/main`: `1d2f05e1d4214e3a9e067e0e16199f20f29feca2`
-- Candidate branch: `integration/lc0-limited-production-candidate`
-- Authoritative Stage 1 baseline: `e979b66fe2e6ec31729ac44a9ba8333e5e8e34bd`
-- Remote backup: `backup/main-pre-lc0-limited-release` at the previous main SHA
-- No main merge and no main-site production deployment occurred.
-- The certification archive branch and RC tag remain withheld because Stage 1 and the 25-cycle soak did not pass.
+- Authoritative certified SHA:
+  `daf3404fbfaf9401783875626bb7eed403c0d9c4`.
+- Certified lineages: `hotfix/lc0-eae015b2-stage1-reliability` and
+  `integration/lc0-limited-production-rc`.
+- Immutable certification branch: `archive/lc0-limited-production-certified`,
+  pointing exactly to the authoritative certified SHA.
+- Annotated release-candidate tag: `lc0-limited-production-rc1`, whose peeled
+  target is exactly the authoritative certified SHA.
+- Historical blocked tag: `lc0-eae015b-stage1-blocked`, unchanged at peeled
+  target `87c6808ed6ba6a60c4c72b01d5186972ba5d070a`.
+- `origin/main` remains
+  `1d2f05e1d4214e3a9e067e0e16199f20f29feca2`.
+- No main merge, public CAISSA deployment, public Lc0 registration, or Stage 2
+  enablement occurred.
+
+The detailed remediation and certification evidence remains in
+`docs/architecture/CAISSA_ENGINE_ARENA_EAE015B2_STAGE1_RELIABILITY.md`. This
+closeout changes release documentation and references only; the certified
+runtime artifact remains the authoritative SHA above.
 
 ## Legal and corresponding source
 
@@ -30,11 +43,11 @@ Legal sign-off is recorded as `APPROVED`, reviewed 2026-09-22, and
 
 - Main site: `www.caissa-chess.org`, unchanged and non-isolated.
 - Protected RC main alias: `eae015a-main-elcriollitos-projects.vercel.app`.
-  Stage 1 used immutable preview deployment
-  `dpl_HeVENXzhjvhkBEEKAngBLNJqzR1j`; the alias was then restored to the
-  disabled checkpoint `dpl_6dpmDuYQfThn1e4rYhK76bSJup5e`.
+  Final disabled preview deployment:
+  `dpl_B6BvxJEU1DBuAkmw7xyZGYP4mJ5S`.
 - Separate relay alias: `eae015a-lc0-relay-elcriollitos-projects.vercel.app`
-  (final disabled production deployment `dpl_qvUtLjcGS4WwZYkpEDCk8XxrdLEq`).
+  (final disabled production deployment
+  `dpl_C7xw4Dd8MUKPBCNZRWmRkxe2yaQz`).
 - Dedicated isolated runtime: `caissa-lc0-runtime-eae015a.vercel.app`
   (production deployment `dpl_FPaGa9ZHdikqctUJenN8phtcDxr9`).
 - Production database: Supabase project `jczauvkfkweuvdpurpem`.
@@ -45,10 +58,11 @@ The main site has no global COOP/COEP change. The runtime origin alone emits
 
 ## Runtime identity and delivery
 
-The candidate was rebuilt from the committed source and reproduced the certified
-manifest exactly:
+The final Stage 1 candidate was rebuilt from the committed source and reproduced
+the certified manifest exactly:
 
-- Manifest SHA-256: `492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f`
+- Release: `eae015b2-lc0-0.33.0-maia1100-r3`
+- Manifest SHA-256: `648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d`
 - Artifacts: 8
 - Total bytes: 24,785,017
 - Network: Maia 1100
@@ -140,67 +154,71 @@ Verification:
 - A direct deployed Playwright run is unavailable because the RC deployment is
   intentionally protected by Vercel authentication.
 
-## Stage 1 and soak
+## Release chronology
 
-The internal Clerk identity was resolved server-side through authorized Clerk
-tooling. Exactly one user matched the authenticated account and an active Clerk
-session. The Clerk user ID is stored only in the relay's protected Secret
-environment variable; it is not committed or printed. Session creation requires
-both `INTERNAL_ONLY` and exact server-authenticated user-ID membership.
+The certification record preserves the complete sequence:
 
-Authorization evidence passed:
+1. Stage 0 established the isolated production-shaped topology in a dark,
+   default-disabled state.
+2. Stage 1 was blocked by a reproducible Pause/Resume race and a suspended SSE
+   transport failure during the lifecycle soak. The immutable blocked tag
+   preserves that result.
+3. EAE-015B.2 remediated both failures without changing Maia, Lc0, ORT,
+   Stockfish, browser-support policy, or general-user exposure.
+4. Stage 1 then passed the complete reliability plan.
+5. EAE-015B is therefore certified as a limited-production release candidate,
+   while remaining `DISABLED` and without authorizing Stage 2.
 
-- designated internal user: allowed;
-- unauthenticated create: `401 AUTH_REQUIRED`;
-- different authenticated Clerk user: `403 LC0_INTERNAL_ONLY`;
-- mobile portrait and landscape: provider not registered;
-- ordinary `/arena`: provider not registered;
-- desktop Chrome protected preview: provider registered;
-- Stockfish 18 and Stockfish 19 stayed available in every guard case.
+## Stage 1 final evidence
 
-Real Match evidence reached READY with the pinned Lc0 identity, Maia hash,
-truthful SF19 identity, legal moves, SAN, PV SAN, Stockfish evaluation, Eval
-Graph, STOP, and cooperative cleanup with Lc0 playing both White and Black.
-However, Pause then Resume failed reproducibly: Lc0 restarted search and
-returned a legal move, after which Arena tore down the match as `arena-error`
-before the next control action. Cleanup completed, but the required Match
-lifecycle did not pass.
+The final lifecycle soak passed **50/50** accepted cycles, split evenly between
+Lc0 White (25) and Lc0 Black (25). It recorded:
 
-The five-round SF18/SF19/Lc0 Tournament passed. Lc0 played both colors; the
-field never contained more than one Lc0 participant; all five games continued
-through standings and crosstable updates with `1/2-1/2` adjudication. Final
-standings were SF18 1.5/3, SF19 1.5/3, and Lc0 2.0/4. All four Lc0 popup
-runtimes ended `TERMINATED` with zero workers, zero pthreads, and zero forced
-terminations.
+- `arena-error`: 0;
+- forced terminations: 0;
+- orphan workers: 0;
+- orphan pthreads: 0;
+- relay residue: 0.
 
-The production-stage basic-lifecycle soak completed 9 consecutive cycles before
-cycle 10 failed. The nine successes alternated colors (five White, four Black),
-used real searches and legal moves, and reached clean STOP/QUIT/CLEANUP with no
-forced termination or worker residue. Cycle 10 encountered
-`ERR_NETWORK_IO_SUSPENDED`; local cleanup was not acknowledged, the snapshot
-reported one forced termination and four pthread workers, and one relay row
-remained temporarily. Automated broker cleanup subsequently removed that row
-with the known reason `ENGINE_HEARTBEAT_EXPIRED` from `DurableBroker.poll`, with
-no manual deletion. Scheduled cleanup continued succeeding independently. The
-mandatory result is therefore **9/25**, not 25/25.
+The controlled transport campaign passed **25/25** interruptions: 13 during
+search and 12 while paused, with 25 successful reconciliations/reconnections.
+The deliberate-expiry probe also passed: local cleanup was confirmed, the
+broker truthfully returned HTTP 410 after expiry, and the final snapshot showed
+zero workers, pthreads, and forced kills.
 
-Successful-cycle browser latency (milliseconds): selection-to-READY median
-4,983 / p95 5,246; STOP median 1,960 / p95 5,137; cleanup median 6,192 / p95
-7,055; first search median 9,276 / p95 11,362. The failed cycle is excluded from
-these percentiles and separately recorded as a blocker.
+The five-round SF18/SF19/Lc0 Tournament passed **5/5**. Lc0 played both colors,
+Pause/Resume passed, and every companion runtime terminated cleanly. The drain
+probe passed, including `503 LC0_DRAINING`, `503 LC0_DISABLED`, completion and
+cleanup of the active match, and a real four-move SF18 Lite versus SF19 Lite
+independence check while Lc0 remained disabled.
 
-The drain probe passed when executed independently of the failing Pause/Resume
-path: an active four-move match entered `DRAINING`, a new create was rejected as
-`503 LC0_DRAINING`, the active session stopped and cleaned cooperatively with
-zero workers/forced termination, `DISABLED` rejected a new create as
-`LC0_DISABLED`, and a real SF18 Lite versus SF19 Lite match then completed four
-moves and cleaned while Lc0 remained disabled.
+Regression evidence passed:
 
-The post-run Arena unit regression passed 69/69, including the standard
-Tournament scheduler, role reuse/reset, Stockfish 18/19 identity, and the
-25-cycle runtime-manager replacement stress. The live three-engine Tournament
-also contained a pure SF18/SF19 round. No Stockfish runtime or product code was
-changed.
+- Arena/Runtime/Generation Cup units: **88/88**;
+- directed Chromium: **37 passed**, 1 conditional skip, 0 failed;
+- EAE-015B.2 focused transport contract: **10/10**;
+- HIGH alert rules: **0/6 firing**.
+
+No previously accepted lifecycle, transport-fault, or tournament cycle was
+repeated for this administrative closeout.
+
+## Closed root causes
+
+### Pause/Resume race
+
+Resume could allocate or start the next search generation before the
+asynchronous Pause STOP, ACK, BESTMOVE, and STOPPED sequence had fully settled.
+The `_pausePending` synchronization barrier now owns that transition, and
+Resume cannot proceed until it settles.
+
+### `ERR_NETWORK_IO_SUSPENDED`
+
+A browser SSE transport could accept a server write without delivering the
+event, or could close immediately afterward. The result was a cursor advanced
+beyond durable acknowledgement. Durable sequence and cursor reconciliation,
+the reconnect queue, ACK recovery, outbound retry within the lease, and bounded
+local cleanup close that path. Local cleanup and broker cleanup acknowledgement
+remain separate evidence; no remote cleanup is fabricated.
 
 Stage 2 was never enabled. The final database and deployment gates are both
 `DISABLED`.
@@ -222,14 +240,10 @@ expiry, scheduled cleanup, relay errors, and cleanup success/failure.
 
 The six HIGH alerts are unexpected SESSION_GONE, STOP timeout spike, forced
 termination spike, relay error spike, cleanup failure, and active growth without
-cleanup. At the final observation all six were non-firing. The final 60-minute
-snapshot reported active sessions 0, 18 successful creates and claims, 23
-cleanup successes, and 6 scheduled cleanup successes. Supabase Cron recorded
-120 successful runs and no failed run in the final two-hour window.
-
-The cycle-10 forced termination was below the alert threshold but is still a
-release blocker. Alert health does not override the stricter soak criterion of
-zero normal forced terminations.
+cleanup. At the EAE-015B.2 final observation all six were non-firing. The final
+60-minute snapshot reported active sessions 0, cleanup success 66, forced
+termination 0, cleanup failure 0, relay error 0, and STOP timeout 0. The
+EAE-015B.3 closeout rechecked the alert RPC and again found 0 of 6 firing.
 
 ## Rollback
 
@@ -250,15 +264,24 @@ The rollback SQL was statically reviewed and the cleanup/drop ordering is covere
 by the migration tests. It was not executed against production because doing so
 would destroy the completed Stage 0 dark deployment.
 
-## Remaining risks and rollout rule
+## Final infrastructure state and rollout rule
 
-Stage 1 is blocked by the reproducible Pause/Resume teardown and the cycle-10
-network/cleanup failure. Certification still requires 25/25 fresh production
-lifecycles with zero forced termination, orphan worker/pthread, or relay residue,
-plus successful Pause/Resume in both color assignments. The explicit allowlist
-remains protected and default-closed, but the release stage has been returned to
-`DISABLED`; database control is `DISABLED`, the relay table is empty, the cron is
-healthy, and both protected main aliases point back to the disabled checkpoint.
+The EAE-015B.3 read-only closeout verification recorded:
 
-No general-public enablement is permitted without Alexander's explicit approval
-after the completed Stage 1 report.
+- gateway HTTP 200: `releaseStage=DISABLED`, `mode=DISABLED`, `enabled=false`;
+- relay HTTP 200: `ok=true`, `productionShape=true`,
+  `releaseStage=DISABLED`, `mode=DISABLED`;
+- database control: `DISABLED`;
+- active sessions: 0;
+- relay rows: 0;
+- HIGH alerts firing: 0 of 6;
+- `origin/main`:
+  `1d2f05e1d4214e3a9e067e0e16199f20f29feca2`;
+- public main merge/deployment performed by this release: none;
+- public Lc0 registration: none;
+- Stage 2: disabled and not authorized.
+
+The limited-production release candidate is certified, but certification is
+not authorization to enable it. The explicit allowlist remains protected and
+default-closed. No general-public enablement or Stage 2 work is permitted
+without a separate explicit owner authorization.
