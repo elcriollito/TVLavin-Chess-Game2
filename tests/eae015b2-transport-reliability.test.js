@@ -77,6 +77,7 @@ test('suspended command requests reconcile durable sequence state before any ret
   assert.match(adapter, /state\.lastCommandSeq === command\.seq - 1 && !state\.pending && retryAllowed/);
   assert.match(adapter, /lost first response can race this retry/);
   assert.match(adapter, /await this\.waitForTransportConnected\(\)/);
+  assert.match(adapter, /!\['STOP', 'QUIT'\]\.includes\(type\)\)\s*await this\.waitForTransportConnected\(\)/);
 });
 
 test('remote async runtime readiness has a bounded production-network allowance', () => {

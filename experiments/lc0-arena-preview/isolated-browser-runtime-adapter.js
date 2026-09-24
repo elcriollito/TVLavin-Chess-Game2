@@ -376,7 +376,7 @@
             if (this.closed) throw new Error('LC0_ARENA_CLOSED');
             if (this.transportState === 'TRANSPORT_SUSPENDED' &&
                 !['STOP', 'QUIT'].includes(type))
-                throw new Error('LC0_TRANSPORT_SUSPENDED');
+                await this.waitForTransportConnected();
             const from = this.eventSerial;
             const seq = this.seq + 1;
             this.recordLifecycle('COMMAND_REQUESTED', { command: type, commandSeq: seq,

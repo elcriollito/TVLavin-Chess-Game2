@@ -166,6 +166,27 @@ test('transport suspension queues a new search until reconnect without replacing
   assert.equal(instance.getRuntimeIdentity().runtimeInstanceId, identity.runtimeInstanceId);
 });
 
+test('transport suspension between RESET and POSITION queues the next command', async () => {
+  const { instance } = fixture();
+  instance.transportState = 'TRANSPORT_SUSPENDED';
+  const actions = [];
+  instance.waitForTransportConnected = async () => {
+    actions.push('wait-connected');
+    instance.transportState = 'CONNECTED';
+  };
+  instance.api = async (action, options) => {
+    actions.push(`${action}:${options?.body?.type || ''}`);
+    if (action === 'command') return { accepted: true };
+    if (action === 'inspect') return { state: {
+      lastAck: { command: 'POSITION', seq: 1, searchId: null }
+    } };
+    throw new Error(`unexpected ${action}`);
+  };
+  await instance.command('POSITION', { fen: 'startpos', moves: [] });
+  assert.deepEqual(actions, ['wait-connected', 'command:POSITION', 'inspect:']);
+  assert.equal(instance.seq, 1);
+});
+
 test('transport exhaustion preserves truthful local-vs-broker cleanup accounting', async () => {
   const { instance, identity } = fixture();
   instance.dispatch({ type: 'READY', identity });
