@@ -3,7 +3,7 @@
 
     const ID = 'lc0-maia-1100-preview';
     const PREFERENCE_KEY = 'caissa.arena.experimental.lc0.v1';
-    const SOURCE_MANIFEST = '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f';
+    const SOURCE_MANIFEST = '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d';
     const DEPLOYMENT_MANIFEST = '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d';
     const ADAPTER_URL = '/experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js?v=rc1-daf3404';
 

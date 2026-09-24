@@ -85,7 +85,7 @@ test('rollout controller gates browser support before dynamic adapter loading', 
   assert.match(source, /config\.relayHealthy === true/);
   const prepare = source.slice(source.indexOf('async prepare()'));
   assert.ok(prepare.indexOf('if (!capability.supported)') < prepare.indexOf('await this.register()'));
-  assert.match(source, /SOURCE_MANIFEST.*492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f/s);
+  assert.match(source, /SOURCE_MANIFEST.*648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d/s);
   assert.match(source, /DEPLOYMENT_MANIFEST.*648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d/s);
 });
 

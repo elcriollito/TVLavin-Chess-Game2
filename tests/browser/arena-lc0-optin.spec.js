@@ -12,7 +12,7 @@ const config = origin => ({
   engineOrigin: 'https://caissa-lc0-runtime-eae015a.vercel.app',
   relayOrigin: 'https://caissa-lc0-relay-eae015a.vercel.app',
   enginePath: '/',
-  sourceManifestSha256: '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f',
+  sourceManifestSha256: '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d',
   manifestSha256: '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d',
   runtimeHealthy: true,
   relayHealthy: true

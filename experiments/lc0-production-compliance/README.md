@@ -1,13 +1,13 @@
 # CAISSA Lc0 browser corresponding source
 
 This directory defines the compliance/source package for the isolated Lc0
-browser appliance `eae015a-lc0-0.33.0-maia1100`. It freezes the exact Lc0
+browser appliance `eae015b2-lc0-0.33.0-maia1100-r3`. It freezes the exact Lc0
 source, CAISSA patch series, build inputs, network provenance, licenses, and
-notices associated with the technically certified EAE-015A runtime.
+notices associated with the technically certified EAE-015B.2 RC3 runtime.
 
-This publication does **not** activate Lc0 in CAISSA Engine Arena. Lc0 remains
-disabled, and the package is not a product release or legal approval. Current
-status: `LEGAL_SIGNOFF_REQUIRED`.
+This publication does **not** widen Lc0 access in CAISSA Engine Arena. Lc0
+remains limited to `INTERNAL_ONLY`, and the package is not a product release or
+legal approval. Current status: `LEGAL_SIGNOFF_REQUIRED_RC3`.
 
 The public package contains:
 
@@ -15,6 +15,10 @@ The public package contains:
   from `https://github.com/jalpp/lc0.js.git`;
 - the exact three-patch browser lifecycle series, in documented order;
 - the complete CAISSA lab/worker/client build sources and pinned scripts/config;
+- the RC3 provenance record and exact patch from the v0.1.1 CAISSA source
+  baseline to certified commit `daf3404fbfaf9401783875626bb7eed403c0d9c4`;
+- the exact deployed RC3 runtime manifest, SHA-256
+  `648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d`;
 - metadata for the separately distributed CSSLab Maia 1100 network;
 - the applicable GPL, Maia, ONNX Runtime, and Emscripten license texts;
 - a content manifest with SHA-256 and byte count for every member except the
@@ -31,10 +35,12 @@ extractor cannot preserve.
 The Maia network binary is not duplicated. Its exact upstream versioned URL,
 1,313,193-byte length, and SHA-256 are recorded in `network/maia-1100.json`.
 
-The corrected canonical source release is `lc0-browser-source-v0.1.1`. It
-supersedes the sealed prepublication `v0.1` package, whose rehearsal exposed a
-missing lab-to-appliance staging command. Source, patches, licenses, network,
-and certified runtime provenance did not change.
+The RC3 canonical source release is `lc0-browser-source-v0.1.2`. It does not
+overwrite v0.1.1. The earlier package remains the immutable corresponding
+source for manifest `492c6749...`; v0.1.2 adds the exact CAISSA client and
+worker sources required for RC3 manifest `648daa88...`. The upstream Lc0
+source, three native patches, WASM, ORT, Maia network, licenses, and notices are
+unchanged.
 
 Build the package with:
 

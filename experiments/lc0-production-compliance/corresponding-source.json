@@ -1,20 +1,20 @@
 {
-  "schemaVersion": 2,
-  "releaseId": "lc0-browser-source-v0.1.1",
+  "schemaVersion": 3,
+  "releaseId": "lc0-browser-source-v0.1.2",
   "lc0Version": "v0.33.0-dev+git.482bb4a",
   "lc0Commit": "482bb4a830287b726ebe7d42f14ab7f5f17c18a0",
-  "sourceArchiveFilename": "caissa-lc0-browser-corresponding-source-v0.1.1.zip",
-  "sourceArchiveSha256": "7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec",
-  "sourceArchiveBytes": 1430117,
-  "publicSourceUrl": "https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.1/caissa-lc0-browser-corresponding-source-v0.1.1.zip",
+  "sourceArchiveFilename": "caissa-lc0-browser-corresponding-source-v0.1.2.zip",
+  "sourceArchiveSha256": "3ef4c920c0e05536ef26be1e4a47dc5ad2c247e59c4a2145f6f003e5a0506d4a",
+  "sourceArchiveBytes": 1441144,
+  "publicSourceUrl": "https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.2/caissa-lc0-browser-corresponding-source-v0.1.2.zip",
   "repository": "https://github.com/elcriollito/TVLavin-Chess-Game2",
-  "releaseTag": "lc0-browser-source-v0.1.1",
+  "releaseTag": "lc0-browser-source-v0.1.2",
   "releaseImmutable": true,
   "publicVerification": {
     "httpStatus": 200,
     "authenticationRequired": false,
-    "contentLength": 1430117,
-    "downloadedSha256": "7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec",
+    "contentLength": 1441144,
+    "downloadedSha256": "3ef4c920c0e05536ef26be1e4a47dc5ad2c247e59c4a2145f6f003e5a0506d4a",
     "archiveExtracted": true
   },
   "source": {
@@ -54,9 +54,42 @@
     "onnxRuntimeWeb": "1.27.0",
     "sourceDateEpoch": 1789992000
   },
+  "rc3Delta": {
+    "certifiedCaissaCommit": "daf3404fbfaf9401783875626bb7eed403c0d9c4",
+    "runtimeReleaseId": "eae015b2-lc0-0.33.0-maia1100-r3",
+    "baselineSourcePackage": "lc0-browser-source-v0.1.1",
+    "baselineRuntimeManifestSha256": "492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f",
+    "runtimeManifestSha256": "648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d",
+    "changedSources": [
+      {
+        "path": "caissa-build/experiments/lc0-preview-relay/engine/client-source.js",
+        "sha256": "a210d0724caff7a1edcdbebb59ed5a3dda35e05d8c2d0c22c38c0cdad220d485",
+        "generatedArtifact": "client.js",
+        "license": "GPL-3.0-or-later",
+        "provenance": "CAISSA-authored isolated-runtime client source",
+        "commits": [
+          "9d2b7dbad2a9cba6ff07ec2da743bf206a915625",
+          "a409a37e1a9fa1bfdb7a456071e83d3d446e539d",
+          "cd5b065174f76402a0ac289f25d8cb285a20a94e",
+          "94138d7af503ce93feb7c33e0dcc5a729582e320"
+        ]
+      },
+      {
+        "path": "caissa-build/experiments/lc0-browser-lab/src/lc0-worker.js",
+        "sha256": "c75176d4e2b908cf4218a71af9193b7bc676d2c477bfc3c263f65a189a3080b2",
+        "generatedArtifact": "lc0-worker.js",
+        "license": "GPL-3.0-or-later",
+        "provenance": "CAISSA-authored browser worker source",
+        "commits": [
+          "94138d7af503ce93feb7c33e0dcc5a729582e320"
+        ]
+      }
+    ],
+    "deltaPatch": "rc3-provenance/rc3-caissa-source-delta.patch"
+  },
   "runtimeArtifacts": [
-    { "filename": "client.js", "bytes": 203948, "sha256": "4fe91373197d1cdca3757949b5c955dab03b80211e5e2543566537d02fc723cb", "license": "GPL-3.0-or-later" },
-    { "filename": "lc0-worker.js", "bytes": 108767, "sha256": "16dc1a03a65316c2db7a5c4c306ba503fba6da95c43646eafff75d43271d5d7f", "license": "GPL-3.0-or-later" },
+    { "filename": "client.js", "bytes": 211158, "sha256": "a40de705b5ae9b1ddb701963dcab052ec06c655ec1b29df66bf47eab297dc790", "license": "GPL-3.0-or-later" },
+    { "filename": "lc0-worker.js", "bytes": 108891, "sha256": "7a2c0076871117e52e85dd7e0ae441ae2c080bc6bed3d48dadb0a0fa6f682287", "license": "GPL-3.0-or-later" },
     { "filename": "lc0.js", "bytes": 255351, "sha256": "c2b1786ff568d0d5042588b5b9bbf7a78623e47930ad4358803f2a37e3ca66a9", "license": "GPL-3.0-or-later" },
     { "filename": "lc0.wasm", "bytes": 9399301, "sha256": "5c3cc8c72b5794092790ab2c7615a7a7e9757e1c899fa2a4cc1ca158547a07f0", "license": "GPL-3.0-or-later" },
     { "filename": "lc0.worker.mjs", "bytes": 299, "sha256": "7e6dad4bca61807357acfcb3789c781deaca3e20214ccd76dd82ddcb0be0a153", "license": "GPL-3.0-or-later" },
@@ -65,7 +98,7 @@
     { "filename": "maia-1100.pb.gz", "bytes": 1313193, "sha256": "e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4", "license": "GPL-3.0" }
   ],
   "runtimeArtifactCount": 8,
-  "runtimeArtifactBytes": 24785017,
+  "runtimeArtifactBytes": 24792351,
   "network": {
     "id": "CSSLab Maia 1100 v1.0",
     "sourceRepository": "https://github.com/CSSLab/maia-chess",
@@ -84,7 +117,7 @@
     "LICENSE-CHESSJS.txt"
   ],
   "notices": ["THIRD_PARTY_NOTICES.md"],
-  "buildManifestSha256": "492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f",
-  "publicationDate": "2026-09-22",
-  "complianceStatus": "LEGAL_SIGNOFF_REQUIRED"
+  "buildManifestSha256": "648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d",
+  "publicationDate": "2026-09-24",
+  "complianceStatus": "LEGAL_SIGNOFF_REQUIRED_RC3"
 }

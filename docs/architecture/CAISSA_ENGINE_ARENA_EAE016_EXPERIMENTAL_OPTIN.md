@@ -4,12 +4,14 @@
 
 EAE-016 integrates the certified Lc0 limited-production RC into the public Engine Arena without redesigning the runtime. The integration branch is `feature/lc0-eae016-experimental-optin`, based on public main `1d2f05e1d4214e3a9e067e0e16199f20f29feca2`. The certified source is `daf3404fbfaf9401783875626bb7eed403c0d9c4`, archived by `archive/lc0-limited-production-certified` and tag `lc0-limited-production-rc1`.
 
-The two manifest values have distinct meanings and are intentionally both pinned:
+EAE-016.1A replaced the incomplete v0.1.1 corresponding-source association
+with the RC3-complete v0.1.2 package. The historical and current values are:
 
-- corresponding-source/build manifest: `492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f`
+- historical v0.1.1 build manifest: `492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f`
+- RC3 corresponding-source/build manifest: `648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d`
 - deployed RC1 release manifest (`eae015b2-lc0-0.33.0-maia1100-r3`): `648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d`
 - Maia 1100 network: `e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4`
-- corresponding-source archive: `lc0-browser-source-v0.1.1`, SHA-256 `7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec`
+- corresponding-source archive: `lc0-browser-source-v0.1.2`, SHA-256 `3ef4c920c0e05536ef26be1e4a47dc5ad2c247e59c4a2145f6f003e5a0506d4a`
 
 Runtime-sensitive imported Git blobs are compared to the certified RC commit. Rollout-only changes are confined to product UI, server-authoritative cohort policy, telemetry, configuration, development fallback, and documentation. Lc0 source, lifecycle patches, WASM/worker runtime, Maia network, ORT, asset manifest, STOP, Pause/Resume, transport reconciliation, cleanup, and relay lifecycle behavior remain frozen.
 

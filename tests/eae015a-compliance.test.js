@@ -7,9 +7,9 @@ const root = new URL('../', import.meta.url);
 const compliance = new URL('experiments/lc0-production-compliance/', root);
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('EAE-015B manifest pins the approved corresponding source release', async () => {
+test('EAE-016.1A manifest pins the RC3 corresponding source release', async () => {
   const source = JSON.parse(await readFile(new URL('corresponding-source.json', compliance)));
-  assert.equal(source.releaseId, 'lc0-browser-source-v0.1.1');
+  assert.equal(source.releaseId, 'lc0-browser-source-v0.1.2');
   assert.equal(source.lc0Version, 'v0.33.0-dev+git.482bb4a');
   assert.equal(source.lc0Commit, '482bb4a830287b726ebe7d42f14ab7f5f17c18a0');
   assert.equal(source.source.commit, source.lc0Commit);
@@ -18,26 +18,28 @@ test('EAE-015B manifest pins the approved corresponding source release', async (
     'e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4');
   assert.equal(source.network.bytes, 1313193);
   assert.equal(source.buildManifestSha256,
-    '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f');
-  assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\.1\//);
+    '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d');
+  assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\.2\//);
   assert.equal(source.sourceArchiveSha256,
-    '7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec');
-  assert.equal(source.sourceArchiveBytes, 1430117);
+    '3ef4c920c0e05536ef26be1e4a47dc5ad2c247e59c4a2145f6f003e5a0506d4a');
+  assert.equal(source.sourceArchiveBytes, 1441144);
   assert.equal(source.releaseImmutable, true);
   assert.deepEqual(source.publicVerification, {
     httpStatus: 200,
     authenticationRequired: false,
-    contentLength: 1430117,
+    contentLength: 1441144,
     downloadedSha256: source.sourceArchiveSha256,
     archiveExtracted: true
   });
   assert.equal(source.runtimeArtifactCount, 8);
-  assert.equal(source.runtimeArtifactBytes, 24785017);
-  assert.equal(source.complianceStatus, 'LEGAL_SIGNOFF_REQUIRED');
-  const legal = await readFile(new URL('docs/compliance/LC0_PRODUCTION_LEGAL_SIGNOFF.md', root), 'utf8');
-  assert.match(legal, /Status: `LEGAL_SIGNOFF_COMPLETE`/);
-  assert.match(legal, /\[x\] APPROVED/);
-  assert.match(legal, /Review date: 2026-09-22/);
+  assert.equal(source.runtimeArtifactBytes, 24792351);
+  assert.equal(source.rc3Delta.certifiedCaissaCommit,
+    'daf3404fbfaf9401783875626bb7eed403c0d9c4');
+  assert.equal(source.rc3Delta.changedSources.length, 2);
+  assert.equal(source.complianceStatus, 'LEGAL_SIGNOFF_REQUIRED_RC3');
+  const legal = await readFile(new URL('docs/compliance/LC0_PRODUCTION_LEGAL_SIGNOFF_RC3.md', root), 'utf8');
+  assert.match(legal, /Status: `LEGAL_SIGNOFF_REQUIRED_RC3`/);
+  assert.match(legal, /\[ \] APPROVED/);
   for (const patch of source.patches) {
     const bytes = await readFile(new URL(`experiments/lc0-browser-lab/patches/${patch.filename}`, root));
     assert.equal(sha256(bytes), patch.sha256, patch.filename);

@@ -48,7 +48,7 @@ executable modes above, `git write-tree` must equal
 objects on Windows as well as Unix.
 
 The package also carries the build driver, bundler, verifier, lockfile, runtime
-manifest template, worker source, and relay client source under
+manifest template, RC3 worker source, and RC3 relay client source under
 `caissa-build/`. Place those files at their documented CAISSA paths, or run the
 equivalent commands from a clean checkout of the certified CAISSA commit.
 `stage-production-inputs.ps1` performs the required lab-to-appliance copy and
@@ -97,7 +97,14 @@ functional but not byte-identical.
 The expected output is the eight files listed under `runtimeArtifacts` in
 `corresponding-source.json`. Generate `release-manifest.json` with
 `build-production-appliance.mjs`; its certified SHA-256 is
-`492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f`.
-The verifier must report 8 artifacts, 24,785,017 total artifact bytes, and a
+`648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d`.
+The verifier must report 8 artifacts, 24,792,351 total artifact bytes, and a
 successful tamper self-test. Compare every byte count and SHA-256 against the
 published manifest; do not silently accept a merely functional rebuild.
+
+`rc3-provenance/rc3-caissa-source-delta.patch` is the exact diff from the
+v0.1.1 CAISSA source baseline imported by commit `639d9e3` to certified RC3
+commit `daf3404`. `rc3-provenance/rc3-provenance.json` maps each changed source
+to its generating commits and output artifact. Apply no additional CAISSA
+source patches after extracting v0.1.2; its `caissa-build/` files already
+contain the certified RC3 source bytes.

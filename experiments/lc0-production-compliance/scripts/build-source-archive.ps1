@@ -7,18 +7,22 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $sourceCommit = '482bb4a830287b726ebe7d42f14ab7f5f17c18a0'
-$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.1.zip'
+$certifiedRcCommit = 'daf3404fbfaf9401783875626bb7eed403c0d9c4'
+$rc3BaselineCommit = '639d9e391c2e81589091c471964b536af3ea1e1c'
+$v011SourceCommit = '91501bdc406783232f03b17d43ef0b2672f64c63'
+$rc3ManifestSha256 = '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d'
+$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.2.zip'
 $fixedTimestamp = [DateTimeOffset]::FromUnixTimeSeconds(1789992000)
 $complianceRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path (Join-Path $complianceRoot '..\..')).Path
 $sourceRoot = (Resolve-Path -LiteralPath $SourceCheckout).Path
 
 if (-not $OutputDirectory) {
-  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1.1'
+  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1.2'
 }
 [System.IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
 $outputRoot = (Resolve-Path -LiteralPath $OutputDirectory).Path
-$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1.1'
+$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1.2'
 $archivePath = Join-Path $outputRoot $archiveName
 $checksumPath = "$archivePath.sha256"
 
@@ -29,7 +33,7 @@ if (& git -C $sourceRoot status --porcelain) {
   throw 'Source checkout is dirty.'
 }
 if (-not $stageRoot.StartsWith($outputRoot, [StringComparison]::OrdinalIgnoreCase) -or
-    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1.1') {
+    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1.2') {
   throw 'Unsafe staging path.'
 }
 
@@ -42,6 +46,19 @@ function Copy-BundleFile([string]$Source, [string]$Destination) {
   [System.IO.Directory]::CreateDirectory($parent) | Out-Null
   $text = [System.IO.File]::ReadAllText($Source)
   Write-Utf8NoBom $Destination ($text.Replace("`r`n", "`n").Replace("`r", "`n"))
+}
+
+function Copy-CaissaBuildFile([string]$RelativePath, [string]$Destination) {
+  $source = Join-Path $repositoryRoot $RelativePath
+  if (Test-Path -LiteralPath $source) {
+    Copy-BundleFile $source $Destination
+    return
+  }
+  $content = (& git -C $repositoryRoot show "${v011SourceCommit}:$($RelativePath.Replace('\', '/'))") -join "`n"
+  if ($LASTEXITCODE) { throw "Unable to recover pinned v0.1.1 build input: $RelativePath" }
+  $parent = Split-Path $Destination -Parent
+  [System.IO.Directory]::CreateDirectory($parent) | Out-Null
+  Write-Utf8NoBom $Destination ($content + "`n")
 }
 
 if (Test-Path -LiteralPath $stageRoot) {
@@ -120,12 +137,77 @@ try {
     'experiments\lc0-production-compliance\scripts\stage-production-inputs.ps1' = 'packaging\stage-production-inputs.ps1'
   }
   foreach ($item in $buildFiles.GetEnumerator()) {
-    Copy-BundleFile (Join-Path $repositoryRoot $item.Key) (Join-Path $stageRoot $item.Value)
+    Copy-CaissaBuildFile $item.Key (Join-Path $stageRoot $item.Value)
   }
+
+  $deltaPaths = @(
+    'experiments/lc0-preview-relay/engine/client-source.js',
+    'experiments/lc0-browser-lab/src/lc0-worker.js'
+  )
+  $deltaText = (& git -C $repositoryRoot diff --no-ext-diff --full-index $rc3BaselineCommit $certifiedRcCommit -- $deltaPaths) -join "`n"
+  if ($LASTEXITCODE -or -not $deltaText) { throw 'Unable to generate the RC3 CAISSA source delta.' }
+  $deltaPath = Join-Path $stageRoot 'rc3-provenance\rc3-caissa-source-delta.patch'
+  [System.IO.Directory]::CreateDirectory((Split-Path $deltaPath -Parent)) | Out-Null
+  Write-Utf8NoBom $deltaPath ($deltaText + "`n")
+
+  $runtimeManifestSource = Join-Path $repositoryRoot `
+    'experiments\lc0-preview-relay\engine\dist\assets\lc0\eae015b2-lc0-0.33.0-maia1100-r3\release-manifest.json'
+  if (-not (Test-Path -LiteralPath $runtimeManifestSource)) {
+    throw 'Generate the certified RC3 appliance before packaging corresponding source.'
+  }
+  $runtimeManifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $runtimeManifestSource).Hash.ToLowerInvariant()
+  if ($runtimeManifestHash -ne $rc3ManifestSha256) { throw 'RC3 runtime manifest integrity mismatch.' }
+  Copy-BundleFile $runtimeManifestSource (Join-Path $stageRoot 'runtime\release-manifest.json')
+
+  $provenance = [ordered]@{
+    schemaVersion = 1
+    releaseId = 'lc0-browser-source-v0.1.2'
+    baselineSourcePackage = [ordered]@{
+      releaseId = 'lc0-browser-source-v0.1.1'
+      caissaSourceCommit = $v011SourceCommit
+      runtimeManifestSha256 = '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f'
+    }
+    certifiedRc = [ordered]@{
+      commit = $certifiedRcCommit
+      runtimeReleaseId = 'eae015b2-lc0-0.33.0-maia1100-r3'
+      runtimeManifestSha256 = $rc3ManifestSha256
+    }
+    changedSources = @(
+      [ordered]@{
+        path = 'caissa-build/experiments/lc0-preview-relay/engine/client-source.js'
+        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $repositoryRoot $deltaPaths[0])).Hash.ToLowerInvariant()
+        generatedArtifact = 'client.js'
+        commits = @(
+          '9d2b7dbad2a9cba6ff07ec2da743bf206a915625',
+          'a409a37e1a9fa1bfdb7a456071e83d3d446e539d',
+          'cd5b065174f76402a0ac289f25d8cb285a20a94e',
+          '94138d7af503ce93feb7c33e0dcc5a729582e320'
+        )
+      },
+      [ordered]@{
+        path = 'caissa-build/experiments/lc0-browser-lab/src/lc0-worker.js'
+        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $repositoryRoot $deltaPaths[1])).Hash.ToLowerInvariant()
+        generatedArtifact = 'lc0-worker.js'
+        commits = @('94138d7af503ce93feb7c33e0dcc5a729582e320')
+      }
+    )
+    deltaPatch = [ordered]@{
+      path = 'rc3-provenance/rc3-caissa-source-delta.patch'
+      fromCommit = $rc3BaselineCommit
+      toCommit = $certifiedRcCommit
+      sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $deltaPath).Hash.ToLowerInvariant()
+    }
+  }
+  Write-Utf8NoBom (Join-Path $stageRoot 'rc3-provenance\rc3-provenance.json') `
+    (($provenance | ConvertTo-Json -Depth 20) + "`n")
 
   $sourceManifest = Get-Content -Raw -LiteralPath (Join-Path $complianceRoot 'corresponding-source.json') | ConvertFrom-Json
   $sourceManifest.sourceArchiveSha256 = $null
   $sourceManifest.sourceArchiveBytes = $null
+  $sourceManifest.publicVerification.httpStatus = $null
+  $sourceManifest.publicVerification.contentLength = $null
+  $sourceManifest.publicVerification.downloadedSha256 = $null
+  $sourceManifest.publicVerification.archiveExtracted = $false
   $sourceManifest | Add-Member -Force NoteProperty archiveEnvelopeIntegrity 'See the detached .sha256 release asset and repository manifest; an archive cannot embed its own final digest.'
   Write-Utf8NoBom (Join-Path $stageRoot 'corresponding-source.json') (($sourceManifest | ConvertTo-Json -Depth 20) + "`n")
 
@@ -140,8 +222,8 @@ try {
   }
   $contentManifest = [ordered]@{
     schemaVersion = 1
-    releaseId = 'lc0-browser-source-v0.1.1'
-    generatedFromCaissaCommit = '2b24d2c682eb74e6605df4c850e6fa9197c5d233'
+    releaseId = 'lc0-browser-source-v0.1.2'
+    generatedFromCaissaCommit = $certifiedRcCommit
     lc0Commit = $sourceCommit
     sourceDateEpoch = 1789992000
     scope = 'Every archive file except manifest.json itself.'
@@ -153,7 +235,7 @@ try {
     $_.Name -match '^\.env($|\.)|\.pem$|\.p12$|\.pfx$|id_rsa|credentials'
   }
   if ($forbiddenNames) { throw "Forbidden secret-bearing filename detected: $($forbiddenNames.FullName -join ', ')" }
-  $secretPatterns = '-----BEGIN [A-Z ]*PRIVATE KEY-----|sk_live_[A-Za-z0-9]+|gh[opsu]_[A-Za-z0-9]{20,}|eyJhbGciOi[J][A-Za-z0-9._-]+'
+  $secretPatterns = '-----BEGIN [A-Z ]*PRIVATE KEY-----|sk_(?:live|test)_[A-Za-z0-9]+|gh[opsu]_[A-Za-z0-9]{20,}|eyJhbGciOi[J][A-Za-z0-9._-]+'
   foreach ($file in Get-ChildItem -LiteralPath $stageRoot -Recurse -File) {
     $text = [System.IO.File]::ReadAllText($file.FullName)
     if ($text -match $secretPatterns) { throw "Potential secret detected in $($file.FullName)" }
