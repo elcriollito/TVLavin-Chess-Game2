@@ -87,8 +87,8 @@ test('Game Status is the single visible owner of state, move count, and side to 
   assert.match(arena, /id="arenaStatusBox"[\s\S]{0,500}?id="arenaTurnStatus"[\s\S]{0,500}?id="arenaStatusText"/);
   assert.doesNotMatch(arena, /id="arenaStatusTurn"|id="arenaStatusMoves"/);
   assert.match(controller, /const sideToMove = this\.game\?\.turn\?\.\(\) === 'b' \? 'black' : 'white'/);
-  assert.match(controller, /segments = \['Running', `Move \$\{moveCount\}`, `\$\{sideLabel\} to move`\]/);
-  assert.match(controller, /segments = \['Paused', `Move \$\{moveCount\}`, `\$\{sideLabel\} to move`\]/);
+  assert.match(controller, /segments = \['Running'\][\s\S]{0,160}?segments\.push\(`Move \$\{moveCount\}`, `\$\{sideLabel\} to move`\)/);
+  assert.match(controller, /segments = \['Paused'\][\s\S]{0,160}?segments\.push\(`Move \$\{moveCount\}`, `\$\{sideLabel\} to move`\)/);
   assert.match(controller, /segments = \['Completed'\]/);
   assert.match(controller, /turnStatus\.dataset\.turn = turnOwner/);
 });
@@ -143,7 +143,7 @@ test('Arena move presentation uses canonical SAN while engine transport remains 
   assert.doesNotMatch(renderer, /game\.move\(/, 'rendering must not replay moves into the live game');
   assert.match(controller, /playUciMove\(uciMove, isWhiteTurn/);
   assert.match(controller, /uci:\s*uciMove/);
-  assert.match(controller, /this\.playUciMove\(bestMove, isWhiteTurn, 'engine'\)/);
+  assert.match(controller, /this\.playUciMove\(bestMove, isWhiteTurn, 'engine', expectedGeneration\)/);
   assert.match(controller, /formatPvAsSan\(pv, fen\)/);
   assert.match(controller, /const analysisGame = new Chess\(\)/);
   assert.match(controller, /analysisGame\.move\(/);
