@@ -84,6 +84,15 @@ const setControlMode = async (mode, reason) => {
   const rows = await response.json().catch(() => []);
   assert.equal(response.status, 200, `control ${mode}: ${response.status}`);
   assert.equal(rows[0]?.mode, mode);
+  const healthUrl = new URL('/api/eae011?action=health', RELAY);
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const health = await fetch(healthUrl, { headers: { Origin: MAIN,
+      ...protectionHeaders(RELAY) } });
+    const observed = await health.json().catch(() => ({}));
+    if (health.status === 200 && observed.mode === mode) return mode;
+    await sleep(500);
+  }
+  assert.fail(`Relay control mode did not converge to ${mode}`);
   return mode;
 };
 const probeCreate = async (expectedStatus, expectedCode) => {
