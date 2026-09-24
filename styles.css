@@ -9685,7 +9685,7 @@ body.debug-layout #arena-right {
     font-weight: 650;
 }
 
-/* ===== MATCH LAB ML-001A: APPROVED COMPACT UI SHELL ===== */
+/* ===== MATCH LAB ML-001B: APPROVED SHELL + SERIES SCHEDULER ===== */
 #arenaSection #arenaPanelMatch .arena-panel-scroll {
     gap: 12px;
 }
@@ -9765,6 +9765,64 @@ body.debug-layout #arena-right {
 #arenaSection .arena-position-button-row .btn {
     min-width: 0;
     min-height: 40px;
+}
+
+#arenaSection .arena-series-summary {
+    min-width: 0;
+    min-height: 76px;
+    padding: 9px 11px;
+    color: #dce7f4;
+    background: rgba(9, 30, 49, 0.72);
+    border: 1px solid rgba(90, 174, 255, 0.24);
+    border-radius: 9px;
+}
+
+#arenaSection .arena-series-summary[hidden] {
+    display: none;
+}
+
+#arenaSection .arena-series-summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 7px;
+    color: #a8c8e8;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+#arenaSection .arena-series-score-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 34px minmax(86px, auto);
+    gap: 4px 9px;
+    align-items: center;
+    font-size: 10px;
+}
+
+#arenaSection .arena-series-score-grid > span {
+    overflow: hidden;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#arenaSection .arena-series-score-grid > strong {
+    color: #fff;
+    font-family: 'Roboto Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+#arenaSection .arena-series-score-grid > small {
+    color: #92a8c0;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 8px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
 }
 
 #arenaSection .arena-advanced-match-options {

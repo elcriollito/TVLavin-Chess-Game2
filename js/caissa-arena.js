@@ -26,6 +26,8 @@ const CaissaArena = {
     // ArenaRuntimeManager is the sole owner; these getters preserve the
     // certified Arena-facing API without duplicating worker references.
     runtimeManager: null,
+    matchSeries: null,
+    _seriesAdvanceTimer: null,
     reviewTimer: null,
     reviewMarkerVersion: 0,
     get whiteEngineInstance() { return this.runtimeManager?.getInstance('white') || null; },
@@ -106,6 +108,12 @@ const CaissaArena = {
             console.warn('[Arena] EngineAdapter class not found at init - engine adapter missing?');
         }
         this.cacheElements();
+        if (!window.CaissaArenaMatchSeries?.MatchSeriesController) {
+            throw new Error('MatchSeriesController is required before Arena initialization.');
+        }
+        this.matchSeries = new CaissaArenaMatchSeries.MatchSeriesController({
+            onChange: snapshot => this.renderSeriesSummary(snapshot)
+        });
         this.bindEvents();
         this.switchTab(this.state.activeTab, { focus: false });
         if (this.elements.moveDelayInput) {
@@ -156,6 +164,16 @@ const CaissaArena = {
 
             // Match controls
             moveDelayInput: document.getElementById('arenaMoveDelay'),
+            matchTitleInput: document.getElementById('arenaMatchTitle'),
+            matchGameCountSelect: document.getElementById('arenaMatchGameCount'),
+            matchCustomGameCountInput: document.getElementById('arenaMatchCustomGameCount'),
+            matchMoveLimitSelect: document.getElementById('arenaMatchMoveLimit'),
+            matchCustomMoveLimitInput: document.getElementById('arenaMatchCustomMoveLimit'),
+            timeControlModeSelect: document.getElementById('arenaTimeControlMode'),
+            timeControlPresetSelect: document.getElementById('arenaTimeControlPreset'),
+            openingModeSelect: document.getElementById('arenaOpeningMode'),
+            openingFenPreview: document.getElementById('arenaOpeningFenPreview'),
+            savePgnInput: document.getElementById('arenaSavePgn'),
             startMatchBtn: document.getElementById('arenaStartMatch'),
             pauseMatchBtn: document.getElementById('arenaPauseMatch'),
             stopMatchBtn: document.getElementById('arenaStopMatch'),
@@ -168,6 +186,7 @@ const CaissaArena = {
             applyFenBtn: document.getElementById('arenaApplyFen'),
             useStartPositionBtn: document.getElementById('arenaUseStartPosition'),
             fenMessage: document.getElementById('arenaFenMessage'),
+            advancedMatchOptions: document.getElementById('arenaAdvancedMatchOptions'),
             setupModal: document.getElementById('arenaSetupModal'),
             setupCloseBtn: document.getElementById('arenaSetupClose'),
             setupBoard: document.getElementById('arenaSetupBoard'),
@@ -191,6 +210,14 @@ const CaissaArena = {
             statusBlackName: document.getElementById('arenaStatusBlack'),
             turnStatus: document.getElementById('arenaTurnStatus'),
             statusText: document.getElementById('arenaStatusText'),
+            seriesSummary: document.getElementById('arenaSeriesSummary'),
+            seriesProgress: document.getElementById('arenaSeriesProgress'),
+            seriesAName: document.getElementById('arenaSeriesAName'),
+            seriesAScore: document.getElementById('arenaSeriesAScore'),
+            seriesARecord: document.getElementById('arenaSeriesARecord'),
+            seriesBName: document.getElementById('arenaSeriesBName'),
+            seriesBScore: document.getElementById('arenaSeriesBScore'),
+            seriesBRecord: document.getElementById('arenaSeriesBRecord'),
 
             // Evaluation panel
             evalEngineName: document.getElementById('arenaEvalEngine'),
@@ -1459,6 +1486,151 @@ const CaissaArena = {
     },
 
     // ===== MATCH CONTROLS =====
+    getConfiguredSeriesGameCount() {
+        const selected = this.elements.matchGameCountSelect?.value || '1';
+        const value = selected === 'custom'
+            ? this.elements.matchCustomGameCountInput?.value
+            : selected;
+        return CaissaArenaMatchSeries.validateGameCount(value);
+    },
+
+    getConfiguredMoveLimit() {
+        const selected = this.elements.matchMoveLimitSelect?.value || 'none';
+        if (selected === 'none') return null;
+        const value = selected === 'custom'
+            ? this.elements.matchCustomMoveLimitInput?.value
+            : selected;
+        CaissaArenaMatchSeries.fullMovesToPly(value);
+        return Number(value);
+    },
+
+    getSeriesStartingFen() {
+        if (this.state.customStartFen) return this.state.customStartFen;
+        if (typeof Chess !== 'undefined') return new Chess().fen();
+        return this.game?.fen?.() || '';
+    },
+
+    createMatchSeriesConfig() {
+        return {
+            title: this.elements.matchTitleInput?.value?.trim()
+                || `${this.state.whiteEngine?.name || 'White'} vs ${this.state.blackEngine?.name || 'Black'}`,
+            participantA: this.state.whiteEngine,
+            participantB: this.state.blackEngine,
+            gameCount: this.getConfiguredSeriesGameCount(),
+            moveLimitFullMoves: this.getConfiguredMoveLimit(),
+            startingFen: this.getSeriesStartingFen(),
+            opening: {
+                type: this.elements.openingModeSelect?.value || 'standard',
+                selection: this.elements.openingFenPreview?.textContent?.trim() || null
+            },
+            timeControl: {
+                mode: this.elements.timeControlModeSelect?.value || 'blitz',
+                preset: this.elements.timeControlPresetSelect?.value || '3+2'
+            },
+            savePgn: this.elements.savePgnInput?.checked !== false
+        };
+    },
+
+    initializeMatchSeries() {
+        const game = this.matchSeries.start(this.createMatchSeriesConfig());
+        this.applySeriesGameAssignment(game);
+        this.renderSeriesSummary(this.matchSeries.snapshot());
+        return game;
+    },
+
+    applySeriesGameAssignment(seriesGame) {
+        if (!seriesGame) return false;
+        const white = this.getEngineById(seriesGame.white.providerId || seriesGame.white.id);
+        const black = this.getEngineById(seriesGame.black.providerId || seriesGame.black.id);
+        if (!white || !black || !this.isEngineRunnable(white) || !this.isEngineRunnable(black)) {
+            throw new Error('A scheduled Match Series participant is unavailable.');
+        }
+        this.state.whiteEngine = white;
+        this.state.blackEngine = black;
+        if (this.elements.whiteEngineSelect) this.elements.whiteEngineSelect.value = white.id;
+        if (this.elements.blackEngineSelect) this.elements.blackEngineSelect.value = black.id;
+        this.updateEngineInfo();
+        return true;
+    },
+
+    isMatchSeriesActive() {
+        return this.state.mode === 'match' && this.matchSeries?.isActive?.() === true;
+    },
+
+    isCurrentGameGeneration(generation) {
+        if (this.state.mode !== 'match' || !this.matchSeries?.currentGame) return true;
+        return this.matchSeries.accepts(generation);
+    },
+
+    failMatchSeriesStart(message) {
+        if (this.state.mode === 'match' && this.matchSeries?.isActive?.()) {
+            this.matchSeries.fail(message);
+            this.updateMatchControls();
+        }
+    },
+
+    updateStartButtonLabel() {
+        const button = this.elements.startMatchBtn;
+        if (!button || this.isMatchSeriesActive()) return;
+        let isSeries = false;
+        try { isSeries = this.getConfiguredSeriesGameCount() > 1; } catch (_) { /* validation occurs on start */ }
+        button.innerHTML = isSeries
+            ? '<i class="fas fa-play" aria-hidden="true"></i> Start Match Series'
+            : '<i class="fas fa-play" aria-hidden="true"></i> Start Match';
+        button.setAttribute('aria-label', isSeries ? 'Start Match Series' : 'Start Match');
+    },
+
+    formatSeriesPoints(points) {
+        return Number.isInteger(points) ? String(points) : Number(points || 0).toFixed(1);
+    },
+
+    renderSeriesSummary(snapshot = this.matchSeries?.snapshot?.()) {
+        const summary = this.elements.seriesSummary;
+        if (!summary || !snapshot?.config) return;
+        const isMultiGame = snapshot.config.gameCount > 1;
+        summary.hidden = !isMultiGame;
+        if (!isMultiGame) return;
+        const currentRound = snapshot.currentGame?.round || Math.min(snapshot.score?.completed + 1, snapshot.config.gameCount);
+        if (this.elements.seriesProgress) {
+            this.elements.seriesProgress.textContent = `Game ${currentRound} / ${snapshot.config.gameCount}`;
+        }
+        const a = snapshot.score?.[snapshot.config.participantA.id];
+        const b = snapshot.score?.[snapshot.config.participantB.id];
+        if (this.elements.seriesAName) this.elements.seriesAName.textContent = snapshot.config.participantA.name;
+        if (this.elements.seriesBName) this.elements.seriesBName.textContent = snapshot.config.participantB.name;
+        if (this.elements.seriesAScore) this.elements.seriesAScore.textContent = this.formatSeriesPoints(a?.points || 0);
+        if (this.elements.seriesBScore) this.elements.seriesBScore.textContent = this.formatSeriesPoints(b?.points || 0);
+        if (this.elements.seriesARecord) {
+            this.elements.seriesARecord.textContent = `W-D-L ${a?.wins || 0}-${a?.draws || 0}-${a?.losses || 0}`;
+        }
+        if (this.elements.seriesBRecord) {
+            this.elements.seriesBRecord.textContent = `W-D-L ${b?.wins || 0}-${b?.draws || 0}-${b?.losses || 0}`;
+        }
+    },
+
+    setMatchConfigurationLocked(locked) {
+        const controls = [
+            this.elements.whiteEngineSelect,
+            this.elements.blackEngineSelect,
+            this.elements.matchTitleInput,
+            this.elements.matchGameCountSelect,
+            this.elements.matchCustomGameCountInput,
+            this.elements.matchMoveLimitSelect,
+            this.elements.matchCustomMoveLimitInput,
+            this.elements.moveDelayInput,
+            this.elements.timeControlModeSelect,
+            this.elements.timeControlPresetSelect,
+            this.elements.openingModeSelect,
+            this.elements.savePgnInput,
+            this.elements.swapEnginesBtn,
+            this.elements.setPositionBtn,
+            this.elements.manualSetupBtn
+        ];
+        controls.filter(Boolean).forEach(control => { control.disabled = Boolean(locked); });
+        const ecoButton = document.getElementById('arenaEcoSelect');
+        if (ecoButton) ecoButton.disabled = Boolean(locked);
+    },
+
     async startMatch(options = {}) {
         // Prevent double-start
         if (this.state.matchState === 'running') {
@@ -1471,18 +1643,36 @@ const CaissaArena = {
             return;
         }
 
+        const isTournament = options.competitionMode === 'tournament';
+        if (!isTournament) {
+            this.state.mode = 'match';
+            try {
+                if (!options.seriesContinuation) this.initializeMatchSeries();
+                else this.applySeriesGameAssignment(this.matchSeries.currentGame);
+            } catch (error) {
+                console.warn('[Arena] Match Series configuration rejected:', error.message);
+                this.updateGameStatus({ result: error.message });
+                window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
+                return false;
+            }
+        }
+
         const lc0 = 'lc0-maia-1100-preview';
         const usesLc0 = [this.state.whiteEngine, this.state.blackEngine]
             .some(engine => engine?.id === lc0);
         if (this.state.whiteEngine.id === lc0 && this.state.blackEngine.id === lc0) {
+            this.failMatchSeriesStart('Only one Lc0 participant is permitted per competition.');
             this.updateGameStatus({ result: 'Choose one Lc0 participant and one other engine.' });
             return;
         }
         if ([this.state.whiteEngine, this.state.blackEngine].some(engine =>
-            engine.id === lc0 && !window.CaissaArenaPreview?.enabled)) return;
+            engine.id === lc0 && !window.CaissaArenaPreview?.enabled)) {
+            this.failMatchSeriesStart('Lc0 is unavailable for this session.');
+            return;
+        }
         if (usesLc0) window.CaissaArenaRollout?.metric?.('lc0_session_requested');
 
-        this.state.mode = options.competitionMode === 'tournament' ? 'tournament' : 'match';
+        this.state.mode = isTournament ? 'tournament' : 'match';
         if (window.CaissaArenaPreview?.enabled)
             window.CaissaArenaPreview.matchStartAt = performance.now();
         const startToken = ++this.state.startToken;
@@ -1505,6 +1695,7 @@ const CaissaArena = {
                 console.log('[Arena] Board ready, starting match');
             } catch (error) {
                 console.error('[Arena] Board mount failed:', error.message);
+                this.failMatchSeriesStart(error.message);
                 alert('The board could not load. Refresh and try again.');
                 window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
                 return;
@@ -1524,6 +1715,7 @@ const CaissaArena = {
             if (!success) {
                 this.destroyEngines();
                 const message = 'Selected engine could not verify its runtime identity and is unavailable for this session.';
+                this.failMatchSeriesStart(message);
                 this.updateGameStatus({ result: message });
                 alert(message);
                 window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
@@ -1563,8 +1755,11 @@ const CaissaArena = {
         this.state.matchState = 'running';
         this.state.loopActive = true;
         this.state.evalHistory = [];
+        const scheduledGame = this.state.mode === 'match' ? this.matchSeries.currentGame : null;
         this.state.currentGame = {
-            id: globalThis.crypto?.randomUUID?.() || `arena-${Date.now()}`,
+            id: scheduledGame?.gameId || globalThis.crypto?.randomUUID?.() || `arena-${Date.now()}`,
+            generation: scheduledGame?.generation || null,
+            round: scheduledGame?.round || 1,
             white: this.state.whiteEngine,
             black: this.state.blackEngine,
             moves: [],
@@ -1575,6 +1770,12 @@ const CaissaArena = {
                 black: this.blackEngineInstance.getRuntimeIdentity()
             })
         };
+        if (scheduledGame && !this.matchSeries.markRunning(scheduledGame.generation)) {
+            this.handleError('Match Series game generation was no longer current.',
+                'ARENA_ERROR_STALE_GAME_GENERATION');
+            window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
+            return false;
+        }
         if (usesLc0) window.CaissaArenaRollout?.metric?.('lc0_match_started');
 
         // Update UI
@@ -1599,15 +1800,20 @@ const CaissaArena = {
 
         // Start the engine loop
         console.log('[Arena] Starting engine loop...');
+        const gameGeneration = this.state.currentGame.generation;
         setTimeout(() => {
-            this.runEngineLoop();
+            if (this.isCurrentGameGeneration(gameGeneration)) this.runEngineLoop(0, gameGeneration);
         }, 50); // Small delay to ensure UI is updated
+        return true;
     },
 
     togglePause() {
         if (this.state.matchState === 'running') {
             // Pause the match
             this.state.matchState = 'paused';
+            if (this.state.mode === 'match') {
+                this.matchSeries?.pause?.(this.state.currentGame?.generation);
+            }
             this.state.loopActive = false;
             this.captureLifecycleTrace('PAUSE_REQUESTED');
             this.cancelActiveSearch('match paused');
@@ -1638,11 +1844,16 @@ const CaissaArena = {
                 const stopped = await (this._pausePending || Promise.resolve(true));
                 if (!stopped || this.state.matchState !== 'paused') return false;
                 this.state.matchState = 'running';
+                if (this.state.mode === 'match' && this.matchSeries?.currentGame &&
+                    !this.matchSeries?.resume?.(this.state.currentGame?.generation)) return false;
                 this.state.loopActive = true;
                 this.captureLifecycleTrace('RESUME_STARTED');
                 console.log('[Arena] Match resumed');
                 window.dispatchEvent(new CustomEvent('caissa-arena-resume'));
-                setTimeout(() => this.runEngineLoop(), 100);
+                const gameGeneration = this.state.currentGame?.generation;
+                setTimeout(() => {
+                    if (this.isCurrentGameGeneration(gameGeneration)) this.runEngineLoop(0, gameGeneration);
+                }, 100);
                 return true;
             })().catch(error => {
                 if (this.state.matchState === 'paused') {
@@ -1676,6 +1887,16 @@ const CaissaArena = {
         this.state.startToken += 1;
         clearTimeout(this._tournamentAdvanceTimer);
         this._tournamentAdvanceTimer = null;
+        clearTimeout(this._seriesAdvanceTimer);
+        this._seriesAdvanceTimer = null;
+        if (this.state.mode === 'match' && this.matchSeries?.isActive?.()) {
+            this.matchSeries.stop();
+            if (this.state.currentGame && this.state.currentGame.result == null) {
+                this.state.currentGame.result = '*';
+                this.state.currentGame.termination = 'stopped';
+                this.state.currentGame.endTime = Date.now();
+            }
+        }
         this.state.matchState = 'idle';
         this.state.loopActive = false;
         this.cancelActiveSearch('match stopped');
@@ -1699,7 +1920,7 @@ const CaissaArena = {
         }
         this.updateMatchControls();
 
-        this.updateGameStatus({ result: 'Match stopped' });
+        this.updateGameStatus({ result: this.matchSeries?.config?.gameCount > 1 ? 'Series stopped' : 'Match stopped' });
     },
 
     updateMatchControls() {
@@ -1709,8 +1930,10 @@ const CaissaArena = {
             whiteEngineSelect, blackEngineSelect, swapEnginesBtn
         } = this.elements;
 
+        const seriesActive = this.isMatchSeriesActive();
         if (startMatchBtn) {
-            startMatchBtn.style.display = matchState === 'idle' && !analysisRunning ? 'block' : 'none';
+            startMatchBtn.style.display = ['idle', 'finished'].includes(matchState) && !analysisRunning && !seriesActive
+                ? 'block' : 'none';
         }
         if (pauseMatchBtn) {
             pauseMatchBtn.style.display = matchState === 'running' || matchState === 'paused' ? 'block' : 'none';
@@ -1722,15 +1945,13 @@ const CaissaArena = {
             pauseMatchBtn.title = isPaused ? 'Resume match' : 'Pause match';
         }
         if (stopMatchBtn) {
-            stopMatchBtn.style.display = matchState !== 'idle' ? 'block' : 'none';
+            stopMatchBtn.style.display = seriesActive || !['idle', 'finished'].includes(matchState) ? 'block' : 'none';
         }
         if (declareDrawBtn) {
             declareDrawBtn.style.display = this.isActiveTournamentGame() ? 'block' : 'none';
         }
-        const selectionLocked = matchState === 'running' || matchState === 'paused';
-        if (whiteEngineSelect) whiteEngineSelect.disabled = selectionLocked;
-        if (blackEngineSelect) blackEngineSelect.disabled = selectionLocked;
-        if (swapEnginesBtn) swapEnginesBtn.disabled = selectionLocked;
+        const selectionLocked = seriesActive || matchState === 'running' || matchState === 'paused';
+        this.setMatchConfigurationLocked(selectionLocked);
         if (infiniteAnalysisBtn) {
             infiniteAnalysisBtn.style.display = matchState === 'idle' ? 'block' : 'none';
             infiniteAnalysisBtn.innerHTML = analysisRunning
@@ -1739,6 +1960,7 @@ const CaissaArena = {
             infiniteAnalysisBtn.classList.toggle('btn-danger', analysisRunning);
             infiniteAnalysisBtn.classList.toggle('btn-secondary', !analysisRunning);
         }
+        if (!selectionLocked) this.updateStartButtonLabel();
     },
 
     async toggleInfiniteAnalysis() {
@@ -1842,15 +2064,36 @@ const CaissaArena = {
         let turnState = this.state.matchState;
         let turnOwner = 'neutral';
         let segments = [];
+        const series = this.state.mode === 'match' ? this.matchSeries : null;
+        const seriesCount = series?.config?.gameCount || 1;
+        const seriesRound = series?.currentGame?.round || this.state.currentGame?.round || 1;
+        const seriesPrefix = seriesCount > 1 ? `Game ${seriesRound} / ${seriesCount}` : null;
 
-        if (this.state.matchState === 'finished') {
+        if (seriesCount > 1 && series?.state === CaissaArenaMatchSeries.STATES.COMPLETED) {
+            turnState = 'finished';
+            segments = ['Series complete', `${series.score.completed} / ${seriesCount}`];
+        } else if (seriesCount > 1 && series?.state === CaissaArenaMatchSeries.STATES.STOPPED) {
+            turnState = 'stopped';
+            segments = ['Series stopped', `${series.score.completed} / ${seriesCount} completed`];
+        } else if (seriesCount > 1 && series?.state === CaissaArenaMatchSeries.STATES.ERROR) {
+            turnState = 'error';
+            segments = ['Series error'];
+        } else if (seriesCount > 1 && [
+            CaissaArenaMatchSeries.STATES.BETWEEN_GAMES,
+            CaissaArenaMatchSeries.STATES.PREPARING_GAME
+        ].includes(series?.state) && this.state.matchState !== 'running') {
+            turnState = 'preparing';
+            segments = ['Between games', `Preparing Game ${seriesRound} / ${seriesCount}`];
+        } else if (this.state.matchState === 'finished') {
             turnState = 'finished';
             segments = ['Completed'];
             if (result) segments.push(result);
         } else if (this.state.matchState === 'paused') {
             turnState = 'paused';
             turnOwner = sideToMove;
-            segments = ['Paused', `Move ${moveCount}`, `${sideLabel} to move`];
+            segments = ['Paused'];
+            if (seriesPrefix) segments.push(seriesPrefix);
+            segments.push(`Move ${moveCount}`, `${sideLabel} to move`);
         } else if (this.state.analysisRunning) {
             turnState = 'analysis';
             segments = ['Analysis', result || 'Infinite analysis running'];
@@ -1860,7 +2103,9 @@ const CaissaArena = {
         } else if (this.state.matchState === 'running') {
             turnState = 'running';
             turnOwner = sideToMove;
-            segments = ['Running', `Move ${moveCount}`, `${sideLabel} to move`];
+            segments = ['Running'];
+            if (seriesPrefix) segments.push(seriesPrefix);
+            segments.push(`Move ${moveCount}`, `${sideLabel} to move`);
         } else if (this.state.matchState === 'idle') {
             turnState = 'idle';
             segments = !result || /^Ready(?::|$)/i.test(result) ? ['Ready'] : [result];
@@ -1878,10 +2123,14 @@ const CaissaArena = {
 
     onEngineMove(detail) {
         if (this.state.matchState !== 'running') return;
+        if (detail?.gameGeneration != null && !this.isCurrentGameGeneration(detail.gameGeneration)) return;
 
         // Record move for history
         if (this.state.currentGame) {
             this.state.currentGame.moves.push(detail);
+            if (this.state.mode === 'match') {
+                this.matchSeries?.recordMove?.(this.state.currentGame.generation, detail);
+            }
         }
 
         // Update status
@@ -2178,8 +2427,12 @@ const CaissaArena = {
         });
     },
 
-    playUciMove(uciMove, isWhiteTurn, source = 'engine') {
+    playUciMove(uciMove, isWhiteTurn, source = 'engine', expectedGeneration = this.state.currentGame?.generation) {
         if (!uciMove) return false;
+        if (!this.isCurrentGameGeneration(expectedGeneration)) {
+            this.reliabilityMetrics.staleBestmovesIgnored += 1;
+            return false;
+        }
 
         const legalMove = this.findLegalUciMove(uciMove);
         if (!legalMove) return false;
@@ -2205,13 +2458,17 @@ const CaissaArena = {
         }
 
         if (this.state.currentGame) {
-            this.state.currentGame.moves.push({
+            const recordedMove = {
                 move: moveResult.san,
                 uci: uciMove,
                 fen: this.game.fen(),
                 turn: isWhiteTurn ? 'white' : 'black',
                 source: source
-            });
+            };
+            this.state.currentGame.moves.push(recordedMove);
+            if (this.state.mode === 'match') {
+                this.matchSeries?.recordMove?.(expectedGeneration, recordedMove);
+            }
         }
         this.captureLifecycleTrace('MOVE_APPLIED', {
             move: uciMove,
@@ -2228,6 +2485,20 @@ const CaissaArena = {
 
         this.evaluatePosition(this.game.fen());
 
+        if (this.game.game_over()) {
+            this.handleGameOver();
+            return true;
+        }
+        if (this.state.mode === 'match' &&
+            this.matchSeries?.reachedMoveLimit?.(this.game.history().length, expectedGeneration)) {
+            this.completeMatchSeriesGame({
+                result: '1/2-1/2',
+                resultText: 'Draw by move limit',
+                termination: 'move-limit'
+            });
+            return true;
+        }
+
         if (this.state.matchState !== 'running' || !this.state.loopActive) {
             console.log('[Arena] Loop stopped after move');
             return true;
@@ -2235,8 +2506,9 @@ const CaissaArena = {
 
         const delay = source === 'book' ? 0 : this.state.moveDelay;
         setTimeout(() => {
+            if (!this.isCurrentGameGeneration(expectedGeneration)) return;
             this.captureLifecycleTrace('NEXT_SEARCH_SCHEDULED');
-            this.runEngineLoop();
+            this.runEngineLoop(0, expectedGeneration);
         }, delay);
 
         return true;
@@ -2246,12 +2518,13 @@ const CaissaArena = {
      * Main engine loop for Arena matches
      * Self-contained - doesn't depend on app.js EVE system
      */
-    async runEngineLoop(invalidRetryCount = 0) {
+    async runEngineLoop(invalidRetryCount = 0, expectedGeneration = this.state.currentGame?.generation) {
         // Safety check
         if (this.state.matchState !== 'running' || !this.state.loopActive) {
             console.log('[Arena] Loop stopped - match not running');
             return;
         }
+        if (!this.isCurrentGameGeneration(expectedGeneration)) return;
         if (this.state.loopRunning) {
             console.warn('[Arena] Loop request ignored because another move search is active');
             return;
@@ -2287,7 +2560,7 @@ const CaissaArena = {
         try {
             const bookMove = this.getBookMove();
             if (bookMove) {
-                if (this.playUciMove(bookMove, isWhiteTurn, 'book')) {
+                if (this.playUciMove(bookMove, isWhiteTurn, 'book', expectedGeneration)) {
                     return;
                 }
                 console.warn('[Arena] Book move could not be applied; falling back to engine search', {
@@ -2311,11 +2584,13 @@ const CaissaArena = {
             const bestMove = await this.getEngineMove(currentEngine, fen, {
                 color,
                 engineId: engineConfig?.id || currentEngine?.id || 'unknown',
-                depth
+                depth,
+                gameGeneration: expectedGeneration
             });
             this.state.loopRunning = false;
 
-            if (this.state.matchState !== 'running' || !this.state.loopActive) return;
+            if (this.state.matchState !== 'running' || !this.state.loopActive ||
+                !this.isCurrentGameGeneration(expectedGeneration)) return;
             if (this.game.fen() !== fen) {
                 console.warn('[Arena] Ignoring stale bestmove because the board FEN changed', {
                     color,
@@ -2323,7 +2598,7 @@ const CaissaArena = {
                     requestedFen: fen,
                     currentFen: this.game.fen()
                 });
-                this.runEngineLoop();
+                this.runEngineLoop(0, expectedGeneration);
                 return;
             }
 
@@ -2335,7 +2610,7 @@ const CaissaArena = {
                 return;
             }
 
-            if (!this.playUciMove(bestMove, isWhiteTurn, 'engine')) {
+            if (!this.playUciMove(bestMove, isWhiteTurn, 'engine', expectedGeneration)) {
                 console.warn('[Arena] Engine returned an illegal move; requesting one fresh move', {
                     color,
                     engineId: engineConfig?.id,
@@ -2344,7 +2619,7 @@ const CaissaArena = {
                     retry: invalidRetryCount
                 });
                 if (invalidRetryCount < 1) {
-                    this.runEngineLoop(invalidRetryCount + 1);
+                    this.runEngineLoop(invalidRetryCount + 1, expectedGeneration);
                     return;
                 }
                 this.handleError(`Illegal move from ${color} ${engineConfig?.name || 'engine'}: ${bestMove}`,
@@ -2374,6 +2649,7 @@ const CaissaArena = {
             const color = context.color || 'unknown';
             const runtimeRole = ['white', 'black'].includes(color) ? color : null;
             const engineId = context.engineId || engine.id || 'unknown';
+            const gameGeneration = context.gameGeneration ?? this.state.currentGame?.generation;
             const searchToken = ++this.state.searchToken;
             const moveTimeoutMs = engine.asyncLifecycle ? 30000 : ARENA_ENGINE_TIMEOUT_MS;
             let timeout = null;
@@ -2426,8 +2702,9 @@ const CaissaArena = {
             // Set up callback for best move
             if (runtimeRole) this.runtimeManager?.markThinking(runtimeRole, engine);
             engine.getBestMove(fen, (bestMove) => {
-                if (settled || searchToken !== this.state.searchToken) {
-                    if (searchToken !== this.state.searchToken)
+                if (settled || searchToken !== this.state.searchToken ||
+                    !this.isCurrentGameGeneration(gameGeneration)) {
+                    if (searchToken !== this.state.searchToken || !this.isCurrentGameGeneration(gameGeneration))
                         this.reliabilityMetrics.staleBestmovesIgnored += 1;
                     else this.reliabilityMetrics.duplicateBestmovesIgnored += 1;
                     console.warn('[Arena] Ignoring late or stale bestmove', {
@@ -2465,7 +2742,8 @@ const CaissaArena = {
             });
 
             timeout = setTimeout(() => {
-                if (settled || searchToken !== this.state.searchToken) return;
+                if (settled || searchToken !== this.state.searchToken ||
+                    !this.isCurrentGameGeneration(gameGeneration)) return;
                 if (!runtimeRole || !this.runtimeManager?.stop(runtimeRole, engine)) engine.stop?.();
                 console.error('[Arena] Engine move timeout diagnostic', {
                     color,
@@ -2606,45 +2884,135 @@ const CaissaArena = {
     /**
      * Handle game over condition
      */
-    handleGameOver() {
-        this.state.matchState = 'finished';
-        this.state.loopActive = false;
-        this.cancelActiveSearch('game over');
-        this.state.loopRunning = false;
-        this.runtimeManager.stopAll();
-
+    resolveGameOutcome() {
         let result = '';
         let resultCode = '1/2-1/2';
+        let termination = 'other-existing-reason';
 
         if (this.game.in_checkmate()) {
             const winner = this.game.turn() === 'w' ? 'Black' : 'White';
             const winnerEngine = winner === 'White' ? this.state.whiteEngine : this.state.blackEngine;
             result = `${winner} wins by checkmate (${winnerEngine?.name || 'Engine'})`;
             resultCode = winner === 'White' ? '1-0' : '0-1';
+            termination = 'checkmate';
         } else if (this.game.in_stalemate()) {
             result = 'Draw by stalemate';
+            termination = 'stalemate';
         } else if (this.game.in_threefold_repetition()) {
             result = 'Draw by threefold repetition';
+            termination = 'threefold';
         } else if (this.game.insufficient_material()) {
             result = 'Draw - insufficient material';
+            termination = 'insufficient-material';
         } else if (this.game.in_draw()) {
             result = 'Draw';
+            termination = 'fifty-move';
         } else {
             result = 'Game over';
         }
 
-        console.log('[Arena] Game ended:', result);
+        return { result, resultCode, termination };
+    },
+
+    completeMatchSeriesGame({ result, resultText, termination }) {
+        const generation = this.state.currentGame?.generation;
+        if (!this.matchSeries?.accepts?.(generation)) return false;
+
+        this.state.matchState = 'finished';
+        this.state.loopActive = false;
+        this.cancelActiveSearch('series game completed');
+        this.state.loopRunning = false;
+        const cleanup = this.runtimeManager.stopAll();
+        if (this.state.currentGame) {
+            this.state.currentGame.result = result;
+            this.state.currentGame.termination = termination;
+            this.state.currentGame.endTime = Date.now();
+        }
+        const accepted = this.matchSeries.complete(generation, {
+            result,
+            termination,
+            moves: this.state.currentGame?.moves || []
+        });
+        if (!accepted) return false;
+
+        this.renderSeriesSummary(this.matchSeries.snapshot());
+        this.updateMatchControls();
+        this.updateGameStatus({ result: resultText });
+        window.dispatchEvent(new CustomEvent('caissa-arena-series-game-complete', {
+            detail: {
+                seriesId: this.matchSeries.seriesId,
+                gameId: this.state.currentGame?.id,
+                generation,
+                result,
+                termination,
+                round: this.state.currentGame?.round
+            }
+        }));
+
+        if (this.matchSeries.state === CaissaArenaMatchSeries.STATES.BETWEEN_GAMES) {
+            this.scheduleNextMatchSeriesGame(cleanup);
+        } else {
+            window.dispatchEvent(new CustomEvent('caissa-arena-series-complete', {
+                detail: this.matchSeries.snapshot()
+            }));
+        }
+        return true;
+    },
+
+    scheduleNextMatchSeriesGame(cleanup = undefined) {
+        clearTimeout(this._seriesAdvanceTimer);
+        const seriesId = this.matchSeries.seriesId;
+        const nextGame = this.matchSeries.advance();
+        this.applySeriesGameAssignment(nextGame);
+        this.updateGameStatus();
+        this._seriesAdvanceTimer = setTimeout(async () => {
+            this._seriesAdvanceTimer = null;
+            try {
+                await Promise.resolve(cleanup);
+                if (this.matchSeries.seriesId !== seriesId ||
+                    this.matchSeries.state !== CaissaArenaMatchSeries.STATES.PREPARING_GAME) return;
+                this.state.matchState = 'idle';
+                await this.startMatch({ seriesContinuation: true });
+            } catch (error) {
+                this.handleError(error.message, 'ARENA_ERROR_SERIES_TRANSITION', { error });
+            }
+        }, 50);
+    },
+
+    handleGameOver() {
+        const outcome = this.resolveGameOutcome();
+
+        if (this.state.mode === 'match' && this.matchSeries?.currentGame) {
+            console.log('[Arena] Series game ended:', outcome.result);
+            if ([this.state.whiteEngine, this.state.blackEngine]
+                .some(engine => engine?.id === 'lc0-maia-1100-preview'))
+                window.CaissaArenaRollout?.metric?.('lc0_match_completed');
+            this.completeMatchSeriesGame({
+                result: outcome.resultCode,
+                resultText: outcome.result,
+                termination: outcome.termination
+            });
+            return;
+        }
+
+        this.state.matchState = 'finished';
+        this.state.loopActive = false;
+        this.cancelActiveSearch('game over');
+        this.state.loopRunning = false;
+        this.runtimeManager.stopAll();
+
+        console.log('[Arena] Game ended:', outcome.result);
         if ([this.state.whiteEngine, this.state.blackEngine]
             .some(engine => engine?.id === 'lc0-maia-1100-preview'))
             window.CaissaArenaRollout?.metric?.('lc0_match_completed');
 
         // Update UI
         this.updateMatchControls();
-        this.updateGameStatus({ result });
+        this.updateGameStatus({ result: outcome.result });
 
         // Record tournament result if in tournament mode
         if (this.state.mode === 'tournament') {
-            this.recordTournamentResult(resultCode);
+            this.recordTournamentResult(outcome.resultCode);
             this.scheduleNextTournamentGame();
         }
     },
@@ -2708,6 +3076,11 @@ const CaissaArena = {
         this.reliabilityMetrics.arenaErrorsByReason[code] =
             (this.reliabilityMetrics.arenaErrorsByReason[code] || 0) + 1;
         this.captureLifecycleTrace('ARENA_ERROR', errorContext);
+        clearTimeout(this._seriesAdvanceTimer);
+        this._seriesAdvanceTimer = null;
+        if (this.state.mode === 'match' && this.matchSeries?.isActive?.()) {
+            this.matchSeries.fail(message);
+        }
         this.state.startToken += 1;
         this.state.matchState = 'idle';
         this.state.loopActive = false;

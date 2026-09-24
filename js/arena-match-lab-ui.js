@@ -178,8 +178,10 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
         blackEngine: documentRef.getElementById('arenaBlackEngine'),
         title: documentRef.getElementById('arenaMatchTitle'),
         gameCount: documentRef.getElementById('arenaMatchGameCount'),
+        customGameCount: documentRef.getElementById('arenaMatchCustomGameCount'),
         customGameCountField: documentRef.getElementById('arenaMatchCustomGameCountField'),
         moveLimit: documentRef.getElementById('arenaMatchMoveLimit'),
+        customMoveLimit: documentRef.getElementById('arenaMatchCustomMoveLimit'),
         customMoveLimitField: documentRef.getElementById('arenaMatchCustomMoveLimitField'),
         timeMode: documentRef.getElementById('arenaTimeControlMode'),
         timePreset: documentRef.getElementById('arenaTimeControlPreset'),
@@ -229,15 +231,27 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
 
     elements.gameCount?.addEventListener('change', () => {
         setCustomFieldVisibility(elements.gameCount, elements.customGameCountField);
-        config.gameCount = elements.gameCount.value === 'custom' ? null : Number(elements.gameCount.value);
+        config.gameCount = elements.gameCount.value === 'custom'
+            ? Number(elements.customGameCount?.value || 1) : Number(elements.gameCount.value);
+        globalThis.CaissaArena?.updateStartButtonLabel?.();
+    });
+    elements.customGameCount?.addEventListener('input', () => {
+        config.gameCount = Number(elements.customGameCount.value || 0);
+        globalThis.CaissaArena?.updateStartButtonLabel?.();
     });
     elements.moveLimit?.addEventListener('change', () => {
         setCustomFieldVisibility(elements.moveLimit, elements.customMoveLimitField);
-        config.moveLimit = ['none', 'custom'].includes(elements.moveLimit.value)
-            ? null : Number(elements.moveLimit.value);
+        config.moveLimit = elements.moveLimit.value === 'none' ? null
+            : elements.moveLimit.value === 'custom'
+                ? Number(elements.customMoveLimit?.value || 100)
+                : Number(elements.moveLimit.value);
+    });
+    elements.customMoveLimit?.addEventListener('input', () => {
+        config.moveLimit = Number(elements.customMoveLimit.value || 0);
     });
     setCustomFieldVisibility(elements.gameCount, elements.customGameCountField);
     setCustomFieldVisibility(elements.moveLimit, elements.customMoveLimitField);
+    globalThis.CaissaArena?.updateStartButtonLabel?.();
 
     const clockDisplay = { black: null, white: null };
     const setClockDisplay = (color, display) => {
@@ -322,7 +336,7 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
     });
 
     const controller = Object.freeze({
-        phase: 'ML-001A.1',
+        phase: 'ML-001B',
         config,
         clockDisplay,
         elements,

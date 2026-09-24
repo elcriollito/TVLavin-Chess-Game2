@@ -1284,6 +1284,20 @@
                                     <i class="fas fa-edit" aria-hidden="true"></i> Manual Setup
                                 </button>
                             </div>
+                            <section id="arenaSeriesSummary" class="arena-series-summary" aria-labelledby="arenaSeriesTitle" hidden>
+                                <div class="arena-series-summary-head">
+                                    <strong id="arenaSeriesTitle">Series</strong>
+                                    <span id="arenaSeriesProgress">Game 1 / 2</span>
+                                </div>
+                                <div class="arena-series-score-grid">
+                                    <span id="arenaSeriesAName">Engine A</span>
+                                    <strong id="arenaSeriesAScore">0</strong>
+                                    <small id="arenaSeriesARecord">W-D-L 0-0-0</small>
+                                    <span id="arenaSeriesBName">Engine B</span>
+                                    <strong id="arenaSeriesBScore">0</strong>
+                                    <small id="arenaSeriesBRecord">W-D-L 0-0-0</small>
+                                </div>
+                            </section>
                             <div id="arenaPositionPanel" class="arena-position-panel" hidden>
                                 <label for="arenaFenInput">Starting FEN</label>
                                 <textarea id="arenaFenInput" class="form-control arena-fen-input" rows="3" spellcheck="false" aria-label="Arena starting FEN"></textarea>
@@ -1302,7 +1316,7 @@
                                     </span>
                                     <i class="fas fa-chevron-down arena-advanced-chevron" aria-hidden="true"></i>
                                 </summary>
-                                <div class="arena-advanced-match-body" data-match-lab-phase="ML-001A.1">
+                                <div class="arena-advanced-match-body" data-match-lab-phase="ML-001B">
                                     <div class="arena-match-options-grid">
                                         <section class="arena-match-option-column" aria-labelledby="arenaMatchBasicsTitle">
                                             <h5 id="arenaMatchBasicsTitle">Match Basics</h5>
@@ -1407,7 +1421,7 @@
                                         </section>
                                     </div>
                                     <p id="arenaMatchLabPhaseNote" class="arena-match-lab-phase-note" role="status" aria-live="polite">
-                                        UI preview: series scheduling, real time controls, and opening selection arrive after visual approval.
+                                        Match Series scheduling is active. Real clocks and opening-set scheduling remain deferred.
                                     </p>
                                 </div>
                             </details>
@@ -5329,6 +5343,7 @@
     <script src="js/engine-registry.js?v=1.1.0"></script>
     <script src="js/arena-lc0-rollout.js?v=1.0.0"></script>
     <script src="js/arena-runtime-manager.js?v=1.0.0"></script>
+    <script src="js/arena-match-series.js?v=1.0.0"></script>
     <script src="js/arena-tournament-scheduler.js?v=1.0.0"></script>
     <script src="js/caissa-arena.js?v=1.8.0"></script>
     <script type="module" src="js/arena-match-lab-ui.js?v=1.0.0"></script>
