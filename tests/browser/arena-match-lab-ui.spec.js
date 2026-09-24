@@ -61,9 +61,14 @@ test('shell controls are keyboard-operable and presentation-only behaviors are t
 
   await expect(page.locator('#arenaMatchTitle')).toHaveValue(/.+ vs .+/);
   await expect(page.locator('#arenaMatchTitle')).not.toHaveValue('White vs Black');
+  await expect(page.locator('#arenaBlackClock')).toHaveText('03:00');
+  await expect(page.locator('#arenaWhiteClock')).toHaveText('03:00');
   await page.locator('#arenaTimeControlMode').selectOption('fixed-depth');
-  await expect(page.locator('#arenaTimeControlPreset')).toHaveValue('12');
-  await expect(page.locator('#arenaTimeControlSummary')).toContainText('Depth 12');
+  await page.locator('#arenaTimeControlPreset').selectOption('16');
+  await expect(page.locator('#arenaTimeControlSummary')).toContainText('Depth 16');
+  await expect(page.locator('#arenaBlackClock')).toHaveText('Depth 16');
+  await expect(page.locator('#arenaWhiteClock')).toHaveText('Depth 16');
+  await expect(page.locator('#arenaBlackClock')).toHaveAttribute('data-display-kind', 'depth');
 
   await page.locator('#arenaOpeningMode').selectOption('eco');
   await expect(page.locator('#arenaOpeningSummary')).toHaveText('Choose an ECO opening');
@@ -88,12 +93,64 @@ test('shell controls are keyboard-operable and presentation-only behaviors are t
   await expect(page.locator('#arenaSavePgn')).toBeChecked();
 });
 
+test('player clock shell follows configured presets without resizing bars or running a real clock', async ({ page }) => {
+  await openArena(page);
+  await page.locator('#arenaAdvancedMatchOptions summary').click();
+  const barDimensions = () => page.locator('.arena-player-bar').evaluateAll(bars => bars.map(bar => {
+    const rect = bar.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  }));
+  const initial = await barDimensions();
+
+  await page.locator('#arenaTimeControlMode').selectOption('bullet');
+  await page.locator('#arenaTimeControlPreset').selectOption('1+0');
+  await expect(page.locator('.arena-player-clock')).toHaveText(['01:00', '01:00']);
+
+  await page.locator('#arenaTimeControlMode').selectOption('long');
+  await page.locator('#arenaTimeControlPreset').selectOption('60+30');
+  await expect(page.locator('.arena-player-clock')).toHaveText(['1:00:00', '1:00:00']);
+  expect(await barDimensions()).toEqual(initial);
+  await expect(page.locator('.arena-player-clock').first()).toHaveAttribute('data-authoritative', 'false');
+});
+
+test('Game Status owns ready, running, paused, move, and turn copy outside player headers', async ({ page }) => {
+  await openArena(page);
+  const status = page.locator('#arenaStatusText');
+  const playerBarCopy = () => page.locator('.arena-player-bar').allTextContents();
+  await expect(status).toHaveText('Ready');
+  expect((await playerBarCopy()).join(' ')).not.toMatch(/\b(?:White|Black) to move\b|\bMove \d+/i);
+
+  await page.evaluate(() => {
+    window.CaissaArena.game.reset();
+    window.CaissaArena.game.move('e4');
+    window.CaissaArena.state.matchState = 'running';
+    window.CaissaArena.updateGameStatus({ moveCount: 37 });
+  });
+  await expect(status).toHaveText('Running · Move 37 · Black to move');
+
+  await page.evaluate(() => {
+    window.CaissaArena.state.matchState = 'paused';
+    window.CaissaArena.updateGameStatus({ moveCount: 37 });
+  });
+  await expect(status).toHaveText('Paused · Move 37 · Black to move');
+  expect((await playerBarCopy()).join(' ')).not.toMatch(/\b(?:White|Black) to move\b|\bMove \d+/i);
+});
+
 test('mobile stacks advanced options and leaves Tournament and Game intact', async ({ page }) => {
   await openArena(page, { width: 390, height: 844 });
   const before = await geometry(page);
   await page.locator('#arenaAdvancedMatchOptions summary').click();
   await expect(page.locator('#arenaMatchTitle')).toBeVisible();
+  await expect(page.locator('#arenaBlackClock')).toBeVisible();
+  await expect(page.locator('#arenaWhiteClock')).toBeVisible();
   expect((await geometry(page)).horizontalOverflow).toBe(false);
+
+  const clockAlignment = await page.locator('.arena-player-clock').evaluateAll(clocks => clocks.map(clock => {
+    const rect = clock.getBoundingClientRect();
+    return { right: rect.right, width: rect.width };
+  }));
+  expect(Math.abs(clockAlignment[0].right - clockAlignment[1].right)).toBeLessThanOrEqual(1);
+  expect(clockAlignment[0].width).toBe(clockAlignment[1].width);
 
   const columns = await page.locator('.arena-match-option-column').evaluateAll(items => items.map(item => item.getBoundingClientRect().left));
   expect(Math.max(...columns) - Math.min(...columns)).toBeLessThanOrEqual(1);

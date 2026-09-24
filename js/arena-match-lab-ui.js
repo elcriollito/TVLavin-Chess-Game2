@@ -45,6 +45,14 @@ const DEFAULT_PRESET = Object.freeze({
     'fixed-depth': '12'
 });
 
+export const ML001C_CLOCK_CONTRACT = Object.freeze({
+    owner: 'future-authoritative-time-control',
+    flagFall: 'remaining time at zero loses on time',
+    pgnResults: Object.freeze(['1-0', '0-1']),
+    termination: 'time forfeit',
+    implementedInThisPhase: false
+});
+
 const OPENING_PRESENTATION = Object.freeze({
     standard: Object.freeze({
         summary: 'Standard Position',
@@ -76,6 +84,42 @@ export function buildMatchTitle(whiteName, blackName) {
     const white = String(whiteName || 'White').trim();
     const black = String(blackName || 'Black').trim();
     return `${white} vs ${black}`;
+}
+
+export function formatClockDisplay(milliseconds) {
+    if (!Number.isFinite(milliseconds) || milliseconds < 0) return '--:--';
+    const totalSeconds = Math.ceil(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+export function createClockDisplayState({ mode = 'blitz', preset } = {}) {
+    const resolvedPreset = preset || DEFAULT_PRESET[mode] || DEFAULT_PRESET.blitz;
+    if (mode === 'fixed-depth') {
+        const depth = Number.parseInt(resolvedPreset, 10);
+        return {
+            kind: 'depth',
+            text: Number.isFinite(depth) ? `Depth ${depth}` : 'Depth —',
+            depth: Number.isFinite(depth) ? depth : null,
+            remainingMs: null,
+            authoritative: false,
+            active: false
+        };
+    }
+
+    const initialMinutes = Number.parseInt(String(resolvedPreset).split('+')[0], 10);
+    const remainingMs = Number.isFinite(initialMinutes) ? initialMinutes * 60_000 : null;
+    return {
+        kind: 'clock',
+        text: remainingMs === null ? '--:--' : formatClockDisplay(remainingMs),
+        depth: null,
+        remainingMs,
+        authoritative: false,
+        active: false
+    };
 }
 
 export function createMatchLabUiConfig({ whiteName, blackName } = {}) {
@@ -147,7 +191,9 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
         openingFen: documentRef.getElementById('arenaOpeningFenPreview'),
         phaseNote: documentRef.getElementById('arenaMatchLabPhaseNote'),
         flipBoard: documentRef.getElementById('arenaFlipBoard'),
-        savePgn: documentRef.getElementById('arenaSavePgn')
+        savePgn: documentRef.getElementById('arenaSavePgn'),
+        blackClock: documentRef.getElementById('arenaBlackClock'),
+        whiteClock: documentRef.getElementById('arenaWhiteClock')
     };
 
     if (!elements.details) return null;
@@ -193,6 +239,38 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
     setCustomFieldVisibility(elements.gameCount, elements.customGameCountField);
     setCustomFieldVisibility(elements.moveLimit, elements.customMoveLimitField);
 
+    const clockDisplay = { black: null, white: null };
+    const setClockDisplay = (color, display) => {
+        if (!['black', 'white'].includes(color)) return null;
+        const output = color === 'black' ? elements.blackClock : elements.whiteClock;
+        const kind = display?.kind === 'depth' ? 'depth' : 'clock';
+        const next = {
+            ...display,
+            kind,
+            text: display?.text || (kind === 'depth'
+                ? `Depth ${Number.isFinite(display?.depth) ? display.depth : '—'}`
+                : formatClockDisplay(display?.remainingMs)),
+            authoritative: display?.authoritative === true,
+            active: display?.active === true
+        };
+        clockDisplay[color] = next;
+        if (!output) return next;
+        output.textContent = next.text;
+        output.dataset.displayKind = next.kind;
+        output.dataset.authoritative = String(next.authoritative === true);
+        output.dataset.active = String(next.active === true);
+        const accessibleLabel = next.kind === 'depth'
+            ? `${color === 'black' ? 'Black' : 'White'} engine search depth`
+            : `${color === 'black' ? 'Black' : 'White'} engine time`;
+        output.setAttribute('aria-label', `${accessibleLabel}${next.active ? ', active' : ''}`);
+        return next;
+    };
+    const resetClockPreview = () => {
+        const preview = createClockDisplayState(config.timeControl);
+        setClockDisplay('black', preview);
+        setClockDisplay('white', preview);
+    };
+
     const refreshTimeControl = () => {
         const mode = elements.timeMode?.value || 'blitz';
         replacePresetOptions(documentRef, elements.timePreset, mode);
@@ -202,6 +280,7 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
                 ? `Fixed search: ${elements.timePreset.selectedOptions[0]?.textContent || 'Depth'}`
                 : `Clock preset: ${elements.timePreset.selectedOptions[0]?.textContent || ''}`;
         }
+        resetClockPreview();
     };
     elements.timeMode?.addEventListener('change', refreshTimeControl);
     elements.timePreset?.addEventListener('change', () => {
@@ -211,6 +290,7 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
                 ? `Fixed search: ${elements.timePreset.selectedOptions[0]?.textContent || 'Depth'}`
                 : `Clock preset: ${elements.timePreset.selectedOptions[0]?.textContent || ''}`;
         }
+        resetClockPreview();
     });
     refreshTimeControl();
 
@@ -242,12 +322,15 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
     });
 
     const controller = Object.freeze({
-        phase: 'ML-001A',
+        phase: 'ML-001A.1',
         config,
+        clockDisplay,
         elements,
         refreshAutomaticTitle,
         refreshOpening,
-        refreshTimeControl
+        refreshTimeControl,
+        resetClockPreview,
+        setClockDisplay
     });
     globalThis.CaissaArenaMatchLabUI = controller;
     return controller;

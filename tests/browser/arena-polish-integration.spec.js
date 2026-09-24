@@ -69,6 +69,9 @@ async function selectPair(page, white, black) {
       ? [arena.whiteEngineInstance.id, arena.blackEngineInstance.id]
       : [];
   }), { timeout: 20_000 }).toEqual([white, black]);
+  if (!await page.locator('#arenaAdvancedMatchOptions').evaluate(details => details.open)) {
+    await page.locator('#arenaAdvancedMatchOptions > summary').click();
+  }
   await page.locator('#arenaMoveDelay').fill('100');
   await page.locator('#arenaMoveDelay').dispatchEvent('change');
 }

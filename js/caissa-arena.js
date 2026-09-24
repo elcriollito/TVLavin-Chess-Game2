@@ -190,10 +190,7 @@ const CaissaArena = {
             statusWhiteName: document.getElementById('arenaStatusWhite'),
             statusBlackName: document.getElementById('arenaStatusBlack'),
             turnStatus: document.getElementById('arenaTurnStatus'),
-            statusTurn: document.getElementById('arenaStatusTurn'),
-            statusMoves: document.getElementById('arenaStatusMoves'),
             statusText: document.getElementById('arenaStatusText'),
-            boardStatus: document.querySelector('#arenaSection .arena-board-status'),
 
             // Evaluation panel
             evalEngineName: document.getElementById('arenaEvalEngine'),
@@ -1835,66 +1832,48 @@ const CaissaArena = {
 
     // ===== GAME STATUS =====
     updateGameStatus(data = {}) {
-        const { turnStatus, statusTurn, statusMoves, statusText, boardStatus } = this.elements;
+        const { turnStatus, statusText } = this.elements;
         const sideToMove = this.game?.turn?.() === 'b' ? 'black' : 'white';
         const sideLabel = sideToMove === 'white' ? 'White' : 'Black';
         const result = typeof data.result === 'string' ? data.result : '';
+        const moveCount = data.moveCount !== undefined
+            ? data.moveCount
+            : this.game?.history?.().length || 0;
         let turnState = this.state.matchState;
-        let turnLabel = `${sideLabel} to move`;
-        let turnDetail = '';
+        let turnOwner = 'neutral';
+        let segments = [];
 
         if (this.state.matchState === 'finished') {
             turnState = 'finished';
-            turnLabel = 'Finished';
-            turnDetail = result || 'Game over';
+            segments = ['Completed'];
+            if (result) segments.push(result);
         } else if (this.state.matchState === 'paused') {
             turnState = 'paused';
-            turnLabel = 'Paused';
-            turnDetail = `${sideLabel} to move when resumed`;
+            turnOwner = sideToMove;
+            segments = ['Paused', `Move ${moveCount}`, `${sideLabel} to move`];
         } else if (this.state.analysisRunning) {
             turnState = 'analysis';
-            turnLabel = 'Analysis';
-            turnDetail = result || 'Infinite analysis running';
+            segments = ['Analysis', result || 'Infinite analysis running'];
         } else if (/\bstopped\b/i.test(result)) {
             turnState = 'stopped';
-            turnLabel = 'Stopped';
-            turnDetail = result;
+            segments = ['Stopped'];
+        } else if (this.state.matchState === 'running') {
+            turnState = 'running';
+            turnOwner = sideToMove;
+            segments = ['Running', `Move ${moveCount}`, `${sideLabel} to move`];
         } else if (this.state.matchState === 'idle') {
             turnState = 'idle';
-            turnDetail = result || 'Ready';
+            segments = !result || /^Ready(?::|$)/i.test(result) ? ['Ready'] : [result];
+        } else {
+            segments = [result || 'Ready'];
         }
 
         if (turnStatus) {
             turnStatus.dataset.state = turnState;
-            turnStatus.dataset.turn = turnState === 'running' || turnState === 'idle' ? sideToMove : 'neutral';
-        }
-        if (statusTurn) statusTurn.textContent = turnLabel;
-        if (boardStatus) {
-            boardStatus.textContent = turnDetail;
-            boardStatus.hidden = !turnDetail;
+            turnStatus.dataset.turn = turnOwner;
         }
 
-        if (statusMoves && data.moveCount !== undefined) {
-            statusMoves.textContent = data.moveCount;
-        }
-
-        if (statusText) {
-            let text = 'Ready';
-            if (data.result) {
-                text = this.state.matchState === 'finished' ? `Finished: ${data.result}` : data.result;
-            } else if (this.state.matchState === 'running') {
-                const moveCount = data.moveCount !== undefined ? data.moveCount : this.game?.history().length || 0;
-                const turnText = data.turn ? (data.turn === 'white' ? 'White' : 'Black') : (this.game?.turn() === 'w' ? 'White' : 'Black');
-                text = `Running… Move ${moveCount} (${turnText})`;
-            } else if (this.state.matchState === 'paused') {
-                text = 'Paused';
-            } else if (this.state.matchState === 'finished') {
-                text = data.result ? `Finished: ${data.result}` : 'Finished';
-            } else if (this.state.matchState === 'idle') {
-                text = 'Ready';
-            }
-            statusText.textContent = text;
-        }
+        if (statusText) statusText.textContent = segments.join(' · ');
     },
 
     onEngineMove(detail) {

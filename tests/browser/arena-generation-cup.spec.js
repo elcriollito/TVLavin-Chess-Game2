@@ -428,7 +428,7 @@ test('automatic insufficient-material draw records normally and explicit stop ca
     }))
   }))).toEqual({
     state: 'finished',
-    status: 'Finished: Draw - insufficient material',
+    status: 'Completed · Draw - insufficient material',
     standings: [{ points: 0.5, games: 1 }, { points: 0.5, games: 1 }]
   });
 

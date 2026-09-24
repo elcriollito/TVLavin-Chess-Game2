@@ -9130,7 +9130,9 @@ body.debug-layout #arena-right {
     display: flex;
     align-items: center;
     gap: 11px;
+    flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
 }
 
 #arenaSection .arena-player-avatar {
@@ -9190,6 +9192,24 @@ body.debug-layout #arena-right {
 #arenaSection .arena-turn-status {
     min-width: 0;
     padding: 3px 0;
+}
+
+#arenaSection .arena-game-status-line {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    min-height: 18px;
+}
+
+#arenaSection .arena-game-status-line .arena-status-text {
+    min-width: 0;
+    overflow: hidden;
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #arenaSection .arena-turn-led {
@@ -10010,6 +10030,29 @@ body.debug-layout #arena-right {
     text-transform: uppercase;
 }
 
+#arenaSection .arena-player-clock {
+    display: block;
+    flex: 0 0 88px;
+    width: 88px;
+    min-width: 88px;
+    overflow: hidden;
+    color: #f4f8ff;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 750;
+    letter-spacing: 0.015em;
+    line-height: 1.1;
+    text-align: right;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+#arenaSection .arena-player-clock[data-display-kind="depth"] {
+    font-size: 14px;
+    letter-spacing: 0;
+}
+
 #arenaSection .arena-opening-fen {
     display: block;
     max-height: 3.7em;
@@ -10277,6 +10320,17 @@ body.debug-layout #arena-right {
     #arenaSection .arena-player-name {
         max-width: 132px;
         font-size: 12px;
+    }
+
+    #arenaSection .arena-player-clock {
+        flex-basis: 74px;
+        width: 74px;
+        min-width: 74px;
+        font-size: 16px;
+    }
+
+    #arenaSection .arena-player-clock[data-display-kind="depth"] {
+        font-size: 13px;
     }
 
     #arenaSection .arena-stage-meta {

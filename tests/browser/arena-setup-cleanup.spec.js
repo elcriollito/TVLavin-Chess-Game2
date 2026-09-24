@@ -107,7 +107,7 @@ test('FEN matrix updates authoritative state and visible board atomically withou
   for (const item of cases) {
     await applyFen(page, item.fen);
     await expect(page.locator('#arenaFenMessage'), item.name).toContainText(item.turn);
-    await expect(page.locator('#arenaStatusTurn'), item.name).toHaveText(item.turn);
+    await expect(page.locator('#arenaStatusText'), item.name).toHaveText('Ready');
     expect(await page.evaluate(() => ({
       fen: window.CaissaArena.game.fen(),
       startingFen: window.CaissaArena.state.customStartFen,
@@ -135,6 +135,7 @@ test('custom FEN is the exact Match and Infinite Analysis engine position', asyn
   await openArena(page);
   await applyFen(page, CUSTOM_FEN);
   await selectSf18Sf19(page);
+  await page.locator('#arenaAdvancedMatchOptions > summary').click();
   await page.locator('#arenaMoveDelay').fill('100');
   await page.locator('#arenaMoveDelay').dispatchEvent('change');
   await page.locator('#arenaStartMatch').click();
@@ -255,7 +256,7 @@ test('manual setup supports click, keyboard, drag, palette, erase, clear, initia
     startingFen: window.CaissaArena.state.customStartFen,
     board: window.CaissaArena.board.position()
   }))).toEqual({ game: MANUAL_FEN, startingFen: MANUAL_FEN, board: placementObject(MANUAL_FEN) });
-  await expect(page.locator('#arenaStatusTurn')).toHaveText('Black to move');
+  await expect(page.locator('#arenaStatusText')).toHaveText('Ready');
 });
 
 test('manual setup position starts real Match and Infinite Analysis unchanged', async ({ page }) => {

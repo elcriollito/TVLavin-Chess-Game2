@@ -1193,15 +1193,8 @@
                                 </span>
                                 <span class="arena-engine-badge">Engine</span>
                             </div>
-                            <div id="arenaTurnStatus" class="arena-stage-meta arena-turn-status"
-                                 data-state="idle" data-turn="white" role="status" aria-live="polite" aria-atomic="true">
-                                <span class="arena-turn-led" aria-hidden="true"></span>
-                                <span class="arena-turn-copy">
-                                    <span id="arenaStatusTurn" class="arena-turn-label">White to move</span>
-                                    <span class="arena-board-status">Ready</span>
-                                </span>
-                                <span class="arena-move-counter">Move <span id="arenaStatusMoves">0</span></span>
-                            </div>
+                            <output id="arenaBlackClock" class="arena-player-clock" data-display-kind="clock"
+                                    aria-label="Black engine time">03:00</output>
                         </div>
 
                         <div class="arena-board-container">
@@ -1217,6 +1210,8 @@
                                 </span>
                                 <span class="arena-engine-badge">Engine</span>
                             </div>
+                            <output id="arenaWhiteClock" class="arena-player-clock" data-display-kind="clock"
+                                    aria-label="White engine time">03:00</output>
                         </div>
                     </div>
 
@@ -1307,7 +1302,7 @@
                                     </span>
                                     <i class="fas fa-chevron-down arena-advanced-chevron" aria-hidden="true"></i>
                                 </summary>
-                                <div class="arena-advanced-match-body" data-match-lab-phase="ML-001A">
+                                <div class="arena-advanced-match-body" data-match-lab-phase="ML-001A.1">
                                     <div class="arena-match-options-grid">
                                         <section class="arena-match-option-column" aria-labelledby="arenaMatchBasicsTitle">
                                             <h5 id="arenaMatchBasicsTitle">Match Basics</h5>
@@ -1421,7 +1416,11 @@
                             <footer class="arena-panel-foot">
                             <div id="arenaStatusBox" class="arena-status-box">
                                 <div class="arena-status-label">Game Status</div>
-                                <div id="arenaStatusText" class="arena-status-text">Ready</div>
+                                <div id="arenaTurnStatus" class="arena-game-status-line arena-turn-status"
+                                     data-state="idle" data-turn="neutral" role="status" aria-live="polite" aria-atomic="true">
+                                    <span class="arena-turn-led" aria-hidden="true"></span>
+                                    <span id="arenaStatusText" class="arena-status-text">Ready</span>
+                                </div>
                             </div>
                             <div class="arena-controls">
                                 <button id="arenaInfiniteAnalysis" class="btn btn-block btn-secondary" type="button" aria-label="Start or stop Arena infinite analysis">
