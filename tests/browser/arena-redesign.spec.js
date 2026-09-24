@@ -16,11 +16,10 @@ test('desktop Arena is board-first with one stable three-tab panel', async ({ pa
   const tabs = page.getByRole('tab');
   await expect(tabs).toHaveCount(3);
   await expect(tabs).toHaveText(['Match', 'Tournament', 'Game']);
-  await expect(page.getByRole('tab', { name: 'Game' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('#arenaPanelGame')).toBeVisible();
-  await expect(page.locator('#arenaEvalScore')).toBeVisible();
-  await expect(page.locator('#arenaMoveHistory')).toBeVisible();
-  await expect(page.locator('#arenaEvalGraph')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Match' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#arenaPanelMatch')).toBeVisible();
+  await expect(page.locator('#arenaSetPositionBtn')).toBeVisible();
+  await expect(page.locator('#arenaManualSetupBtn')).toBeVisible();
 
   const geometry = await page.evaluate(() => {
     const board = document.querySelector('#arenaBoardMount').getBoundingClientRect();
@@ -57,7 +56,7 @@ test('desktop Arena is board-first with one stable three-tab panel', async ({ pa
 
 test('Engine Arena naming is consistent while the canonical route stays /arena', async ({ page }) => {
   await openArena(page);
-  await expect(page.locator('.arena-page-header strong')).toHaveText('CAISSA Engine Arena');
+  await expect(page.locator('.arena-page-header > span:not(.arena-page-icon) > strong')).toHaveText('CAISSA Engine Arena');
   await expect(page.locator('.arena-page-header small')).toHaveText('Engine matches, tournaments and analysis');
   await expect(page.locator('[data-nav-key="arena"] .nav-label')).toHaveText('Engine Arena');
   expect(new URL(page.url()).pathname).toBe('/arena');
@@ -194,11 +193,13 @@ test('unavailable Arasan cannot borrow a prewarmed Stockfish runtime or label', 
 
 test('Arena tabs support arrow navigation', async ({ page }) => {
   await openArena(page);
+  const match = page.getByRole('tab', { name: 'Match' });
+  const tournament = page.getByRole('tab', { name: 'Tournament' });
   const game = page.getByRole('tab', { name: 'Game' });
-  await game.focus();
+  await match.focus();
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('tab', { name: 'Match' })).toBeFocused();
-  await expect(page.getByRole('tab', { name: 'Match' })).toHaveAttribute('aria-selected', 'true');
+  await expect(tournament).toBeFocused();
+  await expect(tournament).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('End');
   await expect(game).toBeFocused();
 });
@@ -604,6 +605,7 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   const black = page.locator('#arenaBlackEngine');
   await expect.poll(async () => white.locator('option').count()).toBeGreaterThanOrEqual(3);
   const beforeSwap = { white: await white.inputValue(), black: await black.inputValue() };
+  await page.locator('#arenaAdvancedMatchOptions > summary').click();
   await page.locator('#arenaSwapEngines').click();
   await expect(white).toHaveValue(beforeSwap.black);
   await expect(black).toHaveValue(beforeSwap.white);

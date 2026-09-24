@@ -48,7 +48,7 @@ const CaissaArena = {
     // ===== STATE =====
     state: {
         mode: 'match', // Active competition type: 'match' or 'tournament'
-        activeTab: 'game', // Presentation only; never controls worker or match lifecycle
+        activeTab: 'match', // Presentation only; never controls worker or match lifecycle
         matchState: 'idle', // 'idle', 'running', 'paused', 'finished'
         whiteEngine: null, // Engine config (from registry)
         blackEngine: null, // Engine config (from registry)
@@ -61,6 +61,7 @@ const CaissaArena = {
         analysisFen: '',
         setupPiece: 'move',
         setupSelectedSquare: null,
+        boardFlipped: false,
         review: {
             cursor: null,
             playing: false,
@@ -357,7 +358,7 @@ const CaissaArena = {
                 position: this.getBoardPlacement(this.game?.fen()),
                 pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
                 showNotation: true,
-                orientation: 'white'
+                orientation: this.state.boardFlipped ? 'black' : 'white'
             };
 
             try {
@@ -1278,6 +1279,14 @@ const CaissaArena = {
             candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
     },
 
+    setBoardFlipped(flipped) {
+        this.state.boardFlipped = Boolean(flipped);
+        const orientation = this.state.boardFlipped ? 'black' : 'white';
+        this.board?.orientation?.(orientation);
+        this.requestBoardResize('match-lab-flip', true);
+        return orientation;
+    },
+
     updateEngineInfo() {
         // Update status panel
         if (this.elements.statusWhiteName) {
@@ -1286,6 +1295,7 @@ const CaissaArena = {
         if (this.elements.statusBlackName) {
             this.elements.statusBlackName.textContent = this.state.blackEngine?.name || 'Not selected';
         }
+        window.CaissaArenaMatchLabUI?.refreshAutomaticTitle?.();
     },
 
     getEngineById(id) {

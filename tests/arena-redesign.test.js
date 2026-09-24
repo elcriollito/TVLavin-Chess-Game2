@@ -95,7 +95,7 @@ test('Arena tabs are accessible and do not own competition lifecycle state', () 
   assert.match(arena, /class="arena-tabs" role="tablist"/);
   assert.equal((arena.match(/id="arenaTab(?:Match|Tournament|Game)"[\s\S]{0,180}?role="tab"/g) || []).length, 3);
   assert.equal((arena.match(/id="arenaPanel(?:Match|Tournament|Game)"[\s\S]{0,180}?role="tabpanel"/g) || []).length, 3);
-  assert.match(controller, /activeTab: 'game'/);
+  assert.match(controller, /activeTab: 'match'/);
   assert.match(controller, /onTabKeydown\(event\)/);
   const switchTab = controller.slice(controller.indexOf('switchTab(tab'), controller.indexOf('onTabKeydown(event)'));
   assert.doesNotMatch(switchTab, /state\.mode\s*=\s*tab/);
