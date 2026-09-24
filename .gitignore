@@ -30,6 +30,8 @@ build/
 .cache/
 .public-release/
 .caissa-fics-preview/
+.caissa-eae015a-relay/
+.caissa-eae015b-runtime/
 test-results/
 playwright-report/
 coverage/
