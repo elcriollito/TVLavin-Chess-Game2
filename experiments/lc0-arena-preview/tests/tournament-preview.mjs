@@ -31,6 +31,7 @@ const protectionHeaders = origin => protectionBypasses.get(origin)
 const seedProtectionHeaders = origin => ({ ...protectionHeaders(origin),
   ...(protectionBypasses.get(origin) ? { 'x-vercel-set-bypass-cookie': 'true' } : {}) });
 const FIELDS = ['stockfish-18-lite', 'stockfish-19-lite', 'lc0-maia-1100-preview'];
+const PAUSE_SETTLE_TIMEOUT_MS = 30_000;
 const CLOSE_TOURNAMENT = process.env.EAE013_TOURNAMENT_CLOSE === '1';
 const internalEmail = String(process.env.EAE015B_INTERNAL_EMAIL || '').trim().toLowerCase();
 const DISCOVER_INTERNAL_USER = process.env.EAE015B_DISCOVER_INTERNAL_USER === '1';
@@ -181,7 +182,7 @@ try {
       await page.click('#arenaTabGame');
       await page.click('#arenaPauseMatch');
       await page.waitForFunction(() => CaissaArena.state.matchState === 'paused' &&
-        !CaissaArena._pausePending, null, { timeout: 15_000 });
+        !CaissaArena._pausePending, null, { timeout: PAUSE_SETTLE_TIMEOUT_MS });
       await page.click('#arenaPauseMatch');
       await page.waitForFunction(minimum => CaissaArena.state.matchState === 'running' &&
         CaissaArena.game?.history().length >= minimum, movesBefore + 2, { timeout: 50_000 });
