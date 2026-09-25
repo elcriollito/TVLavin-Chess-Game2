@@ -740,6 +740,8 @@ const CaissaArena = {
         this.state.matchState = 'idle';
         this.state.customStartFen = '';
         this.resetBoard();
+        if (this.elements.openingModeSelect) this.elements.openingModeSelect.value = 'standard';
+        window.CaissaArenaMatchLabUI?.refreshOpening?.();
         this.updateMatchControls();
         if (this.elements.fenInput) {
             this.elements.fenInput.value = this.game?.fen() || '';
@@ -768,6 +770,7 @@ const CaissaArena = {
         this.state.customStartFen = normalizedFen;
         this.resetBoard();
         this.updateBoardPosition(normalizedFen);
+        try { window.CaissaArenaMatchLabUI?.selectCustomFen?.(normalizedFen); } catch (_) { /* FEN was already validated */ }
         this.updateMatchControls();
 
         const side = this.game?.turn() === 'b' ? 'Black' : 'White';
@@ -1508,6 +1511,8 @@ const CaissaArena = {
     },
 
     getSeriesStartingFen() {
+        const configured = window.CaissaArenaMatchLabUI?.config?.opening?.resultingFen;
+        if (configured) return configured;
         if (this.state.customStartFen) return this.state.customStartFen;
         if (typeof Chess !== 'undefined') return new Chess().fen();
         return this.game?.fen?.() || '';
@@ -1653,6 +1658,10 @@ const CaissaArena = {
     },
 
     createMatchSeriesConfig() {
+        const opening = window.CaissaArenaMatchLabUI?.getOpeningSnapshot?.() || {
+            type: this.elements.openingModeSelect?.value || 'standard',
+            resultingFen: this.getSeriesStartingFen()
+        };
         return {
             title: this.elements.matchTitleInput?.value?.trim()
                 || `${this.state.whiteEngine?.name || 'White'} vs ${this.state.blackEngine?.name || 'Black'}`,
@@ -1661,10 +1670,7 @@ const CaissaArena = {
             gameCount: this.getConfiguredSeriesGameCount(),
             moveLimitFullMoves: this.getConfiguredMoveLimit(),
             startingFen: this.getSeriesStartingFen(),
-            opening: {
-                type: this.elements.openingModeSelect?.value || 'standard',
-                selection: this.elements.openingFenPreview?.textContent?.trim() || null
-            },
+            opening,
             timeControl: {
                 mode: this.elements.timeControlModeSelect?.value || 'blitz',
                 preset: this.elements.timeControlPresetSelect?.value || '3+2'
@@ -1689,10 +1695,38 @@ const CaissaArena = {
         }
         this.state.whiteEngine = white;
         this.state.blackEngine = black;
+        if (typeof Chess === 'undefined' || !seriesGame.startingFen) {
+            throw new Error('Starting position is invalid.');
+        }
+        const candidate = new Chess();
+        if (candidate.load(seriesGame.startingFen) === false) {
+            throw new Error('Starting position is invalid.');
+        }
+        this.state.customStartFen = candidate.fen();
         if (this.elements.whiteEngineSelect) this.elements.whiteEngineSelect.value = white.id;
         if (this.elements.blackEngineSelect) this.elements.blackEngineSelect.value = black.id;
         this.updateEngineInfo();
         return true;
+    },
+
+    previewOpeningSnapshot(snapshot) {
+        if (!snapshot?.resultingFen || typeof Chess === 'undefined') return false;
+        try {
+            const candidate = new Chess();
+            if (candidate.load(snapshot.resultingFen) === false) return false;
+            this.stopInfiniteAnalysis(false);
+            this.state.customStartFen = snapshot.type === 'standard' ? '' : candidate.fen();
+            if (snapshot.type === 'standard') this.game.reset();
+            else this.game.load(this.state.customStartFen);
+            this.updateBoardPosition(this.game.fen());
+            this.updateGameStatus({
+                turn: this.game.turn() === 'b' ? 'black' : 'white',
+                moveCount: 0
+            });
+            return true;
+        } catch (_) {
+            return false;
+        }
     },
 
     isMatchSeriesActive() {
@@ -1769,6 +1803,10 @@ const CaissaArena = {
             this.elements.manualSetupBtn
         ];
         controls.filter(Boolean).forEach(control => { control.disabled = Boolean(locked); });
+        if (!locked && window.CaissaArenaMatchLabUI?.config?.opening?.type === 'set') {
+            if (this.elements.matchGameCountSelect) this.elements.matchGameCountSelect.disabled = true;
+            if (this.elements.matchCustomGameCountInput) this.elements.matchCustomGameCountInput.disabled = true;
+        }
         const ecoButton = document.getElementById('arenaEcoSelect');
         if (ecoButton) ecoButton.disabled = Boolean(locked);
     },
@@ -1912,6 +1950,7 @@ const CaissaArena = {
             black: this.state.blackEngine,
             moves: [],
             startFen: this.game.fen(),
+            opening: scheduledGame?.opening || this.matchSeries?.config?.opening || null,
             startTime: Date.now(),
             timeControl: matchTimeControl,
             runtimeIdentities: Object.freeze({
