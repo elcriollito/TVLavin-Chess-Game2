@@ -102,7 +102,7 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.21">
+    <link rel="stylesheet" href="styles.css?v=2.0.22">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.48.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.1">
@@ -1297,6 +1297,13 @@
                                     <strong id="arenaSeriesBScore">0</strong>
                                     <small id="arenaSeriesBRecord">W-D-L 0-0-0</small>
                                 </div>
+                                <div id="arenaSeriesActions" class="arena-series-actions" role="group" aria-label="Match series actions" hidden>
+                                    <button id="arenaReviewGames" class="btn btn-secondary btn-sm" type="button">Review Games</button>
+                                    <button id="arenaSaveCurrentPgn" class="btn btn-secondary btn-sm" type="button">Save Current Game PGN</button>
+                                    <button id="arenaSaveSeriesPgn" class="btn btn-secondary btn-sm" type="button">Save Series PGN</button>
+                                    <button id="arenaOpenPgnReader" class="btn btn-secondary btn-sm" type="button">Open in PGN Reader</button>
+                                    <button id="arenaNewMatch" class="btn btn-primary btn-sm" type="button">New Match</button>
+                                </div>
                             </section>
                             <div id="arenaPositionPanel" class="arena-position-panel" hidden>
                                 <label for="arenaFenInput">Starting FEN</label>
@@ -1566,6 +1573,13 @@
                                     </button>
                                 </div>
                             </div>
+                            <section id="arenaSeriesHistory" class="arena-series-history" aria-labelledby="arenaSeriesHistoryTitle" hidden>
+                                <div class="arena-series-history-head">
+                                    <h5 id="arenaSeriesHistoryTitle">Series games</h5>
+                                    <span id="arenaSeriesHistoryCount">0 games</span>
+                                </div>
+                                <div id="arenaSeriesHistoryList" class="arena-series-history-list" role="list"></div>
+                            </section>
                             <div id="arenaMoveHistory" class="arena-move-list"></div>
                             <div id="arenaReviewControls" class="arena-review-controls" role="group"
                                  aria-label="Game review controls" aria-controls="arenaMoveHistory">
@@ -5380,8 +5394,10 @@
     <script src="js/arena-opening-snapshots.js?v=1.0.0"></script>
     <script src="js/arena-match-series.js?v=1.0.0"></script>
     <script src="js/arena-match-clock.js?v=1.0.0"></script>
+    <script src="js/arena-match-pgn.js?v=1.0.0"></script>
+    <script src="js/pgn-replayer/pgn-handoff.js?v=1.0.0"></script>
     <script src="js/arena-tournament-scheduler.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.9.0"></script>
+    <script src="js/caissa-arena.js?v=1.10.0"></script>
     <script type="module" src="js/arena-match-lab-ui.js?v=1.1.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
