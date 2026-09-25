@@ -277,6 +277,8 @@ test('manual setup position starts real Match and Infinite Analysis unchanged', 
   }).toBe(MANUAL_FEN);
   await page.locator('#arenaInfiniteAnalysis').click();
 
+  await page.locator('#arenaTimeControlMode').selectOption('fixed-depth', { force: true });
+  await page.locator('#arenaTimeControlPreset').selectOption('8', { force: true });
   await page.locator('#arenaStartMatch').click();
   await expect.poll(() => page.evaluate(() => window.CaissaArena.state.currentGame?.startFen), {
     timeout: 20_000

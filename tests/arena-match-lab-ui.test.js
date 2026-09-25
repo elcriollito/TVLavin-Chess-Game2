@@ -69,7 +69,7 @@ test('ML-001A.1 gives both fixed player bars accessible clock display slots', ()
   assert.match(styles, /#arenaSection \.arena-player-clock[\s\S]*?width:\s*88px[\s\S]*?font-variant-numeric:\s*tabular-nums/);
 });
 
-test('preview clock contract covers clock modes and fixed depth without countdown behavior', () => {
+test('clock presentation contract covers clock modes and fixed depth', () => {
   assert.equal(formatClockDisplay(60_000), '01:00');
   assert.equal(formatClockDisplay(3_600_000), '1:00:00');
   assert.deepEqual(createClockDisplayState({ mode: 'blitz', preset: '3+2' }), {
@@ -83,14 +83,14 @@ test('preview clock contract covers clock modes and fixed depth without countdow
     kind: 'depth', text: 'Depth 16', depth: 16, remainingMs: null,
     authoritative: false, active: false
   });
-  assert.equal(ML001C_CLOCK_CONTRACT.implementedInThisPhase, false);
-  assert.equal(ML001C_CLOCK_CONTRACT.termination, 'time forfeit');
+  assert.equal(ML001C_CLOCK_CONTRACT.implementedInThisPhase, true);
+  assert.equal(ML001C_CLOCK_CONTRACT.termination, 'time-forfeit');
   assert.doesNotMatch(uiSource, /setInterval|wtime|btime|\bgo\s+depth\b|remainingMs\s*[-+]=/);
 });
 
 test('time-control presets and the UI config model are deterministic', () => {
-  assert.deepEqual(getTimeControlPresets('blitz').map(item => item.value), ['3+0', '3+2', '5+0', '5+3', 'custom']);
-  assert.deepEqual(getTimeControlPresets('fixed-depth').map(item => item.value), ['8', '12', '16', '20', '24', 'custom']);
+  assert.deepEqual(getTimeControlPresets('blitz').map(item => item.value), ['3+0', '3+2', '5+0', '5+3']);
+  assert.deepEqual(getTimeControlPresets('fixed-depth').map(item => item.value), ['8', '12', '16', '20', '24']);
   assert.equal(Object.isFrozen(TIME_CONTROL_PRESETS), true);
   assert.equal(buildMatchTitle('Stockfish 19 Lite', 'Stockfish 18 Lite'), 'Stockfish 19 Lite vs Stockfish 18 Lite');
   assert.deepEqual(createMatchLabUiConfig({ whiteName: 'Engine A', blackName: 'Engine B' }), {
@@ -107,7 +107,7 @@ test('time-control presets and the UI config model are deterministic', () => {
 
 test('Match Lab presentation module delegates scheduling and does not own engines, PGN, or FEN behavior', () => {
   assert.doesNotMatch(uiSource, /ArenaRuntimeManager|ArenaTournamentScheduler|new\s+Worker|new\s+Chess|getBestMove|startMatch\s*\(|\.load\s*\(|fetch\s*\(/);
-  assert.match(uiSource, /phase:\s*'ML-001B'/);
+  assert.match(uiSource, /phase:\s*'ML-001C'/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?height:\s*calc\(100dvh - 156px\)/);
   assert.match(styles, /#arenaSection \.arena-panel-scroll[\s\S]*?overflow-y:\s*auto/);
 });

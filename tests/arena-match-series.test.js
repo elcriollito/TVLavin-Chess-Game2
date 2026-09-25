@@ -137,6 +137,16 @@ test('configuration snapshot is deeply immutable and detached from the UI input'
   assert.throws(() => { controller.config.gameCount = 99; }, TypeError);
 });
 
+test('every per-game result record retains the immutable series time control', () => {
+  const { controller, game } = createHarness();
+  assert.deepEqual(game.timeControl, { mode: 'blitz', preset: '3+2' });
+  assert.equal(Object.isFrozen(game.timeControl), true);
+  controller.markRunning(game.generation);
+  controller.complete(game.generation, { result: '0-1', termination: 'time-forfeit', moves: [] });
+  assert.deepEqual(controller.games[0].timeControl, { mode: 'blitz', preset: '3+2' });
+  assert.equal(controller.games[0].termination, 'time-forfeit');
+});
+
 test('completed game moves survive preparation of the next game', () => {
   const { controller, game } = createHarness({ gameCount: 2 });
   runGame(controller, game);

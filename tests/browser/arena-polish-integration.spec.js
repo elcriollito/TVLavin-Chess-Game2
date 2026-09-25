@@ -103,6 +103,8 @@ test('custom FEN remains exact through Infinite Analysis, Match, and History Fir
   await page.locator('#arenaInfiniteAnalysis').click();
 
   await selectPair(page, SF18, SF19);
+  await page.locator('#arenaTimeControlMode').selectOption('fixed-depth', { force: true });
+  await page.locator('#arenaTimeControlPreset').selectOption('8', { force: true });
   await page.locator('#arenaStartMatch').click();
   await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
     timeout: 30_000
