@@ -177,19 +177,25 @@ test('G. Fixed Depth 12 has no countdown and emits go depth 12', async ({ page }
   await expect(page.locator('#arenaWhiteClock')).toHaveText('Depth 12');
 });
 
-test('H. background-style render gap reconciles from monotonic elapsed', async ({ page }) => {
+test('H. background tab return reconciles from monotonic elapsed', async ({ page, context }) => {
   await openArena(page);
-  const proof = await page.evaluate(() => {
-    let now = 0;
-    const C = window.CaissaArenaMatchClock;
-    const clock = new C.MatchClockController({ timeControl: C.createTimeControl({ mode: 'rapid', preset: '10+0' }),
-      now: () => now, setTimeoutFn: () => 1, clearTimeoutFn: () => {} });
-    clock.beginSearch('black', { gameId: 'hidden', gameGeneration: 1, searchGeneration: 1 });
-    now = 45000;
-    return clock.snapshot();
+  await installQaClock(page, { initialMs: 3000, incrementMs: 0 });
+  const before = await page.evaluate(() => {
+    window.CaissaArena.beginMatchClockSearch('black', 1, 1);
+    return window.CaissaArena.matchClock.snapshot().blackRemainingMs;
   });
-  expect(proof.blackRemainingMs).toBe(555000);
-  expect(proof.whiteRemainingMs).toBe(600000);
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Page.setWebLifecycleState', { state: 'frozen' });
+  await new Promise(resolve => setTimeout(resolve, 350));
+  await cdp.send('Page.setWebLifecycleState', { state: 'active' });
+  const after = await page.evaluate(() => {
+    const remaining = window.CaissaArena.matchClock.snapshot().blackRemainingMs;
+    window.CaissaArena.matchClock.pause();
+    return remaining;
+  });
+  await cdp.detach();
+  expect(before - after).toBeGreaterThanOrEqual(300);
+  expect(after).toBeGreaterThan(0);
 });
 
 test('I. Stop Series cancels its deadline and cannot flag later on mobile', async ({ page }) => {
