@@ -78,20 +78,45 @@
 
     function buildSchedule(config) {
         const games = [];
+        const opening = config.opening;
+        const positions = opening?.type === 'set' ? opening.positions : null;
+        if (positions?.length) {
+            positions.forEach((snapshot, positionIndex) => {
+                const assignments = opening.playBothColors
+                    ? [false, true]
+                    : [positionIndex % 2 === 1];
+                assignments.forEach(swapped => games.push(deepFreeze({
+                    round: games.length + 1,
+                    white: swapped ? config.participantB : config.participantA,
+                    black: swapped ? config.participantA : config.participantB,
+                    startingFen: snapshot.resultingFen,
+                    startingPositionSnapshot: cloneValue(snapshot)
+                })));
+            });
+            return Object.freeze(games);
+        }
+
         for (let index = 0; index < config.gameCount; index += 1) {
             const swapped = index % 2 === 1;
-            games.push(Object.freeze({
+            games.push(deepFreeze({
                 round: index + 1,
                 white: swapped ? config.participantB : config.participantA,
                 black: swapped ? config.participantA : config.participantB,
-                startingFen: config.startingFen
+                startingFen: opening?.resultingFen || config.startingFen,
+                startingPositionSnapshot: cloneValue(opening)
             }));
         }
         return Object.freeze(games);
     }
 
     function createConfigSnapshot(input) {
-        const gameCount = validateGameCount(input?.gameCount);
+        const requestedOpening = input?.opening || {
+            type: 'standard', resultingFen: String(input?.startingFen || '').trim()
+        };
+        const derivedGameCount = requestedOpening.type === 'set'
+            ? Number(requestedOpening.positions?.length || 0) * (requestedOpening.playBothColors === false ? 1 : 2)
+            : input?.gameCount;
+        const gameCount = validateGameCount(derivedGameCount);
         const participantA = normalizeParticipant(input?.participantA, 'Engine A');
         const participantB = normalizeParticipant(input?.participantB, 'Engine B');
         if (participantA.id === participantB.id) {
@@ -108,7 +133,7 @@
             moveLimitFullMoves,
             moveLimitPly,
             startingFen: String(input?.startingFen || '').trim(),
-            opening: input?.opening || { type: 'standard', selection: null },
+            opening: requestedOpening,
             timeControl: input?.timeControl || { mode: 'blitz', preset: '3+2' },
             savePgn: input?.savePgn !== false,
             colorOrder: Object.freeze([participantA.id, participantB.id])
@@ -168,6 +193,7 @@
                 white: scheduled.white,
                 black: scheduled.black,
                 startingFen: scheduled.startingFen,
+                opening: deepFreeze(cloneValue(scheduled.startingPositionSnapshot)),
                 timeControl: deepFreeze(cloneValue(this.config.timeControl)),
                 moves: [],
                 result: null,
