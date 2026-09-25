@@ -69,6 +69,11 @@ async function instrumentBoard(page) {
   });
 }
 
+async function selectFastCertifiedDepth(page) {
+  await page.locator('#arenaTimeControlMode').selectOption('fixed-depth', { force: true });
+  await page.locator('#arenaTimeControlPreset').selectOption('8', { force: true });
+}
+
 async function assertRuntimeContinuity(page, { pairingMayChange = false } = {}) {
   const result = await page.evaluate(() => ({
     boardResizeCalls: window.__arenaStability.boardResizeCalls,
@@ -96,6 +101,7 @@ async function assertRuntimeContinuity(page, { pairingMayChange = false } = {}) 
 
 async function runActiveMatchStability(page, { simulateBrowserChrome = false } = {}) {
   await page.getByRole('tab', { name: 'Match' }).click();
+  await selectFastCertifiedDepth(page);
   const samples = [await boardGeometry(page)];
   await instrumentBoard(page);
   await page.locator('#arenaStartMatch').click();

@@ -186,4 +186,3 @@ test('J: mobile remains board-first and history actions do not overflow', async 
   expect(layout.overflow).toBe(false);
   await expect(page.locator('#arenaSeriesHistory')).toBeVisible();
 });
-

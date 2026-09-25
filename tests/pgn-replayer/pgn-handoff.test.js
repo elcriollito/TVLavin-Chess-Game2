@@ -53,4 +53,3 @@ test('expires stale handoffs', () => {
   second.values.set(`${second.api.PREFIX}${id}`, raw);
   assert.equal(second.api.consume(id), null);
 });
-
