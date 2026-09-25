@@ -1898,7 +1898,8 @@ const CaissaArena = {
     },
 
     selectedPgnGame() {
-        const entry = this.state.review.gameId ? this.getSelectedHistoryEntry() : null;
+        const entry = (this.state.review.gameId || !this.state.currentGame)
+            ? this.getSelectedHistoryEntry() : null;
         if (entry) return entry;
         if (!this.state.currentGame) return null;
         return {
