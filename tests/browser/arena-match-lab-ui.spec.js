@@ -73,7 +73,10 @@ test('shell controls are keyboard-operable and presentation-only behaviors are t
   await page.locator('#arenaOpeningMode').selectOption('eco');
   await expect(page.locator('#arenaOpeningSummary')).toHaveText('Choose an ECO opening');
   await page.locator('#arenaEcoSelect').click();
-  await expect(page.locator('#arenaMatchLabPhaseNote')).toContainText('ML-001D');
+  await expect(page.locator('#arenaOpeningModal')).toBeVisible();
+  await expect(page.locator('#arenaOpeningSearch')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#arenaEcoSelect')).toBeFocused();
 
   const before = await page.evaluate(() => ({
     fen: window.CaissaArena.game.fen(),

@@ -107,7 +107,7 @@ test('time-control presets and the UI config model are deterministic', () => {
 
 test('Match Lab presentation module delegates scheduling and does not own engines, PGN, or FEN behavior', () => {
   assert.doesNotMatch(uiSource, /ArenaRuntimeManager|ArenaTournamentScheduler|new\s+Worker|new\s+Chess|getBestMove|startMatch\s*\(|\.load\s*\(|fetch\s*\(/);
-  assert.match(uiSource, /phase:\s*'ML-001C'/);
+  assert.match(uiSource, /phase:\s*'ML-001D'/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?height:\s*calc\(100dvh - 156px\)/);
   assert.match(styles, /#arenaSection \.arena-panel-scroll[\s\S]*?overflow-y:\s*auto/);
 });
