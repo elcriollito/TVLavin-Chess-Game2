@@ -39,6 +39,6 @@ test('PGN runtime capacity covers the largest archived player collection', () =>
 test('large-collection parser fixes are cache-busted through the page and Worker chain', () => {
   const page = read('pgn-replayer.html');
   const worker = read('js/pgn-replayer/pgn-worker.js');
-  assert.match(page, /pgn-replayer-page\.js\?v=2\.0\.0/);
+  assert.match(page, /pgn-replayer-page\.js\?v=2\.1\.0/);
   assert.match(worker, /pgn-core\.js\?v=1\.1\.1/);
 });
