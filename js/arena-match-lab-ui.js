@@ -5,35 +5,30 @@ export const STANDARD_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w
 export const TIME_CONTROL_PRESETS = Object.freeze({
     bullet: Object.freeze([
         Object.freeze({ value: '1+0', label: '1 + 0' }),
-        Object.freeze({ value: '1+1', label: '1 + 1' }),
-        Object.freeze({ value: 'custom', label: 'Custom' })
+        Object.freeze({ value: '1+1', label: '1 + 1' })
     ]),
     blitz: Object.freeze([
         Object.freeze({ value: '3+0', label: '3 + 0' }),
         Object.freeze({ value: '3+2', label: '3 + 2' }),
         Object.freeze({ value: '5+0', label: '5 + 0' }),
-        Object.freeze({ value: '5+3', label: '5 + 3' }),
-        Object.freeze({ value: 'custom', label: 'Custom' })
+        Object.freeze({ value: '5+3', label: '5 + 3' })
     ]),
     rapid: Object.freeze([
         Object.freeze({ value: '10+0', label: '10 + 0' }),
         Object.freeze({ value: '10+5', label: '10 + 5' }),
-        Object.freeze({ value: '15+10', label: '15 + 10' }),
-        Object.freeze({ value: 'custom', label: 'Custom' })
+        Object.freeze({ value: '15+10', label: '15 + 10' })
     ]),
     long: Object.freeze([
         Object.freeze({ value: '30+0', label: '30 + 0' }),
         Object.freeze({ value: '30+20', label: '30 + 20' }),
-        Object.freeze({ value: '60+30', label: '60 + 30' }),
-        Object.freeze({ value: 'custom', label: 'Custom' })
+        Object.freeze({ value: '60+30', label: '60 + 30' })
     ]),
     'fixed-depth': Object.freeze([
         Object.freeze({ value: '8', label: 'Depth 8' }),
         Object.freeze({ value: '12', label: 'Depth 12' }),
         Object.freeze({ value: '16', label: 'Depth 16' }),
         Object.freeze({ value: '20', label: 'Depth 20' }),
-        Object.freeze({ value: '24', label: 'Depth 24' }),
-        Object.freeze({ value: 'custom', label: 'Custom' })
+        Object.freeze({ value: '24', label: 'Depth 24' })
     ])
 });
 
@@ -46,11 +41,11 @@ const DEFAULT_PRESET = Object.freeze({
 });
 
 export const ML001C_CLOCK_CONTRACT = Object.freeze({
-    owner: 'future-authoritative-time-control',
+    owner: 'arena-match-clock',
     flagFall: 'remaining time at zero loses on time',
     pgnResults: Object.freeze(['1-0', '0-1']),
-    termination: 'time forfeit',
-    implementedInThisPhase: false
+    termination: 'time-forfeit',
+    implementedInThisPhase: true
 });
 
 const OPENING_PRESENTATION = Object.freeze({
@@ -336,7 +331,7 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
     });
 
     const controller = Object.freeze({
-        phase: 'ML-001B',
+        phase: 'ML-001C',
         config,
         clockDisplay,
         elements,

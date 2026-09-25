@@ -8,6 +8,8 @@
         supportsNNUE: false,
         supportsMultiPV: true,
         supportsSyzygy: false,
+        supportsClockTimeControl: true,
+        supportsFixedDepth: true,
         browserCompatible: true,
         mobileCompatible: true,
         requiresCrossOriginIsolation: false
@@ -254,6 +256,8 @@
             supportsNNUE: true,
             supportsMultiPV: true,
             supportsSyzygy: false,
+            supportsClockTimeControl: true,
+            supportsFixedDepth: true,
             browserCompatible: true,
             mobileCompatible: true,
             requiresCrossOriginIsolation: false
@@ -305,6 +309,8 @@
             supportsNNUE: true,
             supportsMultiPV: true,
             supportsSyzygy: false,
+            supportsClockTimeControl: true,
+            supportsFixedDepth: true,
             browserCompatible: true,
             mobileCompatible: true,
             requiresCrossOriginIsolation: false

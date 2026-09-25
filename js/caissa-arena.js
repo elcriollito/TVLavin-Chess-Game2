@@ -27,6 +27,9 @@ const CaissaArena = {
     // certified Arena-facing API without duplicating worker references.
     runtimeManager: null,
     matchSeries: null,
+    matchClock: null,
+    clockRenderInterval: null,
+    qaTimeControlOverride: null,
     _seriesAdvanceTimer: null,
     reviewTimer: null,
     reviewMarkerVersion: 0,
@@ -1510,6 +1513,145 @@ const CaissaArena = {
         return this.game?.fen?.() || '';
     },
 
+    getRequestedMatchTimeControl(options = {}) {
+        if (options.seriesContinuation && this.matchSeries?.config?.timeControl) {
+            return this.matchSeries.config.timeControl;
+        }
+        return {
+            mode: this.elements.timeControlModeSelect?.value || 'blitz',
+            preset: this.elements.timeControlPresetSelect?.value || '3+2'
+        };
+    },
+
+    resolveMatchTimeControl(input) {
+        if (!window.CaissaArenaMatchClock?.createTimeControl) {
+            throw new Error('Match clock controller is unavailable.');
+        }
+        if (this.qaTimeControlOverride && navigator.webdriver === true) return this.qaTimeControlOverride;
+        return window.CaissaArenaMatchClock.createTimeControl(input);
+    },
+
+    validateMatchTimeControlCapabilities(timeControl, engines = [this.state.whiteEngine, this.state.blackEngine]) {
+        return window.CaissaArenaMatchClock.assertProviderCapabilities(timeControl, engines);
+    },
+
+    setQaMatchTimeControlForTest(config) {
+        if (navigator.webdriver !== true) throw new Error('QA Match time controls are available only to browser automation.');
+        this.qaTimeControlOverride = config
+            ? window.CaissaArenaMatchClock.createQaTimeControl(config)
+            : null;
+        return this.qaTimeControlOverride;
+    },
+
+    initializeMatchClock(timeControl) {
+        this.stopMatchClock();
+        this.matchClock = new window.CaissaArenaMatchClock.MatchClockController({
+            timeControl,
+            onChange: snapshot => this.renderMatchClock(snapshot),
+            onFlag: event => this.handleMatchClockFlag(event)
+        });
+        this.startClockRenderLoop();
+        this.renderMatchClock(this.matchClock.snapshot());
+        return this.matchClock;
+    },
+
+    startClockRenderLoop() {
+        clearInterval(this.clockRenderInterval);
+        this.clockRenderInterval = setInterval(() => {
+            if (this.matchClock) this.renderMatchClock(this.matchClock.snapshot());
+        }, 100);
+    },
+
+    stopClockRenderLoop() {
+        clearInterval(this.clockRenderInterval);
+        this.clockRenderInterval = null;
+    },
+
+    stopMatchClock() {
+        this.stopClockRenderLoop();
+        if (this.matchClock) this.matchClock.stop();
+        this.matchClock = null;
+        this.state.pendingClockDecision = null;
+    },
+
+    renderMatchClock(snapshot) {
+        if (!snapshot) return;
+        const ui = window.CaissaArenaMatchLabUI;
+        const fixedDepth = snapshot.timeControl.mode === 'fixed-depth';
+        for (const color of ['black', 'white']) {
+            const remainingMs = color === 'white' ? snapshot.whiteRemainingMs : snapshot.blackRemainingMs;
+            const display = fixedDepth
+                ? {
+                    kind: 'depth', depth: snapshot.depth, text: `Depth ${snapshot.depth}`,
+                    remainingMs: null, authoritative: true,
+                    active: snapshot.running && snapshot.activeColor === color
+                }
+                : {
+                    kind: 'clock', remainingMs,
+                    text: ui?.formatClockDisplay?.(remainingMs),
+                    authoritative: true,
+                    active: snapshot.running && snapshot.activeColor === color
+                };
+            if (ui?.setClockDisplay) ui.setClockDisplay(color, display);
+            else {
+                const output = document.getElementById(color === 'black' ? 'arenaBlackClock' : 'arenaWhiteClock');
+                if (!output) continue;
+                output.textContent = fixedDepth ? `Depth ${snapshot.depth}` : this.formatMatchClock(remainingMs);
+                output.dataset.displayKind = fixedDepth ? 'depth' : 'clock';
+                output.dataset.authoritative = 'true';
+                output.dataset.active = String(display.active);
+                output.setAttribute('aria-label', `${color === 'white' ? 'White' : 'Black'} engine ${fixedDepth ? 'search depth' : 'time'}${display.active ? ', active' : ''}`);
+            }
+        }
+    },
+
+    formatMatchClock(milliseconds) {
+        if (!Number.isFinite(milliseconds) || milliseconds < 0) return '--:--';
+        const totalSeconds = Math.ceil(milliseconds / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return hours > 0
+            ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+            : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    },
+
+    beginMatchClockSearch(color, searchGeneration, gameGeneration) {
+        if (!this.matchClock || this.state.mode !== 'match') return null;
+        return this.matchClock.beginSearch(color, {
+            gameId: this.state.currentGame?.id,
+            gameGeneration,
+            searchGeneration
+        });
+    },
+
+    handleMatchClockFlag(event) {
+        if (!this.matchClock || this.state.mode !== 'match' ||
+            !this.isCurrentGameGeneration(event.token.gameGeneration)) return false;
+        const color = event.color;
+        this.captureLifecycleTrace('FLAG_FALL', {
+            color,
+            searchGeneration: event.token.searchGeneration,
+            remainingMs: 0
+        });
+        this.cancelActiveSearch(`${color} flag fall`);
+        this.state.loopRunning = false;
+        const engine = color === 'white' ? this.whiteEngineInstance : this.blackEngineInstance;
+        const role = color;
+        if (!this.runtimeManager?.stop(role, engine)) engine?.stop?.();
+        const result = color === 'white' ? '0-1' : '1-0';
+        const resultText = `${color === 'white' ? 'White' : 'Black'} lost on time`;
+        return this.completeMatchSeriesGame({ result, resultText, termination: 'time-forfeit' });
+    },
+
+    formatArenaGoCommand(options = {}) {
+        if (options.depth) return `go depth ${options.depth}`;
+        if (options.wtime !== undefined) {
+            return `go wtime ${options.wtime} btime ${options.btime} winc ${options.winc} binc ${options.binc}`;
+        }
+        return `go movetime ${ARENA_ENGINE_MOVETIME_MS}`;
+    },
+
     createMatchSeriesConfig() {
         return {
             title: this.elements.matchTitleInput?.value?.trim()
@@ -1647,6 +1789,8 @@ const CaissaArena = {
         if (!isTournament) {
             this.state.mode = 'match';
             try {
+                const requestedTimeControl = this.resolveMatchTimeControl(this.getRequestedMatchTimeControl(options));
+                this.validateMatchTimeControlCapabilities(requestedTimeControl);
                 if (!options.seriesContinuation) this.initializeMatchSeries();
                 else this.applySeriesGameAssignment(this.matchSeries.currentGame);
             } catch (error) {
@@ -1725,6 +1869,7 @@ const CaissaArena = {
 
         // Reset game state
         this.resetBoard();
+        this.stopMatchClock();
         this.cancelActiveSearch('match restart');
         this.state.loopRunning = false;
         this.runtimeManager.newGame('white');
@@ -1756,6 +1901,9 @@ const CaissaArena = {
         this.state.loopActive = true;
         this.state.evalHistory = [];
         const scheduledGame = this.state.mode === 'match' ? this.matchSeries.currentGame : null;
+        const matchTimeControl = this.state.mode === 'match'
+            ? this.resolveMatchTimeControl(this.matchSeries.config.timeControl)
+            : null;
         this.state.currentGame = {
             id: scheduledGame?.gameId || globalThis.crypto?.randomUUID?.() || `arena-${Date.now()}`,
             generation: scheduledGame?.generation || null,
@@ -1765,6 +1913,7 @@ const CaissaArena = {
             moves: [],
             startFen: this.game.fen(),
             startTime: Date.now(),
+            timeControl: matchTimeControl,
             runtimeIdentities: Object.freeze({
                 white: this.whiteEngineInstance.getRuntimeIdentity(),
                 black: this.blackEngineInstance.getRuntimeIdentity()
@@ -1776,6 +1925,7 @@ const CaissaArena = {
             window.CaissaUI?.setButtonLoading(this.elements.startMatchBtn, false);
             return false;
         }
+        if (matchTimeControl) this.initializeMatchClock(matchTimeControl);
         if (usesLc0) window.CaissaArenaRollout?.metric?.('lc0_match_started');
 
         // Update UI
@@ -1809,6 +1959,8 @@ const CaissaArena = {
 
     togglePause() {
         if (this.state.matchState === 'running') {
+            const clockPause = this.state.mode === 'match' ? this.matchClock?.pause?.() : null;
+            if (clockPause?.flagged || this.state.matchState !== 'running') return false;
             // Pause the match
             this.state.matchState = 'paused';
             if (this.state.mode === 'match') {
@@ -1899,6 +2051,7 @@ const CaissaArena = {
         }
         this.state.matchState = 'idle';
         this.state.loopActive = false;
+        this.stopMatchClock();
         this.cancelActiveSearch('match stopped');
         this.state.loopRunning = false;
         this._pausePending = null;
@@ -2434,8 +2587,22 @@ const CaissaArena = {
             return false;
         }
 
+        const movingColor = isWhiteTurn ? 'white' : 'black';
+        const clockDecision = source === 'engine' ? this.state.pendingClockDecision : null;
+        const decisionMatches = Boolean(clockDecision
+            && clockDecision.bestMove === uciMove
+            && clockDecision.color === movingColor
+            && clockDecision.gameGeneration === expectedGeneration);
+        const rejectClockDecision = () => {
+            if (decisionMatches) this.matchClock?.rejectMove?.(clockDecision.token);
+            if (decisionMatches) this.state.pendingClockDecision = null;
+        };
+
         const legalMove = this.findLegalUciMove(uciMove);
-        if (!legalMove) return false;
+        if (!legalMove) {
+            rejectClockDecision();
+            return false;
+        }
 
         const moveResult = this.game.move({
             from: legalMove.from,
@@ -2444,6 +2611,7 @@ const CaissaArena = {
         });
 
         if (!moveResult) {
+            rejectClockDecision();
             return false;
         }
 
@@ -2455,6 +2623,14 @@ const CaissaArena = {
             console.error('[Arena] Board is null, cannot update position');
             this.handleError('Board not mounted', 'ARENA_ERROR_BOARD_STATE');
             return false;
+        }
+
+        const gameEndedByMove = this.game.game_over();
+        if (decisionMatches) {
+            this.matchClock?.commitLegalMove?.(clockDecision.token, { gameEnded: gameEndedByMove });
+            this.state.pendingClockDecision = null;
+        } else if (source === 'book' && this.state.mode === 'match') {
+            this.matchClock?.commitInstantLegalMove?.(movingColor, { gameEnded: gameEndedByMove });
         }
 
         if (this.state.currentGame) {
@@ -2485,7 +2661,7 @@ const CaissaArena = {
 
         this.evaluatePosition(this.game.fen());
 
-        if (this.game.game_over()) {
+        if (gameEndedByMove) {
             this.handleGameOver();
             return true;
         }
@@ -2572,19 +2748,25 @@ const CaissaArena = {
             }
 
             // Request best move from engine
+            const plannedSearchOptions = this.state.mode === 'match' && this.matchClock
+                ? this.matchClock.getSearchOptions()
+                : { movetime: ARENA_ENGINE_MOVETIME_MS };
             console.log('[Arena] Falling back to engine search', {
                 color,
                 engineId: engineConfig?.id || currentEngine?.id || 'unknown',
                 requestedFen: fen,
                 engineReady: !!currentEngine?.isReady?.(),
                 separatePlayerInstances: this.whiteEngineInstance !== this.blackEngineInstance,
-                command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
+                command: this.formatArenaGoCommand(plannedSearchOptions)
             });
             this.state.loopRunning = true;
             const bestMove = await this.getEngineMove(currentEngine, fen, {
                 color,
                 engineId: engineConfig?.id || currentEngine?.id || 'unknown',
                 depth,
+                timeControlMode: this.state.mode === 'match'
+                    ? this.matchClock?.timeControl?.mode || null
+                    : null,
                 gameGeneration: expectedGeneration
             });
             this.state.loopRunning = false;
@@ -2652,6 +2834,9 @@ const CaissaArena = {
             const gameGeneration = context.gameGeneration ?? this.state.currentGame?.generation;
             const searchToken = ++this.state.searchToken;
             const moveTimeoutMs = engine.asyncLifecycle ? 30000 : ARENA_ENGINE_TIMEOUT_MS;
+            const effectiveMoveTimeoutMs = context.timeControlMode === 'fixed-depth'
+                ? 60000
+                : context.timeControlMode ? null : moveTimeoutMs;
             let timeout = null;
             let settled = false;
             let goCommandSent = false;
@@ -2689,6 +2874,16 @@ const CaissaArena = {
                 finish(() => reject(new Error(`Engine worker failed (${color}, ${engineId}, search ${searchToken})`)));
             };
 
+            const clockSearch = context.timeControlMode
+                ? this.beginMatchClockSearch(color, searchToken, gameGeneration)
+                : null;
+            if (clockSearch && !clockSearch.accepted) {
+                cancelSearch('Match clock search could not start');
+                return;
+            }
+            const searchOptions = clockSearch?.options || { movetime: ARENA_ENGINE_MOVETIME_MS };
+            const goCommand = this.formatArenaGoCommand(searchOptions);
+
             console.log('[Arena] Engine search requested', {
                 color,
                 engineId,
@@ -2696,7 +2891,7 @@ const CaissaArena = {
                 searchToken,
                 engineReady: engine.isReady(),
                 goCommandSent: false,
-                command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
+                command: goCommand
             });
 
             // Set up callback for best move
@@ -2717,6 +2912,16 @@ const CaissaArena = {
                     });
                     return;
                 }
+                if (clockSearch) {
+                    const clockDecision = this.matchClock?.settleBestMove?.(clockSearch.token);
+                    if (!clockDecision?.accepted) return;
+                    this.state.pendingClockDecision = {
+                        token: clockSearch.token,
+                        bestMove,
+                        color,
+                        gameGeneration
+                    };
+                }
                 bestMoveReceived = true;
                 this.reliabilityMetrics.acceptedBestmoves += 1;
                 this.captureLifecycleTrace('BESTMOVE_ACCEPTED', {
@@ -2730,7 +2935,7 @@ const CaissaArena = {
                     bestMove
                 });
                 finish(() => resolve(bestMove));
-            }, { movetime: ARENA_ENGINE_MOVETIME_MS });
+            }, searchOptions);
             goCommandSent = true;
             console.log('[Arena] Engine search command sent', {
                 color,
@@ -2738,10 +2943,10 @@ const CaissaArena = {
                 requestedFen: fen,
                 searchToken,
                 engineReady: engine.isReady(),
-                command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
+                command: goCommand
             });
 
-            timeout = setTimeout(() => {
+            if (effectiveMoveTimeoutMs !== null) timeout = setTimeout(() => {
                 if (settled || searchToken !== this.state.searchToken ||
                     !this.isCurrentGameGeneration(gameGeneration)) return;
                 if (!runtimeRole || !this.runtimeManager?.stop(runtimeRole, engine)) engine.stop?.();
@@ -2754,12 +2959,12 @@ const CaissaArena = {
                     goCommandSent,
                     bestMoveReceived,
                     workerCrashed,
-                    command: `go movetime ${ARENA_ENGINE_MOVETIME_MS}`
+                    command: goCommand
                 });
                 finish(() => reject(new Error(
                     `Engine move timeout (${color}, ${engineId}, search ${searchToken}, FEN ${fen})`
                 )));
-            }, moveTimeoutMs);
+            }, effectiveMoveTimeoutMs);
         });
     },
 
@@ -2918,14 +3123,18 @@ const CaissaArena = {
         const generation = this.state.currentGame?.generation;
         if (!this.matchSeries?.accepts?.(generation)) return false;
 
+        const finalClockState = this.matchClock?.snapshot?.() || null;
         this.state.matchState = 'finished';
         this.state.loopActive = false;
         this.cancelActiveSearch('series game completed');
         this.state.loopRunning = false;
+        if (this.matchClock) this.matchClock.stop();
+        this.stopClockRenderLoop();
         const cleanup = this.runtimeManager.stopAll();
         if (this.state.currentGame) {
             this.state.currentGame.result = result;
             this.state.currentGame.termination = termination;
+            this.state.currentGame.clockState = finalClockState;
             this.state.currentGame.endTime = Date.now();
         }
         const accepted = this.matchSeries.complete(generation, {
@@ -3084,6 +3293,7 @@ const CaissaArena = {
         this.state.startToken += 1;
         this.state.matchState = 'idle';
         this.state.loopActive = false;
+        this.stopMatchClock();
         this.cancelActiveSearch('arena error');
         this.state.loopRunning = false;
         this.runtimeManager?.terminateAll('arena-error');

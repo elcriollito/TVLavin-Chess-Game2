@@ -168,6 +168,7 @@
                 white: scheduled.white,
                 black: scheduled.black,
                 startingFen: scheduled.startingFen,
+                timeControl: deepFreeze(cloneValue(this.config.timeControl)),
                 moves: [],
                 result: null,
                 termination: null,
