@@ -114,6 +114,8 @@ test('one Arena provider registry owns Match and Tournament availability metadat
         supportsNNUE: true,
         supportsMultiPV: true,
         supportsSyzygy: false,
+        supportsClockTimeControl: true,
+        supportsFixedDepth: true,
         browserCompatible: true,
         mobileCompatible: true,
         requiresCrossOriginIsolation: false
@@ -133,6 +135,8 @@ test('one Arena provider registry owns Match and Tournament availability metadat
         supportsNNUE: true,
         supportsMultiPV: true,
         supportsSyzygy: false,
+        supportsClockTimeControl: true,
+        supportsFixedDepth: true,
         browserCompatible: true,
         mobileCompatible: true,
         requiresCrossOriginIsolation: false

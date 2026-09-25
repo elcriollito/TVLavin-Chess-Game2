@@ -396,13 +396,15 @@ class StockfishEngine {
 
         // CRITICAL: UCI protocol - use ONLY ONE of: movetime, depth, or time controls
         // Never mix depth + movetime - Stockfish ignores or behaves unexpectedly
+        const hasClockTimeControl = options.wtime !== undefined || options.btime !== undefined
+            || options.winc !== undefined || options.binc !== undefined;
         if (options.movetime) {
             // Movetime takes priority (best for quick play)
             command += ` movetime ${options.movetime}`;
         } else if (options.depth) {
             // Depth (best for analysis)
             command += ` depth ${options.depth}`;
-        } else if (!options.infinite) {
+        } else if (!options.infinite && !hasClockTimeControl) {
             // Default depth if nothing specified
             command += ` depth ${this.searchDepth}`;
         }

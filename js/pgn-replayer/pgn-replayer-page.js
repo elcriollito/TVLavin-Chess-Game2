@@ -1278,4 +1278,12 @@ import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
     updateEngineUi('off');
     updateAnalysisUi();
     updateControls();
+
+    const handoffToken = new URLSearchParams(window.location.search).get('handoff');
+    if (handoffToken && window.CaissaPgnHandoff) {
+        const handoff = window.CaissaPgnHandoff.consume(handoffToken);
+        if (handoff) parseText(handoff.pgn, handoff.sourceLabel, null, 'games');
+        else showMessage('The Engine Arena PGN handoff expired or was already opened.', 'error', false);
+        window.history.replaceState(null, '', window.location.pathname);
+    }
 })();

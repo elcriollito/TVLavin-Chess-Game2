@@ -708,11 +708,13 @@
             this.analyzing = true;
             let command = 'go';
 
+            const hasClockTimeControl = options.wtime !== undefined || options.btime !== undefined
+                || options.winc !== undefined || options.binc !== undefined;
             if (options.movetime) {
                 command += ` movetime ${options.movetime}`;
             } else if (options.depth) {
                 command += ` depth ${options.depth}`;
-            } else if (!options.infinite) {
+            } else if (!options.infinite && !hasClockTimeControl) {
                 command += ` depth ${this.searchDepth}`;
             }
 

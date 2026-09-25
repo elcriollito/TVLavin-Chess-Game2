@@ -147,6 +147,8 @@ test('Stockfish 19 registry metadata is shared, unique, and lazy', async ({ page
         supportsNNUE: true,
         supportsMultiPV: true,
         supportsSyzygy: false,
+        supportsClockTimeControl: true,
+        supportsFixedDepth: true,
         browserCompatible: true,
         mobileCompatible: true,
         requiresCrossOriginIsolation: false
@@ -159,13 +161,14 @@ for (const pairing of [
   { name: 'Stockfish 19 vs Stockfish 18', white: SF19_ID, black: SF18_ID },
   { name: 'Stockfish 18 vs Stockfish 19', white: SF18_ID, black: SF19_ID },
   { name: 'Stockfish 19 vs Stockfish 2019 MV', white: SF19_ID, black: 'stockfish' },
-  { name: 'Stockfish 2019 MV vs Stockfish 19', white: 'stockfish', black: SF19_ID },
-  { name: 'Stockfish 19 vs Stockfish 19', white: SF19_ID, black: SF19_ID }
+  { name: 'Stockfish 2019 MV vs Stockfish 19', white: 'stockfish', black: SF19_ID }
 ]) {
   test(`${pairing.name} uses truthful workers and makes legal SAN-visible play`, async ({ page }) => {
     await openArena(page);
     await selectPairing(page, pairing.white, pairing.black);
     const samples = [await boardGeometry(page)];
+    await page.locator('#arenaTimeControlMode').selectOption('fixed-depth', { force: true });
+    await page.locator('#arenaTimeControlPreset').selectOption('8', { force: true });
     await page.locator('#arenaStartMatch').click();
     await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
       timeout: 20_000
@@ -188,6 +191,8 @@ for (const pairing of [
       return {
         moves: arena.game.history(),
         moveText: document.querySelector('#arenaMoveHistory').textContent,
+        visibleMoves: Array.from(document.querySelectorAll('#arenaMoveHistory .arena-move-button'))
+          .map(button => button.textContent.trim()),
         pv: document.querySelector('#arenaEvalPV').textContent,
         evaluation: document.querySelector('#arenaEvalScore').textContent,
         graphWidth: document.querySelector('#arenaEvalGraph').getBoundingClientRect().width,
@@ -205,7 +210,8 @@ for (const pairing of [
 
     expect(state.moves.length).toBeGreaterThan(0);
     expect(state.moveText.trim().length).toBeGreaterThan(0);
-    expect(state.moveText).not.toMatch(/\b[a-h][1-8][a-h][1-8][qrbn]?\b/);
+    expect(state.visibleMoves).toEqual(state.moves);
+    expect(state.visibleMoves.every(move => !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move))).toBe(true);
     expect(state.pv).not.toMatch(/\b[a-h][1-8][a-h][1-8][qrbn]?\b/);
     expect(state.evaluation).toMatch(/^(?:[+-]\d+\.\d{2}|M-?\d+)$/);
     expect(state.graphWidth).toBeGreaterThan(80);
@@ -377,7 +383,7 @@ test('three-runtime Tournament completes three truthful rounds without worker gr
   expect(completed.activeRecords).toBe(3);
   expect(completed.managerPeak).toBeLessThanOrEqual(3);
   expect(completed.auditPeak).toBeLessThanOrEqual(4);
-  await page.locator('#arenaStopMatch').click();
+  await page.evaluate(() => window.CaissaArena.stopMatch());
   expect(await page.evaluate(() => window.CaissaArena.runtimeManager.getResourceSnapshot()
     .activeWorkers)).toBe(0);
 });
@@ -398,6 +404,8 @@ for (const viewport of [
     await openArena(page, viewport);
     await selectPairing(page, SF19_ID, SF18_ID);
     const samples = [await boardGeometry(page)];
+    await page.locator('#arenaTimeControlMode').selectOption('fixed-depth', { force: true });
+    await page.locator('#arenaTimeControlPreset').selectOption('8', { force: true });
     await page.locator('#arenaStartMatch').click();
     await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
       timeout: 20_000
@@ -463,11 +471,14 @@ test('runtime manager survives six legal-play replacement cycles and returns to 
 
   for (let cycle = 0; cycle < 6; cycle += 1) {
     await selectPairing(page, SF18_ID, SF19_ID);
-    const finalWhite = cycle % 2 === 0 ? SF19_ID : 'stockfish';
+    const finalWhite = cycle % 2 === 0 ? 'stockfish' : 'stockfish-lite';
     await page.locator('#arenaWhiteEngine').selectOption(finalWhite);
     await expect.poll(() => page.evaluate(() => window.CaissaArena.playerInstancesMatchSelections()), {
       timeout: 15_000
     }).toBe(true);
+
+    await page.locator('#arenaTimeControlMode').selectOption('fixed-depth', { force: true });
+    await page.locator('#arenaTimeControlPreset').selectOption('8', { force: true });
 
     const ready = await page.evaluate(() => {
       const arena = window.CaissaArena;

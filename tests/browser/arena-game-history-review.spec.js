@@ -35,6 +35,7 @@ async function openArena(page, viewport = { width: 1440, height: 900 }, { trackW
   await page.goto('/arena');
   await expect(page.locator('body')).toHaveAttribute('data-caissa-surface', 'arena');
   await expect.poll(() => page.evaluate(() => Boolean(window.CaissaArena?.board))).toBe(true);
+  await page.getByRole('tab', { name: 'Game' }).click();
   await expect(page.locator('#arenaReviewControls')).toBeVisible();
 }
 
@@ -154,6 +155,7 @@ test('live engines continue while review cursor, display FEN, workers, and runti
   await openArena(page, { width: 1440, height: 900 }, { trackWorkers: true });
   await expect.poll(() => page.evaluate(() => window.CaissaArena.enginesReady), { timeout: 15_000 }).toBe(true);
   await page.getByRole('tab', { name: 'Match' }).click();
+  await page.locator('#arenaAdvancedMatchOptions > summary').click();
   await page.locator('#arenaMoveDelay').fill('100');
   await page.locator('#arenaMoveDelay').dispatchEvent('change');
   await page.locator('#arenaStartMatch').click();

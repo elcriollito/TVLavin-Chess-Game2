@@ -81,13 +81,16 @@ test('Tournament draw adjudication is confirmed and uses the normal result pipel
   assert.match(controller, /termination = 'Draw by adjudication'/);
 });
 
-test('turn status is a stateful LED derived from the game and neutral when finished', () => {
+test('Game Status is the single visible owner of state, move count, and side to move', () => {
   const arena = arenaMarkup();
   assert.match(arena, /id="arenaTurnStatus"[\s\S]{0,220}?role="status"[\s\S]{0,220}?class="arena-turn-led"/);
-  assert.match(arena, /id="arenaStatusTurn" class="arena-turn-label">White to move/);
+  assert.match(arena, /id="arenaStatusBox"[\s\S]{0,500}?id="arenaTurnStatus"[\s\S]{0,500}?id="arenaStatusText"/);
+  assert.doesNotMatch(arena, /id="arenaStatusTurn"|id="arenaStatusMoves"/);
   assert.match(controller, /const sideToMove = this\.game\?\.turn\?\.\(\) === 'b' \? 'black' : 'white'/);
-  assert.match(controller, /this\.state\.matchState === 'finished'[\s\S]{0,180}?turnLabel = 'Finished'/);
-  assert.match(controller, /turnState === 'running' \|\| turnState === 'idle' \? sideToMove : 'neutral'/);
+  assert.match(controller, /segments = \['Running'\][\s\S]{0,160}?segments\.push\(`Move \$\{moveCount\}`, `\$\{sideLabel\} to move`\)/);
+  assert.match(controller, /segments = \['Paused'\][\s\S]{0,160}?segments\.push\(`Move \$\{moveCount\}`, `\$\{sideLabel\} to move`\)/);
+  assert.match(controller, /segments = \['Completed'\]/);
+  assert.match(controller, /turnStatus\.dataset\.turn = turnOwner/);
 });
 
 test('Arena tabs are accessible and do not own competition lifecycle state', () => {
@@ -95,7 +98,7 @@ test('Arena tabs are accessible and do not own competition lifecycle state', () 
   assert.match(arena, /class="arena-tabs" role="tablist"/);
   assert.equal((arena.match(/id="arenaTab(?:Match|Tournament|Game)"[\s\S]{0,180}?role="tab"/g) || []).length, 3);
   assert.equal((arena.match(/id="arenaPanel(?:Match|Tournament|Game)"[\s\S]{0,180}?role="tabpanel"/g) || []).length, 3);
-  assert.match(controller, /activeTab: 'game'/);
+  assert.match(controller, /activeTab: 'match'/);
   assert.match(controller, /onTabKeydown\(event\)/);
   const switchTab = controller.slice(controller.indexOf('switchTab(tab'), controller.indexOf('onTabKeydown(event)'));
   assert.doesNotMatch(switchTab, /state\.mode\s*=\s*tab/);
@@ -112,6 +115,7 @@ test('Arena sizing snapshots stable inputs and isolates game content from board 
   assert.match(controller, /container\.scrollTop = container\.scrollHeight/);
   assert.match(styles, /#arenaSection \.arena-board-mount[\s\S]*?aspect-ratio:\s*1\s*\/\s*1/);
   assert.match(styles, /#arenaSection \.arena-player-bar[\s\S]*?height:\s*58px[\s\S]*?overflow:\s*hidden/);
+  assert.match(styles, /#arenaSection \.arena-player-clock[\s\S]*?flex:\s*0 0 88px[\s\S]*?font-variant-numeric:\s*tabular-nums/);
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?scrollbar-gutter:\s*stable/);
@@ -139,7 +143,7 @@ test('Arena move presentation uses canonical SAN while engine transport remains 
   assert.doesNotMatch(renderer, /game\.move\(/, 'rendering must not replay moves into the live game');
   assert.match(controller, /playUciMove\(uciMove, isWhiteTurn/);
   assert.match(controller, /uci:\s*uciMove/);
-  assert.match(controller, /this\.playUciMove\(bestMove, isWhiteTurn, 'engine'\)/);
+  assert.match(controller, /this\.playUciMove\(bestMove, isWhiteTurn, 'engine', expectedGeneration\)/);
   assert.match(controller, /formatPvAsSan\(pv, fen\)/);
   assert.match(controller, /const analysisGame = new Chess\(\)/);
   assert.match(controller, /analysisGame\.move\(/);

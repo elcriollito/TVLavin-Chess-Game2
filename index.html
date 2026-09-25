@@ -102,7 +102,7 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.21">
+    <link rel="stylesheet" href="styles.css?v=2.0.22">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.48.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.1">
@@ -1193,15 +1193,8 @@
                                 </span>
                                 <span class="arena-engine-badge">Engine</span>
                             </div>
-                            <div id="arenaTurnStatus" class="arena-stage-meta arena-turn-status"
-                                 data-state="idle" data-turn="white" role="status" aria-live="polite" aria-atomic="true">
-                                <span class="arena-turn-led" aria-hidden="true"></span>
-                                <span class="arena-turn-copy">
-                                    <span id="arenaStatusTurn" class="arena-turn-label">White to move</span>
-                                    <span class="arena-board-status">Ready</span>
-                                </span>
-                                <span class="arena-move-counter">Move <span id="arenaStatusMoves">0</span></span>
-                            </div>
+                            <output id="arenaBlackClock" class="arena-player-clock" data-display-kind="clock"
+                                    aria-label="Black engine time">03:00</output>
                         </div>
 
                         <div class="arena-board-container">
@@ -1217,6 +1210,8 @@
                                 </span>
                                 <span class="arena-engine-badge">Engine</span>
                             </div>
+                            <output id="arenaWhiteClock" class="arena-player-clock" data-display-kind="clock"
+                                    aria-label="White engine time">03:00</output>
                         </div>
                     </div>
 
@@ -1224,8 +1219,8 @@
                     <aside class="arena-sidebar arena-control-panel" aria-label="Arena controls and game information">
                         <div class="arena-panel-head">
                         <div class="arena-tabs" role="tablist" aria-label="Arena panel">
-                            <button id="arenaTabMatch" class="arena-tab" type="button" role="tab"
-                                    aria-selected="false" aria-controls="arenaPanelMatch" tabindex="-1">
+                            <button id="arenaTabMatch" class="arena-tab active" type="button" role="tab"
+                                    aria-selected="true" aria-controls="arenaPanelMatch" tabindex="0">
                                 <i class="fas fa-chess"></i>
                                 <span>Match</span>
                             </button>
@@ -1234,8 +1229,8 @@
                                 <i class="fas fa-trophy"></i>
                                 <span>Tournament</span>
                             </button>
-                            <button id="arenaTabGame" class="arena-tab active" type="button" role="tab"
-                                    aria-selected="true" aria-controls="arenaPanelGame" tabindex="0">
+                            <button id="arenaTabGame" class="arena-tab" type="button" role="tab"
+                                    aria-selected="false" aria-controls="arenaPanelGame" tabindex="-1">
                                 <i class="fas fa-cog"></i>
                                 <span>Game</span>
                             </button>
@@ -1245,71 +1240,241 @@
                         <div class="arena-panel-stack">
 
                         <!-- Match Panel -->
-                        <section id="arenaPanelMatch" class="arena-panel" role="tabpanel"
-                                 aria-labelledby="arenaTabMatch" tabindex="0" hidden>
+                        <section id="arenaPanelMatch" class="arena-panel active" role="tabpanel"
+                                 aria-labelledby="arenaTabMatch" tabindex="0">
                             <div class="arena-panel-body arena-panel-scroll">
-                            <div class="arena-section">
-                                <h4 class="arena-section-title">
-                                    <span class="engine-color-dot white"></span> White Participant
+                            <section class="arena-match-participants" aria-labelledby="arenaParticipantsTitle">
+                                <h4 id="arenaParticipantsTitle" class="arena-match-section-heading">
+                                    <i class="fas fa-users" aria-hidden="true"></i>
+                                    Engine Participants
                                 </h4>
-                                <div class="arena-participant-kind">Engines</div>
-                                <select id="arenaWhiteEngine" class="form-control arena-engine-select" aria-label="Select White Engine"></select>
-                                <div class="arena-bot-reservation">
-                                    <span class="arena-bot-reservation-label">Bots</span>
-                                    <span class="arena-bot-reservation-state">Coming Soon</span>
-                                </div>
-                            </div>
-
-                            <div class="arena-section">
-                                <h4 class="arena-section-title">
-                                    <span class="engine-color-dot black"></span> Black Participant
-                                </h4>
-                                <div class="arena-participant-kind">Engines</div>
-                                <select id="arenaBlackEngine" class="form-control arena-engine-select" aria-label="Select Black Engine"></select>
-                                <div class="arena-bot-reservation">
-                                    <span class="arena-bot-reservation-label">Bots</span>
-                                    <span class="arena-bot-reservation-state">Coming Soon</span>
-                                </div>
-                            </div>
-
-                            <button id="arenaSwapEngines" class="btn btn-block btn-secondary arena-swap-btn" aria-label="Swap engines">
-                                <i class="fas fa-exchange-alt"></i> Swap Colors
-                            </button>
-
-                            <div class="arena-section">
-                                <h4 class="arena-section-title">Settings</h4>
-                                <div class="arena-setting-row">
-                                    <label>Move Delay:</label>
-                                    <div class="arena-input-group">
-                                        <input type="number" id="arenaMoveDelay" class="form-control form-control-sm" value="150" min="100" max="5000" step="50" aria-label="Arena move delay in milliseconds">
-                                        <span class="arena-input-suffix">ms</span>
+                                <div class="arena-participant-row">
+                                    <div class="arena-participant-label">
+                                        <span class="engine-color-dot white" aria-hidden="true"></span>
+                                        <label for="arenaWhiteEngine">White Participant</label>
+                                    </div>
+                                    <div class="arena-participant-control">
+                                        <select id="arenaWhiteEngine" class="form-control arena-engine-select" aria-label="Select White Engine"></select>
+                                        <div class="arena-bot-reservation">
+                                            <span class="arena-bot-reservation-label">Bots</span>
+                                            <span class="arena-bot-reservation-state">Coming Soon</span>
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="arena-participant-row">
+                                    <div class="arena-participant-label">
+                                        <span class="engine-color-dot black" aria-hidden="true"></span>
+                                        <label for="arenaBlackEngine">Black Participant</label>
+                                    </div>
+                                    <div class="arena-participant-control">
+                                        <select id="arenaBlackEngine" class="form-control arena-engine-select" aria-label="Select Black Engine"></select>
+                                        <div class="arena-bot-reservation">
+                                            <span class="arena-bot-reservation-label">Bots</span>
+                                            <span class="arena-bot-reservation-state">Coming Soon</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div class="arena-position-button-row" aria-label="Starting position controls">
+                                <button id="arenaSetPositionBtn" class="btn btn-secondary" type="button" aria-label="Set Arena starting position">
+                                    <i class="fas fa-file-import" aria-hidden="true"></i> Set Position
+                                </button>
+                                <button id="arenaManualSetupBtn" class="btn btn-secondary" type="button" aria-label="Open Arena manual board setup">
+                                    <i class="fas fa-edit" aria-hidden="true"></i> Manual Setup
+                                </button>
+                            </div>
+                            <section id="arenaSeriesSummary" class="arena-series-summary" aria-labelledby="arenaSeriesTitle" hidden>
+                                <div class="arena-series-summary-head">
+                                    <strong id="arenaSeriesTitle">Series</strong>
+                                    <span id="arenaSeriesProgress">Game 1 / 2</span>
+                                </div>
+                                <div class="arena-series-score-grid">
+                                    <span id="arenaSeriesAName">Engine A</span>
+                                    <strong id="arenaSeriesAScore">0</strong>
+                                    <small id="arenaSeriesARecord">W-D-L 0-0-0</small>
+                                    <span id="arenaSeriesBName">Engine B</span>
+                                    <strong id="arenaSeriesBScore">0</strong>
+                                    <small id="arenaSeriesBRecord">W-D-L 0-0-0</small>
+                                </div>
+                                <div id="arenaSeriesActions" class="arena-series-actions" role="group" aria-label="Match series actions" hidden>
+                                    <button id="arenaReviewGames" class="btn btn-secondary btn-sm" type="button">Review Games</button>
+                                    <button id="arenaSaveCurrentPgn" class="btn btn-secondary btn-sm" type="button">Save Current Game PGN</button>
+                                    <button id="arenaSaveSeriesPgn" class="btn btn-secondary btn-sm" type="button">Save Series PGN</button>
+                                    <button id="arenaOpenPgnReader" class="btn btn-secondary btn-sm" type="button">Open in PGN Reader</button>
+                                    <button id="arenaNewMatch" class="btn btn-primary btn-sm" type="button">New Match</button>
+                                </div>
+                            </section>
+                            <div id="arenaPositionPanel" class="arena-position-panel" hidden>
+                                <label for="arenaFenInput">Starting FEN</label>
+                                <textarea id="arenaFenInput" class="form-control arena-fen-input" rows="3" spellcheck="false" aria-label="Arena starting FEN"></textarea>
+                                <div class="arena-position-actions">
+                                    <button id="arenaApplyFen" class="btn btn-primary btn-sm" type="button">Apply FEN</button>
+                                    <button id="arenaUseStartPosition" class="btn btn-secondary btn-sm" type="button">Initial Position</button>
+                                </div>
+                                <div id="arenaFenMessage" class="arena-fen-message" role="status"></div>
                             </div>
 
-                            <div class="arena-section">
-                                <button id="arenaSetPositionBtn" class="btn btn-block btn-secondary" type="button" aria-label="Set Arena starting position">
-                                    <i class="fas fa-file-import"></i> Set Position
-                                </button>
-                                <div id="arenaPositionPanel" class="arena-position-panel" hidden>
-                                    <label for="arenaFenInput">Starting FEN</label>
-                                    <textarea id="arenaFenInput" class="form-control arena-fen-input" rows="3" spellcheck="false" aria-label="Arena starting FEN"></textarea>
-                                    <div class="arena-position-actions">
-                                        <button id="arenaApplyFen" class="btn btn-primary btn-sm" type="button">Apply FEN</button>
-                                        <button id="arenaUseStartPosition" class="btn btn-secondary btn-sm" type="button">Initial Position</button>
+                            <details id="arenaAdvancedMatchOptions" class="arena-advanced-match-options">
+                                <summary>
+                                    <span class="arena-advanced-summary-title">
+                                        <i class="fas fa-cog" aria-hidden="true"></i>
+                                        Advanced Match Options
+                                    </span>
+                                    <i class="fas fa-chevron-down arena-advanced-chevron" aria-hidden="true"></i>
+                                </summary>
+                                <div class="arena-advanced-match-body" data-match-lab-phase="ML-001B">
+                                    <div class="arena-match-options-grid">
+                                        <section class="arena-match-option-column" aria-labelledby="arenaMatchBasicsTitle">
+                                            <h5 id="arenaMatchBasicsTitle">Match Basics</h5>
+                                            <div class="arena-match-field">
+                                                <label for="arenaMatchTitle">Match title</label>
+                                                <input id="arenaMatchTitle" class="form-control form-control-sm" type="text" maxlength="120" autocomplete="off">
+                                            </div>
+                                            <div class="arena-match-field">
+                                                <label for="arenaMatchGameCount">Number of games</label>
+                                                <select id="arenaMatchGameCount" class="form-control form-control-sm">
+                                                    <option value="1" selected>1</option>
+                                                    <option value="2">2</option>
+                                                    <option value="4">4</option>
+                                                    <option value="6">6</option>
+                                                    <option value="10">10</option>
+                                                    <option value="20">20</option>
+                                                    <option value="custom">Custom</option>
+                                                </select>
+                                                <div id="arenaMatchCustomGameCountField" class="arena-match-custom-field" hidden>
+                                                    <label for="arenaMatchCustomGameCount">Custom game count</label>
+                                                    <input id="arenaMatchCustomGameCount" class="form-control form-control-sm" type="number" min="1" max="100" value="1">
+                                                </div>
+                                            </div>
+                                            <div class="arena-match-field">
+                                                <label for="arenaMatchMoveLimit">Move limit (per game)</label>
+                                                <select id="arenaMatchMoveLimit" class="form-control form-control-sm">
+                                                    <option value="none" selected>No limit</option>
+                                                    <option value="40">40 full moves</option>
+                                                    <option value="60">60 full moves</option>
+                                                    <option value="80">80 full moves</option>
+                                                    <option value="100">100 full moves</option>
+                                                    <option value="150">150 full moves</option>
+                                                    <option value="200">200 full moves</option>
+                                                    <option value="custom">Custom</option>
+                                                </select>
+                                                <div id="arenaMatchCustomMoveLimitField" class="arena-match-custom-field" hidden>
+                                                    <label for="arenaMatchCustomMoveLimit">Custom full-move limit</label>
+                                                    <input id="arenaMatchCustomMoveLimit" class="form-control form-control-sm" type="number" min="1" max="500" value="100">
+                                                </div>
+                                            </div>
+                                            <div class="arena-match-field arena-match-delay-field">
+                                                <label for="arenaMoveDelay">Engine move delay</label>
+                                                <div class="arena-input-group">
+                                                    <input type="number" id="arenaMoveDelay" class="form-control form-control-sm" value="150" min="100" max="5000" step="50" aria-label="Arena move delay in milliseconds">
+                                                    <span class="arena-input-suffix">ms</span>
+                                                </div>
+                                            </div>
+                                            <label class="arena-match-toggle" for="arenaFlipBoard">
+                                                <span><i class="fas fa-retweet" aria-hidden="true"></i> Flip Board</span>
+                                                <input id="arenaFlipBoard" type="checkbox" role="switch">
+                                                <span class="arena-toggle-track" aria-hidden="true"></span>
+                                            </label>
+                                            <label class="arena-match-toggle" for="arenaSavePgn">
+                                                <span><i class="fas fa-file-download" aria-hidden="true"></i> Save PGN</span>
+                                                <input id="arenaSavePgn" type="checkbox" role="switch" checked>
+                                                <span class="arena-toggle-track" aria-hidden="true"></span>
+                                            </label>
+                                            <button id="arenaSwapEngines" class="btn btn-block btn-secondary arena-swap-btn" type="button" aria-label="Swap engines">
+                                                <i class="fas fa-exchange-alt" aria-hidden="true"></i> Swap Colors
+                                            </button>
+                                        </section>
+
+                                        <section class="arena-match-option-column" aria-labelledby="arenaTimeControlTitle">
+                                            <h5 id="arenaTimeControlTitle"><i class="far fa-clock" aria-hidden="true"></i> Time Control</h5>
+                                            <div class="arena-match-field">
+                                                <label for="arenaTimeControlMode">Time Control</label>
+                                                <select id="arenaTimeControlMode" class="form-control form-control-sm">
+                                                    <option value="bullet">Bullet</option>
+                                                    <option value="blitz" selected>Blitz</option>
+                                                    <option value="rapid">Rapid</option>
+                                                    <option value="long">Long Game</option>
+                                                    <option value="fixed-depth">Fixed Depth</option>
+                                                </select>
+                                            </div>
+                                            <div class="arena-match-field">
+                                                <label for="arenaTimeControlPreset">Preset</label>
+                                                <select id="arenaTimeControlPreset" class="form-control form-control-sm" aria-describedby="arenaMatchLabPhaseNote"></select>
+                                            </div>
+                                            <div id="arenaTimeControlSummary" class="arena-match-compact-summary" role="status" aria-live="polite"></div>
+                                        </section>
+
+                                        <section class="arena-match-option-column" aria-labelledby="arenaOpeningTitle">
+                                            <h5 id="arenaOpeningTitle"><i class="fas fa-book-open" aria-hidden="true"></i> Opening</h5>
+                                            <div class="arena-match-field">
+                                                <label for="arenaOpeningMode">Opening mode</label>
+                                                <select id="arenaOpeningMode" class="form-control form-control-sm">
+                                                    <option value="standard" selected>Standard Position</option>
+                                                    <option value="eco">ECO Opening</option>
+                                                    <option value="set">Opening Set</option>
+                                                    <option value="fen">Custom FEN</option>
+                                                </select>
+                                            </div>
+                                            <button id="arenaEcoSelect" class="arena-opening-link" type="button">
+                                                Select from ECO Database <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                            </button>
+                                            <div class="arena-opening-preview" aria-live="polite">
+                                                <strong id="arenaOpeningSummary">Standard Position</strong>
+                                                <span id="arenaOpeningDescription">Normal initial chess position</span>
+                                                <div id="arenaOpeningMiniBoard" class="arena-opening-mini-board" aria-label="Standard starting position preview"></div>
+                                                <div class="arena-opening-fen-label">Starting FEN</div>
+                                                <output id="arenaOpeningFenPreview" class="arena-opening-fen">rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</output>
+                                            </div>
+                                        </section>
                                     </div>
-                                    <div id="arenaFenMessage" class="arena-fen-message" role="status"></div>
+                                    <p id="arenaMatchLabPhaseNote" class="arena-match-lab-phase-note" role="status" aria-live="polite">
+                                        Opening positions are resolved before play and clocks start only after the position is loaded.
+                                    </p>
                                 </div>
-                                <button id="arenaManualSetupBtn" class="btn btn-block btn-secondary" type="button" aria-label="Open Arena manual board setup">
-                                    <i class="fas fa-edit"></i> Manual Setup
-                                </button>
+                            </details>
+                            <div id="arenaOpeningModal" class="arena-opening-modal" hidden>
+                                <div class="arena-opening-dialog" role="dialog" aria-modal="true" aria-labelledby="arenaOpeningDialogTitle">
+                                    <header class="arena-opening-dialog-head">
+                                        <div>
+                                            <strong id="arenaOpeningDialogTitle">Select an ECO opening</strong>
+                                            <span id="arenaOpeningDialogSubtitle">CAISSA ECO Database</span>
+                                        </div>
+                                        <button id="arenaOpeningDialogClose" type="button" aria-label="Close opening selector"><i class="fas fa-times" aria-hidden="true"></i></button>
+                                    </header>
+                                    <div class="arena-opening-dialog-body">
+                                        <section id="arenaOpeningSetEditor" class="arena-opening-set-editor" hidden aria-label="Balanced Opening Set editor">
+                                            <label class="arena-match-toggle" for="arenaOpeningPlayBothColors">
+                                                <span>Play both colors</span>
+                                                <input id="arenaOpeningPlayBothColors" type="checkbox" role="switch" checked>
+                                                <span class="arena-toggle-track" aria-hidden="true"></span>
+                                            </label>
+                                            <div id="arenaOpeningSetCount" class="arena-opening-set-count">0 positions</div>
+                                            <ol id="arenaOpeningSetPositions" class="arena-opening-set-positions"></ol>
+                                            <button id="arenaOpeningAddPosition" class="btn btn-secondary btn-sm" type="button">Add ECO position</button>
+                                        </section>
+                                        <section id="arenaOpeningCatalog" class="arena-opening-catalog" aria-label="ECO opening catalog">
+                                            <label for="arenaOpeningSearch">Search openings</label>
+                                            <input id="arenaOpeningSearch" class="form-control" type="search" placeholder="B90, Najdorf, King's Indian…" autocomplete="off">
+                                            <div id="arenaOpeningResultsStatus" class="arena-opening-results-status" role="status" aria-live="polite">Open the selector to load openings.</div>
+                                            <div id="arenaOpeningResults" class="arena-opening-results" role="listbox" aria-label="ECO opening results"></div>
+                                        </section>
+                                    </div>
+                                    <footer id="arenaOpeningSetActions" class="arena-opening-dialog-actions" hidden>
+                                        <button id="arenaOpeningSetDone" class="btn btn-primary" type="button">Use Opening Set</button>
+                                    </footer>
+                                </div>
                             </div>
                             </div>
 
                             <footer class="arena-panel-foot">
                             <div id="arenaStatusBox" class="arena-status-box">
                                 <div class="arena-status-label">Game Status</div>
-                                <div id="arenaStatusText" class="arena-status-text">Ready</div>
+                                <div id="arenaTurnStatus" class="arena-game-status-line arena-turn-status"
+                                     data-state="idle" data-turn="neutral" role="status" aria-live="polite" aria-atomic="true">
+                                    <span class="arena-turn-led" aria-hidden="true"></span>
+                                    <span id="arenaStatusText" class="arena-status-text">Ready</span>
+                                </div>
                             </div>
                             <div class="arena-controls">
                                 <button id="arenaInfiniteAnalysis" class="btn btn-block btn-secondary" type="button" aria-label="Start or stop Arena infinite analysis">
@@ -1372,8 +1537,8 @@
                         </section>
 
                         <!-- Game Panel: evaluation, moves, and persistent graph -->
-                        <section id="arenaPanelGame" class="arena-panel arena-game-panel active" role="tabpanel"
-                                 aria-labelledby="arenaTabGame" tabindex="0">
+                        <section id="arenaPanelGame" class="arena-panel arena-game-panel" role="tabpanel"
+                                 aria-labelledby="arenaTabGame" tabindex="0" hidden>
                             <div class="arena-panel-body arena-game-body">
                         <div class="panel arena-eval-panel">
                             <div class="arena-eval-header">
@@ -1408,6 +1573,13 @@
                                     </button>
                                 </div>
                             </div>
+                            <section id="arenaSeriesHistory" class="arena-series-history" aria-labelledby="arenaSeriesHistoryTitle" hidden>
+                                <div class="arena-series-history-head">
+                                    <h5 id="arenaSeriesHistoryTitle">Series games</h5>
+                                    <span id="arenaSeriesHistoryCount">0 games</span>
+                                </div>
+                                <div id="arenaSeriesHistoryList" class="arena-series-history-list" role="list"></div>
+                            </section>
                             <div id="arenaMoveHistory" class="arena-move-list"></div>
                             <div id="arenaReviewControls" class="arena-review-controls" role="group"
                                  aria-label="Game review controls" aria-controls="arenaMoveHistory">
@@ -5214,12 +5386,19 @@
     <script src="js/academy-section.js?v=1.0.0"></script>
     <script src="js/yahoo-classic-section.js?v=1.1.0"></script>
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
-    <script src="js/engine-adapter.js?v=1.1.0"></script>
-    <script src="js/engine-registry.js?v=1.1.0"></script>
+    <script src="js/engine-adapter.js?v=1.2.0"></script>
+    <script src="js/engine-registry.js?v=1.2.0"></script>
     <script src="js/arena-lc0-rollout.js?v=1.0.0"></script>
     <script src="js/arena-runtime-manager.js?v=1.0.0"></script>
+    <script src="js/eco-opening-resolver.js?v=1.1.0"></script>
+    <script src="js/arena-opening-snapshots.js?v=1.0.0"></script>
+    <script src="js/arena-match-series.js?v=1.0.0"></script>
+    <script src="js/arena-match-clock.js?v=1.0.0"></script>
+    <script src="js/arena-match-pgn.js?v=1.0.0"></script>
+    <script src="js/pgn-replayer/pgn-handoff.js?v=1.0.0"></script>
     <script src="js/arena-tournament-scheduler.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.8.0"></script>
+    <script src="js/caissa-arena.js?v=1.10.0"></script>
+    <script type="module" src="js/arena-match-lab-ui.js?v=1.1.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
     <script src="js/insights-section.js?v=1.0.0"></script>
@@ -5306,7 +5485,6 @@
 <script src="js/fics-match-research.js?v=1.0.1" defer></script>
 <script src="js/fics-research-actions.js?v=1.0.1" defer></script>
 <script src="js/fics-computer-challenge.js?v=1.0.0" defer></script>
-    <script src="js/eco-opening-resolver.js?v=1.0.0" defer></script>
     <script src="js/spectator-tv-section.js?v=2.0.3" defer></script>
     <script src="js/opening-book-manager.js?v=1.0.0" defer></script>
 

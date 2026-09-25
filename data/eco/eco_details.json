@@ -1534,7 +1534,7 @@
     "continuations": []
   },
   {
-    "code": "B27",
+    "code": "B90",
     "name": "Sicilian Defense: Najdorf",
     "moves": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6",
     "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6",

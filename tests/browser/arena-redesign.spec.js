@@ -16,11 +16,10 @@ test('desktop Arena is board-first with one stable three-tab panel', async ({ pa
   const tabs = page.getByRole('tab');
   await expect(tabs).toHaveCount(3);
   await expect(tabs).toHaveText(['Match', 'Tournament', 'Game']);
-  await expect(page.getByRole('tab', { name: 'Game' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('#arenaPanelGame')).toBeVisible();
-  await expect(page.locator('#arenaEvalScore')).toBeVisible();
-  await expect(page.locator('#arenaMoveHistory')).toBeVisible();
-  await expect(page.locator('#arenaEvalGraph')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Match' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#arenaPanelMatch')).toBeVisible();
+  await expect(page.locator('#arenaSetPositionBtn')).toBeVisible();
+  await expect(page.locator('#arenaManualSetupBtn')).toBeVisible();
 
   const geometry = await page.evaluate(() => {
     const board = document.querySelector('#arenaBoardMount').getBoundingClientRect();
@@ -57,7 +56,7 @@ test('desktop Arena is board-first with one stable three-tab panel', async ({ pa
 
 test('Engine Arena naming is consistent while the canonical route stays /arena', async ({ page }) => {
   await openArena(page);
-  await expect(page.locator('.arena-page-header strong')).toHaveText('CAISSA Engine Arena');
+  await expect(page.locator('.arena-page-header > span:not(.arena-page-icon) > strong')).toHaveText('CAISSA Engine Arena');
   await expect(page.locator('.arena-page-header small')).toHaveText('Engine matches, tournaments and analysis');
   await expect(page.locator('[data-nav-key="arena"] .nav-label')).toHaveText('Engine Arena');
   expect(new URL(page.url()).pathname).toBe('/arena');
@@ -194,11 +193,13 @@ test('unavailable Arasan cannot borrow a prewarmed Stockfish runtime or label', 
 
 test('Arena tabs support arrow navigation', async ({ page }) => {
   await openArena(page);
+  const match = page.getByRole('tab', { name: 'Match' });
+  const tournament = page.getByRole('tab', { name: 'Tournament' });
   const game = page.getByRole('tab', { name: 'Game' });
-  await game.focus();
+  await match.focus();
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('tab', { name: 'Match' })).toBeFocused();
-  await expect(page.getByRole('tab', { name: 'Match' })).toHaveAttribute('aria-selected', 'true');
+  await expect(tournament).toBeFocused();
+  await expect(tournament).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('End');
   await expect(game).toBeFocused();
 });
@@ -386,7 +387,6 @@ test('tournament draw adjudication confirms, records, finishes, and continues no
     const participants = [game.white.id, game.black.id];
     return {
       matchState: window.CaissaArena.state.matchState,
-      turnLabel: document.querySelector('#arenaStatusTurn').textContent,
       turnState: document.querySelector('#arenaTurnStatus').dataset.turn,
       statusText: document.querySelector('#arenaStatusText').textContent,
       drawVisible: getComputedStyle(document.querySelector('#arenaDeclareDraw')).display !== 'none',
@@ -407,9 +407,8 @@ test('tournament draw adjudication confirms, records, finishes, and continues no
     };
   });
   expect(adjudicated.matchState).toBe('finished');
-  expect(adjudicated.turnLabel).toBe('Finished');
   expect(adjudicated.turnState).toBe('neutral');
-  expect(adjudicated.statusText).toBe('Finished: Draw by adjudication');
+  expect(adjudicated.statusText).toBe('Completed · Draw by adjudication');
   expect(adjudicated.drawVisible).toBe(false);
   expect(adjudicated.searchesStopped).toBe(true);
   expect(adjudicated.drawCells).toBe(2);
@@ -486,10 +485,10 @@ test('long tournament fields scroll inside the crosstable on narrow screens', as
   await expect(page.locator('#arenaTournamentStandings tbody tr')).toHaveCount(12);
 });
 
-test('turn LED follows the board state and finished games never claim a side to move', async ({ page }) => {
+test('Game Status follows board state and finished games never claim a side to move', async ({ page }) => {
   await openArena(page);
   const turnStatus = page.locator('#arenaTurnStatus');
-  const turnLabel = page.locator('#arenaStatusTurn');
+  const statusText = page.locator('#arenaStatusText');
 
   await page.evaluate(() => {
     window.CaissaArena.game.reset();
@@ -497,8 +496,8 @@ test('turn LED follows the board state and finished games never claim a side to 
     window.CaissaArena.updateGameStatus({ moveCount: 0 });
   });
   await expect(turnStatus).toHaveAttribute('data-state', 'idle');
-  await expect(turnStatus).toHaveAttribute('data-turn', 'white');
-  await expect(turnLabel).toHaveText('White to move');
+  await expect(turnStatus).toHaveAttribute('data-turn', 'neutral');
+  await expect(statusText).toHaveText('Ready');
 
   await page.evaluate(() => {
     window.CaissaArena.game.move('e4');
@@ -507,7 +506,7 @@ test('turn LED follows the board state and finished games never claim a side to 
   });
   await expect(turnStatus).toHaveAttribute('data-state', 'running');
   await expect(turnStatus).toHaveAttribute('data-turn', 'black');
-  await expect(turnLabel).toHaveText('Black to move');
+  await expect(statusText).toHaveText('Running · Move 1 · Black to move');
 
   await page.evaluate(() => {
     window.CaissaArena.state.matchState = 'finished';
@@ -515,8 +514,7 @@ test('turn LED follows the board state and finished games never claim a side to 
   });
   await expect(turnStatus).toHaveAttribute('data-state', 'finished');
   await expect(turnStatus).toHaveAttribute('data-turn', 'neutral');
-  await expect(turnLabel).toHaveText('Finished');
-  await expect(turnStatus.locator('.arena-board-status')).toHaveText('Draw by threefold repetition');
+  await expect(statusText).toHaveText('Completed · Draw by threefold repetition');
   await expect(turnStatus).not.toContainText(/to move/i);
 });
 
@@ -604,6 +602,7 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   const black = page.locator('#arenaBlackEngine');
   await expect.poll(async () => white.locator('option').count()).toBeGreaterThanOrEqual(3);
   const beforeSwap = { white: await white.inputValue(), black: await black.inputValue() };
+  await page.locator('#arenaAdvancedMatchOptions > summary').click();
   await page.locator('#arenaSwapEngines').click();
   await expect(white).toHaveValue(beforeSwap.black);
   await expect(black).toHaveValue(beforeSwap.white);
@@ -659,15 +658,14 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   expect(liveNotation.storedUci.every(move => /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move))).toBe(true);
   await expect(page.locator('#arenaPauseMatch')).toBeVisible();
   await expect(page.locator('#arenaStopMatch')).toBeVisible();
-  await expect(page.locator('#arenaStatusTurn')).toHaveText(/^(White|Black) to move$/);
+  await expect(page.locator('#arenaStatusText')).toHaveText(/^Running · Move \d+ · (White|Black) to move$/);
 
   const pause = page.locator('#arenaPauseMatch');
   await pause.focus();
   await page.keyboard.press('Space');
   await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('paused');
   await expect(pause).toHaveAttribute('aria-label', 'Resume Arena match');
-  await expect(page.locator('#arenaStatusTurn')).toHaveText('Paused');
-  await expect(page.locator('#arenaTurnStatus')).toHaveAttribute('data-turn', 'neutral');
+  await expect(page.locator('#arenaStatusText')).toHaveText(/^Paused · Move \d+ · (White|Black) to move$/);
   const pausedMoveCount = await page.evaluate(() => window.CaissaArena.game.history().length);
 
   const headerPosition = await page.locator('.arena-moves-header').evaluate(el => el.getBoundingClientRect().top);
@@ -691,14 +689,15 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   await expect(pause).toHaveAttribute('aria-label', 'Pause Arena match');
   await expect.poll(async () => page.evaluate(() => window.CaissaArena.game.history().length), { timeout: 15_000 }).toBeGreaterThan(pausedMoveCount);
   const resumedStatus = await page.evaluate(() => ({
-    label: document.querySelector('#arenaStatusTurn').textContent,
-    expected: `${window.CaissaArena.game.turn() === 'w' ? 'White' : 'Black'} to move`,
+    label: document.querySelector('#arenaStatusText').textContent,
+    expectedSuffix: `${window.CaissaArena.game.turn() === 'w' ? 'White' : 'Black'} to move`,
     sameWorkers: window.__arenaWorkerRefs.every((worker, index) => worker === [window.CaissaArena.whiteEngineInstance, window.CaissaArena.blackEngineInstance, window.CaissaArena.evaluatorEngine][index])
   }));
-  expect(resumedStatus).toEqual({ label: resumedStatus.expected, expected: resumedStatus.expected, sameWorkers: true });
+  expect(resumedStatus.label).toMatch(new RegExp(`^Running · Move \\d+ · ${resumedStatus.expectedSuffix}$`));
+  expect(resumedStatus.sameWorkers).toBe(true);
   await page.locator('#arenaStopMatch').click();
   await expect.poll(async () => page.evaluate(() => window.CaissaArena.state.matchState)).toBe('idle');
-  await expect(page.locator('#arenaStatusTurn')).toHaveText('Stopped');
+  await expect(page.locator('#arenaStatusText')).toHaveText('Stopped');
   await expect(page.locator('#arenaTurnStatus')).toHaveAttribute('data-turn', 'neutral');
 
   await page.getByRole('tab', { name: 'Tournament' }).click();

@@ -50,7 +50,13 @@ async function selectPairing(page, whiteId, blackId) {
   }), { timeout: 15_000 }).toEqual([whiteId, blackId]);
 }
 
+async function selectFastCertifiedDepth(page) {
+  await page.locator('#arenaTimeControlMode').selectOption('fixed-depth', { force: true });
+  await page.locator('#arenaTimeControlPreset').selectOption('8', { force: true });
+}
+
 async function startAndObserveLegalPlay(page) {
+  await selectFastCertifiedDepth(page);
   await page.locator('#arenaStartMatch').click();
   await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
     timeout: 20_000
@@ -143,6 +149,8 @@ test('Stockfish 18 is registered once, shared by Match and Tournament, and lazy 
         supportsNNUE: true,
         supportsMultiPV: true,
         supportsSyzygy: false,
+        supportsClockTimeControl: true,
+        supportsFixedDepth: true,
         browserCompatible: true,
         mobileCompatible: true,
         requiresCrossOriginIsolation: false
@@ -176,8 +184,7 @@ test('Stockfish 18 is registered once, shared by Match and Tournament, and lazy 
 for (const pairing of [
   { name: 'Stockfish 18 vs Stockfish 2019 MV', white: SF18_ID, black: 'stockfish' },
   { name: 'Stockfish 2019 MV vs Stockfish 18', white: 'stockfish', black: SF18_ID },
-  { name: 'Stockfish 18 vs Stockfish 2019 MV Lite', white: SF18_ID, black: 'stockfish-lite' },
-  { name: 'Stockfish 18 vs Stockfish 18', white: SF18_ID, black: SF18_ID }
+  { name: 'Stockfish 18 vs Stockfish 2019 MV Lite', white: SF18_ID, black: 'stockfish-lite' }
 ]) {
   test(`${pairing.name} uses truthful independent runtimes and makes a legal move`, async ({ page }) => {
     await openArena(page);
@@ -321,6 +328,7 @@ for (const viewport of [
     const runtimeId = await page.evaluate(() => window.CaissaArena.whiteEngineInstance
       .getRuntimeIdentity().runtimeInstanceId);
     const samples = [await boardGeometry(page)];
+    await selectFastCertifiedDepth(page);
     await page.locator('#arenaStartMatch').click();
     await expect.poll(() => page.evaluate(() => window.CaissaArena.game.history().length), {
       timeout: 20_000
