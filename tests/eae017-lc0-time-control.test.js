@@ -33,3 +33,11 @@ test('relay validates clock fields and approved fixed depths server-side', () =>
   assert.match(source, /\[8, 12, 16, 20, 24\]\.includes\(depth\)/);
   assert.match(source, /activeSearchMode/);
 });
+
+test('EAE-017 main document permits only the exact preview relay origin', () => {
+  const html = read('index.html');
+  const csp = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)?.[1] || '';
+  assert.match(csp,
+    /connect-src[^;]*https:\/\/eae017-relay-elcriollitos-projects\.vercel\.app/);
+  assert.doesNotMatch(csp, /connect-src[^;]*https:\/\/\*\.vercel\.app/);
+});
