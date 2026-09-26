@@ -9,7 +9,7 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('EAE-017.1 manifest pins the tc1r1 corresponding source release', async () => {
   const source = JSON.parse(await readFile(new URL('corresponding-source.json', compliance)));
-  assert.equal(source.releaseId, 'lc0-browser-source-v0.1.2');
+  assert.equal(source.releaseId, 'lc0-browser-source-v0.1.3');
   assert.equal(source.lc0Version, 'v0.33.0-dev+git.482bb4a');
   assert.equal(source.lc0Commit, '482bb4a830287b726ebe7d42f14ab7f5f17c18a0');
   assert.equal(source.source.commit, source.lc0Commit);
@@ -19,7 +19,7 @@ test('EAE-017.1 manifest pins the tc1r1 corresponding source release', async () 
   assert.equal(source.network.bytes, 1313193);
   assert.equal(source.buildManifestSha256,
     '9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45');
-  assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\.2\//);
+  assert.match(source.publicSourceUrl, /releases\/download\/lc0-browser-source-v0\.1\.3\//);
   assert.match(source.sourceArchiveSha256, /^[0-9a-f]{64}$/);
   assert.ok(source.sourceArchiveBytes > 1_000_000);
   assert.equal(source.releaseImmutable, true);

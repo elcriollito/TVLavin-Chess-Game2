@@ -7,18 +7,18 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $sourceCommit = '482bb4a830287b726ebe7d42f14ab7f5f17c18a0'
-$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.2.zip'
+$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.3.zip'
 $fixedTimestamp = [DateTimeOffset]::FromUnixTimeSeconds(1790395200)
 $complianceRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path (Join-Path $complianceRoot '..\..')).Path
 $sourceRoot = (Resolve-Path -LiteralPath $SourceCheckout).Path
 
 if (-not $OutputDirectory) {
-  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1.2'
+  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1.3'
 }
 [System.IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
 $outputRoot = (Resolve-Path -LiteralPath $OutputDirectory).Path
-$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1.2'
+$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1.3'
 $archivePath = Join-Path $outputRoot $archiveName
 $checksumPath = "$archivePath.sha256"
 
@@ -29,7 +29,7 @@ if (& git -C $sourceRoot status --porcelain) {
   throw 'Source checkout is dirty.'
 }
 if (-not $stageRoot.StartsWith($outputRoot, [StringComparison]::OrdinalIgnoreCase) -or
-    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1.2') {
+    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1.3') {
   throw 'Unsafe staging path.'
 }
 
@@ -167,7 +167,7 @@ try {
   }
   $contentManifest = [ordered]@{
     schemaVersion = 1
-    releaseId = 'lc0-browser-source-v0.1.2'
+    releaseId = 'lc0-browser-source-v0.1.3'
     generatedFromCaissaCommit = '5eaa8ec433d4951fe7d8309c436589f20d0c9f38'
     lc0Commit = $sourceCommit
     sourceDateEpoch = 1790395200
