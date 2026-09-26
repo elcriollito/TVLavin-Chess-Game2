@@ -72,6 +72,18 @@ test('public Arena carries a compact consent surface and no static runtime paylo
   assert.match(html, /additional browser memory and processing power/);
   assert.match(html, /\/about#engine-sources/);
   assert.doesNotMatch(html, /lc0\.wasm|maia-1100\.pb\.gz|isolated-browser-runtime-adapter\.js/);
+  assert.match(read('about.html'), /lc0-browser-source-v0\.1\.3/);
+  assert.match(read('about.html'), /9b87bc53ce6bb75388f70158faf40c4b73434ff137e58fef06998ec7cc5e7def/);
+});
+
+test('public Experimental visibility remains separate from authenticated session eligibility', () => {
+  const api = read('api/eae016.js');
+  const client = read('js/arena-lc0-rollout.js');
+  assert.match(api, /publicExperimental = stage === 'EXPERIMENTAL_OPT_IN'/);
+  assert.match(api, /const visible = mode === 'ENABLED'/);
+  assert.match(client, /this\.shell\.hidden = !this\.visible/);
+  assert.match(client, /!this\.eligible \|\| this\.config\?\.authenticated !== true/);
+  assert.match(client, /Sign in to use Lc0 Experimental\./);
 });
 
 test('rollout controller gates browser support before dynamic adapter loading', () => {

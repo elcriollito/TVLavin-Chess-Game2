@@ -10,6 +10,7 @@
     const rollout = {
         enabled: false,
         eligible: false,
+        visible: false,
         config: null,
         adapter: null,
         pendingPopup: null,
@@ -103,7 +104,7 @@
         },
 
         reasonMessage(reason) {
-            if (reason === 'AUTH_REQUIRED') return 'Sign in to check Experimental Lc0 availability.';
+            if (reason === 'AUTH_REQUIRED') return 'Sign in to use Lc0 Experimental.';
             if (reason === 'RUNTIME_UNAVAILABLE' || reason === 'INTEGRITY_UNAVAILABLE')
                 return 'Lc0 is temporarily unavailable. Stockfish engines remain available.';
             if (reason === 'RELEASE_DRAINING')
@@ -296,6 +297,11 @@
             this.modalConfirm.disabled = true;
             this.status('Enabling Experimental Lc0…');
             try {
+                if (!this.eligible || this.config?.authenticated !== true) {
+                    this.closeConsent();
+                    this.status('Sign in to use Lc0 Experimental.');
+                    return false;
+                }
                 this.setPreference(true);
                 await this.register();
                 this.metric('opt_in_enabled');
@@ -365,8 +371,8 @@
 
         render() {
             if (!this.shell) return;
-            this.shell.hidden = !this.eligible;
-            if (!this.eligible) return;
+            this.shell.hidden = !this.visible;
+            if (!this.visible) return;
             if (this.enableButton) this.enableButton.hidden = this.enabled;
             if (this.disableButton) this.disableButton.hidden = !this.enabled;
             if (this.runtimeButton && !this.pendingPopup) this.runtimeButton.hidden = true;
@@ -382,10 +388,6 @@
                 this.config = config;
                 const capability = this.capability();
                 if (config.releaseStage === 'DISABLED' || config.mode !== 'ENABLED') return false;
-                if (!config.eligible) {
-                    this.status(this.reasonMessage(config.reason));
-                    return false;
-                }
                 if (!capability.supported) {
                     this.metric('lc0_unsupported_browser');
                     this.status('Lc0 Experimental is currently available on desktop Chrome and Edge.');
@@ -403,13 +405,20 @@
                     this.status('Lc0 is temporarily unavailable. Stockfish engines remain available.');
                     return false;
                 }
-                this.eligible = true;
+                this.visible = config.visible === true || config.eligible === true;
+                this.eligible = config.eligible === true;
                 this.render();
-                this.status('Available by explicit opt-in.');
-                if (this.preference()) await this.register();
-                return true;
+                if (!this.visible) {
+                    this.status(this.reasonMessage(config.reason));
+                    return false;
+                }
+                this.status(this.eligible ? 'Available by explicit opt-in.' :
+                    this.reasonMessage(config.reason));
+                if (this.eligible && this.preference()) await this.register();
+                return this.eligible;
             } catch {
                 this.eligible = false;
+                this.visible = false;
                 this.render();
                 return false;
             }

@@ -46,7 +46,9 @@ test('EAE-017.1 manifest pins the tc1r1 corresponding source release', async () 
     assert.equal(patch.upstreamBaseCommit, source.lc0Commit);
   }
   for (const patch of source.clientIntegrationPatches) {
-    const bytes = await readFile(new URL(`experiments/lc0-production-compliance/patches/${patch.filename}`, root));
+    const raw = await readFile(new URL(
+      `experiments/lc0-production-compliance/patches/${patch.filename}`, root));
+    const bytes = Buffer.from(raw.toString('utf8').replace(/\r\n/g, '\n'));
     assert.equal(sha256(bytes), patch.sha256, patch.filename);
   }
 });

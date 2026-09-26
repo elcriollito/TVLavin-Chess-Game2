@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 const config = origin => ({
   enabled: true,
   eligible: true,
+  visible: true,
   authenticated: true,
   reason: null,
   mode: 'ENABLED',
@@ -66,6 +67,33 @@ test('eligible desktop user receives consent, truthful identity, and reversible 
     .toContainText('Lc0 — Maia 1100');
   await page.locator('#arenaLc0Disable').click();
   await expect.poll(() => page.locator('#arenaWhiteEngine option[value="lc0-maia-1100-preview"]').count()).toBe(0);
+});
+
+test('public anonymous user sees Experimental Lc0 but cannot load or create it', async ({ page }) => {
+  const lc0Requests = [];
+  page.on('request', request => {
+    if (/isolated-browser-runtime-adapter|\.wasm|maia-1100\.pb|\/api\/eae011/i.test(request.url()))
+      lc0Requests.push(request.url());
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await browserIdentity(page);
+  await page.route('**/api/eae016', route => route.fulfill({ status: 200,
+    contentType: 'application/json', body: JSON.stringify({
+      ...config(new URL(route.request().url()).origin),
+      enabled: false, eligible: false, visible: true, authenticated: false,
+      reason: 'AUTH_REQUIRED', releaseStage: 'EXPERIMENTAL_OPT_IN'
+    }) }));
+  await page.goto('/arena');
+  await expect(page.locator('#arenaExperimentalEngines')).toBeVisible();
+  await page.locator('#arenaExperimentalToggle').click();
+  await expect(page.locator('#arenaExperimentalPanel')).toContainText('Sign in to use Lc0 Experimental.');
+  await page.locator('#arenaLc0Enable').click();
+  await expect(page.locator('#arenaLc0ConsentModal')).toBeVisible();
+  await page.locator('#arenaLc0ConsentConfirm').click();
+  await expect(page.locator('#arenaLc0ConsentModal')).toBeHidden();
+  await expect(page.locator('#arenaExperimentalPanel')).toContainText('Sign in to use Lc0 Experimental.');
+  await expect(page.locator('#arenaWhiteEngine option[value="lc0-maia-1100-preview"]')).toHaveCount(0);
+  expect(lc0Requests).toEqual([]);
 });
 
 test('unsupported/mobile clients never load the adapter or expose the control', async ({ page }) => {
