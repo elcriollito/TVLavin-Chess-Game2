@@ -327,22 +327,15 @@ class RealLc0RelayClient {
       const stopAt = performance.now();
       active.stopRequested = true;
       await ack();
-      if (active.naturalCompletionPromise) {
-        await active.naturalCompletionPromise;
+      if (active.completionPromise) {
+        await active.completionPromise;
         return;
       }
       if (!active.bestmove) this.runtime.send('stop');
       const line = active.bestmove || await this.runtime.waitForLine(value => /^bestmove\s+\S+/.test(value),
         { start: active.startLine, timeout: 2_200 });
       this.metrics.stopToLocalBestmoveMs.push(performance.now() - stopAt);
-      const move = /^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/.exec(line)?.[1];
-      const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(move || '');
-      if (!parts || !active.chess.move({ from: parts[1], to: parts[2], promotion: parts[3] || 'q' }))
-        throw new Error('BESTMOVE_ILLEGAL');
-      await this.message('BESTMOVE', { searchId: active.searchId, move, emittedAt: Date.now() });
-      await this.message('STOPPED', { searchId: active.searchId });
-      this.lastCompletedSearchId = active.searchId;
-      this.runtime.state = 'READY'; this.active = null;
+      await this.completeSearch(active, line);
     } else if (command.type === 'RESET') {
       if (this.active || this.runtime.state !== 'READY') throw new Error('RESET_STATE_INVALID');
       await ack();
@@ -369,10 +362,10 @@ class RealLc0RelayClient {
     }
   }
 
-  finishNaturalSearch(active, line) {
-    if (!active || active.mode === 'infinite' || active.naturalCompletionPromise)
-      return active?.naturalCompletionPromise || null;
-    active.naturalCompletionPromise = (async () => {
+  completeSearch(active, line) {
+    if (!active) return null;
+    if (active.completionPromise) return active.completionPromise;
+    active.completionPromise = (async () => {
       await delay(0);
       const move = /^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/.exec(line)?.[1];
       const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(move || '');
@@ -384,7 +377,12 @@ class RealLc0RelayClient {
       this.runtime.state = 'READY';
       if (this.active === active) this.active = null;
     })().catch(error => this.fail(error));
-    return active.naturalCompletionPromise;
+    return active.completionPromise;
+  }
+
+  finishNaturalSearch(active, line) {
+    if (!active || active.mode === 'infinite') return active?.completionPromise || null;
+    return this.completeSearch(active, line);
   }
 
   runtimeEvent(event) {
