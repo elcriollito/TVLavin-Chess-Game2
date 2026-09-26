@@ -71,7 +71,7 @@ test('public Arena carries a compact consent surface and no static runtime paylo
   assert.match(html, /desktop Chrome and Edge/);
   assert.match(html, /additional browser memory and processing power/);
   assert.match(html, /\/about#engine-sources/);
-  assert.match(html, /arena-lc0-rollout\.js\?v=1\.0\.2/);
+  assert.match(html, /arena-lc0-rollout\.js\?v=1\.0\.3/);
   assert.doesNotMatch(html, /lc0\.wasm|maia-1100\.pb\.gz|isolated-browser-runtime-adapter\.js/);
 });
 
