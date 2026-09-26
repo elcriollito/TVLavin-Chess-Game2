@@ -252,7 +252,7 @@ $('difficulty').addEventListener('change', event => { state.difficulty = event.t
 window.addEventListener('pagehide', () => { engine.stop(); board.destroy(); }, { once: true });
 
 try {
-    const response = await fetch('/puzzles/lichess-curated-preview.json');
+    const response = await fetch('/data/puzzles/lichess-curated-preview.json');
     if (!response.ok) throw new Error(`Puzzle collection HTTP ${response.status}`);
     state.data = await response.json();
     drawCategories();

@@ -65,7 +65,7 @@ def main():
             elif entry[:2] > heap[0][:2]:
                 heapq.heapreplace(heap, entry)
     selected = {entry[2]["id"]: entry[2] for heap in buckets.values() for entry in heap}
-    output = Path("public/puzzles/lichess-curated-preview.json")
+    output = Path("public/data/puzzles/lichess-curated-preview.json")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps({
         "source": "Lichess Open Database puzzles (CC0)",

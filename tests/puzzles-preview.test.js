@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { PuzzleSession, poolFor } from '../js/puzzles/model.js';
 
-const dataset = JSON.parse(fs.readFileSync(new URL('../public/puzzles/lichess-curated-preview.json', import.meta.url)));
+const dataset = JSON.parse(fs.readFileSync(new URL('../public/data/puzzles/lichess-curated-preview.json', import.meta.url)));
 
 test('curated positions preserve Lichess setup move and solve legally', () => {
     assert.ok(dataset.puzzles.length >= 1000);
@@ -47,6 +47,7 @@ test('category, theme, and difficulty filters use the selected rating range', ()
 test('the native preview route and dataset are separate from the ChessBase gateway', () => {
     const config = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url)));
     assert.ok(config.rewrites.some(rule => rule.source === '/puzzles' && rule.destination === '/puzzles.html'));
+    assert.ok(config.rewrites.some(rule => rule.source === '/data/:path*' && rule.destination === '/public/data/:path*'));
     assert.ok(config.rewrites.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/tactics.html'));
     const page = fs.readFileSync(new URL('../puzzles.html', import.meta.url), 'utf8');
     assert.match(page, /id="puzzle-board"/);

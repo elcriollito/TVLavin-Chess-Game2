@@ -6,7 +6,7 @@
 ## Preview shipped in this branch
 
 - `/puzzles` is separate from the existing ChessBase gateway at `/puzzles/chessbase-tactics`.
-- A 1,361-position CC0 subset of the [Lichess puzzle export](https://database.lichess.org/#puzzles) is bundled at `public/puzzles/lichess-curated-preview.json` (about 393 KiB).
+- A 1,361-position CC0 subset of the [Lichess puzzle export](https://database.lichess.org/#puzzles) is bundled at `public/data/puzzles/lichess-curated-preview.json` (about 393 KiB), served through the existing `/data/:path*` rewrite.
 - Source compressed export downloaded September 26, 2026: SHA-256 `95fd454bec9efe8f940d5863d5db4c57474f281a865834997bd8cb5d6a149bb9`. Rebuild with `zstd -dc lichess_db_puzzle.csv.zst | python3 scripts/build-puzzle-preview.py` from the repository root.
 - Selection: rating 1200–2400, deviation at most 100, popularity at least 80, 500 or more plays; eight highest quality records per theme and rating band. This is a discovery filter, not a claim that Stockfish has individually certified every puzzle.
 - The trainer applies the opponent's first UCI move before showing the position, then validates user moves with the existing chess.js library. The board uses CAISSA's existing persistent board adapter. SAN move history, hints, solution reveal, session count, and source game link are present.
