@@ -40,7 +40,7 @@ export function relayMetrics({ action, messageType, messageCode, status, errorCo
     metric: status === 202 ? 'ready_success' : 'ready_failure', value: 1, latencyMs
   });
   if (action === 'message' && messageType === 'CLEANUP') metrics.push({
-    metric: status === 202 ? 'cleanup_success' : 'cleanup_failure', value: 1, latencyMs
+    metric: [200, 202].includes(status) ? 'cleanup_success' : 'cleanup_failure', value: 1, latencyMs
   });
   if (['stream_main', 'stream_engine'].includes(action)) metrics.push({
     metric: status === 200 ? 'stream_reconnect' : 'stream_reconnect_failure', value: 1,
@@ -49,7 +49,7 @@ export function relayMetrics({ action, messageType, messageCode, status, errorCo
   const code = String(errorCode || messageCode || '');
   // A post-termination owner inspection is the cleanup proof, not an outage.
   // Count SESSION_GONE only when an operational action unexpectedly loses state.
-  if (code === 'SESSION_GONE' && action !== 'inspect')
+  if (code === 'SESSION_GONE' && action !== 'inspect' && status >= 400)
     metrics.push({ metric: 'session_gone', value: 1 });
   if (code.includes('STOP_TIMEOUT') || code === 'STOP_RESULT_TIMEOUT')
     metrics.push({ metric: 'stop_timeout', value: 1 });
@@ -73,6 +73,13 @@ export function relayMetrics({ action, messageType, messageCode, status, errorCo
 export function crossSiteAllowed(site, origin, pair) {
   return site !== 'cross-site' || (pair.productionShape &&
     [pair.main, pair.engine].includes(origin));
+}
+
+export function idempotentCleanupResult(action, messageType, error) {
+  if (action === 'message' && messageType === 'CLEANUP' &&
+      error instanceof RelayError && error.code === 'SESSION_GONE')
+    return { accepted: true, type: 'CLEANUP', status: 'ALREADY_CLEANED' };
+  return null;
 }
 
 function origins(env) {
@@ -269,8 +276,8 @@ export default async function handler(req, res) {
       const body = input(req), policy = controlPolicy(mode, action, body.type);
       messageType = body.type; messageCode = body.code || null;
       if (!policy.allowed) throw new RelayError(policy.code, 503);
-      return respond(res, 202,
-        await broker.engineMessage(sessionId, bearer(req), body), req, pair);
+      const result = await broker.engineMessage(sessionId, bearer(req), body);
+      return respond(res, body.type === 'CLEANUP' ? 200 : 202, result, req, pair);
     }
     if (action === 'engine_state') return respond(res, 200,
       await broker.inspectEngine(sessionId, bearer(req)));
@@ -307,6 +314,11 @@ export default async function handler(req, res) {
   } catch (error) {
     errorCode = error instanceof RelayError ? error.code : 'INTERNAL_ERROR';
     if (res.headersSent) { res.end(); return; }
+    const cleanup = idempotentCleanupResult(action, messageType, error);
+    if (cleanup) {
+      errorCode = null;
+      return respond(res, 200, cleanup);
+    }
     return respond(res, error instanceof RelayError ? error.status : 500,
       { error: error instanceof RelayError ? error.code : 'INTERNAL_ERROR' });
   } finally {
