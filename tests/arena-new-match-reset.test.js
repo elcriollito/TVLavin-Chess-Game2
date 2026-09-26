@@ -34,7 +34,7 @@ test('reset contract preserves configuration/history while clearing live state',
   assert.match(reset, /this\.resetBoard\(\)/);
   assert.match(reset, /this\.initializeMatchClock\(timeControl\)/);
   assert.match(reset, /this\.updateGameStatus\(\{ result: 'Ready'/);
-  assert.doesNotMatch(reset, /matchHistory\s*=/);
+  assert.match(reset, /matchHistory = this\.state\.matchHistory\.filter\(series => series\.config\?\.savePgn !== false\)/);
   assert.doesNotMatch(reset, /state\.tournament\s*=/);
 });
 

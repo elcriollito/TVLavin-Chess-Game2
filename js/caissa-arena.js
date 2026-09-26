@@ -2140,6 +2140,10 @@ const CaissaArena = {
 
             this._cleanupPromise = null;
             this.matchSeries?.reset?.();
+            // Preserve committed PGN/history while retaining the established
+            // contract that Save PGN = off keeps only the current exportable
+            // live result and does not archive it into a future setup.
+            this.state.matchHistory = this.state.matchHistory.filter(series => series.config?.savePgn !== false);
             this.state.mode = 'match';
             this.state.matchState = 'idle';
             this.state.currentGame = null;
