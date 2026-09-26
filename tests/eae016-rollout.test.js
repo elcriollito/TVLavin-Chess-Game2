@@ -64,38 +64,34 @@ test('public production datastore access requires explicit rollout controls', ()
     SUPABASE_SERVICE_ROLE_KEY: base.EAE011_SUPABASE_SERVICE_ROLE_KEY }) instanceof SupabaseStore);
 });
 
-test('public Arena carries a compact consent surface and no static runtime payload', () => {
+test('public Arena carries no Lc0 product surface or rollout loader', () => {
   const html = read('index.html');
-  assert.match(html, /id="arenaExperimentalEngines"/);
-  assert.match(html, /Enable Experimental Lc0/);
-  assert.match(html, /desktop Chrome and Edge/);
-  assert.match(html, /additional browser memory and processing power/);
-  assert.match(html, /\/about#engine-sources/);
+  assert.doesNotMatch(html, /id="arenaExperimentalEngines"/);
+  assert.doesNotMatch(html, /id="arenaLc0ConsentModal"/);
+  assert.doesNotMatch(html, /Experimental Engines/);
+  assert.doesNotMatch(html, /js\/arena-lc0-rollout\.js/);
   assert.doesNotMatch(html, /lc0\.wasm|maia-1100\.pb\.gz|isolated-browser-runtime-adapter\.js/);
   assert.match(read('about.html'), /lc0-browser-source-v0\.1\.3/);
   assert.match(read('about.html'), /9b87bc53ce6bb75388f70158faf40c4b73434ff137e58fef06998ec7cc5e7def/);
 });
 
-test('public Experimental visibility remains separate from authenticated session eligibility', () => {
+test('Arena control plane is fail-closed in the dormant product state', () => {
   const api = read('api/eae016.js');
   const client = read('js/arena-lc0-rollout.js');
-  assert.match(api, /publicExperimental = stage === 'EXPERIMENTAL_OPT_IN'/);
-  assert.match(api, /const visible = mode === 'ENABLED'/);
-  assert.match(client, /this\.shell\.hidden = !this\.visible/);
-  assert.match(client, /!this\.eligible \|\| this\.config\?\.authenticated !== true/);
-  assert.match(client, /Sign in to use Lc0 Experimental\./);
-  assert.match(api, /stage === 'DISABLED' \? 'RELEASE_DISABLED'/);
-  assert.match(api, /stage === 'DRAINING' \? 'RELEASE_DRAINING'/);
+  assert.match(api, /ARENA_PRODUCT_STATUS = 'LC0_ARENA_RETIRED_DORMANT'/);
+  assert.match(api, /mode: 'DISABLED'/);
+  assert.match(api, /releaseStage: 'DISABLED'/);
+  assert.match(api, /if \(req\.method === 'GET'\) return dormantArenaConfig\(res\)/);
+  assert.match(client, /SUPPORTS_STANDARD_ARENA = false/);
+  assert.match(client, /productOwner: 'caissa-analyzer-future'/);
+  assert.match(client, /status: 'dormant'/);
 });
 
-test('rollout controller gates browser support before dynamic adapter loading', () => {
+test('dormant rollout controller exits before auth, API, or dynamic adapter loading', () => {
   const source = read('js/arena-lc0-rollout.js');
-  assert.match(source, /Google Chrome\|Microsoft Edge/);
-  assert.match(source, /Android\|iPhone\|iPad\|iPod\|Mobile/);
-  assert.match(source, /config\.runtimeHealthy === true/);
-  assert.match(source, /config\.relayHealthy === true/);
   const prepare = source.slice(source.indexOf('async prepare()'));
-  assert.ok(prepare.indexOf('if (!capability.supported)') < prepare.indexOf('await this.register()'));
+  assert.ok(prepare.indexOf('if (!SUPPORTS_STANDARD_ARENA)') < prepare.indexOf('this.cacheElements()'));
+  assert.ok(prepare.indexOf('if (!SUPPORTS_STANDARD_ARENA)') < prepare.indexOf('await this.request()'));
   assert.match(source, /SOURCE_MANIFEST.*492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f/s);
   assert.match(source, /DEPLOYMENT_MANIFEST.*9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45/s);
 });
@@ -140,7 +136,7 @@ test('cold Arena token acquisition waits for Clerk to publish a usable JWT', asy
   assert.equal(attempts, 3);
 });
 
-test('normal registry excludes Lc0 until explicit opt-in and supports clean disable', () => {
+test('normal registry rejects dormant Lc0 Arena registration', () => {
   const source = read('js/engine-registry.js');
   const window = { WebAssembly: {}, matchMedia: () => ({ matches: false }) };
   vm.runInNewContext(source, { window, console }, { filename: 'engine-registry.js' });
@@ -148,9 +144,8 @@ test('normal registry excludes Lc0 until explicit opt-in and supports clean disa
   assert.equal(registry.listArenaProviders().some(item => item.id === 'lc0-maia-1100-preview'), false);
   window.CaissaArenaPreview = { enabled: true };
   assert.equal(registry.registerArenaPreviewProvider({ id: 'lc0-maia-1100-preview',
-    availability: 'available', enabled: true, workerPath: '/isolated' }, () => ({})), true);
-  assert.equal(registry.listArenaProviders().filter(item => item.id === 'lc0-maia-1100-preview').length, 1);
-  assert.equal(registry.unregisterArenaPreviewProvider('lc0-maia-1100-preview'), true);
+    availability: 'unavailable', enabled: false, supportsStandardArena: false,
+    workerPath: '/isolated' }, () => ({})), false);
   assert.equal(registry.listArenaProviders().some(item => item.id === 'lc0-maia-1100-preview'), false);
 });
 

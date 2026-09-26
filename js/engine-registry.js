@@ -176,7 +176,7 @@
         if (!provider) return Object.freeze({ available: false, reason: 'Unknown engine provider' });
         if (provider.mobileCompatible === false && window.matchMedia?.('(max-width: 1050px)').matches)
             return Object.freeze({ available: false,
-                reason: 'Lc0 experimental engine is currently available on supported desktop browsers only.' });
+                reason: 'This engine provider is available on supported desktop browsers only.' });
         const sessionReason = arenaSessionUnavailable.get(provider.id);
         if (sessionReason) return Object.freeze({ available: false, reason: sessionReason });
         const available = provider.availability === 'available' && provider.enabled !== false;
@@ -536,6 +536,7 @@
         },
         registerArenaPreviewProvider(provider, factory) {
             if (provider?.id !== 'lc0-maia-1100-preview' ||
+                provider?.supportsStandardArena !== true ||
                 window.CaissaArenaPreview?.enabled !== true ||
                 typeof factory !== 'function' || arenaPreviewProviders.size)
                 return false;

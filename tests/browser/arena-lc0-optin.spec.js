@@ -1,111 +1,78 @@
 import { test, expect } from '@playwright/test';
 
-const config = origin => ({
-  enabled: true,
-  eligible: true,
-  visible: true,
-  authenticated: true,
-  reason: null,
-  mode: 'ENABLED',
-  releaseStage: 'INTERNAL_ONLY',
-  providerId: 'lc0-maia-1100-preview',
-  mainOrigin: origin,
-  engineOrigin: 'https://caissa-lc0-runtime-eae015a.vercel.app',
-  relayOrigin: 'https://caissa-lc0-relay-eae015a.vercel.app',
-  enginePath: '/',
-  sourceManifestSha256: '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f',
-  manifestSha256: '9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45',
-  runtimeHealthy: true,
-  relayHealthy: true
-});
-
-async function browserIdentity(page, mobile = false) {
-  await page.addInitScript(({ mobile }) => {
-    localStorage.setItem('caissa_onboarding_completed', 'true');
-    Object.defineProperty(navigator, 'userAgentData', { configurable: true,
-      value: { brands: [{ brand: 'Google Chrome', version: '140' }], mobile } });
-  }, { mobile });
+async function openArena(page, viewport = { width: 1440, height: 900 }) {
+  await page.setViewportSize(viewport);
+  await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+  await page.goto('/arena');
+  await expect(page.locator('#arenaPanelMatch')).toBeVisible();
+  await expect.poll(() => page.locator('#arenaWhiteEngine option').count()).toBe(4);
 }
 
-test('DISABLED rollout leaves normal Arena unchanged and loads no Lc0 assets', async ({ page }) => {
-  const lc0Requests = [];
+function observeLc0Requests(page) {
+  const requests = [];
   page.on('request', request => {
-    if (/lc0|maia-1100|eae015a-lc0/i.test(request.url())) lc0Requests.push(request.url());
+    if (/lc0|maia-1100|eae016|eae011|onnx|ort-wasm|isolated-browser-runtime/i.test(request.url())) {
+      requests.push(request.url());
+    }
   });
-  await browserIdentity(page);
-  await page.route('**/api/eae016', route => route.fulfill({ status: 200,
-    contentType: 'application/json', body: JSON.stringify({ ...config(new URL(route.request().url()).origin),
-      enabled: false, eligible: false, mode: 'DISABLED', releaseStage: 'DISABLED',
-      reason: 'RELEASE_DISABLED', runtimeHealthy: null, relayHealthy: null }) }));
-  await page.goto('/arena');
-  await expect(page.locator('#arenaExperimentalEngines')).toBeHidden();
-  await expect(page.locator('#arenaWhiteEngine option[value="lc0-maia-1100-preview"]')).toHaveCount(0);
-  expect(lc0Requests.filter(url => /adapter|\.wasm|maia-1100\.pb/i.test(url))).toEqual([]);
-});
+  return requests;
+}
 
-test('eligible desktop user receives consent, truthful identity, and reversible opt-in', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await browserIdentity(page);
-  await page.route('**/api/eae016', async route => {
-    if (route.request().method() === 'POST') return route.fulfill({ status: 202,
-      contentType: 'application/json', body: '{"accepted":true}' });
-    return route.fulfill({ status: 200, contentType: 'application/json',
-      body: JSON.stringify(config(new URL(route.request().url()).origin)) });
-  });
-  await page.goto('/arena');
-  const shell = page.locator('#arenaExperimentalEngines');
-  await expect(shell).toBeVisible();
-  await page.locator('#arenaExperimentalToggle').click();
-  await expect(page.locator('#arenaExperimentalPanel')).toContainText('Lc0 — Maia 1100');
-  await expect(page.locator('#arenaExperimentalPanel')).toContainText('Experimental');
-  await page.locator('#arenaLc0Enable').click();
-  await expect(page.locator('#arenaLc0ConsentModal')).toBeVisible();
-  await expect(page.locator('#arenaLc0ConsentModal')).toContainText('desktop Chrome and Edge');
-  await page.locator('#arenaLc0ConsentConfirm').click();
-  await expect.poll(() => page.locator('#arenaWhiteEngine option[value="lc0-maia-1100-preview"]').count()).toBe(1);
-  await expect(page.locator('#arenaWhiteEngine option[value="lc0-maia-1100-preview"]'))
-    .toContainText('Lc0 — Maia 1100');
-  await page.locator('#arenaLc0Disable').click();
-  await expect.poll(() => page.locator('#arenaWhiteEngine option[value="lc0-maia-1100-preview"]').count()).toBe(0);
-});
+test('desktop Arena exposes only the four standard Stockfish providers', async ({ page }) => {
+  const lc0Requests = observeLc0Requests(page);
+  await openArena(page);
 
-test('public anonymous user sees Experimental Lc0 but cannot load or create it', async ({ page }) => {
-  const lc0Requests = [];
-  page.on('request', request => {
-    if (/isolated-browser-runtime-adapter|\.wasm|maia-1100\.pb|\/api\/eae011/i.test(request.url()))
-      lc0Requests.push(request.url());
-  });
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await browserIdentity(page);
-  await page.route('**/api/eae016', route => route.fulfill({ status: 200,
-    contentType: 'application/json', body: JSON.stringify({
-      ...config(new URL(route.request().url()).origin),
-      enabled: false, eligible: false, visible: true, authenticated: false,
-      reason: 'AUTH_REQUIRED', releaseStage: 'EXPERIMENTAL_OPT_IN'
-    }) }));
-  await page.goto('/arena');
-  await expect(page.locator('#arenaExperimentalEngines')).toBeVisible();
-  await page.locator('#arenaExperimentalToggle').click();
-  await expect(page.locator('#arenaExperimentalPanel')).toContainText('Sign in to use Lc0 Experimental.');
-  await page.locator('#arenaLc0Enable').click();
-  await expect(page.locator('#arenaLc0ConsentModal')).toBeVisible();
-  await page.locator('#arenaLc0ConsentConfirm').click();
-  await expect(page.locator('#arenaLc0ConsentModal')).toBeHidden();
-  await expect(page.locator('#arenaExperimentalPanel')).toContainText('Sign in to use Lc0 Experimental.');
-  await expect(page.locator('#arenaWhiteEngine option[value="lc0-maia-1100-preview"]')).toHaveCount(0);
+  await expect(page.getByText('Experimental Engines', { exact: true })).toHaveCount(0);
+  await expect(page.locator('#arenaExperimentalEngines, #arenaLc0ConsentModal')).toHaveCount(0);
+  await expect(page.locator('#arenaWhiteEngine option')).toHaveText([
+    'Stockfish 2019 MV (Tier A)',
+    'Stockfish 2019 MV (Lite profile) (Tier B)',
+    'Stockfish 18 Lite (Tier B)',
+    'Stockfish 19 Lite (Tier B)'
+  ]);
+  await expect(page.locator('#arenaBlackEngine option')).toHaveCount(4);
+  await expect(page.locator('option[value="lc0-maia-1100-preview"]')).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Tournament' }).click();
+  await expect(page.locator('#arenaTournamentEngines input')).toHaveCount(4);
+  await expect(page.locator('#arenaTournamentEngines input[value="lc0-maia-1100-preview"]')).toHaveCount(0);
   expect(lc0Requests).toEqual([]);
 });
 
-test('unsupported/mobile clients never load the adapter or expose the control', async ({ page }) => {
-  const adapterRequests = [];
-  page.on('request', request => {
-    if (request.url().includes('isolated-browser-runtime-adapter')) adapterRequests.push(request.url());
+test('mobile Arena has no experimental UI and makes no Lc0 requests', async ({ page }) => {
+  const lc0Requests = observeLc0Requests(page);
+  await openArena(page, { width: 390, height: 844 });
+  await expect(page.getByText('Experimental Engines', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Lc0 — Maia 1100', { exact: true })).toHaveCount(0);
+  await expect(page.locator('#arenaWhiteEngine option')).toHaveCount(4);
+  expect(lc0Requests).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
+test('dormant rollout source cannot register into Engine Arena even if loaded manually', async ({ page }) => {
+  await openArena(page);
+  const result = await page.evaluate(async () => {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '/js/arena-lc0-rollout.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.append(script);
+    });
+    const prepared = await window.CaissaArenaRollout.prepare();
+    return {
+      prepared,
+      productStatus: window.CaissaArenaRollout.productStatus,
+      enabled: window.CaissaArenaRollout.enabled,
+      visible: window.CaissaArenaRollout.visible,
+      providerIds: window.EngineRegistry.listArenaProviders().map(provider => provider.id)
+    };
   });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await browserIdentity(page, true);
-  await page.route('**/api/eae016', route => route.fulfill({ status: 200,
-    contentType: 'application/json', body: JSON.stringify(config(new URL(route.request().url()).origin)) }));
-  await page.goto('/arena');
-  await expect(page.locator('#arenaExperimentalEngines')).toBeHidden();
-  expect(adapterRequests).toEqual([]);
+  expect(result).toEqual({
+    prepared: false,
+    productStatus: 'LC0_ARENA_RETIRED_DORMANT',
+    enabled: false,
+    visible: false,
+    providerIds: ['stockfish', 'stockfish-lite', 'stockfish-18-lite', 'stockfish-19-lite']
+  });
 });
