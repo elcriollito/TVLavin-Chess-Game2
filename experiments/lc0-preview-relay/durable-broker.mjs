@@ -88,6 +88,7 @@ export class DurableBroker {
       engineEpoch: 0, mainEpoch: 0, lastCommandSeq: 0, lastEngineSeq: 0,
       lastEngineCommandClaimedSeq: 0,
       pending: null, activeSearchId: null, completedSearchId: null,
+      activeSearchMode: null,
       bestmove: null, stopped: false, cleanup: false, reuseReadyFor: null,
       stopResultUntil: null,
       identity: null, cleanupEvidence: null,
@@ -227,17 +228,19 @@ export class DurableBroker {
   }
 
   async command(sessionId, userId, command) {
-    keys(command, ['type', 'seq', 'fen', 'moves', 'searchId', 'mode', 'nodes', 'newGame']);
+    keys(command, ['type', 'seq', 'fen', 'moves', 'searchId', 'mode', 'nodes', 'depth',
+      'wtime', 'btime', 'winc', 'binc', 'newGame']);
     if (bytes(command) > LIMITS.maxCommandBytes) throw new RelayError('COMMAND_TOO_LARGE', 413);
     await this.rateGuard(sessionId, this.owner(userId), 'COMMAND', 1_000,
       LIMITS.maxCommandsPerSecond);
     return this.mutate(sessionId, this.owner(userId), (state, _row, now) => {
-      const { type, seq, fen, moves, searchId, mode, nodes, newGame } = command;
+      const { type, seq, fen, moves, searchId, mode, nodes, depth,
+        wtime, btime, winc, binc, newGame } = command;
       if (!Number.isSafeInteger(seq) || seq !== state.lastCommandSeq + 1)
         throw new RelayError('SEQUENCE_INVALID', 409);
       if (state.pending) throw new RelayError('ACK_PENDING', 409);
       const phases = { HELLO: ['CLAIMED'], POSITION: ['READY', 'REUSE_READY'],
-        GO: ['POSITION_ACKED'], STOP: ['SEARCHING'], RESET: ['STOPPED'],
+        GO: ['POSITION_ACKED'], STOP: ['SEARCHING', 'STOPPED'], RESET: ['STOPPED'],
         QUIT: ['STOPPED', 'REUSE_READY', 'READY'] };
       if (!phases[type]?.includes(state.phase)) throw new RelayError('COMMAND_STATE_INVALID', 409);
       if (type === 'POSITION' && (typeof fen !== 'string' || fen.length > 256 ||
@@ -246,10 +249,19 @@ export class DurableBroker {
             moves.some(move => typeof move !== 'string' || !movePattern.test(move))))))
         throw new RelayError('POSITION_INVALID');
       if (type !== 'POSITION' && (fen !== undefined || moves !== undefined)) throw new RelayError('SCHEMA_INVALID');
-      if (type === 'GO' && !((mode === 'infinite' && nodes === undefined) ||
-          (mode === 'nodes' && Number.isSafeInteger(nodes) && nodes >= 1 && nodes <= 64)))
+      const clockValues = [wtime, btime, winc, binc];
+      const clockValid = clockValues.every(value =>
+        Number.isSafeInteger(value) && value >= 0 && value <= 86_400_000);
+      if (type === 'GO' && !((mode === 'infinite' && nodes === undefined && depth === undefined &&
+          clockValues.every(value => value === undefined)) ||
+          (mode === 'nodes' && Number.isSafeInteger(nodes) && nodes >= 1 && nodes <= 64 &&
+            depth === undefined && clockValues.every(value => value === undefined)) ||
+          (mode === 'depth' && [8, 12, 16, 20, 24].includes(depth) && nodes === undefined &&
+            clockValues.every(value => value === undefined)) ||
+          (mode === 'clock' && clockValid && nodes === undefined && depth === undefined)))
         throw new RelayError('GO_INVALID');
-      if (type !== 'GO' && (mode !== undefined || nodes !== undefined)) throw new RelayError('SCHEMA_INVALID');
+      if (type !== 'GO' && (mode !== undefined || nodes !== undefined || depth !== undefined ||
+          clockValues.some(value => value !== undefined))) throw new RelayError('SCHEMA_INVALID');
       if ((type !== 'RESET' && newGame !== undefined) ||
           (type === 'RESET' && newGame !== undefined && typeof newGame !== 'boolean'))
         throw new RelayError('SCHEMA_INVALID');
@@ -259,6 +271,7 @@ export class DurableBroker {
           if (state.seenSearchIds.includes(searchId)) throw new RelayError('SEARCH_REPLAY', 409);
           state.seenSearchIds.push(searchId);
           state.activeSearchId = searchId;
+          state.activeSearchMode = mode;
           state.bestmove = null; state.stopped = false; state.reuseReadyFor = null;
         } else if (searchId !== state.activeSearchId) throw new RelayError('SEARCH_ID_MISMATCH', 409);
       } else if (searchId !== undefined) throw new RelayError('SCHEMA_INVALID');
@@ -271,12 +284,16 @@ export class DurableBroker {
       state.pending = { type, seq, searchId: searchId || null,
         deadline: now + ackWindow };
       if (type === 'HELLO') transitionLifecycle(state, 'INITIALIZING', now);
-      if (type === 'STOP') { state.phase = 'STOPPING'; transitionLifecycle(state, 'STOPPING', now); }
+      if (type === 'STOP' && state.phase !== 'STOPPED') {
+        state.phase = 'STOPPING'; transitionLifecycle(state, 'STOPPING', now);
+      }
       if (type === 'RESET') { state.phase = 'RESETTING'; transitionLifecycle(state, 'INITIALIZING', now); }
       if (type === 'QUIT') { state.phase = 'QUITTING'; transitionLifecycle(state, 'CLEANING', now); }
       event(state, 'engine', { type, seq, ...(fen ? { fen, moves: moves || [] } : {}),
         ...(searchId ? { searchId } : {}), ...(mode ? { mode } : {}),
-        ...(nodes ? { nodes } : {}), ...(newGame === true ? { newGame: true } : {}) });
+        ...(nodes !== undefined ? { nodes } : {}), ...(depth !== undefined ? { depth } : {}),
+        ...(wtime !== undefined ? { wtime, btime, winc, binc } : {}),
+        ...(newGame === true ? { newGame: true } : {}) });
       return { accepted: true, seq, delivered: false };
     });
   }
@@ -307,9 +324,12 @@ export class DurableBroker {
         state.lastAck = { command: pending.type, seq: pending.seq, searchId: pending.searchId };
         const next = { HELLO: 'HELLO_ACKED', POSITION: 'POSITION_ACKED', GO: 'SEARCHING',
           STOP: 'STOP_ACKED', RESET: 'RESET_ACKED', QUIT: 'QUIT_ACKED' };
-        state.phase = next[pending.type];
+        const naturallyStopped = pending.type === 'STOP' && state.phase === 'STOPPED' &&
+          state.completedSearchId === pending.searchId;
+        if (!naturallyStopped) state.phase = next[pending.type];
         if (pending.type === 'GO') transitionLifecycle(state, 'SEARCHING', now);
-        if (pending.type === 'STOP') state.stopResultUntil = now + LIMITS.stopResultMs;
+        if (pending.type === 'STOP' && !naturallyStopped)
+          state.stopResultUntil = now + LIMITS.stopResultMs;
         event(state, 'main', { type: 'ACK', command: pending.type,
           commandSeq: pending.seq, searchId: pending.searchId });
       } else if (type === 'READY') {
@@ -336,7 +356,10 @@ export class DurableBroker {
           pv: message.pv, score: message.score,
           emittedAt: Number.isSafeInteger(message.emittedAt) ? message.emittedAt : null }, 'low');
       } else if (type === 'BESTMOVE') {
-        if (state.phase !== 'STOP_ACKED' || searchId !== state.activeSearchId || state.bestmove)
+        const natural = ['clock', 'depth', 'nodes'].includes(state.activeSearchMode) &&
+          ['SEARCHING', 'STOPPING'].includes(state.phase);
+        if ((!natural && state.phase !== 'STOP_ACKED') ||
+            searchId !== state.activeSearchId || state.bestmove)
           throw new RelayError('BESTMOVE_STATE_INVALID', 409);
         if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(message.move || ''))
           throw new RelayError('BESTMOVE_INVALID');
@@ -345,7 +368,10 @@ export class DurableBroker {
         event(state, 'main', { type: 'BESTMOVE', searchId, move: message.move,
           emittedAt: Number.isSafeInteger(message.emittedAt) ? message.emittedAt : null });
       } else if (type === 'STOPPED') {
-        if (state.phase !== 'STOP_ACKED' || !state.bestmove || searchId !== state.activeSearchId)
+        const natural = ['clock', 'depth', 'nodes'].includes(state.activeSearchMode) &&
+          ['SEARCHING', 'STOPPING'].includes(state.phase);
+        if ((!natural && state.phase !== 'STOP_ACKED') ||
+            !state.bestmove || searchId !== state.activeSearchId)
           throw new RelayError('STOPPED_STATE_INVALID', 409);
         state.stopped = true; state.phase = 'STOPPED'; state.stopResultUntil = null;
         transitionLifecycle(state, 'IDLE', now);

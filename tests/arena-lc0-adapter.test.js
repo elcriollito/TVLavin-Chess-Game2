@@ -274,3 +274,41 @@ test('adapter source keeps bounded reconnect and reason-coded transport evidence
   assert.match(source, /durableEventRecoveries/);
   assert.match(source, /correlationId/);
 });
+
+for (const scenario of [
+  { name: 'Blitz', options: { wtime: 180000, btime: 179250, winc: 2000, binc: 2000 },
+    expected: { mode: 'clock', wtime: 180000, btime: 179250, winc: 2000, binc: 2000 } },
+  { name: 'Rapid', options: { wtime: 600000, btime: 600000, winc: 5000, binc: 5000 },
+    expected: { mode: 'clock', wtime: 600000, btime: 600000, winc: 5000, binc: 5000 } },
+  { name: 'Long', options: { wtime: 1800000, btime: 1800000, winc: 20000, binc: 20000 },
+    expected: { mode: 'clock', wtime: 1800000, btime: 1800000, winc: 20000, binc: 20000 } },
+  { name: 'Fixed Depth 12', options: { depth: 12 }, expected: { mode: 'depth', depth: 12 } },
+  { name: 'Fixed Depth 20', options: { depth: 20 }, expected: { mode: 'depth', depth: 20 } }
+]) test(`Lc0 adapter forwards exact ${scenario.name} UCI search fields`, async () => {
+  const { instance, identity } = fixture();
+  instance.dispatch({ type: 'READY', identity });
+  const commands = [], moves = [];
+  instance.waitForTransportConnected = async () => true;
+  instance.reuse = async () => true;
+  instance.command = async (type, payload = {}) => { commands.push({ type, payload }); };
+  instance.getBestMove(new Chess().fen(), move => moves.push(move), scenario.options);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const operation = instance.active;
+  assert.deepEqual(commands.map(item => item.type), ['POSITION', 'GO']);
+  assert.deepEqual(JSON.parse(JSON.stringify(commands[1].payload)),
+    { searchId: operation.searchId, ...scenario.expected });
+  instance.dispatch({ type: 'BESTMOVE', searchId: operation.searchId, move: 'e2e4' });
+  instance.dispatch({ type: 'STOPPED', searchId: operation.searchId });
+  await instance.searchPromise;
+  assert.deepEqual(moves, ['e2e4']);
+  assert.equal(instance.active, null);
+});
+
+test('Lc0 adapter rejects unapproved fixed depth and incomplete clock fields', () => {
+  const { instance, identity } = fixture();
+  instance.dispatch({ type: 'READY', identity });
+  assert.throws(() => instance.getBestMove(new Chess().fen(), () => {}, { depth: 10 }),
+    /LC0_FIXED_DEPTH_INVALID/);
+  assert.throws(() => instance.getBestMove(new Chess().fen(), () => {},
+    { wtime: 1000, btime: 1000, winc: 0 }), /LC0_CLOCK_TIME_CONTROL_INVALID/);
+});

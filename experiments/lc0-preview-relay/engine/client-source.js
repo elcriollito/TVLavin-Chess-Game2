@@ -102,6 +102,15 @@ function info(line) {
     pv: (pv?.[1] || '').trim().slice(0, 400), emittedAt: Date.now() };
 }
 
+function goCommand(command) {
+  if (command.mode === 'infinite') return 'go infinite';
+  if (command.mode === 'nodes') return `go nodes ${command.nodes}`;
+  if (command.mode === 'depth') return `go depth ${command.depth}`;
+  if (command.mode === 'clock')
+    return `go wtime ${command.wtime} btime ${command.btime} winc ${command.winc} binc ${command.binc}`;
+  throw new Error('GO_MODE_INVALID');
+}
+
 class RealLc0RelayClient {
   constructor() {
     this.sessionId = null; this.credential = null; this.cursor = 0; this.seq = 0;
@@ -300,18 +309,28 @@ class RealLc0RelayClient {
       await ack();
     } else if (command.type === 'GO') {
       if (!this.currentPosition || this.active) throw new Error('GO_STATE_INVALID');
-      this.active = { searchId: command.searchId, chess: this.currentPosition.chess,
+      this.active = { searchId: command.searchId, mode: command.mode,
+        chess: this.currentPosition.chess,
         startLine: this.runtime.lines.length, startedAt: performance.now(), bestmove: null,
         lastInfoAt: 0, transportUncertain: false };
       this.runtime.state = 'SEARCHING';
-      this.runtime.send(command.mode === 'infinite' ? 'go infinite' : `go nodes ${command.nodes}`);
+      this.runtime.send(goCommand(command));
       await ack();
     } else if (command.type === 'STOP') {
-      if (!this.active || this.active.searchId !== command.searchId) throw new Error('STOP_SEARCH_MISMATCH');
-      const stopAt = performance.now();
-      this.active.stopRequested = true;
-      await ack();
+      if (!this.active) {
+        if (this.lastCompletedSearchId !== command.searchId) throw new Error('STOP_SEARCH_MISMATCH');
+        await ack();
+        return;
+      }
       const active = this.active;
+      if (active.searchId !== command.searchId) throw new Error('STOP_SEARCH_MISMATCH');
+      const stopAt = performance.now();
+      active.stopRequested = true;
+      await ack();
+      if (active.naturalCompletionPromise) {
+        await active.naturalCompletionPromise;
+        return;
+      }
       if (!active.bestmove) this.runtime.send('stop');
       const line = active.bestmove || await this.runtime.waitForLine(value => /^bestmove\s+\S+/.test(value),
         { start: active.startLine, timeout: 2_200 });
@@ -322,6 +341,7 @@ class RealLc0RelayClient {
         throw new Error('BESTMOVE_ILLEGAL');
       await this.message('BESTMOVE', { searchId: active.searchId, move, emittedAt: Date.now() });
       await this.message('STOPPED', { searchId: active.searchId });
+      this.lastCompletedSearchId = active.searchId;
       this.runtime.state = 'READY'; this.active = null;
     } else if (command.type === 'RESET') {
       if (this.active || this.runtime.state !== 'READY') throw new Error('RESET_STATE_INVALID');
@@ -349,6 +369,24 @@ class RealLc0RelayClient {
     }
   }
 
+  finishNaturalSearch(active, line) {
+    if (!active || active.mode === 'infinite' || active.naturalCompletionPromise)
+      return active?.naturalCompletionPromise || null;
+    active.naturalCompletionPromise = (async () => {
+      await delay(0);
+      const move = /^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/.exec(line)?.[1];
+      const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(move || '');
+      if (!parts || !active.chess.move({ from: parts[1], to: parts[2], promotion: parts[3] || 'q' }))
+        throw new Error('BESTMOVE_ILLEGAL');
+      await this.message('BESTMOVE', { searchId: active.searchId, move, emittedAt: Date.now() });
+      await this.message('STOPPED', { searchId: active.searchId });
+      this.lastCompletedSearchId = active.searchId;
+      this.runtime.state = 'READY';
+      if (this.active === active) this.active = null;
+    })().catch(error => this.fail(error));
+    return active.naturalCompletionPromise;
+  }
+
   runtimeEvent(event) {
     if (event.type === 'stdout') {
       const line = event.line;
@@ -361,8 +399,10 @@ class RealLc0RelayClient {
           this.message('INFO', { searchId: active.searchId, ...parsed }).catch(error => log(`info ${error.message}`));
         }
       } else if (line.startsWith('bestmove ') && this.active) {
-        this.active.bestmove = line;
-        this.metrics.goToLocalBestmoveMs.push(performance.now() - this.active.startedAt);
+        const active = this.active;
+        active.bestmove = line;
+        this.metrics.goToLocalBestmoveMs.push(performance.now() - active.startedAt);
+        this.finishNaturalSearch(active, line);
       }
     } else if (event.type === 'worker-error' || event.type === 'failure' || event.type === 'force-terminated') {
       log(`${event.type}: ${event.message || ''}`);

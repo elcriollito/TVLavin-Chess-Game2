@@ -1256,6 +1256,7 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
+        this.refreshMatchTimeControlCapabilities();
 
         // Disable Start Match if engine adapter or worker paths are missing
         const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
@@ -1297,6 +1298,7 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
+        this.refreshMatchTimeControlCapabilities();
         // The isolated Lc0 participant must be opened by a visible user gesture.
         if (![this.state.whiteEngine, this.state.blackEngine].some(candidate =>
             candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
@@ -1329,6 +1331,7 @@ const CaissaArena = {
         }
 
         this.updateEngineInfo();
+        this.refreshMatchTimeControlCapabilities();
         if (![this.state.whiteEngine, this.state.blackEngine].some(candidate =>
             candidate?.id === 'lc0-maia-1100-preview')) this.prewarmEngines();
     },
@@ -1350,6 +1353,18 @@ const CaissaArena = {
             this.elements.statusBlackName.textContent = this.state.blackEngine?.name || 'Not selected';
         }
         window.CaissaArenaMatchLabUI?.refreshAutomaticTitle?.();
+    },
+
+    refreshMatchTimeControlCapabilities() {
+        const clock = window.CaissaArenaMatchClock;
+        const ui = window.CaissaArenaMatchLabUI;
+        if (!clock?.intersectProviderModes || !ui?.setTimeControlModeAvailability) return [];
+        const engines = [this.state.whiteEngine, this.state.blackEngine].filter(Boolean);
+        const supported = clock.intersectProviderModes(engines);
+        const messages = Object.assign({}, ...engines.map(engine =>
+            engine.capabilities?.unsupportedMatchTimeControlMessages || {}));
+        ui.setTimeControlModeAvailability(supported, messages);
+        return supported;
     },
 
     getEngineById(id) {

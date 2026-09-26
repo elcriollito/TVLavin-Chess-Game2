@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import '../js/arena-match-clock.js';
 
 const { MatchClockController, createTimeControl, createQaTimeControl, assertProviderCapabilities,
-  SUPPORTED_PRESETS } = globalThis.CaissaArenaMatchClock;
+  intersectProviderModes, supportedProviderModes, SUPPORTED_PRESETS } = globalThis.CaissaArenaMatchClock;
 
 function fixture(input = { mode: 'blitz', preset: '3+2' }) {
   let now = 0;
@@ -66,6 +66,25 @@ test('provider without the selected timing capability is rejected', () => {
   assert.equal(assertProviderCapabilities(clock, [
     { id: 'supported', capabilities: { supportsClockTimeControl: true } }
   ]), true);
+});
+
+test('provider capability intersection disables Bullet without hardcoding Lc0 in the UI', () => {
+  const stockfish = { capabilities: { supportsClockTimeControl: true, supportsFixedDepth: true } };
+  const lc0 = { name: 'Lc0 — Maia 1100', capabilities: {
+    supportsClockTimeControl: true,
+    supportsFixedDepth: true,
+    supportedMatchTimeControls: ['blitz', 'rapid', 'long', 'fixed-depth'],
+    unsupportedMatchTimeControlMessages: {
+      bullet: 'Lc0 Experimental does not currently support Bullet Match time control.'
+    }
+  } };
+  assert.deepEqual([...supportedProviderModes(lc0)], ['blitz', 'rapid', 'long', 'fixed-depth']);
+  assert.deepEqual([...intersectProviderModes([stockfish, lc0])],
+    ['blitz', 'rapid', 'long', 'fixed-depth']);
+  assert.throws(() => assertProviderCapabilities(createTimeControl({ mode: 'bullet', preset: '1+0' }),
+    [stockfish, lc0]), /Lc0 Experimental does not currently support Bullet/);
+  assert.equal(assertProviderCapabilities(createTimeControl({ mode: 'blitz', preset: '3+2' }),
+    [stockfish, lc0]), true);
 });
 
 test('thinking elapsed decrements moving color only', () => {
