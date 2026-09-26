@@ -10,10 +10,15 @@ console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 const ARENA_ENGINE_MOVETIME_MS = 2000;
 const ARENA_ENGINE_TIMEOUT_MS = 12000;
 const ARENA_REVIEW_PLAYBACK_MS = 850;
+const ARENA_PARTICIPANT_TYPES = Object.freeze([
+    Object.freeze({ id: 'engine', label: 'ENGINE', enabled: true }),
+    Object.freeze({ id: 'bot', label: 'BOTS', status: 'Coming Soon', enabled: false })
+]);
 
 const CaissaArena = {
     // ===== ENGINE REGISTRY =====
     engines: [],
+    participantTypes: ARENA_PARTICIPANT_TYPES,
 
     // ===== BOARD INSTANCE =====
     board: null,
@@ -41,6 +46,7 @@ const CaissaArena = {
     _pausePending: null,
     _resumePending: null,
     _cleanupPromise: null,
+    _newMatchResetPromise: null,
     lifecycleTrace: [],
     lastArenaError: null,
     reliabilityMetrics: {
@@ -57,6 +63,8 @@ const CaissaArena = {
         matchState: 'idle', // 'idle', 'running', 'paused', 'finished'
         whiteEngine: null, // Engine config (from registry)
         blackEngine: null, // Engine config (from registry)
+        whiteParticipant: null, // { type, providerId, displayName }
+        blackParticipant: null, // { type, providerId, displayName }
         moveDelay: 150,
         bookMaxPlies: 12,
         currentGame: null,
@@ -167,6 +175,8 @@ const CaissaArena = {
             panelGame: document.getElementById('arenaPanelGame'),
 
             // Engine selectors
+            whiteParticipantTypeSelect: document.getElementById('arenaWhiteParticipantType'),
+            blackParticipantTypeSelect: document.getElementById('arenaBlackParticipantType'),
             whiteEngineSelect: document.getElementById('arenaWhiteEngine'),
             blackEngineSelect: document.getElementById('arenaBlackEngine'),
             swapEnginesBtn: document.getElementById('arenaSwapEngines'),
@@ -613,6 +623,12 @@ const CaissaArena = {
             .forEach((tab) => tab.addEventListener('keydown', (event) => this.onTabKeydown(event)));
 
         // Engine selection
+        this.elements.whiteParticipantTypeSelect?.addEventListener('change', (e) => {
+            this.selectParticipantType('white', e.target.value);
+        });
+        this.elements.blackParticipantTypeSelect?.addEventListener('change', (e) => {
+            this.selectParticipantType('black', e.target.value);
+        });
         this.elements.whiteEngineSelect?.addEventListener('change', (e) => {
             this.selectEngine('white', e.target.value);
             this.prewarmEngines();
@@ -669,7 +685,7 @@ const CaissaArena = {
         this.elements.saveCurrentPgnBtn?.addEventListener('click', () => this.saveCurrentGamePgn());
         this.elements.saveSeriesPgnBtn?.addEventListener('click', () => this.saveCurrentSeriesPgn());
         this.elements.openPgnReaderBtn?.addEventListener('click', () => this.openCurrentSeriesInPgnReader());
-        this.elements.newMatchBtn?.addEventListener('click', () => this.prepareNewMatch());
+        this.elements.newMatchBtn?.addEventListener('click', () => { void this.prepareNewMatch(); });
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
@@ -1152,6 +1168,61 @@ const CaissaArena = {
     },
 
     // ===== ENGINE MANAGEMENT =====
+    renderParticipantTypeSelectors() {
+        const render = (select, selectedType = 'engine') => {
+            if (!select) return;
+            select.replaceChildren(...this.participantTypes.map(type => {
+                const option = document.createElement('option');
+                option.value = type.id;
+                option.textContent = type.status ? `${type.label} — ${type.status}` : type.label;
+                option.disabled = !type.enabled;
+                option.selected = type.id === selectedType;
+                return option;
+            }));
+        };
+        render(this.elements.whiteParticipantTypeSelect, this.state.whiteParticipant?.type);
+        render(this.elements.blackParticipantTypeSelect, this.state.blackParticipant?.type);
+    },
+
+    createParticipantConfig(type, provider) {
+        const participantType = this.participantTypes.find(candidate => candidate.id === type);
+        if (!participantType?.enabled || !provider) return null;
+        const displayName = provider.displayName || provider.name;
+        return Object.freeze({
+            type: participantType.id,
+            providerId: provider.providerId || provider.id,
+            displayName,
+            id: provider.id,
+            name: displayName
+        });
+    },
+
+    syncParticipantConfig(color, provider, type = 'engine') {
+        const config = this.createParticipantConfig(type, provider);
+        if (!config) return null;
+        this.state[`${color}Participant`] = config;
+        return config;
+    },
+
+    getParticipantConfig(color) {
+        const engine = this.state[`${color}Engine`];
+        return this.state[`${color}Participant`]
+            || this.syncParticipantConfig(color, engine, 'engine');
+    },
+
+    selectParticipantType(color, type) {
+        const definition = this.participantTypes.find(candidate => candidate.id === type);
+        const select = this.elements[`${color}ParticipantTypeSelect`];
+        if (!definition?.enabled) {
+            if (select) select.value = this.getParticipantConfig(color)?.type || 'engine';
+            return false;
+        }
+        const engine = this.state[`${color}Engine`];
+        const config = this.syncParticipantConfig(color, engine, type);
+        if (select) select.value = config?.type || 'engine';
+        return Boolean(config);
+    },
+
     renderEngineSelectors(attempt = 0) {
         const maxAttempts = 6;
         const registry = this.ensureEngineRegistry();
@@ -1245,6 +1316,9 @@ const CaissaArena = {
             || enabledEngines[1]
             || enabledEngines[0]
             || this.engines[0];
+        this.syncParticipantConfig('white', this.state.whiteEngine);
+        this.syncParticipantConfig('black', this.state.blackEngine);
+        this.renderParticipantTypeSelectors();
 
         console.log('[Arena] Default engines:', this.state.whiteEngine?.name, 'vs', this.state.blackEngine?.name);
 
@@ -1287,11 +1361,13 @@ const CaissaArena = {
 
         if (color === 'white') {
             this.state.whiteEngine = engine;
+            this.syncParticipantConfig('white', engine);
             if (window.localStorage) {
                 localStorage.setItem('caissa.arena.whiteEngineId', engine.id);
             }
         } else {
             this.state.blackEngine = engine;
+            this.syncParticipantConfig('black', engine);
             if (window.localStorage) {
                 localStorage.setItem('caissa.arena.blackEngineId', engine.id);
             }
@@ -1313,9 +1389,13 @@ const CaissaArena = {
     },
 
     swapEngines() {
+        const whiteParticipant = this.getParticipantConfig('white');
+        const blackParticipant = this.getParticipantConfig('black');
         const temp = this.state.whiteEngine;
         this.state.whiteEngine = this.state.blackEngine;
         this.state.blackEngine = temp;
+        this.state.whiteParticipant = blackParticipant;
+        this.state.blackParticipant = whiteParticipant;
 
         if (window.localStorage) {
             localStorage.setItem('caissa.arena.whiteEngineId', this.state.whiteEngine.id);
@@ -1328,6 +1408,12 @@ const CaissaArena = {
         }
         if (this.elements.blackEngineSelect) {
             this.elements.blackEngineSelect.value = this.state.blackEngine.id;
+        }
+        if (this.elements.whiteParticipantTypeSelect) {
+            this.elements.whiteParticipantTypeSelect.value = this.state.whiteParticipant.type;
+        }
+        if (this.elements.blackParticipantTypeSelect) {
+            this.elements.blackParticipantTypeSelect.value = this.state.blackParticipant.type;
         }
 
         this.updateEngineInfo();
@@ -1701,11 +1787,15 @@ const CaissaArena = {
             type: this.elements.openingModeSelect?.value || 'standard',
             resultingFen: this.getSeriesStartingFen()
         };
+        const whiteParticipant = this.getParticipantConfig('white');
+        const blackParticipant = this.getParticipantConfig('black');
         return {
             title: this.elements.matchTitleInput?.value?.trim()
                 || `${this.state.whiteEngine?.name || 'White'} vs ${this.state.blackEngine?.name || 'Black'}`,
-            participantA: this.state.whiteEngine,
-            participantB: this.state.blackEngine,
+            participantA: whiteParticipant,
+            participantB: blackParticipant,
+            whiteParticipant,
+            blackParticipant,
             gameCount: this.getConfiguredSeriesGameCount(),
             moveLimitFullMoves: this.getConfiguredMoveLimit(),
             startingFen: this.getSeriesStartingFen(),
@@ -1735,6 +1825,8 @@ const CaissaArena = {
         }
         this.state.whiteEngine = white;
         this.state.blackEngine = black;
+        this.syncParticipantConfig('white', white, seriesGame.white.type || 'engine');
+        this.syncParticipantConfig('black', black, seriesGame.black.type || 'engine');
         if (typeof Chess === 'undefined' || !seriesGame.startingFen) {
             throw new Error('Starting position is invalid.');
         }
@@ -1745,6 +1837,12 @@ const CaissaArena = {
         this.state.customStartFen = candidate.fen();
         if (this.elements.whiteEngineSelect) this.elements.whiteEngineSelect.value = white.id;
         if (this.elements.blackEngineSelect) this.elements.blackEngineSelect.value = black.id;
+        if (this.elements.whiteParticipantTypeSelect) {
+            this.elements.whiteParticipantTypeSelect.value = this.state.whiteParticipant.type;
+        }
+        if (this.elements.blackParticipantTypeSelect) {
+            this.elements.blackParticipantTypeSelect.value = this.state.blackParticipant.type;
+        }
         this.updateEngineInfo();
         return true;
     },
@@ -1978,21 +2076,163 @@ const CaissaArena = {
     },
 
     prepareNewMatch() {
-        this.returnToLivePosition();
-        this.switchTab('match');
-        if (this.matchSeries && !this.matchSeries.isActive()) this.matchSeries.reset();
-        this.state.matchHistory = this.state.matchHistory.filter(series => series.config?.savePgn !== false);
-        this.state.currentGame = null;
-        this.state.matchState = 'idle';
-        this.renderSeriesHistory();
-        this.updateMatchControls();
-        this.updateStartButtonLabel();
-        this.elements.matchTitleInput?.focus?.();
-        return true;
+        if (this._newMatchResetPromise) return this._newMatchResetPromise;
+
+        // New Match is intentionally Match-only. A Tournament may share the
+        // board/runtime surface, but this action must never reset its state.
+        if (this.state.mode === 'tournament'
+            && !['idle', 'finished'].includes(this.state.matchState)) return Promise.resolve(false);
+
+        const hasLiveMatch = this.state.analysisRunning
+            || ['running', 'paused'].includes(this.state.matchState)
+            || (this.state.mode === 'match' && this.matchSeries?.isActive?.());
+        if (hasLiveMatch && !window.confirm('Start a new match? This will stop and clear the current match state.')) {
+            return Promise.resolve(false);
+        }
+
+        const preservedConfiguration = {
+            title: this.elements.matchTitleInput?.value || '',
+            gameCount: this.elements.matchGameCountSelect?.value || '1',
+            customGameCount: this.elements.matchCustomGameCountInput?.value || '1',
+            moveLimit: this.elements.matchMoveLimitSelect?.value || 'none',
+            customMoveLimit: this.elements.matchCustomMoveLimitInput?.value || '40',
+            moveDelay: this.elements.moveDelayInput?.value || '',
+            timeControlMode: this.elements.timeControlModeSelect?.value || 'blitz',
+            timeControlPreset: this.elements.timeControlPresetSelect?.value || '3+2',
+            openingMode: this.elements.openingModeSelect?.value || 'standard',
+            savePgn: this.elements.savePgnInput?.checked !== false,
+            flipBoard: document.getElementById('arenaFlipBoard')?.checked === true,
+            whiteParticipantType: document.getElementById('arenaWhiteParticipantType')?.value || 'engine',
+            blackParticipantType: document.getElementById('arenaBlackParticipantType')?.value || 'engine'
+        };
+
+        const reset = async () => {
+            window.CaissaUI?.setButtonLoading(this.elements.newMatchBtn, true, { label: 'Resetting match...' });
+            this.returnToLivePosition();
+            this.switchTab('match');
+
+            this.state.startToken += 1;
+            clearTimeout(this._seriesAdvanceTimer);
+            this._seriesAdvanceTimer = null;
+            this.cancelActiveSearch('new match reset');
+            this.state.loopActive = false;
+            this.state.loopRunning = false;
+            this._pausePending = null;
+            this._resumePending = null;
+
+            if (this.state.analysisRunning) this.stopInfiniteAnalysis(false);
+            if (this.state.mode === 'match' && (this.matchSeries?.isActive?.()
+                || ['running', 'paused'].includes(this.state.matchState))) {
+                this.stopMatch();
+            } else {
+                this.stopMatchClock();
+                this._cleanupPromise = Promise.resolve(this.destroyEngines());
+            }
+
+            try {
+                await this._cleanupPromise;
+            } catch (error) {
+                // Remote cleanup can be unavailable after SESSION_GONE. The
+                // runtime manager has still released its local bindings, so a
+                // fresh Match setup remains safe and usable.
+                console.warn('[Arena] New Match continued after cleanup acknowledgement failed', error);
+            }
+
+            this._cleanupPromise = null;
+            this.matchSeries?.reset?.();
+            // Preserve committed PGN/history while retaining the established
+            // contract that Save PGN = off keeps only the current exportable
+            // live result and does not archive it into a future setup.
+            this.state.matchHistory = this.state.matchHistory.filter(series => series.config?.savePgn !== false);
+            this.state.mode = 'match';
+            this.state.matchState = 'idle';
+            this.state.currentGame = null;
+            this.state.evalHistory = [];
+            this.state.analysisRunning = false;
+            this.state.analysisFen = '';
+            this.state.pendingClockDecision = null;
+            this.state.cancelPendingSearch = null;
+            this.lastArenaError = null;
+
+            // Re-read provider presentation/availability without acquiring a
+            // runtime. Selected participants and every configuration control
+            // remain intact unless the provider registry itself invalidates one.
+            this.renderEngineSelectors();
+
+            const restoreSelect = (element, value) => {
+                if (element && Array.from(element.options || []).some(option => option.value === value)) {
+                    element.value = value;
+                }
+            };
+            if (this.elements.matchTitleInput) this.elements.matchTitleInput.value = preservedConfiguration.title;
+            restoreSelect(this.elements.matchGameCountSelect, preservedConfiguration.gameCount);
+            if (this.elements.matchCustomGameCountInput) {
+                this.elements.matchCustomGameCountInput.value = preservedConfiguration.customGameCount;
+            }
+            restoreSelect(this.elements.matchMoveLimitSelect, preservedConfiguration.moveLimit);
+            if (this.elements.matchCustomMoveLimitInput) {
+                this.elements.matchCustomMoveLimitInput.value = preservedConfiguration.customMoveLimit;
+            }
+            if (this.elements.moveDelayInput) this.elements.moveDelayInput.value = preservedConfiguration.moveDelay;
+            restoreSelect(this.elements.timeControlModeSelect, preservedConfiguration.timeControlMode);
+            window.CaissaArenaMatchLabUI?.refreshTimeControl?.();
+            restoreSelect(this.elements.timeControlPresetSelect, preservedConfiguration.timeControlPreset);
+            this.elements.timeControlPresetSelect?.dispatchEvent(new Event('change'));
+            restoreSelect(this.elements.openingModeSelect, preservedConfiguration.openingMode);
+            if (this.elements.savePgnInput) this.elements.savePgnInput.checked = preservedConfiguration.savePgn;
+            const flipBoard = document.getElementById('arenaFlipBoard');
+            if (flipBoard) flipBoard.checked = preservedConfiguration.flipBoard;
+            this.setBoardFlipped(preservedConfiguration.flipBoard);
+            restoreSelect(document.getElementById('arenaWhiteParticipantType'), preservedConfiguration.whiteParticipantType);
+            restoreSelect(document.getElementById('arenaBlackParticipantType'), preservedConfiguration.blackParticipantType);
+            this.resetBoard();
+            try {
+                const timeControl = this.resolveMatchTimeControl(this.getRequestedMatchTimeControl());
+                this.initializeMatchClock(timeControl);
+                this.stopClockRenderLoop();
+            } catch (error) {
+                console.warn('[Arena] Could not render the selected fresh Match clock', error);
+                this.stopMatchClock();
+            }
+
+            if (this.elements.evalEngineName) {
+                this.elements.evalEngineName.textContent = this.state.whiteEngine?.name || 'Engine';
+            }
+            if (this.elements.evalScore) {
+                this.elements.evalScore.textContent = '+0.00';
+                this.elements.evalScore.className = 'arena-eval-score';
+            }
+            if (this.elements.evalDepth) this.elements.evalDepth.textContent = '0';
+            if (this.elements.evalNodes) this.elements.evalNodes.textContent = '0';
+            if (this.elements.evalPV) this.elements.evalPV.textContent = '--';
+
+            this.renderSeriesSummary(this.matchSeries?.snapshot?.());
+            this.renderSeriesHistory();
+            this.updateMatchControls();
+            this.updateStartButtonLabel();
+            const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
+            const selectedEnginesValid = this.isEngineRunnable(this.state.whiteEngine)
+                && this.isEngineRunnable(this.state.blackEngine);
+            if (this.elements.startMatchBtn) {
+                this.elements.startMatchBtn.disabled = !(adapterAvailable && selectedEnginesValid);
+            }
+            this.updateGameStatus({ result: 'Ready', moveCount: 0 });
+            window.dispatchEvent(new CustomEvent('caissa-arena-new-match-ready'));
+            this.elements.startMatchBtn?.focus?.();
+            return true;
+        };
+
+        this._newMatchResetPromise = reset().finally(() => {
+            window.CaissaUI?.setButtonLoading(this.elements.newMatchBtn, false);
+            this._newMatchResetPromise = null;
+        });
+        return this._newMatchResetPromise;
     },
 
     setMatchConfigurationLocked(locked) {
         const controls = [
+            this.elements.whiteParticipantTypeSelect,
+            this.elements.blackParticipantTypeSelect,
             this.elements.whiteEngineSelect,
             this.elements.blackEngineSelect,
             this.elements.matchTitleInput,
@@ -2155,6 +2395,8 @@ const CaissaArena = {
             round: scheduledGame?.round || 1,
             white: this.state.whiteEngine,
             black: this.state.blackEngine,
+            whiteParticipant: this.getParticipantConfig('white'),
+            blackParticipant: this.getParticipantConfig('black'),
             moves: [],
             startFen: this.game.fen(),
             opening: scheduledGame?.opening || this.matchSeries?.config?.opening || null,

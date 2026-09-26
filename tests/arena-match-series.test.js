@@ -12,8 +12,8 @@ const {
   validateGameCount
 } = globalThis.CaissaArenaMatchSeries;
 
-const participantA = { id: 'sf19', providerId: 'sf19', name: 'Stockfish 19 Lite' };
-const participantB = { id: 'sf18', providerId: 'sf18', name: 'Stockfish 18 Lite' };
+const participantA = { type: 'engine', id: 'sf19', providerId: 'sf19', name: 'Stockfish 19 Lite' };
+const participantB = { type: 'engine', id: 'sf18', providerId: 'sf18', name: 'Stockfish 18 Lite' };
 
 function createHarness(overrides = {}) {
   let serial = 0;
@@ -135,6 +135,27 @@ test('configuration snapshot is deeply immutable and detached from the UI input'
   assert.equal(Object.isFrozen(controller.config), true);
   assert.equal(Object.isFrozen(controller.config.opening), true);
   assert.throws(() => { controller.config.gameCount = 99; }, TypeError);
+});
+
+test('configuration snapshot preserves complete white and black participant types', () => {
+  const config = createConfigSnapshot({
+    whiteParticipant: participantA,
+    blackParticipant: participantB,
+    participantA,
+    participantB,
+    gameCount: 1,
+    startingFen: 'start-fen'
+  });
+  assert.deepEqual(config.whiteParticipant, {
+    id: 'sf19', type: 'engine', name: 'Stockfish 19 Lite',
+    displayName: 'Stockfish 19 Lite', providerId: 'sf19'
+  });
+  assert.deepEqual(config.blackParticipant, {
+    id: 'sf18', type: 'engine', name: 'Stockfish 18 Lite',
+    displayName: 'Stockfish 18 Lite', providerId: 'sf18'
+  });
+  assert.equal(Object.isFrozen(config.whiteParticipant), true);
+  assert.equal(Object.isFrozen(config.blackParticipant), true);
 });
 
 test('every per-game result record retains the immutable series time control', () => {

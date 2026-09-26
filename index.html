@@ -102,7 +102,7 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=2.0.22">
+    <link rel="stylesheet" href="styles.css?v=2.0.23">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.48.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.1">
@@ -1152,33 +1152,6 @@
                             <strong>CAISSA Engine Arena</strong>
                             <small>Engine matches, tournaments and analysis</small>
                         </span>
-                        <div id="arenaExperimentalEngines" class="arena-experimental-shell" hidden>
-                            <button id="arenaExperimentalToggle" class="btn btn-secondary arena-experimental-toggle"
-                                    type="button" aria-expanded="false" aria-controls="arenaExperimentalPanel">
-                                <i class="fas fa-flask" aria-hidden="true"></i>
-                                Experimental Engines
-                            </button>
-                            <div id="arenaExperimentalPanel" class="arena-experimental-popover" hidden>
-                                <div class="arena-experimental-title">
-                                    <strong>Lc0 — Maia 1100</strong>
-                                    <span class="arena-experimental-badge">Experimental</span>
-                                </div>
-                                <dl class="arena-experimental-details">
-                                    <div><dt>Engine</dt><dd>Lc0</dd></div>
-                                    <div><dt>Network</dt><dd>Maia 1100</dd></div>
-                                    <div><dt>Backend</dt><dd>CPU/WASM</dd></div>
-                                    <div><dt>Platform</dt><dd>Desktop browser</dd></div>
-                                </dl>
-                                <div class="arena-experimental-actions">
-                                    <button id="arenaLc0Enable" class="btn btn-primary" type="button">Enable Lc0 — Maia 1100</button>
-                                    <button id="arenaLc0Disable" class="btn btn-secondary" type="button" hidden>Disable</button>
-                                    <button id="arenaLc0StartRuntime" class="btn btn-primary" type="button" hidden>Start Lc0 Engine</button>
-                                </div>
-                                <p id="arenaLc0Status" class="arena-experimental-status" role="status" aria-live="polite"></p>
-                                <p id="arenaLc0Info" class="arena-experimental-info" aria-label="Lc0 search information"></p>
-                                <a href="/about#engine-sources">Source and licenses</a>
-                            </div>
-                        </div>
                     </header>
 
                     <div class="arena-grid">
@@ -1243,22 +1216,19 @@
                         <section id="arenaPanelMatch" class="arena-panel active" role="tabpanel"
                                  aria-labelledby="arenaTabMatch" tabindex="0">
                             <div class="arena-panel-body arena-panel-scroll">
-                            <section class="arena-match-participants" aria-labelledby="arenaParticipantsTitle">
-                                <h4 id="arenaParticipantsTitle" class="arena-match-section-heading">
-                                    <i class="fas fa-users" aria-hidden="true"></i>
-                                    Engine Participants
-                                </h4>
+                            <section class="arena-match-participants" aria-label="Match participants">
                                 <div class="arena-participant-row">
                                     <div class="arena-participant-label">
                                         <span class="engine-color-dot white" aria-hidden="true"></span>
                                         <label for="arenaWhiteEngine">White Participant</label>
                                     </div>
                                     <div class="arena-participant-control">
+                                        <select id="arenaWhiteParticipantType" class="form-control arena-participant-type-select"
+                                                aria-label="White participant type">
+                                            <option value="engine" selected>ENGINE</option>
+                                            <option value="bot" disabled>BOTS — Coming Soon</option>
+                                        </select>
                                         <select id="arenaWhiteEngine" class="form-control arena-engine-select" aria-label="Select White Engine"></select>
-                                        <div class="arena-bot-reservation">
-                                            <span class="arena-bot-reservation-label">Bots</span>
-                                            <span class="arena-bot-reservation-state">Coming Soon</span>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="arena-participant-row">
@@ -1267,16 +1237,20 @@
                                         <label for="arenaBlackEngine">Black Participant</label>
                                     </div>
                                     <div class="arena-participant-control">
+                                        <select id="arenaBlackParticipantType" class="form-control arena-participant-type-select"
+                                                aria-label="Black participant type">
+                                            <option value="engine" selected>ENGINE</option>
+                                            <option value="bot" disabled>BOTS — Coming Soon</option>
+                                        </select>
                                         <select id="arenaBlackEngine" class="form-control arena-engine-select" aria-label="Select Black Engine"></select>
-                                        <div class="arena-bot-reservation">
-                                            <span class="arena-bot-reservation-label">Bots</span>
-                                            <span class="arena-bot-reservation-state">Coming Soon</span>
-                                        </div>
                                     </div>
                                 </div>
                             </section>
 
-                            <div class="arena-position-button-row" aria-label="Starting position controls">
+                            <div class="arena-position-button-row" aria-label="Match setup actions">
+                                <button id="arenaNewMatch" class="btn btn-secondary" type="button" aria-label="Start a new Arena match">
+                                    <i class="fas fa-redo-alt" aria-hidden="true"></i> New Match
+                                </button>
                                 <button id="arenaSetPositionBtn" class="btn btn-secondary" type="button" aria-label="Set Arena starting position">
                                     <i class="fas fa-file-import" aria-hidden="true"></i> Set Position
                                 </button>
@@ -1302,7 +1276,6 @@
                                     <button id="arenaSaveCurrentPgn" class="btn btn-secondary btn-sm" type="button">Save Current Game PGN</button>
                                     <button id="arenaSaveSeriesPgn" class="btn btn-secondary btn-sm" type="button">Save Series PGN</button>
                                     <button id="arenaOpenPgnReader" class="btn btn-secondary btn-sm" type="button">Open in PGN Reader</button>
-                                    <button id="arenaNewMatch" class="btn btn-primary btn-sm" type="button">New Match</button>
                                 </div>
                             </section>
                             <div id="arenaPositionPanel" class="arena-position-panel" hidden>
@@ -1668,25 +1641,6 @@
                             <button id="arenaSetupClear" class="btn btn-secondary" type="button">Clear Board</button>
                             <button id="arenaSetupReset" class="btn btn-secondary" type="button">Initial Position</button>
                             <button id="arenaSetupApply" class="btn btn-primary" type="button">Apply Position</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="arenaLc0ConsentModal" class="modal arena-lc0-consent-modal" role="dialog"
-                     aria-modal="true" aria-hidden="true" aria-labelledby="arenaLc0ConsentTitle"
-                     aria-describedby="arenaLc0ConsentDescription" hidden>
-                    <div class="modal-content arena-lc0-consent-content">
-                        <div class="modal-header">
-                            <h2 id="arenaLc0ConsentTitle">Experimental Engine</h2>
-                        </div>
-                        <div class="modal-body">
-                            <p id="arenaLc0ConsentDescription">Lc0 — Maia 1100 runs in a dedicated browser runtime.</p>
-                            <p>It may take several seconds to initialize and is currently supported only on desktop Chrome and Edge.</p>
-                            <p>This experimental engine uses additional browser memory and processing power.</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button id="arenaLc0ConsentCancel" class="btn btn-secondary" type="button">Cancel</button>
-                            <button id="arenaLc0ConsentConfirm" class="btn btn-primary" type="button">Enable Experimental Lc0</button>
                         </div>
                     </div>
                 </div>
@@ -5388,16 +5342,15 @@
     <script src="js/caissa-ui-refactor.js?v=1.0.0"></script>
     <script src="js/engine-adapter.js?v=1.2.0"></script>
     <script src="js/engine-registry.js?v=1.2.0"></script>
-    <script src="js/arena-lc0-rollout.js?v=1.0.3"></script>
     <script src="js/arena-runtime-manager.js?v=1.0.0"></script>
     <script src="js/eco-opening-resolver.js?v=1.1.0"></script>
     <script src="js/arena-opening-snapshots.js?v=1.0.0"></script>
-    <script src="js/arena-match-series.js?v=1.0.0"></script>
+    <script src="js/arena-match-series.js?v=1.1.0"></script>
     <script src="js/arena-match-clock.js?v=1.0.0"></script>
     <script src="js/arena-match-pgn.js?v=1.0.0"></script>
     <script src="js/pgn-replayer/pgn-handoff.js?v=1.0.0"></script>
     <script src="js/arena-tournament-scheduler.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.10.0"></script>
+    <script src="js/caissa-arena.js?v=1.11.0"></script>
     <script type="module" src="js/arena-match-lab-ui.js?v=1.1.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
