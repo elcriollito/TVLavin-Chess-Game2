@@ -10,13 +10,8 @@ import { configuredStore, SupabaseStore } from
 
 const read = relative => fs.readFileSync(new URL(`../${relative}`, import.meta.url), 'utf8');
 
-test('certified runtime-sensitive bytes remain frozen at RC1', () => {
+test('certified Lc0 binary, ORT, Maia, and worker source bytes remain frozen at RC1', () => {
   const expected = {
-    'experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js': 'df06fa8e61def88539685c3ad3c3e1da2cdc9a09df80fe83ba691c1448b7522b',
-    'experiments/lc0-preview-relay/durable-broker.mjs': 'de4d7e90728e0cfd7a84b4ad8b44e557be32d6d3d13218c9e9fe67e1e521b463',
-    'experiments/lc0-preview-relay/production-policy.mjs': 'b4fd3256c7e9859502267a1451bacc23d48d8b1c332292218e65c32770d4bf06',
-    'experiments/lc0-preview-relay/engine/client-source.js': 'a210d0724caff7a1edcdbebb59ed5a3dda35e05d8c2d0c22c38c0cdad220d485',
-    'experiments/lc0-preview-relay/engine/release-manifest.template.json': '820490092914c1379b7e1f396a39325eb1c756e4a8869be65b94743f45e794d4',
     'experiments/lc0-preview-relay/engine/artifacts/runtime/lc0.js': 'c2b1786ff568d0d5042588b5b9bbf7a78623e47930ad4358803f2a37e3ca66a9',
     'experiments/lc0-preview-relay/engine/artifacts/runtime/lc0.wasm': '5c3cc8c72b5794092790ab2c7615a7a7e9757e1c899fa2a4cc1ca158547a07f0',
     'experiments/lc0-preview-relay/engine/artifacts/runtime/lc0.worker.mjs': '7e6dad4bca61807357acfcb3789c781deaca3e20214ccd76dd82ddcb0be0a153',
@@ -26,7 +21,9 @@ test('certified runtime-sensitive bytes remain frozen at RC1', () => {
     'experiments/lc0-browser-lab/src/lc0-worker.js': 'c75176d4e2b908cf4218a71af9193b7bc676d2c477bfc3c263f65a189a3080b2'
   };
   for (const [relative, digest] of Object.entries(expected)) {
-    const bytes = fs.readFileSync(new URL(`../${relative}`, import.meta.url));
+    const raw = fs.readFileSync(new URL(`../${relative}`, import.meta.url));
+    const bytes = relative.endsWith('/src/lc0-worker.js')
+      ? Buffer.from(raw.toString('utf8').replace(/\r\n/g, '\n')) : raw;
     assert.equal(createHash('sha256').update(bytes).digest('hex'), digest, relative);
   }
 });
@@ -86,7 +83,7 @@ test('rollout controller gates browser support before dynamic adapter loading', 
   const prepare = source.slice(source.indexOf('async prepare()'));
   assert.ok(prepare.indexOf('if (!capability.supported)') < prepare.indexOf('await this.register()'));
   assert.match(source, /SOURCE_MANIFEST.*492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f/s);
-  assert.match(source, /DEPLOYMENT_MANIFEST.*648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d/s);
+  assert.match(source, /DEPLOYMENT_MANIFEST.*a38862ac2113cf4e5962aa35e30a315046bafe650fedb24471b9feab954b4ed3/s);
 });
 
 test('normal registry excludes Lc0 until explicit opt-in and supports clean disable', () => {

@@ -4,8 +4,8 @@
     const ID = 'lc0-maia-1100-preview';
     const PREFERENCE_KEY = 'caissa.arena.experimental.lc0.v1';
     const SOURCE_MANIFEST = '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f';
-    const DEPLOYMENT_MANIFEST = '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d';
-    const ADAPTER_URL = '/experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js?v=rc1-daf3404';
+    const DEPLOYMENT_MANIFEST = 'a38862ac2113cf4e5962aa35e30a315046bafe650fedb24471b9feab954b4ed3';
+    const ADAPTER_URL = '/experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js?v=eae017-tc1';
 
     const rollout = {
         enabled: false,
@@ -191,7 +191,15 @@
                 wasmPath: '', tier: 'Experimental', badge: 'Experimental',
                 options: { depth: 0 },
                 capabilities: { browserCompatible: true, mobileCompatible: false,
-                    requiresCrossOriginIsolation: true },
+                    requiresCrossOriginIsolation: true,
+                    supportsClockTimeControl: true,
+                    supportsFixedDepth: true,
+                    supportedMatchTimeControls: Object.freeze([
+                        'blitz', 'rapid', 'long', 'fixed-depth'
+                    ]),
+                    unsupportedMatchTimeControlMessages: Object.freeze({
+                        bullet: 'Lc0 Experimental does not currently support Bullet Match time control.'
+                    }) },
                 resource: { threads: 1, mobileCompatible: false,
                     crossOriginIsolationRequired: true, estimatedWeightClass: 'heavy' },
                 availability: 'available', enabled: true, mobileCompatible: false,

@@ -3,6 +3,7 @@
 
     const CLOCK_MODES = Object.freeze(['bullet', 'blitz', 'rapid', 'long']);
     const FIXED_DEPTH_MODE = 'fixed-depth';
+    const ALL_MODES = Object.freeze([...CLOCK_MODES, FIXED_DEPTH_MODE]);
     const SUPPORTED_PRESETS = Object.freeze({
         bullet: Object.freeze(['1+0', '1+1']),
         blitz: Object.freeze(['3+0', '3+2', '5+0', '5+3']),
@@ -51,11 +52,29 @@
             && left.color === right.color);
     }
 
+    function supportedProviderModes(engine) {
+        const capabilities = engine?.capabilities || {};
+        if (Array.isArray(capabilities.supportedMatchTimeControls)) {
+            return Object.freeze(ALL_MODES.filter(mode =>
+                capabilities.supportedMatchTimeControls.includes(mode)));
+        }
+        return Object.freeze(ALL_MODES.filter(mode => mode === FIXED_DEPTH_MODE
+            ? capabilities.supportsFixedDepth === true
+            : capabilities.supportsClockTimeControl === true));
+    }
+
+    function intersectProviderModes(engines = []) {
+        if (!engines.length) return Object.freeze([]);
+        return Object.freeze(ALL_MODES.filter(mode =>
+            engines.every(engine => supportedProviderModes(engine).includes(mode))));
+    }
+
     function assertProviderCapabilities(timeControl, engines = []) {
-        const capability = timeControl.mode === FIXED_DEPTH_MODE
-            ? 'supportsFixedDepth' : 'supportsClockTimeControl';
-        const unsupported = engines.find(engine => engine?.capabilities?.[capability] !== true);
+        const unsupported = engines.find(engine =>
+            !supportedProviderModes(engine).includes(timeControl.mode));
         if (unsupported) {
+            const message = unsupported.capabilities?.unsupportedMatchTimeControlMessages?.[timeControl.mode];
+            if (message) throw new Error(message);
             throw new Error(`${unsupported.name || unsupported.id || 'Selected engine'} does not support ${timeControl.mode} Match time control.`);
         }
         return true;
@@ -332,9 +351,12 @@
     globalScope.CaissaArenaMatchClock = Object.freeze({
         CLOCK_MODES,
         FIXED_DEPTH_MODE,
+        ALL_MODES,
         SUPPORTED_PRESETS,
         createTimeControl,
         createQaTimeControl,
+        supportedProviderModes,
+        intersectProviderModes,
         assertProviderCapabilities,
         MatchClockController
     });

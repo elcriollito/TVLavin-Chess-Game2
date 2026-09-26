@@ -365,6 +365,24 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
         }
         resetClockPreview();
     };
+    const setTimeControlModeAvailability = (supportedModes = [], messages = {}) => {
+        if (!elements.timeMode) return null;
+        const supported = new Set(supportedModes);
+        const rejectedMode = supported.has(elements.timeMode.value) ? null : elements.timeMode.value;
+        Array.from(elements.timeMode.options).forEach(option => {
+            option.disabled = !supported.has(option.value);
+            option.title = option.disabled ? String(messages[option.value] || '') : '';
+        });
+        if (!supported.has(elements.timeMode.value)) {
+            const fallback = ['blitz', 'rapid', 'long', 'fixed-depth', 'bullet']
+                .find(mode => supported.has(mode));
+            if (fallback) elements.timeMode.value = fallback;
+        }
+        refreshTimeControl();
+        if (rejectedMode && messages[rejectedMode] && elements.timeSummary)
+            elements.timeSummary.textContent = messages[rejectedMode];
+        return elements.timeMode.value;
+    };
     elements.timeMode?.addEventListener('change', refreshTimeControl);
     elements.timePreset?.addEventListener('change', () => {
         config.timeControl.preset = elements.timePreset.value;
@@ -675,6 +693,7 @@ export function initMatchLabUi(documentRef = document, storage = globalThis.loca
         refreshAutomaticTitle,
         refreshOpening,
         refreshTimeControl,
+        setTimeControlModeAvailability,
         resetClockPreview,
         selectCustomFen,
         setClockDisplay

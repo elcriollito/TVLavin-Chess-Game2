@@ -17,6 +17,26 @@
     const TRANSPORT_RECONNECT_MS = 20_000;
     const TRANSPORT_RETRY_MAX_MS = 2_000;
     const COMMAND_ACK_TIMEOUT_MS = TRANSPORT_RECONNECT_MS + 2_000;
+    const FIXED_DEPTHS = Object.freeze([8, 12, 16, 20, 24]);
+
+    function goPayload(options = {}) {
+        if (options.depth !== undefined) {
+            const depth = Number(options.depth);
+            if (!Number.isSafeInteger(depth) || !FIXED_DEPTHS.includes(depth))
+                throw new Error('LC0_FIXED_DEPTH_INVALID');
+            return Object.freeze({ mode: 'depth', depth });
+        }
+        if (options.wtime !== undefined || options.btime !== undefined ||
+            options.winc !== undefined || options.binc !== undefined) {
+            const values = Object.fromEntries(['wtime', 'btime', 'winc', 'binc']
+                .map(key => [key, Number(options[key])]));
+            if (Object.values(values).some(value =>
+                !Number.isSafeInteger(value) || value < 0 || value > 86_400_000))
+                throw new Error('LC0_CLOCK_TIME_CONTROL_INVALID');
+            return Object.freeze({ mode: 'clock', ...values });
+        }
+        return Object.freeze({ mode: 'infinite' });
+    }
 
     function checkIdentity(value, manifestSha256 = EXPECTED.manifestSha256) {
         return !!value && Object.entries(EXPECTED).every(([key, expected]) =>
@@ -199,6 +219,10 @@
             } else if (value.type === 'STOPPED' && this.active?.searchId === value.searchId) {
                 this.lastPhase = 'STOPPED';
                 this.recordLifecycle('STOPPED', { searchId: value.searchId });
+                if (this.active.bounded && !this.active.stopRequested) {
+                    try { this.completeSearch(this.active, 'natural'); }
+                    catch (error) { this.fail(error); }
+                }
             } else if (value.type === 'CLEANUP') {
                 this.lastPhase = 'CLEANED';
                 this.terminating = true;
@@ -221,6 +245,12 @@
             // still own the prior search then; only a GO-acknowledged search
             // has an active generation to reconcile.
             if (!this.active?.started) return;
+            if (state.phase === 'STOPPED' && state.completedSearchId === this.active.searchId &&
+                typeof state.bestmove === 'string') {
+                this.active.bestmove = state.bestmove;
+                this.completeSearch(this.active, 'durable-natural');
+                return;
+            }
             if (state.activeSearchId !== this.active.searchId)
                 throw new Error('LC0_RECONNECT_SEARCH_MISMATCH');
             this.active.transportUncertain = true;
@@ -566,10 +596,15 @@
             if (!this.ready || this.closed) throw new Error('LC0_ARENA_NOT_READY');
             if (this.active || this.searchPromise) throw new Error('LC0_SEARCH_ALREADY_ACTIVE');
             if (typeof callback !== 'function') throw new Error('LC0_BESTMOVE_CALLBACK_REQUIRED');
+            const go = goPayload(options);
             const searchId = `search_${crypto.randomUUID()}`;
             const operation = { searchId, gameId: this.gameId, fen, callback,
                 started: false, stopRequested: false, bestmove: null, transportUncertain: false,
-                infoSeen: false };
+                infoSeen: false, bounded: go.mode !== 'infinite', go };
+            operation.completion = new Promise((resolve, reject) => {
+                operation.resolveCompletion = resolve;
+                operation.rejectCompletion = reject;
+            });
             this.active = operation;
             this.recordLifecycle('SEARCH_ALLOCATED', { searchId, fen });
             this.searchPromise = (async () => {
@@ -577,7 +612,7 @@
                 await this.reuse();
                 await this.command('POSITION', { fen, moves: [] });
                 this.recordLifecycle('POSITION_SENT', { searchId, fen });
-                await this.command('GO', { searchId, mode: 'infinite' });
+                await this.command('GO', { searchId, ...go });
                 if (this.metrics.firstSearchAfterMatchStartMs === null &&
                     this.coordinator.matchStartAt != null)
                     this.metrics.firstSearchAfterMatchStartMs = performance.now() -
@@ -585,11 +620,30 @@
                 operation.started = true;
                 this.analyzing = true;
                 this.recordLifecycle('SEARCH_STARTED', { searchId });
-                if (!operation.stopRequested)
+                if (operation.bounded && !operation.stopRequested) {
+                    await operation.completion;
+                } else if (!operation.stopRequested) {
                     await Promise.race([pause(Math.max(250, Math.min(2_000, options.movetime || 1_200))),
                         new Promise(resolve => { operation.wakeStop = resolve; })]);
-                await this.stop();
+                    await this.stop();
+                } else await this.stop();
             })().catch(error => this.fail(error)).finally(() => { this.searchPromise = null; });
+        }
+
+        completeSearch(operation, completion = 'stopped') {
+            if (!operation || this.active !== operation) return false;
+            if (!legalMove(operation.fen, operation.bestmove)) throw new Error('LC0_BESTMOVE_ILLEGAL');
+            this.analyzing = false;
+            this.lastSearchId = operation.searchId;
+            this.lastPhase = 'STOPPED';
+            this.active = null;
+            this.recordLifecycle('SEARCH_COMPLETE', {
+                searchId: operation.searchId, bestmove: operation.bestmove, completion
+            });
+            if (operation.gameId === this.gameId && !this.closed)
+                operation.callback(operation.bestmove);
+            operation.resolveCompletion?.(true);
+            return true;
         }
 
         stop() {
@@ -612,17 +666,11 @@
                         searchId: operation.searchId, move: state.bestmove } : null,
                 from, 8_000, 'STOPPED');
                 operation.bestmove ||= stopped.move || null;
-                if (!stopped || !legalMove(operation.fen, operation.bestmove))
-                    throw new Error('LC0_BESTMOVE_ILLEGAL');
+                if (!stopped) throw new Error('LC0_STOP_RESULT_MISSING');
                 this.metrics.stopMs.push(performance.now() - began);
-                this.analyzing = false;
-                this.lastSearchId = operation.searchId;
-                this.lastPhase = 'STOPPED';
-                this.active = null;
                 this.recordLifecycle('STOP_COMPLETE', { searchId: operation.searchId,
                     bestmove: operation.bestmove });
-                if (operation.gameId === this.gameId && !this.closed)
-                    operation.callback(operation.bestmove);
+                this.completeSearch(operation, 'stopped');
                 return true;
             })().finally(() => { this.stopPromise = null; });
             return this.stopPromise;
@@ -739,6 +787,7 @@
 
         fail(error) {
             if (this.closed || this.terminating) return;
+            this.active?.rejectCompletion?.(error);
             this.ready = false;
             this.closed = true;
             this.status(`Lc0 unavailable: ${error.message}`);
