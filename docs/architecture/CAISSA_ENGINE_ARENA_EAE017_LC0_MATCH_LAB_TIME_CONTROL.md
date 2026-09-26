@@ -124,3 +124,45 @@ mobile cleanup, and the Lc0 Bullet gate.
 
 Deployment IDs, authenticated real-runtime results, cleanup counts, and the
 final verdict are recorded only after the internal preview certification run.
+
+## Internal preview checkpoint (2026-09-25)
+
+The EAE-017 branch is deployed only to protected Preview infrastructure:
+
+| Surface | Preview deployment | Deployment ID | Status |
+| --- | --- | --- | --- |
+| Main Arena | `eae017-main-elcriollitos-projects.vercel.app` | `dpl_7ndEg8bX7hsaQMeRPStapCxJ1eDj` | READY |
+| Lc0 runtime | `eae017-engine-elcriollitos-projects.vercel.app` | `dpl_EUHdAdBz1QewFrrPbisnmZxpaVMc` | READY |
+| Lc0 relay | `eae017-relay-elcriollitos-projects.vercel.app` | `dpl_6YLvTLf3ATAjBeXxk9WKgbxgQ53D` | READY |
+
+The relay health response is HTTP 200 with `releaseStage=INTERNAL_ONLY`,
+`productionShape=true`, and `mode=ENABLED`. The anonymous relay eligibility
+request is rejected with `AUTH_REQUIRED`. The main EAE-016 gateway likewise
+returns `authenticated=false`, `eligible=false`, `enabled=false`, and
+`reason=AUTH_REQUIRED` for an anonymous request while retaining the exact
+EAE-017 origins and deployment manifest.
+
+The relay Preview environment contains one protected internal identity: the
+same owner identity already authorized in production. The value remains hidden
+and was neither printed nor committed. Production allowlist contents, Clerk,
+roles, entitlements, publishable key, and rollout stage were not changed.
+
+Automated verification at branch SHA
+`cf5fbe8c25d80d4fab228b340d125719c6214c64` records:
+
+- targeted EAE-017, rollout, and relay unit matrix: 87/87 passed;
+- Match Lab Chromium matrix: 10/10 passed;
+- full Arena Chromium regression: 106 passed, 1 skipped, with the single stale
+  manifest fixture updated and its targeted regression rerun at 3/3 passed;
+- immutable appliance verification: 8/8 artifacts verified, including a
+  successful tamper-detection self-test;
+- Git worktree clean and remote feature branch at the same SHA.
+
+Authenticated physical A-J runtime certification remains pending. The owner is
+authenticated on production and production still visibly exposes Experimental
+Engines, but the local WOT browser extension blocks the protected `vercel.app`
+Preview with its security-warning interstitial. That warning must be resolved
+by the owner; automation must not bypass it. Until the physical run records the
+authenticated eligibility result, actual Lc0/SF19 games, two-game series,
+flag-fall cleanup, zero active sessions, zero relay rows, and zero critical
+alerts, the release verdict remains pending rather than certified.
