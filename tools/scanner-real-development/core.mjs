@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
-import { basename, extname, join, resolve } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { CANONICAL_SQUARES, LABELS, ORIENTATIONS, labelsToPlacementFen, validateLabels }
   from '../scanner-piece-label-annotator/piece-label-core.js';
@@ -8,8 +9,10 @@ import { CANONICAL_SQUARES, LABELS, ORIENTATIONS, labelsToPlacementFen, validate
 export const CORPUS_VERSION = 'caissa-scanner-real-development-v0.1';
 export const MANIFEST_SCHEMA = 'caissa-scanner-real-development-manifest/1';
 export const ANNOTATION_SCHEMA = 'caissa-scanner-real-development-annotations/1';
-export const SOURCE_ROOT = 'C:/Users/ALEXANDER/Alexander Projects/caissa_scanner_real_development_cohort_v0_1';
-export const ANNOTATION_ROOT = 'C:/Users/ALEXANDER/Alexander Projects/caissa_scanner_real_development_cohort_v0_1_annotations';
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const REPO_PARENT = resolve(REPO_ROOT, '..');
+export const SOURCE_ROOT = join(REPO_PARENT, 'caissa_scanner_real_development_cohort_v0_1');
+export const ANNOTATION_ROOT = join(REPO_PARENT, 'caissa_scanner_real_development_cohort_v0_1_annotations');
 export const SUPPORTED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 export const EMPTY_SUBTYPES = Object.freeze(['plain-digital', 'highlighted', 'arrow-overlay', 'coordinate-edge',
   'screen-glare', 'moire', 'compression', 'wood', 'dark-theme', 'light-theme', 'print', 'paper-texture',

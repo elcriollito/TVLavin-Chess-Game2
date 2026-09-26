@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "caissa-scanner-private-corpus-envelope/1",
+  "archive": {
+    "file": "real-piece-corpus-v1.tar.gz.enc",
+    "cipher": "AES-256-GCM",
+    "encryptedSha256": "923C01AA1B1D857CFA1F675C422B4B5D724F17B40E5AC988709A097191CA170F",
+    "plaintextSha256": "B70C8725ADC092A656B9DEBF71FF67651115B6E386DE4D3D22169717A1C3D8D3"
+  },
+  "expected": {
+    "auditedBoards": 32,
+    "v01Boards": 13,
+    "v03FreshBoards": 19,
+    "duplicateAliases": 14,
+    "outOfScope": 1,
+    "developmentBoards": 41,
+    "protectedSourceImages": 60,
+    "archiveFiles": 107,
+    "keyFiles": {
+      "caissa_scanner_real_localization_corpus_v0_1/localization-hard-v0.1.annotated.json": "EEA230D23C0BC608784B20542A4EC5B2FAA7F533E1EC427E62985BB4720708A7",
+      "caissa_scanner_real_localization_corpus_v0_1/manifest-starter.json": "DFE01F52B20BAF38ED5BF680B4A929E49D231CE0A1F2F69F8433C6257F7E1304",
+      "caissa_scanner_real_localization_corpus_v0_3/localization-hard-v0.3.annotated.json": "D059F172747921D6D5AEF3106099ABCF6C8553074E4961ACDA626C2312248BA6",
+      "caissa_scanner_real_localization_corpus_v0_3/manifest-starter-v0.3.json": "46700321AFDF531D3D295CC7B31EFC0CFD59DFA68833C505208B0ADC65AD44F1",
+      "caissa_scanner_piece_labels_v0_1/piece-labels-v0.1.json": "AA471439A1EE78301591424A92FC9C425D3B7C3FCF12AC18A2CFE83B2A4EF855",
+      "caissa_scanner_real_development_cohort_v0_1_annotations/real-development-v0.1.annotations.json": "246147E34C74098A6948FF7F438AA873FEF07426B7A05ABFD35372E302EF9C0D"
+    }
+  }
+}

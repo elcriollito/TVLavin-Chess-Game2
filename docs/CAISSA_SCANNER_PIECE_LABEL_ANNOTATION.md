@@ -16,6 +16,19 @@ Defaults are the certified external `caissa_scanner_real_localization_corpus_v0_
 
 `C:\Users\ALEXANDER\Alexander Projects\caissa_scanner_piece_labels_v0_1\piece-labels-v0.1.json`
 
+### CI resource contract
+
+The real localization inputs remain private evaluation evidence and must not be
+published in this public repository. GitHub Actions provisions the exact 32
+audited board images from the authenticated encrypted fixture described by
+`scanner/fixtures/private-real-corpus-v1/manifest.json`. The repository secret
+`SCANNER_CORPUS_ARCHIVE_KEY` contains only the AES-256-GCM key; the workflow
+never logs it. The envelope and decrypted archive are SHA-256 checked before
+the existing catalog test independently verifies every source image against the
+certified v0.1/v0.3 manifests. This makes the required gate reproducible on a
+fresh runner without a developer-local folder or cache while keeping the source
+material non-public.
+
 The manifest is created only on the first autosave, Save draft, or Confirm verified. No source image, reference screenshot, corner annotation, or recovered ZIP is written. Custom `--output` paths inside either immutable source corpus, or directly over any source image, are rejected. The canonical manifest is written to a same-folder temporary file, file-synced, and atomically renamed. Three rotating `checkpoints/manifest-*.json` files retain recent complete versions; older `history/` files from before the hotfix are left untouched. A corrupt main file is recovered from the newest valid checkpoint (or legacy history), never interpreted as an empty corpus; if none validates, launch fails closed.
 
 ## Board and label workflow

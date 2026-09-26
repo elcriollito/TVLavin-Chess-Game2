@@ -11,6 +11,8 @@ on:
       - 'scanner/**'
       - 'tools/run-scanner-historical-tfjs-baseline.mjs'
       - 'tools/generate-scanner-piece-dataset.mjs'
+      - 'tools/provision-scanner-ci-corpus.mjs'
+      - 'tools/scanner-real-development/**'
       - 'tests/scanner-historical-verified-real.test.js'
       - 'tests/scanner-piece-dataset.test.js'
       - 'artifacts/scanner-classifier-baseline/**'
@@ -46,6 +48,8 @@ on:
       - 'scanner/**'
       - 'tools/run-scanner-historical-tfjs-baseline.mjs'
       - 'tools/generate-scanner-piece-dataset.mjs'
+      - 'tools/provision-scanner-ci-corpus.mjs'
+      - 'tools/scanner-real-development/**'
       - 'tests/scanner-historical-verified-real.test.js'
       - 'tests/scanner-piece-dataset.test.js'
       - 'artifacts/scanner-classifier-baseline/**'
@@ -93,6 +97,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Provision audited private Scanner corpus
+        env:
+          SCANNER_CORPUS_ARCHIVE_KEY: ${{ secrets.SCANNER_CORPUS_ARCHIVE_KEY }}
+        run: node tools/provision-scanner-ci-corpus.mjs
 
       - name: Install Scanner browser engines
         run: npx playwright install --with-deps chromium firefox webkit
