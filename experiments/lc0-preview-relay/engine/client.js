@@ -6962,6 +6962,7 @@ var Lc0LabRuntime = class {
     this.workerPath = options.workerPath || "/lc0-worker.js";
     this.testMode = options.testMode || "normal";
     this.timeoutMs = options.timeoutMs || 3e4;
+    this.startupTimeoutMs = options.startupTimeoutMs || this.timeoutMs;
     this.onEvent = typeof options.onEvent === "function" ? options.onEvent : () => {
     };
     this.worker = null;
@@ -7071,7 +7072,10 @@ var Lc0LabRuntime = class {
       const uciStart = this.lines.length;
       const uciSentAt = performance.now();
       this.send("uci");
-      await this.waitForLine((line) => line === "uciok", { start: uciStart, timeout: this.timeoutMs });
+      await this.waitForLine((line) => line === "uciok", {
+        start: uciStart,
+        timeout: this.startupTimeoutMs
+      });
       this.timings.uciOkMs = performance.now() - uciSentAt;
       const uciLines = this.lines.slice(uciStart);
       const name = uciLines.find((line) => line.startsWith("id name "))?.slice(8) || null;
@@ -7253,6 +7257,13 @@ var Lc0LabRuntime = class {
       this.nestedWorkers = Number(data.pthreads || 0);
       this.updateWorkerPeak();
     }
+    if (data.type === "backend-ready") {
+      this.timings.backendSessionMs = Number(data.sessionMs || 0);
+      this.emit("backend-ready", {
+        backend: data.backend,
+        sessionMs: this.timings.backendSessionMs
+      });
+    }
     if (data.type === "terminated") {
       this.cleanupAcknowledged = data.pthreads === 0 && data.nativeExit === true;
       this.nestedWorkers = Number(data.pthreads || 0);
@@ -7332,9 +7343,26 @@ var log = (value) => {
   $("#log").textContent += `${value}
 `;
 };
-var BASE = "/experiments/lc0-preview-relay/engine";
-var ARTIFACTS = `${BASE}/artifacts`;
-var MANIFEST_SHA256 = "b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a";
+var meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content || null;
+var RUNTIME_CONFIG = Object.freeze(globalThis.__LC0_RUNTIME_CONFIG__ || {
+  basePath: meta("lc0-base-path"),
+  assetBase: meta("lc0-asset-base"),
+  relayOrigin: meta("lc0-relay-origin"),
+  mainOrigin: meta("lc0-main-origin"),
+  manifestUrl: meta("lc0-manifest-url"),
+  manifestSha256: meta("lc0-manifest-sha256"),
+  workerPath: meta("lc0-worker-path")
+});
+var BASE = RUNTIME_CONFIG.basePath || "/experiments/lc0-preview-relay/engine";
+var ARTIFACTS = RUNTIME_CONFIG.assetBase || `${BASE}/artifacts`;
+var RELAY_ORIGIN = RUNTIME_CONFIG.relayOrigin || location.origin;
+var MANIFEST_URL = RUNTIME_CONFIG.manifestUrl || `${BASE}/lab-manifest.json`;
+var MANIFEST_SHA256 = RUNTIME_CONFIG.manifestSha256 || "b1a28b43918980191d62fc9c67892a00a5458126a1005ea139615c9c9b633c2a";
+var TRANSPORT_RECONNECT_MS = 2e4;
+var TRANSPORT_RETRY_MAX_MS = 2e3;
+var ENGINE_MESSAGE_RETRY_MS = TRANSPORT_RECONNECT_MS;
+var CLEANUP_MESSAGE_RETRY_MS = 15e3;
+var delay2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 var PIN = Object.freeze({
   providerClass: "lc0-browser-experimental",
   version: "v0.33.0-dev+git.482bb4a",
@@ -7347,7 +7375,7 @@ var PIN = Object.freeze({
   manifestSha256: MANIFEST_SHA256
 });
 async function api(action, { sessionId, credential, body, cursor, signal } = {}) {
-  const url = new URL("/api/eae011", location.origin);
+  const url = new URL("/api/eae011", RELAY_ORIGIN);
   url.searchParams.set("action", action);
   if (sessionId) url.searchParams.set("sessionId", sessionId);
   if (cursor != null) url.searchParams.set("cursor", String(cursor));
@@ -7362,29 +7390,40 @@ async function api(action, { sessionId, credential, body, cursor, signal } = {})
   });
   if (!response.ok) {
     const value = await response.json().catch(() => ({}));
-    throw new Error(value.error || `HTTP_${response.status}`);
+    const error = new Error(value.error || `HTTP_${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return action === "stream_engine" ? response : response.json();
 }
 async function verifyArtifacts() {
-  const response = await fetch(`${BASE}/lab-manifest.json`, { cache: "force-cache" });
+  const response = await fetch(MANIFEST_URL, { cache: "force-cache" });
   if (!response.ok) throw new Error("MANIFEST_UNAVAILABLE");
   const raw = await response.arrayBuffer();
   if (await sha256(raw) !== MANIFEST_SHA256) throw new Error("MANIFEST_HASH_MISMATCH");
   const manifest = JSON.parse(new TextDecoder().decode(raw));
-  if (manifest.source.commit !== PIN.sourceCommit || manifest.source.lc0ReportedVersion !== PIN.version || manifest.network.id !== PIN.networkId || manifest.network.sha256 !== PIN.networkSha256 || manifest.toolchain.emscripten !== "3.1.64" || manifest.toolchain.meson !== "1.8.3" || manifest.toolchain.ninja !== "1.11.1.4" || manifest.toolchain.onnxruntimeWeb !== "1.27.0") throw new Error("MANIFEST_IDENTITY_MISMATCH");
-  for (const [folder, names] of Object.entries({
-    runtime: ["lc0.js", "lc0.wasm", "lc0.worker.mjs"],
-    ort: ["ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"],
-    network: ["maia-1100.pb.gz"]
-  })) {
-    for (const name of names) {
-      const asset = await fetch(`${ARTIFACTS}/${folder}/${name}`, { cache: "force-cache" });
-      if (!asset.ok) throw new Error(`ARTIFACT_UNAVAILABLE_${name}`);
-      const bytes = await asset.arrayBuffer(), expected = manifest.artifacts[name];
-      if (!expected || bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)
-        throw new Error(`ARTIFACT_HASH_MISMATCH_${name}`);
-    }
+  const version = (value) => typeof value === "string" ? value : value?.version;
+  if (manifest.source.commit !== PIN.sourceCommit || manifest.source.lc0ReportedVersion !== PIN.version || manifest.network.id !== PIN.networkId || manifest.network.sha256 !== PIN.networkSha256 || version(manifest.toolchain.emscripten) !== "3.1.64" || version(manifest.toolchain.meson) !== "1.8.3" || version(manifest.toolchain.ninja) !== "1.11.1.4" || version(manifest.toolchain.onnxruntimeWeb) !== "1.27.0")
+    throw new Error("MANIFEST_IDENTITY_MISMATCH");
+  const legacyFolders = {
+    "lc0.js": "runtime",
+    "lc0.wasm": "runtime",
+    "lc0.worker.mjs": "runtime",
+    "ort-wasm-simd-threaded.mjs": "ort",
+    "ort-wasm-simd-threaded.wasm": "ort",
+    "maia-1100.pb.gz": "network"
+  };
+  for (const [name, expected] of Object.entries(manifest.artifacts || {})) {
+    if (expected.verifyBeforeReady === false) continue;
+    const url = expected.path ? new URL(
+      expected.path,
+      new URL(MANIFEST_URL, location.origin)
+    ).href : `${ARTIFACTS}/${legacyFolders[name]}/${name}`;
+    const asset = await fetch(url, { cache: "force-cache" });
+    if (!asset.ok) throw new Error(`ARTIFACT_UNAVAILABLE_${name}`);
+    const bytes = await asset.arrayBuffer();
+    if (!expected || bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)
+      throw new Error(`ARTIFACT_HASH_MISMATCH_${name}`);
   }
   return manifest;
 }
@@ -7411,6 +7450,14 @@ function info(line) {
     emittedAt: Date.now()
   };
 }
+function goCommand(command) {
+  if (command.mode === "infinite") return "go infinite";
+  if (command.mode === "nodes") return `go nodes ${command.nodes}`;
+  if (command.mode === "depth") return `go depth ${command.depth}`;
+  if (command.mode === "clock")
+    return `go wtime ${command.wtime} btime ${command.btime} winc ${command.winc} binc ${command.binc}`;
+  throw new Error("GO_MODE_INVALID");
+}
 var RealLc0RelayClient = class {
   constructor() {
     this.sessionId = null;
@@ -7420,6 +7467,9 @@ var RealLc0RelayClient = class {
     this.controller = null;
     this.heartbeatTimer = null;
     this.reconnectTimer = null;
+    this.reconnectPromise = null;
+    this.transportState = "CONNECTING";
+    this.transportTrace = [];
     this.inbound = Promise.resolve();
     this.outbound = Promise.resolve();
     this.runtime = null;
@@ -7437,17 +7487,40 @@ var RealLc0RelayClient = class {
       runtimeInitMs: null,
       goToLocalBestmoveMs: [],
       stopToLocalBestmoveMs: [],
-      cleanupLocalMs: null
+      cleanupLocalMs: null,
+      transportSuspended: 0,
+      reconnectSuccess: 0,
+      reconnectFailure: 0,
+      localCleanupObserved: false,
+      brokerCleanupAcknowledged: false,
+      localCleanupReason: null,
+      localCleanupEvidence: null
     };
     this.intentionalDisconnect = false;
     this.closed = false;
     this.heartbeatRequests = /* @__PURE__ */ new Set();
+  }
+  recordTransport(event, detail = {}) {
+    const entry = Object.freeze({
+      at: Date.now(),
+      event,
+      online: navigator.onLine !== false,
+      visibility: document.visibilityState,
+      ...detail
+    });
+    this.transportTrace.push(entry);
+    if (this.transportTrace.length > 120) this.transportTrace.splice(0, 40);
+    return entry;
   }
   async initialize() {
     if (!crossOriginIsolated || typeof SharedArrayBuffer !== "function") throw new Error("ISOLATION_REQUIRED");
     $("#environment").textContent = `origin=${location.origin}; isolated=${crossOriginIsolated}; SAB=true`;
     const handoff = new URLSearchParams(location.hash.slice(1));
     history.replaceState(null, "", location.pathname);
+    if (handoff.has("relayOrigin") && handoff.get("relayOrigin") !== RELAY_ORIGIN)
+      throw new Error("RELAY_ORIGIN_MISMATCH");
+    if (RUNTIME_CONFIG.mainOrigin && handoff.get("mainOrigin") !== RUNTIME_CONFIG.mainOrigin)
+      throw new Error("MAIN_ORIGIN_MISMATCH");
     if (handoff.has("sessionId") && handoff.has("claimToken")) {
       this.sessionId = handoff.get("sessionId");
       const claimAt = performance.now();
@@ -7475,8 +7548,9 @@ var RealLc0RelayClient = class {
     this.metrics.artifactVerifyMs = performance.now() - artifactsAt;
     this.runtime = new Lc0LabRuntime({
       timeoutMs: 3e4,
+      startupTimeoutMs: 6e4,
       assetBase: ARTIFACTS,
-      workerPath: `${BASE}/lc0-worker.js`,
+      workerPath: RUNTIME_CONFIG.workerPath || `${BASE}/lc0-worker.js`,
       network: { url: `${ARTIFACTS}/network/maia-1100.pb.gz` },
       onEvent: (event) => this.runtimeEvent(event)
     });
@@ -7499,14 +7573,30 @@ var RealLc0RelayClient = class {
       cursor: this.cursor,
       signal: controller.signal
     });
+    const recovered = this.transportState === "TRANSPORT_SUSPENDED";
+    this.transportState = "CONNECTED";
+    this.recordTransport(recovered ? "RECONNECT_SUCCESS" : "CONNECTED", {
+      action: "stream_engine",
+      direction: "engine-to-relay",
+      correlationId: response.headers.get("x-vercel-id") || response.headers.get("x-request-id")
+    });
+    if (recovered) this.metrics.reconnectSuccess += 1;
     $("#disconnect").disabled = false;
     $("#reconnect").disabled = true;
     this.consume(response.body, controller).catch((error) => {
-      if (error.name !== "AbortError") log(`stream ${error.message}`);
+      if (error.name !== "AbortError") {
+        this.recordTransport("STREAM_FAILED", {
+          action: "stream_engine",
+          errorName: error.name,
+          errorCode: error.code || null,
+          error: error.message
+        });
+        log(`stream ${error.message}`);
+      }
     }).finally(() => {
       if (!this.closed && !this.intentionalDisconnect && this.controller === controller) {
         this.transportLost();
-        this.reconnectTimer = setTimeout(() => this.reconnect().catch((error) => this.fail(error)), 500);
+        this.scheduleReconnect();
       }
     });
   }
@@ -7530,7 +7620,7 @@ var RealLc0RelayClient = class {
         this.heartbeatRequests.delete(request);
       });
       this.heartbeatRequests.add(request);
-    }, 1500);
+    }, 5e3);
   }
   async consume(body, controller) {
     const reader = body.getReader(), decoder = new TextDecoder();
@@ -7577,22 +7667,47 @@ var RealLc0RelayClient = class {
   async message(type, rest = {}) {
     this.outbound = this.outbound.catch(() => {
     }).then(async () => {
-      try {
-        const result = await api("message", {
-          sessionId: this.sessionId,
-          credential: this.credential,
-          body: { type, seq: this.seq + 1, ...rest }
-        });
-        this.seq += 1;
-        log(`--> ${type} ${this.seq}`);
-        return result;
-      } catch (error) {
-        const state = await api("engine_state", {
-          sessionId: this.sessionId,
-          credential: this.credential
-        }).catch(() => null);
-        if (state) this.seq = state.lastEngineSeq;
-        throw error;
+      const payload = { type, seq: this.seq + 1, ...rest };
+      const deadline = performance.now() + (type === "CLEANUP" ? CLEANUP_MESSAGE_RETRY_MS : ENGINE_MESSAGE_RETRY_MS);
+      let retryMs = 100, lastError = null;
+      while (true) {
+        try {
+          const result = await api("message", {
+            sessionId: this.sessionId,
+            credential: this.credential,
+            body: payload
+          });
+          this.seq = payload.seq;
+          log(`--> ${type} ${this.seq}`);
+          return result;
+        } catch (error) {
+          lastError = error;
+          const state = await api("engine_state", {
+            sessionId: this.sessionId,
+            credential: this.credential
+          }).catch(() => null);
+          if (state?.lastEngineSeq === payload.seq) {
+            this.seq = payload.seq;
+            this.recordTransport("OUTBOUND_RECONCILED", { type, seq: payload.seq });
+            log(`--> ${type} ${this.seq} (reconciled)`);
+            return { accepted: true, type, reconciled: true };
+          }
+          if (state && state.lastEngineSeq !== payload.seq - 1)
+            throw new Error("ENGINE_SEQUENCE_DIVERGED");
+          if (state) this.seq = state.lastEngineSeq;
+          const retryable = !error.status || error.status >= 500 || error.message === "ENGINE_SEQUENCE_INVALID";
+          if (!retryable || error.status === 410 || performance.now() >= deadline) throw lastError;
+          this.recordTransport("OUTBOUND_RETRY", {
+            type,
+            seq: payload.seq,
+            errorName: error.name,
+            errorCode: error.code || null,
+            error: error.message,
+            retryMs
+          });
+          await delay2(retryMs);
+          retryMs = Math.min(500, retryMs * 2);
+        }
       }
     });
     return this.outbound;
@@ -7615,6 +7730,7 @@ var RealLc0RelayClient = class {
       if (!this.currentPosition || this.active) throw new Error("GO_STATE_INVALID");
       this.active = {
         searchId: command.searchId,
+        mode: command.mode,
         chess: this.currentPosition.chess,
         startLine: this.runtime.lines.length,
         startedAt: performance.now(),
@@ -7623,14 +7739,23 @@ var RealLc0RelayClient = class {
         transportUncertain: false
       };
       this.runtime.state = "SEARCHING";
-      this.runtime.send(command.mode === "infinite" ? "go infinite" : `go nodes ${command.nodes}`);
+      this.runtime.send(goCommand(command));
       await ack();
     } else if (command.type === "STOP") {
-      if (!this.active || this.active.searchId !== command.searchId) throw new Error("STOP_SEARCH_MISMATCH");
-      const stopAt = performance.now();
-      this.active.stopRequested = true;
-      await ack();
+      if (!this.active) {
+        if (this.lastCompletedSearchId !== command.searchId) throw new Error("STOP_SEARCH_MISMATCH");
+        await ack();
+        return;
+      }
       const active = this.active;
+      if (active.searchId !== command.searchId) throw new Error("STOP_SEARCH_MISMATCH");
+      const stopAt = performance.now();
+      active.stopRequested = true;
+      await ack();
+      if (active.naturalCompletionPromise) {
+        await active.naturalCompletionPromise;
+        return;
+      }
       if (!active.bestmove) this.runtime.send("stop");
       const line = active.bestmove || await this.runtime.waitForLine(
         (value) => /^bestmove\s+\S+/.test(value),
@@ -7643,6 +7768,7 @@ var RealLc0RelayClient = class {
         throw new Error("BESTMOVE_ILLEGAL");
       await this.message("BESTMOVE", { searchId: active.searchId, move, emittedAt: Date.now() });
       await this.message("STOPPED", { searchId: active.searchId });
+      this.lastCompletedSearchId = active.searchId;
       this.runtime.state = "READY";
       this.active = null;
     } else if (command.type === "RESET") {
@@ -7675,20 +7801,39 @@ var RealLc0RelayClient = class {
       $("#disconnect").disabled = true;
     }
   }
+  finishNaturalSearch(active, line) {
+    if (!active || active.mode === "infinite" || active.naturalCompletionPromise)
+      return active?.naturalCompletionPromise || null;
+    active.naturalCompletionPromise = (async () => {
+      await delay2(0);
+      const move = /^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/.exec(line)?.[1];
+      const parts = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/.exec(move || "");
+      if (!parts || !active.chess.move({ from: parts[1], to: parts[2], promotion: parts[3] || "q" }))
+        throw new Error("BESTMOVE_ILLEGAL");
+      await this.message("BESTMOVE", { searchId: active.searchId, move, emittedAt: Date.now() });
+      await this.message("STOPPED", { searchId: active.searchId });
+      this.lastCompletedSearchId = active.searchId;
+      this.runtime.state = "READY";
+      if (this.active === active) this.active = null;
+    })().catch((error) => this.fail(error));
+    return active.naturalCompletionPromise;
+  }
   runtimeEvent(event) {
     if (event.type === "stdout") {
       const line = event.line;
       if (line.startsWith("info ")) {
         this.metrics.rawInfo += 1;
         const active = this.active, parsed = info(line);
-        if (active && parsed && !active.stopRequested && !active.transportUncertain && performance.now() - active.lastInfoAt >= 150) {
+        if (active && parsed && !active.stopRequested && !active.transportUncertain && performance.now() - active.lastInfoAt >= 250) {
           active.lastInfoAt = performance.now();
           this.metrics.sentInfo += 1;
           this.message("INFO", { searchId: active.searchId, ...parsed }).catch((error) => log(`info ${error.message}`));
         }
       } else if (line.startsWith("bestmove ") && this.active) {
-        this.active.bestmove = line;
-        this.metrics.goToLocalBestmoveMs.push(performance.now() - this.active.startedAt);
+        const active = this.active;
+        active.bestmove = line;
+        this.metrics.goToLocalBestmoveMs.push(performance.now() - active.startedAt);
+        this.finishNaturalSearch(active, line);
       }
     } else if (event.type === "worker-error" || event.type === "failure" || event.type === "force-terminated") {
       log(`${event.type}: ${event.message || ""}`);
@@ -7698,6 +7843,14 @@ var RealLc0RelayClient = class {
   }
   transportLost() {
     clearInterval(this.heartbeatTimer);
+    if (this.transportState !== "TRANSPORT_SUSPENDED") {
+      this.transportState = "TRANSPORT_SUSPENDED";
+      this.metrics.transportSuspended += 1;
+      this.recordTransport("TRANSPORT_SUSPENDED", {
+        action: "stream_engine",
+        direction: "engine-to-relay"
+      });
+    }
     if (this.active && !this.active.bestmove) {
       this.active.transportUncertain = true;
       this.runtime.send("stop");
@@ -7723,13 +7876,105 @@ var RealLc0RelayClient = class {
     await this.connect();
     $("#status").textContent = `RECONNECTED ${state.phase}`;
   }
-  async fail(error) {
-    if (this.closed) return;
-    this.closed = true;
+  scheduleReconnect() {
+    if (this.reconnectPromise || this.closed || this.intentionalDisconnect) return this.reconnectPromise;
+    this.reconnectPromise = (async () => {
+      const deadline = performance.now() + TRANSPORT_RECONNECT_MS;
+      let retryMs = 250;
+      let lastError = null;
+      while (!this.closed && !this.intentionalDisconnect && performance.now() < deadline) {
+        try {
+          await this.reconnect();
+          return true;
+        } catch (error) {
+          lastError = error;
+          this.recordTransport("RECONNECT_RETRY", {
+            errorName: error.name,
+            errorCode: error.code || null,
+            error: error.message,
+            retryMs
+          });
+          if (error.status === 410) break;
+          await delay2(retryMs);
+          retryMs = Math.min(TRANSPORT_RETRY_MAX_MS, retryMs * 2);
+        }
+      }
+      if (!this.closed && !this.intentionalDisconnect) {
+        this.metrics.reconnectFailure += 1;
+        this.recordTransport("RECONNECT_EXHAUSTED", {
+          errorName: lastError?.name || null,
+          errorCode: lastError?.code || null,
+          error: lastError?.message || "lease window exhausted"
+        });
+        await this.localFailsafeCleanup(lastError?.status === 410 ? "transport-lease-expired" : "transport-reconnect-exhausted");
+      }
+      return false;
+    })().finally(() => {
+      this.reconnectPromise = null;
+      if (!this.closed && !this.intentionalDisconnect && this.transportState === "TRANSPORT_SUSPENDED")
+        queueMicrotask(() => this.scheduleReconnect());
+    });
+    return this.reconnectPromise;
+  }
+  async localFailsafeCleanup(reason) {
+    if (this.closed) return this.metrics.localCleanupEvidence;
     clearInterval(this.heartbeatTimer);
     clearTimeout(this.reconnectTimer);
     this.controller?.abort();
-    if (this.runtime) await this.runtime.terminate("relay-failure").catch(() => {
+    this.transportState = "LOCAL_CLEANUP";
+    this.metrics.localCleanupReason = reason;
+    const active = this.active;
+    if (active) {
+      try {
+        if (!active.bestmove) {
+          this.runtime.send("stop");
+          active.bestmove = await this.runtime.waitForLine(
+            (value) => /^bestmove\s+\S+/.test(value),
+            { start: active.startLine, timeout: 5e3 }
+          );
+        }
+      } catch (error) {
+        this.recordTransport("LOCAL_STOP_FAILED", { errorName: error.name, error: error.message });
+      } finally {
+        this.runtime.state = "READY";
+        this.active = null;
+      }
+    }
+    const ended = this.runtime ? await this.runtime.terminate(reason) : {
+      parentWorkers: 0,
+      pthreadWorkers: 0,
+      state: "TERMINATED",
+      cleanupAcknowledged: true,
+      forcedTerminations: 0,
+      timings: { terminateMs: 0 }
+    };
+    this.metrics.forced = ended.forcedTerminations;
+    this.metrics.cleanupLocalMs = ended.timings?.terminateMs ?? null;
+    this.metrics.localCleanupEvidence = {
+      parentWorkers: ended.parentWorkers,
+      pthreadWorkers: ended.pthreadWorkers,
+      runtimeState: ended.state,
+      cleanupAcknowledged: ended.cleanupAcknowledged,
+      forcedTerminations: ended.forcedTerminations
+    };
+    this.metrics.localCleanupObserved = ended.parentWorkers === 0 && ended.pthreadWorkers === 0 && ended.cleanupAcknowledged === true && ended.forcedTerminations === 0;
+    this.metrics.brokerCleanupAcknowledged = false;
+    this.closed = true;
+    this.transportState = "CLEANED_LOCAL";
+    for (const key of ["session", "credential", "cursor"])
+      sessionStorage.removeItem(`eae012-engine-${key}`);
+    $("#status").textContent = this.metrics.localCleanupObserved ? "CLEANED LOCALLY; broker acknowledgement unavailable" : "LOCAL CLEANUP FAILED";
+    this.recordTransport("LOCAL_CLEANUP_COMPLETE", {
+      reason,
+      localCleanupObserved: this.metrics.localCleanupObserved,
+      brokerCleanupAcknowledged: false,
+      ...this.metrics.localCleanupEvidence
+    });
+    return this.metrics.localCleanupEvidence;
+  }
+  async fail(error) {
+    if (this.closed) return;
+    await this.localFailsafeCleanup("relay-failure").catch(() => {
     });
     if (this.credential) await this.message("ERROR", { code: "ENGINE_RUNTIME_FAILURE" }).catch(() => {
     });

@@ -212,3 +212,30 @@ test('I. Stop Series cancels its deadline and cannot flag later on mobile', asyn
   await expect(page.locator('#arenaBlackClock')).toBeVisible();
   await expect(page.locator('#arenaWhiteClock')).toBeVisible();
 });
+
+test('J. Lc0 capability intersection disables Bullet and keeps Blitz available', async ({ page }) => {
+  await openArena(page);
+  await page.locator('#arenaTimeControlMode').selectOption('bullet', { force: true });
+  await page.evaluate(() => {
+    const rollout = window.CaissaArenaRollout;
+    rollout.enabled = true;
+    rollout.config = { enginePath: '/', engineOrigin: location.origin };
+    window.EngineRegistry.registerArenaPreviewProvider(rollout.provider(), () => ({}));
+    window.CaissaArena.ensureEngineRegistry();
+    window.CaissaArena.renderEngineSelectors();
+    window.CaissaArena.selectEngine('white', 'lc0-maia-1100-preview');
+  });
+  await expect(page.locator('#arenaTimeControlMode option[value="bullet"]')).toBeDisabled();
+  await expect(page.locator('#arenaTimeControlMode option[value="blitz"]')).toBeEnabled();
+  await expect(page.locator('#arenaTimeControlMode')).toHaveValue('blitz');
+  await expect(page.locator('#arenaTimeControlSummary')).toHaveText(
+    'Lc0 Experimental does not currently support Bullet Match time control.');
+  const enforcement = await page.evaluate(() => {
+    try {
+      window.CaissaArena.validateMatchTimeControlCapabilities(
+        window.CaissaArenaMatchClock.createTimeControl({ mode: 'bullet', preset: '1+0' }));
+      return null;
+    } catch (error) { return error.message; }
+  });
+  expect(enforcement).toBe('Lc0 Experimental does not currently support Bullet Match time control.');
+});

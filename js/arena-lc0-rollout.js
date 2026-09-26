@@ -4,12 +4,13 @@
     const ID = 'lc0-maia-1100-preview';
     const PREFERENCE_KEY = 'caissa.arena.experimental.lc0.v1';
     const SOURCE_MANIFEST = '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f';
-    const DEPLOYMENT_MANIFEST = '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d';
-    const ADAPTER_URL = '/experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js?v=rc1-daf3404';
+    const DEPLOYMENT_MANIFEST = '9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45';
+    const ADAPTER_URL = '/experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js?v=eae017-tc1';
 
     const rollout = {
         enabled: false,
         eligible: false,
+        visible: false,
         config: null,
         adapter: null,
         pendingPopup: null,
@@ -52,15 +53,30 @@
                 browser: supportedBrand, mobile, primitives });
         },
 
-        async token() {
+        async authOwner() {
+            const deadline = Date.now() + 3_000;
+            while (!window.CAISSA_AUTH && Date.now() < deadline) {
+                await new Promise(resolve => setTimeout(resolve, 25));
+            }
             const ready = window.CAISSA_AUTH?.whenReady?.();
             if (ready && typeof ready.then === 'function') {
-                await Promise.race([ready, new Promise(resolve => setTimeout(resolve, 1_500))]);
+                await Promise.race([ready, new Promise(resolve => setTimeout(resolve, 3_000))]);
             }
-            if (!window.CAISSA_AUTH?.isSignedIn ||
-                typeof window.CAISSA_AUTH?.getToken !== 'function') return null;
-            try { return await window.CAISSA_AUTH.getToken(); }
-            catch { return null; }
+            return window.CAISSA_AUTH || null;
+        },
+
+        async token() {
+            const auth = await this.authOwner();
+            if (!auth?.isSignedIn || typeof auth?.getToken !== 'function') return null;
+            const deadline = Date.now() + 3_000;
+            do {
+                try {
+                    const value = await auth.getToken();
+                    if (value) return value;
+                } catch {}
+                if (Date.now() >= deadline) return null;
+                await new Promise(resolve => setTimeout(resolve, 50));
+            } while (true);
         },
 
         async request(path = '/api/eae016', options = {}) {
@@ -88,7 +104,7 @@
         },
 
         reasonMessage(reason) {
-            if (reason === 'AUTH_REQUIRED') return 'Sign in to check Experimental Lc0 availability.';
+            if (reason === 'AUTH_REQUIRED') return 'Sign in to use Lc0 Experimental.';
             if (reason === 'RUNTIME_UNAVAILABLE' || reason === 'INTEGRITY_UNAVAILABLE')
                 return 'Lc0 is temporarily unavailable. Stockfish engines remain available.';
             if (reason === 'RELEASE_DRAINING')
@@ -191,7 +207,15 @@
                 wasmPath: '', tier: 'Experimental', badge: 'Experimental',
                 options: { depth: 0 },
                 capabilities: { browserCompatible: true, mobileCompatible: false,
-                    requiresCrossOriginIsolation: true },
+                    requiresCrossOriginIsolation: true,
+                    supportsClockTimeControl: true,
+                    supportsFixedDepth: true,
+                    supportedMatchTimeControls: Object.freeze([
+                        'blitz', 'rapid', 'long', 'fixed-depth'
+                    ]),
+                    unsupportedMatchTimeControlMessages: Object.freeze({
+                        bullet: 'Lc0 Experimental does not currently support Bullet Match time control.'
+                    }) },
                 resource: { threads: 1, mobileCompatible: false,
                     crossOriginIsolationRequired: true, estimatedWeightClass: 'heavy' },
                 availability: 'available', enabled: true, mobileCompatible: false,
@@ -273,6 +297,11 @@
             this.modalConfirm.disabled = true;
             this.status('Enabling Experimental Lc0…');
             try {
+                if (!this.eligible || this.config?.authenticated !== true) {
+                    this.closeConsent();
+                    this.status('Sign in to use Lc0 Experimental.');
+                    return false;
+                }
                 this.setPreference(true);
                 await this.register();
                 this.metric('opt_in_enabled');
@@ -342,8 +371,8 @@
 
         render() {
             if (!this.shell) return;
-            this.shell.hidden = !this.eligible;
-            if (!this.eligible) return;
+            this.shell.hidden = !this.visible;
+            if (!this.visible) return;
             if (this.enableButton) this.enableButton.hidden = this.enabled;
             if (this.disableButton) this.disableButton.hidden = !this.enabled;
             if (this.runtimeButton && !this.pendingPopup) this.runtimeButton.hidden = true;
@@ -359,10 +388,6 @@
                 this.config = config;
                 const capability = this.capability();
                 if (config.releaseStage === 'DISABLED' || config.mode !== 'ENABLED') return false;
-                if (!config.eligible) {
-                    this.status(this.reasonMessage(config.reason));
-                    return false;
-                }
                 if (!capability.supported) {
                     this.metric('lc0_unsupported_browser');
                     this.status('Lc0 Experimental is currently available on desktop Chrome and Edge.');
@@ -380,13 +405,20 @@
                     this.status('Lc0 is temporarily unavailable. Stockfish engines remain available.');
                     return false;
                 }
-                this.eligible = true;
+                this.visible = config.visible === true || config.eligible === true;
+                this.eligible = config.eligible === true;
                 this.render();
-                this.status('Available by explicit opt-in.');
-                if (this.preference()) await this.register();
-                return true;
+                if (!this.visible) {
+                    this.status(this.reasonMessage(config.reason));
+                    return false;
+                }
+                this.status(this.eligible ? 'Available by explicit opt-in.' :
+                    this.reasonMessage(config.reason));
+                if (this.eligible && this.preference()) await this.register();
+                return this.eligible;
             } catch {
                 this.eligible = false;
+                this.visible = false;
                 this.render();
                 return false;
             }

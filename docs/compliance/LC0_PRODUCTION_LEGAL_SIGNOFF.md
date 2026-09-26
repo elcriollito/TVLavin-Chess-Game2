@@ -72,3 +72,24 @@ Decision (select one):
 Notes: Corresponding source `lc0-browser-source-v0.1.1`, archive
 `caissa-lc0-browser-corresponding-source-v0.1.1.zip`, SHA-256
 `7d0a514f6f212a2d151bb340708d485670fba0ee338145e63f5cc8db46f731ec`.
+
+## EAE-017 tc1r1 publication record
+
+Status: `LEGAL_SIGNOFF_RC3R1_COVERED`
+
+The immutable `lc0-browser-source-v0.1.3` publication records the exact tc1r1
+CAISSA browser-client integration source and its STOP/BESTMOVE idempotency
+patch. The approved Lc0 commit and three native patches, Maia network, ONNX
+Runtime, Emscripten/toolchain versions, license texts, notices, provenance,
+and retention policy are unchanged from the owner-approved v0.1.1 package.
+
+The only runtime artifact delta is CAISSA-owned `client.js` (212,443 bytes,
+SHA-256 `61555ff04e76ea804940f728552188905e9e544f3109368ca2878ca26b0f8809`).
+No new third-party component or licensing term is introduced. This addendum
+records corresponding-source publication under the existing approval; it does
+not create a new legal approval or alter the original review decision.
+
+Archive: `caissa-lc0-browser-corresponding-source-v0.1.3.zip`
+
+Archive SHA-256:
+`9b87bc53ce6bb75388f70158faf40c4b73434ff137e58fef06998ec7cc5e7def`

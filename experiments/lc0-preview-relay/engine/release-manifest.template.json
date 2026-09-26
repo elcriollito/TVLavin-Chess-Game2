@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "releaseId": "eae015b2-lc0-0.33.0-maia1100-r3",
+  "releaseId": "eae017-lc0-0.33.0-maia1100-tc1r1",
   "product": "CAISSA isolated Lc0 runtime appliance",
   "source": {
     "repository": "https://github.com/jalpp/lc0.js.git",

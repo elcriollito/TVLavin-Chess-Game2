@@ -58,6 +58,46 @@ async function stop(f, session, searchId = searchA) {
   await message(f.first, session, 'STOPPED', { searchId });
 }
 
+async function readyBoundedSearch(f, session, go, searchId = searchA) {
+  await command(f.first, session, 'HELLO');
+  await ack(f.second, session, 'HELLO');
+  await message(f.second, session, 'READY', { identity });
+  await command(f.second, session, 'POSITION', { fen: 'startpos' });
+  await ack(f.first, session, 'POSITION');
+  await command(f.first, session, 'GO', { searchId, ...go });
+  await ack(f.second, session, 'GO', searchId);
+}
+
+test('bounded clock and fixed-depth GO complete naturally without a fabricated STOP', async () => {
+  for (const go of [
+    { mode: 'clock', wtime: 180000, btime: 179000, winc: 2000, binc: 2000 },
+    { mode: 'depth', depth: 20 }
+  ]) {
+    const f = fixture(), session = await open(f);
+    await readyBoundedSearch(f, session, go);
+    await message(f.second, session, 'BESTMOVE', { searchId: searchA, move: 'e2e4' });
+    await message(f.first, session, 'STOPPED', { searchId: searchA });
+    const state = (await f.first.inspect(session.sessionId, userA)).state;
+    assert.equal(state.phase, 'STOPPED');
+    assert.equal(state.activeSearchMode, go.mode);
+    assert.equal(state.bestmove, 'e2e4');
+  }
+});
+
+test('STOP racing a bounded natural BESTMOVE preserves the completed generation', async () => {
+  const f = fixture(), session = await open(f);
+  await readyBoundedSearch(f, session,
+    { mode: 'clock', wtime: 180000, btime: 180000, winc: 2000, binc: 2000 });
+  await command(f.first, session, 'STOP', { searchId: searchA });
+  await message(f.second, session, 'BESTMOVE', { searchId: searchA, move: 'e2e4' });
+  await message(f.first, session, 'STOPPED', { searchId: searchA });
+  await ack(f.second, session, 'STOP', searchA);
+  const state = (await f.first.inspect(session.sessionId, userA)).state;
+  assert.equal(state.phase, 'STOPPED');
+  assert.equal(state.completedSearchId, searchA);
+  assert.equal(state.stopResultUntil, null);
+});
+
 test('preview Arena can cooperatively quit a READY session before any search', async () => {
   const f = fixture(), session = await open(f);
   await command(f.first, session, 'HELLO');

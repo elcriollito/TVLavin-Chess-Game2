@@ -8,7 +8,7 @@ const PROVIDER_ID = 'lc0-maia-1100-preview';
 const SOURCE_MANIFEST_SHA256 =
   '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f';
 const DEPLOYMENT_MANIFEST_SHA256 =
-  '648daa880e131ebe0b83784b68ce63abb50eee571c0328158cc8a94a7f444d3d';
+  '9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45';
 const TELEMETRY = new Set([
   'opt_in_viewed', 'opt_in_enabled', 'opt_in_disabled', 'lc0_selector_visible',
   'lc0_session_requested', 'lc0_session_created', 'lc0_ready',
@@ -100,13 +100,16 @@ async function config(req, res) {
   }
   const cohort = authenticated ? await relayEligibility(req, process.env) :
     { eligible: false, reason: 'AUTH_REQUIRED' };
-  const infrastructure = cohort?.eligible
+  const publicExperimental = stage === 'EXPERIMENTAL_OPT_IN';
+  const infrastructure = cohort?.eligible || publicExperimental
     ? await infrastructureHealth(process.env, stage, mode)
     : { healthy: false, runtimeHealthy: null, relayHealthy: null };
   const deploymentManifest = String(process.env.EAE015A_MANIFEST_SHA256 || '');
   const manifestValid = deploymentManifest === DEPLOYMENT_MANIFEST_SHA256;
   const eligible = mode === 'ENABLED' && cohort?.eligible === true &&
     infrastructure.healthy && manifestValid;
+  const visible = mode === 'ENABLED' && infrastructure.healthy && manifestValid &&
+    (publicExperimental || cohort?.eligible === true);
   const reason = eligible ? null : mode !== 'ENABLED' ?
     (mode === 'DRAINING' ? 'RELEASE_DRAINING' : 'RELEASE_DISABLED') :
     cohort?.reason || (!manifestValid ? 'INTEGRITY_UNAVAILABLE' : 'RUNTIME_UNAVAILABLE');
@@ -114,6 +117,7 @@ async function config(req, res) {
   return res.status(200).json({
     enabled: eligible,
     eligible,
+    visible,
     authenticated,
     reason,
     mode,
@@ -180,7 +184,8 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'ROLLOUT_UNAVAILABLE' });
     if (!publicRolloutConfigured(process.env)) {
       if (req.method !== 'GET') return res.status(404).json({ error: 'ROLLOUT_UNAVAILABLE' });
-      return res.status(200).json({ enabled: false, eligible: false, authenticated: false,
+      return res.status(200).json({ enabled: false, eligible: false, visible: false,
+        authenticated: false,
         reason: 'RELEASE_DISABLED', mode: 'DISABLED', releaseStage: 'DISABLED',
         providerId: PROVIDER_ID, mainOrigin: expectedOrigin(process.env),
         engineOrigin: process.env.EAE011_ENGINE_ORIGIN,
