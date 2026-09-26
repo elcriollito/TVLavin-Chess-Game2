@@ -67,8 +67,15 @@
         async token() {
             const auth = await this.authOwner();
             if (!auth?.isSignedIn || typeof auth?.getToken !== 'function') return null;
-            try { return await auth.getToken(); }
-            catch { return null; }
+            const deadline = Date.now() + 3_000;
+            do {
+                try {
+                    const value = await auth.getToken();
+                    if (value) return value;
+                } catch {}
+                if (Date.now() >= deadline) return null;
+                await new Promise(resolve => setTimeout(resolve, 50));
+            } while (true);
         },
 
         async request(path = '/api/eae016', options = {}) {
