@@ -46,6 +46,7 @@ const CaissaArena = {
     _pausePending: null,
     _resumePending: null,
     _cleanupPromise: null,
+    _newMatchResetPromise: null,
     lifecycleTrace: [],
     lastArenaError: null,
     reliabilityMetrics: {
@@ -684,7 +685,7 @@ const CaissaArena = {
         this.elements.saveCurrentPgnBtn?.addEventListener('click', () => this.saveCurrentGamePgn());
         this.elements.saveSeriesPgnBtn?.addEventListener('click', () => this.saveCurrentSeriesPgn());
         this.elements.openPgnReaderBtn?.addEventListener('click', () => this.openCurrentSeriesInPgnReader());
-        this.elements.newMatchBtn?.addEventListener('click', () => this.prepareNewMatch());
+        this.elements.newMatchBtn?.addEventListener('click', () => { void this.prepareNewMatch(); });
 
         // Tournament controls
         this.elements.startTournamentBtn?.addEventListener('click', () => this.startTournament());
@@ -2075,17 +2076,153 @@ const CaissaArena = {
     },
 
     prepareNewMatch() {
-        this.returnToLivePosition();
-        this.switchTab('match');
-        if (this.matchSeries && !this.matchSeries.isActive()) this.matchSeries.reset();
-        this.state.matchHistory = this.state.matchHistory.filter(series => series.config?.savePgn !== false);
-        this.state.currentGame = null;
-        this.state.matchState = 'idle';
-        this.renderSeriesHistory();
-        this.updateMatchControls();
-        this.updateStartButtonLabel();
-        this.elements.matchTitleInput?.focus?.();
-        return true;
+        if (this._newMatchResetPromise) return this._newMatchResetPromise;
+
+        // New Match is intentionally Match-only. A Tournament may share the
+        // board/runtime surface, but this action must never reset its state.
+        if (this.state.mode === 'tournament'
+            && !['idle', 'finished'].includes(this.state.matchState)) return Promise.resolve(false);
+
+        const hasLiveMatch = this.state.analysisRunning
+            || ['running', 'paused'].includes(this.state.matchState)
+            || (this.state.mode === 'match' && this.matchSeries?.isActive?.());
+        if (hasLiveMatch && !window.confirm('Start a new match? This will stop and clear the current match state.')) {
+            return Promise.resolve(false);
+        }
+
+        const preservedConfiguration = {
+            title: this.elements.matchTitleInput?.value || '',
+            gameCount: this.elements.matchGameCountSelect?.value || '1',
+            customGameCount: this.elements.matchCustomGameCountInput?.value || '1',
+            moveLimit: this.elements.matchMoveLimitSelect?.value || 'none',
+            customMoveLimit: this.elements.matchCustomMoveLimitInput?.value || '40',
+            moveDelay: this.elements.moveDelayInput?.value || '',
+            timeControlMode: this.elements.timeControlModeSelect?.value || 'blitz',
+            timeControlPreset: this.elements.timeControlPresetSelect?.value || '3+2',
+            openingMode: this.elements.openingModeSelect?.value || 'standard',
+            savePgn: this.elements.savePgnInput?.checked !== false,
+            flipBoard: document.getElementById('arenaFlipBoard')?.checked === true,
+            whiteParticipantType: document.getElementById('arenaWhiteParticipantType')?.value || 'engine',
+            blackParticipantType: document.getElementById('arenaBlackParticipantType')?.value || 'engine'
+        };
+
+        const reset = async () => {
+            window.CaissaUI?.setButtonLoading(this.elements.newMatchBtn, true, { label: 'Resetting match...' });
+            this.returnToLivePosition();
+            this.switchTab('match');
+
+            this.state.startToken += 1;
+            clearTimeout(this._seriesAdvanceTimer);
+            this._seriesAdvanceTimer = null;
+            this.cancelActiveSearch('new match reset');
+            this.state.loopActive = false;
+            this.state.loopRunning = false;
+            this._pausePending = null;
+            this._resumePending = null;
+
+            if (this.state.analysisRunning) this.stopInfiniteAnalysis(false);
+            if (this.state.mode === 'match' && (this.matchSeries?.isActive?.()
+                || ['running', 'paused'].includes(this.state.matchState))) {
+                this.stopMatch();
+            } else {
+                this.stopMatchClock();
+                this._cleanupPromise = Promise.resolve(this.destroyEngines());
+            }
+
+            try {
+                await this._cleanupPromise;
+            } catch (error) {
+                // Remote cleanup can be unavailable after SESSION_GONE. The
+                // runtime manager has still released its local bindings, so a
+                // fresh Match setup remains safe and usable.
+                console.warn('[Arena] New Match continued after cleanup acknowledgement failed', error);
+            }
+
+            this._cleanupPromise = null;
+            this.matchSeries?.reset?.();
+            this.state.mode = 'match';
+            this.state.matchState = 'idle';
+            this.state.currentGame = null;
+            this.state.evalHistory = [];
+            this.state.analysisRunning = false;
+            this.state.analysisFen = '';
+            this.state.pendingClockDecision = null;
+            this.state.cancelPendingSearch = null;
+            this.lastArenaError = null;
+
+            // Re-read provider presentation/availability without acquiring a
+            // runtime. Selected participants and every configuration control
+            // remain intact unless the provider registry itself invalidates one.
+            this.renderEngineSelectors();
+
+            const restoreSelect = (element, value) => {
+                if (element && Array.from(element.options || []).some(option => option.value === value)) {
+                    element.value = value;
+                }
+            };
+            if (this.elements.matchTitleInput) this.elements.matchTitleInput.value = preservedConfiguration.title;
+            restoreSelect(this.elements.matchGameCountSelect, preservedConfiguration.gameCount);
+            if (this.elements.matchCustomGameCountInput) {
+                this.elements.matchCustomGameCountInput.value = preservedConfiguration.customGameCount;
+            }
+            restoreSelect(this.elements.matchMoveLimitSelect, preservedConfiguration.moveLimit);
+            if (this.elements.matchCustomMoveLimitInput) {
+                this.elements.matchCustomMoveLimitInput.value = preservedConfiguration.customMoveLimit;
+            }
+            if (this.elements.moveDelayInput) this.elements.moveDelayInput.value = preservedConfiguration.moveDelay;
+            restoreSelect(this.elements.timeControlModeSelect, preservedConfiguration.timeControlMode);
+            window.CaissaArenaMatchLabUI?.refreshTimeControl?.();
+            restoreSelect(this.elements.timeControlPresetSelect, preservedConfiguration.timeControlPreset);
+            this.elements.timeControlPresetSelect?.dispatchEvent(new Event('change'));
+            restoreSelect(this.elements.openingModeSelect, preservedConfiguration.openingMode);
+            if (this.elements.savePgnInput) this.elements.savePgnInput.checked = preservedConfiguration.savePgn;
+            const flipBoard = document.getElementById('arenaFlipBoard');
+            if (flipBoard) flipBoard.checked = preservedConfiguration.flipBoard;
+            this.setBoardFlipped(preservedConfiguration.flipBoard);
+            restoreSelect(document.getElementById('arenaWhiteParticipantType'), preservedConfiguration.whiteParticipantType);
+            restoreSelect(document.getElementById('arenaBlackParticipantType'), preservedConfiguration.blackParticipantType);
+            this.resetBoard();
+            try {
+                const timeControl = this.resolveMatchTimeControl(this.getRequestedMatchTimeControl());
+                this.initializeMatchClock(timeControl);
+                this.stopClockRenderLoop();
+            } catch (error) {
+                console.warn('[Arena] Could not render the selected fresh Match clock', error);
+                this.stopMatchClock();
+            }
+
+            if (this.elements.evalEngineName) {
+                this.elements.evalEngineName.textContent = this.state.whiteEngine?.name || 'Engine';
+            }
+            if (this.elements.evalScore) {
+                this.elements.evalScore.textContent = '+0.00';
+                this.elements.evalScore.className = 'arena-eval-score';
+            }
+            if (this.elements.evalDepth) this.elements.evalDepth.textContent = '0';
+            if (this.elements.evalNodes) this.elements.evalNodes.textContent = '0';
+            if (this.elements.evalPV) this.elements.evalPV.textContent = '--';
+
+            this.renderSeriesSummary(this.matchSeries?.snapshot?.());
+            this.renderSeriesHistory();
+            this.updateMatchControls();
+            this.updateStartButtonLabel();
+            const adapterAvailable = typeof window.EngineRegistry?.createArenaEngine === 'function';
+            const selectedEnginesValid = this.isEngineRunnable(this.state.whiteEngine)
+                && this.isEngineRunnable(this.state.blackEngine);
+            if (this.elements.startMatchBtn) {
+                this.elements.startMatchBtn.disabled = !(adapterAvailable && selectedEnginesValid);
+            }
+            this.updateGameStatus({ result: 'Ready', moveCount: 0 });
+            window.dispatchEvent(new CustomEvent('caissa-arena-new-match-ready'));
+            this.elements.startMatchBtn?.focus?.();
+            return true;
+        };
+
+        this._newMatchResetPromise = reset().finally(() => {
+            window.CaissaUI?.setButtonLoading(this.elements.newMatchBtn, false);
+            this._newMatchResetPromise = null;
+        });
+        return this._newMatchResetPromise;
     },
 
     setMatchConfigurationLocked(locked) {
