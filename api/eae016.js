@@ -110,6 +110,20 @@ async function config(req, res) {
   const reason = eligible ? null : mode !== 'ENABLED' ?
     (mode === 'DRAINING' ? 'RELEASE_DRAINING' : 'RELEASE_DISABLED') :
     cohort?.reason || (!manifestValid ? 'INTEGRITY_UNAVAILABLE' : 'RUNTIME_UNAVAILABLE');
+  if (process.env.VERCEL_ENV !== 'production') {
+    console.info('EAE016_CONFIG_DIAGNOSTIC', JSON.stringify({
+      authenticated,
+      bearerForwarded: String(req.headers.authorization || req.headers.Authorization || '')
+        .startsWith('Bearer '),
+      cohortEligible: cohort?.eligible === true,
+      cohortReason: cohort?.reason || null,
+      runtimeHealthy: infrastructure.runtimeHealthy,
+      relayHealthy: infrastructure.relayHealthy,
+      manifestValid,
+      mode,
+      releaseStage: stage
+    }));
+  }
   if (eligible) await store.recordRolloutEvent(actorKey(userId, process.env), 'eligible_user');
   return res.status(200).json({
     enabled: eligible,
