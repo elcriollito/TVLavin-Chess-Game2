@@ -33,10 +33,12 @@ test('Arena presents the approved Engine Arena product naming', () => {
   assert.match(html, /data-nav-key="arena" aria-label="Engine Arena"/);
 });
 
-test('Bots are reserved as non-interactive participants inside Match and Tournament', () => {
+test('Match exposes participant types while Bots remain unavailable everywhere', () => {
   const arena = arenaMarkup();
-  assert.equal((arena.match(/class="arena-bot-reservation"/g) || []).length, 3);
-  assert.equal((arena.match(/class="arena-bot-reservation-state">Coming Soon/g) || []).length, 3);
+  assert.equal((arena.match(/class="arena-bot-reservation"/g) || []).length, 1);
+  assert.equal((arena.match(/id="arena(?:White|Black)ParticipantType"/g) || []).length, 2);
+  assert.equal((arena.match(/<option value="bot" disabled>BOTS — Coming Soon<\/option>/g) || []).length, 2);
+  assert.doesNotMatch(arena, /Engine Participants/);
   assert.match(arena, /White Participant/);
   assert.match(arena, /Black Participant/);
   assert.match(arena, /Participants \(min 2\)/);
@@ -61,6 +63,10 @@ test('Game tab owns evaluation, moves, active controls, and graph while preservi
 });
 
 test('Match and Tournament share runnable engine availability', () => {
+  assert.match(controller, /ARENA_PARTICIPANT_TYPES/);
+  assert.match(controller, /createParticipantConfig\(type, provider\)/);
+  assert.match(controller, /whiteParticipant/);
+  assert.match(controller, /blackParticipant/);
   assert.match(controller, /getRunnableEngines\(\)/);
   assert.match(controller, /filter\(engine => this\.isEngineRunnable\(engine\)\)/);
   assert.match(controller, /class="tournament-engine-item\$\{runnable \? '' : ' is-unavailable'\}"/);
