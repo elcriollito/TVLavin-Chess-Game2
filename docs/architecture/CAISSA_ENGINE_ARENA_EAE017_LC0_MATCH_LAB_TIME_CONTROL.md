@@ -166,3 +166,122 @@ by the owner; automation must not bypass it. Until the physical run records the
 authenticated eligibility result, actual Lc0/SF19 games, two-game series,
 flag-fall cleanup, zero active sessions, zero relay rows, and zero critical
 alerts, the release verdict remains pending rather than certified.
+
+## EAE-017R STOP/BESTMOVE recertification checkpoint (2026-09-25)
+
+### Root cause and bounded fix
+
+The physical D run exposed two callers completing the same active search. A
+late natural BESTMOVE started normal completion while the concurrent STOP path
+also parsed and applied that line. The first application was legal; the second
+validated the already-applied move against the new position, failed, and could
+prevent QUIT/CLEANUP.
+
+`engine/client-source.js` now gives each active search object one
+`completionPromise`. Natural completion and STOP both call the same
+`completeSearch(active, line)` operation. That promise owns validation,
+BESTMOVE, STOPPED, and local state transition, so the move, clock settlement,
+increment, next-search scheduling, and relay events can occur at most once.
+The promise is stored on the exact active search generation; a later turn or a
+resumed search receives a new active object and remains independently valid.
+
+The deterministic directed matrix exercised all five required orderings over
+50 iterations, plus a fresh next-generation search. The complete targeted
+EAE-017/rollout/relay matrix passed 106/106 twice after manifest regeneration:
+zero duplicate moves, zero double clock settlements, and zero cleanup failures.
+
+### Runtime delta
+
+| Item | Previous | Recertified |
+| --- | --- | --- |
+| Release ID | `eae017-lc0-0.33.0-maia1100-tc1` | `eae017-lc0-0.33.0-maia1100-tc1r1` |
+| Manifest SHA-256 | `a38862ac2113cf4e5962aa35e30a315046bafe650fedb24471b9feab954b4ed3` | `9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45` |
+| Generated `client.js` bytes | 212,875 | 212,443 |
+| Generated `client.js` SHA-256 | `1a1144463992ddc42b074302139213dea10c5851bfaad92b0c88e6f5c97c4ffb` | `61555ff04e76ea804940f728552188905e9e544f3109368ca2878ca26b0f8809` |
+
+Only the CAISSA-owned browser client source and generated client changed. The
+Lc0 source commit remains
+`482bb4a830287b726ebe7d42f14ab7f5f17c18a0`, the toolchain is unchanged, and
+the following runtime artifact hashes remain byte-identical:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `lc0-worker.js` | 108,891 | `7a2c0076871117e52e85dd7e0ae441ae2c080bc6bed3d48dadb0a0fa6f682287` |
+| `lc0.js` | 255,351 | `c2b1786ff568d0d5042588b5b9bbf7a78623e47930ad4358803f2a37e3ca66a9` |
+| `lc0.wasm` | 9,399,301 | `5c3cc8c72b5794092790ab2c7615a7a7e9757e1c899fa2a4cc1ca158547a07f0` |
+| `lc0.worker.mjs` | 299 | `7e6dad4bca61807357acfcb3789c781deaca3e20214ccd76dd82ddcb0be0a153` |
+| `ort-wasm-simd-threaded.mjs` | 24,180 | `0a1e718d99c41b22c21f2520ff4f9e883a6b5533856e398d21816ee8eb8185d3` |
+| `ort-wasm-simd-threaded.wasm` | 13,479,978 | `d1ab1b94b16a65b29d710d0b587b29e7bed336827577623913479b8afe8113e6` |
+| `maia-1100.pb.gz` | 1,313,193 | `e1cf1cd0c96b8a4fa6a275f4b9fd54ed1ffebf9fe44641b9fceded310e9619c4` |
+
+### Recertified Preview deployment
+
+| Surface | Preview deployment | Deployment ID | Status |
+| --- | --- | --- | --- |
+| Main Arena | `eae017-main-elcriollitos-projects.vercel.app` | `dpl_9BVZzfYnGUbtVwVedsFzPAwQy5g2` | READY |
+| Lc0 runtime | `eae017-engine-elcriollitos-projects.vercel.app` | `dpl_FMLKAZc8zWde7hUMWntGNk8httzd` | READY |
+| Lc0 relay | `eae017-relay-elcriollitos-projects.vercel.app` | `dpl_DAA5AKTN53gzXpmnUJwpyEnvR5Jr` | READY |
+
+The two previously authorized Deployment Protection exceptions remain limited
+to the relay and runtime Preview aliases. No production deployment, merge,
+Clerk, allowlist, role, entitlement, Maia, Stockfish, or rollout-stage change
+occurred. Final health probes returned HTTP 200 for both the relay and runtime;
+the relay reported `INTERNAL_ONLY`, `productionShape=true`, and `mode=ENABLED`.
+
+### Physical matrix result
+
+| Case | Result | Physical evidence |
+| --- | --- | --- |
+| A | retained PASS | Lc0 white vs SF19, Blitz 3+2; runtime-source delta does not alter capability/clock mapping |
+| B | PASS | SF19 white vs Lc0 black; legal Lc0 moves followed by one STOP/BESTMOVE/STOPPED and acknowledged CLEANUP |
+| C | retained PASS | Pause/Resume same game and fresh search generation; stale BESTMOVE rejected |
+| D | PASS | STOP during live Lc0 search produced one authoritative `5.Be3`, one BESTMOVE, one STOPPED, then ACK and CLEANUP |
+| E | PASS (series semantics) | Two-game Blitz series completed 2/2, colors reversed, both games recorded, and the second game received fresh clocks |
+| F | PASS | Rapid 10+0 emitted real `GO mode=clock` with 600,000 ms and cleaned cooperatively |
+| G | PASS | Long 30+0 emitted real `GO mode=clock` with 1,800,000 ms and cleaned cooperatively |
+| H | PASS | Fixed Depth emitted exact `GO mode=depth, depth=12` and cleaned cooperatively |
+| I | PASS | Chromium controlled flag fall recorded `time-forfeit`, applied no late move, and rejected the late BESTMOVE (1/1); focused clock race unit cases passed 5/5 |
+| J | retained PASS | Bullet remains disabled by the unchanged provider-capability intersection |
+
+For every captured live-search STOP in D, B, F, G, and H, the runtime trace
+contains exactly one terminal BESTMOVE and one STOPPED for the current search,
+followed by `QUIT`, `ACK`, and `CLEANUP`. The broker rejects CLEANUP unless its
+evidence is exactly `parentWorkers=0`, `pthreadWorkers=0`,
+`runtimeState=TERMINATED`, `cleanupAcknowledged=true`, and
+`forcedTerminations=0`. After that accepted event, the main client passes the
+release advance gate and calls `terminate`; `DurableBroker.terminate()` deletes
+the session row. The runtime also retains a truthful `CLEANED LOCALLY; broker
+acknowledgement unavailable` state for transport-loss cleanup and never labels
+that path as broker-acknowledged.
+
+The owner-supplied real Chrome console log is retained as corroborating physical
+evidence: registry 4 to 5, actual Lc0 Maia 1100 vs SF19 match, legal engine
+moves, pause, stale-result rejection, successful resume, stop, and destruction
+of all Arena engines.
+
+### Control-plane correlation
+
+Repeated `/api/eae016` 503 responses in the earlier console sample were caused
+by Preview infrastructure/config availability while the relay/runtime aliases
+were still being corrected and protected. They are not engine-search failures.
+After the exact alias exceptions and manifest/origin correction, authenticated
+GET diagnostics recorded `authenticated=true`, `cohortEligible=true`,
+`runtimeHealthy=true`, `relayHealthy=true`, `manifestValid=true`,
+`mode=ENABLED`, and `releaseStage=INTERNAL_ONLY`; Experimental Engines became
+visible again. Runtime searches and cleanup continued successfully while the
+auxiliary `/api/user/sync` 403, `/api/beta/access` 503, and EAE-016 telemetry
+POST `EAE015A_RATE_ARGUMENT_INVALID` remained separately observable.
+
+### Compliance and verdict boundary
+
+The exact recertified generated client is not present in the current public
+corresponding-source archive. The committed `client-source.js` is available on
+the feature branch, but the previous archive must not be represented as covering
+the new generated client automatically. Compliance status is therefore
+`COMPLIANCE_UPDATE_REQUIRED`.
+
+Technical Preview behavior is recertified, but release certification remains
+`LC0_MATCH_LAB_TIME_CONTROL_PARTIAL` until the corresponding-source package is
+updated and the final raw relay-row/security-alert counters are captured from
+an authorized operational surface. Rollout remains `INTERNAL_ONLY`;
+`CANARY_OPT_IN` and `EXPERIMENTAL_OPT_IN` remain disabled.
