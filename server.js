@@ -561,6 +561,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/puzzles/chessbase-tactics' || pathname === '/puzzles/chessbase-tactics/') {
     filePath = './tactics.html';
   }
+  if (pathname === '/puzzles' || pathname === '/puzzles/') {
+    filePath = './puzzles.html';
+  }
   if (pathname === '/learn/interactive-diagrams' || pathname === '/learn/interactive-diagrams/') {
     filePath = './interactive-diagrams.html';
   }
