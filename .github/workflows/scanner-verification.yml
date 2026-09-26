@@ -9,8 +9,11 @@ on:
       - 'docs/CAISSA_SCANNER_HISTORICAL_CLASSIFIER_BASELINE.md'
       - 'docs/CAISSA_SCANNER_PIECESET_DATASET.md'
       - 'scanner/**'
+      - 'api/_lib/scanner-beta-*.js'
       - 'tools/run-scanner-historical-tfjs-baseline.mjs'
       - 'tools/generate-scanner-piece-dataset.mjs'
+      - 'tools/provision-scanner-ci-corpus.mjs'
+      - 'tools/scanner-real-development/**'
       - 'tests/scanner-historical-verified-real.test.js'
       - 'tests/scanner-piece-dataset.test.js'
       - 'artifacts/scanner-classifier-baseline/**'
@@ -19,6 +22,7 @@ on:
       - 'tests/scanner-piece-label-annotator.test.js'
       - 'tests/browser/scanner-piece-label-annotator.spec.js'
       - 'tests/scanner-piece-label-hotfix.test.js'
+      - 'tests/scanner-beta-inference.test.js'
       - 'tests/browser/scanner-piece-label-hotfix.spec.js'
       - 'tests/scanner-visual-contract.test.js'
       - 'tests/scanner-mobile-workspace.test.js'
@@ -44,8 +48,11 @@ on:
       - 'docs/CAISSA_SCANNER_HISTORICAL_CLASSIFIER_BASELINE.md'
       - 'docs/CAISSA_SCANNER_PIECESET_DATASET.md'
       - 'scanner/**'
+      - 'api/_lib/scanner-beta-*.js'
       - 'tools/run-scanner-historical-tfjs-baseline.mjs'
       - 'tools/generate-scanner-piece-dataset.mjs'
+      - 'tools/provision-scanner-ci-corpus.mjs'
+      - 'tools/scanner-real-development/**'
       - 'tests/scanner-historical-verified-real.test.js'
       - 'tests/scanner-piece-dataset.test.js'
       - 'artifacts/scanner-classifier-baseline/**'
@@ -54,6 +61,7 @@ on:
       - 'tests/scanner-piece-label-annotator.test.js'
       - 'tests/browser/scanner-piece-label-annotator.spec.js'
       - 'tests/scanner-piece-label-hotfix.test.js'
+      - 'tests/scanner-beta-inference.test.js'
       - 'tests/browser/scanner-piece-label-hotfix.spec.js'
       - 'tests/scanner-visual-contract.test.js'
       - 'tests/scanner-mobile-workspace.test.js'
@@ -93,6 +101,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Provision audited private Scanner corpus
+        env:
+          SCANNER_CORPUS_ARCHIVE_KEY: ${{ secrets.SCANNER_CORPUS_ARCHIVE_KEY }}
+        run: node tools/provision-scanner-ci-corpus.mjs
 
       - name: Install Scanner browser engines
         run: npx playwright install --with-deps chromium firefox webkit
