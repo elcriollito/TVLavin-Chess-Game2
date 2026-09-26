@@ -52,14 +52,22 @@
                 browser: supportedBrand, mobile, primitives });
         },
 
-        async token() {
+        async authOwner() {
+            const deadline = Date.now() + 3_000;
+            while (!window.CAISSA_AUTH && Date.now() < deadline) {
+                await new Promise(resolve => setTimeout(resolve, 25));
+            }
             const ready = window.CAISSA_AUTH?.whenReady?.();
             if (ready && typeof ready.then === 'function') {
-                await Promise.race([ready, new Promise(resolve => setTimeout(resolve, 1_500))]);
+                await Promise.race([ready, new Promise(resolve => setTimeout(resolve, 3_000))]);
             }
-            if (!window.CAISSA_AUTH?.isSignedIn ||
-                typeof window.CAISSA_AUTH?.getToken !== 'function') return null;
-            try { return await window.CAISSA_AUTH.getToken(); }
+            return window.CAISSA_AUTH || null;
+        },
+
+        async token() {
+            const auth = await this.authOwner();
+            if (!auth?.isSignedIn || typeof auth?.getToken !== 'function') return null;
+            try { return await auth.getToken(); }
             catch { return null; }
         },
 
