@@ -272,16 +272,42 @@ visible again. Runtime searches and cleanup continued successfully while the
 auxiliary `/api/user/sync` 403, `/api/beta/access` 503, and EAE-016 telemetry
 POST `EAE015A_RATE_ARGUMENT_INVALID` remained separately observable.
 
-### Compliance and verdict boundary
+### EAE-017.1 compliance and residue closure
 
-The exact recertified generated client is not present in the current public
-corresponding-source archive. The committed `client-source.js` is available on
-the feature branch, but the previous archive must not be represented as covering
-the new generated client automatically. Compliance status is therefore
-`COMPLIANCE_UPDATE_REQUIRED`.
+The exact tc1r1 corresponding source is published as the immutable public
+release `lc0-browser-source-v0.1.3` (v0.1.2 was already an immutable RC3 source
+release and was not overwritten):
 
-Technical Preview behavior is recertified, but release certification remains
-`LC0_MATCH_LAB_TIME_CONTROL_PARTIAL` until the corresponding-source package is
-updated and the final raw relay-row/security-alert counters are captured from
-an authorized operational surface. Rollout remains `INTERNAL_ONLY`;
-`CANARY_OPT_IN` and `EXPERIMENTAL_OPT_IN` remain disabled.
+`https://github.com/elcriollito/TVLavin-Chess-Game2/releases/download/lc0-browser-source-v0.1.3/caissa-lc0-browser-corresponding-source-v0.1.3.zip`
+
+The 1,481,846-byte archive SHA-256 is
+`9b87bc53ce6bb75388f70158faf40c4b73434ff137e58fef06998ec7cc5e7def`.
+An unauthenticated download returned HTTP 200, matched that digest, extracted
+successfully, and verified all 444 manifest-covered members. Clean appliance
+reconstruction reproduced the 212,443-byte client SHA-256
+`61555ff04e76ea804940f728552188905e9e544f3109368ca2878ca26b0f8809`,
+runtime-manifest SHA-256
+`9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45`,
+and all seven unchanged runtime artifact digests. Legal status is
+`LEGAL_SIGNOFF_RC3R1_COVERED`: the delta is CAISSA-owned integration source;
+all previously approved third-party inputs and terms are unchanged.
+
+Direct aggregate evidence came from an authorized read-only query against
+production `public.eae011_sessions`. An active relay row is any retained row
+whose `state.lifecycle` is not one of `CLEANED`, `FAILED`, or `EXPIRED`; null or
+unknown lifecycle values are deliberately counted as residue. The final result
+was `active_row_count=0`. The same read-only checkpoint reported
+`mode=ENABLED`, zero triggered alerts, and zero critical alerts.
+
+The separate telemetry POST failure is non-blocking operational debt. The
+telemetry handler passes `eae016_telemetry_<actor-hash>` as the session ID and
+lowercase `product` as the rate bucket to the session-scoped
+`eae015a_allow_rate` RPC. Those arguments violate the RPC's session-ID length
+and uppercase-bucket contract and telemetry has no relay-session row to bind
+to. This breaks aggregate product telemetry only; it does not participate in
+engine search, clock settlement, STOP/BESTMOVE handling, cleanup, or relay-row
+deletion.
+
+`COMPLIANCE_UPDATE_COMPLETE` and `RELAY_ZERO_RESIDUE_CERTIFIED` are both met.
+The final verdict is `LC0_MATCH_LAB_TIME_CONTROL_CERTIFIED`. Rollout remains
+`INTERNAL_ONLY`; `CANARY_OPT_IN` and `EXPERIMENTAL_OPT_IN` remain disabled.
