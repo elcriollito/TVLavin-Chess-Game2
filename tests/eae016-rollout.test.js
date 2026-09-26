@@ -86,6 +86,31 @@ test('rollout controller gates browser support before dynamic adapter loading', 
   assert.match(source, /DEPLOYMENT_MANIFEST.*a38862ac2113cf4e5962aa35e30a315046bafe650fedb24471b9feab954b4ed3/s);
 });
 
+test('cold Arena load waits for the deferred auth owner before requesting eligibility', () => {
+  const source = read('js/arena-lc0-rollout.js');
+  const authOwner = source.slice(source.indexOf('async authOwner()'), source.indexOf('async request('));
+  assert.match(authOwner, /while \(!window\.CAISSA_AUTH/);
+  assert.match(authOwner, /window\.CAISSA_AUTH\?\.whenReady/);
+  assert.match(authOwner, /const auth = await this\.authOwner\(\)/);
+  assert.ok(authOwner.indexOf('const auth = await this.authOwner()') <
+    authOwner.indexOf('return await auth.getToken()'));
+});
+
+test('cold Arena token acquisition survives deferred auth script initialization', async () => {
+  const window = {};
+  vm.runInNewContext(read('js/arena-lc0-rollout.js'), {
+    window, Date, Promise, setTimeout, clearTimeout, console
+  }, { filename: 'arena-lc0-rollout.js' });
+  setTimeout(() => {
+    window.CAISSA_AUTH = {
+      isSignedIn: true,
+      whenReady: async function () { return this; },
+      getToken: async () => 'cold-load-token'
+    };
+  }, 10);
+  assert.equal(await window.CaissaArenaRollout.token(), 'cold-load-token');
+});
+
 test('normal registry excludes Lc0 until explicit opt-in and supports clean disable', () => {
   const source = read('js/engine-registry.js');
   const window = { WebAssembly: {}, matchMedia: () => ({ matches: false }) };
