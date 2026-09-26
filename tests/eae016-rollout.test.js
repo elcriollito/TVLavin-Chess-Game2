@@ -84,6 +84,8 @@ test('public Experimental visibility remains separate from authenticated session
   assert.match(client, /this\.shell\.hidden = !this\.visible/);
   assert.match(client, /!this\.eligible \|\| this\.config\?\.authenticated !== true/);
   assert.match(client, /Sign in to use Lc0 Experimental\./);
+  assert.match(api, /stage === 'DISABLED' \? 'RELEASE_DISABLED'/);
+  assert.match(api, /stage === 'DRAINING' \? 'RELEASE_DRAINING'/);
 });
 
 test('rollout controller gates browser support before dynamic adapter loading', () => {
