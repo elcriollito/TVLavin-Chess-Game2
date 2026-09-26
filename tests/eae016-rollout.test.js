@@ -94,7 +94,7 @@ test('cold Arena load waits for the deferred auth owner before requesting eligib
   assert.match(authOwner, /window\.CAISSA_AUTH\?\.whenReady/);
   assert.match(authOwner, /const auth = await this\.authOwner\(\)/);
   assert.ok(authOwner.indexOf('const auth = await this.authOwner()') <
-    authOwner.indexOf('return await auth.getToken()'));
+    authOwner.indexOf('const value = await auth.getToken()'));
 });
 
 test('cold Arena token acquisition survives deferred auth script initialization', async () => {
@@ -110,6 +110,21 @@ test('cold Arena token acquisition survives deferred auth script initialization'
     };
   }, 10);
   assert.equal(await window.CaissaArenaRollout.token(), 'cold-load-token');
+});
+
+test('cold Arena token acquisition waits for Clerk to publish a usable JWT', async () => {
+  const window = {};
+  let attempts = 0;
+  vm.runInNewContext(read('js/arena-lc0-rollout.js'), {
+    window, Date, Promise, setTimeout, clearTimeout, console
+  }, { filename: 'arena-lc0-rollout.js' });
+  window.CAISSA_AUTH = {
+    isSignedIn: true,
+    whenReady: async function () { return this; },
+    getToken: async () => ++attempts < 3 ? null : 'settled-token'
+  };
+  assert.equal(await window.CaissaArenaRollout.token(), 'settled-token');
+  assert.equal(attempts, 3);
 });
 
 test('normal registry excludes Lc0 until explicit opt-in and supports clean disable', () => {
