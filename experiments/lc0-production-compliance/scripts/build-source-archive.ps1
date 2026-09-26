@@ -7,18 +7,18 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $sourceCommit = '482bb4a830287b726ebe7d42f14ab7f5f17c18a0'
-$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.1.zip'
-$fixedTimestamp = [DateTimeOffset]::FromUnixTimeSeconds(1789992000)
+$archiveName = 'caissa-lc0-browser-corresponding-source-v0.1.2.zip'
+$fixedTimestamp = [DateTimeOffset]::FromUnixTimeSeconds(1790395200)
 $complianceRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path (Join-Path $complianceRoot '..\..')).Path
 $sourceRoot = (Resolve-Path -LiteralPath $SourceCheckout).Path
 
 if (-not $OutputDirectory) {
-  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1.1'
+  $OutputDirectory = Join-Path $repositoryRoot '.public-release\lc0-browser-source-v0.1.2'
 }
 [System.IO.Directory]::CreateDirectory($OutputDirectory) | Out-Null
 $outputRoot = (Resolve-Path -LiteralPath $OutputDirectory).Path
-$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1.1'
+$stageRoot = Join-Path $outputRoot '.stage-caissa-lc0-browser-source-v0.1.2'
 $archivePath = Join-Path $outputRoot $archiveName
 $checksumPath = "$archivePath.sha256"
 
@@ -29,7 +29,7 @@ if (& git -C $sourceRoot status --porcelain) {
   throw 'Source checkout is dirty.'
 }
 if (-not $stageRoot.StartsWith($outputRoot, [StringComparison]::OrdinalIgnoreCase) -or
-    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1.1') {
+    (Split-Path $stageRoot -Leaf) -ne '.stage-caissa-lc0-browser-source-v0.1.2') {
   throw 'Unsafe staging path.'
 }
 
@@ -100,22 +100,22 @@ try {
     Copy-BundleFile $patch.FullName (Join-Path $stageRoot "caissa-build\experiments\lc0-browser-lab\patches\$($patch.Name)")
   }
 
+  foreach ($patch in Get-ChildItem -LiteralPath (Join-Path $complianceRoot 'patches') -Filter '*.patch') {
+    Copy-BundleFile $patch.FullName (Join-Path $stageRoot "caissa-client-patches\$($patch.Name)")
+  }
+
   $buildFiles = @{
-    'experiments\lc0-browser-lab\scripts\build-runtime.ps1' = 'caissa-build\experiments\lc0-browser-lab\scripts\build-runtime.ps1'
-    'experiments\lc0-browser-lab\scripts\build-lab.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\build-lab.mjs'
-    'experiments\lc0-browser-lab\scripts\prepare-assets.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\prepare-assets.mjs'
     'experiments\lc0-browser-lab\scripts\build-production-appliance.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\build-production-appliance.mjs'
     'experiments\lc0-browser-lab\scripts\verify-production-appliance.mjs' = 'caissa-build\experiments\lc0-browser-lab\scripts\verify-production-appliance.mjs'
     'experiments\lc0-browser-lab\package.json' = 'caissa-build\experiments\lc0-browser-lab\package.json'
     'experiments\lc0-browser-lab\package-lock.json' = 'caissa-build\experiments\lc0-browser-lab\package-lock.json'
-    'experiments\lc0-browser-lab\lab-manifest.json' = 'caissa-build\experiments\lc0-browser-lab\lab-manifest.json'
+    'experiments\lc0-preview-relay\engine\lab-manifest.json' = 'caissa-build\experiments\lc0-browser-lab\lab-manifest.json'
     'experiments\lc0-browser-lab\src\lc0-worker.js' = 'caissa-build\experiments\lc0-browser-lab\src\lc0-worker.js'
-    'experiments\lc0-browser-lab\src\index.html' = 'caissa-build\experiments\lc0-browser-lab\src\index.html'
-    'experiments\lc0-browser-lab\src\lab-app.js' = 'caissa-build\experiments\lc0-browser-lab\src\lab-app.js'
     'experiments\lc0-browser-lab\src\lab-runtime.js' = 'caissa-build\experiments\lc0-browser-lab\src\lab-runtime.js'
-    'experiments\lc0-browser-lab\src\lab.css' = 'caissa-build\experiments\lc0-browser-lab\src\lab.css'
     'experiments\lc0-preview-relay\engine\client-source.js' = 'caissa-build\experiments\lc0-preview-relay\engine\client-source.js'
     'experiments\lc0-preview-relay\engine\release-manifest.template.json' = 'caissa-build\experiments\lc0-preview-relay\engine\release-manifest.template.json'
+    'experiments\lc0-preview-relay\engine\dist\assets\lc0\eae017-lc0-0.33.0-maia1100-tc1r1\client.js' = 'reference-runtime\client.js'
+    'experiments\lc0-preview-relay\engine\dist\assets\lc0\eae017-lc0-0.33.0-maia1100-tc1r1\release-manifest.json' = 'reference-runtime\release-manifest.json'
     'experiments\lc0-production-compliance\scripts\build-source-archive.ps1' = 'packaging\build-source-archive.ps1'
     'experiments\lc0-production-compliance\scripts\stage-production-inputs.ps1' = 'packaging\stage-production-inputs.ps1'
   }
@@ -123,9 +123,36 @@ try {
     Copy-BundleFile (Join-Path $repositoryRoot $item.Key) (Join-Path $stageRoot $item.Value)
   }
 
+  # The native build driver and lab staging inputs are unchanged from v0.1.1
+  # and were later removed from the product tree. Export their pinned Git
+  # versions so this compliance archive remains independently reconstructible.
+  $historicalBuildCommit = '2b24d2c682eb74e6605df4c850e6fa9197c5d233'
+  $historicalBuildFiles = @(
+    'experiments/lc0-browser-lab/scripts/build-runtime.ps1',
+    'experiments/lc0-browser-lab/scripts/build-lab.mjs',
+    'experiments/lc0-browser-lab/scripts/prepare-assets.mjs',
+    'experiments/lc0-browser-lab/src/index.html',
+    'experiments/lc0-browser-lab/src/lab-app.js',
+    'experiments/lc0-browser-lab/src/lab.css'
+  )
+  foreach ($path in $historicalBuildFiles) {
+    $content = & git -C $repositoryRoot show "${historicalBuildCommit}:$path"
+    if ($LASTEXITCODE) { throw "Unable to export pinned historical build input: $path" }
+    $destination = Join-Path $stageRoot ("caissa-build/" + $path)
+    [System.IO.Directory]::CreateDirectory((Split-Path $destination -Parent)) | Out-Null
+    Write-Utf8NoBom $destination (($content -join "`n") + "`n")
+  }
+
   $sourceManifest = Get-Content -Raw -LiteralPath (Join-Path $complianceRoot 'corresponding-source.json') | ConvertFrom-Json
   $sourceManifest.sourceArchiveSha256 = $null
   $sourceManifest.sourceArchiveBytes = $null
+  $sourceManifest.publicVerification = [ordered]@{
+    httpStatus = $null
+    authenticationRequired = $null
+    contentLength = $null
+    downloadedSha256 = $null
+    archiveExtracted = $null
+  }
   $sourceManifest | Add-Member -Force NoteProperty archiveEnvelopeIntegrity 'See the detached .sha256 release asset and repository manifest; an archive cannot embed its own final digest.'
   Write-Utf8NoBom (Join-Path $stageRoot 'corresponding-source.json') (($sourceManifest | ConvertTo-Json -Depth 20) + "`n")
 
@@ -140,10 +167,10 @@ try {
   }
   $contentManifest = [ordered]@{
     schemaVersion = 1
-    releaseId = 'lc0-browser-source-v0.1.1'
-    generatedFromCaissaCommit = '2b24d2c682eb74e6605df4c850e6fa9197c5d233'
+    releaseId = 'lc0-browser-source-v0.1.2'
+    generatedFromCaissaCommit = '5eaa8ec433d4951fe7d8309c436589f20d0c9f38'
     lc0Commit = $sourceCommit
-    sourceDateEpoch = 1789992000
+    sourceDateEpoch = 1790395200
     scope = 'Every archive file except manifest.json itself.'
     files = $entries
   }

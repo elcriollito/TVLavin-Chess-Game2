@@ -55,6 +55,11 @@ equivalent commands from a clean checkout of the certified CAISSA commit.
 verifies every source and destination byte against the compliance manifest; no
 undocumented manual file copy is required.
 
+The CAISSA-owned adapter delta is recorded separately at
+`caissa-client-patches/0001-tc1r1-stop-bestmove-idempotency.patch`. The
+archive's `reference-runtime/` directory contains the exact tc1r1 generated
+client and manifest used for byte-for-byte comparison.
+
 ## Build commands
 
 From `experiments/lc0-browser-lab` in the reconstructed CAISSA layout:
@@ -68,8 +73,8 @@ $packageRoot = (Resolve-Path ..\..\..).Path
   -EngineArtifacts (Join-Path $packageRoot 'caissa-build\experiments\lc0-preview-relay\engine\artifacts') `
   -ManifestPath (Join-Path $packageRoot 'corresponding-source.json') `
   -CaissaBuildRoot (Join-Path $packageRoot 'caissa-build')
-$env:EAE015A_RELAY_ORIGIN = 'https://eae015a-lc0-relay-elcriollitos-projects.vercel.app'
-$env:EAE015A_MAIN_ORIGIN = 'https://eae015a-main-elcriollitos-projects.vercel.app'
+$env:EAE015A_RELAY_ORIGIN = 'https://eae017-relay-elcriollitos-projects.vercel.app'
+$env:EAE015A_MAIN_ORIGIN = 'https://eae017-main-elcriollitos-projects.vercel.app'
 node .\scripts\build-production-appliance.mjs
 node .\scripts\verify-production-appliance.mjs
 ```
@@ -97,7 +102,9 @@ functional but not byte-identical.
 The expected output is the eight files listed under `runtimeArtifacts` in
 `corresponding-source.json`. Generate `release-manifest.json` with
 `build-production-appliance.mjs`; its certified SHA-256 is
-`492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f`.
-The verifier must report 8 artifacts, 24,785,017 total artifact bytes, and a
+`9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45`.
+The generated `client.js` must be 212,443 bytes with SHA-256
+`61555ff04e76ea804940f728552188905e9e544f3109368ca2878ca26b0f8809`.
+The verifier must report 8 artifacts, 24,793,636 total artifact bytes, and a
 successful tamper self-test. Compare every byte count and SHA-256 against the
 published manifest; do not silently accept a merely functional rebuild.
