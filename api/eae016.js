@@ -110,9 +110,10 @@ async function config(req, res) {
     infrastructure.healthy && manifestValid;
   const visible = mode === 'ENABLED' && infrastructure.healthy && manifestValid &&
     (publicExperimental || cohort?.eligible === true);
-  const reason = eligible ? null : mode !== 'ENABLED' ?
-    (mode === 'DRAINING' ? 'RELEASE_DRAINING' : 'RELEASE_DISABLED') :
-    cohort?.reason || (!manifestValid ? 'INTEGRITY_UNAVAILABLE' : 'RUNTIME_UNAVAILABLE');
+  const reason = eligible ? null : stage === 'DISABLED' ? 'RELEASE_DISABLED' :
+    stage === 'DRAINING' ? 'RELEASE_DRAINING' : mode !== 'ENABLED' ?
+      (mode === 'DRAINING' ? 'RELEASE_DRAINING' : 'RELEASE_DISABLED') :
+      cohort?.reason || (!manifestValid ? 'INTEGRITY_UNAVAILABLE' : 'RUNTIME_UNAVAILABLE');
   if (eligible) await store.recordRolloutEvent(actorKey(userId, process.env), 'eligible_user');
   return res.status(200).json({
     enabled: eligible,
