@@ -90,7 +90,10 @@ test('seeded plan is deterministic, 128px, balanced, and whole-family split', ()
 });
 
 test('two genuine whole-family holdouts are unseen by training', () => {
-  const groups = Object.groupBy(fixture(), (sample) => sample.pieceFamilyGroup);
+  const groups = fixture().reduce((result, sample) => {
+    (result[sample.pieceFamilyGroup] ??= []).push(sample);
+    return result;
+  }, Object.create(null));
   assert.equal(Object.keys(groups).length, 11);
   assert.ok(Object.values(groups).every((samples) => new Set(samples.map((sample) => sample.split)).size === 1));
   assert.deepEqual([...new Set(fixture().filter((sample) => sample.split !== 'train').map((sample) => sample.pieceSetId))].sort(),
