@@ -84,7 +84,7 @@ test('rollout controller gates browser support before dynamic adapter loading', 
   const prepare = source.slice(source.indexOf('async prepare()'));
   assert.ok(prepare.indexOf('if (!capability.supported)') < prepare.indexOf('await this.register()'));
   assert.match(source, /SOURCE_MANIFEST.*492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f/s);
-  assert.match(source, /DEPLOYMENT_MANIFEST.*a38862ac2113cf4e5962aa35e30a315046bafe650fedb24471b9feab954b4ed3/s);
+  assert.match(source, /DEPLOYMENT_MANIFEST.*9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45/s);
 });
 
 test('cold Arena load waits for the deferred auth owner before requesting eligibility', () => {

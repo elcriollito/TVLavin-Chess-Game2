@@ -8,7 +8,7 @@ const PROVIDER_ID = 'lc0-maia-1100-preview';
 const SOURCE_MANIFEST_SHA256 =
   '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f';
 const DEPLOYMENT_MANIFEST_SHA256 =
-  'a38862ac2113cf4e5962aa35e30a315046bafe650fedb24471b9feab954b4ed3';
+  '9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45';
 const TELEMETRY = new Set([
   'opt_in_viewed', 'opt_in_enabled', 'opt_in_disabled', 'lc0_selector_visible',
   'lc0_session_requested', 'lc0_session_created', 'lc0_ready',
