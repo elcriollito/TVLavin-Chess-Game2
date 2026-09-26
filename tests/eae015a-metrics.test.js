@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { crossSiteAllowed, relayMetrics } from '../api/eae011.js';
+import { crossSiteAllowed, idempotentCleanupResult, relayMetrics } from '../api/eae011.js';
+import { RelayError } from '../experiments/lc0-preview-relay/durable-broker.mjs';
 
 const names = metrics => metrics.map(item => item.metric);
 
@@ -30,6 +31,20 @@ test('relay metrics are aggregate-only and cover required success and failure si
     errorCode: 'SESSION_GONE', latencyMs: 4 })).includes('session_gone'), false);
   assert.equal(names(relayMetrics({ action: 'command', status: 410,
     errorCode: 'SESSION_GONE', latencyMs: 4 })).includes('session_gone'), true);
+  const cleaned = names(relayMetrics({ action: 'message', messageType: 'CLEANUP',
+    status: 200, latencyMs: 4 }));
+  assert.ok(cleaned.includes('cleanup_success'));
+  assert.equal(cleaned.includes('relay_error'), false);
+});
+
+test('a CLEANUP retry after row deletion returns bounded idempotent success', () => {
+  assert.deepEqual(idempotentCleanupResult('message', 'CLEANUP',
+    new RelayError('SESSION_GONE', 410)),
+  { accepted: true, type: 'CLEANUP', status: 'ALREADY_CLEANED' });
+  assert.equal(idempotentCleanupResult('inspect', 'CLEANUP',
+    new RelayError('SESSION_GONE', 410)), null);
+  assert.equal(idempotentCleanupResult('message', 'READY',
+    new RelayError('SESSION_GONE', 410)), null);
 });
 
 test('metrics migration defines every required high-severity alert', async () => {

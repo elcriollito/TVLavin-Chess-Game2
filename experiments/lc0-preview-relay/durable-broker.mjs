@@ -61,6 +61,23 @@ function keys(value, allowed) {
       Object.keys(value).some(key => !allowed.includes(key))) throw new RelayError('SCHEMA_INVALID');
 }
 
+function verifiedCleanupEvidence(evidence) {
+  keys(evidence, ['parentWorkers', 'pthreadWorkers', 'runtimeState',
+    'cleanupAcknowledged', 'forcedTerminations']);
+  if (evidence.parentWorkers !== 0 || evidence.pthreadWorkers !== 0 ||
+      evidence.runtimeState !== 'TERMINATED' || evidence.cleanupAcknowledged !== true ||
+      evidence.forcedTerminations !== 0) throw new RelayError('CLEANUP_EVIDENCE_INVALID');
+  return evidence;
+}
+
+function sameCleanupEvidence(left, right) {
+  return left?.parentWorkers === right.parentWorkers &&
+    left?.pthreadWorkers === right.pthreadWorkers &&
+    left?.runtimeState === right.runtimeState &&
+    left?.cleanupAcknowledged === right.cleanupAcknowledged &&
+    left?.forcedTerminations === right.forcedTerminations;
+}
+
 function event(state, role, value, priority = 'high') {
   if (priority === 'low') state.events = state.events.filter(item => !(item.role === role && item.priority === 'low'));
   if (state.events.length >= LIMITS.maxEvents) throw new RelayError('EVENT_JOURNAL_FULL', 503);
@@ -80,7 +97,7 @@ export class DurableBroker {
     const state = {
       phase: 'UNCLAIMED', lifecycle: 'CREATED', lifecycleBeforeDisconnect: null,
       lifecycleChangedAt: now, terminalAt: null,
-      claimHash: hash(sessionId, claimToken), engineHash: null,
+      claimHash: hash(sessionId, claimToken), engineHash: null, cleanupHash: null,
       engineClientId: null, claimUntil: now + LIMITS.claimMs, idleUntil: now + LIMITS.idleMs,
       expiresAt: now + LIMITS.hardMs, engineStreamUntil: null, mainStreamUntil: null,
       engineHeartbeatAt: null, mainHeartbeatAt: null,
@@ -182,12 +199,21 @@ export class DurableBroker {
     };
   }
 
+  cleanupEngine(credential) {
+    return row => {
+      const verifier = row.state.phase === 'CLEANED' && row.state.cleanup === true
+        ? row.state.cleanupHash : row.state.engineHash;
+      if (!equal(verifier, hash(row.sessionId, credential)))
+        throw new RelayError('ENGINE_CREDENTIAL_INVALID', 403);
+    };
+  }
+
   async inspect(sessionId, userId) {
     const row = await this.get(sessionId);
     this.owner(userId)(row);
     const expired = this.expired(row.state, this.now());
     if (expired) await this.rejectExpired(sessionId, row, expired, 'DurableBroker.inspect');
-    const { claimHash, engineHash, events, ...safe } = row.state;
+    const { claimHash, engineHash, cleanupHash, events, ...safe } = row.state;
     return { sessionId, competitionId: row.competitionId,
       participantRole: row.participantRole, state: safe };
   }
@@ -312,8 +338,19 @@ export class DurableBroker {
     if (size > maximum) throw new RelayError('MESSAGE_TOO_LARGE', 413);
     if (message.type === 'INFO') await this.rateGuard(sessionId, this.engine(credential),
       'INFO', 1_000, LIMITS.maxInfoPerSecond);
-    return this.mutate(sessionId, this.engine(credential), (state, _row, now) => {
+    const authorize = message.type === 'CLEANUP'
+      ? this.cleanupEngine(credential) : this.engine(credential);
+    return this.mutate(sessionId, authorize, (state, _row, now) => {
       const { type, seq, searchId } = message;
+      if (type === 'CLEANUP' && state.phase === 'CLEANED' && state.cleanup === true) {
+        const evidence = verifiedCleanupEvidence(message.evidence);
+        if (![state.lastEngineSeq, state.lastEngineSeq + 1].includes(seq))
+          throw new RelayError('ENGINE_SEQUENCE_INVALID', 409);
+        if (!sameCleanupEvidence(state.cleanupEvidence, evidence))
+          throw new RelayError('CLEANUP_EVIDENCE_INVALID');
+        state.lastEngineSeq = Math.max(state.lastEngineSeq, seq);
+        return { accepted: true, type, status: 'ALREADY_CLEANED' };
+      }
       if (!Number.isSafeInteger(seq) || seq !== state.lastEngineSeq + 1)
         throw new RelayError('ENGINE_SEQUENCE_INVALID', 409);
       if (type === 'ACK') {
@@ -379,12 +416,22 @@ export class DurableBroker {
       } else if (type === 'CLEANUP') {
         if (state.phase !== 'QUIT_ACKED' || (!state.stopped && state.completedSearchId !== null))
           throw new RelayError('CLEANUP_STATE_INVALID', 409);
-        const evidence = message.evidence;
-        keys(evidence, ['parentWorkers', 'pthreadWorkers', 'runtimeState', 'cleanupAcknowledged', 'forcedTerminations']);
-        if (evidence.parentWorkers !== 0 || evidence.pthreadWorkers !== 0 ||
-            evidence.runtimeState !== 'TERMINATED' || evidence.cleanupAcknowledged !== true ||
-            evidence.forcedTerminations !== 0) throw new RelayError('CLEANUP_EVIDENCE_INVALID');
-        state.cleanup = true; state.phase = 'CLEANED'; state.engineHash = null;
+        const evidence = verifiedCleanupEvidence(message.evidence);
+        // A stream may close after QUIT ACK but before the cooperative CLEANUP
+        // POST arrives. Recover the recorded CLEANING lifecycle before entering
+        // the terminal state instead of attempting DISCONNECTED_GRACE -> CLEANED.
+        if (state.lifecycle === 'DISCONNECTED_GRACE') {
+          if (state.lifecycleBeforeDisconnect !== 'CLEANING')
+            throw new RelayError('CLEANUP_STATE_INVALID', 409);
+          restoreLifecycleAfterReconnect(state, now);
+        }
+        if (state.lifecycle !== 'CLEANING') throw new RelayError('CLEANUP_STATE_INVALID', 409);
+        // Retain a cleanup-only verifier while the terminal row exists so a
+        // lost HTTP response can retry safely without keeping engine authority.
+        // Explicit termination or scheduled retention deletes it with the row.
+        state.cleanupHash = state.engineHash;
+        state.engineHash = null;
+        state.cleanup = true; state.phase = 'CLEANED';
         transitionLifecycle(state, 'CLEANED', now);
         state.cleanupEvidence = evidence;
         event(state, 'main', { type: 'CLEANUP', evidence });
@@ -399,7 +446,7 @@ export class DurableBroker {
         }
       } else throw new RelayError('MESSAGE_TYPE_INVALID');
       state.lastEngineSeq = seq;
-      return { accepted: true, type };
+      return { accepted: true, type, ...(type === 'CLEANUP' ? { status: 'CLEANED' } : {}) };
     });
   }
 

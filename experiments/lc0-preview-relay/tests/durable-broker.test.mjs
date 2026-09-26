@@ -113,6 +113,33 @@ test('preview Arena can cooperatively quit a READY session before any search', a
   assert.equal(await f.store.get(session.sessionId), null);
 });
 
+test('CLEANUP survives a stream-close race after QUIT ACK and is idempotent', async () => {
+  const f = fixture(), session = await open(f);
+  const engineStream = await f.second.connect(session.sessionId, 'engine',
+    session.engineCredential);
+  await command(f.first, session, 'HELLO');
+  await ack(f.second, session, 'HELLO');
+  await message(f.second, session, 'READY', { identity });
+  await command(f.first, session, 'QUIT');
+  await ack(f.second, session, 'QUIT');
+  await f.second.close(session.sessionId, 'engine', session.engineCredential,
+    engineStream.epoch);
+  const disconnected = await f.store.get(session.sessionId);
+  assert.equal(disconnected.state.phase, 'QUIT_ACKED');
+  assert.equal(disconnected.state.lifecycle, 'DISCONNECTED_GRACE');
+  assert.equal(disconnected.state.lifecycleBeforeDisconnect, 'CLEANING');
+  const cleanupSeq = ++session.engineSeq;
+  const first = await f.second.engineMessage(session.sessionId, session.engineCredential,
+    { type: 'CLEANUP', seq: cleanupSeq, evidence: cleanupEvidence });
+  assert.equal(first.status, 'CLEANED');
+  const duplicate = await f.second.engineMessage(session.sessionId, session.engineCredential,
+    { type: 'CLEANUP', seq: cleanupSeq, evidence: cleanupEvidence });
+  assert.equal(duplicate.status, 'ALREADY_CLEANED');
+  const cleaned = await f.store.get(session.sessionId);
+  assert.equal(cleaned.state.phase, 'CLEANED');
+  assert.equal(cleaned.state.lifecycle, 'CLEANED');
+});
+
 test('preview Arena RESET newGame preserves acknowledged reuse gate', async () => {
   const f = fixture(), session = await open(f);
   await readySearch(f, session);
