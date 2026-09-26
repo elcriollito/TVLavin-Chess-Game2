@@ -28,11 +28,16 @@ function statusFor(code) {
   return 400;
 }
 
-function timeoutAfter(ms) {
-  return new Promise((_, reject) => {
-    const timer = setTimeout(() => reject(Object.assign(new Error('TIMEOUT'), { code: 'TIMEOUT' })), ms);
-    timer.unref?.();
+async function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error('TIMEOUT'), { code: 'TIMEOUT' })), ms);
   });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function createScannerBetaRecognitionService({
@@ -67,7 +72,7 @@ export function createScannerBetaRecognitionService({
           res.setHeader('Retry-After', String(allowance.retryAfter || 60));
           return reply(res, 429, { error: code, retryAfter: allowance.retryAfter || 60 });
         }
-        const result = await Promise.race([infer(payload(req)), timeoutAfter(timeoutMs)]);
+        const result = await withTimeout(infer(payload(req)), timeoutMs);
         res.setHeader('Server-Timing', `model;dur=${Number(result.metrics.modelLoadMs || 0).toFixed(1)}, inference;dur=${Number(result.metrics.inferenceMs || 0).toFixed(1)}`);
         return reply(res, 200, result.response);
       } catch (error) {
