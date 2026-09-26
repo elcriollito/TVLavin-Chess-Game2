@@ -33,7 +33,7 @@ extractor cannot preserve.
 The Maia network binary is not duplicated. Its exact upstream versioned URL,
 1,313,193-byte length, and SHA-256 are recorded in `network/maia-1100.json`.
 
-The tc1r1 source release is `lc0-browser-source-v0.1.2`. It does not overwrite
+The tc1r1 source release is `lc0-browser-source-v0.1.3`. It does not overwrite
 or alter immutable release `v0.1.1`. The Lc0 source, three Lc0 patches, Maia,
 ONNX Runtime, Emscripten toolchain, and all non-client runtime artifacts remain
 unchanged; only the CAISSA-owned generated client reflects the idempotency fix.
