@@ -41,9 +41,15 @@
     }
 
     function normalizeParticipant(participant, fallback) {
+        const type = String(participant?.type || 'engine');
+        if (!['engine', 'bot'].includes(type)) {
+            throw new Error(`Unsupported participant type: ${type}`);
+        }
         return Object.freeze({
             id: participantKey(participant, fallback),
+            type,
             name: String(participant?.name || participant?.displayName || fallback),
+            displayName: String(participant?.displayName || participant?.name || fallback),
             providerId: String(participant?.providerId || participant?.id || fallback)
         });
     }
@@ -117,8 +123,8 @@
             ? Number(requestedOpening.positions?.length || 0) * (requestedOpening.playBothColors === false ? 1 : 2)
             : input?.gameCount;
         const gameCount = validateGameCount(derivedGameCount);
-        const participantA = normalizeParticipant(input?.participantA, 'Engine A');
-        const participantB = normalizeParticipant(input?.participantB, 'Engine B');
+        const participantA = normalizeParticipant(input?.whiteParticipant || input?.participantA, 'Engine A');
+        const participantB = normalizeParticipant(input?.blackParticipant || input?.participantB, 'Engine B');
         if (participantA.id === participantB.id) {
             throw new Error('Match Series requires two distinct participants.');
         }
@@ -129,6 +135,8 @@
             title: String(input?.title || `${participantA.name} vs ${participantB.name}`).trim(),
             participantA,
             participantB,
+            whiteParticipant: participantA,
+            blackParticipant: participantB,
             gameCount,
             moveLimitFullMoves,
             moveLimitPly,

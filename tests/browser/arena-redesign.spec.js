@@ -204,17 +204,32 @@ test('Arena tabs support arrow navigation', async ({ page }) => {
   await expect(game).toBeFocused();
 });
 
-test('Bots remain non-interactive participant reservations inside Match and Tournament', async ({ page }) => {
+test('Match participant types are accessible and Bots remain unavailable', async ({ page }) => {
   await openArena(page);
   await expect(page.getByRole('tab')).toHaveText(['Match', 'Tournament', 'Game']);
   await expect(page.getByRole('tab', { name: 'Bots' })).toHaveCount(0);
 
   await page.getByRole('tab', { name: 'Match' }).click();
-  const matchReservations = page.locator('#arenaPanelMatch .arena-bot-reservation');
-  await expect(matchReservations).toHaveCount(2);
-  await expect(matchReservations).toContainText(['Bots', 'Bots']);
-  await expect(matchReservations).toContainText(['Coming Soon', 'Coming Soon']);
-  await expect(matchReservations.locator('button, input, select, a')).toHaveCount(0);
+  await expect(page.getByText('Engine Participants', { exact: true })).toHaveCount(0);
+  const boardBeforeTypeMenu = await page.locator('#arenaBoardMount').boundingBox();
+  for (const color of ['White', 'Black']) {
+    const type = page.getByLabel(`${color} participant type`);
+    await expect(type).toHaveValue('engine');
+    await expect(type.locator('option[value="engine"]')).toHaveText('ENGINE');
+    await expect(type.locator('option[value="bot"]')).toHaveText('BOTS — Coming Soon');
+    await expect(type.locator('option[value="bot"]')).toBeDisabled();
+    await type.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(type).toHaveValue('engine');
+  }
+  await page.keyboard.press('Escape');
+  expect(await page.locator('#arenaBoardMount').boundingBox()).toEqual(boardBeforeTypeMenu);
+  const participantSnapshot = await page.evaluate(() => ({
+    white: window.CaissaArena.getParticipantConfig('white'),
+    black: window.CaissaArena.getParticipantConfig('black')
+  }));
+  expect(participantSnapshot.white.type).toBe('engine');
+  expect(participantSnapshot.black.type).toBe('engine');
 
   await page.getByRole('tab', { name: 'Tournament' }).click();
   const tournamentReservation = page.locator('#arenaPanelTournament .arena-bot-reservation');
@@ -601,11 +616,23 @@ test('preserved Match controls work and tab changes keep active workers alive', 
   const white = page.locator('#arenaWhiteEngine');
   const black = page.locator('#arenaBlackEngine');
   await expect.poll(async () => white.locator('option').count()).toBeGreaterThanOrEqual(3);
-  const beforeSwap = { white: await white.inputValue(), black: await black.inputValue() };
+  const beforeSwap = await page.evaluate(() => ({
+    white: document.querySelector('#arenaWhiteEngine').value,
+    black: document.querySelector('#arenaBlackEngine').value,
+    whiteParticipant: window.CaissaArena.getParticipantConfig('white'),
+    blackParticipant: window.CaissaArena.getParticipantConfig('black')
+  }));
   await page.locator('#arenaAdvancedMatchOptions > summary').click();
   await page.locator('#arenaSwapEngines').click();
   await expect(white).toHaveValue(beforeSwap.black);
   await expect(black).toHaveValue(beforeSwap.white);
+  expect(await page.evaluate(() => ({
+    whiteParticipant: window.CaissaArena.getParticipantConfig('white'),
+    blackParticipant: window.CaissaArena.getParticipantConfig('black')
+  }))).toEqual({
+    whiteParticipant: beforeSwap.blackParticipant,
+    blackParticipant: beforeSwap.whiteParticipant
+  });
 
   await page.locator('#arenaSetPositionBtn').click();
   await expect(page.locator('#arenaPositionPanel')).toBeVisible();
