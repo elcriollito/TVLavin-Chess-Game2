@@ -1,7 +1,7 @@
 import { authenticateBrowserRequest } from './_lib/auth.js';
 import { createHmac } from 'node:crypto';
 import { configuredStore } from '../experiments/lc0-preview-relay/store.mjs';
-import { normalizeReleaseStage, publicRolloutConfigured } from
+import { normalizeReleaseStage } from
   '../experiments/lc0-preview-relay/rollout-policy.mjs';
 
 const PROVIDER_ID = 'lc0-maia-1100-preview';
@@ -9,6 +9,7 @@ const SOURCE_MANIFEST_SHA256 =
   '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f';
 const DEPLOYMENT_MANIFEST_SHA256 =
   '9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45';
+const ARENA_PRODUCT_STATUS = 'LC0_ARENA_RETIRED_DORMANT';
 const TELEMETRY = new Set([
   'opt_in_viewed', 'opt_in_enabled', 'opt_in_disabled', 'lc0_selector_visible',
   'lc0_session_requested', 'lc0_session_created', 'lc0_ready',
@@ -22,6 +23,27 @@ function noStore(res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Vary', 'Cookie, Authorization');
+}
+
+function dormantArenaConfig(res) {
+  return res.status(200).json({
+    enabled: false,
+    eligible: false,
+    visible: false,
+    authenticated: false,
+    reason: 'RELEASE_DISABLED',
+    mode: 'DISABLED',
+    releaseStage: 'DISABLED',
+    productStatus: ARENA_PRODUCT_STATUS,
+    providerId: PROVIDER_ID,
+    mainOrigin: expectedOrigin(process.env),
+    engineOrigin: process.env.EAE011_ENGINE_ORIGIN,
+    relayOrigin: process.env.EAE015A_RELAY_ORIGIN,
+    sourceManifestSha256: SOURCE_MANIFEST_SHA256,
+    manifestSha256: process.env.EAE015A_MANIFEST_SHA256 || DEPLOYMENT_MANIFEST_SHA256,
+    runtimeHealthy: null,
+    relayHealthy: null
+  });
 }
 
 function expectedOrigin(env) {
@@ -183,22 +205,13 @@ export default async function handler(req, res) {
   try {
     if (!requestAllowed(req, process.env))
       return res.status(404).json({ error: 'ROLLOUT_UNAVAILABLE' });
-    if (!publicRolloutConfigured(process.env)) {
-      if (req.method !== 'GET') return res.status(404).json({ error: 'ROLLOUT_UNAVAILABLE' });
-      return res.status(200).json({ enabled: false, eligible: false, visible: false,
-        authenticated: false,
-        reason: 'RELEASE_DISABLED', mode: 'DISABLED', releaseStage: 'DISABLED',
-        providerId: PROVIDER_ID, mainOrigin: expectedOrigin(process.env),
-        engineOrigin: process.env.EAE011_ENGINE_ORIGIN,
-        relayOrigin: process.env.EAE015A_RELAY_ORIGIN,
-        sourceManifestSha256: SOURCE_MANIFEST_SHA256,
-        manifestSha256: process.env.EAE015A_MANIFEST_SHA256 || '',
-        runtimeHealthy: null, relayHealthy: null });
-    }
+    // EAE-020 retires only the Engine Arena product surface. The protected
+    // dashboard and the preserved relay/runtime services remain available to
+    // engineering, while normal Arena eligibility is unconditionally dormant.
     if (req.method === 'GET' && req.query?.view === 'dashboard')
       return await dashboard(req, res);
-    if (req.method === 'GET') return await config(req, res);
-    if (req.method === 'POST') return await telemetry(req, res);
+    if (req.method === 'GET') return dormantArenaConfig(res);
+    if (req.method === 'POST') return res.status(404).json({ error: 'ROLLOUT_UNAVAILABLE' });
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   } catch (error) {
     const code = String(error?.code || 'ROLLOUT_UNAVAILABLE');

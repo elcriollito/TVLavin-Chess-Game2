@@ -6,6 +6,8 @@
     const SOURCE_MANIFEST = '492c6749989f429c269725d6d2761d4687c8096ca437f5651189fcfbe4ffbb9f';
     const DEPLOYMENT_MANIFEST = '9980a755a44b3d704f70505a803b6dd112c97a39853260bc648499b5bed4fd45';
     const ADAPTER_URL = '/experiments/lc0-arena-preview/isolated-browser-runtime-adapter.js?v=eae017-tc1';
+    const ARENA_PRODUCT_STATUS = 'LC0_ARENA_RETIRED_DORMANT';
+    const SUPPORTS_STANDARD_ARENA = false;
 
     const rollout = {
         enabled: false,
@@ -18,6 +20,8 @@
         panelViewed: false,
         statusNodes: [],
         infoNodes: [],
+        productStatus: ARENA_PRODUCT_STATUS,
+        productState: 'dormant',
 
         status(value) {
             const raw = String(value || '');
@@ -218,8 +222,11 @@
                     }) },
                 resource: { threads: 1, mobileCompatible: false,
                     crossOriginIsolationRequired: true, estimatedWeightClass: 'heavy' },
-                availability: 'available', enabled: true, mobileCompatible: false,
-                notes: 'Experimental opt-in. Dedicated isolated runtime; user gesture required.'
+                availability: 'unavailable', enabled: false, mobileCompatible: false,
+                supportsStandardArena: SUPPORTS_STANDARD_ARENA,
+                productOwner: 'caissa-analyzer-future', status: 'dormant',
+                productStatus: ARENA_PRODUCT_STATUS,
+                notes: 'Dormant and reserved for a future CAISSA Analyzer integration task.'
             };
         },
 
@@ -271,6 +278,7 @@
         },
 
         async register() {
+            if (!SUPPORTS_STANDARD_ARENA) throw new Error(ARENA_PRODUCT_STATUS);
             if (this.enabled) return true;
             await this.loadAdapter();
             this.enabled = true;
@@ -381,6 +389,16 @@
         async prepare() {
             if (this.prepared || location.pathname !== '/arena') return false;
             this.prepared = true;
+            // EAE-020: the certified runtime remains in the repository, but
+            // Engine Arena owns no active Lc0 product surface. Fail closed
+            // before DOM binding, auth, control-plane calls, or asset loading.
+            if (!SUPPORTS_STANDARD_ARENA) {
+                this.enabled = false;
+                this.eligible = false;
+                this.visible = false;
+                window.EngineRegistry?.unregisterArenaPreviewProvider?.(ID);
+                return false;
+            }
             this.cacheElements();
             this.bind();
             try {
