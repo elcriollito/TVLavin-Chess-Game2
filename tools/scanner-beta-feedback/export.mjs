@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { eligibleForTraining } from '../../scanner/beta/scanner-beta-contract.js';
 import { defaultScannerBetaRoot } from './local-store.mjs';
+import { certifyProductionFieldSnapshot } from './production-field-certification.mjs';
 
 const argument = (name) => process.argv.find((item) => item.startsWith(`--${name}=`))?.slice(name.length + 3);
 const input = resolve(argument('input') || `${defaultScannerBetaRoot()}/feedback-store.json`);
@@ -9,6 +10,24 @@ const output = argument('write');
 let state;
 try { state = JSON.parse(await readFile(input, 'utf8')); }
 catch (error) { if (error.code !== 'ENOENT') throw error; state = { scans: [], feedback: [] }; }
+if (state.schemaVersion === 'caissa-scanner-beta-field-source-snapshot/1') {
+  if (output) throw new Error('FIELD_SNAPSHOT_EXPORT_REQUIRES_GOVERNED_ADMISSION');
+  const preview = certifyProductionFieldSnapshot(state).artifacts['training-candidate-preview.json'];
+  process.stdout.write(`${JSON.stringify({
+    schemaVersion: 'caissa-scanner-beta-feedback-training-candidate-dry-run/1',
+    sourceCorpusVersion: preview.corpusVersion,
+    corpusSha256: preview.corpusSha256,
+    dryRun: true,
+    candidateCount: preview.technicalCandidates,
+    governanceReviewRequired: preview.requireGovernanceReview,
+    automaticallyAdmitted: 0,
+    exportedToTraining: 0,
+    imagesEmbedded: false,
+    criteria: preview.criteria,
+    candidates: []
+  }, null, 2)}\n`);
+  process.exit(0);
+}
 const scans = new Map(state.scans.map((item) => [item.scanId, item]));
 const candidates = state.feedback.map((item) => item.feedback).filter(eligibleForTraining).map((feedback) => ({
   feedbackId: feedback.feedbackId,

@@ -1,0 +1,67 @@
+{
+  "corpusVersion": "caissa-scanner-beta-field-v0.1",
+  "corpusSha256": "B5104B8445F3DC932A0B9BDE8A69CDCBD31A2259A8154F46C51AEAD43656B267",
+  "evaluationMode": "offline deterministic replay of the frozen structural guardrail over persisted predicted FEN; persisted status is separately checked post-deployment",
+  "statusCounts": {
+    "NORMAL": 80,
+    "REVIEW_RECOMMENDED": 2,
+    "REVIEW_REQUIRED": 10
+  },
+  "warningFrequencies": {
+    "BLACK_PAWN_ON_BACK_RANK": 3,
+    "INVALID_TOTAL_KINGS": 6,
+    "MISSING_BLACK_KING": 3,
+    "MISSING_WHITE_KING": 3,
+    "MULTIPLE_BLACK_KINGS": 3,
+    "MULTIPLE_WHITE_KINGS": 2,
+    "UNUSUAL_BLACK_BISHOP_COUNT": 1,
+    "UNUSUAL_BLACK_PIECE_COUNT": 2,
+    "UNUSUAL_BLACK_ROOK_COUNT": 1,
+    "UNUSUAL_WHITE_KNIGHT_COUNT": 1,
+    "UNUSUAL_WHITE_PIECE_COUNT": 2,
+    "UNUSUAL_WHITE_QUEEN_COUNT": 1,
+    "UNUSUAL_WHITE_ROOK_COUNT": 2,
+    "WHITE_PAWN_ON_BACK_RANK": 2
+  },
+  "hardWarningFrequencies": {
+    "BLACK_PAWN_ON_BACK_RANK": 3,
+    "INVALID_TOTAL_KINGS": 6,
+    "MISSING_BLACK_KING": 3,
+    "MISSING_WHITE_KING": 3,
+    "MULTIPLE_BLACK_KINGS": 3,
+    "MULTIPLE_WHITE_KINGS": 2,
+    "WHITE_PAWN_ON_BACK_RANK": 2
+  },
+  "softWarningFrequencies": {
+    "UNUSUAL_BLACK_BISHOP_COUNT": 1,
+    "UNUSUAL_BLACK_PIECE_COUNT": 2,
+    "UNUSUAL_BLACK_ROOK_COUNT": 1,
+    "UNUSUAL_WHITE_KNIGHT_COUNT": 1,
+    "UNUSUAL_WHITE_PIECE_COUNT": 2,
+    "UNUSUAL_WHITE_QUEEN_COUNT": 1,
+    "UNUSUAL_WHITE_ROOK_COUNT": 2
+  },
+  "overlapByDisposition": {
+    "CONFIRMED_CORRECT": {
+      "NORMAL": 76
+    },
+    "PIECE_CORRECTION": {
+      "NORMAL": 1,
+      "REVIEW_RECOMMENDED": 1,
+      "REVIEW_REQUIRED": 1
+    },
+    "LOCALIZATION_FAILURE": {
+      "NORMAL": 3,
+      "REVIEW_RECOMMENDED": 1,
+      "REVIEW_REQUIRED": 9
+    }
+  },
+  "reviewRequiredProblemPrecision": 1,
+  "severeOrLocalizationFlaggedFraction": 0.7142857142857143,
+  "falseHardWarningsOnConfirmedCorrect": 0,
+  "postDeploymentPersistedRecords": 82,
+  "postDeploymentPersistedMissing": 0,
+  "postDeploymentReplayMismatches": 0,
+  "scanFailuresApplicable": 0,
+  "scanFailuresNotApplicable": 19
+}

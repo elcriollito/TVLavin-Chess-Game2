@@ -1,0 +1,173 @@
+{
+  "corpusVersion": "caissa-scanner-beta-field-v0.1",
+  "corpusSha256": "B5104B8445F3DC932A0B9BDE8A69CDCBD31A2259A8154F46C51AEAD43656B267",
+  "allTime": {
+    "logicalAttempts": 115,
+    "completedSubmissions": 111,
+    "pending": 4,
+    "confirmedCorrect": 76,
+    "corrected": 3,
+    "localizationFailures": 13,
+    "scanFailures": 19,
+    "completionRate": 0.9652173913043478,
+    "canonicalScanPersistenceRate": 0.8347826086956521,
+    "successfulLocalizedBoardRate": 0.7117117117117117,
+    "localizationSuccessRate": 0.7567567567567568,
+    "scanFailureRate": 0.17117117117117117,
+    "localizationFailureRate": 0.24324324324324326,
+    "confirmedCorrectRate": 0.6846846846846847,
+    "exactBoardRate": 0.9620253164556962,
+    "usableWithinTwoRate": 0.9873417721518988,
+    "exactBoardCount": 76,
+    "usableWithinTwoCount": 78,
+    "eligibleClassifierBoards": 79
+  },
+  "currentRuntime": {
+    "logicalAttempts": 97,
+    "completedSubmissions": 94,
+    "pending": 3,
+    "confirmedCorrect": 68,
+    "corrected": 3,
+    "localizationFailures": 11,
+    "scanFailures": 12,
+    "completionRate": 0.9690721649484536,
+    "canonicalScanPersistenceRate": 0.8762886597938144,
+    "successfulLocalizedBoardRate": 0.7553191489361702,
+    "localizationSuccessRate": 0.7553191489361702,
+    "scanFailureRate": 0.1276595744680851,
+    "localizationFailureRate": 0.24468085106382978,
+    "confirmedCorrectRate": 0.723404255319149,
+    "exactBoardRate": 0.9577464788732394,
+    "usableWithinTwoRate": 0.9859154929577465,
+    "exactBoardCount": 68,
+    "usableWithinTwoCount": 70,
+    "eligibleClassifierBoards": 71
+  },
+  "currentRuntimeBoundary": {
+    "sha": "b5226e0848f874db849d1271baab9d6b484b9508",
+    "deployment": "dpl_BTb1RQ4tYtMt3tmB9YwfSTxyM5HN",
+    "timestamp": "2026-09-20T03:08:45.822Z"
+  },
+  "hotfixBoundaries": {
+    "captureLifecycle": {
+      "sha": "4cc4b5b830ecaeacc36c8b51e296c3ed4426c146",
+      "deployment": "dpl_EmdgfXowPQjp1W6RVaXTzTcsXWkT",
+      "timestamp": "2026-09-19T21:09:39.631Z"
+    },
+    "galleryHotfix": {
+      "sha": "b0937d2e7e35064fffc51e059acf8fd4cd15138b",
+      "deployment": "dpl_3fetoLnDWWoRqmFu1UBELphk8gRF",
+      "timestamp": "2026-09-20T02:28:26.827Z"
+    },
+    "structuralGuardrail": {
+      "sha": "b5226e0848f874db849d1271baab9d6b484b9508",
+      "deployment": "dpl_BTb1RQ4tYtMt3tmB9YwfSTxyM5HN",
+      "timestamp": "2026-09-20T03:08:45.822Z"
+    }
+  },
+  "correctionHistogram": {
+    "0": 76,
+    "1": 2,
+    "2": 0,
+    "3-5": 0,
+    "6-10": 1,
+    ">10": 0
+  },
+  "correctionBurden": {
+    "mean": 0.10126582278481013,
+    "median": 0,
+    "p90": 0,
+    "maximum": 6
+  },
+  "orientation": {
+    "white-at-bottom": {
+      "logicalAttempts": 50,
+      "completedSubmissions": 49,
+      "pending": 1,
+      "confirmedCorrect": 31,
+      "corrected": 0,
+      "localizationFailures": 7,
+      "scanFailures": 11,
+      "completionRate": 0.98,
+      "canonicalScanPersistenceRate": 0.78,
+      "successfulLocalizedBoardRate": 0.6326530612244898,
+      "localizationSuccessRate": 0.7346938775510204,
+      "scanFailureRate": 0.22448979591836735,
+      "localizationFailureRate": 0.2653061224489796,
+      "confirmedCorrectRate": 0.6326530612244898,
+      "exactBoardRate": 1,
+      "usableWithinTwoRate": 1,
+      "exactBoardCount": 31,
+      "usableWithinTwoCount": 31,
+      "eligibleClassifierBoards": 31,
+      "meanCorrections": 0,
+      "coverage": "ENOUGH INITIAL DATA",
+      "exploratory": false
+    },
+    "black-at-bottom": {
+      "logicalAttempts": 65,
+      "completedSubmissions": 62,
+      "pending": 3,
+      "confirmedCorrect": 45,
+      "corrected": 3,
+      "localizationFailures": 6,
+      "scanFailures": 8,
+      "completionRate": 0.9538461538461539,
+      "canonicalScanPersistenceRate": 0.8769230769230769,
+      "successfulLocalizedBoardRate": 0.7741935483870968,
+      "localizationSuccessRate": 0.7741935483870968,
+      "scanFailureRate": 0.12903225806451613,
+      "localizationFailureRate": 0.22580645161290322,
+      "confirmedCorrectRate": 0.7258064516129032,
+      "exactBoardRate": 0.9375,
+      "usableWithinTwoRate": 0.9791666666666666,
+      "exactBoardCount": 45,
+      "usableWithinTwoCount": 47,
+      "eligibleClassifierBoards": 48,
+      "meanCorrections": 0.16666666666666666,
+      "coverage": "ENOUGH INITIAL DATA",
+      "exploratory": false
+    },
+    "unknown/not specified": {
+      "logicalAttempts": 0,
+      "completedSubmissions": 0,
+      "pending": 0,
+      "confirmedCorrect": 0,
+      "corrected": 0,
+      "localizationFailures": 0,
+      "scanFailures": 0,
+      "completionRate": 0,
+      "canonicalScanPersistenceRate": 0,
+      "successfulLocalizedBoardRate": 0,
+      "localizationSuccessRate": 0,
+      "scanFailureRate": 0,
+      "localizationFailureRate": 0,
+      "confirmedCorrectRate": 0,
+      "exactBoardRate": 0,
+      "usableWithinTwoRate": 0,
+      "exactBoardCount": 0,
+      "usableWithinTwoCount": 0,
+      "eligibleClassifierBoards": 0,
+      "meanCorrections": 0,
+      "coverage": "NOT TESTED",
+      "exploratory": true
+    }
+  },
+  "consent": {
+    "completedSubmissions": 111,
+    "imageConsentTrue": 110,
+    "imageConsentFalse": 1,
+    "correctionConsentTrue": 111,
+    "correctionConsentFalse": 0
+  },
+  "imageUniqueness": {
+    "attemptsWithImageHash": 115,
+    "uniqueImages": 113,
+    "duplicateImageGroups": 1,
+    "duplicateImageScansBeyondFirst": 2,
+    "sameImageRepeatedScans": 1,
+    "abortedOrFailedThenRetriedImageGroups": 1,
+    "classifierDuplicateImagesBeyondFirst": 1,
+    "treatment": "reported separately; unique record and payload identities are retained in product metrics unless proven technical retries"
+  }
+}
