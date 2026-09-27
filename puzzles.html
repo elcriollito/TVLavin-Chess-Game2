@@ -11,11 +11,11 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.2.0">
   <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/puzzles.css?v=0.3.0">
+  <link rel="stylesheet" href="/css/puzzles.css?v=0.4.0">
   <script src="/js/caissa-i18n.js?v=1.0.0" defer></script>
   <script src="/js/caissa-primary-navigation.js?v=1.0.2" defer></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.2.0" defer></script>
-  <script type="module" src="/js/puzzles/page.js?v=0.3.0"></script>
+  <script type="module" src="/js/puzzles/page.js?v=0.4.0"></script>
 </head>
 <body class="puzzles-page">
   <a class="skip-link" href="#puzzle-board">Skip to puzzle</a>
@@ -44,9 +44,10 @@
                 <div class="puzzles-prompt"><h2 id="puzzle-prompt">Find the best move</h2><p id="puzzle-feedback" role="status" aria-live="polite">Choose a theme to begin.</p></div>
                 <div class="puzzles-actions"><button type="button" id="hint">Hint</button><button type="button" id="reveal">Show solution</button></div>
                 <h3>Moves</h3><ol class="puzzles-moves" id="move-list" aria-label="Moves played"></ol>
-                <div class="puzzles-engine-controls"><label for="engine-toggle">Stockfish 19 Lite</label><input type="checkbox" role="switch" id="engine-toggle" disabled><span id="engine-state">Available after solving</span></div>
-                <p class="puzzles-eval" id="engine-eval" aria-live="polite"></p>
+                <div class="puzzles-engine-controls"><button type="button" id="engine-toggle" aria-pressed="false" disabled>Analyze with Stockfish</button><span id="engine-state">Available after a miss or solution</span></div>
+                <div class="puzzles-engine-output" aria-live="polite"><p class="puzzles-eval" id="engine-eval"></p><p id="engine-best-move"></p><p id="engine-variation"></p></div>
                 <button class="puzzles-continue" type="button" id="continue-position" disabled>Continue from this position</button>
+                <section class="puzzles-engine-match" aria-labelledby="engine-match-title"><h3 id="engine-match-title">Engine vs Engine</h3><div class="puzzles-match-controls"><button type="button" id="engine-match-start" disabled>Start engine game</button><button type="button" id="engine-match-pause" disabled>Pause</button><button type="button" id="engine-match-stop" disabled>Stop</button></div><p id="engine-match-state" role="status">Available after a miss or solution</p><ol id="engine-match-moves" aria-label="Engine game moves"></ol></section>
                 <div class="puzzles-review" role="group" aria-label="Review puzzle moves"><button type="button" id="review-start" aria-label="Puzzle start" disabled>⏮</button><button type="button" id="review-prev" aria-label="Previous move" disabled>◀</button><span id="review-position">Review after solving</span><button type="button" id="review-next" aria-label="Next move" disabled>▶</button><button type="button" id="review-end" aria-label="Final position" disabled>⏭</button></div>
               </section>
               <section id="panel-themes" role="tabpanel" aria-labelledby="tab-themes"><h2 id="theme-title">Themes</h2><p class="panel-note">Choose what to practice within this category.</p><div id="subthemes" class="puzzles-subthemes"></div></section>
@@ -65,5 +66,6 @@
       </main>
     </div>
   </div>
+  <dialog id="promotion-dialog" class="puzzles-promotion" aria-labelledby="promotion-title"><form method="dialog"><h2 id="promotion-title">Choose promotion piece</h2><p id="promotion-description">Select the piece for your pawn.</p><div class="puzzles-promotion-options" role="group" aria-describedby="promotion-description"><button type="button" data-promotion="q"></button><button type="button" data-promotion="r"></button><button type="button" data-promotion="b"></button><button type="button" data-promotion="n"></button></div><button type="button" class="puzzles-promotion-cancel" id="promotion-cancel">Cancel</button></form></dialog>
 </body>
 </html>

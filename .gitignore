@@ -74,4 +74,5 @@ lichess_db_puzzle.csv*
 # Local artifacts
 *.png
 !scanner/recognition/datasets/piece-sets/assets/*/normalized/*.png
+!docs/visual-evidence/*.png
 r2_v2_list.json
