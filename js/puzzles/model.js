@@ -50,7 +50,11 @@ export class PuzzleSession {
                 }
             } catch { /* An illegal attempt leaves the position intact. */ }
         }
-        if (!match) return { status: 'incorrect' };
+        if (!match) {
+            const legal = this.game.moves({ verbose: true }).some(move => move.from === from && move.to === to
+                && (!move.promotion || move.promotion === String(promotion || 'q').toLowerCase()));
+            return { status: legal ? 'incorrect' : 'illegal' };
+        }
         const played = [this.playUci(expected)];
         this.index += 1;
         if (this.index < this.moves.length) {

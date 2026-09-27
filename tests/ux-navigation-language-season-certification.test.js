@@ -21,7 +21,7 @@ function inventory() {
 const expected = [
     ['play', '/play'], ['yahooClassic', '/yahoo-classic'], ['fics', '/fics'],
     ['playchess', '/play-online/playchess'], ['fritz', '/play-online/fritz'],
-    ['tactics', '/puzzles/chessbase-tactics'], ['interactive-diagrams', '/learn/interactive-diagrams'],
+    ['tactics', '/puzzles/chessbase-tactics'], ['puzzles', '/puzzles'], ['interactive-diagrams', '/learn/interactive-diagrams'],
     ['academy', '/academy'], ['endgame-trainer', '/endgame-trainer'],
     ['endgame-practice', '/endgame-practice'], ['endgame-library', '/endgame-library'],
     ['insights', '/insights'], ['analyze', '/analyze'], ['pgn-replayer', '/pgn-replayer'],
@@ -31,7 +31,7 @@ const expected = [
     ['arena', '/arena'], ['cheater-insight', '/cheater-insight'],
     ['polyglot', '/tools/polyglot'], ['opening-database', '/opening-database'], ['eco', '/eco'],
     ['library', '/game-library'], ['history', '/history'], ['dosChess', '/dos-chess'],
-    ['vault', '/vault'], ['blog', '/blog'], ['help', '/help'], ['about', '/about'],
+    ['vault', '/vault'], ['blog', '/blog'], ['support', '/support'], ['help', '/help'], ['about', '/about'],
     ['facebook', 'https://www.facebook.com/CaissaChessOrg/'],
     ['youtube', 'https://www.youtube.com/@CaissaChessOrg'],
     ['discord', 'https://discord.gg/TM7GJPUVfr'],

@@ -15,7 +15,7 @@ function navigation() {
 
 test('one immutable 1.13.0 model is shared by every shell adapter', () => {
   const api = navigation();
-  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.13.0');
+  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
   assert.equal(api.inventory.primary.length + api.inventory.connect.length, 34);
   assert.deepEqual(Object.keys(api.adapters), ['modernStandalone', 'application', 'trainer']);
   for (const adapter of Object.values(api.adapters)) {

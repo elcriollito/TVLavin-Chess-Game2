@@ -23,7 +23,11 @@ test('wrong attempt leaves the position intact; reveal does not masquerade as a 
     const puzzle = dataset.puzzles.find(entry => entry.moves.split(' ').length > 3);
     const session = new PuzzleSession(puzzle);
     const before = session.game.fen();
-    assert.equal(session.attempt('a1', 'a8').status, 'incorrect');
+    assert.equal(session.attempt('a1', 'a8').status, 'illegal');
+    const legalWrongMove = session.game.moves({ verbose: true }).find(move =>
+        `${move.from}${move.to}${move.promotion || ''}` !== session.moves[session.index]);
+    assert.ok(legalWrongMove);
+    assert.equal(session.attempt(legalWrongMove.from, legalWrongMove.to, legalWrongMove.promotion).status, 'incorrect');
     assert.equal(session.game.fen(), before);
     assert.equal(session.index, 1);
     assert.ok(session.reveal().length > 0);
@@ -67,8 +71,13 @@ test('the native preview route and dataset are separate from the ChessBase gatew
     assert.ok(config.rewrites.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/tactics.html'));
     const page = fs.readFileSync(new URL('../puzzles.html', import.meta.url), 'utf8');
     assert.match(page, /id="puzzle-board"/);
-    assert.match(page, /role="tab" id="tab-engine"/);
+    assert.match(page, /role="tab" id="tab-training"[^>]*>Training<\/button>/);
     assert.match(page, /role="tab" id="tab-themes"/);
-    assert.match(page, /role="tab" id="tab-level"/);
+    assert.match(page, /role="tab" id="tab-stats"/);
+    assert.match(page, /id="tab-stats"[^>]*>Progress<\/button>/);
+    assert.ok(page.indexOf('id="tab-themes"') < page.indexOf('id="tab-training"'));
+    assert.ok(page.indexOf('id="tab-training"') < page.indexOf('id="tab-stats"'));
+    assert.match(page, /id="panel-training"[\s\S]*id="move-list"[\s\S]*id="engine-toggle"[\s\S]*id="review-start"/);
+    assert.match(page, /id="panel-stats"[\s\S]*id="progress-puzzle-id"[\s\S]*id="progress-themes"[\s\S]*id="session-rating"/);
     assert.doesNotMatch(page, /livetactics\.chessbase\.com/);
 });
