@@ -1,6 +1,7 @@
 import { poolFor } from './model.js';
 
 const FALLBACK_URL = '/data/puzzles/lichess-curated-preview.json';
+const COUNTS_URL = '/data/puzzles/lichess-full-counts.json';
 
 export function ratingBounds(target, difficulty) {
     return difficulty === 'easier' ? [target - 450, target - 100]
@@ -14,6 +15,7 @@ export class PuzzleCatalogSource {
         this.fallbackUrl = fallbackUrl;
         this.now = now;
         this.preview = null;
+        this.counts = null;
         this.queues = new Map();
         this.cursors = new Map();
         this.remoteExhausted = new Set();
@@ -25,6 +27,26 @@ export class PuzzleCatalogSource {
         if (!response.ok) throw new Error(`Puzzle collection HTTP ${response.status}`);
         this.preview = await response.json();
         return this.preview;
+    }
+
+    async loadCounts() {
+        try {
+            const response = await this.fetch(COUNTS_URL);
+            if (!response.ok) return false;
+            const manifest = await response.json();
+            if (manifest.schemaVersion !== 1 || manifest.sourceVersion !== '2026-09-10'
+                || manifest.puzzles !== 6_100_952 || !manifest.counts) return false;
+            this.counts = manifest.counts;
+            return true;
+        } catch { return false; }
+    }
+
+    countFor(category, theme, target, difficulty) {
+        const record = this.counts?.[theme ? `theme:${theme}` : `category:${category}`];
+        const quality = theme === 'equality' ? 'relaxed' : 'standard';
+        const matching = record?.ranges?.[`${target}:${difficulty}:${quality}`];
+        return Number.isInteger(record?.total) && Number.isInteger(matching)
+            ? { total: record.total, matching } : null;
     }
 
     keyFor({ category, theme, target, difficulty }) {
