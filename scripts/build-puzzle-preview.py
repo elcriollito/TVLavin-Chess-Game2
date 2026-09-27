@@ -20,6 +20,7 @@ THEMES = {
     "Mates": ["mateIn1", "mateIn2", "mateIn3", "mateIn4", "mateIn5"],
     "Mate themes": ["backRankMate", "smotheredMate", "anastasiaMate", "arabianMate", "bodenMate", "hookMate", "dovetailMate", "operaMate"],
     "Special moves": ["castling", "enPassant", "promotion", "underPromotion"],
+    "Goals": ["equality", "advantage", "crushing", "mate"],
     "Lengths": ["oneMove", "short", "long", "veryLong"],
     "Origin": ["master", "masterVsMaster", "superGM"],
 }
@@ -43,7 +44,7 @@ def main():
             plays = int(row["NbPlays"])
         except (ValueError, TypeError):
             continue
-        if not (1200 <= rating <= 2400 and deviation <= 100 and popularity >= 80 and plays >= 500):
+        if not (1200 <= rating <= 2400 and deviation <= 100 and popularity >= 80 and plays >= 100):
             continue
         present = tags.intersection(row["Themes"].split())
         if not present or len(row["Moves"].split()) < 2:
@@ -57,6 +58,10 @@ def main():
             "plays": plays, "themes": row["Themes"].split(), "gameUrl": row["GameUrl"],
         }
         for tag in present:
+            # Equality is uncommon; its own bucket uses a lower play-count floor.
+            # A low-play equality record cannot enter another theme's bucket.
+            if plays < 500 and tag != "equality":
+                continue
             key = (tag, band)
             heap = buckets.setdefault(key, [])
             entry = (quality, stable, item)
@@ -70,7 +75,7 @@ def main():
     output.write_text(json.dumps({
         "source": "Lichess Open Database puzzles (CC0)",
         "sourceUrl": "https://database.lichess.org/#puzzles",
-        "selection": "rating 1200–2400; deviation ≤100; popularity ≥80; plays ≥500; top eight per tag and band",
+        "selection": "rating 1200–2400; deviation ≤100; popularity ≥80; plays ≥500 (Equality ≥100); top eight per tag and band",
         "categories": THEMES,
         "puzzles": sorted(selected.values(), key=lambda p: p["id"]),
     }, separators=(",", ":")) + "\n")

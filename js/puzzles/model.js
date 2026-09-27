@@ -1,6 +1,7 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
-export const labelFor = tag => tag.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, letter => letter.toUpperCase()).replace(/(\d)/, ' $1');
+export const labelFor = tag => tag === 'mate' ? 'Checkmate'
+    : tag.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, letter => letter.toUpperCase()).replace(/(\d)/, ' $1');
 
 export function poolFor(puzzles, { category, theme = '', target = 1800, difficulty = 'normal' }) {
     const bounds = difficulty === 'easier' ? [target - 450, target - 100]

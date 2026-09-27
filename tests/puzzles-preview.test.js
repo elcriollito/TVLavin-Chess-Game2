@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { PuzzleSession, poolFor } from '../js/puzzles/model.js';
+import { PuzzleSession, labelFor, poolFor } from '../js/puzzles/model.js';
 
 const dataset = JSON.parse(fs.readFileSync(new URL('../public/data/puzzles/lichess-curated-preview.json', import.meta.url)));
 
@@ -41,6 +41,22 @@ test('category, theme, and difficulty filters use the selected rating range', ()
     assert.ok(challenge.every(puzzle => puzzle.rating >= 1800 && puzzle.rating <= 2200));
     for (const [name, tags] of Object.entries(dataset.categories)) {
         assert.ok(tags.some(tag => dataset.puzzles.some(puzzle => puzzle.themes.includes(tag))), name);
+    }
+});
+
+test('Goals appears between Special moves and Lengths with all four Lichess goals available', () => {
+    const categories = Object.keys(dataset.categories);
+    assert.deepEqual(categories.slice(categories.indexOf('Special moves'), categories.indexOf('Lengths') + 1),
+        ['Special moves', 'Goals', 'Lengths']);
+    assert.deepEqual(dataset.categories.Goals, ['equality', 'advantage', 'crushing', 'mate']);
+    assert.equal(labelFor('mate'), 'Checkmate');
+    assert.ok(dataset.puzzles.filter(puzzle => puzzle.themes.includes('equality')).length >= 30,
+        'Equality needs enough variety for an initial training session');
+    for (const theme of dataset.categories.Goals) {
+        for (const difficulty of ['easier', 'normal', 'challenge']) {
+            assert.ok(poolFor(dataset.puzzles, { category: dataset.categories.Goals, theme, target: 1800, difficulty }).length > 0,
+                `${theme} needs a ${difficulty} puzzle near the initial rating target`);
+        }
     }
 });
 
