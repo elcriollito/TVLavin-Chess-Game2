@@ -25,20 +25,20 @@ test('full-catalog folder and theme counts distinguish totals from the active ra
     await page.goto('/puzzles');
 
     const motifsFolder = page.locator('#categories button').filter({ hasText: /^Motifs/ });
-    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 265,849 in range');
+    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 265,849 available at your level');
     await motifsFolder.click();
     await expect(page.locator('#subthemes button').first().locator('small'))
-        .toHaveText('2,145,051 total · 265,849 in range');
+        .toHaveText('2,145,051 total · 265,849 available at your level');
     await expect(page.locator('#subthemes button').filter({ hasText: /^Fork/ }).locator('small'))
-        .toHaveText('781,805 total · 84,128 in range');
+        .toHaveText('781,805 total · 84,128 available at your level');
 
     await page.locator('#tab-stats').click();
     await page.locator('#target-rating').fill('2200');
     await page.locator('#difficulty').selectOption('easier');
-    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 160,199 in range');
+    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 160,199 available at your level');
     await page.locator('#tab-themes').click();
     await expect(page.locator('#subthemes button').filter({ hasText: /^Fork/ }).locator('small'))
-        .toHaveText('781,805 total · 48,431 in range');
+        .toHaveText('781,805 total · 48,431 available at your level');
     await page.screenshot({ path: join(evidenceDirectory, 'puzzles-full-counts-desktop.png'), fullPage: true });
 
     await page.setViewportSize({ width: 390, height: 844 });

@@ -258,6 +258,13 @@ export default {
         const path = new URL(request.url).pathname;
         try {
             if (path === '/v1/select') return await selectPuzzles(request, env);
+            if (/^\/v1\/puzzle\/[A-Za-z0-9]{5}$/u.test(path)) {
+                const puzzleId = path.slice('/v1/puzzle/'.length);
+                const puzzle = await env.PUZZLES.prepare('select puzzle_id, rating from puzzles where puzzle_id = ?')
+                    .bind(puzzleId).first();
+                return puzzle ? json({ puzzleId: puzzle.puzzle_id, rating: puzzle.rating, sourceVersion: CATALOG_VERSION })
+                    : json({ code: 'PUZZLE_NOT_FOUND' }, 404);
+            }
             if (path === '/health') {
                 const result = await env.PUZZLES.prepare("select value from catalog_metadata where key = 'source_version'").first();
                 return json({ ok: result?.value === CATALOG_VERSION, sourceVersion: result?.value || null });
