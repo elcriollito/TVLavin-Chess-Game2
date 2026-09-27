@@ -35,6 +35,42 @@ test('wrong attempt leaves the position intact; reveal does not masquerade as a 
     assert.equal(session.revealed, true);
 });
 
+test('4TN7E preserves a2-a4 as move zero and allows Black en passant', () => {
+    const puzzle = dataset.puzzles.find(entry => entry.id === '4TN7E');
+    const session = new PuzzleSession(puzzle);
+    assert.deepEqual({ from: session.setupMove.from, to: session.setupMove.to, san: session.setupMove.san },
+        { from: 'a2', to: 'a4', san: 'a4' });
+    assert.equal(session.setupFen.split(' ')[3], 'a3', 'the setup FEN must preserve the en-passant target');
+    const result = session.attempt('b4', 'a3');
+    assert.equal(result.status, 'correct');
+    assert.equal(result.moves[0].flags.includes('e'), true);
+    assert.equal(session.game.get('a4'), undefined);
+});
+
+test('setup highlighting and en passant also work when White is the capturing side', () => {
+    const puzzle = dataset.puzzles.find(entry => entry.id === 'G0HRE');
+    const session = new PuzzleSession(puzzle);
+    assert.deepEqual({ from: session.setupMove.from, to: session.setupMove.to, san: session.setupMove.san },
+        { from: 'f7', to: 'f5', san: 'f5' });
+    assert.equal(session.setupFen.split(' ')[3], 'f6');
+    const result = session.attempt('e5', 'f6');
+    assert.equal(result.status, 'correct');
+    assert.equal(result.moves[0].flags.includes('e'), true);
+    assert.equal(session.game.get('f5'), undefined);
+});
+
+test('all four explicit promotion choices are accepted without an incidental failure', () => {
+    for (const promotion of ['q', 'r', 'b', 'n']) {
+        const session = new PuzzleSession({
+            id: `promo-${promotion}`, fen: '7k/P7/8/8/7p/8/8/7K b - - 0 1',
+            moves: `h4h3 a7a8${promotion}`, themes: ['promotion'], rating: 1800,
+        });
+        const result = session.attempt('a7', 'a8', promotion);
+        assert.equal(result.status, 'solved', promotion);
+        assert.equal(result.moves[0].promotion, promotion);
+    }
+});
+
 test('category, theme, and difficulty filters use the selected rating range', () => {
     const category = dataset.categories.Motifs;
     const normal = poolFor(dataset.puzzles, { category, theme: 'fork', target: 1800, difficulty: 'normal' });
@@ -77,7 +113,10 @@ test('the native preview route and dataset are separate from the ChessBase gatew
     assert.match(page, /id="tab-stats"[^>]*>Progress<\/button>/);
     assert.ok(page.indexOf('id="tab-themes"') < page.indexOf('id="tab-training"'));
     assert.ok(page.indexOf('id="tab-training"') < page.indexOf('id="tab-stats"'));
-    assert.match(page, /id="panel-training"[\s\S]*id="move-list"[\s\S]*id="engine-toggle"[\s\S]*id="review-start"/);
+    assert.match(page, /id="panel-training"[\s\S]*id="move-list"[\s\S]*id="engine-toggle"[\s\S]*id="continue-position"[\s\S]*id="engine-match-start"[\s\S]*id="review-start"/);
+    assert.match(page, /id="engine-toggle"[^>]*>Analyze with Stockfish<\/button>/);
+    assert.deepEqual([...page.matchAll(/data-promotion="([qrbn])"/g)].map(match => match[1]), ['q', 'r', 'b', 'n']);
+    assert.doesNotMatch(fs.readFileSync(new URL('../js/puzzles/page.js', import.meta.url), 'utf8'), /window\.prompt/);
     assert.match(page, /id="panel-stats"[\s\S]*id="progress-puzzle-id"[\s\S]*id="progress-themes"[\s\S]*id="session-rating"/);
     assert.doesNotMatch(page, /livetactics\.chessbase\.com/);
 });

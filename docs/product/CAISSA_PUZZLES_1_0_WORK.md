@@ -17,7 +17,7 @@
 ## Next gates before general release
 
 1. Review a sampled set with chess experts and measure puzzle quality at the proposed 1700–2100 sweet spot. Revise quality thresholds from actual solve feedback.
-2. Validate the staged PostgreSQL catalog migration on an isolated Supabase branch, benchmark its theme/rating/opening queries, and approve a production bulk-import runbook. The complete 6,100,952-row source and a reproducible local SQLite index now exist outside the repository; neither is part of the web bundle.
+2. Obtain visual approval of the Vercel preview. The authorized versioned D1 import is complete: 6,100,952 puzzles, 2.832 GB remote database, read replication enabled, full R2 backup, authenticated Worker, and measured selection with 48–55 `rows_read`, 0 writes, 0–6 ms Worker CPU, and no cursor-page overlap. Supabase remains the fallback and future home of transactional account progress. The source and reproducible bulk artifacts stay outside the repository and web bundle.
 3. Add account progress and an actual rating calculation only after its data contract, privacy, and game rules are approved.
 4. Complete cross-browser and broader device QA, engine lifecycle stress checks, accessibility review, and review of routes/SEO before linking the page in primary navigation. Chromium desktop/mobile touch and drag checks cover this beta only.
 5. Compare the finished Puzzles surface with older training pages before any consolidation or redirect.
@@ -36,3 +36,27 @@
 - The local SQLite catalog preserves every source row and column and is indexed by ID, rating/quality, theme, opening tag, and daily date. SQLite integrity and quick checks returned `ok`.
 - A deterministic 512-puzzle sample completed every UCI sequence legally. For every sample, the first move changed the FEN into the position presented to the solver.
 - The versioned PostgreSQL migration is private-by-default, reversible, and deliberately not applied to production. It models puzzle difficulty only; it adds no account rating or persistent progress.
+
+## Full-catalog preview cycle
+
+- The browser requests bounded batches from `/api/puzzles/select` and falls back
+  to the verified 1,404-puzzle collection when the server catalog is absent.
+  Vercel validates themes/openings, rating span, quality, cursor and response size,
+  then calls the authenticated Worker. Credentials remain server-only.
+- Local opt-in mode serves the real 6,100,952-row SQLite catalog without copying
+  it into Git or Vercel. Production rejects this filesystem provider.
+- Quality analysis for 1700–2100, selection rules, duplicate counts, and measured
+  SQLite plans are recorded in
+  `docs/research/LICHESS_PUZZLE_QUALITY_1700_2100.md`.
+- Training estimate, source difficulty, and future account progress are explicitly
+  separate. No account result is persisted until the existing Clerk-to-database
+  identity path is rehearsed with server-side authorization in an isolated branch.
+- Alex activated Workers Paid at $5/month after the D1 Free rehearsal passed.
+  The full build and import passed the 5 GB SQL, 8 GB planning, integrity,
+  coverage, and write-quota gates. The Worker is connected only to branch-scoped
+  Vercel previews; Production and `main` remain unchanged.
+- The September 27 infrastructure decision is an immutable, versioned Cloudflare
+  D1 catalog behind a Worker, with a dedicated `caissa-puzzles` R2 source/backup
+  bucket and Supabase reserved for future account progress. Signed cursor
+  pagination replaces numeric page/offset selection. The evidence and cost model
+  are recorded in `docs/research/PUZZLE_CATALOG_INFRASTRUCTURE_2026-09-27.md`.

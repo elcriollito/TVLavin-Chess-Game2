@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-27",
+  "scope": "temporary Cloudflare D1 Free and Worker trial",
+  "resources": {
+    "databaseName": "caissa-puzzles-trial-20260927",
+    "databaseId": "bd0e4e71-b7e6-4396-997a-0a058a28daa1",
+    "workerName": "caissa-puzzles-worker-trial-20260927",
+    "region": "ENAM",
+    "deletedAfterTrial": true,
+    "d1ListAfterCleanup": []
+  },
+  "sample": {
+    "strategy": "prefixes-00-04+all-relaxed-equality+1000-sicilian+4TN7E",
+    "puzzles": 10733,
+    "poolEntries": 52232,
+    "poolCounts": 5738,
+    "metadataRows": 3,
+    "logicalRows": 68706,
+    "sqlBytes": 5569887,
+    "sqlSha256": "6e0c8b3db194ec17a6b988fceaa54728719c82a9dfffc9fe1b145b51cf96ddb4",
+    "localValidation": {
+      "databaseBytes": 5275648,
+      "loadWallMs": 23390.1,
+      "integrityCheck": "ok"
+    }
+  },
+  "remoteImport": {
+    "cliWallSeconds": 6.4,
+    "statements": 1724,
+    "sqlDurationMs": 2268.6319,
+    "rowsRead": 4,
+    "rowsWritten": 68714,
+    "databaseBytes": 5287936
+  },
+  "selectionMeasurements": {
+    "iterationsPerCase": 15,
+    "clientLocation": "Florida, US",
+    "workerColo": "MIA",
+    "d1Region": "ENAM",
+    "fork": {
+      "httpP50Ms": 183.0,
+      "httpP95Ms": 319.81,
+      "workerWallP50Ms": 88,
+      "workerWallP95Ms": 151,
+      "d1P50Ms": 1.452,
+      "d1P95Ms": 4.131,
+      "rowsRead": 80,
+      "rowsWritten": 0,
+      "queryCount": 4,
+      "puzzles": 12
+    },
+    "sicilian": {
+      "httpP50Ms": 178.55,
+      "httpP95Ms": 309.1,
+      "workerWallP50Ms": 86,
+      "workerWallP95Ms": 96,
+      "d1P50Ms": 1.406,
+      "d1P95Ms": 4.023,
+      "rowsRead": 100,
+      "rowsWritten": 0,
+      "queryCount": 4,
+      "puzzles": 12
+    },
+    "equality": {
+      "httpP50Ms": 223.22,
+      "httpP95Ms": 276.13,
+      "workerWallP50Ms": 150,
+      "workerWallP95Ms": 167,
+      "d1P50Ms": 2.755,
+      "d1P95Ms": 3.329,
+      "rowsRead": 54,
+      "rowsWritten": 0,
+      "queryCount": 11,
+      "puzzles": 12
+    },
+    "workerCpuMsObserved": {
+      "minimum": 0,
+      "maximum": 3
+    },
+    "unauthenticatedStatus": 404
+  },
+  "pagination": {
+    "fork": { "firstPage": 12, "secondPage": 12, "overlap": 0, "secondPageRowsRead": 76 },
+    "sicilian": { "firstPage": 12, "secondPage": 12, "overlap": 0, "secondPageRowsRead": 96 },
+    "equality": { "firstPage": 12, "secondPage": 3, "overlap": 0, "secondPageRowsRead": 21 },
+    "rowsWritten": 0
+  },
+  "finalD1Counters": {
+    "queries24h": 303,
+    "rowsRead24h": 301922,
+    "rowsWritten24h": 68714,
+    "databaseBytes": 5287936
+  },
+  "extrapolation": {
+    "fullCanonicalAndPoolRows": 36144766,
+    "linearFactor": 526.0787,
+    "projectedDatabaseBytes": 2781870715,
+    "projectedDatabaseGiB": 2.591,
+    "projectedSqlGB": 2.93,
+    "planningReservePercent": 15,
+    "projectedRowsWrittenUpperBound": 36300000
+  },
+  "safety": {
+    "productionChanged": false,
+    "openingDatabaseBucketChanged": false,
+    "userDataPresent": false,
+    "workersPaidActivated": false,
+    "fullCatalogImported": false,
+    "pullRequestMerged": false
+  }
+}

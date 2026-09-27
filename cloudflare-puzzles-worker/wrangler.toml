@@ -1,0 +1,16 @@
+name = "caissa-puzzles-catalog"
+main = "src/index.js"
+compatibility_date = "2026-09-27"
+workers_dev = true
+preview_urls = false
+
+[observability]
+enabled = true
+head_sampling_rate = 0.01
+
+# Versioned, Puzzles-only D1 created after the full artifact passed the
+# 5 GB SQL / 8 GB D1 gates on 2026-09-27.
+[[d1_databases]]
+binding = "PUZZLES"
+database_name = "caissa-puzzles-2026-09-10"
+database_id = "cb4a3a0c-f6ef-42a8-ae38-3af88b7aed10"

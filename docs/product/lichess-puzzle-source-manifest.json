@@ -39,6 +39,7 @@
     "zstandardStreamDecoded": true,
     "sqliteIntegrityCheck": "ok",
     "legalMoveSample": 512,
+    "qualityRangeLegalMoveSample": 2048,
     "setupMoveSample": 512,
     "tool": "tools/puzzles/build_catalog.py",
     "moveValidationTool": "tools/puzzles/validate_sample.mjs",
@@ -48,14 +49,17 @@
   },
   "localCatalog": {
     "format": "SQLite 3",
-    "bytes": 2046775296,
+    "bytes": 2166308864,
     "relativeToDurableVersionFolder": "lichess-puzzles.sqlite3",
     "indexes": [
       "puzzles(puzzle_id)",
       "puzzles(rating,popularity,nb_plays,puzzle_id)",
       "puzzle_themes(theme,puzzle_id)",
       "puzzle_openings(opening_tag,puzzle_id)",
-      "puzzles(daily_date) where daily_date <> ''"
+      "puzzles(daily_date) where daily_date <> ''",
+      "puzzles_training_standard_idx",
+      "puzzles_training_relaxed_idx",
+      "puzzles_training_equality_idx"
     ]
   }
 }

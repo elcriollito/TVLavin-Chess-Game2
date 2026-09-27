@@ -59,31 +59,37 @@ where o.opening_tag = 'Sicilian_Defense'
 order by p.rating limit 20;
 ```
 
-## PostgreSQL staging path
+## Selected D1 publication path
 
-`supabase/migrations/20260927010607_caissa_puzzle_catalog_v1.sql` defines the
-future server catalog. It intentionally has no account-progress table and exposes
-no client role. Apply it first to an isolated Supabase branch or local Docker
-database, load a small sample, run the matching rehearsal SQL and database
-advisors, then benchmark theme/rating/opening queries. Only after those gates pass
-should a separately reviewed bulk-import procedure target production.
-
-Install `tools/puzzles/requirements.txt` and run
-`python tools/puzzles/validate_postgres_sql.py` for grammar validation before the
-database rehearsal. Grammar validation does not replace applying the migration and
-rollback to an isolated PostgreSQL/Supabase database.
-
-After validating the destination schema, the importer can stream COPY data without
-materializing another multi-gigabyte file:
+The immutable catalog is published to the versioned Cloudflare D1 database
+`caissa-puzzles-2026-09-10`. Build and independently verify the resumable SQL
+artifacts before any remote write:
 
 ```powershell
-& (Join-Path $catalogRoot '.venv\Scripts\python.exe') tools/puzzles/export_postgres_copy.py `
-  (Join-Path $catalogRoot 'lichess-puzzles.sqlite3') --source-version 2026-09-10 |
-  psql $env:CAISSA_PUZZLE_STAGING_DATABASE_URL -c '\copy public.puzzles (puzzle_id,fen,moves,rating,rating_deviation,popularity,nb_plays,themes,game_url,opening_tags,daily_date,source_version) from stdin with (format csv, header true)'
+$artifactRoot = '.puzzle-catalog\full-d1-2026-09-10'
+py -3 tools/puzzles/build_d1_catalog.py `
+  (Join-Path $catalogRoot 'lichess-puzzles.sqlite3') $artifactRoot
+py -3 tools/puzzles/build_d1_catalog.py `
+  (Join-Path $catalogRoot 'lichess-puzzles.sqlite3') $artifactRoot --verify
 ```
 
-Use only an isolated staging/branch connection for this rehearsal. The production
-database import remains a separate release gate.
+Then use `tools/puzzles/import_d1_catalog.py` with its external checkpoint. It
+hash-checks every fragment, refuses destinations outside the versioned
+`caissa-puzzles-*` namespace, records D1 read/write/duration metrics, and verifies
+all canonical rows, pools, counters, `GameUrl` values, and source version. Rerun
+the same command after an interruption; completed fragments are idempotently
+skipped.
 
-The current `/puzzles` beta and `/puzzles/chessbase-tactics` routes remain
-independent of this staged schema.
+The deployed Worker uses indexed, pre-shuffled 100-point rating pools, D1
+Sessions API, global read replication, and HMAC-signed keyset cursors. R2 stores
+the original source, manifest, and SQL backup only; it is not queried as a
+database. The browser calls Vercel `/api/puzzles/select`, never D1 directly, and
+falls back to the committed 1,404-puzzle collection during incidents.
+
+The earlier PostgreSQL/Supabase migration and importer remain an unexecuted
+fallback, not the selected catalog destination. Supabase is reserved for future
+transactional account rating/progress under RLS. See
+`CAISSA_PUZZLE_FULL_CATALOG_PREVIEW.md` for exact resources, metrics, preview
+configuration, rollback, and acceptance evidence.
+
+The `/puzzles` and `/puzzles/chessbase-tactics` routes remain independent.

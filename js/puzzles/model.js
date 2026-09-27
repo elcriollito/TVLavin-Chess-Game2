@@ -15,7 +15,8 @@ export class PuzzleSession {
         this.puzzle = puzzle;
         this.moves = puzzle.moves.split(' ');
         this.game = new Chess(puzzle.fen);
-        this.playUci(this.moves[0]); // Lichess FEN precedes the opponent's setup move.
+        this.setupMove = this.playUci(this.moves[0]); // Lichess FEN precedes the opponent's setup move.
+        this.setupFen = this.game.fen();
         this.index = 1;
         this.solved = false;
         this.revealed = false;

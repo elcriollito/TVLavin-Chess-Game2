@@ -1,15 +1,25 @@
 import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import { PuzzleSession, labelFor, poolFor } from './model.js';
-import { PuzzleEngine } from './engine.js';
+import { EngineMatch, PuzzleEngine, readablePrincipalVariation } from './engine.js';
 import { createSessionRating, recordOutcome } from './session-rating.js';
+import { PuzzleCatalogSource } from './catalog-source.js';
 
 const $ = id => document.getElementById(id);
-const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), outcomeRecorded: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null };
+const MAX_REMOTE_INVALID_ATTEMPTS = 12;
+const MAX_INVALID_ATTEMPTS = 24;
+const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), outcomeRecorded: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null, loadToken: 0, analysisActive: false, analysisFen: null, engineMatchSnapshot: null, movePending: false };
 const board = new CaissaBoardAdapter($('puzzle-board'), { position: 'start', interactive: true, animation: true, label: 'CAISSA puzzle position' });
+const catalog = new PuzzleCatalogSource();
 const engine = new PuzzleEngine(showEvaluation, engineMove, message => {
-    $('engine-toggle').checked = false;
+    stopAnalysis();
     $('engine-state').textContent = message;
 });
+const engineMatch = new EngineMatch({
+    onUpdate: updateEngineMatch,
+    onState: updateEngineMatchState,
+    onError: message => { $('engine-match-state').textContent = message; },
+});
+let promotionResolver = null;
 
 function activePool() {
     return poolFor(state.data.puzzles, { category: state.data.categories[state.category], theme: state.theme, target: state.target, difficulty: state.difficulty });
@@ -67,23 +77,119 @@ function drawThemes() {
     $('level-availability').textContent = `${activePool().length} puzzles in this selection`;
 }
 
-function stopEngine() {
-    engine.stop();
-    $('engine-toggle').checked = false;
-    $('engine-toggle').disabled = true;
-    $('engine-state').textContent = 'Available after a miss or solution';
+function clearEngineOutput() {
     $('engine-eval').textContent = '';
+    $('engine-best-move').textContent = '';
+    $('engine-variation').textContent = '';
 }
 
-function nextPuzzle() {
+function setAnalysisButton(active) {
+    state.analysisActive = active;
+    $('engine-toggle').setAttribute('aria-pressed', String(active));
+    $('engine-toggle').textContent = active ? 'Stop analysis' : 'Analyze with Stockfish';
+}
+
+function stopAnalysis({ clear = true } = {}) {
+    engine.stop();
+    state.analysisFen = null;
+    setAnalysisButton(false);
+    if (clear) clearEngineOutput();
+}
+
+function runAnalysis(fen) {
+    stopEngineMatch({ restore: true });
+    state.analysisFen = fen;
+    setAnalysisButton(true);
+    clearEngineOutput();
+    $('engine-state').textContent = 'Analyzing';
+    $('engine-best-move').textContent = 'Calculating best move…';
+    engine.start();
+    engine.analyze(fen);
+}
+
+function currentPuzzleFen() {
+    const history = state.session?.game.history({ verbose: true }) || [];
+    return state.reviewIndex === null ? state.session?.game.fen() : history[state.reviewIndex - 1]?.after;
+}
+
+function currentPuzzleMove() {
+    const history = state.session?.game.history({ verbose: true }) || [];
+    return state.reviewIndex === null ? history.at(-1) : history[state.reviewIndex - 1];
+}
+
+function showLastMove(move, extraHighlights = []) {
+    board.clearHighlights();
+    board.clearArrows();
+    if (!move?.from || !move?.to) return;
+    board.highlightSquares([
+        { square: move.from, type: 'last' },
+        { square: move.to, type: 'last' },
+        ...extraHighlights,
+    ]);
+    board.drawArrow(move.from, move.to, { color: '#f2b84b', opacity: 0.58 });
+}
+
+function setTrainingToolsAvailability() {
+    const unlocked = Boolean(state.session && (state.session.solved || state.outcomeRecorded) && !state.session.continuing);
+    const finalGameOver = Boolean(state.reviewIndex === null && state.session?.game.isGameOver());
+    $('engine-toggle').disabled = !unlocked || finalGameOver || Boolean(state.engineMatchSnapshot);
+    $('engine-match-start').disabled = !unlocked || Boolean(state.engineMatchSnapshot);
+    $('continue-position').disabled = !state.session?.solved || state.session.continuing
+        || state.session.game.isGameOver() || state.reviewIndex !== null || Boolean(state.engineMatchSnapshot);
+    if (!unlocked) {
+        $('engine-state').textContent = 'Available after a miss or solution';
+        $('engine-match-state').textContent = 'Available after a miss or solution';
+    }
+}
+
+function cancelPromotion() {
+    const resolver = promotionResolver;
+    promotionResolver = null;
+    if ($('promotion-dialog').open) $('promotion-dialog').close();
+    resolver?.(null);
+}
+
+function stopEngineMatch({ restore = false } = {}) {
+    const wasActive = Boolean(state.engineMatchSnapshot);
+    engineMatch.stop({ notify: false });
+    state.engineMatchSnapshot = null;
+    $('engine-match-moves').replaceChildren();
+    $('engine-match-pause').disabled = true;
+    $('engine-match-pause').textContent = 'Pause';
+    $('engine-match-stop').disabled = true;
+    if (restore && wasActive && state.session) restorePuzzleDisplay();
+}
+
+function stopTrainingTools() {
+    stopAnalysis();
+    stopEngineMatch();
+    cancelPromotion();
+    $('engine-toggle').disabled = true;
+    $('engine-state').textContent = 'Available after a miss or solution';
+    $('engine-match-start').disabled = true;
+    $('engine-match-state').textContent = 'Available after a miss or solution';
+}
+
+async function nextPuzzle({ invalidAttempts = 0, preferredPuzzleId = null } = {}) {
+    const loadToken = ++state.loadToken;
     clearTimeout(state.nextTimer);
     state.nextTimer = null;
-    stopEngine();
+    stopTrainingTools();
     state.outcomeRecorded = false;
     state.reviewIndex = null;
     updateReview();
-    const pool = activePool();
-    if (!pool.length) {
+    board.setInteractive(false);
+    $('next-puzzle').disabled = true;
+    $('puzzle-prompt').textContent = 'Loading puzzle';
+    feedback('Selecting a verified puzzle for this training range.');
+    const preferred = preferredPuzzleId && /^[A-Za-z0-9]{5}$/.test(preferredPuzzleId)
+        ? state.data?.puzzles.find(puzzle => puzzle.id === preferredPuzzleId) : null;
+    const selected = preferred ? { puzzle: preferred, source: 'curated-fallback', estimatedTotal: 1 } : await catalog.next({
+        category: state.category, theme: state.theme, target: state.target, difficulty: state.difficulty,
+    }, state.seen, { allowRemote: invalidAttempts < MAX_REMOTE_INVALID_ATTEMPTS });
+    if (loadToken !== state.loadToken) return;
+    const choice = selected.puzzle;
+    if (!choice) {
         state.session = null;
         updateReview();
         board.setInteractive(false);
@@ -99,30 +205,33 @@ function nextPuzzle() {
         $('progress-themes').replaceChildren();
         return;
     }
-    let choices = pool.filter(puzzle => !state.seen.has(puzzle.id));
-    if (!choices.length) { state.seen.clear(); choices = pool; }
-    const choice = choices[Math.floor(Math.random() * choices.length)];
     try { state.session = new PuzzleSession(choice); }
     catch (error) {
         console.error('Invalid puzzle position', choice.id, error);
         state.seen.add(choice.id);
-        if (state.seen.size < pool.length) return nextPuzzle();
-        feedback('No valid positions in this selection.');
-        return;
+        if (invalidAttempts + 1 >= MAX_INVALID_ATTEMPTS) {
+            state.session = null;
+            board.setInteractive(false);
+            $('puzzle-prompt').textContent = 'No valid puzzle available';
+            feedback('This selection returned invalid positions. Choose another range or try again.');
+            $('next-puzzle').disabled = false;
+            return;
+        }
+        return nextPuzzle({ invalidAttempts: invalidAttempts + 1 });
     }
     state.seen.add(choice.id);
+    state.movePending = false;
     state.orientation = state.session.game.turn() === 'w' ? 'white' : 'black';
     state.humanColor = state.session.game.turn();
     board.setOrientation(state.orientation);
     board.setPosition(state.session.game.fen(), { animate: false });
-    board.clearHighlights();
+    showLastMove(state.session.setupMove);
     board.setInteractive(true);
     $('puzzle-prompt').textContent = 'Find the best move';
     feedback(`${state.orientation === 'white' ? 'White' : 'Black'} to move. Play the combination on the board.`);
     $('side-to-move').textContent = `${state.orientation === 'white' ? 'White' : 'Black'} to move`;
     $('puzzle-id').textContent = `Puzzle ${choice.id}`;
     $('puzzle-rating').textContent = `Puzzle rating ${choice.rating}`;
-    $('continue-position').disabled = true;
     $('next-puzzle').disabled = false;
     $('hint').disabled = false;
     $('reveal').disabled = false;
@@ -131,6 +240,12 @@ function nextPuzzle() {
     $('progress-puzzle-id').textContent = `Puzzle ${choice.id}`;
     $('progress-puzzle-rating').textContent = `Rating ${choice.rating}`;
     $('progress-puzzle-plays').textContent = `Played ${Number(choice.plays || 0).toLocaleString()} times`;
+    const fullCatalog = selected.source === 'full-catalog' || selected.source === 'local-full-catalog';
+    $('catalog-source').textContent = selected.source === 'local-full-catalog' ? 'Full local Lichess catalog'
+        : fullCatalog ? 'Full Lichess catalog' : 'Curated fallback';
+    $('level-availability').textContent = fullCatalog
+        ? `${selected.estimatedTotal == null ? '' : `About ${Number(selected.estimatedTotal).toLocaleString()} `}matching full-catalog puzzles`
+        : `${activePool().length} curated fallback puzzles in this selection`;
     $('progress-source').href = choice.gameUrl;
     $('progress-source').hidden = $('source-game').hidden;
     $('progress-themes').replaceChildren(...choice.themes.map(tag => {
@@ -140,11 +255,12 @@ function nextPuzzle() {
     }));
     drawMoves();
     updateReview();
+    setTrainingToolsAvailability();
 }
 
 function updateReview() {
     const count = state.session?.game.history().length || 0;
-    const available = Boolean(state.session?.solved && !state.session.continuing && count > 1);
+    const available = Boolean(state.session?.solved && !state.session.continuing && !state.engineMatchSnapshot && count > 1);
     const cursor = state.reviewIndex ?? count;
     $('review-start').disabled = !available || cursor <= 1;
     $('review-prev').disabled = !available || cursor <= 1;
@@ -160,17 +276,14 @@ function reviewTo(index) {
     state.nextTimer = null;
     const history = session.game.history({ verbose: true });
     state.reviewIndex = Math.max(1, Math.min(index, history.length));
-    if ($('engine-toggle').checked) {
-        engine.stop();
-        $('engine-toggle').checked = false;
-        $('engine-state').textContent = 'Off';
-        $('engine-eval').textContent = '';
-    }
-    board.clearHighlights();
-    board.setPosition(history[state.reviewIndex - 1].after, { animate: false });
-    $('side-to-move').textContent = `${history[state.reviewIndex - 1].after.split(' ')[1] === 'w' ? 'White' : 'Black'} to move`;
+    const reviewed = history[state.reviewIndex - 1];
+    board.setPosition(reviewed.after, { animate: false });
+    showLastMove(reviewed);
+    $('side-to-move').textContent = `${reviewed.after.split(' ')[1] === 'w' ? 'White' : 'Black'} to move`;
     drawMoves();
     updateReview();
+    setTrainingToolsAvailability();
+    if (state.analysisActive) runAnalysis(reviewed.after);
 }
 
 function renderProgress() {
@@ -212,8 +325,8 @@ function drawMoves() {
 }
 
 function renderPosition() {
-    board.clearHighlights();
     board.setPosition(state.session.game.fen(), { animate: true });
+    showLastMove(state.session.game.history({ verbose: true }).at(-1));
     drawMoves();
     $('side-to-move').textContent = `${state.session.game.turn() === 'w' ? 'White' : 'Black'} to move`;
 }
@@ -228,48 +341,90 @@ function completed(revealed = false) {
         : (revealed ? 'Review the moves, or choose the next puzzle.' : `${cleanSolve ? 'Well done. ' : ''}Analyze it or continue against Stockfish.`));
     $('hint').disabled = true;
     $('reveal').disabled = true;
-    $('engine-toggle').disabled = terminal;
-    $('engine-state').textContent = terminal ? 'Game over' : 'Off';
-    $('engine-eval').textContent = terminal ? 'Checkmate. No legal moves remain.' : '';
-    $('continue-position').disabled = terminal;
+    if (terminal) {
+        stopAnalysis();
+        $('engine-state').textContent = 'Game over';
+        $('engine-eval').textContent = 'Checkmate. No legal moves remain.';
+    } else if (state.analysisActive) runAnalysis(state.session.game.fen());
+    else { $('engine-state').textContent = 'Off'; clearEngineOutput(); }
     board.setInteractive(false);
     updateReview();
+    setTrainingToolsAvailability();
     if (!revealed && state.autoNext) state.nextTimer = setTimeout(nextPuzzle, 1300);
 }
 
-board.on('moveAttempt', ({ from, to, promotion }) => {
+function choosePromotion(color) {
+    cancelPromotion();
+    const dialog = $('promotion-dialog');
+    dialog.dataset.pieceColor = color;
+    const names = { q: 'queen', r: 'rook', b: 'bishop', n: 'knight' };
+    const glyphs = color === 'white'
+        ? { q: '♕', r: '♖', b: '♗', n: '♘' }
+        : { q: '♛', r: '♜', b: '♝', n: '♞' };
+    for (const button of dialog.querySelectorAll('[data-promotion]')) {
+        const piece = button.dataset.promotion;
+        button.textContent = glyphs[piece];
+        button.setAttribute('aria-label', `Promote to ${color} ${names[piece]}`);
+    }
+    return new Promise(resolve => {
+        promotionResolver = choice => {
+            promotionResolver = null;
+            if (dialog.open) dialog.close();
+            resolve(choice);
+        };
+        dialog.showModal();
+        dialog.querySelector('[data-promotion="q"]').focus();
+    });
+}
+
+async function handleMoveAttempt({ from, to, promotion }) {
     const session = state.session;
-    if (!session) return;
+    if (!session || state.movePending || state.engineMatchSnapshot) return;
     if (session.continuing && session.game.turn() !== state.humanColor) return;
-    const result = session.attempt(from, to, promotion || 'q');
+    const loadToken = state.loadToken;
+    const piece = board.getPieceAt(from);
+    let selectedPromotion = promotion;
+    if (!selectedPromotion && piece?.type === 'P' && (to[1] === '1' || to[1] === '8')) {
+        state.movePending = true;
+        board.setInteractive(false);
+        selectedPromotion = await choosePromotion(piece.color);
+        state.movePending = false;
+        if (loadToken !== state.loadToken || !selectedPromotion) {
+            if (loadToken === state.loadToken) board.setInteractive(!session.solved || session.continuing);
+            return;
+        }
+        board.setInteractive(true);
+    }
+    const result = session.attempt(from, to, selectedPromotion || 'q');
     if (result.status === 'incorrect') {
         recordSessionOutcome('failed');
-        $('engine-toggle').disabled = false;
         $('engine-state').textContent = 'Off · available after a miss';
         feedback('That is not the solution. Try again, or use Stockfish in Training for help.');
-        board.highlightSquares([{ square: to, type: 'error' }]);
+        showLastMove(currentPuzzleMove(), [{ square: to, type: 'error' }]);
+        setTrainingToolsAvailability();
         return;
     }
     if (result.status === 'illegal') { feedback('That move is not legal in this position. Try another move.'); return; }
     if (result.status === 'complete') return;
     renderPosition();
-    if ($('engine-toggle').checked && !session.continuing) engine.analyze(session.game.fen());
     if (result.status === 'correct') feedback('Good move. Find the next one.');
     if (result.status === 'solved') completed();
+    else if (state.analysisActive && !session.continuing) runAnalysis(session.game.fen());
     if (result.status === 'continued') {
         if (session.game.isGameOver()) { feedback('Game over. Choose another puzzle.'); board.setInteractive(false); }
         else { board.setInteractive(false); engine.play(session.game.fen()); feedback('Stockfish is thinking…'); }
     }
-});
-board.on('promotionRequest', () => {
-    const requested = window.prompt('Promote to Q, R, B, or N', 'Q');
-    return /^[qrbn]$/i.test(requested || '') ? requested.toUpperCase() : 'Q';
-});
+}
+board.on('moveAttempt', payload => { void handleMoveAttempt(payload); });
 
-function showEvaluation({ depth, type, score }) {
-    if (!state.session || state.session.continuing) return;
+function showEvaluation({ depth, type, score, pv, fen }) {
+    if (!state.session || state.session.continuing || !state.analysisActive || fen !== state.analysisFen) return;
+    const readable = readablePrincipalVariation(fen, pv);
+    if (!readable) return;
     const value = type === 'mate' ? `Mate ${score}` : `${(score / 100).toFixed(2)}`;
     $('engine-eval').textContent = `Depth ${depth} · ${value} for side to move`;
+    $('engine-best-move').textContent = `Best move: ${readable.bestMove} (${readable.bestUci.slice(0, 2)}→${readable.bestUci.slice(2, 4)})`;
+    $('engine-variation').textContent = `Variation: ${readable.variation}`;
 }
 
 function engineMove(uci) {
@@ -280,7 +435,68 @@ function engineMove(uci) {
         renderPosition();
         feedback(session.game.isGameOver() ? 'Game over. Choose another puzzle.' : 'Your move.');
         board.setInteractive(!session.game.isGameOver());
+        if (session.game.isGameOver()) engine.stop();
     } catch { feedback('Engine returned an invalid move.'); }
+}
+
+function drawEngineMatchMoves(snapshot) {
+    const moves = $('engine-match-moves');
+    moves.replaceChildren(...snapshot.verboseMoves.map((move, index) => {
+        const item = document.createElement('li');
+        const number = move.before.split(' ')[5];
+        item.textContent = `${move.color === 'w' ? `${number}. ` : `${number}… `}${move.san}`;
+        if (index === snapshot.verboseMoves.length - 1) item.setAttribute('aria-current', 'true');
+        return item;
+    }));
+    // Scroll only the move list. scrollIntoView also scrolls its ancestors and
+    // can shift the entire page and board every time the engines make a move.
+    moves.scrollTop = moves.scrollHeight;
+}
+
+function updateEngineMatch(snapshot) {
+    if (!snapshot) return;
+    state.engineMatchSnapshot = snapshot;
+    board.setPosition(snapshot.fen, { animate: true });
+    showLastMove(snapshot.verboseMoves.at(-1));
+    $('side-to-move').textContent = `${snapshot.turn === 'w' ? 'White' : 'Black'} to move · Engine game`;
+    drawEngineMatchMoves(snapshot);
+    updateReview();
+    setTrainingToolsAvailability();
+}
+
+function updateEngineMatchState({ status, reason }) {
+    const labels = { running: 'Engines are playing', paused: 'Engine game paused', stopped: 'Engine game stopped' };
+    $('engine-match-state').textContent = reason || labels[status] || status;
+    $('engine-match-pause').disabled = !['running', 'paused'].includes(status);
+    $('engine-match-pause').textContent = status === 'paused' ? 'Resume' : 'Pause';
+    $('engine-match-stop').disabled = status === 'stopped';
+}
+
+function startEngineMatch() {
+    if (!state.session || (!state.session.solved && !state.outcomeRecorded) || state.session.continuing) return;
+    const fen = currentPuzzleFen();
+    if (!fen) return;
+    stopAnalysis();
+    board.setInteractive(false);
+    $('engine-match-moves').replaceChildren();
+    try { engineMatch.start(fen); }
+    catch {
+        $('engine-match-state').textContent = 'This position cannot start an engine game.';
+        restorePuzzleDisplay();
+    }
+}
+
+function restorePuzzleDisplay() {
+    if (!state.session) return;
+    const fen = currentPuzzleFen();
+    const move = currentPuzzleMove();
+    board.setPosition(fen, { animate: false });
+    showLastMove(move);
+    $('side-to-move').textContent = `${fen.split(' ')[1] === 'w' ? 'White' : 'Black'} to move`;
+    board.setInteractive(!state.session.solved && !state.session.continuing);
+    drawMoves();
+    updateReview();
+    setTrainingToolsAvailability();
 }
 
 for (const name of ['themes', 'training', 'stats']) {
@@ -298,7 +514,7 @@ $('flip-board').addEventListener('click', () => {
     state.orientation = state.orientation === 'white' ? 'black' : 'white';
     board.setOrientation(state.orientation);
 });
-$('next-puzzle').addEventListener('click', nextPuzzle);
+$('next-puzzle').addEventListener('click', () => nextPuzzle());
 for (const [id, target] of [['review-start', () => 1], ['review-prev', () => (state.reviewIndex ?? state.session.game.history().length) - 1], ['review-next', () => (state.reviewIndex ?? state.session.game.history().length) + 1], ['review-end', () => state.session.game.history().length]]) {
     $(id).addEventListener('click', () => reviewTo(target()));
 }
@@ -306,7 +522,7 @@ $('auto-next').addEventListener('change', event => { state.autoNext = event.targ
 $('hint').addEventListener('click', () => {
     if (!state.session || state.session.solved) return;
     const square = state.session.moves[state.session.index].slice(0, 2);
-    board.highlightSquares([{ square, type: 'hint' }]);
+    showLastMove(currentPuzzleMove(), [{ square, type: 'hint' }]);
     feedback('The piece to move is highlighted.');
 });
 $('reveal').addEventListener('click', () => {
@@ -315,18 +531,14 @@ $('reveal').addEventListener('click', () => {
     renderPosition();
     completed(true);
 });
-$('engine-toggle').addEventListener('change', event => {
+$('engine-toggle').addEventListener('click', () => {
     if (!state.session?.solved && !state.outcomeRecorded) return;
-    if (event.target.checked) {
+    if (!state.analysisActive) {
         clearTimeout(state.nextTimer);
         state.nextTimer = null;
-        if (state.reviewIndex !== null) {
-            reviewTo(state.session.game.history().length);
-            event.target.checked = true;
-        }
-        engine.start(); engine.analyze(state.session.game.fen()); $('engine-state').textContent = 'Analyzing';
+        runAnalysis(currentPuzzleFen());
     }
-    else { engine.stop(); $('engine-state').textContent = 'Off'; $('engine-eval').textContent = ''; }
+    else { stopAnalysis(); $('engine-state').textContent = 'Off'; }
 });
 $('continue-position').addEventListener('click', () => {
     const session = state.session;
@@ -336,28 +548,41 @@ $('continue-position').addEventListener('click', () => {
     renderPosition();
     updateReview();
     // A fresh worker prevents an old analysis bestmove from being mistaken for a play move.
-    engine.stop();
+    stopAnalysis();
     engine.start();
-    $('engine-toggle').checked = true;
     $('engine-toggle').disabled = true;
     $('engine-state').textContent = 'Playing against Stockfish';
     $('continue-position').disabled = true;
     board.setInteractive(false);
+    setTrainingToolsAvailability();
     feedback('Stockfish is thinking…');
     engine.play(session.game.fen());
 });
+$('engine-match-start').addEventListener('click', startEngineMatch);
+$('engine-match-pause').addEventListener('click', () => {
+    if (engineMatch.running) engineMatch.pause();
+    else engineMatch.resume();
+});
+$('engine-match-stop').addEventListener('click', () => {
+    stopEngineMatch({ restore: true });
+    $('engine-match-state').textContent = 'Engine game stopped';
+});
+for (const button of $('promotion-dialog').querySelectorAll('[data-promotion]')) {
+    button.addEventListener('click', () => promotionResolver?.(button.dataset.promotion));
+}
+$('promotion-cancel').addEventListener('click', cancelPromotion);
+$('promotion-dialog').addEventListener('cancel', event => { event.preventDefault(); cancelPromotion(); });
 $('target-rating').addEventListener('input', event => { $('rating-output').value = event.target.value; });
 $('target-rating').addEventListener('change', event => { state.target = Number(event.target.value); drawThemes(); nextPuzzle(); });
 $('difficulty').addEventListener('change', event => { state.difficulty = event.target.value; drawThemes(); nextPuzzle(); });
-window.addEventListener('pagehide', () => { clearTimeout(state.nextTimer); engine.stop(); board.destroy(); }, { once: true });
+window.addEventListener('pagehide', () => { clearTimeout(state.nextTimer); stopTrainingTools(); board.destroy(); }, { once: true });
 
 try {
-    const response = await fetch('/data/puzzles/lichess-curated-preview.json');
-    if (!response.ok) throw new Error(`Puzzle collection HTTP ${response.status}`);
-    state.data = await response.json();
+    state.data = await catalog.initialize();
     drawCategories();
     drawThemes();
-    nextPuzzle();
+    const requestedPuzzle = new URLSearchParams(window.location.search).get('puzzle');
+    await nextPuzzle({ preferredPuzzleId: requestedPuzzle });
     renderProgress();
 } catch (error) {
     console.error(error);

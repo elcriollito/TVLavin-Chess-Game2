@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-09-27T16:34:29Z",
+  "bucket": "caissa-puzzles",
+  "prefix": "catalogs/2026-09-10",
+  "catalogVersion": "2026-09-10",
+  "complete": true,
+  "objects": 248,
+  "bytes": 3315638737,
+  "source": {
+    "key": "catalogs/2026-09-10/source/lichess_db_puzzle.csv.zst",
+    "bytes": 304429328,
+    "sha256": "95fd454bec9efe8f940d5863d5db4c57474f281a865834997bd8cb5d6a149bb9"
+  },
+  "remoteReadbackVerification": [
+    {
+      "key": "catalogs/2026-09-10/manifest.json",
+      "bytes": 76533,
+      "sha256": "ac4aa9587e0d18ad6e0ff4c07c8ad5993b2f064384236bd6b7c6859852b3ed5e",
+      "matchesCheckpoint": true
+    },
+    {
+      "key": "catalogs/2026-09-10/d1-sql/40000-pool-counts.sql",
+      "bytes": 4117748,
+      "sha256": "8a8efa20bed495c7a538dbbbb52d9ea11abd3762ff56865ecf3c678eb3b003b2",
+      "matchesCheckpoint": true
+    }
+  ],
+  "isolation": {
+    "openingDatabaseBucketTouched": false,
+    "userDataIncluded": false,
+    "lichessGamesOrEvaluationsIncluded": false
+  }
+}

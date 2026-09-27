@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-09-27T17:07:14Z",
+  "worker": "caissa-puzzles-catalog",
+  "workerVersion": "39e7b782-0d82-4f57-b4b4-b37f922789de",
+  "requestCohort": "15 selection requests per scenario plus cursor and health checks",
+  "cpuMsObserved": {
+    "minimum": 0,
+    "maximum": 6
+  },
+  "outcomes": [
+    "ok"
+  ],
+  "authentication": {
+    "authorizationHeadersRedactedByCloudflare": true,
+    "unauthenticatedHealthStatus": 404,
+    "authenticatedHealthOk": true,
+    "sourceVersion": "2026-09-10"
+  },
+  "notes": [
+    "D1 wait time is reflected in Worker wall time but not Worker CPU time",
+    "The subsequent rating-edge pool optimization reduced D1 rows read and did not add CPU work"
+  ]
+}

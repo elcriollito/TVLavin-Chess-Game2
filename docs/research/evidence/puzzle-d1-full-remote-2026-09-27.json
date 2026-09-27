@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-09-27T17:04:13Z",
+  "database": {
+    "name": "caissa-puzzles-2026-09-10",
+    "uuid": "cb4a3a0c-f6ef-42a8-ae38-3af88b7aed10",
+    "region": "ENAM",
+    "bytes": 2832064512,
+    "readReplication": "auto"
+  },
+  "artifact": {
+    "catalogVersion": "2026-09-10",
+    "artifactDigestSha256": "89369f1f0860253d67ba9e28f6258de9054b02978eb7368e9c61236e0b896235",
+    "artifacts": 246
+  },
+  "importCheckpoint": {
+    "startedAt": "2026-09-27T16:09:30Z",
+    "completedAt": "2026-09-27T17:04:13Z",
+    "rowsRead": 0,
+    "rowsWritten": 36221325,
+    "d1DurationMs": 1531408.5079,
+    "wallSeconds": 2963.605
+  },
+  "remoteVerification": {
+    "puzzles": 6100952,
+    "poolEntries": 30043814,
+    "poolCounts": 76556,
+    "gameUrls": 6100952,
+    "versionRows": 1,
+    "rowsRead": 42322275,
+    "rowsWritten": 0,
+    "d1DurationMs": 7470.2968,
+    "wallSeconds": 22.73
+  },
+  "cloudflareUsageAfterVerification": {
+    "rowsRead24h": 90745506,
+    "rowsWritten24h": 36221336,
+    "writeQueries24h": 249,
+    "notes": [
+      "rowsWritten24h includes 11 schema writes from the initial successful execution whose progress-prefixed JSON was not checkpointed",
+      "rowsRead24h includes the final five-query verification plus two diagnostic verification passes; all verification queries wrote zero rows"
+    ]
+  },
+  "thresholds": {
+    "databasePlanningLimitBytes": 8000000000,
+    "databaseWithinPlanningLimit": true,
+    "monthlyIncludedRowsWritten": 50000000,
+    "importWithinIncludedRowsWritten": true
+  }
+}
