@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "url": "https://database.lichess.org/lichess_db_puzzle.csv.zst",
+    "publishedDate": "2026-09-10",
+    "downloadedAt": "2026-09-27T01:03:10Z",
+    "bytes": 304429328,
+    "sha256": "95fd454bec9efe8f940d5863d5db4c57474f281a865834997bd8cb5d6a149bb9",
+    "license": "CC0",
+    "puzzleCount": 6100952,
+    "columns": [
+      "PuzzleId",
+      "FEN",
+      "Moves",
+      "Rating",
+      "RatingDeviation",
+      "Popularity",
+      "NbPlays",
+      "Themes",
+      "GameUrl",
+      "OpeningTags",
+      "DailyDate"
+    ]
+  },
+  "references": [
+    {
+      "url": "https://raw.githubusercontent.com/lichess-org/lila/937d2f16e9381d53cd39a2f7bf680bee9ea9378c/translation/source/puzzleTheme.xml",
+      "bytes": 13902,
+      "sha256": "333e3d0925a2478a310d56273e4dead6761c9cf09746906a9dd01cff449df878"
+    },
+    {
+      "url": "https://codeload.github.com/lichess-org/chess-openings/tar.gz/c67912be581f0793dbaa776be5ccf111e01f88d9",
+      "bytes": 61150,
+      "sha256": "d9c86892a5c3f8aee3342c2839f1a37e299a8464f384a6c02d259d7723006641"
+    }
+  ],
+  "verification": {
+    "status": "verified",
+    "zstandardStreamDecoded": true,
+    "sqliteIntegrityCheck": "ok",
+    "legalMoveSample": 512,
+    "setupMoveSample": 512,
+    "tool": "tools/puzzles/build_catalog.py",
+    "moveValidationTool": "tools/puzzles/validate_sample.mjs",
+    "python": "3.14.2",
+    "sqlite": "3.50.4",
+    "zstandard": "0.25.0"
+  },
+  "localCatalog": {
+    "format": "SQLite 3",
+    "bytes": 2046775296,
+    "relativeToDurableVersionFolder": "lichess-puzzles.sqlite3",
+    "indexes": [
+      "puzzles(puzzle_id)",
+      "puzzles(rating,popularity,nb_plays,puzzle_id)",
+      "puzzle_themes(theme,puzzle_id)",
+      "puzzle_openings(opening_tag,puzzle_id)",
+      "puzzles(daily_date) where daily_date <> ''"
+    ]
+  }
+}

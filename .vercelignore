@@ -12,6 +12,10 @@ data/openingdb_games/**
 supabase/**
 *.sqlite
 *.sqlite3
+*.zst
+*.zst.part
+*.csv
+*.csv.part
 *.db
 *.dump
 *.backup
