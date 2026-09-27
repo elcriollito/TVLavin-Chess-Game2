@@ -55,7 +55,8 @@ test('Tactics frame permission and resources remain isolated', () => {
     assert.doesNotMatch(read(path), /livetactics\.chessbase\.com/i, `${path} must not load Tactics`);
   }
   assert.doesNotMatch(read('tactics.html'), /fics-client|stockfish|chess-engine-worker|https:\/\/tactics\.chessbase\.com/i);
-  const globalCsp = JSON.parse(read('vercel.json')).headers[0].headers.find(item => item.key === 'Content-Security-Policy').value;
+  const globalHeaders = JSON.parse(read('vercel.json')).headers.find(rule => rule.source === '/(.*)').headers;
+  const globalCsp = globalHeaders.find(item => item.key === 'Content-Security-Policy').value;
   assert.match(globalCsp, /frame-src[^;]*https:\/\/livetactics\.chessbase\.com/);
   assert.doesNotMatch(globalCsp, /script-src[^;]*livetactics\.chessbase\.com/);
 });

@@ -147,17 +147,21 @@ function renderPosition() {
 }
 
 function completed(revealed = false) {
+    const terminal = state.session.game.isGameOver();
     if (!revealed) {
         state.solved += 1;
         $('session-count').textContent = `${state.solved} solved this session`;
     }
     $('puzzle-prompt').textContent = revealed ? 'Solution shown' : 'Puzzle solved';
-    feedback(revealed ? 'Review the moves, or choose the next puzzle.' : 'Well done. Analyze it or continue against Stockfish.');
+    feedback(terminal
+        ? (revealed ? 'Checkmate. Review the moves or choose the next puzzle.' : 'Well done. Checkmate! Choose the next puzzle.')
+        : (revealed ? 'Review the moves, or choose the next puzzle.' : 'Well done. Analyze it or continue against Stockfish.'));
     $('hint').disabled = true;
     $('reveal').disabled = true;
-    $('engine-toggle').disabled = false;
-    $('engine-state').textContent = 'Off';
-    $('continue-position').disabled = false;
+    $('engine-toggle').disabled = terminal;
+    $('engine-state').textContent = terminal ? 'Game over' : 'Off';
+    $('engine-eval').textContent = terminal ? 'Checkmate. No legal moves remain.' : '';
+    $('continue-position').disabled = terminal;
     board.setInteractive(false);
 }
 
@@ -233,7 +237,7 @@ $('engine-toggle').addEventListener('change', event => {
 });
 $('continue-position').addEventListener('click', () => {
     const session = state.session;
-    if (!session?.solved || session.continuing) return;
+    if (!session?.solved || session.continuing || session.game.isGameOver()) return;
     session.continuing = true;
     // A fresh worker prevents an old analysis bestmove from being mistaken for a play move.
     engine.stop();
