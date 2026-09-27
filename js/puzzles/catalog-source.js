@@ -15,7 +15,8 @@ export class PuzzleCatalogSource {
         this.now = now;
         this.preview = null;
         this.queues = new Map();
-        this.pages = new Map();
+        this.cursors = new Map();
+        this.remoteExhausted = new Set();
         this.remoteRetryAt = 0;
     }
 
@@ -53,14 +54,15 @@ export class PuzzleCatalogSource {
             }
         }
 
-        if (allowRemote && this.now() >= this.remoteRetryAt) {
+        if (allowRemote && !this.remoteExhausted.has(key) && this.now() >= this.remoteRetryAt) {
             const [minRating, maxRating] = ratingBounds(selection.target, selection.difficulty);
             const tags = selection.theme ? [selection.theme] : this.preview.categories[selection.category];
-            const page = this.pages.get(key) || 0;
+            const cursor = this.cursors.get(key) || '';
             const params = new URLSearchParams({
                 themes: tags.join(','), minRating: String(minRating), maxRating: String(maxRating),
-                limit: '12', page: String(page),
+                limit: '12',
             });
+            if (cursor) params.set('cursor', cursor);
             try {
                 const response = await this.fetch(`/api/puzzles/select?${params}`);
                 if (!response.ok) throw new Error(`Puzzle API HTTP ${response.status}`);
@@ -72,7 +74,8 @@ export class PuzzleCatalogSource {
                 shuffled.estimatedTotal = payload.estimatedTotal;
                 shuffled.catalogSource = payload.source;
                 this.queues.set(key, shuffled);
-                this.pages.set(key, payload.hasMore && page < 50 ? page + 1 : 0);
+                this.cursors.set(key, payload.hasMore && payload.cursor ? payload.cursor : '');
+                if (!payload.hasMore || !payload.cursor) this.remoteExhausted.add(key);
                 return this.next(selection, seen, { allowRemote });
             } catch {
                 this.remoteRetryAt = this.now() + 30_000;

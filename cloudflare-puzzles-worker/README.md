@@ -1,41 +1,30 @@
-# CAISSA puzzle catalog Worker candidate
+# CAISSA puzzle catalog Worker
 
-This directory records the local, non-deployed D1 design selected by the
-September 27, 2026 infrastructure review. It does not contain a remote database
-identifier, deploy configuration, secret, or production binding.
+This Worker is the authenticated, read-only query layer for the versioned
+6,100,952-row Lichess puzzle catalog. D1 stores canonical puzzle rows (including
+`game_url`) and precomputed theme/opening/quality/rating pools. R2 is backup
+storage only; it does not execute SQL.
 
-The catalog is immutable and versioned. `puzzles` keeps all 6,100,952 source
-rows, including `game_url`. `puzzle_pool_entries` replaces runtime full scans
-with exact pool lookups by official theme/opening, quality tier, and 100-point
-rating bucket. A Worker will merge the bounded pool results, deduplicate puzzle
-IDs, fetch canonical rows, and return the existing Puzzles API contract.
+`/v1/select` accepts exactly one of `themes` or `openings`, a rating interval of
+at most 600 points, `quality=standard|relaxed|all`, an optional signed cursor,
+and `limit<=16`. It uses D1 Sessions, bounded indexed lookups, stable shuffle
+keys and an HMAC cursor. It does not use offset pagination, random sorting, or
+writes. `/health` verifies the bound catalog version. Both routes require
+`Authorization: Bearer <WORKER_TOKEN>`; missing or wrong authentication returns
+404.
 
-Pagination must use a signed opaque cursor containing the catalog version,
-filter digest, random starting key, last `(shuffle_key, puzzle_id)`, wrap flag,
-and expiry. The Worker must reject a cursor whose filter digest or catalog
-version does not match. The current in-browser `seen` set remains a second
-guard against repeats across overlapping theme pools.
+Required secrets:
 
-The authorized D1 Free rehearsal is recorded in
-`../docs/research/evidence/puzzle-d1-free-trial-2026-09-27.json`. It passed the
-sample gates and its Worker and D1 were deleted. Before the full import, the
-final generated artifact must still prove:
+- `WORKER_TOKEN`: random server-to-server bearer token.
+- `CURSOR_SECRET`: independent random secret of at least 32 characters.
 
-- final D1 size below 8 GB, leaving at least 20% below the fixed 10 GB limit;
-- SQL import file below 5 GB;
-- `rows_read` at most 500 and Worker CPU below 10 ms for every filter;
-- no temporary sort or full scan for theme, opening, or Equality selection;
-- global read replication is enabled and queried through `withSession()`;
-- blue/green cutover and rollback to the previous catalog version;
-- the R2 source/SQL backup uses a new puzzle bucket, never `caissa-openingdb`.
+The Vercel function holds `WORKER_TOKEN`; neither secret is available in the
+browser. Internal D1 metrics are consumed for deployment measurement and are
+removed by Vercel before its public response.
 
-Run the disposable local structural trial with:
+The database is immutable and exclusive to puzzles. Never bind
+`caissa-openingdb`, Opening Database PGNs, or account data. Future rating,
+streak, and progress remain a separate Supabase/RLS concern.
 
-```powershell
-py -3 tools/puzzles/benchmark_d1_candidate.py `
-  "C:\Users\ALEXANDER\CAISSA Data\Lichess\Puzzles\2026-09-10\lichess-puzzles.sqlite3"
-```
-
-No user rating, streak, or progress belongs in this database. Those future
-transactional records remain a separate Supabase/RLS concern after their data
-contract and identity rehearsal are approved.
+See `docs/operations/CAISSA_PUZZLE_FULL_CATALOG_PREVIEW.md` for build, import,
+deployment, measurement and rollback steps.

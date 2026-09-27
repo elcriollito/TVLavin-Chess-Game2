@@ -25,7 +25,9 @@ export default async function handler(req, res, dependencies = {}) {
     try {
         const selection = parsePuzzleSelection(req.query || {});
         const result = await (dependencies.fetchPuzzleSelection || fetchPuzzleSelection)(selection, dependencies);
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        // Every initial response starts at a fresh random shuffle key; shared CDN
+        // caching would make different users receive the same first page.
+        res.setHeader('Cache-Control', 'private, no-store');
         return res.status(200).json(result);
     } catch (error) {
         res.setHeader('Cache-Control', 'private, no-store');

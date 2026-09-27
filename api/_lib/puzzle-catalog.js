@@ -1,4 +1,5 @@
-const THEME = /^[A-Za-z][A-Za-z0-9]{0,39}$/;
+const TAG = /^[A-Za-z][A-Za-z0-9_]{0,79}$/;
+const CURSOR = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 export class PuzzleCatalogRequestError extends Error {}
 export class PuzzleCatalogUnavailableError extends Error {}
@@ -20,9 +21,12 @@ function integer(value, name, fallback, minimum, maximum) {
 }
 
 export function parsePuzzleSelection(query = {}) {
-    const themes = [...new Set(scalar(query.themes, 'themes').split(',').map(value => value.trim()).filter(Boolean))];
-    if (!themes.length || themes.length > 12 || themes.some(value => !THEME.test(value))) {
-        throw new PuzzleCatalogRequestError('themes must contain 1 to 12 official theme identifiers');
+    const dimensions = ['themes', 'openings'].filter(name => scalar(query[name], name));
+    if (dimensions.length !== 1) throw new PuzzleCatalogRequestError('provide exactly one of themes or openings');
+    const parameter = dimensions[0];
+    const tags = [...new Set(scalar(query[parameter], parameter).split(',').map(value => value.trim()).filter(Boolean))];
+    if (!tags.length || tags.length > 12 || tags.some(value => !TAG.test(value))) {
+        throw new PuzzleCatalogRequestError(`${parameter} must contain 1 to 12 official identifiers`);
     }
     const minRating = integer(query.minRating, 'minRating', 1600, 400, 3500);
     const maxRating = integer(query.maxRating, 'maxRating', 2000, 400, 3500);
@@ -30,38 +34,36 @@ export function parsePuzzleSelection(query = {}) {
         throw new PuzzleCatalogRequestError('rating range must be ordered and no wider than 600 points');
     }
     const limit = integer(query.limit, 'limit', 8, 1, 16);
-    const page = integer(query.page, 'page', 0, 0, 50);
+    const defaultQuality = parameter === 'themes' && tags.length === 1 && tags[0] === 'equality' ? 'relaxed' : 'standard';
+    const quality = scalar(query.quality, 'quality') || defaultQuality;
+    if (!['standard', 'relaxed', 'all'].includes(quality)) throw new PuzzleCatalogRequestError('quality is invalid');
+    const cursor = scalar(query.cursor, 'cursor');
+    if (cursor && (cursor.length > 1024 || !CURSOR.test(cursor))) throw new PuzzleCatalogRequestError('cursor is invalid');
     return {
-        themes,
+        dimension: parameter === 'themes' ? 'theme' : 'opening',
+        parameter,
+        tags,
         minRating,
         maxRating,
         limit,
-        page,
+        cursor,
+        quality,
         maxDeviation: 100,
         minPopularity: 80,
-        minPlays: themes.length === 1 && themes[0] === 'equality' ? 100 : 500,
+        minPlays: quality === 'standard' ? 500 : quality === 'relaxed' ? 100 : 0,
     };
 }
 
 export function buildPuzzleCatalogUrl(baseUrl, selection) {
     let url;
-    try { url = new URL('/rest/v1/puzzles', baseUrl); }
+    try { url = new URL('/v1/select', baseUrl); }
     catch { throw new PuzzleCatalogUnavailableError('Puzzle catalog configuration is invalid'); }
-    const columns = [
-        'puzzle_id', 'fen', 'moves', 'rating', 'rating_deviation', 'popularity',
-        'nb_plays', 'themes', 'game_url', 'opening_tags',
-    ].join(',');
-    url.searchParams.set('select', columns);
-    url.searchParams.set('rating', `gte.${selection.minRating}`);
-    url.searchParams.append('rating', `lte.${selection.maxRating}`);
-    url.searchParams.set('rating_deviation', `lte.${selection.maxDeviation}`);
-    url.searchParams.set('popularity', `gte.${selection.minPopularity}`);
-    url.searchParams.set('nb_plays', `gte.${selection.minPlays}`);
-    url.searchParams.set('themes', selection.themes.length === 1 && selection.themes[0] === 'equality'
-        ? 'cs.{equality}' : `ov.{${selection.themes.join(',')}}`);
-    url.searchParams.set('order', 'rating.asc,popularity.desc,nb_plays.desc,puzzle_id.asc');
-    url.searchParams.set('offset', String(selection.page * selection.limit));
+    url.searchParams.set(selection.parameter, selection.tags.join(','));
+    url.searchParams.set('minRating', String(selection.minRating));
+    url.searchParams.set('maxRating', String(selection.maxRating));
     url.searchParams.set('limit', String(selection.limit));
+    url.searchParams.set('quality', selection.quality);
+    if (selection.cursor) url.searchParams.set('cursor', selection.cursor);
     return url;
 }
 
@@ -82,11 +84,12 @@ export async function selectLocalPuzzles(selection, databasePath) {
     const { DatabaseSync } = await import('node:sqlite');
     const database = new DatabaseSync(databasePath, { readOnly: true });
     try {
-        const placeholders = selection.themes.map(() => '?').join(',');
-        const qualityPredicate = selection.minPlays === 100
+        if (selection.dimension !== 'theme') throw new PuzzleCatalogUnavailableError('Local opening selection is not supported');
+        const placeholders = selection.tags.map(() => '?').join(',');
+        const qualityPredicate = selection.minPlays === 0 ? '1 = 1' : selection.minPlays === 100
             ? 'p.rating_deviation <= 100 and p.popularity >= 80 and p.nb_plays >= 100'
             : 'p.rating_deviation <= 100 and p.popularity >= 80 and p.nb_plays >= 500';
-        const themePredicate = selection.themes.length === 1 && selection.themes[0] === 'equality'
+        const themePredicate = selection.tags.length === 1 && selection.tags[0] === 'equality'
             ? "instr(' ' || p.themes || ' ', ' equality ') > 0"
             : `exists (select 1 from puzzle_themes t where t.puzzle_id = p.puzzle_id and t.theme in (${placeholders}))`;
         const statement = database.prepare(
@@ -99,10 +102,10 @@ export async function selectLocalPuzzles(selection, databasePath) {
               order by p.rating, p.popularity desc, p.nb_plays desc, p.puzzle_id
               limit ? offset ?`
         );
-        const themeParameters = selection.themes.length === 1 && selection.themes[0] === 'equality' ? [] : selection.themes;
+        const themeParameters = selection.tags.length === 1 && selection.tags[0] === 'equality' ? [] : selection.tags;
         const rows = statement.all(
             ...themeParameters, selection.minRating, selection.maxRating,
-            selection.limit, selection.page * selection.limit,
+            selection.limit, 0,
         ).map(row => ({
             ...row,
             themes: String(row.themes).split(' '),
@@ -112,10 +115,10 @@ export async function selectLocalPuzzles(selection, databasePath) {
             source: 'local-full-catalog',
             sourceVersion: '2026-09-10',
             filters: selection,
-            page: selection.page,
             limit: selection.limit,
             estimatedTotal: null,
-            hasMore: rows.length === selection.limit && selection.page < 50,
+            cursor: null,
+            hasMore: false,
             puzzles: rows.map(toPuzzle),
         };
     } finally {
@@ -133,37 +136,36 @@ export async function fetchPuzzleSelection(selection, dependencies = {}) {
             throw new PuzzleCatalogUnavailableError('Local puzzle catalog request failed');
         }
     }
-    const baseUrl = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!baseUrl || !serviceKey) throw new PuzzleCatalogUnavailableError('Puzzle catalog is not configured');
+    const baseUrl = env.CAISSA_PUZZLE_WORKER_URL;
+    const workerToken = env.CAISSA_PUZZLE_WORKER_TOKEN;
+    if (!baseUrl || !workerToken) throw new PuzzleCatalogUnavailableError('Puzzle catalog is not configured');
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), dependencies.timeoutMs || 3000);
     try {
         const response = await fetchFn(buildPuzzleCatalogUrl(baseUrl, selection), {
             headers: {
-                apikey: serviceKey,
-                Authorization: `Bearer ${serviceKey}`,
+                Authorization: `Bearer ${workerToken}`,
                 Accept: 'application/json',
-                Prefer: 'count=planned',
             },
             signal: controller.signal,
         });
         if (!response.ok) throw new PuzzleCatalogUnavailableError(`Puzzle catalog returned HTTP ${response.status}`);
-        const rows = await response.json();
-        if (!Array.isArray(rows)) throw new PuzzleCatalogUnavailableError('Puzzle catalog returned an invalid response');
-        const contentRange = response.headers.get('content-range') || '';
-        const totalText = contentRange.includes('/') ? contentRange.split('/').pop() : '';
-        const estimatedTotal = /^\d+$/.test(totalText) ? Number(totalText) : null;
+        const payload = await response.json();
+        if (!payload || !Array.isArray(payload.puzzles)) throw new PuzzleCatalogUnavailableError('Puzzle catalog returned an invalid response');
         return {
             source: 'full-catalog',
-            sourceVersion: '2026-09-10',
+            sourceVersion: payload.sourceVersion || '2026-09-10',
             filters: selection,
-            page: selection.page,
             limit: selection.limit,
-            estimatedTotal,
-            hasMore: rows.length === selection.limit && (estimatedTotal == null || (selection.page + 1) * selection.limit < estimatedTotal),
-            puzzles: rows.map(toPuzzle),
+            cursor: typeof payload.cursor === 'string' ? payload.cursor : null,
+            estimatedTotal: Number.isSafeInteger(payload.estimatedTotal) ? payload.estimatedTotal : null,
+            hasMore: payload.hasMore === true,
+            puzzles: payload.puzzles.map(row => toPuzzle({
+                ...row,
+                themes: Array.isArray(row.themes) ? row.themes : String(row.themes || '').split(' ').filter(Boolean),
+                opening_tags: Array.isArray(row.opening_tags) ? row.opening_tags : String(row.opening_tags || '').split(' ').filter(Boolean),
+            })),
         };
     } catch (error) {
         if (error instanceof PuzzleCatalogUnavailableError) throw error;

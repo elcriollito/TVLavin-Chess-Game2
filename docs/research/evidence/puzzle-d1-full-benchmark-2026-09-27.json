@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-09-27T17:10:42.218Z",
+  "iterations": 15,
+  "sourceVersion": "2026-09-10",
+  "scenarios": {
+    "fork": {
+      "query": {
+        "themes": "fork",
+        "minRating": "1700",
+        "maxRating": "1900",
+        "quality": "standard",
+        "limit": "12"
+      },
+      "httpMs": {
+        "min": 39.676,
+        "p50": 46.718,
+        "p95": 239.839,
+        "max": 239.839
+      },
+      "workerWallMs": {
+        "min": 22,
+        "p50": 27,
+        "p95": 88,
+        "max": 88
+      },
+      "d1DurationMs": {
+        "min": 2.373,
+        "p50": 3.574,
+        "p95": 5.944,
+        "max": 5.944
+      },
+      "rowsRead": {
+        "min": 48,
+        "p50": 48,
+        "p95": 48,
+        "max": 48
+      },
+      "rowsWritten": 0,
+      "queryCount": {
+        "min": 3,
+        "p50": 3,
+        "p95": 3,
+        "max": 3
+      },
+      "returnedPuzzles": {
+        "min": 12,
+        "p50": 12,
+        "p95": 12,
+        "max": 12
+      },
+      "regions": [
+        "ENAM"
+      ],
+      "pagination": {
+        "firstPage": 12,
+        "secondPage": 12,
+        "overlap": 0,
+        "secondPageRowsRead": 49
+      }
+    },
+    "equality": {
+      "query": {
+        "themes": "equality",
+        "minRating": "1700",
+        "maxRating": "2100",
+        "quality": "relaxed",
+        "limit": "12"
+      },
+      "httpMs": {
+        "min": 72.345,
+        "p50": 131.815,
+        "p95": 181.089,
+        "max": 181.089
+      },
+      "workerWallMs": {
+        "min": 44,
+        "p50": 92,
+        "p95": 117,
+        "max": 117
+      },
+      "d1DurationMs": {
+        "min": 1.696,
+        "p50": 3.549,
+        "p95": 4.709,
+        "max": 4.709
+      },
+      "rowsRead": {
+        "min": 45,
+        "p50": 55,
+        "p95": 55,
+        "max": 55
+      },
+      "rowsWritten": 0,
+      "queryCount": {
+        "min": 9,
+        "p50": 17,
+        "p95": 17,
+        "max": 17
+      },
+      "returnedPuzzles": {
+        "min": 12,
+        "p50": 12,
+        "p95": 12,
+        "max": 12
+      },
+      "regions": [
+        "ENAM"
+      ],
+      "pagination": {
+        "firstPage": 12,
+        "secondPage": 3,
+        "overlap": 0,
+        "secondPageRowsRead": 18
+      }
+    },
+    "sicilian": {
+      "query": {
+        "openings": "Sicilian_Defense",
+        "minRating": "1700",
+        "maxRating": "1900",
+        "quality": "standard",
+        "limit": "12"
+      },
+      "httpMs": {
+        "min": 40.785,
+        "p50": 48.487,
+        "p95": 57.948,
+        "max": 57.948
+      },
+      "workerWallMs": {
+        "min": 22,
+        "p50": 30,
+        "p95": 40,
+        "max": 40
+      },
+      "d1DurationMs": {
+        "min": 2.456,
+        "p50": 3.685,
+        "p95": 5.705,
+        "max": 5.705
+      },
+      "rowsRead": {
+        "min": 48,
+        "p50": 48,
+        "p95": 48,
+        "max": 48
+      },
+      "rowsWritten": 0,
+      "queryCount": {
+        "min": 3,
+        "p50": 3,
+        "p95": 3,
+        "max": 3
+      },
+      "returnedPuzzles": {
+        "min": 12,
+        "p50": 12,
+        "p95": 12,
+        "max": 12
+      },
+      "regions": [
+        "ENAM"
+      ],
+      "pagination": {
+        "firstPage": 12,
+        "secondPage": 12,
+        "overlap": 0,
+        "secondPageRowsRead": 49
+      }
+    }
+  }
+}

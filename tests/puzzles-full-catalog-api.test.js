@@ -10,50 +10,59 @@ import {
 } from '../api/_lib/puzzle-catalog.js';
 import { PuzzleCatalogSource, ratingBounds } from '../js/puzzles/catalog-source.js';
 
-const selection = parsePuzzleSelection({ themes: 'fork,pin', minRating: '1700', maxRating: '2100', limit: '12', page: '2' });
+const selection = parsePuzzleSelection({ themes: 'fork,pin', minRating: '1700', maxRating: '2100', limit: '12' });
 
-test('selection parameters are bounded before reaching Supabase', () => {
-    assert.deepEqual(selection.themes, ['fork', 'pin']);
+test('selection parameters are bounded before reaching the catalog Worker', () => {
+    assert.deepEqual(selection.tags, ['fork', 'pin']);
+    assert.equal(selection.dimension, 'theme');
     assert.equal(selection.minPlays, 500);
-    assert.equal(selection.page, 2);
     assert.equal(parsePuzzleSelection({ themes: 'equality' }).minPlays, 100);
+    assert.equal(parsePuzzleSelection({ openings: 'Sicilian_Defense' }).dimension, 'opening');
+    assert.equal(parsePuzzleSelection({ themes: 'fork', quality: 'all' }).minPlays, 0);
     for (const invalid of [
         { themes: '' },
         { themes: 'fork);drop table puzzles' },
+        { themes: 'fork', openings: 'Sicilian_Defense' },
         { themes: 'fork', minRating: '100', maxRating: '2000' },
         { themes: 'fork', minRating: '1200', maxRating: '2400' },
         { themes: 'fork', limit: '1000' },
-        { themes: 'fork', page: '51' },
+        { themes: 'fork', quality: 'invented' },
+        { themes: 'fork', cursor: 'not-signed' },
     ]) assert.throws(() => parsePuzzleSelection(invalid), PuzzleCatalogRequestError);
 });
 
-test('the PostgREST query is filtered, capped, and never carries a credential in the URL', () => {
-    const url = buildPuzzleCatalogUrl('https://example.supabase.co', selection);
-    assert.equal(url.pathname, '/rest/v1/puzzles');
-    assert.deepEqual(url.searchParams.getAll('rating'), ['gte.1700', 'lte.2100']);
-    assert.equal(url.searchParams.get('themes'), 'ov.{fork,pin}');
-    assert.equal(url.searchParams.get('rating_deviation'), 'lte.100');
-    assert.equal(url.searchParams.get('offset'), '24');
+test('the Worker query is filtered, cursor based, capped, and carries no credential in the URL', () => {
+    const url = buildPuzzleCatalogUrl('https://catalog.example.workers.dev', selection);
+    assert.equal(url.pathname, '/v1/select');
+    assert.equal(url.searchParams.get('minRating'), '1700');
+    assert.equal(url.searchParams.get('maxRating'), '2100');
+    assert.equal(url.searchParams.get('themes'), 'fork,pin');
+    assert.equal(url.searchParams.get('quality'), 'standard');
     assert.equal(url.searchParams.get('limit'), '12');
-    assert.doesNotMatch(url.href, /service|secret|apikey/i);
+    assert.equal(url.searchParams.get('offset'), null);
+    assert.doesNotMatch(url.href, /token|secret|apikey/i);
 });
 
-test('server selection keeps service_role in headers and returns the browser contract', async () => {
+test('server selection keeps the Worker token in headers and returns the browser contract', async () => {
     let request;
     const result = await fetchPuzzleSelection(selection, {
-        env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'server-secret' },
+        env: { CAISSA_PUZZLE_WORKER_URL: 'https://catalog.example.workers.dev', CAISSA_PUZZLE_WORKER_TOKEN: 'server-secret' },
         fetch: async (url, options) => {
             request = { url, options };
-            return new Response(JSON.stringify([{
-                puzzle_id: 'abc12', fen: '8/8/8/8/8/8/4k3/6K1 w - - 0 1', moves: 'g1f1 e2f3',
-                rating: 1800, rating_deviation: 70, popularity: 95, nb_plays: 5000,
-                themes: ['fork'], game_url: 'https://lichess.org/example#1', opening_tags: [],
-            }]), { status: 200, headers: { 'content-range': '24-24/572098' } });
+            return new Response(JSON.stringify({
+                sourceVersion: '2026-09-10', cursor: 'body.signature', hasMore: true,
+                puzzles: [{
+                    puzzle_id: 'abc12', fen: '8/8/8/8/8/8/4k3/6K1 w - - 0 1', moves: 'g1f1 e2f3',
+                    rating: 1800, rating_deviation: 70, popularity: 95, nb_plays: 5000,
+                    themes: 'fork', game_url: 'https://lichess.org/example#1', opening_tags: '',
+                }],
+            }), { status: 200 });
         },
     });
-    assert.equal(request.options.headers.apikey, 'server-secret');
+    assert.equal(request.options.headers.Authorization, 'Bearer server-secret');
     assert.doesNotMatch(request.url.href, /server-secret/);
-    assert.equal(result.estimatedTotal, 572098);
+    assert.equal(result.cursor, 'body.signature');
+    assert.equal(result.hasMore, true);
     assert.deepEqual(result.puzzles[0], {
         id: 'abc12', fen: '8/8/8/8/8/8/4k3/6K1 w - - 0 1', moves: 'g1f1 e2f3', rating: 1800,
         deviation: 70, popularity: 95, plays: 5000, themes: ['fork'],
@@ -104,6 +113,16 @@ test('the public handler fails closed and advertises the curated fallback', asyn
     assert.equal(response.statusCode, 503);
     assert.equal(response.body.code, 'PUZZLE_CATALOG_UNAVAILABLE');
     assert.equal(response.body.fallback, '/data/puzzles/lichess-curated-preview.json');
+    assert.equal(response.headers['Cache-Control'], 'private, no-store');
+});
+
+test('the public handler does not CDN-cache randomized first pages', async () => {
+    const response = responseRecorder();
+    await handler({ method: 'GET', headers: {}, query: { themes: 'fork' }, socket: {} }, response, {
+        checkRateLimit: () => ({ allowed: true, remaining: 59 }),
+        fetchPuzzleSelection: async () => ({ source: 'full-catalog', puzzles: [], cursor: null, hasMore: false }),
+    });
+    assert.equal(response.statusCode, 200);
     assert.equal(response.headers['Cache-Control'], 'private, no-store');
 });
 
@@ -170,4 +189,29 @@ test('browser source can force the curated fallback without another API attempt'
     );
     assert.equal(result.source, 'curated-fallback');
     assert.deepEqual(calls, ['/preview.json']);
+});
+
+test('browser source does not restart an exhausted signed-cursor pool', async () => {
+    let apiCalls = 0;
+    const source = new PuzzleCatalogSource({
+        fetchFn: async url => {
+            if (url === '/data/puzzles/lichess-curated-preview.json') {
+                return new Response(JSON.stringify({
+                    categories: { tactics: ['fork'] },
+                    puzzles: [{ id: 'fallback', rating: 1800, themes: ['fork'] }],
+                }));
+            }
+            apiCalls += 1;
+            return new Response(JSON.stringify({
+                source: 'full-catalog', hasMore: false, cursor: null,
+                puzzles: [{ id: 'remote', rating: 1800, themes: ['fork'] }],
+            }));
+        },
+    });
+    await source.initialize();
+    const selection = { category: 'tactics', theme: 'fork', target: 1800, difficulty: 'balanced' };
+    const seen = new Set(['remote']);
+    const result = await source.next(selection, seen);
+    assert.equal(apiCalls, 1);
+    assert.equal(result.puzzle.id, 'fallback');
 });

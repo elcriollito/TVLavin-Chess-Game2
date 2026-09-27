@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "2026-09-10",
+  "verifiedAt": "2026-09-27T14:42:48Z",
+  "sourceArchive": {
+    "file": "lichess_db_puzzle.csv.zst",
+    "bytes": 304429328,
+    "sha256": "95fd454bec9efe8f940d5863d5db4c57474f281a865834997bd8cb5d6a149bb9"
+  },
+  "sourceSqlite": {
+    "file": "lichess-puzzles.sqlite3",
+    "bytes": 2166308864,
+    "sha256": "808e245ede78cec0a2606504e8dc3cf14ceab2784a8a3de47edb253da8c67c6d",
+    "integrityCheck": "ok",
+    "puzzles": 6100952,
+    "themeRelations": 27614296,
+    "openingRelations": 2429518,
+    "themeTags": 73,
+    "openingTags": 1589,
+    "missingGameUrls": 0,
+    "invalidGameUrls": 0
+  },
+  "d1Candidate": {
+    "file": "caissa-puzzles-2026-09-10.sqlite3",
+    "bytes": 2759786496,
+    "gibibytes": 2.57025,
+    "sha256": "436a5723b68c07b67cd07af6daab733285ddee8c7669ec1d8ddd32826b45c465",
+    "integrityCheck": "ok",
+    "puzzles": 6100952,
+    "poolEntries": 30043814,
+    "poolCounts": 76556,
+    "gameUrls": 6100952,
+    "themePoolKeys": 5483,
+    "openingPoolKeys": 71073
+  },
+  "sql": {
+    "artifacts": 246,
+    "bytes": 3011132876,
+    "gibibytes": 2.80434,
+    "logicalRows": 36221325,
+    "estimatedRowsWrittenUpperBound": 36221341,
+    "maximumStatementBytes": 80000,
+    "artifactDigestSha256": "89369f1f0860253d67ba9e28f6258de9054b02978eb7368e9c61236e0b896235"
+  },
+  "thresholds": {
+    "sqlLimitBytes": 5000000000,
+    "sqlWithinLimit": true,
+    "d1PlanningLimitBytes": 8000000000,
+    "d1WithinPlanningLimit": true,
+    "monthlyRowsWrittenIncluded": 50000000,
+    "writesWithinIncludedAllowance": true,
+    "statementLimitBytes": 100000,
+    "statementsWithinLimit": true
+  },
+  "verification": {
+    "builderExitCode": 0,
+    "independentHashPassExitCode": 0,
+    "resumable": true,
+    "productionChanged": false,
+    "mainChanged": false,
+    "pullRequestMerged": false
+  }
+}
