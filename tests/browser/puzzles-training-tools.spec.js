@@ -20,6 +20,32 @@ test.beforeAll(async () => {
     await mkdir(evidenceDirectory, { recursive: true });
 });
 
+test('full-catalog folder and theme counts distinguish totals from the active range', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/puzzles');
+
+    const motifsFolder = page.locator('#categories button').filter({ hasText: /^Motifs/ });
+    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 265,849 in range');
+    await motifsFolder.click();
+    await expect(page.locator('#subthemes button').first().locator('small'))
+        .toHaveText('2,145,051 total · 265,849 in range');
+    await expect(page.locator('#subthemes button').filter({ hasText: /^Fork/ }).locator('small'))
+        .toHaveText('781,805 total · 84,128 in range');
+
+    await page.locator('#tab-stats').click();
+    await page.locator('#target-rating').fill('2200');
+    await page.locator('#difficulty').selectOption('easier');
+    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 160,199 in range');
+    await page.locator('#tab-themes').click();
+    await expect(page.locator('#subthemes button').filter({ hasText: /^Fork/ }).locator('small'))
+        .toHaveText('781,805 total · 48,431 in range');
+    await page.screenshot({ path: join(evidenceDirectory, 'puzzles-full-counts-desktop.png'), fullPage: true });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(motifsFolder.locator('small')).toBeVisible();
+    await page.screenshot({ path: join(evidenceDirectory, 'puzzles-full-counts-mobile.png'), fullPage: true });
+});
+
 test('4TN7E preserves en passant, follows review positions, and isolates engine exploration', async ({ page }) => {
     await page.addInitScript(() => {
         const NativeWorker = window.Worker;
