@@ -50,6 +50,7 @@ test('rollback and rehearsal artifacts accompany the migration', () => {
 
 test('the limited beta and ChessBase Tactics routes remain intact during catalog staging', () => {
     const config = JSON.parse(read('../vercel.json'));
+    assert.equal(config.outputDirectory, '.', 'all connected Vercel projects must deploy the repository root');
     assert.ok(config.rewrites.some(rule => rule.source === '/puzzles' && rule.destination === '/puzzles.html'));
     assert.ok(config.rewrites.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/tactics.html'));
     const brief = read('../docs/product/CAISSA_PUZZLES_1_0_WORK.md');
