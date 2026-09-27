@@ -71,6 +71,8 @@
     { "source": "/play-online/playchess", "destination": "/playchess.html" },
     { "source": "/play-online/fritz", "destination": "/fritz.html" },
     { "source": "/puzzles/chessbase-tactics", "destination": "/tactics.html" },
+    { "source": "/puzzles", "destination": "/puzzles.html" },
+    { "source": "/puzzles/", "destination": "/puzzles.html" },
     { "source": "/watch/lichess-tv", "destination": "/lichess-tv.html" },
     { "source": "/watch/live-blitz", "destination": "/live-blitz.html" },
     { "source": "/watch/live-tournaments", "destination": "/live-tournaments.html" },
