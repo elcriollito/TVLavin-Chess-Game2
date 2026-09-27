@@ -1,5 +1,6 @@
 -- Candidate production schema for the immutable Lichess puzzle catalog.
--- This file is local design evidence only. No D1 database has been created.
+-- This file creates no remote resource by itself. The authorized Free trial
+-- was deleted; no persistent or production D1 database exists.
 
 create table catalog_metadata (
   key text primary key,

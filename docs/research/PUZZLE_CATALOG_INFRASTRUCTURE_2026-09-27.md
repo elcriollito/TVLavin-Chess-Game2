@@ -1,7 +1,7 @@
 # CAISSA Puzzles 1.0: catálogo completo — decisión de infraestructura
 
-Fecha de comprobación: 2026-09-27. Estado: decisión técnica local; ningún
-recurso permanente ni importación remota fue creado.
+Fecha de comprobación: 2026-09-27. Estado: ensayo remoto Free completado y
+eliminado; ningún recurso permanente ni importación completa fue creado.
 
 ## Alcance e inventario comprobado
 
@@ -13,15 +13,18 @@ recurso permanente ni importación remota fue creado.
 - Quedan expresamente fuera los 2.57 TB de partidas/evaluaciones Lichess. Los
   PGN de campeones y los índices de Opening Database son otro producto.
 - Cloudflare: cuenta accesible; R2 `caissa-openingdb` tiene 258 objetos y
-  17.2 GB; no existe ninguna base D1. No se modificó ese bucket.
+  17.2 GB. Se creó una D1 y un Worker temporales para el ensayo autorizado y
+  ambos se eliminaron al terminar; `wrangler d1 list` volvió a `[]`. No se creó
+  ningún bucket y no se modificó `caissa-openingdb`.
 - Supabase: organización **Free**, spend cap activo; dos proyectos activos y
   uno inactivo. Este checkout no está enlazado a ningún proyecto. El límite
   Free de base de datos es 500 MB, por lo que el catálogo completo no cabe.
 - Vercel: `tv-lavin-chess-game2` sigue alojando la web. En los últimos 30 días
   registró 665,814 solicitudes y 48,627 invocaciones de Functions. No hay
   variables `CAISSA_PUZZLE_*` ni integración de catálogo conectada.
-- PR #21: abierto, no fusionado, `HEAD=40dc6eb`; Scanner y las dos vistas
-  previas Vercel están en verde.
+- PR #21: abierto y no fusionado. El commit `40dc6eb` permanece en su historia;
+  Scanner y las dos vistas previas Vercel estaban en verde antes de añadir este
+  informe de ensayo.
 
 La implementación real conserva correctamente el fallback de 1,404 puzzles.
 `/api/puzzles/select` limita rango (600 puntos), temas (12), lote (16), página
@@ -56,13 +59,14 @@ Fuentes: [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/),
 | R2 Standard | $0.015/GB-mes, $4.50/M Class A, $0.36/M Class B; 10 GB, 1 M A y 10 M B gratuitos por cuenta; egreso gratis. El almacenamiento/operaciones gratis ya se comparten con los buckets existentes. |
 | Supabase Pro | $25/organización, $10 de crédito de cómputo; Micro $10/proyecto, Small $15, Medium $60; 8 GB/proyecto incluidos y $0.125/GB adicional; 250 GB de egreso y $0.09/GB adicional; copia diaria, 7 días. PITR 7 días añade ~$100/mes. |
 
-D1 sí cabe *por tamaño observado* (2.17 GB frente a 10 GB) y su fichero de
-importación SQL debería caber bajo 5 GB, pero el margen sólo se aceptará tras
-generar el artefacto final. Una base por encima de 8 GB se rechaza aunque aún
-esté bajo el límite contractual. D1 procesa cada base de forma monohilo; por
-eso la aceptación exige consultas indexadas y réplicas globales mediante
-Sessions API. R2 no ejecuta SQL: sólo es viable con pools invertidos
-precalculados, no subiendo el SQLite como objeto consultable.
+La muestra D1 remota proyecta ~2.78 GB decimales (2.59 GiB) para la base
+completa y ~2.93 GB para el SQL de importación. Con 15% de reserva son ~3.20 y
+~3.37 GB, respectivamente: bajo 10 GB por base y 5 GB por importación, pero el
+artefacto final seguirá siendo la autoridad. Una base por encima de 8 GB se
+rechaza aunque aún esté bajo el límite contractual. D1 procesa cada base de
+forma monohilo; por eso producción exige consultas indexadas y réplicas
+globales mediante Sessions API. R2 no ejecuta SQL: sólo es viable con pools
+invertidos precalculados, no subiendo el SQLite como objeto consultable.
 
 ## Medición y diseño de selección
 
@@ -74,9 +78,10 @@ Medición del SQLite completo, siete ejecuciones:
 | Equality 1700–2100, calidad relajada | 0.058 ms | índice parcial Equality |
 | Sicilian Defense 1700–1900 | 545.070 ms | crea B-tree temporal para ordenar |
 
-La apertura demuestra que copiar el esquema actual a D1 no basta. El ensayo
-reversible materializó 48,067 puzzles y 49,685 entradas (13,467,648 bytes) con
-la clave primaria `(pool_key, shuffle_key, puzzle_id)`. Resultados:
+La apertura demuestra que copiar el esquema actual a D1 no basta. El primer
+ensayo local reversible materializó 48,067 puzzles y 49,685 entradas
+(13,467,648 bytes) con la clave primaria
+`(pool_key, shuffle_key, puzzle_id)`. Resultados:
 
 | Pool candidato | Mediana local | Candidatos leídos por el merger | Plan |
 | --- | ---: | ---: | --- |
@@ -97,24 +102,59 @@ El catálogo completo contiene 27,614,296 relaciones tema-puzzle (73 temas) y
 filas canónicas dan ~36.14 M escrituras lógicas para una base nueva si cada
 relación se guarda una sola vez y las tablas `WITHOUT ROWID` evitan un índice
 secundario duplicado. Ese diseño mantiene la primera carga dentro de las 50 M
-escrituras mensuales incluidas; la métrica remota será la autoridad final.
+escrituras mensuales incluidas. Incluso sumando el máximo teórico de 149,580
+contadores de pool y el factor DDL medido, la extrapolación queda por debajo de
+36.3 M `rows_written`.
 
-La prueba fue SQLite local compatible con el modelo de D1; no mide red global,
-`rows_read` facturables ni CPU del Worker. Esas tres métricas requieren un D1
-remoto pequeño o la importación completa, ambas pendientes de autorización.
+### Ensayo D1 Free remoto autorizado
+
+La muestra reproducible usa IDs con prefijos `00`–`04`, todos los puzzles
+Equality de calidad relajada, 1,000 Sicilian Defense de calidad estándar y el
+caso `4TN7E`. Contiene 10,733 puzzles, 52,232 relaciones indexadas, 5,738
+contadores y 3 filas de metadatos: 68,706 filas lógicas. El SQL mide 5,569,887
+bytes y su SHA-256 es
+`6e0c8b3db194ec17a6b988fceaa54728719c82a9dfffc9fe1b145b51cf96ddb4`.
+La validación local dio `integrity_check=ok` y 5,275,648 bytes.
+
+La importación remota ejecutó 1,724 sentencias en 6.4 s de pared: 2,268.632 ms
+SQL, 68,714 `rows_written`, 4 `rows_read` y 5,287,936 bytes finales. Los conteos
+remotos coincidieron exactamente. Quince solicitudes consecutivas por caso,
+desde Florida hasta Worker MIA y D1 ENAM, dieron:
+
+| Caso (12 puzzles) | HTTP p50 / p95 | Worker wall p50 / p95 | D1 p50 / p95 | `rows_read` | consultas |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Fork 1700–1900 | 183.00 / 319.81 ms | 88 / 151 ms | 1.452 / 4.131 ms | 80 | 4 |
+| Sicilian 1700–1900 | 178.55 / 309.10 ms | 86 / 96 ms | 1.406 / 4.023 ms | 100 | 4 |
+| Equality 1700–2100 | 223.22 / 276.13 ms | 150 / 167 ms | 2.755 / 3.329 ms | 54 | 11 |
+
+Cloudflare Tail observó 0–3 CPU-ms por invocación, bajo el límite Free de
+10 ms; la espera D1 no cuenta como CPU. Todas las selecciones escribieron 0
+filas. La segunda página leyó 76/96/21 filas para Fork/Sicilian/Equality y tuvo
+0 IDs repetidos respecto de la primera. El 404 sin token confirmó el cierre del
+Worker de ensayo. El contador final de la base fue 303 consultas, 301,922
+`rows_read` y 68,714 `rows_written`; incluye los `COUNT(*)` deliberadamente
+completos de validación y no representa el flujo de usuario.
+
+La extrapolación lineal por fila es `5,287,936 × 36,144,766 / 68,706`, o
+2,781,870,715 bytes antes de contadores completos y reserva. Cumple los umbrales
+de tamaño, `rows_read <= 500` y CPU `< 10 ms`. No se activó read replication en
+la muestra Free; el Worker sí usó Sessions API, y producción deberá habilitar
+réplicas antes del corte. La evidencia estructurada está en
+`docs/research/evidence/puzzle-d1-free-trial-2026-09-27.json`.
 
 ## Coste incremental
 
 Supuestos mensuales: bajo 100,000 selecciones; medio 5 M; alto 50 M. Cada
-respuesta contiene hasta 12 puzzles y ~6 KB. Para D1 se presupuestan 80 filas
-leídas y 5 CPU-ms por selección. Para R2 puro, dos GET por selección y 4 GB de
-objetos/índices. El backup R2 de D1 se presupuesta en 4 GB. Son supuestos
-conservadores que se reemplazarán por `meta.rows_read`, CPU p95 y bytes reales.
+respuesta contiene hasta 12 puzzles y ~6 KB. El ensayo midió 54–100 filas y
+0–3 CPU-ms; el presupuesto conserva 100 filas y 5 CPU-ms por selección. Para R2
+puro, dos GET por selección y 4 GB de objetos/índices. El backup R2 de D1 se
+presupuesta en 4 GB, por encima de la proyección D1 de 2.78 GB.
 
 Fórmulas:
 
 - Worker = `5 + max(0,R-10M)*$0.30/M + max(0,5R-30M)*$0.02/M`.
-- D1 reads = `80R`; los tres escenarios quedan bajo 25,000 M incluidos.
+- D1 reads = `100R`; incluso 50 M selecciones son 5,000 M, bajo los 25,000 M
+  incluidos.
 - Supabase egress = `max(0,6KB*R-250GB)*$0.09/GB`.
 - Supabase dedicado = `$25 + cómputo de proyectos - $10 crédito + excesos`.
 
@@ -135,8 +175,8 @@ Coste de ensayo frente a producción:
 | Acción | Coste estimado | Estado |
 | --- | ---: | --- |
 | Ensayo local ejecutado | $0 | Completo; temporal eliminado automáticamente. |
-| D1 remoto con muestra <500 MB | $0 dentro de Free | No creado; requiere aprobación porque crea un recurso de cuenta. |
-| Primera carga D1 completa | ~$5.06 primer mes | Requiere Workers Paid. El diseño escribe ~36.14 M filas canónicas/pools, bajo 50 M incluidas; cualquier índice extra obliga a recalcular escrituras. |
+| D1 remoto con muestra <500 MB | $0 dentro de Free | Completo: 5.29 MB, Worker y D1 eliminados; no hubo cargo ni recurso persistente. |
+| Primera carga D1 completa | ~$5.06 primer mes a tráfico bajo | Requiere aprobación separada de Workers Paid. Proyección ~2.78 GB y <36.3 M escrituras; el artefacto final debe confirmar <5 GB SQL y <8 GB D1 antes de importar. |
 | Ensayo Supabase completo de 24 h | hasta ~$35.32 el primer mes | Pro $25 + dos Micros $20 - crédito $10 + rama $0.01344/h; no autorizado. |
 | Producción Supabase dedicada | desde $45/mes | No autorizada. |
 
@@ -166,9 +206,11 @@ en el D1 activo.
 
 ## Próxima decisión solicitada al propietario
 
-No se debe ejecutar aún. Acción concreta propuesta: confirmar si Workers Paid ya
-está activo y, si no, autorizar el mínimo de **$5/mes**; crear una D1 temporal
-`caissa-puzzles-trial` y un bucket separado `caissa-puzzles` (estimado total de
-producción bajo: **$5.06/mes**), importar primero una muestra y devolver latencia,
-CPU y `rows_read`. Sólo si pasa los umbrales se presentará el tamaño/coste exacto
-de la carga completa para una segunda aprobación.
+No se debe ejecutar aún. El ensayo pasa los umbrales y mantiene la recomendación
+D1. La siguiente acción concreta requiere nueva aprobación: activar Workers Paid
+por **$5/mes**, generar el SQL completo, detenerse si supera 5 GB o proyecta una
+D1 de 8 GB, y sólo entonces crear una D1 permanente versionada y un bucket R2
+separado `caissa-puzzles`. Coste incremental estimado a tráfico bajo:
+**$5.06/mes** ($5 Worker + ~$0.06 por 4 GB R2; D1 y egreso dentro de incluidos).
+No se importará el catálogo completo ni se activará el plan de pago sin esa
+decisión explícita.

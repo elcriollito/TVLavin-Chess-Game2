@@ -16,11 +16,14 @@ and expiry. The Worker must reject a cursor whose filter digest or catalog
 version does not match. The current in-browser `seen` set remains a second
 guard against repeats across overlapping theme pools.
 
-Before any remote import, a rehearsal must prove:
+The authorized D1 Free rehearsal is recorded in
+`../docs/research/evidence/puzzle-d1-free-trial-2026-09-27.json`. It passed the
+sample gates and its Worker and D1 were deleted. Before the full import, the
+final generated artifact must still prove:
 
 - final D1 size below 8 GB, leaving at least 20% below the fixed 10 GB limit;
 - SQL import file below 5 GB;
-- `rows_read` p95 at most 500 and Worker CPU p95 at most 10 ms for every filter;
+- `rows_read` at most 500 and Worker CPU below 10 ms for every filter;
 - no temporary sort or full scan for theme, opening, or Equality selection;
 - global read replication is enabled and queried through `withSession()`;
 - blue/green cutover and rollback to the previous catalog version;
