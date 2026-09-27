@@ -76,8 +76,14 @@ test('4TN7E preserves en passant, follows review positions, and isolates engine 
     await expect(page.locator('.caissa-board__highlight--last[data-square="b4"]')).toBeVisible();
     await expect(page.locator('.caissa-board__highlight--last[data-square="a3"]')).toBeVisible();
 
+    await page.locator('#engine-match-start').scrollIntoViewIfNeeded();
+    const viewportBeforeMatch = await page.evaluate(() => window.scrollY);
+    const boardBeforeMatch = await page.locator('#puzzle-board').boundingBox();
     await page.locator('#engine-match-start').click();
     await expect(page.locator('#engine-match-moves li').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#engine-match-moves li').nth(1)).toBeVisible({ timeout: 15_000 });
+    expect(await page.evaluate(() => window.scrollY)).toBe(viewportBeforeMatch);
+    expect((await page.locator('#puzzle-board').boundingBox())?.y).toBe(boardBeforeMatch?.y);
     await page.locator('#engine-match-pause').click();
     const pausedCount = await page.locator('#engine-match-moves li').count();
     await page.waitForTimeout(900);
