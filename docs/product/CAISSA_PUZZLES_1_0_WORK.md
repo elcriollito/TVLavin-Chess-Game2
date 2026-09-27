@@ -17,7 +17,7 @@
 ## Next gates before general release
 
 1. Review a sampled set with chess experts and measure puzzle quality at the proposed 1700–2100 sweet spot. Revise quality thresholds from actual solve feedback.
-2. Establish a versioned PostgreSQL import and indexed theme/rating query for a substantially larger pool; keep the 6.1 million row source file out of the web bundle.
+2. Validate the staged PostgreSQL catalog migration on an isolated Supabase branch, benchmark its theme/rating/opening queries, and approve a production bulk-import runbook. The complete 6,100,952-row source and a reproducible local SQLite index now exist outside the repository; neither is part of the web bundle.
 3. Add account progress and an actual rating calculation only after its data contract, privacy, and game rules are approved.
 4. Complete cross-browser and broader device QA, engine lifecycle stress checks, accessibility review, and review of routes/SEO before linking the page in primary navigation. Chromium desktop/mobile touch and drag checks cover this beta only.
 5. Compare the finished Puzzles surface with older training pages before any consolidation or redirect.
@@ -28,3 +28,11 @@
 - Local Chromium checked desktop and 390 px touch mobile layout, theme switching, tap-to-move, no page errors or horizontal overflow, full solve, Stockfish evaluation, and continued play. Goals contains all four objectives at the initial rating target.
 - The post-solution state was checked for terminal mate and nonterminal Equality positions. The curated set contains 604 terminal mates, all of which must prevent continuation.
 - `tests/puzzles-preview.test.js` and `tests/tactics-gateway.test.js` pass. The Tactics test now locates the global CSP by route rather than assuming it is the first header rule.
+
+## Full-catalog foundation completed locally
+
+- Official Lichess version: 2026-09-10, 6,100,952 puzzles, 304,429,328 compressed bytes, SHA-256 `95fd454bec9efe8f940d5863d5db4c57474f281a865834997bd8cb5d6a149bb9`.
+- The entire Zstandard stream decoded successfully; the exact 11-column schema and row count matched the official publication.
+- The local SQLite catalog preserves every source row and column and is indexed by ID, rating/quality, theme, opening tag, and daily date. SQLite integrity and quick checks returned `ok`.
+- A deterministic 512-puzzle sample completed every UCI sequence legally. For every sample, the first move changed the FEN into the position presented to the solver.
+- The versioned PostgreSQL migration is private-by-default, reversible, and deliberately not applied to production. It models puzzle difficulty only; it adds no account rating or persistent progress.
