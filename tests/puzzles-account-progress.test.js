@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../api/puzzles/progress.js';
+import { loadAccountProgress } from '../js/puzzles/account-progress-api.js';
 
 const USER = '7e6977c8-d287-4a53-b85a-5df92a0b44ba';
 const OPERATION = '71a44dcb-9040-4503-ac39-44f5c8d5818f';
@@ -88,4 +89,35 @@ test('returns a retryable service response when catalog lookup or the RPC fails'
         operationId: OPERATION, puzzleId: '4TN7E', outcome: 'failed', assisted: true,
     } }, rpcResponse, deps({ rpcError: { code: 'XX000' } }));
     assert.equal(rpcResponse.statusCode, 503);
+});
+
+test('a first Puzzles visit creates the verified internal account mapping once', async () => {
+    const calls = [];
+    const responses = [
+        { ok: false, status: 409 },
+        { ok: true, status: 200, json: async () => ({ user: { clerkId: 'clerk_user' } }) },
+        { ok: true, status: 200, json: async () => ({ progress: { rating: 1800, solved: 0, failed: 0 } }) },
+    ];
+    const fetchImpl = async (url, options) => {
+        calls.push({ url, options });
+        return responses.shift();
+    };
+    const result = await loadAccountProgress({ getToken: async () => 'session-token' }, fetchImpl);
+
+    assert.equal(result.progress.rating, 1800);
+    assert.deepEqual(calls.map(call => [call.url, call.options.method]), [
+        ['/api/puzzles/progress', 'GET'],
+        ['/api/user/sync', 'POST'],
+        ['/api/puzzles/progress', 'GET'],
+    ]);
+    assert.ok(calls.every(call => call.options.headers.Authorization === 'Bearer session-token'));
+});
+
+test('account bootstrap does not mask non-mapping service failures', async () => {
+    const calls = [];
+    await assert.rejects(() => loadAccountProgress({ getToken: async () => 'session-token' }, async url => {
+        calls.push(url);
+        return { ok: false, status: 503 };
+    }), /Account progress HTTP 503/);
+    assert.deepEqual(calls, ['/api/puzzles/progress']);
 });

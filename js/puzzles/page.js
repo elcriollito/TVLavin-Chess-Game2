@@ -2,6 +2,7 @@ import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import { PuzzleSession, labelFor, poolFor } from './model.js';
 import { EngineMatch, PuzzleEngine, readablePrincipalVariation } from './engine.js';
 import { createSessionRating, recordOutcome } from './session-rating.js';
+import { loadAccountProgress as loadStoredAccountProgress, requestAccountProgress } from './account-progress-api.js';
 import { PuzzleCatalogSource, ratingBounds } from './catalog-source.js';
 
 const $ = id => document.getElementById(id);
@@ -352,15 +353,11 @@ function loadPendingOutcomes(userId) {
 }
 
 async function accountRequest(method, body) {
-    const token = await window.CAISSA_AUTH?.getToken?.();
-    if (!token) throw new Error('Missing account session');
-    const response = await fetch('/api/puzzles/progress', {
-        method, cache: 'no-store',
-        headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-    });
-    if (!response.ok) throw new Error(`Account progress HTTP ${response.status}`);
-    return response.json();
+    return requestAccountProgress(window.CAISSA_AUTH, method, body);
+}
+
+async function loadAccountProgress() {
+    return loadStoredAccountProgress(window.CAISSA_AUTH);
 }
 
 let syncing = false;
@@ -411,7 +408,7 @@ async function initializeAccountProgress() {
     if (!userId) state.accountMode = 'guest';
     else {
         try {
-            const result = await accountRequest('GET');
+            const result = await loadAccountProgress();
             if (state.accountUserId !== userId) return;
             state.progress = { ...result.progress, last: null };
             state.accountMode = state.pendingOutcomes.length ? 'saving' : 'saved';
@@ -656,7 +653,7 @@ for (const [id, target] of [['review-start', () => 1], ['review-prev', () => (st
 $('auto-next').addEventListener('change', event => { state.autoNext = event.target.checked; });
 $('retry-progress').addEventListener('click', () => {
     if (state.pendingOutcomes.length) void syncOutcomes();
-    else void accountRequest('GET').then(result => {
+    else void loadAccountProgress().then(result => {
         state.progress = { ...result.progress, last: null };
         state.accountMode = 'saved';
         renderProgress();
