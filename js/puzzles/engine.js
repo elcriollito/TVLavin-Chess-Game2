@@ -45,9 +45,16 @@ export class PuzzleEngine {
     start() {
         if (this.worker) return;
         try {
-            this.worker = new Worker('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js');
-            this.worker.onmessage = event => this.receive(String(event.data || ''));
-            this.worker.onerror = () => { this.stop(); this.onError('Engine unavailable'); };
+            const worker = new Worker('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js');
+            this.worker = worker;
+            worker.onmessage = event => {
+                if (this.worker === worker) this.receive(String(event.data || ''));
+            };
+            worker.onerror = () => {
+                if (this.worker !== worker) return;
+                this.stop();
+                this.onError('Engine unavailable');
+            };
             this.send('uci');
         } catch { this.stop(); this.onError('Engine unavailable'); }
     }
@@ -90,7 +97,14 @@ export class PuzzleEngine {
         this.search = null;
     }
     stop() {
-        if (this.worker) { this.send('stop'); this.send('quit'); this.worker.terminate(); }
+        const worker = this.worker;
+        if (worker) {
+            this.send('stop');
+            this.send('quit');
+            worker.onmessage = null;
+            worker.onerror = null;
+            worker.terminate();
+        }
         this.worker = null;
         this.search = null;
         this.ready = false;

@@ -98,6 +98,9 @@ function stopAnalysis({ clear = true } = {}) {
 
 function runAnalysis(fen) {
     stopEngineMatch({ restore: true });
+    // A reviewed position gets a fresh worker. Reusing a worker while its prior
+    // search is unwinding can surface a late error or PV from the old position.
+    engine.stop();
     state.analysisFen = fen;
     setAnalysisButton(true);
     clearEngineOutput();

@@ -48,6 +48,35 @@ test('PuzzleEngine emits a new PV for the active position and cancels bounded se
     }
 });
 
+test('a terminated Stockfish worker cannot stop its replacement with a late error', () => {
+    const originalWorker = globalThis.Worker;
+    const workers = [];
+    class FakeWorker {
+        constructor() { this.commands = []; this.terminated = false; workers.push(this); }
+        postMessage(command) { this.commands.push(command); }
+        emitError() { this.onerror?.(new Error('late worker error')); }
+        terminate() { this.terminated = true; }
+    }
+    globalThis.Worker = FakeWorker;
+    try {
+        const errors = [];
+        const engine = new PuzzleEngine(() => {}, () => {}, error => errors.push(error));
+        engine.start();
+        const first = workers[0];
+        const staleError = first.onerror;
+        engine.stop();
+        engine.start();
+        const replacement = workers[1];
+        staleError(new Error('late worker error'));
+        assert.equal(engine.worker, replacement);
+        assert.equal(replacement.terminated, false);
+        assert.deepEqual(errors, []);
+        engine.stop();
+    } finally {
+        globalThis.Worker = originalWorker;
+    }
+});
+
 test('EngineMatch alternates both engines, pauses, resumes, and stops at its ply limit', () => {
     const instances = [];
     const scheduled = [];
