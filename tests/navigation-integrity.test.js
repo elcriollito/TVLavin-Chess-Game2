@@ -21,15 +21,15 @@ test('canonical primary navigation inventory is unique and stable', () => {
     Array.from(inventory.primary, ({ id }) => id),
     [
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
-      'tactics', 'puzzles', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library',
+      'tactics', 'puzzles', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library', 'endgame-tablebase',
       'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'lichess-broadcasts', 'game-replayer', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  assert.equal(inventory.primary.length, 31);
+  assert.equal(inventory.primary.length, 32);
   assert.equal(inventory.connect.length, 4);
-  for (const label of ['Endgame Practice', 'Endgame Library', 'Analyze', 'Help', 'About']) {
+  for (const label of ['Endgame Practice', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');

@@ -1,10 +1,20 @@
 import { Chess } from 'chess.js';
 
-const PROVIDER = 'https://tablebase.lichess.ovh/standard';
+const PROVIDER = 'https://tablebase.lichess.org/standard';
 const CATEGORIES = new Set(['win', 'loss', 'draw', 'cursed-win', 'blessed-loss', 'syzygy-win', 'syzygy-loss', 'maybe-win', 'maybe-loss', 'unknown']);
+const SUCCESS_CACHE_CONTROL = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800';
 const cache = new Map();
 let queue = Promise.resolve();
 let blockedUntil = 0;
+
+function noStore(res) {
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+}
+
+export function publicTablebaseEnabled(env = process.env) {
+    if (env.VERCEL_ENV !== 'production' && env.NODE_ENV !== 'production') return true;
+    return env.CAISSA_TABLEBASE_PUBLIC_ENABLED === '1' && env.CAISSA_TABLEBASE_SHARED_LIMITER_READY === '1';
+}
 
 export function validatePosition(raw) {
     if (typeof raw !== 'string' || raw.length > 110) throw new Error('Invalid FEN');
@@ -16,7 +26,23 @@ export function validatePosition(raw) {
     if (fen.split(' ')[2] !== '-') {
         throw new Error('Castling rights are not supported in tablebases');
     }
+    const fields = fen.split(' ');
+    const previousMoverProbe = [...fields];
+    previousMoverProbe[1] = fields[1] === 'w' ? 'b' : 'w';
+    previousMoverProbe[3] = '-';
+    try {
+        if (new Chess(previousMoverProbe.join(' ')).inCheck()) throw new Error('Illegal position');
+    } catch (error) {
+        if (error.message === 'Illegal position') throw error;
+        throw new Error('Invalid FEN');
+    }
     return fen;
+}
+
+function cacheKey(fen) {
+    const fields = fen.split(' ');
+    fields[5] = '1';
+    return fields.join(' ');
 }
 
 function sanitize(body, fen) {
@@ -31,13 +57,24 @@ function sanitize(body, fen) {
         seen.add(move.uci);
         return { uci: move.uci, san: move.san, category: move.category,
             dtz: Number.isInteger(move.dtz) ? move.dtz : null,
+            preciseDtz: Number.isInteger(move.precise_dtz) ? move.precise_dtz : null,
             dtm: Number.isInteger(move.dtm) ? move.dtm : null,
             zeroing: move.zeroing === true };
     });
-    return { fen, category: body.category, dtz: Number.isInteger(body.dtz) ? body.dtz : null,
+    return { category: body.category, dtz: Number.isInteger(body.dtz) ? body.dtz : null,
+        preciseDtz: Number.isInteger(body.precise_dtz) ? body.precise_dtz : null,
         dtm: Number.isInteger(body.dtm) ? body.dtm : null, moves,
         checkmate: body.checkmate === true, stalemate: body.stalemate === true,
         insufficientMaterial: body.insufficient_material === true, source: 'lichess-syzygy' };
+}
+
+function retryDelay(upstream, now) {
+    const value = upstream.headers?.get?.('retry-after');
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds > 0) return Math.min(24 * 60 * 60_000, Math.max(60_000, seconds * 1000));
+    const date = Date.parse(value || '');
+    if (Number.isFinite(date) && date > now) return Math.min(24 * 60 * 60_000, Math.max(60_000, date - now));
+    return 60_000;
 }
 
 function serialized(work) {
@@ -48,28 +85,36 @@ function serialized(work) {
 
 export default async function handler(req, res, dependencies = {}) {
     res.setHeader('X-Robots-Tag', 'noindex');
+    res.setHeader('X-CAISSA-Tablebase-Stage', 'review');
     if (req.method !== 'GET') {
+        noStore(res);
         res.setHeader('Allow', 'GET');
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+    if (!publicTablebaseEnabled(dependencies.env || process.env)) {
+        noStore(res);
+        return res.status(503).json({ code: 'TABLEBASE_REVIEW_ONLY', error: 'Tablebase is not enabled for public traffic.' });
     }
     let fen;
     try {
         if (Array.isArray(req.query?.fen)) throw new Error('Invalid FEN');
         fen = validatePosition(req.query?.fen);
-    } catch (error) { return res.status(400).json({ error: error.message }); }
+    } catch (error) { noStore(res); return res.status(400).json({ error: error.message }); }
     const now = dependencies.now || Date.now;
-    const hit = cache.get(fen);
+    const key = cacheKey(fen);
+    const hit = cache.get(key);
     if (hit && hit.expires > now()) {
-        res.setHeader('Cache-Control', 'public, s-maxage=300');
-        return res.status(200).json(hit.data);
+        res.setHeader('Cache-Control', SUCCESS_CACHE_CONTROL);
+        return res.status(200).json({ fen, ...hit.data });
     }
     if (now() < blockedUntil) {
+        noStore(res);
         res.setHeader('Retry-After', String(Math.ceil((blockedUntil - now()) / 1000)));
         return res.status(503).json({ error: 'Tablebase is temporarily busy. Try again shortly.' });
     }
     try {
         const data = await serialized(async () => {
-            const fresh = cache.get(fen);
+            const fresh = cache.get(key);
             if (fresh && fresh.expires > now()) return fresh.data;
             if (now() < blockedUntil) throw Object.assign(new Error('busy'), { code: 429 });
             const controller = new AbortController();
@@ -82,19 +127,20 @@ export default async function handler(req, res, dependencies = {}) {
                     headers: { Accept: 'application/json', 'User-Agent': 'CAISSA-Chess/1.0 (+https://www.caissa-chess.org/)' } });
             } finally { clearTimeout(timeout); }
             if (upstream.status === 429) {
-                blockedUntil = now() + 60_000;
+                blockedUntil = now() + retryDelay(upstream, now());
                 throw Object.assign(new Error('busy'), { code: 429 });
             }
             if (upstream.status === 404) throw Object.assign(new Error('unavailable'), { code: 404 });
             if (!upstream.ok) throw new Error('upstream');
             const data = sanitize(await upstream.json(), fen);
-            cache.set(fen, { data, expires: now() + 300_000 });
+            cache.set(key, { data, expires: now() + 86_400_000 });
             if (cache.size > 500) cache.delete(cache.keys().next().value);
             return data;
         });
-        res.setHeader('Cache-Control', 'public, s-maxage=300');
-        return res.status(200).json(data);
+        res.setHeader('Cache-Control', SUCCESS_CACHE_CONTROL);
+        return res.status(200).json({ fen, ...data });
     } catch (error) {
+        noStore(res);
         if (error.code === 404) return res.status(404).json({ error: 'No tablebase data for this position' });
         if (error.code === 429) {
             res.setHeader('Retry-After', String(Math.max(1, Math.ceil((blockedUntil - now()) / 1000))));

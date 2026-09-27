@@ -1,23 +1,112 @@
-# CAISSA Endgame Tablebase — first work slice
+# CAISSA Endgame Tablebase — review cut
 
 Branch: `feature/endgame-tablebase-v1`
 
+Status: functional preview; intentionally blocked from production
+
+Last verified: 2026-09-27
+
 ## Product flow
 
-The `/endgame-tablebase` workspace loads a standard chess FEN of at most seven pieces. The board is the position owner for presentation; `chess.js` owns legal moves and history. The Result tab shows the tablebase outcome and optional DTZ/DTM. The Moves tab lists legal moves grouped by the mover's outcome. Train hides the result list and explains whether a played move preserved the theoretical result. Undo, reset, flip, and copy FEN are available. The FEN is shareable through the URL.
+`/endgame-tablebase` loads a standard chess FEN with at most seven pieces. `chess.js` remains the only owner of legal moves and move history. The persistent CAISSA board presents that position and accepts mouse drag, tap/click, and keyboard square activation.
+
+The single right workspace follows the CAISSA Head/Body/Foot pattern:
+
+- **Result** presents the result for the side to move, DTZ/DTM when meaningful, terminal-state language, and the current halfmove clock.
+- **Moves** groups legal moves by the result for the player making the move. Provider categories are inverted only at this presentation boundary because each move category describes the resulting position for the opponent.
+- **Train** hides every preserving move until reveal. A played move is graded only when both the current position and child category are exact. `maybe-*`, `syzygy-*`, and `unknown` responses disable exact training claims.
+- **Setup** owns a temporary piece-placement draft. Moving, placing, or erasing pieces does not call `game.move()` and does not create history. `Load as new position` validates the draft and starts a fresh legal-history session.
+
+Undo, Reset, Flip, Copy FEN, promotion choice, FEN links, and provider/error states are present. Loading or confirming a new FEN establishes a new reset origin. The page remains `noindex`.
+
+## Result semantics
+
+The provider's `category` already incorporates the halfmove clock and 50-move rule. CAISSA does not re-derive WDL from DTZ.
+
+| Provider category | CAISSA presentation |
+| --- | --- |
+| `win`, `loss`, `draw` | exact result under the current clock |
+| `cursed-win` | draw under the 50-move rule; win without it |
+| `blessed-loss` | draw under the 50-move rule; loss without it |
+| `maybe-win`, `syzygy-win` | uncertain win-or-draw; never promised as a win |
+| `maybe-loss`, `syzygy-loss` | uncertain draw-or-loss; never promised as an exact draw or loss |
+| `unknown` | no exact result |
+
+DTZ is shown in plies and receives an `≈` prefix when Lichess omits `precise_dtz`. DTM is shown in plies only when supplied and meaningful; it is not presented for a draw. Checkmate, stalemate, and insufficient material have explicit terminal language.
 
 ## Service boundary
 
-`/api/tablebase/standard` validates and canonicalizes FEN, limits standard positions to seven pieces without castling rights, requests Lichess Syzygy data, validates the returned moves against the legal chess position, and returns a stable CAISSA response. It serializes upstream requests within a running function instance, caches responses for five minutes in that instance, and pauses upstream calls for at least one minute after HTTP 429. These are per-instance safeguards, not global rate limiting across Vercel instances. A shared cache/limiter is needed before broad traffic.
+`/api/tablebase/standard` now targets the official `https://tablebase.lichess.org/standard` hostname documented by Lichess. It:
 
-The existing Endgame Trainer retains its curated, reviewed positions and offline runtime. This service can later be consumed by Analyze, Coach, Game Review, and Puzzles after each surface establishes its own result and rate-limit contract.
+1. parses and canonicalizes FEN with `chess.js`;
+2. enforces two to seven pieces and no castling rights;
+3. rejects positions in which the previous mover's king is left in check;
+4. sends at most one upstream request at a time per running instance with an eight-second timeout;
+5. checks every returned UCI/SAN move against the complete local legal-move set;
+6. preserves exact/rounded DTZ, DTM, zeroing, and terminal flags in a stable CAISSA response;
+7. stores up to 500 successful positions in a 24-hour per-instance cache (fullmove number is ignored in that cache key);
+8. returns CDN cache headers for one day plus seven days of stale revalidation;
+9. honors a provider `Retry-After` value from 60 seconds up to a 24-hour safety bound and never caches errors.
 
-## Next work
+The official provider contract is documented in the [Lichess tablebase server README](https://github.com/lichess-org/lila-tablebase#http-api). Lichess's general API guidance requires serialized requests and at least a one-minute pause after 429 responses.
 
-1. Browser QA at desktop and mobile sizes against live tablebase responses, including promotion, en passant, fifty-move edge cases, and keyboard interaction.
-2. Design a dedicated piece-placement mode that keeps setup drafts separate from legal move history.
-3. Add a deliberate perfect-line replay using `/standard/mainline` with draw and 50-move handling.
-4. Move caching and rate control to shared infrastructure before public release. Add production observability and a provider availability fallback.
-5. Integrate the shared tablebase contract with Analyze and Coach only after this page is stable.
+## Public exposure gate
 
-The page is intentionally `noindex` while this initial work is reviewed.
+Per-instance queueing and caching are not distributed rate limiting. The production handler therefore fails closed with `TABLEBASE_REVIEW_ONLY` unless both of these variables are explicitly set:
+
+- `CAISSA_TABLEBASE_PUBLIC_ENABLED=1`
+- `CAISSA_TABLEBASE_SHARED_LIMITER_READY=1`
+
+The second flag is an operator attestation, not a limiter implementation. It must remain unset until a durable cross-instance limiter/global provider backoff is installed and observed. Preview and local review remain functional. CDN caching substantially reduces repeated identical lookups but does not protect Lichess from a stream of unique FENs.
+
+This work does not import the remote service into the curated Endgame Trainer. Its reviewed position pools and offline runtime are unchanged.
+
+## Setup Position v1
+
+Setup is deliberately smaller than an analysis editor:
+
+- free piece placement, replacement, erasing, tap-to-move, and drag-to-move;
+- White/Black to move and halfmove clock;
+- Clear board, Kings only, Restart setup, Cancel, and explicit Load;
+- exactly one king per side, legal FEN shape, two-to-seven-piece limit, and previous-mover legality enforced on Load;
+- castling and en-passant rights always cleared because a placement draft has no preceding legal move;
+- no setup undo stack in v1;
+- no move is appended to legal history by setup gestures.
+
+## Verification evidence
+
+### Automated
+
+- `npm run lint:tablebase` — syntax checks pass.
+- `npm run test:tablebase` — 9/9 pass, covering perspective inversion, 50-move semantics, uncertain categories, Setup isolation, response completeness, promotion, en passant, terminal shapes, production gating, and 429 backoff.
+- `CAISSA_TABLEBASE_LIVE=1 npm run test:tablebase:live` — 1/1 passes against real Lichess responses.
+- `npm run test:tablebase:browser` — 3/3 Chromium scenarios pass.
+
+Browser coverage includes 1366×768 desktop and 390×844 mobile emulation: drag, touch tap, tab keyboard navigation, solution reveal, Undo, Reset behavior, Flip, Copy FEN, linked FEN, promotion selection, en passant, checkmate, 50-move draw, uncertain Train state, provider error state, Setup commit/error, console errors, Axe serious/critical violations, horizontal overflow, and board-width jitter.
+
+### Live provider positions
+
+The live contract test and manual audit confirmed these real responses on 2026-09-27:
+
+| Risk | FEN | Observed |
+| --- | --- | --- |
+| promotion | `4k3/6KP/8/8/8/8/7p/8 w - - 0 1` | `win`; queen/rook promotions preserve the win, knight/bishop do not |
+| en passant | `7k/8/8/3pP3/8/8/8/K7 w - d6 0 1` | `win`; `e5d6` / `exd6` is present and zeroing |
+| checkmate | `7k/6Q1/5K2/8/8/8/8/8 b - - 0 1` | `loss`, `checkmate: true`, zero legal moves |
+| stalemate | `7k/5Q2/5K2/8/8/8/8/8 b - - 0 1` | `draw`, `stalemate: true`, zero legal moves |
+| insufficient material | `8/8/8/8/8/4k3/8/4K3 w - - 0 1` | `draw`, `insufficient_material: true` |
+| 50-move edge before threshold | `8/4K2k/5Q1P/6P1/8/8/q7/8 w - - 99 148` | `win`; `Qg7#` is winning |
+| 50-move edge at threshold | same position with halfmove `100` | `cursed-win`; `Qg7#` child is `blessed-loss` |
+
+Visual review at 1600×1000 measured a stable 720×720 board and a 493×730 workspace with no console errors or page overflow. At 390×844 the board measured 370×370, page width stayed 390, Setup used document scrolling rather than a nested body scroller, and the initial fixed-height mobile clipping defect found during review was corrected.
+
+## Deliberate limits and remaining release work
+
+- Production remains unavailable until durable distributed rate/concurrency control and a global provider backoff are implemented. Do not set `CAISSA_TABLEBASE_SHARED_LIMITER_READY` before that work is real and monitored.
+- No `/standard/mainline` replay exists yet.
+- DTM is optional provider data; CAISSA does not manufacture it.
+- Setup does not preserve castling/en-passant history and has no draft undo stack.
+- Automated browser QA was Chromium only. Physical iOS/iPadOS/Android touch, Safari/WebKit, and assistive-technology testing remain release checks.
+- Provider failure was tested with deterministic HTTP mocks; an intentional real 429 was not generated.
+- Observability dashboards/alerts for cache misses, provider latency, 429s, timeouts, and release-gate rejection remain to be added before public traffic.
+- Analyze, Coach, Game Review, and Puzzles have not adopted this service. Each needs its own result and traffic contract first.
