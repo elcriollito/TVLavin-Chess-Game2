@@ -8,8 +8,11 @@ from pglast import parse_sql
 
 FILES = [
     Path("supabase/migrations/20260927010607_caissa_puzzle_catalog_v1.sql"),
+    Path("supabase/migrations/20260927032035_caissa_puzzle_selection_indexes_v1.sql"),
     Path("supabase/rehearsals/20260927010607_caissa_puzzle_catalog_v1_verify.sql"),
+    Path("supabase/rehearsals/20260927032035_caissa_puzzle_selection_indexes_v1_verify.sql"),
     Path("supabase/rollback/20260927010607_caissa_puzzle_catalog_v1_rollback.sql"),
+    Path("supabase/rollback/20260927032035_caissa_puzzle_selection_indexes_v1_rollback.sql"),
 ]
 
 

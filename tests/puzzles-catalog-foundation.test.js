@@ -26,7 +26,8 @@ test('the committed source manifest records the verified official artifact witho
     assert.equal(manifest.source.license, 'CC0');
     assert.equal(manifest.verification.sqliteIntegrityCheck, 'ok');
     assert.equal(manifest.verification.legalMoveSample, 512);
-    assert.equal(manifest.localCatalog.bytes, 2_046_775_296);
+    assert.equal(manifest.verification.qualityRangeLegalMoveSample, 2_048);
+    assert.equal(manifest.localCatalog.bytes, 2_166_308_864);
     assert.doesNotMatch(JSON.stringify(manifest), /Users|ALEXANDER|^[A-Za-z]:/);
 });
 

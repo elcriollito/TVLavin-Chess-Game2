@@ -2,10 +2,14 @@ import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import { PuzzleSession, labelFor, poolFor } from './model.js';
 import { PuzzleEngine } from './engine.js';
 import { createSessionRating, recordOutcome } from './session-rating.js';
+import { PuzzleCatalogSource } from './catalog-source.js';
 
 const $ = id => document.getElementById(id);
-const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), outcomeRecorded: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null };
+const MAX_REMOTE_INVALID_ATTEMPTS = 12;
+const MAX_INVALID_ATTEMPTS = 24;
+const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), outcomeRecorded: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null, loadToken: 0 };
 const board = new CaissaBoardAdapter($('puzzle-board'), { position: 'start', interactive: true, animation: true, label: 'CAISSA puzzle position' });
+const catalog = new PuzzleCatalogSource();
 const engine = new PuzzleEngine(showEvaluation, engineMove, message => {
     $('engine-toggle').checked = false;
     $('engine-state').textContent = message;
@@ -75,15 +79,24 @@ function stopEngine() {
     $('engine-eval').textContent = '';
 }
 
-function nextPuzzle() {
+async function nextPuzzle({ invalidAttempts = 0 } = {}) {
+    const loadToken = ++state.loadToken;
     clearTimeout(state.nextTimer);
     state.nextTimer = null;
     stopEngine();
     state.outcomeRecorded = false;
     state.reviewIndex = null;
     updateReview();
-    const pool = activePool();
-    if (!pool.length) {
+    board.setInteractive(false);
+    $('next-puzzle').disabled = true;
+    $('puzzle-prompt').textContent = 'Loading puzzle';
+    feedback('Selecting a verified puzzle for this training range.');
+    const selected = await catalog.next({
+        category: state.category, theme: state.theme, target: state.target, difficulty: state.difficulty,
+    }, state.seen, { allowRemote: invalidAttempts < MAX_REMOTE_INVALID_ATTEMPTS });
+    if (loadToken !== state.loadToken) return;
+    const choice = selected.puzzle;
+    if (!choice) {
         state.session = null;
         updateReview();
         board.setInteractive(false);
@@ -99,16 +112,19 @@ function nextPuzzle() {
         $('progress-themes').replaceChildren();
         return;
     }
-    let choices = pool.filter(puzzle => !state.seen.has(puzzle.id));
-    if (!choices.length) { state.seen.clear(); choices = pool; }
-    const choice = choices[Math.floor(Math.random() * choices.length)];
     try { state.session = new PuzzleSession(choice); }
     catch (error) {
         console.error('Invalid puzzle position', choice.id, error);
         state.seen.add(choice.id);
-        if (state.seen.size < pool.length) return nextPuzzle();
-        feedback('No valid positions in this selection.');
-        return;
+        if (invalidAttempts + 1 >= MAX_INVALID_ATTEMPTS) {
+            state.session = null;
+            board.setInteractive(false);
+            $('puzzle-prompt').textContent = 'No valid puzzle available';
+            feedback('This selection returned invalid positions. Choose another range or try again.');
+            $('next-puzzle').disabled = false;
+            return;
+        }
+        return nextPuzzle({ invalidAttempts: invalidAttempts + 1 });
     }
     state.seen.add(choice.id);
     state.orientation = state.session.game.turn() === 'w' ? 'white' : 'black';
@@ -131,6 +147,12 @@ function nextPuzzle() {
     $('progress-puzzle-id').textContent = `Puzzle ${choice.id}`;
     $('progress-puzzle-rating').textContent = `Rating ${choice.rating}`;
     $('progress-puzzle-plays').textContent = `Played ${Number(choice.plays || 0).toLocaleString()} times`;
+    const fullCatalog = selected.source === 'full-catalog' || selected.source === 'local-full-catalog';
+    $('catalog-source').textContent = selected.source === 'local-full-catalog' ? 'Full local Lichess catalog'
+        : fullCatalog ? 'Full Lichess catalog' : 'Curated fallback';
+    $('level-availability').textContent = fullCatalog
+        ? `${selected.estimatedTotal == null ? '' : `About ${Number(selected.estimatedTotal).toLocaleString()} `}matching full-catalog puzzles`
+        : `${activePool().length} curated fallback puzzles in this selection`;
     $('progress-source').href = choice.gameUrl;
     $('progress-source').hidden = $('source-game').hidden;
     $('progress-themes').replaceChildren(...choice.themes.map(tag => {
@@ -298,7 +320,7 @@ $('flip-board').addEventListener('click', () => {
     state.orientation = state.orientation === 'white' ? 'black' : 'white';
     board.setOrientation(state.orientation);
 });
-$('next-puzzle').addEventListener('click', nextPuzzle);
+$('next-puzzle').addEventListener('click', () => nextPuzzle());
 for (const [id, target] of [['review-start', () => 1], ['review-prev', () => (state.reviewIndex ?? state.session.game.history().length) - 1], ['review-next', () => (state.reviewIndex ?? state.session.game.history().length) + 1], ['review-end', () => state.session.game.history().length]]) {
     $(id).addEventListener('click', () => reviewTo(target()));
 }
@@ -352,12 +374,10 @@ $('difficulty').addEventListener('change', event => { state.difficulty = event.t
 window.addEventListener('pagehide', () => { clearTimeout(state.nextTimer); engine.stop(); board.destroy(); }, { once: true });
 
 try {
-    const response = await fetch('/data/puzzles/lichess-curated-preview.json');
-    if (!response.ok) throw new Error(`Puzzle collection HTTP ${response.status}`);
-    state.data = await response.json();
+    state.data = await catalog.initialize();
     drawCategories();
     drawThemes();
-    nextPuzzle();
+    await nextPuzzle();
     renderProgress();
 } catch (error) {
     console.error(error);

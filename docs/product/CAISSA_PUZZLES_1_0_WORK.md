@@ -36,3 +36,20 @@
 - The local SQLite catalog preserves every source row and column and is indexed by ID, rating/quality, theme, opening tag, and daily date. SQLite integrity and quick checks returned `ok`.
 - A deterministic 512-puzzle sample completed every UCI sequence legally. For every sample, the first move changed the FEN into the position presented to the solver.
 - The versioned PostgreSQL migration is private-by-default, reversible, and deliberately not applied to production. It models puzzle difficulty only; it adds no account rating or persistent progress.
+
+## Full-catalog preview cycle
+
+- The browser now requests bounded batches from `/api/puzzles/select` and falls
+  back to the verified 1,404-puzzle collection when the server catalog is absent.
+  The server caps themes, rating span, page, and response size; credentials remain
+  server-only.
+- Local opt-in mode serves the real 6,100,952-row SQLite catalog without copying
+  it into Git or Vercel. Production rejects this filesystem provider.
+- Quality analysis for 1700–2100, selection rules, duplicate counts, and measured
+  SQLite plans are recorded in
+  `docs/research/LICHESS_PUZZLE_QUALITY_1700_2100.md`.
+- Training estimate, source difficulty, and future account progress are explicitly
+  separate. No account result is persisted until the existing Clerk-to-database
+  identity path is rehearsed with server-side authorization in an isolated branch.
+- The isolated Supabase rehearsal and full import remain blocked on the owner's
+  explicit cost confirmation. Production has not been used or changed.

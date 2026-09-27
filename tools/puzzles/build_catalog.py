@@ -255,6 +255,16 @@ def build_catalog(args: argparse.Namespace) -> dict[str, object]:
               on puzzles(rating, popularity desc, nb_plays desc, puzzle_id);
             create index puzzles_daily_date_idx
               on puzzles(daily_date) where daily_date <> '';
+            create index puzzles_training_standard_idx
+              on puzzles(rating, popularity desc, nb_plays desc, puzzle_id)
+              where rating_deviation <= 100 and popularity >= 80 and nb_plays >= 500;
+            create index puzzles_training_relaxed_idx
+              on puzzles(rating, popularity desc, nb_plays desc, puzzle_id)
+              where rating_deviation <= 100 and popularity >= 80 and nb_plays >= 100;
+            create index puzzles_training_equality_idx
+              on puzzles(rating, popularity desc, nb_plays desc, puzzle_id)
+              where rating_deviation <= 100 and popularity >= 80 and nb_plays >= 100
+                and instr(' ' || themes || ' ', ' equality ') > 0;
             analyze;
             """
         )
@@ -320,6 +330,7 @@ def build_catalog(args: argparse.Namespace) -> dict[str, object]:
                 "puzzle_themes(theme,puzzle_id)",
                 "puzzle_openings(opening_tag,puzzle_id)",
                 "puzzles(daily_date) where daily_date <> ''",
+                "puzzles(rating,popularity,nb_plays,puzzle_id) quality partial indexes",
             ],
         },
     }

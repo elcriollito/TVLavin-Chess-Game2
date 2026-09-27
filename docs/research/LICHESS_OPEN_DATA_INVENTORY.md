@@ -13,3 +13,25 @@ sizes. No collection other than puzzles was downloaded.
 The puzzle source remains the priority because it is cumulative, small enough for
 this PC, and directly supports the approved Puzzles experience. Games and
 evaluations require separate capacity, cost, retention, and query-design reviews.
+
+## Capacity, cost, and utility gate for later collections
+
+No download is authorized by this plan. The first useful unit is an immutable
+compressed source object plus a derived, query-oriented partition; the 18.2 TB PGN
+expansion must never be treated as workstation capacity.
+
+| Collection | Pilot and capacity envelope | Utility gate | Storage-only cost model (USD/month) |
+| --- | --- | --- | --- |
+| Standard games | Start with one explicitly selected monthly file. Keep its compressed object, derive partitioned Parquet by month/opening/player/time-control, and cap transient pilot space at 3x that object's published size. A full archive needs 2.57 TB compressed plus up to ~18.2 TB expanded before indexes, so full materialization is out of scope. | Proceed beyond one month only if opening statistics or provenance queries show a measured product benefit and the derived format avoids PGN-wide scans. | At the 2026-09-26 published rates, 2,570 GB costs about **$38.40/month** in R2 Standard after its 10 GB free allowance, **$25.70/month** in R2 Infrequent Access before reads, or **$2.54/month** in S3 Glacier Deep Archive before requests/retrieval. |
+| Evaluations | Pilot a bounded shard/range from the 20.6 GiB archive; reserve 25 GiB for the compressed object and cap the first materialized position table at 125 GiB. Keep FEN/hash, depth, nodes and selected PV fields rather than copying every representation. | Continue only if the sample materially improves puzzle-quality classification, search, or engine-label calibration beyond on-demand Stockfish. | 20.6 GB costs about **$0.16/month** in R2 Standard after its 10 GB free allowance, **$0.21/month** in R2 Infrequent Access before reads, or **$0.02/month** in S3 Glacier Deep Archive before requests/retrieval. |
+
+These are comparison estimates, not purchase approvals. R2 Standard is
+`$0.015/GB-month` with 10 GB-month free; Infrequent Access is
+`$0.01/GB-month` plus `$0.01/GB` retrieved and a 30-day minimum; S3 Glacier Deep
+Archive starts at `$0.00099/GB-month` and trades cost for asynchronous restore.
+Operations, retrieval, compute, transformed data, taxes, and safety copies are not
+included. Recalculate against the exact provider, region, object count, and
+published file size immediately before any pilot.
+
+Sources: [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/)
+and [Amazon S3 Glacier storage classes](https://aws.amazon.com/s3/storage-classes/glacier/).
