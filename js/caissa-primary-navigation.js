@@ -32,7 +32,8 @@
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/academy', canonicalNavigation: true },
             { id: 'endgame-trainer', label: 'Endgame Trainer', icon: 'fas fa-chess-pawn', route: '/endgame-trainer' },
             { id: 'endgame-practice', label: 'Endgame Practice', icon: 'fas fa-chess-board', route: '/endgame-practice' },
-            { id: 'endgame-library', label: 'Endgame Library', icon: 'fas fa-book-reader', route: '/endgame-library' }
+            { id: 'endgame-library', label: 'Endgame Library', icon: 'fas fa-book-reader', route: '/endgame-library' },
+            { id: 'endgame-tablebase', label: 'Endgame Tablebase', icon: 'fas fa-chess-board', route: '/endgame-tablebase' }
         ]),
         Object.freeze([
             { id: 'insights', label: 'Insights', icon: 'fas fa-brain', section: 'insights', route: '/insights', canonicalNavigation: true },

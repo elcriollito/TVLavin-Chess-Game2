@@ -56,6 +56,8 @@
     { "source": "/endgame-practice/", "destination": "/endgame-practice.html" },
     { "source": "/endgame-library", "destination": "/endgame-library.html" },
     { "source": "/endgame-library/", "destination": "/endgame-library.html" },
+    { "source": "/endgame-tablebase", "destination": "/endgame-tablebase.html" },
+    { "source": "/endgame-tablebase/", "destination": "/endgame-tablebase.html" },
     { "source": "/eco", "destination": "/eco.html" },
     { "source": "/eco/:code", "destination": "/eco.html" },
     { "source": "/database", "destination": "/database.html" },
