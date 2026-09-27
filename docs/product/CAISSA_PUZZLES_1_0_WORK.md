@@ -1,6 +1,6 @@
 # CAISSA Puzzles 1.0 — working brief
 
-**Status:** native training preview in `feature/caissa-puzzles-1-0`; visual layout approved by Alexander on September 26, 2026. No production release.
+**Status:** visual layout approved by Alexander on September 26, 2026. The 1,404-puzzle build is a limited beta for the existing `/puzzles` route; general release remains gated.
 **Approved layout:** horizontal categories above a large left board and one right workspace with Engine, Themes, and Level tabs.
 
 ## Preview shipped in this branch
@@ -14,12 +14,12 @@
 - Stockfish 19 Lite starts only on demand after a puzzle is solved or revealed. The same page owns the single engine worker; continuation starts a fresh worker to isolate stale analysis messages. Turning the engine off or leaving the page terminates it.
 - The Level tab controls a practice target and relative difficulty. It does not claim an account rating, send results to a server, or persist progress.
 
-## Next gates before production
+## Next gates before general release
 
 1. Review a sampled set with chess experts and measure puzzle quality at the proposed 1700–2100 sweet spot. Revise quality thresholds from actual solve feedback.
 2. Establish a versioned PostgreSQL import and indexed theme/rating query for a substantially larger pool; keep the 6.1 million row source file out of the web bundle.
 3. Add account progress and an actual rating calculation only after its data contract, privacy, and game rules are approved.
-4. Complete cross-browser and touch/drag QA, engine lifecycle stress checks, accessibility review, and review of routes/SEO before linking the page in primary navigation.
+4. Complete cross-browser and broader device QA, engine lifecycle stress checks, accessibility review, and review of routes/SEO before linking the page in primary navigation. Chromium desktop/mobile touch and drag checks cover this beta only.
 5. Compare the finished Puzzles surface with older training pages before any consolidation or redirect.
 
 ## Verification so far
