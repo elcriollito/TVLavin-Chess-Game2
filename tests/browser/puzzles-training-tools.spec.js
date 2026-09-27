@@ -25,20 +25,20 @@ test('full-catalog folder and theme counts distinguish totals from the active ra
     await page.goto('/puzzles');
 
     const motifsFolder = page.locator('#categories button').filter({ hasText: /^Motifs/ });
-    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 265,849 in range');
+    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 265,849 available at your level');
     await motifsFolder.click();
     await expect(page.locator('#subthemes button').first().locator('small'))
-        .toHaveText('2,145,051 total · 265,849 in range');
+        .toHaveText('2,145,051 total · 265,849 available at your level');
     await expect(page.locator('#subthemes button').filter({ hasText: /^Fork/ }).locator('small'))
-        .toHaveText('781,805 total · 84,128 in range');
+        .toHaveText('781,805 total · 84,128 available at your level');
 
     await page.locator('#tab-stats').click();
     await page.locator('#target-rating').fill('2200');
     await page.locator('#difficulty').selectOption('easier');
-    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 160,199 in range');
+    await expect(motifsFolder.locator('small')).toHaveText('2,145,051 total · 160,199 available at your level');
     await page.locator('#tab-themes').click();
     await expect(page.locator('#subthemes button').filter({ hasText: /^Fork/ }).locator('small'))
-        .toHaveText('781,805 total · 48,431 in range');
+        .toHaveText('781,805 total · 48,431 available at your level');
     await page.screenshot({ path: join(evidenceDirectory, 'puzzles-full-counts-desktop.png'), fullPage: true });
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -144,6 +144,67 @@ test('a failed puzzle unlocks analysis without counting as solved', async ({ pag
     await expect(page.locator('#engine-toggle')).toBeEnabled();
     await expect(page.locator('#engine-match-start')).toBeEnabled();
     await expect(page.locator('#session-count')).toContainText('0 solved');
+});
+
+test('signed-in progress survives an offline retry without duplicating the outcome', async ({ page }) => {
+    const postedOutcomes = [];
+    let rejectNextWrite = true;
+    let storedProgress = { rating: 1800, solved: 0, failed: 0 };
+
+    await page.route('**/js/caissa-auth.js*', route => route.fulfill({
+        contentType: 'application/javascript',
+        body: `window.CAISSA_AUTH = {
+            isSignedIn: true, isLoaded: true, userId: 'browser-qa-user', status: 'authenticated',
+            whenReady: async () => window.CAISSA_AUTH,
+            getToken: async () => 'browser-qa-token',
+            onAuthStateChange: () => () => {},
+            getState: () => ({ isSignedIn: true, isLoaded: true, userId: 'browser-qa-user' })
+        };`,
+    }));
+    await page.route('**/api/puzzles/progress', async route => {
+        const request = route.request();
+        if (request.method() === 'GET') {
+            await route.fulfill({ status: 200, contentType: 'application/json',
+                body: JSON.stringify({ progress: storedProgress, persistent: true }) });
+            return;
+        }
+        const outcome = request.postDataJSON();
+        postedOutcomes.push(outcome);
+        if (rejectNextWrite) {
+            rejectNextWrite = false;
+            await route.fulfill({ status: 503, contentType: 'application/json',
+                body: JSON.stringify({ code: 'PROGRESS_UNAVAILABLE' }) });
+            return;
+        }
+        storedProgress = { rating: 1811, solved: 1, failed: 0 };
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+            progress: { ...storedProgress, change: 11, duplicate: false }, persistent: true,
+        }) });
+    });
+
+    await openPuzzle(page, '4TN7E');
+    await playMove(page, 'b4', 'a3');
+    await playMove(page, 'c6', 'c5');
+    await page.locator('#tab-stats').click();
+    await expect(page.locator('#progress-storage')).toContainText('unsaved result may be pending');
+    expect(await page.evaluate(() => Object.keys(localStorage)
+        .filter(key => key.startsWith('caissa:puzzles:pending:v1:')).length)).toBe(1);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('online')));
+    await expect(page.locator('#progress-storage')).toContainText('saved to your account');
+    await expect(page.locator('#session-rating')).toHaveText('1811');
+    await expect(page.locator('#stats-solved')).toHaveText('1');
+    expect(postedOutcomes).toHaveLength(2);
+    expect(postedOutcomes[1].operationId).toBe(postedOutcomes[0].operationId);
+    expect(await page.evaluate(() => Object.keys(localStorage)
+        .filter(key => key.startsWith('caissa:puzzles:pending:v1:')).length)).toBe(0);
+
+    await page.reload();
+    await page.locator('#tab-stats').click();
+    await expect(page.locator('#progress-storage')).toContainText('saved to your account');
+    await expect(page.locator('#session-rating')).toHaveText('1811');
+    await expect(page.locator('#stats-solved')).toHaveText('1');
+    expect(postedOutcomes).toHaveLength(2);
 });
 
 test('promotion is visual, accessible, keyboard operable, and responsive', async ({ page }) => {

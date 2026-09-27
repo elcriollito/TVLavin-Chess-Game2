@@ -12,7 +12,7 @@ Release compatibility: `security-season-12`
 
 ## Purpose and authority
 
-Production project `jczauvfkwueuvdpurpem` was read-only classified as Supabase infrastructure with zero public CAISSA tables, zero public functions, and zero Supabase Auth users. The historical `supabase-schema.sql` and `supabase-schema-v2.sql` explain the earlier data model but are not production authority: they omit explicit RLS/grants, retain default function execution, lack fixed search paths, accept invalid economic inputs, and would activate the old non-atomic Stripe path if installed before the certified code.
+Production project `jczauvkfkweuvdpurpem` was read-only classified as Supabase infrastructure with zero public CAISSA tables, zero public functions, and zero Supabase Auth users. The historical `supabase-schema.sql` and `supabase-schema-v2.sql` explain the earlier data model but are not production authority: they omit explicit RLS/grants, retain default function execution, lack fixed search paths, accept invalid economic inputs, and would activate the old non-atomic Stripe path if installed before the certified code.
 
 The new bootstrap is deliberately outside `supabase/migrations`. An operator must invoke it explicitly and only after the exact certified security code is confirmed serving. It does not rewrite either historical schema.
 

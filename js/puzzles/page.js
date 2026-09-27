@@ -2,12 +2,13 @@ import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import { PuzzleSession, labelFor, poolFor } from './model.js';
 import { EngineMatch, PuzzleEngine, readablePrincipalVariation } from './engine.js';
 import { createSessionRating, recordOutcome } from './session-rating.js';
-import { PuzzleCatalogSource } from './catalog-source.js';
+import { loadAccountProgress as loadStoredAccountProgress, requestAccountProgress } from './account-progress-api.js';
+import { PuzzleCatalogSource, ratingBounds } from './catalog-source.js';
 
 const $ = id => document.getElementById(id);
 const MAX_REMOTE_INVALID_ATTEMPTS = 12;
 const MAX_INVALID_ATTEMPTS = 24;
-const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), outcomeRecorded: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null, loadToken: 0, analysisActive: false, analysisFen: null, engineMatchSnapshot: null, movePending: false };
+const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), visitSolved: 0, accountMode: 'loading', accountUserId: null, pendingOutcomes: [], outcomeRecorded: false, ratedOutcome: null, assisted: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null, loadToken: 0, analysisActive: false, analysisFen: null, engineMatchSnapshot: null, movePending: false };
 const board = new CaissaBoardAdapter($('puzzle-board'), { position: 'start', interactive: true, animation: true, label: 'CAISSA puzzle position' });
 const catalog = new PuzzleCatalogSource();
 const engine = new PuzzleEngine(showEvaluation, engineMove, message => {
@@ -27,7 +28,7 @@ function activePool() {
 
 function feedback(text) { $('puzzle-feedback').textContent = text; }
 function countLabel(count) {
-    return count ? `${count.total.toLocaleString()} total · ${count.matching.toLocaleString()} in range` : 'Count unavailable';
+    return count ? `${count.total.toLocaleString()} total · ${count.matching.toLocaleString()} available at your level` : 'Count unavailable';
 }
 function switchTab(name) {
     for (const tab of ['themes', 'training', 'stats']) {
@@ -65,7 +66,7 @@ function drawThemes() {
     const tags = state.data.categories[state.category];
     const options = ['', ...tags];
     $('themes-count-note').textContent = catalog.counts
-        ? 'Totals cover the full Lichess catalog. In range uses your current rating and difficulty.'
+        ? 'Total is the full catalog. Available at your level uses the selected rating, difficulty and quality filters.'
         : 'Full-catalog counts are temporarily unavailable.';
     $('subthemes').replaceChildren(...options.map(tag => {
         const button = document.createElement('button');
@@ -87,8 +88,10 @@ function drawThemes() {
     }));
     const selectionCount = catalog.countFor(state.category, state.theme, state.target, state.difficulty);
     $('level-availability').textContent = selectionCount
-        ? `${selectionCount.matching.toLocaleString()} full-catalog puzzles in this selection`
+        ? `${selectionCount.matching.toLocaleString()} available at your level (rating bands ${ratingBounds(state.target, state.difficulty).join('–')})`
         : 'Full-catalog count unavailable';
+    const [minimum, maximum] = ratingBounds(state.target, state.difficulty);
+    $('difficulty-range').textContent = `Puzzle ratings: approximately ${minimum}–${maximum}. Challenge is relative to your selected target, not the same as Lichess Hardest (+600).`;
 }
 
 function clearEngineOutput() {
@@ -193,6 +196,8 @@ async function nextPuzzle({ invalidAttempts = 0, preferredPuzzleId = null } = {}
     state.nextTimer = null;
     stopTrainingTools();
     state.outcomeRecorded = false;
+    state.ratedOutcome = null;
+    state.assisted = false;
     state.reviewIndex = null;
     updateReview();
     board.setInteractive(false);
@@ -309,15 +314,124 @@ function renderProgress() {
     $('session-rating').textContent = rating;
     $('stats-solved').textContent = solved;
     $('stats-failed').textContent = failed;
-    $('session-count').textContent = `${solved} solved this session`;
+    $('session-count').textContent = `${state.visitSolved} solved this session`;
     $('rating-change').textContent = last ? `${last.change > 0 ? '+' : ''}${last.change} on last rated puzzle` : 'Complete a puzzle to see a change.';
     $('stats-last').textContent = last ? `${last.outcome === 'solved' ? 'Solved' : 'Missed'} a ${last.puzzleRating}-rated puzzle.` : 'Your results will appear here.';
+}
+
+function renderStorageStatus() {
+    const messages = {
+        loading: 'Checking your account. Results are not saved until the account is ready.',
+        guest: 'Guest practice is temporary. Sign in to save future results to your account.',
+        saving: 'Saving this result to your CAISSA account…',
+        saved: 'Your CAISSA training estimate and results are saved to your account. This is separate from other ratings.',
+        error: 'Account progress is unavailable. An unsaved result may be pending; keep this page open and retry.',
+    };
+    $('progress-storage').textContent = messages[state.accountMode];
+    $('retry-progress').hidden = state.accountMode !== 'error';
+    $('rating-kind').textContent = state.accountMode === 'saved' ? 'Saved CAISSA training estimate' : 'Temporary training estimate';
+}
+
+function pendingKey(userId) { return `caissa:puzzles:pending:v1:${userId}`; }
+function savePendingOutcomes() {
+    if (!state.accountUserId) return;
+    try {
+        const key = pendingKey(state.accountUserId);
+        if (state.pendingOutcomes.length) localStorage.setItem(key, JSON.stringify(state.pendingOutcomes));
+        else localStorage.removeItem(key);
+    } catch { /* The status remains unsaved if browser storage is unavailable. */ }
+}
+function loadPendingOutcomes(userId) {
+    try {
+        const value = JSON.parse(localStorage.getItem(pendingKey(userId)) || '[]');
+        return Array.isArray(value) ? value.filter(item =>
+            /^[A-Za-z0-9]{5}$/u.test(item?.puzzleId || '')
+            && /^[0-9a-f-]{36}$/iu.test(item?.operationId || '')
+            && ['solved', 'failed'].includes(item?.outcome)
+            && typeof item?.assisted === 'boolean') : [];
+    } catch { return []; }
+}
+
+async function accountRequest(method, body) {
+    return requestAccountProgress(window.CAISSA_AUTH, method, body);
+}
+
+async function loadAccountProgress() {
+    return loadStoredAccountProgress(window.CAISSA_AUTH);
+}
+
+let syncing = false;
+async function syncOutcomes() {
+    if (syncing || state.accountMode === 'guest' || !state.accountUserId) return;
+    syncing = true;
+    if (state.pendingOutcomes.length) {
+        state.accountMode = 'saving';
+        renderStorageStatus();
+    }
+    try {
+        while (state.pendingOutcomes.length) {
+            const result = await accountRequest('POST', state.pendingOutcomes[0]);
+            if (result.progress?.duplicate) {
+                const refreshed = await accountRequest('GET');
+                state.progress = { ...refreshed.progress, last: null };
+            } else {
+                state.progress = { rating: result.progress.rating, solved: result.progress.solved,
+                    failed: result.progress.failed, last: {
+                        outcome: state.pendingOutcomes[0].outcome,
+                        puzzleRating: state.pendingOutcomes[0].puzzleRating,
+                        change: result.progress.change,
+                    } };
+            }
+            state.pendingOutcomes.shift();
+            savePendingOutcomes();
+            renderProgress();
+        }
+        state.accountMode = 'saved';
+        renderStorageStatus();
+    } catch {
+        state.accountMode = 'error';
+        renderStorageStatus();
+    } finally { syncing = false; }
+}
+
+async function initializeAccountProgress() {
+    try { await window.CAISSA_AUTH?.whenReady?.(); } catch { /* guest practice remains available */ }
+    const auth = window.CAISSA_AUTH;
+    const userId = auth?.isSignedIn ? auth.userId : null;
+    if (userId === state.accountUserId && state.accountMode !== 'loading') {
+        if (state.accountMode === 'error') void syncOutcomes();
+        return;
+    }
+    state.accountUserId = userId;
+    state.progress = createSessionRating();
+    state.pendingOutcomes = userId ? loadPendingOutcomes(userId) : [];
+    if (!userId) state.accountMode = 'guest';
+    else {
+        try {
+            const result = await loadAccountProgress();
+            if (state.accountUserId !== userId) return;
+            state.progress = { ...result.progress, last: null };
+            state.accountMode = state.pendingOutcomes.length ? 'saving' : 'saved';
+            if (state.pendingOutcomes.length) void syncOutcomes();
+        } catch { state.accountMode = 'error'; }
+    }
+    renderStorageStatus();
+    renderProgress();
 }
 
 function recordSessionOutcome(outcome) {
     if (state.outcomeRecorded || !state.session || state.session.revealed) return;
     state.outcomeRecorded = true;
-    state.progress = recordOutcome(state.progress, state.session.puzzle.rating, outcome);
+    state.ratedOutcome = outcome;
+    if (outcome === 'solved') state.visitSolved++;
+    if (state.accountUserId) {
+        state.pendingOutcomes.push({ operationId: crypto.randomUUID(), puzzleId: state.session.puzzle.id,
+            puzzleRating: state.session.puzzle.rating, outcome, assisted: state.assisted });
+        savePendingOutcomes();
+        state.accountMode = 'saving';
+        renderStorageStatus();
+        void syncOutcomes();
+    } else state.progress = recordOutcome(state.progress, state.session.puzzle.rating, outcome);
     renderProgress();
 }
 
@@ -353,7 +467,7 @@ function completed(revealed = false) {
     const terminal = state.session.game.isGameOver();
     if (!revealed) recordSessionOutcome('solved');
     $('puzzle-prompt').textContent = revealed ? 'Solution shown' : 'Puzzle solved';
-    const cleanSolve = !revealed && state.progress.last?.outcome === 'solved' && state.outcomeRecorded;
+    const cleanSolve = !revealed && !state.assisted && state.ratedOutcome === 'solved';
     feedback(terminal
         ? (revealed ? 'Checkmate. Review the moves or choose the next puzzle.' : `${cleanSolve ? 'Well done. ' : ''}Checkmate! Choose the next puzzle.`)
         : (revealed ? 'Review the moves, or choose the next puzzle.' : `${cleanSolve ? 'Well done. ' : ''}Analyze it or continue against Stockfish.`));
@@ -537,8 +651,18 @@ for (const [id, target] of [['review-start', () => 1], ['review-prev', () => (st
     $(id).addEventListener('click', () => reviewTo(target()));
 }
 $('auto-next').addEventListener('change', event => { state.autoNext = event.target.checked; });
+$('retry-progress').addEventListener('click', () => {
+    if (state.pendingOutcomes.length) void syncOutcomes();
+    else void loadAccountProgress().then(result => {
+        state.progress = { ...result.progress, last: null };
+        state.accountMode = 'saved';
+        renderProgress();
+        renderStorageStatus();
+    }).catch(() => renderStorageStatus());
+});
 $('hint').addEventListener('click', () => {
     if (!state.session || state.session.solved) return;
+    state.assisted = true;
     const square = state.session.moves[state.session.index].slice(0, 2);
     showLastMove(currentPuzzleMove(), [{ square, type: 'hint' }]);
     feedback('The piece to move is highlighted.');
@@ -594,15 +718,19 @@ $('target-rating').addEventListener('input', event => { $('rating-output').value
 $('target-rating').addEventListener('change', event => { state.target = Number(event.target.value); drawCategories(); drawThemes(); nextPuzzle(); });
 $('difficulty').addEventListener('change', event => { state.difficulty = event.target.value; drawCategories(); drawThemes(); nextPuzzle(); });
 window.addEventListener('pagehide', () => { clearTimeout(state.nextTimer); stopTrainingTools(); board.destroy(); }, { once: true });
+window.addEventListener('caissa-auth-change', () => { void initializeAccountProgress(); });
+window.addEventListener('online', () => { void syncOutcomes(); });
 
 try {
     state.data = await catalog.initialize();
     await catalog.loadCounts();
     drawCategories();
     drawThemes();
+    await initializeAccountProgress();
     const requestedPuzzle = new URLSearchParams(window.location.search).get('puzzle');
     await nextPuzzle({ preferredPuzzleId: requestedPuzzle });
     renderProgress();
+    renderStorageStatus();
 } catch (error) {
     console.error(error);
     board.setInteractive(false);

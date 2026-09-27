@@ -34,7 +34,7 @@ The task supplies the following already-established read-only evidence:
 | Fact | Value |
 |---|---|
 | Supabase project | `CAISSA-PRODUCTION-DO-NOT-DELETE` |
-| Project ref | `jczauvfkwueuvdpurpem` |
+| Project ref | `jczauvkfkweuvdpurpem` |
 | `public` table count | `0` |
 | `public` function count | `0` |
 | `auth.users` count | `0` |
