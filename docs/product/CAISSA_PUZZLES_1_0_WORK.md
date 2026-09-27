@@ -17,7 +17,7 @@
 ## Next gates before general release
 
 1. Review a sampled set with chess experts and measure puzzle quality at the proposed 1700–2100 sweet spot. Revise quality thresholds from actual solve feedback.
-2. Validate the staged PostgreSQL catalog migration on an isolated Supabase branch, benchmark its theme/rating/opening queries, and approve a production bulk-import runbook. The complete 6,100,952-row source and a reproducible local SQLite index now exist outside the repository; neither is part of the web bundle.
+2. Validate the selected D1/Worker catalog design with a small remote rehearsal, measure `rows_read`, CPU, global latency, and final full-catalog size, then approve a production bulk-import runbook. Supabase remains the documented fallback and the future home of transactional account progress. The complete 6,100,952-row source and a reproducible local SQLite index exist outside the repository; neither is part of the web bundle.
 3. Add account progress and an actual rating calculation only after its data contract, privacy, and game rules are approved.
 4. Complete cross-browser and broader device QA, engine lifecycle stress checks, accessibility review, and review of routes/SEO before linking the page in primary navigation. Chromium desktop/mobile touch and drag checks cover this beta only.
 5. Compare the finished Puzzles surface with older training pages before any consolidation or redirect.
@@ -53,3 +53,8 @@
   identity path is rehearsed with server-side authorization in an isolated branch.
 - The isolated Supabase rehearsal and full import remain blocked on the owner's
   explicit cost confirmation. Production has not been used or changed.
+- The September 27 infrastructure review recommends an immutable Cloudflare D1
+  catalog behind a Worker, with a separate R2 source/backup bucket and Supabase
+  reserved for future account progress. The local cursor-index trial is recorded
+  in `docs/research/PUZZLE_CATALOG_INFRASTRUCTURE_2026-09-27.md`; no Cloudflare
+  resource, paid plan, or remote import has been created.

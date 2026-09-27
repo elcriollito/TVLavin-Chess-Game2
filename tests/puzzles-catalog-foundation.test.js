@@ -49,6 +49,17 @@ test('rollback and rehearsal artifacts accompany the migration', () => {
     assert.match(rehearsal, /explain \(costs off\)/i);
 });
 
+test('the selected D1 candidate preserves source provenance and excludes account progress', () => {
+    const schema = read('../cloudflare-puzzles-worker/schema.sql');
+    const report = read('../docs/research/PUZZLE_CATALOG_INFRASTRUCTURE_2026-09-27.md');
+    assert.match(schema, /game_url text not null/i);
+    assert.match(schema, /primary key \(pool_key, shuffle_key, puzzle_id\)/i);
+    assert.doesNotMatch(schema, /user_id|account_rating|streak|progress/i);
+    assert.match(report, /6,100,952 puzzles/);
+    assert.match(report, /2\.57 TB/);
+    assert.match(report, /Nunca usar\s+`caissa-openingdb`/i);
+});
+
 test('the limited beta and ChessBase Tactics routes remain intact during catalog staging', () => {
     const config = JSON.parse(read('../vercel.json'));
     assert.equal(config.outputDirectory, '.', 'all connected Vercel projects must deploy the repository root');
