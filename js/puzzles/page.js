@@ -26,6 +26,9 @@ function activePool() {
 }
 
 function feedback(text) { $('puzzle-feedback').textContent = text; }
+function countLabel(count) {
+    return count ? `${count.total.toLocaleString()} total · ${count.matching.toLocaleString()} in range` : 'Count unavailable';
+}
 function switchTab(name) {
     for (const tab of ['themes', 'training', 'stats']) {
         const active = tab === name;
@@ -38,8 +41,12 @@ function switchTab(name) {
 function drawCategories() {
     $('categories').replaceChildren(...Object.keys(state.data.categories).map(category => {
         const button = document.createElement('button');
+        const label = document.createElement('span');
+        const count = document.createElement('small');
         button.type = 'button';
-        button.textContent = category;
+        label.textContent = category;
+        count.textContent = countLabel(catalog.countFor(category, '', state.target, state.difficulty));
+        button.append(label, count);
         button.setAttribute('aria-current', String(category === state.category));
         button.addEventListener('click', () => {
             state.category = category;
@@ -66,8 +73,7 @@ function drawThemes() {
         const count = document.createElement('small');
         title.textContent = tag ? labelFor(tag) : `All ${state.category.toLowerCase()}`;
         const fullCount = catalog.countFor(state.category, tag, state.target, state.difficulty);
-        count.textContent = fullCount
-            ? `${fullCount.total.toLocaleString()} total · ${fullCount.matching.toLocaleString()} in range` : '—';
+        count.textContent = countLabel(fullCount);
         button.append(title, count);
         button.type = 'button';
         button.setAttribute('aria-pressed', String(tag === state.theme));
@@ -585,8 +591,8 @@ for (const button of $('promotion-dialog').querySelectorAll('[data-promotion]'))
 $('promotion-cancel').addEventListener('click', cancelPromotion);
 $('promotion-dialog').addEventListener('cancel', event => { event.preventDefault(); cancelPromotion(); });
 $('target-rating').addEventListener('input', event => { $('rating-output').value = event.target.value; });
-$('target-rating').addEventListener('change', event => { state.target = Number(event.target.value); drawThemes(); nextPuzzle(); });
-$('difficulty').addEventListener('change', event => { state.difficulty = event.target.value; drawThemes(); nextPuzzle(); });
+$('target-rating').addEventListener('change', event => { state.target = Number(event.target.value); drawCategories(); drawThemes(); nextPuzzle(); });
+$('difficulty').addEventListener('change', event => { state.difficulty = event.target.value; drawCategories(); drawThemes(); nextPuzzle(); });
 window.addEventListener('pagehide', () => { clearTimeout(state.nextTimer); stopTrainingTools(); board.destroy(); }, { once: true });
 
 try {

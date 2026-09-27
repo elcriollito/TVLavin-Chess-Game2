@@ -23,3 +23,22 @@ curated beta numbers. Deploy the manifest with the page, in both Vercel
 projects. If the manifest is missing or invalid, the UI shows an unavailable
 count instead of a misleading curated count. Future source updates must
 regenerate this file with the same version as D1.
+
+## Verified 2026-09-10 artifact
+
+- Source SQLite: 2,166,308,864 bytes; kept outside Git and Vercel.
+- Generated manifest: 141,201 bytes; SHA-256
+  `b04838a1cd3d9cdc732b772623397b19961c21f5e1b6756e6cb6608aa663f121`.
+- Coverage: 6,100,952 puzzles, nine visible folders, 52 visible
+  subcategories, and 61 count records in total.
+- Generation time on the release workstation: 213.215 seconds. The builder
+  performs one read-only pass over canonical puzzle rows and keeps only small
+  per-rating histograms in memory.
+
+Independent SQLite checks using `puzzle_themes` and `puzzles` confirmed, among
+other samples: Phases 6,100,952; Motifs 2,145,051; Goals 6,047,066; Special
+moves 157,729; fork 781,805; en passant 8,580; promotion 146,748; and equality
+12,875. D1-compatible complete-band checks also matched: Motifs at target 1800
+normal/standard 265,849 (ratings 1600–1999), the same range relaxed 359,394,
+equality relaxed 53, and Special moves at target 2200 easier/standard 12,771
+(ratings 1800–2099).
