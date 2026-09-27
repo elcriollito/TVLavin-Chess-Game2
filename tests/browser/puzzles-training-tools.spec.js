@@ -27,10 +27,11 @@ test('4TN7E preserves en passant, follows review positions, and isolates engine 
         window.Worker = class TrackedWorker extends NativeWorker {
             constructor(...args) {
                 super(...args);
-                window.__puzzleWorkerLifecycle.created += 1;
+                this.__isPuzzleStockfishWorker = String(args[0]).includes('/assets/vendor/stockfish/');
+                if (this.__isPuzzleStockfishWorker) window.__puzzleWorkerLifecycle.created += 1;
             }
             terminate() {
-                window.__puzzleWorkerLifecycle.terminated += 1;
+                if (this.__isPuzzleStockfishWorker) window.__puzzleWorkerLifecycle.terminated += 1;
                 return super.terminate();
             }
         };
