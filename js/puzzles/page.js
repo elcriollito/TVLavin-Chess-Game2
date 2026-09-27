@@ -195,7 +195,8 @@ board.on('moveAttempt', ({ from, to, promotion }) => {
         board.highlightSquares([{ square: to, type: 'error' }]);
         return;
     }
-    if (result.status === 'illegal' || result.status === 'complete') return;
+    if (result.status === 'illegal') { feedback('That move is not legal in this position. Try another move.'); return; }
+    if (result.status === 'complete') return;
     renderPosition();
     if ($('engine-toggle').checked && !session.continuing) engine.analyze(session.game.fen());
     if (result.status === 'correct') feedback('Good move. Find the next one.');
