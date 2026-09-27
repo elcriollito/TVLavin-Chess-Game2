@@ -322,6 +322,7 @@ function renderStorageStatus() {
     const messages = {
         loading: 'Checking your account. Results are not saved until the account is ready.',
         guest: 'Guest practice is temporary. Sign in to save future results to your account.',
+        saving: 'Saving this result to your CAISSA account…',
         saved: 'Your CAISSA training estimate and results are saved to your account. This is separate from other ratings.',
         error: 'Account progress is unavailable. An unsaved result may be pending; keep this page open and retry.',
     };
@@ -366,6 +367,10 @@ let syncing = false;
 async function syncOutcomes() {
     if (syncing || state.accountMode === 'guest' || !state.accountUserId) return;
     syncing = true;
+    if (state.pendingOutcomes.length) {
+        state.accountMode = 'saving';
+        renderStorageStatus();
+    }
     try {
         while (state.pendingOutcomes.length) {
             const result = await accountRequest('POST', state.pendingOutcomes[0]);
@@ -382,10 +387,10 @@ async function syncOutcomes() {
             }
             state.pendingOutcomes.shift();
             savePendingOutcomes();
-            state.accountMode = 'saved';
-            renderStorageStatus();
             renderProgress();
         }
+        state.accountMode = 'saved';
+        renderStorageStatus();
     } catch {
         state.accountMode = 'error';
         renderStorageStatus();
@@ -409,7 +414,7 @@ async function initializeAccountProgress() {
             const result = await accountRequest('GET');
             if (state.accountUserId !== userId) return;
             state.progress = { ...result.progress, last: null };
-            state.accountMode = 'saved';
+            state.accountMode = state.pendingOutcomes.length ? 'saving' : 'saved';
             if (state.pendingOutcomes.length) void syncOutcomes();
         } catch { state.accountMode = 'error'; }
     }
@@ -426,6 +431,8 @@ function recordSessionOutcome(outcome) {
         state.pendingOutcomes.push({ operationId: crypto.randomUUID(), puzzleId: state.session.puzzle.id,
             puzzleRating: state.session.puzzle.rating, outcome, assisted: state.assisted });
         savePendingOutcomes();
+        state.accountMode = 'saving';
+        renderStorageStatus();
         void syncOutcomes();
     } else state.progress = recordOutcome(state.progress, state.session.puzzle.rating, outcome);
     renderProgress();

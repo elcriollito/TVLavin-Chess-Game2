@@ -10,17 +10,19 @@ function response() {
         status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; },
         end() { return this; } };
 }
-function deps({ authenticated = true, lookup = { puzzleId: '4TN7E', rating: 1820, sourceVersion: '2026-09-10' } } = {}) {
+function deps({ authenticated = true, lookup = { puzzleId: '4TN7E', rating: 1820, sourceVersion: '2026-09-10' },
+    user = { id: USER }, userError = null, rpcData = { rating: 1813, solved: 1, failed: 0, change: 13 },
+    rpcError = null } = {}) {
     const calls = [];
     const db = {
         from(table) {
             if (table === 'users') return { select() { return this; }, eq() { return this; },
-                single: async () => ({ data: { id: USER } }) };
+                single: async () => ({ data: user, error: userError }) };
             return { select() { return this; }, eq() { return this; },
                 maybeSingle: async () => ({ data: { rating: 1800, solved: 0, failed: 0 } }) };
         },
         async rpc(name, arguments_) { calls.push({ name, arguments_ });
-            return { data: { rating: 1813, solved: 1, failed: 0, change: 13 } }; },
+            return { data: rpcData, error: rpcError }; },
     };
     return { calls, authenticate: async () => authenticated ? { authenticated: true, userId: 'clerk_user' }
         : { authenticated: false, status: 401 }, getSupabase: () => db,
@@ -31,6 +33,21 @@ test('requires account identity before reading private progress', async () => {
     const res = response();
     await handler({ method: 'GET', headers: {} }, res, deps({ authenticated: false }));
     assert.equal(res.statusCode, 401);
+});
+
+test('reads only the authenticated account progress and disables caching', async () => {
+    const res = response();
+    await handler({ method: 'GET', headers: {} }, res, deps());
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.headers['Cache-Control'], 'private, no-store');
+    assert.deepEqual(res.body, { progress: { rating: 1800, solved: 0, failed: 0 }, persistent: true });
+});
+
+test('fails closed while the Clerk identity has no internal account mapping', async () => {
+    const res = response();
+    await handler({ method: 'GET', headers: {} }, res, deps({ user: null, userError: { code: 'PGRST116' } }));
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(res.body, { code: 'ACCOUNT_NOT_READY' });
 });
 
 test('persists with server verified puzzle rating and authenticated user ID', async () => {
@@ -54,4 +71,21 @@ test('rejects malformed outcomes before writing', async () => {
     } }, res, dependencies);
     assert.equal(res.statusCode, 400);
     assert.equal(dependencies.calls.length, 0);
+});
+
+test('returns a retryable service response when catalog lookup or the RPC fails', async () => {
+    const lookupFailure = deps();
+    lookupFailure.lookupPuzzle = async () => { throw new Error('catalog offline'); };
+    const lookupResponse = response();
+    await handler({ method: 'POST', headers: {}, body: {
+        operationId: OPERATION, puzzleId: '4TN7E', outcome: 'solved', assisted: false,
+    } }, lookupResponse, lookupFailure);
+    assert.equal(lookupResponse.statusCode, 503);
+    assert.equal(lookupFailure.calls.length, 0);
+
+    const rpcResponse = response();
+    await handler({ method: 'POST', headers: {}, body: {
+        operationId: OPERATION, puzzleId: '4TN7E', outcome: 'failed', assisted: true,
+    } }, rpcResponse, deps({ rpcError: { code: 'XX000' } }));
+    assert.equal(rpcResponse.statusCode, 503);
 });

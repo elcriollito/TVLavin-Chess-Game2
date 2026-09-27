@@ -6,6 +6,7 @@ import {
     signCursor,
     verifyCursor,
 } from '../cloudflare-puzzles-worker/src/index.js';
+import worker from '../cloudflare-puzzles-worker/src/index.js';
 
 const secret = '0123456789abcdef0123456789abcdef';
 
@@ -41,4 +42,32 @@ test('Worker rejects mixed dimensions and excessive ranges before D1', () => {
     assert.throws(() => parseSelection(new URL('https://worker/v1/select?themes=fork&openings=Sicilian_Defense')), /exactly one/);
     assert.throws(() => parseSelection(new URL('https://worker/v1/select?themes=fork&minRating=1000&maxRating=2000')), /rating range/);
     assert.throws(() => parseSelection(new URL('https://worker/v1/select?themes=fork&quality=unknown')), /quality/);
+});
+
+test('private puzzle lookup requires the Worker token and returns only rating metadata', async () => {
+    const first = async () => ({ puzzle_id: '4TN7E', rating: 1820 });
+    const env = { WORKER_TOKEN: 'worker-secret', PUZZLES: {
+        prepare() { return { bind(id) { assert.equal(id, '4TN7E'); return { first }; } }; },
+    } };
+    const hidden = await worker.fetch(new Request('https://worker/v1/puzzle/4TN7E'), env);
+    assert.equal(hidden.status, 404);
+
+    const response = await worker.fetch(new Request('https://worker/v1/puzzle/4TN7E', {
+        headers: { Authorization: 'Bearer worker-secret' },
+    }), env);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        puzzleId: '4TN7E', rating: 1820, sourceVersion: '2026-09-10',
+    });
+});
+
+test('private puzzle lookup returns a typed 404 without exposing other catalog fields', async () => {
+    const env = { WORKER_TOKEN: 'worker-secret', PUZZLES: {
+        prepare() { return { bind() { return { first: async () => null }; } }; },
+    } };
+    const response = await worker.fetch(new Request('https://worker/v1/puzzle/abc12', {
+        headers: { Authorization: 'Bearer worker-secret' },
+    }), env);
+    assert.equal(response.status, 404);
+    assert.deepEqual(await response.json(), { code: 'PUZZLE_NOT_FOUND' });
 });
