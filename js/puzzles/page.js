@@ -56,13 +56,18 @@ function drawCategories() {
 function drawThemes() {
     $('theme-title').textContent = state.category;
     const tags = state.data.categories[state.category];
-    const options = ['', ...tags.filter(tag => state.data.puzzles.some(puzzle => puzzle.themes.includes(tag)))];
+    const options = ['', ...tags];
+    $('themes-count-note').textContent = catalog.counts
+        ? 'Totals cover the full Lichess catalog. In range uses your current rating and difficulty.'
+        : 'Full-catalog counts are temporarily unavailable.';
     $('subthemes').replaceChildren(...options.map(tag => {
         const button = document.createElement('button');
         const title = document.createElement('span');
         const count = document.createElement('small');
         title.textContent = tag ? labelFor(tag) : `All ${state.category.toLowerCase()}`;
-        count.textContent = `${poolFor(state.data.puzzles, { category: tags, theme: tag, target: state.target, difficulty: state.difficulty }).length}`;
+        const fullCount = catalog.countFor(state.category, tag, state.target, state.difficulty);
+        count.textContent = fullCount
+            ? `${fullCount.total.toLocaleString()} total · ${fullCount.matching.toLocaleString()} in range` : '—';
         button.append(title, count);
         button.type = 'button';
         button.setAttribute('aria-pressed', String(tag === state.theme));
@@ -74,7 +79,10 @@ function drawThemes() {
         });
         return button;
     }));
-    $('level-availability').textContent = `${activePool().length} puzzles in this selection`;
+    const selectionCount = catalog.countFor(state.category, state.theme, state.target, state.difficulty);
+    $('level-availability').textContent = selectionCount
+        ? `${selectionCount.matching.toLocaleString()} full-catalog puzzles in this selection`
+        : 'Full-catalog count unavailable';
 }
 
 function clearEngineOutput() {
@@ -246,8 +254,9 @@ async function nextPuzzle({ invalidAttempts = 0, preferredPuzzleId = null } = {}
     const fullCatalog = selected.source === 'full-catalog' || selected.source === 'local-full-catalog';
     $('catalog-source').textContent = selected.source === 'local-full-catalog' ? 'Full local Lichess catalog'
         : fullCatalog ? 'Full Lichess catalog' : 'Curated fallback';
+    const count = catalog.countFor(state.category, state.theme, state.target, state.difficulty);
     $('level-availability').textContent = fullCatalog
-        ? `${selected.estimatedTotal == null ? '' : `About ${Number(selected.estimatedTotal).toLocaleString()} `}matching full-catalog puzzles`
+        ? `${count ? count.matching.toLocaleString() + ' ' : ''}matching full-catalog puzzles${count ? '' : ' (count unavailable)'}`
         : `${activePool().length} curated fallback puzzles in this selection`;
     $('progress-source').href = choice.gameUrl;
     $('progress-source').hidden = $('source-game').hidden;
@@ -582,6 +591,7 @@ window.addEventListener('pagehide', () => { clearTimeout(state.nextTimer); stopT
 
 try {
     state.data = await catalog.initialize();
+    await catalog.loadCounts();
     drawCategories();
     drawThemes();
     const requestedPuzzle = new URLSearchParams(window.location.search).get('puzzle');
