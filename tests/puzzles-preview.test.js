@@ -69,6 +69,8 @@ test('the native preview route and dataset are separate from the ChessBase gatew
     assert.match(page, /id="puzzle-board"/);
     assert.match(page, /role="tab" id="tab-engine"/);
     assert.match(page, /role="tab" id="tab-themes"/);
-    assert.match(page, /role="tab" id="tab-level"/);
+    assert.match(page, /role="tab" id="tab-stats"/);
+    assert.ok(page.indexOf('id="tab-themes"') < page.indexOf('id="tab-engine"'));
+    assert.ok(page.indexOf('id="tab-engine"') < page.indexOf('id="tab-stats"'));
     assert.doesNotMatch(page, /livetactics\.chessbase\.com/);
 });

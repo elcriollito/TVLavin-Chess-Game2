@@ -50,10 +50,15 @@
 .puzzles-subthemes button{text-align:left;display:flex;justify-content:space-between;gap:12px;background:#172639;color:#dbe6f5;border:1px solid #344962;border-radius:8px;padding:13px 14px;min-height:48px}
 .puzzles-subthemes button[aria-pressed="true"]{border-color:#83b5f1;background:#23436a}
 .puzzles-subthemes small{color:#a8bad0;font-size:.8rem}
-#panel-level label{display:block;margin:22px 0 9px;font-weight:700}
-#panel-level input[type=range],#panel-level select{width:100%}
-#panel-level select{background:#1b2d44;border:1px solid #587498;color:#f3f7ff;border-radius:7px;padding:10px}
+#panel-stats label{display:block;margin:22px 0 9px;font-weight:700}
+#panel-stats input[type=range],#panel-stats select{width:100%}
+#panel-stats select{background:#1b2d44;border:1px solid #587498;color:#f3f7ff;border-radius:7px;padding:10px}
 #rating-output{float:right;color:#aaceff}
+.puzzles-rating-card{display:grid;gap:6px;padding:20px;border:1px solid #3b5270;border-radius:10px;background:#1a2b41;color:#bacee7}
+.puzzles-rating-card strong{font-size:2.65rem;color:#f1f6ff;font-variant-numeric:tabular-nums;line-height:1.1}
+.puzzles-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0 18px}
+.puzzles-stats-grid div{display:grid;gap:4px;padding:13px;background:#172639;border-radius:8px;color:#bacee7}
+.puzzles-stats-grid strong{font-size:1.35rem;color:#fff}
 .puzzles-attribution{color:#91a6bd;font-size:.82rem;line-height:1.5;margin:18px 0}
 @media(max-width:920px){.puzzles-workspace{grid-template-columns:minmax(0,1fr)}.puzzles-board-column{max-width:min(100%,640px)}.puzzles-panel{min-height:470px;max-height:none}.puzzles-panel-body{min-height:330px;max-height:460px}.puzzles-header{margin-bottom:12px}}
 @media(max-width:520px){.puzzles-main{padding:10px 10px 22px}.puzzles-header{align-items:start;padding-left:58px;min-height:46px}.puzzles-header h1{font-size:1.45rem}.puzzles-header .eyebrow{font-size:.7rem}.puzzles-session{white-space:normal;text-align:right;max-width:96px;font-size:.8rem}.puzzles-board-frame{border-width:2px}.puzzles-panel-body{padding:17px}.puzzles-panel-foot{padding:11px 14px}}

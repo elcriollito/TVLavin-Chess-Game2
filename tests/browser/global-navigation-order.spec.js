@@ -12,14 +12,14 @@ const routes = [
 
 const canonicalOrder = [
   'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-  'Tactics', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
+  'Tactics', 'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
   'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog',
   'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.13.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.14.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.locator('#mainNav');

@@ -11,11 +11,11 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.2.0">
   <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/puzzles.css?v=0.1.0">
+  <link rel="stylesheet" href="/css/puzzles.css?v=0.2.0">
   <script src="/js/caissa-i18n.js?v=1.0.0" defer></script>
   <script src="/js/caissa-primary-navigation.js?v=1.0.2" defer></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.2.0" defer></script>
-  <script type="module" src="/js/puzzles/page.js?v=0.1.0"></script>
+  <script type="module" src="/js/puzzles/page.js?v=0.2.0"></script>
 </head>
 <body class="puzzles-page">
   <a class="skip-link" href="#puzzle-board">Skip to puzzle</a>
@@ -35,12 +35,12 @@
           </div>
           <div class="puzzles-panel">
             <div class="puzzles-panel-head"><div class="puzzles-tabs" role="tablist" aria-label="Puzzle tools">
-              <button type="button" role="tab" id="tab-engine" aria-controls="panel-engine" aria-selected="true" tabindex="0">Engine</button>
-              <button type="button" role="tab" id="tab-themes" aria-controls="panel-themes" aria-selected="false" tabindex="-1">Themes</button>
-              <button type="button" role="tab" id="tab-level" aria-controls="panel-level" aria-selected="false" tabindex="-1">Level</button>
+              <button type="button" role="tab" id="tab-themes" aria-controls="panel-themes" aria-selected="true" tabindex="0">Themes</button>
+              <button type="button" role="tab" id="tab-engine" aria-controls="panel-engine" aria-selected="false" tabindex="-1">Engine</button>
+              <button type="button" role="tab" id="tab-stats" aria-controls="panel-stats" aria-selected="false" tabindex="-1">Stats / Progress</button>
             </div></div>
             <div class="puzzles-panel-body">
-              <section id="panel-engine" role="tabpanel" aria-labelledby="tab-engine">
+              <section id="panel-engine" role="tabpanel" aria-labelledby="tab-engine" hidden>
                 <div class="puzzles-prompt"><h2 id="puzzle-prompt">Find the best move</h2><p id="puzzle-feedback" role="status" aria-live="polite">Choose a theme to begin.</p></div>
                 <div class="puzzles-actions"><button type="button" id="hint">Hint</button><button type="button" id="reveal">Show solution</button></div>
                 <h3>Moves</h3><ol class="puzzles-moves" id="move-list" aria-label="Moves played"></ol>
@@ -48,13 +48,13 @@
                 <p class="puzzles-eval" id="engine-eval" aria-live="polite"></p>
                 <button class="puzzles-continue" type="button" id="continue-position" disabled>Continue from this position</button>
               </section>
-              <section id="panel-themes" role="tabpanel" aria-labelledby="tab-themes" hidden><h2 id="theme-title">Themes</h2><p class="panel-note">Choose what to practice within this category.</p><div id="subthemes" class="puzzles-subthemes"></div></section>
-              <section id="panel-level" role="tabpanel" aria-labelledby="tab-level" hidden><h2>Your training level</h2><p class="panel-note">Practice mode. Your account rating is not changed.</p><label for="target-rating">Puzzle rating target <output id="rating-output">1800</output></label><input id="target-rating" type="range" min="1200" max="2400" step="100" value="1800"><label for="difficulty">Difficulty</label><select id="difficulty"><option value="easier">Easier</option><option value="normal" selected>Normal</option><option value="challenge">Challenge</option></select><p id="level-availability" class="panel-note"></p></section>
+              <section id="panel-themes" role="tabpanel" aria-labelledby="tab-themes"><h2 id="theme-title">Themes</h2><p class="panel-note">Choose what to practice within this category.</p><div id="subthemes" class="puzzles-subthemes"></div></section>
+              <section id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" hidden><h2>Session progress</h2><p class="panel-note">Practice estimate for this visit. Account rating is not changed or saved.</p><div class="puzzles-rating-card"><span>Session rating estimate</span><strong id="session-rating">1800</strong><span id="rating-change" aria-live="polite">Complete a puzzle to see a change.</span></div><div class="puzzles-stats-grid"><div><strong id="stats-solved">0</strong><span>Solved</span></div><div><strong id="stats-failed">0</strong><span>Missed</span></div></div><p id="stats-last" class="panel-note">Your results will appear here.</p><h3>Practice level</h3><label for="target-rating">Puzzle rating target <output id="rating-output">1800</output></label><input id="target-rating" type="range" min="1200" max="2400" step="100" value="1800"><label for="difficulty">Difficulty</label><select id="difficulty"><option value="easier">Easier</option><option value="normal" selected>Normal</option><option value="challenge">Challenge</option></select><p id="level-availability" class="panel-note"></p></section>
             </div>
             <div class="puzzles-panel-foot"><button type="button" id="next-puzzle" class="puzzles-next">Next puzzle <span aria-hidden="true">→</span></button><a id="source-game" target="_blank" rel="noopener noreferrer" hidden>View source game ↗</a></div>
           </div>
         </section>
-        <p class="puzzles-attribution">Preview collection selected from the <a href="https://database.lichess.org/#puzzles" target="_blank" rel="noopener noreferrer">Lichess Open Database</a> (CC0). Ratings shown belong to the puzzles; session progress is not saved.</p>
+        <p class="puzzles-attribution">Preview collection selected from the <a href="https://database.lichess.org/#puzzles" target="_blank" rel="noopener noreferrer">Lichess Open Database</a> (CC0). Puzzle ratings come from Lichess. Your session estimate resets when you leave this page.</p>
       </main>
     </div>
   </div>
