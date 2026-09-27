@@ -440,14 +440,17 @@ function engineMove(uci) {
 }
 
 function drawEngineMatchMoves(snapshot) {
-    $('engine-match-moves').replaceChildren(...snapshot.verboseMoves.map((move, index) => {
+    const moves = $('engine-match-moves');
+    moves.replaceChildren(...snapshot.verboseMoves.map((move, index) => {
         const item = document.createElement('li');
         const number = move.before.split(' ')[5];
         item.textContent = `${move.color === 'w' ? `${number}. ` : `${number}… `}${move.san}`;
         if (index === snapshot.verboseMoves.length - 1) item.setAttribute('aria-current', 'true');
         return item;
     }));
-    $('engine-match-moves').lastElementChild?.scrollIntoView({ block: 'nearest' });
+    // Scroll only the move list. scrollIntoView also scrolls its ancestors and
+    // can shift the entire page and board every time the engines make a move.
+    moves.scrollTop = moves.scrollHeight;
 }
 
 function updateEngineMatch(snapshot) {
