@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { Chess } from 'chess.js';
 
+const KINGS_FEN = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
+const EXAMPLE_FEN = '6r1/3k4/8/KP6/8/8/2R5/8 w - - 0 1';
+const exampleUrl = `/endgame-tablebase?fen=${encodeURIComponent(EXAMPLE_FEN)}`;
+
 function inverseCategory(category) {
     return {
         win: 'loss', loss: 'win', draw: 'draw',
@@ -104,7 +108,7 @@ test('click, drag, undo, and rapid navigation separate board, result, and move-l
         await new Promise(resolve => setTimeout(resolve, 450));
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(tablebasePayload(fen, 'draw')) });
     });
-    await page.goto('/endgame-tablebase');
+    await page.goto(exampleUrl);
     await expect(page.locator('#result-label')).toHaveText('White wins');
 
     await page.locator('.caissa-board__square[data-square="a5"]').click();
@@ -174,7 +178,7 @@ test('shared one-second pacing keeps the known result and retries only the CAISS
         }
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(tablebasePayload(fen, 'draw')) });
     });
-    await page.goto('/endgame-tablebase');
+    await page.goto(exampleUrl);
     await expect(page.locator('#result-label')).toHaveText('White wins');
 
     await expect(page.locator('[data-uci="a5a6"]')).toHaveClass(/tb-draw/);
@@ -203,6 +207,22 @@ test('shared one-second pacing keeps the known result and retries only the CAISS
     expect(requests).toHaveLength(4);
 });
 
+test('plain entry starts with only two kings while a FEN link keeps its requested position', async ({ page }) => {
+    await mockTablebase(page);
+    await page.goto('/endgame-tablebase');
+    await expect(page.locator('#fen-input')).toHaveValue(KINGS_FEN);
+    await expect(page.locator('#piece-count')).toHaveText('2 pieces');
+    await expect(page.locator('#result-label')).toHaveText('Theoretical draw');
+    await page.locator('#tab-setup').click();
+    await expect(page.locator('#setup-palette')).toBeVisible();
+    await expect(page.locator('#piece-count')).toHaveText('2 pieces');
+
+    await page.goto(exampleUrl);
+    await expect(page.locator('#fen-input')).toHaveValue(EXAMPLE_FEN);
+    await expect(page.locator('#piece-count')).toHaveText('5 pieces');
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+});
+
 test('desktop flow keeps board, result, history controls, setup, and clipboard coherent', async ({ page }) => {
     const errors = [];
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -210,7 +230,7 @@ test('desktop flow keeps board, result, history controls, setup, and clipboard c
     await mockTablebase(page);
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.setViewportSize({ width: 1366, height: 768 });
-    await page.goto('/endgame-tablebase');
+    await page.goto(exampleUrl);
     await expect(page.locator('#result-label')).toHaveText('White wins');
     await expect(page.locator('.tb-workspace')).toBeVisible();
 
@@ -328,7 +348,7 @@ test('mobile touch layout has no horizontal overflow and preserves tap-to-move w
     const errors = [];
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto('/endgame-tablebase');
+    await page.goto(exampleUrl);
     await expect(page.locator('#result-label')).toHaveText('White wins');
     const boardBefore = await page.locator('#tablebase-board').boundingBox();
     await page.locator('.caissa-board__square[data-square="a5"]').tap();

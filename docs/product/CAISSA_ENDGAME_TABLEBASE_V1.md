@@ -8,7 +8,7 @@ Last logic verification: 2026-09-27
 
 ## Product flow
 
-`/endgame-tablebase` loads a standard chess FEN with at most seven pieces. `chess.js` remains the only owner of legal moves and move history. The persistent CAISSA board presents that position and accepts mouse drag, tap/click, and keyboard square activation.
+`/endgame-tablebase` opens with only a white king on e1 and a black king on e8 (`4k3/8/8/8/8/8/8/4K3 w - - 0 1`), ready for the user to set up an endgame. A valid `?fen=` link still loads its specified position. `chess.js` remains the only owner of legal moves and move history. The persistent CAISSA board presents that position and accepts mouse drag, tap/click, and keyboard square activation.
 
 The single right workspace follows the CAISSA Head/Body/Foot pattern:
 
@@ -93,9 +93,9 @@ Setup is deliberately smaller than an analysis editor:
 - `npm run lint:tablebase` — syntax checks pass.
 - `npm run test:tablebase` — 14/14 pass, including navigation and alternate-line branching alongside perspective inversion, 50-move semantics, Setup isolation, response completeness, promotion, en passant, production gating, shared limiter behavior, 429 backoff, and privacy of runtime events.
 - `CAISSA_TABLEBASE_LIVE=1 npm run test:tablebase:live` — 1/1 passes against real Lichess responses.
-- `npm run test:tablebase:browser` — 5/5 Chromium scenarios pass. Coverage now includes independent piece/result/move-list timing, click, physical mouse drag, touch tap, Undo, cached forward navigation, rapid back/forward navigation, one-second shared-limiter pacing, and the existing desktop/mobile, setup, promotion, en-passant, error, accessibility, overflow, and jitter checks.
+- `npm run test:tablebase:browser` — 6/6 Chromium scenarios pass. Coverage now includes the two-kings entry position, independent piece/result/move-list timing, click, physical mouse drag, touch tap, Undo, cached forward navigation, rapid back/forward navigation, one-second shared-limiter pacing, and the existing desktop/mobile, setup, promotion, en-passant, error, accessibility, overflow, and jitter checks.
 
-The deterministic 450 ms response-delay scenario measured the final draft at 11.6 ms to project the piece and known child result, and 488 ms to replace the loading state with the full move list. Cached Undo, forward navigation, and drag-to-the-same-child measured 7.4 ms, 8.2 ms, and 9.8 ms respectively. Across two runs with a simulated shared `Retry-After: 1`, the known result stayed visible in 54–63 ms including Playwright input overhead, and the legal list completed in 1.411–1.435 s. The additional time belongs to mandatory shared pacing plus browser/test polling, not board rendering.
+Across deterministic runs with a 450 ms response delay, the final draft projected the piece and known child result in 10.8–11.6 ms and replaced the loading state with the full move list in 488–494.2 ms. Cached Undo measured 7.4–14.4 ms, forward navigation 7.3–8.2 ms, and drag-to-the-same-child 9–9.8 ms. With a simulated shared `Retry-After: 1`, the known result stayed visible in 54–76 ms including Playwright input overhead, and the legal list completed in 1.411–1.435 s. The additional time belongs to mandatory shared pacing plus browser/test polling, not board rendering.
 
 A production baseline against the published pre-hotfix page used a fresh halfmove clock to avoid a response cache. The board's semantic square changed in 3.6 ms, but the piece visually settled after 191.3 ms. The panel entered `Checking tablebase…` at 3.6 ms and the uncached child request ended at 121.5 ms as `Result unavailable` after a real shared-limiter 503. This is the failure the hotfix addresses: the provider spacing is legitimate, but replacing a result already known from the parent and making drag snap back were frontend defects.
 
