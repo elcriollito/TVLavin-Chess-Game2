@@ -1,10 +1,10 @@
 # CAISSA Endgame Tablebase — review cut
 
-Branch: `feature/endgame-tablebase-v1`
+Branch: `hotfix/tablebase-navigation-latency`
 
-Status: functional preview; intentionally blocked from production
+Status: public v1 in production; latency hotfix in draft review
 
-Last logic verification: 2026-09-28
+Last logic verification: 2026-09-27
 
 ## Product flow
 
@@ -19,6 +19,8 @@ The single right workspace follows the CAISSA Head/Body/Foot pattern:
 The five-control navigation bar can jump to the start/end, step backward/forward, or replay the temporary line. Revisiting a past position and making a different legal move discards the undone continuation. Loading a new FEN clears the line and establishes a new reset origin; nothing is saved between visits. Undo, Reset, Flip, Copy FEN, promotion choice, FEN links, and provider/error states remain present. The page remains `noindex`.
 
 Within one visit, successful tablebase responses are retained for up to 128 distinct positions (including the halfmove clock). Returning to a position in the line restores its result immediately without another API call. On a new legal move whose child category is already supplied by the current provider response, the result summary appears immediately with an explicit loading note while the full list of legal moves is fetched. This does not remove the provider's required global pacing for genuinely new positions.
+
+The latency hotfix also projects a legal move through the board's semantic move API. A dragged piece lands without first snapping to its source square and replaying a 180 ms transition; tap/click keeps the normal short board animation. If the shared limiter returns `TABLEBASE_PROVIDER_BUSY` with a short `Retry-After`, the browser retains the child result supplied by the previous position, waits once, and retries the CAISSA gateway. It never presents that provisional summary as a fetched move list, never retries a long provider backoff, and never bypasses the shared limiter. A rejected limiter claim occurs before Lichess is contacted.
 
 ## Result semantics
 
@@ -60,7 +62,7 @@ Per-instance queueing and caching are not distributed rate limiting. The product
 
 The second flag selects the shared limiter implemented in `api/tablebase/shared-limiter.js` and `supabase/migrations/20260928000030_caissa_tablebase_shared_limiter.sql`. A single locked Postgres row grants one lease globally, caps uncached provider requests at 20 per minute, spaces them by at least one second, and records provider `Retry-After` globally. A claim or release error returns 503. An abandoned lease expires after 90 seconds, exceeding the eight-second provider timeout and preserving at least a one-minute pause if a caller disappears during a 429. CDN caching still reduces repeated identical lookups.
 
-The migration was applied and exercised on CAISSA-READER-STAGING (`aqizagaskicotorfpwfn`) on 2026-09-27/28. Two concurrent claims produced exactly one `ALLOWED` and one `PROVIDER_BUSY`. Releasing the lease with a 120-second backoff produced `PROVIDER_BACKOFF` on the next claim. On 2026-09-28 the same migration was applied to CAISSA-PRODUCTION (`jczauvkfkweuvdpurpem`). The production gate table and RPC signatures exist, RLS is enabled, `anon` and `authenticated` cannot execute the RPCs, `service_role` can, and a claim followed by release succeeded. Both Vercel release flags remain unset pending runtime verification and activation.
+The migration was applied and exercised on CAISSA-READER-STAGING (`aqizagaskicotorfpwfn`) on 2026-09-27/28. Two concurrent claims produced exactly one `ALLOWED` and one `PROVIDER_BUSY`. Releasing the lease with a 120-second backoff produced `PROVIDER_BACKOFF` on the next claim. On 2026-09-28 the same migration was applied to CAISSA-PRODUCTION (`jczauvkfkweuvdpurpem`). The production gate table and RPC signatures exist, RLS is enabled, `anon` and `authenticated` cannot execute the RPCs, `service_role` can, and a claim followed by release succeeded. The two Vercel release flags and server-side Supabase credentials are now active in Production; the public endpoint still fails closed if any of them is removed.
 
 The staging and production security advisors report `RLS enabled, no policy` for this table at [lint 0008](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy). This is intentional: the table has no direct Data API reads or writes for any role, and only the two service-role RPC functions operate on it. Unrelated advisor findings were not changed.
 
@@ -68,7 +70,7 @@ The staging and production security advisors report `RLS enabled, no policy` for
 
 The API emits one-line JSON events with `component: "caissa_tablebase"` to Vercel Runtime Logs. `provider_response` records upstream HTTP status and latency in milliseconds; `provider_network_error` distinguishes timeout from other network failures. `request_failed` records normalized causes (`provider_429`, `provider_404`, `provider_error`, `shared_busy`, `limiter_unavailable`) and, for a busy shared limiter, its reason. `cache_hit`, `provider_backoff`, and `release_gate_closed` cover local cache and early rejection. These events deliberately omit FEN, IP, request headers, provider bodies, credentials, and lease IDs.
 
-Before public release, filter Runtime Logs by `caissa_tablebase` on the preview deployment and confirm a sample lookup emits `provider_response`, then verify the production dashboard or log drain can count 429s, timeouts, limiter failures, and provider latency. A cache hit handled at the CDN never runs the function, so provider call volume is counted from `provider_response`, not total page views. Establish alert thresholds from observed traffic rather than assuming a baseline in preview. Preserve the production gate until the migration and runtime verification are complete.
+For production operations, filter Runtime Logs by `caissa_tablebase` and monitor 429s, timeouts, limiter failures, and provider latency. A cache hit handled at the CDN never runs the function, so provider call volume is counted from `provider_response`, not total page views. Alert thresholds should be based on observed traffic rather than preview traffic.
 
 This work does not import the remote service into the curated Endgame Trainer. Its reviewed position pools and offline runtime are unchanged.
 
@@ -91,9 +93,11 @@ Setup is deliberately smaller than an analysis editor:
 - `npm run lint:tablebase` — syntax checks pass.
 - `npm run test:tablebase` — 14/14 pass, including navigation and alternate-line branching alongside perspective inversion, 50-move semantics, Setup isolation, response completeness, promotion, en passant, production gating, shared limiter behavior, 429 backoff, and privacy of runtime events.
 - `CAISSA_TABLEBASE_LIVE=1 npm run test:tablebase:live` — 1/1 passes against real Lichess responses.
-- The previous review cut passed 3/3 Chromium browser scenarios. Browser assertions were updated for the new tabs, palette, and navigation, but this cut has **not** run successfully in the current workspace: the Chromium binary is missing and its download failed. Re-run browser QA against the updated preview before public release.
+- `npm run test:tablebase:browser` — 5/5 Chromium scenarios pass. Coverage now includes independent piece/result/move-list timing, click, physical mouse drag, touch tap, Undo, cached forward navigation, rapid back/forward navigation, one-second shared-limiter pacing, and the existing desktop/mobile, setup, promotion, en-passant, error, accessibility, overflow, and jitter checks.
 
-The prior browser coverage included 1366×768 desktop and 390×844 mobile emulation: drag, touch tap, tab keyboard navigation, solution reveal, Undo, Reset behavior, Flip, Copy FEN, linked FEN, promotion selection, en passant, checkmate, 50-move draw, uncertain practice state, provider error state, Setup commit/error, console errors, Axe serious/critical violations, horizontal overflow, and board-width jitter. The revised layout needs a fresh run.
+The deterministic 450 ms response-delay scenario measured the final draft at 11.6 ms to project the piece and known child result, and 488 ms to replace the loading state with the full move list. Cached Undo, forward navigation, and drag-to-the-same-child measured 7.4 ms, 8.2 ms, and 9.8 ms respectively. Across two runs with a simulated shared `Retry-After: 1`, the known result stayed visible in 54–63 ms including Playwright input overhead, and the legal list completed in 1.411–1.435 s. The additional time belongs to mandatory shared pacing plus browser/test polling, not board rendering.
+
+A production baseline against the published pre-hotfix page used a fresh halfmove clock to avoid a response cache. The board's semantic square changed in 3.6 ms, but the piece visually settled after 191.3 ms. The panel entered `Checking tablebase…` at 3.6 ms and the uncached child request ended at 121.5 ms as `Result unavailable` after a real shared-limiter 503. This is the failure the hotfix addresses: the provider spacing is legitimate, but replacing a result already known from the parent and making drag snap back were frontend defects.
 
 ### Live provider positions
 
@@ -113,11 +117,11 @@ The prior layout review at 1600×1000 measured a stable 720×720 board and a 493
 
 ## Deliberate limits and remaining release work
 
-- The production database migration is verified. Public traffic remains unavailable until the two Vercel release flags are explicitly configured and the shared limiter is observed under live traffic.
+- Public traffic is active behind the production gate and shared limiter. The latency hotfix remains a draft until visual approval.
 - No `/standard/mainline` replay exists yet.
 - DTM is optional provider data; CAISSA does not manufacture it.
 - Setup does not preserve castling/en-passant history and has no draft undo stack.
-- Automated browser QA was Chromium only. Physical iOS/iPadOS/Android touch, Safari/WebKit, and assistive-technology testing remain release checks.
+- Automated browser QA was Chromium only. Physical iOS/iPadOS/Android touch, Safari/WebKit, and assistive-technology testing remain follow-up checks.
 - Provider failure was tested with deterministic HTTP mocks; an intentional real 429 was not generated.
-- The structured runtime events are implemented. Production dashboard/alert thresholds and a live preview sample still need verification before public traffic.
+- The structured runtime events are implemented. Production dashboard/alert thresholds remain an operations follow-up.
 - Analyze, Coach, Game Review, and Puzzles have not adopted this service. Each needs its own result and traffic contract first.

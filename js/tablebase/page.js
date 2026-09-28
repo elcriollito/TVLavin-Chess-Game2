@@ -31,6 +31,7 @@ let pendingPromotion = null;
 let future = [];
 let replayTimer = null;
 const positionResults = new Map();
+const MAX_SHARED_RETRY_MS = 1500;
 
 function positionKey(fen) {
     // The move number does not change a Syzygy result; the halfmove clock does.
@@ -169,8 +170,20 @@ function moveRow(move) {
     const detail = document.createElement('span');
     detail.textContent = moveDetail(move);
     button.append(san, detail);
-    button.addEventListener('click', () => play(move.uci));
+    button.addEventListener('click', () => play(move.uci, null, 'programmatic'));
     return button;
+}
+
+function presentationMove(move) {
+    const flags = String(move?.flags || '');
+    return {
+        from: move?.from,
+        to: move?.to,
+        capture: Boolean(move?.captured) || flags.includes('c'),
+        enPassant: flags.includes('e'),
+        castle: flags.includes('k') || flags.includes('q'),
+        promotion: move?.promotion ? String(move.promotion).toUpperCase() : null
+    };
 }
 
 function renderMoves() {
@@ -194,9 +207,17 @@ function renderMoves() {
     }
 }
 
-function renderPosition(lastMove = null) {
+function renderPosition(lastMove = null, inputMethod = 'programmatic') {
     clearBoardSelection();
-    board.setPosition(game.fen(), { animate: Boolean(lastMove) });
+    if (lastMove) {
+        const projected = board.applyMove(presentationMove(lastMove), {
+            fen: game.fen(),
+            // A dragged piece already followed the pointer. Re-animating it from
+            // the source square creates a visible snap-back before it lands.
+            animate: inputMethod !== 'drag'
+        });
+        if (!projected?.ok) board.setPosition(game.fen(), { animate: false });
+    } else board.setPosition(game.fen(), { animate: false });
     if (lastMove) board.highlightSquares([{ square: lastMove.from, type: 'last' }, { square: lastMove.to, type: 'last' }]);
     $('fen-input').value = game.fen();
     $('side-to-move').textContent = `${game.turn() === 'w' ? 'White' : 'Black'} to move`;
@@ -237,6 +258,42 @@ function renderResult(note = '') {
     renderMoves();
 }
 
+function renderKnownResult(move, note, movesMessage = 'Loading legal moves…') {
+    $('result-label').textContent = resultLabel(move.category, game.turn());
+    $('result-label').dataset.outcome = positionOutcome(move.category);
+    $('result-dtz').textContent = move.dtz == null ? 'DTZ —'
+        : `DTZ ${move.preciseDtz === null ? '≈' : ''}${Math.abs(move.dtz)}`;
+    $('result-dtm').textContent = move.dtm == null || positionOutcome(move.category) === 'draw'
+        ? 'DTM —' : `DTM ${Math.abs(move.dtm)}`;
+    $('result-note').textContent = note;
+    $('move-groups').textContent = movesMessage;
+}
+
+function retryAfterMs(response) {
+    const value = response.headers.get('Retry-After');
+    if (!value) return null;
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds > 0) return Math.ceil(seconds * 1000);
+    const date = Date.parse(value);
+    return Number.isFinite(date) && date > Date.now() ? Math.ceil(date - Date.now()) : null;
+}
+
+function waitForRetry(milliseconds, signal) {
+    return new Promise((resolve, reject) => {
+        let timer = null;
+        const abort = () => {
+            clearTimeout(timer);
+            reject(Object.assign(new Error('Aborted'), { name: 'AbortError' }));
+        };
+        if (signal.aborted) { abort(); return; }
+        timer = setTimeout(() => {
+            signal.removeEventListener('abort', abort);
+            resolve();
+        }, milliseconds);
+        signal.addEventListener('abort', abort, { once: true });
+    });
+}
+
 async function lookup(knownMove = null) {
     if (activeTab === 'setup') return;
     const token = ++generation;
@@ -248,31 +305,49 @@ async function lookup(knownMove = null) {
         renderResult();
         return;
     }
-    request = new AbortController();
+    const controller = new AbortController();
+    request = controller;
     result = null;
-    $('result-label').textContent = knownMove ? resultLabel(knownMove.category, game.turn()) : 'Checking tablebase…';
-    $('result-label').dataset.outcome = knownMove ? positionOutcome(knownMove.category) : 'unknown';
-    $('result-note').textContent = knownMove
-        ? 'Result from the previous position. Loading this position’s legal moves…'
-        : 'Contacting the tablebase.';
-    $('result-dtz').textContent = knownMove?.dtz == null ? 'DTZ —'
-        : `DTZ ${knownMove.preciseDtz === null ? '≈' : ''}${Math.abs(knownMove.dtz)}`;
-    $('result-dtm').textContent = knownMove?.dtm == null || positionOutcome(knownMove.category) === 'draw'
-        ? 'DTM —' : `DTM ${Math.abs(knownMove.dtm)}`;
-    $('move-groups').textContent = 'Loading legal moves…';
+    if (knownMove) renderKnownResult(knownMove, 'Result from the previous position. Loading this position’s legal moves…');
+    else {
+        $('result-label').textContent = 'Checking tablebase…';
+        $('result-label').dataset.outcome = 'unknown';
+        $('result-note').textContent = 'Contacting the tablebase.';
+        $('result-dtz').textContent = 'DTZ —';
+        $('result-dtm').textContent = 'DTM —';
+        $('move-groups').textContent = 'Loading legal moves…';
+    }
     try {
-        const response = await fetch(`/api/tablebase/standard?fen=${encodeURIComponent(fen)}`, { signal: request.signal });
-        const data = await response.json().catch(() => ({}));
-        if (token !== generation) return;
-        if (!response.ok) throw new Error(data.error || 'Tablebase unavailable');
-        if (data.fen !== fen) throw new Error('Tablebase position mismatch');
-        result = data;
-        rememberResult(fen, data);
-        renderResult();
+        let sharedRetryUsed = false;
+        while (true) {
+            const response = await fetch(`/api/tablebase/standard?fen=${encodeURIComponent(fen)}`, { signal: controller.signal });
+            const data = await response.json().catch(() => ({}));
+            if (token !== generation) return;
+            const retryMs = response.status === 503 && data.code === 'TABLEBASE_PROVIDER_BUSY'
+                ? retryAfterMs(response) : null;
+            if (!sharedRetryUsed && retryMs !== null && retryMs <= MAX_SHARED_RETRY_MS) {
+                sharedRetryUsed = true;
+                if (knownMove) renderKnownResult(knownMove,
+                    'Result from the previous position. Waiting briefly for the legal-move list…');
+                else $('result-note').textContent = 'Waiting briefly for the tablebase…';
+                await waitForRetry(retryMs, controller.signal);
+                if (token !== generation) return;
+                continue;
+            }
+            if (!response.ok) throw new Error(data.error || 'Tablebase unavailable');
+            if (data.fen !== fen) throw new Error('Tablebase position mismatch');
+            result = data;
+            rememberResult(fen, data);
+            renderResult();
+            return;
+        }
     } catch (error) {
         if (token !== generation || error.name === 'AbortError') return;
-        renderResult(error.message);
-    }
+        if (knownMove) renderKnownResult(knownMove,
+            `Result from the previous position. Legal moves unavailable: ${error.message}`,
+            'Legal moves unavailable. Try again shortly.');
+        else renderResult(error.message);
+    } finally { if (request === controller) request = null; }
 }
 
 function closePromotion() {
@@ -293,7 +368,7 @@ function openPromotion(from, to, choices) {
     dialog.querySelector('[data-promotion]:not([hidden])')?.focus();
 }
 
-function play(uci, requestedPromotion = null) {
+function play(uci, requestedPromotion = null, inputMethod = 'programmatic') {
     const previous = result;
     const from = uci.slice(0, 2);
     const to = uci.slice(2, 4);
@@ -312,7 +387,7 @@ function play(uci, requestedPromotion = null) {
     future = [];
     const knownMove = previous?.moves.find(item => item.uci === move.lan);
     $('fen-error').textContent = '';
-    renderPosition(move);
+    renderPosition(move, inputMethod);
     void lookup(knownMove);
     return true;
 }
@@ -335,7 +410,7 @@ function handlePlayTap(square) {
     if (ownPiece) { selectLegalSquare(square); return; }
     const from = selectedSquare;
     clearBoardSelection();
-    play(`${from}${square}`);
+    play(`${from}${square}`, null, 'tap');
 }
 
 function renderSetupPalette() {
@@ -388,9 +463,9 @@ board.on('dragStart', square => {
     selectLegalSquare(square);
     return true;
 });
-board.on('moveAttempt', ({ from, to, promotion }) => {
+board.on('moveAttempt', ({ from, to, promotion, inputMethod }) => {
     if (activeTab === 'setup') updateSetup(moveSetupPiece(setupDraft, from, to));
-    else play(`${from}${to}`, promotion);
+    else play(`${from}${to}`, promotion, inputMethod);
 });
 
 $('fen-form').addEventListener('submit', event => {
@@ -489,7 +564,7 @@ document.querySelectorAll('[data-promotion]').forEach(button => button.addEventL
     const { from, to } = pendingPromotion;
     const promotion = button.dataset.promotion;
     closePromotion();
-    play(`${from}${to}${promotion}`);
+    play(`${from}${to}${promotion}`, null, 'promotion');
 }));
 $('promotion-cancel').addEventListener('click', closePromotion);
 $('promotion-dialog').addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); closePromotion(); } });
