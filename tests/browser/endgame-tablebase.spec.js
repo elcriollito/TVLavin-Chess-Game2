@@ -6,12 +6,22 @@ const KINGS_FEN = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
 const EXAMPLE_FEN = '6r1/3k4/8/KP6/8/8/2R5/8 w - - 0 1';
 const exampleUrl = `/endgame-tablebase?fen=${encodeURIComponent(EXAMPLE_FEN)}`;
 
-function tablebasePayload(fen) {
+function inverseCategory(category) {
+    return {
+        win: 'loss', loss: 'win', draw: 'draw',
+        'cursed-win': 'blessed-loss', 'blessed-loss': 'cursed-win',
+        'maybe-win': 'maybe-loss', 'maybe-loss': 'maybe-win',
+        'syzygy-win': 'syzygy-loss', 'syzygy-loss': 'syzygy-win'
+    }[category] || 'unknown';
+}
+
+function tablebasePayload(fen, categoryOverride = null) {
     const game = new Chess(fen);
     const terminal = game.isGameOver();
     const fiftyFen = fen.includes(' w - - 100 ');
     const uncertainFen = fen.includes(' w - - 97 ');
-    const category = game.isCheckmate() ? 'loss' : uncertainFen ? 'maybe-win' : fiftyFen ? 'cursed-win' : game.isDraw() ? 'draw' : 'win';
+    const category = categoryOverride || (game.isCheckmate() ? 'loss' : uncertainFen ? 'maybe-win'
+        : fiftyFen ? 'cursed-win' : game.isDraw() ? 'draw' : game.turn() === 'w' ? 'win' : 'loss');
     return {
         fen,
         category,
@@ -25,7 +35,7 @@ function tablebasePayload(fen) {
         moves: game.moves({ verbose: true }).map(move => ({
             uci: move.lan,
             san: move.san,
-            category: category === 'maybe-win' ? 'maybe-loss' : category === 'cursed-win' ? 'blessed-loss' : category === 'draw' ? 'draw' : 'loss',
+            category: inverseCategory(category),
             dtz: move.isCapture() || move.piece === 'p' ? -1 : -2,
             preciseDtz: move.isCapture() || move.piece === 'p' ? -1 : -2,
             dtm: category === 'draw' ? 0 : -16,
@@ -53,6 +63,149 @@ async function dragSquare(page, from, to) {
     await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
     await page.mouse.up();
 }
+
+async function beginLatencyProbe(page, { pieceSquare, resultText }) {
+    await page.evaluate(({ pieceSquare: square, resultText: expected }) => {
+        const probe = { started: null, piece: null, result: null, moves: null };
+        window.__tablebaseLatencyProbe = probe;
+        const check = () => {
+            const elapsed = performance.now() - probe.started;
+            if (probe.piece === null && document.querySelector(`.caissa-board__piece[data-square="${square}"]`)) {
+                probe.piece = elapsed;
+            }
+            const labelMatches = document.querySelector('#result-label')?.textContent === expected;
+            if (probe.result === null && labelMatches) probe.result = elapsed;
+            const note = document.querySelector('#result-note')?.textContent || '';
+            const moves = document.querySelector('#move-groups')?.textContent || '';
+            if (probe.moves === null && labelMatches && !/Loading|Waiting/i.test(note) && !/Loading/i.test(moves)) {
+                probe.moves = elapsed;
+            }
+            if (probe.piece === null || probe.result === null || probe.moves === null) requestAnimationFrame(check);
+        };
+        document.addEventListener('pointerup', () => {
+            probe.started = performance.now();
+            requestAnimationFrame(check);
+        }, { capture: true, once: true });
+    }, { pieceSquare, resultText });
+}
+
+async function latencyProbe(page) {
+    await expect.poll(() => page.evaluate(() => window.__tablebaseLatencyProbe?.moves)).not.toBeNull();
+    return page.evaluate(() => ({ ...window.__tablebaseLatencyProbe }));
+}
+
+test('click, drag, undo, and rapid navigation separate board, result, and move-list latency', async ({ page }, testInfo) => {
+    const requests = [];
+    await page.route('**/api/tablebase/standard?**', async route => {
+        const fen = new URL(route.request().url()).searchParams.get('fen');
+        requests.push(fen);
+        if (requests.length === 1) {
+            const payload = tablebasePayload(fen);
+            payload.moves.find(move => move.uci === 'a5a6').category = 'draw';
+            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+            return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 450));
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(tablebasePayload(fen, 'draw')) });
+    });
+    await page.goto(exampleUrl);
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+
+    await page.locator('.caissa-board__square[data-square="a5"]').click();
+    await expect(page.locator('[data-uci="a5a6"]')).toHaveClass(/tb-draw/);
+    await beginLatencyProbe(page, { pieceSquare: 'a6', resultText: 'Theoretical draw' });
+    await page.locator('.caissa-board__square[data-square="a6"]').click();
+    await expect(page.locator('#result-label')).toHaveText('Theoretical draw');
+    const click = await latencyProbe(page);
+    expect(click.piece).toBeLessThan(100);
+    expect(click.result).toBeLessThan(100);
+    expect(click.moves).toBeGreaterThanOrEqual(400);
+    expect(click.moves).toBeLessThan(1000);
+    expect(requests).toHaveLength(2);
+
+    await beginLatencyProbe(page, { pieceSquare: 'a5', resultText: 'White wins' });
+    await page.locator('#undo-move').click();
+    const undo = await latencyProbe(page);
+    expect(Math.max(undo.piece, undo.result, undo.moves)).toBeLessThan(100);
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+    await expect(page.locator('#result-note')).not.toContainText('Contacting the tablebase');
+
+    await beginLatencyProbe(page, { pieceSquare: 'a6', resultText: 'Theoretical draw' });
+    await page.locator('#line-next').click();
+    const forward = await latencyProbe(page);
+    expect(Math.max(forward.piece, forward.result, forward.moves)).toBeLessThan(100);
+    await expect(page.locator('#result-note')).not.toContainText('Contacting the tablebase');
+
+    for (let index = 0; index < 4; index += 1) {
+        await page.locator('#line-first').click();
+        await page.locator('#line-next').click();
+    }
+    await expect(page.locator('#fen-input')).toHaveValue(/^6r1\/3k4\/K7\/1P6/);
+    await expect(page.locator('#result-label')).toHaveText('Theoretical draw');
+    expect(requests).toHaveLength(2);
+
+    await page.locator('#line-first').click();
+    await beginLatencyProbe(page, { pieceSquare: 'a6', resultText: 'Theoretical draw' });
+    await dragSquare(page, 'a5', 'a6');
+    const drag = await latencyProbe(page);
+    expect(Math.max(drag.piece, drag.result, drag.moves)).toBeLessThan(100);
+    await expect(page.locator('.caissa-board')).toHaveAttribute('data-animate', 'false');
+
+    console.info('[tablebase-latency-ms]', JSON.stringify({ click, undo, forward, drag }));
+
+    await testInfo.attach('tablebase-latency.json', {
+        body: JSON.stringify({ click, undo, forward, drag }, null, 2),
+        contentType: 'application/json'
+    });
+});
+
+test('shared one-second pacing keeps the known result and retries only the CAISSA gateway', async ({ page }) => {
+    const requests = [];
+    await page.route('**/api/tablebase/standard?**', async route => {
+        const fen = new URL(route.request().url()).searchParams.get('fen');
+        requests.push(fen);
+        if (requests.length === 1) {
+            const payload = tablebasePayload(fen);
+            payload.moves.find(move => move.uci === 'a5a6').category = 'draw';
+            payload.moves.find(move => move.uci === 'b5b6').category = 'win';
+            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+            return;
+        }
+        if (requests.length === 2 || requests.length === 4) {
+            await route.fulfill({ status: 503, headers: { 'Retry-After': '1' }, contentType: 'application/json',
+                body: JSON.stringify({ code: 'TABLEBASE_PROVIDER_BUSY', error: 'Tablebase is temporarily busy. Try again shortly.' }) });
+            return;
+        }
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(tablebasePayload(fen, 'draw')) });
+    });
+    await page.goto(exampleUrl);
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+
+    await expect(page.locator('[data-uci="a5a6"]')).toHaveClass(/tb-draw/);
+    await page.locator('.caissa-board__square[data-square="a5"]').click();
+    const started = Date.now();
+    await page.locator('.caissa-board__square[data-square="a6"]').click();
+    await expect(page.locator('#result-label')).toHaveText('Theoretical draw');
+    const knownResultMs = Date.now() - started;
+    await expect(page.locator('#result-note')).toContainText('Waiting briefly');
+    await expect(page.locator('#result-note')).not.toContainText('Waiting briefly');
+    const legalMovesMs = Date.now() - started;
+    expect(legalMovesMs).toBeGreaterThanOrEqual(900);
+    expect(requests).toHaveLength(3);
+    expect(requests[2]).toBe(requests[1]);
+    console.info('[tablebase-shared-pacing-ms]', JSON.stringify({ knownResultMs, legalMovesMs }));
+
+    await page.locator('#undo-move').click();
+    await page.locator('.caissa-board__square[data-square="b5"]').click();
+    await page.locator('.caissa-board__square[data-square="b6"]').click();
+    await expect(page.locator('#result-label')).toHaveText('Black wins');
+    await expect(page.locator('#result-note')).toContainText('Waiting briefly');
+    await page.locator('#undo-move').click();
+    await page.waitForTimeout(1100);
+    await expect(page.locator('#fen-input')).toHaveValue('6r1/3k4/8/KP6/8/8/2R5/8 w - - 0 1');
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+    expect(requests).toHaveLength(4);
+});
 
 test('plain entry starts with only two kings while a FEN link keeps its requested position', async ({ page }) => {
     await mockTablebase(page);
