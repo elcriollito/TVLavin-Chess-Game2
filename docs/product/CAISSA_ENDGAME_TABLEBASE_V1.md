@@ -58,9 +58,9 @@ Per-instance queueing and caching are not distributed rate limiting. The product
 
 The second flag selects the shared limiter implemented in `api/tablebase/shared-limiter.js` and `supabase/migrations/20260928000030_caissa_tablebase_shared_limiter.sql`. A single locked Postgres row grants one lease globally, caps uncached provider requests at 20 per minute, spaces them by at least one second, and records provider `Retry-After` globally. A claim or release error returns 503. An abandoned lease expires after 90 seconds, exceeding the eight-second provider timeout and preserving at least a one-minute pause if a caller disappears during a 429. CDN caching still reduces repeated identical lookups.
 
-The migration was applied and exercised only on CAISSA-READER-STAGING (`aqizagaskicotorfpwfn`) on 2026-09-27/28. Two concurrent claims produced exactly one `ALLOWED` and one `PROVIDER_BUSY`. Releasing the lease with a 120-second backoff produced `PROVIDER_BACKOFF` on the next claim. Privilege checks confirmed `anon` and `authenticated` cannot execute the functions, `service_role` can, and the table has RLS. The production database has **not** received this migration. Keep both release flags unset until production migration, end-to-end runtime verification, traffic observability, and physical-device QA are complete.
+The migration was applied and exercised on CAISSA-READER-STAGING (`aqizagaskicotorfpwfn`) on 2026-09-27/28. Two concurrent claims produced exactly one `ALLOWED` and one `PROVIDER_BUSY`. Releasing the lease with a 120-second backoff produced `PROVIDER_BACKOFF` on the next claim. On 2026-09-28 the same migration was applied to CAISSA-PRODUCTION (`jczauvkfkweuvdpurpem`). The production gate table and RPC signatures exist, RLS is enabled, `anon` and `authenticated` cannot execute the RPCs, `service_role` can, and a claim followed by release succeeded. Both Vercel release flags remain unset pending runtime verification and activation.
 
-The staging security advisor reports `RLS enabled, no policy` for this table at [lint 0008](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy). This is intentional: the table has no direct Data API reads or writes for any role, and only the two service-role RPC functions operate on it. The unrelated staging advisor findings were not changed.
+The staging and production security advisors report `RLS enabled, no policy` for this table at [lint 0008](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy). This is intentional: the table has no direct Data API reads or writes for any role, and only the two service-role RPC functions operate on it. Unrelated advisor findings were not changed.
 
 ## Runtime observability
 
@@ -111,7 +111,7 @@ The prior layout review at 1600×1000 measured a stable 720×720 board and a 493
 
 ## Deliberate limits and remaining release work
 
-- Production remains unavailable until this migration is applied and verified in production and the shared limiter is observed under live traffic. Do not set `CAISSA_TABLEBASE_SHARED_LIMITER_READY` or `CAISSA_TABLEBASE_PUBLIC_ENABLED` before release approval.
+- The production database migration is verified. Public traffic remains unavailable until the two Vercel release flags are explicitly configured and the shared limiter is observed under live traffic.
 - No `/standard/mainline` replay exists yet.
 - DTM is optional provider data; CAISSA does not manufacture it.
 - Setup does not preserve castling/en-passant history and has no draft undo stack.
