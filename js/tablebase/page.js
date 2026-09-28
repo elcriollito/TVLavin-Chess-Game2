@@ -1,13 +1,13 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import {
-    START_FEN, categoryProfile, exactTrainingMoves, moverOutcome, moveSetupPiece,
+    START_FEN, categoryProfile, exactTrainingMoves, moverOutcome, moveSetupPiece, navigateLine,
     outcomeChange, parseSetupDraft, positionOutcome, resultExplanation, resultLabel,
     setupDraftFen, updateSetupSquare
 } from './model.js';
 
 const $ = id => document.getElementById(id);
-const TABS = ['result', 'moves', 'train', 'setup'];
+const TABS = ['setup', 'moves', 'game'];
 const game = new Chess(START_FEN);
 const board = new CaissaBoardAdapter($('tablebase-board'), {
     position: START_FEN,
@@ -22,7 +22,7 @@ let origin = START_FEN;
 let result = null;
 let request = null;
 let generation = 0;
-let activeTab = 'result';
+let activeTab = 'moves';
 let revealed = false;
 let feedback = '';
 let selectedSquare = null;
@@ -30,6 +30,8 @@ let setupDraft = null;
 let setupTool = 'move';
 let setupSelectedSquare = null;
 let pendingPromotion = null;
+let future = [];
+let replayTimer = null;
 
 function validateCandidate(raw) {
     let candidate;
@@ -52,6 +54,7 @@ function validateCandidate(raw) {
 }
 
 function tab(name) {
+    stopReplay();
     const leavingSetup = activeTab === 'setup' && name !== 'setup';
     activeTab = name;
     for (const key of TABS) {
@@ -65,8 +68,66 @@ function tab(name) {
         renderSetup();
     } else {
         if (leavingSetup) renderPosition();
-        if (name === 'train') renderTraining();
+        if (name === 'game') renderTraining();
     }
+    renderLine();
+}
+
+function stopReplay() {
+    if (replayTimer) clearInterval(replayTimer);
+    replayTimer = null;
+    $('line-play').textContent = '▶';
+    $('line-play').setAttribute('aria-label', 'Replay line');
+}
+
+function renderLine() {
+    const past = game.history({ verbose: true });
+    const line = $('game-line');
+    line.replaceChildren();
+    if (!past.length && !future.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'No moves in this position yet.';
+        line.append(empty);
+    } else {
+        const start = document.createElement('button');
+        start.type = 'button';
+        start.textContent = 'Start';
+        start.setAttribute('aria-label', 'Go to starting position');
+        start.disabled = activeTab === 'setup';
+        if (!past.length) start.setAttribute('aria-current', 'step');
+        start.addEventListener('click', () => goToPly(0));
+        line.append(start);
+        [...past, ...future].forEach((move, index) => {
+            if (move.color === 'w' || index === 0) {
+                const number = document.createElement('span');
+                number.className = 'tb-move-number';
+                const fullmove = Number(move.before?.split(' ')[5] || origin.split(' ')[5]);
+                number.textContent = `${fullmove}${move.color === 'b' ? '...' : '.'}`;
+                line.append(number);
+            }
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = move.san;
+            button.setAttribute('aria-label', `Go to move ${index + 1}: ${move.san}`);
+            button.disabled = activeTab === 'setup';
+            if (index + 1 === past.length) button.setAttribute('aria-current', 'step');
+            button.addEventListener('click', () => goToPly(index + 1));
+            line.append(button);
+        });
+    }
+    const available = activeTab !== 'setup';
+    $('line-first').disabled = $('line-prev').disabled = !available || past.length === 0;
+    $('line-next').disabled = $('line-last').disabled = !available || future.length === 0;
+    $('line-play').disabled = !available || (!past.length && !future.length);
+}
+
+function goToPly(target, automatic = false) {
+    if (!automatic) stopReplay();
+    future = navigateLine(game, future, target);
+    feedback = '';
+    revealed = false;
+    renderPosition();
+    void lookup();
 }
 
 function boardHelp(text) {
@@ -121,7 +182,7 @@ function moveDetail(move) {
     const outcome = moverOutcome(move.category);
     const labels = { win: 'WIN', draw: 'DRAW', loss: 'LOSS', unknown: 'UNCERTAIN' };
     const fifty = ['cursed-win', 'blessed-loss'].includes(move.category) ? '50-MOVE' : null;
-    const distance = move.zeroing ? 'ZEROING' : move.dtz !== null ? `DTZ ${Math.abs(move.dtz)}` : null;
+    const distance = move.zeroing ? 'ZEROING' : move.dtz !== null ? `DTZ ${move.preciseDtz === null ? '≈' : ''}${Math.abs(move.dtz)}` : null;
     return [labels[outcome], fifty, distance, move.dtm !== null ? `DTM ${Math.abs(move.dtm)}` : null].filter(Boolean).join(' · ');
 }
 
@@ -172,6 +233,7 @@ function renderPosition(lastMove = null) {
     $('reset-position').textContent = 'Reset';
     boardHelp('Play a legal move or choose one from Moves.');
     history.replaceState(null, '', `${location.pathname}?fen=${encodeURIComponent(game.fen())}`);
+    renderLine();
 }
 
 function resultNote() {
@@ -193,10 +255,10 @@ function renderResult(note = '') {
     } else {
         $('result-label').textContent = resultLabel(result.category, game.turn());
         $('result-label').dataset.outcome = positionOutcome(result.category);
-        $('result-dtz').textContent = result.dtz === null ? '—'
-            : `${result.preciseDtz === null ? '≈' : ''}${Math.abs(result.dtz)}`;
+        $('result-dtz').textContent = result.dtz === null ? 'DTZ —'
+            : `DTZ ${result.preciseDtz === null ? '≈' : ''}${Math.abs(result.dtz)}`;
         $('result-dtm').textContent = result.dtm === null || positionOutcome(result.category) === 'draw'
-            ? '—' : String(Math.abs(result.dtm));
+            ? 'DTM —' : `DTM ${Math.abs(result.dtm)}`;
         $('result-note').textContent = note || resultNote();
     }
     renderMoves();
@@ -211,8 +273,10 @@ async function lookup() {
     const fen = game.fen();
     result = null;
     $('result-label').textContent = 'Checking tablebase…';
+    $('result-label').dataset.outcome = 'unknown';
     $('result-note').textContent = 'Contacting the tablebase.';
-    $('result-dtz').textContent = $('result-dtm').textContent = '—';
+    $('result-dtz').textContent = 'DTZ —';
+    $('result-dtm').textContent = 'DTM —';
     $('move-groups').textContent = 'Loading legal moves…';
     renderTraining();
     try {
@@ -262,15 +326,17 @@ function play(uci, requestedPromotion = null) {
     let move;
     try { move = game.move({ from, to, ...(promotion ? { promotion } : {}) }); }
     catch { return false; }
+    stopReplay();
+    future = [];
     const known = previous?.moves.find(item => item.uci === move.lan);
-    feedback = activeTab === 'train' && !revealed
+    feedback = activeTab === 'game' && !revealed
         ? known ? `${move.san}: ${outcomeChange(previous.category, known.category)}`
             : `${move.san}: This move could not be graded from the loaded provider response.` : '';
     revealed = false;
     $('fen-error').textContent = '';
     renderPosition(move);
     void lookup();
-    if (activeTab === 'train') $('train-feedback').textContent = feedback;
+    if (activeTab === 'game') $('train-feedback').textContent = feedback;
     return true;
 }
 
@@ -314,6 +380,7 @@ function renderSetup() {
     $('undo-move').disabled = true;
     boardHelp('Place, erase, tap, or drag pieces. Load explicitly when the draft is ready.');
     renderSetupPalette();
+    renderLine();
 }
 
 function updateSetup(next) {
@@ -354,11 +421,12 @@ $('fen-form').addEventListener('submit', event => {
         const fen = validateCandidate($('fen-input').value);
         game.load(fen);
         origin = game.fen();
+        future = [];
         setupDraft = null;
         feedback = '';
         revealed = false;
         $('fen-error').textContent = '';
-        tab('result');
+        tab('moves');
         renderPosition();
         void lookup();
     } catch (error) { $('fen-error').textContent = error.message; }
@@ -367,6 +435,8 @@ $('fen-form').addEventListener('submit', event => {
 $('reset-position').addEventListener('click', () => {
     if (activeTab === 'setup') { setupDraft = parseSetupDraft(game.fen()); renderSetup(); return; }
     game.load(origin);
+    stopReplay();
+    future = [];
     setupDraft = null;
     feedback = '';
     revealed = false;
@@ -374,7 +444,23 @@ $('reset-position').addEventListener('click', () => {
     void lookup();
 });
 $('undo-move').addEventListener('click', () => {
-    if (activeTab !== 'setup' && game.undo()) { setupDraft = null; feedback = ''; revealed = false; renderPosition(); void lookup(); }
+    if (activeTab !== 'setup' && game.history().length) { setupDraft = null; goToPly(game.history().length - 1); }
+});
+$('line-first').addEventListener('click', () => goToPly(0));
+$('line-prev').addEventListener('click', () => goToPly(game.history().length - 1));
+$('line-next').addEventListener('click', () => goToPly(game.history().length + 1));
+$('line-last').addEventListener('click', () => goToPly(game.history().length + future.length));
+$('line-play').addEventListener('click', () => {
+    if (replayTimer) { stopReplay(); return; }
+    if (!future.length) goToPly(0);
+    if (!future.length) return;
+    $('line-play').textContent = 'Ⅱ';
+    $('line-play').setAttribute('aria-label', 'Pause replay');
+    replayTimer = setInterval(() => {
+        if (!future.length) { stopReplay(); return; }
+        goToPly(game.history().length + 1, true);
+        if (!future.length) stopReplay();
+    }, 1200);
 });
 $('flip-board').addEventListener('click', () => board.setOrientation(board.getOrientation() === 'white' ? 'black' : 'white'));
 $('copy-fen').addEventListener('click', async () => {
@@ -405,18 +491,19 @@ $('setup-turn').addEventListener('change', event => { setupDraft = { ...setupDra
 $('setup-halfmove').addEventListener('input', event => { setupDraft = { ...setupDraft, halfmove: event.target.value }; });
 $('setup-clear').addEventListener('click', () => updateSetup({ ...setupDraft, pieces: {} }));
 $('setup-kings').addEventListener('click', () => updateSetup({ ...setupDraft, pieces: { e1: 'K', e8: 'k' } }));
-$('setup-cancel').addEventListener('click', () => { setupDraft = null; tab('result'); });
+$('setup-cancel').addEventListener('click', () => { setupDraft = null; tab('moves'); });
 $('setup-load').addEventListener('click', () => {
     try {
         setupDraft = { ...setupDraft, halfmove: $('setup-halfmove').value, turn: $('setup-turn').value };
         const fen = validateCandidate(setupDraftFen(setupDraft));
         game.load(fen);
         origin = game.fen();
+        future = [];
         setupDraft = null;
         feedback = '';
         revealed = false;
         $('setup-error').textContent = '';
-        tab('result');
+        tab('moves');
         renderPosition();
         void lookup();
     } catch (error) { $('setup-error').textContent = error.message; }

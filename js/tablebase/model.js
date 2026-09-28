@@ -133,3 +133,21 @@ export function moveSetupPiece(draft, from, to) {
     const next = updateSetupSquare(draft, from, null);
     return updateSetupSquare(next, to, piece);
 }
+
+// Keep the Chess instance authoritative; future contains only undone moves for this visit.
+export function navigateLine(game, future, target) {
+    let cursor = game.history().length;
+    const total = cursor + future.length;
+    if (!Number.isInteger(target) || target < 0 || target > total) throw new RangeError('Invalid line position');
+    const remaining = [...future];
+    while (cursor > target) {
+        remaining.unshift(game.undo());
+        cursor--;
+    }
+    while (cursor < target) {
+        const move = remaining.shift();
+        game.move({ from: move.from, to: move.to, ...(move.promotion ? { promotion: move.promotion } : {}) });
+        cursor++;
+    }
+    return remaining;
+}

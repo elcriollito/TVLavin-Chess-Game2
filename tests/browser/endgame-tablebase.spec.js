@@ -65,7 +65,13 @@ test('desktop flow keeps board, result, training, history controls, setup, and c
     await dragSquare(page, 'a5', 'a6');
     await expect(page.locator('#undo-move')).toBeEnabled();
     await expect(page).toHaveURL(/fen=/);
+    await expect(page.locator('#line-prev')).toBeEnabled();
     await page.locator('#undo-move').click();
+    await expect(page.locator('#fen-input')).toHaveValue('6r1/3k4/8/KP6/8/8/2R5/8 w - - 0 1');
+    await expect(page.locator('#line-next')).toBeEnabled();
+    await page.locator('#line-next').click();
+    await expect(page.locator('#fen-input')).toHaveValue(/^6r1\/3k4\/K7\/1P6/);
+    await page.locator('#line-first').click();
     await expect(page.locator('#fen-input')).toHaveValue('6r1/3k4/8/KP6/8/8/2R5/8 w - - 0 1');
     const boardAfter = await page.locator('#tablebase-board').boundingBox();
     expect(Math.abs(boardAfter.width - boardBefore.width)).toBeLessThan(1);
@@ -75,25 +81,35 @@ test('desktop flow keeps board, result, training, history controls, setup, and c
     await page.locator('#copy-fen').click();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await page.locator('#fen-input').inputValue());
 
-    await page.locator('#tab-result').focus();
+    await page.locator('#tab-moves').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#tab-game')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#game-line')).toContainText('Ka6');
+    await page.keyboard.press('Home');
+    await expect(page.locator('#tab-setup')).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('#tab-moves')).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
-    await expect(page.locator('#tab-train')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#tab-game')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#train-solution')).toBeHidden();
     await page.locator('#reveal-answer').click();
     await expect(page.locator('#train-solution')).toBeVisible();
     await expect(page.locator('#train-solution .tb-move')).not.toHaveCount(0);
 
     await page.locator('#tab-setup').click();
+    const whiteKing = page.getByRole('button', { name: 'Place white king' });
+    const blackKing = page.getByRole('button', { name: 'Place black king' });
+    await expect(whiteKing.locator('img')).toHaveAttribute('src', /wK\.png$/);
+    await expect(blackKing.locator('img')).toHaveAttribute('src', /bK\.png$/);
     await page.locator('#setup-kings').click();
     await page.getByRole('button', { name: 'Place white queen' }).click();
     await page.locator('.caissa-board__square[data-square="d1"]').click();
     await page.locator('#setup-halfmove').fill('42');
     await page.locator('#setup-load').click();
-    await expect(page.locator('#tab-result')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#tab-moves')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#fen-input')).toHaveValue('4k3/8/8/8/8/8/8/3QK3 w - - 42 1');
     await expect(page.locator('#undo-move')).toBeDisabled();
+    await expect(page.locator('#line-next')).toBeDisabled();
 
     const accessibility = await new AxeBuilder({ page }).include('.tb-main').analyze();
     expect(accessibility.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
@@ -132,7 +148,7 @@ test('promotion choice, en passant, linked FEN, and invalid setup are explicit',
     await page.locator('#fen-input').fill('6r1/3k4/8/KP6/8/8/2R5/8 w - - 97 1');
     await page.getByRole('button', { name: 'Load position' }).click();
     await expect(page.locator('#result-label')).toHaveText('Outcome uncertain');
-    await page.locator('#tab-train').click();
+    await page.locator('#tab-game').click();
     await expect(page.locator('#reveal-answer')).toBeDisabled();
     await expect(page.locator('#train-feedback')).toContainText('No exact training grade');
 
@@ -171,7 +187,7 @@ test('mobile touch layout has no horizontal overflow and preserves tap-to-move w
     expect(await page.evaluate(() => document.body.getBoundingClientRect().height > window.innerHeight)).toBe(true);
     await page.locator('#setup-kings').tap();
     await page.locator('#setup-load').tap();
-    await expect(page.locator('#tab-result')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#tab-moves')).toHaveAttribute('aria-selected', 'true');
     expect(errors).toEqual([]);
     await context.close();
 });

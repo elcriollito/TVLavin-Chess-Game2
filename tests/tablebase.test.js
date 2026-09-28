@@ -4,7 +4,7 @@ import { Chess } from 'chess.js';
 import handler, { publicTablebaseEnabled, validatePosition } from '../api/tablebase/standard.js';
 import { createSharedTablebaseLimiter } from '../api/tablebase/shared-limiter.js';
 import {
-    exactTrainingMoves, moverOutcome, moveSetupPiece, outcomeChange, parseSetupDraft,
+    exactTrainingMoves, moverOutcome, moveSetupPiece, navigateLine, outcomeChange, parseSetupDraft,
     positionOutcome, resultExplanation, resultLabel, setupDraftFen, START_FEN, updateSetupSquare
 } from '../js/tablebase/model.js';
 
@@ -55,6 +55,29 @@ test('Setup drafts move and place pieces without inventing history rights', () =
     const fen = setupDraftFen(draft);
     assert.equal(fen, '6r1/2Rk4/8/KP6/8/8/8/Q7 b - - 73 1');
     assert.equal(new Chess(fen).history().length, 0);
+});
+
+test('line navigation replays the same Chess history and discards alternatives on a new move', () => {
+    const game = new Chess(START_FEN);
+    const initial = game.fen();
+    game.move('Ka6');
+    game.move('Rg6');
+    const end = game.fen();
+    let future = navigateLine(game, [], 0);
+    assert.equal(game.fen(), initial);
+    assert.deepEqual(future.map(move => move.san), ['Ka6', 'Rg6+']);
+    future = navigateLine(game, future, 1);
+    assert.equal(game.history().length, 1);
+    assert.deepEqual(future.map(move => move.san), ['Rg6+']);
+    future = navigateLine(game, future, 2);
+    assert.equal(game.fen(), end);
+    assert.deepEqual(future, []);
+    future = navigateLine(game, future, 1);
+    game.move('Kd6');
+    future = [];
+    assert.deepEqual(game.history(), ['Ka6', 'Kd6']);
+    assert.deepEqual(future, []);
+    assert.throws(() => navigateLine(game, future, 3), RangeError);
 });
 
 test('API returns verified moves and rejects provider data that omits a legal move', async () => {

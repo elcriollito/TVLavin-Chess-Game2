@@ -4,7 +4,7 @@ Branch: `feature/endgame-tablebase-v1`
 
 Status: functional preview; intentionally blocked from production
 
-Last verified: 2026-09-27
+Last logic verification: 2026-09-28
 
 ## Product flow
 
@@ -12,12 +12,11 @@ Last verified: 2026-09-27
 
 The single right workspace follows the CAISSA Head/Body/Foot pattern:
 
-- **Result** presents the result for the side to move, DTZ/DTM when meaningful, terminal-state language, and the current halfmove clock.
-- **Moves** groups legal moves by the result for the player making the move. Provider categories are inverted only at this presentation boundary because each move category describes the resulting position for the opponent.
-- **Train** hides every preserving move until reveal. A played move is graded only when both the current position and child category are exact. `maybe-*`, `syzygy-*`, and `unknown` responses disable exact training claims.
-- **Setup** owns a temporary piece-placement draft. Moving, placing, or erasing pieces does not call `game.move()` and does not create history. `Load as new position` validates the draft and starts a fresh legal-history session.
+- **Setup** owns a temporary piece-placement draft. Its palette now uses the same contrasting graphical white and black pieces as the board, on separate labeled rows. Moving, placing, or erasing pieces does not call `game.move()` and does not create history. `Load as new position` validates the draft and starts a fresh legal-history session.
+- **Moves** starts with a compact, persistent result summary and meaningful DTZ/DTM, followed by legal moves grouped by result for the player making the move. Provider categories are inverted only at this presentation boundary because each move category describes the resulting position for the opponent.
+- **Game** shows the temporary move line and keeps the earlier practice controls under it. Practice hides every preserving move until reveal; a played move is graded only when both the current position and child category are exact. `maybe-*`, `syzygy-*`, and `unknown` responses disable exact training claims.
 
-Undo, Reset, Flip, Copy FEN, promotion choice, FEN links, and provider/error states are present. Loading or confirming a new FEN establishes a new reset origin. The page remains `noindex`.
+The five-control navigation bar can jump to the start/end, step backward/forward, or replay the temporary line. Revisiting a past position and making a different legal move discards the undone continuation. Loading a new FEN clears the line and establishes a new reset origin; nothing is saved between visits. Undo, Reset, Flip, Copy FEN, promotion choice, FEN links, and provider/error states remain present. The page remains `noindex`.
 
 ## Result semantics
 
@@ -88,11 +87,11 @@ Setup is deliberately smaller than an analysis editor:
 ### Automated
 
 - `npm run lint:tablebase` — syntax checks pass.
-- `npm run test:tablebase` — 13/13 pass, covering perspective inversion, 50-move semantics, uncertain categories, Setup isolation, response completeness, promotion, en passant, terminal shapes, production gating, shared limiter behavior, 429 backoff, and privacy of runtime events.
+- `npm run test:tablebase` — 14/14 pass, including navigation and alternate-line branching alongside perspective inversion, 50-move semantics, Setup isolation, response completeness, promotion, en passant, production gating, shared limiter behavior, 429 backoff, and privacy of runtime events.
 - `CAISSA_TABLEBASE_LIVE=1 npm run test:tablebase:live` — 1/1 passes against real Lichess responses.
-- `npm run test:tablebase:browser` — 3/3 Chromium scenarios pass.
+- The previous review cut passed 3/3 Chromium browser scenarios. Browser assertions were updated for the new tabs, palette, and navigation, but this cut has **not** run successfully in the current workspace: the Chromium binary is missing and its download failed. Re-run browser QA against the updated preview before public release.
 
-Browser coverage includes 1366×768 desktop and 390×844 mobile emulation: drag, touch tap, tab keyboard navigation, solution reveal, Undo, Reset behavior, Flip, Copy FEN, linked FEN, promotion selection, en passant, checkmate, 50-move draw, uncertain Train state, provider error state, Setup commit/error, console errors, Axe serious/critical violations, horizontal overflow, and board-width jitter.
+The prior browser coverage included 1366×768 desktop and 390×844 mobile emulation: drag, touch tap, tab keyboard navigation, solution reveal, Undo, Reset behavior, Flip, Copy FEN, linked FEN, promotion selection, en passant, checkmate, 50-move draw, uncertain practice state, provider error state, Setup commit/error, console errors, Axe serious/critical violations, horizontal overflow, and board-width jitter. The revised layout needs a fresh run.
 
 ### Live provider positions
 
@@ -108,7 +107,7 @@ The live contract test and manual audit confirmed these real responses on 2026-0
 | 50-move edge before threshold | `8/4K2k/5Q1P/6P1/8/8/q7/8 w - - 99 148` | `win`; `Qg7#` is winning |
 | 50-move edge at threshold | same position with halfmove `100` | `cursed-win`; `Qg7#` child is `blessed-loss` |
 
-Visual review at 1600×1000 measured a stable 720×720 board and a 493×730 workspace with no console errors or page overflow. At 390×844 the board measured 370×370, page width stayed 390, Setup used document scrolling rather than a nested body scroller, and the initial fixed-height mobile clipping defect found during review was corrected.
+The prior layout review at 1600×1000 measured a stable 720×720 board and a 493×730 workspace with no console errors or page overflow. At 390×844 the board measured 370×370, page width stayed 390, and Setup used document scrolling. Those measurements predate the revised three-tab layout and require rechecking.
 
 ## Deliberate limits and remaining release work
 
