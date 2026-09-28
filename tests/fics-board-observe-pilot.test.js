@@ -7,6 +7,7 @@ const source = fs.readFileSync(new URL('../js/fics-board-view.js', import.meta.u
 const clientSource = fs.readFileSync(new URL('../js/fics-client.js', import.meta.url), 'utf8');
 const indexSource = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const playIsolationSource = fs.readFileSync(new URL('../js/play/play-v2-fics-isolation.js', import.meta.url), 'utf8');
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 function loadSeam() {
     const frames = new Map();
@@ -195,11 +196,31 @@ test('review jumps and Live restore are visual-only setPosition operations', asy
     assert.equal(view.getSnapshot().position, live.split(' ')[0]);
 });
 
+test('legacy Play ignores clock-only Style12 updates with unchanged piece placement', () => {
+    const root = loadSeam();
+    const log = [];
+    const view = root.CaissaFICSBoardView.createFicsBoardView({
+        host: root, container: container(), position: 'start', orientation: 'white',
+        createLegacy: legacyFactory(log), loadAdapter: async () => ({}), loadStyles: async () => {}
+    });
+
+    view.presentCanonicalState({ state: playing, position: START_FEN, orientation: 'white' });
+    view.presentCanonicalState({
+        state: playing,
+        position: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 17 42',
+        orientation: 'white'
+    });
+
+    assert.equal(log.filter(entry => entry[0] === 'legacy-position').length, 0);
+});
+
 test('client integration is presentation-only and Play imports none of the pilot', () => {
     assert.match(indexSource, /fics-board-view\.js\?v=1\.0\.2/);
     assert.match(clientSource, /deriveStyle12BoardMove/);
     assert.match(clientSource, /presentCanonicalBoardState/);
     assert.match(clientSource, /this\.boardView\.presentCanonicalState/);
+    assert.equal((clientSource.match(/dragThrottleRate:\s*1/g) || []).length, 2);
+    assert.match(clientSource, /createManagedLegacyBoard/);
     assert.doesNotMatch(source, /WebSocket|FICSStyle12|sendMove|moveHistory|pgnStartFen|whiteClock|blackClock/i);
     assert.doesNotMatch(playIsolationSource, /fics-board-view|caissa-board-adapter|caissa-persistent-renderer/i);
 });

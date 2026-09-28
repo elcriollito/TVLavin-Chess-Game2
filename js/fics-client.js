@@ -2916,6 +2916,43 @@ const CaissaFICSClient = {
         return true;
     },
 
+    captureChessboardGlobalHandlers() {
+        const jquery = window.jQuery;
+        if (typeof jquery?._data !== 'function') return [];
+        const eventTypes = new Set(['mousedown', 'mousemove', 'mouseup', 'touchmove', 'touchend']);
+        return [window, document.body].flatMap(target => {
+            const events = jquery._data(target, 'events') || {};
+            return Object.entries(events).flatMap(([type, handlers]) => {
+                if (!eventTypes.has(type)) return [];
+                return handlers.map(binding => ({ target, type, binding }));
+            });
+        });
+    },
+
+    createManagedLegacyBoard(container, config) {
+        const jquery = window.jQuery;
+        const existingBindings = new Set(this.captureChessboardGlobalHandlers().map(item => item.binding));
+        const board = Chessboard(container, config);
+        if (!board || typeof board.destroy !== 'function' || typeof jquery !== 'function') return board;
+
+        const ownedBindings = this.captureChessboardGlobalHandlers()
+            .filter(item => !existingBindings.has(item.binding));
+        const originalDestroy = board.destroy.bind(board);
+        let destroyed = false;
+        board.destroy = () => {
+            if (destroyed) return undefined;
+            destroyed = true;
+            const result = originalDestroy();
+            for (const { target, type, binding } of ownedBindings) {
+                const eventName = binding.namespace ? `${type}.${binding.namespace}` : type;
+                if (binding.selector) jquery(target).off(eventName, binding.selector, binding.handler);
+                else jquery(target).off(eventName, binding.handler);
+            }
+            return result;
+        };
+        return board;
+    },
+
     initBoard(position = this.liveGame.currentFen || 'start') {
         if (!this.elements.boardContainer) return;
         if (!this.elements.boardContainer.offsetParent && !this.board) return;
@@ -2931,6 +2968,7 @@ const CaissaFICSClient = {
         // Create new board
         const config = {
             draggable: true,
+            dragThrottleRate: 1,
             position,
             onDragStart: (source, piece) => this.onDragStart(source, piece),
             onDrop: (source, target) => this.onDrop(source, target),
@@ -2944,8 +2982,9 @@ const CaissaFICSClient = {
 
         const pilot = window.CaissaFICSBoardView;
         if (pilot?.featureEnabled?.() && typeof Chessboard !== 'undefined') {
-            const createLegacy = (initialPosition, orientation) => Chessboard(this.elements.boardContainer, {
+            const createLegacy = (initialPosition, orientation) => this.createManagedLegacyBoard(this.elements.boardContainer, {
                 draggable: true,
+                dragThrottleRate: 1,
                 position: initialPosition,
                 orientation,
                 onDragStart: (source, piece) => this.onDragStart(source, piece),
@@ -2966,7 +3005,7 @@ const CaissaFICSClient = {
             this.refreshBoardInteractionDom();
             console.log('[FICS Client] BOARD-006 renderer selection initialized');
         } else if (typeof Chessboard !== 'undefined') {
-            this.board = Chessboard(this.elements.boardContainer, config);
+            this.board = this.createManagedLegacyBoard(this.elements.boardContainer, config);
             this.boardPositionKey = this.normalizeBoardPositionKey(position);
             this.boardOrientation = config.orientation || 'white';
             this.refreshBoardInteractionDom();

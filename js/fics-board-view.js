@@ -282,7 +282,9 @@
             if (!featureEnabled(host) || !observeEligible(latest.state)) {
                 const legacy = switchToLegacy(latest.position, latest.orientation);
                 if (legacy?.orientation?.() !== latest.orientation) legacy?.orientation?.(latest.orientation);
-                legacy?.position?.(latest.position, update.animate === true);
+                if (placement(activePosition()) !== placement(latest.position)) {
+                    legacy?.position?.(latest.position, update.animate === true);
+                }
                 return true;
             }
             if (rendererKind !== 'persistent') {
