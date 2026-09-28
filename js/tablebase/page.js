@@ -30,6 +30,19 @@ let setupSelectedSquare = null;
 let pendingPromotion = null;
 let future = [];
 let replayTimer = null;
+const positionResults = new Map();
+
+function positionKey(fen) {
+    // The move number does not change a Syzygy result; the halfmove clock does.
+    return fen.split(' ').slice(0, 5).join(' ');
+}
+
+function rememberResult(fen, data) {
+    const key = positionKey(fen);
+    positionResults.delete(key);
+    positionResults.set(key, data);
+    if (positionResults.size > 128) positionResults.delete(positionResults.keys().next().value);
+}
 
 function validateCandidate(raw) {
     let candidate;
@@ -224,18 +237,28 @@ function renderResult(note = '') {
     renderMoves();
 }
 
-async function lookup() {
+async function lookup(knownMove = null) {
     if (activeTab === 'setup') return;
     const token = ++generation;
     request?.abort();
-    request = new AbortController();
     const fen = game.fen();
+    const cached = positionResults.get(positionKey(fen));
+    if (cached) {
+        result = cached;
+        renderResult();
+        return;
+    }
+    request = new AbortController();
     result = null;
-    $('result-label').textContent = 'Checking tablebase…';
-    $('result-label').dataset.outcome = 'unknown';
-    $('result-note').textContent = 'Contacting the tablebase.';
-    $('result-dtz').textContent = 'DTZ —';
-    $('result-dtm').textContent = 'DTM —';
+    $('result-label').textContent = knownMove ? resultLabel(knownMove.category, game.turn()) : 'Checking tablebase…';
+    $('result-label').dataset.outcome = knownMove ? positionOutcome(knownMove.category) : 'unknown';
+    $('result-note').textContent = knownMove
+        ? 'Result from the previous position. Loading this position’s legal moves…'
+        : 'Contacting the tablebase.';
+    $('result-dtz').textContent = knownMove?.dtz == null ? 'DTZ —'
+        : `DTZ ${knownMove.preciseDtz === null ? '≈' : ''}${Math.abs(knownMove.dtz)}`;
+    $('result-dtm').textContent = knownMove?.dtm == null || positionOutcome(knownMove.category) === 'draw'
+        ? 'DTM —' : `DTM ${Math.abs(knownMove.dtm)}`;
     $('move-groups').textContent = 'Loading legal moves…';
     try {
         const response = await fetch(`/api/tablebase/standard?fen=${encodeURIComponent(fen)}`, { signal: request.signal });
@@ -244,6 +267,7 @@ async function lookup() {
         if (!response.ok) throw new Error(data.error || 'Tablebase unavailable');
         if (data.fen !== fen) throw new Error('Tablebase position mismatch');
         result = data;
+        rememberResult(fen, data);
         renderResult();
     } catch (error) {
         if (token !== generation || error.name === 'AbortError') return;
@@ -270,6 +294,7 @@ function openPromotion(from, to, choices) {
 }
 
 function play(uci, requestedPromotion = null) {
+    const previous = result;
     const from = uci.slice(0, 2);
     const to = uci.slice(2, 4);
     let promotion = (uci[4] || requestedPromotion || '').toLowerCase();
@@ -285,9 +310,10 @@ function play(uci, requestedPromotion = null) {
     catch { return false; }
     stopReplay();
     future = [];
+    const knownMove = previous?.moves.find(item => item.uci === move.lan);
     $('fen-error').textContent = '';
     renderPosition(move);
-    void lookup();
+    void lookup(knownMove);
     return true;
 }
 

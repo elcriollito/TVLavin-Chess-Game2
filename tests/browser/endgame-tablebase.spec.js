@@ -50,6 +50,33 @@ async function dragSquare(page, from, to) {
     await page.mouse.up();
 }
 
+test('a new move shows its known result immediately and replay reuses resolved positions', async ({ page }) => {
+    const requests = [];
+    await page.route('**/api/tablebase/standard?**', async route => {
+        const fen = new URL(route.request().url()).searchParams.get('fen');
+        requests.push(fen);
+        if (requests.length === 2) await new Promise(resolve => setTimeout(resolve, 450));
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(tablebasePayload(fen)) });
+    });
+    await page.goto('/endgame-tablebase');
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+
+    await page.locator('.caissa-board__square[data-square="a5"]').click();
+    await page.locator('.caissa-board__square[data-square="a6"]').click();
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+    await expect(page.locator('#result-note')).toContainText('Loading this position’s legal moves');
+    await expect(page.locator('#move-groups')).toContainText('Loading legal moves');
+    await expect(page.locator('#result-note')).not.toContainText('Loading this position’s legal moves');
+    expect(requests).toHaveLength(2);
+
+    await page.locator('#line-first').click();
+    await expect(page.locator('#result-label')).toHaveText('White wins');
+    await expect(page.locator('#result-note')).not.toContainText('Contacting the tablebase');
+    await page.locator('#line-next').click();
+    await expect(page.locator('#result-note')).not.toContainText('Contacting the tablebase');
+    expect(requests).toHaveLength(2);
+});
+
 test('desktop flow keeps board, result, history controls, setup, and clipboard coherent', async ({ page }) => {
     const errors = [];
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });

@@ -18,6 +18,8 @@ The single right workspace follows the CAISSA Head/Body/Foot pattern:
 
 The five-control navigation bar can jump to the start/end, step backward/forward, or replay the temporary line. Revisiting a past position and making a different legal move discards the undone continuation. Loading a new FEN clears the line and establishes a new reset origin; nothing is saved between visits. Undo, Reset, Flip, Copy FEN, promotion choice, FEN links, and provider/error states remain present. The page remains `noindex`.
 
+Within one visit, successful tablebase responses are retained for up to 128 distinct positions (including the halfmove clock). Returning to a position in the line restores its result immediately without another API call. On a new legal move whose child category is already supplied by the current provider response, the result summary appears immediately with an explicit loading note while the full list of legal moves is fetched. This does not remove the provider's required global pacing for genuinely new positions.
+
 ## Result semantics
 
 The provider's `category` already incorporates the halfmove clock and 50-move rule. CAISSA does not re-derive WDL from DTZ.
