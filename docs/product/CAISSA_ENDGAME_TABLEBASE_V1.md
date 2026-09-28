@@ -8,7 +8,7 @@ Last logic verification: 2026-09-28
 
 ## Product flow
 
-`/endgame-tablebase` loads a standard chess FEN with at most seven pieces. `chess.js` remains the only owner of legal moves and move history. The persistent CAISSA board presents that position and accepts mouse drag, tap/click, and keyboard square activation.
+`/endgame-tablebase` opens with only a white king on e1 and a black king on e8 (`4k3/8/8/8/8/8/8/4K3 w - - 0 1`), ready for the user to set up an endgame. A valid `?fen=` link still loads its specified position. `chess.js` remains the only owner of legal moves and move history. The persistent CAISSA board presents that position and accepts mouse drag, tap/click, and keyboard square activation.
 
 The single right workspace follows the CAISSA Head/Body/Foot pattern:
 

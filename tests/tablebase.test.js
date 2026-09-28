@@ -8,6 +8,8 @@ import {
     positionOutcome, resultExplanation, resultLabel, setupDraftFen, START_FEN, updateSetupSquare
 } from '../js/tablebase/model.js';
 
+const EXAMPLE_FEN = '6r1/3k4/8/KP6/8/8/2R5/8 w - - 0 1';
+
 function response() {
     return { headers: {}, statusCode: 200,
         setHeader(name, value) { this.headers[name] = value; },
@@ -17,6 +19,8 @@ function response() {
 
 test('FEN validation respects the seven-piece boundary and chess legality', () => {
     assert.equal(validatePosition(START_FEN), START_FEN);
+    assert.equal(START_FEN, '4k3/8/8/8/8/8/8/4K3 w - - 0 1');
+    assert.equal(validatePosition(EXAMPLE_FEN), EXAMPLE_FEN);
     assert.throws(() => validatePosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'), /2 to 7/);
     assert.throws(() => validatePosition('not chess'), /Invalid FEN/);
     assert.throws(() => validatePosition('8/8/8/8/8/8/4k3/4K3 w - - 0 1'), /Illegal position/);
@@ -48,7 +52,7 @@ test('Train exposes only exact preserving moves', () => {
 });
 
 test('Setup drafts move and place pieces without inventing history rights', () => {
-    let draft = parseSetupDraft(START_FEN);
+    let draft = parseSetupDraft(EXAMPLE_FEN);
     draft = moveSetupPiece(draft, 'c2', 'c7');
     draft = updateSetupSquare(draft, 'a1', 'Q');
     draft = { ...draft, turn: 'b', halfmove: 73 };
@@ -58,7 +62,7 @@ test('Setup drafts move and place pieces without inventing history rights', () =
 });
 
 test('line navigation replays the same Chess history and discards alternatives on a new move', () => {
-    const game = new Chess(START_FEN);
+    const game = new Chess(EXAMPLE_FEN);
     const initial = game.fen();
     game.move('Ka6');
     game.move('Rg6');
