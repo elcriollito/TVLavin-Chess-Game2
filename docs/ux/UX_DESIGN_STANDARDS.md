@@ -249,6 +249,10 @@ Use consistent phrasing:
 
 ## 5. Interaction Standards
 
+### Interactive Chessboard Drag
+
+Interactive chessboards must follow the canonical [CAISSA Quiet Drag standard](../standards/CAISSA_QUIET_DRAG.md).
+
 ### Buttons
 
 Buttons should clearly express action.
