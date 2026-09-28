@@ -62,6 +62,63 @@ for (const viewport of [
     }
 }
 
+for (const mode of MODES) {
+    test(`${mode.name} uses the production Quiet Drag pipeline without touching game state mid-drag`, async ({ page }) => {
+        await instrumentPlay(page, { autoReply: false });
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await startMode(page, mode);
+        const piece = page.locator('#chessboard .caissa-board__piece[data-square="e2"]');
+        const box = await piece.boundingBox();
+        expect(box).not.toBeNull();
+        const start = { x: box.x + box.width * 0.23, y: box.y + box.height * 0.71 };
+        const end = { x: start.x + box.width * 0.82, y: start.y - box.height * 1.34 };
+        const historyBefore = await page.evaluate(() => window.App.game.history());
+
+        await page.mouse.move(start.x, start.y);
+        await page.mouse.down();
+        await page.mouse.move(end.x, end.y, { steps: 24 });
+        await page.evaluate(() => new Promise(requestAnimationFrame));
+
+        const held = await page.evaluate(({ end, grab }) => {
+            const root = document.querySelector('#chessboard .caissa-board');
+            const node = root.querySelector('.caissa-board__piece[data-square="e2"]');
+            const rect = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            return {
+                quiet: root.dataset.quietDragActive,
+                pieceCount: root.querySelectorAll('.caissa-board__piece').length,
+                draggingCount: root.querySelectorAll('.caissa-board__piece[data-dragging="true"]').length,
+                offsetError: Math.hypot(end.x - rect.left - grab.x, end.y - rect.top - grab.y),
+                opacity: style.opacity,
+                filter: style.filter,
+                shadow: style.boxShadow,
+                transition: style.transitionDuration,
+                animation: style.animationName,
+                history: window.App.game.history(),
+                metrics: window.App.boardAdapter.inspect().renderer.quietDrag
+            };
+        }, { end, grab: { x: box.width * 0.23, y: box.height * 0.71 } });
+
+        expect(held).toMatchObject({
+            quiet: 'true', pieceCount: 32, draggingCount: 1,
+            opacity: '1', filter: 'none', shadow: 'none', transition: '0s', animation: 'none',
+            history: historyBefore
+        });
+        // Playwright's stepped physical mouse path may stop on a device-pixel-rounded coordinate.
+        expect(held.offsetError).toBeLessThan(5);
+        expect(held.metrics.geometryReadsDuringMove).toBe(0);
+        expect(held.metrics.scheduler.visualWrites).toBeLessThanOrEqual(held.metrics.scheduler.inputEvents);
+
+        await page.mouse.up();
+        await expect(page.locator('#chessboard .caissa-board[data-quiet-drag-active="true"]')).toHaveCount(0);
+        await expect(page.locator('#chessboard .caissa-board__piece[data-dragging="true"]')).toHaveCount(0);
+        await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(historyBefore);
+        const settled = await page.evaluate(() => window.App.boardAdapter.inspect().renderer.quietDrag);
+        expect(settled.active).toBe(false);
+        expect(settled.scheduler.pendingFrame).toBe(false);
+    });
+}
+
 test('real board pointer selection reaches the adapter before chessboard drag handling', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Headed Chromium owns the physical pointer QA for this contract.');
     await instrumentPlay(page, { autoReply: false });

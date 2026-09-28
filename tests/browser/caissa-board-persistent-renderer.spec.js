@@ -211,6 +211,159 @@ test('tap, drag, promotion request and board-scoped touch protections normalize 
     expect(events.find(event => event.type === 'moveAttempt').payload.promotion).toBe('Q');
 });
 
+test('Quiet Drag preserves grab offset, coalesces frames, stays single-piece and cleans up synchronously', async ({ page }) => {
+    await openHarness(page);
+    const result = await page.evaluate(async startFen => {
+        const h = window.caissaBoardHarness;
+        h.reset({ position: startFen, animation: true });
+        h.clearEvents();
+        h.selectSquare('e2');
+        const root = h.root();
+        const piece = h.pieceNode('e2');
+        const originalPiece = piece;
+        const boardRect = root.getBoundingClientRect();
+        const pieceRect = piece.getBoundingClientRect();
+        const start = { x: pieceRect.left + pieceRect.width * 0.21, y: pieceRect.top + pieceRect.height * 0.74 };
+        const end = { x: start.x + pieceRect.width * 1.65, y: start.y - pieceRect.height * 1.35 };
+        const expectedOffset = { x: start.x - pieceRect.left, y: start.y - pieceRect.top };
+        const reads = { board: 0, piece: 0 };
+        const boardRectMethod = root.getBoundingClientRect.bind(root);
+        const pieceRectMethod = piece.getBoundingClientRect.bind(piece);
+        root.getBoundingClientRect = () => { reads.board += 1; return boardRectMethod(); };
+        piece.getBoundingClientRect = () => { reads.piece += 1; return pieceRectMethod(); };
+        const event = (type, point, extra = {}) => new PointerEvent(type, {
+            bubbles: true, cancelable: true, pointerId: 91, pointerType: 'mouse', isPrimary: true,
+            button: type === 'pointerdown' ? 0 : -1, buttons: type === 'pointerup' ? 0 : 1,
+            clientX: point.x, clientY: point.y, ...extra
+        });
+
+        root.dispatchEvent(event('pointerdown', start));
+        const readsAfterStart = { ...reads };
+        for (let index = 1; index <= 40; index += 1) {
+            const progress = index / 40;
+            root.dispatchEvent(event('pointermove', {
+                x: start.x + (end.x - start.x) * progress,
+                y: start.y + (end.y - start.y) * progress
+            }));
+        }
+        const readsAfterMoves = { ...reads };
+        const beforeFrame = h.getMetrics().renderer.quietDrag;
+        await new Promise(requestAnimationFrame);
+        const movedRect = pieceRectMethod();
+        const style = getComputedStyle(piece);
+        const held = {
+            sameNode: piece === originalPiece,
+            pieceCount: root.querySelectorAll('.caissa-board__piece').length,
+            draggingCount: root.querySelectorAll('.caissa-board__piece[data-dragging="true"]').length,
+            sourceMarkerCount: root.querySelectorAll('[data-drag-source="true"]').length,
+            offsetError: Math.hypot(end.x - movedRect.left - expectedOffset.x, end.y - movedRect.top - expectedOffset.y),
+            opacity: style.opacity,
+            filter: style.filter,
+            boxShadow: style.boxShadow,
+            textShadow: style.textShadow,
+            transitionDuration: style.transitionDuration,
+            animationName: style.animationName,
+            scale: style.scale,
+            events: h.getEvents(),
+            beforeFrame,
+            afterFrame: h.getMetrics().renderer.quietDrag
+        };
+
+        root.dispatchEvent(event('pointercancel', end));
+        const immediatelyCancelled = {
+            dragging: root.querySelectorAll('[data-dragging="true"]').length,
+            sourceMarkers: root.querySelectorAll('[data-drag-source="true"]').length,
+            activeAttribute: root.hasAttribute('data-quiet-drag-active'),
+            inlineTransform: piece.style.transform,
+            metrics: h.getMetrics().renderer.quietDrag
+        };
+        const writesAtCancel = immediatelyCancelled.metrics.scheduler.visualWrites;
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const writesAfterCancel = h.getMetrics().renderer.quietDrag.scheduler.visualWrites;
+
+        h.clearEvents();
+        h.clearSelection();
+        const e2 = h.squareNode('e2').getBoundingClientRect();
+        const dropStart = { x: e2.left + 12, y: e2.top + 19 };
+        const e4 = h.squareNode('e4').getBoundingClientRect();
+        const dropEnd = { x: e4.left + 12, y: e4.top + 19 };
+        root.dispatchEvent(event('pointerdown', dropStart, { pointerId: 92 }));
+        root.dispatchEvent(event('pointermove', {
+            x: dropStart.x + (dropEnd.x - dropStart.x) / 2,
+            y: dropStart.y + (dropEnd.y - dropStart.y) / 2
+        }, { pointerId: 92 }));
+        root.dispatchEvent(event('pointermove', dropEnd, { pointerId: 92 }));
+        await new Promise(requestAnimationFrame);
+        root.dispatchEvent(event('pointerup', dropEnd, { pointerId: 92 }));
+        const immediateDrop = {
+            events: h.getEvents(),
+            dragging: root.querySelectorAll('[data-dragging="true"]').length,
+            sourceMarkers: root.querySelectorAll('[data-drag-source="true"]').length,
+            inlineTransform: piece.style.transform,
+            activeAnimations: piece.getAnimations().length,
+            metrics: h.getMetrics().renderer.quietDrag
+        };
+
+        const oldRoots = [];
+        for (let index = 0; index < 10; index += 1) {
+            oldRoots.push(h.root());
+            h.reset({ position: startFen, animation: false });
+        }
+        const destroyed = h.getLastDestroyedMetrics().renderer.quietDrag;
+        return {
+            boardRect: { width: boardRect.width, height: boardRect.height },
+            readsAfterStart,
+            readsAfterMoves,
+            held,
+            immediatelyCancelled,
+            writesAtCancel,
+            writesAfterCancel,
+            immediateDrop,
+            destroyed,
+            oldRootsDisconnected: oldRoots.every(node => !node.isConnected)
+        };
+    }, START_FEN);
+
+    expect(result.boardRect.width).toBeGreaterThan(0);
+    expect(result.readsAfterStart).toEqual({ board: 1, piece: 1 });
+    expect(result.readsAfterMoves).toEqual(result.readsAfterStart);
+    expect(result.held.sameNode).toBe(true);
+    expect(result.held.pieceCount).toBe(32);
+    expect(result.held.draggingCount).toBe(1);
+    expect(result.held.sourceMarkerCount).toBe(2);
+    expect(result.held.offsetError).toBeLessThan(0.2);
+    expect(result.held).toMatchObject({
+        opacity: '1', filter: 'none', boxShadow: 'none', textShadow: 'none',
+        transitionDuration: '0s', animationName: 'none'
+    });
+    expect(['1', 'none']).toContain(result.held.scale);
+    expect(result.held.events.filter(event => event.type === 'dragStart')).toHaveLength(1);
+    expect(result.held.events.filter(event => event.type === 'moveAttempt')).toHaveLength(0);
+    expect(result.held.beforeFrame.pointerMoves).toBe(40);
+    expect(result.held.beforeFrame.scheduler.inputEvents).toBeGreaterThanOrEqual(39);
+    expect(result.held.beforeFrame.scheduler.visualWrites).toBe(0);
+    expect(result.held.afterFrame.scheduler.visualWrites).toBe(1);
+    expect(result.held.afterFrame.scheduler.framesRequested).toBe(1);
+    expect(result.immediatelyCancelled).toMatchObject({
+        dragging: 0, sourceMarkers: 0, activeAttribute: false, inlineTransform: ''
+    });
+    expect(result.immediatelyCancelled.metrics.active).toBe(false);
+    expect(result.immediatelyCancelled.metrics.scheduler.pendingFrame).toBe(false);
+    expect(result.writesAfterCancel).toBe(result.writesAtCancel);
+    expect(result.immediateDrop.events.filter(event => event.type === 'moveAttempt')).toHaveLength(1);
+    expect(result.immediateDrop.events.find(event => event.type === 'moveAttempt').payload)
+        .toMatchObject({ from: 'e2', to: 'e4', inputMethod: 'drag' });
+    expect(result.immediateDrop).toMatchObject({
+        dragging: 0, sourceMarkers: 0, inlineTransform: '', activeAnimations: 0
+    });
+    expect(result.immediateDrop.metrics.active).toBe(false);
+    expect(result.immediateDrop.metrics.scheduler.pendingFrame).toBe(false);
+    expect(result.destroyed.listenerCount).toBe(0);
+    expect(result.destroyed.scheduler.destroyed).toBe(true);
+    expect(result.destroyed.scheduler.pendingFrame).toBe(false);
+    expect(result.oldRootsDisconnected).toBe(true);
+});
+
 test('keyboard, highlights, arrows and reduced motion are accessible presentation state', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openHarness(page);

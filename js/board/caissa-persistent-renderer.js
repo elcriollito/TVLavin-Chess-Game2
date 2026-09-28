@@ -12,9 +12,9 @@ import {
     boardAccessibleDescription,
     navigateSquare,
     squareAccessibleLabel,
-    squareFromVisualPoint,
     visualCoordinates
 } from './caissa-board-a11y.js';
+import { CaissaPointerController } from './caissa-quiet-drag.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const HIGHLIGHT_TYPES = new Set(['legal', 'last', 'hint', 'error']);
@@ -63,7 +63,7 @@ export class CaissaPersistentRenderer {
     #pendingPosition = null;
     #pendingFrame = null;
     #generation = 0;
-    #drag = null;
+    #pointerController = null;
     #destroyed = false;
     #geometry = { width: 0, height: 0, squareSize: 0 };
     #metrics = {
@@ -189,7 +189,7 @@ export class CaissaPersistentRenderer {
         if (this.#destroyed) return result(false, 'disposed', 'RENDERER_DESTROYED');
         if (!['white', 'black'].includes(orientation)) return result(false, 'rejected', 'INVALID_ORIENTATION');
         if (orientation === this.#orientation) return result(true, 'unchanged', 'SAME_ORIENTATION');
-        this.#cancelDrag(true);
+        this.#pointerController?.cancel(true);
         this.#cancelAnimations();
         this.#orientation = orientation;
         this.#setAttribute(this.#root, 'data-orientation', orientation);
@@ -215,7 +215,7 @@ export class CaissaPersistentRenderer {
         if (value === this.#interactive) return result(true, 'unchanged', 'SAME_INTERACTIVE_STATE');
         this.#interactive = value;
         this.#refreshRootAccessibility();
-        if (!this.#canInteract()) this.#cancelDrag(true);
+        if (!this.#canInteract()) this.#pointerController?.cancel(true);
         return result(true, 'accepted', 'INTERACTIVE_STATE_CHANGED', value);
     }
 
@@ -224,7 +224,7 @@ export class CaissaPersistentRenderer {
         if (value === this.#readOnly) return result(true, 'unchanged', 'SAME_READ_ONLY_STATE');
         this.#readOnly = value;
         this.#refreshRootAccessibility();
-        if (!this.#canInteract()) this.#cancelDrag(true);
+        if (!this.#canInteract()) this.#pointerController?.cancel(true);
         return result(true, 'accepted', 'READ_ONLY_STATE_CHANGED', value);
     }
 
@@ -344,6 +344,7 @@ export class CaissaPersistentRenderer {
             arrowCount: this.#arrows.size,
             orientation: this.#orientation,
             geometry: Object.freeze({ ...this.#geometry }),
+            quietDrag: this.#pointerController?.getMetrics() || null,
             ...structuredClone(this.#metrics)
         });
     }
@@ -367,7 +368,8 @@ export class CaissaPersistentRenderer {
         if (this.#destroyed) return result(true, 'unchanged', 'ALREADY_DESTROYED');
         this.#cancelPendingFrame();
         this.#cancelAnimations();
-        this.#cancelDrag(true);
+        this.#pointerController?.cancel(true);
+        this.#pointerController?.destroy();
         this.#resizeObserver?.disconnect();
         if (this.#mediaQuery) this.#mediaQuery.removeEventListener?.('change', this.#handleMotionChange);
         for (const listener of this.#listeners) listener.target.removeEventListener(listener.type, listener.handler, listener.options);
@@ -506,7 +508,7 @@ export class CaissaPersistentRenderer {
         const beforeStyles = this.#metrics.styleMutations;
         const animate = (options.animate ?? this.#options.animation) === true && !this.#isReducedMotion();
         this.#setAttribute(this.#root, 'data-animate', String(animate));
-        this.#cancelDrag(true);
+        this.#pointerController?.cancel(true);
         this.#cancelAnimations();
         this.#generation += 1;
 
@@ -652,12 +654,32 @@ export class CaissaPersistentRenderer {
     }
 
     #bindInput() {
-        this.#listen(this.#root, 'pointerdown', event => this.#onPointerDown(event));
-        this.#listen(this.#root, 'pointermove', event => this.#onPointerMove(event), { passive: false });
-        this.#listen(this.#root, 'pointerup', event => this.#onPointerUp(event));
-        this.#listen(this.#root, 'pointercancel', event => this.#onPointerCancel(event));
-        this.#listen(this.#root, 'lostpointercapture', event => {
-            if (this.#drag?.pointerId === event.pointerId) this.#cancelDrag(true);
+        this.#pointerController = new CaissaPointerController(this.#root, {
+            canInteract: () => this.#canInteract(),
+            getOrientation: () => this.#orientation,
+            allowsDrag: pointerType => this.#allowsDrag(pointerType),
+            resolvePiece: square => {
+                const piece = this.#pieceAt(square);
+                return piece ? { id: piece.id, node: this.#pieceNodes.get(piece.id) } : null;
+            },
+            onTap: square => this.#handleTap(square, 'tap'),
+            onDragStart: square => this.#notify('onDragStart', square) !== false,
+            onDragEnd: payload => this.#notify('onDragEnd', payload),
+            onMoveAttempt: (from, to) => this.#attemptMove(from, to, 'drag'),
+            onPresentationStart: drag => {
+                this.#setAttribute(this.#root, 'data-quiet-drag-active', 'true');
+                this.#setAttribute(drag.node, 'data-dragging', 'true');
+                this.#setAttribute(this.#squares.get(drag.from), 'data-drag-source', 'true');
+                this.#setAttribute(this.#highlightNodes.get(drag.from), 'data-drag-source', 'true');
+            },
+            onVisualWrite: (drag, x, y) => {
+                const transform = `translate3d(${x}px, ${y}px, 0)`;
+                if (drag.node?.style.transform !== transform) {
+                    drag.node.style.transform = transform;
+                    this.#metrics.styleMutations += 1;
+                }
+            },
+            onPresentationEnd: drag => this.#finishDragPresentation(drag)
         });
         this.#listen(this.#root, 'keydown', event => this.#onKeyDown(event));
         this.#listen(this.#root, 'contextmenu', event => {
@@ -689,90 +711,22 @@ export class CaissaPersistentRenderer {
         this.#setAttribute(this.#root, 'data-reduced-motion', String(this.#isReducedMotion()), false);
     }
 
-    #onPointerDown(event) {
-        if (!this.#canInteract() || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
-        const square = this.#squareFromEvent(event);
-        if (!square) return;
-        const piece = this.#pieceAt(square);
-        this.#drag = {
-            pointerId: event.pointerId,
-            pointerType: event.pointerType,
-            from: square,
-            startX: event.clientX,
-            startY: event.clientY,
-            started: false,
-            pieceId: piece?.id || null
-        };
-    }
-
-    #onPointerMove(event) {
-        if (!this.#drag || event.pointerId !== this.#drag.pointerId) return;
-        const distance = Math.hypot(event.clientX - this.#drag.startX, event.clientY - this.#drag.startY);
-        if (!this.#drag.started && distance >= 6 && this.#drag.pieceId && this.#allowsDrag(this.#drag.pointerType)) {
-            const accepted = this.#notify('onDragStart', this.#drag.from) !== false;
-            if (!accepted) {
-                this.#drag = null;
-                return;
-            }
-            this.#drag.started = true;
-            this.#root.setPointerCapture?.(event.pointerId);
-            this.#setAttribute(this.#pieceNodes.get(this.#drag.pieceId), 'data-dragging', 'true');
-        }
-        if (!this.#drag?.started) return;
-        if (event.cancelable) event.preventDefault();
-        const rect = this.#root.getBoundingClientRect();
-        const squareSize = Math.min(rect.width, rect.height) / 8;
-        const x = event.clientX - rect.left - squareSize / 2;
-        const y = event.clientY - rect.top - squareSize / 2;
-        const node = this.#pieceNodes.get(this.#drag.pieceId);
-        const transform = `translate3d(${x}px, ${y}px, 0)`;
-        if (node?.style.transform !== transform) {
-            node.style.transform = transform;
-            this.#metrics.styleMutations += 1;
-        }
-    }
-
-    #onPointerUp(event) {
-        if (!this.#drag || event.pointerId !== this.#drag.pointerId) return;
-        const drag = this.#drag;
-        const to = this.#squareFromEvent(event);
-        if (!drag.started) {
-            this.#drag = null;
-            if (to) this.#handleTap(to, 'tap');
-            return;
-        }
-        this.#drag = null;
-        this.#finishDragPresentation(drag);
-        this.#notify('onDragEnd', { from: drag.from, to, cancelled: !to });
-        if (to && to !== drag.from) this.#attemptMove(drag.from, to, 'drag');
-    }
-
-    #onPointerCancel(event) {
-        if (!this.#drag || event.pointerId !== this.#drag.pointerId) return;
-        const drag = this.#drag;
-        this.#drag = null;
-        this.#finishDragPresentation(drag);
-        this.#notify('onDragEnd', { from: drag.from, to: null, cancelled: true });
-    }
-
-    #cancelDrag(notify) {
-        if (!this.#drag) return;
-        const drag = this.#drag;
-        this.#drag = null;
-        if (drag.started) this.#finishDragPresentation(drag);
-        if (notify && drag.started) this.#notify('onDragEnd', { from: drag.from, to: null, cancelled: true });
-    }
-
     #finishDragPresentation(drag) {
-        const node = this.#pieceNodes.get(drag.pieceId);
+        const node = drag.node || this.#pieceNodes.get(drag.pieceId);
+        this.#setAttribute(this.#root, 'data-quiet-drag-active', null);
+        this.#setAttribute(this.#squares.get(drag.from), 'data-drag-source', null);
+        this.#setAttribute(this.#highlightNodes.get(drag.from), 'data-drag-source', null);
         if (node) {
-            this.#setAttribute(node, 'data-dragging', null);
             node.style.removeProperty('transform');
             this.#metrics.styleMutations += 1;
             const piece = this.#pieces.find(item => item.id === drag.pieceId);
             if (piece) this.#placePieceNode(node, piece.square);
+            // Commit the terminal transform while transition:none is still in
+            // force. This deliberate end-of-drag read prevents a snap/settle
+            // animation without adding any read to the pointermove hot path.
+            node.getBoundingClientRect();
+            this.#setAttribute(node, 'data-dragging', null);
         }
-        if (this.#root.hasPointerCapture?.(drag.pointerId)) this.#root.releasePointerCapture(drag.pointerId);
     }
 
     #onKeyDown(event) {
@@ -820,15 +774,6 @@ export class CaissaPersistentRenderer {
             if (typeof requested === 'string' && /^[qrbn]$/i.test(requested)) promotion = requested.toUpperCase();
         }
         this.#notify('onMoveAttempt', { from, to, promotion, inputMethod });
-    }
-
-    #squareFromEvent(event) {
-        const rect = this.#root.getBoundingClientRect();
-        if (!rect.width || !rect.height) return null;
-        const x = ((event.clientX - rect.left) / rect.width) * 8;
-        const y = ((event.clientY - rect.top) / rect.height) * 8;
-        if (x < 0 || x >= 8 || y < 0 || y >= 8) return null;
-        return squareFromVisualPoint(x, y, this.#orientation);
     }
 
     #canInteract() {
