@@ -63,6 +63,12 @@ The migration was applied and exercised only on CAISSA-READER-STAGING (`aqizagas
 
 The staging security advisor reports `RLS enabled, no policy` for this table at [lint 0008](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy). This is intentional: the table has no direct Data API reads or writes for any role, and only the two service-role RPC functions operate on it. The unrelated staging advisor findings were not changed.
 
+## Runtime observability
+
+The API emits one-line JSON events with `component: "caissa_tablebase"` to Vercel Runtime Logs. `provider_response` records upstream HTTP status and latency in milliseconds; `provider_network_error` distinguishes timeout from other network failures. `request_failed` records normalized causes (`provider_429`, `provider_404`, `provider_error`, `shared_busy`, `limiter_unavailable`) and, for a busy shared limiter, its reason. `cache_hit`, `provider_backoff`, and `release_gate_closed` cover local cache and early rejection. These events deliberately omit FEN, IP, request headers, provider bodies, credentials, and lease IDs.
+
+Before public release, filter Runtime Logs by `caissa_tablebase` on the preview deployment and confirm a sample lookup emits `provider_response`, then verify the production dashboard or log drain can count 429s, timeouts, limiter failures, and provider latency. A cache hit handled at the CDN never runs the function, so provider call volume is counted from `provider_response`, not total page views. Establish alert thresholds from observed traffic rather than assuming a baseline in preview. Preserve the production gate until the migration and runtime verification are complete.
+
 This work does not import the remote service into the curated Endgame Trainer. Its reviewed position pools and offline runtime are unchanged.
 
 ## Setup Position v1
@@ -82,7 +88,7 @@ Setup is deliberately smaller than an analysis editor:
 ### Automated
 
 - `npm run lint:tablebase` — syntax checks pass.
-- `npm run test:tablebase` — 9/9 pass, covering perspective inversion, 50-move semantics, uncertain categories, Setup isolation, response completeness, promotion, en passant, terminal shapes, production gating, and 429 backoff.
+- `npm run test:tablebase` — 13/13 pass, covering perspective inversion, 50-move semantics, uncertain categories, Setup isolation, response completeness, promotion, en passant, terminal shapes, production gating, shared limiter behavior, 429 backoff, and privacy of runtime events.
 - `CAISSA_TABLEBASE_LIVE=1 npm run test:tablebase:live` — 1/1 passes against real Lichess responses.
 - `npm run test:tablebase:browser` — 3/3 Chromium scenarios pass.
 
@@ -112,5 +118,5 @@ Visual review at 1600×1000 measured a stable 720×720 board and a 493×730 work
 - Setup does not preserve castling/en-passant history and has no draft undo stack.
 - Automated browser QA was Chromium only. Physical iOS/iPadOS/Android touch, Safari/WebKit, and assistive-technology testing remain release checks.
 - Provider failure was tested with deterministic HTTP mocks; an intentional real 429 was not generated.
-- Observability dashboards/alerts for cache misses, provider latency, 429s, timeouts, and release-gate rejection remain to be added before public traffic.
+- The structured runtime events are implemented. Production dashboard/alert thresholds and a live preview sample still need verification before public traffic.
 - Analyze, Coach, Game Review, and Puzzles have not adopted this service. Each needs its own result and traffic contract first.

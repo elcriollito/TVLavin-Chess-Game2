@@ -12,6 +12,10 @@ function noStore(res) {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 }
 
+function logEvent(logger, level, event, fields = {}) {
+    logger[level]?.(JSON.stringify({ component: 'caissa_tablebase', event, ...fields }));
+}
+
 export function publicTablebaseEnabled(env = process.env) {
     if ((env.VERCEL_ENV || env.NODE_ENV) !== 'production') return true;
     return env.CAISSA_TABLEBASE_PUBLIC_ENABLED === '1' && env.CAISSA_TABLEBASE_SHARED_LIMITER_READY === '1'
@@ -86,6 +90,7 @@ function serialized(work) {
 }
 
 export default async function handler(req, res, dependencies = {}) {
+    const logger = dependencies.logger || console;
     res.setHeader('X-Robots-Tag', 'noindex');
     res.setHeader('X-CAISSA-Tablebase-Stage', 'review');
     if (req.method !== 'GET') {
@@ -95,6 +100,7 @@ export default async function handler(req, res, dependencies = {}) {
     }
     if (!publicTablebaseEnabled(dependencies.env || process.env)) {
         noStore(res);
+        logEvent(logger, 'info', 'release_gate_closed');
         return res.status(503).json({ code: 'TABLEBASE_REVIEW_ONLY', error: 'Tablebase is not enabled for public traffic.' });
     }
     let fen;
@@ -109,11 +115,13 @@ export default async function handler(req, res, dependencies = {}) {
     const key = cacheKey(fen);
     const hit = cache.get(key);
     if (hit && hit.expires > now()) {
+        logEvent(logger, 'info', 'cache_hit');
         res.setHeader('Cache-Control', SUCCESS_CACHE_CONTROL);
         return res.status(200).json({ fen, ...hit.data });
     }
     if (now() < blockedUntil) {
         noStore(res);
+        logEvent(logger, 'warn', 'provider_backoff', { retry_after_seconds: Math.ceil((blockedUntil - now()) / 1000) });
         res.setHeader('Retry-After', String(Math.ceil((blockedUntil - now()) / 1000)));
         return res.status(503).json({ error: 'Tablebase is temporarily busy. Try again shortly.' });
     }
@@ -127,7 +135,7 @@ export default async function handler(req, res, dependencies = {}) {
             if (shared) {
                 const claim = await shared.claim();
                 if (!claim.allowed) throw Object.assign(new Error('shared-busy'), {
-                    code: 'SHARED_BUSY', retryAfter: claim.retryAfter
+                    code: 'SHARED_BUSY', retryAfter: claim.retryAfter, reason: claim.code
                 });
                 lease = claim.leaseId;
             }
@@ -136,11 +144,21 @@ export default async function handler(req, res, dependencies = {}) {
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), 8000);
                 let upstream;
+                const started = now();
                 try {
                     const url = new URL(PROVIDER);
                     url.searchParams.set('fen', fen);
                     upstream = await (dependencies.fetch || fetch)(url, { signal: controller.signal,
                         headers: { Accept: 'application/json', 'User-Agent': 'CAISSA-Chess/1.0 (+https://www.caissa-chess.org/)' } });
+                    logEvent(logger, upstream.status === 429 ? 'warn' : 'info', 'provider_response', {
+                        status: upstream.status, latency_ms: Math.max(0, now() - started)
+                    });
+                } catch (error) {
+                    logEvent(logger, 'warn', 'provider_network_error', {
+                        reason: error?.name === 'AbortError' ? 'timeout' : 'network',
+                        latency_ms: Math.max(0, now() - started)
+                    });
+                    throw error;
                 } finally { clearTimeout(timeout); }
                 if (upstream.status === 429) {
                     retryAfter = Math.ceil(retryDelay(upstream, now()) / 1000);
@@ -161,6 +179,13 @@ export default async function handler(req, res, dependencies = {}) {
         return res.status(200).json({ fen, ...data });
     } catch (error) {
         noStore(res);
+        logEvent(logger, error.code === 'LIMITER_UNAVAILABLE' ? 'error' : 'warn', 'request_failed', {
+            reason: error.code === 'LIMITER_UNAVAILABLE' ? 'limiter_unavailable'
+                : error.code === 'SHARED_BUSY' ? 'shared_busy'
+                    : error.code === 429 ? 'provider_429'
+                        : error.code === 404 ? 'provider_404' : 'provider_error',
+            ...(error.code === 'SHARED_BUSY' ? { limiter_reason: error.reason } : {})
+        });
         if (error.code === 'LIMITER_UNAVAILABLE') return res.status(503).json({ code: 'TABLEBASE_LIMITER_UNAVAILABLE', error: 'Tablebase is temporarily unavailable.' });
         if (error.code === 'SHARED_BUSY') {
             res.setHeader('Retry-After', String(error.retryAfter));

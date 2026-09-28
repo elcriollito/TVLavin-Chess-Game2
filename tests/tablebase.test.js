@@ -212,3 +212,21 @@ test('provider 429 honors a longer Retry-After and never caches the failure', as
     assert.equal(res.headers['Retry-After'], '120');
     assert.match(res.headers['Cache-Control'], /no-store/);
 });
+
+test('runtime events expose provider health without logging the position', async () => {
+    const fen = '8/8/8/8/8/5k2/8/4K3 w - - 0 1';
+    const events = [];
+    const logger = { info: line => events.push(JSON.parse(line)), warn: line => events.push(JSON.parse(line)),
+        error: line => events.push(JSON.parse(line)) };
+    const res = response();
+    const instant = Date.now() + 86_400_000;
+    await handler({ method: 'GET', query: { fen } }, res, {
+        logger, now: () => instant,
+        fetch: async () => ({ ok: false, status: 429, headers: { get: () => '61' } })
+    });
+    assert.equal(res.statusCode, 503);
+    assert.deepEqual(events.map(event => event.event), ['provider_response', 'request_failed']);
+    assert.deepEqual(events[0], { component: 'caissa_tablebase', event: 'provider_response', status: 429, latency_ms: 0 });
+    assert.equal(events[1].reason, 'provider_429');
+    assert.doesNotMatch(JSON.stringify(events), /5k2|4K3|fen|service_role|lease_id/i);
+});
