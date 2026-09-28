@@ -97,16 +97,24 @@ test('desktop flow keeps board, result, training, history controls, setup, and c
     await expect(page.locator('#train-solution .tb-move')).not.toHaveCount(0);
 
     await page.locator('#tab-setup').click();
+    await expect(page.locator('#setup-load')).toBeVisible();
+    await expect(page.locator('#reset-position')).toBeHidden();
+    expect(await page.locator('#setup-load').evaluate(element => element.parentElement.classList.contains('tb-panel-foot'))).toBe(true);
     const whiteKing = page.getByRole('button', { name: 'Place white king' });
     const blackKing = page.getByRole('button', { name: 'Place black king' });
     await expect(whiteKing.locator('img')).toHaveAttribute('src', /wK\.png$/);
     await expect(blackKing.locator('img')).toHaveAttribute('src', /bK\.png$/);
+    await page.locator('#setup-kings').click();
+    await page.locator('#setup-restart').click();
+    await expect(page.locator('#setup-restart')).toBeVisible();
     await page.locator('#setup-kings').click();
     await page.getByRole('button', { name: 'Place white queen' }).click();
     await page.locator('.caissa-board__square[data-square="d1"]').click();
     await page.locator('#setup-halfmove').fill('42');
     await page.locator('#setup-load').click();
     await expect(page.locator('#tab-moves')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#setup-load')).toBeHidden();
+    await expect(page.locator('#reset-position')).toBeVisible();
     await expect(page.locator('#fen-input')).toHaveValue('4k3/8/8/8/8/8/8/3QK3 w - - 42 1');
     await expect(page.locator('#undo-move')).toBeDisabled();
     await expect(page.locator('#line-next')).toBeDisabled();

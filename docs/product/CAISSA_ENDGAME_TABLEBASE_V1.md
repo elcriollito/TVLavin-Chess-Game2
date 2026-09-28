@@ -12,7 +12,7 @@ Last logic verification: 2026-09-28
 
 The single right workspace follows the CAISSA Head/Body/Foot pattern:
 
-- **Setup** owns a temporary piece-placement draft. Its palette now uses the same contrasting graphical white and black pieces as the board, on separate labeled rows. Moving, placing, or erasing pieces does not call `game.move()` and does not create history. `Load as new position` validates the draft and starts a fresh legal-history session.
+- **Setup** owns a temporary piece-placement draft. Its palette now uses the same contrasting graphical white and black pieces as the board, on separate labeled rows. Moving, placing, or erasing pieces does not call `game.move()` and does not create history. `Restart setup` sits with the draft actions; the persistent footer's left action is `Load as new position`, which validates the draft and starts a fresh legal-history session.
 - **Moves** starts with a compact, persistent result summary and meaningful DTZ/DTM, followed by legal moves grouped by result for the player making the move. Provider categories are inverted only at this presentation boundary because each move category describes the resulting position for the opponent.
 - **Game** shows the temporary move line and keeps the earlier practice controls under it. Practice hides every preserving move until reveal; a played move is graded only when both the current position and child category are exact. `maybe-*`, `syzygy-*`, and `unknown` responses disable exact training claims.
 

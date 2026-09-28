@@ -230,7 +230,8 @@ function renderPosition(lastMove = null) {
     $('side-to-move').textContent = `${game.turn() === 'w' ? 'White' : 'Black'} to move`;
     $('piece-count').textContent = `${game.board().flat().filter(Boolean).length} pieces`;
     $('undo-move').disabled = game.history().length === 0;
-    $('reset-position').textContent = 'Reset';
+    $('reset-position').hidden = false;
+    $('setup-load').hidden = true;
     boardHelp('Play a legal move or choose one from Moves.');
     history.replaceState(null, '', `${location.pathname}?fen=${encodeURIComponent(game.fen())}`);
     renderLine();
@@ -376,7 +377,8 @@ function renderSetup() {
     $('setup-halfmove').value = String(setupDraft.halfmove);
     $('side-to-move').textContent = 'Setup draft';
     $('piece-count').textContent = `${Object.keys(setupDraft.pieces).length} pieces`;
-    $('reset-position').textContent = 'Restart setup';
+    $('reset-position').hidden = true;
+    $('setup-load').hidden = false;
     $('undo-move').disabled = true;
     boardHelp('Place, erase, tap, or drag pieces. Load explicitly when the draft is ready.');
     renderSetupPalette();
@@ -433,7 +435,6 @@ $('fen-form').addEventListener('submit', event => {
 });
 
 $('reset-position').addEventListener('click', () => {
-    if (activeTab === 'setup') { setupDraft = parseSetupDraft(game.fen()); renderSetup(); return; }
     game.load(origin);
     stopReplay();
     future = [];
@@ -442,6 +443,11 @@ $('reset-position').addEventListener('click', () => {
     revealed = false;
     renderPosition();
     void lookup();
+});
+$('setup-restart').addEventListener('click', () => {
+    setupDraft = parseSetupDraft(game.fen());
+    $('setup-error').textContent = '';
+    renderSetup();
 });
 $('undo-move').addEventListener('click', () => {
     if (activeTab !== 'setup' && game.history().length) { setupDraft = null; goToPly(game.history().length - 1); }
