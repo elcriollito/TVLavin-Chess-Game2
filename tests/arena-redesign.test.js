@@ -111,6 +111,9 @@ test('Arena tabs are accessible and do not own competition lifecycle state', () 
 });
 
 test('Arena sizing snapshots stable inputs and isolates game content from board geometry', () => {
+  const mountStart = controller.indexOf('    mountBoard() {');
+  const mountEnd = controller.indexOf('    setupResizeObserver() {', mountStart);
+  const mountBoard = controller.slice(mountStart, mountEnd);
   assert.match(controller, /Math\.min\(arenaMax, availableWidth, availableHeight\)/);
   assert.match(controller, /boardContainer\.clientWidth - horizontalPadding/);
   assert.match(controller, /Math\.abs\(width - observedWidth\) < 0\.5/);
@@ -125,6 +128,10 @@ test('Arena sizing snapshots stable inputs and isolates game content from board 
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?scrollbar-gutter:\s*stable/);
+  assert.ok(
+    mountBoard.indexOf("this.resizeBoardNow(false, 'mount-prime')") < mountBoard.indexOf('setTimeout(checkAndMount, 50)'),
+    'initial board geometry must be published before the deferred mount can paint'
+  );
 });
 
 test('Tournament standings are sourced from participants, games, and standard scoring', () => {
