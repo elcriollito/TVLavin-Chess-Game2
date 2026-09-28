@@ -14,7 +14,7 @@ The single right workspace follows the CAISSA Head/Body/Foot pattern:
 
 - **Setup** owns a temporary piece-placement draft. Its palette now uses the same contrasting graphical white and black pieces as the board, on separate labeled rows. Moving, placing, or erasing pieces does not call `game.move()` and does not create history. `Restart setup` sits with the draft actions; the persistent footer's left action is `Load as new position`, which validates the draft and starts a fresh legal-history session.
 - **Moves** starts with a compact, persistent result summary and meaningful DTZ/DTM, followed by legal moves grouped by result for the player making the move. Provider categories are inverted only at this presentation boundary because each move category describes the resulting position for the opponent.
-- **Game** shows the temporary move line and keeps the earlier practice controls under it. Practice hides every preserving move until reveal; a played move is graded only when both the current position and child category are exact. `maybe-*`, `syzygy-*`, and `unknown` responses disable exact training claims.
+- **Game** shows only the temporary move line and its navigation. The Practice/reveal panel was removed from this analysis page so puzzle-style training stays in its own product surface.
 
 The five-control navigation bar can jump to the start/end, step backward/forward, or replay the temporary line. Revisiting a past position and making a different legal move discards the undone continuation. Loading a new FEN clears the line and establishes a new reset origin; nothing is saved between visits. Undo, Reset, Flip, Copy FEN, promotion choice, FEN links, and provider/error states remain present. The page remains `noindex`.
 

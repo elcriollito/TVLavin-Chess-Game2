@@ -50,7 +50,7 @@ async function dragSquare(page, from, to) {
     await page.mouse.up();
 }
 
-test('desktop flow keeps board, result, training, history controls, setup, and clipboard coherent', async ({ page }) => {
+test('desktop flow keeps board, result, history controls, setup, and clipboard coherent', async ({ page }) => {
     const errors = [];
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('pageerror', error => errors.push(error.message));
@@ -91,10 +91,7 @@ test('desktop flow keeps board, result, training, history controls, setup, and c
     await expect(page.locator('#tab-moves')).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('#tab-game')).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('#train-solution')).toBeHidden();
-    await page.locator('#reveal-answer').click();
-    await expect(page.locator('#train-solution')).toBeVisible();
-    await expect(page.locator('#train-solution .tb-move')).not.toHaveCount(0);
+    await expect(page.locator('.tb-practice, #reveal-answer, #train-solution')).toHaveCount(0);
 
     await page.locator('#tab-setup').click();
     await expect(page.locator('#setup-load')).toBeVisible();
@@ -157,8 +154,7 @@ test('promotion choice, en passant, linked FEN, and invalid setup are explicit',
     await page.getByRole('button', { name: 'Load position' }).click();
     await expect(page.locator('#result-label')).toHaveText('Outcome uncertain');
     await page.locator('#tab-game').click();
-    await expect(page.locator('#reveal-answer')).toBeDisabled();
-    await expect(page.locator('#train-feedback')).toContainText('No exact training grade');
+    await expect(page.locator('.tb-practice')).toHaveCount(0);
 
     await page.locator('#fen-input').fill('6r1/3k4/8/KP6/8/8/2R5/8 w - - 66 1');
     await page.getByRole('button', { name: 'Load position' }).click();

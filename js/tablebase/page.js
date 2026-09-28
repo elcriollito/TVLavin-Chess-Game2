@@ -1,8 +1,8 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import {
-    START_FEN, categoryProfile, exactTrainingMoves, moverOutcome, moveSetupPiece, navigateLine,
-    outcomeChange, parseSetupDraft, positionOutcome, resultExplanation, resultLabel,
+    START_FEN, moverOutcome, moveSetupPiece, navigateLine,
+    parseSetupDraft, positionOutcome, resultExplanation, resultLabel,
     setupDraftFen, updateSetupSquare
 } from './model.js';
 
@@ -23,8 +23,6 @@ let result = null;
 let request = null;
 let generation = 0;
 let activeTab = 'moves';
-let revealed = false;
-let feedback = '';
 let selectedSquare = null;
 let setupDraft = null;
 let setupTool = 'move';
@@ -68,7 +66,6 @@ function tab(name) {
         renderSetup();
     } else {
         if (leavingSetup) renderPosition();
-        if (name === 'game') renderTraining();
     }
     renderLine();
 }
@@ -124,8 +121,6 @@ function renderLine() {
 function goToPly(target, automatic = false) {
     if (!automatic) stopReplay();
     future = navigateLine(game, future, target);
-    feedback = '';
-    revealed = false;
     renderPosition();
     void lookup();
 }
@@ -140,42 +135,6 @@ function clearBoardSelection() {
     setupSelectedSquare = null;
     board.clearSelection();
     board.clearHighlights();
-}
-
-function renderTraining() {
-    const profile = result ? categoryProfile(result.category) : null;
-    const outcome = result ? positionOutcome(result.category) : 'unknown';
-    const solution = $('train-solution');
-    solution.replaceChildren();
-    solution.hidden = !revealed;
-
-    if (!result) {
-        $('train-prompt').textContent = 'Wait for a supported position before practicing.';
-        $('reveal-answer').disabled = true;
-    } else if (!profile.exact) {
-        $('train-prompt').textContent = 'The provider cannot grade this position exactly.';
-        $('reveal-answer').disabled = true;
-    } else if (!result.moves.length) {
-        $('train-prompt').textContent = 'This position is terminal; there is no move to find.';
-        $('reveal-answer').disabled = true;
-    } else {
-        const target = outcome === 'win' ? 'win' : outcome === 'draw' ? 'draw' : 'best available result';
-        $('train-prompt').textContent = `Find a move that preserves the ${target}.`;
-        $('reveal-answer').disabled = false;
-    }
-
-    $('train-feedback').textContent = feedback || (!profile?.exact
-        ? 'No exact training grade is available for this provider response.'
-        : revealed ? 'The preserving moves are shown below.' : 'The solution stays hidden until you reveal it or play a move.');
-    $('reveal-answer').textContent = revealed ? 'Hide solution' : 'Reveal solution';
-
-    if (revealed && result && profile.exact) {
-        const moves = exactTrainingMoves(result);
-        const intro = document.createElement('p');
-        intro.textContent = moves.length ? `${moves.length} move${moves.length === 1 ? '' : 's'} preserve the result:`
-            : 'No legal move preserves the current result.';
-        solution.append(intro, ...moves.map(moveRow));
-    }
 }
 
 function moveDetail(move) {
@@ -263,7 +222,6 @@ function renderResult(note = '') {
         $('result-note').textContent = note || resultNote();
     }
     renderMoves();
-    renderTraining();
 }
 
 async function lookup() {
@@ -279,7 +237,6 @@ async function lookup() {
     $('result-dtz').textContent = 'DTZ —';
     $('result-dtm').textContent = 'DTM —';
     $('move-groups').textContent = 'Loading legal moves…';
-    renderTraining();
     try {
         const response = await fetch(`/api/tablebase/standard?fen=${encodeURIComponent(fen)}`, { signal: request.signal });
         const data = await response.json().catch(() => ({}));
@@ -313,7 +270,6 @@ function openPromotion(from, to, choices) {
 }
 
 function play(uci, requestedPromotion = null) {
-    const previous = result;
     const from = uci.slice(0, 2);
     const to = uci.slice(2, 4);
     let promotion = (uci[4] || requestedPromotion || '').toLowerCase();
@@ -329,15 +285,9 @@ function play(uci, requestedPromotion = null) {
     catch { return false; }
     stopReplay();
     future = [];
-    const known = previous?.moves.find(item => item.uci === move.lan);
-    feedback = activeTab === 'game' && !revealed
-        ? known ? `${move.san}: ${outcomeChange(previous.category, known.category)}`
-            : `${move.san}: This move could not be graded from the loaded provider response.` : '';
-    revealed = false;
     $('fen-error').textContent = '';
     renderPosition(move);
     void lookup();
-    if (activeTab === 'game') $('train-feedback').textContent = feedback;
     return true;
 }
 
@@ -425,8 +375,6 @@ $('fen-form').addEventListener('submit', event => {
         origin = game.fen();
         future = [];
         setupDraft = null;
-        feedback = '';
-        revealed = false;
         $('fen-error').textContent = '';
         tab('moves');
         renderPosition();
@@ -439,8 +387,6 @@ $('reset-position').addEventListener('click', () => {
     stopReplay();
     future = [];
     setupDraft = null;
-    feedback = '';
-    revealed = false;
     renderPosition();
     void lookup();
 });
@@ -474,7 +420,6 @@ $('copy-fen').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(fen); $('copy-status').textContent = 'FEN copied to clipboard.'; }
     catch { $('fen-input').value = fen; $('fen-input').select(); $('copy-status').textContent = 'Clipboard unavailable. FEN selected in the field.'; }
 });
-$('reveal-answer').addEventListener('click', () => { revealed = !revealed; renderTraining(); });
 
 for (const key of TABS) {
     $(`tab-${key}`).addEventListener('click', () => tab(key));
@@ -506,8 +451,6 @@ $('setup-load').addEventListener('click', () => {
         origin = game.fen();
         future = [];
         setupDraft = null;
-        feedback = '';
-        revealed = false;
         $('setup-error').textContent = '';
         tab('moves');
         renderPosition();
