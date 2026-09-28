@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b111b">
+  <meta name="description" content="Explore chess endgames and analyze positions with Syzygy tablebases.">
+  <meta name="robots" content="noindex, nofollow">
+  <title>CAISSA Endgame Tablebase</title>
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.2.0">
+  <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/endgame-tablebase.css?v=0.3.0">
+  <script src="/js/caissa-i18n.js?v=1.0.0" defer></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.2.0" defer></script>
+  <script type="module" src="/js/tablebase/page.js?v=0.3.0"></script>
+</head>
+<body class="tablebase-page">
+  <a class="skip-link" href="#tablebase-board">Skip to board</a>
+  <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="endgame-tablebase">
+      <nav class="caissa-standalone-fallback" aria-label="CAISSA navigation"><a href="/play">CAISSA Chess</a><a href="/endgame-tablebase" aria-current="page">Endgame Tablebase</a></nav>
+    </div>
+    <div class="caissa-standalone-content">
+      <main class="tb-main">
+        <header class="tb-header"><div><p class="tb-eyebrow">Endgame lab · Syzygy</p><h1>CAISSA Endgame Tablebase</h1></div><span class="tb-coverage">Syzygy · 7 pieces or fewer</span></header>
+        <form id="fen-form" class="tb-fen-form"><label for="fen-input">Position FEN</label><div><input id="fen-input" name="fen" spellcheck="false" autocomplete="off" aria-describedby="fen-error"><button type="submit">Load position</button></div><p id="fen-error" role="alert"></p></form>
+        <section class="tb-workspace" aria-label="Endgame tablebase workspace">
+          <div class="tb-board-column"><div class="tb-board-head"><span id="side-to-move">White to move</span><button id="flip-board" type="button">Flip board</button></div><div id="tablebase-board" class="tb-board-frame"></div><div class="tb-board-foot"><span>Play a legal move or choose one from Moves.</span><span id="piece-count">—</span></div></div>
+          <div class="tb-panel"><div class="tb-panel-head"><div class="tb-tabs" role="tablist" aria-label="Tablebase tools"><button type="button" id="tab-setup" role="tab" aria-controls="panel-setup" aria-selected="false" tabindex="-1">Setup</button><button type="button" id="tab-moves" role="tab" aria-controls="panel-moves" aria-selected="true" tabindex="0">Moves</button><button type="button" id="tab-game" role="tab" aria-controls="panel-game" aria-selected="false" tabindex="-1">Game</button></div></div>
+            <div class="tb-panel-body">
+              <section id="panel-moves" role="tabpanel" aria-labelledby="tab-moves"><div class="tb-result-summary"><span id="result-label" data-outcome="unknown">Checking tablebase…</span><span class="tb-result-distance"><span id="result-dtz">—</span><span id="result-dtm">—</span></span></div><p id="result-note" class="tb-note" role="status" aria-live="polite">Contacting the tablebase.</p><p class="tb-move-context">Moves show the result for the player making each move. DTZ and DTM are in plies; ≈ means rounded.</p><div id="move-groups" class="tb-groups"></div></section>
+              <section id="panel-game" role="tabpanel" aria-labelledby="tab-game" hidden><h2>Current line</h2><p class="tb-note">Temporary moves for this position. Loading a new position clears the line.</p><div id="game-line" class="tb-game-line"></div></section>
+              <section id="panel-setup" role="tabpanel" aria-labelledby="tab-setup" hidden><div class="tb-setup-head"><div><p class="tb-kicker">Free placement</p><h2>Setup position</h2></div><p>Placement changes a draft only. Loading it starts a new position with empty move history.</p></div><fieldset class="tb-palette"><legend>Piece tool</legend><div id="setup-palette"><div class="tb-palette-tools"><button type="button" data-setup-tool="move" aria-pressed="true">Move</button><button type="button" data-setup-tool="erase">Erase</button></div><p>White pieces</p><div class="tb-palette-row"><button type="button" data-setup-piece="K" aria-label="Place white king"><img src="/img/chesspieces/wikipedia/wK.png" alt="" draggable="false"></button><button type="button" data-setup-piece="Q" aria-label="Place white queen"><img src="/img/chesspieces/wikipedia/wQ.png" alt="" draggable="false"></button><button type="button" data-setup-piece="R" aria-label="Place white rook"><img src="/img/chesspieces/wikipedia/wR.png" alt="" draggable="false"></button><button type="button" data-setup-piece="B" aria-label="Place white bishop"><img src="/img/chesspieces/wikipedia/wB.png" alt="" draggable="false"></button><button type="button" data-setup-piece="N" aria-label="Place white knight"><img src="/img/chesspieces/wikipedia/wN.png" alt="" draggable="false"></button><button type="button" data-setup-piece="P" aria-label="Place white pawn"><img src="/img/chesspieces/wikipedia/wP.png" alt="" draggable="false"></button></div><p>Black pieces</p><div class="tb-palette-row"><button type="button" data-setup-piece="k" aria-label="Place black king"><img src="/img/chesspieces/wikipedia/bK.png" alt="" draggable="false"></button><button type="button" data-setup-piece="q" aria-label="Place black queen"><img src="/img/chesspieces/wikipedia/bQ.png" alt="" draggable="false"></button><button type="button" data-setup-piece="r" aria-label="Place black rook"><img src="/img/chesspieces/wikipedia/bR.png" alt="" draggable="false"></button><button type="button" data-setup-piece="b" aria-label="Place black bishop"><img src="/img/chesspieces/wikipedia/bB.png" alt="" draggable="false"></button><button type="button" data-setup-piece="n" aria-label="Place black knight"><img src="/img/chesspieces/wikipedia/bN.png" alt="" draggable="false"></button><button type="button" data-setup-piece="p" aria-label="Place black pawn"><img src="/img/chesspieces/wikipedia/bP.png" alt="" draggable="false"></button></div></div></fieldset><div class="tb-setup-fields"><label>Side to move<select id="setup-turn"><option value="w">White</option><option value="b">Black</option></select></label><label>Halfmove clock<input id="setup-halfmove" type="number" min="0" max="150" step="1" inputmode="numeric"></label></div><p class="tb-setup-note">Castling and en passant are cleared because free placement has no preceding legal move. The halfmove clock is kept for 50-move-rule analysis.</p><div class="tb-setup-actions"><button id="setup-clear" type="button">Clear board</button><button id="setup-kings" type="button">Kings only</button><button id="setup-cancel" type="button">Cancel</button><button id="setup-restart" type="button">Restart setup</button></div><p id="setup-error" class="tb-error" role="alert"></p></section>
+            </div>
+            <div class="tb-panel-foot"><button id="reset-position" type="button">Reset</button><button id="setup-load" class="tb-primary" type="button" hidden>Load as new position</button><button id="undo-move" type="button" disabled>Undo</button><button id="copy-fen" type="button">Copy FEN</button><span id="copy-status" class="tb-sr-only" role="status" aria-live="polite"></span></div>
+          </div>
+          <nav class="tb-replay" aria-label="Line navigation"><button id="line-first" type="button" aria-label="First position" title="First position">⏮</button><button id="line-prev" type="button" aria-label="Previous position" title="Previous position">‹</button><button id="line-play" type="button" aria-label="Replay line" title="Replay line">▶</button><button id="line-next" type="button" aria-label="Next position" title="Next position">›</button><button id="line-last" type="button" aria-label="Last position" title="Last position">⏭</button></nav>
+        </section>
+        <p class="tb-credit">Tablebase data provided by <a href="https://lichess.org/api#tag/Tablebase" target="_blank" rel="noopener noreferrer">Lichess</a> using Syzygy. A result may be unavailable when the service is busy.</p>
+      </main>
+    </div>
+  </div>
+  <div id="promotion-dialog" class="tb-dialog" role="dialog" aria-modal="true" aria-labelledby="promotion-title" hidden><div><h2 id="promotion-title">Choose promotion</h2><p>Select the piece for this move.</p><div><button type="button" data-promotion="q">Queen</button><button type="button" data-promotion="r">Rook</button><button type="button" data-promotion="b">Bishop</button><button type="button" data-promotion="n">Knight</button></div><button id="promotion-cancel" type="button">Cancel</button></div></div>
+</body>
+</html>

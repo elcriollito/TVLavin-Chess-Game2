@@ -16,6 +16,7 @@ import {
 import { createScannerBetaHttpAdapter } from './tools/scanner-beta-feedback/http-adapter.mjs';
 import { createBetaProgramService } from './api/_lib/beta-program-service.js';
 import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-document.js';
+import tablebaseHandler from './api/tablebase/standard.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -374,6 +375,17 @@ const server = http.createServer(async (req, res) => {
   try { decodedPathname = decodeURIComponent(pathname); } catch (_) { /* malformed paths remain unavailable */ }
   const normalizedPathname = decodedPathname.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
 
+  if (pathname === '/api/tablebase/standard') {
+    let statusCode = 200;
+    await tablebaseHandler({ method: req.method, query: { fen: url.searchParams.getAll('fen').length > 1
+      ? url.searchParams.getAll('fen') : url.searchParams.get('fen') } }, {
+      setHeader: (name, value) => res.setHeader(name, value),
+      status(code) { statusCode = code; return this; },
+      json(body) { res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(body)); return this; }
+    });
+    return;
+  }
+
   if (normalizedPathname === '/scanner/beta/index.html' && pathname !== '/scanner/beta/index.html') {
     res.writeHead(307, { Location: '/scanner/beta', 'Cache-Control': 'private, no-store, max-age=0',
       'X-Robots-Tag': 'noindex, nofollow, noarchive' });
@@ -643,6 +655,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/endgame-library' || pathname === '/endgame-library/') {
     filePath = './endgame-library.html';
+  }
+  if (pathname === '/endgame-tablebase' || pathname === '/endgame-tablebase/') {
+    filePath = './endgame-tablebase.html';
   }
   if (/^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pathname)) {
     filePath = `.${pathname}/index.html`;
