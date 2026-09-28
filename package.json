@@ -63,7 +63,7 @@
     "test:tablebase": "node --test tests/tablebase.test.js",
     "test:tablebase:live": "node --test tests/tablebase-live.test.js",
     "test:tablebase:browser": "playwright test --project=chromium tests/browser/endgame-tablebase.spec.js",
-    "lint:tablebase": "node --check api/tablebase/standard.js && node --check js/tablebase/model.js && node --check js/tablebase/page.js && node --check tests/tablebase.test.js && node --check tests/tablebase-live.test.js && node --check tests/browser/endgame-tablebase.spec.js",
+    "lint:tablebase": "node --check api/tablebase/standard.js && node --check api/tablebase/shared-limiter.js && node --check js/tablebase/model.js && node --check js/tablebase/page.js && node --check tests/tablebase.test.js && node --check tests/tablebase-live.test.js && node --check tests/browser/endgame-tablebase.spec.js",
     "test:navigation": "node --test tests/navigation-integrity.test.js",
     "lint:navigation": "node --check js/caissa-primary-navigation.js && node --check js/caissa-standalone-sidebar.js && node --check js/caissa-navigation.js && node --check tests/navigation-integrity.test.js",
     "test:i18n": "node --test tests/i18n-foundation.test.js",

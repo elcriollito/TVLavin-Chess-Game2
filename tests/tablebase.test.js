@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Chess } from 'chess.js';
 import handler, { publicTablebaseEnabled, validatePosition } from '../api/tablebase/standard.js';
+import { createSharedTablebaseLimiter } from '../api/tablebase/shared-limiter.js';
 import {
     exactTrainingMoves, moverOutcome, moveSetupPiece, outcomeChange, parseSetupDraft,
     positionOutcome, resultExplanation, resultLabel, setupDraftFen, START_FEN, updateSetupSquare
@@ -127,9 +128,11 @@ test('API validates real-provider promotion, en passant, and terminal response s
 
 test('production exposure stays closed until both release and shared-limiter gates are explicit', async () => {
     assert.equal(publicTablebaseEnabled({ VERCEL_ENV: 'preview' }), true);
+    assert.equal(publicTablebaseEnabled({ VERCEL_ENV: 'preview', NODE_ENV: 'production' }), true);
     assert.equal(publicTablebaseEnabled({ NODE_ENV: 'production' }), false);
     assert.equal(publicTablebaseEnabled({ VERCEL_ENV: 'production', CAISSA_TABLEBASE_PUBLIC_ENABLED: '1' }), false);
-    assert.equal(publicTablebaseEnabled({ VERCEL_ENV: 'production', CAISSA_TABLEBASE_PUBLIC_ENABLED: '1', CAISSA_TABLEBASE_SHARED_LIMITER_READY: '1' }), true);
+    assert.equal(publicTablebaseEnabled({ VERCEL_ENV: 'production', CAISSA_TABLEBASE_PUBLIC_ENABLED: '1', CAISSA_TABLEBASE_SHARED_LIMITER_READY: '1' }), false);
+    assert.equal(publicTablebaseEnabled({ VERCEL_ENV: 'production', CAISSA_TABLEBASE_PUBLIC_ENABLED: '1', CAISSA_TABLEBASE_SHARED_LIMITER_READY: '1', SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'server-only' }), true);
     const res = response();
     await handler({ method: 'GET', query: { fen: START_FEN } }, res, {
         env: { VERCEL_ENV: 'production' }, fetch: () => { throw new Error('unexpected'); }
@@ -138,10 +141,71 @@ test('production exposure stays closed until both release and shared-limiter gat
     assert.equal(res.body.code, 'TABLEBASE_REVIEW_ONLY');
 });
 
+test('shared limiter requires a durable claim and release, and fails closed on database errors', async () => {
+    const lease = '00000000-0000-4000-8000-000000000001';
+    const calls = [];
+    const db = { async rpc(name, args) {
+        calls.push([name, args]);
+        return name === 'claim_caissa_tablebase_provider'
+            ? { data: [{ allowed: true, code: 'ALLOWED', lease_id: lease, retry_after_seconds: 0 }], error: null }
+            : { data: true, error: null };
+    } };
+    const limiter = createSharedTablebaseLimiter(db);
+    assert.deepEqual(await limiter.claim(), { allowed: true, code: 'ALLOWED', leaseId: lease, retryAfter: 1 });
+    await limiter.release(lease, 120);
+    assert.equal(calls[1][1].p_retry_after_seconds, 120);
+    const failed = createSharedTablebaseLimiter({ rpc: async () => ({ data: null, error: { message: 'down' } }) });
+    await assert.rejects(failed.claim(), /unavailable/);
+});
+
+test('production needs a shared claim before upstream and records provider backoff on release', async () => {
+    const env = { VERCEL_ENV: 'production', CAISSA_TABLEBASE_PUBLIC_ENABLED: '1', CAISSA_TABLEBASE_SHARED_LIMITER_READY: '1',
+        SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'server-only' };
+    const position = '8/8/8/8/8/3k4/8/4K2R w - - 13 4';
+    let fetched = 0;
+    const denied = response();
+    await handler({ method: 'GET', query: { fen: position } }, denied, {
+        env, sharedLimiter: { claim: async () => ({ allowed: false, retryAfter: 18 }) },
+        fetch: async () => { fetched++; throw new Error('unexpected'); }
+    });
+    assert.equal(denied.statusCode, 503);
+    assert.equal(denied.headers['Retry-After'], '18');
+    assert.equal(fetched, 0);
+
+    const released = [];
+    const limited = response();
+    await handler({ method: 'GET', query: { fen: position } }, limited, {
+        env, sharedLimiter: { claim: async () => ({ allowed: true, leaseId: '00000000-0000-4000-8000-000000000002' }),
+            release: async (...args) => released.push(args) },
+        fetch: async () => { fetched++; return { ok: false, status: 429, headers: { get: () => '121' } }; }
+    });
+    assert.equal(limited.statusCode, 503);
+    assert.equal(fetched, 1);
+    assert.equal(released[0][1], 121);
+});
+
+test('a failed shared release never turns an upstream result into a cache hit', async () => {
+    const env = { VERCEL_ENV: 'production', CAISSA_TABLEBASE_PUBLIC_ENABLED: '1', CAISSA_TABLEBASE_SHARED_LIMITER_READY: '1',
+        SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'server-only' };
+    const fen = '8/8/8/8/8/2k5/8/4K2R w - - 0 1';
+    const moves = new Chess(fen).moves({ verbose: true }).map(move => ({ uci: move.lan, san: move.san, category: 'loss' }));
+    let fetched = 0;
+    for (let i = 0; i < 2; i++) {
+        const res = response();
+        await handler({ method: 'GET', query: { fen } }, res, {
+            env, sharedLimiter: { claim: async () => ({ allowed: true, leaseId: '00000000-0000-4000-8000-000000000003' }),
+                release: async () => { throw Object.assign(new Error('storage down'), { code: 'LIMITER_UNAVAILABLE' }); } },
+            fetch: async () => { fetched++; return { ok: true, status: 200, json: async () => ({ category: 'win', moves }) }; }
+        });
+        assert.equal(res.statusCode, 503);
+        assert.equal(res.body.code, 'TABLEBASE_LIMITER_UNAVAILABLE');
+    }
+    assert.equal(fetched, 2);
+});
+
 test('provider 429 honors a longer Retry-After and never caches the failure', async () => {
     const res = response();
     await handler({ method: 'GET', query: { fen: '8/8/8/8/8/4k3/8/4K3 w - - 12 7' } }, res, {
-        now: () => 1_000,
         fetch: async () => ({ ok: false, status: 429, headers: { get: name => name.toLowerCase() === 'retry-after' ? '120' : null } })
     });
     assert.equal(res.statusCode, 503);

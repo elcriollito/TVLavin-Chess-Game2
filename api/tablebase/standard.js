@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import { createSharedTablebaseLimiter, sharedLimiterConfigured } from './shared-limiter.js';
 
 const PROVIDER = 'https://tablebase.lichess.org/standard';
 const CATEGORIES = new Set(['win', 'loss', 'draw', 'cursed-win', 'blessed-loss', 'syzygy-win', 'syzygy-loss', 'maybe-win', 'maybe-loss', 'unknown']);
@@ -12,8 +13,9 @@ function noStore(res) {
 }
 
 export function publicTablebaseEnabled(env = process.env) {
-    if (env.VERCEL_ENV !== 'production' && env.NODE_ENV !== 'production') return true;
-    return env.CAISSA_TABLEBASE_PUBLIC_ENABLED === '1' && env.CAISSA_TABLEBASE_SHARED_LIMITER_READY === '1';
+    if ((env.VERCEL_ENV || env.NODE_ENV) !== 'production') return true;
+    return env.CAISSA_TABLEBASE_PUBLIC_ENABLED === '1' && env.CAISSA_TABLEBASE_SHARED_LIMITER_READY === '1'
+        && sharedLimiterConfigured(env);
 }
 
 export function validatePosition(raw) {
@@ -101,6 +103,9 @@ export default async function handler(req, res, dependencies = {}) {
         fen = validatePosition(req.query?.fen);
     } catch (error) { noStore(res); return res.status(400).json({ error: error.message }); }
     const now = dependencies.now || Date.now;
+    const env = dependencies.env || process.env;
+    const shared = dependencies.sharedLimiter || (env.CAISSA_TABLEBASE_SHARED_LIMITER_READY === '1' && sharedLimiterConfigured(env)
+        ? createSharedTablebaseLimiter(dependencies.db) : null);
     const key = cacheKey(fen);
     const hit = cache.get(key);
     if (hit && hit.expires > now()) {
@@ -117,22 +122,37 @@ export default async function handler(req, res, dependencies = {}) {
             const fresh = cache.get(key);
             if (fresh && fresh.expires > now()) return fresh.data;
             if (now() < blockedUntil) throw Object.assign(new Error('busy'), { code: 429 });
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 8000);
-            let upstream;
-            try {
-                const url = new URL(PROVIDER);
-                url.searchParams.set('fen', fen);
-                upstream = await (dependencies.fetch || fetch)(url, { signal: controller.signal,
-                    headers: { Accept: 'application/json', 'User-Agent': 'CAISSA-Chess/1.0 (+https://www.caissa-chess.org/)' } });
-            } finally { clearTimeout(timeout); }
-            if (upstream.status === 429) {
-                blockedUntil = now() + retryDelay(upstream, now());
-                throw Object.assign(new Error('busy'), { code: 429 });
+            let lease = null;
+            let retryAfter = 0;
+            if (shared) {
+                const claim = await shared.claim();
+                if (!claim.allowed) throw Object.assign(new Error('shared-busy'), {
+                    code: 'SHARED_BUSY', retryAfter: claim.retryAfter
+                });
+                lease = claim.leaseId;
             }
-            if (upstream.status === 404) throw Object.assign(new Error('unavailable'), { code: 404 });
-            if (!upstream.ok) throw new Error('upstream');
-            const data = sanitize(await upstream.json(), fen);
+            let data;
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 8000);
+                let upstream;
+                try {
+                    const url = new URL(PROVIDER);
+                    url.searchParams.set('fen', fen);
+                    upstream = await (dependencies.fetch || fetch)(url, { signal: controller.signal,
+                        headers: { Accept: 'application/json', 'User-Agent': 'CAISSA-Chess/1.0 (+https://www.caissa-chess.org/)' } });
+                } finally { clearTimeout(timeout); }
+                if (upstream.status === 429) {
+                    retryAfter = Math.ceil(retryDelay(upstream, now()) / 1000);
+                    if (!shared) blockedUntil = now() + retryAfter * 1000;
+                    throw Object.assign(new Error('busy'), { code: 429, retryAfter });
+                }
+                if (upstream.status === 404) throw Object.assign(new Error('unavailable'), { code: 404 });
+                if (!upstream.ok) throw new Error('upstream');
+                data = sanitize(await upstream.json(), fen);
+            } finally {
+                if (lease) await shared.release(lease, retryAfter);
+            }
             cache.set(key, { data, expires: now() + 86_400_000 });
             if (cache.size > 500) cache.delete(cache.keys().next().value);
             return data;
@@ -141,9 +161,14 @@ export default async function handler(req, res, dependencies = {}) {
         return res.status(200).json({ fen, ...data });
     } catch (error) {
         noStore(res);
+        if (error.code === 'LIMITER_UNAVAILABLE') return res.status(503).json({ code: 'TABLEBASE_LIMITER_UNAVAILABLE', error: 'Tablebase is temporarily unavailable.' });
+        if (error.code === 'SHARED_BUSY') {
+            res.setHeader('Retry-After', String(error.retryAfter));
+            return res.status(503).json({ code: 'TABLEBASE_PROVIDER_BUSY', error: 'Tablebase is temporarily busy. Try again shortly.' });
+        }
         if (error.code === 404) return res.status(404).json({ error: 'No tablebase data for this position' });
         if (error.code === 429) {
-            res.setHeader('Retry-After', String(Math.max(1, Math.ceil((blockedUntil - now()) / 1000))));
+            res.setHeader('Retry-After', String(error.retryAfter || Math.max(1, Math.ceil((blockedUntil - now()) / 1000))));
             return res.status(503).json({ error: 'Tablebase is temporarily busy. Try again shortly.' });
         }
         return res.status(502).json({ error: 'Tablebase is unavailable. Try again shortly.' });
