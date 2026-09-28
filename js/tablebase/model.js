@@ -1,4 +1,4 @@
-export const START_FEN = '6r1/3k4/8/KP6/8/8/2R5/8 w - - 0 1';
+export const START_FEN = '4k3/8/8/8/8/8/8/4K3 w - - 0 1';
 
 const CATEGORY_PROFILE = Object.freeze({
     win: Object.freeze({ outcome: 'win', exact: true }),
