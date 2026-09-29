@@ -18,9 +18,17 @@ for (const route of ['/premium', '/about', '/library', '/roadmap']) {
   });
 }
 
-test('Play keeps its engine worker CSP isolated from the Clerk page policy', async ({ request }) => {
-  const [premium, play] = await Promise.all([request.get('/premium'), request.get('/play')]);
-  expect(premium.headers()['content-security-policy']).toContain("worker-src 'self' blob:");
-  expect(play.headers()['content-security-policy']).toContain("worker-src 'self'");
-  expect(play.headers()['content-security-policy']).not.toContain("worker-src 'self' blob:");
+test('Play routes permit Clerk Blob Workers without conflicting document policies', async ({ request }) => {
+  for (const route of ['/play', '/play/games', '/play/bots', '/play/coach']) {
+    const response = await request.get(route);
+    const header = response.headers()['content-security-policy'];
+    const document = await response.text();
+    const meta = document.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/i)?.[1] || '';
+    for (const policy of [header, meta]) {
+      expect(policy, route).toContain("worker-src 'self' blob:");
+      expect(policy, route).not.toMatch(/worker-src[^;]*(?:https?:|\*)/);
+      expect(policy, route).not.toContain("worker-src 'self';");
+      expect(policy, route).not.toContain("'unsafe-eval'");
+    }
+  }
 });

@@ -32,19 +32,19 @@ test('bundled asset provenance, digest, embedded GPL attribution, and notice are
     assert.match(notice, /723fda70117bfa8d5053a7bc4ae50cdc96dc9e3fd41b57627e4dfa0a0025957a/i);
 });
 
-test('Play v2 build and hosting policy use self-only Worker CSP without unsafe eval', async () => {
+test('Play v2 build and hosting policy allow only same-origin and Blob Workers without unsafe eval', async () => {
     const [html, server, vercel] = await Promise.all([read('play-v2.html'), read('server.js'), read('vercel.json')]);
-    assert.match(html, /worker-src 'self';/);
-    assert.doesNotMatch(html, /worker-src[^;]*(?:blob:|https?:|\*)/);
+    assert.match(html, /worker-src 'self' blob:;/);
+    assert.doesNotMatch(html, /worker-src[^;]*(?:https?:|\*)/);
     assert.doesNotMatch(html, /script-src[^;]*'unsafe-eval'/);
-    assert.match(server, /PLAY_V2_CSP = "[^"]*worker-src 'self';/);
-    assert.doesNotMatch(server.match(/PLAY_V2_CSP = "[^"]+"/)?.[0] || '', /'unsafe-eval'|worker-src[^;]*(?:blob:|https?:|\*)/);
+    assert.match(server, /PLAY_V2_CSP = "[^"]*worker-src 'self' blob:;/);
+    assert.doesNotMatch(server.match(/PLAY_V2_CSP = "[^"]+"/)?.[0] || '', /'unsafe-eval'|worker-src[^;]*(?:https?:|\*)/);
     const hosting = JSON.parse(vercel);
     const playHeaders = hosting.headers.filter(item => item.source === '/play' || item.source === '/play/:path*');
     assert.equal(playHeaders.length, 2);
     for (const item of playHeaders) {
         const csp = item.headers.find(header => header.key === 'Content-Security-Policy')?.value || '';
-        assert.match(csp, /worker-src 'self'/); assert.doesNotMatch(csp, /worker-src[^;]*(?:blob:|https?:|\*)/);
+        assert.match(csp, /worker-src 'self' blob:;/); assert.doesNotMatch(csp, /worker-src[^;]*(?:https?:|\*)/);
     }
 });
 

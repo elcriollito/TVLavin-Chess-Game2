@@ -59,8 +59,8 @@ test('production-equivalent response serves canonical Worker with narrow CSP and
     const entry = await request.get('/play/beta/bots');
     expect(entry.status()).toBe(200);
     const csp = entry.headers()['content-security-policy'];
-    expect(csp).toContain("worker-src 'self'");
-    expect(csp).not.toMatch(/worker-src[^;]*(?:blob:|https?:|\*)/);
+    expect(csp).toContain("worker-src 'self' blob:");
+    expect(csp).not.toMatch(/worker-src[^;]*(?:https?:|\*)/);
     const worker = await request.get('/engine/stockfish-working.js');
     expect(worker.status()).toBe(200);
     expect(worker.headers()['content-type']).toMatch(/(?:text|application)\/javascript/);
