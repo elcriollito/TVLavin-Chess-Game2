@@ -57,7 +57,7 @@ test('SEC-005 tokens remain independent of nanoid and worker policies stay scope
     assert.doesNotMatch(globalCsp, /worker-src[^;]*\*/);
     for (const source of ['/play', '/play/:path*']) {
         const playCsp = vercel.headers.find(rule => rule.source === source).headers.find(header => header.key === 'Content-Security-Policy').value;
-        assert.match(playCsp, /worker-src 'self';/);
-        assert.doesNotMatch(playCsp, /worker-src[^;]*blob:/);
+        assert.match(playCsp, /worker-src 'self' blob:;/);
+        assert.doesNotMatch(playCsp, /worker-src[^;]*\*/);
     }
 });

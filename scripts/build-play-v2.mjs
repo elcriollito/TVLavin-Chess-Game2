@@ -55,7 +55,7 @@ html = html
   .replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, '\n')
   .replace(/\s*<!-- CSP: FICS WebSocket[^>]*-->/i, '\n')
   .replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i,
-    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\' https://cdn.jsdelivr.net; script-src-elem \'self\' https://cdn.jsdelivr.net; style-src \'self\' \'unsafe-inline\'; img-src \'self\' https://img.clerk.com data:; font-src \'self\'; worker-src \'self\'; connect-src \'self\' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src \'self\' https://*.clerk.accounts.dev; object-src \'none\'; base-uri \'self\';">')
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\' https://cdn.jsdelivr.net; script-src-elem \'self\' https://cdn.jsdelivr.net; style-src \'self\' \'unsafe-inline\'; img-src \'self\' https://img.clerk.com data:; font-src \'self\'; worker-src \'self\' blob:; connect-src \'self\' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src \'self\' https://*.clerk.accounts.dev; object-src \'none\'; base-uri \'self\';">')
   .replace(/<title>[\s\S]*?<\/title>/i, '<title>CAISSA Play v2 · Internal</title>')
   .replace(/<meta name="title"[^>]*>/i, '<meta name="title" content="CAISSA Play v2 · Internal">')
   .replace(/<meta name="description"[^>]*>/i, '<meta name="description" content="Internal CAISSA-native chess play preview.">')
@@ -86,7 +86,6 @@ html = html
   .replace("script-src 'self' 'unsafe-eval'", "script-src 'self'")
   .replace(" https://challenges.cloudflare.com blob:; script-src-elem", " https://challenges.cloudflare.com; script-src-elem")
   .replace(" https://challenges.cloudflare.com blob:; style-src", " https://challenges.cloudflare.com; style-src")
-  .replace("worker-src 'self' blob:", "worker-src 'self'")
   .replace(/connect-src 'self'[^;]+;/, "connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com;")
   .replace('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     '/assets/vendor/font-awesome/css/all-6.4.0.min.css')
@@ -135,7 +134,7 @@ if (!html.includes('<!-- SECTION: ANALYZE (Game Analysis) -->') || !html.include
   throw new Error('PLAY_V2_INLINE_ANALYZE_TEMPLATE_MISSING');
 if (/data-caissa-analyze-v2|analyze-v2-shell\.(?:css|js)/i.test(html))
   throw new Error('PROHIBITED_STANDALONE_ANALYZE_V2_PRESENTATION');
-if (!html.includes("worker-src 'self';") || /worker-src[^;]*(?:blob:|https?:)/.test(html))
+if (!html.includes("worker-src 'self' blob:;") || /worker-src[^;]*(?:https?:|\*)/.test(html))
   throw new Error('PLAY_V2_WORKER_CSP_INVALID');
 if (/script-src[^;]*'unsafe-eval'/.test(html)) throw new Error('PLAY_V2_UNSAFE_EVAL_CSP');
 const resourceElements = html.match(/<(?:script|link)\b[^>]*>/gi) || [];

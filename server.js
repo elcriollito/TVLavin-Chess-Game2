@@ -29,8 +29,8 @@ const RETIRED_PAGE_REDIRECTS = new Map([
   ['/watch/game-replayer', '/pgn-replayer'],
   ['/watch/lichess-broadcasts', '/watch/live-tournaments']
 ]);
-const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
-const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'";
+const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
+const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'";
 const BETA_PRIVATE_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
 const scannerExperiment = Object.freeze({ id: 'scanner', slug: 'scanner', displayName: 'CAISSA Scanner',

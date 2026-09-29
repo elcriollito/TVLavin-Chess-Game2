@@ -54,7 +54,7 @@ test('public endpoint rejects malformed key candidates',()=>{
   for(const value of ['', 'pk_test_bad!', 'pk_live_short', 'pk_test_REPLACE_WITH_YOUR_KEY', 'pk_live_placeholder_value_12345', ['sk', 'test', 'never_public'].join('_')]) assert.equal(isValidClerkPublishableKey(value),false);
 });
 
-test('global and Reader CSP add only Clerk-required resources while Play stays self-only',()=>{
+test('global, Reader, and Play CSP add only Clerk-required Blob Worker support',()=>{
   const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
   const global=config.headers.find(item=>item.source==='/(.*)').headers.find(h=>h.key==='Content-Security-Policy').value;
   assert.match(global,/worker-src 'self' blob:/); assert.doesNotMatch(global,/worker-src[^;]*\*/);
@@ -63,6 +63,6 @@ test('global and Reader CSP add only Clerk-required resources while Play stays s
   assert.match(reader,/img-src 'self' data: https:\/\/img\.clerk\.com https:\/\/images\.clerk\.dev/);
   for(const source of ['/play','/play/:path*']) {
     const value=config.headers.find(item=>item.source===source).headers.find(h=>h.key==='Content-Security-Policy').value;
-    assert.match(value,/worker-src 'self';/); assert.doesNotMatch(value,/worker-src[^;]*blob:/);
+    assert.match(value,/worker-src 'self' blob:;/); assert.doesNotMatch(value,/worker-src[^;]*\*/);
   }
 });

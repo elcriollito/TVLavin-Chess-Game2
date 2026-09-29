@@ -212,10 +212,10 @@ test('versioned assets, same-origin approval, MIME, CSP, and immutable hashes sa
     const vercel = JSON.parse(read('vercel.json'));
     assert.match(adapter, new RegExp(`'${manifest.provider.worker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`));
     assert.match(server, /'\.wasm': 'application\/wasm'/);
-    assert.match(server, /worker-src 'self'/);
+    assert.match(server, /worker-src 'self' blob:;/);
     const playHeader = vercel.headers.find(rule => rule.source === '/play')?.headers
         .find(header => header.key === 'Content-Security-Policy')?.value || '';
-    assert.match(playHeader, /worker-src 'self'/);
+    assert.match(playHeader, /worker-src 'self' blob:;/);
     assert.doesNotMatch(playHeader, /worker-src[^;]*(?:https?:|\*)/);
     assert.equal(new URL(manifest.provider.worker, 'https://www.caissa-chess.org').origin,
         'https://www.caissa-chess.org');
