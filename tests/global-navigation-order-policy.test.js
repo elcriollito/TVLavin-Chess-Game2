@@ -12,7 +12,7 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.14.0 owns one immutable 35-destination order', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.14.0 owns one immutable 32-destination order', () => {
   const navigation = loadNavigation();
   assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
   assert.deepEqual(
@@ -24,8 +24,8 @@ test('CaissaGlobalNavigationOrderPolicy@1.14.0 owns one immutable 35-destination
   ]);
   assert.deepEqual(Array.from(navigation.inventory.primary, item => item.label), [
     'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-    'Tactics', 'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
-    'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena',
+    'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
+    'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
     'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
     'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog'
   ]);
@@ -34,7 +34,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.14.0 owns one immutable 35-destination
   ]);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'play').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'playchess').length, 1);
-  assert.equal(navigation.inventory.all.filter(item => item.id === 'tactics').length, 1);
+  assert.equal(navigation.inventory.all.filter(item => item.id === 'puzzles').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'interactive-diagrams').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'lichess-tv').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
@@ -43,7 +43,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.14.0 owns one immutable 35-destination
     'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), [
-    'Tactics', 'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library'
+    'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
   ]);
   assert.equal(navigation.inventory.all.some(item => item.label === 'Play Online' || item.id === 'play-online'), false);
 });

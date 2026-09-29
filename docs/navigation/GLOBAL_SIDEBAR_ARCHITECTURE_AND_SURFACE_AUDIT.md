@@ -8,7 +8,7 @@ Navigation contract: `CaissaGlobalNavigationOrderPolicy@1.5.0`
 
 ## 1. Executive verdict
 
-**CONDITIONAL GO.** CAISSA already has one authoritative, immutable 28-destination inventory and a reusable modern sidebar. The visible inconsistency is not primarily data drift: the application/Classic shell calls the canonical renderer without `showHeadings`, owns older 220 px chrome, and has different mobile behavior; Endgame Trainer is a justified specialized adapter. The smallest safe target is one canonical model plus two rendering adapters: the existing modern standalone renderer and a thin application-shell adapter that can also serve Play/Classic. Endgame Trainer should retain its product layout while consuming the same model and shared interaction primitives.
+**CONDITIONAL GO.** CAISSA already has one authoritative, immutable 32-destination inventory and a reusable modern sidebar. The visible inconsistency is not primarily data drift: the application/Classic shell calls the canonical renderer without `showHeadings`, owns older 220 px chrome, and has different mobile behavior; Endgame Trainer is a justified specialized adapter. The smallest safe target is one canonical model plus two rendering adapters: the existing modern standalone renderer and a thin application-shell adapter that can also serve Play/Classic. Endgame Trainer should retain its product layout while consuming the same model and shared interaction primitives.
 
 No new inventory, per-page sidebar, route table, CSS system, or mobile drawer should be created. Production `/play` is deliberately fail-closed at this baseline, so Play sidebar work must be certified against the source/preview shell without changing that release boundary.
 
@@ -45,14 +45,14 @@ The unrelated work above was not read as an implementation input, altered, stage
 | Endgame Trainer adapter | `endgame-trainer.html`: `[data-caissa-primary-groups]`, `[data-mobile-nav]`, `[data-mobile-nav-toggle]`; `js/endgame-trainer/endgame-trainer-page.js`; `css/endgame-trainer.css` | Canonical data with specialized chrome/drawer. |
 | Authentication/account state | `js/caissa-auth.js` and `js/caissa-ui-auth.js`: sidebar IDs `sidebarSignIn`, `sidebarUserInfo`, account menu handlers | State owner is shared JS; shell markup is duplicated between application HTML and standalone renderer. |
 | Premium CTA | Markup in `index.html`, generated `yahoo-classic.html`, `play-v2.html`, `js/caissa-standalone-sidebar.js`, and `endgame-trainer.html` | Presentation is shell-owned and duplicated; entitlement remains in `js/caissa-access.js`. |
-| Help/About/Settings | Help/About are `support`; `js/caissa-navigation.js` owns legacy Help/Settings action/modal behavior; `/help` and `/about` are canonical routes | Settings is a contextual application action, not one of the 28 destinations. |
+| Help/About/Settings | Help/About are `support`; `js/caissa-navigation.js` owns legacy Help/Settings action/modal behavior; `/help` and `/about` are canonical routes | Settings is a contextual application action, not one of the 32 destinations. |
 | Generated public inventory | `scripts/build-caissa-public-route-inventory.mjs`; output `docs/architecture/CAISSA_PUBLIC_ROUTE_AND_NAVIGATION_INVENTORY.md` | `CaissaPublicRouteInventory@1.0.0`; generated from navigation plus route/deployment owners. |
 | Accessibility names | `renderItem`; logo normalization at the bottom of `js/caissa-primary-navigation.js`; shell toggle markup/handlers | Item names are canonical; toggle semantics differ by adapter. |
 | Public release | `scripts/build-public-release.mjs` | Copies committed allowlisted public files; sidebar implementation should use this owner only if its deterministic output changes. |
 
 ## 4. Complete canonical inventory
 
-The exact order is four primary groups (24 internal destinations) followed by four Connect destinations: **28 total**. Help and About are support links outside that count.
+The exact order is four primary groups (28 internal destinations) followed by four Connect destinations: **32 total**. Help and About are support links outside that count.
 
 | # | Current canonical category | Label | Route/destination |
 |---:|---|---|---|
@@ -61,31 +61,35 @@ The exact order is four primary groups (24 internal destinations) followed by fo
 | 3 | Play & Compete | FICS | `/fics` |
 | 4 | Play & Compete | Playchess | `/play-online/playchess` |
 | 5 | Play & Compete | Fritz | `/play-online/fritz` |
-| 6 | Learn & Improve | Tactics | `/puzzles/chessbase-tactics` |
-| 7 | Learn & Improve | Academy | `/academy` |
-| 8 | Learn & Improve | Endgame Trainer | `/endgame-trainer` |
-| 9 | Learn & Improve | Endgame Practice | `/endgame-practice` |
+| 6 | Learn & Improve | Puzzles | `/puzzles` |
+| 7 | Learn & Improve | Interactive Diagrams | `/learn/interactive-diagrams` |
+| 8 | Learn & Improve | Academy | `/academy` |
+| 9 | Learn & Improve | Endgame Trainer | `/endgame-trainer` |
 | 10 | Learn & Improve | Endgame Library | `/endgame-library` |
-| 11 | Analyze & Watch | Insights | `/insights` |
-| 12 | Analyze & Watch | Analyze | `/analyze` |
-| 13 | Analyze & Watch | Spectator TV | `/spectator-tv` |
-| 14 | Analyze & Watch | Live Blitz | `/watch/live-blitz` |
-| 15 | Analyze & Watch | Arena | `/arena` |
-| 16 | Tools | Cheater Insight | `/cheater-insight` |
-| 17 | Tools | Polyglot Tool | `/tools/polyglot` |
-| 18 | Tools | Opening Database | `/opening-database` |
-| 19 | Tools | ECO Codes | `/eco` |
-| 20 | Tools | Game Library | `/game-library` |
-| 21 | Tools | History | `/history` |
-| 22 | Tools | DOS Chess | `/dos-chess` |
-| 23 | Tools | Vault | `/vault` |
-| 24 | Tools | Blog | `/blog` |
-| 25 | Connect | Facebook | external |
-| 26 | Connect | CAISSA Chess YouTube | external |
-| 27 | Connect | CAISSA Discord | external |
-| 28 | Connect | Share an Idea / Contact & Feedback | `mailto:` |
+| 11 | Learn & Improve | Endgame Tablebase | `/endgame-tablebase` |
+| 12 | Analyze & Watch | Insights | `/insights` |
+| 13 | Analyze & Watch | Analyze | `/analyze` |
+| 14 | Analyze & Watch | PGN Reader | `/pgn-replayer` |
+| 15 | Analyze & Watch | Chess TV | `/spectator-tv` |
+| 16 | Analyze & Watch | Lichess TV | `/watch/lichess-tv` |
+| 17 | Analyze & Watch | Live Blitz | `/watch/live-blitz` |
+| 18 | Analyze & Watch | Live Tournaments | `/watch/live-tournaments` |
+| 19 | Analyze & Watch | Arena | `/arena` |
+| 20 | Tools | Cheater Insight | `/cheater-insight` |
+| 21 | Tools | Polyglot Tool | `/tools/polyglot` |
+| 22 | Tools | Opening Database | `/opening-database` |
+| 23 | Tools | ECO Codes | `/eco` |
+| 24 | Tools | Game Library | `/game-library` |
+| 25 | Tools | History | `/history` |
+| 26 | Tools | DOS Chess | `/dos-chess` |
+| 27 | Tools | Vault | `/vault` |
+| 28 | Tools | Blog | `/blog` |
+| 29 | Connect | Facebook | external |
+| 30 | Connect | CAISSA Chess YouTube | external |
+| 31 | Connect | CAISSA Discord | external |
+| 32 | Connect | Share an Idea / Contact & Feedback | `mailto:` |
 
-Support then renders Help (`/help`) and About (`/about`). The proposed IA differs from the contract: Blog is currently Tools, social/contact entries are a separate unheaded `connect` collection, and Help/About are Support. There is no canonical Community & Support group and no global Settings destination. All 28 items are unambiguous under the current model, but Blog's placement and whether Connect/Support should merge require product decisions. Any group addition, rename, reordering, or reassignment changes the versioned contract and should bump policy/version plus regenerate the public route inventory.
+Support then renders Help (`/help`) and About (`/about`). The proposed IA differs from the contract: Blog is currently Tools, social/contact entries are a separate unheaded `connect` collection, and Help/About are Support. There is no canonical Community & Support group and no global Settings destination. All 32 items are unambiguous under the current model, but Blog's placement and whether Connect/Support should merge require product decisions. Any group addition, rename, reordering, or reassignment changes the versioned contract and should bump policy/version plus regenerate the public route inventory.
 
 ## 5. Shell-family and route-to-renderer inventory
 
@@ -93,15 +97,15 @@ Routes are grouped by actual renderer, not by HTML-file count.
 
 | Family | Public surfaces | Renderer / evidence | Classification |
 |---|---|---|---|
-| Modern standalone gateways | `/play-online/playchess`, `/play-online/fritz`, `/puzzles/chessbase-tactics`, `/watch/live-blitz` | Page host `[data-caissa-standalone-sidebar]` -> `renderSidebar` | **A — MODERN CANONICAL** |
-| Modern standalone content/tools | `/tools/polyglot`, `/opening-database`, `/eco` and `/eco/:code`, `/vault`, `/blog` and generated articles, `/endgame-practice`, `/endgame-library`, `/help`, `/about` | Same standalone host/renderer; generator-owned blog markup in `scripts/build-blog.mjs` | **A — MODERN CANONICAL** |
+| Modern standalone gateways | `/play-online/playchess`, `/play-online/fritz`, `/watch/live-blitz`, `/watch/live-tournaments` | Page host `[data-caissa-standalone-sidebar]` -> `renderSidebar` | **A — MODERN CANONICAL** |
+| Modern standalone content/tools | `/puzzles`, `/pgn-replayer`, `/tools/polyglot`, `/opening-database`, `/eco` and `/eco/:code`, `/vault`, `/blog` and generated articles, `/learn/interactive-diagrams`, `/endgame-library`, `/endgame-tablebase`, `/help`, `/about` | Same standalone host/renderer; generator-owned blog markup in `scripts/build-blog.mjs` | **A — MODERN CANONICAL** |
 | Core application shell | `/academy`, `/insights`, `/fics`, `/analyze`, `/spectator-tv`, `/arena`, `/cheater-insight`, `/game-library`, `/history`, `/dos-chess` | `index.html`, canonical group/support hydration, `CaissaNavigation` | **B — CANONICAL DATA / LEGACY PRESENTATION** |
 | CAISSA Classic shell | `/yahoo-classic` plus its lobby, tables, tournament, computer, teaching, challenge, spectating and game-room surfaces | generated `yahoo-classic.html`; canonical hydration plus Classic application state | **B — CANONICAL DATA / LEGACY PRESENTATION** |
 | Endgame Trainer | `/endgame-trainer` | specialized HTML/CSS/JS adapter with canonical group hydration | **E — INTENTIONALLY DIFFERENT SHELL** |
 | Play V2 source/preview | `/play`, `/play/games`, `/play/bots`, `/play/coach` conceptually map to `play-v2.html`; source shell uses canonical hydration | Play's outer shell is **B** in source; internal Games/Bots/Coach are not global-sidebar destinations |
 | Production Play fail-closed shell | `/`, `/play`, `/play/:mode`, beta/preview aliases | `vercel.json` rewrites to `play-v2-unavailable.html`, which intentionally has no sidebar and `noindex` | **G — INTENTIONALLY EXCLUDED** while release gate is closed |
 | Auth/commercial/roadmap utilities | `/signin`, `/signup`, `/premium`, `/roadmap` | focused standalone flows without application sidebar | **G — INTENTIONALLY EXCLUDED**; avoid circular auth/checkout distraction |
-| Legacy database/library documents | `/database`, `/database/eco/:code`, `/library` | public compatibility surfaces outside the 28 canonical navigation entries | **G — INTENTIONALLY EXCLUDED** pending retirement/redirect decision |
+| Legacy database/library documents | `/database`, `/database/eco/:code`, `/library` | public compatibility surfaces outside the 32 canonical navigation entries | **G — INTENTIONALLY EXCLUDED** pending retirement/redirect decision |
 | QA, diagnostic, harness and static asset HTML | named test/diagnostic files, `public/*`, `client/index.html`, `chess-llm-platform/index.html` | not canonical public product surfaces or protected/fail-closed preview artifacts | **G — INTENTIONALLY EXCLUDED** |
 
 No runtime family is classified C: the hard-coded application fallback is duplicate markup risk, but canonical JS replaces the item area at runtime. No applicable canonical public route is classified F at the audited baseline. `/` is a redirect, not a fourth renderer. Contact/feedback is a canonical mail destination rather than a page. Settings remains an application-local action.
@@ -112,12 +116,12 @@ Read-only local browser checks sampled each distinct family. The controlled Chro
 
 | Family | Desktop (~1800x1125 reported) | Tablet (960x1280) | Narrow tablet/mobile (767x1125 / 487x1055) |
 |---|---|---|---|
-| Modern standalone | 240 px fixed sidebar; main begins ~294 px on Fritz; 5 visible headings including Support; 33 visible links; active item correct; no horizontal overflow | 240 px fixed sidebar and headings; content begins 240 px; no overflow | At <=768, 280 px off-canvas drawer and visible toggle. Open moves drawer to x≈0, sets `aria-expanded=true`, applies body scroll-lock class, and focuses logo. Escape/backdrop/link close and focus loop exist. |
-| Core application / Classic | 220 px sidebar; main begins 220 px; no category headings; 33 links; active FICS correct; no overflow | Desktop form remains until breakpoint | 280 px drawer translates fully off-screen; toggle visible, but lacks `aria-controls` and `aria-expanded` in observed closed state. This is a semantic and state-parity gap. |
+| Modern standalone | 240 px fixed sidebar; main begins ~294 px on Fritz; 5 visible headings including Support; current canonical links visible; active item correct; no horizontal overflow | 240 px fixed sidebar and headings; content begins 240 px; no overflow | At <=768, 280 px off-canvas drawer and visible toggle. Open moves drawer to x≈0, sets `aria-expanded=true`, applies body scroll-lock class, and focuses logo. Escape/backdrop/link close and focus loop exist. |
+| Core application / Classic | 220 px sidebar; main begins 220 px; no category headings; current canonical links visible; active FICS correct; no overflow | Desktop form remains until breakpoint | 280 px drawer translates fully off-screen; toggle visible, but lacks `aria-controls` and `aria-expanded` in observed closed state. This is a semantic and state-parity gap. |
 | Endgame Trainer | 220 px specialized sidebar; canonical active Endgame Trainer; no headings, auth block, or collapse button; no overflow | Specialized fixed form until breakpoint | 280 px off-canvas drawer; toggle exposes `aria-controls=endgame-nav` and `aria-expanded=false`; specialized product chrome remains justified. |
 | Play V2 | Source/preview outer shell resembles application family; production response is centered fail-closed document without sidebar | Same release-boundary distinction | Same release-boundary distinction; do not certify source behavior as currently deployed `/play`. |
 
-Across the modern samples Fritz, Tactics, and Live Blitz used the same renderer, order, headings, width, typography/icon source, Premium/auth block, divider model, internal navigation scroll, collapse control, and <=768 drawer. Playchess is source-identical at the ownership boundary. Hover/focus rules and active `aria-current` come from the common renderer/CSS; browser checks confirmed active items and no page-level horizontal overflow. The modern drawer has an explicit focus cycle and focus return on Escape/backdrop, but link-close does not explicitly return focus because navigation normally leaves the document.
+Across the modern samples Fritz, Puzzles, and Live Blitz use the same renderer, order, headings, width, typography/icon source, Premium/auth block, divider model, internal navigation scroll, collapse control, and <=768 drawer. Playchess is source-identical at the ownership boundary. Hover/focus rules and active `aria-current` come from the common renderer/CSS; browser checks confirmed active items and no page-level horizontal overflow. The modern drawer has an explicit focus cycle and focus return on Escape/backdrop, but link-close does not explicitly return focus because navigation normally leaves the document.
 
 ## 7. Modern-versus-legacy evidence
 
@@ -126,7 +130,7 @@ Across the modern samples Fritz, Tactics, and Live Blitz used the same renderer,
 | Category subtitles | Play & Compete, Learn & Improve, Analyze & Watch, Tools, Support | omitted | `renderGroups({showHeadings:true})` in standalone versus hydration options without it in `caissa-primary-navigation.js` |
 | Brand/logo | modern 240 px header and shared normalized return-to-Play link | older 220 px shell treatment | shell markup plus `css/caissa-standalone-sidebar.css` versus `styles.css` |
 | Account/Premium | renderer creates full sign-in/user menu placeholders and Upgrade CTA | application HTML owns equivalent markup; Trainer has only Premium | standalone renderer vs shell HTML; state then bound by `caissa-ui-auth.js` |
-| Icons/order | canonical Font Awesome classes and same 28-order | same canonical icons/order | `renderItem`; no data drift |
+| Icons/order | canonical Font Awesome classes and same 32-order | same canonical icons/order | `renderItem`; no data drift |
 | Active item | route `data-active` | section/route controller | `activeKey` versus `CaissaNavigation` |
 | Spacing/dividers/scroll | modern group sections, dividers, 240 px width and scroll positioning | flat groups/dividers, 220 px width; Trainer-local scroll | renderer option and CSS owners |
 | Collapse | modern renderer button | application has its own behavior; Trainer none | shell adapters |
@@ -198,7 +202,7 @@ Two implementation tasks are sufficient; a six-task season is not justified.
 - **Likely files:** `js/caissa-primary-navigation.js`, `js/caissa-standalone-sidebar.js`, a shared navigation section of `styles.css` and/or `css/caissa-standalone-sidebar.css`, application shell source/generator identified by `scripts/build-yahoo-classic.mjs` and `scripts/build-play-v2.mjs`, focused unit/browser tests.
 - **Surfaces:** modern standalone, core shell, Classic/Play source shells; Trainer only consumes the shared drawer primitive if proven compatible.
 - **Reuse:** current inventory/render functions, auth hook IDs, transition policy and modern grouped markup.
-- **Tests:** exact 28/order/categories; one sidebar; auth/Premium hooks; headings; active current; desktop widths/content offset; closed-drawer focus exclusion; controls/expanded; focus return; 768 breakpoint; 200% zoom/reduced motion.
+- **Tests:** exact 32/order/categories; one sidebar; auth/Premium hooks; headings; active current; desktop widths/content offset; closed-drawer focus exclusion; controls/expanded; focus return; 768 breakpoint; 200% zoom/reduced motion.
 - **Stop conditions:** any label/order/route/policy change, auth state regression, Play/Classic transition regression, duplicate IDs/sidebar, or need to modify Play internals.
 - **Rollback:** revert this task's shared adapter/CSS/test commit; no data migration.
 - **Policy version:** no, if categories/order/labels/routes remain identical.
@@ -210,7 +214,7 @@ Two implementation tasks are sufficient; a six-task season is not justified.
 - **Likely files:** `index.html` or its real source, `scripts/build-yahoo-classic.mjs` + deterministic `yahoo-classic.html`, `scripts/build-play-v2.mjs` + allowed preview output, `endgame-trainer.html`, `js/endgame-trainer/endgame-trainer-page.js`, `css/endgame-trainer.css`, standalone host pages only if the adapter API requires a mechanical version update, `tests/browser/global-navigation-order.spec.js`, `tests/browser/primary-navigation-surface-consistency.spec.js`, focused new sidebar consistency/accessibility specs.
 - **Surfaces:** all A/B/E families; G remains excluded.
 - **Reuse:** one model, two full adapters maximum, Trainer layout hook.
-- **Tests:** desktop/tablet/mobile route matrix, screenshots for Play preview/Fritz/Tactics/Live Blitz, auth state fixtures, Help/Settings/About, legacy redirects/back-forward, Play/FICS/Worker isolation, public-release audit.
+- **Tests:** desktop/tablet/mobile route matrix, screenshots for Play preview/Fritz/Puzzles/Live Blitz, auth state fixtures, Help/Settings/About, legacy redirects/back-forward, Play/FICS/Worker isolation, public-release audit.
 - **Stop conditions:** production Play boundary changes, gateway iframe/function changes, baseline failure set grows, screenshots reveal content obstruction, or canonical generator emits unrelated output.
 - **Rollback:** revert adoption by shell family; each family commit must be independently deployable/revertible.
 - **Policy version:** no unless a separately approved IA decision changes contract data.
@@ -225,17 +229,17 @@ Existing coverage includes:
 - `tests/browser/global-navigation-order.spec.js`: runtime contract marker and destination order.
 - `tests/browser/primary-navigation-surface-consistency.spec.js`: route, active state, direct/reload/history identity and standalone resolution.
 - `tests/primary-navigation-transition-policy.test.js` and `tests/browser/legacy-canonical-section-routes.spec.js`: legacy/canonical transitions.
-- Gateway tests (`tests/playchess-gateway.test.js`, `tests/fritz-gateway.test.js`, `tests/tactics-gateway.test.js`, `tests/live-blitz-gateway.test.js`).
-- `tests/browser/endgame-practice-sidebar.spec.js`: standalone mobile sidebar behavior.
+- Gateway tests (`tests/playchess-gateway.test.js`, `tests/fritz-gateway.test.js`, `tests/live-blitz-gateway.test.js`, `tests/lichess-broadcasts-gateway.test.js`).
+- `tests/retired-legacy-pages.test.js`: permanent redirect, navigation, sitemap, deleted-asset, and preserved-shared-code contract.
 - `tests/hotfix-9-2-1-help-game-options.test.js`: Help/Settings ownership.
 - Play isolation/responsive/accessibility suites under `tests/play/` and `tests/browser/play-*`.
 
 Focused gaps to add:
 
-1. One parameterized shell-family test for headings, 28-order, icons, single active current item, logo name, Support/Connect placement and no duplicate sidebar.
+1. One parameterized shell-family test for headings, 32-order, icons, single active current item, logo name, Support/Connect placement and no duplicate sidebar.
 2. Anonymous/Free/Premium sidebar snapshots or DOM contracts without live account mutation.
 3. Drawer ARIA and keyboard contract across standalone/application/Trainer: closed focus exclusion, open focus, cycle, Escape, backdrop, focus return.
-4. Responsive visual baselines at 1440x1000, 768x1024, 390x844 and 200% equivalent, covering Play source/preview, Fritz, Tactics and Live Blitz.
+4. Responsive visual baselines at 1440x1000, 768x1024, 390x844 and 200% equivalent, covering Play source/preview, Fritz, Puzzles and Live Blitz.
 5. Content/sidebar independent scroll and focused-item visibility tests.
 6. Explicit exclusions asserting auth/payment/fail-closed/QA pages do not accidentally acquire the global shell.
 
@@ -247,7 +251,7 @@ The eleven inherited failures are outside scope: four Endgame Trainer digest exp
 
 ## 16. Stop conditions and rollback
 
-Stop implementation if the baseline/branch differs, extra dirty files appear unexplained, generated output expands beyond its owner, the 28 count/order changes without approval, a page needs a new inventory, production Play gating changes, auth/account mutation is required for certification, or any canonical route loses direct-load/refresh/back-forward identity.
+Stop implementation if the baseline/branch differs, extra dirty files appear unexplained, generated output expands beyond its owner, the 32 count/order changes without approval, a page needs a new inventory, production Play gating changes, auth/account mutation is required for certification, or any canonical route loses direct-load/refresh/back-forward identity.
 
 Rollback is commit- and family-bounded: revert foundation before adoption only after reverting adopters; otherwise revert the affected family adoption while retaining the shared model. There is no schema/data rollback. Preserve the current standalone renderer until all family tests pass; never delete fallbacks and adapters in the same step that introduces their replacement.
 

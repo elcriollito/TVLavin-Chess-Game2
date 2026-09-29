@@ -100,11 +100,11 @@ test('Goals appears between Special moves and Lengths with all four Lichess goal
     }
 });
 
-test('the native preview route and dataset are separate from the ChessBase gateway', () => {
+test('the native preview route replaces the retired ChessBase gateway', () => {
     const config = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url)));
     assert.ok(config.rewrites.some(rule => rule.source === '/puzzles' && rule.destination === '/puzzles.html'));
     assert.ok(config.rewrites.some(rule => rule.source === '/data/:path*' && rule.destination === '/public/data/:path*'));
-    assert.ok(config.rewrites.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/tactics.html'));
+    assert.ok(config.redirects.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/puzzles' && rule.permanent));
     const page = fs.readFileSync(new URL('../puzzles.html', import.meta.url), 'utf8');
     assert.match(page, /id="puzzle-board"/);
     assert.match(page, /role="tab" id="tab-training"[^>]*>Training<\/button>/);

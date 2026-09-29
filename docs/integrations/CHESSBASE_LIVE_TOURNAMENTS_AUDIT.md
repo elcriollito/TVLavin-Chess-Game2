@@ -1,5 +1,7 @@
 # ChessBase Live Tournaments integration audit (LTR-0.1)
 
+> Current architecture note (2026-09-28): references below to the retired Game Replayer describe historical isolation research. The active Live Tournaments gateway is standalone and does not depend on those deleted page-specific files.
+
 **Verdict: CONDITIONAL GO.** CAISSA can display a provider-selected current live tournament automatically with the documented wildcard `.cblive` mode. That is suitable only for a generic “current live tournament” promise. ChessBase does not document how the wildcard chooses among simultaneous events, so a named or editorially featured tournament requires an operator to configure the event identifier. The operator does not need to maintain a date or round when the official event iframe or `data-round="max"` is used.
 
 Audit date: 2026-08-15 UTC. Observation window: 2026-08-15 01:57–02:05 UTC. This is an engineering, product, privacy, and supply-chain assessment, not legal advice.

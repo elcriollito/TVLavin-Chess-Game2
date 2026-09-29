@@ -1,5 +1,7 @@
 # ChessBase PGN Game Replayer integration audit (GPR-0.1)
 
+> Retirement note (2026-09-28): the audited standalone Game Replayer and its wrapper were retired. `/watch/game-replayer` now permanently redirects to the native CAISSA PGN Reader at `/pgn-replayer`; this document remains historical integration research only.
+
 **Verdict: CONDITIONAL GO.** The official ChessBase replayer can satisfy a narrowly scoped replay/study page, but it is a global, mutable third-party JavaScript integration—not a self-contained ChessBase game database. CAISSA must provide a lawfully sourced inline PGN or PGN URL and should isolate the official integration in a first-party wrapper document. Release must stop if ChessBase permission/terms, the content licence, a narrow tested CSP, mobile containment, or an accessible CAISSA fallback cannot be established.
 
 Audit date: 2026-08-14. This is an engineering and provenance assessment, not legal advice.

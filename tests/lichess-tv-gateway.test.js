@@ -79,7 +79,7 @@ test('navigation, route, sitemap, inventory, and CSP expose exactly one bounded 
   const api = navigation();
   assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
   assert.deepEqual(Array.from(api.inventory.groups[2], item => item.label), [
-    'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena'
+    'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena'
   ]);
   const matches = api.inventory.all.filter(item => item.id === 'lichess-tv');
   assert.equal(matches.length, 1);
@@ -103,8 +103,8 @@ test('navigation, route, sitemap, inventory, and CSP expose exactly one bounded 
 test('Lichess TV runtime remains isolated from every unrelated public surface', () => {
   const isolated = [
     'index.html', 'play-v2-unavailable.html', 'yahoo-classic.html', 'endgame-trainer.html',
-    'playchess.html', 'fritz.html', 'tactics.html', 'live-blitz.html', 'live-tournaments.html',
-    'game-replayer.html', 'interactive-diagrams.html'
+    'playchess.html', 'fritz.html', 'live-blitz.html', 'live-tournaments.html',
+    'interactive-diagrams.html'
   ];
   for (const path of isolated) {
     assert.doesNotMatch(read(path), /lichess\.org\/tv\/frame|lichess-tv-parent|data-lichess-tv-frame/i, path);

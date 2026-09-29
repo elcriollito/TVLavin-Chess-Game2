@@ -26,12 +26,10 @@
             { id: 'fritz', label: 'Fritz', icon: 'fas fa-chess-knight', route: '/play-online/fritz' }
         ]),
         Object.freeze([
-            { id: 'tactics', label: 'Tactics', icon: 'fas fa-crosshairs', route: '/puzzles/chessbase-tactics' },
             { id: 'puzzles', label: 'Puzzles', icon: 'fas fa-puzzle-piece', route: '/puzzles' },
             { id: 'interactive-diagrams', label: 'Interactive Diagrams', icon: 'fas fa-chess-board', route: '/learn/interactive-diagrams' },
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/academy', canonicalNavigation: true },
             { id: 'endgame-trainer', label: 'Endgame Trainer', icon: 'fas fa-chess-pawn', route: '/endgame-trainer' },
-            { id: 'endgame-practice', label: 'Endgame Practice', icon: 'fas fa-chess-board', route: '/endgame-practice' },
             { id: 'endgame-library', label: 'Endgame Library', icon: 'fas fa-book-reader', route: '/endgame-library' },
             { id: 'endgame-tablebase', label: 'Endgame Tablebase', icon: 'fas fa-chess-board', route: '/endgame-tablebase' }
         ]),
@@ -43,8 +41,6 @@
             { id: 'lichess-tv', label: 'Lichess TV', icon: 'fas fa-tv', route: '/watch/lichess-tv' },
             { id: 'live-blitz', label: 'Live Blitz', icon: 'fas fa-bolt', route: '/watch/live-blitz' },
             { id: 'live-tournaments', label: 'Live Tournaments', icon: 'fas fa-trophy', route: '/watch/live-tournaments' },
-            { id: 'lichess-broadcasts', label: 'Lichess Broadcasts', icon: 'fas fa-satellite-dish', route: '/watch/lichess-broadcasts' },
-            { id: 'game-replayer', label: 'Game Replayer', icon: 'fas fa-chess-board', route: '/watch/game-replayer' },
             { id: 'arena', label: 'Engine Arena', icon: 'fas fa-robot', section: 'arena', route: '/arena', canonicalNavigation: true }
         ]),
         Object.freeze([

@@ -54,7 +54,6 @@ test('wrapper uses the explicit static mode, exact SRI, safe ordering, and no en
   assert.match(runtime, /dataset\.buttons = '0'/);
   assert.doesNotMatch(html, /data-play|connect-src/);
   assert.match(html, /worker-src 'none'/);
-  assert.doesNotMatch(read('game-replayer.html') + read('js/game-replayer-parent.js'), /interactive-diagrams/i);
 });
 
 test('public page owns exact SEO, complete fallback, attribution and retry', () => {
@@ -84,14 +83,14 @@ test('route, sitemap, navigation and wrapper CSP are coherent without global exp
   assert.equal((sitemap.match(/<loc>https:\/\/www\.caissa-chess\.org\/learn\/interactive-diagrams<\/loc>/g) || []).length, 1);
   const window = {}; vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   assert.equal(window.CaissaPrimaryNavigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
-  assert.deepEqual(Array.from(window.CaissaPrimaryNavigation.inventory.groups[1], item => item.label), ['Tactics', 'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library']);
-  assert.equal(window.CaissaPrimaryNavigation.inventory.primary.length + window.CaissaPrimaryNavigation.inventory.connect.length, 35);
+  assert.deepEqual(Array.from(window.CaissaPrimaryNavigation.inventory.groups[1], item => item.label), ['Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase']);
+  assert.equal(window.CaissaPrimaryNavigation.inventory.primary.length + window.CaissaPrimaryNavigation.inventory.connect.length, 32);
   const headers = vercel.headers.find(item => item.source === '/integrations/chessbase-interactive-diagrams.html').headers;
   const csp = headers.find(item => item.key === 'Content-Security-Policy').value;
   assert.match(csp, /worker-src 'none';/);
   assert.match(csp, /child-src 'none';/);
   assert.doesNotMatch(csp, /worker-src[^;]*(?:self|blob:|data:|pgn\.chessbase\.com)|connect-src|\*\.chessbase\.com/);
-  const globalCsp = vercel.headers[0].headers.find(item => item.key === 'Content-Security-Policy').value;
+  const globalCsp = vercel.headers.find(item => item.source === '/(.*)').headers.find(item => item.key === 'Content-Security-Policy').value;
   assert.doesNotMatch(globalCsp, /unsafe-eval/);
 });
 

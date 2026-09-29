@@ -56,16 +56,14 @@ The canonical visible order is:
 1. **Play & Compete:** Play (`/play`), CAISSA Classic (`/yahoo-classic`), FICS
    (`/fics`), Playchess (`/play-online/playchess`), Fritz
    (`/play-online/fritz`).
-2. **Learn & Improve:** Tactics (`/puzzles/chessbase-tactics`), Interactive
+2. **Learn & Improve:** Puzzles (`/puzzles`), Interactive
    Diagrams (`/learn/interactive-diagrams`), Academy (`/academy`), Endgame
-   Trainer (`/endgame-trainer`), Endgame Practice (`/endgame-practice`), Endgame
-   Library (`/endgame-library`).
+   Trainer (`/endgame-trainer`), Endgame Library (`/endgame-library`), Endgame
+   Tablebase (`/endgame-tablebase`).
 3. **Analyze & Watch:** Insights (`/insights`), Analyze (`/analyze`), CAISSA PGN
    Reader (`/pgn-replayer`), Spectator TV (`/spectator-tv`), Lichess TV
    (`/watch/lichess-tv`), Live Blitz (`/watch/live-blitz`), Live Tournaments
-   (`/watch/live-tournaments`), Lichess Broadcasts
-   (`/watch/lichess-broadcasts`), Game Replayer (`/watch/game-replayer`), Arena
-   (`/arena`).
+   (`/watch/live-tournaments`), Arena (`/arena`).
 4. **Tools:** Cheater Insight (`/cheater-insight`), Polyglot Tool
    (`/tools/polyglot`), Opening Database (`/opening-database`), ECO Codes
    (`/eco`), Game Library (`/game-library`), History (`/history`), DOS Chess
@@ -78,7 +76,7 @@ Visible shell destinations outside the primary inventory include Sign In,
 Account/Sign Out when authenticated, Premium, and the Play child routes Games,
 Bots, and Coach. The complete current contract contains 30 internal primary
 pages, 4 external primary destinations, 14 public canonical routes outside the
-primary list, 8 redirects, and 5 protected route families; see the generated
+primary list, 16 redirects, and 5 protected route families; see the generated
 public route inventory for the exhaustive table.
 
 ### Labels, icon-only states, and accessibility

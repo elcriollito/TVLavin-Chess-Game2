@@ -21,15 +21,15 @@ test('canonical primary navigation inventory is unique and stable', () => {
     Array.from(inventory.primary, ({ id }) => id),
     [
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
-      'tactics', 'puzzles', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-practice', 'endgame-library', 'endgame-tablebase',
-      'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'lichess-broadcasts', 'game-replayer', 'arena',
+      'puzzles', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
+      'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault', 'blog'
     ]
   );
-  assert.equal(inventory.primary.length, 32);
+  assert.equal(inventory.primary.length, 28);
   assert.equal(inventory.connect.length, 4);
-  for (const label of ['Endgame Practice', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
+  for (const label of ['Puzzles', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');
@@ -124,8 +124,8 @@ test('explicit section routing remains ahead of the Classic default', () => {
 test('all standalone shell pages load the canonical source before the renderer', () => {
   const pages = [
     'endgame-library.html', 'game-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
-    'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'tactics.html', 'live-blitz.html',
-    'live-tournaments.html', 'lichess-tv.html', 'lichess-broadcasts.html', 'pgn-replayer.html'
+    'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'live-blitz.html',
+    'live-tournaments.html', 'lichess-tv.html', 'pgn-replayer.html'
   ];
   for (const path of pages) {
     const html = read(path);

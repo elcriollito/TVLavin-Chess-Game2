@@ -1,5 +1,7 @@
 # ChessBase Interactive Diagrams integration audit (ICD-0.1)
 
+> Current architecture note (2026-09-28): references below to the retired Game Replayer describe historical isolation research. The active Interactive Diagrams integration owns its separate wrapper and does not depend on those deleted page-specific files.
+
 **Verdict: CONDITIONAL GO for a four-diagram, non-engine pilot.** The released Game Replayer isolation foundation can support one literal, allowlisted `interactive-diagrams` mode, but the PGN wrapper URL, PGN host, readiness heuristic, and parent protocol must not simply be relabelled. The first pilot should use published CAISSA Knowledge Platform positions through its immutable public consumer boundary, and should exclude `data-play`, Engine, Download, arbitrary markup, and private authoring inputs.
 
 Audit date: 2026-08-15 UTC. Runtime observation window: 2026-08-15 03:02–03:04 UTC. This is an engineering, product, privacy, and provenance assessment, not legal advice.

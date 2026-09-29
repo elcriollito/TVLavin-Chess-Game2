@@ -4,16 +4,16 @@ const routes = [
   ['/play', 'Play'], ['/yahoo-classic', 'CAISSA Classic'], ['/fics', 'FICS'],
   ['/play-online/playchess', 'Playchess'],
   ['/play-online/fritz', 'Fritz'],
-  ['/puzzles/chessbase-tactics', 'Tactics'],
+  ['/puzzles', 'Puzzles'],
   ['/academy', 'Academy'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
-  ['/analyze', 'Analyze'], ['/spectator-tv', 'Chess TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/watch/lichess-broadcasts', 'Lichess Broadcasts'], ['/watch/game-replayer', 'Game Replayer'], ['/arena', 'Engine Arena'],
+  ['/analyze', 'Analyze'], ['/spectator-tv', 'Chess TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/arena', 'Engine Arena'],
   ['/game-library', 'Game Library'], ['/blog', 'Blog']
 ];
 
 const canonicalOrder = [
   'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-  'Tactics', 'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Practice', 'Endgame Library',
-  'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena',
+  'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Library',
+  'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
   'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog',
   'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'
@@ -37,7 +37,6 @@ async function assertOrderAndIdentity(page, activeLabel) {
   expect(labels.filter(label => label === 'Playchess')).toHaveLength(1);
   expect(labels.filter(label => label === 'Playchess Guest')).toHaveLength(0);
   expect(labels.filter(label => label === 'Fritz')).toHaveLength(1);
-  expect(labels.filter(label => label === 'Tactics')).toHaveLength(1);
   expect(labels.filter(label => label === 'Lichess TV')).toHaveLength(1);
   expect(labels.filter(label => label === 'Live Blitz')).toHaveLength(1);
   expect(labels.filter(label => label === 'Live Tournaments')).toHaveLength(1);

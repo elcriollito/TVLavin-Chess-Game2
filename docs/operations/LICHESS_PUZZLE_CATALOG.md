@@ -92,4 +92,4 @@ transactional account rating/progress under RLS. See
 `CAISSA_PUZZLE_FULL_CATALOG_PREVIEW.md` for exact resources, metrics, preview
 configuration, rollback, and acceptance evidence.
 
-The `/puzzles` and `/puzzles/chessbase-tactics` routes remain independent.
+The native `/puzzles` route is canonical. The retired `/puzzles/chessbase-tactics` URL permanently redirects to it.

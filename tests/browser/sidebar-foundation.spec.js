@@ -4,12 +4,10 @@ import AxeBuilder from '@axe-core/playwright';
 const gateways = [
   ['/play-online/playchess', 'Playchess'],
   ['/play-online/fritz', 'Fritz'],
-  ['/puzzles/chessbase-tactics', 'Tactics'],
   ['/learn/interactive-diagrams', 'Interactive Diagrams'],
   ['/watch/lichess-tv', 'Lichess TV'],
   ['/watch/live-blitz', 'Live Blitz'],
-  ['/watch/live-tournaments', 'Live Tournaments'],
-  ['/watch/lichess-broadcasts', 'Lichess Broadcasts']
+  ['/watch/live-tournaments', 'Live Tournaments']
 ];
 
 for (const [route, label] of gateways) {
@@ -25,7 +23,7 @@ for (const [route, label] of gateways) {
     await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
     await expect(nav.locator('[aria-current="page"]')).toHaveText(label);
     await expect(page.getByRole('link', { name: 'CAISSA Chess — return to Play', exact: true })).toBeVisible();
-    await expect(page.locator('#sidebarSignIn')).toHaveAttribute('href', '/signin');
+    await expect(page.locator('#sidebarSignIn')).toHaveAttribute('href', /^\/signin(?:\?redirect_url=|$)/);
     await expect(page.locator('.nav-premium-btn')).toHaveText(/Premium/);
     expect(await nav.evaluate(element => Math.round(element.getBoundingClientRect().width))).toBe(240);
     const contentBox = await page.locator('.caissa-standalone-content').evaluate(element => {
@@ -76,7 +74,7 @@ test('shared mobile drawer is inert when closed and returns focus after Escape a
 });
 
 test('desktop and mobile expose only one focusable navigation surface', async ({ page }) => {
-  await page.goto('/puzzles/chessbase-tactics', { waitUntil: 'domcontentloaded' });
+  await page.goto('/puzzles', { waitUntil: 'domcontentloaded' });
   for (const viewport of [{ width: 1440, height: 1000 }, { width: 768, height: 1024 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.waitForTimeout(50);

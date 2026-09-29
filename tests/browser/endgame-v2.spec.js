@@ -204,7 +204,7 @@ test('no-JS load keeps a readable shell and functional navigation', async ({ bro
     await expect(page.locator('.endgame-trainer-page__no-js')).toContainText(
         'CAISSA Endgame Trainer requires JavaScript to load the interactive board.'
     );
-    await expect(page.locator('.endgame-trainer-page__no-js a[href="/endgame-practice"]')).toBeVisible();
+    await expect(page.locator('.endgame-trainer-page__no-js a[href="/endgame-library"]')).toBeVisible();
     await expect(page.locator('[data-training-workspace]')).not.toBeVisible();
     await context.close();
 });
