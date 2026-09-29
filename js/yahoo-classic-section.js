@@ -1855,6 +1855,21 @@
 
         resizeClassicBoard() {
             if (!this.elements.classicBoard) return;
+
+            // Desktop sizing belongs to CSS. Measuring the board panel and then
+            // writing the board width created a feedback loop because the
+            // standalone Classic shell has intrinsic height: the board affects
+            // the panel height that was being used to resize the board again.
+            // Keep the existing mobile behavior outside this desktop-only fix.
+            if (window.matchMedia?.('(min-width: 821px)').matches) {
+                this.elements.classicBoard.style.removeProperty('width');
+                const renderedSize = Math.round(this.elements.classicBoard.getBoundingClientRect().width);
+                if (renderedSize < 120 || renderedSize === this.lastBoardSize) return;
+                this.lastBoardSize = renderedSize;
+                this.board?.resize?.();
+                return;
+            }
+
             const panel = this.elements.classicBoard.closest('.yc-game-board-panel');
             if (!panel) return;
             const reservedElements = [this.elements.boardFeedback].filter((element) => element && panel.contains(element));

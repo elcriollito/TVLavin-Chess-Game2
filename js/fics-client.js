@@ -548,6 +548,15 @@ const CaissaFICSClient = {
                 if (this.ws !== socket) return;
                 clearTimeout(connectionTimeout);
                 console.log('[FICS Client] WebSocket closed', event.code, event.reason);
+                if (this.pendingMove) {
+                    const interruptedMove = this.pendingMove.uci;
+                    this.clearPendingMove(false);
+                    if (this.board && this.liveGame.currentFen) {
+                        this.setBoardPosition(this.liveGame.currentFen, false, true);
+                    }
+                    this.logToConsole(`Move ${interruptedMove} is awaiting reconciliation after the connection closed.`, 'ERROR');
+                }
+                this.cancelPromotionSelection();
                 const shouldReconnect = !this.manualDisconnect
                     && this.loginMode === 'guest'
                     && event.code !== 1000
@@ -1298,6 +1307,13 @@ const CaissaFICSClient = {
         if (isNewGame) this.resetGameRecord();
 
         const previousPending = this.pendingMove;
+        const pendingPositionKey = this.normalizeBoardTransitionKey(previousPending?.optimisticFen);
+        const authoritativePositionKey = this.normalizeBoardTransitionKey(state.fen);
+        const previousPositionKey = this.normalizeBoardTransitionKey(previousFen);
+        const pendingConfirmed = Boolean(previousPending && !isNewGame
+            && pendingPositionKey === authoritativePositionKey);
+        const pendingStillAwaiting = Boolean(previousPending && !isNewGame && !pendingConfirmed
+            && previousPositionKey === authoritativePositionKey);
         this.liveGame = {
             ...this.liveGame,
             gameNumber: state.gameNumber,
@@ -1328,11 +1344,20 @@ const CaissaFICSClient = {
             this.pendingObservation = null;
         }
         this.cancelPromotionSelection(false);
-        if (previousPending) this.clearPendingMove(true);
+        if (pendingConfirmed) {
+            this.clearPendingMove(true);
+        } else if (previousPending && !pendingStillAwaiting) {
+            this.clearPendingMove(false);
+            this.logToConsole(`Move ${previousPending.uci} was not accepted by the authoritative FICS position.`, 'ERROR');
+        }
         this.clearBoardSelection();
 
-        this.initBoard(state.fen);
-        if (this.boardView) {
+        const presentedFen = pendingStillAwaiting ? previousPending.optimisticFen : state.fen;
+        this.initBoard(presentedFen);
+        if (pendingStillAwaiting) {
+            this.setBoardOrientation(userColor || 'white');
+            this.setBoardPosition(presentedFen, false);
+        } else if (this.boardView) {
             this.presentCanonicalBoardState(
                 state,
                 isNewGame ? null : previousFen,
@@ -2891,6 +2916,43 @@ const CaissaFICSClient = {
         return true;
     },
 
+    captureChessboardGlobalHandlers() {
+        const jquery = window.jQuery;
+        if (typeof jquery?._data !== 'function') return [];
+        const eventTypes = new Set(['mousedown', 'mousemove', 'mouseup', 'touchmove', 'touchend']);
+        return [window, document.body].flatMap(target => {
+            const events = jquery._data(target, 'events') || {};
+            return Object.entries(events).flatMap(([type, handlers]) => {
+                if (!eventTypes.has(type)) return [];
+                return handlers.map(binding => ({ target, type, binding }));
+            });
+        });
+    },
+
+    createManagedLegacyBoard(container, config) {
+        const jquery = window.jQuery;
+        const existingBindings = new Set(this.captureChessboardGlobalHandlers().map(item => item.binding));
+        const board = Chessboard(container, config);
+        if (!board || typeof board.destroy !== 'function' || typeof jquery !== 'function') return board;
+
+        const ownedBindings = this.captureChessboardGlobalHandlers()
+            .filter(item => !existingBindings.has(item.binding));
+        const originalDestroy = board.destroy.bind(board);
+        let destroyed = false;
+        board.destroy = () => {
+            if (destroyed) return undefined;
+            destroyed = true;
+            const result = originalDestroy();
+            for (const { target, type, binding } of ownedBindings) {
+                const eventName = binding.namespace ? `${type}.${binding.namespace}` : type;
+                if (binding.selector) jquery(target).off(eventName, binding.selector, binding.handler);
+                else jquery(target).off(eventName, binding.handler);
+            }
+            return result;
+        };
+        return board;
+    },
+
     initBoard(position = this.liveGame.currentFen || 'start') {
         if (!this.elements.boardContainer) return;
         if (!this.elements.boardContainer.offsetParent && !this.board) return;
@@ -2906,6 +2968,7 @@ const CaissaFICSClient = {
         // Create new board
         const config = {
             draggable: true,
+            dragThrottleRate: 1,
             position,
             onDragStart: (source, piece) => this.onDragStart(source, piece),
             onDrop: (source, target) => this.onDrop(source, target),
@@ -2919,8 +2982,9 @@ const CaissaFICSClient = {
 
         const pilot = window.CaissaFICSBoardView;
         if (pilot?.featureEnabled?.() && typeof Chessboard !== 'undefined') {
-            const createLegacy = (initialPosition, orientation) => Chessboard(this.elements.boardContainer, {
+            const createLegacy = (initialPosition, orientation) => this.createManagedLegacyBoard(this.elements.boardContainer, {
                 draggable: true,
+                dragThrottleRate: 1,
                 position: initialPosition,
                 orientation,
                 onDragStart: (source, piece) => this.onDragStart(source, piece),
@@ -2941,7 +3005,7 @@ const CaissaFICSClient = {
             this.refreshBoardInteractionDom();
             console.log('[FICS Client] BOARD-006 renderer selection initialized');
         } else if (typeof Chessboard !== 'undefined') {
-            this.board = Chessboard(this.elements.boardContainer, config);
+            this.board = this.createManagedLegacyBoard(this.elements.boardContainer, config);
             this.boardPositionKey = this.normalizeBoardPositionKey(position);
             this.boardOrientation = config.orientation || 'white';
             this.refreshBoardInteractionDom();
@@ -2995,7 +3059,8 @@ const CaissaFICSClient = {
         };
         this.setPendingState('pending', `Pending ${moveStr}...`);
         if (this.board) this.setBoardPosition(validator.fen(), true);
-        this.sendMove(moveStr);
+        const delivery = this.sendMove(moveStr);
+        if (delivery?.ok === false) return 'snapback';
     },
 
     canSubmitGraphicalMove() {
@@ -3174,7 +3239,9 @@ const CaissaFICSClient = {
     sendMove(move) {
         if (!this.authenticated) {
             this.logToConsole('Not connected to FICS.', 'ERROR');
-            return;
+            const delivery = Object.freeze({ ok: false, code: 'NOT_AUTHENTICATED', webSocketSendInvoked: false });
+            this.rollbackPendingMoveDelivery(move, delivery.code);
+            return delivery;
         }
 
         console.log('[FICS Client] Sending move:', move);
@@ -3184,7 +3251,20 @@ const CaissaFICSClient = {
         });
         if (delivery.ok) {
             this.logToConsole('Move sent to FICS; server confirmation is pending.', 'GAME');
+        } else {
+            this.rollbackPendingMoveDelivery(move, delivery.code);
         }
+        return delivery;
+    },
+
+    rollbackPendingMoveDelivery(move, deliveryCode) {
+        if (this.pendingMove?.uci !== move) return false;
+        this.clearPendingMove(false);
+        if (this.board && this.liveGame.currentFen) {
+            this.setBoardPosition(this.liveGame.currentFen, false, true);
+        }
+        this.logToConsole(`Move ${move} was not delivered to FICS (${deliveryCode}).`, 'ERROR');
+        return true;
     },
 
     runPlayedGameAction(action) {

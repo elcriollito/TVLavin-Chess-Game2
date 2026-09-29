@@ -155,6 +155,10 @@ test('abnormal guest close schedules reconnect and retains stale live-game state
     client.connectionState = 'connected';
     client.gameActive = true;
     client.liveGame = { ...client.liveGame, gameNumber: 41, currentFen: 'retained-fen', gameActive: true, status: 'playing' };
+    client.pendingMove = { uci: 'e2e4', optimisticFen: 'optimistic-fen', sentAt: 1 };
+    const rendered = [];
+    client.board = { position(value) { rendered.push(value); } };
+    client.boardPositionKey = 'optimistic-fen';
 
     socket.closeFromNetwork(1006, 'network lost');
 
@@ -164,6 +168,8 @@ test('abnormal guest close schedules reconnect and retains stale live-game state
     assert.equal(client.reconnectAttempts, 1);
     assert.equal(client.liveGame.gameNumber, 41);
     assert.equal(client.liveGame.currentFen, 'retained-fen');
+    assert.equal(client.pendingMove, null);
+    assert.equal(rendered.at(-1), 'retained-fen');
     assert.equal(timeoutTasks.some((task) => task.delay === 1500), true);
 });
 
@@ -333,6 +339,84 @@ test('Style12 remains authoritative for playing, observing, and game-ended trans
     assert.equal(client.liveGame.status, 'ended');
     assert.equal(client.liveGame.result, '0-1');
     assert.equal(client.liveGame.resultModel.terminal, true);
+});
+
+test('played moves require the matching authoritative Style12 position across consecutive games', () => {
+    const { client } = createHarness();
+    prepareLiveRendering(client);
+    const positions = [];
+    client.board = {
+        orientation() {},
+        position(value) { positions.push(value); }
+    };
+    const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    const games = [
+        {
+            number: 71,
+            move: 'e2e4',
+            confirmedFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1'
+        },
+        {
+            number: 72,
+            move: 'd2d4',
+            confirmedFen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1'
+        }
+    ];
+
+    for (const game of games) {
+        const base = {
+            gameNumber: game.number, whiteName: 'CurrentUser', blackName: 'Opponent', relation: 1,
+            userColor: 'w', observedGame: false, sideToMove: 'w', lastMove: 'none',
+            whiteClock: 300, blackClock: 300, initialTime: 5, increment: 0,
+            fen: startFen, moveNumber: 1
+        };
+        client.handleStyle12(base);
+        client.pendingMove = { uci: game.move, optimisticFen: game.confirmedFen, sentAt: 1 };
+        client.boardPositionKey = client.normalizeBoardPositionKey(game.confirmedFen);
+        positions.push(game.confirmedFen);
+
+        client.handleStyle12({ ...base, whiteClock: 299 });
+
+        assert.equal(client.pendingMove?.uci, game.move, 'a stale frame must not confirm the local move');
+        assert.equal(client.liveGame.currentFen, startFen, 'the canonical state remains the server snapshot');
+        assert.equal(positions.at(-1), game.confirmedFen, 'the optimistic board must not visibly snap back');
+
+        client.handleStyle12({
+            ...base,
+            fen: game.confirmedFen,
+            sideToMove: 'b',
+            lastMove: game.move === 'e2e4' ? 'e4' : 'd4',
+            whiteClock: 299
+        });
+        assert.equal(client.pendingMove, null, 'the matching authoritative position confirms the move');
+        assert.equal(client.liveGame.currentFen, game.confirmedFen);
+    }
+});
+
+test('failed played-move delivery rolls back the optimistic board immediately', () => {
+    const { client } = createHarness();
+    const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    const positions = [];
+    client.authenticated = true;
+    client.ws = null;
+    client.liveGame = { ...client.liveGame, currentFen: startFen };
+    client.pendingMove = {
+        uci: 'e2e4',
+        optimisticFen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+        sentAt: 1
+    };
+    client.board = { position(value) { positions.push(value); } };
+    client.boardPositionKey = client.normalizeBoardPositionKey(client.pendingMove.optimisticFen);
+    client.setPendingState = () => {};
+    client.clearBoardSelection = () => {};
+    client.updateGameStatus = () => {};
+
+    const result = client.sendMove('e2e4');
+
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'SOCKET_NOT_OPEN');
+    assert.equal(client.pendingMove, null);
+    assert.equal(positions.at(-1), startFen);
 });
 
 test('PGN is always buildable, while an observed mid-game record uses SetUp and may be incomplete', () => {

@@ -1749,7 +1749,7 @@ body.yc-classic-active #app {
 }
 
 .yc-classic-board {
-    width: min(100%, calc(100dvh - 300px), 620px);
+    width: min(100%, calc(100dvh - 300px), 616px);
     min-width: 120px;
     aspect-ratio: 1;
     align-self: center;

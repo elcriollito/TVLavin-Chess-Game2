@@ -9098,7 +9098,9 @@ body.debug-layout #arena-right {
 }
 
 #arenaSection .arena-board-zone {
-    --arena-rendered-board-size: min(100%, var(--arena-board-max));
+    /* Match the board-container content box before Arena publishes its
+     * measured inline size (22px padding + 1px border on each side). */
+    --arena-rendered-board-size: min(calc(100% - 46px), var(--arena-board-max));
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -9145,6 +9147,14 @@ body.debug-layout #arena-right {
     background: #d8e1ee;
     border-radius: 7px;
     font-size: 18px;
+}
+
+#arenaSection .arena-player-avatar > i {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    line-height: 22px;
 }
 
 #arenaSection .arena-player-copy {
@@ -10606,6 +10616,11 @@ body.debug-layout #arena-right {
     #arenaSection .arena-board-container {
         min-height: 0;
         padding: 6px 12px;
+    }
+
+    #arenaSection .arena-board-zone {
+        /* Mobile container chrome is 12px padding + 1px border per side. */
+        --arena-rendered-board-size: min(calc(100% - 26px), var(--arena-board-max));
     }
 
     #arenaSection .arena-control-panel {

@@ -111,6 +111,9 @@ test('Arena tabs are accessible and do not own competition lifecycle state', () 
 });
 
 test('Arena sizing snapshots stable inputs and isolates game content from board geometry', () => {
+  const mountStart = controller.indexOf('    mountBoard() {');
+  const mountEnd = controller.indexOf('    setupResizeObserver() {', mountStart);
+  const mountBoard = controller.slice(mountStart, mountEnd);
   assert.match(controller, /Math\.min\(arenaMax, availableWidth, availableHeight\)/);
   assert.match(controller, /boardContainer\.clientWidth - horizontalPadding/);
   assert.match(controller, /Math\.abs\(width - observedWidth\) < 0\.5/);
@@ -120,11 +123,17 @@ test('Arena sizing snapshots stable inputs and isolates game content from board 
   assert.doesNotMatch(controller, /setupLayoutObserver/, 'the board-owned height must not be observed');
   assert.match(controller, /container\.scrollTop = container\.scrollHeight/);
   assert.match(styles, /#arenaSection \.arena-board-mount[\s\S]*?aspect-ratio:\s*1\s*\/\s*1/);
+  assert.match(styles, /--arena-rendered-board-size:\s*min\(calc\(100% - 46px\), var\(--arena-board-max\)\)/);
   assert.match(styles, /#arenaSection \.arena-player-bar[\s\S]*?height:\s*58px[\s\S]*?overflow:\s*hidden/);
+  assert.match(styles, /#arenaSection \.arena-player-avatar > i[\s\S]*?width:\s*22px[\s\S]*?height:\s*22px/);
   assert.match(styles, /#arenaSection \.arena-player-clock[\s\S]*?flex:\s*0 0 88px[\s\S]*?font-variant-numeric:\s*tabular-nums/);
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?scrollbar-gutter:\s*stable/);
+  assert.ok(
+    mountBoard.indexOf("this.resizeBoardNow(false, 'mount-prime')") < mountBoard.indexOf('setTimeout(checkAndMount, 50)'),
+    'initial board geometry must be published before the deferred mount can paint'
+  );
 });
 
 test('Tournament standings are sourced from participants, games, and standard scoring', () => {

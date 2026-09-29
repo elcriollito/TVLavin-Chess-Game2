@@ -393,6 +393,12 @@ const CaissaArena = {
         boardElement.className = 'arena-board';
         container.appendChild(boardElement);
 
+        // Publish the authoritative stage width in the same task that makes the
+        // board mount paintable. Without this synchronous handoff the player
+        // bars render once at the wider board-zone fallback, then recenter when
+        // the deferred ResizeObserver pass applies the board's measured size.
+        this.resizeBoardNow(false, 'mount-prime');
+
         // Wait for container to have dimensions
         const checkAndMount = () => {
             const rect = container.getBoundingClientRect();

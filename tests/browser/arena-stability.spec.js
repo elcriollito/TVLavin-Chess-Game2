@@ -168,6 +168,31 @@ test('active Match keeps deterministic geometry on a common laptop viewport', as
   expectStable(await runActiveMatchStability(page), 'laptop Match');
 });
 
+test('first Arena paint publishes board-stage geometry without a layout shift', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('caissa_onboarding_completed', 'true');
+    window.__arenaLayoutShifts = [];
+    if (!PerformanceObserver.supportedEntryTypes?.includes('layout-shift')) return;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.hadRecentInput) continue;
+        const arenaSources = entry.sources
+          .map(source => source.node)
+          .filter(node => node instanceof Element && node.closest('#arenaSection'))
+          .map(node => node.id || node.className || node.tagName);
+        if (arenaSources.length) {
+          window.__arenaLayoutShifts.push({ value: entry.value, sources: arenaSources });
+        }
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+  });
+
+  await openArena(page, { width: 1440, height: 900 });
+  await page.waitForTimeout(500);
+
+  expect(await page.evaluate(() => window.__arenaLayoutShifts)).toEqual([]);
+});
+
 test('active Tournament and its next pairing keep deterministic desktop geometry', async ({ page }) => {
   await openArena(page, { width: 1920, height: 1080 });
   expectStable(await runActiveTournamentStability(page), 'desktop Tournament');
