@@ -15,7 +15,6 @@ const standalone = [
   ['CAISSA Classic', '/yahoo-classic', '.yc-shell', /CAISSA Classic|Yahoo Chess Alternative/],
   ['Academy', '/academy', '#academySection', /Academy/],
   ['Endgame Trainer', '/endgame-trainer', '#endgame-v2-title', /Endgame Trainer/],
-  ['Endgame Practice', '/endgame-practice', '#practice-title', /Endgame Practice/],
   ['Endgame Library', '/endgame-library', '#library-title', /Endgame Library/],
   ['Polyglot Tool', '/tools/polyglot', 'h1', /Polyglot/],
   ['Opening Database', '/opening-database', 'h1', /Opening Database/],

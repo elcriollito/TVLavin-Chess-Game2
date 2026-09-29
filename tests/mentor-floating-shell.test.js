@@ -66,12 +66,10 @@ test('Shared provider awaits CAISSA auth readiness and attaches only a current t
     assert.match(provider, /CAISSA_OPERATION_ID\.test/);
 });
 
-test('local review remains explicitly local and report launcher joins one floating stack', () => {
+test('local review remains explicitly local and the floating shell owns no report control', () => {
     const shell = read('js/mentor/mentor-floating-shell.js');
-    const report = read('js/play/play-v2-manual-qa-report.js');
     assert.match(shell, /Local Game Review[\s\S]*local analysis[\s\S]*does not use Shared AI credits/);
-    assert.match(report, /data-caissa-floating-controls/);
-    assert.doesNotMatch(report, /fetch\s*\(/);
+    assert.doesNotMatch(read('css/mentor-floating-shell.css'), /caissa-manual-qa|Report an issue/i);
 });
 
 test('opening and restoring Mentor focus cannot scroll or rescale the Play frame', () => {

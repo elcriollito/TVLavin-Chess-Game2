@@ -181,14 +181,14 @@ Premium is not allowed to:
 - replace a working control with an empty or misleading button;
 - automatically enable or remotely execute Stockfish;
 - send local PGN contents to a server;
-- change the Reader route to the classic Game Replayer;
+- replace the Reader with the retired classic Game Replayer implementation;
 - edit Play Coach, Play, Bots, Games, authentication, navigation, or backend code as a side effect.
 
 Entitlement checks must be additive. The stable UI renders first; a locked content card may then explain the entitlement. A failed entitlement request must fail closed for the protected content while leaving the Reader operational.
 
 ## Route and product separation
 
-`/pgn-replayer` is the CAISSA PGN Reader. `/watch/game-replayer` remains the separate classic Game Replayer.
+`/pgn-replayer` is the CAISSA PGN Reader. The retired `/watch/game-replayer` URL permanently redirects here and has no separate product implementation.
 
 Reader work must not modify Play Coach v3.1, Play, Bots, Games, shared authentication, or unrelated navigation behavior. If a shared-shell change is unavoidable, it requires regression tests for every affected route and separate approval.
 

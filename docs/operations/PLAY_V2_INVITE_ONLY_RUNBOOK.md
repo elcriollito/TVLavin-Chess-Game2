@@ -4,7 +4,7 @@
 
 ## Manual issue reports
 
-Authorized testers use **Report an issue**, review the sanitized preview, then Copy or Download the JSON. They explicitly open the private feedback channel, create one message or thread per issue, and paste or attach the report. Screenshots are added only after manual privacy review. CAISSA never posts automatically and operators must not introduce a webhook, bot token, temporary Discord invite or automatic Supabase feedback call.
+The legacy floating **Report an issue** control has been retired. Testers use the standard CAISSA contact and feedback destination; operators must not introduce a webhook, bot token, temporary Discord invite or automatic Supabase feedback call.
 
 The historical feedback endpoint is intentionally fail-closed. Do not interpret database feedback tables or RPCs as an active client transport. This change does not close the independent invitation, session, revocation, kill-switch, Preview deployment, NVDA or focal device-smoke gates.
 

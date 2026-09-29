@@ -1543,7 +1543,7 @@
     }
 
     body:is([data-caissa-section='analyze'], .caissa-play-v2-analyze-open)
-        .caissa-floating-controls > :is(.caissa-mentor-launcher, .caissa-manual-qa-launcher) {
+        .caissa-floating-controls > .caissa-mentor-launcher {
         display: none !important;
     }
 

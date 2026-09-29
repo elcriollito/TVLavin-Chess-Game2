@@ -72,12 +72,18 @@ const publicCanonicalRoutes = [...additionalMetadata].filter(([canonicalPath]) =
   owner, target: '_self', rel: null, status: 'public'
 })).sort((a, b) => a.canonicalPath.localeCompare(b.canonicalPath));
 
+const serverOwnedRetiredRoutes = new Set([
+  '/puzzles/chessbase-tactics', '/puzzles/chessbase-tactics/',
+  '/endgame-practice', '/endgame-practice/',
+  '/watch/game-replayer', '/watch/game-replayer/',
+  '/watch/lichess-broadcasts', '/watch/lichess-broadcasts/'
+]);
 const redirectsAndAliases = vercel.redirects.map(rule => ({
   id: `redirect-${rule.source.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root'}`,
   label: `${rule.source} to ${rule.destination}`,
   canonicalPath: rule.destination,
   absoluteUrl: `${origin}${rule.destination}`,
-  type: 'redirect', owner: 'vercel.json and middleware', status: 'public',
+  type: 'redirect', owner: serverOwnedRetiredRoutes.has(rule.source) ? 'vercel.json and server.js' : 'vercel.json and middleware', status: 'public',
   redirectFrom: rule.source, redirectTo: rule.destination, expectedStatus: rule.permanent ? 308 : 307
 }));
 
@@ -154,7 +160,7 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by \`CaissaPrimaryNavigation\`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run \`node scripts/build-caissa-public-route-inventory.mjs\` and the inventory guard.
 
-\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with the credited ChessBase Tactics gateway. \`ANALYZE & WATCH\` places the native CAISSA PGN Reader directly after Analyze, then includes the credited Lichess TV gateway after Spectator TV, followed by the credited Live Blitz, Live Tournaments, and Game Replayer gateways before Arena. These routes embed public provider services without changing native CAISSA learning, Play, CAISSA Classic, FICS, Spectator TV, or Arena behavior.
+\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with native CAISSA Puzzles. \`ANALYZE & WATCH\` places the native CAISSA PGN Reader directly after Analyze, then retains Lichess TV, Live Blitz, and the active ChessBase Live Tournaments gateway before Arena. Retired gateway URLs remain permanent aliases to their native or actively maintained replacements.
 `;
 
 fs.mkdirSync(path.join(root, 'config'), { recursive: true });

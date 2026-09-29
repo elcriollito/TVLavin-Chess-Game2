@@ -7,7 +7,7 @@ import { load } from 'cheerio';
 
 const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-test('owns a distinct canonical route and keeps the classic free replayer intact', () => {
+test('owns the canonical route and replaces the retired ChessBase replayer', () => {
   const page = load(read('pgn-replayer.html'));
   assert.equal(page('title').text(), 'CAISSA PGN Reader | Open and Analyze Chess PGN Files');
   assert.equal(page('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/pgn-replayer');
@@ -17,10 +17,9 @@ test('owns a distinct canonical route and keeps the classic free replayer intact
   assert.equal(page('h1').text(), 'PGN Reader');
   assert.equal(page('iframe').length, 0);
   assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:/i);
-  assert.match(read('game-replayer.html'), /free\/world-championship\.pgn/);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/pgn-replayer' && rule.destination === '/pgn-replayer.html'));
-  assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/game-replayer.html'));
+  assert.ok(vercel.redirects.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/pgn-replayer' && rule.permanent));
   assert.match(read('server.js'), /pathname === '\/pgn-replayer'/);
   assert.equal((read('public/sitemap.xml').match(/\/pgn-replayer<\/loc>/g) || []).length, 1);
 });
@@ -188,7 +187,7 @@ test('welcome guidance is compact and remembered without storing PGN content', (
   assert.match(styles, /\.pgn-empty-board \{[^}]*width: min\(420px, calc\(100% - 32px\)\)/);
 });
 
-test('navigation publishes the new tool once without replacing the classic route', () => {
+test('navigation publishes the native tool once without the retired classic route', () => {
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const inventory = window.CaissaPrimaryNavigation.inventory;
@@ -196,8 +195,7 @@ test('navigation publishes the new tool once without replacing the classic route
   assert.equal(inventory.primary.find(item => item.id === 'pgn-replayer').route, '/pgn-replayer');
   assert.equal(Array.from(inventory.groups[2], item => item.id).includes('pgn-replayer'), true);
   assert.equal(Array.from(inventory.groups[3], item => item.id).includes('pgn-replayer'), false);
-  assert.equal(inventory.primary.filter(item => item.id === 'game-replayer').length, 1);
-  assert.equal(inventory.primary.find(item => item.id === 'game-replayer').route, '/watch/game-replayer');
+  assert.equal(inventory.primary.filter(item => item.id === 'game-replayer').length, 0);
 });
 
 test('private PGN content never enters analytics, logs, or browser persistence', () => {

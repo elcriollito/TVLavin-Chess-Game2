@@ -88,18 +88,18 @@ test('event framing policy and provider runtime remain cross-origin and frame-on
   assert.doesNotMatch(source, /class=["']cblive|data-event|data-date|WebSocket|EventSource|fetch\(|XMLHttpRequest|setInterval|postMessage/i);
   assert.doesNotMatch(source, /URLSearchParams|location\.search/i);
   assert.match(read('js/live-tournaments-parent.js'), /allow-scripts allow-same-origin/);
-  const globalCsp = JSON.parse(read('vercel.json')).headers[0].headers.find(item => item.key === 'Content-Security-Policy').value;
+  const globalCsp = JSON.parse(read('vercel.json')).headers.find(item => item.source === '/(.*)').headers.find(item => item.key === 'Content-Security-Policy').value;
   assert.match(globalCsp, /frame-src[^;]*https:\/\/live\.chessbase\.com/);
   assert.doesNotMatch(globalCsp, /script-src[^;]*live\.chessbase\.com|connect-src[^;]*live\.chessbase\.com/);
 });
 
-test('route, sitemap, and canonical navigation remain unchanged', () => {
+test('route, sitemap, and canonical navigation remain coherent', () => {
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
   assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
-  assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 34);
-  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena']);
+  assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 32);
+  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-tournaments').length, 1);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/live-tournaments' && rule.destination === '/live-tournaments.html'));

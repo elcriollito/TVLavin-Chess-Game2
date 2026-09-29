@@ -1,5 +1,7 @@
 # Lichess Broadcast embed integration audit
 
+> Retirement note (2026-09-28): the standalone `/watch/lichess-broadcasts` product shell was retired in favor of the active ChessBase `/watch/live-tournaments` destination. The validated configuration and iframe-controller modules remain intentionally preserved as reusable research-backed building blocks for the future `CAISSA Chess TV — Lichess Integration` season; they are not currently exposed as a public route.
+
 **Audit:** LBC-0.1
 
 **Observed:** 2026-08-15 04:00 EDT / 08:00 UTC

@@ -39,9 +39,9 @@ test('Live Blitz follows Lichess TV in Analyze & Watch and route ownership is de
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
   assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
-  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena']);
+  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
-  assert.equal(navigation.inventory.primary.length, 30);
+  assert.equal(navigation.inventory.primary.length, 28);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/live-blitz' && rule.destination === '/live-blitz.html'));
   assert.match(read('server.js'), /pathname === '\/watch\/live-blitz'/);
@@ -53,11 +53,11 @@ test('Live Blitz frame permission and resources remain isolated', () => {
   const csp = page('meta[http-equiv="Content-Security-Policy"]').attr('content') || '';
   assert.match(csp, /frame-src https:\/\/liveblitz\.chessbase\.com;/);
   assert.doesNotMatch(csp, /\*\.chessbase\.com|wss:/);
-  for (const path of ['play-v2-unavailable.html', 'playchess.html', 'fritz.html', 'tactics.html', 'yahoo-classic.html', 'index.html']) {
+  for (const path of ['play-v2-unavailable.html', 'playchess.html', 'fritz.html', 'yahoo-classic.html', 'index.html']) {
     assert.doesNotMatch(read(path), /liveblitz\.chessbase\.com/i, `${path} must not load Live Blitz`);
   }
   assert.doesNotMatch(read('live-blitz.html'), /fics-client|stockfish|chess-engine-worker|spectatorSocket/i);
-  const globalCsp = JSON.parse(read('vercel.json')).headers[0].headers.find(item => item.key === 'Content-Security-Policy').value;
+  const globalCsp = JSON.parse(read('vercel.json')).headers.find(item => item.source === '/(.*)').headers.find(item => item.key === 'Content-Security-Policy').value;
   assert.match(globalCsp, /frame-src[^;]*https:\/\/liveblitz\.chessbase\.com/);
   assert.doesNotMatch(globalCsp, /script-src[^;]*liveblitz\.chessbase\.com/);
   assert.doesNotMatch(globalCsp, /\*\.chessbase\.com/);

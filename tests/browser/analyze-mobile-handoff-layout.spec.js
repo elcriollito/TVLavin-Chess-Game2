@@ -94,8 +94,7 @@ async function compactLayoutSnapshot(page) {
             document.body.appendChild(floatingHost);
         }
         for (const [className, label] of [
-            ['caissa-mentor-launcher', 'Mentor'],
-            ['caissa-manual-qa-launcher', 'Report an Issue']
+            ['caissa-mentor-launcher', 'Mentor']
         ]) {
             if (!floatingHost.querySelector(`.${className}`)) {
                 const button = document.createElement('button');
@@ -129,9 +128,7 @@ async function compactLayoutSnapshot(page) {
         const follows = (first, second) => Boolean(nodes[first].compareDocumentPosition(nodes[second])
             & Node.DOCUMENT_POSITION_FOLLOWING);
         const quickActions = [...document.querySelectorAll('.mobile-quick-btn')];
-        const floating = [...document.querySelectorAll(
-            '.caissa-mentor-launcher, .caissa-manual-qa-launcher'
-        )];
+        const floating = [...document.querySelectorAll('.caissa-mentor-launcher')];
         const previouslyFocused = document.activeElement;
         const focusableHiddenQuickActions = quickActions.filter(element => {
             if (!element.hidden) return false;
@@ -186,7 +183,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
         expect(state.visibleBoards).toBe(1);
         expect(state.quickActionLabels).toEqual(['Engine', 'Menu']);
         expect(state.focusableHiddenQuickActions).toBe(0);
-        expect(state.floatingCount).toBeGreaterThanOrEqual(2);
+        expect(state.floatingCount).toBeGreaterThanOrEqual(1);
         expect(state.visibleFloating).toBe(0);
         expect(state.focusableFloating).toBe(0);
         expect(state.overflow).toBeLessThanOrEqual(1);
@@ -224,9 +221,9 @@ test('responsive transition restores desktop ownership and landscape has no hori
             return style.display !== 'none' && style.visibility !== 'hidden'
                 && box.width > 0 && box.height > 0;
         };
-        return [...document.querySelectorAll('.caissa-mentor-launcher, .caissa-manual-qa-launcher')]
+        return [...document.querySelectorAll('.caissa-mentor-launcher')]
             .filter(visible).length;
-    })).toBe(2);
+    })).toBe(1);
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect.poll(() => page.evaluate(() =>

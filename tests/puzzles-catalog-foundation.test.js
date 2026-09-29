@@ -92,11 +92,11 @@ test('the selected D1 candidate preserves source provenance and excludes account
     assert.match(report, /Nunca usar\s+`caissa-openingdb`/i);
 });
 
-test('the limited beta and ChessBase Tactics routes remain intact during catalog staging', () => {
+test('the limited beta remains intact and owns the canonical Puzzles route', () => {
     const config = JSON.parse(read('../vercel.json'));
     assert.equal(config.outputDirectory, '.', 'all connected Vercel projects must deploy the repository root');
     assert.ok(config.rewrites.some(rule => rule.source === '/puzzles' && rule.destination === '/puzzles.html'));
-    assert.ok(config.rewrites.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/tactics.html'));
+    assert.ok(config.redirects.some(rule => rule.source === '/puzzles/chessbase-tactics' && rule.destination === '/puzzles' && rule.permanent));
     const brief = read('../docs/product/CAISSA_PUZZLES_1_0_WORK.md');
     assert.match(brief, /1,404-puzzle build is a limited beta/);
     assert.match(brief, /does not claim an account rating/);

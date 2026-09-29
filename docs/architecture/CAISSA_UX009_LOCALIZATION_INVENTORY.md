@@ -1,6 +1,6 @@
 # UX-009 first-party localization inventory
 
-This audit uses `config/caissa-public-route-inventory.json` as the certified UX-001 source. Its 61 records remain unchanged: 34 primary-navigation records (30 internal and 4 external), 14 additional public canonical routes, 8 redirects, and 5 protected route families.
+This audit uses `config/caissa-public-route-inventory.json` as the certified UX-001 source. Its current 67 records comprise 32 primary-navigation records (28 internal and 4 external), 14 additional public canonical routes, 16 redirects, and 5 protected route families.
 
 ## Classification rules
 
@@ -26,7 +26,7 @@ This audit uses `config/caissa-public-route-inventory.json` as the certified UX-
 These first-party routes use the current shared shell, so class A is localized. Their class B application/article content was audited but is outside the UX-009 priority implementation to avoid coupling unrelated products to the Play/PGN adapter:
 
 - Main-application sections: `/fics`, `/academy`, `/insights`, `/analyze`, `/spectator-tv`, `/arena`, `/cheater-insight`, `/history`, `/dos-chess`.
-- Standalone first-party tools and learning surfaces: `/play-online/playchess`, `/play-online/fritz`, `/puzzles/chessbase-tactics`, `/learn/interactive-diagrams`, `/endgame-trainer`, `/endgame-practice`, `/endgame-library`, `/watch/lichess-tv`, `/watch/live-blitz`, `/watch/live-tournaments`, `/watch/lichess-broadcasts`, `/watch/game-replayer`, `/tools/polyglot`, `/opening-database`, `/eco`, `/vault`.
+- Standalone first-party tools and learning surfaces: `/play-online/playchess`, `/play-online/fritz`, `/puzzles`, `/learn/interactive-diagrams`, `/endgame-trainer`, `/endgame-library`, `/endgame-tablebase`, `/pgn-replayer`, `/watch/lichess-tv`, `/watch/live-blitz`, `/watch/live-tournaments`, `/tools/polyglot`, `/opening-database`, `/eco`, `/vault`.
 - Supporting/public surfaces: `/about`, `/database`, `/help`, `/library`, `/premium`, `/roadmap`, `/signin`, `/signup`, `/blog`, `/blog/what-is-a-polyglot-opening-book`, `/blog/who-is-caissa-goddess-of-chess`, `/blog/yahoo-chess-spirit-caissa-classic`.
 
 No claim of full class-B localization is made for these 37 routes. They keep the UX-002 localized shell and English fallback.
@@ -35,7 +35,7 @@ No claim of full class-B localization is made for these 37 routes. They keep the
 
 - `/yahoo-classic` is a legacy application with its own stateful lobby, FICS controls, embedded game surface, dialogs, and copy-producing modules. It shares the UX-002 shell but not a clean first-party content translation boundary. UX-009 deliberately does not mutate its internal UI; it requires an independent certification season.
 - Facebook, YouTube, Discord, and the feedback `mailto:` are external destinations (class F); only their shared navigation labels belong to CAISSA.
-- The 8 redirect records have no independent visible content.
+- The 16 redirect records have no independent visible content.
 - The 5 protected route families are fail-closed technical boundaries and have no public page content to localize.
 
 ## Pending-surface summary

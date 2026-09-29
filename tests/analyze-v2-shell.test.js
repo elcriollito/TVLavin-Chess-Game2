@@ -51,7 +51,8 @@ test('mobile handoff layout reparents the one navigation owner into semantic rea
 
 test('mobile Analyze hides secondary floating actions and hidden quick actions stay hidden', () => {
     const globalCss = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-    assert.match(css, /body:is\(\[data-caissa-section='analyze'\], \.caissa-play-v2-analyze-open\)[\s\S]*?\.caissa-mentor-launcher[\s\S]*?\.caissa-manual-qa-launcher[\s\S]*?display:\s*none !important/);
+    assert.match(css, /body:is\(\[data-caissa-section='analyze'\], \.caissa-play-v2-analyze-open\)[\s\S]*?\.caissa-mentor-launcher[\s\S]*?display:\s*none !important/);
+    assert.doesNotMatch(css, /caissa-manual-qa/);
     assert.match(globalCss, /body\[data-caissa-section="analyze"\] \.mobile-quick-btn\[hidden\],[\s\S]*?body\.caissa-play-v2-analyze-open \.mobile-quick-btn\[hidden\][\s\S]*?display:\s*none !important/);
 });
 

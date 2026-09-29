@@ -62,10 +62,10 @@ async function phoneProof(page) {
             + '.caissa-simplified-shell__context-body, .caissa-native-coach-panel, '
             + '[data-caissa-coach-body-wrap], .caissa-coach-guided__notation')];
         const floating = [...document.querySelectorAll(
-            '[data-caissa-floating-controls], .caissa-mentor-shell, .caissa-manual-qa'
+            '[data-caissa-floating-controls], .caissa-mentor-shell'
         )].filter(visible);
         const hiddenFocusTargets = [...document.querySelectorAll(
-            '.caissa-mentor-shell button, .caissa-mentor-shell a, .caissa-manual-qa button, .caissa-manual-qa a'
+            '.caissa-mentor-shell button, .caissa-mentor-shell a'
         )].filter(visible);
         return {
             layout: shell.dataset.layout,
@@ -332,7 +332,7 @@ test('COACH-C1 fresh load, setup, active game, and rotation keep board-first pho
             document.documentElement?.classList.contains('caissa-initial-phone-coach') === true);
         const visible = node => !!node && node.getClientRects().length > 0
             && getComputedStyle(node).visibility !== 'hidden';
-        const selector = '[data-caissa-floating-controls], .caissa-mentor-shell, .caissa-manual-qa';
+        const selector = '[data-caissa-floating-controls], .caissa-mentor-shell';
         new MutationObserver(records => {
             marker();
             for (const record of records) for (const added of record.addedNodes) {

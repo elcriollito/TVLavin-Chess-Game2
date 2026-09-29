@@ -83,13 +83,6 @@
   </url>
 
   <url>
-    <loc>https://www.caissa-chess.org/endgame-practice</loc>
-    <lastmod>2026-07-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
     <loc>https://www.caissa-chess.org/premium</loc>
     <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
@@ -121,10 +114,10 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.caissa-chess.org/puzzles/chessbase-tactics</loc>
-    <lastmod>2026-08-14</lastmod>
+    <loc>https://www.caissa-chess.org/puzzles</loc>
+    <lastmod>2026-09-28</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.caissa-chess.org/learn/interactive-diagrams</loc>
@@ -148,18 +141,6 @@
     <loc>https://www.caissa-chess.org/watch/live-tournaments</loc>
     <lastmod>2026-08-14</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.caissa-chess.org/watch/lichess-broadcasts</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.caissa-chess.org/watch/game-replayer</loc>
-    <lastmod>2026-08-14</lastmod>
-    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>

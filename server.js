@@ -23,6 +23,12 @@ const __dirname = path.dirname(__filename);
 
 const PORT = 8000;
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
+const RETIRED_PAGE_REDIRECTS = new Map([
+  ['/puzzles/chessbase-tactics', '/puzzles'],
+  ['/endgame-practice', '/endgame-trainer'],
+  ['/watch/game-replayer', '/pgn-replayer'],
+  ['/watch/lichess-broadcasts', '/watch/live-tournaments']
+]);
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self'; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'";
 const BETA_PRIVATE_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
@@ -541,6 +547,12 @@ const server = http.createServer(async (req, res) => {
     res.end();
     return;
   }
+  const retiredDestination = RETIRED_PAGE_REDIRECTS.get(pathname.replace(/\/$/, ''));
+  if (retiredDestination && (req.method === 'GET' || req.method === 'HEAD')) {
+    res.writeHead(308, { Location: retiredDestination });
+    res.end();
+    return;
+  }
   let filePath = '.' + pathname;
   let responseStatus = 200;
   if (filePath === './') {
@@ -570,9 +582,6 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/play-online/fritz' || pathname === '/play-online/fritz/') {
     filePath = './fritz.html';
   }
-  if (pathname === '/puzzles/chessbase-tactics' || pathname === '/puzzles/chessbase-tactics/') {
-    filePath = './tactics.html';
-  }
   if (pathname === '/puzzles' || pathname === '/puzzles/') {
     filePath = './puzzles.html';
   }
@@ -587,12 +596,6 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/watch/live-tournaments' || pathname === '/watch/live-tournaments/') {
     filePath = './live-tournaments.html';
-  }
-  if (pathname === '/watch/lichess-broadcasts' || pathname === '/watch/lichess-broadcasts/') {
-    filePath = './lichess-broadcasts.html';
-  }
-  if (pathname === '/watch/game-replayer' || pathname === '/watch/game-replayer/') {
-    filePath = './game-replayer.html';
   }
   if (pathname === '/pgn-replayer' || pathname === '/pgn-replayer/') {
     filePath = './pgn-replayer.html';
@@ -649,9 +652,6 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/endgame-trainer' || pathname === '/endgame-trainer/') {
     filePath = './endgame-trainer.html';
-  }
-  if (pathname === '/endgame-practice' || pathname === '/endgame-practice/') {
-    filePath = './endgame-practice.html';
   }
   if (pathname === '/endgame-library' || pathname === '/endgame-library/') {
     filePath = './endgame-library.html';
