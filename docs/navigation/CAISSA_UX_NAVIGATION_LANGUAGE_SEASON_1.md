@@ -1,6 +1,6 @@
 # CAISSA UX Navigation & Language — Season 1
 
-> Historical season document. As of 2026-09-28, Interactive Diagrams is retired to `/puzzles`, and the current sidebar information architecture is owned by `CaissaGlobalNavigationOrderPolicy@1.15.0`.
+> Historical season document. As of 2026-09-29, Interactive Diagrams is fully retired with no supported route or replacement, and the current sidebar information architecture is owned by `CaissaGlobalNavigationOrderPolicy@1.15.0`.
 
 Branch: `work/caissa-ux-navigation-language-s1`
 

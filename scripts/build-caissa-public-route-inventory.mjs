@@ -75,7 +75,6 @@ const publicCanonicalRoutes = [...additionalMetadata].filter(([canonicalPath]) =
 })).sort((a, b) => a.canonicalPath.localeCompare(b.canonicalPath));
 
 const serverOwnedRetiredRoutes = new Set([
-  '/learn/interactive-diagrams', '/learn/interactive-diagrams/',
   '/puzzles/chessbase-tactics', '/puzzles/chessbase-tactics/',
   '/endgame-practice', '/endgame-practice/',
   '/watch/game-replayer', '/watch/game-replayer/',
@@ -163,7 +162,7 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by \`CaissaPrimaryNavigation\`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run \`node scripts/build-caissa-public-route-inventory.mjs\` and the inventory guard.
 
-\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with native CAISSA Puzzles. \`ANALYZE & WATCH\` places the native CAISSA PGN Reader directly after Analyze, then retains Lichess TV, Live Blitz, and the active ChessBase Live Tournaments gateway before Arena. Secondary and institutional destinations live under \`More\`; official social destinations live in the fixed icon-only sidebar footer. Retired gateway URLs, including Interactive Diagrams, remain permanent aliases to their native or actively maintained replacements.
+\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with native CAISSA Puzzles. \`ANALYZE & WATCH\` places the native CAISSA PGN Reader directly after Analyze, then retains Lichess TV, Live Blitz, and the active ChessBase Live Tournaments gateway before Arena. Secondary and institutional destinations live under \`More\`; official social destinations live in the fixed icon-only sidebar footer. Interactive Diagrams is fully retired with no public route, alias, redirect, or replacement relationship.
 `;
 
 fs.mkdirSync(path.join(root, 'config'), { recursive: true });

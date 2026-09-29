@@ -1,6 +1,6 @@
 # ChessBase Interactive Diagrams integration audit (ICD-0.1)
 
-> Historical record: Interactive Diagrams was retired on 2026-09-28. Its public route now permanently redirects to `/puzzles`, and its page-specific runtime assets were removed.
+> Historical record: Interactive Diagrams was fully retired on 2026-09-29. Its public route and page-specific runtime assets were removed without replacement or migration to another CAISSA product.
 
 > Historical architecture note: references below describe the integration and the already-retired Game Replayer as they existed during isolation research.
 

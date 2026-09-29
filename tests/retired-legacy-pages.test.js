@@ -8,7 +8,6 @@ const read = path => fs.readFileSync(new URL(path, root), 'utf8');
 const exists = path => fs.existsSync(new URL(path, root));
 
 const retirements = Object.freeze([
-  ['/learn/interactive-diagrams', '/puzzles'],
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
   ['/watch/game-replayer', '/pgn-replayer'],
@@ -32,10 +31,22 @@ test('retired pages leave navigation and sitemap while replacement products rema
   for (const id of ['interactive-diagrams', 'tactics', 'endgame-practice', 'game-replayer', 'lichess-broadcasts']) assert.equal(ids.includes(id), false);
   for (const id of ['puzzles', 'endgame-trainer', 'pgn-replayer', 'live-tournaments']) assert.equal(ids.includes(id), true);
   const sitemap = read('public/sitemap.xml');
+  assert.doesNotMatch(sitemap, /\/learn\/interactive-diagrams<\/loc>/);
   for (const [source, destination] of retirements) {
     assert.doesNotMatch(sitemap, new RegExp(`${source.replaceAll('/', '\\/')}<\\/loc>`));
     assert.match(sitemap, new RegExp(`${destination.replaceAll('/', '\\/')}<\\/loc>`));
   }
+});
+
+test('Interactive Diagrams is unsupported without an alias, redirect, or replacement relationship', () => {
+  const config = JSON.parse(read('vercel.json'));
+  for (const source of ['/learn/interactive-diagrams', '/learn/interactive-diagrams/']) {
+    assert.equal(config.redirects.some(rule => rule.source === source), false, source);
+    assert.equal(config.rewrites.some(rule => rule.source === source), false, source);
+  }
+  assert.doesNotMatch(read('server.js'), /learn\/interactive-diagrams/);
+  assert.equal(exists('puzzles.html'), true);
+  assert.equal(exists('js/puzzles/page.js'), true);
 });
 
 test('page-specific files are removed while reusable Lichess modules and shared PGN data remain', () => {

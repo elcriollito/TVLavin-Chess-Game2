@@ -1,6 +1,6 @@
 # ChessBase Interactive Diagrams Worker containment decision
 
-> Historical record: Interactive Diagrams was retired on 2026-09-28. Its public route now permanently redirects to `/puzzles`, and this containment design is no longer active runtime behavior.
+> Historical record: Interactive Diagrams was fully retired on 2026-09-29. Its public route and page-specific runtime assets were removed without replacement, and this containment design is no longer active runtime behavior.
 
 Decision date: 2026-08-15 UTC. Scope: ICD-0.2B.
 

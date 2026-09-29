@@ -101,11 +101,11 @@ test('desktop sidebar keeps HEAD and social FOOT fixed while only BODY scrolls',
   }
 });
 
-test('Interactive Diagrams routes permanently redirect to Puzzles', async ({ request }) => {
+test('Interactive Diagrams routes are unsupported and do not redirect', async ({ request }) => {
   for (const route of ['/learn/interactive-diagrams', '/learn/interactive-diagrams/']) {
     const response = await request.get(route, { maxRedirects: 0 });
-    expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe('/puzzles');
+    expect(response.status()).toBe(404);
+    expect(response.headers().location).toBeUndefined();
   }
 });
 

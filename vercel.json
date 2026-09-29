@@ -42,8 +42,6 @@
     { "source": "/play/beta/games", "destination": "/play/games", "permanent": true },
     { "source": "/play/beta/bots", "destination": "/play/bots", "permanent": true },
     { "source": "/play/beta/coach", "destination": "/play/coach", "permanent": true },
-    { "source": "/learn/interactive-diagrams", "destination": "/puzzles", "permanent": true },
-    { "source": "/learn/interactive-diagrams/", "destination": "/puzzles", "permanent": true },
     { "source": "/puzzles/chessbase-tactics", "destination": "/puzzles", "permanent": true },
     { "source": "/puzzles/chessbase-tactics/", "destination": "/puzzles", "permanent": true },
     { "source": "/endgame-practice", "destination": "/endgame-trainer", "permanent": true },

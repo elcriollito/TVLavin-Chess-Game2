@@ -24,7 +24,6 @@ const __dirname = path.dirname(__filename);
 const PORT = 8000;
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const RETIRED_PAGE_REDIRECTS = new Map([
-  ['/learn/interactive-diagrams', '/puzzles'],
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
   ['/watch/game-replayer', '/pgn-replayer'],

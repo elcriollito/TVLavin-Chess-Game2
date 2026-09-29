@@ -14,9 +14,9 @@
     "internalPrimaryPages": 30,
     "publicCanonicalRoutesNotInPrimaryNavigation": 12,
     "externalDestinations": 4,
-    "redirects": 18,
+    "redirects": 16,
     "protectedRouteFamilies": 5,
-    "totalInventoriedRecords": 69
+    "totalInventoriedRecords": 67
   },
   "primaryNavigation": [
     {
@@ -841,30 +841,6 @@
       "status": "public",
       "redirectFrom": "/play/beta/coach",
       "redirectTo": "/play/coach",
-      "expectedStatus": 308
-    },
-    {
-      "id": "redirect-learn-interactive-diagrams",
-      "label": "/learn/interactive-diagrams to /puzzles",
-      "canonicalPath": "/puzzles",
-      "absoluteUrl": "https://www.caissa-chess.org/puzzles",
-      "type": "redirect",
-      "owner": "vercel.json and server.js",
-      "status": "public",
-      "redirectFrom": "/learn/interactive-diagrams",
-      "redirectTo": "/puzzles",
-      "expectedStatus": 308
-    },
-    {
-      "id": "redirect-learn-interactive-diagrams",
-      "label": "/learn/interactive-diagrams/ to /puzzles",
-      "canonicalPath": "/puzzles",
-      "absoluteUrl": "https://www.caissa-chess.org/puzzles",
-      "type": "redirect",
-      "owner": "vercel.json and server.js",
-      "status": "public",
-      "redirectFrom": "/learn/interactive-diagrams/",
-      "redirectTo": "/puzzles",
       "expectedStatus": 308
     },
     {
