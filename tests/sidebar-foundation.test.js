@@ -13,10 +13,10 @@ function navigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('one immutable 1.13.0 model is shared by every shell adapter', () => {
+test('one immutable 1.15.0 model is shared by every shell adapter', () => {
   const api = navigation();
-  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
-  assert.equal(api.inventory.primary.length + api.inventory.connect.length, 34);
+  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.15.0');
+  assert.equal(api.inventory.primary.length + api.inventory.more.length + api.inventory.social.length, 34);
   assert.deepEqual(Object.keys(api.adapters), ['modernStandalone', 'application', 'trainer']);
   for (const adapter of Object.values(api.adapters)) {
     assert.equal(adapter.inventory, api.inventory);
@@ -36,18 +36,19 @@ test('shared group rendering is labelled, non-interactive and has one exact acti
   assert.deepEqual($('.nav-group-heading').map((_, element) => $(element).text().trim()).get(),
     ['Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools']);
   assert.equal($('.nav-group-heading').is('a,button,[tabindex]'), false);
-  assert.equal($('[role="listitem"]').length, 30);
+  assert.equal($('[role="listitem"]').length, 26);
   assert.equal($('[aria-current="page"]').length, 1);
   assert.equal($('[aria-current="page"]').text().trim(), 'Fritz');
   assert.equal(api.adapters.modernStandalone.renderGroups({ activeKey: 'unknown' }).includes('aria-current'), false);
 });
 
-test('external semantics and auth or Premium ownership stay outside canonical data', () => {
+test('More and social footer preserve external semantics while auth ownership stays outside canonical data', () => {
   const api = navigation();
-  const $ = load(api.adapters.modernStandalone.renderConnect());
-  assert.equal($('[role="list"]').length, 1);
-  assert.equal($('a[target="_blank"][rel="noopener noreferrer"]').length, 3);
-  assert.equal($('a[href^="mailto:"]').length, 1);
+  const more = load(api.adapters.modernStandalone.renderMore());
+  const social = load(api.adapters.modernStandalone.renderSocialFooter());
+  assert.equal(more('a[href^="mailto:"]').length, 1);
+  assert.equal(social('a[target="_blank"][rel="noopener noreferrer"]').length, 3);
+  assert.equal(social('.nav-label').length, 0);
   assert.equal(JSON.stringify(api.inventory).includes('sidebarSignIn'), false);
   assert.equal(JSON.stringify(api.inventory).includes('isPremium'), false);
   assert.equal(api.adapters.application.definition.slots.actions, 'application-owned');
@@ -60,7 +61,7 @@ test('canonical fallback seam is accessible and byte deterministic', () => {
   assert.equal(first, second);
   const $ = load(first);
   assert.equal($('nav[aria-label="CAISSA main navigation"]').length, 1);
-  assert.equal($('[role="listitem"]').length, 37);
+  assert.equal($('[role="listitem"]').length, 35);
   assert.equal($('[aria-current="page"]').length, 1);
   assert.equal($('[aria-current="page"]').text().trim(), 'Academy');
   assert.throws(() => api.renderFallbackNavigation({ adapter: {}, activeKey: 'play' }), /canonical shell adapter/);

@@ -3779,9 +3779,14 @@ button:focus,
     display: flex;
     flex-direction: column;
     border-right: 1px solid #1a1f28;
-    overflow-y: auto;
+    overflow: hidden;
     z-index: 100;
     grid-row: 2;
+}
+
+.nav-head {
+    flex: 0 0 auto;
+    min-width: 0;
 }
 
 .nav-header {
@@ -3863,6 +3868,10 @@ button:focus,
 
 .nav-items {
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
     padding: 8px 12px;
     display: flex;
     flex-direction: column;
@@ -3982,8 +3991,96 @@ button:focus,
 }
 
 .nav-footer {
-    padding: 12px;
+    flex: 0 0 auto;
+    padding: 8px 12px;
     border-top: 1px solid #1a1f28;
+}
+
+.nav-more {
+    margin-top: 4px;
+    border-top: 1px solid #1a1f28;
+    padding-top: 6px;
+}
+
+.nav-more-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nav-more-toggle:hover,
+.nav-more-toggle:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.nav-more-toggle:focus-visible,
+.nav-social-link:focus-visible {
+    outline: 2px solid #ffad33;
+    outline-offset: 2px;
+}
+
+.nav-more-toggle > i:first-child {
+    width: 22px;
+    flex: 0 0 22px;
+    text-align: center;
+}
+
+.nav-more-toggle .nav-label {
+    flex: 1 1 auto;
+}
+
+.nav-more-chevron {
+    font-size: 0.75rem;
+    transition: transform 0.18s ease;
+}
+
+.nav-more.is-open .nav-more-chevron {
+    transform: rotate(180deg);
+}
+
+.nav-more-panel[hidden] {
+    display: none;
+}
+
+.nav-social-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.nav-social-list-item {
+    display: contents;
+}
+
+.nav-social-link {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.72);
+    text-decoration: none;
+}
+
+.nav-social-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffad33;
+}
+
+.nav-social-link i {
+    font-size: 1.05rem;
 }
 
 /* Collapsed state */
@@ -3999,6 +4096,15 @@ button:focus,
 .nav-collapsed .nav-item {
     justify-content: center;
     padding: 16px 8px;
+}
+
+.nav-collapsed .nav-more-toggle {
+    justify-content: center;
+    padding-inline: 8px;
+}
+
+.nav-collapsed .nav-more-panel {
+    display: none;
 }
 
 .nav-collapsed .nav-collapse-btn {

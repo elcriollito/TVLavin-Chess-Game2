@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { load } from 'cheerio';
 
 const source = fs.readFileSync(new URL('../js/caissa-primary-navigation.js', import.meta.url), 'utf8');
 
@@ -12,30 +13,30 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.14.0 owns one immutable 32-destination order', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.15.0 owns the primary, More, and social destinations', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.15.0');
   assert.deepEqual(
-    Array.from(navigation.inventory.support, (item) => item.label),
-    ['Support CAISSA', 'Help', 'About']
+    Array.from(navigation.inventory.more, (item) => item.label),
+    ['Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback']
   );
   assert.deepEqual(Array.from(navigation.groupLabels), [
     'Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.primary, item => item.label), [
     'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-    'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
+    'Puzzles', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
     'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
-    'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog'
+    'Game Library', 'History', 'DOS Chess', 'Vault'
   ]);
-  assert.deepEqual(Array.from(navigation.inventory.connect, item => item.label), [
-    'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'
+  assert.deepEqual(Array.from(navigation.inventory.social, item => item.label), [
+    'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord'
   ]);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'play').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'playchess').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'puzzles').length, 1);
-  assert.equal(navigation.inventory.all.filter(item => item.id === 'interactive-diagrams').length, 1);
+  assert.equal(navigation.inventory.all.filter(item => item.id === 'interactive-diagrams').length, 0);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'lichess-tv').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-tournaments').length, 1);
@@ -43,8 +44,12 @@ test('CaissaGlobalNavigationOrderPolicy@1.14.0 owns one immutable 32-destination
     'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), [
-    'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
+    'Puzzles', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
   ]);
+  const social = load(navigation.renderSocialFooter());
+  assert.equal(social('.nav-social-link').length, 3);
+  assert.equal(social('.nav-label').length, 0);
+  assert.equal(social('.fa-youtube').length, 1);
   assert.equal(navigation.inventory.all.some(item => item.label === 'Play Online' || item.id === 'play-online'), false);
 });
 

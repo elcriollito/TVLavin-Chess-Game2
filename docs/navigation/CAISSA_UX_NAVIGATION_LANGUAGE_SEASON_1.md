@@ -1,5 +1,7 @@
 # CAISSA UX Navigation & Language — Season 1
 
+> Historical season document. As of 2026-09-29, Interactive Diagrams is fully retired with no supported route or replacement, and the current sidebar information architecture is owned by `CaissaGlobalNavigationOrderPolicy@1.15.0`.
+
 Branch: `work/caissa-ux-navigation-language-s1`
 
 Protected baseline: `ae47d59cb69e18c109577674479d3693cfd77775`

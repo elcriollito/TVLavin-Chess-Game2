@@ -77,7 +77,7 @@ test('controller accepts only the exact Top Rated frame and owns conservative st
 
 test('navigation, route, sitemap, inventory, and CSP expose exactly one bounded gateway', () => {
   const api = navigation();
-  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
+  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.15.0');
   assert.deepEqual(Array.from(api.inventory.groups[2], item => item.label), [
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena'
   ]);
@@ -103,8 +103,7 @@ test('navigation, route, sitemap, inventory, and CSP expose exactly one bounded 
 test('Lichess TV runtime remains isolated from every unrelated public surface', () => {
   const isolated = [
     'index.html', 'play-v2-unavailable.html', 'yahoo-classic.html', 'endgame-trainer.html',
-    'playchess.html', 'fritz.html', 'live-blitz.html', 'live-tournaments.html',
-    'interactive-diagrams.html'
+    'playchess.html', 'fritz.html', 'live-blitz.html', 'live-tournaments.html'
   ];
   for (const path of isolated) {
     assert.doesNotMatch(read(path), /lichess\.org\/tv\/frame|lichess-tv-parent|data-lichess-tv-frame/i, path);
