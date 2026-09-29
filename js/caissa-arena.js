@@ -4668,8 +4668,9 @@ const CaissaArena = {
 
 // Resolve the internal candidate gate before Arena snapshots its providers.
 const initializeArena = async () => {
+    if (window.location.pathname !== '/arena') return;
     CaissaArena.init();
-    if (location.pathname === '/arena') window.CaissaArenaRollout?.prepare?.();
+    window.CaissaArenaRollout?.prepare?.();
 };
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeArena);
