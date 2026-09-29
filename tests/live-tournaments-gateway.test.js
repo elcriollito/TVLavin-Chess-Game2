@@ -97,8 +97,8 @@ test('route, sitemap, and canonical navigation remain coherent', () => {
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
-  assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 32);
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.15.0');
+  assert.equal(navigation.inventory.primary.length + navigation.inventory.more.length + navigation.inventory.social.length, 34);
   assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-tournaments').length, 1);
   const vercel = JSON.parse(read('vercel.json'));

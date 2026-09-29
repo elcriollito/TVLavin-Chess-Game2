@@ -1,5 +1,7 @@
 # NAV-2.0 Global Sidebar Architecture and Surface Audit
 
+> Historical baseline. As of 2026-09-28, `CaissaGlobalNavigationOrderPolicy@1.15.0` uses fixed HEAD / scrollable BODY / fixed social FOOT, secondary destinations live in `More`, and Interactive Diagrams permanently redirects to `/puzzles`.
+
 Status: complete audit; implementation not started
 
 Baseline: `0cb9d8f47af043de4721fd48d104cb597b2003bc`

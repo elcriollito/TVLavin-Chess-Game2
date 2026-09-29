@@ -1,5 +1,7 @@
 # UX-009 first-party localization inventory
 
+> Historical localization snapshot. Interactive Diagrams was retired on 2026-09-28 and now permanently redirects to `/puzzles`.
+
 This audit uses `config/caissa-public-route-inventory.json` as the certified UX-001 source. Its current 67 records comprise 32 primary-navigation records (28 internal and 4 external), 14 additional public canonical routes, 16 redirects, and 5 protected route families.
 
 ## Classification rules

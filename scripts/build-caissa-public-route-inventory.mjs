@@ -22,8 +22,10 @@ const sitemapPaths = [...read('public/sitemap.xml').matchAll(/<loc>https:\/\/www
 const exactRewrites = new Map(vercel.rewrites.filter(rule => !/[:*]/.test(rule.source)).map(rule => [rule.source, rule.destination]));
 const groupIds = ['play-and-compete', 'learn-and-improve', 'analyze-and-watch', 'tools'];
 const groupById = new Map(navigation.inventory.groups.flatMap((group, index) => group.map(item => [item.id, groupIds[index]])));
+for (const item of navigation.inventory.more) groupById.set(item.id, 'more');
+for (const item of navigation.inventory.social) groupById.set(item.id, 'social-footer');
 
-const primaryNavigation = [...navigation.inventory.primary, ...navigation.inventory.connect].map((item, index) => {
+const primaryNavigation = [...navigation.inventory.primary, ...navigation.inventory.more, ...navigation.inventory.social].map((item, index) => {
   const external = /^https?:|^mailto:/.test(item.route);
   return {
     id: item.id,
@@ -31,7 +33,7 @@ const primaryNavigation = [...navigation.inventory.primary, ...navigation.invent
     canonicalPath: external ? null : item.route,
     absoluteUrl: external ? item.route : `${origin}${item.route}`,
     type: external ? 'external-destination' : 'internal-page',
-    group: external ? 'connect-with-caissa-chess' : groupById.get(item.id),
+    group: groupById.get(item.id),
     navigationPosition: index + 1,
     visibleInPrimaryNavigation: true,
     activeIdentity: external ? null : item.id,
@@ -47,8 +49,8 @@ const additionalMetadata = new Map([
   ['/play/games', ['play-games', 'Play Games', 'PlayV2RouteController']],
   ['/play/bots', ['play-bots', 'Play Bots', 'PlayV2RouteController']],
   ['/play/coach', ['play-coach', 'Play Coach', 'PlayV2RouteController']],
-  ['/about', ['about', 'About CAISSA Chess', 'CaissaPrimaryNavigation.support']],
-  ['/help', ['help', 'Help', 'CaissaPrimaryNavigation.support']],
+  ['/about', ['about', 'About CAISSA Chess', 'CaissaPrimaryNavigation.more']],
+  ['/help', ['help', 'Help', 'CaissaPrimaryNavigation.more']],
   ['/premium', ['premium', 'Premium', 'vercel.json']],
   ['/roadmap', ['roadmap', 'Roadmap', 'vercel.json']],
   ['/database', ['database', 'Chess Database', 'vercel.json']],
@@ -73,6 +75,7 @@ const publicCanonicalRoutes = [...additionalMetadata].filter(([canonicalPath]) =
 })).sort((a, b) => a.canonicalPath.localeCompare(b.canonicalPath));
 
 const serverOwnedRetiredRoutes = new Set([
+  '/learn/interactive-diagrams', '/learn/interactive-diagrams/',
   '/puzzles/chessbase-tactics', '/puzzles/chessbase-tactics/',
   '/endgame-practice', '/endgame-practice/',
   '/watch/game-replayer', '/watch/game-replayer/',
@@ -160,7 +163,7 @@ Any task that adds, removes, renames, redirects, protects, or reorders a public 
 
 The visible order remains owned only by \`CaissaPrimaryNavigation\`; adapters must never introduce private navigation arrays. Add or remove a route in its real routing owner first, then run \`node scripts/build-caissa-public-route-inventory.mjs\` and the inventory guard.
 
-\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with native CAISSA Puzzles. \`ANALYZE & WATCH\` places the native CAISSA PGN Reader directly after Analyze, then retains Lichess TV, Live Blitz, and the active ChessBase Live Tournaments gateway before Arena. Retired gateway URLs remain permanent aliases to their native or actively maintained replacements.
+\`PLAY & COMPETE\` includes the credited Playchess and Fritz gateways at positions 4 and 5. \`LEARN & IMPROVE\` begins with native CAISSA Puzzles. \`ANALYZE & WATCH\` places the native CAISSA PGN Reader directly after Analyze, then retains Lichess TV, Live Blitz, and the active ChessBase Live Tournaments gateway before Arena. Secondary and institutional destinations live under \`More\`; official social destinations live in the fixed icon-only sidebar footer. Retired gateway URLs, including Interactive Diagrams, remain permanent aliases to their native or actively maintained replacements.
 `;
 
 fs.mkdirSync(path.join(root, 'config'), { recursive: true });

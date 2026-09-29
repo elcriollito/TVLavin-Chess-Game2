@@ -36,12 +36,12 @@ async function build(file, adapterName, activeKey) {
   let generated = replaceElementContents(
     original,
     'data-caissa-primary-groups',
-    `${adapter.renderGroups(options)}${adapter.renderConnect(options)}`
+    adapter.renderBody(options)
   );
   generated = replaceElementContents(
     generated,
-    'data-caissa-primary-support',
-    adapter.renderSupport(options)
+    'data-caissa-social-footer',
+    adapter.renderSocialFooter()
   );
   if (checkOnly && generated !== original) throw new Error(`NAVIGATION_FALLBACK_OUTDATED: ${file}`);
   if (!checkOnly) await writeFile(url, generated);
@@ -49,6 +49,9 @@ async function build(file, adapterName, activeKey) {
 
 await build('index.html', 'application', '');
 await build('yahoo-classic.html', 'application', 'yahooClassic');
+await build('play-v2.html', 'application', 'play');
 await build('play-v2-public-beta.html', 'application', 'play');
+await build('play-v2-promotion-qa.html', 'application', 'play');
+await build('play-v2-ipad-analyze-diagnostic.html', 'application', 'play');
 await build('endgame-trainer.html', 'trainer', 'endgame-trainer');
 console.log(checkOnly ? 'Navigation fallbacks are current' : 'Generated navigation fallbacks');

@@ -12,17 +12,17 @@ const routes = [
 
 const canonicalOrder = [
   'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-  'Puzzles', 'Interactive Diagrams', 'Academy', 'Endgame Trainer', 'Endgame Library',
+  'Puzzles', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
-  'Game Library', 'History', 'DOS Chess', 'Vault', 'Blog',
-  'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord', 'Share an Idea / Contact & Feedback'
+  'Game Library', 'History', 'DOS Chess', 'Vault',
+  'Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.14.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.15.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
-  const nav = page.locator('#mainNav');
+  const nav = page.getByRole('navigation', { name: 'CAISSA main navigation' });
   await expect(page.locator('.caissa-manual-qa-launcher, .caissa-manual-qa')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => window.CaissaPrimaryNavigation?.contractId || '')).toBe(navigationContract);
   const host = page.locator('[data-caissa-primary-groups], [data-caissa-standalone-sidebar]');
@@ -40,16 +40,22 @@ async function assertOrderAndIdentity(page, activeLabel) {
   expect(labels.filter(label => label === 'Lichess TV')).toHaveLength(1);
   expect(labels.filter(label => label === 'Live Blitz')).toHaveLength(1);
   expect(labels.filter(label => label === 'Live Tournaments')).toHaveLength(1);
+  expect(labels).not.toContain('Interactive Diagrams');
   const current = host.locator('[aria-current="page"]');
   await expect(current).toHaveCount(1);
   await expect(current).toContainText(activeLabel);
   const brand = page.locator('.nav-logo').first();
   if (await brand.count()) await expect(brand).toHaveAttribute('href', '/play');
-  const discord = host.getByRole('link', { name: 'CAISSA Discord' });
+  const social = nav.locator('.nav-social-link');
+  await expect(social).toHaveCount(3);
+  await expect(nav.locator('.nav-footer .nav-label')).toHaveCount(0);
+  const discord = nav.getByRole('link', { name: 'CAISSA Discord' });
   await expect(discord).toHaveAttribute('href', 'https://discord.gg/TM7GJPUVfr');
   await expect(discord).toHaveAttribute('target', '_blank');
   await expect(discord).toHaveAttribute('rel', /noopener/);
   await expect(discord).toHaveAttribute('rel', /noreferrer/);
+  const more = nav.locator('.nav-more-toggle');
+  await expect(more).toHaveAttribute('aria-expanded', activeLabel === 'Blog' ? 'true' : /true|false/);
 }
 
 test('desktop shells preserve immutable DOM order and route-derived active identity', async ({ page, request }) => {

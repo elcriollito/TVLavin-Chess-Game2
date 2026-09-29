@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.14.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.15.0';
     const i18n = global.CaissaI18n || Object.freeze({
         enabledLocales: Object.freeze(['en']),
         supportedLocales: Object.freeze({ en: Object.freeze({ code: 'en', name: 'English', enabled: true }) }),
@@ -27,7 +27,6 @@
         ]),
         Object.freeze([
             { id: 'puzzles', label: 'Puzzles', icon: 'fas fa-puzzle-piece', route: '/puzzles' },
-            { id: 'interactive-diagrams', label: 'Interactive Diagrams', icon: 'fas fa-chess-board', route: '/learn/interactive-diagrams' },
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/academy', canonicalNavigation: true },
             { id: 'endgame-trainer', label: 'Endgame Trainer', icon: 'fas fa-chess-pawn', route: '/endgame-trainer' },
             { id: 'endgame-library', label: 'Endgame Library', icon: 'fas fa-book-reader', route: '/endgame-library' },
@@ -51,8 +50,7 @@
             { id: 'library', label: 'Game Library', icon: 'fas fa-database', section: 'library', route: '/game-library', canonicalNavigation: true },
             { id: 'history', label: 'History', icon: 'fas fa-history', section: 'history', route: '/history', canonicalNavigation: true },
             { id: 'dosChess', label: 'DOS Chess', icon: 'fas fa-desktop', section: 'dosChess', route: '/dos-chess', canonicalNavigation: true },
-            { id: 'vault', label: 'Vault', icon: 'fas fa-box-archive', route: '/vault', externalIndicator: true },
-            { id: 'blog', label: 'Blog', icon: 'fas fa-rss', route: '/blog' }
+            { id: 'vault', label: 'Vault', icon: 'fas fa-box-archive', route: '/vault', externalIndicator: true }
         ])
     ];
     const groups = Object.freeze(allGroups);
@@ -63,29 +61,35 @@
         'Tools'
     ]);
 
-    const support = Object.freeze([
+    const more = Object.freeze([
+        { id: 'blog', label: 'Blog', icon: 'fas fa-rss', route: '/blog' },
         { id: 'support', label: 'Support CAISSA', icon: 'fas fa-heart', route: '/support' },
         { id: 'help', label: 'Help', icon: 'fas fa-question-circle', route: '/help' },
-        { id: 'about', label: 'About', icon: 'fas fa-info-circle', route: '/about' }
+        { id: 'about', label: 'About', icon: 'fas fa-info-circle', route: '/about' },
+        { id: 'feedback', label: 'Share an Idea / Contact & Feedback', icon: 'fas fa-comment-dots', route: 'mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A' }
     ]);
 
     const externalDestinations = Object.freeze({
         discord: 'https://discord.gg/TM7GJPUVfr'
     });
 
-    const connect = Object.freeze([
+    const social = Object.freeze([
         { id: 'facebook', label: 'Facebook', icon: 'fab fa-facebook', route: 'https://www.facebook.com/CaissaChessOrg/', newTab: true, externalIndicator: true },
-        { id: 'youtube', label: 'CAISSA Chess YouTube', icon: 'fas fa-video', route: 'https://www.youtube.com/@CaissaChessOrg', newTab: true, externalIndicator: true },
-        { id: 'discord', label: 'CAISSA Discord', icon: 'fab fa-discord', route: externalDestinations.discord, newTab: true, externalIndicator: true },
-        { id: 'feedback', label: 'Share an Idea / Contact & Feedback', icon: 'fas fa-comment-dots', route: 'mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A' }
+        { id: 'youtube', label: 'CAISSA Chess YouTube', icon: 'fab fa-youtube', route: 'https://www.youtube.com/@CaissaChessOrg', newTab: true, externalIndicator: true },
+        { id: 'discord', label: 'CAISSA Discord', icon: 'fab fa-discord', route: externalDestinations.discord, newTab: true, externalIndicator: true }
     ]);
+
+    const support = more;
+    const connect = social;
 
     const inventory = Object.freeze({
         groups,
+        more,
+        social,
         support,
         connect,
         primary: Object.freeze(groups.flat()),
-        all: Object.freeze([...groups.flat(), ...support, ...connect])
+        all: Object.freeze([...groups.flat(), ...more, ...social])
     });
 
     function escapeAttribute(value) {
@@ -126,15 +130,45 @@
         }).join('<div class="nav-divider" aria-hidden="true"></div>');
     }
 
-    function renderSupport(options = {}) {
-        return support.map((item) => renderItem(item, options)).join('');
+    function renderMore(options = {}) {
+        const active = more.some(item => item.id === options.activeKey);
+        const panelId = `caissa-nav-more-${options.instanceId || 'primary'}`;
+        const label = i18n.t('nav.more', 'More');
+        return `<section class="nav-more${active ? ' is-open' : ''}" data-caissa-nav-more>
+            <button type="button" class="nav-more-toggle" aria-expanded="${String(active)}" aria-controls="${escapeAttribute(panelId)}" data-caissa-i18n-aria-label="nav.more" aria-label="${escapeAttribute(label)}">
+                <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                <span class="nav-label" data-caissa-i18n="nav.more">${label}</span>
+                <i class="fas fa-chevron-down nav-more-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="nav-more-panel" id="${escapeAttribute(panelId)}" role="list"${active ? '' : ' hidden'}>${more.map((item) => renderItem(item, options)).join('')}</div>
+        </section>`;
     }
 
-    function renderConnect(options = {}) {
-        return `<section class="nav-connect" aria-labelledby="caissa-nav-connect-heading">
-            <div class="nav-connect-label nav-label" id="caissa-nav-connect-heading" data-caissa-i18n="nav.connect">${i18n.t('nav.connect', 'Connect with CAISSA Chess')}</div>
-            <div class="nav-destination-list" role="list">${connect.map((item) => renderItem(item, options)).join('')}</div>
-        </section>`;
+    function renderSocialFooter() {
+        return `<div class="nav-social-links" role="list">${social.map((item) => {
+            const messageKey = `nav.item.${item.id}`;
+            const label = i18n.t(messageKey, item.label);
+            return `<div class="nav-social-list-item" role="listitem"><a href="${escapeAttribute(item.route)}" class="nav-social-link" data-nav-key="${escapeAttribute(item.id)}" aria-label="${escapeAttribute(label)}" data-caissa-i18n-aria-label="${escapeAttribute(messageKey)}" title="${escapeAttribute(label)}" data-caissa-i18n-title="${escapeAttribute(messageKey)}" target="_blank" rel="noopener noreferrer"><i class="${item.icon}" aria-hidden="true"></i></a></div>`;
+        }).join('')}</div>`;
+    }
+
+    function renderBody(options = {}) {
+        return `${renderGroups(options)}${renderMore(options)}${renderLanguageControl()}`;
+    }
+
+    function setupMoreControllers(root = document) {
+        root.querySelectorAll('[data-caissa-nav-more]').forEach(section => {
+            const toggle = section.querySelector('.nav-more-toggle');
+            const panel = section.querySelector('.nav-more-panel');
+            if (!toggle || !panel || toggle.dataset.caissaMoreReady === 'true') return;
+            toggle.dataset.caissaMoreReady = 'true';
+            toggle.addEventListener('click', () => {
+                const open = toggle.getAttribute('aria-expanded') !== 'true';
+                toggle.setAttribute('aria-expanded', String(open));
+                section.classList.toggle('is-open', open);
+                panel.hidden = !open;
+            });
+        });
     }
 
     function renderLanguageControl() {
@@ -152,7 +186,7 @@
                 <span class="nav-language-label nav-label"><span class="nav-language-icon" aria-hidden="true">🌐</span><span data-caissa-i18n="language.title">${i18n.t('language.title', 'Language')}</span></span>
                 <select data-caissa-locale-select data-caissa-i18n-aria-label="language.selectorLabel" aria-label="${escapeAttribute(i18n.t('language.selectorLabel', 'Interface language'))}">${options}</select>
             </label>
-            ${suggestionButton}
+${suggestionButton ? `            ${suggestionButton}\n` : ''}
         </div>`;
     }
 
@@ -163,8 +197,9 @@
             inventory,
             groupLabels,
             renderGroups: (options = {}) => renderGroups({ ...defaults, ...options }),
-            renderSupport: (options = {}) => renderSupport({ ...defaults, ...options }),
-            renderConnect: (options = {}) => renderConnect({ ...defaults, ...options })
+            renderMore: (options = {}) => renderMore({ ...defaults, ...options }),
+            renderBody: (options = {}) => renderBody({ ...defaults, ...options }),
+            renderSocialFooter
         });
     }
 
@@ -186,11 +221,8 @@
         }
         const options = { activeKey };
         return `<nav class="caissa-sidebar-fallback" aria-label="CAISSA main navigation">
-            <div class="nav-items">${adapter.renderGroups(options)}${adapter.renderConnect(options)}</div>
-            <section class="nav-footer" aria-labelledby="caissa-nav-support-heading">
-                <h2 class="nav-group-heading nav-label" id="caissa-nav-support-heading" data-caissa-i18n="nav.support">${i18n.t('nav.support', 'Support')}</h2>
-                <div role="list">${adapter.renderSupport(options)}</div>
-            </section>
+            <div class="nav-items" data-caissa-sidebar-body>${adapter.renderBody(options)}</div>
+            <footer class="nav-footer" data-caissa-sidebar-foot aria-label="${escapeAttribute(i18n.t('nav.socialLinks', 'CAISSA social links'))}">${adapter.renderSocialFooter()}</footer>
         </nav>`;
     }
 
@@ -318,11 +350,13 @@
         adapters,
         i18n,
         renderGroups,
-        renderSupport,
-        renderConnect,
+        renderMore,
+        renderBody,
+        renderSocialFooter,
         renderLanguageControl,
         renderFallbackNavigation,
-        createDrawerController
+        createDrawerController,
+        setupMoreControllers
     });
     global.CaissaPrimaryNavigation = api;
 
@@ -361,19 +395,17 @@
     document.querySelectorAll('[data-caissa-primary-groups]').forEach((host) => {
         const options = { activeKey: host.dataset.active || '', mode: host.dataset.navigationMode || 'routes' };
         const adapter = adapterFor(host);
-        host.innerHTML = `${adapter ? adapter.renderGroups(options) : renderGroups(options)}${host.hasAttribute('data-include-connect') ? (adapter ? adapter.renderConnect(options) : renderConnect(options)) : ''}`;
+        host.innerHTML = adapter ? adapter.renderBody(options) : renderBody(options);
+        host.setAttribute('data-caissa-sidebar-body', '');
         host.setAttribute('data-caissa-navigation-order-ready', contractId);
         markAdoptedShell(host);
     });
-    document.querySelectorAll('[data-caissa-primary-support]').forEach((host) => {
-        const options = { activeKey: host.dataset.active || '', mode: host.dataset.navigationMode || 'routes' };
+    document.querySelectorAll('[data-caissa-social-footer]').forEach((host) => {
         const adapter = adapterFor(host);
-        host.innerHTML = `${adapter ? adapter.renderSupport(options) : renderSupport(options)}${renderLanguageControl()}`;
+        host.innerHTML = adapter ? adapter.renderSocialFooter() : renderSocialFooter();
         markAdoptedShell(host);
     });
-    document.querySelectorAll('#caissa-nav-support-heading').forEach(heading => {
-        heading.dataset.caissaI18n = 'nav.support';
-    });
+    setupMoreControllers(document);
     const shellTextBindings = [
         ['#sidebarSignIn .nav-label', 'shell.signIn'],
         ['#sidebarAccountBtn span', 'shell.account'],

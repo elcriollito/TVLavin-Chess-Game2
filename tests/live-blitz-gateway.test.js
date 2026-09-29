@@ -38,10 +38,10 @@ test('Live Blitz follows Lichess TV in Analyze & Watch and route ownership is de
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.14.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.15.0');
   assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
-  assert.equal(navigation.inventory.primary.length, 28);
+  assert.equal(navigation.inventory.primary.length, 26);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/live-blitz' && rule.destination === '/live-blitz.html'));
   assert.match(read('server.js'), /pathname === '\/watch\/live-blitz'/);

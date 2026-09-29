@@ -42,6 +42,8 @@
     { "source": "/play/beta/games", "destination": "/play/games", "permanent": true },
     { "source": "/play/beta/bots", "destination": "/play/bots", "permanent": true },
     { "source": "/play/beta/coach", "destination": "/play/coach", "permanent": true },
+    { "source": "/learn/interactive-diagrams", "destination": "/puzzles", "permanent": true },
+    { "source": "/learn/interactive-diagrams/", "destination": "/puzzles", "permanent": true },
     { "source": "/puzzles/chessbase-tactics", "destination": "/puzzles", "permanent": true },
     { "source": "/puzzles/chessbase-tactics/", "destination": "/puzzles", "permanent": true },
     { "source": "/endgame-practice", "destination": "/endgame-trainer", "permanent": true },
@@ -85,7 +87,6 @@
     { "source": "/watch/live-blitz", "destination": "/live-blitz.html" },
     { "source": "/watch/live-tournaments", "destination": "/live-tournaments.html" },
     { "source": "/pgn-replayer", "destination": "/pgn-replayer.html" },
-    { "source": "/learn/interactive-diagrams", "destination": "/interactive-diagrams.html" },
     { "source": "/academy", "destination": "/index.html" },
     { "source": "/insights", "destination": "/index.html" },
     { "source": "/fics", "destination": "/index.html" },
@@ -168,15 +169,6 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), usb=(), serial=(), hid=()" }
-      ]
-    },
-    {
-      "source": "/integrations/chessbase-interactive-diagrams.html",
-      "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'none'; script-src 'self' 'unsafe-eval' https://pgn.chessbase.com; style-src 'self' 'unsafe-inline' https://pgn.chessbase.com; img-src data: blob: https://pgn.chessbase.com; font-src data: https://pgn.chessbase.com https://fonts.gstatic.com; worker-src 'none'; child-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'self'; upgrade-insecure-requests" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()" }
       ]
     },
     {

@@ -39,6 +39,16 @@
     scrollbar-width: thin;
 }
 
+:is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-head,
+:is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-footer {
+    flex: 0 0 auto;
+}
+
+:is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-items {
+    flex: 1 1 auto;
+    overflow-x: hidden;
+}
+
 :is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-group {
     display: flex;
     flex-direction: column;
@@ -371,6 +381,17 @@
     display: none;
 }
 
+.caissa-standalone-sidebar-host.is-collapsed .nav-more-toggle .nav-label,
+.caissa-standalone-sidebar-host.is-collapsed .nav-more-chevron,
+.caissa-standalone-sidebar-host.is-collapsed .nav-more-panel {
+    display: none;
+}
+
+.caissa-standalone-sidebar-host.is-collapsed .nav-more-toggle {
+    justify-content: center;
+    padding-inline: 8px;
+}
+
 .caissa-standalone-sidebar-host.is-collapsed .nav-header,
 .caissa-standalone-sidebar-host.is-collapsed .nav-logo,
 .caissa-standalone-sidebar-host.is-collapsed .nav-item,
@@ -626,6 +647,16 @@
     .caissa-standalone-sidebar-host.is-collapsed .nav-auth-details,
     .caissa-standalone-sidebar-host.is-collapsed .nav-external-icon {
         display: initial;
+    }
+
+    .caissa-standalone-sidebar-host.is-collapsed .nav-more-toggle .nav-label,
+    .caissa-standalone-sidebar-host.is-collapsed .nav-more-chevron {
+        display: initial;
+    }
+
+    .caissa-standalone-sidebar-host.is-collapsed .nav-more-toggle {
+        justify-content: flex-start;
+        padding-inline: 14px;
     }
 
     .caissa-standalone-sidebar-host.is-collapsed .nav-language-control,

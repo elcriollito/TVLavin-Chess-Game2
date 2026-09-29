@@ -8,6 +8,7 @@ const read = path => fs.readFileSync(new URL(path, root), 'utf8');
 const exists = path => fs.existsSync(new URL(path, root));
 
 const retirements = Object.freeze([
+  ['/learn/interactive-diagrams', '/puzzles'],
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
   ['/watch/game-replayer', '/pgn-replayer'],
@@ -28,7 +29,7 @@ test('retired pages leave navigation and sitemap while replacement products rema
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const ids = Array.from(window.CaissaPrimaryNavigation.inventory.primary, item => item.id);
-  for (const id of ['tactics', 'endgame-practice', 'game-replayer', 'lichess-broadcasts']) assert.equal(ids.includes(id), false);
+  for (const id of ['interactive-diagrams', 'tactics', 'endgame-practice', 'game-replayer', 'lichess-broadcasts']) assert.equal(ids.includes(id), false);
   for (const id of ['puzzles', 'endgame-trainer', 'pgn-replayer', 'live-tournaments']) assert.equal(ids.includes(id), true);
   const sitemap = read('public/sitemap.xml');
   for (const [source, destination] of retirements) {
@@ -39,6 +40,12 @@ test('retired pages leave navigation and sitemap while replacement products rema
 
 test('page-specific files are removed while reusable Lichess modules and shared PGN data remain', () => {
   for (const path of [
+    'interactive-diagrams.html', 'integrations/chessbase-interactive-diagrams.html',
+    'css/interactive-diagrams.css', 'css/chessbase-interactive-diagrams-wrapper.css',
+    'js/interactive-diagrams-parent.js', 'js/interactive-diagrams-containment.js',
+    'js/interactive-diagrams-manifest.js', 'js/interactive-diagrams-position-adapter.js',
+    'js/interactive-diagrams-bootstrap.js', 'js/interactive-diagrams-wrapper.js',
+    'scripts/build-interactive-diagrams-manifest.mjs',
     'tactics.html', 'css/tactics.css',
     'endgame-practice.html', 'css/endgame-practice.css', 'js/endgame-practice-page.js',
     'game-replayer.html', 'css/game-replayer.css', 'js/game-replayer-parent.js',

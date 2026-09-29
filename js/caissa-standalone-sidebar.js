@@ -9,7 +9,7 @@
         const i18n = navigation.i18n;
         const activeKey = host.dataset.active || '';
         const renderOptions = { activeKey };
-        const items = adapter.renderGroups(renderOptions);
+        const items = adapter.renderBody(renderOptions);
 
         host.classList.add('caissa-standalone-sidebar-host');
         host.innerHTML = `
@@ -17,6 +17,7 @@
                 <i class="fas fa-bars" aria-hidden="true"></i>
             </button>
             <nav id="mainNav" class="main-navigation" data-caissa-i18n-aria-label="shell.mainNavigation" aria-label="${i18n.t('shell.mainNavigation', 'CAISSA main navigation')}">
+                <div class="nav-head" data-caissa-sidebar-head>
                 <div class="nav-header">
                     <a href="/play" class="nav-logo" data-caissa-i18n-aria-label="shell.returnToPlay" aria-label="${i18n.t('shell.returnToPlay', 'CAISSA Chess — return to Play')}">
                         <i class="fas fa-chess-knight" aria-hidden="true"></i>
@@ -51,15 +52,14 @@
                         <span class="nav-premium-badge" data-caissa-i18n="shell.upgrade">${i18n.t('shell.upgrade', 'Upgrade')}</span>
                     </a>
                 </div>
-                <div class="nav-items">${items}${adapter.renderConnect(renderOptions)}</div>
-                <section class="nav-footer" aria-labelledby="caissa-nav-support-heading">
-                    <h2 class="nav-group-heading nav-label" id="caissa-nav-support-heading" data-caissa-i18n="nav.support">${i18n.t('nav.support', 'Support')}</h2>
-                    <div role="list">${adapter.renderSupport(renderOptions)}${navigation.renderLanguageControl()}</div>
-                </section>
+                </div>
+                <div class="nav-items" data-caissa-sidebar-body>${items}</div>
+                <footer class="nav-footer" data-caissa-sidebar-foot aria-label="${i18n.t('nav.socialLinks', 'CAISSA social links')}">${adapter.renderSocialFooter()}</footer>
             </nav>
             <div class="caissa-standalone-backdrop" aria-hidden="true"></div>`;
         host.setAttribute('data-caissa-navigation-order-ready', navigation.contractId);
         i18n.apply(host);
+        navigation.setupMoreControllers(host);
 
         const nav = host.querySelector('.main-navigation');
         const collapseButton = host.querySelector('.nav-collapse-btn');

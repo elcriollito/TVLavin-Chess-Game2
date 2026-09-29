@@ -24,6 +24,7 @@ const __dirname = path.dirname(__filename);
 const PORT = 8000;
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const RETIRED_PAGE_REDIRECTS = new Map([
+  ['/learn/interactive-diagrams', '/puzzles'],
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
   ['/watch/game-replayer', '/pgn-replayer'],
@@ -584,9 +585,6 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/puzzles' || pathname === '/puzzles/') {
     filePath = './puzzles.html';
-  }
-  if (pathname === '/learn/interactive-diagrams' || pathname === '/learn/interactive-diagrams/') {
-    filePath = './interactive-diagrams.html';
   }
   if (pathname === '/watch/live-blitz' || pathname === '/watch/live-blitz/') {
     filePath = './live-blitz.html';

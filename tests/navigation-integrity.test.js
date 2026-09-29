@@ -21,23 +21,24 @@ test('canonical primary navigation inventory is unique and stable', () => {
     Array.from(inventory.primary, ({ id }) => id),
     [
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
-      'puzzles', 'interactive-diagrams', 'academy', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
+      'puzzles', 'academy', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
       'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
-      'history', 'dosChess', 'vault', 'blog'
+      'history', 'dosChess', 'vault'
     ]
   );
-  assert.equal(inventory.primary.length, 28);
-  assert.equal(inventory.connect.length, 4);
+  assert.equal(inventory.primary.length, 26);
+  assert.deepEqual(Array.from(inventory.more, ({ id }) => id), ['blog', 'support', 'help', 'about', 'feedback']);
+  assert.deepEqual(Array.from(inventory.social, ({ id }) => id), ['facebook', 'youtube', 'discord']);
   for (const label of ['Puzzles', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');
-  const discord = inventory.connect.find(({ id }) => id === 'discord');
+  const discord = inventory.social.find(({ id }) => id === 'discord');
   assert.equal(discord.label, 'CAISSA Discord');
   assert.equal(discord.route, 'https://discord.gg/TM7GJPUVfr');
   assert.equal(discord.newTab, true);
-  const publicDiscordInvites = Array.from(inventory.connect, ({ route }) => (
+  const publicDiscordInvites = Array.from(inventory.social, ({ route }) => (
     route.match(/^https:\/\/(?:discord\.gg\/|discord\.com\/invite\/)([^/?#]+)/i)?.[0]
   )).filter(Boolean);
   assert.deepEqual(publicDiscordInvites, ['https://discord.gg/TM7GJPUVfr']);
@@ -50,13 +51,16 @@ test('main application and trainer consume the canonical inventory', () => {
   for (const path of ['index.html', 'yahoo-classic.html']) {
     const app = load(read(path));
     assert.equal(app('[data-caissa-primary-groups][data-navigation-mode="application"]').length, 1);
-    assert.equal(app('[data-caissa-primary-support][data-navigation-mode="application"]').length, 1);
+    assert.equal(app('[data-caissa-social-footer][data-navigation-mode="application"]').length, 1);
+    assert.equal(app('[data-caissa-sidebar-head]').length, 1);
+    assert.equal(app('[data-caissa-sidebar-body]').length, 1);
+    assert.equal(app('[data-caissa-sidebar-foot]').length, 1);
     assert.equal(app('script[src^="js/caissa-primary-navigation.js"]').length, 1);
   }
 
   const trainer = load(read('endgame-trainer.html'));
   assert.equal(trainer('[data-caissa-primary-groups][data-active="endgame-trainer"]').length, 1);
-  assert.equal(trainer('[data-caissa-primary-support]').length, 1);
+  assert.equal(trainer('[data-caissa-social-footer]').length, 1);
   assert.equal(trainer('script[src^="/js/caissa-primary-navigation.js"]').length, 1);
 });
 
@@ -64,7 +68,8 @@ test('standalone renderer consumes the canonical inventory without a private lis
   const source = read('js/caissa-standalone-sidebar.js');
   assert.match(source, /window\.CaissaPrimaryNavigation/);
   assert.doesNotMatch(source, /const groups\s*=/);
-  assert.match(source, /renderSupport/);
+  assert.match(source, /renderBody/);
+  assert.match(source, /renderSocialFooter/);
 });
 
 test('Endgame Library uses the standard sidebar shell and keeps its content contract', () => {
@@ -101,8 +106,8 @@ test('About reuses its approved destination inside the standard shell', () => {
 
 test('Help is first-class and legacy Settings opens contextual Play options', () => {
   const inventory = loadInventory();
-  assert.equal(inventory.support.find(({ id }) => id === 'help').route, '/help');
-  assert.equal(inventory.support.some(({ id }) => id === 'settings'), false);
+  assert.equal(inventory.more.find(({ id }) => id === 'help').route, '/help');
+  assert.equal(inventory.more.some(({ id }) => id === 'settings'), false);
   const navigation = read('js/caissa-navigation.js');
   assert.match(navigation, /openRequestedAction\(\)/);
   assert.match(navigation, /window\.location\.replace\('\/help'\)/);
