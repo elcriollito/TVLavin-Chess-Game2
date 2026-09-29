@@ -52,7 +52,7 @@
             { id: 'polyglot', label: 'Polyglot Tool', icon: 'fas fa-book-open', route: '/tools/polyglot', externalIndicator: true },
             { id: 'opening-database', label: 'Opening Database', icon: 'fas fa-chess-board', route: '/opening-database' },
             { id: 'eco', label: 'ECO Codes', icon: 'fas fa-book', route: '/eco' },
-            { id: 'library', label: 'Game Library', icon: 'fas fa-database', section: 'library', route: '/game-library', className: 'nav-item-tool', canonicalNavigation: true },
+            { id: 'library', label: 'Game Library', icon: 'fas fa-database', section: 'library', route: '/game-library', canonicalNavigation: true },
             { id: 'history', label: 'History', icon: 'fas fa-history', section: 'history', route: '/history', canonicalNavigation: true },
             { id: 'dosChess', label: 'DOS Chess', icon: 'fas fa-desktop', section: 'dosChess', route: '/dos-chess', canonicalNavigation: true },
             { id: 'vault', label: 'Vault', icon: 'fas fa-box-archive', route: '/vault', externalIndicator: true },

@@ -3959,23 +3959,6 @@ button:focus,
     display: none;
 }
 
-/* Key tool nav items (Mentor, Game Library) */
-.nav-item-tool {
-    color: var(--text-primary);
-    background: rgba(44, 95, 158, 0.08);
-    border-left: 2px solid transparent;
-    transition: all 0.2s;
-}
-
-.nav-item-tool:hover {
-    background: rgba(44, 95, 158, 0.15);
-    border-left-color: var(--primary-color);
-}
-
-.nav-item-tool i {
-    color: var(--secondary-color);
-}
-
 /* External link nav item (Blog) */
 .nav-item-external {
     text-decoration: none;

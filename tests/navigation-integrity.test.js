@@ -79,7 +79,13 @@ test('Endgame Library uses the standard sidebar shell and keeps its content cont
 });
 
 test('Game Library uses the standard sidebar shell without a Classic host', () => {
+  const inventory = loadInventory();
+  const library = inventory.primary.find(({ id }) => id === 'library');
   const page = load(read('game-library.html'));
+  assert.equal(library.route, '/game-library');
+  assert.equal(library.icon, 'fas fa-database');
+  assert.equal(library.className, undefined);
+  assert.doesNotMatch(read('styles.css'), /\.nav-item-tool/);
   assert.equal(page('.caissa-standalone-layout').length, 1);
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);
   assert.equal(page('#game-library-main.caissa-standalone-content').length, 1);

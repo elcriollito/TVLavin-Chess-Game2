@@ -27,7 +27,8 @@ test('policy freezes authorized values and public beta remains closed', async ()
     assert.match(contractSource,/publicBeta: 'disabled'/); assert.match(contractSource,/clarity: 'disabled'/);
     const html=fs.readFileSync(new URL('../../play-v2.html',import.meta.url),'utf8');
     assert.doesNotMatch(html,/caissa-clarity\.js|clarity\.ms|\/api\/public-auth-config/i);
-    assert.match(html,/play-v2-invite-client\.js/); assert.match(html,/play-v2-invite-feedback\.css/);
+    assert.match(html,/play-v2-invite-client\.js/);
+    assert.doesNotMatch(html,/play-v2-manual-qa|play-v2-invite-feedback|caissa-manual-qa/);
 });
 
 test('missing configuration, public-beta and cross-origin redemption fail closed', async () => {

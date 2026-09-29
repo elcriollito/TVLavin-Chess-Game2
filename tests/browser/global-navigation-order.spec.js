@@ -23,6 +23,7 @@ const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.14.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.locator('#mainNav');
+  await expect(page.locator('.caissa-manual-qa-launcher, .caissa-manual-qa')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => window.CaissaPrimaryNavigation?.contractId || '')).toBe(navigationContract);
   const host = page.locator('[data-caissa-primary-groups], [data-caissa-standalone-sidebar]');
   await expect(host).toHaveAttribute('data-caissa-navigation-order-ready', navigationContract);

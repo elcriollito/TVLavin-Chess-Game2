@@ -3,8 +3,7 @@
 /* The route marker is set in <head>, before floating utilities can paint.
    Runtime phone composition takes over atomically after shell geometry lands. */
 html.caissa-initial-phone-coach [data-caissa-floating-controls],
-html.caissa-initial-phone-coach .caissa-mentor-shell,
-html.caissa-initial-phone-coach .caissa-manual-qa {
+html.caissa-initial-phone-coach .caissa-mentor-shell {
     display: none !important;
 }
 
@@ -1737,10 +1736,9 @@ body[data-caissa-section="play"].caissa-simplified-play-active .mobile-quick-act
 
 /* Floating desktop utilities do not compete with the board-first phone
    composition. Mentor remains available on larger layouts and its post-game
-   implementation is retained; Report an Issue remains unchanged off phone. */
+   implementation is retained. */
 body.caissa-simplified-play-active.caissa-play-phone-layout [data-caissa-floating-controls],
 body.caissa-simplified-play-active.caissa-play-phone-layout .caissa-mentor-shell,
-body.caissa-simplified-play-active.caissa-play-phone-layout .caissa-manual-qa,
 body.caissa-simplified-play-active.caissa-play-phone-layout [data-post-game-action="mentor-review"],
 body.caissa-simplified-play-active.caissa-play-phone-layout [data-post-game-action="mentor-summary"],
 body.caissa-simplified-play-active.caissa-play-phone-layout .caissa-post-game__mentor-note,

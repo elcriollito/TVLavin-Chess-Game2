@@ -114,10 +114,7 @@ html = html
     '    <script src="js/play/play-v2-inline-analyze.js?v=1.4.0"></script>\n' +
     '    <script src="js/play/post-game-core.js?v=1.5.0"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
-  .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-invite-feedback.css?v=1.0.0">\n</head>')
-  .replace('</body>', '    <script src="js/play/play-v2-manual-qa-feedback-policy.js?v=1.0.0"></script>\n' +
-    '    <script src="js/play/play-v2-manual-qa-report.js?v=1.0.0"></script>\n' +
-    '    <script src="js/play/play-v2-invite-client.js?v=1.0.0"></script>\n</body>')
+  .replace('</body>', '    <script src="js/play/play-v2-invite-client.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
 
 if (!html.includes('data-caissa-play-v2-entry="qa-only"')) throw new Error('PLAY_V2_BODY_MARKER_MISSING');
@@ -186,7 +183,7 @@ const publicBetaHtml = html
   .replace('</body>', '    <script src="js/play/play-v2-public-beta-ui.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
 for (const required of ['data-caissa-play-v2-entry="official"', 'href="https://www.caissa-chess.org/play"', 'play-v2-public-beta-policy.js',
-  'play-v2-public-beta-ui.js', 'play-v2-manual-qa-report.js']) {
+  'play-v2-public-beta-ui.js']) {
   if (!publicBetaHtml.includes(required)) throw new Error(`PLAY_V2_PUBLIC_BETA_BUILD_MISSING: ${required}`);
 }
 if (/play-v2-beta-entry\.js|play-v2-invite-client\.js|play-v2-invite-redemption\.js/.test(publicBetaHtml))

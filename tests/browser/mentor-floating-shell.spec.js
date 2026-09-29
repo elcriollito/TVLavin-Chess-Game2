@@ -62,7 +62,7 @@ async function assertLongResponseLayout(page, viewport) {
     expect(mentorRequests).toEqual([]);
 }
 
-test('Play exposes Mentor with zero auto-call, keyboard-safe lifecycle, and no issue-control collision', async ({ page }) => {
+test('Play exposes Mentor with zero auto-call and a keyboard-safe lifecycle', async ({ page }) => {
     await instrumentPlay(page);
     const mentorRequests = [];
     page.on('request', request => { if (/\/api\/mentor\//.test(request.url())) mentorRequests.push(request.url()); });
@@ -78,12 +78,8 @@ test('Play exposes Mentor with zero auto-call, keyboard-safe lifecycle, and no i
     await page.keyboard.press('Escape'); await expect(shell).toBeHidden(); await expect(launcher).toBeFocused();
     await launcher.click(); await page.getByRole('button', { name: 'Minimize CAISSA Mentor' }).click();
     await expect(shell).toBeHidden(); expect(mentorRequests).toEqual([]);
-    const boxes = await page.evaluate(() => {
-        const box = selector => { const r = document.querySelector(selector)?.getBoundingClientRect(); return r ? { x:r.x,y:r.y,w:r.width,h:r.height } : null; };
-        return { mentor: box('[data-caissa-mentor-launcher]'), report: box('.caissa-manual-qa-launcher') };
-    });
-    expect(boxes.mentor).not.toBeNull(); expect(boxes.report).not.toBeNull();
-    expect(boxes.mentor.y + boxes.mentor.h <= boxes.report.y || boxes.report.y + boxes.report.h <= boxes.mentor.y).toBe(true);
+    await expect(launcher).toBeVisible();
+    await expect(page.locator('.caissa-manual-qa-launcher, .caissa-manual-qa')).toHaveCount(0);
     const axe = await new AxeBuilder({ page }).include('[data-caissa-mentor-shell]').analyze(); expect(axe.violations).toEqual([]);
 });
 

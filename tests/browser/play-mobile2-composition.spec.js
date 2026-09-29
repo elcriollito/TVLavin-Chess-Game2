@@ -75,12 +75,12 @@ async function compositionSnapshot(page) {
             '[data-active-game-action="menu"], [data-mobile-action="menu"], summary'
         )].filter(node => visible(node) && node.textContent.trim() === 'Menu');
         const floating = [...document.querySelectorAll(
-            '[data-caissa-floating-controls], .caissa-mentor-launcher, .caissa-manual-qa-launcher, .caissa-manual-qa'
+            '[data-caissa-floating-controls], .caissa-mentor-launcher'
         )];
         const utilities = [...actions.querySelectorAll('[data-active-game-action]')]
             .filter(visible).map(node => node.dataset.activeGameAction);
         const focusableSecondary = [...document.querySelectorAll(
-            '.caissa-mentor-launcher, .caissa-manual-qa-launcher, .caissa-simplified-shell__utility-bar button'
+            '.caissa-mentor-launcher, .caissa-simplified-shell__utility-bar button'
         )].filter(visible);
         return {
             layout: shell.dataset.layout,
