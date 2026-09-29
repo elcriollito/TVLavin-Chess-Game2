@@ -9149,6 +9149,14 @@ body.debug-layout #arena-right {
     font-size: 18px;
 }
 
+#arenaSection .arena-player-avatar > i {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    line-height: 22px;
+}
+
 #arenaSection .arena-player-copy {
     display: flex;
     flex-direction: column;

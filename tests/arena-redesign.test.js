@@ -125,6 +125,7 @@ test('Arena sizing snapshots stable inputs and isolates game content from board 
   assert.match(styles, /#arenaSection \.arena-board-mount[\s\S]*?aspect-ratio:\s*1\s*\/\s*1/);
   assert.match(styles, /--arena-rendered-board-size:\s*min\(calc\(100% - 46px\), var\(--arena-board-max\)\)/);
   assert.match(styles, /#arenaSection \.arena-player-bar[\s\S]*?height:\s*58px[\s\S]*?overflow:\s*hidden/);
+  assert.match(styles, /#arenaSection \.arena-player-avatar > i[\s\S]*?width:\s*22px[\s\S]*?height:\s*22px/);
   assert.match(styles, /#arenaSection \.arena-player-clock[\s\S]*?flex:\s*0 0 88px[\s\S]*?font-variant-numeric:\s*tabular-nums/);
   assert.match(styles, /#arenaSection \.arena-move-list[\s\S]*?overflow-y:\s*auto/);
   assert.match(styles, /#arenaSection \.arena-control-panel[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\)/);
