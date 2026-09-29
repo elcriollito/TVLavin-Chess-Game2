@@ -124,8 +124,23 @@
 
 .caissa-board .caissa-board__piece[data-dragging="true"] {
     z-index: 2;
-    filter: drop-shadow(0 0.4rem 0.35rem rgba(0, 0, 0, 0.35));
+    opacity: 1 !important;
+    filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    scale: 1 !important;
+    animation: none !important;
     transition: none !important;
+}
+
+.caissa-board[data-quiet-drag-active="true"] .caissa-board__highlight[data-drag-source="true"] {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.caissa-board[data-quiet-drag-active="true"] .caissa-board__square[data-drag-source="true"] {
+    box-shadow: none !important;
 }
 
 .caissa-board__coordinate {

@@ -35,6 +35,26 @@ async function startBoardDrag(page, sourceSquare, targetSquare, { expectLegal = 
     await page.mouse.move(end.x, end.y, { steps: 5 });
     await expect(page.locator('body')).toHaveClass(/caissa-analyze-board-dragging/);
     await expect(source).toHaveAttribute('data-dragging', 'true');
+    const quietPresentation = await page.evaluate(() => {
+        const root = document.querySelector('#analyzeChessboard .caissa-board');
+        const piece = root.querySelector('.caissa-board__piece[data-dragging="true"]');
+        const style = getComputedStyle(piece);
+        return {
+            active: root.dataset.quietDragActive,
+            draggingCount: root.querySelectorAll('.caissa-board__piece[data-dragging="true"]').length,
+            opacity: style.opacity,
+            filter: style.filter,
+            shadow: style.boxShadow,
+            transition: style.transitionDuration,
+            metrics: AnalyzeSection.board.inspect().metrics.renderer.quietDrag
+        };
+    });
+    expect(quietPresentation).toMatchObject({
+        active: 'true', draggingCount: 1, opacity: '1', filter: 'none', shadow: 'none', transition: '0s'
+    });
+    expect(quietPresentation.metrics.geometryReadsDuringMove).toBe(0);
+    expect(quietPresentation.metrics.scheduler.visualWrites)
+        .toBeLessThanOrEqual(quietPresentation.metrics.scheduler.inputEvents);
     if (expectLegal) {
         await expect(page.locator(`#analyzeChessboard .caissa-board__highlight--legal[data-square="${targetSquare}"]`)).toBeVisible();
     }

@@ -8,6 +8,7 @@ const animationInput = document.getElementById('animation-enabled');
 const reducedMotionInput = document.getElementById('reduced-motion');
 const events = [];
 let adapter;
+let lastDestroyedMetrics = null;
 let moveCursor = 0;
 let mutationObserver = null;
 let mutationRecords = [];
@@ -47,7 +48,10 @@ function updateMetrics() {
 }
 
 function makeAdapter(options = {}) {
-    adapter?.destroy();
+    if (adapter) {
+        adapter.destroy();
+        lastDestroyedMetrics = adapter.getMetrics();
+    }
     events.length = 0;
     eventLog.replaceChildren();
     moveCursor = 0;
@@ -106,6 +110,7 @@ const api = {
     setPosition,
     getPosition: () => adapter.getPosition(),
     getMetrics: () => adapter.getMetrics(),
+    getLastDestroyedMetrics: () => structuredClone(lastDestroyedMetrics),
     getEvents: () => structuredClone(events),
     clearEvents: () => { events.length = 0; eventLog.replaceChildren(); },
     selectSquare: square => adapter.selectSquare(square),
