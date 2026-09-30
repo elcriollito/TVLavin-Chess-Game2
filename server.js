@@ -519,6 +519,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/play-online/fritz' || pathname === '/play-online/fritz/') {
     filePath = './fritz.html';
   }
+  if (pathname === '/mentor' || pathname === '/mentor/') {
+    filePath = './mentor.html';
+  }
   if (pathname === '/puzzles' || pathname === '/puzzles/') {
     filePath = './puzzles.html';
   }

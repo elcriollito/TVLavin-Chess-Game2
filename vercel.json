@@ -52,6 +52,8 @@
   ],
   "rewrites": [
     { "source": "/", "destination": "/home.html" },
+    { "source": "/mentor", "destination": "/mentor.html" },
+    { "source": "/mentor/", "destination": "/mentor.html" },
     { "source": "/beta", "destination": "/api/beta/page" },
     { "source": "/beta/", "destination": "/api/beta/page" },
     { "source": "/scanner/beta", "destination": "/api/beta/scanner" },
