@@ -187,19 +187,10 @@
             root.App?.engine?.terminate?.('post-game-analyze');
             const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record, { identityContext: 'play-v2' });
             if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
-            const sourceMode = root.CaissaSimplifiedPlayShellInstance?.getSnapshot?.()?.mode || null;
-            const reviewContext = sourceMode === 'games'
-                ? root.CaissaGamesReviewContext?.create?.({ owner: 'post-game-core', sourceMode })
-                : sourceMode === 'coach'
-                ? root.CaissaCoachReviewContext?.create?.({ owner: 'post-game-core', sourceMode })
-                : sourceMode === 'bots'
-                    ? root.CaissaBotsReviewContext?.create?.({ owner: 'post-game-core', sourceMode }) : null;
-            const opened = root.CaissaPlayV2InlineAnalyze?.open
-                ? root.CaissaPlayV2InlineAnalyze.open({
-                    token: handoff.value.token,
-                    reviewContext: reviewContext?.ok ? reviewContext.value : null
-                })
-                : this.#navigation?.navigateToSection?.('analyze', { handoffToken: handoff.value.token });
+            const opened = this.#navigation?.navigateToSection?.('analyze', {
+                handoffToken: handoff.value.token,
+                source: 'post-game'
+            });
             if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');
             this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'ANALYZE_OPENED');
         }
