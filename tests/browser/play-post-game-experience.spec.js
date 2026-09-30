@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { positions } from '../play/fixtures/positions.js';
-import { instrumentPlay, loadPosition, playMove, snapshot } from '../play/playwright-helpers.js';
+import { instrumentPlay, loadPosition, monitorRuntime, playMove, snapshot } from '../play/playwright-helpers.js';
 
 async function openQa(page, viewport = { width: 390, height: 844 }) {
     await page.setViewportSize(viewport);
@@ -69,7 +69,8 @@ test('visible New Game returns to setup without duplicating runtime resources', 
         window.CaissaPostGameExperienceInstance.getSnapshot().diagnostics.newGames)).toBe(1);
 });
 
-test('Analyze uses opaque handoff and Back restores the post-game summary', async ({ page }) => {
+test('Analyze uses canonical section navigation and Back restores the post-game summary', async ({ page }) => {
+    const runtime = monitorRuntime(page);
     await openQa(page);
     await loadPosition(page, positions.checkmateInOne.fen);
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
@@ -77,14 +78,35 @@ test('Analyze uses opaque handoff and Back restores the post-game summary', asyn
     const expectedUrl = page.url();
     const recordId = await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId);
     await page.locator('[data-post-game-action="analyze"]').click();
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active.*caissa-play-v2-inline-analyze|caissa-play-v2-inline-analyze.*active/);
+    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await expect(page.locator('#analyzeSection')).toBeVisible();
+    await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
+    await expect(page.locator('#playSection')).not.toHaveClass(/active/);
+    expect(await page.evaluate(() => ({
+        currentSection: window.CaissaNavigation.currentSection,
+        activeSections: [...document.querySelectorAll('.content-section.active')].map(section => section.id),
+        analyzeAriaHidden: document.getElementById('analyzeSection').getAttribute('aria-hidden'),
+        inlineOverlay: document.body.classList.contains('caissa-play-v2-analyze-open')
+    }))).toEqual({
+        currentSection: 'analyze',
+        activeSections: ['analyzeSection'],
+        analyzeAriaHidden: null,
+        inlineOverlay: false
+    });
     const url = new URL(page.url());
-    expect(page.url()).toBe(expectedUrl);
-    expect(url.searchParams.has('handoff') || url.searchParams.has('pgn') || url.searchParams.has('fen')).toBe(false);
-    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.pgn())).toContain(expectedPgn);
-    await page.getByRole('button', { name: 'Back to game result' }).click();
+    expect(url.pathname).toBe('/');
+    expect(url.searchParams.get('section')).toBe('analyze');
+    expect(url.searchParams.has('handoff')).toBe(true);
+    expect(url.searchParams.has('pgn') || url.searchParams.has('fen')).toBe(false);
+    await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.pgn())).toContain('Qg7#');
+    expect(expectedPgn).toContain('Qg7#');
+    await page.goBack();
+    await expect(page).toHaveURL(expectedUrl);
     await expect(page.locator('.caissa-post-game')).toBeVisible();
+    await expect(page.locator('#playSection')).toHaveClass(/active/);
+    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
     expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(recordId);
+    runtime.assertClean();
 });
 
 test('Copy, Download, and consent-aware Save have bounded side effects', async ({ page }) => {

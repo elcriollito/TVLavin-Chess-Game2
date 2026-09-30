@@ -51,6 +51,14 @@ test('transition preparation stops owned runtime without mutating the record', (
     assert.equal(JSON.stringify(record), before); assert.equal(result.value.completedRecordMutations, 0);
 });
 
+test('PostGame Analyze delegates section state to canonical navigation', () => {
+    const core = read('js/play/post-game-core.js');
+    assert.match(core, /this\.#navigation\?\.navigateToSection\?\.\('analyze',\s*\{/);
+    assert.match(core, /handoffToken:\s*handoff\.value\.token/);
+    assert.match(core, /source:\s*'post-game'/);
+    assert.doesNotMatch(core, /CaissaPlayV2InlineAnalyze\?\.open|CaissaPlayV2InlineAnalyze\.open/);
+});
+
 test('policy and PostGame sources contain no automatic, education, FICS, legacy, URL, upload, identity, or analytics fallback', () => {
     const policy = read('js/play/play-v2-post-game-exit-policy.js'); const core = read('js/play/post-game-core.js');
     assert.doesNotMatch(policy, /location\.(?:assign|replace)|window\.open|fetch\s*\(|WebSocket|XMLHttpRequest|sendBeacon|document\.cookie|localStorage/i);
