@@ -14,6 +14,7 @@ const AnalyzeSection = {
     board: null,
     boardReady: null,
     activeHandoffId: null,
+    ficsLocalAnalysis: null,
     pendingPromotion: null,
     fetchedGames: [],
     selectedFetchedGameIndex: -1,
@@ -937,9 +938,39 @@ const AnalyzeSection = {
         return this.loadedGame.game.history(verbose ? { verbose: true } : undefined);
     },
 
+    initializeFicsLocalAnalysis(handoff, payload = {}) {
+        this.disposeFicsLocalAnalysis();
+        const factory = window.CaissaAnalyzeLocalBranchSession;
+        if (!factory?.create || !this.loadedGame) return false;
+        this.ficsLocalAnalysis = factory.create({
+            handoffId: handoff?.handoffId || null,
+            recordId: payload.recordId || this.loadedGame.recordId || null,
+            initialFen: payload.initialFen || this.loadedGame.initialFen || null,
+            sourceMoves: this.getLoadedMoves(),
+            selectedPly: Number.isSafeInteger(payload.selectedPly)
+                ? payload.selectedPly : this.getLoadedMoves().length
+        });
+        return this.ficsLocalAnalysis.inspect().networkPolicy === 'local-only';
+    },
+
+    isFicsLocalAnalysisActive() {
+        return document.getElementById('analyzeSection')?.dataset.caissaAnalyzeSource === 'fics'
+            && this.ficsLocalAnalysis?.inspect?.().active === true
+            && this.ficsLocalAnalysis.inspect().networkPolicy === 'local-only';
+    },
+
+    disposeFicsLocalAnalysis() {
+        this.ficsLocalAnalysis?.dispose?.();
+        this.ficsLocalAnalysis = null;
+    },
+
     resetStudyBoard({ explicit = false, silent = false } = {}) {
         if (!window.Chess) return;
 
+        const resettingFicsAnalysis = this.isFicsLocalAnalysisActive();
+        this.disposeFicsLocalAnalysis();
+        if (resettingFicsAnalysis) this.activeHandoffId = null;
+        document.getElementById('analyzeSection')?.removeAttribute('data-caissa-analyze-source');
         if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'study-reset' });
         this.livePositionAnalyses = {};
         this.liveCurrentFen = null;
@@ -1000,7 +1031,8 @@ const AnalyzeSection = {
         const game = this.getGame();
         if (!this.isAnalyzeActive() || !game) return false;
         const loadedMoves = this.getLoadedMoves();
-        if (this.currentMoveIndex < loadedMoves.length - 1) {
+        const ficsLocal = this.isFicsLocalAnalysisActive();
+        if (this.currentMoveIndex < loadedMoves.length - 1 && !ficsLocal) {
             this.setStatus('Return to the latest move before continuing analysis.', 'info');
             this.showNotification('Manual moves from historical positions are not saved in flat Analyze mode.', 'info');
             this.projectAnalyzeBoard({ fen: game.fen(), reason: 'historical-move-rejected', animate: false });
@@ -1011,8 +1043,26 @@ const AnalyzeSection = {
         const move = game.move({ from, to, promotion });
         if (!move) return false;
 
+        if (ficsLocal) {
+            const branch = this.ficsLocalAnalysis.beginBranch({
+                currentMoveIndex: this.currentMoveIndex,
+                fen: fenBefore
+            });
+            if (!branch.ok) {
+                game.undo();
+                this.projectAnalyzeBoard({ fen: game.fen(), reason: 'fics-local-guard', animate: false });
+                return false;
+            }
+        }
         this.syncLoadedMoveLine(game);
         this.currentMoveIndex = game.history().length - 1;
+        if (ficsLocal) {
+            this.ficsLocalAnalysis.recordMove({ line: this.getLoadedMoves(), fen: game.fen() });
+            this.loadedGame.result = '*';
+            this.loadedGame.termination = null;
+            this.loadedGame.source = 'FICS local analysis';
+            this.updateMetadata();
+        }
         this.analysisResults = [];
         this.positionAnalyses = [];
         this.analysisPhase = 'idle';
@@ -1025,17 +1075,21 @@ const AnalyzeSection = {
         this.refreshLiveEvaluation();
         this.updateReviewSummary();
         this.updateCriticalMoments();
-        this.setStatus(`${game.turn() === 'w' ? 'White' : 'Black'} to move`, 'ready');
+        this.setStatus(`${game.turn() === 'w' ? 'White' : 'Black'} to move${ficsLocal ? ' — local FICS analysis' : ''}`, 'ready');
         return true;
     },
 
     undoStudyMove() {
         const game = this.getGame();
         if (!game) return;
+        const ficsState = this.isFicsLocalAnalysisActive() ? this.ficsLocalAnalysis.inspect() : null;
+        if (ficsState && (ficsState.branchStartPly === null
+            || game.history().length <= ficsState.branchStartPly)) return;
         if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'position-changed' });
         const move = game.undo();
         if (!move) return;
         this.syncLoadedMoveLine(game);
+        if (ficsState) this.ficsLocalAnalysis.recordMove({ line: this.getLoadedMoves(), fen: game.fen() });
         this.currentMoveIndex = game.history().length - 1;
         this.analysisResults = [];
         this.positionAnalyses = [];
@@ -1563,6 +1617,7 @@ const AnalyzeSection = {
             };
             // Commit both authorities together only after the full candidate is valid.
             if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'game-loaded' });
+            this.disposeFicsLocalAnalysis();
             this.session = session;
             this.loadedGame = loadedGame;
             this.currentMoveIndex = this.getLoadedMoves().length - 1;
@@ -2994,6 +3049,13 @@ const AnalyzeSection = {
         const requestedToken = new URLSearchParams(window.location.search).get('handoff');
         const handoff = options.handoff ? { ok: true, value: options.handoff }
             : window.CaissaAnalyzeHandoff?.resolve?.(requestedToken);
+        const analyzeSection = document.getElementById('analyzeSection');
+        const handoffSource = handoff?.ok ? handoff.value?.source : null;
+        if (analyzeSection) {
+            if (handoffSource === 'fics') analyzeSection.dataset.caissaAnalyzeSource = 'fics';
+            else delete analyzeSection.dataset.caissaAnalyzeSource;
+        }
+        if (handoffSource !== 'fics') this.disposeFicsLocalAnalysis();
         if (handoff?.ok && handoff.value?.handoffId !== this.activeHandoffId) {
             this.activeHandoffId = handoff.value.handoffId;
             const payload = handoff.value.payload;
@@ -3001,11 +3063,14 @@ const AnalyzeSection = {
                 ? (payload.recordStatus === 'partial' ? 'FICS partial handoff' : 'FICS handoff')
                 : 'Play handoff';
             if (payload.pgn) {
-                this.loadGameFromPgn(payload.pgn, sourceLabel, {
+                const loaded = this.loadGameFromPgn(payload.pgn, sourceLabel, {
                     white: payload.whiteLabel || 'White', black: payload.blackLabel || 'Black',
                     result: payload.result || '*', termination: payload.termination || null,
                     recordId: payload.recordId, recordStatus: payload.recordStatus || null
                 });
+                if (loaded && handoff.value.source === 'fics') {
+                    this.initializeFicsLocalAnalysis(handoff.value, payload);
+                }
             } else if (payload.finalFen) {
                 const session = window.CaissaAnalyzeSession?.createSession?.({ initialFen: payload.finalFen });
                 const game = session?.game;
@@ -3018,6 +3083,9 @@ const AnalyzeSection = {
                         movesSan: [], movesVerbose: []
                     };
                     this.currentMoveIndex = -1;
+                    if (handoff.value.source === 'fics') {
+                        this.initializeFicsLocalAnalysis(handoff.value, payload);
+                    }
                 }
             }
             this.boardFlipped = payload.boardOrientation === 'black';
@@ -3047,6 +3115,7 @@ const AnalyzeSection = {
      * Section lifecycle: Exit
      */
     onExit() {
+        const leavingFicsAnalysis = this.isFicsLocalAnalysisActive();
         this.cancelGameUrlImport();
         if (this.setupModeActive) {
             this.cancelSetupPosition();
@@ -3077,6 +3146,16 @@ const AnalyzeSection = {
             this.stopAnalysis();
         }
         this.teardownAnalysisEngine('analyze-exit');
+        if (leavingFicsAnalysis) {
+            this.disposeFicsLocalAnalysis();
+            this.session?.dispose?.();
+            this.session = null;
+            this.loadedGame = null;
+            this.activeHandoffId = null;
+            this.currentMoveIndex = -1;
+            this.pendingPromotion = null;
+            document.getElementById('analyzeSection')?.removeAttribute('data-caissa-analyze-source');
+        }
     }
 };
 
