@@ -18,6 +18,7 @@ async function openFicsAnalysis(page, pgn, payload = {}) {
     await page.waitForFunction(() => window.CaissaNavigation?.currentSection === 'fics');
     await page.evaluate(() => {
         const client = window.CaissaFICSClient;
+        client.disconnect?.();
         client.pendingMove = null;
         client.liveGame.whiteClock = 321000;
         client.liveGame.blackClock = 318000;
@@ -122,10 +123,12 @@ test('historical FICS position forks into a local-only line and rejects illegal 
     expect(outcome.fen).not.toBe(before.fen);
     expect(outcome.moves).toEqual(['e4', 'e5', 'd4']);
     expect(outcome.cursor).toBe(2);
-    expect(outcome.local.branchStartPly).toBe(2);
-    expect(outcome.local.localMoves).toEqual(['d4']);
+    expect(outcome.local.localNodeCount).toBe(1);
+    expect(outcome.local.originalLineIds).toHaveLength(6);
+    expect(outcome.local.nodes.filter(node => node.source === 'original').map(node => node.san))
+        .toEqual([null, 'e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6']);
     expect(outcome.local.networkPolicy).toBe('local-only');
-    await expect(page.locator('#analyzeMoveList [data-index="2"]')).toHaveClass(/active/);
+    await expect(page.locator('#analyzeMoveList [data-node-id="local-1"]')).toHaveClass(/active/);
     const isolated = await isolationSnapshot(page);
     expect(isolated.counts).toEqual({ send: 0, sendMove: 0, sendCommand: 0, webSocket: 0 });
     expect(isolated.pendingMove).toBe(isolated.before.pendingMove);
@@ -152,7 +155,7 @@ test('persistent Analyze board accepts drag capture and multiple local moves wit
         .toEqual({ send: 0, sendMove: 0, sendCommand: 0, webSocket: 0 });
 });
 
-test('click-to-move stays local and Reset clears the transient branch', async ({ page }) => {
+test('click-to-move stays local and Reset restores the immutable source game', async ({ page }) => {
     await openFicsAnalysis(page, '1. e4 e5 2. Nf3 Nc6');
     await page.evaluate(() => AnalyzeSection.jumpToMove(1));
     await clickSquare(page, 'd2');
@@ -160,17 +163,18 @@ test('click-to-move stays local and Reset clears the transient branch', async ({
     await page.waitForFunction(() => window.AnalyzeSection.getLoadedMoves().at(-1) === 'd4');
     await page.evaluate(() => AnalyzeSection.resetStudyBoard({ explicit: true, silent: true }));
     const reset = await page.evaluate(() => ({
-        local: AnalyzeSection.ficsLocalAnalysis,
+        local: AnalyzeSection.ficsLocalAnalysis.inspect(),
         activeHandoffId: AnalyzeSection.activeHandoffId,
         sourceMarker: document.getElementById('analyzeSection').dataset.caissaAnalyzeSource || null,
-        fen: AnalyzeSection.getGame().fen()
+        fen: AnalyzeSection.getGame().fen(),
+        moves: AnalyzeSection.getLoadedMoves()
     }));
-    expect(reset).toEqual({
-        local: null,
-        activeHandoffId: null,
-        sourceMarker: null,
-        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-    });
+    expect(reset.local.localNodeCount).toBe(0);
+    expect(reset.local.active).toBe(true);
+    expect(reset.activeHandoffId).toBeTruthy();
+    expect(reset.sourceMarker).toBe('fics');
+    expect(reset.fen).toBe('r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3');
+    expect(reset.moves).toEqual(['e4', 'e5', 'Nf3', 'Nc6']);
     expect((await isolationSnapshot(page)).counts)
         .toEqual({ send: 0, sendMove: 0, sendCommand: 0, webSocket: 0 });
 
@@ -180,9 +184,88 @@ test('click-to-move stays local and Reset clears the transient branch', async ({
         local: AnalyzeSection.ficsLocalAnalysis.inspect()
     }));
     expect(replacement.moves).toEqual(['d4', 'd5', 'c4', 'e6']);
-    expect(replacement.local.branchStartPly).toBe(null);
-    expect(replacement.local.localMoves).toEqual([]);
+    expect(replacement.local.localNodeCount).toBe(0);
     expect(replacement.local.recordId).toBe('fics-game:new-source');
+});
+
+test('main line stays visible while a reusable multi-ply variation supports branch navigation', async ({ page }) => {
+    const pgn = `[Result "1-0"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6
+6. Be3 g6 7. Be2 Bg7 8. O-O O-O 9. Qd2 Ng4 10. Rfd1 1-0`;
+    await openFicsAnalysis(page, pgn, { result: '1-0' });
+    await page.evaluate(() => {
+        for (const key of Object.keys(window.__ficsIsolation.counts)) {
+            window.__ficsIsolation.counts[key] = 0;
+        }
+    });
+    const immutableBefore = await page.evaluate(() => ({
+        pgn: AnalyzeSection.loadedGame.pgn,
+        result: AnalyzeSection.loadedGame.result,
+        sans: [...AnalyzeSection.loadedGame.movesSan],
+        verbose: AnalyzeSection.loadedGame.movesVerbose.map(move => ({ ...move }))
+    }));
+
+    await page.evaluate(() => AnalyzeSection.jumpToMove(17));
+    expect(await page.evaluate(() => AnalyzeSection.playStudyMove('e3', 'f4'))).toBe(true);
+    expect(await page.evaluate(() => AnalyzeSection.playStudyMove('e7', 'e5'))).toBe(true);
+    expect((await isolationSnapshot(page)).counts)
+        .toEqual({ send: 0, sendMove: 0, sendCommand: 0, webSocket: 0 });
+
+    await expect(page.locator('#analyzeMoveList [data-node-id="original-19"]')).toHaveText('Rfd1');
+    await expect(page.locator('#analyzeMoveList .fics-analysis-variation')).toContainText('(10.');
+    await expect(page.locator('#analyzeMoveList .fics-analysis-variation')).toContainText(/Bf4.*e5/);
+    await expect(page.locator('#analyzeMoveList [data-node-id="local-2"]')).toHaveClass(/active/);
+
+    const presentation = await page.locator('#analyzeMoveList .fics-analysis-variation').first().evaluate(element => {
+        const move = element.querySelector('.move-white, .move-black');
+        const style = getComputedStyle(move);
+        return {
+            fontSize: style.fontSize,
+            fontWeight: style.fontWeight,
+            marginLeft: getComputedStyle(element).marginLeft,
+            overflow: element.scrollWidth > element.clientWidth
+        };
+    });
+    expect(presentation).toMatchObject({ fontSize: '17px', fontWeight: '600', overflow: false });
+    expect(Number.parseFloat(presentation.marginLeft)).toBeGreaterThan(0);
+
+    await page.locator('#analyzeMoveList [data-node-id="original-19"]').click();
+    expect(await page.evaluate(() => AnalyzeSection.getLoadedMoves())).toEqual(
+        ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'a6',
+            'Be3', 'g6', 'Be2', 'Bg7', 'O-O', 'O-O', 'Qd2', 'Ng4', 'Rfd1']);
+    await page.locator('#analyzeMoveList [data-node-id="local-1"]').click();
+    expect(await page.evaluate(() => AnalyzeSection.getLoadedMoves().slice(-2))).toEqual(['Bf4', 'e5']);
+
+    await page.locator('#analyzeNavPrev').click();
+    expect(await page.evaluate(() => AnalyzeSection.ficsLocalAnalysis.inspect().currentNodeId))
+        .toBe('original-18');
+    await page.locator('#analyzeNavNext').click();
+    expect(await page.evaluate(() => AnalyzeSection.ficsLocalAnalysis.getCurrentNode().san)).toBe('Bf4');
+    await page.locator('#analyzeNavLast').click();
+    expect(await page.evaluate(() => AnalyzeSection.ficsLocalAnalysis.getCurrentNode().san)).toBe('e5');
+    await page.locator('#analyzeNavFirst').click();
+    expect(await page.evaluate(() => AnalyzeSection.currentMoveIndex)).toBe(-1);
+
+    await page.evaluate(() => AnalyzeSection.jumpToFicsAnalysisNode('original-18'));
+    await page.evaluate(() => {
+        for (const key of Object.keys(window.__ficsIsolation.counts)) {
+            window.__ficsIsolation.counts[key] = 0;
+        }
+    });
+    expect(await page.evaluate(() => AnalyzeSection.playStudyMove('e3', 'f4'))).toBe(true);
+    const afterReuse = await page.evaluate(() => AnalyzeSection.ficsLocalAnalysis.inspect());
+    expect(afterReuse.localNodeCount).toBe(2);
+    expect((await isolationSnapshot(page)).counts)
+        .toEqual({ send: 0, sendMove: 0, sendCommand: 0, webSocket: 0 });
+
+    const immutableAfter = await page.evaluate(() => ({
+        pgn: AnalyzeSection.loadedGame.pgn,
+        result: AnalyzeSection.loadedGame.result,
+        sans: [...AnalyzeSection.loadedGame.movesSan],
+        verbose: AnalyzeSection.loadedGame.movesVerbose.map(move => ({ ...move }))
+    }));
+    expect(immutableAfter).toEqual(immutableBefore);
 });
 
 test('castling, en passant, and promotion stay legal and local in FICS Analysis', async ({ page }) => {

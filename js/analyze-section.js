@@ -255,12 +255,10 @@ const AnalyzeSection = {
             this.stopAnalysis();
         });
 
-        this.elements.navFirst?.addEventListener('click', () => this.jumpToMove(-1));
-        this.elements.navPrev?.addEventListener('click', () => this.jumpToMove(this.currentMoveIndex - 1));
-        this.elements.navNext?.addEventListener('click', () => this.jumpToMove(this.currentMoveIndex + 1));
-        this.elements.navLast?.addEventListener('click', () => {
-            this.jumpToMove(this.getLoadedMoves().length - 1);
-        });
+        this.elements.navFirst?.addEventListener('click', () => this.navigateAnalysisLine('first'));
+        this.elements.navPrev?.addEventListener('click', () => this.navigateAnalysisLine('previous'));
+        this.elements.navNext?.addEventListener('click', () => this.navigateAnalysisLine('next'));
+        this.elements.navLast?.addEventListener('click', () => this.navigateAnalysisLine('last'));
         this.elements.newAnalysis?.addEventListener('click', () => this.openNewAnalysis());
         this.elements.saveAnalysis?.addEventListener('click', () => this.saveAnalysisPgn());
         this.elements.reviewAnalysis?.addEventListener('click', () => this.startReview());
@@ -774,6 +772,16 @@ const AnalyzeSection = {
         if (!Object.prototype.hasOwnProperty.call(destinations, event.key)) return;
 
         event.preventDefault();
+        if (this.isFicsLocalAnalysisActive()) {
+            const actions = {
+                ArrowLeft: 'previous',
+                ArrowRight: 'next',
+                Home: 'first',
+                End: 'last'
+            };
+            this.navigateAnalysisLine(actions[event.key]);
+            return;
+        }
         this.jumpToMove(destinations[event.key]);
     },
 
@@ -929,6 +937,11 @@ const AnalyzeSection = {
 
     getLoadedMoves({ verbose = false } = {}) {
         if (!this.loadedGame) return [];
+        if (this.isFicsLocalAnalysisActive()) {
+            return this.ficsLocalAnalysis.getActiveLine().map(node => verbose
+                ? { ...node.move, san: node.san, fenBefore: node.fenBefore, fenAfter: node.fen }
+                : node.san);
+        }
         if (verbose && Array.isArray(this.loadedGame.movesVerbose)) {
             return this.loadedGame.movesVerbose.map((move) => ({ ...move }));
         }
@@ -936,6 +949,29 @@ const AnalyzeSection = {
             return this.loadedGame.movesSan.slice();
         }
         return this.loadedGame.game.history(verbose ? { verbose: true } : undefined);
+    },
+
+    buildFicsOriginalMoveDescriptors() {
+        if (!window.Chess || !this.loadedGame) return [];
+        const replay = new Chess();
+        if (this.loadedGame.initialFen && !replay.load(this.loadedGame.initialFen)) return [];
+        const sourceMoves = Array.isArray(this.loadedGame.movesSan) ? this.loadedGame.movesSan : [];
+        return sourceMoves.map((san, index) => {
+            const fenBefore = replay.fen();
+            const fields = fenBefore.split(/\s+/);
+            const moved = replay.move(san);
+            if (!moved) throw new Error(`Invalid source move at ply ${index + 1}`);
+            return {
+                ...moved,
+                san: moved.san,
+                uci: `${moved.from}${moved.to}${moved.promotion || ''}`,
+                fenBefore,
+                fenAfter: replay.fen(),
+                ply: index + 1,
+                moveNumber: Number.parseInt(fields[5], 10) || Math.floor(index / 2) + 1,
+                color: moved.color
+            };
+        });
     },
 
     initializeFicsLocalAnalysis(handoff, payload = {}) {
@@ -946,10 +982,20 @@ const AnalyzeSection = {
             handoffId: handoff?.handoffId || null,
             recordId: payload.recordId || this.loadedGame.recordId || null,
             initialFen: payload.initialFen || this.loadedGame.initialFen || null,
-            sourceMoves: this.getLoadedMoves(),
+            originalMoves: this.buildFicsOriginalMoveDescriptors(),
+            originalPgn: this.loadedGame.pgn,
+            originalResult: this.loadedGame.result,
             selectedPly: Number.isSafeInteger(payload.selectedPly)
-                ? payload.selectedPly : this.getLoadedMoves().length
+                ? payload.selectedPly : this.loadedGame.movesSan.length
         });
+        const selected = this.ficsLocalAnalysis.inspect();
+        const selectedIndex = selected.activeLineIds.indexOf(selected.currentNodeId);
+        const game = this.getGame();
+        if (this.loadedGame.initialFen) game.load(this.loadedGame.initialFen);
+        else game.reset();
+        this.ficsLocalAnalysis.getActiveLine().slice(0, selectedIndex + 1)
+            .forEach(node => game.move(node.san));
+        this.currentMoveIndex = selectedIndex;
         return this.ficsLocalAnalysis.inspect().networkPolicy === 'local-only';
     },
 
@@ -968,8 +1014,22 @@ const AnalyzeSection = {
         if (!window.Chess) return;
 
         const resettingFicsAnalysis = this.isFicsLocalAnalysisActive();
+        if (resettingFicsAnalysis) {
+            if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'study-reset' });
+            this.analysisResults = [];
+            this.positionAnalyses = [];
+            this.analysisPhase = 'idle';
+            this.ficsLocalAnalysis.resetVariations();
+            this.jumpToFicsAnalysisNode(this.ficsLocalAnalysis.inspect().currentNodeId, {
+                preferMainContinuation: false,
+                reason: 'fics-variations-reset'
+            });
+            if (explicit && !silent) {
+                this.showNotification('Local variations cleared. Original FICS game restored.', 'success');
+            }
+            return;
+        }
         this.disposeFicsLocalAnalysis();
-        if (resettingFicsAnalysis) this.activeHandoffId = null;
         document.getElementById('analyzeSection')?.removeAttribute('data-caissa-analyze-source');
         if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'study-reset' });
         this.livePositionAnalyses = {};
@@ -1044,24 +1104,29 @@ const AnalyzeSection = {
         if (!move) return false;
 
         if (ficsLocal) {
-            const branch = this.ficsLocalAnalysis.beginBranch({
-                currentMoveIndex: this.currentMoveIndex,
-                fen: fenBefore
+            const inserted = this.ficsLocalAnalysis.insertOrSelectMove({
+                ...move,
+                san: move.san,
+                uci: `${move.from}${move.to}${move.promotion || ''}`,
+                fenBefore,
+                fenAfter: game.fen(),
+                ply: this.ficsLocalAnalysis.getCurrentNode().ply + 1,
+                moveNumber: Number.parseInt(fenBefore.split(/\s+/)[5], 10) || 1,
+                color: move.color
             });
-            if (!branch.ok) {
+            if (!inserted.ok) {
                 game.undo();
                 this.projectAnalyzeBoard({ fen: game.fen(), reason: 'fics-local-guard', animate: false });
                 return false;
             }
+        } else {
+            this.syncLoadedMoveLine(game);
         }
-        this.syncLoadedMoveLine(game);
-        this.currentMoveIndex = game.history().length - 1;
         if (ficsLocal) {
-            this.ficsLocalAnalysis.recordMove({ line: this.getLoadedMoves(), fen: game.fen() });
-            this.loadedGame.result = '*';
-            this.loadedGame.termination = null;
-            this.loadedGame.source = 'FICS local analysis';
-            this.updateMetadata();
+            this.currentMoveIndex = this.ficsLocalAnalysis.getActiveLine()
+                .findIndex(node => node.id === this.ficsLocalAnalysis.inspect().currentNodeId);
+        } else {
+            this.currentMoveIndex = game.history().length - 1;
         }
         this.analysisResults = [];
         this.positionAnalyses = [];
@@ -1082,14 +1147,18 @@ const AnalyzeSection = {
     undoStudyMove() {
         const game = this.getGame();
         if (!game) return;
-        const ficsState = this.isFicsLocalAnalysisActive() ? this.ficsLocalAnalysis.inspect() : null;
-        if (ficsState && (ficsState.branchStartPly === null
-            || game.history().length <= ficsState.branchStartPly)) return;
+        if (this.isFicsLocalAnalysisActive()) {
+            const previous = this.ficsLocalAnalysis.previous();
+            if (previous.ok) this.jumpToFicsAnalysisNode(previous.node.id, {
+                preferMainContinuation: false,
+                reason: 'undo-navigation'
+            });
+            return;
+        }
         if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'position-changed' });
         const move = game.undo();
         if (!move) return;
         this.syncLoadedMoveLine(game);
-        if (ficsState) this.ficsLocalAnalysis.recordMove({ line: this.getLoadedMoves(), fen: game.fen() });
         this.currentMoveIndex = game.history().length - 1;
         this.analysisResults = [];
         this.positionAnalyses = [];
@@ -1685,6 +1754,10 @@ const AnalyzeSection = {
         this.syncReviewAction();
         if (!this.elements.moveList || !this.loadedGame) return;
 
+        if (this.isFicsLocalAnalysisActive()) {
+            this.renderFicsVariationMoveList();
+            return;
+        }
         const moves = this.getLoadedMoves();
 
         if (moves.length === 0) {
@@ -1727,11 +1800,156 @@ const AnalyzeSection = {
         });
     },
 
+    createFicsMoveButton(node, activeIds, currentNodeId) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `move-${node.color === 'b' ? 'black' : 'white'}`;
+        button.dataset.nodeId = node.id;
+        const activeIndex = activeIds.indexOf(node.id);
+        if (activeIndex >= 0) button.dataset.index = String(activeIndex);
+        button.textContent = node.san;
+        button.setAttribute('aria-label', this.getMoveAccessibleLabel(
+            activeIndex >= 0 ? activeIndex : node.ply - 1, node.san));
+        if (node.id === currentNodeId) {
+            button.classList.add('active');
+            button.setAttribute('aria-current', 'move');
+        }
+        button.addEventListener('click', () => this.jumpToFicsAnalysisNode(node.id));
+        return button;
+    },
+
+    renderFicsVariationBranches(parentId, nodeMap, activeIds, currentNodeId,
+        depth = 1, includeMain = false) {
+        const parent = nodeMap.get(parentId);
+        const alternatives = (parent?.childrenIds || [])
+            .filter(id => includeMain || id !== parent.mainChildId);
+        const fragment = document.createDocumentFragment();
+        alternatives.forEach(startId => {
+            const branch = document.createElement('div');
+            branch.className = 'fics-analysis-variation';
+            branch.dataset.variationDepth = String(depth);
+            branch.style.setProperty('--variation-depth', String(depth));
+            const open = document.createElement('span');
+            open.className = 'fics-analysis-variation__paren';
+            open.textContent = '(';
+            branch.append(open);
+            let node = nodeMap.get(startId);
+            const visited = new Set();
+            while (node && !visited.has(node.id)) {
+                visited.add(node.id);
+                const number = document.createElement('span');
+                number.className = 'move-num fics-analysis-variation__number';
+                number.textContent = node.color === 'b' ? `${node.moveNumber}...` : `${node.moveNumber}.`;
+                branch.append(number, this.createFicsMoveButton(node, activeIds, currentNodeId));
+                const nested = this.renderFicsVariationBranches(
+                    node.id, nodeMap, activeIds, currentNodeId, depth + 1);
+                if (nested.childNodes.length) branch.append(nested);
+                node = node.mainChildId ? nodeMap.get(node.mainChildId) : null;
+            }
+            const close = document.createElement('span');
+            close.className = 'fics-analysis-variation__paren';
+            close.textContent = ')';
+            branch.append(close);
+            fragment.append(branch);
+        });
+        return fragment;
+    },
+
+    renderFicsVariationMoveList() {
+        const state = this.ficsLocalAnalysis.inspect();
+        const nodeMap = new Map(state.nodes.map(node => [node.id, node]));
+        const activeIds = [...state.activeLineIds];
+        const grid = document.createElement('div');
+        grid.className = 'move-list-grid fics-analysis-move-tree';
+        const rootVariations = this.renderFicsVariationBranches(
+            'root', nodeMap, activeIds, state.currentNodeId, 1, state.originalLineIds.length === 0);
+        if (rootVariations.childNodes.length) grid.append(rootVariations);
+        for (let index = 0; index < state.originalLineIds.length; index += 2) {
+            const white = nodeMap.get(state.originalLineIds[index]);
+            const black = nodeMap.get(state.originalLineIds[index + 1]);
+            const row = document.createElement('div');
+            row.className = 'move-row';
+            const number = document.createElement('span');
+            number.className = 'move-num';
+            number.textContent = `${white?.moveNumber || Math.floor(index / 2) + 1}.`;
+            row.append(number);
+            if (white) row.append(this.createFicsMoveButton(white, activeIds, state.currentNodeId));
+            else row.append(document.createElement('span'));
+            if (black) row.append(this.createFicsMoveButton(black, activeIds, state.currentNodeId));
+            else row.append(document.createElement('span'));
+            grid.append(row);
+            for (const node of [white, black]) {
+                if (!node) continue;
+                const variations = this.renderFicsVariationBranches(
+                    node.id, nodeMap, activeIds, state.currentNodeId);
+                if (variations.childNodes.length) grid.append(variations);
+            }
+        }
+        this.elements.moveList.replaceChildren(grid);
+        this.elements.moveList.querySelector('[aria-current="move"]')
+            ?.scrollIntoView?.({ block: 'nearest' });
+    },
+
+    jumpToFicsAnalysisNode(nodeId, {
+        preferMainContinuation = true,
+        reason = 'variation-navigation'
+    } = {}) {
+        if (!this.isFicsLocalAnalysisActive()) return false;
+        const selected = this.ficsLocalAnalysis.selectNode(nodeId, { preferMainContinuation });
+        if (!selected.ok) return false;
+        const activeLine = this.ficsLocalAnalysis.getActiveLine();
+        const targetIndex = nodeId === 'root' ? -1 : activeLine.findIndex(node => node.id === nodeId);
+        const game = this.getGame();
+        if (this.loadedGame.initialFen) game.load(this.loadedGame.initialFen);
+        else game.reset();
+        for (let index = 0; index <= targetIndex; index += 1) {
+            if (!game.move(activeLine[index].san)) return false;
+        }
+        this.currentMoveIndex = targetIndex;
+        this.updateBoardAndUI({ reason });
+        this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
+        this.updateEvaluationBar();
+        this.refreshLiveEvaluation();
+        return true;
+    },
+
+    navigateAnalysisLine(action) {
+        if (!this.isFicsLocalAnalysisActive()) {
+            const destinations = {
+                first: -1,
+                previous: this.currentMoveIndex - 1,
+                next: this.currentMoveIndex + 1,
+                last: this.getLoadedMoves().length - 1
+            };
+            this.jumpToMove(destinations[action]);
+            return;
+        }
+        const result = this.ficsLocalAnalysis[action]?.();
+        if (result?.ok) {
+            this.jumpToFicsAnalysisNode(result.node?.id
+                || this.ficsLocalAnalysis.inspect().currentNodeId, {
+                preferMainContinuation: false,
+                reason: `variation-${action}`
+            });
+        }
+    },
+
     /**
      * Jump to specific move
      */
     jumpToMove(index) {
         if (!this.loadedGame) return;
+        if (this.isFicsLocalAnalysisActive()) {
+            const line = this.ficsLocalAnalysis.getActiveLine();
+            const safeIndex = Math.max(-1, Math.min(index, line.length - 1));
+            this.jumpToFicsAnalysisNode(safeIndex < 0 ? 'root' : line[safeIndex].id, {
+                preferMainContinuation: true,
+                reason: 'navigation'
+            });
+            return;
+        }
         const moves = this.getLoadedMoves();
         const game = this.getGame();
         const safeIndex = Math.max(-1, Math.min(index, moves.length - 1));

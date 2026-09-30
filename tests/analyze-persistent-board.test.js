@@ -27,7 +27,7 @@ test('M2-002 keeps rules, navigation, engine, and setup outside the renderer', (
     assert.match(analyze, /const game = this\.getGame\(\);[\s\S]*game\.move\(\{ from, to, promotion \}\)/);
     assert.match(analyze, /currentMoveIndex = safeIndex;[\s\S]*updateBoardAndUI\(\{ reason: 'navigation' \}\)/);
     assert.match(analyze, /currentMoveIndex < loadedMoves\.length - 1 && !ficsLocal[\s\S]*historical-move-rejected/);
-    assert.match(analyze, /ficsLocalAnalysis\.beginBranch/);
+    assert.match(analyze, /ficsLocalAnalysis\.insertOrSelectMove/);
     assert.match(analyze, /networkPolicy === 'local-only'/);
     assert.match(projection, /setMode\(mode\)[\s\S]*mode === 'setup'/);
 });

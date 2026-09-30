@@ -502,6 +502,42 @@
     letter-spacing: 0.01em;
 }
 
+#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-move-tree {
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    min-width: 0;
+    margin: 2px 0 4px min(calc(var(--variation-depth, 1) * 14px), 42px);
+    padding: 3px 7px;
+    border-left: 2px solid rgba(215, 178, 98, 0.42);
+    background: rgba(255, 255, 255, 0.025);
+    color: #c8cdd6;
+}
+
+#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation :is(.move-white, .move-black) {
+    flex: 0 1 auto;
+    max-width: 100%;
+    padding: 1px 4px;
+    font-size: 17px;
+}
+
+#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation__number {
+    flex: 0 0 auto;
+}
+
+#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation__paren {
+    color: var(--analyze-v2-muted);
+    font-size: 16px;
+    font-weight: 600;
+}
+
 #analyzeSection .caissa-analyze-v2__notation > .caissa-ui-empty-state {
     display: none;
 }
