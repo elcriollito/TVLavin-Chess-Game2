@@ -43,11 +43,15 @@ test('resource and provider boundary denies FICS, Classic handoffs, Players, and
     for (const input of [
         { type: 'dynamic-group', value: 'bots-stack' },
         { type: 'script', value: 'js/play/bots-panel.js?v=1.1.0' },
+        { type: 'script', value: 'assets/vendor/pgn-parser/pgn-parser-1.4.19.umd.js' },
         { type: 'worker', value: 'engine/stockfish-working.js' },
         { type: 'route', value: '/play/games?simplified=1' },
         { type: 'transition', value: 'analyze' }, { type: 'provider', value: 'caissa-native' },
         { type: 'network', value: 'https://caissa.test/js/play/bots-panel.js', baseOrigin: 'https://caissa.test' }
     ]) assert.equal(api.authorize(input).allowed, true, JSON.stringify(input));
+    assert.equal(api.authorize({
+        type: 'script', value: 'assets/vendor/unreviewed/runtime.js'
+    }).allowed, false);
 });
 
 test('Play v2 reachable graph contains no FICS adapter, provider, route, or Players runtime', async () => {
@@ -137,6 +141,7 @@ test('protected legacy owners retain their FICS integration without importing th
 
 test('isolation implementation adds no state, identity bridge, transport, or executable fixtures', async () => {
     const source = await read('js/play/play-v2-fics-isolation.js');
-    assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB|document\.cookie|fetch\s*\(|WebSocket|sendBeacon|XMLHttpRequest|postMessage|PGN|token/i);
+    const implementation = source.replace('assets/vendor/pgn-parser/pgn-parser-1.4.19.umd.js', '');
+    assert.doesNotMatch(implementation, /localStorage|sessionStorage|indexedDB|document\.cookie|fetch\s*\(|WebSocket|sendBeacon|XMLHttpRequest|postMessage|PGN|token/i);
     assert.doesNotMatch(source, /\bnew\s+Worker\b|createElement|appendChild|navigateToSection|pushState|replaceState/);
 });

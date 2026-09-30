@@ -174,7 +174,7 @@ test('A1 assets are registered once after the legacy base styles', () => {
     assert.equal((html.match(/analyze-v2-shell\.css/g) || []).length, 1);
     assert.equal((html.match(/analyze-v2-shell\.js/g) || []).length, 1);
     assert.match(html, /styles\.css\?v=2\.0\.23/);
-    assert.match(html, /analyze-v2-shell\.css\?v=1\.1\.7/);
+    assert.match(html, /analyze-v2-shell\.css\?v=1\.2\.0/);
     assert.match(html, /analyze-v2-shell\.js\?v=1\.0\.1/);
     assert.ok(html.indexOf('caissa-mobile-foundation.css') < html.indexOf('analyze-v2-shell.css'));
 });

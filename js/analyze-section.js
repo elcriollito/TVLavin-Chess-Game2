@@ -15,6 +15,9 @@ const AnalyzeSection = {
     boardReady: null,
     activeHandoffId: null,
     ficsLocalAnalysis: null,
+    analysisTree: null,
+    pgnCollection: null,
+    activePgnGameIndex: -1,
     pendingPromotion: null,
     fetchedGames: [],
     selectedFetchedGameIndex: -1,
@@ -134,6 +137,12 @@ const AnalyzeSection = {
             pgnFile: document.getElementById('analyzePgnFile'),
             pgnFileName: document.getElementById('analyzePgnFileName'),
             loadPgnBtn: document.getElementById('analyzeLoadPgnBtn'),
+            openPgnBtn: document.getElementById('analyzeOpenPgnBtn'),
+            pgnGameList: document.getElementById('analyzePgnGameList'),
+            pgnGameListItems: document.getElementById('analyzePgnGameListItems'),
+            pgnCollectionSummary: document.getElementById('analyzePgnCollectionSummary'),
+            pgnGameListBack: document.getElementById('analyzePgnGameListBack'),
+            pgnGameListClose: document.getElementById('analyzePgnGameListClose'),
 
             // CAISSA games
             openLibraryBtn: document.getElementById('analyzeOpenLibrary'),
@@ -168,6 +177,7 @@ const AnalyzeSection = {
             newAnalysis: document.getElementById('analyzeNewBtn'),
             saveAnalysis: document.getElementById('analyzeSaveBtn'),
             reviewAnalysis: document.getElementById('analyzeReviewBtn'),
+            footerFlipBoard: document.getElementById('analyzeFooterFlipBoard'),
             engineToggle: document.getElementById('analyzeEngineToggle'),
             undoMove: document.getElementById('analyzeUndoMove'),
             resetBoard: document.getElementById('analyzeResetBoard'),
@@ -239,6 +249,12 @@ const AnalyzeSection = {
         this.elements.pgnFile?.addEventListener('change', (e) => {
             this.handlePgnFile(e);
         });
+        this.elements.openPgnBtn?.addEventListener('click', () => {
+            this.elements.pgnFile.value = '';
+            this.elements.pgnFile.click();
+        });
+        this.elements.pgnGameListBack?.addEventListener('click', () => this.showPgnGameList());
+        this.elements.pgnGameListClose?.addEventListener('click', () => this.hidePgnGameList());
 
         // Open library
         this.elements.openLibraryBtn?.addEventListener('click', () => {
@@ -266,6 +282,7 @@ const AnalyzeSection = {
         this.elements.undoMove?.addEventListener('click', () => this.undoStudyMove());
         this.elements.resetBoard?.addEventListener('click', () => this.resetStudyBoard({ explicit: true }));
         this.elements.flipBoard?.addEventListener('click', () => this.flipAnalyzeBoard());
+        this.elements.footerFlipBoard?.addEventListener('click', () => this.flipAnalyzeBoard());
         this.elements.setupBack?.addEventListener('click', () => {
             window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
         });
@@ -617,6 +634,7 @@ const AnalyzeSection = {
                 this.setSetupMessage('Could not load PGN. Check the notation and try again.', 'error');
                 return false;
             }
+            if (loaded === 'collection') return true;
             this.finishSetupCommit();
             return true;
         }
@@ -640,6 +658,12 @@ const AnalyzeSection = {
             event: 'Position Setup', date: '', eco: '', opening: '', headers: { ...game.header() },
             movesSan: [], movesVerbose: []
         };
+        this.analysisTree = window.CaissaAnalyzeVariationTree?.create?.({
+            initialFen: fen,
+            originalMoves: [],
+            originalPgn: '',
+            originalResult: '*'
+        }) || null;
         this.currentMoveIndex = -1;
         this.analysisResults = [];
         this.positionAnalyses = [];
@@ -683,7 +707,8 @@ const AnalyzeSection = {
         const headers = { ...(this.loadedGame.headers || {}), ...(game.header?.() || {}) };
         const moves = this.getLoadedMoves();
         const restoreIndex = this.currentMoveIndex;
-        const needsFullLineReplay = game.history().length !== moves.length;
+        const needsFullLineReplay = !this.isVariationAnalysisActive()
+            && game.history().length !== moves.length;
         if (needsFullLineReplay) {
             if (this.loadedGame.initialFen) game.load(this.loadedGame.initialFen);
             else game.reset();
@@ -711,6 +736,12 @@ const AnalyzeSection = {
         const exportHeaders = { ...headers, ...values };
         this.loadedGame.headers = { ...exportHeaders };
         Object.entries(exportHeaders).forEach(([name, value]) => game.header(name, String(value)));
+        if (this.isVariationAnalysisActive() && this.getAnalysisTree()?.serialize) {
+            return this.getAnalysisTree().serialize({
+                headers: exportHeaders,
+                result: values.Result
+            });
+        }
         const pgn = game.pgn({ max_width: 80, newline_char: '\n' });
         if (needsFullLineReplay) {
             if (this.loadedGame.initialFen) game.load(this.loadedGame.initialFen);
@@ -937,8 +968,8 @@ const AnalyzeSection = {
 
     getLoadedMoves({ verbose = false } = {}) {
         if (!this.loadedGame) return [];
-        if (this.isFicsLocalAnalysisActive()) {
-            return this.ficsLocalAnalysis.getActiveLine().map(node => verbose
+        if (this.isVariationAnalysisActive()) {
+            return this.getAnalysisTree().getActiveLine().map(node => verbose
                 ? { ...node.move, san: node.san, fenBefore: node.fenBefore, fenAfter: node.fen }
                 : node.san);
         }
@@ -999,6 +1030,17 @@ const AnalyzeSection = {
         return this.ficsLocalAnalysis.inspect().networkPolicy === 'local-only';
     },
 
+    getAnalysisTree() {
+        return this.ficsLocalAnalysis?.inspect?.().active === true
+            ? this.ficsLocalAnalysis
+            : this.analysisTree;
+    },
+
+    isVariationAnalysisActive() {
+        const tree = this.getAnalysisTree();
+        return tree?.inspect?.().active === true && tree.inspect().networkPolicy === 'local-only';
+    },
+
     isFicsLocalAnalysisActive() {
         return document.getElementById('analyzeSection')?.dataset.caissaAnalyzeSource === 'fics'
             && this.ficsLocalAnalysis?.inspect?.().active === true
@@ -1054,6 +1096,10 @@ const AnalyzeSection = {
             movesSan: [],
             movesVerbose: []
         };
+        this.analysisTree?.dispose?.();
+        this.analysisTree = window.CaissaAnalyzeVariationTree?.create?.({
+            originalMoves: [], originalPgn: '', originalResult: '*'
+        }) || null;
         this.currentMoveIndex = -1;
         this.analysisResults = [];
         this.positionAnalyses = [];
@@ -1090,27 +1136,22 @@ const AnalyzeSection = {
     playStudyMove(from, to, promotion) {
         const game = this.getGame();
         if (!this.isAnalyzeActive() || !game) return false;
-        const loadedMoves = this.getLoadedMoves();
+        const tree = this.getAnalysisTree();
+        const variationMode = this.isVariationAnalysisActive();
         const ficsLocal = this.isFicsLocalAnalysisActive();
-        if (this.currentMoveIndex < loadedMoves.length - 1 && !ficsLocal) {
-            this.setStatus('Return to the latest move before continuing analysis.', 'info');
-            this.showNotification('Manual moves from historical positions are not saved in flat Analyze mode.', 'info');
-            this.projectAnalyzeBoard({ fen: game.fen(), reason: 'historical-move-rejected', animate: false });
-            return false;
-        }
         if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'position-changed' });
         const fenBefore = game.fen();
         const move = game.move({ from, to, promotion });
         if (!move) return false;
 
-        if (ficsLocal) {
-            const inserted = this.ficsLocalAnalysis.insertOrSelectMove({
+        if (variationMode) {
+            const inserted = tree.insertOrSelectMove({
                 ...move,
                 san: move.san,
                 uci: `${move.from}${move.to}${move.promotion || ''}`,
                 fenBefore,
                 fenAfter: game.fen(),
-                ply: this.ficsLocalAnalysis.getCurrentNode().ply + 1,
+                ply: tree.getCurrentNode().ply + 1,
                 moveNumber: Number.parseInt(fenBefore.split(/\s+/)[5], 10) || 1,
                 color: move.color
             });
@@ -1122,9 +1163,9 @@ const AnalyzeSection = {
         } else {
             this.syncLoadedMoveLine(game);
         }
-        if (ficsLocal) {
-            this.currentMoveIndex = this.ficsLocalAnalysis.getActiveLine()
-                .findIndex(node => node.id === this.ficsLocalAnalysis.inspect().currentNodeId);
+        if (variationMode) {
+            this.currentMoveIndex = tree.getActiveLine()
+                .findIndex(node => node.id === tree.inspect().currentNodeId);
         } else {
             this.currentMoveIndex = game.history().length - 1;
         }
@@ -1147,8 +1188,8 @@ const AnalyzeSection = {
     undoStudyMove() {
         const game = this.getGame();
         if (!game) return;
-        if (this.isFicsLocalAnalysisActive()) {
-            const previous = this.ficsLocalAnalysis.previous();
+        if (this.isVariationAnalysisActive()) {
+            const previous = this.getAnalysisTree().previous();
             if (previous.ok) this.jumpToFicsAnalysisNode(previous.node.id, {
                 preferMainContinuation: false,
                 reason: 'undo-navigation'
@@ -1621,7 +1662,8 @@ const AnalyzeSection = {
             return;
         }
 
-        this.loadGameFromPgn(pgn, 'Manual PGN');
+        const loaded = this.loadPgnDocument(pgn, 'Manual PGN');
+        if (loaded === true) window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
     },
 
     /**
@@ -1642,10 +1684,172 @@ const AnalyzeSection = {
                 if (this.elements.pgnInput) {
                     this.elements.pgnInput.value = pgn;
                 }
-                this.loadGameFromPgn(pgn, 'PGN File');
+                const loaded = this.loadPgnDocument(pgn, 'PGN File', { fileName: file.name });
+                if (loaded === true) {
+                    this.finishSetupCommit();
+                    this.showNotification(`${file.name} loaded.`, 'success');
+                }
             }
         };
         reader.readAsText(file);
+    },
+
+    loadPgnDocument(pgn, source, metadata = {}) {
+        try {
+            const collection = window.CaissaAnalyzeVariationTree?.parseCollection?.(pgn);
+            if (!collection?.games?.length) throw new Error('No playable games found');
+            this.pgnCollection = {
+                ...collection,
+                source,
+                sourceText: pgn,
+                fileName: metadata.fileName || null,
+                metadata: { ...metadata }
+            };
+            this.activePgnGameIndex = -1;
+            this.syncPgnCollectionAction();
+            if (collection.games.length > 1) {
+                this.renderPgnGameList();
+                this.showPgnGameList();
+                this.setSetupMessage(`${collection.games.length} games found. Choose a game to analyze.`, 'success');
+                return 'collection';
+            }
+            return this.loadParsedPgnGame(collection.games[0], source, metadata, 0);
+        } catch (error) {
+            console.error('[Analyze] PGN/RAV parse error:', error);
+            this.setSetupMessage(error.message || 'Could not read this PGN.', 'error');
+            if (!metadata.suppressErrorNotification) {
+                this.showNotification('Could not load PGN. Check the format and try again.', 'error');
+            }
+            return false;
+        }
+    },
+
+    renderPgnGameList() {
+        const games = this.pgnCollection?.games || [];
+        if (!this.elements.pgnGameListItems) return;
+        if (this.elements.pgnCollectionSummary) {
+            const label = this.pgnCollection.fileName || this.pgnCollection.source || 'PGN collection';
+            this.elements.pgnCollectionSummary.textContent = `${label} · ${games.length} games`;
+        }
+        this.elements.pgnGameListItems.replaceChildren(...games.map((game, index) => {
+            const headers = game.headers || {};
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'caissa-analyze-v2__collection-game';
+            button.dataset.pgnGameIndex = String(index);
+            if (index === this.activePgnGameIndex) button.classList.add('is-active');
+            const title = document.createElement('strong');
+            title.textContent = `${headers.White || 'Unknown'} vs ${headers.Black || 'Unknown'}`;
+            const result = document.createElement('span');
+            result.className = 'caissa-analyze-v2__collection-result';
+            result.textContent = headers.Result || '*';
+            const meta = document.createElement('small');
+            meta.textContent = [headers.Event, headers.Date, headers.Round ? `Round ${headers.Round}` : '']
+                .filter(Boolean).join(' · ') || 'No additional metadata';
+            button.append(title, result, meta);
+            button.addEventListener('click', () => this.selectPgnCollectionGame(index));
+            item.append(button);
+            return item;
+        }));
+    },
+
+    showPgnGameList() {
+        if (!this.pgnCollection || this.pgnCollection.games.length < 2) return false;
+        window.CaissaAnalyzeV2Shell?.selectView?.('setup', { focus: false });
+        if (this.elements.pgnGameList) this.elements.pgnGameList.hidden = false;
+        this.renderPgnGameList();
+        this.elements.pgnGameListItems?.querySelector('button')?.focus?.();
+        return true;
+    },
+
+    hidePgnGameList() {
+        if (this.elements.pgnGameList) this.elements.pgnGameList.hidden = true;
+        if (this.loadedGame) window.CaissaAnalyzeV2Shell?.selectView?.('analysis', { focus: true });
+    },
+
+    syncPgnCollectionAction() {
+        if (!this.elements.pgnGameListBack) return;
+        this.elements.pgnGameListBack.hidden = !this.pgnCollection || this.pgnCollection.games.length < 2;
+    },
+
+    selectPgnCollectionGame(index) {
+        const game = this.pgnCollection?.games?.[index];
+        if (!game) return false;
+        const loaded = this.loadParsedPgnGame(game, this.pgnCollection.source || 'PGN File', {
+            ...(this.pgnCollection.metadata || {}),
+            collectionIndex: index
+        }, index);
+        if (!loaded) return false;
+        this.activePgnGameIndex = index;
+        this.renderPgnGameList();
+        this.hidePgnGameList();
+        this.finishSetupCommit();
+        return true;
+    },
+
+    loadParsedPgnGame(parsedGame, source, metadata = {}, collectionIndex = -1) {
+        const headers = { ...(parsedGame.headers || {}) };
+        const initialFen = headers.SetUp === '1' && headers.FEN ? headers.FEN : null;
+        const session = window.CaissaAnalyzeSession?.createSession?.({ initialFen });
+        const game = session?.game;
+        if (!game) return false;
+        Object.entries(headers).forEach(([name, value]) => game.header(name, String(value)));
+        for (const node of parsedGame.mainline || []) {
+            if (!game.move(node.san)) throw new Error(`Could not apply ${node.san}`);
+        }
+        const tree = window.CaissaAnalyzeVariationTree.create({
+            initialFen,
+            parsedGame,
+            originalPgn: this.pgnCollection?.sourceText || '',
+            originalResult: metadata.result || headers.Result || '*',
+            selectedPly: parsedGame.mainline?.length || 0,
+            recordId: metadata.recordId || null
+        });
+        const main = tree.getMainLine();
+        const loadedGame = {
+            pgn: this.pgnCollection?.sourceText || tree.serialize({ headers, result: headers.Result || '*' }),
+            game,
+            initialFen,
+            source,
+            white: metadata.white || headers.White || 'Unknown',
+            black: metadata.black || headers.Black || 'Unknown',
+            result: metadata.result || headers.Result || '*',
+            termination: metadata.termination || headers.Termination || null,
+            event: headers.Event || '',
+            date: headers.Date || '',
+            eco: metadata.eco || headers.ECO || '',
+            opening: metadata.opening || headers.Opening || '',
+            recordId: metadata.recordId || null,
+            recordStatus: metadata.recordStatus || null,
+            collectionIndex,
+            headers,
+            movesSan: main.map(node => node.san),
+            movesVerbose: main.map(node => ({ ...node.move, san: node.san }))
+        };
+        if (this.isAnalyzing) this.stopAnalysis({ restoreLive: false, reason: 'game-loaded' });
+        this.disposeFicsLocalAnalysis();
+        this.analysisTree?.dispose?.();
+        this.analysisTree = tree;
+        this.session = session;
+        this.loadedGame = loadedGame;
+        this.currentMoveIndex = tree.getActiveLine().length - 1;
+        this.analysisResults = [];
+        this.positionAnalyses = [];
+        this.analysisPhase = 'idle';
+        this.updateReviewSummary();
+        this.updateCriticalMoments();
+        this.updateMetadata();
+        this.ensureAnalyzeBoard();
+        this.updateBoardAndUI({ reason: 'game-load' });
+        this.projectCoachReviewBoardAssistance();
+        this.updateMoveList();
+        this.updateNavigationControls();
+        this.updateMentorPanel();
+        this.updateEvaluationBar();
+        this.syncPgnCollectionAction();
+        this.setStatus('Ready to analyze', 'ready');
+        return true;
     },
 
     /**
@@ -1653,6 +1857,10 @@ const AnalyzeSection = {
      */
     loadGameFromPgn(pgn, source, metadata = {}) {
         console.log('[Analyze] Loading PGN from:', source);
+
+        if (window.CaissaAnalyzeVariationTree?.parseCollection) {
+            return this.loadPgnDocument(pgn, source, metadata);
+        }
 
         try {
             // Use global Chess.js if available
@@ -1754,7 +1962,7 @@ const AnalyzeSection = {
         this.syncReviewAction();
         if (!this.elements.moveList || !this.loadedGame) return;
 
-        if (this.isFicsLocalAnalysisActive()) {
+        if (this.isVariationAnalysisActive()) {
             this.renderFicsVariationMoveList();
             return;
         }
@@ -1808,6 +2016,14 @@ const AnalyzeSection = {
         const activeIndex = activeIds.indexOf(node.id);
         if (activeIndex >= 0) button.dataset.index = String(activeIndex);
         button.textContent = node.san;
+        const annotation = this.getReviewMoveSymbol(this.analysisResults[activeIndex]);
+        if (activeIndex >= 0 && annotation) {
+            const marker = document.createElement('strong');
+            marker.className = `analyze-move-annotation ${this.getAnnotationClass(annotation)}`;
+            marker.setAttribute('aria-hidden', 'true');
+            marker.textContent = annotation;
+            button.append(marker);
+        }
         button.setAttribute('aria-label', this.getMoveAccessibleLabel(
             activeIndex >= 0 ? activeIndex : node.ply - 1, node.san));
         if (node.id === currentNodeId) {
@@ -1826,11 +2042,11 @@ const AnalyzeSection = {
         const fragment = document.createDocumentFragment();
         alternatives.forEach(startId => {
             const branch = document.createElement('div');
-            branch.className = 'fics-analysis-variation';
+            branch.className = 'fics-analysis-variation caissa-analysis-variation';
             branch.dataset.variationDepth = String(depth);
             branch.style.setProperty('--variation-depth', String(depth));
             const open = document.createElement('span');
-            open.className = 'fics-analysis-variation__paren';
+            open.className = 'fics-analysis-variation__paren caissa-analysis-variation__paren';
             open.textContent = '(';
             branch.append(open);
             let node = nodeMap.get(startId);
@@ -1838,7 +2054,7 @@ const AnalyzeSection = {
             while (node && !visited.has(node.id)) {
                 visited.add(node.id);
                 const number = document.createElement('span');
-                number.className = 'move-num fics-analysis-variation__number';
+                number.className = 'move-num fics-analysis-variation__number caissa-analysis-variation__number';
                 number.textContent = node.color === 'b' ? `${node.moveNumber}...` : `${node.moveNumber}.`;
                 branch.append(number, this.createFicsMoveButton(node, activeIds, currentNodeId));
                 const nested = this.renderFicsVariationBranches(
@@ -1847,7 +2063,7 @@ const AnalyzeSection = {
                 node = node.mainChildId ? nodeMap.get(node.mainChildId) : null;
             }
             const close = document.createElement('span');
-            close.className = 'fics-analysis-variation__paren';
+            close.className = 'fics-analysis-variation__paren caissa-analysis-variation__paren';
             close.textContent = ')';
             branch.append(close);
             fragment.append(branch);
@@ -1856,17 +2072,29 @@ const AnalyzeSection = {
     },
 
     renderFicsVariationMoveList() {
-        const state = this.ficsLocalAnalysis.inspect();
+        const tree = this.getAnalysisTree();
+        const state = tree.inspect();
         const nodeMap = new Map(state.nodes.map(node => [node.id, node]));
         const activeIds = [...state.activeLineIds];
+        const dynamicMainIds = [];
+        let dynamicMainId = nodeMap.get('root')?.mainChildId;
+        const visitedMainIds = new Set();
+        while (dynamicMainId && nodeMap.has(dynamicMainId) && !visitedMainIds.has(dynamicMainId)) {
+            visitedMainIds.add(dynamicMainId);
+            dynamicMainIds.push(dynamicMainId);
+            dynamicMainId = nodeMap.get(dynamicMainId).mainChildId;
+        }
+        const primaryLineIds = state.originalLineIds.length
+            ? state.originalLineIds
+            : dynamicMainIds;
         const grid = document.createElement('div');
-        grid.className = 'move-list-grid fics-analysis-move-tree';
+        grid.className = 'move-list-grid fics-analysis-move-tree caissa-analysis-move-tree';
         const rootVariations = this.renderFicsVariationBranches(
-            'root', nodeMap, activeIds, state.currentNodeId, 1, state.originalLineIds.length === 0);
+            'root', nodeMap, activeIds, state.currentNodeId);
         if (rootVariations.childNodes.length) grid.append(rootVariations);
-        for (let index = 0; index < state.originalLineIds.length; index += 2) {
-            const white = nodeMap.get(state.originalLineIds[index]);
-            const black = nodeMap.get(state.originalLineIds[index + 1]);
+        for (let index = 0; index < primaryLineIds.length; index += 2) {
+            const white = nodeMap.get(primaryLineIds[index]);
+            const black = nodeMap.get(primaryLineIds[index + 1]);
             const row = document.createElement('div');
             row.className = 'move-row';
             const number = document.createElement('span');
@@ -1894,10 +2122,11 @@ const AnalyzeSection = {
         preferMainContinuation = true,
         reason = 'variation-navigation'
     } = {}) {
-        if (!this.isFicsLocalAnalysisActive()) return false;
-        const selected = this.ficsLocalAnalysis.selectNode(nodeId, { preferMainContinuation });
+        if (!this.isVariationAnalysisActive()) return false;
+        const tree = this.getAnalysisTree();
+        const selected = tree.selectNode(nodeId, { preferMainContinuation });
         if (!selected.ok) return false;
-        const activeLine = this.ficsLocalAnalysis.getActiveLine();
+        const activeLine = tree.getActiveLine();
         const targetIndex = nodeId === 'root' ? -1 : activeLine.findIndex(node => node.id === nodeId);
         const game = this.getGame();
         if (this.loadedGame.initialFen) game.load(this.loadedGame.initialFen);
@@ -1916,7 +2145,7 @@ const AnalyzeSection = {
     },
 
     navigateAnalysisLine(action) {
-        if (!this.isFicsLocalAnalysisActive()) {
+        if (!this.isVariationAnalysisActive()) {
             const destinations = {
                 first: -1,
                 previous: this.currentMoveIndex - 1,
@@ -1926,10 +2155,11 @@ const AnalyzeSection = {
             this.jumpToMove(destinations[action]);
             return;
         }
-        const result = this.ficsLocalAnalysis[action]?.();
+        const tree = this.getAnalysisTree();
+        const result = tree[action]?.();
         if (result?.ok) {
             this.jumpToFicsAnalysisNode(result.node?.id
-                || this.ficsLocalAnalysis.inspect().currentNodeId, {
+                || tree.inspect().currentNodeId, {
                 preferMainContinuation: false,
                 reason: `variation-${action}`
             });
@@ -1941,8 +2171,8 @@ const AnalyzeSection = {
      */
     jumpToMove(index) {
         if (!this.loadedGame) return;
-        if (this.isFicsLocalAnalysisActive()) {
-            const line = this.ficsLocalAnalysis.getActiveLine();
+        if (this.isVariationAnalysisActive()) {
+            const line = this.getAnalysisTree().getActiveLine();
             const safeIndex = Math.max(-1, Math.min(index, line.length - 1));
             this.jumpToFicsAnalysisNode(safeIndex < 0 ? 'root' : line[safeIndex].id, {
                 preferMainContinuation: true,
@@ -2390,7 +2620,9 @@ const AnalyzeSection = {
         this.board.setOrientation(this.boardFlipped ? 'black' : 'white');
         this.elements.evalBar?.classList.toggle('eval-flipped', this.boardFlipped);
         this.elements.flipBoard?.classList.toggle('active', this.boardFlipped);
-        setTimeout(() => this.board?.resize?.(), 0);
+        this.elements.footerFlipBoard?.classList.toggle('is-active', this.boardFlipped);
+        this.elements.footerFlipBoard?.setAttribute('aria-pressed', String(this.boardFlipped));
+        requestAnimationFrame(() => this.board?.resize?.());
     },
 
     updateEvaluationBar() {

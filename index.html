@@ -123,7 +123,7 @@
     <link rel="stylesheet" href="css/academy.css?v=1.0.0">
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
-    <link rel="stylesheet" href="css/analyze-v2-shell.css?v=1.1.7">
+    <link rel="stylesheet" href="css/analyze-v2-shell.css?v=1.2.0">
     <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
     <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
     <script src="js/legacy-canonical-section-route-policy.js?v=1.0.0"></script>
@@ -835,6 +835,9 @@
                                 <i class="fas fa-arrow-left" aria-hidden="true"></i>
                             </button>
                             <h2 id="analyzeV2WorkspaceTitle">Analysis</h2>
+                            <button id="analyzePgnGameListBack" class="caissa-analyze-v2__collection-back" type="button" hidden>
+                                <i class="fas fa-list" aria-hidden="true"></i><span>Game List</span>
+                            </button>
                         </header>
 
                         <div class="caissa-analyze-v2__tabs" role="tablist" aria-label="Analyze workspace views">
@@ -939,7 +942,6 @@
                                     <!-- Legacy DOM hooks stay mounted for compatibility; PGN entry lives only in Setup Position. -->
                                     <div class="caissa-analyze-v2__preserved-controls" hidden aria-hidden="true">
                                         <select id="analyzeProvider"><option value="chess.com">Chess.com</option><option value="lichess">Lichess</option></select>
-                                        <input type="file" id="analyzePgnFile" accept=".pgn">
                                         <span id="analyzePgnFileName" class="file-name"></span>
                                         <button id="analyzeLoadPgnBtn" type="button">Load PGN</button>
                                         <button id="analyzeOpenLibrary" type="button">Open Library</button>
@@ -1005,6 +1007,17 @@
 
                                     <p id="analyzeSetupMessage" class="caissa-analyze-v2__setup-message" role="status" aria-live="polite">Choose a piece, then a square. Drag a board piece outside the board to remove it.</p>
                                     <button id="analyzeSetupLoad" class="caissa-analyze-v2__setup-load" type="button">Load</button>
+                                    <input id="analyzePgnFile" class="caissa-analyze-v2__file-input" type="file" accept=".pgn,application/x-chess-pgn,text/plain" hidden>
+                                    <button id="analyzeOpenPgnBtn" class="caissa-analyze-v2__open-pgn" type="button">
+                                        <i class="fas fa-folder-open" aria-hidden="true"></i><span>Open PGN</span>
+                                    </button>
+                                    <section id="analyzePgnGameList" class="caissa-analyze-v2__collection" aria-labelledby="analyzePgnGameListTitle" hidden>
+                                        <div class="caissa-analyze-v2__collection-heading">
+                                            <div><h3 id="analyzePgnGameListTitle">Game List</h3><p id="analyzePgnCollectionSummary"></p></div>
+                                            <button id="analyzePgnGameListClose" type="button" aria-label="Close game list"><i class="fas fa-times" aria-hidden="true"></i></button>
+                                        </div>
+                                        <ol id="analyzePgnGameListItems" class="caissa-analyze-v2__collection-items"></ol>
+                                    </section>
                                 </div>
                             </section>
                         </div>
@@ -1022,7 +1035,7 @@
                                 <button id="analyzeNewBtn" class="caissa-analyze-v2__action--available" type="button" title="Set up a new analysis position"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><span>New</span></button>
                                 <button id="analyzeSaveBtn" class="caissa-analyze-v2__action--available" type="button" title="Download the current analysis as PGN"><i class="fas fa-floppy-disk" aria-hidden="true"></i><span>Save</span></button>
                                 <button id="analyzeReviewBtn" class="caissa-analyze-v2__action--available" type="button" aria-pressed="false" title="Review the current game"><i class="fas fa-star" aria-hidden="true"></i><span>Review</span></button>
-                                <button type="button" disabled aria-disabled="true" title="More actions are not available yet" aria-label="More actions"><span aria-hidden="true">•••</span></button>
+                                <button id="analyzeFooterFlipBoard" class="caissa-analyze-v2__action--available" type="button" aria-label="Flip analysis board" aria-pressed="false" title="Flip board"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><span>Flip Board</span></button>
                             </div>
                         </footer>
                     </aside>
@@ -5412,9 +5425,9 @@
     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
-    <script src="js/play/performance/play-load-registry.js?v=1.1.36"></script>
+    <script src="js/play/performance/play-load-registry.js?v=1.1.37"></script>
     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
-    <script src="js/play/performance/play-lazy-loader.js?v=1.0.2"></script>
+    <script src="js/play/performance/play-lazy-loader.js?v=1.0.3"></script>
     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>
     <script src="js/play/analytics/play-game-start-analytics.js?v=1.0.0"></script>
     <script src="js/play/analytics/play-completion-analytics.js?v=1.0.0"></script>

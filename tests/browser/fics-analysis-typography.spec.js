@@ -64,8 +64,8 @@ test('long FICS notation remains aligned, unclipped, and vertically scrollable',
     expect(result).toEqual({ horizontalOverflow: 0, verticalScroll: true, clipped: false, columnsAligned: true });
 });
 
-test('non-FICS Analyze keeps its existing typography contract', async ({ page }) => {
+test('non-FICS Analyze uses the upgraded readable typography contract', async ({ page }) => {
     await openAnalyze(page, 'play');
     await expect(page.locator('#analyzeSection')).not.toHaveAttribute('data-caissa-analyze-source', 'fics');
-    await expect(page.locator('#analyzeMoveList .move-white').first()).toHaveCSS('font-size', '14px');
+    await expect(page.locator('#analyzeMoveList .move-white').first()).toHaveCSS('font-size', '18px');
 });

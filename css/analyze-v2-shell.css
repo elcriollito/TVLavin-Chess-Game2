@@ -218,6 +218,28 @@
     color: var(--analyze-v2-accent);
 }
 
+#analyzeSection .caissa-analyze-v2__collection-back {
+    position: absolute;
+    right: 14px;
+    display: inline-flex;
+    min-height: 36px;
+    padding: 0 10px;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--analyze-v2-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #dce3ed;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-back[hidden] {
+    display: none;
+}
+
 #analyzeSection .caissa-analyze-v2__eyebrow {
     color: var(--analyze-v2-accent);
     font-size: 10px;
@@ -249,8 +271,9 @@
     color: var(--analyze-v2-muted);
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
-    font-weight: 650;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
     transition: color 160ms ease, background 160ms ease;
 }
 
@@ -322,11 +345,13 @@
     overflow: visible;
 }
 
-#analyzeSection .caissa-analyze-v2__minimal-analysis {
+#analyzeSection .caissa-analyze-v2 .caissa-analyze-v2__minimal-analysis {
+    height: 100%;
     gap: 0;
     min-height: 100%;
     padding: 0;
     color: #e9edf4;
+    overflow: hidden;
 }
 
 #analyzeSection .caissa-analyze-v2__engine-strip {
@@ -472,10 +497,25 @@
 }
 
 #analyzeSection .caissa-analyze-v2 .caissa-analyze-v2__notation {
+    flex: 1 1 auto;
+    min-height: 0;
     max-height: none;
     margin: 0;
     padding: 8px 12px 16px;
     overflow-y: auto;
+    overflow-x: hidden;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 25px;
+    letter-spacing: 0.01em;
+}
+
+#analyzeSection .caissa-analyze-v2__notation .move-num {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 25px;
+    letter-spacing: 0.01em;
 }
 
 #analyzeSection[data-caissa-analyze-source="fics"] .caissa-analyze-v2__notation :is(
@@ -502,12 +542,12 @@
     letter-spacing: 0.01em;
 }
 
-#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-move-tree {
+#analyzeSection .caissa-analysis-move-tree {
     min-width: 0;
     overflow-x: hidden;
 }
 
-#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation {
+#analyzeSection .caissa-analysis-variation {
     grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
@@ -521,18 +561,18 @@
     color: #c8cdd6;
 }
 
-#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation :is(.move-white, .move-black) {
+#analyzeSection .caissa-analysis-variation :is(.move-white, .move-black) {
     flex: 0 1 auto;
     max-width: 100%;
     padding: 1px 4px;
     font-size: 17px;
 }
 
-#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation__number {
+#analyzeSection .caissa-analysis-variation__number {
     flex: 0 0 auto;
 }
 
-#analyzeSection[data-caissa-analyze-source="fics"] .fics-analysis-variation__paren {
+#analyzeSection .caissa-analysis-variation__paren {
     color: var(--analyze-v2-muted);
     font-size: 16px;
     font-weight: 600;
@@ -560,6 +600,7 @@
     background: transparent;
     color: #d7dce4;
     font: inherit;
+    font-size: 18px;
     font-weight: 650;
     line-height: inherit;
     white-space: nowrap;
@@ -649,9 +690,12 @@
 }
 
 #analyzeSection .caissa-analyze-v2 .analyze-move-list {
-    max-height: 250px;
-    margin-top: 10px;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    margin-top: 0;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #analyzeSection .caissa-analyze-v2 .caissa-ui-empty-state {
@@ -1280,6 +1324,130 @@
     filter: brightness(1.08);
 }
 
+#analyzeSection .caissa-analyze-v2__open-pgn {
+    display: inline-flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 1px solid rgba(240, 165, 72, 0.5);
+    border-radius: 8px;
+    background: rgba(240, 165, 72, 0.08);
+    color: #f4d09d;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+#analyzeSection .caissa-analyze-v2__open-pgn:hover,
+#analyzeSection .caissa-analyze-v2__open-pgn:focus-visible {
+    background: rgba(240, 165, 72, 0.16);
+    color: #fff;
+}
+
+#analyzeSection .caissa-analyze-v2__collection {
+    display: grid;
+    min-height: 0;
+    padding: 12px;
+    gap: 10px;
+    border: 1px solid var(--analyze-v2-line);
+    border-radius: 10px;
+    background: rgba(9, 14, 22, 0.72);
+}
+
+#analyzeSection .caissa-analyze-v2__collection[hidden] {
+    display: none;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-heading {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-heading h3,
+#analyzeSection .caissa-analyze-v2__collection-heading p {
+    margin: 0;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-heading h3 {
+    font-size: 18px;
+    font-weight: 650;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-heading p {
+    color: var(--analyze-v2-muted);
+    font-size: 13px;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-heading button {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #dce3ed;
+    cursor: pointer;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-items {
+    display: grid;
+    max-height: 300px;
+    gap: 7px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-game {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 10px 12px;
+    gap: 3px 10px;
+    border: 1px solid var(--analyze-v2-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    color: #e8edf4;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-game:is(:hover, :focus-visible, .is-active) {
+    border-color: rgba(240, 165, 72, 0.55);
+    background: var(--analyze-v2-accent-soft);
+}
+
+#analyzeSection .caissa-analyze-v2__collection-game strong {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-game small {
+    grid-column: 1 / -1;
+    overflow: hidden;
+    color: var(--analyze-v2-muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#analyzeSection .caissa-analyze-v2__collection-result {
+    color: var(--analyze-v2-accent);
+    font-size: 14px;
+    font-weight: 650;
+}
+
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__footer {
     gap: 4px;
     padding: 6px 14px;
@@ -1412,12 +1580,14 @@
     color: var(--analyze-v2-muted);
     cursor: default;
     font: inherit;
-    font-size: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
     opacity: 0.76;
 }
 
 #analyzeSection .caissa-analyze-v2__actions button i {
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #analyzeSection .caissa-analyze-v2__actions .caissa-analyze-v2__action--available {
@@ -1445,6 +1615,12 @@
     border-color: rgba(248, 113, 113, 0.5);
     background: rgba(127, 29, 29, 0.22);
     color: #fecaca;
+}
+
+#analyzeSection .caissa-analyze-v2__actions #analyzeFooterFlipBoard.is-active {
+    border-color: rgba(240, 165, 72, 0.48);
+    background: var(--analyze-v2-accent-soft);
+    color: var(--analyze-v2-accent);
 }
 
 #analyzeSection .caissa-analyze-v2[data-analyze-v2-view='setup'] .caissa-analyze-v2__actions .caissa-analyze-v2__action--available {
