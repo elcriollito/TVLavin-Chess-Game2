@@ -52,6 +52,8 @@
     { "source": "/watch/lichess-broadcasts/", "destination": "/watch/live-tournaments", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/mentor", "destination": "/mentor.html" },
+    { "source": "/mentor/", "destination": "/mentor.html" },
     { "source": "/beta", "destination": "/api/beta/page" },
     { "source": "/beta/", "destination": "/api/beta/page" },
     { "source": "/scanner/beta", "destination": "/api/beta/scanner" },

@@ -8,9 +8,9 @@
     const freeze = value => Object.freeze(value);
     const createPositionSnapshot = input => {
         const fen = typeof input?.fen === 'string' ? input.fen.trim() : '';
-        if (input?.source !== 'bots-analysis-study' || fen.split(/\s+/).length !== 6) return null;
+        if (!['bots-analysis-study', 'mentor-study'].includes(input?.source) || fen.split(/\s+/).length !== 6) return null;
         const pv = Array.isArray(input.pv) ? input.pv.filter(value => typeof value === 'string').slice(0, 8) : [];
-        return freeze({ capability: CAPABILITIES.POSITION, source: 'bots-analysis-study', fen,
+        return freeze({ capability: CAPABILITIES.POSITION, source: input.source, fen,
             mode: input.mode === 'temporary' ? 'temporary' : 'source', san: typeof input.san === 'string' ? input.san : null,
             evaluation: Number.isFinite(input.evaluation) ? input.evaluation : null,
             mate: Number.isFinite(input.mate) ? input.mate : null, classification: typeof input.classification === 'string' ? input.classification : null,
@@ -18,6 +18,7 @@
     };
     const routePolicy = pathname => {
         const path = typeof pathname === 'string' ? pathname : '';
+        if (/^\/mentor(?:\.html)?\/?$/.test(path)) return freeze({ availability: 'CONTEXT', capability: CAPABILITIES.NONE, reason: 'dedicated-study-surface' });
         if (CLASS_C.test(path)) return freeze({ availability: 'NONE', capability: CAPABILITIES.NONE, reason: 'sensitive-route' });
         if (PLAY.test(path)) return freeze({ availability: 'GENERAL', capability: CAPABILITIES.NONE, reason: 'active-play-fair-play-boundary' });
         if (CLASS_A.test(path)) return freeze({ availability: 'CONTEXT', capability: CAPABILITIES.NONE, reason: 'provider-not-registered' });

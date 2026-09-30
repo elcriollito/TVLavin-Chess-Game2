@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAISSA Mentor — Learn on the board</title>
+  <meta name="description" content="Explore chess ideas with CAISSA Mentor and an interactive study board.">
+  <link rel="stylesheet" href="/css/caissa-board.css">
+  <link rel="stylesheet" href="/css/mentor-floating-shell.css">
+  <link rel="stylesheet" href="/css/mentor-page.css">
+</head>
+<body class="mentor-page">
+  <header class="page-header">
+    <a class="brand" href="/" aria-label="CAISSA home"><span aria-hidden="true">♞</span> CAISSA <small>CHESS</small></a>
+    <nav aria-label="Main navigation"><a href="/play">Play</a><a href="/analyze">Analyze</a><a href="/puzzles">Puzzles</a><a href="/mentor.html" aria-current="page">Mentor</a></nav>
+    <a class="sign-in" href="/signin?redirect_url=%2Fmentor.html">Sign in</a>
+  </header>
+  <main>
+    <div class="page-title"><div><p class="eyebrow">YOUR CHESS COMPANION</p><h1>CAISSA Mentor</h1><p>Understand the idea. See it on the board. Try it yourself.</p></div><button id="new-session" type="button">＋ New session</button></div>
+    <div class="mentor-workspace">
+      <section class="board-region" aria-labelledby="lesson-title">
+        <div class="lesson-heading"><div><span class="eyebrow" id="lesson-category">GUIDED LESSON</span><h2 id="lesson-title">Develop with a plan</h2></div><span class="study-label">Study board</span></div>
+        <div id="mentor-board"></div>
+        <div class="board-foot">
+          <div id="lesson-notation" aria-label="Lesson moves"></div>
+          <div class="board-controls"><div><button id="previous" type="button" aria-label="Previous lesson move">←</button><button id="next" type="button" aria-label="Next lesson move">→</button><button id="repeat" type="button">↺ Repeat</button></div><button id="flip" type="button">⇅ Flip board</button></div>
+          <div class="lesson-step"><p id="lesson-instruction" role="status" aria-live="polite"></p><button id="practice" type="button">Try it yourself</button></div>
+          <p id="move-status" role="status" aria-live="polite"></p>
+          <details><summary>Load your position</summary><form id="fen-form"><label for="study-fen">FEN from a completed game or study</label><input id="study-fen" required placeholder="Paste a FEN position"><button type="submit">Load position</button></form></details>
+        </div>
+      </section>
+      <section class="right-workspace" aria-label="Mentor learning workspace">
+        <div class="workspace-head"><span class="eyebrow">EXPLORE WITH MENTOR</span><div role="tablist" aria-label="Mentor topics"><button id="tab-learn" role="tab" aria-selected="true" aria-controls="panel-learn" tabindex="0">Learn</button><button id="tab-openings" role="tab" aria-selected="false" aria-controls="panel-openings" tabindex="-1">Openings</button><button id="tab-account" role="tab" aria-selected="false" aria-controls="panel-account" tabindex="-1">My Account</button></div></div>
+        <div class="workspace-body">
+          <div class="topic-panel" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn"><h2>What would you like to understand?</h2><p>Short lessons you can explore, move by move.</p><div class="topic-actions"><button data-lesson="development">Develop with a plan <span>↗</span></button><button data-lesson="fork">Find a knight fork <span>↗</span></button><button data-lesson="opposition">Understand opposition <span>↗</span></button></div></div>
+          <div class="topic-panel" id="panel-openings" role="tabpanel" aria-labelledby="tab-openings" hidden><h2>Learn the plans behind the moves.</h2><p>Choose an opening and explore a starting line.</p><div class="topic-actions"><button data-lesson="london">London System <span>↗</span></button><button data-lesson="sicilian">Sicilian Defense <span>↗</span></button><button data-lesson="development">Italian Game <span>↗</span></button></div></div>
+          <div class="topic-panel" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden><h2>Your games, your next lesson.</h2><p>Save usernames on this device. Account imports are not connected in this preview.</p><form id="account-form"><label for="chesscom-user">Chess.com username</label><input id="chesscom-user" maxlength="50" autocomplete="off" placeholder="Your Chess.com username"><label for="lichess-user">Lichess username</label><input id="lichess-user" maxlength="50" autocomplete="off" placeholder="Your Lichess username"><button type="submit">Save usernames locally</button><p id="account-status" role="status" aria-live="polite"></p></form><p class="source-note"><strong>CAISSA game history</strong><br>Coming later · No games or ratings loaded.</p></div>
+          <div data-caissa-mentor-page-host></div>
+        </div>
+      </section>
+    </div>
+    <p class="page-note">Study and completed games only. Local lessons use no Shared AI credits.</p>
+  </main>
+  <dialog id="promotion-dialog" aria-labelledby="promotion-title"><h2 id="promotion-title">Choose a promotion piece</h2><div><button data-promotion="q">Queen</button><button data-promotion="r">Rook</button><button data-promotion="b">Bishop</button><button data-promotion="n">Knight</button></div><button id="promotion-cancel">Cancel</button></dialog>
+  <script src="/js/auth-config.js"></script>
+  <script src="/js/caissa-auth.js" defer></script>
+  <script src="/llm-provider.js"></script>
+  <script src="/js/mentor/mentor-context-contract.js"></script>
+  <script src="/js/mentor/mentor-floating-shell.js"></script>
+  <script type="module" src="/js/mentor/mentor-page.js"></script>
+</body>
+</html>
