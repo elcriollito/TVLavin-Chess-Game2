@@ -42,10 +42,12 @@ test('A3 converges URL and account imports on the existing PGN/session pipeline'
 
 test('A3 lazy-loads the isolated importer before AnalyzeSection', () => {
     assert.equal((registry.match(/js\/analyze-game-import\.js\?v=1\.1\.0/g) || []).length, 2);
-    assert.equal((registry.match(/js\/analyze-section\.js\?v=1\.6\.6/g) || []).length, 2);
+    assert.equal((registry.match(/js\/analyze-section\.js\?v=1\.7\.0/g) || []).length, 2);
+    assert.equal((registry.match(/js\/analyze-variation-tree\.js\?v=1\.0\.0/g) || []).length, 2);
     for (const branch of registry.match(/sources:\s*Object\.freeze\([^]*?\]\)/g) || []) {
         if (!branch.includes('analyze-section.js')) continue;
         assert.ok(branch.indexOf('analyze-game-import.js') < branch.indexOf('analyze-section.js'));
+        assert.ok(branch.indexOf('analyze-variation-tree.js') < branch.indexOf('analyze-section.js'));
     }
 });
 

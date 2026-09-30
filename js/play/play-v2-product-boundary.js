@@ -58,7 +58,8 @@
                 return decision(allowed, type, allowed ? 'SAME_ORIGIN_ALLOWED' : 'NETWORK_DESTINATION_PROHIBITED');
             } catch (_) { return decision(false, type, 'NETWORK_DESTINATION_PROHIBITED'); }
         }
-        const allowed = /^(?:css|js)\/[a-z0-9_./-]+(?:\?v=[a-z0-9_.-]+)?$/i.test(value);
+        const allowed = /^(?:css|js)\/[a-z0-9_./-]+(?:\?v=[a-z0-9_.-]+)?$/i.test(value)
+            || value === 'assets/vendor/pgn-parser/pgn-parser-1.4.19.umd.js';
         return decision(allowed, type, allowed ? 'PLAY_RESOURCE_ALLOWED' : 'RESOURCE_NOT_ALLOWLISTED');
     }
     function requireAllowed(input) {

@@ -227,7 +227,7 @@ test('main line stays visible while a reusable multi-ply variation supports bran
             overflow: element.scrollWidth > element.clientWidth
         };
     });
-    expect(presentation).toMatchObject({ fontSize: '17px', fontWeight: '600', overflow: false });
+    expect(presentation).toMatchObject({ fontSize: '18px', fontWeight: '600', overflow: false });
     expect(Number.parseFloat(presentation.marginLeft)).toBeGreaterThan(0);
 
     await page.locator('#analyzeMoveList [data-node-id="original-19"]').click();

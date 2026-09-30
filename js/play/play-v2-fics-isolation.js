@@ -85,7 +85,8 @@
             const allowed = /^(?:\.\/|\/)?(?:engine\/[^?#]+|stockfish-worker\.js)(?:[?#].*)?$/i.test(value);
             return result(allowed, type, allowed ? 'WORKER_RESOURCE_ALLOWED' : 'WORKER_RESOURCE_PROHIBITED');
         }
-        const allowed = /^(?:css|js)\/[a-z0-9_./-]+(?:\?v=[a-z0-9_.-]+)?$/i.test(value);
+        const allowed = /^(?:css|js)\/[a-z0-9_./-]+(?:\?v=[a-z0-9_.-]+)?$/i.test(value)
+            || value === 'assets/vendor/pgn-parser/pgn-parser-1.4.19.umd.js';
         return result(allowed, type, allowed ? 'OWNED_RESOURCE_ALLOWED' : 'RESOURCE_NOT_ALLOWLISTED');
     }
     function requireAllowed(input) {
