@@ -40,6 +40,11 @@ function harness() {
 }
 const summary = { ownerId: 'owner-one', status: 'completed', verified: true, source: 'chesscom', username: 'Alex', analysisId: 'analysis-10', completedGames: 10, themes: [{ theme: 'tactics', sampleGames: 4 }] };
 
+test('hidden Chat panel wins over its flex layout when another tab is active', () => {
+    const css = fs.readFileSync(new URL('../css/mentor-page.css', import.meta.url), 'utf8');
+    assert.match(css, /#panel-chat\[hidden\][^{]*\{display:none\}/);
+});
+
 test('four tabs preserve chat drafts and show an unread idea once on entering Chat without network', () => {
     const h = harness();
     assert.deepEqual(h.tabs.map(tab => tab.id), ['tab-chat', 'tab-learn', 'tab-openings', 'tab-account']);
