@@ -6,6 +6,7 @@ import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { prepareLesson } from '../js/mentor/mentor-lessons.js';
 import { createMentorInsights } from '../js/mentor/mentor-insights.js';
 import { parseEcoCatalog, prepareEcoLesson } from '../js/mentor/mentor-openings.js';
+import { parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS } from '../js/mentor/mentor-pgn.js';
 
 const catalog = parseEcoCatalog(JSON.parse(fs.readFileSync(new URL('../data/eco/eco_codes.json', import.meta.url), 'utf8')));
 
@@ -16,7 +17,7 @@ function harness() {
         const handlers = new Map(), attrs = {};
         return { id, attrs, handlers, children: [], dataset: {}, hidden: false, value: '', disabled: false, textContent: '',
             setAttribute(key, value) { attrs[key] = value; }, getAttribute(key) { return attrs[key]; },
-            addEventListener(key, fn) { handlers.set(key, fn); }, fire(key, detail = {}) { handlers.get(key)?.({ preventDefault() {}, ...detail }); },
+            addEventListener(key, fn) { handlers.set(key, fn); }, fire(key, detail = {}) { return handlers.get(key)?.({ preventDefault() {}, ...detail }); },
             append(...items) { this.children.push(...items); }, replaceChildren() { this.children.length = 0; }, focus() {}, showModal() {}, close() {} };
     }
     for (const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1], element(match[1]));
@@ -37,7 +38,7 @@ function harness() {
         querySelector: query => query === '.sign-in' ? authLink : query.endsWith('textarea') ? input : send };
     const board = { setPosition() {}, clearSelection() {}, getMetrics() { return {}; } };
     const source = fs.readFileSync(new URL('../js/mentor/mentor-page.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
-    vm.runInNewContext(source, { Chess, prepareLesson, createMentorInsights, prepareEcoLesson, loadEcoCatalog: async () => catalog, create: () => board, document, window,
+    vm.runInNewContext(source, { Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
         localStorage: { getItem() { return null; }, setItem() {} } });
     return { nodes, tabs, input, send, messages, window, emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
 }
@@ -116,7 +117,7 @@ test('My account source selector preserves raw inputs and produces no insight or
     assert.equal(h.nodes.get('account-pgn-text').value, '[Result "1-0"]');
     h.nodes.get('account-form').fire('submit');
     assert.equal(h.messages.length, 0); assert.equal(h.networkCalls(), 0);
-    assert.match(h.nodes.get('account-status').textContent, /No games have been analyzed/);
+    assert.match(h.nodes.get('account-status').textContent, /Online import is not connected/);
 });
 
 test('ECO selection loads its final legal position and opens Chat with a local exchange and preserved draft', async () => {
@@ -152,4 +153,54 @@ test('FEN intake belongs to My account and loads the shared board with inline fe
     assert.match(h.nodes.get('fen-status').textContent, /Invalid FEN/);
     assert.equal(h.window.CaissaMentorPage.inspect().fen, new Chess(fen).fen());
     assert.equal(h.networkCalls(), 0);
+});
+
+const completedPgn = '[Event "My game"]\n[White "Alex"]\n[Black "Opponent"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 1-0';
+test('local PGN loads Learn, navigates the shared board and prepares an explicit game review in Chat', async () => {
+    const h = harness(); h.nodes.get('account-source-pgn').fire('click');
+    assert.equal(h.nodes.get('account-import-submit').disabled, false);
+    h.nodes.get('account-pgn-text').value = completedPgn;
+    await h.nodes.get('account-form').fire('submit');
+    assert.equal(h.window.CaissaMentorPage.inspect().tab, 'learn');
+    assert.equal(h.window.CaissaMentorPage.inspect().importedGames, 1);
+    assert.equal(h.nodes.get('learn-game-moves').children.length, 4);
+    h.nodes.get('game-next').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().cursor, 1);
+    h.nodes.get('game-last').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().cursor, 4);
+    h.nodes.get('game-previous').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().cursor, 3);
+    const fen = h.window.CaissaMentorPage.inspect().fen;
+    h.nodes.get('game-review').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().tab, 'chat');
+    assert.ok(h.input.value.includes(fen)); assert.match(h.input.value, /Alex vs Opponent/);
+    assert.equal(h.networkCalls(), 0);
+});
+
+test('multiple PGN games can be selected; invalid re-import preserves the current game and draft', async () => {
+    const h = harness(); h.nodes.get('account-source-pgn').fire('click');
+    h.nodes.get('account-pgn-text').value = completedPgn + '\n\n' + completedPgn.replace('Alex', 'Second');
+    await h.nodes.get('account-form').fire('submit');
+    h.nodes.get('learn-game-select').value = '1'; h.nodes.get('learn-game-select').fire('change');
+    assert.equal(h.window.CaissaMentorPage.inspect().lesson, 'pgn-1');
+    h.input.value = 'My draft'; h.nodes.get('game-review').fire('click'); assert.equal(h.input.value, 'My draft');
+    h.nodes.get('account-pgn-text').value = 'invalid'; await h.nodes.get('account-form').fire('submit');
+    assert.equal(h.window.CaissaMentorPage.inspect().lesson, 'pgn-1');
+    assert.equal(h.window.CaissaMentorPage.inspect().importedGames, 2);
+});
+
+test('PGN file import rejects ambiguous inputs, oversized files and stale asynchronous board replacements', async () => {
+    const h = harness(); h.nodes.get('account-source-pgn').fire('click');
+    const fileInput = h.nodes.get('account-pgn-file');
+    fileInput.files = [{ size: 1000001, text: async () => completedPgn }];
+    await h.nodes.get('account-form').fire('submit'); assert.match(h.nodes.get('account-status').textContent, /too large/);
+    fileInput.files = [{ size: 100, text: async () => completedPgn }];
+    h.nodes.get('account-pgn-text').value = completedPgn;
+    await h.nodes.get('account-form').fire('submit'); assert.match(h.nodes.get('account-status').textContent, /not both/);
+    h.nodes.get('account-pgn-text').value = '';
+    let finish; fileInput.files = [{ size: 100, text: () => new Promise(resolve => { finish = resolve; }) }];
+    const pending = h.nodes.get('account-form').fire('submit');
+    h.nodes.get('next').fire('click'); finish(completedPgn); await pending;
+    assert.equal(h.window.CaissaMentorPage.inspect().lesson, 'development');
+    assert.match(h.nodes.get('account-status').textContent, /position changed/);
+    fileInput.files = [{ size: 100, text: async () => completedPgn }];
+    await h.nodes.get('account-form').fire('submit');
+    assert.equal(h.window.CaissaMentorPage.inspect().importedGames, 1);
 });

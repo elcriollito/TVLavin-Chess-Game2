@@ -44,7 +44,7 @@ test('page reuses shared board, rules, auth and Mentor without booting a second 
     assert.match(page, /caissa-board-adapter\.js/);
     assert.match(page, /chess-1\.4\.0\.esm\.js/);
     assert.doesNotMatch(page, /new Worker|fetch\(|innerHTML|apiKey/);
-    assert.match(page, /Game import is not connected in this preview/);
+    assert.match(page, /Online import is not connected yet/);
     const shell = read('js/mentor/mentor-floating-shell.js');
     assert.match(shell, /conversation\.length > 10/);
     assert.match(shell, /> 24000/);
