@@ -107,7 +107,19 @@ test('Home auth and progress presentation distinguishes loading, guest, connecte
   assert.match(source, /event\.persisted/);
   assert.match(source, /auth\.userId !== userId/);
   assert.match(source, /caissa\.home\.recent-tools\.v1/);
+  assert.match(source, /openUserProfile/);
+  assert.match(source, /authHref\('signin'\)/);
+  assert.match(source, /authHref\('signup'\)/);
   assert.doesNotMatch(source, /recent games|continue position|streak|accuracy/i);
+});
+
+test('Home Settings reuses the supported CAISSA locale preference without fictitious controls', () => {
+  const $ = load(read('home.html'));
+  assert.equal($('#home-settings').attr('aria-labelledby'), 'home-settings-title');
+  assert.deepEqual($('#home-language option').toArray().map(option => $(option).attr('value')), ['en', 'es', 'pt']);
+  assert.equal($('#home-language').attr('data-caissa-locale-select'), '');
+  const settings = $('#home-settings').text();
+  assert.doesNotMatch(settings, /notifications|connections|privacy controls|board theme|piece set/i);
 });
 
 test('tool-shell brand provides a Home return path without replacing tool menus', () => {

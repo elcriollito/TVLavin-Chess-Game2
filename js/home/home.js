@@ -40,10 +40,12 @@
   const topbarAccount = document.getElementById('topbar-account');
   const accountPanel = document.getElementById('account-panel');
   const accountContent = document.getElementById('account-content');
+  const settingsDialog = document.getElementById('home-settings');
   let accountRequest = 0;
   let progressModulePromise = null;
   let currentAuth = null;
   let recent = [];
+  let settingsTrigger = null;
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -66,6 +68,42 @@
     return link;
   }
 
+  function returnPath() {
+    const location = global.location;
+    const path = `${location?.pathname || '/'}${location?.search || ''}${location?.hash || ''}`;
+    return path.startsWith('/') && !path.startsWith('//') ? path : '/';
+  }
+
+  function authHref(kind) {
+    return `/${kind}?redirect_url=${encodeURIComponent(returnPath())}`;
+  }
+
+  function appendAuthEntryPoints(parent) {
+    appendLink(parent, { href: authHref('signin'), className: 'topbar-control', text: 'Sign in' });
+    appendLink(parent, { href: authHref('signup'), className: 'button small topbar-control', text: 'Register' });
+  }
+
+  function openSettings(trigger) {
+    if (!settingsDialog) return;
+    settingsTrigger = trigger;
+    global.CaissaI18n?.apply?.(settingsDialog);
+    if (typeof settingsDialog.showModal === 'function') settingsDialog.showModal();
+    else settingsDialog.setAttribute('open', '');
+    settingsDialog.querySelector('select, button')?.focus?.();
+  }
+
+  function appendSettings(parent) {
+    const settings = element('button', 'quiet-button topbar-control settings-control');
+    settings.type = 'button';
+    settings.setAttribute('aria-label', 'Settings');
+    const icon = element('i', 'fa-solid fa-gear');
+    icon.setAttribute('aria-hidden', 'true');
+    settings.append(icon, element('span', 'control-label', 'Settings'));
+    settings.addEventListener('click', () => openSettings(settings));
+    parent.append(settings);
+    return settings;
+  }
+
   function initials(name) {
     const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
     if (!parts.length) return 'C';
@@ -83,11 +121,13 @@
     topbarAccount.replaceChildren();
     if (state === 'loading') {
       topbarAccount.append(element('span', 'account-loading', 'Checking account…'));
+      appendAuthEntryPoints(topbarAccount);
+      appendSettings(topbarAccount);
       return;
     }
     if (state === 'guest') {
-      appendLink(topbarAccount, { href: '/signin?redirect_url=%2F', text: 'Sign in' });
-      appendLink(topbarAccount, { href: '/signup?redirect_url=%2F', className: 'button small', text: 'Create account' });
+      appendAuthEntryPoints(topbarAccount);
+      appendSettings(topbarAccount);
       return;
     }
     if (state === 'error') {
@@ -96,12 +136,16 @@
       retry.type = 'button';
       retry.addEventListener('click', () => global.location.reload());
       topbarAccount.append(retry);
-      appendLink(topbarAccount, { href: '/signin?redirect_url=%2F', text: 'Sign in' });
-      appendLink(topbarAccount, { href: '/signup?redirect_url=%2F', className: 'button small', text: 'Create account' });
+      appendAuthEntryPoints(topbarAccount);
+      appendSettings(topbarAccount);
       return;
     }
 
-    const account = element('span', 'account-identity');
+    appendSettings(topbarAccount);
+    const menu = element('details', 'account-menu');
+    const account = element('summary', 'account-identity account-trigger');
+    account.setAttribute('role', 'button');
+    account.setAttribute('aria-label', `Account menu for ${displayName(auth)}`);
     if (auth.imageUrl) {
       const image = element('img', 'account-avatar');
       image.src = auth.imageUrl;
@@ -112,9 +156,27 @@
       account.append(element('span', 'account-avatar account-initials', initials(displayName(auth))));
     }
     account.append(element('span', 'account-name', displayName(auth)));
-    const signOut = element('button', 'quiet-button', 'Sign out');
+    const chevron = element('i', 'fa-solid fa-chevron-down account-chevron');
+    chevron.setAttribute('aria-hidden', 'true');
+    account.append(chevron);
+
+    const panel = element('div', 'account-menu-panel');
+    const identity = element('div', 'account-menu-identity');
+    identity.append(
+      element('strong', '', displayName(auth)),
+      element('span', '', auth.email || 'CAISSA account')
+    );
+    const profile = element('button', 'account-menu-action', 'Profile');
+    profile.type = 'button';
+    profile.addEventListener('click', async () => {
+      menu.removeAttribute('open');
+      const openProfile = auth.clerk?.openUserProfile;
+      if (typeof openProfile === 'function') await openProfile.call(auth.clerk);
+    });
+    const signOut = element('button', 'account-menu-action', 'Sign out');
     signOut.type = 'button';
     signOut.addEventListener('click', async () => {
+      menu.removeAttribute('open');
       signOut.disabled = true;
       try {
         await auth.signOut?.();
@@ -122,7 +184,9 @@
         signOut.disabled = false;
       }
     });
-    topbarAccount.append(account, signOut);
+    panel.append(identity, profile, signOut);
+    menu.append(account, panel);
+    topbarAccount.append(menu);
   }
 
   function resetAccountContent() {
@@ -149,8 +213,8 @@
         element('h3', '', 'Make it your own.'),
         element('p', '', 'Create a free account to save your puzzle training progress.')
       );
-      appendLink(accountContent, { href: '/signup?redirect_url=%2F', className: 'button', text: 'Create your account' });
-      appendLink(accountContent, { href: '/signin?redirect_url=%2F', className: 'subtle-link', text: 'Already a member? Sign in' });
+      appendLink(accountContent, { href: authHref('signup'), className: 'button', text: 'Create your account' });
+      appendLink(accountContent, { href: authHref('signin'), className: 'subtle-link', text: 'Already a member? Sign in' });
       return;
     }
     if (state === 'error') {
@@ -159,8 +223,8 @@
         element('h3', '', 'Account status unavailable.'),
         element('p', '', 'CAISSA could not check your session. You can still try to sign in or create an account.')
       );
-      appendLink(accountContent, { href: '/signin?redirect_url=%2F', className: 'button', text: 'Sign in' });
-      appendLink(accountContent, { href: '/signup?redirect_url=%2F', className: 'subtle-link', text: 'Create account' });
+      appendLink(accountContent, { href: authHref('signin'), className: 'button', text: 'Sign in' });
+      appendLink(accountContent, { href: authHref('signup'), className: 'subtle-link', text: 'Register' });
       return;
     }
 
@@ -344,6 +408,26 @@
     const target = document.getElementById('journey-title');
     target.tabIndex = -1;
     target.focus();
+  });
+
+  settingsDialog?.addEventListener('close', () => {
+    settingsTrigger?.focus?.();
+    settingsTrigger = null;
+  });
+  settingsDialog?.addEventListener('click', event => {
+    if (event.target === settingsDialog) settingsDialog.close?.();
+  });
+  document.addEventListener('click', event => {
+    document.querySelectorAll('.account-menu[open]').forEach(menu => {
+      if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.account-menu[open]').forEach(menu => {
+      menu.removeAttribute('open');
+      menu.querySelector('summary')?.focus?.();
+    });
   });
 
   const auth = global.CAISSA_AUTH;

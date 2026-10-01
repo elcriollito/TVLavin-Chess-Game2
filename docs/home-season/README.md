@@ -71,16 +71,27 @@ Each response is scoped to both a monotonically increasing request number and th
 Clerk user ID that started it, so a late response cannot repopulate data after
 sign-out or overwrite a newly selected account.
 
-Sign-in and sign-up use `redirect_url=%2F`, which is accepted by the existing
-internal-redirect sanitizer and returns the user to Home.
+The Home header keeps `Sign in`, `Register` and `Settings` available during
+session loading, for guests and when Clerk initialization is unavailable. Auth
+links use same-origin relative routes and encode the current Home path, query and
+hash in `redirect_url`, so the handoff returns to the same preview deployment.
+Authenticated users instead receive a keyboard-operable avatar menu backed by
+Clerk's supported profile surface and the existing `signOut()` contract; Settings
+remains independently available.
+
+The Settings dialog exposes only CAISSA's existing global persisted preference:
+the `CaissaI18n` interface locale (`caissa.locale`) for English, Español and
+Português. Game-specific board and engine options remain in the tools that own
+them. No placeholder connections, notifications, themes or account preferences
+were introduced.
 
 ## Certification evidence
 
 Automated:
 
 - `npm run lint:home`: passed.
-- `npm run test:home`: 63/63 passed.
-- `npm run test:home:browser`: 6/6 passed in Chromium.
+- `npm run test:home`: 64/64 passed.
+- `npm run test:home:browser`: 8/8 passed in Chromium.
 - `vercel build`: passed for the linked preview project.
 - Home plus shared-sidebar browser suite: 14/14 passed.
 - Cross-route authentication plus historical canonical-route suite: 7/7 passed.
@@ -90,22 +101,27 @@ Automated:
 - `git diff --check`: passed.
 
 Browser coverage includes desktop 1440×1000 and mobile 390×844, white logo,
-distinct tool colors, zero horizontal overflow, skip-link keyboard flow, clean
-console, guest and authenticated account rendering, real/empty progress response
-shapes, sign-in refresh, reload, history restoration, sign-out/account switching,
-stale-response rejection, API failure, 30 route status checks and tool-to-Home
-navigation.
+distinct tool colors, zero horizontal overflow, skip-link and dialog keyboard
+flows, clean console, loading/guest/auth-error/authenticated account rendering,
+Clerk profile and sign-out actions, persisted locale Settings, real/empty progress
+response shapes, sign-in refresh, reload, history restoration, sign-out/account
+switching, stale-response rejection, API failure, 30 route status checks and
+tool-to-Home navigation.
 
 Live baseline evidence from the existing production session identifies Alexander
-Lavin in Puzzles and shows the current saved CAISSA training estimate as 1835,
-with 11 solved and 4 missed. No attempt or rating was changed during certification.
-The branch preview remained signed out in the same Chrome profile, confirming that
-the production and preview Clerk sessions are independent.
+Lavin in Puzzles and shows the saved CAISSA training estimate captured there as
+1835, with 11 solved and 4 missed. No attempt or rating was changed during
+certification. The `caissa-chess` branch preview now loads Clerk and identifies
+Alexander Lavin with a real independent Preview session. Its Puzzles UI currently
+reports account progress unavailable, which remains a Preview configuration
+blocker rather than a Home display regression.
 
 Screenshots:
 
 - [Desktop](screenshots/home-desktop.png)
 - [Mobile](screenshots/home-mobile.png)
+- [Guest header controls](screenshots/home-controls-guest.png)
+- [Authenticated header and account menu](screenshots/home-controls-signed-in.png)
 
 ## Baseline findings versus regressions
 
@@ -131,9 +147,13 @@ desktop/mobile or console suites.
 
 ## Release pendings
 
-- Sign in once on the protected branch preview, then compare its live Home card
-  and Puzzles progress. The same browser is already authenticated in production,
-  but preview has an independent Clerk session.
+- Add the existing Clerk server secret and Puzzles Supabase/worker variables to
+  the HOME-001 Preview branch without changing Production. The publishable Clerk
+  key is present and the real Preview session works, but the server-side progress
+  contract cannot authenticate/read/write until those existing secrets are scoped
+  to this branch.
+- Re-run the live Home-versus-Puzzles progress comparison after that Preview-only
+  configuration is available.
 - Exercise the cached-308 recovery note in at least one previously used browser
   profile before production authorization.
 - Review the Vercel preview deployment and screenshots.

@@ -10,6 +10,9 @@ const installAuthMock = async (page, auth) => {
   await page.addInitScript(value => {
     const listeners = [];
     window.CAISSA_AUTH = {
+      clerk: {
+        async openUserProfile() { window.__caissaProfileOpened = true; }
+      },
       ...value,
       whenReady: async function whenReady() { return this; },
       onAuthStateChange(callback) {
@@ -63,6 +66,13 @@ test('desktop Home renders approved identity, route discovery and clean console'
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeVisible();
   await expect(page.getByText('Coming next')).toBeVisible();
   await expect(page.getByText('Make it your own.')).toBeVisible();
+  const topbar = page.locator('#topbar-account');
+  await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute(
+    'href', '/signin?redirect_url=%2F%3Futm_source%3Dhome-certification'
+  );
 
   const metrics = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -75,6 +85,7 @@ test('desktop Home renders approved identity, route discovery and clean console'
   expect(errors).toEqual([]);
   if (process.env.CAISSA_CAPTURE_HOME === '1') {
     await page.screenshot({ path: 'docs/home-season/screenshots/home-desktop.png', fullPage: true });
+    await page.screenshot({ path: 'docs/home-season/screenshots/home-controls-guest.png' });
   }
 });
 
@@ -91,6 +102,10 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
   await page.goto('/');
   await expect(page.locator('.mobile-nav')).toBeVisible();
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeHidden();
+  const topbar = page.locator('#topbar-account');
+  await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 
   await page.keyboard.press('Tab');
@@ -103,7 +118,7 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
   }
 });
 
-test('auth check failure keeps Sign in and Create account available without overflow', async ({ page }) => {
+test('auth check failure keeps Sign in, Register and Settings available without overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installAuthMock(page, {
     isLoaded: true,
@@ -117,15 +132,38 @@ test('auth check failure keeps Sign in and Create account available without over
   await expect(page.getByText('Account status unavailable.')).toBeVisible();
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(topbar.getByRole('link', { name: 'Create account', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/signin?redirect_url=%2F');
-  await expect(topbar.getByRole('link', { name: 'Create account', exact: true })).toHaveAttribute('href', '/signup?redirect_url=%2F');
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveAttribute('href', '/signup?redirect_url=%2F');
 
   const journey = page.locator('#account-content');
   await expect(journey.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(journey.getByRole('link', { name: 'Create account', exact: true })).toBeVisible();
+  await expect(journey.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
+});
+
+test('loading auth keeps entry points available and Settings persists the real locale preference', async ({ page }) => {
+  await installAuthMock(page, {
+    isLoaded: false,
+    isSignedIn: false,
+    userId: null,
+    status: 'loading'
+  });
+  await page.goto('/');
+
+  const topbar = page.locator('#topbar-account');
+  await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  const settings = topbar.getByRole('button', { name: 'Settings', exact: true });
+  await settings.click();
+  await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  await page.locator('#home-language').selectOption('es');
+  expect(await page.evaluate(() => localStorage.getItem('caissa.locale'))).toBe('es');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Settings' })).toBeHidden();
+  await expect(settings).toBeFocused();
 });
 
 test('connected Home renders only returned puzzle progress and preserves the empty state', async ({ page }) => {
@@ -150,6 +188,19 @@ test('connected Home renders only returned puzzle progress and preserves the emp
   await expect(page.locator('.account-stats')).toContainText('1,876');
   await expect(page.locator('.account-stats')).toContainText('12');
   await expect(page.locator('.account-stats')).toContainText('15');
+  const topbar = page.locator('#topbar-account');
+  await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
+  await topbar.getByRole('button', { name: 'Account menu for Ada Player', exact: true }).click();
+  await expect(topbar.getByRole('button', { name: 'Profile', exact: true })).toBeVisible();
+  await topbar.getByRole('button', { name: 'Profile', exact: true }).click();
+  expect(await page.evaluate(() => window.__caissaProfileOpened)).toBe(true);
+  if (process.env.CAISSA_CAPTURE_HOME === '1') {
+    await topbar.getByRole('button', { name: 'Account menu for Ada Player', exact: true }).click();
+    await page.screenshot({ path: 'docs/home-season/screenshots/home-controls-signed-in.png' });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  await expect(page.getByRole('button', { name: 'Account menu for Ada Player', exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 
   await page.route('**/api/puzzles/progress', route => route.fulfill({
@@ -256,9 +307,11 @@ test('Home refreshes restored progress and rejects stale account responses', asy
   await expect(page.locator('.account-stats')).toContainText('1,847');
   await expect(page.locator('.account-stats')).toContainText('16');
 
-  await page.evaluate(() => window.CAISSA_AUTH.signOut());
+  await page.getByRole('button', { name: 'Account menu for Second Player', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByText('Make it your own.')).toBeVisible();
   await expect(page.locator('#account-content')).not.toContainText('1,847');
+  await expect(page.locator('#topbar-account').getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
 });
 
 test('tool routes remain reachable and their existing brand returns to Home', async ({ page, request }) => {
