@@ -139,6 +139,14 @@
     renderContext();
     root.CaissaMentorFloatingShell = Object.freeze({ open: () => setOpen(true), minimize: () => setOpen(false),
         close: () => { input.value = ''; clearConversation(); clearContext(true); messages.replaceChildren(welcome); setOpen(false); },
+        appendStudyMessage: content => {
+            if (!pageMode || typeof content !== 'string' || !content.trim() || content.length > 4000) return false;
+            messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--idea', content));
+            return true;
+        },
+        clearStudyMessages: () => {
+            if (pageMode) messages.querySelectorAll('.caissa-mentor-shell__message--idea').forEach(message => message.remove());
+        },
         setContext, clearContext: () => clearContext(false),
         inspect: () => Object.freeze({ open, routeContext, context: sharedContext, networkOnOpen: false }) });
 })(window, document);

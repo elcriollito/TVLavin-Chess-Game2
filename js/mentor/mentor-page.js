@@ -1,13 +1,17 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { create } from '../board/caissa-board-adapter.js';
 import { prepareLesson } from './mentor-lessons.js';
+import { createMentorInsights } from './mentor-insights.js';
 
 const $ = id => document.getElementById(id);
 const game = new Chess();
 let lesson = prepareLesson('development');
 let cursor = 0;
 let practicing = false;
-let selectedTab = 'learn';
+let selectedTab = 'chat';
+let insightOwner = null;
+let preparedIdeaPrompt = null;
+const insights = createMentorInsights();
 let pendingPromotion = null;
 const board = create($('mentor-board'), {
     position: game.fen(), animation: false, label: 'CAISSA Mentor study board',
@@ -81,9 +85,34 @@ $('flip').addEventListener('click', () => board.setOrientation(board.getOrientat
 $('practice').addEventListener('click', () => { if (practicing) show(cursor); else { practicing = true; sync(); } });
 document.querySelectorAll('[data-lesson]').forEach(button => button.addEventListener('click', () => loadLesson(button.dataset.lesson)));
 const tabs = [...document.querySelectorAll('[role=tab]')];
+function renderIdea() {
+    const state = insights.read();
+    $('chat-idea-indicator').hidden = !state.unread;
+    $('tab-chat').setAttribute('aria-label', state.unread ? 'Chat — new training idea' : 'Chat');
+    $('idea-plan').hidden = !state.idea;
+    $('mentor-idea-status').textContent = state.unread ? 'Mentor has a new training idea. Open Chat to discuss it.' : '';
+}
+function presentIdea() {
+    const state = insights.read();
+    if (selectedTab !== 'chat' || !state.unread) return;
+    if (window.CaissaMentorFloatingShell?.appendStudyMessage(state.idea.localMessage)) insights.acknowledge();
+    renderIdea();
+}
+window.addEventListener('caissa:account-analysis-completed', event => {
+    if (insights.receive(event.detail).accepted) { renderIdea(); presentIdea(); }
+});
+$('idea-plan').addEventListener('click', () => {
+    const idea = insights.read().idea;
+    const input = document.querySelector('.caissa-mentor-shell__form textarea');
+    if (!idea || !input || document.querySelector('.caissa-mentor-shell__form button').disabled) return;
+    if (input.value.trim()) { $('mentor-idea-status').textContent = 'Send or clear your current draft before preparing the training plan.'; return; }
+    input.value = idea.planPrompt; preparedIdeaPrompt = idea.planPrompt;
+    input.focus({ preventScroll: true });
+});
 function selectTab(tab) {
     selectedTab = tab.id.replace('tab-', '');
     tabs.forEach(item => { const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; $(item.getAttribute('aria-controls')).hidden = !selected; });
+    presentIdea();
 }
 tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => selectTab(tab));
@@ -127,11 +156,19 @@ $('account-form').addEventListener('submit', event => {
 });
 sync();
 // Read-only diagnostic seam; never grants chess, engine, account or economic authority.
-window.CaissaMentorPage = Object.freeze({ inspect: () => Object.freeze({ fen: game.fen(), lesson: lesson.id, cursor, practicing, tab: selectedTab, board: board.getMetrics() }) });
+window.CaissaMentorPage = Object.freeze({ inspect: () => Object.freeze({ fen: game.fen(), lesson: lesson.id, cursor, practicing, tab: selectedTab, unreadIdea: insights.read().unread, board: board.getMetrics() }) });
 
 const accountLink = document.querySelector('.sign-in');
 function renderAccountAuth(state) {
     const signedIn = state?.isLoaded === true && state?.isSignedIn === true;
+    const nextOwner = signedIn && typeof state.userId === 'string' ? state.userId : null;
+    if (nextOwner !== insightOwner) {
+        insightOwner = nextOwner; insights.reset(nextOwner);
+        const input = document.querySelector('.caissa-mentor-shell__form textarea');
+        if (preparedIdeaPrompt && input?.value === preparedIdeaPrompt) input.value = '';
+        preparedIdeaPrompt = null;
+        window.CaissaMentorFloatingShell?.clearStudyMessages(); renderIdea();
+    }
     accountLink.textContent = signedIn ? 'My Account' : 'Sign in';
     accountLink.href = signedIn ? '#tab-account' : '/signin?redirect_url=%2Fmentor.html';
 }
@@ -139,5 +176,5 @@ renderAccountAuth(window.CAISSA_AUTH);
 window.CAISSA_AUTH?.onAuthStateChange?.(renderAccountAuth);
 window.addEventListener('caissa-auth-change', event => renderAccountAuth(event.detail));
 accountLink.addEventListener('click', event => {
-    if (accountLink.hash === '#tab-account') { event.preventDefault(); selectTab(tabs[2]); tabs[2].focus(); }
+    if (accountLink.hash === '#tab-account') { event.preventDefault(); selectTab($('tab-account')); $('tab-account').focus(); }
 });
