@@ -1,0 +1,55 @@
+.board-b72b1[data-caissa-legacy-quiet-drag-enabled="true"] {
+    position: relative;
+    touch-action: none;
+}
+
+.board-b72b1[data-caissa-legacy-quiet-drag-active="true"] .square-55d63[data-caissa-quiet-drag-source="true"] {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.board-b72b1 .caissa-legacy-quiet-drag-piece {
+    position: relative !important;
+    filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+    transform-origin: 0 0 !important;
+    will-change: transform;
+    pointer-events: none !important;
+    user-select: none;
+    -webkit-user-drag: none;
+    z-index: 50;
+}
+
+.caissa-legacy-drag-qa {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid var(--border-color, #38465a);
+    border-radius: 10px;
+    background: var(--bg-secondary, #111827);
+    color: var(--text-primary, #f8fafc);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    font: 600 12px/1.2 system-ui, sans-serif;
+}
+
+.caissa-legacy-drag-qa button {
+    padding: 6px 9px;
+    border: 1px solid currentColor;
+    border-radius: 7px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+.caissa-legacy-drag-qa button.is-active {
+    background: var(--accent-color, #d99a2b);
+    color: #111827;
+}

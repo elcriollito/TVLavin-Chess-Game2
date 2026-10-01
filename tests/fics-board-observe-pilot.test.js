@@ -215,7 +215,7 @@ test('legacy Play ignores clock-only Style12 updates with unchanged piece placem
 });
 
 test('client integration is presentation-only and Play imports none of the pilot', () => {
-    assert.match(indexSource, /fics-board-view\.js\?v=1\.0\.2/);
+    assert.match(indexSource, /fics-board-view\.js\?v=1\.0\.3/);
     assert.match(clientSource, /deriveStyle12BoardMove/);
     assert.match(clientSource, /presentCanonicalBoardState/);
     assert.match(clientSource, /this\.boardView\.presentCanonicalState/);
