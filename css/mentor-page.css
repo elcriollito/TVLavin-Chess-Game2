@@ -16,3 +16,15 @@
 .mentor-page .caissa-mentor-shell__messages p{flex-shrink:0;overflow-wrap:anywhere}
 .mentor-page .caissa-mentor-shell__message--idea{border:1px solid #d9b65a;color:#f3dfad}
 @media(max-width:760px){.chat-heading{padding-inline:15px}.workspace-head [role=tab]{font-size:12px;padding-inline:2px}}
+
+/* Fixed chat FOOT is a sibling of the only scrolling BODY. */
+.workspace-foot{flex:none;border-top:1px solid var(--page-line);padding:10px 20px 14px;background:var(--page-panel)}
+.workspace-foot[hidden],.chat-suggestions[hidden]{display:none}
+.mentor-page .workspace-foot .caissa-mentor-shell__form{position:static;border:0;padding:8px 0 0}
+.workspace-foot .caissa-mentor-shell__mode,.workspace-foot .caissa-mentor-shell__auth{font-size:10px;line-height:1.4}
+.workspace-foot .caissa-mentor-shell__mode{margin-bottom:4px}
+.workspace-foot .caissa-mentor-shell__auth[hidden]{display:none}
+.chat-suggestions{padding:0 20px 10px;flex:none}.chat-suggestions h3{margin:0;font-size:15px}.chat-suggestions p{margin:5px 0 12px;font-size:12px;color:var(--page-muted)}
+#suggestion-actions{display:grid;gap:8px}#suggestion-actions button{text-align:left;font-size:13px;padding:10px 12px;background:#172c3e;border-color:#36536a}
+.mentor-page .caissa-mentor-shell__welcome{background:transparent;padding:0;font-size:12px;color:var(--page-muted)}
+@media(max-width:760px){.workspace-foot{padding:9px 15px 12px}.chat-suggestions{padding-inline:15px}}

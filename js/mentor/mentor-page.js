@@ -52,11 +52,12 @@ function show(index) {
     for (let step = 0; step < cursor; step++) game.move(lesson.moves[step].san);
     $('move-status').textContent = ''; sync();
 }
-function loadLesson(id) {
-    if (pendingPromotion) return;
+function loadLesson(id, { prefill = true } = {}) {
+    if (pendingPromotion) return false;
     lesson = prepareLesson(id); show(0);
     const input = document.querySelector('.caissa-mentor-shell__form textarea');
-    if (input) input.value = lesson.prompt;
+    if (input && prefill) input.value = lesson.prompt;
+    return true;
 }
 function attempt({ from, to, promotion }) {
     if (pendingPromotion) return;
@@ -85,6 +86,37 @@ $('flip').addEventListener('click', () => board.setOrientation(board.getOrientat
 $('practice').addEventListener('click', () => { if (practicing) show(cursor); else { practicing = true; sync(); } });
 document.querySelectorAll('[data-lesson]').forEach(button => button.addEventListener('click', () => loadLesson(button.dataset.lesson)));
 const tabs = [...document.querySelectorAll('[role=tab]')];
+const starterIdeas = [
+    { lesson: 'development', question: 'How do I develop my pieces with a plan?', answer: 'Start by taking space in the center, then bring your knights and bishops into play. I’ve loaded an Italian Game example. Use Next to follow each move, then Try it yourself to explore a legal alternative.' },
+    { lesson: 'fork', question: 'Show me how to spot a knight fork.', answer: 'A knight fork attacks two targets at once. In this example, Nc7+ checks the king and also attacks the rook on a8. The king must answer the check, leaving the rook attacked. Try the move on the board, or use Next to see it.' },
+    { lesson: 'opposition', question: 'Help me understand king activity in an endgame.', answer: 'In this king-and-pawn example, look at how the kings restrict each other. White can explore Kd5 without moving next to the opposing king. Step through the line and try alternatives. This example illustrates king activity; it does not establish a forced win or draw.' }
+];
+const themeLessons = { tactics: 'fork', hangingPieces: 'fork', development: 'development', endgame: 'opposition' };
+function renderSuggestions() {
+    const idea = insights.read().idea;
+    const related = idea?.themes.map(theme => themeLessons[theme.theme]).filter(Boolean) || [];
+    const choices = related.length ? starterIdeas.filter(item => related.includes(item.lesson)) : starterIdeas;
+    $('suggestions-title').textContent = idea ? 'Ideas from your game review' : 'Where shall we start?';
+    $('suggestions-context').textContent = idea
+        ? `Based on your completed review of ${idea.completedGames} games. Board examples are separate lessons.`
+        : 'Choose an idea to explore on the board. These starting ideas are available to everyone.';
+    const actions = $('suggestion-actions'); actions.replaceChildren();
+    choices.forEach(item => {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = item.question;
+        button.addEventListener('click', () => {
+            if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
+                $('move-status').textContent = 'Finish the current promotion or Mentor reply before changing the board.'; return;
+            }
+            if (!loadLesson(item.lesson, { prefill: false })) return;
+            window.CaissaMentorFloatingShell?.appendStudyExchange(item.question, item.answer);
+            $('chat-suggestions').hidden = true;
+            $('move-status').textContent = 'Lesson example loaded. Use Next or try its moves on the board.';
+        });
+        actions.append(button);
+    });
+    if (idea && !related.length) $('suggestions-context').textContent = `Your ${idea.completedGames}-game review is ready to discuss using Prepare a training plan. These are general board examples.`;
+    $('chat-suggestions').hidden = false;
+}
 function renderIdea() {
     const state = insights.read();
     $('chat-idea-indicator').hidden = !state.unread;
@@ -99,7 +131,7 @@ function presentIdea() {
     renderIdea();
 }
 window.addEventListener('caissa:account-analysis-completed', event => {
-    if (insights.receive(event.detail).accepted) { renderIdea(); presentIdea(); }
+    if (insights.receive(event.detail).accepted) { renderSuggestions(); renderIdea(); presentIdea(); }
 });
 $('idea-plan').addEventListener('click', () => {
     const idea = insights.read().idea;
@@ -112,6 +144,7 @@ $('idea-plan').addEventListener('click', () => {
 function selectTab(tab) {
     selectedTab = tab.id.replace('tab-', '');
     tabs.forEach(item => { const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; $(item.getAttribute('aria-controls')).hidden = !selected; });
+    $('chat-footer').hidden = selectedTab !== 'chat';
     presentIdea();
 }
 tabs.forEach((tab, index) => {
@@ -127,6 +160,7 @@ $('new-session').addEventListener('click', () => {
     window.CaissaMentorFloatingShell.close(); window.CaissaMentorFloatingShell.open();
     loadLesson('development'); selectTab(tabs[0]);
     document.querySelector('.caissa-mentor-shell__form textarea').value = '';
+    renderSuggestions();
 });
 $('fen-form').addEventListener('submit', event => {
     event.preventDefault();
@@ -167,12 +201,13 @@ function renderAccountAuth(state) {
         const input = document.querySelector('.caissa-mentor-shell__form textarea');
         if (preparedIdeaPrompt && input?.value === preparedIdeaPrompt) input.value = '';
         preparedIdeaPrompt = null;
-        window.CaissaMentorFloatingShell?.clearStudyMessages(); renderIdea();
+        window.CaissaMentorFloatingShell?.clearStudyMessages(); renderSuggestions(); renderIdea();
     }
     accountLink.textContent = signedIn ? 'My Account' : 'Sign in';
     accountLink.href = signedIn ? '#tab-account' : '/signin?redirect_url=%2Fmentor.html';
 }
 renderAccountAuth(window.CAISSA_AUTH);
+renderSuggestions();
 window.CAISSA_AUTH?.onAuthStateChange?.(renderAccountAuth);
 window.addEventListener('caissa-auth-change', event => renderAccountAuth(event.detail));
 accountLink.addEventListener('click', event => {

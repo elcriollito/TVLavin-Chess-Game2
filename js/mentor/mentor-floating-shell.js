@@ -28,7 +28,7 @@
     const mode = el('div', 'caissa-mentor-shell__mode', { role: 'note' });
     mode.append(text('strong', '', 'Shared AI'), document.createTextNode(' · A request may use account credits. Nothing is charged until you send.'));
     const messages = el('div', 'caissa-mentor-shell__messages', { 'aria-live': 'polite', 'aria-label': 'Mentor conversation', tabindex: '0' });
-    const welcome = text('p', 'caissa-mentor-shell__welcome', 'Ask a chess question whenever you are ready. During active Play, Mentor stays general to protect fair play.');
+    const welcome = text('p', 'caissa-mentor-shell__welcome', pageMode ? 'Choose an idea above and we’ll explore it together on the board, or write your own question below.' : 'Ask a chess question whenever you are ready. During active Play, Mentor stays general to protect fair play.');
     messages.append(welcome);
     const form = el('form', 'caissa-mentor-shell__form');
     const label = text('label', '', 'Ask Mentor', { for: 'caissaMentorInput' });
@@ -131,9 +131,11 @@
         panel.classList.add('caissa-mentor-shell--page');
         panel.removeAttribute('role'); panel.removeAttribute('aria-modal');
         header.hidden = true;
-        // One page BODY scroll owner; keep the composer last and attached to its footer.
+        // The workspace BODY scrolls; the composer lives in its fixed FOOT.
         body.insertBefore(local, form); body.insertBefore(auth, form); body.insertBefore(authenticated, form);
         pageHost.appendChild(panel);
+        const footer = document.getElementById('chat-footer');
+        if (footer) { footer.append(mode, auth, authenticated, form); local.hidden = true; }
         setOpen(true);
     } else { stack.prepend(launcher); document.body.appendChild(panel); }
     renderContext();
@@ -142,6 +144,13 @@
         appendStudyMessage: content => {
             if (!pageMode || typeof content !== 'string' || !content.trim() || content.length > 4000) return false;
             messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--idea', content));
+            return true;
+        },
+        appendStudyExchange: (question, answer) => {
+            if (!pageMode || typeof question !== 'string' || typeof answer !== 'string' || !question.trim() || !answer.trim() || question.length > 1000 || answer.length > 4000) return false;
+            messages.append(text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--user', question),
+                text('p', 'caissa-mentor-shell__message caissa-mentor-shell__message--mentor', answer));
+            retainConversation(question, answer);
             return true;
         },
         clearStudyMessages: () => {
