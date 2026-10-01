@@ -461,36 +461,30 @@ test('clock-only Play updates do not redraw and Observe to Play cycles keep glob
         const events = window.jQuery?._data?.(window, 'events') || {};
         return { mousemove: events.mousemove?.length || 0, mouseup: events.mouseup?.length || 0 };
     });
-    expect(before).toEqual({ mousemove: 1, mouseup: 1 });
+    expect(before).toEqual({ mousemove: 0, mouseup: 0 });
 
-    const dragSeparationP95 = await page.evaluate(async () => {
-        const source = document.querySelector('#ficsBoardContainer .square-e2 .piece-417db');
-        const board = document.querySelector('#ficsBoardContainer .board-b72b1').getBoundingClientRect();
-        const sourceRect = source.getBoundingClientRect();
-        const start = { x: sourceRect.left + sourceRect.width / 2, y: sourceRect.top + sourceRect.height / 2 };
-        const separations = [];
-        source.dispatchEvent(new MouseEvent('mousedown', {
-            bubbles: true, button: 0, buttons: 1, clientX: start.x, clientY: start.y
-        }));
-        for (let index = 1; index <= 30; index += 1) {
-            const ratio = index / 30;
-            const pointer = {
-                x: start.x + Math.sin(ratio * Math.PI * 2) * board.width * 0.15,
-                y: start.y - ratio * board.height * 0.2
-            };
-            window.dispatchEvent(new MouseEvent('mousemove', {
-                bubbles: true, buttons: 1, clientX: pointer.x, clientY: pointer.y
-            }));
-            await new Promise(resolve => requestAnimationFrame(resolve));
-            const dragged = document.querySelector('body > .piece-417db');
-            const rect = dragged.getBoundingClientRect();
-            separations.push(Math.hypot(rect.left + rect.width / 2 - pointer.x,
-                rect.top + rect.height / 2 - pointer.y));
-        }
-        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }));
-        separations.sort((left, right) => left - right);
-        return separations[Math.ceil(separations.length * 0.95) - 1];
-    });
+    const sourceRect = await page.locator('#ficsBoardContainer .square-e2 .piece-417db').boundingBox();
+    const boardRect = await page.locator('#ficsBoardContainer .board-b72b1').boundingBox();
+    const start = { x: sourceRect.x + sourceRect.width / 2, y: sourceRect.y + sourceRect.height / 2 };
+    const separations = [];
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    for (let index = 1; index <= 30; index += 1) {
+        const ratio = index / 30;
+        const pointer = {
+            x: start.x + Math.sin(ratio * Math.PI * 2) * boardRect.width * 0.15,
+            y: start.y - ratio * boardRect.height * 0.2
+        };
+        await page.mouse.move(pointer.x, pointer.y);
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+        const rect = await page.locator('.caissa-legacy-quiet-drag-piece').boundingBox();
+        separations.push(Math.hypot(rect.x + rect.width / 2 - pointer.x,
+            rect.y + rect.height / 2 - pointer.y));
+    }
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.up();
+    separations.sort((left, right) => left - right);
+    const dragSeparationP95 = separations[Math.ceil(separations.length * 0.95) - 1];
     expect(dragSeparationP95).toBeLessThanOrEqual(2);
 
     const clockOnly = await mutationCapture(page, async () => {
@@ -515,7 +509,7 @@ test('clock-only Play updates do not redraw and Observe to Play cycles keep glob
             renderer: window.CaissaFICSClient.getBoardRendererSnapshot().renderer
         };
     });
-    expect(after).toEqual({ mousemove: 1, mouseup: 1, renderer: 'legacy' });
+    expect(after).toEqual({ mousemove: 0, mouseup: 0, renderer: 'legacy' });
 });
 
 test('legacy and persistent metrics use identical fixtures without rendering two user boards', async ({ browser, browserName }) => {
