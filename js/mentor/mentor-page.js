@@ -2,6 +2,7 @@ import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { create } from '../board/caissa-board-adapter.js';
 import { prepareLesson } from './mentor-lessons.js';
 import { createMentorInsights } from './mentor-insights.js';
+import { loadEcoCatalog, prepareEcoLesson } from './mentor-openings.js';
 
 const $ = id => document.getElementById(id);
 const game = new Chess();
@@ -13,6 +14,9 @@ let insightOwner = null;
 let preparedIdeaPrompt = null;
 const insights = createMentorInsights();
 let pendingPromotion = null;
+let openingCatalog = null;
+let openingLoading = false;
+let openingLimit = 24;
 const board = create($('mentor-board'), {
     position: game.fen(), animation: false, label: 'CAISSA Mentor study board',
     onDragStart: square => game.get(square)?.color === game.turn(),
@@ -55,6 +59,7 @@ function show(index) {
 function loadLesson(id, { prefill = true } = {}) {
     if (pendingPromotion) return false;
     lesson = prepareLesson(id); show(0);
+    $('opening-followups').hidden = true;
     const input = document.querySelector('.caissa-mentor-shell__form textarea');
     if (input && prefill) input.value = lesson.prompt;
     return true;
@@ -86,6 +91,61 @@ $('flip').addEventListener('click', () => board.setOrientation(board.getOrientat
 $('practice').addEventListener('click', () => { if (practicing) show(cursor); else { practicing = true; sync(); } });
 document.querySelectorAll('[data-lesson]').forEach(button => button.addEventListener('click', () => loadLesson(button.dataset.lesson)));
 const tabs = [...document.querySelectorAll('[role=tab]')];
+function renderOpenings() {
+    const query = $('opening-search').value.trim().toLowerCase();
+    const featured = ['C60', 'C50', 'B20', 'C00', 'B10', 'B07', 'B01', 'D06', 'D02', 'D00', 'E60', 'D70', 'E20', 'A04', 'A10'];
+    const rank = entry => { const index = featured.indexOf(entry.code); return index < 0 ? 100 : index; };
+    const matches = (openingCatalog || []).filter(entry => `${entry.code} ${entry.name} ${entry.notation}`.toLowerCase().includes(query)).sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code));
+    const visible = matches.slice(0, openingLimit), list = $('opening-list'); list.replaceChildren();
+    for (const [group, title] of [['e4', '1. e4 · White'], ['d4', '1. d4 · White'], ['other', 'Other first moves']]) {
+        const entries = visible.filter(entry => entry.group === group);
+        if (!entries.length) continue;
+        const heading = document.createElement('h3'); heading.textContent = title; list.append(heading);
+        entries.forEach(entry => {
+            const button = document.createElement('button'); button.type = 'button'; button.className = 'opening-card';
+            const name = document.createElement('strong'); name.textContent = `${entry.name} · ${entry.code}`;
+            const moves = document.createElement('span'); moves.textContent = entry.notation;
+            button.append(name, moves); button.disabled = !entry.playable;
+            if (!entry.playable) { const unavailable = document.createElement('small'); unavailable.textContent = 'Line unavailable'; button.append(unavailable); }
+            button.addEventListener('click', () => chooseOpening(entry)); list.append(button);
+        });
+    }
+    $('opening-more').hidden = matches.length <= openingLimit;
+    $('opening-status').textContent = `${visible.length} of ${matches.length} openings${query ? ' matching your search' : ''}.`;
+}
+async function ensureOpenings() {
+    if (openingCatalog || openingLoading) return;
+    openingLoading = true; $('opening-status').textContent = 'Loading the ECO catalog…';
+    try { openingCatalog = await loadEcoCatalog(); renderOpenings(); }
+    catch { $('opening-status').textContent = 'The ECO catalog could not load. Reopen Opening to retry.'; }
+    finally { openingLoading = false; }
+}
+function chooseOpening(entry) {
+    if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
+        $('opening-status').textContent = 'Finish the current promotion or Mentor reply before changing the board.'; return;
+    }
+    let candidate;
+    try { candidate = prepareEcoLesson(entry); }
+    catch { $('opening-status').textContent = 'This opening line cannot be loaded.'; return; }
+    lesson = candidate; show(lesson.moves.length);
+    $('chat-suggestions').hidden = true; $('opening-followups').hidden = false;
+    selectTab($('tab-chat'));
+    window.CaissaMentorFloatingShell?.appendStudyExchange(`Let’s explore ${entry.name} (${entry.code}).`,
+        `I’ve loaded ${entry.name}, ECO ${entry.code}, after ${lesson.moves.length} half-moves on the board. ${game.turn() === 'w' ? 'White' : 'Black'} is to move. We can explore the plans for each side or try your next move. Use the move list to revisit the opening, and Repeat to start from the beginning.`);
+    $('tab-chat').focus({ preventScroll: true });
+}
+$('opening-search').addEventListener('input', () => { openingLimit = 24; if (openingCatalog) renderOpenings(); });
+$('opening-more').addEventListener('click', () => { openingLimit += 24; renderOpenings(); });
+$('opening-discuss').addEventListener('click', () => {
+    const input = document.querySelector('.caissa-mentor-shell__form textarea');
+    if (!lesson.id.startsWith('eco-') || document.querySelector('.caissa-mentor-shell__form button').disabled) return;
+    if (input.value.trim()) { $('move-status').textContent = 'Send or clear your current draft before preparing this question.'; return; }
+    input.value = lesson.prompt; input.focus({ preventScroll: true });
+});
+$('opening-practice').addEventListener('click', () => {
+    if (!lesson.id.startsWith('eco-') || pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) return;
+    practicing = true; sync(); $('move-status').textContent = 'Your turn to explore. Try a legal move in this opening position.';
+});
 const starterIdeas = [
     { lesson: 'development', question: 'How do I develop my pieces with a plan?', answer: 'Start by taking space in the center, then bring your knights and bishops into play. I’ve loaded an Italian Game example. Use Next to follow each move, then Try it yourself to explore a legal alternative.' },
     { lesson: 'fork', question: 'Show me how to spot a knight fork.', answer: 'A knight fork attacks two targets at once. In this example, Nc7+ checks the king and also attacks the rook on a8. The king must answer the check, leaving the rook attacked. Try the move on the board, or use Next to see it.' },
@@ -145,6 +205,7 @@ function selectTab(tab) {
     selectedTab = tab.id.replace('tab-', '');
     tabs.forEach(item => { const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; $(item.getAttribute('aria-controls')).hidden = !selected; });
     $('chat-footer').hidden = selectedTab !== 'chat';
+    if (selectedTab === 'openings') ensureOpenings();
     presentIdea();
 }
 tabs.forEach((tab, index) => {
@@ -167,7 +228,7 @@ $('fen-form').addEventListener('submit', event => {
     if (pendingPromotion) return;
     try { const fen = $('study-fen').value.trim(); if (fen.split(/\s+/).length !== 6) throw new Error('Full FEN required.'); game.load(fen);
         lesson = { id: 'custom', title: 'Your study position', category: 'Independent study', positions: [game.fen()], moves: [], notes: ['Explore this position with legal moves.'] };
-        cursor = 0; practicing = true; sync(); $('move-status').textContent = 'Study position loaded. No engine verdict has been calculated.';
+        cursor = 0; practicing = true; $('opening-followups').hidden = true; sync(); $('move-status').textContent = 'Study position loaded. No engine verdict has been calculated.';
     } catch { $('move-status').textContent = 'Invalid FEN. Include a legal position and all six FEN fields.'; }
 });
 document.querySelectorAll('[data-promotion]').forEach(button => button.addEventListener('click', () => {
