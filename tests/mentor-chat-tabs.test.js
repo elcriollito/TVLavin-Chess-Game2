@@ -134,3 +134,22 @@ test('ECO selection loads its final legal position and opens Chat with a local e
     h.nodes.get('opening-practice').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().practicing, true);
     assert.equal(h.networkCalls(), 0);
 });
+
+
+test('FEN intake belongs to My account and loads the shared board with inline feedback', () => {
+    const html = fs.readFileSync(new URL('../mentor.html', import.meta.url), 'utf8');
+    const accountStart = html.indexOf('id="panel-account"');
+    const formStart = html.indexOf('id="fen-form"');
+    assert.ok(formStart > accountStart && formStart < html.indexOf('id="chat-footer"'));
+    assert.equal(html.split('id="fen-form"').length - 1, 1);
+    const h = harness(), fen = '8/4k3/8/4K3/4P3/8/8/8 w - - 0 1';
+    h.nodes.get('tab-account').fire('click'); h.nodes.get('study-fen').value = fen;
+    h.nodes.get('fen-form').fire('submit');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen, new Chess(fen).fen());
+    assert.equal(h.window.CaissaMentorPage.inspect().tab, 'account');
+    assert.match(h.nodes.get('fen-status').textContent, /Position loaded/);
+    h.nodes.get('study-fen').value = 'bad fen'; h.nodes.get('fen-form').fire('submit');
+    assert.match(h.nodes.get('fen-status').textContent, /Invalid FEN/);
+    assert.equal(h.window.CaissaMentorPage.inspect().fen, new Chess(fen).fen());
+    assert.equal(h.networkCalls(), 0);
+});
