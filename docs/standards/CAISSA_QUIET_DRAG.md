@@ -202,3 +202,19 @@ An interactive chessboard is not Quiet Drag complete until all applicable items 
 - [ ] Legal moves, special moves, orientation, click-to-move, read-only behavior, touch, Coach features, engines, and post-drop highlights remain correct where applicable.
 - [ ] The performance contract passes under a repeatable drag benchmark.
 - [ ] Human visual verification confirms the interaction feels direct, light, natural, and visually silent.
+
+## 13. Approved Legacy Repair Recipe — 2026-09-30
+
+Alexander approved using this standard for all similar CAISSA drag problems and supplied a real-game FICS recording (`bandicam 2026-09-30 22-00-21-509.mp4`). The accompanying audit identifies the corrected FICS candidate as `3f41ebfca124ce26dbc79bf5488aa66ca4ad73aa` and rejects the earlier `24dc9c4` implementation. That audit is supplied evidence, not an independent certification of either commit by this document's editor.
+
+Apply these requirements when adapting a legacy board:
+
+1. Establish one visual authority. Move the original piece node; do not hide it and introduce a drag clone as the repair strategy.
+2. Enter the quiet presentation on `pointerdown`. Do not wait for a movement threshold before attaching the piece to the pointer.
+3. Disable or detach competing legacy drag handlers before Quiet Drag is active. Pointer capture alone does not disable Chessboard.js or jQuery handlers.
+4. Preserve the exact grab offset and use the shared latest-coordinate → requestAnimationFrame → translate3d pipeline. Movement must produce no legacy left/top writes, geometry reads, game updates or network work.
+5. Resolve valid, invalid and cancelled drops immediately. Use the integration's non-animated position update; for Chessboard.js, do not pass `true` to `board.position(...)` on a Quiet drop or reintroduce jQuery animation.
+6. Keep listener teardown and restoration symmetrical. A laboratory Legacy/Quiet selector may restore legacy handlers only while Legacy is selected; repeated switching must not accumulate handlers.
+7. Verify the whole gesture, including pickup and release, together with legal moves, promotion, captures, castling, en passant, orientation, touch, click-to-move and observation where applicable.
+
+The approval establishes a reusable repair requirement for future boards and similar legacy defects, including CAISSA Mentor. It does not certify untested surfaces or approve a merge or deployment. Record technical evidence and human visual acceptance separately for each integration; the general Definition of Done remains incomplete until both are satisfied.
