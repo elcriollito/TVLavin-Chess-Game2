@@ -25,7 +25,6 @@
           <div class="board-controls"><div><button id="previous" type="button" aria-label="Previous lesson move">←</button><button id="next" type="button" aria-label="Next lesson move">→</button><button id="repeat" type="button">↺ Repeat</button></div><button id="flip" type="button">⇅ Flip board</button></div>
           <div class="lesson-step"><p id="lesson-instruction" role="status" aria-live="polite"></p><button id="practice" type="button">Try it yourself</button></div>
           <p id="move-status" role="status" aria-live="polite"></p>
-          <details><summary>Load your position</summary><form id="fen-form"><label for="study-fen">FEN from a completed game or study</label><input id="study-fen" required placeholder="Paste a FEN position"><button type="submit">Load position</button></form></details>
         </div>
       </section>
       <section class="right-workspace" aria-label="Mentor learning workspace">
@@ -50,6 +49,7 @@
               <button id="account-import-submit" type="submit" disabled>Fetch &amp; Analyze Games</button>
               <p id="account-status" role="status">Game import is not connected in this preview. No games have been analyzed.</p>
             </form>
+            <details class="account-position"><summary>Load your position</summary><form id="fen-form"><label for="study-fen">FEN from a completed game or study</label><input id="study-fen" required placeholder="Paste a FEN position"><button type="submit">Load position</button></form><p id="fen-status" role="status"></p></details>
           </div>
         </div>
         <div id="chat-footer" class="workspace-foot" aria-label="Write to Mentor"></div>

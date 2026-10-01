@@ -37,3 +37,5 @@
 @media(max-width:380px){.account-fields{grid-template-columns:1fr}}
 
 .opening-search-label{display:block;font-size:11px;color:var(--page-muted);margin:15px 0 6px}#opening-status{font-size:11px;margin:10px 0}#opening-list h3{font-size:14px;margin:18px 0 10px}.opening-card{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;margin-bottom:8px;padding:11px 12px}.opening-card strong{font-size:13px;font-weight:600}.opening-card span{font-size:12px;color:var(--page-muted);overflow-wrap:anywhere}.opening-card small{font-size:11px}.opening-followups{padding:0 20px 12px;display:flex;gap:8px;flex-wrap:wrap}.opening-followups button{font-size:12px;color:var(--page-accent)}#opening-followups[hidden],#opening-more[hidden]{display:none}@media(max-width:760px){.opening-followups{padding-inline:15px}}
+
+.account-position{border-top:1px solid var(--page-line);padding-top:16px;margin-top:18px}.account-position summary{font-size:13px;color:var(--page-accent)}#fen-status{font-size:11px;color:var(--page-muted);margin-top:8px}

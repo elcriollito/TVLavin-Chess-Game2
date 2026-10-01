@@ -229,7 +229,9 @@ $('fen-form').addEventListener('submit', event => {
     try { const fen = $('study-fen').value.trim(); if (fen.split(/\s+/).length !== 6) throw new Error('Full FEN required.'); game.load(fen);
         lesson = { id: 'custom', title: 'Your study position', category: 'Independent study', positions: [game.fen()], moves: [], notes: ['Explore this position with legal moves.'] };
         cursor = 0; practicing = true; $('opening-followups').hidden = true; sync(); $('move-status').textContent = 'Study position loaded. No engine verdict has been calculated.';
-    } catch { $('move-status').textContent = 'Invalid FEN. Include a legal position and all six FEN fields.'; }
+        $('fen-status').textContent = 'Position loaded on the study board. Open Chat to discuss it.';
+    } catch { $('move-status').textContent = 'Invalid FEN. Include a legal position and all six FEN fields.';
+        $('fen-status').textContent = 'Invalid FEN. Include a legal position and all six FEN fields.'; }
 });
 document.querySelectorAll('[data-promotion]').forEach(button => button.addEventListener('click', () => {
     const request = pendingPromotion; pendingPromotion = null; $('promotion-dialog').close();
