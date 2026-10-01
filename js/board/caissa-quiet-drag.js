@@ -180,6 +180,10 @@ export class CaissaPointerController {
             ...this.#metrics,
             active: this.#drag !== null,
             started: this.#drag?.started === true,
+            pointerId: this.#drag?.pointerId ?? null,
+            pointerCaptured: this.#drag
+                ? this.#root.hasPointerCapture?.(this.#drag.pointerId) === true
+                : false,
             listenerCount: this.#listeners.length,
             scheduler: this.#scheduler.getMetrics()
         });
@@ -194,14 +198,16 @@ export class CaissaPointerController {
         if (this.#destroyed || !this.#options.canInteract?.()
             || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
         this.cancel(false);
-        const resolver = CaissaDropResolver.capture(this.#root, this.#options.getOrientation?.());
+        const geometry = this.#options.getBoardRect?.() || this.#root.getBoundingClientRect();
+        const resolver = new CaissaDropResolver(geometry, this.#options.getOrientation?.());
         this.#metrics.geometryReadsAtStart += 1;
         const from = resolver.squareAt(event.clientX, event.clientY);
         if (!from) return;
         const piece = this.#options.resolvePiece?.(from) || null;
         let grabOffset = Object.freeze({ x: 0, y: 0 });
+        let pieceRect = null;
         if (piece?.node) {
-            const pieceRect = piece.node.getBoundingClientRect();
+            pieceRect = frozenRect(piece.node.getBoundingClientRect());
             this.#metrics.geometryReadsAtStart += 1;
             grabOffset = Object.freeze({
                 x: event.clientX - pieceRect.left,
@@ -219,9 +225,23 @@ export class CaissaPointerController {
             resolver,
             grabOffset,
             pieceId: piece?.id || null,
-            node: piece?.node || null
+            node: piece?.node || null,
+            pieceRect
         };
+        if (piece?.node && this.#options.preventDefaultOnPointerDown === true && event.cancelable) {
+            event.preventDefault();
+        }
         try { this.#root.setPointerCapture?.(event.pointerId); } catch (_) {}
+        if (piece?.id && this.#options.startImmediately === true
+            && this.#options.allowsDrag?.(event.pointerType)) {
+            if (this.#options.onDragStart?.(from, this.#drag) === false) {
+                this.cancel(false);
+                return;
+            }
+            this.#drag.started = true;
+            this.#metrics.dragStarts += 1;
+            this.#options.onPresentationStart?.(this.#drag);
+        }
     }
 
     #onPointerMove(event) {
@@ -234,7 +254,7 @@ export class CaissaPointerController {
         const distance = Math.hypot(latest.clientX - drag.startX, latest.clientY - drag.startY);
         if (!drag.started && distance >= DRAG_THRESHOLD_PX && drag.pieceId
             && this.#options.allowsDrag?.(drag.pointerType)) {
-            if (this.#options.onDragStart?.(drag.from) === false) {
+            if (this.#options.onDragStart?.(drag.from, drag) === false) {
                 this.cancel(false);
                 return;
             }
@@ -260,7 +280,7 @@ export class CaissaPointerController {
         this.#scheduler.cancel();
         this.#releaseCapture(drag.pointerId);
         if (!drag.started) {
-            if (to) this.#options.onTap?.(to);
+            if (to) this.#options.onTap?.(to, drag);
             return;
         }
         this.#options.onDragEnd?.({ from: drag.from, to, cancelled: !to });

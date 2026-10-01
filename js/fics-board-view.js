@@ -4,7 +4,9 @@
     const FLAG = 'CAISSA_FICS_PERSISTENT_BOARD_PILOT';
     const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     const ADAPTER_URL = '/js/board/caissa-board-adapter.js';
+    const LEGACY_QUIET_DRAG_URL = '/js/board/caissa-legacy-quiet-drag-adapter.js';
     const STYLESHEET_URL = '/css/caissa-board.css?v=1.1.0';
+    let legacyQuietDragPromise = null;
 
     // BOARD-006D production activation. An explicit false remains the
     // rollback switch; observeEligible still fails closed for playable games.
@@ -21,6 +23,13 @@
             && state.gameActive !== true
             && relation !== 1
             && relation !== -1;
+    }
+
+    function createLegacyQuietDrag(container, options = {}) {
+        if (!legacyQuietDragPromise) {
+            legacyQuietDragPromise = import(LEGACY_QUIET_DRAG_URL);
+        }
+        return legacyQuietDragPromise.then(module => module.create(container, options));
     }
 
     function placement(fen) {
@@ -374,6 +383,7 @@
         FLAG,
         featureEnabled,
         observeEligible,
+        createLegacyQuietDrag,
         createFicsBoardView
     });
 })(typeof window !== 'undefined' ? window : globalThis);

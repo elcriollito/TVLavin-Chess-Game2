@@ -134,7 +134,7 @@ test.describe('FICS mobile board input', () => {
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
     });
 
-    test('existing Chessboard touch drag still sends one canonical move', async ({ page }) => {
+    test('Quiet Drag Pointer Events touch path sends one canonical move without legacy touch handlers', async ({ page }) => {
         await openFics(page, { width: 390, height: 844 });
         await installPlayableGame(page);
         await resetPlayableGame(page);
@@ -146,56 +146,35 @@ test.describe('FICS mobile board input', () => {
             const point = (rect) => ({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
             const startPoint = point(fromRect);
             const endPoint = point(toRect);
-            const makeTouch = (target, coords) => ({
-                identifier: 81, target, clientX: coords.clientX, clientY: coords.clientY,
-                screenX: coords.clientX, screenY: coords.clientY, pageX: coords.clientX + scrollX, pageY: coords.clientY + scrollY
+            const root = document.querySelector('#ficsBoardContainer .board-b72b1');
+            const piece = from.querySelector('.piece-417db');
+            const pointer = (type, coords, buttons) => new PointerEvent(type, {
+                bubbles: true, cancelable: true, pointerId: 81, pointerType: 'touch', isPrimary: true,
+                button: type === 'pointerup' ? 0 : -1, buttons,
+                clientX: coords.clientX, clientY: coords.clientY
             });
-            const dispatchTouch = (target, type, touches, changedTouches) => {
-                const event = new Event(type, { bubbles: true, cancelable: true });
-                Object.defineProperties(event, {
-                    touches: { value: touches }, targetTouches: { value: touches }, changedTouches: { value: changedTouches }
-                });
-                target.dispatchEvent(event);
-            };
-            const startTouch = makeTouch(from, startPoint);
-            dispatchTouch(from, 'touchstart', [startTouch], [startTouch]);
-            const moveTouch = makeTouch(from, endPoint);
-            dispatchTouch(window, 'touchmove', [moveTouch], [moveTouch]);
-            dispatchTouch(window, 'touchend', [], [moveTouch]);
-            return true;
+            piece.dispatchEvent(pointer('pointerdown', startPoint, 1));
+            root.dispatchEvent(pointer('pointermove', endPoint, 1));
+            root.dispatchEvent(pointer('pointerup', endPoint, 0));
+            return window.CaissaFICSClient.getLegacyQuietDragSnapshot();
         });
-        expect(result).toBe(true);
+        expect(result.legacyInput.attached).toBe(false);
+        expect(result.controller.dragStarts).toBeGreaterThanOrEqual(1);
         await expect.poll(() => page.evaluate(() => window.__ficsMobileWire)).toEqual(['e2e4']);
     });
 });
 
-test('twenty observed Style12 updates preserve board identity, geometry, orientation and scroll', async ({ page }) => {
+test('twenty observed Style12 updates preserve persistent renderer identity, geometry, orientation and scroll', async ({ page }) => {
     await openFics(page, { width: 390, height: 844 });
     const result = await page.evaluate(async () => {
         const client = window.CaissaFICSClient;
-        const boardIdentity = client.board;
-        const boardNode = document.querySelector('#ficsBoardContainer .board-b72b1');
-        const boardParent = boardNode.parentNode;
-        const calls = { position: [], orientation: 0, resize: 0 };
-        const original = {
-            position: client.board.position.bind(client.board),
-            orientation: client.board.orientation.bind(client.board),
-            resize: client.board.resize.bind(client.board)
-        };
-        client.board.position = (...args) => { calls.position.push(args); return original.position(...args); };
-        client.board.orientation = (...args) => { if (args.length) calls.orientation += 1; return original.orientation(...args); };
-        client.board.resize = (...args) => { calls.resize += 1; return original.resize(...args); };
-        const shellResizeBefore = window.CaissaFICSShell.getSnapshot().boardResizeCount;
         const rect = node => {
             const value = node.getBoundingClientRect();
             return { left: value.left, top: value.top, width: value.width, height: value.height };
         };
-        const before = rect(document.getElementById('ficsBoardContainer'));
-        const orientationBefore = client.board.orientation();
-        const scrollBefore = scrollY;
         const game = new Chess();
         const sans = ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6', 'Ba4', 'Nf6', 'O-O', 'Be7', 'Re1', 'b5', 'Bb3', 'd6', 'c3', 'O-O', 'h3', 'Nb8', 'd4', 'Nbd7'];
-        sans.forEach((san, index) => {
+        const send = (san, index) => {
             const move = game.move(san);
             client.handleStyle12({
                 fen: game.fen(), gameNumber: 303, whiteName: 'Alpha', blackName: 'Beta',
@@ -205,33 +184,46 @@ test('twenty observed Style12 updates preserve board identity, geometry, orienta
                 increment: 0, observedGame: true
             });
             if (index % 4 === 0) client.logToConsole(`Fixture update ${index + 1}`, 'GAME');
-        });
-        await new Promise(resolve => setTimeout(resolve, 120));
-        const afterNode = document.querySelector('#ficsBoardContainer .board-b72b1');
+        };
+        send(sans[0], 0);
+        await client.waitForBoardRendererIdle();
+        const boardIdentity = client.board;
+        const boardNode = document.querySelector('#ficsBoardContainer .caissa-board');
+        const boardParent = boardNode?.parentNode;
+        const before = rect(document.getElementById('ficsBoardContainer'));
+        const orientationBefore = client.board.orientation();
+        const scrollBefore = scrollY;
+        const shellResizeBefore = window.CaissaFICSShell.getSnapshot().boardResizeCount;
+        const rendererBefore = client.getBoardRendererSnapshot();
+        sans.slice(1).forEach((san, offset) => send(san, offset + 1));
+        await client.waitForBoardRendererIdle();
+        const afterNode = document.querySelector('#ficsBoardContainer .caissa-board');
+        const rendererAfter = client.getBoardRendererSnapshot();
         return {
             sameBoard: client.board === boardIdentity,
             sameNode: afterNode === boardNode,
-            sameParent: afterNode.parentNode === boardParent,
+            sameParent: afterNode?.parentNode === boardParent,
             before,
             after: rect(document.getElementById('ficsBoardContainer')),
             orientationBefore,
             orientationAfter: client.board.orientation(),
             scrollBefore,
             scrollAfter: scrollY,
-            calls,
             shellResizeDelta: window.CaissaFICSShell.getSnapshot().boardResizeCount - shellResizeBefore,
-            moveCount: client.moveHistory.length
+            moveCount: client.moveHistory.length,
+            rendererBefore: rendererBefore.renderer,
+            rendererAfter: rendererAfter.renderer,
+            visualUpdateDelta: rendererAfter.metrics.visualUpdates - rendererBefore.metrics.visualUpdates
         };
     });
     expect(result.sameBoard).toBe(true);
     expect(result.sameNode).toBe(true);
     expect(result.sameParent).toBe(true);
+    expect(result.rendererBefore).toBe('persistent');
+    expect(result.rendererAfter).toBe('persistent');
     expect(result.orientationAfter).toBe(result.orientationBefore);
-    expect(result.calls.orientation).toBe(0);
-    expect(result.calls.resize).toBe(0);
     expect(result.shellResizeDelta).toBe(0);
-    expect(result.calls.position).toHaveLength(20);
-    expect(result.calls.position.every(([, animate]) => animate === false)).toBe(true);
+    expect(result.visualUpdateDelta).toBeGreaterThan(0);
     expect(Math.abs(result.after.left - result.before.left)).toBeLessThanOrEqual(1);
     expect(Math.abs(result.after.top - result.before.top)).toBeLessThanOrEqual(1);
     expect(Math.abs(result.after.width - result.before.width)).toBeLessThanOrEqual(1);

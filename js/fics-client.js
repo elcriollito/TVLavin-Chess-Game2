@@ -64,6 +64,7 @@ const CaissaFICSClient = {
     boardDomObserver: null,
     boardPositionKey: null,
     boardOrientation: null,
+    legacyQuietDragAdapter: null,
     liveGame: {
         gameNumber: null,
         whiteName: null,
@@ -2916,11 +2917,12 @@ const CaissaFICSClient = {
         return true;
     },
 
-    captureChessboardGlobalHandlers() {
+    captureChessboardGlobalHandlers(container = null) {
         const jquery = window.jQuery;
         if (typeof jquery?._data !== 'function') return [];
-        const eventTypes = new Set(['mousedown', 'mousemove', 'mouseup', 'touchmove', 'touchend']);
-        return [window, document.body].flatMap(target => {
+        const eventTypes = new Set(['mousedown', 'mousemove', 'mouseup', 'touchstart', 'touchmove', 'touchend']);
+        const targets = [window, document.body, container].filter(Boolean);
+        return targets.flatMap(target => {
             const events = jquery._data(target, 'events') || {};
             return Object.entries(events).flatMap(([type, handlers]) => {
                 if (!eventTypes.has(type)) return [];
@@ -2931,17 +2933,78 @@ const CaissaFICSClient = {
 
     createManagedLegacyBoard(container, config) {
         const jquery = window.jQuery;
-        const existingBindings = new Set(this.captureChessboardGlobalHandlers().map(item => item.binding));
+        const existingBindings = new Set(this.captureChessboardGlobalHandlers(container).map(item => item.binding));
         const board = Chessboard(container, config);
-        if (!board || typeof board.destroy !== 'function' || typeof jquery !== 'function') return board;
+        if (!board || typeof board.destroy !== 'function') return board;
 
-        const ownedBindings = this.captureChessboardGlobalHandlers()
-            .filter(item => !existingBindings.has(item.binding));
-        const originalDestroy = board.destroy.bind(board);
+        let quietDrag = null;
         let destroyed = false;
+        const ownedBindings = typeof jquery === 'function'
+            ? this.captureChessboardGlobalHandlers(container).filter(item => !existingBindings.has(item.binding))
+            : [];
+        let legacyInputAttached = true;
+        const eventNameFor = ({ type, binding }) => binding.namespace ? `${type}.${binding.namespace}` : type;
+        const detachLegacyInput = () => {
+            if (!legacyInputAttached) return false;
+            for (const item of ownedBindings) {
+                const target = jquery(item.target);
+                const eventName = eventNameFor(item);
+                if (item.binding.selector) target.off(eventName, item.binding.selector, item.binding.handler);
+                else target.off(eventName, item.binding.handler);
+            }
+            legacyInputAttached = false;
+            return true;
+        };
+        const attachLegacyInput = () => {
+            if (legacyInputAttached || destroyed) return false;
+            for (const item of ownedBindings) {
+                const target = jquery(item.target);
+                const eventName = eventNameFor(item);
+                const { selector, data, handler } = item.binding;
+                if (selector && data !== undefined) target.on(eventName, selector, data, handler);
+                else if (selector) target.on(eventName, selector, handler);
+                else if (data !== undefined) target.on(eventName, data, handler);
+                else target.on(eventName, handler);
+            }
+            legacyInputAttached = true;
+            return true;
+        };
+        // Quiet Drag is the sole input authority by default. Chessboard.js drag
+        // handlers are restored only for the localhost A/B control.
+        detachLegacyInput();
+        const quietDragOptions = {
+            board,
+            isEnabled: () => this.gameActive === true
+                && this.liveGame?.observedGame !== true
+                && Number(this.liveGame?.relation) === 1,
+            onDragStart: config.onDragStart,
+            onDrop: config.onDrop,
+            onSnapEnd: config.onSnapEnd,
+            onEnabledChange: enabled => enabled ? detachLegacyInput() : attachLegacyInput(),
+            getLegacyInputState: () => ({ attached: legacyInputAttached, ownedBindingCount: ownedBindings.length })
+        };
+        const quietDragRequest = window.CaissaFICSBoardView?.createLegacyQuietDrag?.(container, quietDragOptions);
+        if (!quietDragRequest?.then) attachLegacyInput();
+        const quietDragReady = quietDragRequest?.then(adapter => {
+                if (destroyed) {
+                    adapter?.destroy?.();
+                    return null;
+                }
+                quietDrag = adapter;
+                this.legacyQuietDragAdapter = adapter;
+                return adapter;
+            })
+            .catch(error => {
+                attachLegacyInput();
+                console.error('[FICS Client] Legacy Quiet Drag unavailable:', error);
+            });
+        const originalDestroy = board.destroy.bind(board);
         board.destroy = () => {
             if (destroyed) return undefined;
             destroyed = true;
+            quietDrag?.destroy?.();
+            quietDragReady?.then?.(adapter => adapter?.destroy?.());
+            if (this.legacyQuietDragAdapter === quietDrag) this.legacyQuietDragAdapter = null;
             const result = originalDestroy();
             for (const { target, type, binding } of ownedBindings) {
                 const eventName = binding.namespace ? `${type}.${binding.namespace}` : type;
@@ -2951,6 +3014,10 @@ const CaissaFICSClient = {
             return result;
         };
         return board;
+    },
+
+    getLegacyQuietDragSnapshot() {
+        return this.legacyQuietDragAdapter?.getMetrics?.() || null;
     },
 
     initBoard(position = this.liveGame.currentFen || 'start') {
@@ -2971,7 +3038,7 @@ const CaissaFICSClient = {
             dragThrottleRate: 1,
             position,
             onDragStart: (source, piece) => this.onDragStart(source, piece),
-            onDrop: (source, target) => this.onDrop(source, target),
+            onDrop: (source, target, options) => this.onDrop(source, target, options),
             onSnapEnd: () => this.onSnapEnd()
         };
 
@@ -2988,7 +3055,7 @@ const CaissaFICSClient = {
                 position: initialPosition,
                 orientation,
                 onDragStart: (source, piece) => this.onDragStart(source, piece),
-                onDrop: (source, target) => this.onDrop(source, target),
+                onDrop: (source, target, options) => this.onDrop(source, target, options),
                 onSnapEnd: () => this.onSnapEnd()
             });
             this.boardView = pilot.createFicsBoardView({
@@ -3033,7 +3100,7 @@ const CaissaFICSClient = {
         return true;
     },
 
-    onDrop(source, target) {
+    onDrop(source, target, options = null) {
         if (!this.canSubmitGraphicalMove()) return 'snapback';
 
         const validator = new Chess(this.liveGame.currentFen);
@@ -3058,7 +3125,7 @@ const CaissaFICSClient = {
             sentAt: performance.now()
         };
         this.setPendingState('pending', `Pending ${moveStr}...`);
-        if (this.board) this.setBoardPosition(validator.fen(), true);
+        if (this.board) this.setBoardPosition(validator.fen(), options?.caissaQuietDrag !== true);
         const delivery = this.sendMove(moveStr);
         if (delivery?.ok === false) return 'snapback';
     },
