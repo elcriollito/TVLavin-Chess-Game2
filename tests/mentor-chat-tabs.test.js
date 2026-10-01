@@ -11,10 +11,10 @@ function harness() {
     const nodes = new Map();
     function element(id = '') {
         const handlers = new Map(), attrs = {};
-        return { id, attrs, handlers, dataset: {}, hidden: false, value: '', disabled: false, textContent: '',
+        return { id, attrs, handlers, children: [], dataset: {}, hidden: false, value: '', disabled: false, textContent: '',
             setAttribute(key, value) { attrs[key] = value; }, getAttribute(key) { return attrs[key]; },
             addEventListener(key, fn) { handlers.set(key, fn); }, fire(key, detail = {}) { handlers.get(key)?.({ preventDefault() {}, ...detail }); },
-            append() {}, replaceChildren() {}, focus() {}, showModal() {}, close() {} };
+            append(...items) { this.children.push(...items); }, replaceChildren() { this.children.length = 0; }, focus() {}, showModal() {}, close() {} };
     }
     for (const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1], element(match[1]));
     const tabs = [...html.matchAll(/<button id="(tab-[^"]+)"[^>]*aria-controls="([^"]+)"/g)].map(match => {
@@ -24,7 +24,8 @@ function harness() {
     const windowHandlers = new Map(), messages = [];
     let networkCalls = 0;
     const shell = { setContext() {}, open() {}, close() { messages.length = 0; },
-        appendStudyMessage(message) { messages.push(message); return true; }, clearStudyMessages() { messages.length = 0; } };
+        appendStudyMessage(message) { messages.push(message); return true; },
+        appendStudyExchange(question, answer) { messages.push(question, answer); return true; }, clearStudyMessages() { messages.length = 0; } };
     const window = { CAISSA_AUTH: { isLoaded: true, isSignedIn: true, userId: 'owner-one' },
         CaissaMentorFloatingShell: shell, addEventListener(key, fn) { windowHandlers.set(key, fn); },
         fetch() { networkCalls++; } };
@@ -65,4 +66,32 @@ test('saving usernames creates no idea; completed evidence in active Chat appear
     h.emit('caissa-auth-change', { isLoaded: true, isSignedIn: true, userId: 'owner-two' });
     assert.equal(h.messages.length, 0); assert.equal(h.nodes.get('idea-plan').hidden, true);
     h.emit('caissa:account-analysis-completed', summary); assert.equal(h.messages.length, 0);
+});
+
+
+test('starter idea responds locally, loads a legal board example, preserves draft and keeps footer exclusive to Chat', () => {
+    const h = harness(); h.input.value = 'My own question';
+    const choices = h.nodes.get('suggestion-actions').children;
+    assert.equal(choices.length, 3);
+    choices[1].fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().lesson, 'fork');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen, prepareLesson('fork').positions[0]);
+    assert.match(h.messages[1], /Nc7\+/); assert.equal(h.input.value, 'My own question');
+    assert.equal(h.nodes.get('chat-suggestions').hidden, true);
+    h.nodes.get('tab-learn').fire('click'); assert.equal(h.nodes.get('chat-footer').hidden, true);
+    h.nodes.get('tab-chat').fire('click'); assert.equal(h.nodes.get('chat-footer').hidden, false);
+    h.nodes.get('new-session').fire('click'); assert.equal(h.nodes.get('chat-suggestions').hidden, false);
+    assert.equal(h.nodes.get('suggestion-actions').children.length, 3); assert.equal(h.networkCalls(), 0);
+});
+
+test('real evidence selects related examples, preserves owner isolation and guards board during a reply', () => {
+    const h = harness(); h.emit('caissa:account-analysis-completed', summary);
+    const choices = h.nodes.get('suggestion-actions').children;
+    assert.equal(choices.length, 1); assert.match(choices[0].textContent, /knight fork/);
+    h.send.disabled = true; choices[0].fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().lesson, 'development');
+    h.send.disabled = false; choices[0].fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().lesson, 'fork');
+    h.emit('caissa-auth-change', { isLoaded: true, isSignedIn: true, userId: 'owner-two' });
+    assert.equal(h.nodes.get('suggestion-actions').children.length, 3);
+    assert.equal(h.nodes.get('suggestions-title').textContent, 'Where shall we start?');
 });
