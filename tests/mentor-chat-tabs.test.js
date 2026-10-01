@@ -5,6 +5,9 @@ import vm from 'node:vm';
 import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { prepareLesson } from '../js/mentor/mentor-lessons.js';
 import { createMentorInsights } from '../js/mentor/mentor-insights.js';
+import { parseEcoCatalog, prepareEcoLesson } from '../js/mentor/mentor-openings.js';
+
+const catalog = parseEcoCatalog(JSON.parse(fs.readFileSync(new URL('../data/eco/eco_codes.json', import.meta.url), 'utf8')));
 
 function harness() {
     const html = fs.readFileSync(new URL('../mentor.html', import.meta.url), 'utf8');
@@ -34,7 +37,7 @@ function harness() {
         querySelector: query => query === '.sign-in' ? authLink : query.endsWith('textarea') ? input : send };
     const board = { setPosition() {}, clearSelection() {}, getMetrics() { return {}; } };
     const source = fs.readFileSync(new URL('../js/mentor/mentor-page.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
-    vm.runInNewContext(source, { Chess, prepareLesson, createMentorInsights, create: () => board, document, window,
+    vm.runInNewContext(source, { Chess, prepareLesson, createMentorInsights, prepareEcoLesson, loadEcoCatalog: async () => catalog, create: () => board, document, window,
         localStorage: { getItem() { return null; }, setItem() {} } });
     return { nodes, tabs, input, send, messages, window, emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
 }
@@ -114,4 +117,20 @@ test('My account source selector preserves raw inputs and produces no insight or
     h.nodes.get('account-form').fire('submit');
     assert.equal(h.messages.length, 0); assert.equal(h.networkCalls(), 0);
     assert.match(h.nodes.get('account-status').textContent, /No games have been analyzed/);
+});
+
+test('ECO selection loads its final legal position and opens Chat with a local exchange and preserved draft', async () => {
+    const h = harness(); h.input.value = 'My draft'; h.nodes.get('opening-search').value = 'C60';
+    h.nodes.get('tab-openings').fire('click'); await new Promise(resolve => setImmediate(resolve));
+    const card = h.nodes.get('opening-list').children.find(node => node.className === 'opening-card');
+    assert.ok(card); card.fire('click');
+    const state = h.window.CaissaMentorPage.inspect();
+    assert.equal(state.tab, 'chat'); assert.equal(state.lesson, 'eco-C60'); assert.equal(state.cursor, 5);
+    const game = new Chess(); game.loadPgn('1. e4 e5 2. Nf3 Nc6 3. Bb5'); assert.equal(state.fen, game.fen());
+    assert.match(h.messages[1], /Ruy Lopez/); assert.equal(h.input.value, 'My draft');
+    assert.equal(h.nodes.get('opening-followups').hidden, false); assert.equal(h.nodes.get('chat-footer').hidden, false);
+    h.nodes.get('opening-discuss').fire('click'); assert.equal(h.input.value, 'My draft');
+    h.input.value = ''; h.nodes.get('opening-discuss').fire('click'); assert.match(h.input.value, /Ruy Lopez/);
+    h.nodes.get('opening-practice').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().practicing, true);
+    assert.equal(h.networkCalls(), 0);
 });
