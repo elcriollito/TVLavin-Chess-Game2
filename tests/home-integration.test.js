@@ -37,9 +37,15 @@ test('root is a non-redirecting Home rewrite in Vercel and the local server', ()
   assert.match(server, /filePath = '\.\/home\.html'/);
   assert.doesNotMatch(server, /pathname === '\/'[\s\S]{0,150}Location: '\/play'/);
 });
-test('middleware yields root requests to Home while retaining legacy root aliases', async () => {
-  assert.equal(middleware(new Request('https://www.caissa-chess.org/')), undefined);
-  assert.equal(middleware(new Request('https://www.caissa-chess.org/?utm_source=release')), undefined);
+test('middleware rewrites root requests to Home while retaining legacy root aliases', async () => {
+  const root = middleware(new Request('https://www.caissa-chess.org/'));
+  assert.equal(root.status, 200);
+  assert.equal(new URL(root.headers.get('x-middleware-rewrite')).pathname, '/home.html');
+
+  const campaign = middleware(new Request('https://www.caissa-chess.org/?utm_source=release'));
+  const campaignTarget = new URL(campaign.headers.get('x-middleware-rewrite'));
+  assert.equal(campaignTarget.pathname, '/home.html');
+  assert.equal(campaignTarget.searchParams.get('utm_source'), 'release');
 
   const classic = middleware(new Request('https://www.caissa-chess.org/?section=yahooClassic'));
   assert.equal(classic.status, 308);
@@ -98,6 +104,8 @@ test('Home auth and progress presentation distinguishes loading, guest, connecte
 
   const source = read('js/home/home.js');
   assert.match(source, /import\('\/js\/puzzles\/account-progress-api\.js'\)/);
+  assert.match(source, /event\.persisted/);
+  assert.match(source, /auth\.userId !== userId/);
   assert.match(source, /caissa\.home\.recent-tools\.v1/);
   assert.doesNotMatch(source, /recent games|continue position|streak|accuracy/i);
 });

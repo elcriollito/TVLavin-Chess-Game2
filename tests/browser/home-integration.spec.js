@@ -23,7 +23,11 @@ const installAuthMock = async (page, auth) => {
         this.status = 'signed-out';
         listeners.forEach(callback => callback(this));
       },
-      async getToken() { return 'browser-test-token'; }
+      __setAuthForTest(patch) {
+        Object.assign(this, patch);
+        listeners.forEach(callback => callback(this));
+      },
+      async getToken() { return `browser-test-token-${this.userId || 'guest'}`; }
     };
   }, auth);
 };
@@ -131,6 +135,105 @@ test('connected Home renders only returned puzzle progress and preserves the emp
   await page.reload();
   await expect(page.getByText('No saved puzzle activity yet. Your first completed puzzle will appear here.')).toBeVisible();
   await expect(page.locator('#account-content')).not.toContainText('1800');
+});
+
+test('Home loads progress after sign-in and keeps API errors account-scoped', async ({ page }) => {
+  await installAuthMock(page, {
+    isLoaded: true,
+    isSignedIn: false,
+    userId: null,
+    status: 'signed-out',
+    fullName: null,
+    email: null,
+    imageUrl: null
+  });
+  let failProgress = false;
+  let progressRequests = 0;
+  await page.route('**/api/puzzles/progress', route => {
+    progressRequests += 1;
+    return route.fulfill(failProgress ? {
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'temporarily unavailable' })
+    } : {
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ progress: { rating: 1912, solved: 7, failed: 2 }, persistent: true })
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.getByText('Make it your own.')).toBeVisible();
+  await page.evaluate(() => window.CAISSA_AUTH.__setAuthForTest({
+    isSignedIn: true,
+    userId: 'user_alexander',
+    status: 'authenticated',
+    fullName: 'Alexander Lavin',
+    email: 'alexander@example.test'
+  }));
+  await expect(page.getByText('Welcome back, Alexander Lavin.')).toBeVisible();
+  await expect(page.locator('.account-stats')).toContainText('1,912');
+  await expect(page.locator('.account-stats')).toContainText('9');
+
+  expect(progressRequests).toBeGreaterThan(0);
+
+  failProgress = true;
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect(page.getByText('Your account is connected, but saved puzzle progress is unavailable right now.')).toBeVisible();
+  await expect(page.locator('#account-content')).not.toContainText('1,912');
+});
+
+test('Home refreshes restored progress and rejects stale account responses', async ({ page }) => {
+  await installAuthMock(page, {
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user_one',
+    status: 'authenticated',
+    fullName: 'First Player',
+    email: 'first@example.test',
+    imageUrl: null
+  });
+
+  const staleRequests = [];
+  let currentProgress = { rating: 1764, solved: 8, failed: 3 };
+  await page.route('**/api/puzzles/progress', async route => {
+    const authorization = route.request().headers().authorization;
+    if (authorization === 'Bearer browser-test-token-user_one') {
+      staleRequests.push(route);
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ progress: currentProgress, persistent: true })
+    });
+  });
+
+  await page.goto('/');
+  await expect.poll(() => staleRequests.length).toBeGreaterThan(0);
+  await expect(page.getByText('Loading your saved puzzle progress…')).toBeVisible();
+  await page.evaluate(() => window.CAISSA_AUTH.__setAuthForTest({
+    userId: 'user_two', fullName: 'Second Player', email: 'second@example.test'
+  }));
+  await expect(page.getByText('Welcome back, Second Player.')).toBeVisible();
+  await expect(page.locator('.account-stats')).toContainText('1,764');
+
+  await Promise.all(staleRequests.map(route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ progress: { rating: 1600, solved: 1, failed: 0 }, persistent: true })
+  })));
+  await expect(page.locator('.account-stats')).toContainText('1,764');
+  await expect(page.locator('#account-content')).not.toContainText('1,600');
+
+  currentProgress = { rating: 1847, solved: 12, failed: 4 };
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect(page.locator('.account-stats')).toContainText('1,847');
+  await expect(page.locator('.account-stats')).toContainText('16');
+
+  await page.evaluate(() => window.CAISSA_AUTH.signOut());
+  await expect(page.getByText('Make it your own.')).toBeVisible();
+  await expect(page.locator('#account-content')).not.toContainText('1,847');
 });
 
 test('tool routes remain reachable and their existing brand returns to Home', async ({ page, request }) => {

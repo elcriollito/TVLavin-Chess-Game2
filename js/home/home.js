@@ -42,6 +42,7 @@
   const accountContent = document.getElementById('account-content');
   let accountRequest = 0;
   let progressModulePromise = null;
+  let currentAuth = null;
   let recent = [];
 
   function element(tag, className, text) {
@@ -203,20 +204,21 @@
     appendLink(accountContent, { href: '/puzzles', className: 'subtle-link', text: 'Open Puzzles' });
   }
 
-  async function loadProgress(auth, request) {
+  async function loadProgress(auth, request, userId) {
     try {
       progressModulePromise ||= import('/js/puzzles/account-progress-api.js');
       const { loadAccountProgress } = await progressModulePromise;
       const payload = await loadAccountProgress(auth);
-      if (request !== accountRequest) return;
+      if (request !== accountRequest || classifyAuth(auth) !== 'signed-in' || auth.userId !== userId) return;
       renderAccount(auth, 'signed-in', normalizePuzzleProgress(payload));
     } catch {
-      if (request !== accountRequest) return;
+      if (request !== accountRequest || classifyAuth(auth) !== 'signed-in' || auth.userId !== userId) return;
       renderAccount(auth, 'signed-in', { state: 'error' });
     }
   }
 
   function handleAuth(auth) {
+    currentAuth = auth;
     const state = classifyAuth(auth);
     const request = ++accountRequest;
     renderTopbar(auth, state);
@@ -225,7 +227,12 @@
       return;
     }
     renderAccount(auth, state, { state: 'loading' });
-    void loadProgress(auth, request);
+    void loadProgress(auth, request, auth.userId);
+  }
+
+  function refreshRestoredProgress(event) {
+    if (!event.persisted || classifyAuth(currentAuth) !== 'signed-in') return;
+    handleAuth(currentAuth);
   }
 
   function readRecent() {
@@ -341,6 +348,7 @@
   } else {
     handleAuth(auth);
     auth.onAuthStateChange?.(handleAuth);
+    global.addEventListener('pageshow', refreshRestoredProgress);
   }
 })(globalThis);
 

@@ -58,7 +58,7 @@ test('revised homepage title is unique across repository HTML', () => {
   const htmlFiles = [];
   const walk = directory => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.vercel') continue;
       const absolute = path.join(directory, entry.name);
       if (entry.isDirectory()) walk(absolute);
       else if (entry.name.endsWith('.html')) htmlFiles.push(absolute);

@@ -12,14 +12,16 @@ high-contrast copy and distinct tool colors. CAISSA Chat remains a noninteractiv
 
 | Request | Integrated behavior |
 | --- | --- |
-| `/` | 200 Home through Vercel rewrite and local-server file mapping |
+| `/` | 200 Home through an explicit Vercel middleware rewrite and local-server file mapping |
 | `/?section=yahooClassic` | 308 to `/yahoo-classic` for the historical deep link |
 | `/?action=help` | 308 to `/help` for the historical help entry |
 | `/play` and `/play/*` | Existing Play ownership and fail-closed rules unchanged |
 | `/home.html` | Direct Home document remains available as a cache-recovery URL |
 | Tool-shell CAISSA brand | Returns to `/`; each tool's menu and board behavior remain unchanged |
 
-The former permanent `/ -> /play` rule was removed. New root responses are
+The former permanent `/ -> /play` rule was removed. The middleware owns the
+root rewrite because Vercel's static filesystem otherwise resolves the physical
+`index.html` before the `vercel.json` rewrite. New root responses are
 `no-store` so a replacement redirect cannot become sticky. A previously cached
 browser 308 cannot be remotely invalidated; functional review should use a fresh
 profile first and `/home.html` as the recovery URL for an affected old profile.
@@ -64,6 +66,10 @@ Home consumes only existing supported contracts:
 The journey panel has explicit loading, guest, connected/loading, empty, ready and
 error states. It hides the default puzzle rating when the account has zero attempts
 and never synthesizes rating, streak, accuracy, games or resume positions.
+It reloads saved progress when browser history restores the Home from Puzzles.
+Each response is scoped to both a monotonically increasing request number and the
+Clerk user ID that started it, so a late response cannot repopulate data after
+sign-out or overwrite a newly selected account.
 
 Sign-in and sign-up use `redirect_url=%2F`, which is accepted by the existing
 internal-redirect sanitizer and returns the user to Home.
@@ -74,7 +80,8 @@ Automated:
 
 - `npm run lint:home`: passed.
 - `npm run test:home`: 63/63 passed.
-- `npm run test:home:browser`: 4/4 passed in Chromium.
+- `npm run test:home:browser`: 6/6 passed in Chromium.
+- `vercel build`: passed for the linked preview project.
 - Home plus shared-sidebar browser suite: 14/14 passed.
 - Cross-route authentication plus historical canonical-route suite: 7/7 passed.
 - API auth, registration sync, Play routing/auth and legacy canonical unit checks:
@@ -85,7 +92,15 @@ Automated:
 Browser coverage includes desktop 1440×1000 and mobile 390×844, white logo,
 distinct tool colors, zero horizontal overflow, skip-link keyboard flow, clean
 console, guest and authenticated account rendering, real/empty progress response
-shapes, 30 route status checks and tool-to-Home navigation.
+shapes, sign-in refresh, reload, history restoration, sign-out/account switching,
+stale-response rejection, API failure, 30 route status checks and tool-to-Home
+navigation.
+
+Live baseline evidence from the existing production session identifies Alexander
+Lavin in Puzzles and shows the current saved CAISSA training estimate as 1835,
+with 11 solved and 4 missed. No attempt or rating was changed during certification.
+The branch preview remained signed out in the same Chrome profile, confirming that
+the production and preview Clerk sessions are independent.
 
 Screenshots:
 
@@ -98,17 +113,27 @@ Pre-existing and outside HOME-001:
 
 - `tests/i18n-foundation.test.js` reports that `pgn-replayer.html` loads the
   shared navigation owner before i18n. HOME-001 does not modify that page.
-- `npm ci` reports 6 dependency advisories (3 moderate, 3 high). HOME-001 changes
-  no dependency or lockfile.
+- `npm install` reports the same 6 dependency advisories (3 moderate, 3 high)
+  observed before this repair. This repair adds the official
+  `@vercel/functions` runtime helper required for the middleware rewrite.
+- `tests/play/play-v2-beta-entry.test.js` still reports its pre-existing Mentor
+  resource-isolation failure. HOME-001 does not modify Mentor or the Play document.
 
-Introduced regressions found: none in the scoped routing, auth, navigation,
+Regressions found and repaired in this candidate:
+
+- The deployed `/` served the physical `index.html` tool shell even though
+  `/home.html` was correct. Root routing now rewrites before filesystem routing.
+- A Home restored from the back-forward cache did not re-query Puzzles progress.
+  It now refreshes on persisted `pageshow` without accepting stale account data.
+
+No remaining regressions were found in the scoped routing, auth, navigation,
 desktop/mobile or console suites.
 
 ## Release pendings
 
-- Validate a real signed-in Clerk session and its live Puzzles API response on the
-  protected Vercel preview; automated certification used the production contracts
-  with deterministic browser mocks.
+- Sign in once on the protected branch preview, then compare its live Home card
+  and Puzzles progress. The same browser is already authenticated in production,
+  but preview has an independent Clerk session.
 - Exercise the cached-308 recovery note in at least one previously used browser
   profile before production authorization.
 - Review the Vercel preview deployment and screenshots.
