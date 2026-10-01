@@ -96,6 +96,8 @@
       retry.type = 'button';
       retry.addEventListener('click', () => global.location.reload());
       topbarAccount.append(retry);
+      appendLink(topbarAccount, { href: '/signin?redirect_url=%2F', text: 'Sign in' });
+      appendLink(topbarAccount, { href: '/signup?redirect_url=%2F', className: 'button small', text: 'Create account' });
       return;
     }
 
@@ -155,8 +157,10 @@
       accountContent.append(
         element('div', 'journey-mark account-warning', '!'),
         element('h3', '', 'Account status unavailable.'),
-        element('p', '', 'CAISSA could not check your session. The tools remain available.')
+        element('p', '', 'CAISSA could not check your session. You can still try to sign in or create an account.')
       );
+      appendLink(accountContent, { href: '/signin?redirect_url=%2F', className: 'button', text: 'Sign in' });
+      appendLink(accountContent, { href: '/signup?redirect_url=%2F', className: 'subtle-link', text: 'Create account' });
       return;
     }
 

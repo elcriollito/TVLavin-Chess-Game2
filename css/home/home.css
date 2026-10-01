@@ -35,6 +35,7 @@ body{overflow-x:hidden}.shell,.topbar,main,.dashboard,.main-column,.right-column
 @keyframes home-pulse{50%{opacity:.5}}
 @media(max-width:720px){
   .account-name{max-width:100px}.account-stats{grid-template-columns:1fr}.account-stats div{display:flex;justify-content:space-between;align-items:center}
+  .account-links .account-error,.account-links .account-error+.quiet-button{display:none}
   .all-tools-groups{grid-template-columns:1fr}.all-tools-link.desktop-only{display:none}.all-tools-links{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:390px){.all-tools-links{grid-template-columns:1fr}.account-identity .account-name{display:none}}

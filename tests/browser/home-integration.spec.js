@@ -103,6 +103,31 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
   }
 });
 
+test('auth check failure keeps Sign in and Create account available without overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installAuthMock(page, {
+    isLoaded: true,
+    isSignedIn: false,
+    userId: null,
+    status: 'unavailable'
+  });
+  const errors = collectConsoleErrors(page);
+
+  await page.goto('/');
+  await expect(page.getByText('Account status unavailable.')).toBeVisible();
+  const topbar = page.locator('#topbar-account');
+  await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Create account', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/signin?redirect_url=%2F');
+  await expect(topbar.getByRole('link', { name: 'Create account', exact: true })).toHaveAttribute('href', '/signup?redirect_url=%2F');
+
+  const journey = page.locator('#account-content');
+  await expect(journey.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
+  await expect(journey.getByRole('link', { name: 'Create account', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  expect(errors).toEqual([]);
+});
+
 test('connected Home renders only returned puzzle progress and preserves the empty state', async ({ page }) => {
   await installAuthMock(page, {
     isLoaded: true,
