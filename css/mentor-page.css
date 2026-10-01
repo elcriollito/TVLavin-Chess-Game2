@@ -41,3 +41,12 @@
 .account-position{border-top:1px solid var(--page-line);padding-top:16px;margin-top:18px}.account-position summary{font-size:13px;color:var(--page-accent)}#fen-status{font-size:11px;color:var(--page-muted);margin-top:8px}
 
 #learn-game[hidden],#learn-lessons[hidden]{display:none}#learn-game label{display:block;font-size:11px;color:var(--page-muted);margin:14px 0 5px}#learn-game-select{width:100%;min-width:0;padding:8px;background:#0b1725;color:#eef4fa;border:1px solid #415970;border-radius:6px;font:inherit;font-size:12px}.learn-game-controls{display:flex;gap:7px;margin-top:14px}#learn-game-position{min-height:20px;font-size:11px;margin:10px 0}#learn-game-moves{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px}#learn-game-moves button{font-size:12px;min-height:32px;padding:4px 8px}#learn-game-moves [aria-current=step]{color:var(--page-accent);border-color:var(--page-accent)}#game-review{width:100%;color:var(--page-accent)}#learn-game .review-note{font-size:11px;margin-top:8px}
+
+/* Account and credit information sits above the board, freeing chat space. */
+.lesson-heading{gap:12px;flex-wrap:wrap}
+.board-service-notice{flex:1 1 220px;max-width:340px;margin-left:auto;min-width:0;color:var(--page-muted)}
+.mentor-page .board-service-notice .caissa-mentor-shell__mode,
+.mentor-page .board-service-notice .caissa-mentor-shell__auth{font-size:11px;line-height:1.4;margin:0;overflow-wrap:anywhere}
+.board-service-notice .caissa-mentor-shell__mode{padding-bottom:4px}
+.board-service-notice .caissa-mentor-shell__auth[hidden]{display:none}
+@media(max-width:760px){.board-service-notice{order:3;flex-basis:100%;max-width:none;margin-left:0}}
