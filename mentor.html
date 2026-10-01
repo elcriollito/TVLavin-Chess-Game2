@@ -34,7 +34,23 @@
           <div id="panel-chat" role="tabpanel" aria-labelledby="tab-chat"><div class="chat-heading"><h2>CAISSA Mentor</h2><p>Let’s find your next step, together.</p><button id="idea-plan" type="button" hidden>Prepare a training plan</button></div><div class="chat-suggestions" id="chat-suggestions" aria-labelledby="suggestions-title"><h3 id="suggestions-title">Where shall we start?</h3><p id="suggestions-context">Choose an idea to explore on the board.</p><div id="suggestion-actions"></div></div><div data-caissa-mentor-page-host></div></div>
           <div class="topic-panel" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn" hidden><h2>What would you like to understand?</h2><p>Short lessons you can explore, move by move.</p><div class="topic-actions"><button data-lesson="development">Develop with a plan <span>↗</span></button><button data-lesson="fork">Find a knight fork <span>↗</span></button><button data-lesson="opposition">Understand opposition <span>↗</span></button></div></div>
           <div class="topic-panel" id="panel-openings" role="tabpanel" aria-labelledby="tab-openings" hidden><h2>Learn the plans behind the moves.</h2><p>Choose an opening and explore a starting line.</p><div class="topic-actions"><button data-lesson="london">London System <span>↗</span></button><button data-lesson="sicilian">Sicilian Defense <span>↗</span></button><button data-lesson="development">Italian Game <span>↗</span></button></div></div>
-          <div class="topic-panel" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden><h2>Your games, your next lesson.</h2><p>Save usernames on this device. Account imports are not connected in this preview.</p><form id="account-form"><label for="chesscom-user">Chess.com username</label><input id="chesscom-user" maxlength="50" autocomplete="off" placeholder="Your Chess.com username"><label for="lichess-user">Lichess username</label><input id="lichess-user" maxlength="50" autocomplete="off" placeholder="Your Lichess username"><button type="submit">Save usernames locally</button><p id="account-status" role="status" aria-live="polite"></p></form><p class="source-note"><strong>CAISSA game history</strong><br>Coming later · No games or ratings loaded.</p></div>
+          <div class="topic-panel insight-account" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden>
+            <h2>CAISSA Insight</h2>
+            <p class="insight-intro">Bring your games. Together, we’ll find what to work on next.</p>
+            <h3>Import games</h3>
+            <div class="import-source-options" role="group" aria-label="Game import source"><button id="account-source-online" type="button" aria-pressed="true" aria-controls="account-online">Chess.com / Lichess</button><button id="account-source-pgn" type="button" aria-pressed="false" aria-controls="account-local">Local PGN</button></div>
+            <form id="account-form">
+              <div id="account-online" class="account-fields">
+                <div><label for="account-platform">Platform</label><select id="account-platform"><option value="chesscom">Chess.com</option><option value="lichess">Lichess</option><option value="caissa" disabled>CAISSA · Coming later</option></select></div>
+                <div><label for="account-username">Username</label><input id="account-username" maxlength="50" autocomplete="off" placeholder="e.g. TVLAVIN" pattern="[a-zA-Z0-9_-]{2,50}"></div>
+                <div><label for="account-game-count">Games to import</label><select id="account-game-count"><option value="10" selected>Last 10 games</option><option value="20">Last 20 games</option><option value="30">Last 30 games</option><option value="50">Last 50 games</option></select></div>
+                <div><label for="account-time-control">Time control</label><select id="account-time-control"><option value="all">All</option><option value="bullet">Bullet</option><option value="blitz">Blitz</option><option value="rapid">Rapid</option><option value="classical">Classical</option></select></div>
+              </div>
+              <div id="account-local" hidden><label for="account-pgn-file">Choose a PGN file</label><input id="account-pgn-file" type="file" accept=".pgn,text/plain,application/x-chess-pgn"><label for="account-pgn-text">Or paste your games</label><textarea id="account-pgn-text" rows="7" maxlength="250000" placeholder="Paste one or more completed games in PGN format"></textarea></div>
+              <button id="account-import-submit" type="submit" disabled>Fetch &amp; Analyze Games</button>
+              <p id="account-status" role="status">Game import is not connected in this preview. No games have been analyzed.</p>
+            </form>
+          </div>
         </div>
         <div id="chat-footer" class="workspace-foot" aria-label="Write to Mentor"></div>
       </section>

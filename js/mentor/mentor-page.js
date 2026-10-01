@@ -176,17 +176,19 @@ document.querySelectorAll('[data-promotion]').forEach(button => button.addEventL
 }));
 $('promotion-cancel').addEventListener('click', () => { pendingPromotion = null; $('promotion-dialog').close(); });
 $('promotion-dialog').addEventListener('cancel', () => { pendingPromotion = null; });
-const usernameKey = 'caissa-mentor-preview-usernames-v1';
-try { const saved = JSON.parse(localStorage.getItem(usernameKey) || '{}');
-    $('chesscom-user').value = typeof saved.chesscom === 'string' ? saved.chesscom : '';
-    $('lichess-user').value = typeof saved.lichess === 'string' ? saved.lichess : '';
-} catch { /* A denied or corrupt local store does not block study. */ }
+// Account is a raw-game intake surface. Analysis results belong in Chat.
+function selectImportSource(source) {
+    const online = source === 'online';
+    $('account-online').hidden = !online; $('account-local').hidden = online;
+    $('account-source-online').setAttribute('aria-pressed', String(online));
+    $('account-source-pgn').setAttribute('aria-pressed', String(!online));
+    $('account-import-submit').textContent = online ? 'Fetch & Analyze Games' : 'Analyze PGN Games';
+}
+$('account-source-online').addEventListener('click', () => selectImportSource('online'));
+$('account-source-pgn').addEventListener('click', () => selectImportSource('pgn'));
 $('account-form').addEventListener('submit', event => {
     event.preventDefault();
-    const chesscom = $('chesscom-user').value.trim(), lichess = $('lichess-user').value.trim();
-    if ([chesscom, lichess].some(value => value && !/^[a-zA-Z0-9_-]{2,50}$/.test(value))) { $('account-status').textContent = 'Use a username with letters, numbers, underscores or hyphens.'; return; }
-    try { localStorage.setItem(usernameKey, JSON.stringify({ chesscom, lichess })); $('account-status').textContent = 'Saved on this device only. No accounts verified, games imported, or ratings combined.'; }
-    catch { $('account-status').textContent = 'This browser could not save usernames. You can still use the lessons.'; }
+    $('account-status').textContent = 'Game import is not connected in this preview. No games have been analyzed.';
 });
 sync();
 // Read-only diagnostic seam; never grants chess, engine, account or economic authority.

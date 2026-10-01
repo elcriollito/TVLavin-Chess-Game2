@@ -59,8 +59,8 @@ test('four tabs preserve chat drafts and show an unread idea once on entering Ch
     assert.equal(h.networkCalls(), 0);
 });
 
-test('saving usernames creates no idea; completed evidence in active Chat appears and clears on owner change', () => {
-    const h = harness(); h.nodes.get('chesscom-user').value = 'Alex'; h.nodes.get('account-form').fire('submit');
+test('account input creates no idea; completed evidence in active Chat appears and clears on owner change', () => {
+    const h = harness(); h.nodes.get('account-username').value = 'Alex'; h.nodes.get('account-form').fire('submit');
     assert.equal(h.messages.length, 0); assert.equal(h.window.CaissaMentorPage.inspect().unreadIdea, false);
     h.emit('caissa:account-analysis-completed', summary); assert.equal(h.messages.length, 1);
     h.emit('caissa-auth-change', { isLoaded: true, isSignedIn: true, userId: 'owner-two' });
@@ -94,4 +94,19 @@ test('real evidence selects related examples, preserves owner isolation and guar
     h.emit('caissa-auth-change', { isLoaded: true, isSignedIn: true, userId: 'owner-two' });
     assert.equal(h.nodes.get('suggestion-actions').children.length, 3);
     assert.equal(h.nodes.get('suggestions-title').textContent, 'Where shall we start?');
+});
+
+
+test('My account source selector preserves raw inputs and produces no insight or network request', () => {
+    const h = harness(); h.nodes.get('account-username').value = 'Alex';
+    h.nodes.get('account-source-pgn').fire('click');
+    assert.equal(h.nodes.get('account-online').hidden, true); assert.equal(h.nodes.get('account-local').hidden, false);
+    assert.equal(h.nodes.get('account-source-pgn').getAttribute('aria-pressed'), 'true');
+    h.nodes.get('account-pgn-text').value = '[Result "1-0"]';
+    h.nodes.get('account-source-online').fire('click');
+    assert.equal(h.nodes.get('account-username').value, 'Alex');
+    assert.equal(h.nodes.get('account-pgn-text').value, '[Result "1-0"]');
+    h.nodes.get('account-form').fire('submit');
+    assert.equal(h.messages.length, 0); assert.equal(h.networkCalls(), 0);
+    assert.match(h.nodes.get('account-status').textContent, /No games have been analyzed/);
 });
