@@ -1,67 +1,230 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CAISSA Home — Your chess world</title>
-<meta name="description" content="Your place to play, train, analyze and explore chess with CAISSA.">
-<meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="/public/favicon.ico">
-<link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
-<link rel="stylesheet" href="/css/home/home.css?v=home-002">
-<script src="/js/home/home.js" defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAISSA Chess — Play, Train, Analyze & Explore</title>
+  <meta name="description" content="Your place to play, train, analyze and explore chess with CAISSA.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#080a0e">
+  <link rel="canonical" href="https://www.caissa-chess.org/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="CAISSA Chess">
+  <meta property="og:url" content="https://www.caissa-chess.org/">
+  <meta property="og:title" content="CAISSA Chess — Play, Train, Analyze & Explore">
+  <meta property="og:description" content="Your place to play, train, analyze and explore chess with CAISSA.">
+  <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://www.caissa-chess.org/">
+  <meta name="twitter:title" content="CAISSA Chess — Play, Train, Analyze & Explore">
+  <meta name="twitter:description" content="Your place to play, train, analyze and explore chess with CAISSA.">
+  <meta name="twitter:image" content="https://www.caissa-chess.org/og-image.png">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "CAISSA Chess",
+      "url": "https://www.caissa-chess.org/",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "CAISSA Chess",
+      "url": "https://www.caissa-chess.org/",
+      "logo": "https://www.caissa-chess.org/favicon-512.png"
+    }
+  </script>
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
+  <link rel="stylesheet" href="/css/home/home.css?v=home-003">
+  <script src="/js/auth-config.js?v=1.0.5" defer></script>
+  <script src="/js/caissa-auth.js?v=1.0.4" defer></script>
+  <script src="/js/caissa-i18n.js?v=1.1.0" defer></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.3" defer></script>
+  <script src="/js/home/home.js?v=home-003" defer></script>
+  <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body>
-<a class="skip" href="#main">Skip to content</a>
-<aside class="sidebar" aria-label="Primary navigation">
-<a class="brand" href="/home.html"><i class="fa-solid fa-chess-knight brand-knight" aria-hidden="true"></i><span>CAISSA<small>CHESS</small></span></a>
-<p class="nav-caption">YOUR CHESS WORLD</p>
-<nav>
-<a class="active" href="/home.html" aria-current="page"><i class="fa-solid fa-house" aria-hidden="true"></i>Home</a>
-<a data-tool="play" href="https://www.caissa-chess.org/play"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i>Play</a>
-<a data-tool="puzzles" href="https://www.caissa-chess.org/puzzles"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>Puzzles</a>
-<a href="#learn"><i class="fa-solid fa-book-open" aria-hidden="true"></i>Learn & explore</a>
-<a href="#watch"><i class="fa-solid fa-tv" aria-hidden="true"></i>Watch</a>
-<div class="nav-divider"></div>
-<a data-tool="analyze" href="https://www.caissa-chess.org/analyze"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Analyze</a>
-<a data-tool="openings" href="https://www.caissa-chess.org/opening-database"><i class="fa-solid fa-book" aria-hidden="true"></i>Openings</a>
-<a data-tool="endgames" href="https://www.caissa-chess.org/endgame-tablebase"><i class="fa-solid fa-chess-king" aria-hidden="true"></i>Endgames</a>
-<a data-tool="arena" href="https://www.caissa-chess.org/arena"><i class="fa-solid fa-trophy" aria-hidden="true"></i>Engine Arena</a>
-<div class="nav-divider"></div>
-<a href="https://www.caissa-chess.org/tools/polyglot"><i class="fa-solid fa-toolbox" aria-hidden="true"></i>Tools</a>
-<a class="desktop-only" href="https://www.caissa-chess.org/yahoo-classic"><i class="fa-solid fa-chess-board" aria-hidden="true"></i>CAISSA Classic</a>
-</nav>
-<div class="sidebar-bottom"><span class="small-queen" aria-hidden="true">♛</span><p>A little chess.<br>A world of possibilities.</p><a href="https://www.caissa-chess.org/about">About CAISSA</a></div>
-</aside>
-<div class="shell">
-<header class="topbar"><a class="mobile-brand" href="/home.html"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i> CAISSA</a><span class="breadcrumb">Your chess world <span>/</span> Home</span><div class="account-links"><a href="https://www.caissa-chess.org/signin">Sign in</a><a class="button small" href="https://www.caissa-chess.org/signup">Create account</a></div></header>
-<main id="main" tabindex="-1">
-<div class="page-heading"><div><p class="eyebrow">MAKE YOUR NEXT MOVE</p><h1>Welcome to CAISSA.</h1><p>Find your game. Sharpen your thinking. Enjoy the journey.</p></div><span class="season-label">Home preview · 02</span></div>
-<div class="dashboard">
-<div class="main-column">
-<section class="hero" aria-labelledby="hero-title">
-<div class="hero-copy"><span class="pill">YOUR DAILY CHESS HABIT</span><h2 id="hero-title">One position.<br>A better player.</h2><p>Discover over 6 million puzzles.<br>Find the tactic, learn the idea, make it yours.</p><a class="button primary" data-tool="puzzles" href="https://www.caissa-chess.org/puzzles">Start training</a><a class="text-link" data-tool="play" href="https://www.caissa-chess.org/play">Or play a game</a></div>
-<div class="hero-position"><div class="board-wrap"><div class="mini-board hero-board" data-fen="6k1/5ppp/8/8/8/8/5PPP/4R1K1" role="img" aria-label="Back rank checkmate pattern: white rook on e1, white king on g1, black king on g8"></div></div><span class="position-caption">A familiar pattern. A sharper eye.</span></div>
-</section>
-<section class="feature-strip" aria-label="Explore CAISSA highlights"><a data-tool="puzzles" href="https://www.caissa-chess.org/puzzles"><strong>6M+</strong><span>Chess puzzles</span></a><a data-tool="endgames" href="https://www.caissa-chess.org/endgame-tablebase"><strong>Perfect play</strong><span>Syzygy endgames</span></a><a data-tool="analyze" href="https://www.caissa-chess.org/analyze"><strong>Your games</strong><span>Deeper understanding</span></a><a data-tool="arena" href="https://www.caissa-chess.org/arena"><strong>Engine Arena</strong><span>Watch ideas compete</span></a></section>
-<section id="recent" hidden aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">Recently opened</h2><button class="quiet-button" id="clear-recent" type="button">Clear</button></div><div id="recent-tools" class="recent-tools"></div></section>
-<section aria-labelledby="journey-title"><div class="section-heading"><h2 id="journey-title">Where will chess take you?</h2><span>Pick your next move</span></div>
-<div class="tool-grid">
-<a class="tool-card" data-tool="play" href="https://www.caissa-chess.org/play"><div class="tool-heading"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i><h3>Play</h3></div><div class="mini-board" data-fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" aria-hidden="true"></div><p>A new game.<br>A new possibility.</p><span class="card-action">Play chess</span></a>
-<a class="tool-card" data-tool="puzzles" href="https://www.caissa-chess.org/puzzles"><div class="tool-heading"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i><h3>Puzzles</h3></div><div class="mini-board" data-fen="6k1/5ppp/8/8/8/8/5PPP/4R1K1" aria-hidden="true"></div><p>Spot the tactic.<br>Build your instincts.</p><span class="card-action">Train tactics</span></a>
-<a class="tool-card" data-tool="analyze" href="https://www.caissa-chess.org/analyze"><div class="tool-heading"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><h3>Analyze</h3></div><div class="mini-board" data-fen="r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1" aria-hidden="true"></div><p>Revisit your moves.<br>See what mattered.</p><span class="card-action">Open analysis</span></a>
-<a class="tool-card" data-tool="endgames" href="https://www.caissa-chess.org/endgame-tablebase"><div class="tool-heading"><i class="fa-solid fa-chess-king" aria-hidden="true"></i><h3>Endgames</h3></div><div class="mini-board" data-fen="8/4k3/8/4K3/4P3/8/8/8" aria-hidden="true"></div><p>Fewer pieces.<br>Greater precision.</p><span class="card-action">Explore endings</span></a>
-</div></section>
-<section id="learn" aria-labelledby="learn-title"><div class="section-heading"><h2 id="learn-title">Learn & explore</h2><span>Follow your curiosity</span></div><div class="explore-grid"><a class="wide-card" data-tool="openings" href="https://www.caissa-chess.org/opening-database"><i class="fa-solid fa-book-open" aria-hidden="true"></i><div><h3>Find your opening</h3><p>Explore the lines and ideas behind your first moves.</p><span>Opening Database</span></div></a><a class="wide-card" href="https://www.caissa-chess.org/game-library"><i class="fa-solid fa-landmark" aria-hidden="true"></i><div><h3>Learn from the greats</h3><p>Discover games that made chess history.</p><span>Game Library</span></div></a></div></section>
-<section id="watch" aria-labelledby="watch-title"><div class="section-heading"><h2 id="watch-title">Take a seat. Watch chess.</h2></div><div class="watch-grid"><a data-tool="tv" class="watch-card" href="https://www.caissa-chess.org/spectator-tv"><i class="fa-solid fa-tv" aria-hidden="true"></i><h3>Chess TV</h3><p>A window into the game.</p><span>Open Chess TV</span></a><a data-tool="arena" class="watch-card" href="https://www.caissa-chess.org/arena"><i class="fa-solid fa-trophy" aria-hidden="true"></i><h3>Engine Arena</h3><p>Engines meet. Ideas collide.</p><span>Enter the arena</span></a><a class="watch-card" href="https://www.caissa-chess.org/fics"><i class="fa-solid fa-globe" aria-hidden="true"></i><h3>FICS</h3><p>Connect with a chess community.</p><span>Explore FICS</span></a></div></section>
-</div>
-<aside class="right-column" aria-label="Your journey and what's next">
-<section class="panel player-panel"><div class="panel-title"><h2>Your journey</h2><i class="fa-regular fa-user" aria-hidden="true"></i></div><div class="journey-mark" aria-hidden="true">♙</div><h3>Make it your own.</h3><p>Create a free account to save your puzzle rating and progress.</p><a class="button" href="https://www.caissa-chess.org/signup">Create your account</a><a class="subtle-link" href="https://www.caissa-chess.org/signin">Already a member? Sign in</a></section>
-<section class="panel chat-panel" aria-labelledby="chat-title"><div class="panel-title"><h2 id="chat-title">CAISSA Chat</h2><span class="pill muted">Coming next</span></div><span class="chat-queen" aria-hidden="true">♛</span><h3>A companion<br>for your chess.</h3><p>A place to ask questions, explore ideas and decide what to study next.</p><div class="chat-starters"><span>What should I train?</span><span>Explain the London System</span><span>Help me understand my game</span></div><p class="chat-note">Your next chapter in CAISSA.</p></section>
-<section class="panel"><div class="panel-title"><h2>Discover CAISSA</h2></div><a class="news-item" data-tool="puzzles" href="https://www.caissa-chess.org/puzzles"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i><div><h3>A world of tactics</h3><p>The full Lichess puzzle catalog, ready to explore.</p></div></a><a class="news-item" data-tool="endgames" href="https://www.caissa-chess.org/endgame-tablebase"><i class="fa-solid fa-chess-king" aria-hidden="true"></i><div><h3>Every move matters</h3><p>Discover the truth of a position with Syzygy.</p></div></a><a class="subtle-link" href="https://www.caissa-chess.org/blog">Read the CAISSA journal</a></section>
-</aside>
-</div>
-<footer><span>♛ CAISSA Chess</span><p>Play. Analyze. Train. Explore.</p><a href="https://www.caissa-chess.org/help">Need a hand?</a></footer>
-</main>
-</div>
-<nav class="mobile-nav" aria-label="Mobile navigation"><a href="/home.html" aria-current="page"><i class="fa-solid fa-house" aria-hidden="true"></i>Home</a><a data-tool="play" href="https://www.caissa-chess.org/play"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i>Play</a><a data-tool="puzzles" href="https://www.caissa-chess.org/puzzles"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>Puzzles</a><a href="#learn"><i class="fa-solid fa-book-open" aria-hidden="true"></i>Explore</a></nav>
-</body></html>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <aside class="sidebar" aria-label="Home navigation">
+    <a class="brand" href="/" aria-label="CAISSA Chess home">
+      <i class="fa-solid fa-chess-knight brand-knight" aria-hidden="true"></i>
+      <span>CAISSA<small>CHESS</small></span>
+    </a>
+    <p class="nav-caption">YOUR CHESS WORLD</p>
+    <nav>
+      <a class="active" href="/" aria-current="page"><i class="fa-solid fa-house" aria-hidden="true"></i>Home</a>
+      <a data-tool="play" href="/play"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i>Play</a>
+      <a data-tool="puzzles" href="/puzzles"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>Puzzles</a>
+      <a href="#learn"><i class="fa-solid fa-book-open" aria-hidden="true"></i>Learn & explore</a>
+      <a href="#watch"><i class="fa-solid fa-tv" aria-hidden="true"></i>Watch</a>
+      <div class="nav-divider"></div>
+      <a data-tool="analyze" href="/analyze"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Analyze</a>
+      <a data-tool="openings" href="/opening-database"><i class="fa-solid fa-book" aria-hidden="true"></i>Openings</a>
+      <a data-tool="endgames" href="/endgame-tablebase"><i class="fa-solid fa-chess-king" aria-hidden="true"></i>Endgames</a>
+      <a data-tool="arena" href="/arena"><i class="fa-solid fa-trophy" aria-hidden="true"></i>Engine Arena</a>
+      <div class="nav-divider"></div>
+      <a href="#all-tools"><i class="fa-solid fa-toolbox" aria-hidden="true"></i>All tools</a>
+      <a class="desktop-only" href="/yahoo-classic"><i class="fa-solid fa-chess-board" aria-hidden="true"></i>CAISSA Classic</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <span class="small-queen" aria-hidden="true">♛</span>
+      <p>A little chess.<br>A world of possibilities.</p>
+      <a href="/about">About CAISSA</a>
+    </div>
+  </aside>
+
+  <div class="shell">
+    <header class="topbar">
+      <a class="mobile-brand" href="/" aria-label="CAISSA Chess home"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i> CAISSA</a>
+      <span class="breadcrumb">Your chess world <span>/</span> Home</span>
+      <div class="account-links" id="topbar-account" aria-live="polite">
+        <span class="account-loading">Checking account…</span>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">MAKE YOUR NEXT MOVE</p>
+          <h1>Welcome to CAISSA.</h1>
+          <p>Find your game. Sharpen your thinking. Enjoy the journey.</p>
+        </div>
+        <span class="season-label">Home · 2026 season</span>
+      </div>
+
+      <div class="dashboard">
+        <div class="main-column">
+          <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+              <span class="pill">YOUR DAILY CHESS HABIT</span>
+              <h2 id="hero-title">One position.<br>A better player.</h2>
+              <p>Discover over 6 million puzzles.<br>Find the tactic, learn the idea, make it yours.</p>
+              <a class="button primary" data-tool="puzzles" href="/puzzles">Start training</a>
+              <a class="text-link" data-tool="play" href="/play">Or play a game</a>
+            </div>
+            <div class="hero-position">
+              <div class="board-wrap">
+                <div class="mini-board hero-board" data-fen="6k1/5ppp/8/8/8/8/5PPP/4R1K1" role="img" aria-label="Back rank checkmate pattern: white rook on e1, white king on g1, black king on g8"></div>
+              </div>
+              <span class="position-caption">A familiar pattern. A sharper eye.</span>
+            </div>
+          </section>
+
+          <section class="feature-strip" aria-label="Explore CAISSA highlights">
+            <a data-tool="puzzles" href="/puzzles"><strong>6M+</strong><span>Chess puzzles</span></a>
+            <a data-tool="endgames" href="/endgame-tablebase"><strong>Perfect play</strong><span>Syzygy endgames</span></a>
+            <a data-tool="analyze" href="/analyze"><strong>Your games</strong><span>Deeper understanding</span></a>
+            <a data-tool="arena" href="/arena"><strong>Engine Arena</strong><span>Watch ideas compete</span></a>
+          </section>
+
+          <section id="recent" hidden aria-labelledby="recent-title">
+            <div class="section-heading">
+              <h2 id="recent-title">Recently opened</h2>
+              <button class="quiet-button" id="clear-recent" type="button">Clear</button>
+            </div>
+            <div id="recent-tools" class="recent-tools"></div>
+          </section>
+
+          <section aria-labelledby="journey-title">
+            <div class="section-heading">
+              <h2 id="journey-title">Where will chess take you?</h2>
+              <span>Pick your next move</span>
+            </div>
+            <div class="tool-grid">
+              <a class="tool-card" data-tool="play" href="/play">
+                <div class="tool-heading"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i><h3>Play</h3></div>
+                <div class="mini-board" data-fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" aria-hidden="true"></div>
+                <p>A new game.<br>A new possibility.</p><span class="card-action">Play chess</span>
+              </a>
+              <a class="tool-card" data-tool="puzzles" href="/puzzles">
+                <div class="tool-heading"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i><h3>Puzzles</h3></div>
+                <div class="mini-board" data-fen="6k1/5ppp/8/8/8/8/5PPP/4R1K1" aria-hidden="true"></div>
+                <p>Spot the tactic.<br>Build your instincts.</p><span class="card-action">Train tactics</span>
+              </a>
+              <a class="tool-card" data-tool="analyze" href="/analyze">
+                <div class="tool-heading"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><h3>Analyze</h3></div>
+                <div class="mini-board" data-fen="r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1" aria-hidden="true"></div>
+                <p>Revisit your moves.<br>See what mattered.</p><span class="card-action">Open analysis</span>
+              </a>
+              <a class="tool-card" data-tool="endgames" href="/endgame-tablebase">
+                <div class="tool-heading"><i class="fa-solid fa-chess-king" aria-hidden="true"></i><h3>Endgames</h3></div>
+                <div class="mini-board" data-fen="8/4k3/8/4K3/4P3/8/8/8" aria-hidden="true"></div>
+                <p>Fewer pieces.<br>Greater precision.</p><span class="card-action">Explore endings</span>
+              </a>
+            </div>
+          </section>
+
+          <section id="learn" aria-labelledby="learn-title">
+            <div class="section-heading"><h2 id="learn-title">Learn & explore</h2><span>Follow your curiosity</span></div>
+            <div class="explore-grid">
+              <a class="wide-card" data-tool="openings" href="/opening-database"><i class="fa-solid fa-book-open" aria-hidden="true"></i><div><h3>Find your opening</h3><p>Explore the lines and ideas behind your first moves.</p><span>Opening Database</span></div></a>
+              <a class="wide-card" href="/game-library"><i class="fa-solid fa-landmark" aria-hidden="true"></i><div><h3>Learn from the greats</h3><p>Discover games that made chess history.</p><span>Game Library</span></div></a>
+            </div>
+          </section>
+
+          <section id="watch" aria-labelledby="watch-title">
+            <div class="section-heading"><h2 id="watch-title">Take a seat. Watch chess.</h2></div>
+            <div class="watch-grid">
+              <a data-tool="tv" class="watch-card" href="/spectator-tv"><i class="fa-solid fa-tv" aria-hidden="true"></i><h3>Chess TV</h3><p>A window into the game.</p><span>Open Chess TV</span></a>
+              <a data-tool="arena" class="watch-card" href="/arena"><i class="fa-solid fa-trophy" aria-hidden="true"></i><h3>Engine Arena</h3><p>Engines meet. Ideas collide.</p><span>Enter the arena</span></a>
+              <a class="watch-card" href="/fics"><i class="fa-solid fa-globe" aria-hidden="true"></i><h3>FICS</h3><p>Connect with a chess community.</p><span>Explore FICS</span></a>
+            </div>
+          </section>
+
+          <section id="all-tools" aria-labelledby="all-tools-title">
+            <div class="section-heading">
+              <h2 id="all-tools-title">All tools</h2>
+              <span>Every current CAISSA destination</span>
+            </div>
+            <div class="all-tools-groups" id="all-tools-groups"></div>
+          </section>
+        </div>
+
+        <aside class="right-column" aria-label="Your journey and what's next">
+          <section class="panel player-panel" id="account-panel" aria-labelledby="account-title" aria-busy="true">
+            <div class="panel-title"><h2 id="account-title">Your journey</h2><i class="fa-regular fa-user" aria-hidden="true"></i></div>
+            <div id="account-content" aria-live="polite">
+              <div class="journey-mark" aria-hidden="true">♙</div>
+              <h3>Loading your account…</h3>
+              <p>Checking for a CAISSA session.</p>
+            </div>
+          </section>
+
+          <section class="panel chat-panel" aria-labelledby="chat-title">
+            <div class="panel-title"><h2 id="chat-title">CAISSA Chat</h2><span class="pill muted">Coming next</span></div>
+            <span class="chat-queen" aria-hidden="true">♛</span>
+            <h3>A companion<br>for your chess.</h3>
+            <p>A place to ask questions, explore ideas and decide what to study next.</p>
+            <div class="chat-starters" aria-hidden="true"><span>What should I train?</span><span>Explain the London System</span><span>Help me understand my game</span></div>
+            <p class="chat-note">Your next chapter in CAISSA.</p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title"><h2>Discover CAISSA</h2></div>
+            <a class="news-item" data-tool="puzzles" href="/puzzles"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i><div><h3>A world of tactics</h3><p>The full Lichess puzzle catalog, ready to explore.</p></div></a>
+            <a class="news-item" data-tool="endgames" href="/endgame-tablebase"><i class="fa-solid fa-chess-king" aria-hidden="true"></i><div><h3>Every move matters</h3><p>Discover the truth of a position with Syzygy.</p></div></a>
+            <a class="subtle-link" href="/blog">Read the CAISSA journal</a>
+          </section>
+        </aside>
+      </div>
+
+      <footer><span>♛ CAISSA Chess</span><p>Play. Analyze. Train. Explore.</p><a href="/help">Need a hand?</a></footer>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Mobile navigation">
+    <a href="/" aria-current="page"><i class="fa-solid fa-house" aria-hidden="true"></i>Home</a>
+    <a data-tool="play" href="/play"><i class="fa-solid fa-chess-knight" aria-hidden="true"></i>Play</a>
+    <a data-tool="puzzles" href="/puzzles"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>Puzzles</a>
+    <a href="#all-tools"><i class="fa-solid fa-toolbox" aria-hidden="true"></i>All tools</a>
+  </nav>
+</body>
+</html>
+

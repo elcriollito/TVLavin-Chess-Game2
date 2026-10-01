@@ -115,15 +115,15 @@ test('Help is first-class and legacy Settings opens contextual Play options', ()
   assert.match(navigation, /document\.getElementById\('menuModal'\)/);
 });
 
-test('explicit section routing remains ahead of the Classic default', () => {
+test('explicit legacy section routing remains ahead of the Home default', () => {
   const navigation = read('js/caissa-navigation.js');
   const explicit = navigation.indexOf("urlParams.has('section')");
   const fallback = navigation.indexOf("|| 'yahooClassic'", explicit);
   assert.ok(explicit >= 0 && fallback > explicit);
   const middleware = read('middleware.js');
   const classicRedirect = middleware.indexOf("searchParams.get('section') === 'yahooClassic'");
-  const playRedirect = middleware.indexOf("new URL('/play', url)");
-  assert.ok(classicRedirect >= 0 && playRedirect > classicRedirect);
+  const homeYield = middleware.indexOf('return undefined;', classicRedirect);
+  assert.ok(classicRedirect >= 0 && homeYield > classicRedirect);
 });
 
 test('all standalone shell pages load the canonical source before the renderer', () => {

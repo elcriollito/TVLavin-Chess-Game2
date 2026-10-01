@@ -68,7 +68,12 @@ export default function middleware(request) {
         if (url.searchParams.get('section') === 'yahooClassic') {
             return Response.redirect(new URL('/yahoo-classic', url), 308);
         }
-        return Response.redirect(new URL('/play', url), 308);
+        if (url.searchParams.get('action') === 'help') {
+            return Response.redirect(new URL('/help', url), 308);
+        }
+        // Let the Vercel root rewrite serve home.html. Query parameters remain
+        // available to the Home and no new permanent redirect is cached.
+        return undefined;
     }
     let decodedPath = url.pathname;
     try { decodedPath = decodeURIComponent(decodedPath); } catch (_) { /* malformed paths remain fail-closed */ }

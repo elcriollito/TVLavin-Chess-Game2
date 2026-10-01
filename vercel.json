@@ -34,7 +34,6 @@
     }
   ],
   "redirects": [
-    { "source": "/", "destination": "/play", "permanent": true },
     { "source": "/blog/", "destination": "/blog", "permanent": true },
     { "source": "/blog/:slug/", "destination": "/blog/:slug", "permanent": true },
     { "source": "/yahoo-classic/", "destination": "/yahoo-classic", "permanent": true },
@@ -52,6 +51,7 @@
     { "source": "/watch/lichess-broadcasts/", "destination": "/watch/live-tournaments", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/", "destination": "/home.html" },
     { "source": "/beta", "destination": "/api/beta/page" },
     { "source": "/beta/", "destination": "/api/beta/page" },
     { "source": "/scanner/beta", "destination": "/api/beta/scanner" },
@@ -132,6 +132,13 @@
     { "source": "/favicon-test.html", "destination": "/public/favicon-test.html" }
   ],
   "headers": [
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, no-store, max-age=0, must-revalidate" },
+        { "key": "Vercel-CDN-Cache-Control", "value": "max-age=0" }
+      ]
+    },
     {
       "source": "/beta/:path*",
       "headers": [

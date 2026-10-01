@@ -21,7 +21,7 @@ for (const [route, label] of gateways) {
     ]);
     await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
     await expect(nav.locator('[aria-current="page"]')).toHaveText(label);
-    await expect(page.getByRole('link', { name: 'CAISSA Chess — return to Play', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'CAISSA Chess — return home', exact: true })).toBeVisible();
     await expect(page.locator('#sidebarSignIn')).toHaveAttribute('href', /^\/signin(?:\?redirect_url=|$)/);
     await expect(page.locator('.nav-premium-btn')).toHaveText(/Premium/);
     expect(await nav.evaluate(element => Math.round(element.getBoundingClientRect().width))).toBe(240);
@@ -109,10 +109,10 @@ test('Interactive Diagrams routes are unsupported and do not redirect', async ({
   }
 });
 
-test('representative product routes keep the shared sidebar usable', async ({ page }) => {
+test('representative tool routes keep the shared sidebar usable', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const route of [
-    '/', '/play/games', '/play/bots', '/play/coach', '/analyze', '/puzzles',
+    '/play/games', '/play/bots', '/play/coach', '/analyze', '/puzzles',
     '/arena', '/fics', '/yahoo-classic', '/game-library'
   ]) {
     await page.goto(route, { waitUntil: 'domcontentloaded' });
@@ -145,7 +145,7 @@ test('shared mobile drawer is inert when closed and returns focus after Escape a
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(nav).not.toHaveAttribute('inert', '');
   await expect(nav).not.toHaveAttribute('aria-hidden', 'true');
-  await expect(page.getByRole('link', { name: 'CAISSA Chess — return to Play', exact: true })).toBeFocused();
+  await expect(page.getByRole('link', { name: 'CAISSA Chess — return home', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(toggle).toBeFocused();
   await expect(nav).toHaveAttribute('inert', '');

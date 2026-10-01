@@ -1,11 +1,12 @@
 # CAISSA Public Route and Navigation Inventory
 
-Contract: `CaissaPublicRouteInventory@1.0.0`
+Contract: `CaissaPublicRouteInventory@1.1.0`
 
 This document and [the machine-readable inventory](../../config/caissa-public-route-inventory.json) are generated deterministically from the routing and navigation owners. Do not edit either output manually.
 
 ## Sources of truth
 
+- `home.html`
 - `js/caissa-primary-navigation.js`
 - `js/play/play-route-controller.js`
 - `middleware.js`
@@ -17,9 +18,9 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 - Primary navigation entries: 34
 - Internal primary pages: 30
-- Public canonical routes not in primary navigation: 12
+- Public canonical routes not in primary navigation: 13
 - External destinations: 4
-- Redirects: 16
+- Redirects: 15
 - Protected route families: 5
 - Total inventoried records: 67
 
@@ -66,6 +67,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 | Label | Canonical path | Owner | Status |
 | --- | --- | --- | --- |
+| CAISSA Home | / | home.html, vercel.json and server.js | public |
 | What Is A Polyglot Opening Book | /blog/what-is-a-polyglot-opening-book | public/sitemap.xml | public |
 | Who Is Caissa Goddess Of Chess | /blog/who-is-caissa-goddess-of-chess | public/sitemap.xml | public |
 | Yahoo Chess Spirit Caissa Classic | /blog/yahoo-chess-spirit-caissa-classic | public/sitemap.xml | public |
@@ -83,7 +85,6 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 | From | To | Status | Owner |
 | --- | --- | --- | --- |
-| / | /play | 308 | vercel.json and middleware |
 | /blog/ | /blog | 308 | vercel.json and middleware |
 | /blog/:slug/ | /blog/:slug | 308 | vercel.json and middleware |
 | /yahoo-classic/ | /yahoo-classic | 308 | vercel.json and middleware |
