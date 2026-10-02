@@ -135,7 +135,11 @@
         body.insertBefore(local, form); body.insertBefore(auth, form); body.insertBefore(authenticated, form);
         pageHost.appendChild(panel);
         const footer = document.getElementById('chat-footer');
-        if (footer) { footer.append(mode, auth, authenticated, form); local.hidden = true; }
+        if (footer) {
+            const notice = document.querySelector('[data-caissa-mentor-page-notice]');
+            (notice || footer).append(mode, auth, authenticated);
+            footer.append(form); local.hidden = true;
+        }
         setOpen(true);
     } else { stack.prepend(launcher); document.body.appendChild(panel); }
     renderContext();

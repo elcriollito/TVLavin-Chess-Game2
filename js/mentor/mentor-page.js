@@ -1,3 +1,4 @@
+import { moveRows, createStudyAnalysis, evaluationLabel } from './mentor-moves.js';
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { create } from '../board/caissa-board-adapter.js';
 import { prepareLesson } from './mentor-lessons.js';
@@ -23,6 +24,16 @@ let importedGameIndex = 0;
 let importSource = 'online';
 let pgnImporting = false;
 let studyRevision = 0;
+let analysisLesson = null;
+let analysisDepth = null;
+let evaluations = [];
+let analysisRunning = false;
+let analysisRequest = 0;
+const studyAnalysis = createStudyAnalysis(() => {
+    const config = window.EngineRegistry?.getArenaProvider('stockfish-19-lite');
+    if (!config?.enabled || !window.EngineAdapter) throw new Error('Stockfish 19 is unavailable.');
+    return new window.EngineAdapter({ ...config, autoStart: false, owner: 'mentor-study', requireRuntimeIdentity: true });
+});
 const board = create($('mentor-board'), {
     position: game.fen(), animation: false, label: 'CAISSA Mentor study board',
     onDragStart: square => game.get(square)?.color === game.turn(),
@@ -31,6 +42,11 @@ const board = create($('mentor-board'), {
 
 function sync() {
     studyRevision++;
+    if (analysisLesson !== lesson) {
+        analysisRequest++; studyAnalysis.cancel(); analysisLesson = lesson; evaluations = []; analysisDepth = null; analysisRunning = false;
+        $('study-engine').textContent = 'Engine';
+        $('engine-status').textContent = 'Use Engine to analyse this line. No evaluation has been calculated.';
+    }
     board.setPosition(game.fen(), { animate: false });
     board.clearSelection();
     $('mentor-board').dataset.fen = game.fen();
@@ -40,8 +56,6 @@ function sync() {
     $('lesson-title').textContent = lesson.title;
     $('lesson-category').textContent = lesson.category;
     $('lesson-instruction').textContent = practicing ? 'Explore legal moves. Repeat returns to the lesson.' : lesson.notes[cursor];
-    $('previous').disabled = practicing || cursor === 0;
-    $('next').disabled = practicing || cursor === lesson.moves.length;
     $('practice').textContent = practicing ? 'Return to lesson' : 'Try it yourself';
     const notation = $('lesson-notation'); notation.replaceChildren();
     if (lesson.id.startsWith('pgn-')) {
@@ -94,8 +108,6 @@ function attempt({ from, to, promotion }) {
         $('move-status').textContent = `${move.san} · ${game.isCheckmate() ? 'Checkmate.' : game.isStalemate() ? 'Stalemate.' : game.isCheck() ? 'Check.' : `${game.turn() === 'w' ? 'White' : 'Black'} to move.`}`;
     }
 }
-$('previous').addEventListener('click', () => show(cursor - 1));
-$('next').addEventListener('click', () => show(cursor + 1));
 $('repeat').addEventListener('click', () => show(0));
 $('flip').addEventListener('click', () => board.setOrientation(board.getOrientation() === 'white' ? 'black' : 'white'));
 $('practice').addEventListener('click', () => { if (practicing) show(cursor); else { practicing = true; sync(); } });
@@ -104,26 +116,84 @@ const tabs = [...document.querySelectorAll('[role=tab]')];
 function renderLearnGame() {
     const active = importedGames.length > 0 && lesson === importedGames[importedGameIndex];
     $('learn-game').hidden = !importedGames.length;
-    $('learn-lessons').hidden = active;
+    $('learn-lessons').hidden = false;
     const select = $('learn-game-select'); select.replaceChildren();
     importedGames.forEach((item, index) => {
         const option = document.createElement('option'); option.value = String(index);
         option.textContent = `${index + 1}. ${item.title} · ${item.result}`; select.append(option);
     });
     select.value = String(importedGameIndex);
-    $('learn-game-meta').textContent = active ? `${lesson.title} · ${lesson.result}${lesson.date ? ` · ${lesson.date}` : ''}` : 'Choose an imported game to return to its main line.';
-    $('learn-game-position').textContent = active ? practicing ? 'Exploring an alternative. Return to the game to replay its main line.' : `Position ${cursor} of ${lesson.moves.length} half-moves` : '';
-    $('game-first').disabled = $('game-previous').disabled = !active || practicing || cursor === 0;
-    $('game-next').disabled = $('game-last').disabled = !active || practicing || cursor === lesson.moves.length;
+    const knownDate = lesson.date && lesson.date !== '????.??.??' ? lesson.date : null;
+    $('learn-game-meta').textContent = active ? `${lesson.title} · ${lesson.result}${knownDate ? ` · ${knownDate}` : ''}` : 'Choose an imported game to return to its main line.';
+    $('learn-game-position').textContent = practicing ? 'Exploring an alternative. Repeat returns to the main line.' : `Position ${cursor} of ${lesson.moves.length} half-moves`;
+    $('game-first').disabled = $('game-previous').disabled = practicing || cursor === 0;
+    $('game-next').disabled = $('game-last').disabled = practicing || cursor === lesson.moves.length;
     $('game-review').disabled = !active;
     const list = $('learn-game-moves'); list.replaceChildren();
-    if (!active) return;
-    lesson.moves.forEach((move, index) => {
-        const button = document.createElement('button'); button.type = 'button'; button.textContent = moveLabel(lesson, index);
-        if (!practicing && cursor === index + 1) button.setAttribute('aria-current', 'step');
-        button.addEventListener('click', () => show(index + 1)); list.append(button);
+    for (const row of moveRows(lesson)) {
+        const line = document.createElement('div'); line.className = 'move-row';
+        const number = document.createElement('span'); number.textContent = `${row.number}.`; line.append(number);
+        for (const index of [row.white, row.black]) {
+            if (index === null) { const empty = document.createElement('span'); line.append(empty); continue; }
+            const button = document.createElement('button'); button.type = 'button';
+            button.textContent = lesson.moves[index].san;
+            button.setAttribute('aria-label', `Show position after ${moveLabel(lesson, index)}`);
+            if (!practicing && cursor === index + 1) button.setAttribute('aria-current', 'step');
+            button.addEventListener('click', () => show(index + 1)); line.append(button);
+        }
+        list.append(line);
+    }
+    renderEvaluation();
+}
+
+function renderEvaluation() {
+    const chart = $('evaluation-chart'); chart.replaceChildren();
+    if (!evaluations.some(Boolean)) { chart.textContent = 'Evaluation timeline · Not analysed'; return; }
+    evaluations.forEach((evaluation, index) => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'evaluation-point';
+        button.disabled = !evaluation;
+        const label = evaluation ? evaluationLabel(evaluation) : 'Pending';
+        button.setAttribute('aria-label', `Position ${index}: ${label}`); button.title = `Position ${index}: ${label}`;
+        if (index === cursor && !practicing) button.setAttribute('aria-current', 'step');
+        if (evaluation) {
+            const value = evaluation.mate !== null ? (evaluation.mate < 0 || Object.is(evaluation.mate, -0) ? -8 : 8) : Math.max(-8, Math.min(8, evaluation.score));
+            button.style.setProperty('--evaluation-height', `${Math.abs(value) / 8 * 44}%`);
+            button.dataset.side = value === 0 ? 'neutral' : value < 0 ? 'black' : 'white';
+        }
+        button.addEventListener('click', () => show(index)); chart.append(button);
     });
 }
+
+$('study-engine').addEventListener('click', async () => {
+    if (analysisRunning) {
+        analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine';
+        $('engine-status').textContent = 'Analysis stopped. Completed evaluations remain available.'; return;
+    }
+    if (pendingPromotion || practicing) {
+        selectTab($('tab-moves')); $('engine-status').textContent = 'Return to the main line and finish promotion before analysing.'; return;
+    }
+    const request = ++analysisRequest;
+    const target = lesson, depth = Number($('engine-depth').value) || 12;
+    if (analysisDepth !== depth) evaluations = [];
+    evaluations = Array.from({ length: target.positions.length }, (_, index) => evaluations[index] || null);
+    analysisDepth = depth; analysisRunning = true; $('study-engine').textContent = 'Stop engine'; selectTab($('tab-moves'));
+    try {
+        await studyAnalysis.run(target.positions, depth, (evaluation, index) => {
+            if (lesson !== target || request !== analysisRequest) return;
+            evaluations[index] = evaluation; renderEvaluation();
+            $('engine-status').textContent = `Stockfish 19 · Depth ${depth} · ${index + 1}/${target.positions.length} positions · White perspective`;
+        });
+        if (lesson === target && request === analysisRequest && analysisRunning) $('engine-status').textContent = `Stockfish 19 · Depth ${depth} · Analysis complete · White perspective`;
+    } catch (error) {
+        if (lesson === target && request === analysisRequest && analysisRunning) $('engine-status').textContent = `Analysis unavailable: ${error.message}`;
+    } finally {
+        if (lesson === target && request === analysisRequest && studyAnalysis.isIdle()) { analysisRunning = false; $('study-engine').textContent = 'Engine'; }
+    }
+});
+$('study-settings').addEventListener('click', () => $('study-settings-dialog').showModal());
+$('settings-close').addEventListener('click', () => { $('study-settings-dialog').close(); $('study-settings').focus(); });
+$('settings-flip').addEventListener('click', () => board.setOrientation(board.getOrientation() === 'white' ? 'black' : 'white'));
+window.addEventListener('pagehide', () => { analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine'; });
 function selectImportedGame(index) {
     if (!Number.isInteger(index) || !importedGames[index] || pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) return false;
     importedGameIndex = index; lesson = importedGames[index];
@@ -144,9 +214,12 @@ $('game-review').addEventListener('click', () => {
     const input = document.querySelector('.caissa-mentor-shell__form textarea');
     if (document.querySelector('.caissa-mentor-shell__form button').disabled) { $('learn-game-position').textContent = 'Wait for the current Mentor reply.'; return; }
     if (input.value.trim()) { $('learn-game-position').textContent = 'Send or clear your Chat draft before preparing a game review.'; return; }
-    input.value = gameReviewPrompt(lesson, cursor, game.fen()); selectTab($('tab-chat'));
+    const evidence = practicing ? null : evaluations[cursor];
+    input.value = gameReviewPrompt(lesson, cursor, game.fen());
+    if (evidence) input.value = input.value.replace('We have not run engine analysis:', `Local Stockfish 19 evaluated the selected position at ${evaluationLabel(evidence)}, from White’s perspective. Other positions may still be unanalysed:`);
+    selectTab($('tab-chat'));
     $('chat-suggestions').hidden = true;
-    window.CaissaMentorFloatingShell?.appendStudyMessage(`Your game ${lesson.title} is ready to discuss. I’ve prepared its moves and the selected position in your review question. Send it when you’re ready. No engine review has been calculated.`);
+    window.CaissaMentorFloatingShell?.appendStudyMessage(`Your game ${lesson.title} is ready to discuss. I’ve prepared its moves and the selected position in your review question. Send it when you’re ready. ${evidence ? 'The selected position’s local Stockfish evaluation is included.' : 'No engine evaluation is available for the selected position.'}`);
     input.focus({ preventScroll: true });
 });
 function renderOpenings() {
@@ -263,6 +336,7 @@ function selectTab(tab) {
     selectedTab = tab.id.replace('tab-', '');
     tabs.forEach(item => { const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; $(item.getAttribute('aria-controls')).hidden = !selected; });
     $('chat-footer').hidden = selectedTab !== 'chat';
+    $('learn-footer').hidden = selectedTab !== 'learn';
     if (selectedTab === 'openings') ensureOpenings();
     presentIdea();
 }
@@ -307,7 +381,7 @@ function selectImportSource(source) {
     $('account-source-pgn').setAttribute('aria-pressed', String(!online));
     $('account-import-submit').textContent = online ? 'Fetch & Analyze Games' : 'Load PGN Games';
     $('account-import-submit').disabled = online || pgnImporting;
-    $('account-status').textContent = online ? 'Online import is not connected yet. Use Local PGN to study a completed game.' : 'Load a completed PGN into Learn. Loading and move navigation use no AI credits.';
+    $('account-status').textContent = online ? 'Online import is not connected yet. Use Local PGN to study a completed game.' : 'Load a completed PGN into Moves. Loading and move navigation use no AI credits.';
 }
 $('account-source-online').addEventListener('click', () => selectImportSource('online'));
 $('account-source-pgn').addEventListener('click', () => selectImportSource('pgn'));
@@ -326,8 +400,8 @@ $('account-form').addEventListener('submit', async event => {
         // Recheck after asynchronous file reads. Do not replace a board during another action.
         if (importRevision !== studyRevision || pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) throw new Error('The study position changed or a reply started. Load the PGN again when ready.');
         importedGames = candidate; importedGameIndex = 0; selectImportedGame(0);
-        selectTab($('tab-learn')); $('tab-learn').focus({ preventScroll: true });
-        $('account-status').textContent = `${candidate.length} completed game${candidate.length === 1 ? '' : 's'} loaded into Learn. No engine analysis or AI request has run.`;
+        selectTab($('tab-moves')); $('tab-moves').focus({ preventScroll: true });
+        $('account-status').textContent = `${candidate.length} completed game${candidate.length === 1 ? '' : 's'} loaded into Moves. No engine analysis or AI request has run.`;
     } catch (error) { $('account-status').textContent = error.message; }
     finally { pgnImporting = false; $('account-import-submit').disabled = importSource === 'online'; }
 });
