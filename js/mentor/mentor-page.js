@@ -1,3 +1,4 @@
+import { createOpeningTraining } from './mentor-opening-training.js';
 import { mountExplorer } from './mentor-explorer-view.js';
 import { mountMemoryTraining } from './mentor-memory-view.js';
 import { moveRows, createStudyAnalysis, evaluationLabel } from './mentor-moves.js';
@@ -14,6 +15,9 @@ let lesson = prepareLesson('development');
 let cursor = 0;
 let practicing = false;
 let selectedTab = 'chat';
+const openingTraining = createOpeningTraining();
+let openingSource = null;
+let openingControls = new Map();
 let insightOwner = null;
 let preparedIdeaPrompt = null;
 const insights = createMentorInsights();
@@ -39,14 +43,17 @@ const studyAnalysis = createStudyAnalysis(() => {
 });
 const board = create($('mentor-board'), {
     position: game.fen(), animation: false, label: 'CAISSA Mentor study board',
-    onDragStart: square => !memoryTraining.isActive() && game.get(square)?.color === game.turn(),
+    onDragStart: square => !memoryTraining.isActive() && (!openingSource || openingTraining.read().phase === 'guess') && game.get(square)?.color === game.turn(),
     onMoveAttempt: move => attempt(move)
 });
 
 let memoryNotification = null;
 const memoryTraining = mountMemoryTraining({ board, document,
     isTrainingVisible: () => selectedTab === 'learn',
-    getOpeningPosition: () => (lesson.id.startsWith('eco-') || ['london','sicilian','development'].includes(lesson.id)) ? {id:lesson.id+'-'+cursor,fen:game.fen(),source:'opening-study'} : null,
+    onContextChange: next => {
+        if (next !== 'opening') stopOpeningTraining();
+        $('opening-training-footer').hidden = selectedTab !== 'learn' || next !== 'opening';
+    },
     restoreStudy: () => sync(),
     onStart: () => {
         if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
@@ -91,7 +98,197 @@ for(const [index,key] of ['eco','explorer'].entries()){
 }
 $('moves-explorer').addEventListener('click',()=>{openingTool='explorer';selectTab($('tab-openings'));selectOpeningTool('explorer');});
 
+function captureStudyPath() {
+    const history = game.history({ verbose: true });
+    return Object.freeze({
+        rootFen: history[0]?.before || game.fen(),
+        title: lesson.title,
+        source: 'explorer',
+        moves: Object.freeze(history.map(move => Object.freeze({
+            from: move.from,
+            to: move.to,
+            promotion: move.promotion || null
+        }))),
+        cursor,
+        practicing
+    });
+}
+
+function activateOpeningTraining() {
+    if (openingSource) return true;
+    if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) return false;
+    openingSource = captureStudyPath();
+    openingControls = new Map(['study-engine', 'game-review', 'repeat', 'game-first', 'game-previous', 'game-next', 'game-last']
+        .map(id => [id, $(id).disabled]));
+    analysisRequest++;
+    studyAnalysis.cancel();
+    analysisRunning = false;
+    $('study-engine').textContent = 'Engine';
+    studyRevision++;
+    window.CaissaMentorFloatingShell?.clearContext();
+    explorer.setVisible(false);
+    return true;
+}
+
+function stopOpeningTraining() {
+    if (!openingSource) return;
+    const source = openingSource;
+    openingSource = null;
+    pendingPromotion = null;
+    if ($('promotion-dialog').open) $('promotion-dialog').close();
+    game.load(source.rootFen);
+    for (const move of source.moves) game.move({ from: move.from, to: move.to, promotion: move.promotion || undefined });
+    cursor = source.cursor;
+    practicing = source.practicing;
+    openingTraining.study();
+    for (const [id, value] of openingControls) $(id).disabled = value;
+    openingControls.clear();
+    board.setInteractive(true);
+    sync();
+    renderOpeningTraining();
+}
+
+function renderOpeningTraining() {
+    const state = openingTraining.read(), loaded = state.phase !== 'empty';
+    $('opening-training-title').textContent = loaded ? state.title : 'Load an opening in Opening, then choose Send to Training Opening.';
+    const notation = $('opening-training-notation');
+    notation.replaceChildren();
+    for (const [index, move] of state.visibleMoves.entries()) {
+        const node = document.createElement(state.phase === 'study' ? 'button' : 'span');
+        const fields = move.before.split(' ');
+        node.textContent = `${fields[5]}${move.color === 'w' ? '.' : '...'} ${move.san}`;
+        if (state.phase === 'study') {
+            node.type = 'button';
+            node.setAttribute('aria-label', `Study ${move.san}`);
+            node.addEventListener('click', () => previewOpeningMove(index + 1));
+        }
+        notation.append(node);
+    }
+    if (loaded && state.phase !== 'study' && state.step < state.total) {
+        const masked = document.createElement('span');
+        masked.textContent = `${state.total - state.step} moves hidden`;
+        notation.append(masked);
+    }
+    const status = $('opening-training-status');
+    status.textContent = state.feedback?.text || (state.phase === 'guess'
+        ? `Guess ${game.turn() === 'w' ? 'White' : 'Black'}’s move. Opponent moves are played automatically.`
+        : loaded ? 'Study the line, choose a side, then Guess the move.' : '');
+    status.dataset.kind = state.feedback?.kind || '';
+    $('opening-training-side').disabled = Boolean(openingSource && state.phase !== 'study' && state.phase !== 'complete');
+    $('opening-training-start').disabled = !loaded;
+    $('opening-training-start').hidden = loaded && !['study', 'complete'].includes(state.phase);
+    $('opening-training-start').textContent = state.phase === 'complete' ? 'Practise again' : 'Guess the move';
+    $('opening-training-retry').hidden = state.feedback?.kind !== 'wrong';
+    $('opening-training-next').hidden = state.phase !== 'next';
+    $('opening-training-return').disabled = !openingSource;
+    $('opening-training-footer').hidden = selectedTab !== 'learn' || memoryTraining.context() !== 'opening';
+    if (!openingSource) return;
+    board.setPosition(game.fen(), { animate: false });
+    board.clearSelection();
+    board.setInteractive(state.phase === 'guess');
+    $('mentor-board').dataset.fen = game.fen();
+    $('mentor-board').dataset.lesson = 'opening-practice';
+    $('lesson-title').textContent = state.title;
+    $('lesson-category').textContent = 'OPENING PRACTICE';
+    $('position-evaluation').textContent = 'Opening practice · Not analysed';
+    for (const id of ['lesson-notation', 'learn-game-moves', 'evaluation-chart']) $(id).replaceChildren();
+    $('lesson-instruction').textContent = '';
+    $('move-status').textContent = '';
+    window.CaissaMentorFloatingShell?.clearContext();
+    $('study-engine').disabled = $('game-review').disabled = $('repeat').disabled = true;
+    const index = state.previewIndex;
+    for (const [id, disabled] of [
+        ['game-first', index === 0],
+        ['game-previous', index === 0],
+        ['game-next', index === state.total],
+        ['game-last', index === state.total]
+    ]) $(id).disabled = state.phase !== 'study' || disabled;
+}
+
+function previewOpeningMove(index) {
+    if (openingTraining.read().phase !== 'study' || !activateOpeningTraining()) return;
+    const moves = openingTraining.preview(index);
+    game.load(openingTraining.read().rootFen);
+    for (const move of moves) game.move({ from: move.from, to: move.to, promotion: move.promotion || undefined });
+    renderOpeningTraining();
+}
+
+function automaticOpeningMoves() {
+    let move;
+    while ((move = openingTraining.automatic())) {
+        game.move({ from: move.from, to: move.to, promotion: move.promotion || undefined });
+    }
+    renderOpeningTraining();
+}
+
+function sendToOpeningTraining() {
+    if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
+        $('opening-send-status').textContent = 'Finish the current promotion or Mentor reply first.';
+        return;
+    }
+    stopOpeningTraining();
+    memoryTraining.stop();
+    const path = captureStudyPath();
+    const snapshot = openingTool === 'eco' && lesson.id.startsWith('eco-')
+        ? { rootFen: lesson.positions[0], moves: lesson.moves, title: lesson.title, source: 'eco' }
+        : openingTool === 'explorer' ? path : null;
+    try {
+        if (!snapshot) throw new Error('Choose an ECO opening first.');
+        openingTraining.load(snapshot, path.moves.length);
+        selectTab($('tab-learn'));
+        memoryTraining.selectContext('opening');
+        activateOpeningTraining();
+        previewOpeningMove(openingTraining.read().previewIndex);
+        renderOpeningTraining();
+        $('opening-training-side').value = 'both';
+        $('opening-send-status').textContent = 'Opening line sent to Training.';
+    } catch (error) {
+        $('opening-send-status').textContent = error.message;
+    }
+}
+
+$('opening-send-training').addEventListener('click', sendToOpeningTraining);
+$('opening-training-start').addEventListener('click', () => {
+    if (!activateOpeningTraining()) return;
+    const side = $('opening-training-side').value || 'both';
+    if (!openingTraining.start(side)) {
+        $('opening-training-status').textContent = 'This line has no moves for that side. Choose another side.';
+        return;
+    }
+    game.load(openingTraining.read().rootFen);
+    automaticOpeningMoves();
+});
+$('opening-training-retry').addEventListener('click', () => { openingTraining.retry(); renderOpeningTraining(); });
+$('opening-training-next').addEventListener('click', () => { if (openingTraining.next()) automaticOpeningMoves(); });
+$('opening-training-return').addEventListener('click', () => { stopOpeningTraining(); selectTab($('tab-openings')); });
+
+function openingGuess(move) {
+    const legal = game.moves({ verbose: true }).filter(item => item.from === move.from && item.to === move.to);
+    if (!legal.length) {
+        openingTraining.illegal();
+        renderOpeningTraining();
+        return;
+    }
+    if (legal.some(item => item.promotion) && !move.promotion) {
+        pendingPromotion = { from: move.from, to: move.to };
+        $('promotion-dialog').showModal();
+        return;
+    }
+    const result = openingTraining.guess(move);
+    if (result?.correct) game.move({ from: result.move.from, to: result.move.to, promotion: result.move.promotion || undefined });
+    renderOpeningTraining();
+}
+
+function navigateStudy(index) {
+    if (openingSource) {
+        if (openingTraining.read().phase === 'study') previewOpeningMove(index);
+        return;
+    }
+    show(index);
+}
+
 function sync() {
+    if (openingSource) { renderOpeningTraining(); return; }
     studyRevision++;
     if (analysisLesson !== lesson) {
         analysisRequest++; studyAnalysis.cancel(); analysisLesson = lesson; evaluations = []; analysisDepth = null; analysisRunning = false;
@@ -127,6 +324,7 @@ function sync() {
 }
 function show(index) {
     if (pendingPromotion) return;
+    stopOpeningTraining();
     memoryTraining.stop();
     cursor = Math.max(0, Math.min(index, lesson.moves.length)); practicing = false;
     game.load(lesson.positions[0]);
@@ -135,14 +333,18 @@ function show(index) {
 }
 function loadLesson(id, { prefill = true } = {}) {
     if (pendingPromotion) return false;
-    lesson = prepareLesson(id); show(0);
+    stopOpeningTraining(); lesson = prepareLesson(id); show(0);
     $('opening-followups').hidden = true;
     const input = document.querySelector('.caissa-mentor-shell__form textarea');
     if (input && prefill) input.value = lesson.prompt;
     return true;
 }
 function attempt({ from, to, promotion }) {
-    if (memoryTraining.isActive()) return;
+    if (openingSource) {
+        if (!pendingPromotion && openingTraining.read().phase === 'guess') openingGuess({ from, to, promotion });
+        return;
+    }
+    if (memoryTraining.isActive() || openingSource) return;
     if (pendingPromotion) return;
     const legal = game.moves({ verbose: true }).filter(move => move.from === from && move.to === to);
     if (!legal.length) { $('move-status').textContent = 'That move is not legal in this position. Try another square.'; return; }
@@ -221,7 +423,7 @@ function renderEvaluation() {
 }
 
 $('study-engine').addEventListener('click', async () => {
-    if (memoryTraining.isActive()) return;
+    if (memoryTraining.isActive() || openingSource) return;
     if (analysisRunning) {
         analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine';
         $('engine-status').textContent = 'Analysis stopped. Completed evaluations remain available.'; return;
@@ -250,16 +452,16 @@ $('study-engine').addEventListener('click', async () => {
 $('study-settings').addEventListener('click', () => $('study-settings-dialog').showModal());
 $('settings-close').addEventListener('click', () => { $('study-settings-dialog').close(); $('study-settings').focus(); });
 for(const kind of ['fen','pgn'])$('settings-copy-'+kind).addEventListener('click',async()=>{
-    if(memoryTraining.isActive()||memoryTraining.isLoading()){ $('settings-status').textContent='Return to the lesson before exporting.';return;}
+    if(memoryTraining.isActive()||memoryTraining.isLoading()||openingSource){ $('settings-status').textContent='Return to the lesson before exporting.';return;}
     let text=game.fen();if(kind==='pgn'){const copy=new Chess(lesson.positions[0]);for(const move of lesson.moves)copy.move(move.san);for(const [key,value]of [['White',lesson.white],['Black',lesson.black],['Event',lesson.event],['Date',lesson.date],['Result',lesson.result]])if(value)copy.setHeader(key,value);text=copy.pgn();}
     $('settings-export').value=text;$('settings-export').hidden=false;
     try{if(!window.navigator?.clipboard?.writeText)throw new Error();await window.navigator.clipboard.writeText(text);$('settings-status').textContent=`${kind.toUpperCase()} copied.`;}catch{$('settings-status').textContent='Select the text above to copy it.';}
 });
 $('settings-flip').addEventListener('click', () => board.setOrientation(board.getOrientation() === 'white' ? 'black' : 'white'));
-window.addEventListener('pagehide', () => { explorer.reset(); analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine'; });
+window.addEventListener('pagehide', () => { stopOpeningTraining(); explorer.reset(); analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine'; });
 function selectImportedGame(index) {
     if (!Number.isInteger(index) || !importedGames[index] || pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) return false;
-    importedGameIndex = index; lesson = importedGames[index];
+    stopOpeningTraining(); importedGameIndex = index; lesson = importedGames[index];
     $('opening-followups').hidden = true; show(0); return true;
 }
 $('learn-game-select').addEventListener('change', () => {
@@ -268,11 +470,12 @@ $('learn-game-select').addEventListener('change', () => {
         $('learn-game-position').textContent = 'Finish the current promotion or Mentor reply before changing games.';
     }
 });
-$('game-first').addEventListener('click', () => show(0));
-$('game-previous').addEventListener('click', () => show(cursor - 1));
-$('game-next').addEventListener('click', () => show(cursor + 1));
-$('game-last').addEventListener('click', () => show(lesson.moves.length));
+$('game-first').addEventListener('click', () => navigateStudy(0));
+$('game-previous').addEventListener('click', () => navigateStudy(openingSource ? openingTraining.read().previewIndex - 1 : cursor - 1));
+$('game-next').addEventListener('click', () => navigateStudy(openingSource ? openingTraining.read().previewIndex + 1 : cursor + 1));
+$('game-last').addEventListener('click', () => navigateStudy(openingSource ? openingTraining.read().total : lesson.moves.length));
 $('game-review').addEventListener('click', () => {
+    if (openingSource) return;
     if (lesson !== importedGames[importedGameIndex] || pendingPromotion) return;
     const input = document.querySelector('.caissa-mentor-shell__form textarea');
     if (document.querySelector('.caissa-mentor-shell__form button').disabled) { $('learn-game-position').textContent = 'Wait for the current Mentor reply.'; return; }
@@ -321,7 +524,7 @@ function chooseOpening(entry) {
     let candidate;
     try { candidate = prepareEcoLesson(entry); }
     catch { $('opening-status').textContent = 'This opening line cannot be loaded.'; return; }
-    lesson = candidate; show(lesson.moves.length);
+    stopOpeningTraining(); lesson = candidate; show(lesson.moves.length);
     $('chat-suggestions').hidden = true; $('opening-followups').hidden = false;
     selectTab($('tab-chat'));
     window.CaissaMentorFloatingShell?.appendStudyExchange(`Let’s explore ${entry.name} (${entry.code}).`,
@@ -408,15 +611,15 @@ $('idea-plan').addEventListener('click', () => {
     input.focus({ preventScroll: true });
 });
 function selectTab(tab) {
-    if (tab.id !== 'tab-learn') memoryTraining.stop();
+    if (tab.id !== 'tab-learn') { stopOpeningTraining(); memoryTraining.stop(); }
     selectedTab = tab.id.replace('tab-', '');
     tabs.forEach(item => { const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; $(item.getAttribute('aria-controls')).hidden = !selected; });
     $('chat-footer').hidden = selectedTab !== 'chat';
     $('learn-footer').hidden = selectedTab !== 'learn'||memoryTraining.context()!=='lesson';
-    $('memory-footer').hidden = selectedTab !== 'learn';
-    $('memory-start').hidden = selectedTab !== 'learn'||memoryTraining.context()==='lesson';
+    $('memory-footer').hidden = selectedTab !== 'learn'||memoryTraining.context()!=='position';
+    $('memory-start').hidden = selectedTab !== 'learn'||memoryTraining.context()!=='position';
     if (selectedTab === 'openings') selectOpeningTool(openingTool); else explorer.setVisible(false);
-    presentIdea();
+    presentIdea(); renderOpeningTraining();
 }
 tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => selectTab(tab));
@@ -428,7 +631,7 @@ tabs.forEach((tab, index) => {
 $('new-session').addEventListener('click', () => {
     if (pendingPromotion) return;
     if (document.querySelector('.caissa-mentor-shell__form button').disabled) { $('move-status').textContent = 'Wait for the current Mentor reply before starting a new session.'; return; }
-    memoryTraining.newSession();
+    stopOpeningTraining(); openingTraining.clear(); renderOpeningTraining(); memoryTraining.newSession();
     window.CaissaMentorFloatingShell.close(); window.CaissaMentorFloatingShell.open();
     importedGames = []; importedGameIndex = 0;
     loadLesson('development'); selectTab(tabs[0]);
@@ -438,7 +641,7 @@ $('new-session').addEventListener('click', () => {
 $('fen-form').addEventListener('submit', event => {
     event.preventDefault();
     if (pendingPromotion) return;
-    try { const fen = $('study-fen').value.trim(); if (fen.split(/\s+/).length !== 6) throw new Error('Full FEN required.'); game.load(fen);
+    try { stopOpeningTraining(); const fen = $('study-fen').value.trim(); if (fen.split(/\s+/).length !== 6) throw new Error('Full FEN required.'); game.load(fen);
         lesson = { id: 'custom', title: 'Your study position', category: 'Independent study', positions: [game.fen()], moves: [], notes: ['Explore this position with legal moves.'] };
         cursor = 0; practicing = true; $('opening-followups').hidden = true; sync(); $('move-status').textContent = 'Study position loaded. No engine verdict has been calculated.';
         $('fen-status').textContent = 'Position loaded on the study board. Open Mentor to discuss it.';
@@ -486,7 +689,22 @@ $('account-form').addEventListener('submit', async event => {
 });
 sync();
 // Read-only diagnostic seam; never grants chess, engine, account or economic authority.
-window.CaissaMentorPage = Object.freeze({ inspect: () => Object.freeze({ fen: game.fen(), lesson: lesson.id, cursor, practicing, tab: selectedTab, unreadIdea: insights.read().unread, memory: memoryTraining.read(), importedGames: importedGames.length, board: board.getMetrics() }) });
+window.CaissaMentorPage = Object.freeze({
+    getStudyLineSnapshot: () => openingSource ? null : captureStudyPath(),
+    inspect: () => Object.freeze({
+        fen: game.fen(),
+        lesson: lesson.id,
+        cursor,
+        practicing,
+        tab: selectedTab,
+        unreadIdea: insights.read().unread,
+        memory: memoryTraining.read(),
+        openingTraining: openingTraining.read(),
+        openingTrainingActive: Boolean(openingSource),
+        importedGames: importedGames.length,
+        board: board.getMetrics()
+    })
+});
 
 const accountLink = document.querySelector('.sign-in');
 function renderAccountAuth(state) {
@@ -494,7 +712,7 @@ function renderAccountAuth(state) {
     const nextOwner = signedIn && typeof state.userId === 'string' ? state.userId : null;
     if (nextOwner !== insightOwner) {
         insightOwner = nextOwner; insights.reset(nextOwner);
-        memoryTraining.reset(nextOwner); explorer.reset(); memoryNotification = null;
+        stopOpeningTraining(); openingTraining.clear(); renderOpeningTraining(); memoryTraining.reset(nextOwner); explorer.reset(); memoryNotification = null;
         $('memory-recommendation').hidden = true;
         const input = document.querySelector('.caissa-mentor-shell__form textarea');
         if (preparedIdeaPrompt && input?.value === preparedIdeaPrompt) input.value = '';

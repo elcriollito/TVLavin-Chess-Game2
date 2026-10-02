@@ -341,6 +341,24 @@ test('Memory Training filters puzzle levels, retries unscored, advances only aft
     await expect(page.locator('#mentor-board .caissa-board__piece')).toHaveCount(0);
     await page.locator('#memory-palette').scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath('mentor-memory-reconstruct.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobilePalette = await page.evaluate(() => {
+        const buttons = [...document.querySelectorAll('#memory-palette button')];
+        const boxes = buttons.map(button => button.getBoundingClientRect().toJSON());
+        return {
+            overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            whiteTop: boxes.slice(0, 6).map(box => Math.round(box.top)),
+            blackTop: boxes.slice(6, 12).map(box => Math.round(box.top)),
+            pairedLeft: boxes.slice(0, 6).map((box, index) => [Math.round(box.left), Math.round(boxes[index + 6].left)]),
+            eraseTop: Math.round(boxes[12].top)
+        };
+    });
+    expect(mobilePalette.overflow).toBeLessThanOrEqual(1);
+    expect(new Set(mobilePalette.whiteTop).size).toBe(1);
+    expect(new Set(mobilePalette.blackTop).size).toBe(1);
+    expect(mobilePalette.pairedLeft.every(([white, black]) => white === black)).toBe(true);
+    expect(mobilePalette.eraseTop).toBeGreaterThan(mobilePalette.blackTop[0]);
+    await page.screenshot({ path: testInfo.outputPath('mentor-memory-reconstruct-390x844.png'), fullPage: true });
     await page.getByRole('button', { name: 'Check reconstruction' }).click();
     await expect(page.locator('#memory-progress')).toContainText('1 scored / 0 practice attempts');
     await expect(page.locator('#memory-feedback')).toContainText('expected');
@@ -367,7 +385,7 @@ test('Memory Training filters puzzle levels, retries unscored, advances only aft
     await expect(page.locator('#study-engine')).toBeEnabled();
 });
 
-test('Opening Memory recalls the current opening position without requesting a puzzle', async ({ page }) => {
+test('Opening training captures the full ECO line, hides future moves and restores the study', async ({ page }, testInfo) => {
     let puzzleRequests = 0;
     page.on('request', request => { if (new URL(request.url()).pathname === '/api/puzzles/select') puzzleRequests += 1; });
     await page.goto('/mentor.html');
@@ -375,19 +393,64 @@ test('Opening Memory recalls the current opening position without requesting a p
     await page.getByLabel('Find an opening or ECO code').fill('C60');
     await expect(page.locator('#opening-list .opening-card').first()).toBeVisible();
     await page.locator('#opening-list .opening-card').first().click();
+    await page.getByRole('button', { name: 'First position' }).click();
     const before = await page.evaluate(() => window.CaissaMentorPage.inspect());
-    await page.getByRole('tab', { name: 'Training' }).click();
-    await page.locator('.training-tabs').getByRole('tab', { name: 'Opening', exact: true }).click();
-    await page.getByRole('button', { name: 'Start Memory Training' }).click();
-    await expect(page.locator('#memory-state')).toContainText('Source: Current opening');
-    expect(await page.evaluate(() => window.CaissaMentorPage.inspect().memory.exercise.fen)).toBe(before.fen);
+    await page.getByRole('tab', { name: 'Opening', exact: true }).click();
+    await page.getByRole('button', { name: 'Send to Training Opening' }).click();
+    await expect(page.getByRole('tab', { name: 'Training' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.training-tabs').getByRole('tab', { name: 'Opening', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#memory-panel')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Start Memory Training' })).toBeHidden();
+    await expect(page.locator('#opening-training-footer')).toBeVisible();
+    await expect(page.locator('#opening-training-notation button')).toHaveCount(5);
+    const captured = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    expect(captured.openingTraining.total).toBe(5);
+    expect(captured.openingTraining.source).toBe('eco');
+    expect(captured.cursor).toBe(0);
     expect(puzzleRequests).toBe(0);
-    await page.getByRole('button', { name: 'Hide & rebuild' }).click();
-    await page.getByRole('button', { name: 'Return to lesson' }).click();
+
+    for (const viewport of [
+        { width: 1600, height: 1000 },
+        { width: 1366, height: 768 },
+        { width: 885, height: 611 },
+        { width: 390, height: 844 }
+    ]) {
+        await page.setViewportSize(viewport);
+        const layout = await page.evaluate(() => ({
+            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            bodyOverflow: getComputedStyle(document.querySelector('.workspace-body')).overflowY,
+            footer: document.querySelector('.workspace-foot').getBoundingClientRect().toJSON(),
+            workspace: document.querySelector('.right-workspace').getBoundingClientRect().toJSON()
+        }));
+        expect(layout.horizontalOverflow).toBeLessThanOrEqual(1);
+        expect(layout.bodyOverflow).toBe('auto');
+        expect(layout.footer.bottom).toBeLessThanOrEqual(layout.workspace.bottom + 1);
+        await page.screenshot({ path: testInfo.outputPath(`mentor-opening-training-${viewport.width}x${viewport.height}.png`), fullPage: true });
+    }
+
+    await page.getByLabel('Guess the move').selectOption('white');
+    await page.getByRole('button', { name: 'Guess the move', exact: true }).click();
+    await expect(page.locator('#opening-training-notation')).toContainText('5 moves hidden');
+    expect(await page.evaluate(() => window.CaissaMentorPage.getStudyLineSnapshot())).toBeNull();
+    const root = await page.evaluate(() => window.CaissaMentorPage.inspect().fen);
+    await page.locator('#mentor-board .caissa-board__square[data-square="d2"]').click();
+    await page.locator('#mentor-board .caissa-board__square[data-square="d4"]').click();
+    await expect(page.locator('#opening-training-status')).toHaveText('Not the move in this opening line. Try again.');
+    expect(await page.evaluate(() => window.CaissaMentorPage.inspect().fen)).toBe(root);
+    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await page.locator('#mentor-board .caissa-board__square[data-square="e2"]').click();
+    await page.locator('#mentor-board .caissa-board__square[data-square="e4"]').click();
+    await expect(page.locator('#opening-training-status')).toContainText('e4 — correct for this line');
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    const afterReply = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    expect(afterReply.openingTraining.step).toBe(2);
+    expect(afterReply.openingTraining.visibleMoves.map(move => move.san)).toEqual(['e4', 'e5']);
+    await page.getByRole('button', { name: 'Return to study' }).click();
     const after = await page.evaluate(() => window.CaissaMentorPage.inspect());
     expect(after.fen).toBe(before.fen);
     expect(after.cursor).toBe(before.cursor);
     expect(after.memory.phase).toBe('idle');
+    expect(after.openingTrainingActive).toBe(false);
 });
 
 test('real terminal analysis keeps depth zero and restores mate-zero perspective', async ({ page }) => {

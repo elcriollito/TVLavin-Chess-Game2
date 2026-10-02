@@ -61,8 +61,8 @@ test('memory view is a single shared board presentation and contains no chess/en
     assert.doesNotMatch(view,/new Chess|new Worker|fetch\(|localStorage|\.move\(|Chessboard\(/);
     assert.match(view,/board\.on\('squareTap'/);assert.match(view,/restoreStudy\(\)/);
     const page=fs.readFileSync(new URL('../js/mentor/mentor-page.js',import.meta.url),'utf8');
-    assert.match(page,/if \(tab.id !== 'tab-learn'\) memoryTraining.stop\(\)/);
-    assert.match(page,/if \(memoryTraining.isActive\(\)\) return/);
+    assert.match(page,/if \(tab.id !== 'tab-learn'\) \{ stopOpeningTraining\(\); memoryTraining.stop\(\); \}/);
+    assert.match(page,/if \(memoryTraining.isActive\(\) \|\| openingSource\) return/);
 });
 
 test('piece-count levels are disjoint, include under-eight beginners and cap actual started 32-piece positions',()=>{

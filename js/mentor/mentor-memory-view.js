@@ -4,7 +4,7 @@ import { createMemoryCatalog } from './mentor-memory-catalog.js';
 // Temporary presentation over the existing board. Study Chess/PGN, cursor,
 // engine evidence and Mentor draft are restored, never copied or replaced.
 export function mountMemoryTraining({ board, restoreStudy, onStart, onNotification,
-    getOpeningPosition=()=>null, isTrainingVisible=()=>true, document:documentRef=globalThis.document, catalog=createMemoryCatalog() }) {
+    onContextChange=()=>{}, isTrainingVisible=()=>true, document:documentRef=globalThis.document, catalog=createMemoryCatalog() }) {
     const document=documentRef, $=id=>document.getElementById(id), memory=createMemoryTraining();
     let chosen='wK', active=false, context='position', loading=false, generation=0, controller=null;
     let previousControls=new Map(), previousFen=null;
@@ -15,14 +15,14 @@ export function mountMemoryTraining({ board, restoreStudy, onStart, onNotificati
     const trainingTabs=['position','opening','lesson'].map(key=>$( `training-${key}-tab`));
     function render() {
         const state=memory.read(), result=state.result;
-        $('memory-panel').hidden=context==='lesson';
-        $('memory-start').hidden=context==='lesson'||!isTrainingVisible();$('memory-start').disabled=active||loading;
+        $('memory-panel').hidden=context!=='position';$('memory-footer').hidden=context!=='position'||!isTrainingVisible();
+        $('memory-start').hidden=context!=='position'||!isTrainingVisible();$('memory-start').disabled=active||loading;
         $('memory-palette').hidden=state.phase!=='reconstruct';
         $('memory-hide').hidden=state.phase!=='observe';
         $('memory-check').hidden=state.phase!=='reconstruct';
         $('memory-retry').hidden=state.phase!=='result';$('memory-retry').disabled=result?.accuracy===1;
-        $('memory-next').hidden=state.phase!=='result';$('memory-next').disabled=result?.accuracy!==1||context==='opening';
-        levelSelect.disabled=active||loading||context==='opening';$('memory-mode').disabled=active||loading;
+        $('memory-next').hidden=state.phase!=='result';$('memory-next').disabled=result?.accuracy!==1;
+        levelSelect.disabled=active||loading;$('memory-mode').disabled=active||loading;
         $('repeat').hidden=context!=='lesson';
         $('practice').hidden=context!=='lesson'&&!active;
         $('practice').textContent=active?'Return to lesson':'Try it yourself';$('practice').disabled=false;
@@ -31,11 +31,11 @@ export function mountMemoryTraining({ board, restoreStudy, onStart, onNotificati
         $('learn-footer').hidden=context!=='lesson';
         if(state.phase==='observe'){
             const info=memoryPositionInfo(state.exercise.fen);
-            $('memory-state').textContent=`Observe the position. ${info.pieceCount} pieces · Piece load ${info.densityScore}/100. ${state.mode==='challenge'?'First-exposure scored challenge.':'Unscored practice.'} No timer. Source: ${state.exercise.source==='opening-study'?'Current opening':state.exercise.source==='curated-fallback'?'Puzzles curated fallback':'Puzzles catalog'}.`;
+            $('memory-state').textContent=`Observe the position. ${info.pieceCount} pieces · Piece load ${info.densityScore}/100. ${state.mode==='challenge'?'First-exposure scored challenge.':'Unscored practice.'} No timer. Source: ${state.exercise.source==='curated-fallback'?'Puzzles curated fallback':'Puzzles catalog'}.`;
         }
         if(state.phase==='reconstruct')$('memory-state').textContent='Choose a piece icon, then click a square or use board keyboard controls to place it. Use Erase to remove a piece.';
-        if(state.phase==='result')$('memory-state').textContent=`${result.accuracy===1?'✓ Correct reconstruction':'✗ Review the differences'} · ${Math.round(result.accuracy*100)}% immediate recall. ${result.scored?'Recorded once.':'Unscored practice.'} ${context==='opening'?'Return to the opening and choose another position for a new exercise.':''}`;
-        if(state.phase==='idle'&&!loading)$('memory-state').textContent=context==='opening'?'Use 🧠 to recall the current opening position.':'Choose a level, then press 🧠. Puzzle selection is filtered by actual piece count, not puzzle Elo.';
+        if(state.phase==='result')$('memory-state').textContent=`${result.accuracy===1?'✓ Correct reconstruction':'✗ Review the differences'} · ${Math.round(result.accuracy*100)}% immediate recall. ${result.scored?'Recorded once.':'Unscored practice.'} `;
+        if(state.phase==='idle'&&!loading)$('memory-state').textContent='Choose a level, then press Memory. Puzzle selection is filtered by actual piece count, not puzzle Elo.';
         if(loading)$('memory-state').textContent='Finding a puzzle position at this piece-count level…';
         $('memory-feedback').replaceChildren();
         for(const item of result?.feedback||[]){const row=document.createElement('li');row.className=item.ok?'memory-correct':'memory-error';row.textContent=`${item.ok?'✓':'✗'} ${item.explanation}`;$('memory-feedback').append(row);}
@@ -52,7 +52,7 @@ export function mountMemoryTraining({ board, restoreStudy, onStart, onNotificati
         if(wasActive){board.setInteractive(true);for(const [id,disabled]of previousControls)$(id).disabled=disabled;previousControls.clear();}
         render();if(wasActive||wasLoading)restoreStudy();
     }
-    function selectContext(next){stop();context=next;
+    function selectContext(next){stop();onContextChange(next);context=next;
         trainingTabs.forEach(tab=>{const key=tab.id.replace('training-','').replace('-tab',''), selected=key===context;
             tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;$(`training-${key}-body`).hidden=!selected;
         });render();
@@ -64,31 +64,30 @@ export function mountMemoryTraining({ board, restoreStudy, onStart, onNotificati
     });
     for(const color of ['w','b'])for(const type of ['K','Q','R','B','N','P']){
         const code=color+type,button=document.createElement('button'),label=`${color==='w'?'White':'Black'} ${names[type]}`;
-        button.type='button';button.setAttribute('aria-label',label);button.title=label;button.dataset.memoryPiece=code;button.setAttribute('aria-pressed',String(chosen===code));
+        button.type='button';button.style.gridRow=color==='w'?'1':'2';button.style.gridColumn=String(['K','Q','R','B','N','P'].indexOf(type)+1);button.setAttribute('aria-label',label);button.title=label;button.dataset.memoryPiece=code;button.setAttribute('aria-pressed',String(chosen===code));
         const image=document.createElement('img');image.src=`/img/chesspieces/wikipedia/${code}.png`;image.alt=label;image.width=40;image.height=40;button.append(image);
         button.addEventListener('click',()=>{chosen=code;document.querySelectorAll('[data-memory-piece]').forEach(node=>node.setAttribute('aria-pressed',String(node.dataset.memoryPiece===chosen)));});$('memory-palette').append(button);
     }
-    const erase=document.createElement('button');erase.type='button';erase.textContent='⌫';erase.setAttribute('aria-label','Erase square');erase.title='Erase square';erase.dataset.memoryPiece='erase';erase.setAttribute('aria-pressed','false');
+    const erase=document.createElement('button');erase.type='button';erase.textContent='Erase';erase.style.gridRow='3';erase.style.gridColumn='1 / -1';erase.setAttribute('aria-label','Erase square');erase.title='Erase square';erase.dataset.memoryPiece='erase';erase.setAttribute('aria-pressed','false');
     erase.addEventListener('click',()=>{chosen=null;document.querySelectorAll('[data-memory-piece]').forEach(node=>node.setAttribute('aria-pressed',String(node===erase)));});$('memory-palette').append(erase);
     board.on('squareTap',square=>{if(!active||memory.read().phase!=='reconstruct')return;
         memory.place(square,chosen);board.setPosition(memoryPlacement(memory.read().draft),{animate:false});queueMicrotask(()=>board.clearSelection());
     });
     async function startNext(){
-        if(loading||context==='lesson')return false;
+        if(loading||context!=='position')return false;
         if(active&&memory.read().phase!=='result')return false;
         if(!active)previousControls=new Map(controls.map(id=>[id,$(id).disabled]));
         if(!onStart())return false;
         const token=++generation;controller=new AbortController();loading=true;render();
         try{
             const level=MEMORY_LEVELS.find(item=>item.id===levelSelect.value)||MEMORY_LEVELS[0];
-            const candidate=context==='opening'?getOpeningPosition():await catalog.next(level,{signal:controller.signal,excludedPlacements:new Set(previousFen?[previousFen.split(' ')[0]]:[])});
+            const candidate=await catalog.next(level,{signal:controller.signal,excludedPlacements:new Set(previousFen?[previousFen.split(' ')[0]]:[])});
             if(token!==generation)return false;
-            if(!candidate){loading=false;if(!active)restoreStudy();render();$('memory-state').textContent=context==='opening'?'Load an opening and advance beyond its starting position first.':'No matching position found in this bounded puzzle sample. Try another level or try again; this does not mean the full catalog is exhausted.';return false;}
+            if(!candidate){loading=false;if(!active)restoreStudy();render();$('memory-state').textContent='No matching position found in this bounded puzzle sample. Try another level or try again; this does not mean the full catalog is exhausted.';return false;}
             if(!onStart()){loading=false;if(!active)restoreStudy();render();$('memory-state').textContent='Finish the current Mentor reply before starting Memory Training.';return false;}
             const info=memoryPositionInfo(candidate.fen);
-            if(!info||(context==='position'&&info.level!==level.id))throw new Error('The returned position does not match this level.');
-            if(context==='opening')levelSelect.value=info.level;
-            const started=memory.startPosition(candidate.fen,{id:candidate.id,source:candidate.source,level:context==='position'?level.id:null},$('memory-mode').value||'practice');
+            if(!info||info.level!==level.id)throw new Error('The returned position does not match this level.');
+            const started=memory.startPosition(candidate.fen,{id:candidate.id,source:candidate.source,level:level.id},$('memory-mode').value||'practice');
             if(!started)throw new Error('Finish the current exercise before starting another.');
             previousFen=candidate.fen;active=true;loading=false;render();return true;
         }catch(error){if(token!==generation)return false;loading=false;if(!active)restoreStudy();render();$('memory-state').textContent=`Memory position unavailable: ${error.message}`;return false;}

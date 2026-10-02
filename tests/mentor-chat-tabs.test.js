@@ -1,3 +1,4 @@
+import { createOpeningTraining } from '../js/mentor/mentor-opening-training.js';
 import { mountExplorer } from '../js/mentor/mentor-explorer-view.js';
 import { MEMORY_POSITIONS } from '../js/mentor/mentor-memory.js';
 import { mountMemoryTraining } from '../js/mentor/mentor-memory-view.js';
@@ -22,12 +23,13 @@ function harness({ memoryCatalog, explorerClient } = {}) {
         return { id, attrs, handlers, children: [], style: { setProperty() {} }, dataset: {}, hidden: false, value: '', disabled: false, textContent: '',
             setAttribute(key, value) { attrs[key] = value; }, getAttribute(key) { return attrs[key]; },
             addEventListener(key, fn) { handlers.set(key, fn); }, fire(key, detail = {}) { return handlers.get(key)?.({ preventDefault() {}, ...detail }); },
-            append(...items) { for(const item of items){ if(item && typeof item==='object'){const old=item.parentElement;if(old)old.children=old.children.filter(child=>child!==item);item.parentElement=this;}this.children.push(item); } }, replaceChildren() { this.children.length = 0; }, focus() {}, click() { return this.fire('click'); }, showModal() {}, close() {} };
+            append(...items) { for(const item of items){ if(item && typeof item==='object'){const old=item.parentElement;if(old)old.children=old.children.filter(child=>child!==item);item.parentElement=this;}this.children.push(item); } }, replaceChildren() { this.children.length = 0; this.textContent = ''; }, focus() {}, click() { return this.fire('click'); }, showModal() {}, close() {} };
     }
     for (const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1], element(match[1]));
     const tabs = [...html.matchAll(/<button id="(tab-[^"]+)"[^>]*aria-controls="([^"]+)"/g)].map(match => {
         const node = nodes.get(match[1]); node.attrs['aria-controls'] = match[2]; return node;
     });
+    const promotionButtons = ['q', 'r', 'b', 'n'].map(type => { const node = element(); node.dataset.promotion = type; return node; });
     const input = element(), send = element(), authLink = element();
     const windowHandlers = new Map(), messages = [];
     let networkCalls = 0;
@@ -38,15 +40,18 @@ function harness({ memoryCatalog, explorerClient } = {}) {
         CaissaMentorFloatingShell: shell, addEventListener(key, fn) { windowHandlers.set(key, fn); },
         fetch() { networkCalls++; } };
     const document = { getElementById: id => nodes.get(id), createElement: () => element(),
-        querySelectorAll: query => query === '[role=tab][id^="tab-"]' ? tabs : [],
+        querySelectorAll: query => query === '[role=tab][id^="tab-"]' ? tabs : query === '[data-promotion]' ? promotionButtons : [],
         querySelector: query => query === '.sign-in' ? authLink : query.endsWith('textarea') ? input : send };
     const boardHandlers = new Map();
     let boardFen = null, draw=0,orientation='white';
+    let moveAttempt;
     const board = { getOrientation:()=>orientation,setOrientation:value=>{orientation=value;},setPosition(fen) { boardFen = fen; }, clearSelection() {}, setInteractive() {}, on(type,fn) { boardHandlers.set(type,fn); }, getMetrics() { return {}; } };
     const source = fs.readFileSync(new URL('../js/mentor/mentor-page.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
-    vm.runInNewContext(source, { mountExplorer:opts=>mountExplorer({...opts,client:explorerClient||{load:async()=>({total:0,white:0,draws:0,black:0,moves:[],opening:null}),cancel(){},clear(){}}}), mountMemoryTraining: opts => mountMemoryTraining({...opts,catalog:memoryCatalog||{next:async()=>({...MEMORY_POSITIONS[(draw++)%6],source:'test-catalog'}),clear(){draw=0;}}}), AbortController, queueMicrotask, moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
+    vm.runInNewContext(source, { createOpeningTraining, mountExplorer:opts=>mountExplorer({...opts,client:explorerClient||{load:async()=>({total:0,white:0,draws:0,black:0,moves:[],opening:null}),cancel(){},clear(){}}}), mountMemoryTraining: opts => mountMemoryTraining({...opts,catalog:memoryCatalog||{next:async()=>({...MEMORY_POSITIONS[(draw++)%6],source:'test-catalog'}),clear(){draw=0;}}}), AbortController, queueMicrotask, moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: (element,opts) => { moveAttempt=opts.onMoveAttempt; return board; }, document, window,
         localStorage: { getItem() { return null; }, setItem() {} } });
-    return { nodes, tabs, input, send, messages, window, boardPosition:()=>boardFen,orientation:()=>orientation, squareTap: square=>boardHandlers.get('squareTap')?.(square), emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
+    return { nodes, tabs, input, send, messages, window, boardPosition:()=>boardFen,orientation:()=>orientation,
+        move: move => moveAttempt(move), promote: type => promotionButtons.find(button => button.dataset.promotion === type).fire('click'),
+        squareTap: square=>boardHandlers.get('squareTap')?.(square), emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
 }
 const summary = { ownerId: 'owner-one', status: 'completed', verified: true, source: 'chesscom', username: 'Alex', analysisId: 'analysis-10', completedGames: 10, themes: [{ theme: 'tactics', sampleGames: 4 }] };
 
@@ -295,16 +300,10 @@ test('leaving Training cancels a pending catalog selection and never replaces th
     assert.equal(h.window.CaissaMentorPage.inspect().memory.phase,'idle');assert.equal(h.window.CaissaMentorPage.inspect().fen,before);assert.equal(h.boardPosition(),before);
 });
 
-test('Opening Memory reconstructs the current legal opening snapshot without catalog fetch or changing cursor',async()=>{
-    let catalogCalls=0;const h=harness({memoryCatalog:{next:async()=>{catalogCalls++;return null;},clear(){}}});
-    h.nodes.get('opening-search').value='C60';h.nodes.get('tab-openings').fire('click');await new Promise(resolve=>setImmediate(resolve));
-    h.nodes.get('opening-list').children.find(node=>node.className==='opening-card').fire('click');
-    const before=h.window.CaissaMentorPage.inspect();h.nodes.get('tab-learn').fire('click');h.nodes.get('training-opening-tab').fire('click');
-    await h.nodes.get('memory-start').fire('click');const state=h.window.CaissaMentorPage.inspect();
-    assert.equal(state.memory.exercise.fen,before.fen);assert.equal(state.memory.exercise.source,'opening-study');assert.equal(catalogCalls,0);
-    assert.equal(h.nodes.get('memory-exercise').value,'master');assert.equal(h.nodes.get('memory-exercise').disabled,true);
-    h.nodes.get('memory-hide').fire('click');h.nodes.get('practice').fire('click');
-    assert.equal(h.boardPosition(),before.fen);assert.equal(h.window.CaissaMentorPage.inspect().cursor,before.cursor);
+test('Training Opening contains no Position Memory controls and retains the captured ECO full line',async()=>{
+    const h=harness();h.nodes.get('opening-search').value='C60';h.nodes.get('tab-openings').fire('click');await new Promise(r=>setImmediate(r));h.nodes.get('opening-list').children.find(node=>node.className==='opening-card').fire('click');h.nodes.get('game-first').fire('click');h.nodes.get('tab-openings').fire('click');h.nodes.get('opening-send-training').fire('click');
+    const state=h.window.CaissaMentorPage.inspect();assert.equal(state.tab,'learn');assert.equal(state.openingTraining.total,5);assert.equal(state.openingTraining.source,'eco');assert.equal(state.cursor,0);assert.equal(h.nodes.get('memory-panel').hidden,true);assert.equal(h.nodes.get('memory-start').hidden,true);assert.equal(h.nodes.get('memory-footer').hidden,true);assert.equal(h.nodes.get('opening-training-footer').hidden,false);assert.equal(h.nodes.get('opening-training-notation').children.length,5);
+    assert.equal(h.networkCalls(),0);h.nodes.get('tab-moves').fire('click');assert.equal(h.window.CaissaMentorPage.inspect().fen,state.fen);assert.equal(h.window.CaissaMentorPage.inspect().openingTrainingActive,false);
 });
 
 test('Moves opens the same Explorer; SAN exploration and return preserve imported main line, while Flip changes no query',async()=>{
@@ -321,4 +320,145 @@ test('Settings PGN export retains completed game metadata/result and blocks hidd
  await h.nodes.get('settings-copy-pgn').fire('click');const parsed=new Chess();parsed.loadPgn(h.nodes.get('settings-export').value);assert.equal(parsed.getHeaders().Result,'1-0');assert.equal(parsed.history().length,4);assert.equal(parsed.getHeaders().White,'Alex');
  assert.match(h.nodes.get('settings-status').textContent,/copy/);h.nodes.get('tab-learn').fire('click');await h.nodes.get('memory-start').fire('click');h.nodes.get('memory-hide').fire('click');
  h.nodes.get('settings-export').value='preserved';await h.nodes.get('settings-copy-fen').fire('click');assert.equal(h.nodes.get('settings-export').value,'preserved');assert.match(h.nodes.get('settings-status').textContent,/Return to the lesson/);
+});
+
+async function sentEcoTraining(){
+    const h=harness();
+    h.nodes.get('opening-search').value='C60';
+    h.nodes.get('tab-openings').fire('click');
+    await new Promise(r=>setImmediate(r));
+    h.nodes.get('opening-list').children.find(node=>node.className==='opening-card').fire('click');
+    const original=h.window.CaissaMentorPage.inspect();
+    h.nodes.get('tab-openings').fire('click');
+    h.nodes.get('opening-send-training').fire('click');
+    return {h,original};
+}
+
+test('Opening White guesses route through existing board; wrong preserves FEN, Next applies only captured opponent and future DOM stays hidden',async()=>{
+    const {h,original}=await sentEcoTraining();
+    h.input.value='Preserved draft';
+    h.nodes.get('opening-training-side').value='white';
+    h.nodes.get('opening-training-start').fire('click');
+    const root=h.window.CaissaMentorPage.inspect().fen;
+    assert.equal(root,new Chess().fen());
+    assert.equal(h.window.CaissaMentorPage.getStudyLineSnapshot(),null);
+    assert.equal(h.nodes.get('opening-training-notation').children.length,1);
+    assert.match(h.nodes.get('opening-training-notation').children[0].textContent,/hidden/);
+    assert.equal(h.nodes.get('lesson-notation').children.length,0);
+    assert.equal(h.nodes.get('learn-game-moves').children.length,0);
+    assert.equal(h.nodes.get('study-engine').disabled,true);
+    h.move({from:'d2',to:'d4'});
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,root);
+    assert.match(h.nodes.get('opening-training-status').textContent,/Not the move in this opening line/);
+    assert.equal(h.nodes.get('opening-training-retry').hidden,false);
+    h.nodes.get('opening-training-retry').fire('click');
+    h.move({from:'e2',to:'e4'});
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.phase,'next');
+    assert.equal(h.nodes.get('opening-training-next').hidden,false);
+    const one=new Chess();one.move('e4');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,one.fen());
+    h.nodes.get('game-last').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,one.fen());
+    await h.nodes.get('study-engine').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,one.fen());
+    h.nodes.get('opening-training-next').fire('click');one.move('e5');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,one.fen());
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.step,2);
+    assert.ok(h.nodes.get('opening-training-notation').children.every(node=>!node.textContent.includes('Nf3')&&!node.textContent.includes('Nc6')&&!node.textContent.includes('Bb5')));
+    h.nodes.get('opening-training-return').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,original.fen);
+    assert.equal(h.window.CaissaMentorPage.inspect().cursor,original.cursor);
+    assert.equal(h.input.value,'Preserved draft');
+    assert.equal(h.networkCalls(),0);
+});
+
+test('Opening Black starts with real automatic White move; Both requires every move and session lifecycle clears stale guesses',async()=>{
+    const {h,original}=await sentEcoTraining();
+    h.nodes.get('flip').fire('click');
+    h.nodes.get('opening-training-side').value='black';
+    h.nodes.get('opening-training-start').fire('click');
+    const expected=new Chess();expected.move('e4');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,expected.fen());
+    assert.equal(h.orientation(),'black');
+    h.move({from:'e7',to:'e5'});expected.move('e5');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,expected.fen());
+    h.nodes.get('opening-training-next').fire('click');expected.move('Nf3');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,expected.fen());
+    h.nodes.get('tab-moves').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,original.fen);
+    h.nodes.get('tab-learn').fire('click');
+    h.nodes.get('training-opening-tab').fire('click');
+    h.nodes.get('opening-training-side').value='both';
+    h.nodes.get('opening-training-start').fire('click');
+    h.move({from:'e2',to:'e4'});
+    h.nodes.get('opening-training-next').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.step,1);
+    h.nodes.get('new-session').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.phase,'empty');
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTrainingActive,false);
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,new Chess().fen());
+    assert.equal(h.networkCalls(),0);
+});
+
+test('Explorer sends only the chosen branch and restores completed PGN cursor/branch when switching Training context',async()=>{
+    const h=harness({explorerClient:{load:async()=>({total:10,moves:[{uci:'d2d4',san:'d4',total:10,popularity:100,white:40,draws:30,black:30}],opening:null}),cancel(){},clear(){}}});
+    h.nodes.get('account-source-pgn').fire('click');h.nodes.get('account-pgn-text').value=completedPgn;await h.nodes.get('account-form').fire('submit');
+    h.nodes.get('moves-explorer').fire('click');await new Promise(r=>setImmediate(r));
+    h.nodes.get('explorer-rows').children[0].children[0].children[0].fire('click');await new Promise(r=>setImmediate(r));
+    const before=h.window.CaissaMentorPage.inspect();
+    const source=h.window.CaissaMentorPage.getStudyLineSnapshot();
+    assert.equal(source.moves.length,1);assert.equal(source.moves[0].to,'d4');assert.ok(Object.isFrozen(source.moves[0]));
+    h.nodes.get('opening-send-training').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.total,1);
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.source,'explorer');
+    h.nodes.get('opening-training-start').fire('click');h.move({from:'d2',to:'d4'});
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.phase,'complete');
+    h.nodes.get('training-position-tab').fire('click');
+    const after=h.window.CaissaMentorPage.inspect();
+    assert.equal(after.fen,before.fen);assert.equal(after.cursor,before.cursor);assert.equal(after.practicing,true);assert.equal(after.importedGames,1);
+    assert.equal(h.nodes.get('memory-panel').hidden,false);assert.equal(h.nodes.get('memory-start').hidden,false);
+});
+
+test('Opening promotion wrong choice does not mutate game; auth clears pending chooser and future attempt',async()=>{
+    const h=harness();
+    h.nodes.get('account-source-pgn').fire('click');
+    h.nodes.get('account-pgn-text').value='[Event "Promotion"]\n[SetUp "1"]\n[FEN "7k/P7/8/8/8/8/8/4K3 w - - 0 1"]\n[Result "1-0"]\n\n1. a8=Q+ 1-0';
+    await h.nodes.get('account-form').fire('submit');
+    h.nodes.get('game-last').fire('click');h.nodes.get('moves-explorer').fire('click');h.nodes.get('opening-send-training').fire('click');h.nodes.get('opening-training-start').fire('click');
+    const root=h.window.CaissaMentorPage.inspect().fen;
+    h.move({from:'a7',to:'a8'});h.promote('r');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,root);assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.step,0);
+    h.move({from:'a7',to:'a8'});h.promote('q');
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.phase,'complete');
+    h.nodes.get('opening-training-start').fire('click');h.move({from:'a7',to:'a8'});h.emit('caissa-auth-change',{isLoaded:true,isSignedIn:false});
+    const after=h.window.CaissaMentorPage.inspect().fen;
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.phase,'empty');
+    h.promote('q');
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,after);assert.equal(h.window.CaissaMentorPage.inspect().openingTrainingActive,false);
+});
+
+test('pagehide restores source and Memory icon remains labelled monochrome SVG only in Position',async()=>{
+    const {h,original}=await sentEcoTraining();
+    h.nodes.get('opening-training-start').fire('click');h.emit('pagehide',{});
+    assert.equal(h.window.CaissaMentorPage.inspect().fen,original.fen);assert.equal(h.window.CaissaMentorPage.inspect().openingTrainingActive,false);
+    const html=fs.readFileSync(new URL('../mentor.html',import.meta.url),'utf8');
+    const memory=html.slice(html.indexOf('id="memory-start"'),html.indexOf('<div class="move-navigation"'));
+    assert.match(memory,/<svg/);assert.match(memory,/stroke="currentColor"/);assert.match(memory,/<span>Memory<\/span>/);assert.doesNotMatch(memory,/🧠/);
+    const opening=html.slice(html.indexOf('id="training-opening-body"'),html.indexOf('id="training-lesson-body"'));
+    assert.match(opening,/id="opening-training-start"/);assert.doesNotMatch(opening,/memory-exercise|memory-palette|memory-mode|Opening memory/);
+});
+
+test('Position Memory palette aligns six White/Black piece pairs in matching columns with a separate Erase row',()=>{
+    const h=harness(),pieces=h.nodes.get('memory-palette').children;
+    assert.equal(pieces.length,13);
+    for(const [index,type]of ['K','Q','R','B','N','P'].entries()){
+        const white=pieces[index],black=pieces[index+6];
+        assert.equal(white.dataset.memoryPiece,'w'+type);assert.equal(black.dataset.memoryPiece,'b'+type);
+        assert.equal(white.style.gridRow,'1');assert.equal(black.style.gridRow,'2');
+        assert.equal(white.style.gridColumn,String(index+1));assert.equal(black.style.gridColumn,String(index+1));
+    }
+    const erase=pieces[12];
+    assert.equal(erase.dataset.memoryPiece,'erase');assert.equal(erase.style.gridRow,'3');assert.equal(erase.style.gridColumn,'1 / -1');assert.equal(erase.textContent,'Erase');assert.equal(erase.attrs['aria-label'],'Erase square');
+    const css=fs.readFileSync(new URL('../css/mentor-page.css',import.meta.url),'utf8');
+    assert.match(css,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);assert.match(css,/#memory-palette button\{width:100%;max-width:50px/);
 });
