@@ -11,9 +11,9 @@ function loadPolicy(pathname = '/') {
   return context.LegacyCanonicalSectionRoutePolicy;
 }
 
-test('LegacyCanonicalSectionRoutePolicy@1.0.0 owns the canonical historical surfaces', () => {
+test('LegacyCanonicalSectionRoutePolicy@1.1.0 owns the canonical historical surfaces', () => {
   const policy = loadPolicy();
-  assert.equal(policy.contractId, 'LegacyCanonicalSectionRoutePolicy@1.0.0');
+  assert.equal(policy.contractId, 'LegacyCanonicalSectionRoutePolicy@1.1.0');
   assert.deepEqual({ ...policy.routes }, {
     '/academy': 'academy', '/insights': 'insights', '/fics': 'fics', '/analyze': 'analyze', '/spectator-tv': 'spectator',
     '/arena': 'arena', '/cheater-insight': 'cheater-insight', '/game-library': 'library',

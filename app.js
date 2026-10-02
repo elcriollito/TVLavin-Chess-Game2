@@ -342,6 +342,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup Play only after the section is visible. Yahoo Classic is the
     // default route, so Play can be hidden during global bootstrap.
+    // Insight is a standalone route; its controls must not wait for Play.
+    setupInsightModal();
+    setupClearInsightHandlers();
+    setupCoachModal();
     ensurePlayInitialized('bootstrap');
 
     // Update UI
@@ -4126,6 +4130,7 @@ function setupEventListeners() {
 
     // Modal close buttons (X buttons and "Close" buttons)
     document.querySelectorAll('.modal-close, button[data-modal]').forEach(btn => {
+        if (btn.closest('#insightModal, #clearInsightModal, #coachModal')) return; // Insight owns its dismissal.
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -4139,6 +4144,7 @@ function setupEventListeners() {
     
     // Close modals on outside click
     document.querySelectorAll('.modal').forEach(modal => {
+        if (modal.id === 'insightModal' || modal.id === 'clearInsightModal' || modal.id === 'coachModal') return;
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 hideModal(modal.id);
@@ -6531,6 +6537,8 @@ function displayInsightResults(data) {
 
 // Setup Caissa Insight modal event listeners
 function setupInsightModal() {
+    const modal = document.getElementById('insightModal');
+    if (!modal || modal.dataset.insightBound === 'true') return;
     const analyzeBtn = document.getElementById('insightAnalyzeBtn');
     const pgnInput = document.getElementById('insightPgnInput');
     const pgnFile = document.getElementById('insightPgnFile');
@@ -6556,6 +6564,21 @@ function setupInsightModal() {
         return;
     }
 
+    modal.dataset.insightBound = 'true';
+    modal.querySelectorAll('.modal-close, button[data-modal="insightModal"]').forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault(); event.stopPropagation(); hideModal('insightModal');
+        });
+    });
+    modal.addEventListener('click', event => {
+        if (event.target === modal) hideModal('insightModal');
+    });
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault(); event.stopPropagation(); hideModal('insightModal');
+        }
+    });
+
     // Setup import tab switching
     importTabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -6571,9 +6594,14 @@ function setupInsightModal() {
                 'local': document.getElementById('importLocalPanel')
             };
 
-            Object.values(panels).forEach(panel => panel.classList.remove('active'));
+            Object.values(panels).forEach(panel => {
+                if (!panel) return;
+                panel.classList.remove('active');
+                panel.style.display = 'none';
+            });
             if (panels[tabName]) {
                 panels[tabName].classList.add('active');
+                panels[tabName].style.display = 'block';
             }
 
             // Hide CORS message when switching tabs
@@ -6638,6 +6666,8 @@ function setupInsightModal() {
                 if (parsedData.stats.total === 0) {
                     throw new Error('Failed to parse imported games');
                 }
+
+                parsedData.games.forEach(game => { game.source = provider; });
 
                 // Save to profile
                 insightProfile = parsedData;
@@ -6731,14 +6761,6 @@ function setupInsightModal() {
             return;
         }
 
-        // Consume credits after validation but before analysis
-        if (typeof CAISSA_ACCESS !== 'undefined') {
-            if (!CAISSA_ACCESS.consumeCredits('insight')) {
-                CAISSA_ACCESS.showLockedMessage('insight', 'credits');
-                return;
-            }
-        }
-
         console.log('🧠 Analyzing PGN...');
 
         try {
@@ -6748,6 +6770,17 @@ function setupInsightModal() {
             if (parsedData.stats.total === 0) {
                 showErrorNotification('No valid games found in PGN');
                 return;
+            }
+
+            parsedData.games.forEach(game => { game.source = 'local'; });
+
+            // Invalid PGN must not consume a credit. Charge only after parsing
+            // has produced at least one valid game.
+            if (typeof CAISSA_ACCESS !== 'undefined') {
+                if (!CAISSA_ACCESS.consumeCredits('insight')) {
+                    CAISSA_ACCESS.showLockedMessage('insight', 'credits');
+                    return;
+                }
             }
 
             // Save to profile
@@ -6923,7 +6956,9 @@ const GameSourceService = {
                 if (!gamesResponse.ok) continue;
 
                 const gamesData = await gamesResponse.json();
-                const games = gamesData.games || [];
+                const games = (gamesData.games || [])
+                    .slice()
+                    .sort((a, b) => Number(b.end_time || 0) - Number(a.end_time || 0));
 
                 console.log(`  ✓ Got ${games.length} games from archive`);
 
@@ -7161,9 +7196,30 @@ const ERROR_TAGS = {
 
 // Setup clear insight session modal handlers
 function setupClearInsightHandlers() {
+    const modal = document.getElementById('clearInsightModal');
+    if (!modal || modal.dataset.insightClearBound === 'true') return;
     const keepHistoryBtn = document.getElementById('clearKeepHistoryBtn');
     const deleteHistoryBtn = document.getElementById('clearDeleteHistoryBtn');
     const cancelBtn = document.getElementById('clearCancelBtn');
+
+    modal.dataset.insightClearBound = 'true';
+    modal.querySelectorAll('.modal-close, button[data-modal="clearInsightModal"]').forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            hideModal('clearInsightModal');
+        });
+    });
+    modal.addEventListener('click', event => {
+        if (event.target === modal) hideModal('clearInsightModal');
+    });
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            hideModal('clearInsightModal');
+        }
+    });
 
     if (keepHistoryBtn) {
         keepHistoryBtn.addEventListener('click', () => {
@@ -7271,15 +7327,37 @@ let coachReportData = null;
 
 // Setup coach report modal
 function setupCoachModal() {
+    const modal = document.getElementById('coachModal');
+    if (!modal || modal.dataset.coachBound === 'true') return;
+
     const coachBtn = document.getElementById('insightCoachBtn');
     const generateBtn = document.getElementById('coachGenerateBtn');
     const backBtn = document.getElementById('coachBackBtn');
     const exportBtn = document.getElementById('coachExportBtn');
 
-    if (!coachBtn) {
+    if (!coachBtn || !generateBtn) {
         console.warn('⚠️ Coach button not found');
         return;
     }
+
+    modal.dataset.coachBound = 'true';
+    modal.querySelectorAll('.modal-close, button[data-modal="coachModal"]').forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            hideModal('coachModal');
+        });
+    });
+    modal.addEventListener('click', event => {
+        if (event.target === modal) hideModal('coachModal');
+    });
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            hideModal('coachModal');
+        }
+    });
 
     // Open coach modal from insight
     coachBtn.addEventListener('click', () => {

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const origin = 'https://www.caissa-chess.org';
-const contractId = 'CaissaPublicRouteInventory@1.0.0';
+const contractId = 'CaissaPublicRouteInventory@1.1.0';
 
 function loadNavigation() {
   const window = {};
@@ -46,6 +46,7 @@ const primaryNavigation = [...navigation.inventory.primary, ...navigation.invent
 });
 
 const additionalMetadata = new Map([
+  ['/', ['home', 'CAISSA Home', 'home.html, vercel.json and server.js']],
   ['/play/games', ['play-games', 'Play Games', 'PlayV2RouteController']],
   ['/play/bots', ['play-bots', 'Play Bots', 'PlayV2RouteController']],
   ['/play/coach', ['play-coach', 'Play Coach', 'PlayV2RouteController']],
@@ -110,7 +111,7 @@ const counts = {
 
 const inventory = {
   contractId, origin,
-  sources: ['js/caissa-primary-navigation.js', 'js/play/play-route-controller.js', 'middleware.js', 'server.js', 'vercel.json', 'public/sitemap.xml'],
+  sources: ['home.html', 'js/caissa-primary-navigation.js', 'js/play/play-route-controller.js', 'middleware.js', 'server.js', 'vercel.json', 'public/sitemap.xml'],
   counts, primaryNavigation, publicCanonicalRoutes, redirectsAndAliases, protectedRoutes, externalDestinations
 };
 

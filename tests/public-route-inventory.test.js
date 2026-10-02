@@ -6,7 +6,7 @@ import test from 'node:test';
 const read = file => fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const inventory = JSON.parse(read('config/caissa-public-route-inventory.json'));
 
-test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => {
+test('CaissaPublicRouteInventory@1.1.0 is complete, unique, and ordered', () => {
   const vercel = JSON.parse(read('vercel.json'));
   const sitemap = read('public/sitemap.xml');
   const routeIsOwned = canonicalPath => vercel.rewrites.some(rule => {
@@ -15,7 +15,9 @@ test('CaissaPublicRouteInventory@1.0.0 is complete, unique, and ordered', () => 
       .replace(/:[^/]+/g, '[^/]+');
     return new RegExp(`^${pattern}$`).test(canonicalPath);
   });
-  assert.equal(inventory.contractId, 'CaissaPublicRouteInventory@1.0.0');
+  assert.equal(inventory.contractId, 'CaissaPublicRouteInventory@1.1.0');
+  assert.equal(inventory.publicCanonicalRoutes.find(item => item.id === 'home')?.canonicalPath, '/');
+  assert.equal(inventory.redirectsAndAliases.some(item => item.redirectFrom === '/'), false);
   assert.deepEqual(inventory.primaryNavigation.slice(0, 5).map(item => item.label), ['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
   assert.equal(inventory.primaryNavigation[5].label, 'Puzzles');
   assert.equal(inventory.primaryNavigation[9].label, 'Endgame Tablebase');

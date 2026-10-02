@@ -1,7 +1,8 @@
 {
-  "contractId": "CaissaPublicRouteInventory@1.0.0",
+  "contractId": "CaissaPublicRouteInventory@1.1.0",
   "origin": "https://www.caissa-chess.org",
   "sources": [
+    "home.html",
     "js/caissa-primary-navigation.js",
     "js/play/play-route-controller.js",
     "middleware.js",
@@ -12,9 +13,9 @@
   "counts": {
     "primaryNavigationEntries": 34,
     "internalPrimaryPages": 30,
-    "publicCanonicalRoutesNotInPrimaryNavigation": 12,
+    "publicCanonicalRoutesNotInPrimaryNavigation": 13,
     "externalDestinations": 4,
-    "redirects": 16,
+    "redirects": 15,
     "protectedRouteFamilies": 5,
     "totalInventoriedRecords": 67
   },
@@ -566,6 +567,21 @@
   ],
   "publicCanonicalRoutes": [
     {
+      "id": "home",
+      "label": "CAISSA Home",
+      "canonicalPath": "/",
+      "absoluteUrl": "https://www.caissa-chess.org/",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "home",
+      "owner": "home.html, vercel.json and server.js",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
       "id": "blog-what-is-a-polyglot-opening-book",
       "label": "What Is A Polyglot Opening Book",
       "canonicalPath": "/blog/what-is-a-polyglot-opening-book",
@@ -747,18 +763,6 @@
     }
   ],
   "redirectsAndAliases": [
-    {
-      "id": "redirect-root",
-      "label": "/ to /play",
-      "canonicalPath": "/play",
-      "absoluteUrl": "https://www.caissa-chess.org/play",
-      "type": "redirect",
-      "owner": "vercel.json and middleware",
-      "status": "public",
-      "redirectFrom": "/",
-      "redirectTo": "/play",
-      "expectedStatus": 308
-    },
     {
       "id": "redirect-blog",
       "label": "/blog/ to /blog",

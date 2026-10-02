@@ -19,7 +19,7 @@
             <nav id="mainNav" class="main-navigation" data-caissa-i18n-aria-label="shell.mainNavigation" aria-label="${i18n.t('shell.mainNavigation', 'CAISSA main navigation')}">
                 <div class="nav-head" data-caissa-sidebar-head>
                 <div class="nav-header">
-                    <a href="/play" class="nav-logo" data-caissa-i18n-aria-label="shell.returnToPlay" aria-label="${i18n.t('shell.returnToPlay', 'CAISSA Chess — return to Play')}">
+                    <a href="/" class="nav-logo" data-caissa-i18n-aria-label="shell.returnHome" aria-label="${i18n.t('shell.returnHome', 'CAISSA Chess — return home')}">
                         <i class="fas fa-chess-knight" aria-hidden="true"></i>
                         <span class="nav-logo-text">CAISSA</span>
                     </a>
