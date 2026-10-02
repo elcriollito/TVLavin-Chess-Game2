@@ -29,7 +29,7 @@ const failure = (status, code) => ({
 export function createAuthenticateRequest(dependencies = {}) {
   const verify = dependencies.verifyToken || verifyToken;
   const env = dependencies.env || process.env;
-  const log = dependencies.log || (() => {});
+  const log = dependencies.log || (message => console.warn(message));
 
   const allowSessionCookie = dependencies.allowSessionCookie === true;
 
