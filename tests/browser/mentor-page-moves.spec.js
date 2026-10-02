@@ -23,9 +23,12 @@ async function importPgn(page, pgn) {
 }
 
 test('Mentor page keeps one responsive board workspace with five readable tabs', async ({ page }, testInfo) => {
+    const runtimeErrors = [];
+    page.on('console', message => { if (message.type() === 'error') runtimeErrors.push(message.text()); });
+    page.on('pageerror', error => runtimeErrors.push(error.message));
     await page.goto('/mentor.html');
     await expect(page.getByRole('heading', { name: 'CAISSA Mentor', level: 1 })).toBeVisible();
-    await expect(page.getByRole('tab')).toHaveText([/Chat/, 'Moves', 'Learn', 'Opening', 'My account']);
+    await expect(page.getByRole('tab')).toHaveText([/Mentor/, 'Moves', 'Training', 'Opening', 'My account']);
 
     for (const viewport of [
         { width: 1600, height: 1000 },
@@ -39,7 +42,8 @@ test('Mentor page keeps one responsive board workspace with five readable tabs',
             bodyOverflow: getComputedStyle(document.querySelector('.workspace-body')).overflowY,
             workspaceOverflow: getComputedStyle(document.querySelector('.right-workspace')).overflow,
             tabRects: [...document.querySelectorAll('[role=tab]')].map(node => node.getBoundingClientRect().toJSON()),
-            workspaceRect: document.querySelector('.right-workspace').getBoundingClientRect().toJSON()
+            workspaceRect: document.querySelector('.right-workspace').getBoundingClientRect().toJSON(),
+            footerRect: document.querySelector('.workspace-foot').getBoundingClientRect().toJSON()
         }));
         expect(layout.horizontalOverflow).toBeLessThanOrEqual(1);
         expect(layout.bodyOverflow).toBe('auto');
@@ -48,11 +52,14 @@ test('Mentor page keeps one responsive board workspace with five readable tabs',
             expect(rect.left).toBeGreaterThanOrEqual(layout.workspaceRect.left);
             expect(rect.right).toBeLessThanOrEqual(layout.workspaceRect.right + 1);
         }
+        expect(layout.footerRect.bottom).toBeLessThanOrEqual(layout.workspaceRect.bottom + 1);
+        expect(layout.footerRect.top).toBeGreaterThan(layout.workspaceRect.top);
         await page.screenshot({ path: testInfo.outputPath(`mentor-chat-${viewport.width}x${viewport.height}.png`), fullPage: true });
     }
+    expect(runtimeErrors).toEqual([]);
 });
 
-test('Local PGN drives Moves, real Stockfish 19 evidence and explicit Chat review', async ({ page }, testInfo) => {
+test('Local PGN drives Moves, real Stockfish 19 evidence and explicit Mentor review', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     const engineAssets = [], mentorRequests = [];
     page.on('request', request => {
@@ -80,9 +87,9 @@ test('Local PGN drives Moves, real Stockfish 19 evidence and explicit Chat revie
     await page.screenshot({ path: testInfo.outputPath('mentor-moves-evaluated.png'), fullPage: true });
 
     await page.getByRole('button', { name: 'Game review · Shared AI' }).click();
-    await expect(page.getByRole('tab', { name: 'Chat' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Mentor' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByLabel('Ask Mentor')).toHaveValue(/Local Stockfish 19 evaluated the selected position.*depth 12.*White’s perspective/s);
-    await page.getByRole('tab', { name: 'Learn' }).click();
+    await page.getByRole('tab', { name: 'Training' }).click();
     await expect(page.locator('#learn-footer')).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('mentor-learn.png'), fullPage: true });
     await page.getByLabel('Ask Mentor').evaluate(input => {
@@ -94,6 +101,31 @@ test('Local PGN drives Moves, real Stockfish 19 evidence and explicit Chat revie
     await page.getByRole('button', { name: 'Game review · Shared AI' }).click();
     await expect(page.getByLabel('Ask Mentor')).not.toHaveValue(/Local Stockfish 19 evaluated/);
     expect(mentorRequests).toEqual([]);
+});
+
+test('Memory Training reconstructs on the shared board and restores the study untouched', async ({ page }) => {
+    await page.goto('/mentor.html');
+    const before = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    await page.getByRole('tab', { name: 'Training' }).click();
+    await page.getByLabel('Pattern to practise').selectOption('opposition-a');
+    await page.getByLabel('Mode').selectOption('challenge');
+    await page.getByRole('button', { name: 'Observe position' }).click();
+    await expect(page.locator('#memory-state')).toContainText('first-exposure local scored challenge');
+    await expect(page.locator('#study-engine')).toBeDisabled();
+    await page.getByRole('button', { name: 'Hide & rebuild' }).click();
+    await expect(page.locator('#mentor-board .caissa-board__piece')).toHaveCount(0);
+    await page.getByRole('button', { name: 'White King' }).click();
+    await page.locator('#mentor-board .caissa-board__square[data-square="e5"]').click();
+    await expect(page.locator('#mentor-board .caissa-board__piece[data-square="e5"][data-piece="wK"]')).toBeVisible();
+    await page.getByRole('button', { name: 'Check reconstruction' }).click();
+    await expect(page.locator('#memory-progress')).toContainText('1 scored / 0 practice attempts');
+    await expect(page.locator('#memory-feedback')).toContainText('expected');
+    await page.getByRole('tab', { name: 'Moves' }).click();
+    const after = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    expect(after.fen).toBe(before.fen);
+    expect(after.cursor).toBe(before.cursor);
+    expect(after.memory.phase).toBe('idle');
+    await expect(page.locator('#study-engine')).toBeEnabled();
 });
 
 test('real terminal analysis keeps depth zero and restores mate-zero perspective', async ({ page }) => {

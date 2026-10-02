@@ -77,3 +77,13 @@
 @media(min-width:1550px){#mentor-board{max-width:min(100%,calc(100dvh - 255px))}}
 @media(max-width:1050px) and (min-width:761px){.mentor-workspace{grid-template-columns:minmax(0,1.4fr) minmax(340px,1fr);gap:18px}.workspace-head{padding-inline:12px}.workspace-head [role=tab]{font-size:12px}.workspace-foot{padding-inline:12px}}
 @media(max-width:760px){#mentor-board{max-width:100%;min-width:0}.right-workspace{height:690px;min-height:0}.workspace-head [role=tab]{font-size:11px}.study-footer{gap:4px}.study-footer>button{padding-inline:7px}.move-navigation{gap:3px}.move-navigation button{min-width:32px;padding-inline:6px}}
+
+/* Memory uses the existing BODY scroll owner and FOOT; no second board. */
+.memory-training{margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--page-line)}
+.memory-training h3{margin:0 0 6px}.memory-training label{display:block;margin-top:12px;font-size:12px}.memory-training select{width:100%;margin-top:4px}
+#memory-palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}#memory-palette[hidden],#memory-footer[hidden],#memory-recommendation[hidden]{display:none}
+#memory-palette button{font-size:11px;min-height:36px;padding:5px 8px}#memory-palette [aria-pressed=true]{outline:2px solid var(--page-accent)}
+#memory-feedback{padding-left:18px;font-size:12px}.memory-correct{color:#85e1b3}.memory-error{color:#ffb0a9}
+.memory-actions{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0}.memory-actions button{font-size:12px}
+#memory-recommendation{font-size:12px;margin-top:8px;color:var(--page-accent)}
+#chat-idea-indicator{filter:none;animation:none;transition:none}
