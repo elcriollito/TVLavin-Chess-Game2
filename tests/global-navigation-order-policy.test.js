@@ -62,6 +62,6 @@ test('all renderers consume the owner without CSS or private-array reordering', 
   const css = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /data-caissa-primary-groups[^}]+visibility:\s*hidden/s);
   assert.doesNotMatch(css, /data-caissa-primary-groups[^}]+\border\s*:/s);
-  assert.match(source, /link\.href = '\/play'/);
-  assert.match(standalone, /href="\/play" class="nav-logo"/);
+  assert.match(source, /link\.href = '\/'/);
+  assert.match(standalone, /href="\/" class="nav-logo"/);
 });

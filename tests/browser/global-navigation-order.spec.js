@@ -11,7 +11,7 @@ const routes = [
 ];
 
 const canonicalOrder = [
-  'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
+  'Home', 'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
   'Puzzles', 'Academy', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
@@ -31,8 +31,14 @@ async function assertOrderAndIdentity(page, activeLabel) {
     const scope = node.matches('.nav-items') ? node : node.querySelector('.nav-items') || node;
     return [...scope.querySelectorAll('.nav-item')].map(item => item.textContent.replace(/\s+/g, ' ').trim());
   });
-  expect(labels).toEqual(canonicalOrder);
-  expect(labels.slice(0, 5)).toEqual(['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
+  const expectedOrder = activeLabel === 'Play'
+    ? ['Play', 'Home', ...canonicalOrder.slice(2)]
+    : canonicalOrder;
+  expect(labels).toEqual(expectedOrder);
+  expect(labels.slice(0, 6)).toEqual(activeLabel === 'Play'
+    ? ['Play', 'Home', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']
+    : ['Home', 'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
+  expect(labels.filter(label => label === 'Home')).toHaveLength(1);
   expect(labels.filter(label => label === 'Play')).toHaveLength(1);
   expect(labels.filter(label => label === 'Playchess')).toHaveLength(1);
   expect(labels.filter(label => label === 'Playchess Guest')).toHaveLength(0);
@@ -45,7 +51,7 @@ async function assertOrderAndIdentity(page, activeLabel) {
   await expect(current).toHaveCount(1);
   await expect(current).toContainText(activeLabel);
   const brand = page.locator('.nav-logo').first();
-  if (await brand.count()) await expect(brand).toHaveAttribute('href', '/play');
+  if (await brand.count()) await expect(brand).toHaveAttribute('href', '/');
   const social = nav.locator('.nav-social-link');
   await expect(social).toHaveCount(3);
   await expect(nav.locator('.nav-footer .nav-label')).toHaveCount(0);
@@ -66,8 +72,8 @@ test('desktop shells preserve immutable DOM order and route-derived active ident
     await assertOrderAndIdentity(page, active);
   }
   const root = await request.get('/', { maxRedirects: 0 });
-  expect(root.status()).toBe(308);
-  expect(root.headers().location).toBe('/play');
+  expect(root.status()).toBe(200);
+  expect(await root.text()).toContain('Welcome to CAISSA.');
 });
 
 test('mobile shells preserve the same DOM order without promoting the active item', async ({ page }) => {
@@ -96,12 +102,13 @@ test('Back Forward and rapid navigation change only active identity, never order
   await assertOrderAndIdentity(page, 'Analyze');
 });
 
-test('brand returns to Play from representative application and standalone shells', async ({ page }) => {
+test('brand returns to Home from representative application and standalone shells', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
   for (const route of ['/yahoo-classic', '/fics', '/academy', '/tools/polyglot', '/blog']) {
     await page.goto(route);
     await page.locator('#mainNav .nav-logo').click();
-    await expect(page).toHaveURL(/\/play$/);
-    await assertOrderAndIdentity(page, 'Play');
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { name: 'Welcome to CAISSA.' })).toBeVisible();
+    await expect(page).toHaveTitle(/CAISSA Chess/);
   }
 });
