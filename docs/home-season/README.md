@@ -77,7 +77,9 @@ links use same-origin relative routes and encode the current Home path, query an
 hash in `redirect_url`, so the handoff returns to the same preview deployment.
 Authenticated users instead receive a keyboard-operable avatar menu backed by
 Clerk's supported profile surface and the existing `signOut()` contract; Settings
-remains independently available.
+remains independently available. Home opts into Clerk's versioned UI bundle before
+the shared auth client initializes, which keeps the profile overlay functional
+without changing or adding UI dependencies to the other tools.
 
 The Settings dialog exposes only CAISSA's existing global persisted preference:
 the `CaissaI18n` interface locale (`caissa.locale`) for English, Español and
@@ -141,6 +143,10 @@ Regressions found and repaired in this candidate:
   `/home.html` was correct. Root routing now rewrites before filesystem routing.
 - A Home restored from the back-forward cache did not re-query Puzzles progress.
   It now refreshes on persisted `pageshow` without accepting stale account data.
+- The first authenticated preview exposed Clerk's headless session client but had
+  not loaded the separate Clerk UI bundle, so Profile raised "Clerk was not loaded
+  with Ui components". Home now requests that bundle explicitly before auth
+  initialization; a focused bootstrap test covers the ordering and UI contract.
 
 No remaining regressions were found in the scoped routing, auth, navigation,
 desktop/mobile or console suites.

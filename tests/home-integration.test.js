@@ -68,6 +68,7 @@ test('Home owns canonical metadata and preserves the approved product boundaries
   assert.equal($('a[href="/yahoo-classic"].desktop-only').length, 1);
   assert.equal($('[data-tool]').toArray().every(node => ($(node).attr('href') || '').startsWith('/')), true);
   assert.equal($('a[href^="https://www.caissa-chess.org"]').length, 0);
+  assert.equal($('html').attr('data-caissa-clerk-ui'), '');
 });
 
 test('All tools is sourced from the existing primary navigation contract', () => {

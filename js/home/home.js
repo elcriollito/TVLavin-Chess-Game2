@@ -168,6 +168,7 @@
     );
     const profile = element('button', 'account-menu-action', 'Profile');
     profile.type = 'button';
+    profile.setAttribute('aria-label', 'Profile');
     profile.addEventListener('click', async () => {
       menu.removeAttribute('open');
       const openProfile = auth.clerk?.openUserProfile;
@@ -175,6 +176,7 @@
     });
     const signOut = element('button', 'account-menu-action', 'Sign out');
     signOut.type = 'button';
+    signOut.setAttribute('aria-label', 'Sign out');
     signOut.addEventListener('click', async () => {
       menu.removeAttribute('open');
       signOut.disabled = true;

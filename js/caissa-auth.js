@@ -10,6 +10,7 @@
 
     const CLERK_SDK_URL = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js';
     const CLERK_SDK_INTEGRITY = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
+    const CLERK_UI_VERSION = '1.30.1';
 
     // Global auth state object
     window.CAISSA_AUTH = {
@@ -37,21 +38,50 @@
         return key;
     }
 
-    function _loadClerkSdk(publishableKey) {
-        if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
-        if (_clerkLoadPromise) return _clerkLoadPromise;
+    function _getClerkDomain(publishableKey) {
+        try {
+            const encodedDomain = publishableKey.split('_')[2];
+            const domain = window.atob(encodedDomain).slice(0, -1);
+            if (!domain || !/^[a-z0-9.-]+$/i.test(domain)) throw new Error('Invalid domain');
+            return domain;
+        } catch (_) {
+            throw new Error('Invalid Clerk publishable key domain');
+        }
+    }
 
-        _clerkLoadPromise = new Promise((resolve, reject) => {
+    function _loadClerkUi(publishableKey) {
+        if (window.__internal_ClerkUICtor) return Promise.resolve();
+        const clerkDomain = _getClerkDomain(publishableKey);
+        return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.async = true;
             script.crossOrigin = 'anonymous';
-            script.integrity = CLERK_SDK_INTEGRITY;
-            script.src = CLERK_SDK_URL;
-            script.dataset.clerkPublishableKey = publishableKey;
-            script.onload = () => resolve(window.Clerk);
-            script.onerror = () => reject(new Error('Clerk SDK failed to load'));
+            script.referrerPolicy = 'no-referrer';
+            script.src = `https://${clerkDomain}/npm/@clerk/ui@${CLERK_UI_VERSION}/dist/ui.browser.js`;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Clerk UI failed to load'));
             document.head.appendChild(script);
         });
+    }
+
+    async function _loadClerkSdk(publishableKey, includeUi) {
+        if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
+        if (_clerkLoadPromise) return _clerkLoadPromise;
+
+        _clerkLoadPromise = (async () => {
+            if (includeUi) await _loadClerkUi(publishableKey);
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.async = true;
+                script.crossOrigin = 'anonymous';
+                script.integrity = CLERK_SDK_INTEGRITY;
+                script.src = CLERK_SDK_URL;
+                script.dataset.clerkPublishableKey = publishableKey;
+                script.onload = () => resolve(window.Clerk);
+                script.onerror = () => reject(new Error('Clerk SDK failed to load'));
+                document.head.appendChild(script);
+            });
+        })();
 
         return _clerkLoadPromise;
     }
@@ -80,12 +110,14 @@
         }
 
         try {
-            await _loadClerkSdk(publishableKey);
+            const includeUi = document.documentElement?.hasAttribute('data-caissa-clerk-ui') === true;
+            await _loadClerkSdk(publishableKey, includeUi);
 
             // Initialize Clerk
             _clerkInstance = window.Clerk;
             await _clerkInstance.load({
-                publishableKey
+                publishableKey,
+                ...(includeUi ? { ui: { ClerkUI: window.__internal_ClerkUICtor } } : {})
             });
 
             window.CAISSA_AUTH.clerk = _clerkInstance;
