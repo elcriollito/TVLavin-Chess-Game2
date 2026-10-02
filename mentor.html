@@ -20,18 +20,24 @@
       <section class="board-region" aria-labelledby="lesson-title">
         <div class="lesson-heading"><div><span class="eyebrow" id="lesson-category">GUIDED LESSON</span><h2 id="lesson-title">Develop with a plan</h2></div><div class="board-service-notice" data-caissa-mentor-page-notice aria-label="Shared AI account information"></div><span class="study-label">Study board</span></div>
         <div id="mentor-board"></div>
-        <div class="board-foot">
-          <div id="lesson-notation" aria-label="Lesson moves"></div>
-          <div class="board-controls"><div><button id="previous" type="button" aria-label="Previous lesson move">←</button><button id="next" type="button" aria-label="Next lesson move">→</button><button id="repeat" type="button">↺ Repeat</button></div><button id="flip" type="button">⇅ Flip board</button></div>
-          <div class="lesson-step"><p id="lesson-instruction" role="status" aria-live="polite"></p><button id="practice" type="button">Try it yourself</button></div>
-          <p id="move-status" role="status" aria-live="polite"></p>
-        </div>
       </section>
       <section class="right-workspace" aria-label="Mentor learning workspace">
-        <div class="workspace-head"><span class="eyebrow">EXPLORE WITH MENTOR</span><div role="tablist" aria-label="Mentor topics"><button id="tab-chat" role="tab" aria-selected="true" aria-controls="panel-chat" tabindex="0">Chat <span id="chat-idea-indicator" title="New training idea" aria-hidden="true" hidden>💡</span></button><button id="tab-learn" role="tab" aria-selected="false" aria-controls="panel-learn" tabindex="-1">Learn</button><button id="tab-openings" role="tab" aria-selected="false" aria-controls="panel-openings" tabindex="-1">Opening</button><button id="tab-account" role="tab" aria-selected="false" aria-controls="panel-account" tabindex="-1">My account</button></div></div>
+        <div class="workspace-head"><span class="eyebrow">EXPLORE WITH MENTOR</span><div role="tablist" aria-label="Mentor topics"><button id="tab-chat" role="tab" aria-selected="true" aria-controls="panel-chat" tabindex="0">Chat <span id="chat-idea-indicator" title="New training idea" aria-hidden="true" hidden>💡</span></button><button id="tab-moves" role="tab" aria-selected="false" aria-controls="panel-moves" tabindex="-1">Moves</button><button id="tab-learn" role="tab" aria-selected="false" aria-controls="panel-learn" tabindex="-1">Learn</button><button id="tab-openings" role="tab" aria-selected="false" aria-controls="panel-openings" tabindex="-1">Opening</button><button id="tab-account" role="tab" aria-selected="false" aria-controls="panel-account" tabindex="-1">My account</button></div></div>
         <p id="mentor-idea-status" class="visually-hidden" role="status"></p><div class="workspace-body">
           <div id="panel-chat" role="tabpanel" aria-labelledby="tab-chat"><div class="chat-heading"><h2>CAISSA Mentor</h2><p>Let’s find your next step, together.</p><button id="idea-plan" type="button" hidden>Prepare a training plan</button></div><div class="chat-suggestions" id="chat-suggestions" aria-labelledby="suggestions-title"><h3 id="suggestions-title">Where shall we start?</h3><p id="suggestions-context">Choose an idea to explore on the board.</p><div id="suggestion-actions"></div></div><div id="opening-followups" class="opening-followups" hidden><button id="opening-discuss" type="button">Explain the plans</button><button id="opening-practice" type="button">Try this opening</button></div><div data-caissa-mentor-page-host></div></div>
-          <div class="topic-panel" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn" hidden><div id="learn-game" hidden><h2>Your game, move by move</h2><label for="learn-game-select">Imported games</label><select id="learn-game-select"></select><p id="learn-game-meta"></p><div class="learn-game-controls"><button id="game-first" type="button" aria-label="First game position">⇤</button><button id="game-previous" type="button" aria-label="Previous game move">←</button><button id="game-next" type="button" aria-label="Next game move">→</button><button id="game-last" type="button" aria-label="Last game position">⇥</button></div><p id="learn-game-position" role="status"></p><div id="learn-game-moves" aria-label="Imported game moves"></div><button id="game-review" type="button">Game review · Shared AI</button><p class="review-note">Opens Chat with a review draft for you to send. A request may use account credits.</p></div><div id="learn-lessons"><h2>What would you like to understand?</h2><p>Short lessons you can explore, move by move.</p><div class="topic-actions"><button data-lesson="development">Develop with a plan <span>↗</span></button><button data-lesson="fork">Find a knight fork <span>↗</span></button><button data-lesson="opposition">Understand opposition <span>↗</span></button></div></div></div>
+          <div class="topic-panel" id="panel-moves" role="tabpanel" aria-labelledby="tab-moves" hidden>
+            <h2>Your game, move by move</h2>
+            <div class="evaluation-chart" id="evaluation-chart" aria-label="White perspective evaluation across the game"></div>
+            <p id="engine-status" role="status" aria-live="polite">Use Engine to analyse this line. No evaluation has been calculated.</p>
+            <div id="learn-game" hidden><label for="learn-game-select">Imported games</label><select id="learn-game-select"></select><p id="learn-game-meta"></p></div>
+            <p id="learn-game-position" role="status"></p><div id="learn-game-moves" aria-label="Game moves"></div>
+            <button id="game-review" type="button">Game review · Shared AI</button><p class="review-note">Opens Chat with a review draft for you to send. A request may use account credits.</p>
+          </div>
+          <div class="topic-panel" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn" hidden>
+            <h2>Explore the idea</h2><div id="lesson-notation" aria-label="Lesson moves"></div>
+            <div class="lesson-step"><p id="lesson-instruction" role="status" aria-live="polite"></p></div><p id="move-status" role="status" aria-live="polite"></p>
+            <div id="learn-lessons"><h3>Choose a lesson</h3><div class="topic-actions"><button data-lesson="development">Develop with a plan <span>↗</span></button><button data-lesson="fork">Find a knight fork <span>↗</span></button><button data-lesson="opposition">Understand opposition <span>↗</span></button></div></div>
+          </div>
           <div class="topic-panel" id="panel-openings" role="tabpanel" aria-labelledby="tab-openings" hidden><h2>Chess ECO Codes Database</h2><p>Choose an opening. Explore its position with Mentor.</p><label class="opening-search-label" for="opening-search">Find an opening or ECO code</label><input id="opening-search" type="search" maxlength="100" placeholder="Ruy Lopez, Sicilian, C60…"><p id="opening-status" role="status">Open this tab to load the ECO catalog.</p><div id="opening-list"></div><button id="opening-more" type="button" hidden>Show more openings</button></div>
           <div class="topic-panel insight-account" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden>
             <h2>CAISSA Insight</h2>
@@ -52,12 +58,19 @@
             <details class="account-position"><summary>Load your position</summary><form id="fen-form"><label for="study-fen">FEN from a completed game or study</label><input id="study-fen" required placeholder="Paste a FEN position"><button type="submit">Load position</button></form><p id="fen-status" role="status"></p></details>
           </div>
         </div>
-        <div id="chat-footer" class="workspace-foot" aria-label="Write to Mentor"></div>
+        <div id="workspace-footer" class="workspace-foot">
+          <div id="chat-footer" aria-label="Write to Mentor"></div>
+          <div id="learn-footer" class="learn-actions" hidden><button id="repeat" type="button">↺ Repeat</button><button id="flip" type="button">⇅ Flip board</button><button id="practice" type="button">Try it yourself</button></div>
+          <div class="study-footer"><button id="study-settings" type="button" aria-label="Study settings" aria-haspopup="dialog">⚙</button><button id="study-engine" type="button">Engine</button><div class="move-navigation" role="group" aria-label="Navigate study moves"><button id="game-first" type="button" aria-label="First position">⇤</button><button id="game-previous" type="button" aria-label="Previous move">←</button><button id="game-next" type="button" aria-label="Next move">→</button><button id="game-last" type="button" aria-label="Last position">⇥</button></div></div>
+        </div>
       </section>
     </div>
     <p class="page-note">Study and completed games only. Local lessons use no Shared AI credits.</p>
   </main>
   <dialog id="promotion-dialog" aria-labelledby="promotion-title"><h2 id="promotion-title">Choose a promotion piece</h2><div><button data-promotion="q">Queen</button><button data-promotion="r">Rook</button><button data-promotion="b">Bishop</button><button data-promotion="n">Knight</button></div><button id="promotion-cancel">Cancel</button></dialog>
+  <dialog id="study-settings-dialog" aria-labelledby="study-settings-title"><h2 id="study-settings-title">Study settings</h2><label for="engine-depth">Engine depth</label><select id="engine-depth"><option value="12">12 · Faster</option><option value="16">16 · Deeper</option></select><p>Evaluation is from White’s perspective. Local engine analysis uses no Shared AI credits.</p><button id="settings-flip" type="button">Flip board</button><button id="settings-close" type="button">Done</button></dialog>
+  <script src="/js/engine-adapter.js"></script>
+  <script src="/js/engine-registry.js"></script>
   <script src="/js/auth-config.js"></script>
   <script src="/js/caissa-auth.js" defer></script>
   <script src="/llm-provider.js"></script>
