@@ -483,11 +483,6 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ clerkPublishableKey: '', registrationTracking: false }));
     return;
   }
-  if (pathname === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
-    res.writeHead(308, { Location: '/play' });
-    res.end();
-    return;
-  }
   const retiredDestination = RETIRED_PAGE_REDIRECTS.get(pathname.replace(/\/$/, ''));
   if (retiredDestination && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(308, { Location: retiredDestination });
@@ -497,7 +492,8 @@ const server = http.createServer(async (req, res) => {
   let filePath = '.' + pathname;
   let responseStatus = 200;
   if (filePath === './') {
-    filePath = './index.html';
+    filePath = './home.html';
+    res.setHeader('Cache-Control', 'public, no-store, max-age=0, must-revalidate');
   }
   if (pathname === '/blog') {
     filePath = './blog/index.html';

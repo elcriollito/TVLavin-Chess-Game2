@@ -8,7 +8,7 @@ import { PuzzleCatalogSource, ratingBounds } from './catalog-source.js';
 const $ = id => document.getElementById(id);
 const MAX_REMOTE_INVALID_ATTEMPTS = 12;
 const MAX_INVALID_ATTEMPTS = 24;
-const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), visitSolved: 0, accountMode: 'loading', accountUserId: null, pendingOutcomes: [], outcomeRecorded: false, ratedOutcome: null, assisted: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null, loadToken: 0, analysisActive: false, analysisFen: null, engineMatchSnapshot: null, movePending: false };
+const state = { data: null, category: 'Phases', theme: '', target: 1800, difficulty: 'normal', seen: new Set(), progress: createSessionRating(), visitSolved: 0, accountMode: 'loading', accountUserId: null, accountReadOnly: false, pendingOutcomes: [], outcomeRecorded: false, ratedOutcome: null, assisted: false, session: null, orientation: 'white', humanColor: 'w', reviewIndex: null, autoNext: false, nextTimer: null, loadToken: 0, analysisActive: false, analysisFen: null, engineMatchSnapshot: null, movePending: false };
 const board = new CaissaBoardAdapter($('puzzle-board'), { position: 'start', interactive: true, animation: true, label: 'CAISSA puzzle position' });
 const catalog = new PuzzleCatalogSource();
 const engine = new PuzzleEngine(showEvaluation, engineMove, message => {
@@ -325,11 +325,15 @@ function renderStorageStatus() {
         guest: 'Guest practice is temporary. Sign in to save future results to your account.',
         saving: 'Saving this result to your CAISSA account…',
         saved: 'Your CAISSA training estimate and results are saved to your account. This is separate from other ratings.',
+        readonly: state.pendingOutcomes.length
+            ? 'Saved account progress is loaded. This Preview is read-only; a previous unsaved result remains only in this browser.'
+            : 'Saved account progress is loaded. This Preview is read-only.',
         error: 'Account progress is unavailable. An unsaved result may be pending; keep this page open and retry.',
     };
     $('progress-storage').textContent = messages[state.accountMode];
     $('retry-progress').hidden = state.accountMode !== 'error';
-    $('rating-kind').textContent = state.accountMode === 'saved' ? 'Saved CAISSA training estimate' : 'Temporary training estimate';
+    $('rating-kind').textContent = ['saved', 'readonly'].includes(state.accountMode)
+        ? 'Saved CAISSA training estimate' : 'Temporary training estimate';
 }
 
 function pendingKey(userId) { return `caissa:puzzles:pending:v1:${userId}`; }
@@ -362,7 +366,7 @@ async function loadAccountProgress() {
 
 let syncing = false;
 async function syncOutcomes() {
-    if (syncing || state.accountMode === 'guest' || !state.accountUserId) return;
+    if (syncing || state.accountMode === 'guest' || state.accountReadOnly || !state.accountUserId) return;
     syncing = true;
     if (state.pendingOutcomes.length) {
         state.accountMode = 'saving';
@@ -403,6 +407,7 @@ async function initializeAccountProgress() {
         return;
     }
     state.accountUserId = userId;
+    state.accountReadOnly = false;
     state.progress = createSessionRating();
     state.pendingOutcomes = userId ? loadPendingOutcomes(userId) : [];
     if (!userId) state.accountMode = 'guest';
@@ -411,8 +416,10 @@ async function initializeAccountProgress() {
             const result = await loadAccountProgress();
             if (state.accountUserId !== userId) return;
             state.progress = { ...result.progress, last: null };
-            state.accountMode = state.pendingOutcomes.length ? 'saving' : 'saved';
-            if (state.pendingOutcomes.length) void syncOutcomes();
+            state.accountReadOnly = result.readOnly === true;
+            state.accountMode = state.accountReadOnly ? 'readonly'
+                : state.pendingOutcomes.length ? 'saving' : 'saved';
+            if (state.pendingOutcomes.length && !state.accountReadOnly) void syncOutcomes();
         } catch { state.accountMode = 'error'; }
     }
     renderStorageStatus();
@@ -428,9 +435,9 @@ function recordSessionOutcome(outcome) {
         state.pendingOutcomes.push({ operationId: crypto.randomUUID(), puzzleId: state.session.puzzle.id,
             puzzleRating: state.session.puzzle.rating, outcome, assisted: state.assisted });
         savePendingOutcomes();
-        state.accountMode = 'saving';
+        state.accountMode = state.accountReadOnly ? 'readonly' : 'saving';
         renderStorageStatus();
-        void syncOutcomes();
+        if (!state.accountReadOnly) void syncOutcomes();
     } else state.progress = recordOutcome(state.progress, state.session.puzzle.rating, outcome);
     renderProgress();
 }

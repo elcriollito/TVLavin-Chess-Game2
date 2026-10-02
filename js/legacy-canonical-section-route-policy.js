@@ -32,15 +32,45 @@
         return definition ? Object.freeze({ route: normalized, ...definition }) : null;
     }
 
+    function applyDocumentMetadata(definition, document = global.document) {
+        if (!definition || !document?.head) return false;
+        const absoluteUrl = new URL(definition.route, global.location?.origin || 'https://www.caissa-chess.org').href;
+        let canonical = document.querySelector('link[rel="canonical"]');
+        if (!canonical) {
+            canonical = document.createElement('link');
+            canonical.rel = 'canonical';
+            document.head.append(canonical);
+        }
+        canonical.href = absoluteUrl;
+        for (const [selector, attribute] of [
+            ['meta[property="og:url"]', 'property'],
+            ['meta[name="twitter:url"]', 'name']
+        ]) {
+            let meta = document.querySelector(selector);
+            if (!meta) {
+                meta = document.createElement('meta');
+                meta.setAttribute(attribute, selector.includes('og:url') ? 'og:url' : 'twitter:url');
+                document.head.append(meta);
+            }
+            meta.content = absoluteUrl;
+        }
+        return true;
+    }
+
     global.LegacyCanonicalSectionRoutePolicy = Object.freeze({
-        contractId: 'LegacyCanonicalSectionRoutePolicy@1.0.0',
+        contractId: 'LegacyCanonicalSectionRoutePolicy@1.1.0',
         routes,
         sections,
         resolve,
+        applyDocumentMetadata,
         routeForSection: section => sections[section] || null,
         surfaceForSection: section => definitions[sections[section]]?.surface || section,
         titleForSection: section => definitions[sections[section]]?.title || null
     });
 
-    if (resolve(global.location)) global.document?.documentElement?.setAttribute('data-caissa-navigation-pending', 'true');
+    const current = resolve(global.location);
+    if (current) {
+        global.document?.documentElement?.setAttribute('data-caissa-navigation-pending', 'true');
+        applyDocumentMetadata(current);
+    }
 })(typeof window !== 'undefined' ? window : globalThis);

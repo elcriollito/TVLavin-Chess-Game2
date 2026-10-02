@@ -6,6 +6,41 @@ const PUZZLE_ID = /^[A-Za-z0-9]{5}$/u;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const SOURCE_VERSION = '2026-09-10';
 
+function progressReadOrigin(env = process.env) {
+    if (!env.CAISSA_PUZZLE_PROGRESS_READ_ORIGIN) return null;
+    try {
+        const url = new URL(env.CAISSA_PUZZLE_PROGRESS_READ_ORIGIN);
+        if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/') return null;
+        return url.origin;
+    } catch {
+        return null;
+    }
+}
+
+async function relayProgressRead(req, res, dependencies = {}) {
+    const origin = progressReadOrigin(dependencies.env || process.env);
+    if (!origin || req.method !== 'GET') return false;
+    const authorization = req.headers?.authorization || req.headers?.Authorization;
+    const log = dependencies.log || console;
+    try {
+        log.info?.('puzzles_progress_read_relay_start');
+        const response = await (dependencies.fetchFn || fetch)(`${origin}/api/puzzles/progress`, {
+            method: 'GET',
+            cache: 'no-store',
+            headers: { Authorization: authorization, Accept: 'application/json' },
+            signal: AbortSignal.timeout(5000),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!payload || typeof payload !== 'object') throw new Error('Invalid progress response');
+        log.info?.('puzzles_progress_read_relay_response', response.status);
+        res.status(response.status).json(response.ok ? { ...payload, readOnly: true } : payload);
+    } catch (error) {
+        log.warn?.('puzzles_progress_read_relay_failed', error?.name || 'Error');
+        res.status(503).json({ code: 'PROGRESS_UNAVAILABLE', error: 'Account progress is temporarily unavailable.' });
+    }
+    return true;
+}
+
 export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['GET', 'POST'])) return;
     res.setHeader('Cache-Control', 'private, no-store');
@@ -13,11 +48,15 @@ export default async function handler(req, res, dependencies = {}) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ code: 'METHOD_NOT_ALLOWED' });
     const auth = await (dependencies.authenticate || authenticateRequest)(req);
-    if (!auth.authenticated) return respondAuthFailure(res, auth);
+    if (!auth.authenticated) {
+        (dependencies.log || console).warn?.('puzzles_progress_auth_failure', auth.code || auth.status || 'unknown');
+        return respondAuthFailure(res, auth);
+    }
     const rate = (dependencies.checkRateLimit || checkRateLimit)(auth.userId, {
         prefix: 'puzzles-progress', windowMs: 60_000, max: 40,
     });
     if (!rate.allowed) return res.status(429).json({ code: 'RATE_LIMITED' });
+    if (await relayProgressRead(req, res, dependencies)) return;
     const db = (dependencies.getSupabase || getSupabase)();
     try {
         const { data: user, error: userError } = await db.from('users')

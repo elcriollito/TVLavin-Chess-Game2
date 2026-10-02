@@ -378,16 +378,16 @@ ${suggestionButton ? `            ${suggestionButton}\n` : ''}
 
     document.querySelectorAll('.nav-logo').forEach((brand) => {
         if (brand.tagName === 'A') {
-            brand.setAttribute('href', '/play');
-            brand.dataset.caissaI18nAriaLabel = 'shell.returnToPlay';
-            brand.setAttribute('aria-label', i18n.t('shell.returnToPlay', 'CAISSA Chess — return to Play'));
+            brand.setAttribute('href', '/');
+            brand.dataset.caissaI18nAriaLabel = 'shell.returnHome';
+            brand.setAttribute('aria-label', i18n.t('shell.returnHome', 'CAISSA Chess — return home'));
             return;
         }
         const link = document.createElement('a');
         link.className = brand.className;
-        link.href = '/play';
-        link.dataset.caissaI18nAriaLabel = 'shell.returnToPlay';
-        link.setAttribute('aria-label', i18n.t('shell.returnToPlay', 'CAISSA Chess — return to Play'));
+        link.href = '/';
+        link.dataset.caissaI18nAriaLabel = 'shell.returnHome';
+        link.setAttribute('aria-label', i18n.t('shell.returnHome', 'CAISSA Chess — return home'));
         while (brand.firstChild) link.appendChild(brand.firstChild);
         brand.replaceWith(link);
     });

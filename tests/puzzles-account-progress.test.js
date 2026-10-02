@@ -44,6 +44,43 @@ test('reads only the authenticated account progress and disables caching', async
     assert.deepEqual(res.body, { progress: { rating: 1800, solved: 0, failed: 0 }, persistent: true });
 });
 
+test('Preview can relay a read to the canonical progress API without copying production database credentials', async () => {
+    const res = response();
+    const dependencies = deps();
+    dependencies.env = {
+        CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'https://www.caissa-chess.org',
+    };
+    dependencies.getSupabase = () => { throw new Error('Preview relay must not open Supabase directly'); };
+    dependencies.fetchFn = async (url, options) => {
+        assert.equal(url, 'https://www.caissa-chess.org/api/puzzles/progress');
+        assert.equal(options.method, 'GET');
+        assert.equal(options.headers.Authorization, 'Bearer session-token');
+        return {
+            status: 200,
+            json: async () => ({ progress: { rating: 1912, solved: 12, failed: 3 }, persistent: true }),
+        };
+    };
+
+    await handler({ method: 'GET', headers: { authorization: 'Bearer session-token' } }, res, dependencies);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, { progress: { rating: 1912, solved: 12, failed: 3 }, persistent: true });
+});
+
+test('Preview read relay rejects malformed or non-HTTPS origins and stays on the local backend', async () => {
+    const res = response();
+    const dependencies = deps();
+    dependencies.env = {
+        CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'http://www.caissa-chess.org/path',
+    };
+    dependencies.fetchFn = async () => { throw new Error('Invalid relay origin must not be requested'); };
+
+    await handler({ method: 'GET', headers: {} }, res, dependencies);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, { progress: { rating: 1800, solved: 0, failed: 0 }, persistent: true });
+});
+
 test('fails closed while the Clerk identity has no internal account mapping', async () => {
     const res = response();
     await handler({ method: 'GET', headers: {} }, res, deps({ user: null, userError: { code: 'PGRST116' } }));
@@ -120,4 +157,25 @@ test('account bootstrap does not mask non-mapping service failures', async () =>
         return { ok: false, status: 503 };
     }), /Account progress HTTP 503/);
     assert.deepEqual(calls, ['/api/puzzles/progress']);
+});
+
+test('marks a successful relayed Preview read as read-only without changing progress', async () => {
+    const dependencies = deps();
+    dependencies.env = { CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'https://www.caissa-chess.org' };
+    dependencies.fetchFn = async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ progress: { rating: 1912, solved: 8, failed: 3 }, persistent: true }),
+    });
+    const res = response();
+
+    await handler({ method: 'GET', headers: { authorization: 'Bearer synthetic' } }, res, dependencies);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, {
+        progress: { rating: 1912, solved: 8, failed: 3 },
+        persistent: true,
+        readOnly: true,
+    });
+    assert.equal(dependencies.calls.length, 0);
 });

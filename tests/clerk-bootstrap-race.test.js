@@ -6,22 +6,33 @@ import publicConfigHandler, { isValidClerkPublishableKey } from '../api/public-a
 
 const validKey = 'pk_test_c3ludGhldGljLmNsZXJrLmFjY291bnRzLmRldiQ';
 
-function loadAuth({ resolveConfig, key = validKey }) {
+function loadAuth({ resolveConfig, key = validKey, includeUi = false }) {
   let resolveReady;
   const ready = new Promise(resolve => { resolveReady = resolve; });
-  let appended = 0, loadCalls = 0, listeners = 0;
-  const Clerk = { user:null, session:null, load:async options=>{ loadCalls++; assert.equal(options.publishableKey,key); }, addListener:()=>{listeners++;} };
+  let appended = 0, loadCalls = 0, listeners = 0, loadOptions = null;
+  const Clerk = { user:null, session:null, load:async options=>{ loadCalls++; loadOptions = options; assert.equal(options.publishableKey,key); }, addListener:()=>{listeners++;} };
   const window = {
     CAISSA_AUTH_CONFIG:{CLERK_PUBLISHABLE_KEY:'pk_test_REPLACE_WITH_YOUR_KEY',STORAGE_KEYS:{USER_PROFILE:'profiles',AUTH_STATE:'state'}},
     CAISSA_AUTH_CONFIG_UTILS:{isValidClerkPublishableKey}, CAISSA_AUTH_CONFIG_READY:ready,
-    addEventListener(){}, dispatchEvent(){}, location:{pathname:'/',search:'',hash:'',href:''}
+    addEventListener(){}, dispatchEvent(){}, location:{pathname:'/',search:'',hash:'',href:''},
+    atob: value => Buffer.from(value, 'base64').toString('utf8')
   };
-  const document = { readyState:'complete', createElement:()=>({dataset:{}}), head:{appendChild(script){appended++; window.Clerk=Clerk; queueMicrotask(()=>script.onload());}} };
+  const document = {
+    readyState:'complete',
+    documentElement:{hasAttribute:name=>includeUi && name==='data-caissa-clerk-ui'},
+    createElement:()=>({dataset:{}}),
+    head:{appendChild(script){
+      appended++;
+      if (script.src.includes('/@clerk/ui@')) window.__internal_ClerkUICtor = function ClerkUI() {};
+      else window.Clerk=Clerk;
+      queueMicrotask(()=>script.onload());
+    }}
+  };
   const localStorage={getItem:()=>null,setItem(){},removeItem(){}};
   vm.runInContext(fs.readFileSync('js/caissa-auth.js','utf8'),vm.createContext({window,document,localStorage,CustomEvent:class{},Promise,console,queueMicrotask}));
   if(resolveConfig){window.CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY=key; resolveReady(window.CAISSA_AUTH_CONFIG);}
   else resolveReady(window.CAISSA_AUTH_CONFIG);
-  return {window, counts:()=>({appended,loadCalls,listeners})};
+  return {window, counts:()=>({appended,loadCalls,listeners}), loadOptions:()=>loadOptions};
 }
 
 test('slow config prevents Clerk construction until valid config resolves', async()=>{
@@ -40,6 +51,12 @@ test('missing, malformed, and placeholder config never construct Clerk', async()
 test('valid config initializes exactly one owned Clerk instance', async()=>{
   const run=loadAuth({resolveConfig:true}); await new Promise(r=>setTimeout(r,5));
   assert.deepEqual(run.counts(),{appended:1,loadCalls:1,listeners:1});
+});
+
+test('Home opts into Clerk UI before initialization so Profile can open', async()=>{
+  const run=loadAuth({resolveConfig:true,includeUi:true}); await new Promise(r=>setTimeout(r,5));
+  assert.deepEqual(run.counts(),{appended:2,loadCalls:1,listeners:1});
+  assert.equal(typeof run.loadOptions().ui.ClerkUI,'function');
 });
 
 test('no HTML page preconstructs Clerk without resolved configuration',()=>{

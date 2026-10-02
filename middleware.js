@@ -1,4 +1,5 @@
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
+import { rewrite } from '@vercel/functions';
 import {
     PLAY_V2_BETA_ENTRY,
     PLAY_V2_BETA_STAGE_ENV,
@@ -68,7 +69,14 @@ export default function middleware(request) {
         if (url.searchParams.get('section') === 'yahooClassic') {
             return Response.redirect(new URL('/yahoo-classic', url), 308);
         }
-        return Response.redirect(new URL('/play', url), 308);
+        if (url.searchParams.get('action') === 'help') {
+            return Response.redirect(new URL('/help', url), 308);
+        }
+        // A physical index.html wins over vercel.json rewrites on this static
+        // deployment. Rewrite at the middleware layer so the public URL stays
+        // at / and query parameters remain available to the Home.
+        url.pathname = '/home.html';
+        return rewrite(url);
     }
     let decodedPath = url.pathname;
     try { decodedPath = decodeURIComponent(decodedPath); } catch (_) { /* malformed paths remain fail-closed */ }
