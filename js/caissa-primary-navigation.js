@@ -153,7 +153,8 @@
     }
 
     function renderBody(options = {}) {
-        return `${renderGroups(options)}${renderMore(options)}${renderLanguageControl()}`;
+        const home = { id: 'home', label: 'Home', icon: 'fas fa-home', route: '/' };
+        return `<div class="nav-destination-list" role="list">${renderItem(home, options)}</div>${renderGroups(options)}${renderMore(options)}${renderLanguageControl()}`;
     }
 
     function setupMoreControllers(root = document) {
