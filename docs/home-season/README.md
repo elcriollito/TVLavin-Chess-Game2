@@ -1,6 +1,6 @@
 # HOME-001 — CAISSA Home integration certification
 
-Release candidate prepared on 2026-10-01 from the approved design commit
+Release candidate prepared on 2026-10-02 from the approved design commit
 `763613fd9639e0ca5068134d884a562fa2c9aca2`, rebased logically onto
 `origin/main@35c467ac072c01a83d0dd6f1d055a73a9f5eb6e8`.
 
@@ -118,6 +118,37 @@ Alexander Lavin with a real independent Preview session. Its Puzzles UI currentl
 reports account progress unavailable, which remains a Preview configuration
 blocker rather than a Home display regression.
 
+### Preview environment audit — 2026-10-02
+
+The audit compared variable names, scopes and non-secret configuration without
+printing or exporting any credential. Vercel Secret values are deliberately
+non-readable after creation, so their equality cannot be inferred from their
+names or copied out of another branch. Production was not changed.
+
+| Preview project | HOME-001 branch configuration now present | HOME-001 branch secrets still required |
+| --- | --- | --- |
+| `caissa-chess` | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `SUPABASE_URL`, `CAISSA_PUZZLE_WORKER_URL`, `CAISSA_BROWSER_ORIGINS` | `CLERK_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CAISSA_PUZZLE_WORKER_TOKEN` |
+| `tv-lavin-chess-game2` | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `SUPABASE_URL`, `CAISSA_PUZZLE_WORKER_URL`, `CAISSA_BROWSER_ORIGINS` | `SUPABASE_SERVICE_ROLE_KEY`, `CAISSA_PUZZLE_WORKER_TOKEN` |
+
+All variables added during this audit are limited to Preview and to
+`feature/caissa-home-season-2026-10-01`. The publishable Clerk key on the CAISSA
+branch exactly matches TVLavin's Preview publishable key. The readable Supabase
+and worker URLs also match the already-authorized Puzzles Preview configuration.
+The Clerk secret/public-key pairing must still be confirmed by a successful
+authenticated runtime request after the missing secret is entered through
+Vercel's secure project settings; it cannot be proven by reading a Secret value.
+
+The read-only certification path uses `CLERK_SECRET_KEY`, `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`. `CAISSA_PUZZLE_WORKER_URL` and
+`CAISSA_PUZZLE_WORKER_TOKEN` are needed only by the existing progress write
+contract and were not invoked. The source Puzzles Preview loaded its real catalog
+and returned puzzle `eHm3M` with puzzle rating 1805, confirming its worker-side
+Preview configuration without solving a puzzle or changing progress. That source
+hostname has an independent Clerk session and therefore remained a guest; the
+authenticated Alexander session remains active on the target CAISSA Preview.
+The target cannot yet produce the required API → Puzzles → Home value comparison
+because its authenticated progress request still fails before the Supabase read.
+
 Screenshots:
 
 - [Desktop](screenshots/home-desktop.png)
@@ -153,13 +184,17 @@ desktop/mobile or console suites.
 
 ## Release pendings
 
-- Add the existing Clerk server secret and Puzzles Supabase/worker variables to
-  the HOME-001 Preview branch without changing Production. The publishable Clerk
-  key is present and the real Preview session works, but the server-side progress
-  contract cannot authenticate/read/write until those existing secrets are scoped
-  to this branch.
-- Re-run the live Home-versus-Puzzles progress comparison after that Preview-only
-  configuration is available.
+- In Vercel project `caissa-chess`, securely add `CLERK_SECRET_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY` and `CAISSA_PUZZLE_WORKER_TOKEN` to Preview for
+  branch `feature/caissa-home-season-2026-10-01`. The Clerk secret must belong to
+  the same instance as the existing `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`.
+- In Vercel project `tv-lavin-chess-game2`, securely add
+  `SUPABASE_SERVICE_ROLE_KEY` and `CAISSA_PUZZLE_WORKER_TOKEN` to Preview for the
+  same branch. Use the projects' existing authorized Puzzles Preview credentials;
+  do not send them through chat and do not change Production.
+- Redeploy both Previews after those secrets are entered, then use the existing
+  Alexander session to compare the read-only `/api/puzzles/progress` response
+  against Puzzles and Home across reload and Home → Puzzles → Home navigation.
 - Exercise the cached-308 recovery note in at least one previously used browser
   profile before production authorization.
 - Review the Vercel preview deployment and screenshots.
