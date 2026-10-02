@@ -23,7 +23,7 @@ export function mountMemoryTraining({ board, restoreStudy, onStart, onNotificati
         $('memory-retry').hidden=state.phase!=='result';$('memory-retry').disabled=result?.accuracy===1;
         $('memory-next').hidden=state.phase!=='result';$('memory-next').disabled=result?.accuracy!==1||context==='opening';
         levelSelect.disabled=active||loading||context==='opening';$('memory-mode').disabled=active||loading;
-        $('repeat').hidden=$('flip').hidden=context!=='lesson';
+        $('repeat').hidden=context!=='lesson';
         $('practice').hidden=context!=='lesson'&&!active;
         $('practice').textContent=active?'Return to lesson':'Try it yourself';$('practice').disabled=false;
         const destination=active?$('memory-footer'):$('learn-footer');

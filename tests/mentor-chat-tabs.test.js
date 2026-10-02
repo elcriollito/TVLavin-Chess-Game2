@@ -1,3 +1,4 @@
+import { mountExplorer } from '../js/mentor/mentor-explorer-view.js';
 import { MEMORY_POSITIONS } from '../js/mentor/mentor-memory.js';
 import { mountMemoryTraining } from '../js/mentor/mentor-memory-view.js';
 import test from 'node:test';
@@ -13,7 +14,7 @@ import { parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS } from '../js/m
 
 const catalog = parseEcoCatalog(JSON.parse(fs.readFileSync(new URL('../data/eco/eco_codes.json', import.meta.url), 'utf8')));
 
-function harness({ memoryCatalog } = {}) {
+function harness({ memoryCatalog, explorerClient } = {}) {
     const html = fs.readFileSync(new URL('../mentor.html', import.meta.url), 'utf8');
     const nodes = new Map();
     function element(id = '') {
@@ -40,12 +41,12 @@ function harness({ memoryCatalog } = {}) {
         querySelectorAll: query => query === '[role=tab][id^="tab-"]' ? tabs : [],
         querySelector: query => query === '.sign-in' ? authLink : query.endsWith('textarea') ? input : send };
     const boardHandlers = new Map();
-    let boardFen = null, draw=0;
-    const board = { setPosition(fen) { boardFen = fen; }, clearSelection() {}, setInteractive() {}, on(type,fn) { boardHandlers.set(type,fn); }, getMetrics() { return {}; } };
+    let boardFen = null, draw=0,orientation='white';
+    const board = { getOrientation:()=>orientation,setOrientation:value=>{orientation=value;},setPosition(fen) { boardFen = fen; }, clearSelection() {}, setInteractive() {}, on(type,fn) { boardHandlers.set(type,fn); }, getMetrics() { return {}; } };
     const source = fs.readFileSync(new URL('../js/mentor/mentor-page.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
-    vm.runInNewContext(source, { mountMemoryTraining: opts => mountMemoryTraining({...opts,catalog:memoryCatalog||{next:async()=>({...MEMORY_POSITIONS[(draw++)%6],source:'test-catalog'}),clear(){draw=0;}}}), AbortController, queueMicrotask, moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
+    vm.runInNewContext(source, { mountExplorer:opts=>mountExplorer({...opts,client:explorerClient||{load:async()=>({total:0,white:0,draws:0,black:0,moves:[],opening:null}),cancel(){},clear(){}}}), mountMemoryTraining: opts => mountMemoryTraining({...opts,catalog:memoryCatalog||{next:async()=>({...MEMORY_POSITIONS[(draw++)%6],source:'test-catalog'}),clear(){draw=0;}}}), AbortController, queueMicrotask, moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
         localStorage: { getItem() { return null; }, setItem() {} } });
-    return { nodes, tabs, input, send, messages, window, boardPosition:()=>boardFen, squareTap: square=>boardHandlers.get('squareTap')?.(square), emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
+    return { nodes, tabs, input, send, messages, window, boardPosition:()=>boardFen,orientation:()=>orientation, squareTap: square=>boardHandlers.get('squareTap')?.(square), emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
 }
 const summary = { ownerId: 'owner-one', status: 'completed', verified: true, source: 'chesscom', username: 'Alex', analysisId: 'analysis-10', completedGames: 10, themes: [{ theme: 'tactics', sampleGames: 4 }] };
 
@@ -304,4 +305,20 @@ test('Opening Memory reconstructs the current legal opening snapshot without cat
     assert.equal(h.nodes.get('memory-exercise').value,'master');assert.equal(h.nodes.get('memory-exercise').disabled,true);
     h.nodes.get('memory-hide').fire('click');h.nodes.get('practice').fire('click');
     assert.equal(h.boardPosition(),before.fen);assert.equal(h.window.CaissaMentorPage.inspect().cursor,before.cursor);
+});
+
+test('Moves opens the same Explorer; SAN exploration and return preserve imported main line, while Flip changes no query',async()=>{
+ const calls=[];const h=harness({explorerClient:{load:async fen=>{calls.push(fen);return {total:10,rateUnit:'percent',matchLevel:'exact',opening:null,moves:[{uci:'e2e4',san:'e4',total:10,popularity:100,white:60,draws:20,black:20}]};},cancel(){},clear(){}}});
+ h.nodes.get('account-source-pgn').fire('click');h.nodes.get('account-pgn-text').value=completedPgn;await h.nodes.get('account-form').fire('submit');const before=h.window.CaissaMentorPage.inspect();
+ h.nodes.get('moves-explorer').fire('click');await new Promise(r=>setImmediate(r));assert.equal(h.window.CaissaMentorPage.inspect().tab,'openings');assert.equal(h.nodes.get('opening-explorer-body').hidden,false);assert.equal(h.nodes.get('opening-eco-body').hidden,true);
+ const count=calls.length;h.nodes.get('flip').fire('click');assert.equal(h.orientation(),'black');assert.equal(calls.length,count);assert.equal(h.window.CaissaMentorPage.inspect().fen,before.fen);
+ h.nodes.get('explorer-rows').children[0].children[0].children[0].fire('click');await new Promise(r=>setImmediate(r));assert.notEqual(h.window.CaissaMentorPage.inspect().fen,before.fen);assert.equal(h.window.CaissaMentorPage.inspect().cursor,before.cursor);
+ h.nodes.get('explorer-return').fire('click');await new Promise(r=>setImmediate(r));assert.equal(h.window.CaissaMentorPage.inspect().fen,before.fen);assert.equal(h.window.CaissaMentorPage.inspect().importedGames,1);
+ h.nodes.get('game-next').fire('click');await new Promise(r=>setImmediate(r));assert.notEqual(calls.at(-1),before.fen);
+});
+test('Settings PGN export retains completed game metadata/result and blocks hidden Memory targets',async()=>{
+ const h=harness();h.nodes.get('account-source-pgn').fire('click');h.nodes.get('account-pgn-text').value=completedPgn;await h.nodes.get('account-form').fire('submit');
+ await h.nodes.get('settings-copy-pgn').fire('click');const parsed=new Chess();parsed.loadPgn(h.nodes.get('settings-export').value);assert.equal(parsed.getHeaders().Result,'1-0');assert.equal(parsed.history().length,4);assert.equal(parsed.getHeaders().White,'Alex');
+ assert.match(h.nodes.get('settings-status').textContent,/copy/);h.nodes.get('tab-learn').fire('click');await h.nodes.get('memory-start').fire('click');h.nodes.get('memory-hide').fire('click');
+ h.nodes.get('settings-export').value='preserved';await h.nodes.get('settings-copy-fen').fire('click');assert.equal(h.nodes.get('settings-export').value,'preserved');assert.match(h.nodes.get('settings-status').textContent,/Return to the lesson/);
 });

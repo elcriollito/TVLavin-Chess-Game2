@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
 
 const ordinaryPgn = `[Event "Browser QA"]
 [White "Alexander"]
@@ -18,6 +19,9 @@ const memoryPuzzles = [
     { id: 'memory-a', fen: '7k/8/8/3r4/3R4/8/8/K7 w - - 0 1', moves: 'd4d5 h8g8', themes: ['endgame'] },
     { id: 'memory-b', fen: '7k/8/8/8/8/3r4/3R4/K7 w - - 0 1', moves: 'd2d3 h8g8', themes: ['endgame'] }
 ];
+
+const openingStart = JSON.parse(fs.readFileSync(new URL('../fixtures/mentor-openingdb-start.json', import.meta.url), 'utf8'));
+const openingStartHash = '66be37feb35e7d6a';
 
 const pieceNames = { K: 'King', Q: 'Queen', R: 'Rook', B: 'Bishop', N: 'Knight', P: 'Pawn' };
 
@@ -87,8 +91,8 @@ test('Mentor page keeps one responsive board workspace with five readable tabs',
     }
 
     await page.getByRole('tab', { name: 'Training' }).click();
-    await expect(page.locator('.training-tabs [role=tab]')).toHaveText(['Position', 'Opening', 'Choose a lesson']);
-    const positionTab = page.locator('.training-tabs').getByRole('tab', { name: 'Position' });
+    await expect(page.locator('#panel-learn .training-tabs [role=tab]')).toHaveText(['Position', 'Opening', 'Choose a lesson']);
+    const positionTab = page.locator('#panel-learn .training-tabs').getByRole('tab', { name: 'Position' });
     await positionTab.focus();
     await positionTab.press('ArrowRight');
     await expect(page.locator('#training-opening-tab')).toHaveAttribute('aria-selected', 'true');
@@ -106,7 +110,7 @@ test('Mentor page keeps one responsive board workspace with five readable tabs',
         const layout = await page.evaluate(() => ({
             horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
             bodyOverflow: getComputedStyle(document.querySelector('.workspace-body')).overflowY,
-            trainingTabRects: [...document.querySelectorAll('.training-tabs [role=tab]')].map(node => node.getBoundingClientRect().toJSON()),
+            trainingTabRects: [...document.querySelectorAll('#panel-learn .training-tabs [role=tab]')].map(node => node.getBoundingClientRect().toJSON()),
             workspaceRect: document.querySelector('.right-workspace').getBoundingClientRect().toJSON(),
             footerRect: document.querySelector('.workspace-foot').getBoundingClientRect().toJSON()
         }));
@@ -166,6 +170,152 @@ test('Local PGN drives Moves, real Stockfish 19 evidence and explicit Mentor rev
     await page.getByRole('button', { name: 'Game review · Shared AI' }).click();
     await expect(page.getByLabel('Ask Mentor')).not.toHaveValue(/Local Stockfish 19 evaluated/);
     expect(mentorRequests).toEqual([]);
+});
+
+test('shared Explorer and global Flip preserve the imported PGN cursor and main line', async ({ page }, testInfo) => {
+    const explorerRequests = [];
+    await page.route('**/openingdb/manifest.json', async route => {
+        const request = route.request();
+        explorerRequests.push({ url: request.url(), headers: request.headers() });
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ activeVersion: 'v3_p60', hash: { algo: 'sha1', len: 16 }, maxPlies: 60 })
+        });
+    });
+    await page.route('**/openingdb/shards/**', async route => {
+        const request = route.request();
+        explorerRequests.push({ url: request.url(), headers: request.headers() });
+        const isStartShard = new URL(request.url()).pathname.endsWith('/66.json');
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(isStartShard ? { [openingStartHash]: openingStart } : {})
+        });
+    });
+    await page.context().addCookies([{ name: 'caissa-private-test', value: 'must-not-leave', url: 'http://127.0.0.1:8000' }]);
+    await page.goto('/mentor.html');
+    await importPgn(page, ordinaryPgn);
+    const imported = await page.evaluate(() => window.CaissaMentorPage.inspect());
+
+    for (const tabName of ['Mentor', 'Moves', 'Training', 'Opening', 'My account']) {
+        await page.locator('.workspace-head').getByRole('tab', { name: tabName, exact: true }).click();
+        await expect(page.getByRole('button', { name: 'Flip board', exact: true })).toBeVisible();
+    }
+
+    await page.getByRole('tab', { name: 'Moves', exact: true }).click();
+    await page.getByRole('button', { name: 'Explore this position' }).click();
+    await expect(page.locator('.workspace-head').getByRole('tab', { name: 'Opening', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'CAISSA Explorer' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#explorer-opening')).toHaveText('CAISSA Opening Database · Statistics for this position');
+    await expect(page.locator('#explorer-rows tr')).toHaveCount(20);
+    await expect(page.locator('#explorer-rows tr').first()).toContainText('46.3% · 2,350,205 games');
+    await expect(page.locator('#explorer-rows tr').first().locator('.explorer-results')).toHaveAttribute('aria-label', 'White 37.3%, draws 32%, Black 30.6%');
+    await expect(page.locator('#explorer-summary')).toContainText('5,072,955 games across listed continuations');
+    await expect(page.getByRole('button', { name: 'Explore d4' })).toBeVisible();
+    await expect(page.locator('#opening-explorer-body a[href="/opening-database"]')).toBeVisible();
+    await expect(page.locator('#explorer-source, #explorer-ratings, #explorer-speeds, #explorer-since, #explorer-until')).toHaveCount(0);
+    expect(explorerRequests).toHaveLength(2);
+    expect(explorerRequests.map(item => new URL(item.url).pathname)).toEqual(['/openingdb/manifest.json', '/openingdb/shards/v3_p60/66.json']);
+    expect(explorerRequests.every(item => item.headers.authorization === undefined && item.headers.cookie === undefined)).toBe(true);
+
+    const requestCountBeforeFlip = explorerRequests.length;
+    await page.getByRole('button', { name: 'Flip board', exact: true }).click();
+    const flipped = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    expect(flipped.board.renderer.orientation).toBe('black');
+    expect(flipped.fen).toBe(imported.fen);
+    expect(flipped.cursor).toBe(imported.cursor);
+    expect(explorerRequests).toHaveLength(requestCountBeforeFlip);
+
+    for (const viewport of [
+        { width: 1600, height: 1000 },
+        { width: 1366, height: 768 },
+        { width: 885, height: 611 },
+        { width: 390, height: 844 }
+    ]) {
+        await page.setViewportSize(viewport);
+        const layout = await page.evaluate(() => ({
+            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            bodyOverflow: getComputedStyle(document.querySelector('.workspace-body')).overflowY,
+            table: document.querySelector('.explorer-table').getBoundingClientRect().toJSON(),
+            workspace: document.querySelector('.right-workspace').getBoundingClientRect().toJSON(),
+            footer: document.querySelector('.workspace-foot').getBoundingClientRect().toJSON(),
+            flip: document.querySelector('#flip').getBoundingClientRect().toJSON()
+        }));
+        expect(layout.horizontalOverflow).toBeLessThanOrEqual(1);
+        expect(layout.bodyOverflow).toBe('auto');
+        expect(layout.table.left).toBeGreaterThanOrEqual(layout.workspace.left);
+        expect(layout.table.right).toBeLessThanOrEqual(layout.workspace.right + 1);
+        expect(layout.footer.bottom).toBeLessThanOrEqual(layout.workspace.bottom + 1);
+        expect(layout.flip.width).toBeGreaterThan(0);
+        await page.screenshot({ path: testInfo.outputPath(`mentor-explorer-${viewport.width}x${viewport.height}.png`), fullPage: true });
+    }
+
+    await page.getByRole('button', { name: 'Explore d4' }).click();
+    const alternative = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    expect(alternative.practicing).toBe(true);
+    expect(alternative.cursor).toBe(imported.cursor);
+    expect(alternative.fen).not.toBe(imported.fen);
+    await expect(page.locator('#explorer-status')).toContainText('No statistics for this position');
+
+    await page.getByRole('button', { name: 'Return to main line' }).click();
+    const restored = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    expect(restored.practicing).toBe(false);
+    expect(restored.fen).toBe(imported.fen);
+    expect(restored.cursor).toBe(imported.cursor);
+    expect(restored.importedGames).toBe(1);
+    expect(restored.board.renderer.orientation).toBe('black');
+    await expect(page.getByRole('button', { name: 'Explore d4' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Next move' }).click();
+    const advanced = await page.evaluate(() => window.CaissaMentorPage.inspect());
+    expect(advanced.cursor).toBe(imported.cursor + 1);
+    expect(advanced.fen).not.toBe(alternative.fen);
+    expect(advanced.board.renderer.orientation).toBe('black');
+
+    const ecoTab = page.getByRole('tab', { name: 'Chess ECO Codes Database' });
+    await ecoTab.click();
+    await ecoTab.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'CAISSA Explorer' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('CAISSA Explorer distinguishes timeout, transport failure and exact-coverage miss', async ({ page }) => {
+    await page.addInitScript(() => {
+        const nativeSetTimeout = window.setTimeout.bind(window);
+        window.setTimeout = (callback, delay, ...args) => nativeSetTimeout(callback, delay === 30000 ? 50 : delay, ...args);
+    });
+    let mode = 'timeout';
+    await page.route('**/openingdb/manifest.json', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ activeVersion: 'v3_p60', hash: { algo: 'sha1', len: 16 }, maxPlies: 60 })
+    }));
+    await page.route('**/openingdb/shards/**', async route => {
+        const current = mode;
+        if (current === 'timeout') {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }).catch(() => {});
+            return;
+        }
+        if (current === 'error') {
+            await route.fulfill({ status: 503, contentType: 'text/plain', body: 'Unavailable' });
+            return;
+        }
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await page.goto('/mentor.html');
+    await page.locator('.workspace-head').getByRole('tab', { name: 'Opening', exact: true }).click();
+    await page.getByRole('tab', { name: 'CAISSA Explorer' }).click();
+    await expect(page.locator('#explorer-status')).toHaveText('Opening Database timed out. Try again.');
+
+    mode = 'error';
+    await page.getByRole('button', { name: 'Refresh statistics' }).click();
+    await expect(page.locator('#explorer-status')).toHaveText('Opening Database unavailable (HTTP 503).');
+
+    mode = 'miss';
+    await page.getByRole('button', { name: 'Refresh statistics' }).click();
+    await expect(page.locator('#explorer-status')).toContainText('No statistics for this position');
+    await expect(page.locator('#explorer-rows tr')).toHaveCount(0);
 });
 
 test('Memory Training filters puzzle levels, retries unscored, advances only after success and restores study', async ({ page }, testInfo) => {
