@@ -1,3 +1,4 @@
+import { mountMemoryTraining } from './mentor-memory-view.js';
 import { moveRows, createStudyAnalysis, evaluationLabel } from './mentor-moves.js';
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { create } from '../board/caissa-board-adapter.js';
@@ -36,8 +37,39 @@ const studyAnalysis = createStudyAnalysis(() => {
 });
 const board = create($('mentor-board'), {
     position: game.fen(), animation: false, label: 'CAISSA Mentor study board',
-    onDragStart: square => game.get(square)?.color === game.turn(),
+    onDragStart: square => !memoryTraining.isActive() && game.get(square)?.color === game.turn(),
     onMoveAttempt: move => attempt(move)
+});
+
+let memoryNotification = null;
+const memoryTraining = mountMemoryTraining({ board, document, restoreStudy: () => sync(),
+    onStart: () => {
+        if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
+            $('memory-state').textContent = 'Finish the promotion or Mentor reply before starting Memory Training.'; return false;
+        }
+        analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; studyRevision++;
+        $('study-engine').textContent = 'Engine';
+        window.CaissaMentorFloatingShell?.clearContext();
+        return true;
+    },
+    onNotification: notification => {
+        if (!notification || memoryNotification?.id === notification.id) return;
+        memoryNotification = notification;
+        $('chat-idea-indicator').textContent = {idea:'💡',question:'❓',finding:'❗'}[notification.kind];
+        $('chat-idea-indicator').hidden = false;
+        $('chat-idea-indicator').title = `Memory Training ${notification.kind}`;
+        $('tab-chat').setAttribute('aria-label', `Mentor — new Memory Training ${notification.kind}`);
+        $('mentor-idea-status').textContent = `Mentor has a Memory Training ${notification.kind}. Open the recommendation to read it.`;
+        $('memory-recommendation').hidden = false;
+    }
+});
+$('memory-recommendation').addEventListener('click', () => {
+    if (!memoryNotification) return;
+    const notification = memoryNotification;
+    memoryTraining.acknowledge(); memoryNotification = {...notification, unread:false};
+    $('mentor-idea-status').textContent = 'Memory Training recommendation opened.';
+    $('chat-idea-indicator').hidden = !insights.read().unread;
+    selectTab($('tab-learn')); memoryTraining.startRecommendation(notification.exerciseId);
 });
 
 function sync() {
@@ -75,6 +107,7 @@ function sync() {
 }
 function show(index) {
     if (pendingPromotion) return;
+    memoryTraining.stop();
     cursor = Math.max(0, Math.min(index, lesson.moves.length)); practicing = false;
     game.load(lesson.positions[0]);
     for (let step = 0; step < cursor; step++) game.move(lesson.moves[step].san);
@@ -89,6 +122,7 @@ function loadLesson(id, { prefill = true } = {}) {
     return true;
 }
 function attempt({ from, to, promotion }) {
+    if (memoryTraining.isActive()) return;
     if (pendingPromotion) return;
     const legal = game.moves({ verbose: true }).filter(move => move.from === from && move.to === to);
     if (!legal.length) { $('move-status').textContent = 'That move is not legal in this position. Try another square.'; return; }
@@ -110,7 +144,7 @@ function attempt({ from, to, promotion }) {
 }
 $('repeat').addEventListener('click', () => show(0));
 $('flip').addEventListener('click', () => board.setOrientation(board.getOrientation() === 'white' ? 'black' : 'white'));
-$('practice').addEventListener('click', () => { if (practicing) show(cursor); else { practicing = true; sync(); } });
+$('practice').addEventListener('click', () => { memoryTraining.stop(); if (practicing) show(cursor); else { practicing = true; sync(); } });
 document.querySelectorAll('[data-lesson]').forEach(button => button.addEventListener('click', () => loadLesson(button.dataset.lesson)));
 const tabs = [...document.querySelectorAll('[role=tab]')];
 function renderLearnGame() {
@@ -165,6 +199,7 @@ function renderEvaluation() {
 }
 
 $('study-engine').addEventListener('click', async () => {
+    if (memoryTraining.isActive()) return;
     if (analysisRunning) {
         analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine';
         $('engine-status').textContent = 'Analysis stopped. Completed evaluations remain available.'; return;
@@ -310,12 +345,24 @@ function renderSuggestions() {
 }
 function renderIdea() {
     const state = insights.read();
-    $('chat-idea-indicator').hidden = !state.unread;
-    $('tab-chat').setAttribute('aria-label', state.unread ? 'Chat — new training idea' : 'Chat');
     $('idea-plan').hidden = !state.idea;
-    $('mentor-idea-status').textContent = state.unread ? 'Mentor has a new training idea. Open Chat to discuss it.' : '';
+    $('chat-idea-indicator').hidden = !state.unread && !memoryNotification?.unread;
+    if (memoryNotification?.unread) {
+        $('chat-idea-indicator').textContent = {idea:'💡',question:'❓',finding:'❗'}[memoryNotification.kind];
+        $('tab-chat').setAttribute('aria-label', `Mentor — new Memory Training ${memoryNotification.kind}`);
+        return;
+    }
+    $('chat-idea-indicator').textContent = '💡';
+    $('tab-chat').setAttribute('aria-label', state.unread ? 'Mentor — new training idea' : 'Mentor');
+    $('mentor-idea-status').textContent = state.unread ? 'Mentor has a new training idea. Open Mentor to discuss it.' : '';
 }
 function presentIdea() {
+    if (selectedTab === 'chat' && memoryNotification?.unread) {
+        if (window.CaissaMentorFloatingShell?.appendStudyMessage(memoryNotification.message)) {
+            memoryTraining.acknowledge(); memoryNotification = {...memoryNotification, unread:false};
+        }
+        renderIdea();
+    }
     const state = insights.read();
     if (selectedTab !== 'chat' || !state.unread) return;
     if (window.CaissaMentorFloatingShell?.appendStudyMessage(state.idea.localMessage)) insights.acknowledge();
@@ -333,10 +380,12 @@ $('idea-plan').addEventListener('click', () => {
     input.focus({ preventScroll: true });
 });
 function selectTab(tab) {
+    if (tab.id !== 'tab-learn') memoryTraining.stop();
     selectedTab = tab.id.replace('tab-', '');
     tabs.forEach(item => { const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; $(item.getAttribute('aria-controls')).hidden = !selected; });
     $('chat-footer').hidden = selectedTab !== 'chat';
     $('learn-footer').hidden = selectedTab !== 'learn';
+    $('memory-footer').hidden = selectedTab !== 'learn';
     if (selectedTab === 'openings') ensureOpenings();
     presentIdea();
 }
@@ -350,6 +399,7 @@ tabs.forEach((tab, index) => {
 $('new-session').addEventListener('click', () => {
     if (pendingPromotion) return;
     if (document.querySelector('.caissa-mentor-shell__form button').disabled) { $('move-status').textContent = 'Wait for the current Mentor reply before starting a new session.'; return; }
+    memoryTraining.newSession();
     window.CaissaMentorFloatingShell.close(); window.CaissaMentorFloatingShell.open();
     importedGames = []; importedGameIndex = 0;
     loadLesson('development'); selectTab(tabs[0]);
@@ -362,7 +412,7 @@ $('fen-form').addEventListener('submit', event => {
     try { const fen = $('study-fen').value.trim(); if (fen.split(/\s+/).length !== 6) throw new Error('Full FEN required.'); game.load(fen);
         lesson = { id: 'custom', title: 'Your study position', category: 'Independent study', positions: [game.fen()], moves: [], notes: ['Explore this position with legal moves.'] };
         cursor = 0; practicing = true; $('opening-followups').hidden = true; sync(); $('move-status').textContent = 'Study position loaded. No engine verdict has been calculated.';
-        $('fen-status').textContent = 'Position loaded on the study board. Open Chat to discuss it.';
+        $('fen-status').textContent = 'Position loaded on the study board. Open Mentor to discuss it.';
     } catch { $('move-status').textContent = 'Invalid FEN. Include a legal position and all six FEN fields.';
         $('fen-status').textContent = 'Invalid FEN. Include a legal position and all six FEN fields.'; }
 });
@@ -407,7 +457,7 @@ $('account-form').addEventListener('submit', async event => {
 });
 sync();
 // Read-only diagnostic seam; never grants chess, engine, account or economic authority.
-window.CaissaMentorPage = Object.freeze({ inspect: () => Object.freeze({ fen: game.fen(), lesson: lesson.id, cursor, practicing, tab: selectedTab, unreadIdea: insights.read().unread, importedGames: importedGames.length, board: board.getMetrics() }) });
+window.CaissaMentorPage = Object.freeze({ inspect: () => Object.freeze({ fen: game.fen(), lesson: lesson.id, cursor, practicing, tab: selectedTab, unreadIdea: insights.read().unread, memory: memoryTraining.read(), importedGames: importedGames.length, board: board.getMetrics() }) });
 
 const accountLink = document.querySelector('.sign-in');
 function renderAccountAuth(state) {
@@ -415,6 +465,8 @@ function renderAccountAuth(state) {
     const nextOwner = signedIn && typeof state.userId === 'string' ? state.userId : null;
     if (nextOwner !== insightOwner) {
         insightOwner = nextOwner; insights.reset(nextOwner);
+        memoryTraining.reset(nextOwner); memoryNotification = null;
+        $('memory-recommendation').hidden = true;
         const input = document.querySelector('.caissa-mentor-shell__form textarea');
         if (preparedIdeaPrompt && input?.value === preparedIdeaPrompt) input.value = '';
         preparedIdeaPrompt = null;
