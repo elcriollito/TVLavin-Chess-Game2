@@ -6,7 +6,7 @@ import { load } from 'cheerio';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
-const expectedTitle = 'CAISSA Chess – Play Online, Stockfish Analysis & Training';
+const expectedTitle = 'CAISSA Chess — Play, Train, Analyze & Explore';
 const canonical = 'https://www.caissa-chess.org/';
 const sections = [
   'play', 'fics', 'history', 'dosChess', 'insights', 'help', 'spectator',
@@ -14,13 +14,12 @@ const sections = [
   'mentor', 'yahooClassic'
 ];
 
-test('homepage search and social titles are concise and aligned', () => {
-  const $ = load(read('index.html'));
+test('homepage search and social metadata are aligned on the Home document', () => {
+  const $ = load(read('home.html'));
 
   assert.equal($('title').length, 1);
   assert.equal($('title').text(), expectedTitle);
-  assert.ok(expectedTitle.length >= 50 && expectedTitle.length < 70);
-  assert.equal($('meta[name="title"]').attr('content'), expectedTitle);
+  assert.ok(expectedTitle.length >= 40 && expectedTitle.length < 70);
   assert.equal($('meta[property="og:title"]').attr('content'), expectedTitle);
   assert.equal($('meta[name="twitter:title"]').attr('content'), expectedTitle);
   assert.equal($('link[rel="canonical"]').attr('href'), canonical);
@@ -28,9 +27,8 @@ test('homepage search and social titles are concise and aligned', () => {
   assert.equal($('meta[name="twitter:url"]').attr('content'), canonical);
   assert.equal($('meta[name="robots"]').attr('content'), 'index, follow');
 });
-
 test('homepage structured data parses and retains the canonical application identity', () => {
-  const $ = load(read('index.html'));
+  const $ = load(read('home.html'));
   const schemas = $('script[type="application/ld+json"]').toArray()
     .map(node => JSON.parse($(node).text()));
 
@@ -48,11 +46,19 @@ test('application-state parameter URLs stay out of the sitemap', () => {
   assert.ok(!sitemap.includes('<loc>https://www.caissa-chess.org/?'), 'sitemap exposes a homepage query URL');
 });
 
+test('the tool shell no longer claims the Home canonical URL', () => {
+  const shell = load(read('index.html'));
+  assert.equal(shell('link[rel="canonical"]').length, 0);
+  assert.equal(shell('meta[property="og:url"]').length, 0);
+  assert.equal(shell('meta[name="twitter:url"]').length, 0);
+  assert.match(read('js/legacy-canonical-section-route-policy.js'), /applyDocumentMetadata/);
+});
+
 test('revised homepage title is unique across repository HTML', () => {
   const htmlFiles = [];
   const walk = directory => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.vercel') continue;
       const absolute = path.join(directory, entry.name);
       if (entry.isDirectory()) walk(absolute);
       else if (entry.name.endsWith('.html')) htmlFiles.push(absolute);
@@ -61,5 +67,5 @@ test('revised homepage title is unique across repository HTML', () => {
   walk(root);
 
   const matches = htmlFiles.filter(file => load(fs.readFileSync(file, 'utf8'))('title').text() === expectedTitle);
-  assert.deepEqual(matches.map(file => path.relative(root, file)), ['index.html']);
+  assert.deepEqual(matches.map(file => path.relative(root, file)), ['home.html']);
 });

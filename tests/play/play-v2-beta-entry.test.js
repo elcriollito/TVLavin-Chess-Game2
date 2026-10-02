@@ -100,10 +100,11 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
         process.env.CAISSA_PLAY_V2_BETA_STAGE = 'disabled';
         let response;
         response = middleware(new Request('https://www.caissa-chess.org/'));
-        assert.equal(response.status, 308);
-        assert.equal(new URL(response.headers.get('location')).pathname, '/play');
+        assert.equal(response.status, 200);
+        assert.equal(new URL(response.headers.get('x-middleware-rewrite')).pathname, '/home.html');
         response = middleware(new Request('https://www.caissa-chess.org/', { method: 'HEAD' }));
-        assert.equal(response.status, 308);
+        assert.equal(response.status, 200);
+        assert.equal(new URL(response.headers.get('x-middleware-rewrite')).pathname, '/home.html');
         response = middleware(new Request('https://www.caissa-chess.org/play'));
         assert.equal(response.status, 404);
         assert.match(await response.text(), /Play Beta Unavailable/);

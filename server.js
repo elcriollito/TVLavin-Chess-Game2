@@ -16,6 +16,7 @@ import {
 import { createScannerBetaHttpAdapter } from './tools/scanner-beta-feedback/http-adapter.mjs';
 import { createBetaProgramService } from './api/_lib/beta-program-service.js';
 import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-document.js';
+import { fetchLichessGames } from './api/_lib/lichess-games.js';
 import tablebaseHandler from './api/tablebase/standard.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -78,78 +79,18 @@ const MIME_TYPES = {
 // ============================================================================
 
 async function handleLichessProxy(req, res, url) {
-  const username = url.searchParams.get('username');
-  const max = url.searchParams.get('max') || '20';
-  const timeControl = url.searchParams.get('timeControl') || 'all';
-
-  console.log(`🎯 Lichess Proxy: user=${username}, max=${max}, timeControl=${timeControl}`);
-
-  if (!username) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: false, error: 'Missing username parameter' }));
+  if (req.method !== 'GET') {
+    res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8', Allow: 'GET' });
+    res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
     return;
   }
-
-  try {
-    // Build Lichess API URL
-    let lichessUrl = `https://lichess.org/api/games/user/${username}?max=${max}&pgnInJson=true&clocks=false&evals=false&opening=false`;
-
-    // Add perf filter if specified
-    if (timeControl && timeControl !== 'all') {
-      const perfMap = { 'bullet': 'bullet', 'blitz': 'blitz', 'rapid': 'rapid', 'classical': 'classical' };
-      if (perfMap[timeControl]) {
-        lichessUrl += `&perfType=${perfMap[timeControl]}`;
-      }
-    }
-
-    console.log(`📡 Fetching from Lichess: ${lichessUrl}`);
-
-    const response = await fetch(lichessUrl, {
-      headers: { 'Accept': 'application/x-ndjson' }
-    });
-
-    console.log(`📥 Lichess response status: ${response.status}`);
-
-    if (!response.ok) {
-      const errorMsg = response.status === 404
-        ? `User "${username}" not found on Lichess`
-        : `Lichess API error: ${response.status}`;
-      res.writeHead(response.status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: errorMsg }));
-      return;
-    }
-
-    const text = await response.text();
-    const lines = text.trim().split('\n');
-    const games = [];
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      try {
-        const game = JSON.parse(line);
-        if (game.pgn) {
-          games.push({
-            id: game.id || `lichess-${game.createdAt}`,
-            pgn: game.pgn,
-            timeControl: game.perf || 'unknown',
-            playedAt: game.createdAt ? new Date(game.createdAt).toISOString() : null
-          });
-        }
-      } catch (e) {
-        console.warn('⚠️ Failed to parse game:', e.message);
-      }
-    }
-
-    console.log(`✅ Parsed ${games.length} games from Lichess`);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, games, count: games.length }));
-
-  } catch (error) {
-    console.error('❌ Lichess proxy error:', error);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: false, error: error.message }));
-  }
+  const result = await fetchLichessGames(url.searchParams);
+  res.writeHead(result.status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store, max-age=0',
+    'X-Content-Type-Options': 'nosniff'
+  });
+  res.end(JSON.stringify(result.body));
 }
 
 function handleHealthCheck(res) {
@@ -542,11 +483,6 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ clerkPublishableKey: '', registrationTracking: false }));
     return;
   }
-  if (pathname === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
-    res.writeHead(308, { Location: '/play' });
-    res.end();
-    return;
-  }
   const retiredDestination = RETIRED_PAGE_REDIRECTS.get(pathname.replace(/\/$/, ''));
   if (retiredDestination && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(308, { Location: retiredDestination });
@@ -556,7 +492,8 @@ const server = http.createServer(async (req, res) => {
   let filePath = '.' + pathname;
   let responseStatus = 200;
   if (filePath === './') {
-    filePath = './index.html';
+    filePath = './home.html';
+    res.setHeader('Cache-Control', 'public, no-store, max-age=0, must-revalidate');
   }
   if (pathname === '/blog') {
     filePath = './blog/index.html';

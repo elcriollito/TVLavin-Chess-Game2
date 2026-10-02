@@ -207,6 +207,39 @@ test('signed-in progress survives an offline retry without duplicating the outco
     expect(postedOutcomes).toHaveLength(2);
 });
 
+test('read-only Preview loads saved progress without replaying a pending outcome', async ({ page }) => {
+    const requests = [];
+    await page.route('**/js/caissa-auth.js*', route => route.fulfill({
+        contentType: 'application/javascript',
+        body: `window.CAISSA_AUTH = {
+            isSignedIn: true, isLoaded: true, userId: 'browser-qa-readonly', status: 'authenticated',
+            whenReady: async () => window.CAISSA_AUTH,
+            getToken: async () => 'browser-qa-token',
+            onAuthStateChange: () => () => {},
+            getState: () => ({ isSignedIn: true, isLoaded: true, userId: 'browser-qa-readonly' })
+        };`,
+    }));
+    await page.addInitScript(() => localStorage.setItem('caissa:puzzles:pending:v1:browser-qa-readonly', JSON.stringify([{
+        operationId: '71a44dcb-9040-4503-ac39-44f5c8d5818f',
+        puzzleId: '4TN7E', puzzleRating: 1800, outcome: 'solved', assisted: false,
+    }])));
+    await page.route('**/api/puzzles/progress', async route => {
+        requests.push(route.request().method());
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+            progress: { rating: 1912, solved: 8, failed: 3 }, persistent: true, readOnly: true,
+        }) });
+    });
+
+    await openPuzzle(page, '4TN7E');
+    await page.locator('#tab-stats').click();
+    await expect(page.locator('#progress-storage')).toContainText('Saved account progress is loaded');
+    await expect(page.locator('#progress-storage')).toContainText('previous unsaved result remains only in this browser');
+    await expect(page.locator('#session-rating')).toHaveText('1912');
+    await expect(page.locator('#stats-solved')).toHaveText('8');
+    await expect(page.locator('#stats-failed')).toHaveText('3');
+    expect(requests).toEqual(['GET']);
+});
+
 test('promotion is visual, accessible, keyboard operable, and responsive', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openPuzzle(page, 'zUEZB');

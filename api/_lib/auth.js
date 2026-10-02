@@ -29,7 +29,7 @@ const failure = (status, code) => ({
 export function createAuthenticateRequest(dependencies = {}) {
   const verify = dependencies.verifyToken || verifyToken;
   const env = dependencies.env || process.env;
-  const log = dependencies.log || (() => {});
+  const log = dependencies.log || (message => console.warn(message));
 
   const allowSessionCookie = dependencies.allowSessionCookie === true;
 
@@ -47,14 +47,16 @@ export function createAuthenticateRequest(dependencies = {}) {
     }
     if (!token) return failure(401, 'AUTH_REQUIRED');
 
-    if (!env.CLERK_SECRET_KEY) {
+    if (!env.CLERK_SECRET_KEY && !env.CLERK_JWT_KEY) {
         log('auth_configuration_unavailable');
         return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
     }
 
     try {
         const payload = await verify(token, {
-            secretKey: env.CLERK_SECRET_KEY
+            ...(env.CLERK_JWT_KEY
+                ? { jwtKey: env.CLERK_JWT_KEY }
+                : { secretKey: env.CLERK_SECRET_KEY })
         });
 
         return {
@@ -67,7 +69,8 @@ export function createAuthenticateRequest(dependencies = {}) {
         if (err instanceof TokenVerificationError && INVALID_TOKEN_REASONS.has(err.reason)) {
             return failure(401, 'INVALID_TOKEN');
         }
-        log('auth_service_unavailable');
+        const diagnostic = [err?.name, err?.reason || err?.code].filter(Boolean).join(':') || 'unknown';
+        log(`auth_service_unavailable:${diagnostic}`);
         return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
     }
   };
