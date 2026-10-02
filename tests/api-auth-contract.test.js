@@ -66,6 +66,21 @@ test('successful verification preserves the authenticated identity contract', as
   });
 });
 
+test('local Clerk JWT verification can use the instance public key without a backend API request', async () => {
+  let options;
+  const authenticate = createAuthenticateRequest({
+    env: { CLERK_JWT_KEY: '-----BEGIN PUBLIC KEY-----\nsynthetic\n-----END PUBLIC KEY-----' },
+    verifyToken: async (_token, received) => {
+      options = received;
+      return { sub: 'synthetic-user' };
+    }
+  });
+  const result = await authenticate(request('GET', 'Bearer synthetic'));
+  assert.equal(result.authenticated, true);
+  assert.equal(options.jwtKey, '-----BEGIN PUBLIC KEY-----\nsynthetic\n-----END PUBLIC KEY-----');
+  assert.equal('secretKey' in options, false);
+});
+
 test('auth responder fails closed when a legacy failure omits status', () => {
   const res = response();
   respondAuthFailure(res, { authenticated: false, error: 'legacy detail' });
