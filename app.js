@@ -7873,10 +7873,13 @@ async function getEngineEvaluation(fen, depth, engine, generation = null) {
             if (!evalResult.bestMove) {
                 evalResult.bestMove = move;
             }
-            evalResult.lines = [...linesByMultiPV.values()]
-                .sort((a, b) => a.multipv - b.multipv);
-            generation?.depths.push(evalResult.depth);
-            finish(resolve, evalResult);
+            const result = {
+                ...evalResult,
+                lines: [...linesByMultiPV.values()]
+                    .sort((a, b) => a.multipv - b.multipv)
+            };
+            generation?.depths.push(result.depth);
+            finish(resolve, result);
         };
 
         engine.onInfo = infoCallback;

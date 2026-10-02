@@ -156,6 +156,8 @@ test('evaluation uses primary MultiPV and never the shared Play engine', async (
     assert.equal(result.bestMove, 'e2e4');
     assert.equal(result.lines.length, 2);
     assert.deepEqual(Array.from(result.lines, line => line.multipv), [1, 3]);
+    assert.notEqual(result.lines[0], result);
+    assert.doesNotThrow(() => JSON.stringify(result));
     assert.equal(engine.onInfo, null);
 });
 
