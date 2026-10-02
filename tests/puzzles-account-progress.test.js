@@ -48,7 +48,6 @@ test('Preview can relay a read to the canonical progress API without copying pro
     const res = response();
     const dependencies = deps();
     dependencies.env = {
-        VERCEL_ENV: 'preview',
         CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'https://www.caissa-chess.org',
     };
     dependencies.getSupabase = () => { throw new Error('Preview relay must not open Supabase directly'); };
@@ -72,7 +71,6 @@ test('Preview read relay rejects malformed or non-HTTPS origins and stays on the
     const res = response();
     const dependencies = deps();
     dependencies.env = {
-        VERCEL_ENV: 'preview',
         CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'http://www.caissa-chess.org/path',
     };
     dependencies.fetchFn = async () => { throw new Error('Invalid relay origin must not be requested'); };

@@ -7,7 +7,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const SOURCE_VERSION = '2026-09-10';
 
 function progressReadOrigin(env = process.env) {
-    if (env.VERCEL_ENV !== 'preview' || !env.CAISSA_PUZZLE_PROGRESS_READ_ORIGIN) return null;
+    if (!env.CAISSA_PUZZLE_PROGRESS_READ_ORIGIN) return null;
     try {
         const url = new URL(env.CAISSA_PUZZLE_PROGRESS_READ_ORIGIN);
         if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/') return null;
