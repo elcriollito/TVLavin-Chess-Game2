@@ -48,7 +48,10 @@ export default async function handler(req, res, dependencies = {}) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (!['GET', 'POST'].includes(req.method)) return res.status(405).json({ code: 'METHOD_NOT_ALLOWED' });
     const auth = await (dependencies.authenticate || authenticateRequest)(req);
-    if (!auth.authenticated) return respondAuthFailure(res, auth);
+    if (!auth.authenticated) {
+        (dependencies.log || console).warn?.('puzzles_progress_auth_failure', auth.code || auth.status || 'unknown');
+        return respondAuthFailure(res, auth);
+    }
     const rate = (dependencies.checkRateLimit || checkRateLimit)(auth.userId, {
         prefix: 'puzzles-progress', windowMs: 60_000, max: 40,
     });
