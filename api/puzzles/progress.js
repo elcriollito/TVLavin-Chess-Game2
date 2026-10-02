@@ -21,7 +21,9 @@ async function relayProgressRead(req, res, dependencies = {}) {
     const origin = progressReadOrigin(dependencies.env || process.env);
     if (!origin || req.method !== 'GET') return false;
     const authorization = req.headers?.authorization || req.headers?.Authorization;
+    const log = dependencies.log || console;
     try {
+        log.info?.('puzzles_progress_read_relay_start');
         const response = await (dependencies.fetchFn || fetch)(`${origin}/api/puzzles/progress`, {
             method: 'GET',
             cache: 'no-store',
@@ -30,8 +32,10 @@ async function relayProgressRead(req, res, dependencies = {}) {
         });
         const payload = await response.json().catch(() => null);
         if (!payload || typeof payload !== 'object') throw new Error('Invalid progress response');
+        log.info?.('puzzles_progress_read_relay_response', response.status);
         res.status(response.status).json(payload);
-    } catch {
+    } catch (error) {
+        log.warn?.('puzzles_progress_read_relay_failed', error?.name || 'Error');
         res.status(503).json({ code: 'PROGRESS_UNAVAILABLE', error: 'Account progress is temporarily unavailable.' });
     }
     return true;
