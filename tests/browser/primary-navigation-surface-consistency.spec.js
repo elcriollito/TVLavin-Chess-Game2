@@ -43,7 +43,12 @@ for (const [label, route, surface, marker] of legacy) {
 test('standalone product links resolve to their own observable surfaces', async ({ page }) => {
   for (const [label, route, marker, title] of standalone) {
     await page.goto('/play');
-    await page.getByRole('link', { name: label, exact: true }).click();
+    const link = page.getByRole('link', { name: label, exact: true });
+    if (!await link.isVisible()) {
+      await page.getByRole('button', { name: 'More', exact: true }).click();
+    }
+    await expect(link).toBeVisible();
+    await link.click();
     await expect(page).toHaveURL(new RegExp(`${route.replaceAll('/', '\\/')}$`));
     await expect(page.locator(marker).first()).toBeVisible();
     await expect(page).toHaveTitle(title);
