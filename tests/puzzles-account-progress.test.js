@@ -158,3 +158,24 @@ test('account bootstrap does not mask non-mapping service failures', async () =>
     }), /Account progress HTTP 503/);
     assert.deepEqual(calls, ['/api/puzzles/progress']);
 });
+
+test('marks a successful relayed Preview read as read-only without changing progress', async () => {
+    const dependencies = deps();
+    dependencies.env = { CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'https://www.caissa-chess.org' };
+    dependencies.fetchFn = async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ progress: { rating: 1912, solved: 8, failed: 3 }, persistent: true }),
+    });
+    const res = response();
+
+    await handler({ method: 'GET', headers: { authorization: 'Bearer synthetic' } }, res, dependencies);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, {
+        progress: { rating: 1912, solved: 8, failed: 3 },
+        persistent: true,
+        readOnly: true,
+    });
+    assert.equal(dependencies.calls.length, 0);
+});
