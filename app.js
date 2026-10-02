@@ -345,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Insight is a standalone route; its controls must not wait for Play.
     setupInsightModal();
     setupClearInsightHandlers();
+    setupCoachModal();
     ensurePlayInitialized('bootstrap');
 
     // Update UI
@@ -4129,7 +4130,7 @@ function setupEventListeners() {
 
     // Modal close buttons (X buttons and "Close" buttons)
     document.querySelectorAll('.modal-close, button[data-modal]').forEach(btn => {
-        if (btn.closest('#insightModal, #clearInsightModal')) return; // Insight owns its dismissal.
+        if (btn.closest('#insightModal, #clearInsightModal, #coachModal')) return; // Insight owns its dismissal.
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -4143,7 +4144,7 @@ function setupEventListeners() {
     
     // Close modals on outside click
     document.querySelectorAll('.modal').forEach(modal => {
-        if (modal.id === 'insightModal' || modal.id === 'clearInsightModal') return;
+        if (modal.id === 'insightModal' || modal.id === 'clearInsightModal' || modal.id === 'coachModal') return;
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 hideModal(modal.id);
@@ -7326,15 +7327,37 @@ let coachReportData = null;
 
 // Setup coach report modal
 function setupCoachModal() {
+    const modal = document.getElementById('coachModal');
+    if (!modal || modal.dataset.coachBound === 'true') return;
+
     const coachBtn = document.getElementById('insightCoachBtn');
     const generateBtn = document.getElementById('coachGenerateBtn');
     const backBtn = document.getElementById('coachBackBtn');
     const exportBtn = document.getElementById('coachExportBtn');
 
-    if (!coachBtn) {
+    if (!coachBtn || !generateBtn) {
         console.warn('⚠️ Coach button not found');
         return;
     }
+
+    modal.dataset.coachBound = 'true';
+    modal.querySelectorAll('.modal-close, button[data-modal="coachModal"]').forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            hideModal('coachModal');
+        });
+    });
+    modal.addEventListener('click', event => {
+        if (event.target === modal) hideModal('coachModal');
+    });
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            hideModal('coachModal');
+        }
+    });
 
     // Open coach modal from insight
     coachBtn.addEventListener('click', () => {
