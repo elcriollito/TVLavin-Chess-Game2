@@ -1,3 +1,4 @@
+import { validateFen, DEFAULT_POSITION } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 // Memory Training domain state only. Reconstructed placement is a draft, never
 // a chess move, PGN variation, puzzle rating, clinical score or engine verdict.
 export const MEMORY_POSITIONS = Object.freeze([
@@ -12,6 +13,33 @@ export const MEMORY_POSITIONS = Object.freeze([
     { id: 'fork-b', title: 'The knight gives check', pattern: 'Knight fork', fen: 'r3k3/2N5/8/8/8/8/8/4K3 b - - 1 1' },
     { id: 'shield-a', title: 'A compact king shelter', pattern: 'Pawn shelter', fen: '6k1/8/8/8/8/8/5PPP/6K1 w - - 0 1' }
 ].map(item => Object.freeze(item)));
+
+export const MEMORY_LEVELS = Object.freeze([
+    {id:'beginner',label:'Beginner',min:3,max:7},
+    {id:'elementary',label:'Elementary',min:8,max:12},
+    {id:'intermediate',label:'Intermediate',min:13,max:17},
+    {id:'advanced',label:'Advanced',min:18,max:22},
+    {id:'expert',label:'Expert',min:23,max:27},
+    {id:'master',label:'Master',min:28,max:32}
+].map(Object.freeze));
+export function memoryPositionInfo(fen) {
+    if (typeof fen!=='string' || !validateFen(fen).ok) return null;
+    const placement=fen.split(' ')[0];
+    const pieceCount=(placement.match(/[kqrbnp]/gi)||[]).length;
+    const level=MEMORY_LEVELS.find(item=>pieceCount>=item.min&&pieceCount<=item.max);
+    if(!level || placement===DEFAULT_POSITION.split(' ')[0]) return null;
+    return Object.freeze({pieceCount,level:level.id,densityScore:Math.round(100*(pieceCount-3)/29),placement});
+}
+export function chooseMemoryPosition(candidates,levelId,previousFen=null,random=Math.random) {
+    const previous=previousFen?.split(' ')[0], unique=new Map();
+    for(const candidate of candidates){const info=memoryPositionInfo(candidate.fen);
+        if(info?.level===levelId && info.placement!==previous && !unique.has(info.placement))unique.set(info.placement,candidate);
+    }
+    const pool=[...unique.values()];if(!pool.length)return null;
+    const draw=Number(random());const index=Math.floor(Math.max(0,Math.min(.999999999,Number.isFinite(draw)?draw:0))*pool.length);
+    return pool[index];
+}
+
 const codes = new Set(['wK','wQ','wR','wB','wN','wP','bK','bQ','bR','bB','bN','bP']);
 const names = { K: 'king', Q: 'queen', R: 'rook', B: 'bishop', N: 'knight', P: 'pawn' };
 const freeze = value => Object.freeze(value);
@@ -36,6 +64,13 @@ export function createMemoryTraining({ ownerId = 'guest' } = {}) {
         mode:active?.mode || null, attemptId:active?.id || null, draft:freeze({...active?.draft}),
         result:active?.result || null, score, scoredAttempts:results.filter(item=>item.scored).length,
         practiceAttempts:results.filter(item=>!item.scored).length, results:freeze([...results]), notification });
+    function begin(exercise,mode) {
+        if ((active && active.phase!=='result') || !['practice','challenge'].includes(mode) || !memoryPositionInfo(exercise?.fen)) return false;
+        const identity=exercise.fen.split(' ')[0];
+        const actualMode=mode==='challenge'&&!seen.has(identity)?'challenge':'practice';
+        seen.add(identity);
+        active={sessionId:session,id:`${owner}:${++sequence}`,exercise:Object.freeze({...exercise}),mode:actualMode,phase:'observe',draft:{},result:null};return true;
+    }
     function recommend() {
         const scored=results.filter(item=>item.scored), last=scored.at(-1);
         if (!last) return;
@@ -43,27 +78,33 @@ export function createMemoryTraining({ ownerId = 'guest' } = {}) {
         if (comparable.length < 3) return;
         const average=comparable.reduce((sum,item)=>sum+item.accuracy,0)/comparable.length;
         let kind=null, message='', target=last.exerciseId;
+        const level=MEMORY_LEVELS.find(item=>last.pieceCount>=item.min&&last.pieceCount<=item.max);
         if (comparable.length >= 6 && new Set(comparable.map(item=>item.sessionId)).size >= 3 && Math.max(...comparable.map(x=>x.accuracy))-Math.min(...comparable.map(x=>x.accuracy)) <= .1 && average >= .5 && average < .85) {
-            kind='question';message=`Your last ${comparable.length} comparable scored rounds had similar recall accuracy. Would you like to change just the position while keeping ${last.pieceCount} pieces? This is a practice suggestion, not a health assessment.`;
+            kind='question';message=`Your last ${comparable.length} comparable scored rounds had similar recall accuracy. Would you like to change just the position while keeping the same piece-count level? This is a practice suggestion, not a health assessment.`;
         } else if (average<.5) {
-            kind='finding';message=`Across ${comparable.length} comparable scored rounds, immediate recall accuracy averaged ${Math.round(average*100)}%. Let’s practise at this same piece count with no time limit before adding difficulty.`;
+            kind='finding';message=`Across ${comparable.length} comparable scored rounds, immediate recall accuracy averaged ${Math.round(average*100)}%. Let’s practise at this same piece-count level with no time limit before adding difficulty.`;
         } else if (average>=.85) {
-            const next=MEMORY_POSITIONS.find(item=>item.pattern===last.pattern && Object.keys(piecesFromFen(item.fen)).length===last.pieceCount+1);
-            if (!next) return;
-            kind='idea';target=next.id;
-            message=`Across ${comparable.length} comparable scored rounds, immediate recall accuracy averaged ${Math.round(average*100)}%. You could try one extra piece in practice, keeping observation untimed.`;
+            kind='idea';
+            message=`Across ${comparable.length} comparable scored rounds, immediate recall accuracy averaged ${Math.round(average*100)}%. You could try a new position at this level in untimed practice.`;
         }
-        if (kind) notification=freeze({ id:`memory-${owner}-${last.id}`, kind, message, exerciseId:target, unread:true });
+        if (kind) notification=freeze({ id:`memory-${owner}-${last.id}`, kind, message, exerciseId:target, level:level.id, pieceCount:last.pieceCount, unread:true });
     }
     return freeze({
         read,
-        start(exerciseId, mode='practice') {
-            if (active && active.phase!=='result') return false;
-            const exercise=MEMORY_POSITIONS.find(item=>item.id===exerciseId);
-            if (!exercise || !['practice','challenge'].includes(mode)) return false;
-            const actualMode=mode==='challenge' && !seen.has(exerciseId) ? 'challenge' : 'practice';
-            seen.add(exerciseId); // Exposure, including abandoned observation, makes a rematch practice.
-            active={sessionId:session,id:`${owner}:${++sequence}`,exercise,mode:actualMode,phase:'observe',draft:{},result:null};return true;
+        start(exerciseId,mode='practice') {
+            return begin(MEMORY_POSITIONS.find(item=>item.id===exerciseId),mode);
+        },
+        startPosition(fen,{id='study-position',source='opening-study',level=null,pattern='Position memory'}={},mode='practice') {
+            const info=memoryPositionInfo(fen);if(!info || (level&&info.level!==level))return false;
+            return begin({id,title:'Memory position',pattern,source,fen},mode);
+        },
+        startRandom(levelId,mode='practice',random=Math.random) {
+            const choice=chooseMemoryPosition(MEMORY_POSITIONS,levelId,active?.exercise.fen,random);
+            return choice ? begin({...choice,source:'authored-local'},mode) : false;
+        },
+        retry() {
+            if(active?.phase!=='result' || active.result.accuracy===1)return false;
+            const target=active.exercise;active=null;return begin(target,'practice');
         },
         hide() { if (active?.phase!=='observe') return false;active.phase='reconstruct';return true; },
         place(square,code) {

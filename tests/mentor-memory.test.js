@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
-import { createMemoryTraining, MEMORY_POSITIONS, memoryPlacement } from '../js/mentor/mentor-memory.js';
+import { createMemoryTraining, MEMORY_POSITIONS, MEMORY_LEVELS, memoryPositionInfo, chooseMemoryPosition, memoryPlacement } from '../js/mentor/mentor-memory.js';
 const placement = fen => { const game=new Chess(fen), value={};game.board().flat().filter(Boolean).forEach(piece=>value[piece.square]=piece.color+piece.type.toUpperCase());return value; };
 function answer(memory,id,{mode='challenge',subset=null}={}) {
     assert.equal(memory.start(id,mode),true);memory.hide();
@@ -43,7 +43,7 @@ test('single error produces no coaching diagnosis; gradual suggestion requires r
     memory.acknowledge();assert.equal(memory.read().notification.unread,false);
     answer(memory,'opposition-a',{mode:'practice'});assert.equal(memory.read().notification.unread,false);
     const strong=createMemoryTraining();['opposition-a','opposition-b','opposition-c'].forEach(id=>answer(strong,id));
-    const next=strong.read().notification;assert.equal(next.kind,'idea');assert.equal(next.exerciseId,'opposition-plus');
+    const next=strong.read().notification;assert.equal(next.kind,'idea');assert.equal(next.level,'beginner');assert.equal(next.pieceCount,3);assert.match(next.message,/new position at this level/);
 });
 test('similar-performance question requires six comparable first exposures across three session boundaries',()=>{
     const memory=createMemoryTraining();const ids=MEMORY_POSITIONS.slice(0,6).map(item=>item.id);
@@ -63,4 +63,30 @@ test('memory view is a single shared board presentation and contains no chess/en
     const page=fs.readFileSync(new URL('../js/mentor/mentor-page.js',import.meta.url),'utf8');
     assert.match(page,/if \(tab.id !== 'tab-learn'\) memoryTraining.stop\(\)/);
     assert.match(page,/if \(memoryTraining.isActive\(\)\) return/);
+});
+
+test('piece-count levels are disjoint, include under-eight beginners and cap actual started 32-piece positions',()=>{
+    assert.deepEqual(MEMORY_LEVELS.map(level=>[level.min,level.max]),[[3,7],[8,12],[13,17],[18,22],[23,27],[28,32]]);
+    const seen=new Set();for(const level of MEMORY_LEVELS)for(let count=level.min;count<=level.max;count++){assert.equal(seen.has(count),false);seen.add(count);}assert.equal(seen.size,30);
+    assert.equal(memoryPositionInfo(new Chess().fen()),null);
+    const game=new Chess();game.move('e4');const max=memoryPositionInfo(game.fen());assert.equal(max.pieceCount,32);assert.equal(max.level,'master');assert.equal(max.densityScore,100);
+    assert.equal(memoryPositionInfo(MEMORY_POSITIONS[0].fen).densityScore,0);
+    assert.equal(memoryPositionInfo('invalid'),null);
+});
+test('random selection filters actual piece count, excludes immediate repetitions and never silently lowers level',()=>{
+    const first=chooseMemoryPosition(MEMORY_POSITIONS,'beginner',null,()=>0),last=chooseMemoryPosition(MEMORY_POSITIONS,'beginner',null,()=>.99);
+    assert.notEqual(first.fen,last.fen);assert.notEqual(chooseMemoryPosition(MEMORY_POSITIONS,'beginner',first.fen,()=>0).fen,first.fen);
+    assert.equal(chooseMemoryPosition([first],'beginner',first.fen),null);
+    assert.equal(chooseMemoryPosition(MEMORY_POSITIONS,'master'),null);
+});
+test('Retry is available only after failure, observes the identical FEN unscored, and gets a fresh attempt ID',()=>{
+    const memory=createMemoryTraining();memory.start('opposition-a','challenge');assert.equal(memory.retry(),false);memory.hide();memory.check();
+    const old=memory.read(),score=old.score;assert.equal(memory.retry(),true);assert.equal(memory.read().phase,'observe');assert.equal(memory.read().exercise.fen,old.exercise.fen);
+    assert.notEqual(memory.read().attemptId,old.attemptId);assert.equal(memory.read().mode,'practice');assert.equal(memory.read().score,score);
+    memory.hide();for(const[square,code]of Object.entries(placement(old.exercise.fen)))memory.place(square,code);memory.check();assert.equal(memory.retry(),false);
+});
+test('first exposure is tracked by placement, so changing source or IDs cannot farm the provisional index',()=>{
+    const memory=createMemoryTraining(),fen=MEMORY_POSITIONS[0].fen;memory.startPosition(fen,{id:'source-a',source:'full-catalog'},'challenge');memory.hide();memory.check();memory.stop();
+    memory.startPosition(fen,{id:'source-b',source:'curated-fallback'},'challenge');assert.equal(memory.read().mode,'practice');
+    assert.equal(memory.startPosition(new Chess().fen()),false);
 });

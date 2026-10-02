@@ -42,7 +42,10 @@ const board = create($('mentor-board'), {
 });
 
 let memoryNotification = null;
-const memoryTraining = mountMemoryTraining({ board, document, restoreStudy: () => sync(),
+const memoryTraining = mountMemoryTraining({ board, document,
+    isTrainingVisible: () => selectedTab === 'learn',
+    getOpeningPosition: () => (lesson.id.startsWith('eco-') || ['london','sicilian','development'].includes(lesson.id)) ? {id:lesson.id+'-'+cursor,fen:game.fen(),source:'opening-study'} : null,
+    restoreStudy: () => sync(),
     onStart: () => {
         if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
             $('memory-state').textContent = 'Finish the promotion or Mentor reply before starting Memory Training.'; return false;
@@ -69,7 +72,7 @@ $('memory-recommendation').addEventListener('click', () => {
     memoryTraining.acknowledge(); memoryNotification = {...notification, unread:false};
     $('mentor-idea-status').textContent = 'Memory Training recommendation opened.';
     $('chat-idea-indicator').hidden = !insights.read().unread;
-    selectTab($('tab-learn')); memoryTraining.startRecommendation(notification.exerciseId);
+    selectTab($('tab-learn')); memoryTraining.startRecommendation(notification);
 });
 
 function sync() {
@@ -144,13 +147,14 @@ function attempt({ from, to, promotion }) {
 }
 $('repeat').addEventListener('click', () => show(0));
 $('flip').addEventListener('click', () => board.setOrientation(board.getOrientation() === 'white' ? 'black' : 'white'));
-$('practice').addEventListener('click', () => { memoryTraining.stop(); if (practicing) show(cursor); else { practicing = true; sync(); } });
+$('practice').addEventListener('click', () => { if(memoryTraining.isActive()||memoryTraining.isLoading()){memoryTraining.stop();return;} if (practicing) show(cursor); else { practicing = true; sync(); } });
 document.querySelectorAll('[data-lesson]').forEach(button => button.addEventListener('click', () => loadLesson(button.dataset.lesson)));
-const tabs = [...document.querySelectorAll('[role=tab]')];
+
+const tabs = [...document.querySelectorAll('[role=tab][id^="tab-"]')];
 function renderLearnGame() {
     const active = importedGames.length > 0 && lesson === importedGames[importedGameIndex];
     $('learn-game').hidden = !importedGames.length;
-    $('learn-lessons').hidden = false;
+    // Training sub-tab owns visibility of the lesson selection body.
     const select = $('learn-game-select'); select.replaceChildren();
     importedGames.forEach((item, index) => {
         const option = document.createElement('option'); option.value = String(index);
@@ -384,8 +388,9 @@ function selectTab(tab) {
     selectedTab = tab.id.replace('tab-', '');
     tabs.forEach(item => { const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1; $(item.getAttribute('aria-controls')).hidden = !selected; });
     $('chat-footer').hidden = selectedTab !== 'chat';
-    $('learn-footer').hidden = selectedTab !== 'learn';
+    $('learn-footer').hidden = selectedTab !== 'learn'||memoryTraining.context()!=='lesson';
     $('memory-footer').hidden = selectedTab !== 'learn';
+    $('memory-start').hidden = selectedTab !== 'learn'||memoryTraining.context()==='lesson';
     if (selectedTab === 'openings') ensureOpenings();
     presentIdea();
 }

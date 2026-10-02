@@ -70,7 +70,8 @@ test('layout owns one shared footer, five panels, and no controls beneath the bo
     const html = fs.readFileSync(new URL('../mentor.html', import.meta.url), 'utf8');
     const board = html.slice(html.indexOf('<section class="board-region"'), html.indexOf('<section class="right-workspace"'));
     assert.doesNotMatch(board, /board-foot|id="lesson-notation"|id="practice"|id="repeat"/);
-    assert.equal((html.match(/role="tabpanel"/g) || []).length, 5);
+    assert.equal((html.match(/id="panel-[^"]+" role="tabpanel"/g) || []).length, 5);
+    assert.equal((html.match(/id="training-[^"]+-body" role="tabpanel"/g) || []).length, 3);
     assert.equal((html.match(/class="workspace-foot"/g) || []).length, 1);
     assert.ok(html.indexOf('id="lesson-instruction"') > html.indexOf('id="panel-learn"'));
     const foot = html.slice(html.indexOf('id="workspace-footer"'), html.indexOf('class="page-note"'));
