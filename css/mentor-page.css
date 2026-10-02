@@ -50,3 +50,30 @@
 .board-service-notice .caissa-mentor-shell__mode{padding-bottom:4px}
 .board-service-notice .caissa-mentor-shell__auth[hidden]{display:none}
 @media(max-width:760px){.board-service-notice{order:3;flex-basis:100%;max-width:none;margin-left:0}}
+
+/* Board + one HEAD/BODY/FOOT workspace; controls belong to the right column. */
+.mentor-workspace{grid-template-columns:minmax(0,1.55fr) minmax(360px,1fr);align-items:stretch}
+#mentor-board{max-width:min(100%,calc(100dvh - 255px));min-width:0;margin-inline:auto}
+.right-workspace{height:calc(100dvh - 205px);min-height:440px}
+.workspace-head [role=tab]{min-width:0;font-size:13px;white-space:nowrap;padding-inline:3px}
+#workspace-footer{flex:none}.study-footer{display:flex;align-items:center;gap:7px;padding-top:8px}
+.study-footer>button{font-size:12px;padding-inline:9px}.move-navigation{margin-left:auto;display:flex;gap:4px}
+.move-navigation button{min-width:35px;padding-inline:8px}
+.learn-actions{display:flex;gap:6px;flex-wrap:wrap}.learn-actions button{font-size:12px;padding-inline:9px}
+#learn-footer[hidden],#chat-footer[hidden]{display:none}
+.mentor-page #chat-footer .caissa-mentor-shell__form{border-top:0;padding-top:0}
+#panel-learn .lesson-step{padding-top:7px;display:block}#panel-learn #lesson-notation{min-height:0}
+#learn-game-moves{display:block}.move-row{display:grid;grid-template-columns:36px minmax(0,1fr) minmax(0,1fr);gap:5px;align-items:center;padding:3px 0}
+.move-row>span{color:var(--page-muted);font-size:12px}.move-row button{min-height:34px;text-align:left;border:0;border-radius:5px;background:transparent;padding:5px 10px;font-size:14px}
+.move-row button[aria-current]{color:var(--page-accent);background:#243d4e}
+.evaluation-chart{height:104px;margin:16px 0 8px;display:flex;align-items:stretch;position:relative;background:linear-gradient(to bottom,#152538 49.5%,#658090 49.5%,#658090 50.5%,#102030 50.5%);border:1px solid var(--page-line);border-radius:8px;overflow:hidden;font-size:12px;color:var(--page-muted);justify-content:center}
+.evaluation-point{flex:1;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:transparent;position:relative}
+.evaluation-point::before{content:'';position:absolute;bottom:50%;height:var(--evaluation-height,0%);left:0;right:0;background:#71c8b7}
+.evaluation-point[data-side=black]::before{bottom:auto;top:50%;background:#7793b7}
+.evaluation-point[data-side=neutral]::before{display:none}
+.evaluation-point[aria-current]{outline:2px solid #f0c968;outline-offset:-2px;z-index:1}
+.evaluation-point:disabled{background:transparent}.evaluation-point:disabled::before{display:none}
+#engine-status{min-height:36px;font-size:11px;overflow-wrap:anywhere}#study-settings-dialog{max-width:min(420px,calc(100vw - 32px))}#study-settings-dialog label{display:block;margin-top:14px}#study-settings-dialog p{font-size:13px;margin:12px 0}
+@media(min-width:1550px){#mentor-board{max-width:min(100%,calc(100dvh - 255px))}}
+@media(max-width:1050px) and (min-width:761px){.mentor-workspace{grid-template-columns:minmax(0,1.4fr) minmax(340px,1fr);gap:18px}.workspace-head{padding-inline:12px}.workspace-head [role=tab]{font-size:12px}.workspace-foot{padding-inline:12px}}
+@media(max-width:760px){#mentor-board{max-width:100%;min-width:0}.right-workspace{height:690px;min-height:0}.workspace-head [role=tab]{font-size:11px}.study-footer{gap:4px}.study-footer>button{padding-inline:7px}.move-navigation{gap:3px}.move-navigation button{min-width:32px;padding-inline:6px}}

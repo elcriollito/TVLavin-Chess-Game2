@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { moveRows, createStudyAnalysis, evaluationLabel } from '../js/mentor/mentor-moves.js';
 import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { prepareLesson } from '../js/mentor/mentor-lessons.js';
 import { createMentorInsights } from '../js/mentor/mentor-insights.js';
@@ -15,7 +16,7 @@ function harness() {
     const nodes = new Map();
     function element(id = '') {
         const handlers = new Map(), attrs = {};
-        return { id, attrs, handlers, children: [], dataset: {}, hidden: false, value: '', disabled: false, textContent: '',
+        return { id, attrs, handlers, children: [], style: { setProperty() {} }, dataset: {}, hidden: false, value: '', disabled: false, textContent: '',
             setAttribute(key, value) { attrs[key] = value; }, getAttribute(key) { return attrs[key]; },
             addEventListener(key, fn) { handlers.set(key, fn); }, fire(key, detail = {}) { return handlers.get(key)?.({ preventDefault() {}, ...detail }); },
             append(...items) { this.children.push(...items); }, replaceChildren() { this.children.length = 0; }, focus() {}, showModal() {}, close() {} };
@@ -38,7 +39,7 @@ function harness() {
         querySelector: query => query === '.sign-in' ? authLink : query.endsWith('textarea') ? input : send };
     const board = { setPosition() {}, clearSelection() {}, getMetrics() { return {}; } };
     const source = fs.readFileSync(new URL('../js/mentor/mentor-page.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
-    vm.runInNewContext(source, { Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
+    vm.runInNewContext(source, { moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
         localStorage: { getItem() { return null; }, setItem() {} } });
     return { nodes, tabs, input, send, messages, window, emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
 }
@@ -49,9 +50,9 @@ test('hidden Chat panel wins over its flex layout when another tab is active', (
     assert.match(css, /#panel-chat\[hidden\][^{]*\{display:none\}/);
 });
 
-test('four tabs preserve chat drafts and show an unread idea once on entering Chat without network', () => {
+test('five tabs preserve chat drafts and show an unread idea once on entering Chat without network', () => {
     const h = harness();
-    assert.deepEqual(h.tabs.map(tab => tab.id), ['tab-chat', 'tab-learn', 'tab-openings', 'tab-account']);
+    assert.deepEqual(h.tabs.map(tab => tab.id), ['tab-chat', 'tab-moves', 'tab-learn', 'tab-openings', 'tab-account']);
     h.input.value = 'My draft'; h.nodes.get('tab-learn').fire('click');
     h.emit('caissa:account-analysis-completed', summary);
     assert.equal(h.nodes.get('chat-idea-indicator').hidden, false);
@@ -156,14 +157,14 @@ test('FEN intake belongs to My account and loads the shared board with inline fe
 });
 
 const completedPgn = '[Event "My game"]\n[White "Alex"]\n[Black "Opponent"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 1-0';
-test('local PGN loads Learn, navigates the shared board and prepares an explicit game review in Chat', async () => {
+test('local PGN loads Moves, navigates the shared board and prepares an explicit game review in Chat', async () => {
     const h = harness(); h.nodes.get('account-source-pgn').fire('click');
     assert.equal(h.nodes.get('account-import-submit').disabled, false);
     h.nodes.get('account-pgn-text').value = completedPgn;
     await h.nodes.get('account-form').fire('submit');
-    assert.equal(h.window.CaissaMentorPage.inspect().tab, 'learn');
+    assert.equal(h.window.CaissaMentorPage.inspect().tab, 'moves');
     assert.equal(h.window.CaissaMentorPage.inspect().importedGames, 1);
-    assert.equal(h.nodes.get('learn-game-moves').children.length, 4);
+    assert.equal(h.nodes.get('learn-game-moves').children.length, 2);
     h.nodes.get('game-next').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().cursor, 1);
     h.nodes.get('game-last').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().cursor, 4);
     h.nodes.get('game-previous').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().cursor, 3);
@@ -197,10 +198,32 @@ test('PGN file import rejects ambiguous inputs, oversized files and stale asynch
     h.nodes.get('account-pgn-text').value = '';
     let finish; fileInput.files = [{ size: 100, text: () => new Promise(resolve => { finish = resolve; }) }];
     const pending = h.nodes.get('account-form').fire('submit');
-    h.nodes.get('next').fire('click'); finish(completedPgn); await pending;
+    h.nodes.get('game-next').fire('click'); finish(completedPgn); await pending;
     assert.equal(h.window.CaissaMentorPage.inspect().lesson, 'development');
     assert.match(h.nodes.get('account-status').textContent, /position changed/);
     fileInput.files = [{ size: 100, text: async () => completedPgn }];
     await h.nodes.get('account-form').fire('submit');
     assert.equal(h.window.CaissaMentorPage.inspect().importedGames, 1);
+});
+
+test('Moves, Learn and shared footer navigate one line without losing Chat drafts', () => {
+    const h = harness(); h.input.value = 'Keep this draft';
+    h.nodes.get('tab-moves').fire('click');
+    assert.equal(h.nodes.get('learn-footer').hidden, true);
+    const row = h.nodes.get('learn-game-moves').children[0]; row.children[2].fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().cursor, 2);
+    h.nodes.get('tab-learn').fire('click'); assert.equal(h.nodes.get('learn-footer').hidden, false);
+    h.nodes.get('repeat').fire('click'); assert.equal(h.window.CaissaMentorPage.inspect().cursor, 0);
+    h.nodes.get('game-last').fire('click'); assert.equal(h.nodes.get('game-next').disabled, true);
+    h.nodes.get('tab-account').fire('click'); assert.equal(h.nodes.get('learn-footer').hidden, true);
+    assert.equal(h.input.value, 'Keep this draft'); assert.equal(h.networkCalls(), 0);
+});
+
+test('engine is lazy and exposes an honest error when runtime is unavailable', async () => {
+    const h = harness(); assert.equal(h.networkCalls(), 0);
+    assert.equal(h.nodes.get('evaluation-chart').textContent, 'Evaluation timeline · Not analysed');
+    await h.nodes.get('study-engine').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().tab, 'moves');
+    assert.match(h.nodes.get('engine-status').textContent, /Stockfish 19 is unavailable/);
+    assert.equal(h.nodes.get('study-engine').textContent, 'Engine');
 });
