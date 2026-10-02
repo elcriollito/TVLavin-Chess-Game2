@@ -1,3 +1,4 @@
+import { mountMemoryTraining } from '../js/mentor/mentor-memory-view.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ function harness() {
         return { id, attrs, handlers, children: [], style: { setProperty() {} }, dataset: {}, hidden: false, value: '', disabled: false, textContent: '',
             setAttribute(key, value) { attrs[key] = value; }, getAttribute(key) { return attrs[key]; },
             addEventListener(key, fn) { handlers.set(key, fn); }, fire(key, detail = {}) { return handlers.get(key)?.({ preventDefault() {}, ...detail }); },
-            append(...items) { this.children.push(...items); }, replaceChildren() { this.children.length = 0; }, focus() {}, showModal() {}, close() {} };
+            append(...items) { this.children.push(...items); }, replaceChildren() { this.children.length = 0; }, focus() {}, click() { return this.fire('click'); }, showModal() {}, close() {} };
     }
     for (const match of html.matchAll(/id="([^"]+)"/g)) nodes.set(match[1], element(match[1]));
     const tabs = [...html.matchAll(/<button id="(tab-[^"]+)"[^>]*aria-controls="([^"]+)"/g)].map(match => {
@@ -28,7 +29,7 @@ function harness() {
     const input = element(), send = element(), authLink = element();
     const windowHandlers = new Map(), messages = [];
     let networkCalls = 0;
-    const shell = { setContext() {}, open() {}, close() { messages.length = 0; },
+    const shell = { setContext() {}, clearContext() {}, open() {}, close() { messages.length = 0; },
         appendStudyMessage(message) { messages.push(message); return true; },
         appendStudyExchange(question, answer) { messages.push(question, answer); return true; }, clearStudyMessages() { messages.length = 0; } };
     const window = { CAISSA_AUTH: { isLoaded: true, isSignedIn: true, userId: 'owner-one' },
@@ -37,11 +38,13 @@ function harness() {
     const document = { getElementById: id => nodes.get(id), createElement: () => element(),
         querySelectorAll: query => query === '[role=tab]' ? tabs : [],
         querySelector: query => query === '.sign-in' ? authLink : query.endsWith('textarea') ? input : send };
-    const board = { setPosition() {}, clearSelection() {}, getMetrics() { return {}; } };
+    const boardHandlers = new Map();
+    let boardFen = null;
+    const board = { setPosition(fen) { boardFen = fen; }, clearSelection() {}, setInteractive() {}, on(type,fn) { boardHandlers.set(type,fn); }, getMetrics() { return {}; } };
     const source = fs.readFileSync(new URL('../js/mentor/mentor-page.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
-    vm.runInNewContext(source, { moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
+    vm.runInNewContext(source, { mountMemoryTraining, queueMicrotask, moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: () => board, document, window,
         localStorage: { getItem() { return null; }, setItem() {} } });
-    return { nodes, tabs, input, send, messages, window, emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
+    return { nodes, tabs, input, send, messages, window, boardPosition:()=>boardFen, squareTap: square=>boardHandlers.get('squareTap')?.(square), emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
 }
 const summary = { ownerId: 'owner-one', status: 'completed', verified: true, source: 'chesscom', username: 'Alex', analysisId: 'analysis-10', completedGames: 10, themes: [{ theme: 'tactics', sampleGames: 4 }] };
 
@@ -226,4 +229,43 @@ test('engine is lazy and exposes an honest error when runtime is unavailable', a
     assert.equal(h.window.CaissaMentorPage.inspect().tab, 'moves');
     assert.match(h.nodes.get('engine-status').textContent, /Stockfish 19 is unavailable/);
     assert.equal(h.nodes.get('study-engine').textContent, 'Engine');
+});
+
+test('Memory hides and rebuilds on the shared board while study PGN cursor and Mentor draft remain intact', async () => {
+    const h=harness();h.nodes.get('account-source-pgn').fire('click');h.nodes.get('account-pgn-text').value=completedPgn;
+    await h.nodes.get('account-form').fire('submit');h.nodes.get('game-next').fire('click');
+    const before=h.window.CaissaMentorPage.inspect();h.input.value='My preserved Mentor draft';h.nodes.get('tab-learn').fire('click');
+    h.nodes.get('memory-exercise').value='opposition-a';h.nodes.get('memory-mode').value='challenge';h.nodes.get('memory-start').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().memory.phase,'observe');assert.equal(h.nodes.get('study-engine').disabled,true);
+    h.nodes.get('memory-hide').fire('click');assert.equal(h.boardPosition(),'8/8/8/8/8/8/8/8');h.squareTap('e5');
+    assert.equal(h.window.CaissaMentorPage.inspect().memory.draft.e5,'wK');assert.equal(h.window.CaissaMentorPage.inspect().fen,before.fen);
+    h.nodes.get('tab-moves').fire('click');const after=h.window.CaissaMentorPage.inspect();
+    assert.equal(h.boardPosition(),before.fen);assert.equal(after.fen,before.fen);assert.equal(after.cursor,before.cursor);
+    assert.equal(after.importedGames,1);assert.equal(after.memory.phase,'idle');assert.equal(h.input.value,'My preserved Mentor draft');
+    assert.equal(h.nodes.get('game-first').disabled,false);assert.equal(h.networkCalls(),0);
+});
+test('Memory checks textual errors once and cannot run the study engine or award a stale logout attempt',async()=>{
+    const h=harness();h.nodes.get('tab-learn').fire('click');h.nodes.get('memory-exercise').value='opposition-a';h.nodes.get('memory-mode').value='challenge';
+    h.nodes.get('memory-start').fire('click');h.nodes.get('memory-hide').fire('click');
+    await h.nodes.get('study-engine').fire('click');assert.doesNotMatch(h.nodes.get('engine-status').textContent,/unavailable/);
+    h.emit('caissa-auth-change',{isLoaded:true,isSignedIn:false});h.nodes.get('memory-check').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().memory.scoredAttempts,0);assert.equal(h.window.CaissaMentorPage.inspect().memory.phase,'idle');
+    h.nodes.get('memory-start').fire('click');h.nodes.get('memory-hide').fire('click');h.nodes.get('memory-check').fire('click');
+    assert.match(h.nodes.get('memory-feedback').children[0].textContent,/✗.*expected/);
+    h.nodes.get('memory-check').fire('click');assert.equal(h.window.CaissaMentorPage.inspect().memory.scoredAttempts,1);
+});
+test('Memory recommendation lights Mentor, is read once there, and its CTA loads unscored Training',()=>{
+    const h=harness();h.nodes.get('tab-learn').fire('click');h.nodes.get('memory-mode').value='challenge';
+    for(const id of ['opposition-a','opposition-b','opposition-c']){
+        h.nodes.get('memory-exercise').value=id;h.nodes.get('memory-start').fire('click');h.nodes.get('memory-hide').fire('click');h.nodes.get('memory-check').fire('click');h.nodes.get('memory-return').fire('click');
+    }
+    assert.equal(h.nodes.get('chat-idea-indicator').hidden,false);assert.equal(h.nodes.get('chat-idea-indicator').textContent,'❗');
+    assert.equal(h.messages.length,0);h.nodes.get('tab-chat').fire('click');assert.equal(h.messages.length,1);assert.match(h.messages[0],/3 comparable scored rounds/);
+    assert.equal(h.nodes.get('chat-idea-indicator').hidden,true);h.nodes.get('tab-moves').fire('click');h.nodes.get('tab-chat').fire('click');assert.equal(h.messages.length,1);
+    h.nodes.get('memory-recommendation').fire('click');assert.equal(h.window.CaissaMentorPage.inspect().tab,'learn');assert.equal(h.window.CaissaMentorPage.inspect().memory.mode,'practice');assert.equal(h.networkCalls(),0);
+});
+test('busy Mentor reply prevents New session from mutating an active Memory attempt',()=>{
+    const h=harness();h.nodes.get('tab-learn').fire('click');h.nodes.get('memory-exercise').value='opposition-a';h.nodes.get('memory-mode').value='practice';h.nodes.get('memory-start').fire('click');
+    const before=h.window.CaissaMentorPage.inspect().memory.attemptId;h.send.disabled=true;h.nodes.get('new-session').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().memory.attemptId,before);
 });
