@@ -56,8 +56,11 @@ test('auth completion is bounded, retryable, and registration redirects through 
   assert.match(completion,/MAX_ATTEMPTS = 3/);
   assert.match(completion,/fetch\('\/api\/user\/sync'/);
   assert.match(completion,/retry\.focus\(\)/);
-  assert.match(signup,/afterSignUpUrl: getCompletionUrl\(\)/);
-  assert.match(signin,/afterSignInUrl: getCompletionUrl\(\)/);
+  assert.match(signup,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
+  assert.match(signup,/signInForceRedirectUrl: getCompletionUrl\(\)/);
+  assert.match(signin,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
+  assert.match(signin,/signInForceRedirectUrl: getCompletionUrl\(\)/);
+  assert.doesNotMatch(`${signup}\n${signin}`,/afterSign(?:In|Up)Url/);
 });
 
 test('Clerk verification appearance covers visible, focus, error, disabled and responsive states',()=>{
