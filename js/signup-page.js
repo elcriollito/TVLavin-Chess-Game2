@@ -110,8 +110,8 @@
 
             // Mount Sign Up component
             Clerk.mountSignUp(container, {
-                afterSignInUrl: getCompletionUrl(),
-                afterSignUpUrl: getCompletionUrl(),
+                signInForceRedirectUrl: getCompletionUrl(),
+                signUpForceRedirectUrl: getCompletionUrl(),
                 signInUrl: '/signin',
                 appearance: {
                     variables: {
