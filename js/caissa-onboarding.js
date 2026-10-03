@@ -1,14 +1,15 @@
 /**
  * CAISSA Onboarding
  *
- * First-time user onboarding flow with multi-step tutorial
+ * First-time product discovery flow
  */
 
 const CaissaOnboarding = {
     // State
     currentStep: 0,
     isActive: false,
-    totalSteps: 5,
+    totalSteps: 6,
+    isPreviewMode: false,
     previouslyFocusedElement: null,
     backgroundState: new Map(),
     backgroundObserver: null,
@@ -26,56 +27,65 @@ const CaissaOnboarding = {
             title: 'Welcome to CAISSA Chess',
             icon: 'chess-knight',
             content: `
-                <p>CAISSA is your free, AI-powered chess analysis platform.</p>
-                <p>Let's take a quick tour of the key features.</p>
+                <p class="onboarding-eyebrow">YOUR CHESS, EXPANDED</p>
+                <p class="onboarding-lead">Play, study, analyze, and explore chess far beyond the ordinary board.</p>
+                <p class="onboarding-product-line" aria-label="Six million plus puzzles, Mentor, live chess, engine battles, and deep analysis">
+                    <span>6M+ puzzles</span><span>Mentor</span><span>Live chess</span><span>Engine battles</span><span>Deep analysis</span>
+                </p>
             `,
-            buttonText: 'Start Tour'
+            buttonText: 'Explore CAISSA'
         },
         {
-            title: 'Powerful Analysis',
-            icon: 'microchip',
+            title: '6M+ Chess Puzzles',
+            icon: 'puzzle-piece',
             content: `
-                <p><strong>Stockfish 2019 MV</strong> runs directly in your browser with multi-variant analysis.</p>
-                <p>Load FEN positions or PGN games from the <strong>Game Library</strong> to get instant engine evaluations.</p>
+                <p>Train with more than six million real chess puzzles across themes, motifs, openings, special moves, and rating-based difficulty.</p>
             `,
+            cta: { label: 'Explore Puzzles', route: '/puzzles' },
             buttonText: 'Next'
         },
         {
-            title: 'AI Mentor',
+            title: 'CAISSA Mentor',
             icon: 'graduation-cap',
             content: `
-                <p>Click the <strong>Mentor</strong> button to ask questions about any position.</p>
-                <p>Get human-readable explanations powered by LLMs (Together.ai, OpenAI, Anthropic, or local models).</p>
-                <p><em>Tip: Try "Human" mode for strategic insights or "Engine" mode for tactical lines.</em></p>
+                <p>Ask questions, explore positions, and understand the ideas behind your moves with an interactive chess mentor.</p>
             `,
+            cta: { label: 'Meet Mentor', route: '/mentor' },
             buttonText: 'Next'
         },
         {
-            title: 'Your Library',
-            icon: 'book',
+            title: 'Play Your Way',
+            icon: 'chess-board',
             content: `
-                <p>Save positions and games to your personal library (click the <strong>Library</strong> button on the left).</p>
-                <p>Sign in to enable <strong>cloud sync</strong> across devices.</p>
-                <p>Use the <strong>Query Engine</strong> to search your library with natural language.</p>
+                <p>Challenge the engine, play Bots, train with Coach, or connect to live players through FICS.</p>
             `,
+            cta: { label: 'Play Chess', route: '/play' },
             buttonText: 'Next'
         },
         {
-            title: "You're All Set!",
-            icon: 'check-circle',
+            title: 'Engine Battles',
+            icon: 'trophy',
             content: `
-                <p>You're ready to start analyzing. Here are some quick tips:</p>
-                <ul class="onboarding-tips-list">
-                    <li><strong>Load a game</strong> from the Game Library to practice analysis</li>
-                    <li><strong>Engine vs Engine</strong> mode lets you test openings and watch AI battles</li>
-                    <li><strong>CAISSA Insight</strong> analyzes your entire Chess.com game history</li>
-                    <li><strong>Position Forge</strong> lets you build custom positions with drag-and-drop</li>
-                </ul>
-                <p><em>Need help? Check out the <a href="/about" target="_blank">About</a> page or <a href="/roadmap" target="_blank">Roadmap</a>.</em></p>
+                <p>Watch chess engines compete in matches and tournaments with live moves, evaluations, standings, and analysis.</p>
             `,
-            buttonText: 'Get Started'
+            cta: { label: 'Open Engine Arena', route: '/arena' },
+            buttonText: 'Next'
+        },
+        {
+            title: 'Analyze Everything',
+            icon: 'chart-line',
+            content: `
+                <p>Open PGNs, explore real variation trees, compare ideas, flip the board, and analyze without losing the main line.</p>
+            `,
+            cta: { label: 'Open Analyzer', route: '/analyze' },
+            buttonText: 'Start Exploring'
         }
     ],
+
+    isLocalPreviewRequested() {
+        return ['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname)
+            && new URLSearchParams(window.location.search).get('welcome-preview') === '1';
+    },
 
     /**
      * Initialize onboarding system
@@ -84,7 +94,14 @@ const CaissaOnboarding = {
         // Check if user has completed onboarding
         const completed = localStorage.getItem(this.STORAGE_KEY);
 
-        if (!completed) {
+        this.isPreviewMode = this.isLocalPreviewRequested();
+
+        if (this.isPreviewMode) {
+            this.openTimer = setTimeout(() => {
+                this.openTimer = null;
+                this.show({ preview: true });
+            }, 0);
+        } else if (!completed) {
             // Show onboarding after a short delay
             this.openTimer = setTimeout(() => {
                 this.openTimer = null;
@@ -103,10 +120,11 @@ const CaissaOnboarding = {
     /**
      * Show onboarding modal
      */
-    show() {
+    show(options = {}) {
         if (this.isActive) return;
 
         this.isActive = true;
+        this.isPreviewMode = options.preview === true;
         this.currentStep = 0;
         this.previouslyFocusedElement = document.activeElement;
 
@@ -132,17 +150,18 @@ const CaissaOnboarding = {
         modal.className = 'onboarding-modal';
         modal.innerHTML = `
             <div class="onboarding-backdrop" aria-hidden="true"></div>
-            <div class="onboarding-content" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
-                <button id="onboardingSkip" class="onboarding-skip" aria-label="Skip tour">
+            <div class="onboarding-content" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" aria-describedby="onboardingDescription">
+                <button id="onboardingSkip" class="onboarding-skip" aria-label="Skip welcome">
                     <i class="fas fa-times"></i> Skip
                 </button>
-                <div class="onboarding-step-indicator">
+                <div class="onboarding-step-indicator" aria-label="Welcome progress">
                     <span id="onboardingStepText" aria-live="polite">1 of ${this.totalSteps}</span>
+                    <div id="onboardingProgressDots" class="onboarding-progress-dots" aria-hidden="true"></div>
                 </div>
                 <div id="onboardingStepContent" class="onboarding-step-content"></div>
                 <div class="onboarding-footer">
-                    <button id="onboardingPrev" class="btn btn-secondary" style="visibility: hidden;">
-                        <i class="fas fa-arrow-left"></i> Back
+                    <button id="onboardingPrev" class="btn btn-secondary" hidden>
+                        <i class="fas fa-arrow-left"></i> Previous
                     </button>
                     <button id="onboardingNext" class="btn btn-primary">
                         Next <i class="fas fa-arrow-right"></i>
@@ -273,26 +292,35 @@ const CaissaOnboarding = {
         const stepTextEl = document.getElementById('onboardingStepText');
         const nextBtn = document.getElementById('onboardingNext');
         const prevBtn = document.getElementById('onboardingPrev');
+        const progressDots = document.getElementById('onboardingProgressDots');
+        const footer = document.querySelector('.onboarding-footer');
 
         // Update step indicator
         stepTextEl.textContent = `${this.currentStep + 1} of ${this.totalSteps}`;
+        progressDots.innerHTML = this.steps.map((_, index) =>
+            `<span class="onboarding-progress-dot${index === this.currentStep ? ' is-active' : ''}"></span>`
+        ).join('');
 
         // Update content
         contentEl.innerHTML = `
-            <div class="onboarding-icon">
+            <div class="onboarding-icon" aria-hidden="true">
                 <i class="fas fa-${step.icon}"></i>
             </div>
             <h2 id="onboardingTitle" class="onboarding-title">${step.title}</h2>
-            <div class="onboarding-body">${step.content}</div>
+            <div id="onboardingDescription" class="onboarding-body">${step.content}</div>
+            ${step.cta ? `<a class="onboarding-card-cta" data-onboarding-route href="${step.cta.route}">${step.cta.label} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>` : ''}
         `;
 
+        contentEl.querySelector('[data-onboarding-route]')?.addEventListener('click', () => this.complete());
+
         // Update button text
-        nextBtn.innerHTML = step.buttonText === 'Get Started'
+        nextBtn.innerHTML = step.buttonText === 'Start Exploring'
             ? `${step.buttonText} <i class="fas fa-check"></i>`
             : `${step.buttonText} <i class="fas fa-arrow-right"></i>`;
 
         // Show/hide prev button
-        prevBtn.style.visibility = this.currentStep > 0 ? 'visible' : 'hidden';
+        prevBtn.hidden = this.currentStep === 0;
+        footer?.classList.toggle('onboarding-footer--first', this.currentStep === 0);
     },
 
     /**
@@ -333,7 +361,7 @@ const CaissaOnboarding = {
      */
     complete() {
         // Mark as completed
-        localStorage.setItem(this.STORAGE_KEY, 'true');
+        if (!this.isPreviewMode) localStorage.setItem(this.STORAGE_KEY, 'true');
         if (this.openTimer) {
             clearTimeout(this.openTimer);
             this.openTimer = null;
@@ -372,6 +400,7 @@ const CaissaOnboarding = {
 
         this.restoreBackground();
         this.isActive = false;
+        this.isPreviewMode = false;
         this.restoreFocus();
     },
 

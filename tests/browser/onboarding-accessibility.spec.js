@@ -30,16 +30,17 @@ test('first-time onboarding is a named modal with initial focus and contained ta
     const dialog = await waitForOnboarding(page);
     await expect(dialog).toHaveAttribute('aria-modal', 'true');
     await expect(dialog).toHaveAttribute('aria-labelledby', 'onboardingTitle');
-    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(dialog).toHaveAttribute('aria-describedby', 'onboardingDescription');
+    await expect(page.getByRole('button', { name: 'Explore CAISSA' })).toBeFocused();
     await expect(page.locator('#app')).toHaveAttribute('inert', '');
 
     await page.locator('[data-nav-key="fics"]').evaluate(element => element.focus());
-    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Explore CAISSA' })).toBeFocused();
 
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Skip tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Skip welcome' })).toBeFocused();
     await page.keyboard.press('Shift+Tab');
-    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Explore CAISSA' })).toBeFocused();
 
     for (let index = 0; index < 8; index++) {
         await page.keyboard.press(index % 2 ? 'Shift+Tab' : 'Tab');
@@ -60,7 +61,7 @@ test('delayed opening captures current focus and Escape uses Skip completion sem
     await priorControl.focus();
 
     await waitForOnboarding(page);
-    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Explore CAISSA' })).toBeFocused();
     await page.keyboard.press('Escape');
 
     await expectOnboardingClosed(page);
@@ -78,14 +79,14 @@ test('delayed opening captures current focus and Escape uses Skip completion sem
     await expect(page.locator('#caissaOnboardingModal')).toHaveCount(0);
 });
 
-test('Start Tour, Back, Next and Get Started support a complete keyboard flow', async ({ page }) => {
+test('Explore CAISSA, Previous, Next and Start Exploring support a complete keyboard flow', async ({ page }) => {
     await page.goto('/analyze', { waitUntil: 'domcontentloaded' });
     const priorControl = page.locator('#navCollapseBtn');
     await priorControl.focus();
     await waitForOnboarding(page);
 
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('heading', { name: 'Powerful Analysis' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '6M+ Chess Puzzles' })).toBeVisible();
     await expect(page.locator('#onboardingNext')).toBeFocused();
 
     const back = page.locator('#onboardingPrev');
@@ -96,12 +97,12 @@ test('Start Tour, Back, Next and Get Started support a complete keyboard flow', 
 
     const primary = page.locator('#onboardingNext');
     await primary.focus();
-    for (const heading of ['Powerful Analysis', 'AI Mentor', 'Your Library', "You're All Set!"]) {
+    for (const heading of ['6M+ Chess Puzzles', 'CAISSA Mentor', 'Play Your Way', 'Engine Battles', 'Analyze Everything']) {
         await primary.press('Enter');
         await expect(page.getByRole('heading', { name: heading })).toBeVisible();
         await expect(primary).toBeFocused();
     }
-    await expect(primary).toHaveText(/Get Started/);
+    await expect(primary).toHaveText(/Start Exploring/);
     await primary.press('Enter');
 
     await expectOnboardingClosed(page);
@@ -115,7 +116,7 @@ test('Skip supports keyboard and pointer activation without a stuck backdrop or 
     const dialog = await waitForOnboarding(page);
     await expect(dialog.locator('..')).toHaveCSS('pointer-events', 'all');
 
-    const skip = page.getByRole('button', { name: 'Skip tour' });
+    const skip = page.getByRole('button', { name: 'Skip welcome' });
     await skip.focus();
     await skip.press('Space');
     await expectOnboardingClosed(page);
@@ -127,7 +128,7 @@ test('Skip supports keyboard and pointer activation without a stuck backdrop or 
         window.dispatchEvent(new Event('caissa-show-onboarding'));
     }, STORAGE_KEY);
     await waitForOnboarding(page);
-    await page.getByRole('button', { name: 'Skip tour' }).click();
+    await page.getByRole('button', { name: 'Skip welcome' }).click();
     await expectOnboardingClosed(page);
 });
 
@@ -146,10 +147,10 @@ test('completed onboarding is harmlessly absent and shared routes retain their o
 
     const playContext = await browser.newContext();
     const playPage = await playContext.newPage();
-    for (const route of ['/play', '/']) {
+    for (const [route, expected] of [['/play', /\/play(?:[/?#]|$)/], ['/', /\/$/]]) {
         await playPage.goto(route);
         await playPage.waitForTimeout(1_800);
-        await expect(playPage).toHaveURL(/\/play(?:[/?#]|$)/);
+        await expect(playPage).toHaveURL(expected);
         await expect(playPage.locator('#caissaOnboardingModal')).toHaveCount(0);
     }
     await playContext.close();
@@ -165,7 +166,7 @@ test('/fics becomes keyboard-interactive after legitimate first-run dismissal wi
     await connect.focus();
     await waitForOnboarding(page);
 
-    await page.getByRole('button', { name: 'Skip tour' }).focus();
+    await page.getByRole('button', { name: 'Skip welcome' }).focus();
     await page.keyboard.press('Enter');
     await expectOnboardingClosed(page);
     expect(await page.evaluate(() => ({
@@ -228,14 +229,14 @@ test('/fics auto Guest remains singular and truthful while delayed onboarding ow
     await expect.poll(() => page.evaluate(() => window.CaissaFICSClient.authenticated)).toBe(true);
 
     const dialog = await waitForOnboarding(page);
-    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Explore CAISSA' })).toBeFocused();
     await expect(page.locator('#app')).toHaveAttribute('inert', '');
     await page.getByRole('tab', { name: 'Players' }).evaluate(element => element.focus());
-    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Explore CAISSA' })).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Skip tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Skip welcome' })).toBeFocused();
     await page.keyboard.press('Shift+Tab');
-    await expect(page.getByRole('button', { name: 'Start Tour' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Explore CAISSA' })).toBeFocused();
     await expect(dialog).toBeVisible();
 
     await page.keyboard.press('Escape');
@@ -268,6 +269,11 @@ test('mobile touch presentation keeps the blocking backdrop and supported contro
         isMobile: true
     });
     const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => {
+        if (message.type() === 'error') errors.push(message.text());
+    });
     await page.goto('/analyze');
 
     const dialog = await waitForOnboarding(page);
@@ -276,19 +282,103 @@ test('mobile touch presentation keeps the blocking backdrop and supported contro
     expect(dialogBox.y).toBeGreaterThanOrEqual(0);
     expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(390);
     expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(844);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
 
-    const startBox = await page.getByRole('button', { name: 'Start Tour' }).boundingBox();
+    const startBox = await page.getByRole('button', { name: 'Explore CAISSA' }).boundingBox();
     await page.touchscreen.tap(startBox.x + startBox.width / 2, startBox.y + startBox.height / 2);
-    await expect(page.getByRole('heading', { name: 'Powerful Analysis' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '6M+ Chess Puzzles' })).toBeVisible();
 
-    for (const heading of ['AI Mentor', 'Your Library', "You're All Set!"]) {
+    for (const heading of ['CAISSA Mentor', 'Play Your Way', 'Engine Battles', 'Analyze Everything']) {
         const nextBox = await page.locator('#onboardingNext').boundingBox();
         await page.touchscreen.tap(nextBox.x + nextBox.width / 2, nextBox.y + nextBox.height / 2);
         await expect(page.getByRole('heading', { name: heading })).toBeVisible();
     }
 
-    const completeBox = await page.getByRole('button', { name: /Get Started/ }).boundingBox();
+    const completeBox = await page.getByRole('button', { name: /Start Exploring/ }).boundingBox();
     await page.touchscreen.tap(completeBox.x + completeBox.width / 2, completeBox.y + completeBox.height / 2);
     await expectOnboardingClosed(page);
+    expect(errors).toEqual([]);
     await context.close();
 });
+
+test('product discovery cards use the approved order, copy, and canonical CTA routes', async ({ page }) => {
+    await page.goto('/analyze?welcome-preview=1', { waitUntil: 'domcontentloaded' });
+    await waitForOnboarding(page);
+
+    await expect(page.locator('#onboardingStepText')).toHaveText('1 of 6');
+    await expect(page.locator('.onboarding-product-line')).toContainText('6M+ puzzles');
+    await expect(page.locator('.onboarding-product-line')).toContainText('Mentor');
+    await expect(page.locator('.onboarding-product-line')).toContainText('Live chess');
+    await expect(page.locator('.onboarding-product-line')).toContainText('Engine battles');
+    await expect(page.locator('.onboarding-product-line')).toContainText('Deep analysis');
+
+    const cards = [
+        { title: '6M+ Chess Puzzles', cta: 'Explore Puzzles', route: '/puzzles', claim: 'more than six million' },
+        { title: 'CAISSA Mentor', cta: 'Meet Mentor', route: '/mentor', claim: 'interactive chess mentor' },
+        { title: 'Play Your Way', cta: 'Play Chess', route: '/play', claim: 'FICS' },
+        { title: 'Engine Battles', cta: 'Open Engine Arena', route: '/arena', claim: 'tournaments' },
+        { title: 'Analyze Everything', cta: 'Open Analyzer', route: '/analyze', claim: 'variation trees' }
+    ];
+
+    for (const [index, card] of cards.entries()) {
+        await page.locator('#onboardingNext').click();
+        await expect(page.getByRole('heading', { name: card.title })).toBeVisible();
+        await expect(page.locator('#onboardingDescription')).toContainText(card.claim);
+        await expect(page.getByRole('link', { name: new RegExp(card.cta) })).toHaveAttribute('href', card.route);
+        await expect(page.locator('#onboardingStepText')).toHaveText(`${index + 2} of 6`);
+        expect((await page.request.get(card.route)).ok()).toBe(true);
+    }
+});
+
+test('a product CTA completes first-time onboarding before canonical navigation', async ({ page }) => {
+    await page.goto('/analyze', { waitUntil: 'domcontentloaded' });
+    await waitForOnboarding(page);
+    await page.locator('#onboardingNext').click();
+    await page.getByRole('link', { name: /Explore Puzzles/ }).click();
+    await expect(page).toHaveURL(/\/puzzles(?:[/?#]|$)/);
+    expect(await page.evaluate(key => localStorage.getItem(key), STORAGE_KEY)).toBe('true');
+});
+
+test('local welcome preview force-opens without changing existing completion data', async ({ page }) => {
+    await page.addInitScript(key => localStorage.setItem(key, 'existing-completion'), STORAGE_KEY);
+    await page.goto('/analyze?welcome-preview=1', { waitUntil: 'domcontentloaded' });
+    await waitForOnboarding(page);
+    await page.getByRole('button', { name: 'Skip welcome' }).click();
+    await expectOnboardingClosed(page);
+    expect(await page.evaluate(key => localStorage.getItem(key), STORAGE_KEY)).toBe('existing-completion');
+});
+
+for (const viewport of [
+    { width: 430, height: 932 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 900 }
+]) {
+    test(`welcome remains contained and error-free at ${viewport.width}x${viewport.height}`, async ({ browser }) => {
+        const context = await browser.newContext({ viewport });
+        const page = await context.newPage();
+        const errors = [];
+        page.on('pageerror', error => errors.push(error.message));
+        page.on('console', message => {
+            if (message.type() === 'error') errors.push(message.text());
+        });
+
+        await page.goto('/analyze?welcome-preview=1', { waitUntil: 'domcontentloaded' });
+        await waitForOnboarding(page);
+        const dialog = page.locator('#caissaOnboardingModal [role="dialog"]');
+
+        for (let step = 0; step < 6; step += 1) {
+            const box = await dialog.boundingBox();
+            const primary = await page.locator('#onboardingNext').boundingBox();
+            expect(box.x).toBeGreaterThanOrEqual(0);
+            expect(box.y).toBeGreaterThanOrEqual(0);
+            expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+            expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+            expect(primary.y + primary.height).toBeLessThanOrEqual(viewport.height);
+            expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+            if (step < 5) await page.locator('#onboardingNext').click();
+        }
+
+        expect(errors).toEqual([]);
+        await context.close();
+    });
+}
