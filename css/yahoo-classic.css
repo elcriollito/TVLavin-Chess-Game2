@@ -183,6 +183,18 @@ body.yc-classic-active #app {
     overflow: hidden;
 }
 
+/*
+ * Classic board geometry must update atomically. The shared navigation shell
+ * normally interpolates its grid/sidebar width for 300ms; while a table is
+ * open that makes the board panel grow across multiple frames and the board
+ * appears to zoom after the surrounding page. Keep the shared animation on
+ * other surfaces, but remove it while Yahoo Classic owns the workspace.
+ */
+body.yc-classic-active #app,
+body.yc-classic-active .caissa-standalone-sidebar-host {
+    transition: none;
+}
+
 #yahooClassicSection {
     height: 100dvh;
     min-height: 100dvh;
