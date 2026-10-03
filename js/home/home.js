@@ -356,6 +356,12 @@
           label: item.label
         });
         link.dataset.toolId = item.id;
+        if (item.description) {
+          link.classList.add('all-tools-card');
+          link.querySelector('span')?.classList.add('all-tools-card-title');
+          link.append(element('small', 'all-tools-card-description', item.description));
+          link.setAttribute('aria-label', `${item.label}. ${item.description}`);
+        }
         if (item.id === 'yahooClassic') link.classList.add('desktop-only');
       });
       section.append(links);

@@ -4,17 +4,24 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CAISSA Mentor — Learn on the board</title>
   <meta name="description" content="Explore chess ideas with CAISSA Mentor and an interactive study board.">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-board.css">
   <link rel="stylesheet" href="/css/mentor-floating-shell.css">
   <link rel="stylesheet" href="/css/mentor-page.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body class="mentor-page">
+  <a class="skip-link" href="#mentor-main">Skip to Mentor</a>
+  <div class="caissa-standalone-layout">
+  <div data-caissa-standalone-sidebar data-active="mentor"></div>
+  <div class="mentor-page-content caissa-standalone-content">
   <header class="page-header">
     <a class="brand" href="/" aria-label="CAISSA home"><span aria-hidden="true">♞</span> CAISSA <small>CHESS</small></a>
-    <nav aria-label="Main navigation"><a href="/play">Play</a><a href="/analyze">Analyze</a><a href="/puzzles">Puzzles</a><a href="/mentor.html" aria-current="page">Mentor</a></nav>
-    <a class="sign-in" href="/signin?redirect_url=%2Fmentor.html">Sign in</a>
+    <nav aria-label="Mentor shortcuts"><a href="/play">Play</a><a href="/analyze">Analyze</a><a href="/puzzles">Puzzles</a></nav>
+    <a class="sign-in" href="/signin?redirect_url=%2Fmentor">Sign in</a>
   </header>
-  <main>
+  <main id="mentor-main" tabindex="-1">
     <div class="page-title"><div><p class="eyebrow">YOUR CHESS COMPANION</p><h1>CAISSA Mentor</h1><p>Understand the idea. See it on the board. Try it yourself.</p></div><button id="new-session" type="button">＋ New session</button></div>
     <div class="mentor-workspace">
       <section class="board-region" aria-labelledby="lesson-title">
@@ -79,6 +86,11 @@
   </main>
   <dialog id="promotion-dialog" aria-labelledby="promotion-title"><h2 id="promotion-title">Choose a promotion piece</h2><div><button data-promotion="q">Queen</button><button data-promotion="r">Rook</button><button data-promotion="b">Bishop</button><button data-promotion="n">Knight</button></div><button id="promotion-cancel">Cancel</button></dialog>
   <dialog id="study-settings-dialog" aria-labelledby="study-settings-title"><h2 id="study-settings-title">Study settings</h2><label for="engine-depth">Engine depth</label><select id="engine-depth"><option value="12">12 · Faster</option><option value="16">16 · Deeper</option></select><p>Evaluation is from White’s perspective. Local engine analysis uses no Shared AI credits.</p><button id="settings-copy-fen" type="button">Copy FEN</button><button id="settings-copy-pgn" type="button">Copy PGN main line</button><textarea id="settings-export" rows="5" readonly aria-label="Copyable study text" hidden></textarea><p id="settings-status" role="status"></p><button id="settings-flip" type="button">Flip board</button><button id="settings-close" type="button">Done</button></dialog>
+  </div>
+  </div>
+  <script src="/js/caissa-i18n.js?v=1.0.0"></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.2"></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.1.0" data-caissa-auth-runtime="external"></script>
   <script src="/js/engine-adapter.js"></script>
   <script src="/js/engine-registry.js"></script>
   <script src="/js/auth-config.js"></script>

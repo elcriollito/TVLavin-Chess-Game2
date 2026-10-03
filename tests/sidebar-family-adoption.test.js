@@ -11,7 +11,7 @@ const sandbox = { window: {}, document: documentStub };
 vm.runInNewContext(source, sandbox);
 const navigation = sandbox.window.CaissaPrimaryNavigation;
 const expectedHeadings = ['Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools'];
-const expectedBodyLabels = [...navigation.inventory.primary, ...navigation.inventory.more].map(item => item.label);
+const expectedBodyLabels = ['Home', ...[...navigation.inventory.primary, ...navigation.inventory.more].map(item => item.label)];
 
 async function page(file) {
   return load(await readFile(new URL(file, root), 'utf8'));
@@ -35,9 +35,9 @@ test('application, Classic, Play, and Trainer adopt the shared sidebar family', 
   }
 });
 
-test('fallbacks are deterministic and generated from the canonical 1.15.0 contract', async () => {
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.15.0');
-  assert.equal(expectedBodyLabels.length, 31);
+test('fallbacks are deterministic and generated from the canonical 1.16.0 contract', async () => {
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.16.0');
+  assert.equal(expectedBodyLabels.length, 33);
   assert.deepEqual(Array.from(navigation.inventory.primary.slice(-2), item => item.label), ['DOS Chess', 'Vault']);
   assert.deepEqual(Array.from(navigation.inventory.social, item => item.label), ['Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord']);
   const generator = await readFile(new URL('scripts/build-navigation-fallbacks.mjs', root), 'utf8');

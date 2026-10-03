@@ -22,7 +22,7 @@ const expected = [
     ['play', '/play'], ['yahooClassic', '/yahoo-classic'], ['fics', '/fics'],
     ['playchess', '/play-online/playchess'], ['fritz', '/play-online/fritz'],
     ['puzzles', '/puzzles'],
-    ['academy', '/academy'], ['endgame-trainer', '/endgame-trainer'],
+    ['academy', '/academy'], ['mentor', '/mentor'], ['endgame-trainer', '/endgame-trainer'],
     ['endgame-library', '/endgame-library'], ['endgame-tablebase', '/endgame-tablebase'],
     ['insights', '/insights'], ['analyze', '/analyze'], ['pgn-replayer', '/pgn-replayer'],
     ['spectator', '/spectator-tv'], ['lichess-tv', '/watch/lichess-tv'],
