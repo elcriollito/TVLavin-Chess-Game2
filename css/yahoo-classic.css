@@ -183,6 +183,18 @@ body.yc-classic-active #app {
     overflow: hidden;
 }
 
+/*
+ * Classic board geometry must update atomically. The shared navigation shell
+ * normally interpolates its grid/sidebar width for 300ms; while a table is
+ * open that makes the board panel grow across multiple frames and the board
+ * appears to zoom after the surrounding page. Keep the shared animation on
+ * other surfaces, but remove it while Yahoo Classic owns the workspace.
+ */
+body.yc-classic-active #app,
+body.yc-classic-active .caissa-standalone-sidebar-host {
+    transition: none;
+}
+
 #yahooClassicSection {
     height: 100dvh;
     min-height: 100dvh;
@@ -1578,7 +1590,10 @@ body.yc-classic-active #app {
 
 .yc-game-system-panel {
     display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 4px;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .yc-game-system-log {
@@ -1600,6 +1615,7 @@ body.yc-classic-active #app {
 }
 
 .yc-game-board-panel {
+    position: relative;
     display: grid;
     grid-template-rows: minmax(180px, 1fr) auto;
     grid-auto-rows: auto;
@@ -1609,6 +1625,15 @@ body.yc-classic-active #app {
     padding: 6px;
     min-height: 0;
     overflow: hidden;
+}
+
+.yc-classic-promotion-selector {
+    z-index: 60;
+}
+
+.yc-classic-board .square-55d63.yc-click-selected {
+    outline: 2px dotted #241d54;
+    outline-offset: -4px;
 }
 
 .yc-game-player {
@@ -1899,13 +1924,59 @@ body.yc-classic-active #app {
 }
 
 .yc-move-panel {
+    --yc-system-panel-size: clamp(76px, 16vh, 144px);
     display: grid;
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto minmax(76px, 16vh);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
     gap: 4px;
     padding: 4px;
     min-height: 0;
     overflow: hidden;
     background: #c8bea0;
+}
+
+.yc-move-panel-footer {
+    --yc-player-bar-size: 34px;
+    --yc-game-over-status-size: 43px;
+    display: grid;
+    grid-template-rows:
+        var(--yc-player-bar-size)
+        var(--yc-game-over-status-size)
+        var(--yc-system-panel-size);
+    min-width: 0;
+    min-height: 0;
+    height: calc(
+        var(--yc-player-bar-size)
+        + var(--yc-game-over-status-size)
+        + var(--yc-system-panel-size)
+        + 8px
+    );
+    gap: 4px;
+    overflow: hidden;
+}
+
+.yc-move-panel-footer > .yc-game-player {
+    grid-row: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.yc-move-panel-footer > .yc-game-over-status {
+    grid-row: 2;
+    min-height: 0;
+    max-height: var(--yc-game-over-status-size);
+    overflow: hidden;
+}
+
+.yc-move-panel-footer .yc-game-system-panel {
+    grid-row: 3;
+    min-height: 0;
+}
+
+@media (min-width: 821px) {
+    .yc-move-panel {
+        contain: size;
+    }
 }
 
 .yc-game-watch-strip {
@@ -2303,7 +2374,7 @@ body.yc-classic-active #app {
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-move-panel {
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto minmax(82px, 17vh);
+    --yc-system-panel-size: clamp(82px, 17vh, 152px);
     gap: 4px;
     padding: 4px;
 }
@@ -2563,7 +2634,8 @@ body.yc-classic-active #app {
 
     .yc-move-panel {
         grid-column: 1 / -1;
-        min-height: 220px;
+        height: clamp(360px, 52dvh, 520px);
+        min-height: 0;
     }
 }
 
