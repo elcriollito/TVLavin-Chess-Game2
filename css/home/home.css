@@ -40,6 +40,8 @@ body{overflow-x:hidden}.shell,.topbar,main,.dashboard,.main-column,.right-column
 .all-tools-group h3{margin-bottom:12px;color:#fff}.all-tools-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .all-tools-link{display:flex;align-items:center;gap:9px;min-height:42px;padding:9px 10px;border-radius:7px;color:var(--home-copy);font-size:13px}
 .all-tools-link i{width:18px;text-align:center;color:var(--home-purple)}.all-tools-link:hover{background:#1b1e28;color:#fff}
+.all-tools-link.all-tools-card{display:grid;grid-template-columns:18px minmax(0,1fr);grid-column:1/-1;align-items:start;min-height:68px;border:1px solid #2a2e3b;background:#151821}
+.all-tools-card i{grid-row:1/3;margin-top:2px}.all-tools-card-title{font-weight:700;color:#fff}.all-tools-card-description{grid-column:2;color:var(--home-copy);font-size:11px;line-height:1.4}
 @keyframes home-pulse{50%{opacity:.5}}
 @media(max-width:720px){
   .account-name{max-width:100px}.account-stats{grid-template-columns:1fr}.account-stats div{display:flex;justify-content:space-between;align-items:center}

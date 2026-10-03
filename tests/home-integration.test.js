@@ -78,7 +78,7 @@ test('All tools is sourced from the existing primary navigation contract', () =>
   const owned = new Set(vercel.rewrites.map(rule => rule.source));
   const shellRoutes = new Set(['/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight', '/history', '/dos-chess', '/academy']);
 
-  assert.equal(internal.length, 26);
+  assert.equal(internal.length, 27);
   for (const item of internal) {
     assert.ok(owned.has(item.route) || shellRoutes.has(item.route) || item.route === '/play', `${item.label} has no route owner`);
   }

@@ -317,7 +317,7 @@ test('Home refreshes restored progress and rejects stale account responses', asy
 test('tool routes remain reachable and their existing brand returns to Home', async ({ page, request }) => {
   const routes = [
     '/play', '/yahoo-classic', '/fics', '/play-online/playchess', '/play-online/fritz',
-    '/puzzles', '/academy', '/endgame-trainer', '/endgame-library', '/endgame-tablebase',
+    '/puzzles', '/academy', '/mentor', '/endgame-trainer', '/endgame-library', '/endgame-tablebase',
     '/insights', '/analyze', '/pgn-replayer', '/spectator-tv', '/watch/lichess-tv',
     '/watch/live-blitz', '/watch/live-tournaments', '/arena', '/cheater-insight',
     '/tools/polyglot', '/opening-database', '/eco', '/game-library', '/history',

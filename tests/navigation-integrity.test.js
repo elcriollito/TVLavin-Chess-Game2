@@ -21,13 +21,13 @@ test('canonical primary navigation inventory is unique and stable', () => {
     Array.from(inventory.primary, ({ id }) => id),
     [
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
-      'puzzles', 'academy', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
+      'puzzles', 'academy', 'mentor', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
       'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
       'history', 'dosChess', 'vault'
     ]
   );
-  assert.equal(inventory.primary.length, 26);
+  assert.equal(inventory.primary.length, 27);
   assert.deepEqual(Array.from(inventory.more, ({ id }) => id), ['blog', 'support', 'help', 'about', 'feedback']);
   assert.deepEqual(Array.from(inventory.social, ({ id }) => id), ['facebook', 'youtube', 'discord']);
   for (const label of ['Puzzles', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
@@ -130,7 +130,7 @@ test('all standalone shell pages load the canonical source before the renderer',
   const pages = [
     'endgame-library.html', 'game-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
     'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'live-blitz.html',
-    'live-tournaments.html', 'lichess-tv.html', 'pgn-replayer.html'
+    'live-tournaments.html', 'lichess-tv.html', 'pgn-replayer.html', 'mentor.html'
   ];
   for (const path of pages) {
     const html = read(path);
