@@ -8,7 +8,7 @@ Historical base: `45de5ca2e0f4b3e711a6c39209fcd9caed7b6106`. Phase 1 was integra
 - Legal PGN replay preserves starting FEN, promotions, castling and en passant. Invalid games are excluded before charging the existing local-import credit.
 - Color filtering precedes the report count. Each batch owns one review engine from the existing registry and uses attributed adapter requests. Play callbacks and board state are untouched.
 - Principal MultiPV scores, signed mover-perspective losses, mate transitions, real coverage, timeout and cancellation replace the old absolute-swing and capture-value heuristics.
-- Unsupported skill/style claims were removed. The initial surface shows PGN facts and candidate positions with their evidence limits.
+- Unsupported skill/style claims were removed. The report now combines PGN facts, an explicitly defined sample spider and concrete coaching positions with their evidence limits.
 - Coach Reports save only after a server-confirmed account write. Failed saves remain exportable and retry with the same operation ID.
 - Private account history supports list, stable pagination, recovery and explicit per-report deletion. Start Fresh clears the working draft and preserves saved reports.
 - Legacy unowned local PGN data is only offered for explicit recovery. It is never automatically assigned to the signed-in account.
@@ -25,11 +25,25 @@ The server reparses legal games and rebuilds W/D/L, coverage and moments from th
 
 ## Limits and method
 
-100 games, 1 MiB source PGN, 1000 plies per game and 10000 total plies per dataset; at most 50 games per report; 2 MiB report request/snapshot; 20 reports per history page. The engine preset is Stockfish 18 Lite, principal line, depth 12, 2.5 seconds per position and a 3 minute batch budget. Unevaluated moves remain in the denominator. Critical candidates require a loss of at least 120 centipawns or a forced-mate transition. Endgame uses explicit material thresholds; opening uses fullmove <= 15. Phases with no opportunities are not ranked as strengths.
+100 games, 1 MiB source PGN, 1000 plies per game and 10000 total plies per dataset; at most 50 games per report; 2 MiB report request/snapshot; 20 reports per history page. The engine preset is Stockfish 18 Lite, principal line, depth 12. New reports allow 10 seconds per position and a 30 minute batch budget, replacing the 2.5-second/3-minute policy that truncated Alex's review. Completed evaluations at the same depth can be resumed only against the identical source PGN, selected player and import metadata. Old immutable snapshots remain readable under their original policy. Unevaluated moves remain in the denominator. Critical candidates require a loss of at least 120 centipawns or a forced-mate transition. Endgame uses explicit material thresholds; opening uses fullmove <= 15. Phases with no opportunities are not ranked as strengths.
 
-This is a versioned browser estimate, not a calibrated accuracy score, recurring tactical-pattern classifier, trends model or chess DNA.
+This is a versioned browser estimate, not a calibrated accuracy score or certified chess skill profile. Rating trends use the PGN's actual ratings and dates, with different platform/time-control pools kept separate.
 
-## Automatic validation and real acceptance
+## Approved report redesign — implementation, 2026-10-03
+
+Alex approved the visual mockup after requesting Chessvia-inspired report content and retention of CAISSA's spider. The report opens inline in Insights under the latest-report status. The hero is the single report-generation entry. Import, configuration and active progress remain dialogs; saved history is a separate disclosure.
+
+- Time-control and player-color filters recalculate the report's selected sample. Results include completed-game W/D/L, queen trade and both castling sides, points per completed game, ratings by date, opening outcomes, opponent ratings and recorded ending reasons. Missing fields remain unavailable; ordinary decisive results do not establish resignation or timeout. Opening labels use PGN names, trusted opening metadata or a confirmed line in the existing CAISSA ECO catalog.
+- The eight spider axes are Tactics, Strategy, Opening, Endgame, Defense, Aggression, Precision and Consistency. Their definitions and sample sizes are disclosed. Move-quality axes require five comparable own moves; Consistency requires three qualifying games. Aggression measures forcing-move frequency rather than skill. Missing axes remain gaps, not invented zero scores.
+- Coaching identifies the player's exact game and numbered SAN move, legally replays an engine alternative and the opponent's reply, explains the consequence, and proposes a thinking habit and seven-day practice plan. Contradictory estimates that name the played move as the best move are explicitly marked for verification. A game link uses the existing Analyzer handoff and opens the position before the reviewed move.
+- Progress includes the selected game, processed/total recorded positions and a runtime estimate. Partial batches can continue missing positions without weakening depth or silently reporting full coverage.
+- Immutable saves, same-operation Retry, owner-change cancellation/clearing, history recovery and Start Fresh semantics remain intact. Existing saved PGNs are reparsed to expose the new metadata without mutating their snapshots. No database migration is required for this report redesign.
+
+Current local validation: `npm run test:insights` 76/76, `npm run test:home` 64/64, Insights syntax checks pass, and auth/open-redirect/Analyzer/FICS/handoff/performance regressions 89/89. Preview publication and real-browser acceptance of this revision remain pending at this checkpoint; prior browser and SQL evidence below belongs to the earlier Phase 1 revision.
+
+The Preview-only `/api/insights/engine-check?report=1` acceptance surface uses the real report components and ten explicitly synthetic legal games with the published Stockfish engine. It never reads account data, charges credits or persists an account report; it remains 404 outside Preview. It supplements, and does not replace, Alex's authenticated manual review.
+
+## Earlier Phase 1 validation and real acceptance
 
 - `npm run test:insights`: 56/56 pass, including the audited data/engine defects, the real attributed UCI contract, cancellation/account changes, private API access, immutable retry, truthful save states, legal replay and the service-role privilege repair.
 - `npm run lint:insights`: passes.

@@ -3511,7 +3511,7 @@ const AnalyzeSection = {
             const payload = handoff.value.payload;
             const sourceLabel = handoff.value.source === 'fics'
                 ? (payload.recordStatus === 'partial' ? 'FICS partial handoff' : 'FICS handoff')
-                : 'Play handoff';
+                : handoff.value.source === 'insights' ? 'Insights report' : 'Play handoff';
             if (payload.pgn) {
                 const loaded = this.loadGameFromPgn(payload.pgn, sourceLabel, {
                     white: payload.whiteLabel || 'White', black: payload.blackLabel || 'Black',
@@ -3520,6 +3520,9 @@ const AnalyzeSection = {
                 });
                 if (loaded && handoff.value.source === 'fics') {
                     this.initializeFicsLocalAnalysis(handoff.value, payload);
+                }
+                if (loaded && handoff.value.source === 'insights' && Number.isInteger(payload.selectedPly)) {
+                    this.jumpToMove(payload.selectedPly - 1);
                 }
             } else if (payload.finalFen) {
                 const session = window.CaissaAnalyzeSession?.createSession?.({ initialFen: payload.finalFen });

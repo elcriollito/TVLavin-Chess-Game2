@@ -77,3 +77,20 @@ test('batch analysis begins at a PGN custom FEN, with the correct target color',
     const data = core.parse(`[Event "FEN"]\n[White "B"]\n[Black "Alex"]\n[SetUp "1"]\n[FEN "${fen}"]\n[Result "*"]\n20... Nd4 21. Nb5 *`, { username: 'Alex' }, Chess);
     const h = engineHarness(respond); await analysis.generate(data, 1, 'black', { Chess, engineFactory: () => h.engine }); assert.equal(h.calls[0].fen, fen);
 });
+test('continuing a partial report reuses only completed positions from the same source', async () => {
+    const dataset = core.parse(fixture, { username: 'Alex' }, Chess), initial = engineHarness(r => respond(r));
+    const previous = await analysis.generate(dataset, 1, 'both', { Chess, engineFactory: () => initial.engine });
+    previous.analyses[0].evaluations[2] = { status: 'unavailable', reason: 'ENGINE_TIMEOUT' };
+    const resumed = engineHarness(r => respond(r));
+    const report = await analysis.generate(dataset, 1, 'both', { Chess, engineFactory: () => resumed.engine, previousReport: previous, previousDataset: dataset });
+    assert.equal(resumed.calls.length, 1); assert.equal(report.reusedPositions, 4); assert.equal(report.aggregate.coverage.evaluated, 2); assert.equal(report.analysisStatus, 'complete');
+    const changed = core.parse(fixture.replace('e4 e5', 'd4 d5'), { username: 'Alex' }, Chess), fresh = engineHarness(r => respond(r));
+    await analysis.generate(changed, 1, 'both', { Chess, engineFactory: () => fresh.engine, previousReport: previous, previousDataset: dataset });
+    assert.equal(fresh.calls.length, 5);
+});
+test('progress counts real positions and retains the selected-game denominator', async () => {
+    const dataset = core.parse(fixture, { username: 'Alex' }, Chess), h = engineHarness(r => respond(r)), progress = [];
+    await analysis.generate(dataset, 1, 'both', { Chess, engineFactory: () => h.engine, onProgress: (percent, text, detail) => progress.push({ percent, text, detail }) });
+    assert.equal(progress.length, 5); assert.equal(progress.at(-1).percent, 100); assert.equal(progress.at(-1).detail.totalPositions, 5);
+    assert.match(progress.at(-1).text, /Game 1\/1.*5\/5 positions processed/);
+});

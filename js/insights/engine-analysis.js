@@ -1,7 +1,7 @@
 (function installInsightsAnalysis(global) {
     'use strict';
-    const VERSION = '1.0.0';
-    const POLICY = Object.freeze({ depth: 12, perPositionMs: 2500, runMs: 180000, criticalLossCp: 120, phaseVersion: 'fullmove-material-v1' });
+    const VERSION = '1.1.0', SCHEMA_VERSION = '1.0.0';
+    const POLICY = Object.freeze({ depth: 12, perPositionMs: 10000, runMs: 1800000, criticalLossCp: 120, phaseVersion: 'fullmove-material-v1' });
     const unavailable = reason => ({ status: 'unavailable', reason, cp: null, mate: null, depth: null, nodes: null, pv: [], bestMove: null });
     function abortError() { return Object.assign(new Error('Analysis cancelled'), { name: 'AbortError' }); }
     function createSession(options = {}) {
@@ -91,11 +91,30 @@
         const session = createSession(options), cache = new Map(), analyses = [], started = Date.now();
         const Chess = options.Chess || global.Chess;
         const signal = options.signal;
-        let runtime = null, searchedPositions = 0;
+        const replays = games.map(game => core.replay(game, Chess));
+        const totalPositions = replays.reduce((sum, replay) => sum + replay.positions.length, 0);
+        const previous = options.previousReport, previousDataset = options.previousDataset;
+        const sameSource = previousDataset?.rawText === dataset.rawText
+            && JSON.stringify(previousDataset?.subject) === JSON.stringify(dataset.subject)
+            && JSON.stringify(previousDataset?.importMetadata) === JSON.stringify(dataset.importMetadata);
+        if (sameSource && previous?.policy?.depth === session.policy.depth && previous.schemaVersion === SCHEMA_VERSION) {
+            for (const prior of previous.analyses || []) {
+                const gameIndex = games.findIndex(game => game.id === prior.gameId);
+                if (gameIndex < 0 || prior.evaluations?.length !== replays[gameIndex].positions.length) continue;
+                prior.evaluations.forEach((evaluation, index) => {
+                    const fen = replays[gameIndex].positions[index];
+                    if (evaluation?.status !== 'complete') return;
+                    const terminal = evaluation.terminal ? core.terminal(fen, Chess) : null;
+                    if (terminal && terminal.cp === evaluation.cp && terminal.mate === evaluation.mate && terminal.winner === evaluation.winner) cache.set(fen, terminal);
+                    else if (!evaluation.terminal && evaluation.depth >= session.policy.depth && (Number.isFinite(evaluation.cp) || Number.isFinite(evaluation.mate))) cache.set(fen, evaluation);
+                });
+            }
+        }
+        let runtime = sameSource ? previous?.engine || null : null, searchedPositions = 0, processedPositions = 0, reusedPositions = 0;
         try {
             for (let gameIndex = 0; gameIndex < games.length; gameIndex++) {
                 if (signal?.aborted) throw abortError();
-                const game = games[gameIndex], replay = core.replay(game, Chess);
+                const game = games[gameIndex], replay = replays[gameIndex];
                 const evaluations = Array(replay.positions.length).fill(null);
                 for (let index = 0; index < replay.positions.length; index++) {
                     if (signal?.aborted) throw abortError();
@@ -103,14 +122,19 @@
                     const fen = replay.positions[index];
                     const terminal = core.terminal(fen, Chess);
                     if (terminal) evaluations[index] = terminal;
-                    else if (cache.has(fen)) evaluations[index] = cache.get(fen);
+                    else if (cache.has(fen)) { evaluations[index] = cache.get(fen); reusedPositions++; }
                     else {
                         evaluations[index] = await session.evaluate(fen); searchedPositions++;
                         if (evaluations[index].status === 'complete') cache.set(fen, evaluations[index]);
                         runtime = session.identity() || runtime;
                     }
-                    options.onProgress?.(Math.round((gameIndex + (index + 1) / replay.positions.length) / games.length * 90),
-                        `Game ${gameIndex + 1}/${games.length}: position ${index + 1}/${replay.positions.length}`);
+                    processedPositions++;
+                    const elapsed = Date.now() - started;
+                    const remainingMs = searchedPositions >= 5 ? (totalPositions - processedPositions) * elapsed / searchedPositions : null;
+                    const eta = remainingMs === null ? '' : ` · about ${Math.max(1, Math.ceil(remainingMs / 60000))} min remaining`;
+                    options.onProgress?.(Math.round(processedPositions / totalPositions * 100),
+                        `Game ${gameIndex + 1}/${games.length} · position ${index + 1}/${replay.positions.length} · ${processedPositions}/${totalPositions} positions processed${eta}`,
+                        { gameIndex, gameCount: games.length, position: index + 1, processedPositions, totalPositions, searchedPositions, reusedPositions, elapsedMs: elapsed });
                     await new Promise(resolve => setTimeout(resolve, 0));
                 }
                 const analysis = { gameId: game.id, eligible: 0, evaluated: 0, phases: {}, evaluations, moments: [] };
@@ -135,7 +159,7 @@
                 analyses.push(analysis);
             }
             const aggregate = core.aggregate(games, analyses);
-            return { schemaVersion: VERSION, method: 'engine_browser', verificationStatus: 'client_reported',
+            return { schemaVersion: SCHEMA_VERSION, method: 'engine_browser', verificationStatus: 'client_reported',
                 analysisStatus: aggregate.coverage.eligible > 0 && aggregate.coverage.evaluated === aggregate.coverage.eligible ? 'complete' : aggregate.coverage.evaluated ? 'partial' : 'unavailable',
                 versions: { analysis: VERSION, phase: session.policy.phaseVersion, rules: 'chess.js-replay-v1' },
                 subject: dataset.subject, config: { gameCount: count, colorFilter: color },
@@ -143,7 +167,7 @@
                 gamesAnalyzed: games.length, moments: analyses.flatMap(a => a.moments),
                 analyses: analyses.map(({ moments, ...analysis }) => analysis), aggregate,
                 plan: [], timestamp: new Date().toISOString(), engine: runtime, policy: session.policy,
-                runId: session.runId, searchedPositions, elapsedMs: Date.now() - started };
+                runId: session.runId, searchedPositions, reusedPositions, elapsedMs: Date.now() - started };
         } finally { session.dispose(); }
     }
     global.CaissaInsightsAnalysis = Object.freeze({ VERSION, POLICY, createSession, generate });

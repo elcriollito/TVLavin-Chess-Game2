@@ -35,7 +35,9 @@
     function headersOf(pgn) {
         const headers = {};
         const names = { Event: 'event', Site: 'site', Date: 'date', White: 'white', Black: 'black', Result: 'result',
-            ECO: 'eco', TimeControl: 'timeControl', Variant: 'variant', FEN: 'fen', SetUp: 'setUp', UTCDate: 'utcDate', UTCTime: 'utcTime' };
+            ECO: 'eco', ECOUrl: 'ecoUrl', Opening: 'opening', Variation: 'variation', WhiteElo: 'whiteElo', BlackElo: 'blackElo',
+            Termination: 'termination', TimeControl: 'timeControl', Variant: 'variant', FEN: 'fen', SetUp: 'setUp',
+            UTCDate: 'utcDate', UTCTime: 'utcTime', StartTime: 'startTime', EndDate: 'endDate', EndTime: 'endTime' };
         for (const match of pgn.matchAll(/^\s*\[(\w+)\s+"((?:\\.|[^"\\])*)"\]/gm)) {
             if (names[match[1]]) headers[names[match[1]]] = match[2].replace(/\\(["\\])/g, '$1');
         }

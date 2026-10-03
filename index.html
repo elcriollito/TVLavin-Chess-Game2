@@ -125,7 +125,7 @@
     <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
     <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
     <script src="js/legacy-canonical-section-route-policy.js?v=1.0.0"></script>
-    <link rel="stylesheet" href="css/insights-account.css?v=1.0.0">
+    <link rel="stylesheet" href="css/insights-account.css?v=2.0.0">
 </head>
 <body data-clarity-mask>
     <!-- Main Container -->
@@ -1048,11 +1048,11 @@
                         <div class="insights-hero-content">
                             <h1><i class="fas fa-brain"></i> Caissa Insight</h1>
                             <p class="insights-tagline">
-                                Review your game results and engine estimates for a selected player.
-                                Save private Coach Reports to your account and recover them later.
+                                Understand your games. See your patterns. Know what to practice.
+                                Save your personal report and return to it anytime.
                             </p>
                             <button id="openInsightModal" class="btn btn-primary btn-large">
-                                <i class="fas fa-chart-line"></i> Review Games
+                                <i class="fas fa-file-alt"></i> <span id="insightPrimaryLabel">Generate report</span>
                             </button>
                         </div>
                         <div class="insights-features">
@@ -1079,51 +1079,50 @@
                         <div class="insights-info-grid">
                             <div class="info-item">
                                 <i class="fas fa-crosshairs"></i>
-                                <h4>Coverage by Phase</h4>
-                                <p>Check evaluated moves in opening, middlegame, and endgame</p>
+                                <h4>Results by game type</h4>
+                                <p>Compare wins, draws and losses across your time controls</p>
                             </div>
                             <div class="info-item">
                                 <i class="fas fa-exclamation-triangle"></i>
-                                <h4>Estimated Move Losses</h4>
-                                <p>Compare evaluations before and after your moves</p>
+                                <h4>Opening repertoire</h4>
+                                <p>See your regular openings and how they perform</p>
                             </div>
                             <div class="info-item">
                                 <i class="fas fa-clock"></i>
-                                <h4>Analysis Coverage</h4>
-                                <p>See which moves were evaluated and which still need review</p>
+                                <h4>Rating trends</h4>
+                                <p>Follow recorded ratings over time, by platform and game type</p>
                             </div>
                             <div class="info-item">
                                 <i class="fas fa-trophy"></i>
-                                <h4>Game Results</h4>
-                                <p>Wins, draws and losses from the selected player’s side</p>
+                                <h4>Move quality by phase</h4>
+                                <p>Find where your opening, middlegame and endgame decisions slip</p>
                             </div>
                             <div class="info-item">
                                 <i class="fas fa-chess-knight"></i>
-                                <h4>Candidate Moments</h4>
-                                <p>Review positions with comparable engine evaluations</p>
+                                <h4>Playing profile</h4>
+                                <p>Explore your spider with the evidence behind each axis</p>
                             </div>
                             <div class="info-item">
                                 <i class="fas fa-book-open"></i>
-                                <h4>Opening Repertoire</h4>
-                                <p>Opening codes and their frequency in the imported sample</p>
+                                <h4>Personal coaching</h4>
+                                <p>Review exact game moments and follow a practical training plan</p>
                             </div>
                         </div>
                     </div>
 
-                    <section id="insightHistory" class="insights-info" aria-labelledby="insightHistoryTitle">
-                        <h2 id="insightHistoryTitle">Saved Coach Reports</h2>
+                    <section id="insightLatestReport" class="ir-latest" aria-labelledby="insightLatestTitle">
+                        <div><h2 id="insightLatestTitle">Your latest report</h2><p id="insightLatestIdentity">No report yet</p><p id="insightLatestStatus" role="status" aria-live="polite">Import games using the report button above.</p></div>
+                        <div class="ir-latest-actions"><button id="insightRetrySaveBtn" class="ir-link-button" hidden>Retry saving</button><button id="insightViewHistoryBtn" class="ir-link-button">View report history <span aria-hidden="true">→</span></button></div>
+                    </section>
+                    <div id="insightRunProgress" class="ir-run-progress" hidden role="status" aria-live="polite"></div>
+                    <div id="insightDashboard" class="ir-dashboard" hidden></div>
+                    <details id="insightHistory" class="insights-info ir-history">
+                        <summary id="insightHistoryTitle">Saved Coach Reports</summary>
                         <p id="insightHistoryStatus" role="status" aria-live="polite">Sign in to recover your saved reports.</p>
                         <button id="insightHistoryRefreshBtn" class="btn btn-secondary">Refresh history</button>
                         <ul id="insightHistoryList"></ul>
                         <button id="insightHistoryMoreBtn" class="btn btn-secondary" hidden>Load more reports</button>
-                    </section>
-                    <div class="insights-cta">
-                        <h2>Ready to improve your game?</h2>
-                        <p>Start analyzing your games now and get personalized coaching insights</p>
-                        <button id="openInsightModal2" class="btn btn-highlight btn-large">
-                            <i class="fas fa-brain"></i> Launch Caissa Insight
-                        </button>
-                    </div>
+                    </details>
                 </div>
             </section>
 
@@ -4494,10 +4493,10 @@
                             <div class="form-group">
                                 <label for="importGameCount">Games to Import:</label>
                                 <select id="importGameCount" class="form-control" aria-label="Select number of games">
-                                    <option value="10">Last 10 games</option>
-                                    <option value="20" selected>Last 20 games</option>
-                                    <option value="30">Last 30 games</option>
-                                    <option value="50">Last 50 games</option>
+                                    <option value="10" selected>Up to 10 games</option>
+                                    <option value="20">Up to 20 games</option>
+                                    <option value="30">Up to 30 games</option>
+                                    <option value="50">Up to 50 games</option>
                                 </select>
                             </div>
 
@@ -4665,7 +4664,7 @@
                         </div>
                     </div>
 
-                    <p>Review uses Stockfish 18 Lite, depth 12, with a 3 minute session budget. Reports show the actual evaluated sample.</p>
+                    <p>The engine reviews the selected player’s moves. Progress shows games and positions as they finish. You can cancel at any time. Continuing a partial report reuses its completed positions and reviews the gaps. Large reports may take several minutes.</p>
                     <div class="insight-actions">
                         <button id="coachGenerateBtn" class="btn btn-primary btn-block">
                             <i class="fas fa-brain"></i> Generate Coach Report
@@ -4677,7 +4676,7 @@
                 <div class="insight-section" id="coachProgressSection" style="display: none;">
                     <h3><i class="fas fa-spinner fa-spin"></i> Analyzing Games...</h3>
                     <div class="coach-progress">
-                        <div class="progress-bar-container">
+                        <div class="progress-bar-container" role="progressbar" aria-label="Positions processed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="coachProgressMeter">
                             <div id="coachProgressBar" class="progress-bar"></div>
                         </div>
                         <p id="coachProgressText" class="progress-text">Preparing analysis...</p>
@@ -5393,17 +5392,19 @@
     <script type="module" src="js/arena-match-lab-ui.js?v=1.1.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
-    <script src="js/insights-section.js?v=1.0.0"></script>
+    <script src="js/insights-section.js?v=2.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
     <script src="js/play/fair-play-policy.js?v=1.0.0"></script>
     <script src="js/play/engine-request-isolation.js?v=1.0.0"></script>
     <script src="js/play/clock-service.js?v=1.0.0"></script>
     <script type="module" src="js/play/play-board-projection.js?v=2.0.0"></script>
     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
-    <script src="js/insights/core.js?v=1.0.0"></script>
-    <script src="js/insights/engine-analysis.js?v=1.0.0"></script>
+    <script src="js/insights/core.js?v=1.1.0"></script>
+    <script src="js/insights/engine-analysis.js?v=1.1.0"></script>
     <script src="js/insights/account-client.js?v=1.0.0"></script>
-    <script src="app.js?v=2.0.31"></script>
+    <script src="js/insights/report-model.js?v=1.0.0"></script>
+    <script src="js/insights/report-view.js?v=1.0.0"></script>
+    <script src="app.js?v=2.0.32"></script>
     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
@@ -5443,7 +5444,7 @@
     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
-    <script src="js/play/performance/play-load-registry.js?v=1.1.37"></script>
+    <script src="js/play/performance/play-load-registry.js?v=1.1.38"></script>
     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
     <script src="js/play/performance/play-lazy-loader.js?v=1.0.3"></script>
     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>

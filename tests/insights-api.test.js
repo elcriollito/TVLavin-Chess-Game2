@@ -146,6 +146,15 @@ test('claimed complete analysis without comparable scores is rejected', async ()
     const h = harness(), body = await prepared(h); body.snapshot.analysisStatus = 'complete';
     assert.equal((await h.call('list', 'POST', body)).status, 400);
 });
+test('new review budget is preserved and existing immutable reports remain readable', async () => {
+    const h = harness(), body = await prepared(h), dataset = validateDataset(input).dataset;
+    const current = validateSnapshot(body.snapshot, dataset);
+    assert.equal(current.policy.runMs, 1800000); assert.equal(current.policy.perPositionMs, 10000); assert.equal(current.versions.analysis, '1.1.0');
+    const old = structuredClone(body.snapshot); old.policy.runMs = 180000; old.policy.perPositionMs = 2500;
+    const legacy = validateSnapshot(old, dataset); assert.equal(legacy.versions.analysis, '1.0.0'); assert.equal(legacy.policy.runMs, 180000);
+    const invalid = structuredClone(body.snapshot); invalid.policy.runMs = 1;
+    assert.throws(() => validateSnapshot(invalid, dataset), /Unsupported review budget/);
+});
 test('history cursors cannot inject filters', async () => {
     const h = harness(); const result = await h.call('list', 'GET', null, 'A', { cursor: Buffer.from(JSON.stringify({ id: 'x),user_id.eq.other', createdAt: 'bad' })).toString('base64url') });
     assert.equal(result.status, 400);

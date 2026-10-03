@@ -2,6 +2,7 @@
   "outputDirectory": ".",
   "functions": {
     "api/insights/**/*.js": { "maxDuration": 30 },
+    "api/insights/engine-check.js": { "maxDuration": 30, "includeFiles": "index.html" },
     "api/stripe/webhook.js": {
       "maxDuration": 10
     },

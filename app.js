@@ -6012,6 +6012,47 @@ let insightRunController = null;
 let insightEpoch = 0;
 let insightHistoryCursor = null;
 let insightHistoryEpoch = 0;
+let insightOpeningCatalog = [];
+let insightOpeningCatalogRequested = false;
+function openInsightReportFlow() {
+    if (insightRunController) { showModal('coachModal'); showCoachSection('progress'); return; }
+    if (insightProfile?.games?.length) {
+        if (coachReportData?.config) {
+            document.getElementById('coachGameCount').value = String(coachReportData.config.gameCount);
+            document.getElementById('coachColorFilter').value = coachReportData.config.colorFilter;
+        }
+        hideModal('insightModal'); showModal('coachModal'); showCoachSection('config');
+    } else showModal('insightModal');
+}
+function updateInsightReportStatus() {
+    const label = document.getElementById('insightPrimaryLabel');
+    if (label) label.textContent = insightRunController ? 'Review in progress' : coachReportData?.analysisStatus === 'partial' || coachReportData?.analysisStatus === 'unavailable' ? 'Continue report' : coachReportData ? 'Report settings' : 'Generate report';
+    const identity = document.getElementById('insightLatestIdentity');
+    if (identity) {
+        const date = insightWorkspace?.createdAt || coachReportData?.timestamp;
+        identity.textContent = insightProfile ? `${insightProfile.subject.username} · ${coachReportData?.selectedGames?.length || insightProfile.stats.identified} games ${coachReportData ? 'in this report' : 'imported'}${date ? ` · Updated ${new Date(date).toLocaleString()}` : ''}` : 'No report yet';
+    }
+}
+function reviewInsightMoment(moment) {
+    if (!moment || !insightProfile) return;
+    const stored = window.CaissaInsightReportView.createHandoff(moment);
+    if (!stored.ok) { showErrorNotification('Could not open this game. Export the report and try again.'); return; }
+    window.location.assign(`/analyze?handoff=${encodeURIComponent(stored.token)}`);
+}
+function renderInsightDashboard() {
+    const root = document.getElementById('insightDashboard');
+    if (!root || !insightProfile || !window.CaissaInsightReportView) return;
+    if (!insightOpeningCatalogRequested && window.CaissaEcoOpeningResolver) {
+        insightOpeningCatalogRequested = true;
+        window.CaissaEcoOpeningResolver.loadCatalog().then(rows => { insightOpeningCatalog = rows; if (insightProfile && rows.length) renderInsightDashboard(); });
+    }
+    window.CaissaInsightReportView.mount(root, insightProfile, coachReportData, { Chess, catalog: insightOpeningCatalog, onReview: reviewInsightMoment, onAction(action) {
+        if (action === 'import') { document.getElementById('insightResultsSection').style.display = 'none'; document.getElementById('insightImportSection').style.display = 'block'; showModal('insightModal'); }
+        if (action === 'clear') showModal('clearInsightModal');
+        if (action === 'export') document.getElementById(coachReportData ? 'coachExportBtn' : 'insightExportBtn')?.click();
+    } });
+    updateInsightReportStatus();
+}
 function getInsightAccount() {
     if (!insightAccount && window.CaissaInsightsAccount && window.CAISSA_AUTH) {
         insightAccount = window.CaissaInsightsAccount.create({ onOwnerChange() {
@@ -6023,7 +6064,7 @@ function getInsightAccount() {
                 document.getElementById(id)?.replaceChildren();
             }
             if (typeof MentorAI !== 'undefined') MentorAI.insightData = null;
-            setInsightSaveStatus(''); updateInsightIndicator(); loadInsightProfile();
+            setInsightSaveStatus(''); updateInsightIndicator(); loadInsightProfile(); refreshInsightHistory();
         } });
     }
     return insightAccount;
@@ -6032,7 +6073,9 @@ function loadInsightProfile() {
     const account = getInsightAccount();
     const workspace = account?.readWorkspace();
     if (workspace?.dataset?.schemaVersion === '1.0.0') {
-        insightWorkspace = workspace; insightProfile = workspace.dataset; coachReportData = workspace.report || null;
+        insightWorkspace = workspace;
+        insightProfile = parseMultiGamePGN(workspace.dataset.rawText, { ...workspace.dataset.subject, importedGames: workspace.dataset.importMetadata });
+        workspace.dataset = insightProfile; coachReportData = workspace.report || null;
         displayInsightResults(insightProfile);
         const input = document.getElementById('insightPgnInput');
         if (input) input.value = insightProfile.rawText;
@@ -6055,9 +6098,12 @@ function saveInsightProfile(profile) {
     updateInsightIndicator();
 }
 function setInsightSaveStatus(text) {
-    for (const id of ['insightSaveStatus', 'coachSaveStatus']) {
+    for (const id of ['insightSaveStatus', 'coachSaveStatus', 'insightLatestStatus']) {
         const node = document.getElementById(id); if (node) node.textContent = text;
     }
+    const retry = document.getElementById('insightRetrySaveBtn');
+    if (retry) { retry.hidden = !coachReportData || !!insightWorkspace?.savedReportId; retry.disabled = !!insightWorkspace?.saving; }
+    updateInsightReportStatus();
 }
 async function persistCoachReport() {
     const account = getInsightAccount(), workspace = insightWorkspace, epoch = insightEpoch;
@@ -6078,11 +6124,28 @@ async function persistCoachReport() {
         setInsightSaveStatus(`Not saved. ${error.message}`); if (retry) retry.hidden = false;
     } finally {
         workspace.saving = false;
-        if (epoch === insightEpoch && owner === account.ownerId()) { account.writeWorkspace(workspace); if (retry) retry.disabled = false; }
+        if (epoch === insightEpoch && owner === account.ownerId()) {
+            account.writeWorkspace(workspace); if (retry) retry.disabled = false;
+            const inlineRetry = document.getElementById('insightRetrySaveBtn'); if (inlineRetry) inlineRetry.disabled = false;
+        }
     }
 }
 function insightEscape(value) {
     return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+async function recoverInsightReport(row, scroll = true) {
+    const account = getInsightAccount(), owner = account?.ownerId(), epoch = insightEpoch;
+    const recovered = await account.recover(row.id);
+    if (owner !== account.ownerId() || epoch !== insightEpoch) return;
+    const data = recovered.dataset;
+    const dataset = parseMultiGamePGN(data.rawText, { ...data.subject, importedGames: data.importMetadata });
+    insightEpoch++; insightRunController?.abort(); insightRunController = null;
+    insightProfile = dataset; coachReportData = recovered.report.snapshot;
+    insightWorkspace = { dataset, report: coachReportData, savedReportId: row.id, createdAt: recovered.report.created_at };
+    account.writeWorkspace(insightWorkspace); displayInsightResults(dataset); displayCoachReport(coachReportData);
+    setInsightSaveStatus('Saved to your account.'); document.getElementById('coachRetrySaveBtn').hidden = true;
+    hideModal('insightModal'); hideModal('coachModal');
+    if (scroll) document.getElementById('insightLatestReport')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 async function refreshInsightHistory(append = false) {
     const account = getInsightAccount(), list = document.getElementById('insightHistoryList'), status = document.getElementById('insightHistoryStatus');
@@ -6102,14 +6165,7 @@ async function refreshInsightHistory(append = false) {
             open.addEventListener('click', async () => {
                 open.disabled = true;
                 try {
-                    const recovered = await account.recover(row.id);
-                    const data = recovered.dataset;
-                    const dataset = parseMultiGamePGN(data.rawText, { ...data.subject, importedGames: data.importMetadata });
-                    insightEpoch++; insightRunController?.abort(); insightProfile = dataset; coachReportData = recovered.report.snapshot;
-                    insightWorkspace = { dataset, report: coachReportData, savedReportId: row.id, createdAt: recovered.report.created_at };
-                    account.writeWorkspace(insightWorkspace); displayInsightResults(dataset); displayCoachReport(coachReportData);
-                    setInsightSaveStatus('Saved to your account.'); document.getElementById('coachRetrySaveBtn').hidden = true;
-                    hideModal('insightModal'); showModal('coachModal'); showCoachSection('report');
+                    await recoverInsightReport(row);
                 } catch (error) { status.textContent = error.message; } finally { open.disabled = false; }
             });
             const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-danger'; remove.textContent = 'Delete report';
@@ -6127,11 +6183,12 @@ async function refreshInsightHistory(append = false) {
         insightHistoryCursor = result.nextCursor;
         const more = document.getElementById('insightHistoryMoreBtn'); if (more) more.hidden = !insightHistoryCursor;
         status.textContent = list.children.length ? 'Private reports saved to this account.' : 'No saved reports yet. Import games and generate a Coach Report.';
+        if (!append && !insightProfile && result.reports.length) await recoverInsightReport(result.reports[0], false);
     } catch (error) { if (requestEpoch === insightHistoryEpoch) status.textContent = error.message; }
 }
 function showSavedInsightHistory() {
     hideModal('insightModal'); hideModal('coachModal'); refreshInsightHistory();
-    document.getElementById('insightHistory')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const history = document.getElementById('insightHistory'); if (history) { history.open = true; history.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 
 // PGN-only facts. Skill scores require validated analysis and are not inferred
@@ -6157,6 +6214,11 @@ function displayInsightResults(data) {
             <p>Opening codes: ${openings.map(([eco, n]) => `${eco} (${n} games)`).join(', ') || 'No ECO data in this PGN'}.</p>
             <p>This PGN-based performance summary does not measure tactical skill, precision or playing style. Generate a Coach Report for engine estimates and their coverage.</p>
             ${data.rejected.length ? `<p>Excluded: ${data.rejected.map(r => `${r.sourceIndex + 1}: ${insightEscape(r.reason)}`).join('; ')}.</p>` : ''}`;
+    }
+    renderInsightDashboard();
+    if (document.getElementById('insightModal')?.classList.contains('show')) {
+        hideModal('insightModal');
+        if (!coachReportData) { showModal('coachModal'); showCoachSection('config'); }
     }
 }
 
@@ -6194,6 +6256,8 @@ function setupInsightModal() {
         document.getElementById('insightHistoryRefreshBtn')?.addEventListener('click', () => refreshInsightHistory());
         document.getElementById('insightHistoryMoreBtn')?.addEventListener('click', () => refreshInsightHistory(true));
         document.getElementById('insightHistoryOpenBtn')?.addEventListener('click', showSavedInsightHistory);
+        document.getElementById('insightViewHistoryBtn')?.addEventListener('click', showSavedInsightHistory);
+        document.getElementById('insightRetrySaveBtn')?.addEventListener('click', persistCoachReport);
         document.getElementById('insightRecoverLegacyBtn')?.addEventListener('click', () => {
             try {
                 const legacy = JSON.parse(localStorage.getItem('caissa_insight_profile'));
@@ -6903,6 +6967,11 @@ function clearInsightSession(manageHistory = false) {
 // Reset Insight UI to empty state
 function resetInsightUI() {
     console.log('🔄 Resetting Insight UI...');
+    const dashboard = document.getElementById('insightDashboard');
+    if (dashboard) { dashboard.replaceChildren(); dashboard.hidden = true; }
+    const progress = document.getElementById('insightRunProgress'); if (progress) { progress.textContent = ''; progress.hidden = true; }
+    updateInsightReportStatus();
+    const latest = document.getElementById('insightLatestStatus'); if (latest) latest.textContent = 'Import games using the report button above.';
 
     // Hide results section
     const resultsSection = document.getElementById('insightResultsSection');
@@ -7059,6 +7128,12 @@ function setupCoachModal() {
 
 // Show specific coach section
 function showCoachSection(section) {
+    if (section === 'report' && typeof window !== 'undefined' && window.CaissaInsightReportView) {
+        hideModal('coachModal');
+        renderInsightDashboard();
+        document.getElementById('insightLatestReport')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
     const sections = {
         config: document.getElementById('coachConfigSection'),
         progress: document.getElementById('coachProgressSection'),
@@ -7080,14 +7155,11 @@ function showCoachSection(section) {
 function updateCoachProgress(percent, text) {
     const progressBar = document.getElementById('coachProgressBar');
     const progressText = document.getElementById('coachProgressText');
-
-    if (progressBar) {
-        progressBar.style.width = percent + '%';
-    }
-
-    if (progressText) {
-        progressText.textContent = text;
-    }
+    if (progressBar) progressBar.style.width = percent + '%';
+    if (progressText) progressText.textContent = text;
+    document.getElementById('coachProgressMeter')?.setAttribute('aria-valuenow', String(percent));
+    const inline = document.getElementById('insightRunProgress');
+    if (inline) { inline.hidden = !insightRunController; inline.textContent = text; }
 }
 
 // One dedicated review engine per run, using the existing registry and
@@ -7098,47 +7170,35 @@ async function generateCoachReport(gameCount, colorFilter) {
     const controller = new AbortController(), dataset = insightProfile, epoch = ++insightEpoch;
     insightRunController = controller;
     document.getElementById('coachGenerateBtn').disabled = true;
+    updateInsightReportStatus();
     try {
         const report = await window.CaissaInsightsAnalysis.generate(dataset, gameCount, colorFilter, {
-            signal: controller.signal, Chess, onProgress: updateCoachProgress
+            signal: controller.signal, Chess, onProgress: updateCoachProgress,
+            previousReport: coachReportData, previousDataset: insightWorkspace?.dataset
         });
         if (controller.signal.aborted || epoch !== insightEpoch || dataset !== insightProfile) throw Object.assign(new Error('Analysis cancelled'), { name: 'AbortError' });
         coachReportData = report;
         insightWorkspace = { dataset, report, operationId: crypto.randomUUID() };
         getInsightAccount()?.writeWorkspace(insightWorkspace);
-        displayCoachReport(report); updateCoachProgress(100, 'Report ready');
+        insightRunController = null;
+        displayCoachReport(report);
+        updateCoachProgress(100, report.analysisStatus === 'complete' ? 'Move review complete.' : 'Partial review saved locally. Continue from the report button to review missing positions.');
         showCoachSection('report');
         await persistCoachReport();
         return epoch === insightEpoch && !controller.signal.aborted;
     } finally {
         if (insightRunController === controller) insightRunController = null;
-        document.getElementById('coachGenerateBtn').disabled = false;
+        document.getElementById('coachGenerateBtn').disabled = !!insightRunController;
+        updateInsightReportStatus();
+        const inline = document.getElementById('insightRunProgress'); if (inline) inline.hidden = !insightRunController;
     }
 }
 
 // Render facts, coverage and candidate positions without unverified skill or
 // tactical-pattern claims. Unavailable phases are never called strengths.
 function displayCoachReport(data) {
-    const a = data.aggregate, c = a.coverage;
-    const cards = [['Games selected', data.gamesAnalyzed], ['Wins / Draws / Losses', `${a.wld.wins} / ${a.wld.draws} / ${a.wld.losses}`],
-        ['Completed-game win rate', a.winRate === null ? 'Unavailable' : `${Math.round(a.winRate * 100)}%`],
-        ['Own moves evaluated', `${c.evaluated} / ${c.eligible}`], ['Candidate moments', a.totalMoments]];
-    document.getElementById('coachSummaryStats').innerHTML = cards.map(([label, value]) => `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`).join('');
-    document.getElementById('coachWorkingContent').innerHTML = `<p>Player: <strong>${insightEscape(data.subject.username)}</strong>. ${a.completedGames} completed games and ${a.unfinishedGames} unfinished games.</p>
-        <p>Analysis: <strong>${insightEscape(data.analysisStatus)}</strong>. Browser engine estimates; saved reports are checked for legal replay and structure, without certifying engine execution.</p>`;
-    document.getElementById('coachNotWorkingContent').innerHTML = c.evaluated
-        ? `<p>${a.totalMoments} candidate moments meet the 120 centipawn loss or forced-mate transition threshold. Compare the position and suggested move before drawing conclusions.</p>`
-        : '<p>No comparable move evaluations are available. Accuracy and chess strengths cannot be inferred from this report.</p>';
-    const phases = Object.entries(a.phaseCoverage).map(([phase, value]) => `<tr><td>${phase}</td><td>${value.evaluated} / ${value.eligible}</td><td>${value.critical}</td></tr>`).join('');
-    const moments = data.moments.slice(0, 40).map(m => `<li><strong>${insightEscape(m.moveSAN)}</strong> · ${m.playerColor === 'w' ? 'White' : 'Black'} · ply ${m.ply + 1} · ${m.phase} ·
-        ${m.lossCp === null ? insightEscape(m.mateTransition.replaceAll('_', ' ')) : `estimated loss ${(m.lossCp / 100).toFixed(2)} pawns`} · suggested ${insightEscape(m.bestMove || 'unavailable')}</li>`).join('');
-    document.getElementById('coachPatternsContent').innerHTML = `<div><table><caption>Phase coverage — evaluated own moves / eligible own moves</caption><thead><tr><th>Phase</th><th>Coverage</th><th>Candidate moments</th></tr></thead><tbody>${phases}</tbody></table>
-        <p>Tactical themes require position review; they are not established by these estimates.</p><ul>${moments || '<li>No candidate moments in the evaluated sample.</li>'}</ul>
-        ${data.moments.length > 40 ? '<p>The full moment list is included in Export Report.</p>' : ''}</div>`;
-    document.getElementById('coachHabitsContent').innerHTML = '<p>Review the candidate positions, check the opponent’s reply, and compare your move with the principal line. Treat incomplete coverage as an open review task.</p>';
-    document.getElementById('coachPlanContent').innerHTML = c.evaluated
-        ? '<ol><li>Review one candidate moment and its alternatives.</li><li>Write down the concrete threat you missed, if the position supports it.</li><li>Check that idea in a new game before treating it as a recurring pattern.</li></ol>'
-        : '<p>Retry the analysis when the engine is available. You can still save or export the game results and unavailable coverage.</p>';
+    coachReportData = data;
+    renderInsightDashboard();
 }
 
 // ===== CHEATER INSIGHT (Chess.com) =====

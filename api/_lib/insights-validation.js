@@ -65,6 +65,9 @@ export function validateSnapshot(snapshot, dataset) {
     if (snapshot.schemaVersion !== '1.0.0' || snapshot.method !== 'engine_browser'
         || snapshot.policy?.depth !== 12 || snapshot.policy?.criticalLossCp !== 120
         || snapshot.policy?.phaseVersion !== 'fullmove-material-v1') throw invalid('Unsupported analysis method.');
+    const legacyPolicy = snapshot.policy.perPositionMs === 2500 && snapshot.policy.runMs === 180000;
+    const currentPolicy = snapshot.policy.perPositionMs === 10000 && snapshot.policy.runMs === 1800000;
+    if (!legacyPolicy && !currentPolicy) throw invalid('Unsupported review budget.');
     let games;
     try { games = core.selectGames(dataset, snapshot.config?.gameCount, snapshot.config?.colorFilter); }
     catch (error) { throw invalid(error.message); }
@@ -98,13 +101,13 @@ export function validateSnapshot(snapshot, dataset) {
     const analysisStatus = aggregate.coverage.eligible > 0 && aggregate.coverage.evaluated === aggregate.coverage.eligible ? 'complete' : aggregate.coverage.evaluated ? 'partial' : 'unavailable';
     if (snapshot.analysisStatus !== analysisStatus) throw invalid('Analysis status does not match its coverage.');
     const clean = { schemaVersion: '1.0.0', method: 'engine_browser', verificationStatus: 'structurally_validated', analysisStatus,
-        versions: { analysis: '1.0.0', phase: 'fullmove-material-v1', rules: 'chess.js-replay-v1' }, subject: dataset.subject,
+        versions: { analysis: currentPolicy ? '1.1.0' : '1.0.0', phase: 'fullmove-material-v1', rules: 'chess.js-replay-v1' }, subject: dataset.subject,
         config: { gameCount: snapshot.config.gameCount, colorFilter: snapshot.config.colorFilter }, selectedGames: snapshot.selectedGames,
         gamesAnalyzed: games.length, moments, analyses: analyses.map(({ moments, ...a }) => a), aggregate, plan: [],
         timestamp: typeof snapshot.timestamp === 'string' && Number.isFinite(Date.parse(snapshot.timestamp)) ? snapshot.timestamp : null,
         engine: snapshot.engine && typeof snapshot.engine.reportedUciName === 'string' && snapshot.engine.reportedUciName.length <= 100
             ? { providerId: 'stockfish-18-lite', reportedUciName: snapshot.engine.reportedUciName, evidenceStatus: 'client_reported' } : null,
-        policy: { depth: 12, perPositionMs: 2500, runMs: 180000, criticalLossCp: 120, phaseVersion: 'fullmove-material-v1' } };
+        policy: { depth: 12, perPositionMs: snapshot.policy.perPositionMs, runMs: snapshot.policy.runMs, criticalLossCp: 120, phaseVersion: 'fullmove-material-v1' } };
     bodyObject(clean);
     return clean;
 }
