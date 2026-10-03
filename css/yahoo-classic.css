@@ -1590,7 +1590,10 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
 
 .yc-game-system-panel {
     display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 4px;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .yc-game-system-log {
@@ -1921,13 +1924,33 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
 }
 
 .yc-move-panel {
+    --yc-system-panel-size: clamp(76px, 16vh, 144px);
     display: grid;
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto minmax(76px, 16vh);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
     gap: 4px;
     padding: 4px;
     min-height: 0;
     overflow: hidden;
     background: #c8bea0;
+}
+
+.yc-move-panel-footer {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.yc-move-panel-footer .yc-game-system-panel {
+    flex: 0 0 var(--yc-system-panel-size);
+}
+
+@media (min-width: 821px) {
+    .yc-move-panel {
+        contain: size;
+    }
 }
 
 .yc-game-watch-strip {
@@ -2325,7 +2348,7 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
 }
 
 .yc-shell.yc-board-style-yahoo-table .yc-move-panel {
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto minmax(82px, 17vh);
+    --yc-system-panel-size: clamp(82px, 17vh, 152px);
     gap: 4px;
     padding: 4px;
 }
@@ -2585,7 +2608,8 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
 
     .yc-move-panel {
         grid-column: 1 / -1;
-        min-height: 220px;
+        height: clamp(360px, 52dvh, 520px);
+        min-height: 0;
     }
 }
 
