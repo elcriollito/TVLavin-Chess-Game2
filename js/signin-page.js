@@ -180,7 +180,7 @@
                             '&:disabled': { backgroundColor: '#151b27', borderColor: '#465064', color: '#8993a4', opacity: '1' }
                         },
                         otpCodeFieldInput: {
-                            minWidth: '42px', minHeight: '52px',
+                            flex: '1 1 0', minWidth: '0', maxWidth: '42px', minHeight: '52px',
                             backgroundColor: '#202838', border: '1px solid #718096', color: '#f8fafc',
                             fontSize: '20px', fontWeight: '700',
                             '&:hover': { borderColor: '#8b98aa', backgroundColor: '#252f42' },
