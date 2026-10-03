@@ -46,6 +46,18 @@ test('floating shell reuses LLMProvider only inside explicit submit and owns no 
     assert.doesNotMatch(source, /App\.(?:game|board|boardAdapter)|Chessboard\s*\(|new\s+Chess/);
 });
 
+test('Mentor page keeps account notices above the board and only the composer in the chat footer', () => {
+    const html = read('mentor.html');
+    const shell = read('js/mentor/mentor-floating-shell.js');
+    const css = read('css/mentor-page.css');
+    assert.equal(html.split('data-caissa-mentor-page-notice').length - 1, 1);
+    assert.match(shell, /querySelector\('\[data-caissa-mentor-page-notice\]'\)/);
+    assert.match(shell, /\(notice \|\| footer\)\.append\(mode, auth, authenticated\)/);
+    assert.match(shell, /footer\.append\(form\)/);
+    assert.match(css, /\.board-service-notice\{[^}]*max-width:340px[^}]*min-width:0/);
+    assert.match(css, /@media\(max-width:760px\)\{\.board-service-notice\{[^}]*flex-basis:100%[^}]*max-width:none/);
+});
+
 test('generated public Play contains one lightweight Mentor shell and excludes legacy Mentor runtime', () => {
     const html = read('play-v2-public-beta.html');
     for (const resource of ['css/mentor-floating-shell.css', 'js/mentor/mentor-context-contract.js', 'js/mentor/mentor-floating-shell.js'])

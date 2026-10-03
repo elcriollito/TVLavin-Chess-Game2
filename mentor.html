@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAISSA Mentor — Learn on the board</title>
+  <meta name="description" content="Explore chess ideas with CAISSA Mentor and an interactive study board.">
+  <link rel="stylesheet" href="/css/caissa-board.css">
+  <link rel="stylesheet" href="/css/mentor-floating-shell.css">
+  <link rel="stylesheet" href="/css/mentor-page.css">
+</head>
+<body class="mentor-page">
+  <header class="page-header">
+    <a class="brand" href="/" aria-label="CAISSA home"><span aria-hidden="true">♞</span> CAISSA <small>CHESS</small></a>
+    <nav aria-label="Main navigation"><a href="/play">Play</a><a href="/analyze">Analyze</a><a href="/puzzles">Puzzles</a><a href="/mentor.html" aria-current="page">Mentor</a></nav>
+    <a class="sign-in" href="/signin?redirect_url=%2Fmentor.html">Sign in</a>
+  </header>
+  <main>
+    <div class="page-title"><div><p class="eyebrow">YOUR CHESS COMPANION</p><h1>CAISSA Mentor</h1><p>Understand the idea. See it on the board. Try it yourself.</p></div><button id="new-session" type="button">＋ New session</button></div>
+    <div class="mentor-workspace">
+      <section class="board-region" aria-labelledby="lesson-title">
+        <div class="lesson-heading"><div><span class="eyebrow" id="lesson-category">GUIDED LESSON</span><h2 id="lesson-title">Develop with a plan</h2></div><div class="board-service-notice" data-caissa-mentor-page-notice aria-label="Shared AI account information"></div><span class="study-label">Study board</span><p id="position-evaluation" role="status">Position evaluation · Not analysed</p></div>
+        <div id="mentor-board"></div>
+      </section>
+      <section class="right-workspace" aria-label="Mentor learning workspace">
+        <div class="workspace-head"><span class="eyebrow">EXPLORE WITH MENTOR</span><div role="tablist" aria-label="Mentor topics"><button id="tab-chat" role="tab" aria-selected="true" aria-controls="panel-chat" tabindex="0">Mentor <span id="chat-idea-indicator" title="New training idea" aria-hidden="true" hidden>💡</span></button><button id="tab-moves" role="tab" aria-selected="false" aria-controls="panel-moves" tabindex="-1">Moves</button><button id="tab-learn" role="tab" aria-selected="false" aria-controls="panel-learn" tabindex="-1">Training</button><button id="tab-openings" role="tab" aria-selected="false" aria-controls="panel-openings" tabindex="-1">Opening</button><button id="tab-account" role="tab" aria-selected="false" aria-controls="panel-account" tabindex="-1">My account</button></div></div>
+        <p id="mentor-idea-status" class="visually-hidden" role="status"></p><div class="workspace-body">
+          <div id="panel-chat" role="tabpanel" aria-labelledby="tab-chat"><div class="chat-heading"><h2>CAISSA Mentor</h2><p>Let’s find your next step, together.</p><button id="idea-plan" type="button" hidden>Prepare a training plan</button><button id="memory-recommendation" type="button" hidden>Start Memory Training</button></div><div class="chat-suggestions" id="chat-suggestions" aria-labelledby="suggestions-title"><h3 id="suggestions-title">Where shall we start?</h3><p id="suggestions-context">Choose an idea to explore on the board.</p><div id="suggestion-actions"></div></div><div id="opening-followups" class="opening-followups" hidden><button id="opening-discuss" type="button">Explain the plans</button><button id="opening-practice" type="button">Try this opening</button></div><div data-caissa-mentor-page-host></div></div>
+          <div class="topic-panel" id="panel-moves" role="tabpanel" aria-labelledby="tab-moves" hidden>
+            <h2>Your game, move by move</h2>
+            <div class="evaluation-chart" id="evaluation-chart" aria-label="White perspective evaluation across the game"></div>
+            <p id="engine-status" role="status" aria-live="polite">Use Engine to analyse this line. No evaluation has been calculated.</p>
+            <div id="learn-game" hidden><label for="learn-game-select">Imported games</label><select id="learn-game-select"></select><p id="learn-game-meta"></p></div>
+            <p id="learn-game-position" role="status"></p><div id="learn-game-moves" aria-label="Game moves"></div>
+            <button id="moves-explorer" type="button">Explore this position</button><button id="game-review" type="button">Game review · Shared AI</button><p class="review-note">Opens Mentor with a review draft for you to send. A request may use account credits.</p>
+          </div>
+          <div class="topic-panel" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn" hidden>
+            <h2>Training</h2>
+            <div class="training-tabs" role="tablist" aria-label="Training type"><button id="training-position-tab" role="tab" aria-selected="true" aria-controls="training-position-body">Position</button><button id="training-opening-tab" role="tab" aria-selected="false" aria-controls="training-opening-body" tabindex="-1">Opening</button><button id="training-lesson-tab" role="tab" aria-selected="false" aria-controls="training-lesson-body" tabindex="-1">Choose a lesson</button></div>
+            <section id="training-position-body" role="tabpanel" aria-labelledby="training-position-tab"><h3>Position memory</h3><p>Choose a level, then use Memory below to observe a random position from the Puzzles catalog.</p></section>
+            <section id="training-opening-body" role="tabpanel" aria-labelledby="training-opening-tab" hidden><h3>Opening practice</h3><div id="opening-training-details" hidden><p id="opening-training-title">Choose an opening below, or send a selected line from Opening.</p><div id="opening-training-notation" aria-label="Opening line"></div><label for="opening-training-side">Guess the move</label><select id="opening-training-side"><option value="white">White</option><option value="black">Black</option><option value="both" selected>Both</option></select><button id="opening-training-start" type="button">Guess the move</button><p id="opening-training-status" role="status" aria-live="polite"></p></div><div id="training-opening-finder-host"></div></section>
+            <section id="training-lesson-body" role="tabpanel" aria-labelledby="training-lesson-tab" hidden><div id="learn-lessons"><h3>Choose a lesson</h3><div class="topic-actions"><button data-lesson="development">Develop with a plan <span>↗</span></button><button data-lesson="fork">Find a knight fork <span>↗</span></button><button data-lesson="opposition">Understand opposition <span>↗</span></button></div></div><div id="lesson-notation" aria-label="Lesson moves"></div><div class="lesson-step"><p id="lesson-instruction" role="status" aria-live="polite"></p></div><p id="move-status" role="status" aria-live="polite"></p></section>
+            <section id="memory-panel" class="memory-training" aria-label="Memory Training"><label for="memory-exercise">Levels</label><select id="memory-exercise"></select><label for="memory-mode">Mode</label><select id="memory-mode"><option value="practice">Practice · Unscored</option><option value="challenge">Scored challenge · First exposure only</option></select><p id="memory-state" role="status" aria-live="polite">Choose a level, then press Memory.</p><div id="memory-palette" role="group" aria-label="Choose a memory reconstruction piece" hidden></div><ul id="memory-feedback" aria-label="Memory reconstruction feedback"></ul><p id="memory-progress">Memory index: 50/100 · Provisional, local to this page. Separate from Puzzle Elo.</p><p id="memory-metrics">Immediate recall only. Delayed retention is not measured.</p></section>
+          </div>
+          <div class="topic-panel" id="panel-openings" role="tabpanel" aria-labelledby="tab-openings" hidden>
+            <button id="opening-send-training" type="button">Send to Training Opening</button><p id="opening-send-status" role="status"></p><div class="training-tabs" role="tablist" aria-label="Opening tools"><button id="opening-eco-tab" role="tab" aria-selected="true" aria-controls="opening-eco-body">Chess ECO Codes Database</button><button id="opening-explorer-tab" role="tab" aria-selected="false" aria-controls="opening-explorer-body" tabindex="-1">CAISSA Explorer</button></div>
+            <section id="opening-eco-body" role="tabpanel" aria-labelledby="opening-eco-tab"><div id="opening-eco-finder"><h2>Chess ECO Codes Database</h2><p>Choose an opening.</p><label class="opening-search-label" for="opening-search">Find an opening or ECO code</label><input id="opening-search" type="search" maxlength="100" placeholder="Ruy Lopez, Sicilian, C60…"><p id="opening-status" role="status">Open this tab to load the ECO catalog.</p><div id="opening-list"></div><button id="opening-more" type="button" hidden>Show more openings</button></div></section>
+            <section id="opening-explorer-body" role="tabpanel" aria-labelledby="opening-explorer-tab" hidden><h2>CAISSA Explorer</h2><p id="explorer-opening"></p><p>Opening statistics from our <a href="/opening-database">database</a>.</p><button id="explorer-apply" type="button">Refresh statistics</button>
+              <p id="explorer-status" role="status" aria-live="polite">Open CAISSA Explorer to load statistics for the current study position.</p><table class="explorer-table"><caption>Moves and game results, from White’s perspective</caption><thead><tr><th scope="col">Move</th><th scope="col">Popularity</th><th scope="col">White / Draw / Black</th></tr></thead><tbody id="explorer-rows"></tbody></table><p id="explorer-summary"></p><button id="explorer-return" type="button">Return to main line</button>
+            </section>
+          </div>
+          <div class="topic-panel insight-account" id="panel-account" role="tabpanel" aria-labelledby="tab-account" hidden>
+            <h2>CAISSA Insight</h2>
+            <p class="insight-intro">Bring your games. Together, we’ll find what to work on next.</p>
+            <h3>Import games</h3>
+            <div class="import-source-options" role="group" aria-label="Game import source"><button id="account-source-online" type="button" aria-pressed="true" aria-controls="account-online">Chess.com / Lichess</button><button id="account-source-pgn" type="button" aria-pressed="false" aria-controls="account-local">Local PGN</button></div>
+            <form id="account-form">
+              <div id="account-online" class="account-fields">
+                <div><label for="account-platform">Platform</label><select id="account-platform"><option value="chesscom">Chess.com</option><option value="lichess">Lichess</option><option value="caissa" disabled>CAISSA · Coming later</option></select></div>
+                <div><label for="account-username">Username</label><input id="account-username" maxlength="50" autocomplete="off" placeholder="e.g. TVLAVIN" pattern="[a-zA-Z0-9_-]{2,50}"></div>
+                <div><label for="account-game-count">Games to import</label><select id="account-game-count"><option value="10" selected>Last 10 games</option><option value="20">Last 20 games</option><option value="30">Last 30 games</option><option value="50">Last 50 games</option></select></div>
+                <div><label for="account-time-control">Time control</label><select id="account-time-control"><option value="all">All</option><option value="bullet">Bullet</option><option value="blitz">Blitz</option><option value="rapid">Rapid</option><option value="classical">Classical</option></select></div>
+              </div>
+              <div id="account-local" hidden><label for="account-pgn-file">Choose a PGN file</label><input id="account-pgn-file" type="file" accept=".pgn,text/plain,application/x-chess-pgn"><label for="account-pgn-text">Or paste your games</label><textarea id="account-pgn-text" rows="7" maxlength="250000" placeholder="Paste one or more completed games in PGN format"></textarea></div>
+              <button id="account-import-submit" type="submit" disabled>Fetch &amp; Analyze Games</button>
+              <p id="account-status" role="status">Online import is not connected yet. Use Local PGN to study a completed game.</p>
+            </form>
+            <details class="account-position"><summary>Load your position</summary><form id="fen-form"><label for="study-fen">FEN from a completed game or study</label><input id="study-fen" required placeholder="Paste a FEN position"><button type="submit">Load position</button></form><p id="fen-status" role="status"></p></details>
+          </div>
+        </div>
+        <div id="workspace-footer" class="workspace-foot">
+          <div id="chat-footer" aria-label="Write to Mentor"><button id="chat-send-opening" type="button" hidden>Send to Opening Training</button><p id="chat-send-opening-status" role="status"></p></div>
+          <div id="opening-training-footer" class="memory-actions" hidden><button id="opening-training-retry" type="button" hidden>Retry</button><button id="opening-training-next" type="button" hidden>Next</button><button id="opening-training-return" type="button">Return to study</button></div><div id="memory-footer" class="memory-actions" hidden><button id="memory-hide" type="button" hidden>Hide &amp; rebuild</button><button id="memory-check" type="button" hidden>Check reconstruction</button><button id="memory-retry" type="button" hidden>Retry</button><button id="memory-next" type="button" hidden>Next</button></div>
+          <div id="learn-footer" class="learn-actions" hidden><button id="repeat" type="button">↺ Repeat</button><button id="practice" type="button">Try it yourself</button></div>
+          <div class="study-footer"><button id="flip" type="button" aria-label="Flip board">⇅ Flip</button><button id="study-settings" type="button" aria-label="Study settings" aria-haspopup="dialog">⚙</button><button id="study-engine" type="button">Engine</button><button id="memory-start" type="button" aria-label="Start Memory Training" title="Memory Training" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5a3 3 0 0 0-5.7-1.3A3.5 3.5 0 0 0 3 9a4 4 0 0 0-.2 6.4A3.5 3.5 0 0 0 7 20a3 3 0 0 0 5-2V5Z"/><path d="M12 5a3 3 0 0 1 5.7-1.3A3.5 3.5 0 0 1 21 9a4 4 0 0 1 .2 6.4A3.5 3.5 0 0 1 17 20a3 3 0 0 1-5-2"/><path d="M6 8c2 0 3 1 3 3m-5 3c2-1 4 0 4 2m10-8c-2 0-3 1-3 3m5 3c-2-1-4 0-4 2"/></svg><span>Memory</span></button><div class="move-navigation" role="group" aria-label="Navigate study moves"><button id="game-first" type="button" aria-label="First position">⇤</button><button id="game-previous" type="button" aria-label="Previous move">←</button><button id="game-next" type="button" aria-label="Next move">→</button><button id="game-last" type="button" aria-label="Last position">⇥</button></div></div>
+        </div>
+      </section>
+    </div>
+    <p class="page-note">Study and completed games only. Local lessons use no Shared AI credits.</p>
+  </main>
+  <dialog id="promotion-dialog" aria-labelledby="promotion-title"><h2 id="promotion-title">Choose a promotion piece</h2><div><button data-promotion="q">Queen</button><button data-promotion="r">Rook</button><button data-promotion="b">Bishop</button><button data-promotion="n">Knight</button></div><button id="promotion-cancel">Cancel</button></dialog>
+  <dialog id="study-settings-dialog" aria-labelledby="study-settings-title"><h2 id="study-settings-title">Study settings</h2><label for="engine-depth">Engine depth</label><select id="engine-depth"><option value="12">12 · Faster</option><option value="16">16 · Deeper</option></select><p>Evaluation is from White’s perspective. Local engine analysis uses no Shared AI credits.</p><button id="settings-copy-fen" type="button">Copy FEN</button><button id="settings-copy-pgn" type="button">Copy PGN main line</button><textarea id="settings-export" rows="5" readonly aria-label="Copyable study text" hidden></textarea><p id="settings-status" role="status"></p><button id="settings-flip" type="button">Flip board</button><button id="settings-close" type="button">Done</button></dialog>
+  <script src="/js/engine-adapter.js"></script>
+  <script src="/js/engine-registry.js"></script>
+  <script src="/js/auth-config.js"></script>
+  <script src="/js/caissa-auth.js" defer></script>
+  <script src="/llm-provider.js"></script>
+  <script src="/js/mentor/mentor-context-contract.js"></script>
+  <script src="/js/mentor/mentor-floating-shell.js"></script>
+  <script type="module" src="/js/mentor/mentor-page.js"></script>
+</body>
+</html>
