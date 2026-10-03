@@ -85,7 +85,9 @@ test('non-production, preview, query, fragment and non-page URLs are rejected', 
 });
 
 test('route mapping covers standalone pages and generated blog articles', () => {
-  assert.equal(mapChangedFileToUrl('index.html'), '/');
+  assert.equal(mapChangedFileToUrl('home.html'), '/');
+  assert.equal(mapChangedFileToUrl('play-v2-public-beta.html'), '/play');
+  assert.equal(mapChangedFileToUrl('index.html'), null);
   assert.equal(mapChangedFileToUrl('polyglot.html'), '/tools/polyglot');
   assert.equal(mapChangedFileToUrl('opening-database.html'), '/opening-database');
   assert.equal(mapChangedFileToUrl('blog/example-article/index.html'), '/blog/example-article');

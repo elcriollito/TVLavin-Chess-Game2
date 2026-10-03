@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const origin = 'https://www.caissa-chess.org';
-const contractId = 'CaissaPublicRouteInventory@1.1.0';
+const contractId = 'CaissaPublicRouteInventory@1.2.0';
 
 function loadNavigation() {
   const window = {};
