@@ -34,7 +34,9 @@ This is a versioned browser estimate, not a calibrated accuracy score, recurring
 - `npm run test:home`: 64 navigation, homepage, route and redirect regression tests pass.
 - `tests/fixtures/insights-staging-acceptance.sql`: passed against `CAISSA-READER-STAGING`. Nine assertions cover real database idempotency, immutability, owner FK, foreign deletion, owner retrieval, shared/orphan dataset lifecycle and private/server grants. All synthetic data was rolled back.
 - Supabase security/performance advisors reviewed after migration; no warning/error attributable to these new tables/functions.
-- Vercel preview builds successfully. The browser engine check is available only on preview at `/api/insights/engine-check`; production and development return 404. It uses a synthetic four-ply PGN without accounts, credits or report writes. Live WASM results are recorded below when completed.
+- Vercel preview builds successfully. The browser engine check is available only on preview at `/api/insights/engine-check`; production and development return 404. It uses a synthetic four-ply PGN without accounts, credits or report writes.
+- Real cloud-browser WASM acceptance passed on preview commit `393623a7a84abda1d207384ab839e26d2f4e0afd` at `2026-10-03T05:15:16Z`: validated runtime identity `Stockfish 18 Lite WASM`; all five legal positions evaluated at depth 12; both selected-player moves covered; the selected White player's `0-1` game counted as one loss and zero wins. Runtime was 893 ms on this small fixture. This proves the published engine/adapter integration, not engine-score calibration or authenticated persistence.
+- Browser UI check: the Insights route loads independently of Play; the import dialog opens; Local PGN exposes an exact player-name field and the external-account ownership notice; anonymous history asks for sign-in. Alex's visual/mobile and authenticated account tests remain pending.
 
 ## Preview configuration blocker
 
