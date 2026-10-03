@@ -15,7 +15,7 @@ import { parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS } from '../js/m
 
 const catalog = parseEcoCatalog(JSON.parse(fs.readFileSync(new URL('../data/eco/eco_codes.json', import.meta.url), 'utf8')));
 
-function harness({ memoryCatalog, explorerClient } = {}) {
+function harness({ memoryCatalog, explorerClient, catalogLoader } = {}) {
     const html = fs.readFileSync(new URL('../mentor.html', import.meta.url), 'utf8');
     const nodes = new Map();
     function element(id = '') {
@@ -30,9 +30,12 @@ function harness({ memoryCatalog, explorerClient } = {}) {
         const node = nodes.get(match[1]); node.attrs['aria-controls'] = match[2]; return node;
     });
     const promotionButtons = ['q', 'r', 'b', 'n'].map(type => { const node = element(); node.dataset.promotion = type; return node; });
+    const workspaceBody = element(), shellForm = element('mock-shell-form');
+    nodes.get('opening-eco-body').append(nodes.get('opening-eco-finder'));
+    nodes.get('chat-footer').append(nodes.get('chat-send-opening'), nodes.get('chat-send-opening-status'), shellForm);
     const input = element(), send = element(), authLink = element();
     const windowHandlers = new Map(), messages = [];
-    let networkCalls = 0;
+    let networkCalls = 0, catalogCalls = 0;
     const shell = { setContext() {}, clearContext() {}, open() {}, close() { messages.length = 0; },
         appendStudyMessage(message) { messages.push(message); return true; },
         appendStudyExchange(question, answer) { messages.push(question, answer); return true; }, clearStudyMessages() { messages.length = 0; } };
@@ -41,17 +44,18 @@ function harness({ memoryCatalog, explorerClient } = {}) {
         fetch() { networkCalls++; } };
     const document = { getElementById: id => nodes.get(id), createElement: () => element(),
         querySelectorAll: query => query === '[role=tab][id^="tab-"]' ? tabs : query === '[data-promotion]' ? promotionButtons : [],
-        querySelector: query => query === '.sign-in' ? authLink : query.endsWith('textarea') ? input : send };
+        querySelector: query => query === '.sign-in' ? authLink : query === '.workspace-body' ? workspaceBody : query.endsWith('textarea') ? input : send };
     const boardHandlers = new Map();
     let boardFen = null, draw=0,orientation='white';
     let moveAttempt;
     const board = { getOrientation:()=>orientation,setOrientation:value=>{orientation=value;},setPosition(fen) { boardFen = fen; }, clearSelection() {}, setInteractive() {}, on(type,fn) { boardHandlers.set(type,fn); }, getMetrics() { return {}; } };
     const source = fs.readFileSync(new URL('../js/mentor/mentor-page.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
-    vm.runInNewContext(source, { createOpeningTraining, mountExplorer:opts=>mountExplorer({...opts,client:explorerClient||{load:async()=>({total:0,white:0,draws:0,black:0,moves:[],opening:null}),cancel(){},clear(){}}}), mountMemoryTraining: opts => mountMemoryTraining({...opts,catalog:memoryCatalog||{next:async()=>({...MEMORY_POSITIONS[(draw++)%6],source:'test-catalog'}),clear(){draw=0;}}}), AbortController, queueMicrotask, moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: async () => catalog, create: (element,opts) => { moveAttempt=opts.onMoveAttempt; return board; }, document, window,
+    vm.runInNewContext(source, { createOpeningTraining, mountExplorer:opts=>mountExplorer({...opts,client:explorerClient||{load:async()=>({total:0,white:0,draws:0,black:0,moves:[],opening:null}),cancel(){},clear(){}}}), mountMemoryTraining: opts => mountMemoryTraining({...opts,catalog:memoryCatalog||{next:async()=>({...MEMORY_POSITIONS[(draw++)%6],source:'test-catalog'}),clear(){draw=0;}}}), AbortController, queueMicrotask, moveRows, createStudyAnalysis, evaluationLabel, Chess, prepareLesson, createMentorInsights, prepareEcoLesson, parseMentorPgn, moveLabel, gameReviewPrompt, PGN_LIMITS, loadEcoCatalog: () => { catalogCalls++; return catalogLoader ? catalogLoader() : Promise.resolve(catalog); }, create: (element,opts) => { moveAttempt=opts.onMoveAttempt; return board; }, document, window,
         localStorage: { getItem() { return null; }, setItem() {} } });
     return { nodes, tabs, input, send, messages, window, boardPosition:()=>boardFen,orientation:()=>orientation,
         move: move => moveAttempt(move), promote: type => promotionButtons.find(button => button.dataset.promotion === type).fire('click'),
-        squareTap: square=>boardHandlers.get('squareTap')?.(square), emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls };
+        squareTap: square=>boardHandlers.get('squareTap')?.(square), emit: (key, detail) => windowHandlers.get(key)({ detail }), networkCalls: () => networkCalls,
+        catalogCalls: () => catalogCalls, workspaceBody, shellForm };
 }
 const summary = { ownerId: 'owner-one', status: 'completed', verified: true, source: 'chesscom', username: 'Alex', analysisId: 'analysis-10', completedGames: 10, themes: [{ theme: 'tactics', sampleGames: 4 }] };
 
@@ -461,4 +465,102 @@ test('Position Memory palette aligns six White/Black piece pairs in matching col
     assert.equal(erase.dataset.memoryPiece,'erase');assert.equal(erase.style.gridRow,'3');assert.equal(erase.style.gridColumn,'1 / -1');assert.equal(erase.textContent,'Erase');assert.equal(erase.attrs['aria-label'],'Erase square');
     const css=fs.readFileSync(new URL('../css/mentor-page.css',import.meta.url),'utf8');
     assert.match(css,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);assert.match(css,/#memory-palette button\{width:100%;max-width:50px/);
+});
+
+test('one ECO finder moves into empty Training Opening, directly loads its fresh line, and hides during guesses',async()=>{
+    const h=harness();
+    h.nodes.get('tab-learn').fire('click');
+    h.nodes.get('training-opening-tab').fire('click');
+    assert.equal(h.nodes.get('opening-training-details').hidden,true);
+    assert.equal(h.nodes.get('opening-eco-finder').parentElement,h.nodes.get('training-opening-finder-host'));
+    await new Promise(resolve=>setImmediate(resolve));
+    h.nodes.get('opening-search').value='E60';
+    h.nodes.get('opening-search').fire('input');
+    const card=h.nodes.get('opening-list').children.find(node=>node.className==='opening-card');
+    assert.ok(card);
+    card.fire('click');
+    const state=h.window.CaissaMentorPage.inspect();
+    assert.equal(state.tab,'learn');
+    assert.equal(state.openingTraining.source,'eco');
+    assert.ok(state.openingTraining.total>0);
+    assert.equal(h.nodes.get('opening-training-details').hidden,false);
+    assert.match(h.nodes.get('opening-training-title').textContent,/King's Indian/);
+    assert.equal(h.messages.length,0);
+    assert.equal(h.networkCalls(),0);
+    assert.equal(h.workspaceBody.scrollTop,0);
+    h.nodes.get('opening-training-start').fire('click');
+    assert.equal(h.nodes.get('training-opening-finder-host').hidden,true);
+    h.nodes.get('opening-training-return').fire('click');
+    assert.equal(h.nodes.get('training-opening-finder-host').hidden,false);
+    h.nodes.get('tab-openings').fire('click');
+    assert.equal(h.nodes.get('opening-eco-finder').parentElement,h.nodes.get('opening-eco-body'));
+    assert.equal(h.nodes.get('opening-search').value,'E60');
+    assert.equal(h.catalogCalls(),1);
+    const html=fs.readFileSync(new URL('../mentor.html',import.meta.url),'utf8');
+    assert.equal([...html.matchAll(/id="opening-search"/g)].length,1);
+    assert.match(html,/Choose an opening\./);
+    assert.doesNotMatch(html,/Explore its position with Mentor\./);
+});
+
+test('Mentor opening CTA follows its composer, is contextual, preserves draft, and sends current ECO instead of previously captured line',async()=>{
+    const {h}=await sentEcoTraining();
+    h.nodes.get('tab-openings').fire('click');
+    h.nodes.get('opening-search').value='E60';
+    h.nodes.get('opening-search').fire('input');
+    h.nodes.get('opening-list').children.find(node=>node.className==='opening-card').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().tab,'chat');
+    assert.equal(h.nodes.get('chat-send-opening').hidden,false);
+    assert.ok(h.nodes.get('chat-footer').children.indexOf(h.nodes.get('chat-send-opening'))>h.nodes.get('chat-footer').children.indexOf(h.shellForm));
+    h.input.value='Keep my draft';
+    h.send.disabled=true;
+    h.nodes.get('chat-send-opening').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().tab,'chat');
+    h.send.disabled=false;
+    h.nodes.get('chat-send-opening').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().tab,'learn');
+    assert.match(h.nodes.get('opening-training-title').textContent,/King's Indian/);
+    assert.equal(h.input.value,'Keep my draft');
+    assert.equal(h.networkCalls(),0);
+    h.nodes.get('new-session').fire('click');
+    assert.equal(h.nodes.get('chat-send-opening').hidden,true);
+    const html=fs.readFileSync(new URL('../mentor.html',import.meta.url),'utf8');
+    assert.ok(html.indexOf('mentor-floating-shell.js')<html.indexOf('mentor-page.js'));
+});
+
+test('plain imported PGN has no Mentor training CTA until an explicit Explorer continuation is chosen',async()=>{
+    const h=harness({explorerClient:{load:async()=>({total:10,moves:[{uci:'d2d4',san:'d4',total:10,popularity:100,white:40,draws:30,black:30}],opening:null}),cancel(){},clear(){}}});
+    h.nodes.get('account-source-pgn').fire('click');
+    h.nodes.get('account-pgn-text').value=completedPgn;
+    await h.nodes.get('account-form').fire('submit');
+    h.nodes.get('tab-chat').fire('click');
+    assert.equal(h.nodes.get('chat-send-opening').hidden,true);
+    h.nodes.get('moves-explorer').fire('click');
+    await new Promise(resolve=>setImmediate(resolve));
+    h.nodes.get('explorer-rows').children[0].children[0].children[0].fire('click');
+    await new Promise(resolve=>setImmediate(resolve));
+    const source=h.window.CaissaMentorPage.getStudyLineSnapshot();
+    h.nodes.get('tab-chat').fire('click');
+    assert.equal(h.nodes.get('chat-send-opening').hidden,false);
+    h.nodes.get('chat-send-opening').fire('click');
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.source,'explorer');
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.total,source.moves.length);
+});
+
+test('late ECO catalog publication is suppressed on session exit and a rejected shared load can retry once reopened',async()=>{
+    let reject;
+    let attempts=0;
+    const h=harness({catalogLoader:()=>++attempts===1?new Promise((_,rejectPromise)=>{reject=rejectPromise;}):Promise.resolve(catalog)});
+    h.nodes.get('tab-learn').fire('click');
+    h.nodes.get('training-opening-tab').fire('click');
+    assert.equal(h.catalogCalls(),1);
+    h.nodes.get('new-session').fire('click');
+    reject(new Error('unavailable'));
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.nodes.get('opening-list').children.length,0);
+    h.nodes.get('tab-learn').fire('click');
+    h.nodes.get('training-opening-tab').fire('click');
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.catalogCalls(),2);
+    assert.ok(h.nodes.get('opening-list').children.length>0);
+    assert.equal(h.window.CaissaMentorPage.inspect().openingTraining.phase,'empty');
 });

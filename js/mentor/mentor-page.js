@@ -25,6 +25,9 @@ let pendingPromotion = null;
 let openingTool = 'eco';
 let openingCatalog = null;
 let openingLoading = false;
+let openingCatalogPromise = null;
+let openingLoadRevision = 0;
+let explorerPathActive = false;
 let openingLimit = 24;
 let importedGames = [];
 let importedGameIndex = 0;
@@ -53,6 +56,7 @@ const memoryTraining = mountMemoryTraining({ board, document,
     onContextChange: next => {
         if (next !== 'opening') stopOpeningTraining();
         $('opening-training-footer').hidden = selectedTab !== 'learn' || next !== 'opening';
+        placeEcoFinder(next);
     },
     restoreStudy: () => sync(),
     onStart: () => {
@@ -86,17 +90,53 @@ $('memory-recommendation').addEventListener('click', () => {
 
 const explorer=mountExplorer({document,getFen:()=>memoryTraining.isActive()||memoryTraining.isLoading()?null:game.fen(),
     onMove:uci=>{if(pendingPromotion||memoryTraining.isActive()||memoryTraining.isLoading()||document.querySelector('.caissa-mentor-shell__form button').disabled)return;
-        try{const move=game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(move){practicing=true;sync();}}catch{}},
+        try{const move=game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});if(move){explorerPathActive=true;practicing=true;sync();}}catch{}},
     onReturn:()=>show(cursor)});
 function selectOpeningTool(tool){openingTool=tool;
     for(const key of ['eco','explorer']){const selected=key===tool;$(`opening-${key}-tab`).setAttribute('aria-selected',String(selected));$(`opening-${key}-tab`).tabIndex=selected?0:-1;$(`opening-${key}-body`).hidden=!selected;}
-    explorer.setVisible(selectedTab==='openings'&&tool==='explorer');if(tool==='eco'&&selectedTab==='openings')ensureOpenings();
+    explorer.setVisible(selectedTab==='openings'&&tool==='explorer');placeEcoFinder();
 }
 for(const [index,key] of ['eco','explorer'].entries()){
     $(`opening-${key}-tab`).addEventListener('click',()=>selectOpeningTool(key));
     $(`opening-${key}-tab`).addEventListener('keydown',event=>{if(['ArrowRight','ArrowLeft','Home','End'].includes(event.key)){event.preventDefault();const next=event.key==='Home'?'eco':event.key==='End'?'explorer':index?'eco':'explorer';selectOpeningTool(next);$(`opening-${next}-tab`).focus();}});
 }
 $('moves-explorer').addEventListener('click',()=>{openingTool='explorer';selectTab($('tab-openings'));selectOpeningTool('explorer');});
+
+// The shell's classic script appends its form before this module runs. Keep the
+// page-owned action after that composer; never touch its AI submit handler.
+$('chat-footer').append($('chat-send-opening'), $('chat-send-opening-status'));
+
+function chatTrainingSource() {
+    if (openingSource || memoryTraining.isActive() || memoryTraining.isLoading()) return null;
+    if (explorerPathActive && game.history().length) return 'explorer';
+    if (lesson.id.startsWith('eco-')) return 'eco';
+    return null;
+}
+
+function renderChatTrainingAction() {
+    $('chat-send-opening').hidden = !chatTrainingSource();
+}
+
+$('chat-send-opening').addEventListener('click', () => {
+    const source = chatTrainingSource();
+    if (source) sendToOpeningTraining({ source });
+});
+
+function cancelEcoPublication() {
+    openingLoadRevision++;
+    openingLoading = false;
+}
+
+function placeEcoFinder(nextContext = memoryTraining.context()) {
+    const inTraining = selectedTab === 'learn' && nextContext === 'opening';
+    const guessing = openingSource && ['guess', 'next'].includes(openingTraining.read().phase);
+    const destination = inTraining ? $('training-opening-finder-host') : $('opening-eco-body');
+    const finder = $('opening-eco-finder');
+    if (finder.parentElement !== destination) destination.append(finder);
+    $('training-opening-finder-host').hidden = Boolean(inTraining && guessing);
+    if ((inTraining && !guessing) || (selectedTab === 'openings' && openingTool === 'eco')) ensureOpenings();
+    else if (openingLoading) cancelEcoPublication();
+}
 
 function captureStudyPath() {
     const history = game.history({ verbose: true });
@@ -150,7 +190,8 @@ function stopOpeningTraining() {
 
 function renderOpeningTraining() {
     const state = openingTraining.read(), loaded = state.phase !== 'empty';
-    $('opening-training-title').textContent = loaded ? state.title : 'Load an opening in Opening, then choose Send to Training Opening.';
+    $('opening-training-details').hidden = !loaded;
+    $('opening-training-title').textContent = loaded ? state.title : 'Choose an opening below, or send a selected line from Opening.';
     const notation = $('opening-training-notation');
     notation.replaceChildren();
     for (const [index, move] of state.visibleMoves.entries()) {
@@ -182,6 +223,8 @@ function renderOpeningTraining() {
     $('opening-training-next').hidden = state.phase !== 'next';
     $('opening-training-return').disabled = !openingSource;
     $('opening-training-footer').hidden = selectedTab !== 'learn' || memoryTraining.context() !== 'opening';
+    placeEcoFinder();
+    renderChatTrainingAction();
     if (!openingSource) return;
     board.setPosition(game.fen(), { animate: false });
     board.clearSelection();
@@ -221,17 +264,17 @@ function automaticOpeningMoves() {
     renderOpeningTraining();
 }
 
-function sendToOpeningTraining() {
+function sendToOpeningTraining({ source = openingTool } = {}) {
     if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
-        $('opening-send-status').textContent = 'Finish the current promotion or Mentor reply first.';
+        $(selectedTab === 'chat' ? 'chat-send-opening-status' : 'opening-send-status').textContent = 'Finish the current promotion or Mentor reply first.';
         return;
     }
     stopOpeningTraining();
     memoryTraining.stop();
     const path = captureStudyPath();
-    const snapshot = openingTool === 'eco' && lesson.id.startsWith('eco-')
+    const snapshot = source === 'eco' && lesson.id.startsWith('eco-')
         ? { rootFen: lesson.positions[0], moves: lesson.moves, title: lesson.title, source: 'eco' }
-        : openingTool === 'explorer' ? path : null;
+        : source === 'explorer' ? path : null;
     try {
         if (!snapshot) throw new Error('Choose an ECO opening first.');
         openingTraining.load(snapshot, path.moves.length);
@@ -247,7 +290,7 @@ function sendToOpeningTraining() {
     }
 }
 
-$('opening-send-training').addEventListener('click', sendToOpeningTraining);
+$('opening-send-training').addEventListener('click', () => sendToOpeningTraining());
 $('opening-training-start').addEventListener('click', () => {
     if (!activateOpeningTraining()) return;
     const side = $('opening-training-side').value || 'both';
@@ -321,11 +364,13 @@ function sync() {
     }
     renderLearnGame();
     explorer.refresh();
+    renderChatTrainingAction();
 }
 function show(index) {
     if (pendingPromotion) return;
     stopOpeningTraining();
     memoryTraining.stop();
+    explorerPathActive = false;
     cursor = Math.max(0, Math.min(index, lesson.moves.length)); practicing = false;
     game.load(lesson.positions[0]);
     for (let step = 0; step < cursor; step++) game.move(lesson.moves[step].san);
@@ -458,7 +503,7 @@ for(const kind of ['fen','pgn'])$('settings-copy-'+kind).addEventListener('click
     try{if(!window.navigator?.clipboard?.writeText)throw new Error();await window.navigator.clipboard.writeText(text);$('settings-status').textContent=`${kind.toUpperCase()} copied.`;}catch{$('settings-status').textContent='Select the text above to copy it.';}
 });
 $('settings-flip').addEventListener('click', () => board.setOrientation(board.getOrientation() === 'white' ? 'black' : 'white'));
-window.addEventListener('pagehide', () => { stopOpeningTraining(); explorer.reset(); analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine'; });
+window.addEventListener('pagehide', () => { stopOpeningTraining(); cancelEcoPublication(); explorer.reset(); analysisRequest++; studyAnalysis.cancel(); analysisRunning = false; $('study-engine').textContent = 'Engine'; });
 function selectImportedGame(index) {
     if (!Number.isInteger(index) || !importedGames[index] || pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) return false;
     stopOpeningTraining(); importedGameIndex = index; lesson = importedGames[index];
@@ -512,12 +557,26 @@ function renderOpenings() {
 }
 async function ensureOpenings() {
     if (openingCatalog || openingLoading) return;
-    openingLoading = true; $('opening-status').textContent = 'Loading the ECO catalog…';
-    try { openingCatalog = await loadEcoCatalog(); renderOpenings(); }
-    catch { $('opening-status').textContent = 'The ECO catalog could not load. Reopen Opening to retry.'; }
-    finally { openingLoading = false; }
+    const revision = ++openingLoadRevision;
+    openingLoading = true;
+    $('opening-status').textContent = 'Loading the ECO catalog…';
+    // Reuse one public catalog request even when a view changes before it resolves.
+    const promise = openingCatalogPromise || (openingCatalogPromise = loadEcoCatalog());
+    try {
+        const catalog = await promise;
+        if (revision !== openingLoadRevision) return;
+        openingCatalog = catalog;
+        renderOpenings();
+    } catch {
+        if (openingCatalogPromise === promise) openingCatalogPromise = null;
+        if (revision === openingLoadRevision) $('opening-status').textContent = 'The ECO catalog could not load. Reopen the finder to retry.';
+    } finally {
+        if (revision === openingLoadRevision) openingLoading = false;
+    }
 }
 function chooseOpening(entry) {
+    const fromTraining = selectedTab === 'learn' && memoryTraining.context() === 'opening'
+        && $('opening-eco-finder').parentElement === $('training-opening-finder-host');
     if (pendingPromotion || document.querySelector('.caissa-mentor-shell__form button').disabled) {
         $('opening-status').textContent = 'Finish the current promotion or Mentor reply before changing the board.'; return;
     }
@@ -525,6 +584,14 @@ function chooseOpening(entry) {
     try { candidate = prepareEcoLesson(entry); }
     catch { $('opening-status').textContent = 'This opening line cannot be loaded.'; return; }
     stopOpeningTraining(); lesson = candidate; show(lesson.moves.length);
+    if (fromTraining) {
+        openingTool = 'eco';
+        sendToOpeningTraining({ source: 'eco' });
+        $('opening-training-start').focus({ preventScroll: true });
+        const body = document.querySelector('.workspace-body');
+        if (body) body.scrollTop = 0;
+        return;
+    }
     $('chat-suggestions').hidden = true; $('opening-followups').hidden = false;
     selectTab($('tab-chat'));
     window.CaissaMentorFloatingShell?.appendStudyExchange(`Let’s explore ${entry.name} (${entry.code}).`,
@@ -631,7 +698,7 @@ tabs.forEach((tab, index) => {
 $('new-session').addEventListener('click', () => {
     if (pendingPromotion) return;
     if (document.querySelector('.caissa-mentor-shell__form button').disabled) { $('move-status').textContent = 'Wait for the current Mentor reply before starting a new session.'; return; }
-    stopOpeningTraining(); openingTraining.clear(); renderOpeningTraining(); memoryTraining.newSession();
+    cancelEcoPublication(); explorerPathActive = false; stopOpeningTraining(); openingTraining.clear(); renderOpeningTraining(); memoryTraining.newSession();
     window.CaissaMentorFloatingShell.close(); window.CaissaMentorFloatingShell.open();
     importedGames = []; importedGameIndex = 0;
     loadLesson('development'); selectTab(tabs[0]);
@@ -641,7 +708,7 @@ $('new-session').addEventListener('click', () => {
 $('fen-form').addEventListener('submit', event => {
     event.preventDefault();
     if (pendingPromotion) return;
-    try { stopOpeningTraining(); const fen = $('study-fen').value.trim(); if (fen.split(/\s+/).length !== 6) throw new Error('Full FEN required.'); game.load(fen);
+    try { stopOpeningTraining(); explorerPathActive = false; const fen = $('study-fen').value.trim(); if (fen.split(/\s+/).length !== 6) throw new Error('Full FEN required.'); game.load(fen);
         lesson = { id: 'custom', title: 'Your study position', category: 'Independent study', positions: [game.fen()], moves: [], notes: ['Explore this position with legal moves.'] };
         cursor = 0; practicing = true; $('opening-followups').hidden = true; sync(); $('move-status').textContent = 'Study position loaded. No engine verdict has been calculated.';
         $('fen-status').textContent = 'Position loaded on the study board. Open Mentor to discuss it.';
@@ -712,7 +779,7 @@ function renderAccountAuth(state) {
     const nextOwner = signedIn && typeof state.userId === 'string' ? state.userId : null;
     if (nextOwner !== insightOwner) {
         insightOwner = nextOwner; insights.reset(nextOwner);
-        stopOpeningTraining(); openingTraining.clear(); renderOpeningTraining(); memoryTraining.reset(nextOwner); explorer.reset(); memoryNotification = null;
+        cancelEcoPublication(); explorerPathActive = false; stopOpeningTraining(); openingTraining.clear(); renderOpeningTraining(); memoryTraining.reset(nextOwner); explorer.reset(); memoryNotification = null;
         $('memory-recommendation').hidden = true;
         const input = document.querySelector('.caissa-mentor-shell__form textarea');
         if (preparedIdeaPrompt && input?.value === preparedIdeaPrompt) input.value = '';
