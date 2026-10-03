@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 const setup = source.slice(
-    source.indexOf('function setupCoachModal() {'),
+    source.indexOf('let coachReportData = null;'),
     source.indexOf('// Show specific coach section')
 );
 
@@ -44,6 +44,8 @@ function harness(profile = { games: [{}] }, fail = false) {
     node('coachModal').querySelectorAll = () => [node('close')];
     const context = vm.createContext({
         document: { getElementById: node },
+        window: { addEventListener() {} },
+        AbortController,
         insightProfile: profile,
         console: { log() {}, warn() {}, error() {} },
         hideModal: id => events.push(['hide', id]),

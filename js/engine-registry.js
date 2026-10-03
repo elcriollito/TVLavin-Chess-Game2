@@ -576,6 +576,16 @@
                 }
             });
         },
+        createInsightEngine(options = {}) {
+            return createConfiguredEngine(STOCKFISH_19_ARENA_PROVIDER, {
+                ...options,
+                owner: 'insight-report',
+                autoStart: false,
+                requireRuntimeIdentity: true,
+                providerId: STOCKFISH_19_ARENA_PROVIDER.id,
+                requestedEngineId: STOCKFISH_19_ARENA_PROVIDER.id
+            });
+        },
         getAnalyze(id) {
             return ANALYZE_ENGINES[id] || null;
         },

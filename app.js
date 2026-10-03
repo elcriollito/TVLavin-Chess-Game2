@@ -6624,6 +6624,10 @@ function setupInsightModal() {
                 return;
             }
 
+            if (typeof cancelActiveCoachGeneration === 'function') {
+                cancelActiveCoachGeneration('insight-provider-reimport');
+            }
+
             console.log(`🎮 Fetching ${count} games from ${provider} for user: ${username}`);
 
             // Show progress
@@ -6667,7 +6671,17 @@ function setupInsightModal() {
                     throw new Error('Failed to parse imported games');
                 }
 
-                parsedData.games.forEach(game => { game.source = provider; });
+                const normalizedUsername = username.toLowerCase();
+                parsedData.games.forEach(game => {
+                    game.source = provider;
+                    game.importUsername = username;
+                    const white = String(game.headers?.white || '').toLowerCase();
+                    const black = String(game.headers?.black || '').toLowerCase();
+                    game.userColor = white === normalizedUsername
+                        ? 'white'
+                        : (black === normalizedUsername ? 'black' : 'unknown');
+                });
+                parsedData.import = { provider, username, timeControl };
 
                 // Save to profile
                 insightProfile = parsedData;
@@ -6772,6 +6786,9 @@ function setupInsightModal() {
                 return;
             }
 
+            if (typeof cancelActiveCoachGeneration === 'function') {
+                cancelActiveCoachGeneration('insight-local-reimport');
+            }
             parsedData.games.forEach(game => { game.source = 'local'; });
 
             // Invalid PGN must not consume a credit. Charge only after parsing
@@ -7169,8 +7186,11 @@ const GameSourceService = {
 const COACH_CONFIG = {
     SWING_THRESHOLD: 0.8,      // Eval swing to mark critical moment (pawns)
     BLUNDER_THRESHOLD: 1.2,    // Move loss threshold for blunder (pawns)
-    ANALYSIS_DEPTH: 12,        // Engine depth for quick analysis
-    MULTI_PV: 3,               // Number of lines to analyze
+    ANALYSIS_DEPTH: 12,        // First-pass depth for every position
+    SCAN_MULTI_PV: 1,          // Keep the broad scan fast
+    CONFIRMATION_DEPTH: 14,    // Re-check candidate mistakes more deeply
+    MULTI_PV: 3,               // Candidate explanation lines
+    POSITION_TIMEOUT_MS: 15000, // SF19 MultiPV can exceed the legacy 5s budget on slower devices
     OPENING_MOVES: 15,         // Moves considered "opening phase"
     ENDGAME_PIECES: 12         // Max pieces for endgame phase
 };
@@ -7247,6 +7267,9 @@ function setupClearInsightHandlers() {
 // Clear Insight session (and optionally delete history)
 function clearInsightSession(deleteHistory = false) {
     console.log('🗑️ Clearing Insight session, deleteHistory:', deleteHistory);
+    if (typeof cancelActiveCoachGeneration === 'function') {
+        cancelActiveCoachGeneration('insight-session-cleared');
+    }
 
     // Clear current session data
     insightProfile = null;
@@ -7277,8 +7300,13 @@ function clearInsightSession(deleteHistory = false) {
 function resetInsightUI() {
     console.log('🔄 Resetting Insight UI...');
 
-    // Hide results section
+    // Restore the import view and hide stale results. Both sections use inline
+    // display changes, so reopening the modal must explicitly restore import.
+    const importSection = document.getElementById('insightImportSection');
     const resultsSection = document.getElementById('insightResultsSection');
+    if (importSection) {
+        importSection.style.display = 'block';
+    }
     if (resultsSection) {
         resultsSection.style.display = 'none';
     }
@@ -7324,6 +7352,66 @@ function updateInsightIndicator() {
 
 // Coach report state
 let coachReportData = null;
+let activeCoachGeneration = null;
+let coachGenerationSequence = 0;
+
+function createCoachCancellationError(reason = 'Coach report generation was canceled.') {
+    const error = new Error(reason);
+    error.name = 'AbortError';
+    error.code = 'COACH_GENERATION_CANCELED';
+    return error;
+}
+
+function isCoachCancellationError(error) {
+    return error?.name === 'AbortError' || error?.code === 'COACH_GENERATION_CANCELED';
+}
+
+function beginCoachGeneration(profile = insightProfile) {
+    if (activeCoachGeneration) {
+        const error = new Error('A Coach report is already being generated.');
+        error.code = 'COACH_GENERATION_IN_PROGRESS';
+        throw error;
+    }
+    const controller = new AbortController();
+    const generation = {
+        id: ++coachGenerationSequence,
+        profile,
+        controller,
+        signal: controller.signal,
+        engine: null,
+        engineTerminated: false,
+        startedAt: Date.now(),
+        depths: [],
+        candidatesScanned: 0,
+        confirmedMoments: 0
+    };
+    activeCoachGeneration = generation;
+    return generation;
+}
+
+function assertCoachGenerationCurrent(generation) {
+    if (!generation || generation.signal.aborted || activeCoachGeneration !== generation
+        || insightProfile !== generation.profile) {
+        throw createCoachCancellationError('Coach report generation was canceled because the Insight session changed.');
+    }
+}
+
+function terminateCoachGenerationEngine(generation, reason = 'insight-report-complete') {
+    if (!generation?.engine || generation.engineTerminated) return;
+    generation.engineTerminated = true;
+    generation.engine.terminate(reason);
+}
+
+function cancelActiveCoachGeneration(reason = 'coach-report-canceled') {
+    const generation = activeCoachGeneration;
+    if (!generation) return false;
+    generation.controller.abort(reason);
+    terminateCoachGenerationEngine(generation, reason);
+    if (activeCoachGeneration === generation) activeCoachGeneration = null;
+    const generateBtn = document.getElementById('coachGenerateBtn');
+    if (generateBtn) generateBtn.disabled = false;
+    return true;
+}
 
 // Setup coach report modal
 function setupCoachModal() {
@@ -7341,23 +7429,31 @@ function setupCoachModal() {
     }
 
     modal.dataset.coachBound = 'true';
+    const closeCoachModal = () => {
+        cancelActiveCoachGeneration('coach-modal-closed');
+        hideModal('coachModal');
+    };
     modal.querySelectorAll('.modal-close, button[data-modal="coachModal"]').forEach(button => {
         button.addEventListener('click', event => {
             event.preventDefault();
             event.stopPropagation();
-            hideModal('coachModal');
+            closeCoachModal();
         });
     });
     modal.addEventListener('click', event => {
-        if (event.target === modal) hideModal('coachModal');
+        if (event.target === modal) closeCoachModal();
     });
     modal.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();
-            hideModal('coachModal');
+            closeCoachModal();
         }
     });
+    globalThis.window?.addEventListener?.(
+        'pagehide',
+        () => cancelActiveCoachGeneration('insight-page-exit')
+    );
 
     // Open coach modal from insight
     coachBtn.addEventListener('click', () => {
@@ -7373,19 +7469,32 @@ function setupCoachModal() {
 
     // Generate report
     generateBtn.addEventListener('click', async () => {
+        if (activeCoachGeneration) {
+            showErrorNotification('A Coach report is already being generated.');
+            return;
+        }
         const gameCount = parseInt(document.getElementById('coachGameCount').value);
         const colorFilter = document.getElementById('coachColorFilter').value;
+        let generation = null;
 
         console.log(`🎓 Generating coach report for ${gameCount} games, color: ${colorFilter}`);
 
         try {
+            generation = beginCoachGeneration(insightProfile);
+            generateBtn.disabled = true;
             showCoachSection('progress');
-            await generateCoachReport(gameCount, colorFilter);
+            await generateCoachReport(gameCount, colorFilter, generation);
+            assertCoachGenerationCurrent(generation);
             showCoachSection('report');
         } catch (error) {
+            if (isCoachCancellationError(error)) return;
             console.error('❌ Coach report generation failed:', error);
             showErrorNotification('Failed to generate coach report: ' + error.message);
             showCoachSection('config');
+        } finally {
+            terminateCoachGenerationEngine(generation);
+            if (activeCoachGeneration === generation) activeCoachGeneration = null;
+            generateBtn.disabled = false;
         }
     });
 
@@ -7457,82 +7566,135 @@ function updateCoachProgress(percent, text) {
 }
 
 // Generate coach report
-async function generateCoachReport(gameCount, colorFilter) {
-    if (!insightProfile || !insightProfile.games) {
-        throw new Error('No games available for analysis');
-    }
-
-    updateCoachProgress(5, 'Preparing games for analysis...');
-
-    // Filter games
-    let games = insightProfile.games.slice(0, gameCount);
-
-    // Apply color filter if needed
-    if (colorFilter !== 'both') {
-        games = games.filter(game => {
-            // Determine user's color based on game headers
-            // This is a simplified filter - in production, you'd track user's actual color
-            return true; // For MVP, analyze all games
-        });
-    }
-
-    console.log(`📊 Analyzing ${games.length} games...`);
-
-    updateCoachProgress(10, `Analyzing game 1 of ${games.length}...`);
-
-    // Analyze each game for critical moments
-    const allMoments = [];
-    for (let i = 0; i < games.length; i++) {
-        const game = games[i];
-        const progress = 10 + (i / games.length) * 60;
-        updateCoachProgress(progress, `Analyzing game ${i + 1} of ${games.length}...`);
-
-        const moments = await analyzeGameForMoments(game, i);
-        allMoments.push(...moments);
-
-        // Small delay to avoid freezing UI
-        await new Promise(resolve => setTimeout(resolve, 10));
-    }
-
-    updateCoachProgress(75, 'Aggregating patterns...');
-
-    // Aggregate data
-    const aggregate = aggregateCoachData(games, allMoments);
-
-    updateCoachProgress(85, 'Generating training plan...');
-
-    // Generate training plan
-    const plan = generateTrainingPlan(aggregate);
-
-    updateCoachProgress(95, 'Finalizing report...');
-
-    // Build report
-    coachReportData = {
-        config: { gameCount, colorFilter },
-        gamesAnalyzed: games.length,
-        moments: allMoments,
-        aggregate,
-        plan,
-        timestamp: new Date().toISOString()
-    };
-
-    // Display report
-    displayCoachReport(coachReportData);
-
-    updateCoachProgress(100, 'Report complete!');
-
-    console.log('✅ Coach report generated:', coachReportData);
-}
-
-// Analyze single game for critical moments using Stockfish engine
-async function analyzeGameForMoments(game, gameIndex) {
-    const moments = [];
-
-    // Use existing chess.js instance
-    const chess = new Chess();
+async function generateCoachReport(gameCount, colorFilter, generation = null) {
+    const ownsGeneration = !generation;
+    const run = generation || beginCoachGeneration(insightProfile);
+    let engine = null;
 
     try {
-        chess.load_pgn(game.headers.pgn || '');
+        if (!run.profile || !run.profile.games) {
+            throw new Error('No games available for analysis');
+        }
+        engine = window.EngineRegistry?.createInsightEngine?.();
+        if (!engine) throw new Error('Stockfish 19 is unavailable for Insight.');
+        run.engine = engine;
+        assertCoachGenerationCurrent(run);
+        await engine.start();
+        assertCoachGenerationCurrent(run);
+        if (!engine.isReady()) throw new Error('Stockfish 19 did not become ready.');
+
+        const identity = engine.getUciIdentity?.() || engine.uciIdentity || {};
+        if (identity.validated !== true) {
+            throw new Error('Stockfish 19 runtime identity could not be verified.');
+        }
+
+        updateCoachProgress(5, 'Preparing games for Stockfish 19 analysis...');
+
+        let games = run.profile.games.slice(0, gameCount);
+        if (colorFilter !== 'both') {
+            games = games.filter(game => game.userColor === colorFilter);
+        }
+        if (games.length === 0) {
+            throw new Error(`No ${colorFilter} games are available in this Insight profile.`);
+        }
+
+        console.log(`📊 Analyzing ${games.length} games with verified Stockfish 19...`);
+        updateCoachProgress(10, `Analyzing game 1 of ${games.length}...`);
+
+        const allMoments = [];
+        for (let i = 0; i < games.length; i++) {
+            assertCoachGenerationCurrent(run);
+            const game = games[i];
+            const progress = 10 + (i / games.length) * 60;
+            updateCoachProgress(progress, `Analyzing game ${i + 1} of ${games.length}...`);
+
+            const moments = await analyzeGameForMoments(game, i, engine, run);
+            assertCoachGenerationCurrent(run);
+            allMoments.push(...moments);
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        updateCoachProgress(75, 'Aggregating patterns...');
+        const aggregate = aggregateCoachData(games, allMoments);
+
+        updateCoachProgress(85, 'Generating training plan...');
+        const plan = generateTrainingPlan(aggregate);
+
+        updateCoachProgress(95, 'Finalizing report...');
+        assertCoachGenerationCurrent(run);
+
+        const depths = run.depths.filter(Number.isFinite);
+        const elapsedMs = Date.now() - run.startedAt;
+        coachReportData = {
+            config: { gameCount, colorFilter },
+            engine: {
+                id: engine.id,
+                providerId: engine.providerId || engine.id,
+                version: engine.config?.version || '19.0.0',
+                uciName: identity.name || engine.name || 'Stockfish 19',
+                uciAuthor: identity.author || null,
+                identityValidated: identity.validated === true,
+                runtime: engine.config?.runtimeType || engine.config?.execution || 'wasm',
+                workerAsset: engine.config?.workerPath || null,
+                requestedDepth: COACH_CONFIG.ANALYSIS_DEPTH,
+                confirmationDepth: COACH_CONFIG.CONFIRMATION_DEPTH,
+                minDepthReached: depths.length ? Math.min(...depths) : null,
+                maxDepthReached: depths.length ? Math.max(...depths) : null,
+                averageDepthReached: depths.length
+                    ? Number((depths.reduce((sum, depth) => sum + depth, 0) / depths.length).toFixed(1))
+                    : null,
+                multiPV: COACH_CONFIG.MULTI_PV,
+                scanMultiPV: COACH_CONFIG.SCAN_MULTI_PV,
+                primaryLineMultiPV: 1,
+                candidatesScanned: run.candidatesScanned,
+                confirmedMoments: run.confirmedMoments,
+                elapsedMs
+            },
+            gamesAnalyzed: games.length,
+            moments: allMoments,
+            aggregate,
+            plan,
+            timestamp: new Date().toISOString()
+        };
+
+        displayCoachReport(coachReportData);
+        updateCoachProgress(100, 'Report complete!');
+        console.log('✅ Coach report generated with verified Stockfish 19:', coachReportData);
+    } finally {
+        terminateCoachGenerationEngine(run);
+        if (ownsGeneration && activeCoachGeneration === run) activeCoachGeneration = null;
+    }
+}
+
+function coachEvaluationValue(info) {
+    if (Number.isFinite(info?.score)) return info.score;
+    if (Number.isFinite(info?.mate)) {
+        const distance = Math.min(999, Math.abs(info.mate));
+        return Math.sign(info.mate || 1) * (1000 - (distance / 1000));
+    }
+    throw new Error('Stockfish 19 returned neither a centipawn score nor a mate score.');
+}
+
+function calculateCoachMoveLoss(evalBefore, evalAfter, playerColor) {
+    const signedLoss = playerColor === 'w'
+        ? evalBefore - evalAfter
+        : evalAfter - evalBefore;
+    return Math.max(0, signedLoss);
+}
+
+// Analyze single game for critical moments using the dedicated Stockfish engine.
+async function analyzeGameForMoments(game, gameIndex, engine, generation) {
+    const moments = [];
+    const scanCache = new Map();
+    const confirmationCache = new Map();
+    const candidates = [];
+
+    const chess = new Chess();
+    const pgn = game.headers?.pgn || '';
+
+    try {
+        const loaded = chess.load_pgn(pgn);
+        if (loaded === false) throw new Error('Invalid PGN');
     } catch (e) {
         console.warn(`⚠️ Failed to load game ${gameIndex}:`, e);
         return moments;
@@ -7540,195 +7702,207 @@ async function analyzeGameForMoments(game, gameIndex) {
 
     const history = chess.history({ verbose: true });
 
-    // Reset to start position for incremental analysis
-    chess.reset();
-
-    let prevEval = 0; // Evaluation in pawns (White's perspective)
-    let prevBestMove = null;
-
-    // Ensure engine is ready
-    if (!App.engine || !App.engine.isReady()) {
-        console.warn(`⚠️ Engine not ready for game ${gameIndex}, using fallback`);
-        return await analyzeGameForMomentsFallback(game, gameIndex);
+    // Respect PGNs that start from a custom FEN instead of silently resetting
+    // them to the standard initial position.
+    const initialFen = pgn.match(/\[FEN\s+"([^"]+)"\]/)?.[1] || null;
+    if (initialFen) {
+        if (!chess.load(initialFen)) throw new Error(`Invalid initial FEN in game ${gameIndex + 1}.`);
+    } else {
+        chess.reset();
     }
 
-    // Set engine to use MultiPV=3 for critical moment detection
-    App.engine.setMultiPV(COACH_CONFIG.MULTI_PV);
+    if (!engine || !engine.isReady()) {
+        throw new Error('Stockfish 19 is not ready. No engine report was generated.');
+    }
 
-    // Analyze each position incrementally
-    for (let ply = 0; ply < history.length; ply++) {
-        const move = history[ply];
-        const fenBefore = chess.fen();
+    engine.setMultiPV(COACH_CONFIG.SCAN_MULTI_PV);
+    try {
+        const scan = async fen => {
+            if (scanCache.has(fen)) return scanCache.get(fen);
+            const result = await getEngineEvaluation(
+                fen, COACH_CONFIG.ANALYSIS_DEPTH, engine, generation
+            );
+            scanCache.set(fen, result);
+            return result;
+        };
 
-        // Get engine evaluation BEFORE the move
-        const evalInfo = await getEngineEvaluation(fenBefore, COACH_CONFIG.ANALYSIS_DEPTH);
+        // Pass 1: one principal variation at depth 12 for every unique
+        // position. The position after one move is reused before the next.
+        for (let ply = 0; ply < history.length; ply++) {
+            assertCoachGenerationCurrent(generation);
+            const move = history[ply];
+            const fenBefore = chess.fen();
+            const evalInfo = await scan(fenBefore);
+            const evalBefore = coachEvaluationValue(evalInfo);
 
-        if (!evalInfo) {
-            // Engine failed, skip this position
             chess.move(move.san);
-            continue;
-        }
+            const fenAfter = chess.fen();
 
-        const evalBefore = evalInfo.score !== null ? evalInfo.score : 0;
-        const bestMove = evalInfo.bestMove || null;
+            // Terminal positions do not have a legal bestmove. The final move is
+            // excluded instead of inventing a zero evaluation for the result.
+            if (chess.game_over()) break;
 
-        // Make the move
-        chess.move(move.san);
-        const fenAfter = chess.fen();
+            const evalAfterInfo = await scan(fenAfter);
+            const evalAfter = coachEvaluationValue(evalAfterInfo);
+            const playerColor = move.color;
+            const moveLoss = calculateCoachMoveLoss(evalBefore, evalAfter, playerColor);
 
-        // Get engine evaluation AFTER the move
-        const evalAfterInfo = await getEngineEvaluation(fenAfter, COACH_CONFIG.ANALYSIS_DEPTH);
-        const evalAfter = evalAfterInfo && evalAfterInfo.score !== null ? evalAfterInfo.score : evalBefore;
-
-        // Calculate evaluation swing (from perspective of side that just moved)
-        const playerColor = move.color; // 'w' or 'b'
-        const evalSwing = Math.abs(evalAfter - evalBefore);
-
-        // Calculate move loss (how much worse than best move)
-        let moveLoss = 0;
-        if (bestMove) {
-            // If player didn't play the best move, calculate loss
-            const playedMove = move.from + move.to + (move.promotion || '');
-            if (playedMove !== bestMove) {
-                moveLoss = Math.abs(evalAfter - evalBefore);
+            if (moveLoss >= COACH_CONFIG.SWING_THRESHOLD) {
+                candidates.push({ ply, move, fenBefore, fenAfter, playerColor });
             }
         }
 
-        // Detect critical moments based on thresholds
-        const isCritical = (
-            evalSwing >= COACH_CONFIG.SWING_THRESHOLD ||
-            moveLoss >= COACH_CONFIG.BLUNDER_THRESHOLD
-        );
-
-        if (isCritical) {
-            // Classify the error and assign tags
-            const tags = classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMove);
-
-            const moment = {
-                gameId: gameIndex,
-                ply,
-                moveSAN: move.san,
-                playedMove: move.from + move.to + (move.promotion || ''),
-                fen: fenBefore,
-                fenAfter: fenAfter,
-                evalBefore: evalBefore,
-                evalAfter: evalAfter,
-                evalSwing: evalSwing,
-                moveLoss: moveLoss,
-                bestMove: bestMove,
-                tags: tags,
-                phase: getGamePhase(ply, countPieces(fenBefore)),
-                playerColor: playerColor
-            };
-
-            moments.push(moment);
+        // Pass 2: spend deeper MultiPV work only on candidates, then discard
+        // horizon/noise changes that do not remain a loss for the mover.
+        engine.setMultiPV(COACH_CONFIG.MULTI_PV);
+        if (generation) {
+            generation.candidatesScanned = (generation.candidatesScanned || 0) + candidates.length;
         }
+        const confirm = async fen => {
+            if (confirmationCache.has(fen)) return confirmationCache.get(fen);
+            const result = await getEngineEvaluation(
+                fen, COACH_CONFIG.CONFIRMATION_DEPTH, engine, generation
+            );
+            confirmationCache.set(fen, result);
+            return result;
+        };
 
-        // Update previous evaluation
-        prevEval = evalAfter;
-        prevBestMove = bestMove;
+        for (const candidate of candidates) {
+            assertCoachGenerationCurrent(generation);
+            const evalInfo = await confirm(candidate.fenBefore);
+            const evalAfterInfo = await confirm(candidate.fenAfter);
+            const evalBefore = coachEvaluationValue(evalInfo);
+            const evalAfter = coachEvaluationValue(evalAfterInfo);
+            const moveLoss = calculateCoachMoveLoss(
+                evalBefore, evalAfter, candidate.playerColor
+            );
+            if (moveLoss < COACH_CONFIG.SWING_THRESHOLD) continue;
+
+            const bestMove = evalInfo.bestMove || null;
+            const tags = classifyError(
+                candidate.fenBefore, candidate.fenAfter, candidate.move,
+                evalBefore, evalAfter, bestMove, moveLoss
+            );
+            moments.push({
+                gameId: gameIndex,
+                ply: candidate.ply,
+                moveSAN: candidate.move.san,
+                playedMove: candidate.move.from + candidate.move.to + (candidate.move.promotion || ''),
+                fen: candidate.fenBefore,
+                fenAfter: candidate.fenAfter,
+                evalBefore,
+                evalAfter,
+                mateBefore: evalInfo.mate,
+                mateAfter: evalAfterInfo.mate,
+                depthBefore: evalInfo.depth,
+                depthAfter: evalAfterInfo.depth,
+                evalSwing: evalAfter - evalBefore,
+                moveLoss,
+                bestMove,
+                alternatives: evalInfo.lines || [],
+                tags,
+                phase: getGamePhase(candidate.ply, countPieces(candidate.fenBefore)),
+                playerColor: candidate.playerColor,
+                confirmed: true
+            });
+            if (generation) {
+                generation.confirmedMoments = (generation.confirmedMoments || 0) + 1;
+            }
+        }
+    } finally {
+        if (engine.isReady()) engine.setMultiPV(1);
     }
-
-    // Restore MultiPV to default
-    App.engine.setMultiPV(1);
 
     return moments;
 }
 
 // Get engine evaluation for a position (returns { score, bestMove, mate, pv })
-async function getEngineEvaluation(fen, depth) {
+async function getEngineEvaluation(fen, depth, engine, generation = null) {
     return new Promise((resolve, reject) => {
         let evalResult = null;
+        const linesByMultiPV = new Map();
         let timeout = null;
+        let settled = false;
+        const signal = generation?.signal;
+
+        const cleanup = () => {
+            if (timeout !== null) clearTimeout(timeout);
+            engine.onBestMove = null;
+            engine.onInfo = null;
+            engine.onError = null;
+            signal?.removeEventListener('abort', abortHandler);
+        };
+        const finish = (callback, value) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            callback(value);
+        };
+        const abortHandler = () => {
+            engine.stop();
+            finish(reject, createCoachCancellationError());
+        };
+
+        if (signal?.aborted) {
+            finish(reject, createCoachCancellationError());
+            return;
+        }
 
         // Set up info callback to capture evaluation
         const infoCallback = (info) => {
             if (info.depth >= depth) {
-                evalResult = {
+                const line = {
                     score: info.score,
                     mate: info.mate,
                     bestMove: info.pv && info.pv.length > 0 ? info.pv[0] : null,
                     pv: info.pv || [],
-                    depth: info.depth
+                    depth: info.depth,
+                    multipv: info.multipv || 1
                 };
+                linesByMultiPV.set(line.multipv, line);
+                if (line.multipv === 1) evalResult = line;
             }
         };
 
         // Set up bestmove callback to finish analysis
         const bestMoveCallback = (move) => {
-            clearTimeout(timeout);
-            App.engine.onBestMove = null;
-            App.engine.onInfo = null;
-
             if (!evalResult) {
-                evalResult = { score: 0, mate: null, bestMove: move, pv: [move], depth: 0 };
-            } else if (!evalResult.bestMove) {
+                finish(reject, new Error('Stockfish 19 returned no evaluation at the requested depth.'));
+                return;
+            }
+            if (!evalResult.bestMove) {
                 evalResult.bestMove = move;
             }
-
-            resolve(evalResult);
+            const result = {
+                ...evalResult,
+                lines: [...linesByMultiPV.values()]
+                    .sort((a, b) => a.multipv - b.multipv)
+            };
+            generation?.depths.push(result.depth);
+            finish(resolve, result);
         };
 
-        // Set callbacks
-        App.engine.onInfo = infoCallback;
-        App.engine.onBestMove = bestMoveCallback;
-
-        // Start analysis
-        App.engine.currentFen = fen; // For score normalization
-        App.engine.setPosition(fen);
-        App.engine.go({ depth: depth });
-
-        // Timeout after 5 seconds per position
+        engine.onInfo = infoCallback;
+        engine.onBestMove = bestMoveCallback;
+        engine.onError = error => finish(reject, error instanceof Error ? error : new Error(String(error)));
+        signal?.addEventListener('abort', abortHandler, { once: true });
         timeout = setTimeout(() => {
-            App.engine.stop();
-            App.engine.onBestMove = null;
-            App.engine.onInfo = null;
-            resolve(evalResult || { score: 0, mate: null, bestMove: null, pv: [], depth: 0 });
-        }, 5000);
+            engine.stop();
+            finish(reject, new Error('Stockfish 19 analysis timed out. Please try again.'));
+        }, COACH_CONFIG.POSITION_TIMEOUT_MS);
+
+        try {
+            engine.currentFen = fen;
+            engine.setPosition(fen);
+            engine.go({ depth });
+        } catch (error) {
+            finish(reject, error);
+        }
     });
 }
 
-// Fallback analysis when engine is not available
-async function analyzeGameForMomentsFallback(game, gameIndex) {
-    const moments = [];
-    const chess = new Chess();
-
-    try {
-        chess.load_pgn(game.headers.pgn || '');
-    } catch (e) {
-        return moments;
-    }
-
-    const moves = chess.history({ verbose: true });
-
-    // Use simplified material-based detection
-    for (let ply = 0; ply < moves.length; ply++) {
-        const move = moves[ply];
-
-        if (move.captured) {
-            const capturedValue = getPieceValue(move.captured);
-            const movedValue = getPieceValue(move.piece);
-
-            if (capturedValue < movedValue - 2) {
-                moments.push({
-                    gameId: gameIndex,
-                    ply,
-                    moveSAN: move.san,
-                    fen: move.before,
-                    evalBefore: 0,
-                    evalAfter: -(movedValue - capturedValue),
-                    tags: [ERROR_TAGS.BAD_TRADE],
-                    phase: getGamePhase(ply, countPieces(move.before))
-                });
-            }
-        }
-    }
-
-    return moments;
-}
-
 // Classify error type based on position analysis and evaluation change
-function classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMove) {
+function classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMove, moveLoss) {
     const tags = [];
     const chess = new Chess(fenBefore);
 
@@ -7775,7 +7949,7 @@ function classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMov
     }
 
     // If no specific pattern detected but eval dropped significantly, mark as tactical miss
-    if (tags.length === 0 && Math.abs(evalAfter - evalBefore) >= COACH_CONFIG.BLUNDER_THRESHOLD) {
+    if (tags.length === 0 && moveLoss >= COACH_CONFIG.BLUNDER_THRESHOLD) {
         tags.push(ERROR_TAGS.TACTICAL_MISS);
     }
 
@@ -8077,8 +8251,24 @@ function generateTrainingPlan(aggregate) {
 
 // Display coach report
 function displayCoachReport(data) {
+    const engine = data.engine || {};
+    const engineName = escapeHtml(engine.uciName || 'Engine unavailable');
+    const engineVersion = escapeHtml(engine.version || 'unknown');
+    const depthReached = Number.isFinite(engine.averageDepthReached)
+        ? engine.averageDepthReached
+        : engine.requestedDepth;
+    const elapsedSeconds = Number.isFinite(engine.elapsedMs)
+        ? (engine.elapsedMs / 1000).toFixed(1)
+        : 'n/a';
+
     // Summary stats
     const summaryHtml = `
+        <div class="stat-card coach-engine-stat">
+            <div class="stat-label">Verified Engine</div>
+            <div class="stat-value">${engineName}</div>
+            <div class="stat-detail">v${engineVersion} · Scan d${engine.requestedDepth}/1 line · Confirm d${engine.confirmationDepth}/${engine.multiPV || 1} lines</div>
+            <div class="stat-detail">Avg depth ${depthReached} · ${engine.candidatesScanned || 0} candidates · ${engine.confirmedMoments || 0} confirmed · ${elapsedSeconds}s</div>
+        </div>
         <div class="stat-card">
             <div class="stat-label">Games Analyzed</div>
             <div class="stat-value">${data.gamesAnalyzed}</div>
