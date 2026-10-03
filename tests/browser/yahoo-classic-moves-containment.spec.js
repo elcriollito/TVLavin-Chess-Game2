@@ -109,7 +109,7 @@ test('right panel footer remains anchored when terminal status appears', async (
     };
 
     expect(after.board).toEqual(before.board);
-    expect(after.footer[1] + after.footer[3]).toBe(before.footer[1] + before.footer[3]);
+    expect(after.footer).toEqual(before.footer);
     expect(after.systemPanel).toEqual(before.systemPanel);
 });
 

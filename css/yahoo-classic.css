@@ -1935,16 +1935,42 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
 }
 
 .yc-move-panel-footer {
-    display: flex;
+    --yc-player-bar-size: 34px;
+    --yc-game-over-status-size: 43px;
+    display: grid;
+    grid-template-rows:
+        var(--yc-player-bar-size)
+        var(--yc-game-over-status-size)
+        var(--yc-system-panel-size);
     min-width: 0;
     min-height: 0;
-    flex-direction: column;
+    height: calc(
+        var(--yc-player-bar-size)
+        + var(--yc-game-over-status-size)
+        + var(--yc-system-panel-size)
+        + 8px
+    );
     gap: 4px;
     overflow: hidden;
 }
 
+.yc-move-panel-footer > .yc-game-player {
+    grid-row: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.yc-move-panel-footer > .yc-game-over-status {
+    grid-row: 2;
+    min-height: 0;
+    max-height: var(--yc-game-over-status-size);
+    overflow: hidden;
+}
+
 .yc-move-panel-footer .yc-game-system-panel {
-    flex: 0 0 var(--yc-system-panel-size);
+    grid-row: 3;
+    min-height: 0;
 }
 
 @media (min-width: 821px) {
