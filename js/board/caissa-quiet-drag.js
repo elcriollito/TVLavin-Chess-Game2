@@ -131,6 +131,7 @@ export class CaissaPointerController {
         pointerMoves: 0,
         dragStarts: 0,
         drops: 0,
+        taps: 0,
         cancellations: 0,
         geometryReadsAtStart: 0,
         geometryReadsDuringMove: 0,
@@ -221,6 +222,7 @@ export class CaissaPointerController {
             from,
             startX: event.clientX,
             startY: event.clientY,
+            maxDistance: 0,
             started: false,
             resolver,
             grabOffset,
@@ -252,6 +254,7 @@ export class CaissaPointerController {
         const latest = samples.length ? samples[samples.length - 1] : event;
         this.#metrics.coalescedSamples += samples.length;
         const distance = Math.hypot(latest.clientX - drag.startX, latest.clientY - drag.startY);
+        drag.maxDistance = Math.max(drag.maxDistance, distance);
         if (!drag.started && distance >= DRAG_THRESHOLD_PX && drag.pieceId
             && this.#options.allowsDrag?.(drag.pointerType)) {
             if (this.#options.onDragStart?.(drag.from, drag) === false) {
@@ -279,8 +282,18 @@ export class CaissaPointerController {
         this.#drag = null;
         this.#scheduler.cancel();
         this.#releaseCapture(drag.pointerId);
+        if (drag.started && drag.maxDistance < DRAG_THRESHOLD_PX && to === drag.from
+            && typeof this.#options.onTap === 'function') {
+            this.#options.onPresentationEnd?.(drag);
+            this.#options.onTap(to, drag);
+            this.#metrics.taps += 1;
+            return;
+        }
         if (!drag.started) {
-            if (to) this.#options.onTap?.(to, drag);
+            if (to) {
+                this.#options.onTap?.(to, drag);
+                this.#metrics.taps += 1;
+            }
             return;
         }
         this.#options.onDragEnd?.({ from: drag.from, to, cancelled: !to });

@@ -109,6 +109,7 @@ export class CaissaLegacyQuietDragAdapter {
                 return node && id ? { id, node } : null;
             },
             onDragStart: (source, drag) => this.#options.onDragStart?.(source, drag.pieceId) !== false,
+            onTap: square => this.#options.onTap?.(square),
             onMoveAttempt: (source, target) => this.#drop(source, target),
             onPresentationStart: drag => this.#beginPresentation(drag),
             onVisualWrite: (drag, x, y) => this.#write(drag, x, y),

@@ -1600,6 +1600,7 @@ body.yc-classic-active #app {
 }
 
 .yc-game-board-panel {
+    position: relative;
     display: grid;
     grid-template-rows: minmax(180px, 1fr) auto;
     grid-auto-rows: auto;
@@ -1609,6 +1610,15 @@ body.yc-classic-active #app {
     padding: 6px;
     min-height: 0;
     overflow: hidden;
+}
+
+.yc-classic-promotion-selector {
+    z-index: 60;
+}
+
+.yc-classic-board .square-55d63.yc-click-selected {
+    outline: 2px dotted #241d54;
+    outline-offset: -4px;
 }
 
 .yc-game-player {
