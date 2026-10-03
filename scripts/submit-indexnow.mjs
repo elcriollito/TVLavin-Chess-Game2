@@ -14,7 +14,8 @@ export const MAX_URLS = 10_000;
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const exactRouteFiles = new Map([
-  ['index.html', '/'],
+  ['home.html', '/'],
+  ['play-v2-public-beta.html', '/play'],
   ['about.html', '/about'],
   ['blog/index.html', '/blog'],
   ['database.html', '/database'],

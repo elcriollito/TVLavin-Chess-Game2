@@ -88,7 +88,7 @@ test('dedicated public entry excludes invite runtime and prohibited resource gra
     const resources = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
     assert.equal(resources.filter(item => /fics/i.test(item) && !/play-v2-fics-isolation/i.test(item)).length, 0);
     assert.equal(resources.filter(item => /academy|mentor|guided[-_/]?replay|knowledge|training[-_/]?memory|mastery|endgame[-_/]?(?:trainer|library)|players|onboarding|js\/play\/coach\//i.test(item)
-        && !/play-v2-(?:mentor-review-boundary|native-players-policy|players-presentation-policy)/i.test(item)).length, 0);
+        && !/(?:play-v2-(?:mentor-review-boundary|native-players-policy|players-presentation-policy)|js\/mentor\/mentor-(?:context-contract|floating-shell)|css\/mentor-floating-shell)/i.test(item)).length, 0);
 });
 
 test('edge middleware owns canonical Play, redirects retired beta, and fails closed elsewhere', async () => {
@@ -105,6 +105,13 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
         response = middleware(new Request('https://www.caissa-chess.org/', { method: 'HEAD' }));
         assert.equal(response.status, 200);
         assert.equal(new URL(response.headers.get('x-middleware-rewrite')).pathname, '/home.html');
+        for (const path of ['/index.html', '/home.html']) {
+            for (const method of ['GET', 'HEAD']) {
+                response = middleware(new Request(`https://www.caissa-chess.org${path}`, { method }));
+                assert.equal(response.status, 308, `${method} ${path}`);
+                assert.equal(response.headers.get('location'), 'https://www.caissa-chess.org/');
+            }
+        }
         response = middleware(new Request('https://www.caissa-chess.org/play'));
         assert.equal(response.status, 404);
         assert.match(await response.text(), /Play Beta Unavailable/);
@@ -130,6 +137,17 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
             assert.match(body, /data-caissa-play-v2-entry="official"/);
             assert.match(body, /name="caissa-build" content="8426d0371ff68d4afe81d5be9bc8cfa64f4507f1"/);
             assert.match(response.headers.get('Content-Security-Policy'), /connect-src 'self'/);
+            if (path === '/play') {
+                const page = load(body);
+                assert.equal(page('title').text(), 'Play Chess Online | CAISSA Chess');
+                assert.equal(page('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/play');
+                assert.equal(page('meta[property="og:url"]').attr('content'), 'https://www.caissa-chess.org/play');
+                assert.equal(page('meta[name="twitter:url"]').attr('content'), 'https://www.caissa-chess.org/play');
+                const schema = JSON.parse(page('script[type="application/ld+json"]').first().text());
+                assert.equal(schema['@type'], 'WebPage');
+                assert.equal(schema.url, 'https://www.caissa-chess.org/play');
+                assert.equal(schema.isPartOf['@id'], 'https://www.caissa-chess.org/#website');
+            }
         }
         response = middleware(new Request('https://www.caissa-chess.org/play', { method: 'HEAD' }));
         assert.equal(response.status, 200);

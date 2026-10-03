@@ -22,7 +22,7 @@ import tablebaseHandler from './api/tablebase/standard.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 8000;
+const PORT = Number.parseInt(process.env.PORT || '8000', 10);
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const RETIRED_PAGE_REDIRECTS = new Map([
   ['/puzzles/chessbase-tactics', '/puzzles'],
@@ -407,6 +407,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Consolidate public blog routes on the canonical no-trailing-slash form.
+  if ((pathname === '/index.html' || pathname === '/home.html') && (req.method === 'GET' || req.method === 'HEAD')) {
+    res.writeHead(308, { Location: '/' });
+    res.end();
+    return;
+  }
+
   if (pathname === '/blog/' || /^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*\/$/.test(pathname)) {
     res.writeHead(308, { Location: pathname.slice(0, -1) + url.search });
     res.end();
@@ -573,7 +579,10 @@ const server = http.createServer(async (req, res) => {
   if (betaEntry.requested) {
     filePath = `./${betaEntry.document}`;
     res.setHeader('Cache-Control', 'no-store, max-age=0');
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    const canonicalPublicPlay = betaEntry.authorized
+      && ['/play', '/play/games', '/play/bots', '/play/coach'].includes(pathname)
+      && !physicalPromotionQA.requested && !ipadAnalyzeDiagnostic.requested;
+    res.setHeader('X-Robots-Tag', canonicalPublicPlay ? 'index, follow' : 'noindex, nofollow, noarchive');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', ipadAnalyzeDiagnostic.requested ? PLAY_V2_DIAGNOSTIC_CSP : PLAY_V2_CSP);

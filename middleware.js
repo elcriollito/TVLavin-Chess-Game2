@@ -65,6 +65,10 @@ function resolveVercelPlayEnvironment(environment) {
 
 export default function middleware(request) {
     const url = new URL(request.url);
+    if ((url.pathname === '/index.html' || url.pathname === '/home.html')
+        && (request.method === 'GET' || request.method === 'HEAD')) {
+        return Response.redirect(new URL('/', url), 308);
+    }
     if (url.pathname === '/' && (request.method === 'GET' || request.method === 'HEAD')) {
         if (url.searchParams.get('section') === 'yahooClassic') {
             return Response.redirect(new URL('/yahoo-classic', url), 308);

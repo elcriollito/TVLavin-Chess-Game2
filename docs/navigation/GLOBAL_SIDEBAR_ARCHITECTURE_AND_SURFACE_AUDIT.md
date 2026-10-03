@@ -152,7 +152,7 @@ The implementation must verify anonymous, signed-in Free, and Premium states wit
 2. **High:** every closed drawer must be non-interactive to keyboard and accessibility APIs. Off-screen transform alone is insufficient; certify `inert`/focus exclusion and appropriate hidden semantics without hiding an open drawer.
 3. **High:** use one focus-management primitive per shell: focus first meaningful control on open, trap only while open, Escape/backdrop close, and return focus to the invoker. Never leave parallel desktop/mobile copies focusable.
 4. **Medium:** category labels should remain visible text and non-interactive headings that label grouped navigation (`section` + `aria-labelledby` is already the modern pattern). They must not become links/buttons or decorative pseudo-content.
-5. **Medium:** the logo's accessible name is canonically “CAISSA Chess — return to Play”; do not add a second ambiguous Return to Play action beside it without distinct purpose/name.
+5. **Medium:** the logo's accessible name is canonically “CAISSA Chess — return home”; keep Play as a distinct destination and give any separate Return to Play action a distinct purpose/name.
 6. **Medium:** preserve `aria-current="page"` on exactly one active global destination. Internal Play tabs need their own tab/navigation current-state semantics and must not compete with the outer current item.
 7. **Medium:** internal nav scroll must reveal the active/focused item and must not steal page scroll. Visible focus indicators may not be clipped at scroll edges.
 8. **Medium:** certify 44 CSS px touch targets, safe-area padding, 200% zoom/reflow (including ~640 CSS px), forced colors, and readable source order.

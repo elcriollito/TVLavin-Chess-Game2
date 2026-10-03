@@ -27,14 +27,17 @@ test('homepage search and social metadata are aligned on the Home document', () 
   assert.equal($('meta[name="twitter:url"]').attr('content'), canonical);
   assert.equal($('meta[name="robots"]').attr('content'), 'index, follow');
 });
-test('homepage structured data parses and retains the canonical application identity', () => {
+test('homepage structured data parses and retains the canonical site identity', () => {
   const $ = load(read('home.html'));
   const schemas = $('script[type="application/ld+json"]').toArray()
     .map(node => JSON.parse($(node).text()));
 
-  assert.deepEqual(schemas.map(schema => schema['@type']), ['WebApplication', 'Organization']);
+  assert.deepEqual(schemas.map(schema => schema['@type']), ['WebSite', 'Organization']);
+  assert.equal(schemas[0]['@id'], `${canonical}#website`);
   assert.equal(schemas[0].name, 'CAISSA Chess');
   assert.equal(schemas[0].url, canonical);
+  assert.equal(schemas[0].publisher['@id'], `${canonical}#organization`);
+  assert.equal(schemas[1]['@id'], `${canonical}#organization`);
 });
 
 test('application-state parameter URLs stay out of the sitemap', () => {

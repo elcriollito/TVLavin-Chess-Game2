@@ -12,6 +12,27 @@ const publicBetaDocumentModulePath = new URL('../api/_lib/play-v2-public-beta-do
 const unavailableOutputPath = new URL('../play-v2-unavailable.html', import.meta.url);
 const promotionQaOutputPath = new URL('../play-v2-promotion-qa.html', import.meta.url);
 const ipadAnalyzeDiagnosticOutputPath = new URL('../play-v2-ipad-analyze-diagnostic.html', import.meta.url);
+const publicPlayTitle = 'Play Chess Online | CAISSA Chess';
+const publicPlayDescription = 'Play chess online with CAISSA Games, Bots and Coach modes, then review your game and continue training.';
+const publicPlayUrl = 'https://www.caissa-chess.org/play';
+const publicPlayImage = 'https://www.caissa-chess.org/og-image.png';
+const publicPlayStructuredData = `<script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": "${publicPlayUrl}#webpage",
+      "name": "${publicPlayTitle}",
+      "description": "${publicPlayDescription}",
+      "url": "${publicPlayUrl}",
+      "isPartOf": {
+        "@type": "WebSite",
+        "@id": "https://www.caissa-chess.org/#website",
+        "name": "CAISSA Chess",
+        "url": "https://www.caissa-chess.org/"
+      },
+      "primaryImageOfPage": { "@type": "ImageObject", "url": "${publicPlayImage}" }
+    }
+    </script>`;
 
 const [sourceHtml, inlineAnalyzeSection] = await Promise.all([
   readCanonicalText(sourcePath),
@@ -56,16 +77,18 @@ html = html
   .replace(/\s*<!-- CSP: FICS WebSocket[^>]*-->/i, '\n')
   .replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i,
     '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\' https://cdn.jsdelivr.net; script-src-elem \'self\' https://cdn.jsdelivr.net; style-src \'self\' \'unsafe-inline\'; img-src \'self\' https://img.clerk.com data:; font-src \'self\'; worker-src \'self\' blob:; connect-src \'self\' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src \'self\' https://*.clerk.accounts.dev; object-src \'none\'; base-uri \'self\';">')
+  .replace(/\s*<link rel="canonical"[^>]*>/i, '')
   .replace(/<title>[\s\S]*?<\/title>/i, '<title>CAISSA Play v2 · Internal</title>')
   .replace(/<meta name="title"[^>]*>/i, '<meta name="title" content="CAISSA Play v2 · Internal">')
-  .replace(/<meta name="description"[^>]*>/i, '<meta name="description" content="Internal CAISSA-native chess play preview.">')
+  .replace(/<meta name="description"[^>]*>/i,
+    '<meta name="description" content="Internal CAISSA-native chess play preview.">\n' +
+    '    <link rel="canonical" href="/play/beta">')
   .replace(/<meta property="og:(?:title|description)"[^>]*>/gi, '')
   .replace(/<meta name="twitter:(?:title|description)"[^>]*>/gi, '')
   .replace(/<meta (?:property="og:(?:url|image(?::[^" ]+)?)"|name="twitter:(?:url|image)")[^>]*>/gi, '')
   .replace(/<meta (?:property="og:image:alt"|name="twitter:image:alt")[^>]*>/gi,
     '<meta name="image:alt" content="CAISSA internal chess play preview.">')
   .replace(/<meta name="robots"[^>]*>/i, '<meta name="robots" content="noindex, nofollow">')
-  .replace(/<link rel="canonical"[^>]*>/i, '<link rel="canonical" href="/play/beta">')
   .replace('<section id="yahooClassicSection" class="content-section active">',
     '<section id="yahooClassicSection" class="content-section" hidden inert aria-hidden="true">')
   .replace('<nav id="mainNav" class="main-navigation">',
@@ -167,22 +190,38 @@ if (!/connect-src 'self'[^;]*https:\/\/\*\.clerk\.accounts\.dev/.test(html))
 
 await writeCanonicalText(outputPath, html);
 const publicBetaHtml = html
-  .replace('<title>CAISSA Play v2 · Internal</title>', '<title>Play Chess Online | CAISSA Chess</title>')
-  .replace('<meta name="title" content="CAISSA Play v2 · Internal">', '<meta name="title" content="Play Chess Online | CAISSA Chess">')
-  .replace('<meta name="description" content="Internal CAISSA-native chess play preview.">', '<meta name="description" content="Play chess online with CAISSA Games, Bots, and Coach modes.">')
-  .replace('<meta name="image:alt" content="CAISSA internal chess play preview.">', '<meta name="image:alt" content="CAISSA chess board and play controls.">')
-  .replace('<link rel="canonical" href="/play/beta">', '<link rel="canonical" href="https://www.caissa-chess.org/play">')
+  .replace('<title>CAISSA Play v2 · Internal</title>', `<title>${publicPlayTitle}</title>`)
+  .replace('<meta name="title" content="CAISSA Play v2 · Internal">', `<meta name="title" content="${publicPlayTitle}">`)
+  .replace('<meta name="description" content="Internal CAISSA-native chess play preview.">', `<meta name="description" content="${publicPlayDescription}">`)
+  .replace('<meta name="image:alt" content="CAISSA internal chess play preview.">',
+    '<meta property="og:image:alt" content="CAISSA chess board and play controls.">\n' +
+    '    <meta name="twitter:image:alt" content="CAISSA chess board and play controls.">')
+  .replace('<link rel="canonical" href="/play/beta">', `<link rel="canonical" href="${publicPlayUrl}">`)
+  .replace('<meta property="og:type" content="website">',
+    '<meta property="og:type" content="website">\n' +
+    `    <meta property="og:url" content="${publicPlayUrl}">\n` +
+    `    <meta property="og:title" content="${publicPlayTitle}">\n` +
+    `    <meta property="og:description" content="${publicPlayDescription}">\n` +
+    `    <meta property="og:image" content="${publicPlayImage}">\n` +
+    '    <meta property="og:image:width" content="1200">\n' +
+    '    <meta property="og:image:height" content="630">')
+  .replace('<meta name="twitter:card" content="summary_large_image">',
+    '<meta name="twitter:card" content="summary_large_image">\n' +
+    `    <meta name="twitter:url" content="${publicPlayUrl}">\n` +
+    `    <meta name="twitter:title" content="${publicPlayTitle}">\n` +
+    `    <meta name="twitter:description" content="${publicPlayDescription}">\n` +
+    `    <meta name="twitter:image" content="${publicPlayImage}">`)
   .replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')
   .replace('data-caissa-play-v2-entry="qa-only"', 'data-caissa-play-v2-entry="official"')
   .replaceAll('data-navigation-mode="application"', 'data-navigation-mode="routes"')
   .replace('<script src="js/play/play-v2-beta-entry.js?v=1.0.0"></script>',
     '<script src="js/play/play-v2-public-beta-policy.js?v=1.0.0"></script>')
   .replace(/\s*<script src="js\/play\/play-v2-invite-client\.js\?v=1\.0\.0"><\/script>/, '')
-  .replace('</head>', '    <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>\n</head>')
+  .replace('</head>', `    ${publicPlayStructuredData}\n    <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>\n</head>`)
   .replace('</body>', '    <script src="js/play/play-v2-public-beta-ui.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
-for (const required of ['data-caissa-play-v2-entry="official"', 'href="https://www.caissa-chess.org/play"', 'play-v2-public-beta-policy.js',
-  'play-v2-public-beta-ui.js']) {
+for (const required of ['data-caissa-play-v2-entry="official"', `href="${publicPlayUrl}"`, `property="og:url" content="${publicPlayUrl}"`,
+  `name="twitter:url" content="${publicPlayUrl}"`, `"@id": "${publicPlayUrl}#webpage"`, 'play-v2-public-beta-policy.js', 'play-v2-public-beta-ui.js']) {
   if (!publicBetaHtml.includes(required)) throw new Error(`PLAY_V2_PUBLIC_BETA_BUILD_MISSING: ${required}`);
 }
 if (/play-v2-beta-entry\.js|play-v2-invite-client\.js|play-v2-invite-redemption\.js/.test(publicBetaHtml))
