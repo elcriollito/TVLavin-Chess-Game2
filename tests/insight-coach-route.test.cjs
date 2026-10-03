@@ -45,6 +45,8 @@ function harness(profile = { games: [{}] }, fail = false) {
     const context = vm.createContext({
         document: { getElementById: node },
         insightProfile: profile,
+        coachReportData: null,
+        persistCoachReport() {},
         console: { log() {}, warn() {}, error() {} },
         hideModal: id => events.push(['hide', id]),
         showModal: id => events.push(['show', id]),

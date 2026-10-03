@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../app.js', import.meta.url), 'utf8');
 const setup = source.slice(source.indexOf('function setupInsightModal() {'), source.indexOf('// ===== PERFORMANCE MONITORING ====='));
-const clearSetup = source.slice(source.indexOf('function setupClearInsightHandlers() {'), source.indexOf('// Clear Insight session'));
+const clearSetup = source.slice(source.indexOf('function setupClearInsightHandlers() {'), source.indexOf('// Start Fresh only clears'));
 const gameSource = source.slice(source.indexOf('function getLichessProxyUrl()'), source.indexOf('// ===== COACH REPORT MODULE ====='));
 function harness() {
     const nodes = new Map();

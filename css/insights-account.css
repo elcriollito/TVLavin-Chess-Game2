@@ -1,0 +1,15 @@
+#insightHistoryList { list-style: none; padding: 0; display: grid; gap: 1rem; }
+#insightHistoryList li { display: flex; flex-wrap: wrap; gap: .5rem; padding: 1rem; border: 1px solid var(--border-color, #374151); border-radius: .5rem; }
+#insightHistoryList p { flex-basis: 100%; margin: 0 0 .25rem; overflow-wrap: anywhere; }
+#insightHistory .btn[hidden], #insightModal .btn[hidden], #coachModal .btn[hidden] { display: none !important; }
+#insightHistoryStatus, #insightSaveStatus, #coachSaveStatus { overflow-wrap: anywhere; }
+#coachPatternsContent > div { min-width: 0; max-width: 100%; }
+#coachPatternsContent table { width: 100%; border-collapse: collapse; text-align: left; }
+#coachPatternsContent th, #coachPatternsContent td { padding: .5rem; border-bottom: 1px solid var(--border-color, #374151); }
+#coachPatternsContent ul { padding-left: 1.25rem; }
+#coachPatternsContent li { margin-bottom: .75rem; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+    #insightHistoryList .btn { flex: 1 1 130px; }
+    #coachPatternsContent table { font-size: .8rem; }
+    #coachPatternsContent th, #coachPatternsContent td { padding: .35rem .2rem; }
+}

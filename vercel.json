@@ -1,6 +1,7 @@
 {
   "outputDirectory": ".",
   "functions": {
+    "api/insights/**/*.js": { "maxDuration": 30 },
     "api/stripe/webhook.js": {
       "maxDuration": 10
     },
