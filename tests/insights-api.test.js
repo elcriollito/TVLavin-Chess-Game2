@@ -4,10 +4,33 @@ import { randomUUID } from 'node:crypto';
 import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { createInsightsHandler } from '../api/_lib/insights-handlers.js';
 import { validateDataset, validateSnapshot, hash } from '../api/_lib/insights-validation.js';
+import engineCheck from '../api/insights/engine-check.js';
 import '../js/insights/engine-analysis.js';
 const rawText = '[Event "Synthetic"]\n[White "Alex"]\n[Black "B"]\n[Result "0-1"]\n\n1. e4 e5 2. Nf3 Nc6 0-1';
 const input = { rawText, subject: { provider: 'local', username: 'Alex' }, importMetadata: [] };
 const ownerA = randomUUID(), ownerB = randomUUID();
+test('synthetic engine browser check is unavailable in production and accepts only preview GET', () => {
+    const previous = process.env.VERCEL_ENV;
+    function call(environment, method = 'GET') {
+        process.env.VERCEL_ENV = environment;
+        const result = { headers: {}, status: null, body: '' };
+        const res = { setHeader(k, v) { result.headers[k] = v; }, status(value) { result.status = value; return res; },
+            end() { return res; }, send(value) { result.body = value; return res; } };
+        engineCheck({ method }, res); return result;
+    }
+    try {
+        assert.equal(call('production').status, 404);
+        assert.equal(call('development').status, 404);
+        assert.equal(call('preview', 'POST').status, 405);
+        const preview = call('preview');
+        assert.equal(preview.status, 200); assert.equal(preview.headers['Cache-Control'], 'private, no-store');
+        assert.match(preview.body, /\/js\/insights\/engine-check\.js/);
+        assert.equal(preview.headers['X-Robots-Tag'], 'noindex, nofollow');
+    } finally {
+        if (previous === undefined) delete process.env.VERCEL_ENV;
+        else process.env.VERCEL_ENV = previous;
+    }
+});
 function memoryDb() {
     const tables = { users: [{ id: ownerA, clerk_id: 'A' }, { id: ownerB, clerk_id: 'B' }], insight_datasets: [], insight_reports: [] };
     return { tables,

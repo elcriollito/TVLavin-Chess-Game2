@@ -29,11 +29,16 @@ This is a versioned browser estimate, not a calibrated accuracy score, recurring
 
 ## Automatic validation
 
-- `npm run test:insights`: 53 tests pass, covering the audited data/engine defects, cancellation and account changes, private API access, immutable retry, truthful save states, source provenance and legal replay.
+- `npm run test:insights`: 55 tests pass, covering the audited data/engine defects, the real EngineAdapter attributed UCI contract, cancellation and account changes, private API access, immutable retry, truthful save states, source provenance and legal replay.
 - `npm run lint:insights`: passes.
+- `npm run test:home`: 64 navigation, homepage, route and redirect regression tests pass.
 - `tests/fixtures/insights-staging-acceptance.sql`: passed against `CAISSA-READER-STAGING`. Nine assertions cover real database idempotency, immutability, owner FK, foreign deletion, owner retrieval, shared/orphan dataset lifecycle and private/server grants. All synthetic data was rolled back.
 - Supabase security/performance advisors reviewed after migration; no warning/error attributable to these new tables/functions.
-- Browser/WASM smoke and deployment verification are recorded below when completed.
+- Vercel preview builds successfully. The browser engine check is available only on preview at `/api/insights/engine-check`; production and development return 404. It uses a synthetic four-ply PGN without accounts, credits or report writes. Live WASM results are recorded below when completed.
+
+## Preview configuration blocker
+
+The deployed `/api/insights/status` responds with `authConfigured: true`, `storageConfigured: false`, and `previewUsesStaging: false`. The preview currently lacks its permitted staging Supabase server connection. Actual authenticated save/reload/recovery cannot be accepted from the hosted preview until Preview-only `SUPABASE_URL` points to `CAISSA-READER-STAGING` and `SUPABASE_SERVICE_ROLE_KEY` is provisioned securely, followed by a redeployment. Never point this preview at production or expose the service role key in browser configuration. The staging schema and database acceptance passed; the hosted persistence flow remains unverified.
 
 ## Release boundary
 
