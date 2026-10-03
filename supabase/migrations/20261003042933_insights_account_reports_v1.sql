@@ -56,7 +56,7 @@ begin
     end if;
     return jsonb_build_object('status', 'existing', 'reportId', saved.id, 'createdAt', saved.created_at);
   end if;
-  perform 1 from public.insight_datasets where user_id = p_user_id and id = p_dataset_id for key share;
+  perform 1 from public.insight_datasets where user_id = p_user_id and id = p_dataset_id;
   if not found then raise exception 'Dataset unavailable' using errcode = '23503'; end if;
   if (select count(*) from public.insight_reports where user_id = p_user_id) >= 1000 then
     return jsonb_build_object('status', 'limit');
@@ -77,7 +77,6 @@ begin
   perform pg_advisory_xact_lock(hashtextextended(p_user_id::text, 913001));
   select dataset_id into dataset from public.insight_reports where user_id = p_user_id and id = p_report_id;
   if not found then return jsonb_build_object('deleted', false); end if;
-  perform 1 from public.insight_datasets where user_id = p_user_id and id = dataset for update;
   delete from public.insight_reports where user_id = p_user_id and id = p_report_id;
   if not exists (select 1 from public.insight_reports where user_id = p_user_id and dataset_id = dataset) then
     delete from public.insight_datasets where user_id = p_user_id and id = dataset;

@@ -50,5 +50,33 @@ begin
     'idempotency',true,'immutable_snapshot',true,'composite_owner_fk',true,'foreign_delete_rejected',true,
     'owner_scoped_retrieval',true,'shared_dataset_preserved',true,'orphan_pgn_removed',true,'private_grants',true,'server_grants',true));
 end $$;
+
+-- Exercise the deployed RPCs under the same PostgREST role used by the
+-- server-side Supabase secret key. Row-locking clauses would require UPDATE
+-- here and are intentionally forbidden for immutable Insights data.
+insert into public.users(id, clerk_id, credits) values
+  ('10000000-0000-4000-8000-000000000091', 'insights-service-role-probe', 0);
+insert into public.insight_datasets(id, user_id, input_hash, schema_version, raw_pgn, subject, game_count) values
+  ('20000000-0000-4000-8000-000000000091', '10000000-0000-4000-8000-000000000091', repeat('9',64),
+   '1.0.0', '[Event "Service role probe"]', '{"provider":"local","username":"Probe"}', 1);
+set local role service_role;
+do $$
+declare saved jsonb; removed jsonb;
+begin
+  saved := public.save_insight_report(
+    '10000000-0000-4000-8000-000000000091', '20000000-0000-4000-8000-000000000091',
+    '30000000-0000-4000-8000-000000000091', repeat('8',64),
+    '{"schemaVersion":"1.0.0","analysisStatus":"unavailable","method":"engine_browser","verificationStatus":"structurally_validated"}',
+    '{"gamesAnalyzed":1,"analysisStatus":"unavailable"}'
+  );
+  if saved->>'status' <> 'created' then raise exception 'service_role save RPC failed'; end if;
+  removed := public.delete_insight_report(
+    '10000000-0000-4000-8000-000000000091', (saved->>'reportId')::uuid
+  );
+  if removed->>'deleted' <> 'true' then raise exception 'service_role delete RPC failed'; end if;
+end $$;
+reset role;
+update insights_acceptance_results
+set result = result || '{"service_role_rpc":true}'::jsonb;
 select result from insights_acceptance_results;
 rollback;

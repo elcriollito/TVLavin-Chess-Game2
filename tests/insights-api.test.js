@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { createInsightsHandler } from '../api/_lib/insights-handlers.js';
 import { validateDataset, validateSnapshot, hash } from '../api/_lib/insights-validation.js';
@@ -159,4 +160,13 @@ test('database errors produce a save failure without leaking internals', async (
 });
 test('input hash is stable across object key order', () => {
     assert.equal(hash({ a: 1, b: { d: 2, c: 3 } }), hash({ b: { c: 3, d: 2 }, a: 1 }));
+});
+test('service-role RPC repair preserves immutable table grants', () => {
+    const sql = fs.readFileSync('supabase/migrations/20261003190000_insights_rpc_invoker_privileges.sql', 'utf8');
+    assert.match(sql, /security invoker set search_path = ''/i);
+    assert.match(sql, /pg_advisory_xact_lock/i);
+    assert.doesNotMatch(sql, /for\s+(?:key\s+share|update)/i);
+    assert.match(sql, /revoke update on public\.insight_datasets, public\.insight_reports from service_role/i);
+    assert.match(sql, /revoke all on function public\.save_insight_report[\s\S]*from public, anon, authenticated/i);
+    assert.match(sql, /grant execute on function public\.save_insight_report[\s\S]*to service_role/i);
 });
