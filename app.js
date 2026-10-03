@@ -3797,6 +3797,7 @@ function showModal(modalId) {
 }
 
 function hideModal(modalId) {
+    if (modalId === 'coachModal' && typeof insightRunController !== 'undefined') insightRunController?.abort();
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
@@ -5774,112 +5775,12 @@ function parsePGN(pgnText) {
     return data;
 }
 
-// Parse multi-game PGN and extract aggregate statistics
-function parseMultiGamePGN(pgnText) {
-    console.log('🔍 Parsing multi-game PGN...');
-
-    // Normalize PGN text first
-    pgnText = normalizePGN(pgnText);
-
-    // Split by [Event header using robust splitting function
-    const gameSections = splitGamesFromPGN(pgnText);
-    const games = [];
-    const stats = {
-        total: 0,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        avgPlyCount: 0,
-        openings: {} // ECO code counts
-    };
-
-    let totalPlies = 0;
-
-    for (const section of gameSections) {
-        const trimmed = section.trim();
-        if (!trimmed || !trimmed.startsWith('[Event')) continue;
-
-        // Extract headers
-        const headers = {};
-        const headerMatches = {
-            event: /\[Event\s+"([^"]+)"\]/,
-            site: /\[Site\s+"([^"]+)"\]/,
-            date: /\[Date\s+"([^"]+)"\]/,
-            white: /\[White\s+"([^"]+)"\]/,
-            black: /\[Black\s+"([^"]+)"\]/,
-            result: /\[Result\s+"([^"]+)"\]/,
-            eco: /\[ECO\s+"([^"]+)"\]/,
-            timeControl: /\[TimeControl\s+"([^"]+)"\]/
-        };
-
-        for (const [key, regex] of Object.entries(headerMatches)) {
-            const match = trimmed.match(regex);
-            if (match) headers[key] = match[1];
-        }
-
-        // Store raw PGN for this game
-        headers.pgn = trimmed;
-
-        // Parse moves using Chess.js
-        let moves = [];
-        let plyCount = 0;
-        try {
-            const chess = new Chess();
-            const loaded = chess.load_pgn(trimmed);
-            if (loaded) {
-                moves = chess.history();
-                plyCount = moves.length;
-            }
-        } catch (error) {
-            console.warn('⚠️ Failed to parse moves for game:', headers.event, error);
-        }
-
-        // Determine outcome
-        let outcome = 'unknown';
-        let userColor = 'unknown';
-
-        if (headers.result) {
-            if (headers.result === '1-0') {
-                outcome = 'white-win';
-            } else if (headers.result === '0-1') {
-                outcome = 'black-win';
-            } else if (headers.result === '1/2-1/2') {
-                outcome = 'draw';
-            }
-        }
-
-        // Store game data
-        games.push({
-            headers,
-            moves,
-            plyCount,
-            outcome,
-            userColor
-        });
-
-        // Update stats
-        stats.total++;
-        totalPlies += plyCount;
-
-        // Count openings
-        if (headers.eco) {
-            stats.openings[headers.eco] = (stats.openings[headers.eco] || 0) + 1;
-        }
-    }
-
-    // Calculate average ply count
-    if (stats.total > 0) {
-        stats.avgPlyCount = Math.round(totalPlies / stats.total);
-    }
-
-    console.log(`✅ Parsed ${stats.total} games`);
-    console.log('📊 Stats:', stats);
-
-    return {
-        games,
-        stats,
-        rawText: pgnText
-    };
+// Insights parsing is shared with server validation. The selected player is
+// independent from the CAISSA account that owns a saved report.
+function parseMultiGamePGN(pgnText, options = null) {
+    return window.CaissaInsightsCore.parse(pgnText, options || {
+        provider: 'local', username: document.getElementById('insightTargetPlayer')?.value || ''
+    }, Chess);
 }
 
 // Setup Engine vs Engine event listeners
@@ -6103,436 +6004,222 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // ===== CAISSA INSIGHT MODULE =====
 
-// Insight state
+// Account-scoped workspace and cancellable analysis state.
 let insightProfile = null;
-
-// Load saved insight profile from localStorage
-function loadInsightProfile() {
-    console.log('📊 Loading Caissa Insight profile...');
-    try {
-        const saved = localStorage.getItem('caissa_insight_profile');
-        if (saved) {
-            insightProfile = JSON.parse(saved);
-            console.log('✅ Profile loaded:', insightProfile);
-
-            // Display saved profile in modal
-            displayInsightResults(insightProfile);
-
-            // Also populate the textarea with the raw PGN for potential refresh
-            const pgnInput = document.getElementById('insightPgnInput');
-            if (pgnInput && insightProfile.rawText) {
-                pgnInput.value = insightProfile.rawText;
+let insightAccount = null;
+let insightWorkspace = null;
+let insightRunController = null;
+let insightEpoch = 0;
+let insightHistoryCursor = null;
+let insightHistoryEpoch = 0;
+let insightOpeningCatalog = [];
+let insightOpeningCatalogRequested = false;
+function openInsightReportFlow() {
+    if (insightRunController) { showModal('coachModal'); showCoachSection('progress'); return; }
+    if (insightProfile?.games?.length) {
+        if (coachReportData?.config) {
+            document.getElementById('coachGameCount').value = String(coachReportData.config.gameCount);
+            document.getElementById('coachColorFilter').value = coachReportData.config.colorFilter;
+        }
+        hideModal('insightModal'); showModal('coachModal'); showCoachSection('config');
+    } else showModal('insightModal');
+}
+function updateInsightReportStatus() {
+    const label = document.getElementById('insightPrimaryLabel');
+    if (label) label.textContent = insightRunController ? 'Review in progress' : coachReportData?.analysisStatus === 'partial' || coachReportData?.analysisStatus === 'unavailable' ? 'Continue report' : coachReportData ? 'Report settings' : 'Generate report';
+    const identity = document.getElementById('insightLatestIdentity');
+    if (identity) {
+        const date = insightWorkspace?.createdAt || coachReportData?.timestamp;
+        identity.textContent = insightProfile ? `${insightProfile.subject.username} · ${coachReportData?.selectedGames?.length || insightProfile.stats.identified} games ${coachReportData ? 'in this report' : 'imported'}${date ? ` · Updated ${new Date(date).toLocaleString()}` : ''}` : 'No report yet';
+    }
+}
+function reviewInsightMoment(moment) {
+    if (!moment || !insightProfile) return;
+    const stored = window.CaissaInsightReportView.createHandoff(moment);
+    if (!stored.ok) { showErrorNotification('Could not open this game. Export the report and try again.'); return; }
+    window.location.assign(`/analyze?handoff=${encodeURIComponent(stored.token)}`);
+}
+function renderInsightDashboard() {
+    const root = document.getElementById('insightDashboard');
+    if (!root || !insightProfile || !window.CaissaInsightReportView) return;
+    if (!insightOpeningCatalogRequested && window.CaissaEcoOpeningResolver) {
+        insightOpeningCatalogRequested = true;
+        window.CaissaEcoOpeningResolver.loadCatalog().then(rows => { insightOpeningCatalog = rows; if (insightProfile && rows.length) renderInsightDashboard(); });
+    }
+    window.CaissaInsightReportView.mount(root, insightProfile, coachReportData, { Chess, catalog: insightOpeningCatalog, onReview: reviewInsightMoment, onAction(action) {
+        if (action === 'import') { document.getElementById('insightResultsSection').style.display = 'none'; document.getElementById('insightImportSection').style.display = 'block'; showModal('insightModal'); }
+        if (action === 'clear') showModal('clearInsightModal');
+        if (action === 'export') document.getElementById(coachReportData ? 'coachExportBtn' : 'insightExportBtn')?.click();
+    } });
+    updateInsightReportStatus();
+}
+function getInsightAccount() {
+    if (!insightAccount && window.CaissaInsightsAccount && window.CAISSA_AUTH) {
+        insightAccount = window.CaissaInsightsAccount.create({ onOwnerChange() {
+            insightEpoch++; insightHistoryEpoch++; insightRunController?.abort();
+            insightProfile = null; coachReportData = null; insightWorkspace = null;
+            resetInsightUI(); showCoachSection('config');
+            for (const id of ['insightStatsSummary', 'insightNarrative', 'coachSummaryStats', 'coachWorkingContent',
+                'coachNotWorkingContent', 'coachPatternsContent', 'coachHabitsContent', 'coachPlanContent', 'insightHistoryList']) {
+                document.getElementById(id)?.replaceChildren();
             }
-        } else {
-            console.log('ℹ️ No saved profile found');
-        }
-    } catch (error) {
-        console.error('❌ Failed to load insight profile:', error);
+            if (typeof MentorAI !== 'undefined') MentorAI.insightData = null;
+            setInsightSaveStatus(''); updateInsightIndicator(); loadInsightProfile(); refreshInsightHistory();
+        } });
     }
+    return insightAccount;
 }
-
-// Save insight profile to localStorage
+function loadInsightProfile() {
+    const account = getInsightAccount();
+    const workspace = account?.readWorkspace();
+    if (workspace?.dataset?.schemaVersion === '1.0.0') {
+        insightWorkspace = workspace;
+        insightProfile = parseMultiGamePGN(workspace.dataset.rawText, { ...workspace.dataset.subject, importedGames: workspace.dataset.importMetadata });
+        workspace.dataset = insightProfile; coachReportData = workspace.report || null;
+        displayInsightResults(insightProfile);
+        const input = document.getElementById('insightPgnInput');
+        if (input) input.value = insightProfile.rawText;
+        const target = document.getElementById('insightTargetPlayer');
+        if (target) target.value = insightProfile.subject.username;
+        if (coachReportData) displayCoachReport(coachReportData);
+        setInsightSaveStatus(workspace.savedReportId ? 'Saved to your account.' : coachReportData ? 'Not saved. Retry saving or export your report.' : 'Dataset ready. Generate a Coach Report to save it to your account.');
+        const retry = document.getElementById('coachRetrySaveBtn'); if (retry) retry.hidden = !coachReportData || !!workspace.savedReportId;
+    }
+    const legacy = document.getElementById('insightRecoverLegacyBtn');
+    if (legacy) legacy.hidden = !account?.ownerId() || !localStorage.getItem('caissa_insight_profile');
+    updateInsightIndicator();
+}
 function saveInsightProfile(profile) {
-    console.log('💾 Saving Caissa Insight profile...');
+    insightEpoch++; insightRunController?.abort();
+    insightProfile = profile; coachReportData = null;
+    insightWorkspace = { dataset: profile, report: null };
+    getInsightAccount()?.writeWorkspace(insightWorkspace);
+    setInsightSaveStatus('Dataset ready. Generate a Coach Report to save it to your account.');
+    updateInsightIndicator();
+}
+function setInsightSaveStatus(text) {
+    for (const id of ['insightSaveStatus', 'coachSaveStatus', 'insightLatestStatus']) {
+        const node = document.getElementById(id); if (node) node.textContent = text;
+    }
+    const retry = document.getElementById('insightRetrySaveBtn');
+    if (retry) { retry.hidden = !coachReportData || !!insightWorkspace?.savedReportId; retry.disabled = !!insightWorkspace?.saving; }
+    updateInsightReportStatus();
+}
+async function persistCoachReport() {
+    const account = getInsightAccount(), workspace = insightWorkspace, epoch = insightEpoch;
+    if (!workspace?.report || workspace.savedReportId) return;
+    const owner = account?.ownerId(), retry = document.getElementById('coachRetrySaveBtn');
+    if (!owner) { setInsightSaveStatus('Not saved. Sign in to save this report.'); if (retry) retry.hidden = false; return; }
+    if (workspace.saving) return;
+    workspace.saving = true;
+    setInsightSaveStatus('Saving to your account…'); if (retry) { retry.hidden = false; retry.disabled = true; }
     try {
-        localStorage.setItem('caissa_insight_profile', JSON.stringify(profile));
-        insightProfile = profile;
-        console.log('✅ Profile saved successfully');
-        updateInsightIndicator(); // Update indicator when data is saved
+        const saved = await account.save(workspace.dataset, workspace.report, workspace.operationId);
+        if (epoch !== insightEpoch || owner !== account.ownerId() || workspace !== insightWorkspace) return;
+        workspace.savedReportId = saved.reportId; workspace.createdAt = saved.createdAt;
+        setInsightSaveStatus('Saved to your account.'); if (retry) retry.hidden = true;
+        refreshInsightHistory();
     } catch (error) {
-        console.error('❌ Failed to save insight profile:', error);
-        showErrorNotification('Failed to save your profile');
+        if (epoch !== insightEpoch || owner !== account.ownerId()) return;
+        setInsightSaveStatus(`Not saved. ${error.message}`); if (retry) retry.hidden = false;
+    } finally {
+        workspace.saving = false;
+        if (epoch === insightEpoch && owner === account.ownerId()) {
+            account.writeWorkspace(workspace); if (retry) retry.disabled = false;
+            const inlineRetry = document.getElementById('insightRetrySaveBtn'); if (inlineRetry) inlineRetry.disabled = false;
+        }
     }
 }
-
-// Calculate 8-dimensional radar metrics (0-100 scale)
-function calculateRadarMetrics(data) {
-    console.log('🧮 Calculating radar metrics...');
-
-    if (!data.games || data.games.length === 0) {
-        return Array(8).fill(0);
-    }
-
-    const games = data.games;
-    const total = games.length;
-
-    // 1. TACTICS - Based on short decisive games (<40 moves with wins)
-    const shortWins = games.filter(g =>
-        g.plyCount < 80 && (g.outcome === 'white-win' || g.outcome === 'black-win')
-    ).length;
-    const tacticsScore = Math.min(100, (shortWins / total) * 200);
-
-    // 2. STRATEGY - Based on long games (>60 moves)
-    const longGames = games.filter(g => g.plyCount > 120).length;
-    const strategyScore = Math.min(100, (longGames / total) * 150);
-
-    // 3. OPENING - ECO diversity + games with ECO defined
-    const ecoCount = Object.keys(data.stats.openings).length;
-    const gamesWithEco = games.filter(g => g.headers.eco).length;
-    const openingScore = Math.min(100, (ecoCount * 15) + ((gamesWithEco / total) * 40));
-
-    // 4. ENDGAME - Games reaching >40 moves
-    const endgames = games.filter(g => g.plyCount > 80).length;
-    const endgameScore = Math.min(100, (endgames / total) * 120);
-
-    // 5. PRECISION - Win rate in decisive games
-    const decisiveGames = games.filter(g =>
-        g.outcome === 'white-win' || g.outcome === 'black-win'
-    ).length;
-    const draws = games.filter(g => g.outcome === 'draw').length;
-    const precisionScore = decisiveGames > 0
-        ? Math.min(100, ((decisiveGames - draws) / total) * 100 + 30)
-        : 30;
-
-    // 6. AGGRESSION - Inverse of average ply count (shorter = more aggressive)
-    const avgPly = data.stats.avgPlyCount || 80;
-    const aggressionScore = Math.max(0, Math.min(100, 150 - avgPly * 0.8));
-
-    // 7. DEFENSE - Draw percentage
-    const defenseScore = Math.min(100, (draws / total) * 200);
-
-    // 8. CONSISTENCY - Inverse of standard deviation (lower stddev = more consistent)
-    const plyCounts = games.map(g => g.plyCount);
-    const mean = plyCounts.reduce((a, b) => a + b, 0) / plyCounts.length;
-    const variance = plyCounts.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / plyCounts.length;
-    const stdDev = Math.sqrt(variance);
-    const consistencyScore = Math.max(0, Math.min(100, 100 - stdDev * 0.5));
-
-    const metrics = [
-        tacticsScore,
-        strategyScore,
-        openingScore,
-        endgameScore,
-        precisionScore,
-        aggressionScore,
-        defenseScore,
-        consistencyScore
-    ];
-
-    console.log('📊 Radar metrics calculated:', metrics);
-    return metrics;
+function insightEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+async function recoverInsightReport(row, scroll = true) {
+    const account = getInsightAccount(), owner = account?.ownerId(), epoch = insightEpoch;
+    const recovered = await account.recover(row.id);
+    if (owner !== account.ownerId() || epoch !== insightEpoch) return;
+    const data = recovered.dataset;
+    const dataset = parseMultiGamePGN(data.rawText, { ...data.subject, importedGames: data.importMetadata });
+    insightEpoch++; insightRunController?.abort(); insightRunController = null;
+    insightProfile = dataset; coachReportData = recovered.report.snapshot;
+    insightWorkspace = { dataset, report: coachReportData, savedReportId: row.id, createdAt: recovered.report.created_at };
+    account.writeWorkspace(insightWorkspace); displayInsightResults(dataset); displayCoachReport(coachReportData);
+    setInsightSaveStatus('Saved to your account.'); document.getElementById('coachRetrySaveBtn').hidden = true;
+    hideModal('insightModal'); hideModal('coachModal');
+    if (scroll) document.getElementById('insightLatestReport')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function refreshInsightHistory(append = false) {
+    const account = getInsightAccount(), list = document.getElementById('insightHistoryList'), status = document.getElementById('insightHistoryStatus');
+    if (!list || !status) return;
+    const requestEpoch = ++insightHistoryEpoch;
+    if (!append) { list.replaceChildren(); insightHistoryCursor = null; }
+    if (!account?.ownerId()) { status.textContent = 'Sign in to recover your saved Coach Reports.'; return; }
+    status.textContent = 'Loading saved reports…';
+    try {
+        const result = await account.list(append ? insightHistoryCursor : null);
+        if (requestEpoch !== insightHistoryEpoch) return;
+        for (const row of result.reports) {
+            const item = document.createElement('li'), label = document.createElement('p');
+            const info = row.summary, date = new Date(row.created_at).toLocaleString();
+            label.textContent = `${info.subject.username} · ${info.gamesAnalyzed} games · ${info.analysisStatus} · ${date}`;
+            const open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-secondary'; open.textContent = 'Open report';
+            open.addEventListener('click', async () => {
+                open.disabled = true;
+                try {
+                    await recoverInsightReport(row);
+                } catch (error) { status.textContent = error.message; } finally { open.disabled = false; }
+            });
+            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-danger'; remove.textContent = 'Delete report';
+            remove.addEventListener('click', async () => {
+                if (!window.confirm('Delete this saved Coach Report? This cannot be undone.')) return;
+                remove.disabled = true;
+                try {
+                    await account.remove(row.id);
+                    if (insightWorkspace?.savedReportId === row.id) clearInsightSession(false);
+                    item.remove(); status.textContent = 'Report deleted.';
+                } catch (error) { status.textContent = error.message; } finally { remove.disabled = false; }
+            });
+            item.append(label, open, remove); list.appendChild(item);
+        }
+        insightHistoryCursor = result.nextCursor;
+        const more = document.getElementById('insightHistoryMoreBtn'); if (more) more.hidden = !insightHistoryCursor;
+        status.textContent = list.children.length ? 'Private reports saved to this account.' : 'No saved reports yet. Import games and generate a Coach Report.';
+        if (!append && !insightProfile && result.reports.length) await recoverInsightReport(result.reports[0], false);
+    } catch (error) { if (requestEpoch === insightHistoryEpoch) status.textContent = error.message; }
+}
+function showSavedInsightHistory() {
+    hideModal('insightModal'); hideModal('coachModal'); refreshInsightHistory();
+    const history = document.getElementById('insightHistory'); if (history) { history.open = true; history.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 
-// Render radar chart on canvas
-function renderRadarChart(canvasId, metrics) {
-    console.log('🎨 Rendering radar chart...');
-
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) {
-        console.error('❌ Canvas not found:', canvasId);
-        return;
-    }
-
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) * 0.35;
-
-    const labels = [
-        'Tactics',
-        'Strategy',
-        'Opening',
-        'Endgame',
-        'Precision',
-        'Aggression',
-        'Defense',
-        'Consistency'
-    ];
-
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-
-    // Draw grid circles (background)
-    ctx.strokeStyle = '#dfe6e9';
-    ctx.lineWidth = 1;
-    for (let i = 1; i <= 5; i++) {
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, (radius * i) / 5, 0, 2 * Math.PI);
-        ctx.stroke();
-    }
-
-    // Draw axes
-    ctx.strokeStyle = '#b2bec3';
-    ctx.lineWidth = 1;
-    const angleStep = (2 * Math.PI) / 8;
-
-    for (let i = 0; i < 8; i++) {
-        const angle = angleStep * i - Math.PI / 2;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    }
-
-    // Draw labels
-    ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 13px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    for (let i = 0; i < 8; i++) {
-        const angle = angleStep * i - Math.PI / 2;
-        const labelRadius = radius + 30;
-        const x = centerX + labelRadius * Math.cos(angle);
-        const y = centerY + labelRadius * Math.sin(angle);
-
-        ctx.fillText(labels[i], x, y);
-    }
-
-    // Draw data polygon
-    ctx.beginPath();
-    ctx.strokeStyle = '#2c5f9e';
-    ctx.fillStyle = 'rgba(44, 95, 158, 0.2)';
-    ctx.lineWidth = 3;
-
-    for (let i = 0; i < 8; i++) {
-        const angle = angleStep * i - Math.PI / 2;
-        const value = metrics[i] / 100; // Normalize to 0-1
-        const x = centerX + radius * value * Math.cos(angle);
-        const y = centerY + radius * value * Math.sin(angle);
-
-        if (i === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
-    }
-
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Draw data points
-    ctx.fillStyle = '#2c5f9e';
-    for (let i = 0; i < 8; i++) {
-        const angle = angleStep * i - Math.PI / 2;
-        const value = metrics[i] / 100;
-        const x = centerX + radius * value * Math.cos(angle);
-        const y = centerY + radius * value * Math.sin(angle);
-
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-
-    console.log('✅ Radar chart rendered');
-}
-
-// Generate Caissa narrative based on metrics
-function generateCaissaNarrative(data, metrics) {
-    console.log('📝 Generating Caissa narrative...');
-
-    const [tactics, strategy, opening, endgame, precision, aggression, defense, consistency] = metrics;
-    const total = data.stats.total;
-    // Use full moves (not plies) - same calculation as the stat card
-    const avgFullMoves = Math.round(data.stats.avgPlyCount / 2);
-
-    // Identify strengths (>70) and weaknesses (<40)
-    const dimensions = [
-        { name: 'tactics', value: tactics, threshold: 70 },
-        { name: 'strategy', value: strategy, threshold: 70 },
-        { name: 'opening', value: opening, threshold: 70 },
-        { name: 'endgame', value: endgame, threshold: 70 },
-        { name: 'precision', value: precision, threshold: 70 },
-        { name: 'aggression', value: aggression, threshold: 70 },
-        { name: 'defense', value: defense, threshold: 70 },
-        { name: 'consistency', value: consistency, threshold: 70 }
-    ];
-
-    const strengths = dimensions.filter(d => d.value >= 70);
-    const weaknesses = dimensions.filter(d => d.value < 40);
-    const balanced = dimensions.filter(d => d.value >= 40 && d.value < 70);
-
-    // Build narrative paragraphs
-    let narrative = '';
-
-    // Introduction - use avgFullMoves (full moves, not plies)
-    narrative += `<p><strong>Caissa, the goddess of chess, has examined your ${total} games</strong> and reveals a unique profile. `;
-    narrative += `Your games average ${avgFullMoves} moves, `;
-    if (avgFullMoves < 30) {
-        narrative += 'showing a tendency toward quick and decisive battles.';
-    } else if (avgFullMoves < 45) {
-        narrative += 'reflecting a balance between tactical and strategic play.';
-    } else {
-        narrative += 'demonstrating a preference for positional warfare and long endgames.';
-    }
-    narrative += '</p>';
-
-    // Strengths
-    if (strengths.length > 0) {
-        narrative += '<p><strong>Manifest Strengths:</strong> ';
-        if (tactics >= 70) {
-            narrative += 'Your tactical vision is sharp as a blade, capable of detecting hidden combinations on the board. ';
-        }
-        if (strategy >= 70) {
-            narrative += 'You master the art of long-term planning, weaving strategic nets that trap your opponents. ';
-        }
-        if (opening >= 70) {
-            narrative += 'Your opening repertoire is diverse and solid, demonstrating deep theoretical knowledge. ';
-        }
-        if (endgame >= 70) {
-            narrative += 'In the endgame, when the board clears, your technique shines with mastery. ';
-        }
-        if (precision >= 70) {
-            narrative += 'Your decisions are precise and calculated, minimizing errors in critical moments. ';
-        }
-        if (aggression >= 70) {
-            narrative += 'You play with fire in your veins, attacking with courage and determination. ';
-        }
-        if (defense >= 70) {
-            narrative += 'You are an unbreakable fortress, capable of defending seemingly lost positions. ';
-        }
-        if (consistency >= 70) {
-            narrative += 'Your play is consistent and reliable, maintaining a stable level game after game. ';
-        }
-        narrative += '</p>';
-    }
-
-    // Weaknesses and recommendations
-    if (weaknesses.length > 0) {
-        narrative += '<p><strong>Areas Caissa Invites You to Cultivate:</strong> ';
-        if (tactics < 40) {
-            narrative += 'Strengthen your tactical vision with combination exercises. Sacrifices and basic tactical motifs await you. ';
-        }
-        if (strategy < 40) {
-            narrative += 'Dedicate time to studying games by Capablanca and Karpov to improve your strategic understanding. ';
-        }
-        if (opening < 40) {
-            narrative += 'Expand your opening repertoire. Study fundamental principles: development, center control, king safety. ';
-        }
-        if (endgame < 40) {
-            narrative += 'Endgames are the foundation of mastery. Practice basic pawn and rook endings. ';
-        }
-        if (precision < 40) {
-            narrative += 'Take more time to calculate. Precision is built through patience and variation checking. ';
-        }
-        if (aggression < 40) {
-            narrative += 'Do not fear calculated risk. Study games by Tal and Kasparov to learn the art of attack. ';
-        }
-        if (defense < 40) {
-            narrative += 'Develop your defensive resilience. Learn to create counterplay when under pressure. ';
-        }
-        if (consistency < 40) {
-            narrative += 'Work on maintaining a stable level. Analyze your errors to avoid ups and downs in your play. ';
-        }
-        narrative += '</p>';
-    }
-
-    // Balanced areas
-    if (balanced.length > 0 && strengths.length > 0 && weaknesses.length > 0) {
-        narrative += '<p>Your skills in ';
-        const balancedNames = balanced.map(d => d.name).slice(0, 3);
-        narrative += balancedNames.join(', ');
-        narrative += ' show solid fundamentals with room to grow. ';
-        narrative += 'These aspects can become strengths with dedicated practice.</p>';
-    }
-
-    // Closing wisdom
-    narrative += '<p><em>Caissa reminds you: chess is an infinite journey of learning. ';
-    narrative += 'Each game is a lesson, each mistake an opportunity. ';
-    narrative += 'May your pieces dance with grace and your plans flourish in victory.</em></p>';
-
-    console.log('✅ Narrative generated');
-    return narrative;
-}
-
-// Display insight analysis results in the modal
+// PGN-only facts. Skill scores require validated analysis and are not inferred
+// from game length, ECO diversity or decisive results.
 function displayInsightResults(data) {
-    console.log('📊 Displaying insight results...');
-
-    // Notify CAISSA Mentor AI that insight data is available (for personalized advice)
-    if (typeof MentorAI !== 'undefined' && MentorAI.onInsightDataAvailable) {
-        MentorAI.onInsightDataAvailable(data);
-    }
-
     const importSection = document.getElementById('insightImportSection');
     const resultsSection = document.getElementById('insightResultsSection');
     const statsSummary = document.getElementById('insightStatsSummary');
-    const sourceBadge = document.getElementById('insightSourceBadge');
-
-    if (!resultsSection || !statsSummary) {
-        console.error('❌ Results elements not found');
-        return;
+    if (!resultsSection || !statsSummary) return;
+    if (importSection) importSection.style.display = 'none'; resultsSection.style.display = 'block';
+    const stats = data.stats;
+    const cards = [['Legal games', stats.total], ['Wins / Draws / Losses', `${stats.wins} / ${stats.draws} / ${stats.losses}`],
+        ['Unfinished', stats.unfinished], ['Player not resolved', stats.unidentified], ['Avg length', `${Math.round(stats.avgPlyCount / 2)} moves`],
+        ['Rejected games', data.rejected.length]];
+    statsSummary.innerHTML = cards.map(([label, value]) => `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`).join('');
+    const badge = document.getElementById('insightSourceBadge');
+    if (badge) { badge.textContent = `Source: ${data.subject.provider}`; badge.style.display = 'inline-block'; }
+    const narrative = document.getElementById('insightNarrative');
+    if (narrative) {
+        const openings = Object.entries(stats.openings).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        narrative.innerHTML = `<p>Selected player: <strong>${insightEscape(data.subject.username || 'Choose a player')}</strong>.</p>
+            <p>${stats.identified} of ${stats.total} games identify this player. Results use the player's actual color; unfinished games are excluded from win rate.</p>
+            <p>Opening codes: ${openings.map(([eco, n]) => `${eco} (${n} games)`).join(', ') || 'No ECO data in this PGN'}.</p>
+            <p>This PGN-based performance summary does not measure tactical skill, precision or playing style. Generate a Coach Report for engine estimates and their coverage.</p>
+            ${data.rejected.length ? `<p>Excluded: ${data.rejected.map(r => `${r.sourceIndex + 1}: ${insightEscape(r.reason)}`).join('; ')}.</p>` : ''}`;
     }
-
-    // Hide import section, show results
-    if (importSection) importSection.style.display = 'none';
-    resultsSection.style.display = 'block';
-
-    // Detect and display source platform
-    if (sourceBadge && data.games && data.games.length > 0) {
-        const firstGame = data.games[0];
-        const source = firstGame.source || 'local';
-
-        // Set badge text and class
-        if (source === 'lichess') {
-            sourceBadge.textContent = 'Source: Lichess';
-            sourceBadge.className = 'source-badge lichess';
-        } else if (source === 'chess.com') {
-            sourceBadge.textContent = 'Source: Chess.com';
-            sourceBadge.className = 'source-badge chesscom';
-        } else {
-            sourceBadge.textContent = 'Source: Local PGN';
-            sourceBadge.className = 'source-badge local';
-        }
-        sourceBadge.style.display = 'inline-block';
-    } else if (sourceBadge) {
-        sourceBadge.style.display = 'none';
+    renderInsightDashboard();
+    if (document.getElementById('insightModal')?.classList.contains('show')) {
+        hideModal('insightModal');
+        if (!coachReportData) { showModal('coachModal'); showCoachSection('config'); }
     }
-
-    // Calculate wins/losses/draws
-    let wins = 0, losses = 0, draws = 0;
-    data.games.forEach(game => {
-        if (game.outcome === 'draw') {
-            draws++;
-        } else if (game.outcome === 'white-win' || game.outcome === 'black-win') {
-            // For now, count all decisive games (Phase 3+ will determine user color)
-            if (game.outcome === 'white-win') wins++;
-            else losses++;
-        }
-    });
-
-    // Display basic statistics
-    statsSummary.innerHTML = `
-        <div class="stat-card">
-            <div class="stat-label">Total Games</div>
-            <div class="stat-value">${data.stats.total}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Avg Game Length</div>
-            <div class="stat-value">${Math.round(data.stats.avgPlyCount / 2)} moves</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Decisive Games</div>
-            <div class="stat-value">${wins + losses}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Draws</div>
-            <div class="stat-value">${draws}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Openings Found</div>
-            <div class="stat-value">${Object.keys(data.stats.openings).length}</div>
-        </div>
-    `;
-
-    // Calculate and render radar chart
-    const metrics = calculateRadarMetrics(data);
-    renderRadarChart('insightRadarChart', metrics);
-
-    // Generate and display narrative
-    const narrative = generateCaissaNarrative(data, metrics);
-    const narrativeElement = document.getElementById('insightNarrative');
-    if (narrativeElement) {
-        narrativeElement.innerHTML = narrative;
-    }
-
-    console.log('✅ Results displayed');
 }
 
 // Setup Caissa Insight modal event listeners
@@ -6565,6 +6252,25 @@ function setupInsightModal() {
     }
 
     modal.dataset.insightBound = 'true';
+    if (typeof window !== 'undefined') {
+        document.getElementById('insightHistoryRefreshBtn')?.addEventListener('click', () => refreshInsightHistory());
+        document.getElementById('insightHistoryMoreBtn')?.addEventListener('click', () => refreshInsightHistory(true));
+        document.getElementById('insightHistoryOpenBtn')?.addEventListener('click', showSavedInsightHistory);
+        document.getElementById('insightViewHistoryBtn')?.addEventListener('click', showSavedInsightHistory);
+        document.getElementById('insightRetrySaveBtn')?.addEventListener('click', persistCoachReport);
+        document.getElementById('insightRecoverLegacyBtn')?.addEventListener('click', () => {
+            try {
+                const legacy = JSON.parse(localStorage.getItem('caissa_insight_profile'));
+                if (!legacy?.rawText) throw new Error('No legacy PGN found.');
+                clearInsightSession(false); pgnInput.value = legacy.rawText;
+                document.getElementById('insightTargetPlayer').value = '';
+                document.querySelector('.import-tab[data-tab="local"]')?.click();
+                showNotification('PGN recovered from this browser. Choose the player, then analyze it.');
+            } catch (error) { showErrorNotification(error.message); }
+        });
+        window.CAISSA_AUTH?.whenReady?.().then(() => { loadInsightProfile(); refreshInsightHistory(); });
+        window.addEventListener('pagehide', () => insightRunController?.abort());
+    }
     modal.querySelectorAll('.modal-close, button[data-modal="insightModal"]').forEach(button => {
         button.addEventListener('click', event => {
             event.preventDefault(); event.stopPropagation(); hideModal('insightModal');
@@ -6618,6 +6324,7 @@ function setupInsightModal() {
             const username = importUsername.value.trim();
             const count = parseInt(importGameCount.value);
             const timeControl = importTimeControl.value;
+            const importContext = typeof window !== 'undefined' ? { epoch: insightEpoch, owner: getInsightAccount()?.ownerId() } : null;
 
             if (!username) {
                 showErrorNotification('Please enter a username');
@@ -6650,6 +6357,9 @@ function setupInsightModal() {
                 if (!importedGames || importedGames.length === 0) {
                     throw new Error('No games found with the specified filters');
                 }
+                if (importContext && (importContext.epoch !== insightEpoch || importContext.owner !== getInsightAccount()?.ownerId())) {
+                    throw Object.assign(new Error('Import cancelled after account or workspace changed'), { name: 'AbortError' });
+                }
 
                 importProgressText.textContent = `Processing ${importedGames.length} games...`;
                 importProgressBar.style.width = '60%';
@@ -6661,7 +6371,7 @@ function setupInsightModal() {
                 importProgressText.textContent = 'Analyzing games...';
                 importProgressBar.style.width = '80%';
 
-                const parsedData = parseMultiGamePGN(pgnText);
+                const parsedData = parseMultiGamePGN(pgnText, { provider, username, importedGames });
 
                 if (parsedData.stats.total === 0) {
                     throw new Error('Failed to parse imported games');
@@ -6672,15 +6382,6 @@ function setupInsightModal() {
                 // Save to profile
                 insightProfile = parsedData;
                 saveInsightProfile(parsedData);
-
-                // Store import metadata
-                localStorage.setItem('lastGameImport', JSON.stringify({
-                    provider,
-                    username,
-                    count: importedGames.length,
-                    timeControl,
-                    timestamp: new Date().toISOString()
-                }));
 
                 importProgressBar.style.width = '100%';
                 importProgressText.textContent = 'Complete!';
@@ -6696,6 +6397,7 @@ function setupInsightModal() {
                 showNotification(`Successfully imported ${importedGames.length} games from ${provider}!`);
 
             } catch (error) {
+                if (error.name === 'AbortError') return;
                 console.error('❌ Import error:', error);
 
                 importProgressSection.style.display = 'none';
@@ -6734,8 +6436,11 @@ function setupInsightModal() {
     pgnFile.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (file.size > 1048576) { showErrorNotification('PGN exceeds the 1 MiB limit.'); return; }
+            const epoch = insightEpoch;
             const reader = new FileReader();
             reader.onload = (event) => {
+                if (epoch !== insightEpoch) return;
                 pgnInput.value = event.target.result;
                 fileNameDisplay.textContent = file.name;
                 console.log('📁 PGN file loaded:', file.name);
@@ -6771,6 +6476,8 @@ function setupInsightModal() {
                 showErrorNotification('No valid games found in PGN');
                 return;
             }
+
+            if (!parsedData.stats.identified) { showErrorNotification('Enter the exact player name from the PGN before analysis.'); return; }
 
             parsedData.games.forEach(game => { game.source = 'local'; });
 
@@ -6810,7 +6517,7 @@ function setupInsightModal() {
 
             try {
                 // Re-parse PGN
-                const parsedData = parseMultiGamePGN(pgnText);
+                const parsedData = parseMultiGamePGN(pgnText, { ...insightProfile?.subject, importedGames: insightProfile?.importMetadata || [] });
 
                 if (parsedData.stats.total === 0) {
                     showErrorNotification('No valid games found in PGN');
@@ -6857,7 +6564,9 @@ function setupInsightModal() {
                     timestamp: new Date().toISOString(),
                     stats: insightProfile.stats,
                     gamesAnalyzed: insightProfile.stats.total,
-                    metrics: calculateRadarMetrics(insightProfile),
+                    subject: insightProfile.subject,
+                    validation: { rejected: insightProfile.rejected },
+                    method: 'pgn_summary',
                     openings: insightProfile.stats.openings
                 };
 
@@ -7244,44 +6953,34 @@ function setupClearInsightHandlers() {
     }
 }
 
-// Clear Insight session (and optionally delete history)
-function clearInsightSession(deleteHistory = false) {
-    console.log('🗑️ Clearing Insight session, deleteHistory:', deleteHistory);
-
-    // Clear current session data
-    insightProfile = null;
-
-    if (deleteHistory) {
-        // Delete all stored data
-        console.log('🗑️ Deleting all Insight history...');
-        localStorage.removeItem('caissa_insight_profile');
-        localStorage.removeItem('caissa_coach_report');
-        localStorage.removeItem('caissa_insight_sessions'); // Future: session history
-        coachReportData = null;
-        showNotification('All Insight data cleared successfully!');
-    } else {
-        // Keep history, just clear current session
-        console.log('🗑️ Clearing current session only...');
-        localStorage.removeItem('caissa_insight_profile');
-        localStorage.removeItem('caissa_coach_report');
-        coachReportData = null;
-        showNotification('Current session cleared! Historical data preserved.');
-    }
-
-    // Reset UI to empty state
-    resetInsightUI();
-    updateInsightIndicator();
+// Start Fresh only clears this account's working draft. Saved reports are
+// deleted individually from history, through the owner-scoped API.
+function clearInsightSession(manageHistory = false) {
+    if (manageHistory) { showSavedInsightHistory(); return; }
+    insightEpoch++; insightRunController?.abort(); insightRunController = null;
+    insightProfile = null; coachReportData = null; insightWorkspace = null;
+    getInsightAccount()?.clearWorkspace(); setInsightSaveStatus('');
+    resetInsightUI(); updateInsightIndicator();
+    showNotification('Current workspace cleared. Saved reports remain in your account history.');
 }
 
 // Reset Insight UI to empty state
 function resetInsightUI() {
     console.log('🔄 Resetting Insight UI...');
+    const dashboard = document.getElementById('insightDashboard');
+    if (dashboard) { dashboard.replaceChildren(); dashboard.hidden = true; }
+    const progress = document.getElementById('insightRunProgress'); if (progress) { progress.textContent = ''; progress.hidden = true; }
+    updateInsightReportStatus();
+    const latest = document.getElementById('insightLatestStatus'); if (latest) latest.textContent = 'Import games using the report button above.';
 
     // Hide results section
     const resultsSection = document.getElementById('insightResultsSection');
     if (resultsSection) {
         resultsSection.style.display = 'none';
     }
+    const importSection = document.getElementById('insightImportSection');
+    if (importSection) importSection.style.display = 'block';
+    const target = document.getElementById('insightTargetPlayer'); if (target) target.value = '';
 
     // Clear input
     const pgnInput = document.getElementById('insightPgnInput');
@@ -7316,7 +7015,7 @@ function updateInsightIndicator() {
     if (!indicator) return;
 
     // Show indicator if there's saved insight data
-    const hasInsightData = insightProfile !== null || localStorage.getItem('caissa_insight_profile') !== null;
+    const hasInsightData = insightProfile !== null;
     indicator.style.display = hasInsightData ? 'block' : 'none';
 
     console.log('🔔 Insight indicator:', hasInsightData ? 'shown' : 'hidden');
@@ -7368,7 +7067,7 @@ function setupCoachModal() {
 
         hideModal('insightModal');
         showModal('coachModal');
-        showCoachSection('config');
+        showCoachSection(coachReportData ? 'report' : 'config');
     });
 
     // Generate report
@@ -7380,14 +7079,18 @@ function setupCoachModal() {
 
         try {
             showCoachSection('progress');
-            await generateCoachReport(gameCount, colorFilter);
-            showCoachSection('report');
+            const finished = await generateCoachReport(gameCount, colorFilter);
+            if (finished !== false) showCoachSection('report');
         } catch (error) {
+            if (error.name === 'AbortError') { showCoachSection('config'); return; }
             console.error('❌ Coach report generation failed:', error);
             showErrorNotification('Failed to generate coach report: ' + error.message);
             showCoachSection('config');
         }
     });
+
+    document.getElementById('coachCancelBtn')?.addEventListener('click', () => { insightRunController?.abort(); showCoachSection('config'); });
+    document.getElementById('coachRetrySaveBtn')?.addEventListener('click', persistCoachReport);
 
     // Back to config
     if (backBtn) {
@@ -7425,6 +7128,12 @@ function setupCoachModal() {
 
 // Show specific coach section
 function showCoachSection(section) {
+    if (section === 'report' && typeof window !== 'undefined' && window.CaissaInsightReportView) {
+        hideModal('coachModal');
+        renderInsightDashboard();
+        document.getElementById('insightLatestReport')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
     const sections = {
         config: document.getElementById('coachConfigSection'),
         progress: document.getElementById('coachProgressSection'),
@@ -7446,773 +7155,50 @@ function showCoachSection(section) {
 function updateCoachProgress(percent, text) {
     const progressBar = document.getElementById('coachProgressBar');
     const progressText = document.getElementById('coachProgressText');
-
-    if (progressBar) {
-        progressBar.style.width = percent + '%';
-    }
-
-    if (progressText) {
-        progressText.textContent = text;
-    }
+    if (progressBar) progressBar.style.width = percent + '%';
+    if (progressText) progressText.textContent = text;
+    document.getElementById('coachProgressMeter')?.setAttribute('aria-valuenow', String(percent));
+    const inline = document.getElementById('insightRunProgress');
+    if (inline) { inline.hidden = !insightRunController; inline.textContent = text; }
 }
 
-// Generate coach report
+// One dedicated review engine per run, using the existing registry and
+// attributed UCI adapter. Play/Analyze callbacks and boards are never borrowed.
 async function generateCoachReport(gameCount, colorFilter) {
-    if (!insightProfile || !insightProfile.games) {
-        throw new Error('No games available for analysis');
-    }
-
-    updateCoachProgress(5, 'Preparing games for analysis...');
-
-    // Filter games
-    let games = insightProfile.games.slice(0, gameCount);
-
-    // Apply color filter if needed
-    if (colorFilter !== 'both') {
-        games = games.filter(game => {
-            // Determine user's color based on game headers
-            // This is a simplified filter - in production, you'd track user's actual color
-            return true; // For MVP, analyze all games
-        });
-    }
-
-    console.log(`📊 Analyzing ${games.length} games...`);
-
-    updateCoachProgress(10, `Analyzing game 1 of ${games.length}...`);
-
-    // Analyze each game for critical moments
-    const allMoments = [];
-    for (let i = 0; i < games.length; i++) {
-        const game = games[i];
-        const progress = 10 + (i / games.length) * 60;
-        updateCoachProgress(progress, `Analyzing game ${i + 1} of ${games.length}...`);
-
-        const moments = await analyzeGameForMoments(game, i);
-        allMoments.push(...moments);
-
-        // Small delay to avoid freezing UI
-        await new Promise(resolve => setTimeout(resolve, 10));
-    }
-
-    updateCoachProgress(75, 'Aggregating patterns...');
-
-    // Aggregate data
-    const aggregate = aggregateCoachData(games, allMoments);
-
-    updateCoachProgress(85, 'Generating training plan...');
-
-    // Generate training plan
-    const plan = generateTrainingPlan(aggregate);
-
-    updateCoachProgress(95, 'Finalizing report...');
-
-    // Build report
-    coachReportData = {
-        config: { gameCount, colorFilter },
-        gamesAnalyzed: games.length,
-        moments: allMoments,
-        aggregate,
-        plan,
-        timestamp: new Date().toISOString()
-    };
-
-    // Display report
-    displayCoachReport(coachReportData);
-
-    updateCoachProgress(100, 'Report complete!');
-
-    console.log('✅ Coach report generated:', coachReportData);
-}
-
-// Analyze single game for critical moments using Stockfish engine
-async function analyzeGameForMoments(game, gameIndex) {
-    const moments = [];
-
-    // Use existing chess.js instance
-    const chess = new Chess();
-
+    if (!insightProfile?.games?.length) throw new Error('No games available for analysis');
+    insightRunController?.abort();
+    const controller = new AbortController(), dataset = insightProfile, epoch = ++insightEpoch;
+    insightRunController = controller;
+    document.getElementById('coachGenerateBtn').disabled = true;
+    updateInsightReportStatus();
     try {
-        chess.load_pgn(game.headers.pgn || '');
-    } catch (e) {
-        console.warn(`⚠️ Failed to load game ${gameIndex}:`, e);
-        return moments;
-    }
-
-    const history = chess.history({ verbose: true });
-
-    // Reset to start position for incremental analysis
-    chess.reset();
-
-    let prevEval = 0; // Evaluation in pawns (White's perspective)
-    let prevBestMove = null;
-
-    // Ensure engine is ready
-    if (!App.engine || !App.engine.isReady()) {
-        console.warn(`⚠️ Engine not ready for game ${gameIndex}, using fallback`);
-        return await analyzeGameForMomentsFallback(game, gameIndex);
-    }
-
-    // Set engine to use MultiPV=3 for critical moment detection
-    App.engine.setMultiPV(COACH_CONFIG.MULTI_PV);
-
-    // Analyze each position incrementally
-    for (let ply = 0; ply < history.length; ply++) {
-        const move = history[ply];
-        const fenBefore = chess.fen();
-
-        // Get engine evaluation BEFORE the move
-        const evalInfo = await getEngineEvaluation(fenBefore, COACH_CONFIG.ANALYSIS_DEPTH);
-
-        if (!evalInfo) {
-            // Engine failed, skip this position
-            chess.move(move.san);
-            continue;
-        }
-
-        const evalBefore = evalInfo.score !== null ? evalInfo.score : 0;
-        const bestMove = evalInfo.bestMove || null;
-
-        // Make the move
-        chess.move(move.san);
-        const fenAfter = chess.fen();
-
-        // Get engine evaluation AFTER the move
-        const evalAfterInfo = await getEngineEvaluation(fenAfter, COACH_CONFIG.ANALYSIS_DEPTH);
-        const evalAfter = evalAfterInfo && evalAfterInfo.score !== null ? evalAfterInfo.score : evalBefore;
-
-        // Calculate evaluation swing (from perspective of side that just moved)
-        const playerColor = move.color; // 'w' or 'b'
-        const evalSwing = Math.abs(evalAfter - evalBefore);
-
-        // Calculate move loss (how much worse than best move)
-        let moveLoss = 0;
-        if (bestMove) {
-            // If player didn't play the best move, calculate loss
-            const playedMove = move.from + move.to + (move.promotion || '');
-            if (playedMove !== bestMove) {
-                moveLoss = Math.abs(evalAfter - evalBefore);
-            }
-        }
-
-        // Detect critical moments based on thresholds
-        const isCritical = (
-            evalSwing >= COACH_CONFIG.SWING_THRESHOLD ||
-            moveLoss >= COACH_CONFIG.BLUNDER_THRESHOLD
-        );
-
-        if (isCritical) {
-            // Classify the error and assign tags
-            const tags = classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMove);
-
-            const moment = {
-                gameId: gameIndex,
-                ply,
-                moveSAN: move.san,
-                playedMove: move.from + move.to + (move.promotion || ''),
-                fen: fenBefore,
-                fenAfter: fenAfter,
-                evalBefore: evalBefore,
-                evalAfter: evalAfter,
-                evalSwing: evalSwing,
-                moveLoss: moveLoss,
-                bestMove: bestMove,
-                tags: tags,
-                phase: getGamePhase(ply, countPieces(fenBefore)),
-                playerColor: playerColor
-            };
-
-            moments.push(moment);
-        }
-
-        // Update previous evaluation
-        prevEval = evalAfter;
-        prevBestMove = bestMove;
-    }
-
-    // Restore MultiPV to default
-    App.engine.setMultiPV(1);
-
-    return moments;
-}
-
-// Get engine evaluation for a position (returns { score, bestMove, mate, pv })
-async function getEngineEvaluation(fen, depth) {
-    return new Promise((resolve, reject) => {
-        let evalResult = null;
-        let timeout = null;
-
-        // Set up info callback to capture evaluation
-        const infoCallback = (info) => {
-            if (info.depth >= depth) {
-                evalResult = {
-                    score: info.score,
-                    mate: info.mate,
-                    bestMove: info.pv && info.pv.length > 0 ? info.pv[0] : null,
-                    pv: info.pv || [],
-                    depth: info.depth
-                };
-            }
-        };
-
-        // Set up bestmove callback to finish analysis
-        const bestMoveCallback = (move) => {
-            clearTimeout(timeout);
-            App.engine.onBestMove = null;
-            App.engine.onInfo = null;
-
-            if (!evalResult) {
-                evalResult = { score: 0, mate: null, bestMove: move, pv: [move], depth: 0 };
-            } else if (!evalResult.bestMove) {
-                evalResult.bestMove = move;
-            }
-
-            resolve(evalResult);
-        };
-
-        // Set callbacks
-        App.engine.onInfo = infoCallback;
-        App.engine.onBestMove = bestMoveCallback;
-
-        // Start analysis
-        App.engine.currentFen = fen; // For score normalization
-        App.engine.setPosition(fen);
-        App.engine.go({ depth: depth });
-
-        // Timeout after 5 seconds per position
-        timeout = setTimeout(() => {
-            App.engine.stop();
-            App.engine.onBestMove = null;
-            App.engine.onInfo = null;
-            resolve(evalResult || { score: 0, mate: null, bestMove: null, pv: [], depth: 0 });
-        }, 5000);
-    });
-}
-
-// Fallback analysis when engine is not available
-async function analyzeGameForMomentsFallback(game, gameIndex) {
-    const moments = [];
-    const chess = new Chess();
-
-    try {
-        chess.load_pgn(game.headers.pgn || '');
-    } catch (e) {
-        return moments;
-    }
-
-    const moves = chess.history({ verbose: true });
-
-    // Use simplified material-based detection
-    for (let ply = 0; ply < moves.length; ply++) {
-        const move = moves[ply];
-
-        if (move.captured) {
-            const capturedValue = getPieceValue(move.captured);
-            const movedValue = getPieceValue(move.piece);
-
-            if (capturedValue < movedValue - 2) {
-                moments.push({
-                    gameId: gameIndex,
-                    ply,
-                    moveSAN: move.san,
-                    fen: move.before,
-                    evalBefore: 0,
-                    evalAfter: -(movedValue - capturedValue),
-                    tags: [ERROR_TAGS.BAD_TRADE],
-                    phase: getGamePhase(ply, countPieces(move.before))
-                });
-            }
-        }
-    }
-
-    return moments;
-}
-
-// Classify error type based on position analysis and evaluation change
-function classifyError(fenBefore, fenAfter, move, evalBefore, evalAfter, bestMove) {
-    const tags = [];
-    const chess = new Chess(fenBefore);
-
-    // Material change detection
-    const materialDrop = hasMaterialDrop(fenBefore, fenAfter);
-    if (materialDrop) {
-        // Check if piece was captured without compensation
-        if (move.captured && !move.promotion) {
-            const capturedValue = getPieceValue(move.captured);
-            const movedValue = getPieceValue(move.piece);
-
-            if (capturedValue < movedValue - 1) {
-                tags.push(ERROR_TAGS.BAD_TRADE);
-            }
-        } else if (!move.captured) {
-            // Piece hung without capture
-            tags.push(ERROR_TAGS.HANGING_PIECE);
-        }
-    }
-
-    // Back rank weakness detection
-    if (isBackRankPattern(fenAfter, move.color)) {
-        tags.push(ERROR_TAGS.BACK_RANK);
-    }
-
-    // King safety issues
-    if (isKingSafetyIssue(fenBefore, fenAfter, move)) {
-        tags.push(ERROR_TAGS.KING_SAFETY);
-    }
-
-    // Tactical pattern detection (fork, pin, skewer)
-    const tacticalPattern = detectTacticalPattern(fenAfter, move);
-    if (tacticalPattern) {
-        tags.push(tacticalPattern);
-    }
-
-    // Endgame error classification
-    const phase = getGamePhase(chess.history().length, countPieces(fenAfter));
-    if (phase === 'endgame') {
-        const endgameTag = classifyEndgameError(fenAfter, move);
-        if (endgameTag) {
-            tags.push(endgameTag);
-        }
-    }
-
-    // If no specific pattern detected but eval dropped significantly, mark as tactical miss
-    if (tags.length === 0 && Math.abs(evalAfter - evalBefore) >= COACH_CONFIG.BLUNDER_THRESHOLD) {
-        tags.push(ERROR_TAGS.TACTICAL_MISS);
-    }
-
-    // If still no tags, default to positional error for smaller mistakes
-    if (tags.length === 0) {
-        tags.push(ERROR_TAGS.POSITIONAL_ERROR);
-    }
-
-    return tags;
-}
-
-// Detect if material was lost
-function hasMaterialDrop(fenBefore, fenAfter) {
-    const materialBefore = calculateMaterial(fenBefore);
-    const materialAfter = calculateMaterial(fenAfter);
-
-    // Material imbalance suggests piece was lost
-    return Math.abs(materialBefore.white - materialBefore.black) !==
-           Math.abs(materialAfter.white - materialAfter.black);
-}
-
-// Calculate material balance from FEN
-function calculateMaterial(fen) {
-    const board = fen.split(' ')[0];
-    const material = { white: 0, black: 0 };
-
-    for (const char of board) {
-        if (/[PNBRQ]/.test(char)) {
-            material.white += getPieceValue(char);
-        } else if (/[pnbrq]/.test(char)) {
-            material.black += getPieceValue(char);
-        }
-    }
-
-    return material;
-}
-
-// Detect back rank weakness pattern
-function isBackRankPattern(fen, playerColor) {
-    const chess = new Chess(fen);
-    const rank = playerColor === 'w' ? '1' : '8';
-
-    // Check if king is on back rank and boxed in by own pieces/pawns
-    const kingSquare = findKingSquare(fen, playerColor);
-    if (!kingSquare || !kingSquare.includes(rank)) {
-        return false;
-    }
-
-    // Check if opponent has rook or queen on same rank/file
-    const opponentPieces = playerColor === 'w' ? ['r', 'q'] : ['R', 'Q'];
-    const board = fen.split(' ')[0];
-
-    return opponentPieces.some(piece => board.includes(piece));
-}
-
-// Find king square in FEN
-function findKingSquare(fen, color) {
-    const board = fen.split(' ')[0];
-    const king = color === 'w' ? 'K' : 'k';
-    const rows = board.split('/');
-
-    for (let rank = 0; rank < 8; rank++) {
-        let file = 0;
-        for (const char of rows[rank]) {
-            if (char === king) {
-                return String.fromCharCode(97 + file) + (8 - rank);
-            } else if (/\d/.test(char)) {
-                file += parseInt(char);
-            } else {
-                file++;
-            }
-        }
-    }
-
-    return null;
-}
-
-// Detect king safety issues
-function isKingSafetyIssue(fenBefore, fenAfter, move) {
-    // Check if king moved or castling rights changed
-    if (move.piece === 'k') {
-        return true;
-    }
-
-    // Check if pawn shield was weakened
-    const chess = new Chess(fenAfter);
-    const kingSquare = findKingSquare(fenAfter, move.color);
-
-    if (!kingSquare) return false;
-
-    // Simplified: check if move exposed king to checks
-    return chess.in_check();
-}
-
-// Detect tactical patterns (fork, pin, skewer)
-function detectTacticalPattern(fen, move) {
-    const chess = new Chess(fen);
-
-    // Check for knight forks (knight attacking multiple pieces)
-    if (move.piece === 'n') {
-        const attacks = getAttackedSquares(fen, move.to, move.color);
-        if (attacks.length >= 2) {
-            return ERROR_TAGS.FORK;
-        }
-    }
-
-    // Check for pins and skewers (simplified heuristic)
-    if (move.piece === 'b' || move.piece === 'r' || move.piece === 'q') {
-        const opponentColor = move.color === 'w' ? 'b' : 'w';
-        const kingSquare = findKingSquare(fen, opponentColor);
-
-        if (kingSquare && isOnSameLine(move.to, kingSquare)) {
-            return ERROR_TAGS.PIN;
-        }
-    }
-
-    return null;
-}
-
-// Check if two squares are on same rank/file/diagonal
-function isOnSameLine(sq1, sq2) {
-    const file1 = sq1.charCodeAt(0);
-    const rank1 = parseInt(sq1[1]);
-    const file2 = sq2.charCodeAt(0);
-    const rank2 = parseInt(sq2[1]);
-
-    return file1 === file2 || rank1 === rank2 ||
-           Math.abs(file1 - file2) === Math.abs(rank1 - rank2);
-}
-
-// Get squares attacked by a piece (simplified)
-function getAttackedSquares(fen, square, color) {
-    const chess = new Chess(fen);
-    const moves = chess.moves({ square: square, verbose: true });
-
-    return moves
-        .filter(m => m.captured)
-        .map(m => m.to);
-}
-
-// Classify endgame error types
-function classifyEndgameError(fen, move) {
-    const board = fen.split(' ')[0];
-
-    // Count remaining pieces
-    const hasQueens = /[Qq]/.test(board);
-    const hasRooks = /[Rr]/.test(board);
-    const hasBishops = /[Bb]/.test(board);
-    const hasKnights = /[Nn]/.test(board);
-
-    if (hasQueens) {
-        return ERROR_TAGS.QUEEN_ENDGAME;
-    } else if (hasRooks) {
-        return ERROR_TAGS.ROOK_ENDGAME;
-    } else if (!hasBishops && !hasKnights && !hasQueens && !hasRooks) {
-        return ERROR_TAGS.PAWN_ENDGAME;
-    }
-
-    return null;
-}
-
-// Get piece value for material calculation
-function getPieceValue(piece) {
-    const values = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-    return values[piece.toLowerCase()] || 0;
-}
-
-// Count total pieces on board
-function countPieces(fen) {
-    const board = fen.split(' ')[0];
-    let count = 0;
-    for (const char of board) {
-        if (/[pnbrqkPNBRQK]/.test(char)) count++;
-    }
-    return count;
-}
-
-// Determine game phase
-function getGamePhase(ply, pieceCount) {
-    if (ply < COACH_CONFIG.OPENING_MOVES) return 'opening';
-    if (pieceCount <= COACH_CONFIG.ENDGAME_PIECES) return 'endgame';
-    return 'middlegame';
-}
-
-// Aggregate coach data
-function aggregateCoachData(games, moments) {
-    const wld = { wins: 0, losses: 0, draws: 0 };
-    const tagStats = {};
-    const phaseStats = { opening: 0, middlegame: 0, endgame: 0 };
-
-    // Aggregate W/L/D
-    games.forEach(game => {
-        if (game.outcome === 'white-win' || game.outcome === 'black-win') {
-            wld.wins++;
-        } else if (game.outcome === 'draw') {
-            wld.draws++;
-        } else {
-            wld.losses++;
-        }
-    });
-
-    // Aggregate tag frequencies
-    moments.forEach(moment => {
-        moment.tags.forEach(tag => {
-            if (!tagStats[tag]) {
-                tagStats[tag] = { count: 0, totalImpact: 0 };
-            }
-            tagStats[tag].count++;
-            tagStats[tag].totalImpact += Math.abs(moment.evalAfter - moment.evalBefore);
+        const report = await window.CaissaInsightsAnalysis.generate(dataset, gameCount, colorFilter, {
+            signal: controller.signal, Chess, onProgress: updateCoachProgress,
+            previousReport: coachReportData, previousDataset: insightWorkspace?.dataset
         });
-
-        // Phase stats
-        phaseStats[moment.phase]++;
-    });
-
-    // Calculate average impact
-    Object.keys(tagStats).forEach(tag => {
-        tagStats[tag].avgImpact = tagStats[tag].totalImpact / tagStats[tag].count;
-    });
-
-    // Sort tags by frequency
-    const topPatterns = Object.entries(tagStats)
-        .map(([tag, stats]) => ({ tag, ...stats }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-
-    return {
-        wld,
-        gamesCount: games.length,
-        totalMoments: moments.length,
-        topPatterns,
-        phaseStats,
-        avgMomentsPerGame: moments.length / games.length
-    };
+        if (controller.signal.aborted || epoch !== insightEpoch || dataset !== insightProfile) throw Object.assign(new Error('Analysis cancelled'), { name: 'AbortError' });
+        coachReportData = report;
+        insightWorkspace = { dataset, report, operationId: crypto.randomUUID() };
+        getInsightAccount()?.writeWorkspace(insightWorkspace);
+        insightRunController = null;
+        displayCoachReport(report);
+        updateCoachProgress(100, report.analysisStatus === 'complete' ? 'Move review complete.' : 'Partial review saved locally. Continue from the report button to review missing positions.');
+        showCoachSection('report');
+        await persistCoachReport();
+        return epoch === insightEpoch && !controller.signal.aborted;
+    } finally {
+        if (insightRunController === controller) insightRunController = null;
+        document.getElementById('coachGenerateBtn').disabled = !!insightRunController;
+        updateInsightReportStatus();
+        const inline = document.getElementById('insightRunProgress'); if (inline) inline.hidden = !insightRunController;
+    }
 }
 
-// Generate training plan
-function generateTrainingPlan(aggregate) {
-    const plan = [];
-    const topPatterns = aggregate.topPatterns;
-
-    // Day 1-2: Focus on top weakness
-    if (topPatterns.length > 0) {
-        const top = topPatterns[0];
-        plan.push({
-            day: 1,
-            title: `${top.tag} Drills`,
-            description: `Focus on recognizing and avoiding ${top.tag.toLowerCase()} situations. Practice 15-20 tactical puzzles specifically targeting this weakness.`
-        });
-        plan.push({
-            day: 2,
-            title: `${top.tag} Review`,
-            description: `Review your own games where you made this error. Analyze what triggered the mistake and how to prevent it.`
-        });
-    }
-
-    // Day 3: Second weakness
-    if (topPatterns.length > 1) {
-        const second = topPatterns[1];
-        plan.push({
-            day: 3,
-            title: `${second.tag} Training`,
-            description: `Work on ${second.tag.toLowerCase()} patterns. Study master games showing correct technique in similar positions.`
-        });
-    }
-
-    // Day 4: Phase-specific training
-    const weakestPhase = Object.entries(aggregate.phaseStats)
-        .sort((a, b) => b[1] - a[1])[0];
-    plan.push({
-        day: 4,
-        title: `${weakestPhase[0].charAt(0).toUpperCase() + weakestPhase[0].slice(1)} Focus`,
-        description: `Your ${weakestPhase[0]} phase needs attention. Study classic games and patterns specific to this phase.`
-    });
-
-    // Day 5: Mixed tactics
-    plan.push({
-        day: 5,
-        title: 'Mixed Tactics Test',
-        description: 'Test your progress with mixed tactical puzzles combining all your weakness areas. Aim for 80%+ accuracy.'
-    });
-
-    // Day 6: Game review
-    plan.push({
-        day: 6,
-        title: 'Deep Game Review',
-        description: 'Analyze 2-3 of your recent games in detail, focusing on the critical moments where you made errors.'
-    });
-
-    // Day 7: Assessment
-    plan.push({
-        day: 7,
-        title: 'Progress Check',
-        description: 'Play 3-5 practice games and review them for the same patterns. Track improvement in your error rate.'
-    });
-
-    return plan;
-}
-
-// Display coach report
+// Render facts, coverage and candidate positions without unverified skill or
+// tactical-pattern claims. Unavailable phases are never called strengths.
 function displayCoachReport(data) {
-    // Summary stats
-    const summaryHtml = `
-        <div class="stat-card">
-            <div class="stat-label">Games Analyzed</div>
-            <div class="stat-value">${data.gamesAnalyzed}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Critical Moments</div>
-            <div class="stat-value">${data.aggregate.totalMoments}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Win Rate</div>
-            <div class="stat-value">${Math.round((data.aggregate.wld.wins / data.gamesAnalyzed) * 100)}%</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Avg Errors/Game</div>
-            <div class="stat-value">${data.aggregate.avgMomentsPerGame.toFixed(1)}</div>
-        </div>
-    `;
-    document.getElementById('coachSummaryStats').innerHTML = summaryHtml;
-
-    // What's working
-    const workingHtml = generateWorkingContent(data.aggregate);
-    document.getElementById('coachWorkingContent').innerHTML = workingHtml;
-
-    // What's not working
-    const notWorkingHtml = generateNotWorkingContent(data.aggregate);
-    document.getElementById('coachNotWorkingContent').innerHTML = notWorkingHtml;
-
-    // Patterns
-    const patternsHtml = generatePatternsContent(data.aggregate.topPatterns);
-    document.getElementById('coachPatternsContent').innerHTML = patternsHtml;
-
-    // Habits
-    const habitsHtml = generateHabitsContent(data.aggregate.topPatterns);
-    document.getElementById('coachHabitsContent').innerHTML = habitsHtml;
-
-    // Training plan
-    const planHtml = generateTrainingPlanHTML(data.plan);
-    document.getElementById('coachPlanContent').innerHTML = planHtml;
-}
-
-// Generate "What's Working" content
-function generateWorkingContent(aggregate) {
-    const winRate = (aggregate.wld.wins / aggregate.gamesCount) * 100;
-    let html = '<ul>';
-
-    if (winRate > 50) {
-        html += `<li><strong>Positive Win Rate:</strong> You're winning more than you're losing (${winRate.toFixed(0)}%), showing overall solid play.</li>`;
-    }
-
-    if (aggregate.avgMomentsPerGame < 3) {
-        html += `<li><strong>Low Error Rate:</strong> Averaging ${aggregate.avgMomentsPerGame.toFixed(1)} critical errors per game shows good fundamental accuracy.</li>`;
-    }
-
-    const bestPhase = Object.entries(aggregate.phaseStats)
-        .sort((a, b) => a[1] - b[1])[0];
-    html += `<li><strong>${bestPhase[0].charAt(0).toUpperCase() + bestPhase[0].slice(1)} Stability:</strong> Your ${bestPhase[0]} play shows fewer errors compared to other phases.</li>`;
-
-    html += '</ul>';
-    return html;
-}
-
-// Generate "What's Not Working" content
-function generateNotWorkingContent(aggregate) {
-    let html = '<ul>';
-
-    if (aggregate.topPatterns.length > 0) {
-        aggregate.topPatterns.slice(0, 3).forEach(pattern => {
-            html += `<li><strong>${pattern.tag}:</strong> Occurring ${pattern.count} times across your games with average impact of ${pattern.avgImpact.toFixed(1)} pawns.</li>`;
-        });
-    }
-
-    const worstPhase = Object.entries(aggregate.phaseStats)
-        .sort((a, b) => b[1] - a[1])[0];
-    html += `<li><strong>${worstPhase[0].charAt(0).toUpperCase() + worstPhase[0].slice(1)} Struggles:</strong> Most errors occur in the ${worstPhase[0]} phase.</li>`;
-
-    html += '</ul>';
-    return html;
-}
-
-// Generate patterns content
-function generatePatternsContent(patterns) {
-    if (patterns.length === 0) {
-        return '<p>No recurring patterns detected. Great job!</p>';
-    }
-
-    return patterns.map(pattern => `
-        <div class="pattern-card">
-            <div class="pattern-header">
-                <span class="pattern-name">${pattern.tag}</span>
-                <span class="pattern-badge">${pattern.count}x</span>
-            </div>
-            <div class="pattern-stats">
-                Frequency: ${pattern.count} occurrences
-            </div>
-            <div class="pattern-impact">
-                Average Impact: <strong>-${pattern.avgImpact.toFixed(1)} pawns</strong>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Generate habits content
-function generateHabitsContent(patterns) {
-    let html = '<ul>';
-
-    if (patterns.length > 0) {
-        const top = patterns[0];
-        if (top.tag === ERROR_TAGS.HANGING_PIECE) {
-            html += '<li><strong>Before every move:</strong> Scan all your pieces. Count attackers and defenders. Never leave pieces undefended.</li>';
-        } else if (top.tag === ERROR_TAGS.BAD_TRADE) {
-            html += '<li><strong>Before capturing:</strong> Always calculate material value. Don\'t trade a more valuable piece for a less valuable one without compensation.</li>';
-        } else {
-            html += '<li><strong>After every opponent move:</strong> Check for tactical threats before making your next move. Take time to understand what changed.</li>';
-        }
-    }
-
-    html += '<li><strong>Time management:</strong> Don\'t rush in critical positions. Use your thinking time wisely, especially in complex tactical situations.</li>';
-    html += '<li><strong>Pattern recognition:</strong> Study one tactical theme per week and actively look for it in your games.</li>';
-
-    html += '</ul>';
-    return html;
-}
-
-// Generate training plan HTML
-function generateTrainingPlanHTML(plan) {
-    return plan.map(day => `
-        <div class="training-day">
-            <div class="training-day-number">Day ${day.day}</div>
-            <div class="training-day-content">
-                <div class="training-day-title">${day.title}</div>
-                <div class="training-day-description">${day.description}</div>
-            </div>
-        </div>
-    `).join('');
+    coachReportData = data;
+    renderInsightDashboard();
 }
 
 // ===== CHEATER INSIGHT (Chess.com) =====

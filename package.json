@@ -201,7 +201,9 @@
     "lint:pgn-replayer": "node --check js/pgn-replayer/pgn-core.js && node --check js/pgn-replayer/pgn-worker.js && node --check js/pgn-replayer/pgn-board.js && node --check js/pgn-replayer/pgn-player-iconography.js && node --check js/pgn-replayer/pgn-mentor-historical-library.js && node --check js/pgn-replayer/pgn-opening-library.js && node --check js/pgn-replayer/pgn-replayer-page.js && node --check api/pgn/opening.js && node --check tests/pgn-replayer/*.test.js",
     "fics:gateway": "node gateway/fics-local-node/fics-gateway.cjs",
     "fics:dev": "node gateway/fics-local-node/fics-gateway.cjs",
-    "security:dependencies": "node scripts/audit-supply-chain.mjs && npm audit --audit-level=high"
+    "security:dependencies": "node scripts/audit-supply-chain.mjs && npm audit --audit-level=high",
+    "test:insights": "node --test tests/insight-route-initialization.test.js tests/insight-coach-route.test.cjs tests/insights-core.test.js tests/insights-analysis.test.js tests/insights-account-client.test.js tests/insights-api.test.js tests/insights-adapter-contract.test.js tests/insights-report.test.js",
+    "lint:insights": "node --check app.js && node --check js/insights/core.js && node --check js/insights/engine-analysis.js && node --check js/insights/account-client.js && node --check js/insights/report-model.js && node --check js/insights/report-view.js && node --check js/insights-section.js && node --check api/_lib/insights-handlers.js && node --check api/_lib/insights-validation.js"
   },
   "dependencies": {
     "@clerk/backend": "^2.33.6",

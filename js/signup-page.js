@@ -110,16 +110,20 @@
 
             // Mount Sign Up component
             Clerk.mountSignUp(container, {
-                afterSignInUrl: getCompletionUrl(),
-                afterSignUpUrl: getCompletionUrl(),
+                signInForceRedirectUrl: getCompletionUrl(),
+                signUpForceRedirectUrl: getCompletionUrl(),
                 signInUrl: '/signin',
                 appearance: {
                     variables: {
                         colorPrimary: '#4ecdc4',
+                        colorPrimaryForeground: '#0b0f1a',
                         colorBackground: '#141923',
-                        colorInputBackground: '#1a2030',
-                        colorInputText: '#e8eaed',
-                        colorTextSecondary: '#9aa0a6',
+                        colorForeground: '#f3f6fb',
+                        colorMutedForeground: '#c2cad7',
+                        colorNeutral: '#dce3ed',
+                        colorInput: '#202838',
+                        colorInputForeground: '#f8fafc',
+                        colorRing: '#4ecdc4',
                         borderRadius: '8px'
                     },
                     elements: {
@@ -166,7 +170,7 @@
                         formFieldLabel: { color: '#dce3ed' },
                         formFieldInput: {
                             backgroundColor: '#202838',
-                            border: '1px solid #667085',
+                            border: '1px solid #718096',
                             color: '#f8fafc',
                             caretColor: '#4ecdc4',
                             '&:hover': { borderColor: '#8b98aa', backgroundColor: '#252f42' },
@@ -176,8 +180,8 @@
                             '&:disabled': { backgroundColor: '#151b27', borderColor: '#465064', color: '#8993a4', opacity: '1' }
                         },
                         otpCodeFieldInput: {
-                            minWidth: '42px', minHeight: '52px',
-                            backgroundColor: '#202838', border: '1px solid #667085', color: '#f8fafc',
+                            flex: '1 1 0', minWidth: '0', maxWidth: '42px', minHeight: '52px',
+                            backgroundColor: '#202838', border: '1px solid #718096', color: '#f8fafc',
                             fontSize: '20px', fontWeight: '700',
                             '&:hover': { borderColor: '#8b98aa', backgroundColor: '#252f42' },
                             '&:focus': { borderColor: '#4ecdc4', boxShadow: '0 0 0 3px rgba(78, 205, 196, 0.28)' },

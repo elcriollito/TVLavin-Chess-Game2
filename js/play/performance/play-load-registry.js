@@ -151,7 +151,7 @@
                 'js/pgn-replayer/pgn-core.js?v=1.0.0',
                 'js/analyze-variation-tree.js?v=1.0.0',
                 'js/analyze-local-branch-session.js?v=2.0.0',
-                'js/analyze-section.js?v=1.7.0'
+                'js/analyze-section.js?v=1.7.1'
             ] : [
                 'js/analyze-session.js?v=1.0.0', 'js/analyze-setup-draft.js?v=1.0.0',
                 'js/analyze-game-import.js?v=1.1.0',
@@ -162,7 +162,7 @@
                 'js/pgn-replayer/pgn-core.js?v=1.0.0',
                 'js/analyze-variation-tree.js?v=1.0.0',
                 'js/analyze-local-branch-session.js?v=2.0.0',
-                'js/analyze-section.js?v=1.7.0'
+                'js/analyze-section.js?v=1.7.1'
             ])
         })
     });

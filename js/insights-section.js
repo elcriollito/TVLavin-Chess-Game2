@@ -26,7 +26,6 @@ const InsightsSection = {
     cacheElements() {
         this.elements = {
             openModalBtn1: document.getElementById('openInsightModal'),
-            openModalBtn2: document.getElementById('openInsightModal2'),
             insightModal: document.getElementById('insightModal'),
             headerInsightBtn: document.getElementById('caissaInsightBtn')
         };
@@ -41,15 +40,16 @@ const InsightsSection = {
             this.openInsightModal();
         });
 
-        this.elements.openModalBtn2?.addEventListener('click', () => {
-            this.openInsightModal();
-        });
     },
 
     /**
      * Open the Caissa Insight modal
      */
     openInsightModal() {
+        if (typeof window.openInsightReportFlow === 'function') {
+            window.openInsightReportFlow();
+            return;
+        }
         console.log('[Insights] Opening Caissa Insight modal...');
 
         // Use existing modal system from app.js
