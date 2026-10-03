@@ -202,7 +202,7 @@
     "fics:gateway": "node gateway/fics-local-node/fics-gateway.cjs",
     "fics:dev": "node gateway/fics-local-node/fics-gateway.cjs",
     "security:dependencies": "node scripts/audit-supply-chain.mjs && npm audit --audit-level=high",
-    "test:insights": "node --test tests/insight-route-initialization.test.js tests/insight-coach-route.test.cjs tests/insights-core.test.js tests/insights-analysis.test.js tests/insights-account-client.test.js tests/insights-api.test.js",
+    "test:insights": "node --test tests/insight-route-initialization.test.js tests/insight-coach-route.test.cjs tests/insights-core.test.js tests/insights-analysis.test.js tests/insights-account-client.test.js tests/insights-api.test.js tests/insights-adapter-contract.test.js",
     "lint:insights": "node --check app.js && node --check js/insights/core.js && node --check js/insights/engine-analysis.js && node --check js/insights/account-client.js && node --check api/_lib/insights-handlers.js && node --check api/_lib/insights-validation.js"
   },
   "dependencies": {

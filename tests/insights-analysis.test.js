@@ -10,7 +10,8 @@ function engineHarness(script) {
     const sentinels = { onInfo() {}, onBestMove() {} };
     const engine = { ...sentinels, start: async () => {}, isReady: () => true, setMultiPV(n) { assert.equal(n, 1); },
         getBestMoveAttributed(fen, callback, options) {
-            const id = `request:${calls.length + 1}`; calls.push({ fen, callback, options: { ...options, infoCallback: engine.onInfo }, id });
+            assert.equal(engine.onInfo, sentinels.onInfo);
+            const id = `request:${calls.length + 1}`; calls.push({ fen, callback, options: { ...options, infoCallback: options.onInfo }, id });
             queueMicrotask(() => script?.(calls.at(-1), calls.length - 1)); return id;
         }, cancelAttributedSearch() { cancelled++; }, terminate() { terminated++; },
         getRuntimeIdentity: () => ({ providerId: 'stockfish-18-lite', reportedUciName: 'Test engine' }) };

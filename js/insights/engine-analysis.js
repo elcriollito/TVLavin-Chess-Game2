@@ -42,7 +42,7 @@
             return new Promise((resolve, reject) => {
                 let latest = null, generationId = null, settled = false;
                 const started = Date.now();
-                const previousInfo = engine.onInfo, previousError = engine.onError;
+                const previousError = engine.onError;
                 const onInfo = (info, responseId) => {
                     if (settled || signal?.aborted || responseId !== generationId || info.multipv !== 1
                         || /\b(?:lowerbound|upperbound)\b/.test(info.rawLine || '')) return;
@@ -51,7 +51,6 @@
                 const onError = () => finish(unavailable('ENGINE_UNAVAILABLE'));
                 const finish = (value, error) => {
                     if (settled) return; settled = true; clearTimeout(timer); signal?.removeEventListener('abort', onAbort);
-                    if (engine.onInfo === onInfo) engine.onInfo = previousInfo;
                     if (engine.onError === onError) engine.onError = previousError;
                     pending = null; if (error) reject(error); else resolve(value);
                 };
@@ -63,9 +62,7 @@
                 pending = { cancel: onAbort };
                 signal?.addEventListener('abort', onAbort, { once: true });
                 if (signal?.aborted) { onAbort(); return; }
-                // This adapter instance belongs only to this batch. The existing
-                // attributed best-move API delivers info via the owned onInfo slot.
-                engine.onInfo = onInfo; engine.onError = onError;
+                engine.onError = onError;
                 generationId = engine.getBestMoveAttributed(fen, (bestMove, _ponder, responseId) => {
                     if (settled || signal?.aborted || responseId !== generationId) return;
                     if (!latest || latest.depth < policy.depth || (!Number.isFinite(latest.score) && !Number.isFinite(latest.mate))) {
@@ -76,7 +73,7 @@
                         perspective: 'white', unit: Number.isFinite(latest.mate) ? 'mate' : 'centipawn',
                         depth: latest.depth, nodes: latest.nodes || 0, pv: (latest.pv || []).slice(0, 12), bestMove,
                         runId, requestId, generationId, elapsedMs: Date.now() - started });
-                }, { depth: policy.depth, multiPv: 1 });
+                }, { depth: policy.depth, multiPv: 1, onInfo });
                 if (!generationId) finish(unavailable('ENGINE_REQUEST_REJECTED'));
             });
         }
