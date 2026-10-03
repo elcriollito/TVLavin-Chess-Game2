@@ -90,3 +90,104 @@ test('Classic desktop board has zero drift across rooms, updates, idle, and resi
 
     expect(runtimeProblems).toEqual([]);
 });
+
+test('Classic Engine Room applies navigation geometry in one pass', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+    await page.setViewportSize({ width: 900, height: 1200 });
+    await page.goto('/yahoo-classic', { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => window.CaissaYahooClassic?.elements?.shell);
+
+    await page.evaluate(() => {
+        const classic = window.CaissaYahooClassic;
+        classic.currentRoom = { name: 'Computer Hall', description: 'Computer play.' };
+        classic.render();
+        classic.openTable('engine-room-geometry', {
+            white: 'GuestAudit', black: 'IFDStock', whiteRating: 'Guest', blackRating: '2985',
+            timeControl: '3+2', label: 'Unrated'
+        }, 'playing');
+    });
+
+    const measurement = await page.evaluate(async () => {
+        const board = document.getElementById('ycClassicBoard');
+        const panel = board.closest('.yc-game-board-panel');
+        const sidebar = document.querySelector('.caissa-standalone-sidebar-host');
+        const app = document.getElementById('app');
+        const rect = element => {
+            const bounds = element.getBoundingClientRect();
+            return [bounds.x, bounds.y, bounds.width, bounds.height].map(value => Number(value.toFixed(3)));
+        };
+        const before = { panel: rect(panel), board: rect(board) };
+        const transitions = {
+            app: getComputedStyle(app).transitionDuration,
+            sidebar: sidebar ? getComputedStyle(sidebar).transitionDuration : 'absent',
+            panel: getComputedStyle(panel).transitionDuration,
+            board: getComputedStyle(board).transitionDuration
+        };
+
+        document.getElementById('navCollapseBtn').click();
+        const frames = [];
+        for (let frame = 0; frame < 20; frame += 1) {
+            await new Promise(requestAnimationFrame);
+            frames.push({ panel: rect(panel), board: rect(board) });
+        }
+        return { before, transitions, frames };
+    });
+
+    expect(measurement.transitions.app).toBe('0s');
+    expect(['absent', '0s']).toContain(measurement.transitions.sidebar);
+    expect(measurement.transitions.panel).toBe('0s');
+    expect(measurement.transitions.board).toBe('0s');
+    expect(measurement.frames[0]).not.toEqual(measurement.before);
+    expect(measurement.frames.every(frame => JSON.stringify(frame) === JSON.stringify(measurement.frames[0]))).toBe(true);
+
+    await page.evaluate(() => window.CaissaYahooClassic.closeTable(false));
+    await expect(page.locator('.yc-shell')).not.toHaveClass(/yc-table-open/);
+    await expect(page.locator('#ycGameWindow')).toHaveAttribute('aria-hidden', 'true');
+});
+
+test('Classic Engine Room remains stable at browser zoom-equivalent viewports', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
+
+    for (const zoom of [0.9, 1, 1.1, 1.25]) {
+        await page.setViewportSize({
+            width: Math.round(1440 / zoom),
+            height: Math.round(900 / zoom)
+        });
+        await page.goto('/yahoo-classic', { waitUntil: 'networkidle' });
+        await page.waitForFunction(() => window.CaissaYahooClassic?.elements?.shell);
+        const measurement = await page.evaluate(async () => {
+            const classic = window.CaissaYahooClassic;
+            classic.currentRoom = { name: 'Computer Hall', description: 'Computer play.' };
+            classic.render();
+            classic.openTable('engine-room-zoom', {
+                white: 'GuestAudit', black: 'IFDStock', timeControl: '3+2', label: 'Unrated'
+            }, 'playing');
+
+            const board = document.getElementById('ycClassicBoard');
+            const panel = board.closest('.yc-game-board-panel');
+            const rect = element => {
+                const bounds = element.getBoundingClientRect();
+                return [bounds.x, bounds.y, bounds.width, bounds.height].map(value => Number(value.toFixed(3)));
+            };
+            const first = { board: rect(board), panel: rect(panel) };
+            const samples = [];
+            for (let frame = 0; frame < 30; frame += 1) {
+                await new Promise(requestAnimationFrame);
+                samples.push({ board: rect(board), panel: rect(panel) });
+            }
+            return {
+                first,
+                samples,
+                cssZoom: getComputedStyle(board).zoom,
+                transform: getComputedStyle(board).transform,
+                visualViewportScale: visualViewport?.scale || 1
+            };
+        });
+
+        expect(measurement.cssZoom, `CSS zoom changed at ${zoom * 100}%`).toBe('1');
+        expect(measurement.transform, `board transform changed at ${zoom * 100}%`).toBe('none');
+        expect(measurement.visualViewportScale, `responsive emulation leaked at ${zoom * 100}%`).toBe(1);
+        expect(measurement.samples.every(sample => JSON.stringify(sample) === JSON.stringify(measurement.first)),
+            `board drifted at ${zoom * 100}%`).toBe(true);
+    }
+});

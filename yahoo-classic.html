@@ -97,6 +97,7 @@
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.17">
+    <link rel="stylesheet" href="css/caissa-legacy-quiet-drag.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-standalone-sidebar.css?v=1.3.0">
     <link rel="stylesheet" href="css/play-simplified-shell.css?v=1.43.0">
     <link rel="stylesheet" href="css/play-visual-tokens.css?v=1.2.1">
@@ -108,7 +109,7 @@
     <link rel="stylesheet" href="position-forge.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-auth.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-sync.css?v=1.0.0">
-    <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.1.0">
+    <link rel="stylesheet" href="css/caissa-onboarding.css?v=1.2.0">
     <link rel="stylesheet" href="css/caissa-dos-chess.css?v=1.0.1">
     <link rel="stylesheet" href="css/fics-client.css?v=1.2.5">
     <link rel="stylesheet" href="css/fics-redesign-shell.css?v=1.5.2">
@@ -1682,17 +1683,19 @@
                                 <div id="ycMoveList" class="yc-classic-move-list" aria-live="polite">
                                     <div class="yc-move-empty">Moves will appear when the table updates.</div>
                                 </div>
-                                <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
-                                    <span class="yc-turn-led" aria-hidden="true"></span>
-                                    <span class="yc-player-name">White</span>
-                                    <span class="yc-player-rating">FICS</span>
-                                    <span class="yc-player-state">Waiting</span>
-                                    <strong class="yc-player-clock">--:--</strong>
-                                </div>
-                                <div class="yc-panel yc-game-system-panel" aria-label="Classic table system messages">
-                                    <div class="yc-panel-title">Table Log</div>
-                                    <div id="ycGameSystemLog" class="yc-game-system-log" aria-live="polite">
-                                        <p>Open a table to receive system messages.</p>
+                                <div class="yc-move-panel-footer">
+                                    <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
+                                        <span class="yc-turn-led" aria-hidden="true"></span>
+                                        <span class="yc-player-name">White</span>
+                                        <span class="yc-player-rating">FICS</span>
+                                        <span class="yc-player-state">Waiting</span>
+                                        <strong class="yc-player-clock">--:--</strong>
+                                    </div>
+                                    <div class="yc-panel yc-game-system-panel" aria-label="Classic table system messages">
+                                        <div class="yc-panel-title">Table Log</div>
+                                        <div id="ycGameSystemLog" class="yc-game-system-log" aria-live="polite">
+                                            <p>Open a table to receive system messages.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </aside>
@@ -5105,7 +5108,7 @@
     <script src="js/caissa-auth.js?v=1.0.2" defer></script>
     <script src="js/caissa-access.js?v=1.0.2" defer></script>
     <script src="js/caissa-ui-auth.js?v=1.0.2" defer></script>
-    <script src="js/caissa-onboarding.js?v=1.1.0" defer></script>
+    <script src="js/caissa-onboarding.js?v=1.2.0" defer></script>
     <script src="js/caissa-dos-chess.js?v=1.0.0" defer></script>
     <script src="js/spectator-tv-state.js?v=1.0.1" defer></script>
     <script src="js/spectator-tv-catalog.js?v=1.0.0" defer></script>

@@ -15,6 +15,7 @@
     const SOUND_STORAGE_KEY = 'caissaClassicSoundEnabled';
     const BOARD_STYLE_STORAGE_KEY = 'caissaClassicBoardStyle';
     const LAST_MOVE_HIGHLIGHT_STORAGE_KEY = 'caissaClassicLastMoveHighlight';
+    const LEGACY_QUIET_DRAG_URL = '/js/board/caissa-legacy-quiet-drag-adapter.js';
     const BOARD_STYLES = Object.freeze(['classic', 'yahoo-table']);
     const SOUND_PATTERNS = Object.freeze({
         connect: [{ frequency: 523, duration: 0.06 }, { frequency: 659, duration: 0.08 }],
@@ -107,6 +108,8 @@
         liveGame: null,
         moveHistory: [],
         board: null,
+        legacyQuietDragAdapter: null,
+        legacyQuietDragReady: null,
         lastRenderedFen: null,
         lastMoveSignature: '',
         lastHighlightedSquares: [],
@@ -264,6 +267,7 @@
 
         onExit() {
             this.active = false;
+            this.destroyClassicBoard();
             document.body?.classList.remove('yc-classic-active');
         },
 
@@ -1330,6 +1334,8 @@
             this.lastRenderedFen = null;
             this.lastMoveSignature = '';
             this.tableMode = '';
+            this.hideClassicPromotionSelector();
+            this.destroyClassicBoard();
             this.renderGameExperience();
         },
 
@@ -1813,13 +1819,138 @@
         initClassicBoard() {
             if (this.board || !this.elements.classicBoard || typeof Chessboard === 'undefined') return;
             if (!this.elements.section?.classList.contains('active')) return;
-            this.board = Chessboard(this.elements.classicBoard, {
+            this.board = this.createManagedClassicBoard(this.elements.classicBoard, {
                 draggable: true,
                 position: 'start',
                 onDragStart: (source, piece) => this.handleClassicDragStart(source, piece),
-                onDrop: (source, target) => this.handleClassicDrop(source, target),
+                onDrop: (source, target, options) => this.handleClassicDrop(source, target, options),
                 onSnapEnd: () => this.handleClassicSnapEnd()
             });
+        },
+
+        captureChessboardGlobalHandlers(container = null) {
+            const jquery = window.jQuery;
+            if (typeof jquery?._data !== 'function') return [];
+            const eventTypes = new Set(['mousedown', 'mousemove', 'mouseup', 'touchstart', 'touchmove', 'touchend']);
+            const targets = [window, document.body, container].filter(Boolean);
+            return targets.flatMap(target => {
+                const events = jquery._data(target, 'events') || {};
+                return Object.entries(events).flatMap(([type, handlers]) => {
+                    if (!eventTypes.has(type)) return [];
+                    return handlers.map(binding => ({ target, type, binding }));
+                });
+            });
+        },
+
+        createManagedClassicBoard(container, config) {
+            const jquery = window.jQuery;
+            const existingBindings = new Set(this.captureChessboardGlobalHandlers(container).map(item => item.binding));
+            const board = Chessboard(container, config);
+            if (!board || typeof board.destroy !== 'function') return board;
+
+            let quietDrag = null;
+            let destroyed = false;
+            const ownedBindings = typeof jquery === 'function'
+                ? this.captureChessboardGlobalHandlers(container).filter(item => !existingBindings.has(item.binding))
+                : [];
+            let legacyInputAttached = true;
+            const eventNameFor = ({ type, binding }) => binding.namespace ? `${type}.${binding.namespace}` : type;
+            const detachLegacyInput = () => {
+                if (!legacyInputAttached) return false;
+                for (const item of ownedBindings) {
+                    const target = jquery(item.target);
+                    const eventName = eventNameFor(item);
+                    if (item.binding.selector) target.off(eventName, item.binding.selector, item.binding.handler);
+                    else target.off(eventName, item.binding.handler);
+                }
+                legacyInputAttached = false;
+                return true;
+            };
+            const attachLegacyInput = () => {
+                if (legacyInputAttached || destroyed) return false;
+                for (const item of ownedBindings) {
+                    const target = jquery(item.target);
+                    const eventName = eventNameFor(item);
+                    const { selector, data, handler } = item.binding;
+                    if (selector && data !== undefined) target.on(eventName, selector, data, handler);
+                    else if (selector) target.on(eventName, selector, handler);
+                    else if (data !== undefined) target.on(eventName, data, handler);
+                    else target.on(eventName, handler);
+                }
+                legacyInputAttached = true;
+                return true;
+            };
+
+            detachLegacyInput();
+            const quietDragOptions = {
+                board,
+                isEnabled: () => this.active === true
+                    && this.tableOpen === true
+                    && window.CaissaFICSClient?.canSubmitGraphicalMove?.() === true,
+                onDragStart: config.onDragStart,
+                onDrop: config.onDrop,
+                onSnapEnd: config.onSnapEnd,
+                onTap: square => this.handleClassicTap(square),
+                onEnabledChange: enabled => enabled ? detachLegacyInput() : attachLegacyInput(),
+                getLegacyInputState: () => ({ attached: legacyInputAttached, ownedBindingCount: ownedBindings.length })
+            };
+            const quietDragReady = import(LEGACY_QUIET_DRAG_URL)
+                .then(module => {
+                    if (destroyed) return null;
+                    quietDrag = module.create(container, quietDragOptions);
+                    this.legacyQuietDragAdapter = quietDrag;
+                    this.labelQuietDragQaPanel();
+                    return quietDrag;
+                })
+                .catch(error => {
+                    if (!destroyed) attachLegacyInput();
+                    console.error('[CAISSA Classic] Legacy Quiet Drag unavailable:', error);
+                    return null;
+                });
+            this.legacyQuietDragReady = quietDragReady;
+
+            const originalDestroy = board.destroy.bind(board);
+            board.destroy = () => {
+                if (destroyed) return undefined;
+                destroyed = true;
+                quietDrag?.destroy?.();
+                quietDragReady.then(adapter => adapter?.destroy?.());
+                if (this.legacyQuietDragAdapter === quietDrag) this.legacyQuietDragAdapter = null;
+                if (this.legacyQuietDragReady === quietDragReady) this.legacyQuietDragReady = null;
+                const result = originalDestroy();
+                for (const { target, type, binding } of ownedBindings) {
+                    const eventName = binding.namespace ? `${type}.${binding.namespace}` : type;
+                    if (binding.selector) jquery(target).off(eventName, binding.selector, binding.handler);
+                    else jquery(target).off(eventName, binding.handler);
+                }
+                return result;
+            };
+            return board;
+        },
+
+        destroyClassicBoard() {
+            if (this.boardResizeFrame !== null) {
+                cancelAnimationFrame(this.boardResizeFrame);
+                this.boardResizeFrame = null;
+            }
+            const board = this.board;
+            this.board = null;
+            board?.destroy?.();
+            this.lastRenderedFen = null;
+            this.lastBoardSize = null;
+        },
+
+        getLegacyQuietDragSnapshot() {
+            return this.legacyQuietDragAdapter?.getMetrics?.() || null;
+        },
+
+        labelQuietDragQaPanel() {
+            if (!['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname)
+                || new URLSearchParams(window.location.search).get('quiet-drag-lab') !== '1') return;
+            const panel = document.querySelector('.caissa-legacy-drag-qa');
+            panel?.setAttribute('aria-label', 'Yahoo Classic drag comparison');
+            const label = panel?.querySelector('span');
+            if (label) label.textContent = 'Yahoo Classic drag';
         },
 
         renderClassicBoard() {
@@ -1835,6 +1966,9 @@
             }
             const playable = !!client?.canSubmitGraphicalMove?.();
             this.elements.classicBoard?.classList.toggle('yc-board-playable', playable);
+            if (client?.pendingPromotionMove) this.showClassicPromotionSelector();
+            else this.hideClassicPromotionSelector();
+            this.renderClassicSelection();
             this.scheduleClassicBoardResize();
         },
 
@@ -1896,17 +2030,36 @@
             return client.onDragStart(source, piece);
         },
 
-        handleClassicDrop(source, target) {
+        handleClassicDrop(source, target, options = null) {
             const client = window.CaissaFICSClient;
             if (!client?.onDrop) return 'snapback';
-            const result = client.onDrop(source, target);
+            const result = client.onDrop(source, target, options);
+            this.renderClassicSelection();
+            if (client.pendingPromotionMove) {
+                this.showClassicPromotionSelector();
+                return 'snapback';
+            }
             if (result === 'snapback') return 'snapback';
             const optimisticFen = client.pendingMove?.optimisticFen;
             if (optimisticFen) {
-                this.board?.position?.(optimisticFen, true);
+                this.board?.position?.(optimisticFen, options?.caissaQuietDrag !== true);
                 this.lastRenderedFen = optimisticFen;
             }
             return result;
+        },
+
+        handleClassicTap(square) {
+            const client = window.CaissaFICSClient;
+            if (!client?.handleBoardTap) return false;
+            const handled = client.handleBoardTap(square);
+            this.renderClassicSelection();
+            if (client.pendingPromotionMove) this.showClassicPromotionSelector();
+            const optimisticFen = client.pendingMove?.optimisticFen;
+            if (optimisticFen) {
+                this.board?.position?.(optimisticFen, false);
+                this.lastRenderedFen = optimisticFen;
+            }
+            return handled;
         },
 
         handleClassicSnapEnd() {
@@ -1917,6 +2070,92 @@
                 this.lastRenderedFen = fen;
             }
             client?.onSnapEnd?.();
+            this.renderClassicSelection();
+        },
+
+        renderClassicSelection() {
+            this.elements.classicBoard?.querySelectorAll?.('.yc-click-selected')
+                .forEach(square => square.classList.remove('yc-click-selected'));
+            const selected = window.CaissaFICSClient?.selectedBoardSquare;
+            if (selected) this.elements.classicBoard?.querySelector?.(`.square-${selected}`)?.classList.add('yc-click-selected');
+        },
+
+        ensureClassicPromotionSelector() {
+            if (this.elements.classicPromotionSelector?.isConnected) return this.elements.classicPromotionSelector;
+            const panel = this.elements.classicBoard?.closest?.('.yc-game-board-panel');
+            if (!panel) return null;
+            const selector = document.createElement('div');
+            selector.id = 'ycPromotionSelector';
+            selector.className = 'fics-promotion-selector yc-classic-promotion-selector';
+            selector.hidden = true;
+            selector.setAttribute('role', 'dialog');
+            selector.setAttribute('aria-modal', 'true');
+            selector.setAttribute('aria-labelledby', 'ycPromotionTitle');
+            const card = document.createElement('div');
+            card.className = 'fics-promotion-card';
+            const header = document.createElement('div');
+            header.className = 'fics-promotion-header';
+            const title = document.createElement('strong');
+            title.id = 'ycPromotionTitle';
+            title.textContent = 'Choose promotion';
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'fics-promotion-close';
+            close.setAttribute('aria-label', 'Cancel promotion');
+            close.textContent = '×';
+            close.addEventListener('click', () => this.cancelClassicPromotion());
+            const options = document.createElement('div');
+            options.className = 'fics-promotion-options';
+            options.setAttribute('role', 'group');
+            options.setAttribute('aria-label', 'Choose promotion piece');
+            [['q', 'Queen'], ['r', 'Rook'], ['b', 'Bishop'], ['n', 'Knight']].forEach(([piece, label]) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'fics-promotion-btn';
+                button.dataset.promotion = piece;
+                button.textContent = label;
+                button.addEventListener('click', () => this.completeClassicPromotion(piece));
+                options.appendChild(button);
+            });
+            header.append(title, close);
+            card.append(header, options);
+            selector.appendChild(card);
+            panel.appendChild(selector);
+            this.elements.classicPromotionSelector = selector;
+            return selector;
+        },
+
+        showClassicPromotionSelector() {
+            const selector = this.ensureClassicPromotionSelector();
+            if (!selector) return;
+            selector.hidden = false;
+            setTimeout(() => selector.querySelector('[data-promotion]')?.focus(), 0);
+        },
+
+        hideClassicPromotionSelector() {
+            if (this.elements.classicPromotionSelector) this.elements.classicPromotionSelector.hidden = true;
+        },
+
+        completeClassicPromotion(piece) {
+            const client = window.CaissaFICSClient;
+            client?.completePromotionSelection?.(piece);
+            this.hideClassicPromotionSelector();
+            const fen = client?.pendingMove?.optimisticFen || this.liveGame?.currentFen;
+            if (fen) {
+                this.board?.position?.(fen, false);
+                this.lastRenderedFen = fen;
+            }
+        },
+
+        cancelClassicPromotion() {
+            const client = window.CaissaFICSClient;
+            client?.cancelPromotionSelection?.();
+            this.hideClassicPromotionSelector();
+            const fen = this.liveGame?.currentFen;
+            if (fen) {
+                this.board?.position?.(fen, false);
+                this.lastRenderedFen = fen;
+            }
         },
 
         ensureBoardFeedback() {
