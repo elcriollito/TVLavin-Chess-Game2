@@ -1,7 +1,7 @@
 import { CaissaPointerController } from './caissa-quiet-drag.js';
 
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
-const QA_QUERY = 'quiet-drag-lab';
+const DEFAULT_QA_QUERY = 'quiet-drag-lab';
 const instances = new Set();
 let qaMode = 'quiet';
 let qaPanel = null;
@@ -29,9 +29,9 @@ function squareSurfaceRect(root) {
     };
 }
 
-function localQaRequested(view) {
+function localQaRequested(view, query = DEFAULT_QA_QUERY) {
     if (!LOCAL_HOSTS.has(view?.location?.hostname)) return false;
-    return new URLSearchParams(view.location.search).get(QA_QUERY) === '1';
+    return new URLSearchParams(view.location.search).get(query) === '1';
 }
 
 function syncQaPanel() {
@@ -50,14 +50,17 @@ function setQaMode(mode) {
     return qaMode;
 }
 
-function installQaPanel(documentRef) {
+function installQaPanel(documentRef, options = {}) {
     const view = documentRef?.defaultView;
-    if (!localQaRequested(view) || qaPanel?.isConnected) return;
+    const query = options.qaQuery || DEFAULT_QA_QUERY;
+    if (!localQaRequested(view, query) || qaPanel?.isConnected) return;
+    const label = options.qaLabel || 'FICS drag comparison';
+    const title = options.qaTitle || 'FICS drag';
     qaPanel = documentRef.createElement('aside');
     qaPanel.className = 'caissa-legacy-drag-qa';
-    qaPanel.setAttribute('aria-label', 'FICS drag comparison');
+    qaPanel.setAttribute('aria-label', label);
     qaPanel.innerHTML = `
-        <span>FICS drag</span>
+        <span>${title}</span>
         <button type="button" data-caissa-legacy-drag-mode="legacy">Legacy Drag</button>
         <button type="button" data-caissa-legacy-drag-mode="quiet">Quiet Drag</button>
     `;
@@ -109,6 +112,7 @@ export class CaissaLegacyQuietDragAdapter {
                 return node && id ? { id, node } : null;
             },
             onDragStart: (source, drag) => this.#options.onDragStart?.(source, drag.pieceId) !== false,
+            onDragEnd: detail => this.#options.onDragEnd?.(detail),
             onTap: square => this.#options.onTap?.(square),
             onMoveAttempt: (source, target) => this.#drop(source, target),
             onPresentationStart: drag => this.#beginPresentation(drag),
@@ -124,7 +128,7 @@ export class CaissaLegacyQuietDragAdapter {
         this.#root.addEventListener('mousedown', this.#legacyStartBlocker, true);
         this.#root.addEventListener('touchstart', this.#legacyStartBlocker, { capture: true, passive: false });
         instances.add(this);
-        installQaPanel(this.#root.ownerDocument);
+        installQaPanel(this.#root.ownerDocument, this.#options);
         this.refreshEnabledState();
     }
 
@@ -163,7 +167,8 @@ export class CaissaLegacyQuietDragAdapter {
 
     #drop(source, target) {
         this.#metrics.dropAttempts += 1;
-        const outcome = this.#options.onDrop?.(source, target, { caissaQuietDrag: true });
+        const pieceId = this.#activeDrag?.pieceId || null;
+        const outcome = this.#options.onDrop?.(source, target, { caissaQuietDrag: true, pieceId });
         if (outcome === 'snapback') this.#metrics.rejectedDrops += 1;
         else this.#metrics.acceptedDrops += 1;
         this.#options.onSnapEnd?.();
@@ -194,7 +199,7 @@ export class CaissaLegacyQuietDragAdapter {
 
     refreshEnabledState() {
         const view = this.#root.ownerDocument?.defaultView;
-        const enabled = !localQaRequested(view) || qaMode === 'quiet';
+        const enabled = !localQaRequested(view, this.#options.qaQuery || DEFAULT_QA_QUERY) || qaMode === 'quiet';
         return this.setEnabled(enabled);
     }
 
