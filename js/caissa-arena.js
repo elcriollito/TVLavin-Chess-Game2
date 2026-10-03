@@ -10,6 +10,8 @@ console.log('[Arena] caissa-arena.js parsed OK / loaded OK v=20260203-fix2');
 const ARENA_ENGINE_MOVETIME_MS = 2000;
 const ARENA_ENGINE_TIMEOUT_MS = 12000;
 const ARENA_REVIEW_PLAYBACK_MS = 850;
+const ARENA_SETUP_QUIET_DRAG_URL = '/js/board/caissa-legacy-quiet-drag-adapter.js';
+const ARENA_SETUP_QUIET_DRAG_QUERY = 'setup-quiet-drag-lab';
 const ARENA_PARTICIPANT_TYPES = Object.freeze([
     Object.freeze({ id: 'engine', label: 'ENGINE', enabled: true }),
     Object.freeze({ id: 'bot', label: 'BOTS', status: 'Coming Soon', enabled: false })
@@ -24,6 +26,8 @@ const CaissaArena = {
     board: null,
     game: null,
     setupBoardInstance: null,
+    setupQuietDragAdapter: null,
+    setupLifecycleToken: 0,
     manualSetupIgnoreClick: false,
     manualSetupScrollSnapshot: null,
 
@@ -74,6 +78,8 @@ const CaissaArena = {
         analysisFen: '',
         setupPiece: 'move',
         setupSelectedSquare: null,
+        setupDraftFen: '',
+        setupFenSyncCount: 0,
         boardFlipped: false,
         review: {
             cursor: null,
@@ -664,6 +670,10 @@ const CaissaArena = {
         this.elements.setupApplyBtn?.addEventListener('click', () => this.applyManualSetup());
         this.elements.setupBoard?.addEventListener('click', (event) => this.onManualSetupSquareClick(event));
         this.elements.setupBoard?.addEventListener('keydown', (event) => this.onManualSetupSquareKeydown(event));
+        [this.elements.setupTurn, this.elements.setupCastleWK, this.elements.setupCastleWQ,
+            this.elements.setupCastleBK, this.elements.setupCastleBQ]
+            .filter(Boolean)
+            .forEach((control) => control.addEventListener('change', () => this.syncSetupDraftFen()));
         this.elements.drawCancelBtn?.addEventListener('click', () => this.closeDrawConfirmation());
         this.elements.drawConfirmBtn?.addEventListener('click', () => this.adjudicateTournamentDraw());
         this.elements.drawModal?.addEventListener('click', (event) => {
@@ -838,8 +848,15 @@ const CaissaArena = {
         this.elements.fenMessage.classList.toggle('error', isError);
     },
 
+    isSetupQuietDragLab() {
+        const localHosts = new Set(['127.0.0.1', 'localhost', '::1']);
+        return localHosts.has(window.location.hostname)
+            && new URLSearchParams(window.location.search).get(ARENA_SETUP_QUIET_DRAG_QUERY) === '1';
+    },
+
     openManualSetup() {
         if (!this.elements.setupModal || typeof Chessboard === 'undefined') return;
+        if (this.elements.setupModal.classList.contains('show') && this.setupBoardInstance) return;
         this.renderSetupPalette();
         this.selectSetupPiece('move');
         this.setSetupMessage('Move pieces by dragging, or select a piece and then its destination.');
@@ -855,21 +872,45 @@ const CaissaArena = {
 
         const fen = this.game?.fen() || this.state.customStartFen || 'start';
         const position = fen === 'start' ? 'start' : fen.split(' ')[0];
-        if (!this.setupBoardInstance) {
-            this.setupBoardInstance = Chessboard('arenaSetupBoard', {
-                draggable: true,
-                dropOffBoard: 'snapback',
-                position,
-                pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-                showNotation: true,
-                onDragStart: (source) => this.onManualSetupDragStart(source),
-                onDrop: (source, target) => this.onManualSetupDrop(source, target),
-                onSnapEnd: () => this.refreshManualSetupSquares()
-            });
-        } else {
-            this.setupBoardInstance.position(position, false);
-        }
+        const lifecycleToken = this.setupLifecycleToken + 1;
+        this.setupLifecycleToken = lifecycleToken;
+        this.setupBoardInstance = Chessboard('arenaSetupBoard', {
+            draggable: true,
+            dropOffBoard: 'snapback',
+            position,
+            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
+            showNotation: true,
+            onDragStart: (source) => this.onManualSetupDragStart(source),
+            onDrop: (source, target) => this.onManualSetupDrop(source, target),
+            onSnapEnd: () => {
+                this.syncSetupDraftFen();
+                this.refreshManualSetupSquares();
+            }
+        });
         this.loadSetupOptionsFromFen(fen);
+        this.syncSetupDraftFen();
+        import(ARENA_SETUP_QUIET_DRAG_URL).then((quietDragModule) => {
+            if (this.setupLifecycleToken !== lifecycleToken
+                || !this.elements.setupModal.classList.contains('show')
+                || !this.setupBoardInstance) return;
+            this.setupQuietDragAdapter = quietDragModule.create(this.elements.setupBoard, {
+                board: this.setupBoardInstance,
+                mode: 'position-editor',
+                qaQuery: ARENA_SETUP_QUIET_DRAG_QUERY,
+                qaLabel: 'Arena Setup Position drag comparison',
+                qaTitle: 'Arena Setup',
+                isEnabled: () => this.elements.setupModal?.classList.contains('show') === true,
+                onDragStart: (source) => this.onManualSetupQuietDragStart(source),
+                onTap: (square) => this.onManualSetupQuietTap(square),
+                onDrop: (source, target, metadata) => this.onManualSetupQuietDrop(source, target, metadata),
+                onSnapEnd: () => this.refreshManualSetupSquares(),
+                onDragEnd: ({ from, to }) => {
+                    if (from !== to) this.suppressManualSetupClick();
+                }
+            });
+        }).catch((error) => {
+            console.error('[Arena] Setup Quiet Drag unavailable; retaining legacy editor drag.', error);
+        });
         requestAnimationFrame(() => {
             this.setupBoardInstance?.resize?.();
             this.refreshManualSetupSquares();
@@ -877,9 +918,16 @@ const CaissaArena = {
     },
 
     closeManualSetup() {
+        this.setupLifecycleToken += 1;
+        this.setupQuietDragAdapter?.destroy?.();
+        this.setupQuietDragAdapter = null;
+        this.setupBoardInstance?.destroy?.();
+        this.setupBoardInstance = null;
         this.elements.setupModal?.classList.remove('show');
         this.elements.setupModal?.setAttribute('aria-hidden', 'true');
         this.state.setupSelectedSquare = null;
+        this.state.setupDraftFen = '';
+        this.manualSetupIgnoreClick = false;
         const restoreScroll = () => {
             const snapshot = this.manualSetupScrollSnapshot;
             if (!snapshot) return;
@@ -1008,6 +1056,18 @@ const CaissaArena = {
         this.activateManualSetupSquare(squareElement);
     },
 
+    suppressManualSetupClick() {
+        this.manualSetupIgnoreClick = true;
+        setTimeout(() => { this.manualSetupIgnoreClick = false; }, 0);
+    },
+
+    onManualSetupQuietTap(square) {
+        if (!/^[a-h][1-8]$/.test(square || '') || !this.setupBoardInstance) return;
+        this.suppressManualSetupClick();
+        const squareElement = this.elements.setupBoard?.querySelector(`.square-${square}`);
+        if (squareElement) this.activateManualSetupSquare(squareElement);
+    },
+
     onManualSetupSquareKeydown(event) {
         if (!['Enter', ' '].includes(event.key)) return;
         const squareElement = event.target.closest('.square-55d63');
@@ -1061,6 +1121,7 @@ const CaissaArena = {
             this.setSetupMessage(`${this.getSetupPieceLabel(this.state.setupPiece)} placed on ${square}.`);
         }
         requestAnimationFrame(() => this.refreshManualSetupSquares({ focusSquare: square }));
+        this.syncSetupDraftFen();
     },
 
     onManualSetupDragStart(source) {
@@ -1072,6 +1133,13 @@ const CaissaArena = {
         this.state.setupSelectedSquare = source;
         this.refreshManualSetupSquares();
         return true;
+    },
+
+    onManualSetupQuietDragStart(source) {
+        if (!/^[a-h][1-8]$/.test(source)) return false;
+        const position = this.setupBoardInstance?.position?.() || {};
+        return !!position[source] && this.state.setupPiece === 'move'
+            && (!this.state.setupSelectedSquare || this.state.setupSelectedSquare === source);
     },
 
     onManualSetupDrop(source, target) {
@@ -1089,6 +1157,21 @@ const CaissaArena = {
             this.manualSetupIgnoreClick = false;
             this.refreshManualSetupSquares({ focusSquare: source === target ? source : target });
         }, 0);
+        return undefined;
+    },
+
+    onManualSetupQuietDrop(source, target, metadata = {}) {
+        if (!this.setupBoardInstance || !/^[a-h][1-8]$/.test(source)
+            || !/^[a-h][1-8]$/.test(target) || source === target) return 'snapback';
+        const piece = metadata.pieceId;
+        if (!/^[wb][KQRBNP]$/.test(piece || '')) return 'snapback';
+        const position = this.setupBoardInstance.position();
+        delete position[source];
+        position[target] = piece;
+        this.state.setupSelectedSquare = null;
+        this.setupBoardInstance.position(position, false);
+        this.setSetupMessage(`Piece moved from ${source} to ${target}.`);
+        this.syncSetupDraftFen();
         return undefined;
     },
 
@@ -1122,6 +1205,7 @@ const CaissaArena = {
         this.state.setupSelectedSquare = null;
         this.setupBoardInstance?.position({}, false);
         this.setSetupMessage('Board cleared.');
+        this.syncSetupDraftFen();
         requestAnimationFrame(() => this.refreshManualSetupSquares());
     },
 
@@ -1130,6 +1214,7 @@ const CaissaArena = {
         this.loadSetupOptionsFromFen(new Chess().fen());
         this.selectSetupPiece('move');
         this.setSetupMessage('Initial position restored. Move pieces by dragging or click-click relocation.');
+        this.syncSetupDraftFen();
         requestAnimationFrame(() => this.refreshManualSetupSquares());
     },
 
@@ -1148,6 +1233,38 @@ const CaissaArena = {
         if (this.elements.setupCastleWQ) this.elements.setupCastleWQ.checked = castling.includes('Q');
         if (this.elements.setupCastleBK) this.elements.setupCastleBK.checked = castling.includes('k');
         if (this.elements.setupCastleBQ) this.elements.setupCastleBQ.checked = castling.includes('q');
+    },
+
+    composeSetupFen() {
+        const position = this.setupBoardInstance?.position?.();
+        if (!position || typeof generateFENFromPosition !== 'function') return '';
+        const turn = this.elements.setupTurn?.value || 'w';
+        let castling = '';
+        if (this.elements.setupCastleWK?.checked) castling += 'K';
+        if (this.elements.setupCastleWQ?.checked) castling += 'Q';
+        if (this.elements.setupCastleBK?.checked) castling += 'k';
+        if (this.elements.setupCastleBQ?.checked) castling += 'q';
+        return `${generateFENFromPosition(position)} ${turn} ${castling || '-'} - 0 1`;
+    },
+
+    syncSetupDraftFen() {
+        const fen = this.composeSetupFen();
+        if (!fen) return '';
+        this.state.setupDraftFen = fen;
+        this.state.setupFenSyncCount += 1;
+        return fen;
+    },
+
+    getSetupQuietDragSnapshot() {
+        return Object.freeze({
+            modalOpen: this.elements.setupModal?.classList.contains('show') === true,
+            boardActive: !!this.setupBoardInstance,
+            draftFen: this.state.setupDraftFen,
+            fenSyncCount: this.state.setupFenSyncCount,
+            mainFen: this.game?.fen?.() || '',
+            mainBoardDraggable: false,
+            adapter: this.setupQuietDragAdapter?.getMetrics?.() || null
+        });
     },
 
     applyManualSetup() {
@@ -4598,10 +4715,17 @@ const CaissaArena = {
         this.initEvalGraph();
 
         this.updateGameStatus();
+
+        if (this.isSetupQuietDragLab()) {
+            requestAnimationFrame(() => this.openManualSetup());
+        }
     },
 
     onExit() {
         console.log('[Arena] Section exited');
+        if (this.setupBoardInstance || this.elements.setupModal?.classList.contains('show')) {
+            this.closeManualSetup();
+        }
         this.stopReviewPlayback({ render: false });
         this.state.startToken += 1;
         clearTimeout(this._tournamentAdvanceTimer);

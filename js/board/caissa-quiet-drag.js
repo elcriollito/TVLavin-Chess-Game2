@@ -251,7 +251,9 @@ export class CaissaPointerController {
         if (!drag || event.pointerId !== drag.pointerId) return;
         this.#metrics.pointerMoves += 1;
         const samples = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : [];
-        const latest = samples.length ? samples[samples.length - 1] : event;
+        // The dispatched event is the authoritative latest coordinate. WebKit
+        // can expose a coalesced list whose final sample trails this event.
+        const latest = event;
         this.#metrics.coalescedSamples += samples.length;
         const distance = Math.hypot(latest.clientX - drag.startX, latest.clientY - drag.startY);
         drag.maxDistance = Math.max(drag.maxDistance, distance);
