@@ -1,6 +1,6 @@
 import { normalizeArchiveReturnTo } from './archive-return-state.js';
 
-export const PGN_COLLECTION_REGISTRY_VERSION = 'CaissaPgnCollectionRegistry@3.0.0';
+export const PGN_COLLECTION_REGISTRY_VERSION = 'CaissaPgnCollectionRegistry@3.1.0';
 
 export const REDISTRIBUTION_STATUSES = Object.freeze({
   VERIFIED_REDISTRIBUTABLE: 'VERIFIED_REDISTRIBUTABLE',
@@ -22,6 +22,8 @@ const needsReview = Object.freeze({
   redistributionStatus: REDISTRIBUTION_STATUSES.NEEDS_REVIEW,
   transformations: Object.freeze([]),
   notes: 'A free-download statement and the PGN tooling package MIT license do not establish redistribution rights for the game data.',
+  externalDownloadUrl: null,
+  externalDownloadApproved: false,
   localAsset: null,
   downloadFilename: null,
   mimeType: null,
@@ -40,6 +42,8 @@ export const pgnCollections = Object.freeze([
     checksum: 'sha256:33cbbea9421f14f51bf55dbd772fed3031e855235fedf05d9247886a9d96f71f',
     transformations: Object.freeze(['CRLF line endings normalized to LF; game ordering and scores preserved.']),
     notes: 'Approved with disclosed incomplete metadata; no comments, variations, or NAG symbols were present.',
+    externalDownloadUrl: null,
+    externalDownloadApproved: false,
     localAsset: '/data/pgn/capablanca-games-1901-1941.pgn',
     downloadFilename: 'capablanca-games-1901-1941.pgn',
     mimeType: 'application/x-chess-pgn',
@@ -54,12 +58,26 @@ export const pgnCollections = Object.freeze([
   collection({ id: 'tal-smyslov-1959', title: 'Tal–Smyslov 1959', type: 'player-collection', eventId: null, championId: 'mikhail-tal', gamesCount: 1, attribution: 'Single Candidates Tournament game score.', checksum: 'sha256:959ac06c59748e54c1380ad37b0ee14afd037461d407a5d54ee38e90d36db4c7', ...needsReview })
 ]);
 
-const allowedKeys = new Set(['id', 'title', 'type', 'eventId', 'championId', 'gamesCount', 'sourceUrl', 'sourceName', 'retrievedAt', 'attribution', 'license', 'licenseUrl', 'redistributionStatus', 'checksum', 'transformations', 'notes', 'localAsset', 'downloadFilename', 'mimeType', 'downloadable', 'readerCompatible']);
+const allowedKeys = new Set(['id', 'title', 'type', 'eventId', 'championId', 'gamesCount', 'sourceUrl', 'sourceName', 'retrievedAt', 'attribution', 'license', 'licenseUrl', 'redistributionStatus', 'checksum', 'transformations', 'notes', 'externalDownloadUrl', 'externalDownloadApproved', 'localAsset', 'downloadFilename', 'mimeType', 'downloadable', 'readerCompatible']);
 const collectionIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const localAssetPattern = /^\/data\/pgn\/[A-Za-z0-9_./-]+\.pgn$/;
 const downloadFilenamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]*\.pgn$/;
 const sha256Pattern = /^sha256:[a-f0-9]{64}$/;
 const validStatuses = new Set(Object.values(REDISTRIBUTION_STATUSES));
+
+function isSafeExternalDownloadUrl(value) {
+  if (typeof value !== 'string') return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && Boolean(parsed.hostname) && !parsed.username && !parsed.password && !parsed.hash;
+  } catch {
+    return false;
+  }
+}
+
+function registryIsValid(entries) {
+  return entries === pgnCollections ? pgnCollectionRegistryValidation.valid : validatePgnCollectionRegistry(entries).valid;
+}
 
 export function getKnownPgnCollection(collectionId) {
   if (typeof collectionId !== 'string' || !collectionIdPattern.test(collectionId)) return null;
@@ -72,6 +90,27 @@ export function getPgnCollection(collectionId) {
   return entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE ? entry : null;
 }
 
+export function getKnownPgnCollectionForEvent(eventId) {
+  if (typeof eventId !== 'string' || !collectionIdPattern.test(eventId)) return null;
+  return pgnCollections.find(entry => entry.type === 'championship-match' && entry.eventId === eventId) || null;
+}
+
+export function getPgnCollectionForEvent(eventId, entries = pgnCollections) {
+  if (typeof eventId !== 'string' || !collectionIdPattern.test(eventId) || !registryIsValid(entries)) return null;
+  return entries.find(entry => entry.type === 'championship-match'
+    && entry.eventId === eventId
+    && entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE
+    && entry.readerCompatible) || null;
+}
+
+export function getApprovedExternalPgnDownload(collectionId, entries = pgnCollections) {
+  if (typeof collectionId !== 'string' || !collectionIdPattern.test(collectionId) || !registryIsValid(entries)) return null;
+  const entry = entries.find(value => value.id === collectionId);
+  if (!entry?.externalDownloadApproved || !isSafeExternalDownloadUrl(entry.externalDownloadUrl)) return null;
+  if (![REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE, REDISTRIBUTION_STATUSES.LINK_ONLY].includes(entry.redistributionStatus)) return null;
+  return Object.freeze({ collectionId: entry.id, url: entry.externalDownloadUrl, sourceName: entry.sourceName });
+}
+
 export function listPublishablePgnCollections() {
   return Object.freeze(pgnCollections.filter(entry => entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE));
 }
@@ -79,13 +118,15 @@ export function listPublishablePgnCollections() {
 export function getPgnAvailability(collectionId) {
   const entry = getKnownPgnCollection(collectionId);
   if (!entry) return Object.freeze({ code: 'historical-only', label: 'Historical data only', accessible: false });
-  if (getPgnCollection(collectionId)) return Object.freeze({ code: 'available', label: 'PGN available', accessible: true });
+  if (getPgnCollection(collectionId)?.readerCompatible) return Object.freeze({ code: 'available', label: 'Reader available', accessible: true });
+  if (getApprovedExternalPgnDownload(collectionId)) return Object.freeze({ code: 'external-only', label: 'External download available', accessible: true });
   return Object.freeze({ code: 'pending-review', label: 'PGN pending review', accessible: false });
 }
 
 export function validatePgnCollectionRegistry(entries = pgnCollections) {
   const errors = [];
   const ids = new Set();
+  const publicEventIds = new Set();
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { errors.push('Collection entry must be an object'); continue; }
     for (const key of Object.keys(entry)) if (!allowedKeys.has(key)) errors.push(`${entry.id || 'unknown'} has unsupported field ${key}`);
@@ -100,7 +141,15 @@ export function validatePgnCollectionRegistry(entries = pgnCollections) {
     if (entry.licenseUrl !== null && !/^https:\/\//.test(entry.licenseUrl || '')) errors.push(`${entry.id} has invalid licenseUrl`);
     if (entry.retrievedAt !== null && !/^\d{4}-\d{2}-\d{2}$/.test(entry.retrievedAt || '')) errors.push(`${entry.id} has invalid retrievedAt`);
     if (!Array.isArray(entry.transformations)) errors.push(`${entry.id} has invalid transformations`);
+    if (typeof entry.externalDownloadApproved !== 'boolean') errors.push(`${entry.id} has invalid externalDownloadApproved`);
+    if (entry.externalDownloadApproved && !isSafeExternalDownloadUrl(entry.externalDownloadUrl)) errors.push(`${entry.id} has invalid externalDownloadUrl`);
+    if (!entry.externalDownloadApproved && entry.externalDownloadUrl !== null) errors.push(`${entry.id} exposes an unapproved externalDownloadUrl`);
+    if (entry.externalDownloadApproved && ![REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE, REDISTRIBUTION_STATUSES.LINK_ONLY].includes(entry.redistributionStatus)) errors.push(`${entry.id} exposes an external download without an approved status`);
     const publishable = entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE;
+    const eventCapability = entry.type === 'championship-match' && ((publishable && entry.readerCompatible) || entry.externalDownloadApproved);
+    if (eventCapability && !collectionIdPattern.test(entry.eventId || '')) errors.push(`${entry.id} has an invalid public event association`);
+    if (eventCapability && publicEventIds.has(entry.eventId)) errors.push(`${entry.id} duplicates public event association ${entry.eventId}`);
+    if (eventCapability && entry.eventId) publicEventIds.add(entry.eventId);
     if (publishable && (!localAssetPattern.test(entry.localAsset || '') || /\.\.|[?#]/.test(entry.localAsset || ''))) errors.push(`${entry.id} has unsafe localAsset`);
     if (!publishable && entry.localAsset !== null) errors.push(`${entry.id} exposes a non-publishable localAsset`);
     if (publishable && !downloadFilenamePattern.test(entry.downloadFilename || '')) errors.push(`${entry.id} has invalid downloadFilename`);

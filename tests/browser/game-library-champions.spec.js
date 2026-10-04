@@ -24,7 +24,7 @@ test('championship archive renders its chronological mural at required desktop s
   }
 });
 
-test('Capablanca production slice opens, navigates, downloads, and restores exact archive state', async ({ page }) => {
+test('Capablanca champion collection opens and restores exact archive state', async ({ page }) => {
   await page.goto('/game-library/champions');
   await page.getByRole('button', { name: 'Championship Matches' }).click();
   await page.getByRole('button', { name: 'Undisputed', exact: true }).click();
@@ -36,15 +36,17 @@ test('Capablanca production slice opens, navigates, downloads, and restores exac
   await expect(dialog.getByRole('heading', { name: 'José Raúl Capablanca' })).toBeFocused();
   await expect(dialog.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
   await expect(dialog).toContainText('Capablanca–Alekhine');
+  await expect(dialog.getByRole('heading', { name: 'Champion collection' })).toBeVisible();
   await expect(dialog).toContainText('Player collection');
   await expect(dialog).toContainText('597 games');
-  await expect(dialog).toContainText('PGN available');
+  await expect(dialog).toContainText('Reader available');
+  await expect(dialog.locator('[data-event-id="wcc-1927"] [data-event-pgn]')).toHaveCount(0);
   const complete = dialog.locator('.collection-card.is-complete');
-  const downloadLink = complete.getByRole('link', { name: 'Download PGN' });
-  await expect(downloadLink).toHaveAttribute('href', '/data/pgn/capablanca-games-1901-1941.pgn');
-  await expect(downloadLink).toHaveAttribute('download', 'capablanca-games-1901-1941.pgn');
+  await expect(complete.getByRole('link', { name: /external source/i })).toHaveCount(0);
+  await expect(complete.locator('a[download]')).toHaveCount(0);
   await complete.getByRole('button', { name: 'Open in PGN Reader' }).click();
   await expect(page).toHaveURL(/\/watch\/game-replayer\?collection=capablanca-complete&returnTo=/);
+  expect(new URL(page.url()).searchParams.has('game')).toBe(false);
   const returnTo = new URL(page.url()).searchParams.get('returnTo');
   for (const part of ['view=matches', 'lineage=undisputed', 'champion=jose-raul-capablanca', 'reign=capablanca-1921', 'event=wcc-1927']) expect(returnTo).toContain(part);
   expect(returnTo).toMatch(/scroll=[1-9]\d*/);
@@ -73,8 +75,6 @@ test('Capablanca production slice opens, navigates, downloads, and restores exac
   await expect(page.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
   await expect.poll(() => page.evaluate(() => Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop))).toBeGreaterThan(100);
 
-  const download = await Promise.all([page.waitForEvent('download'), page.locator('.collection-card.is-complete').getByRole('link', { name: 'Download PGN' }).click()]);
-  expect(download[0].suggestedFilename()).toBe('capablanca-games-1901-1941.pgn');
 });
 
 test('Karpov detail distinguishes history from rights-pending PGN data', async ({ page }) => {
@@ -85,17 +85,21 @@ test('Karpov detail distinguishes history from rights-pending PGN data', async (
   await expect(dialog).toContainText('aborted');
   await expect(dialog).toContainText('48 games');
   await expect(dialog).toContainText('PGN pending review');
-  await expect(dialog).toContainText('Collection pending review · Public actions unavailable');
+  await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('Historical data only');
+  await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('No approved player collection');
   await expect(dialog.getByRole('heading', { name: 'Reigns' })).toBeVisible();
   await expect(dialog.getByRole('heading', { name: 'Historical context' })).toBeVisible();
   const closeBox = await dialog.getByRole('button', { name: 'Close champion detail' }).boundingBox();
   const navigationBox = await page.locator('.era-navigation').boundingBox();
   expect(closeBox.y).toBeGreaterThanOrEqual(navigationBox.y + navigationBox.height);
   await expect(dialog.getByRole('link', { name: 'Download PGN' })).toHaveCount(0);
-  await expect(dialog.getByRole('button', { name: 'Not available publicly' })).toBeDisabled();
+  await expect(dialog.locator('[data-open-pgn], [data-event-pgn], .external-pgn-link')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(page.locator('[data-open-champion="anatoly-karpov"]')).toBeFocused();
+  await page.locator('[data-open-champion="bobby-fischer"]').click();
+  await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('Collection not publicly available');
+  await expect(dialog.locator('[data-open-pgn], [data-event-pgn], .external-pgn-link')).toHaveCount(0);
 });
 
 test('multiple reigns are explicit and the selected reign survives reload', async ({ page }) => {
@@ -171,7 +175,9 @@ test('existing Game Library route and IndexedDB records remain isolated', async 
   await page.locator('[data-open-champion="jose-raul-capablanca"]').click();
   await page.locator('.collection-card.is-complete').getByRole('button', { name: 'Open in PGN Reader' }).click();
   await expect(page).toHaveURL(/collection=capablanca-complete/);
-  await page.getByRole('link', { name: 'Return to World Champions' }).click();
+  const archiveReturn = page.getByRole('link', { name: 'Return to World Champions' });
+  await expect(archiveReturn).toHaveAttribute('href', /\/game-library\/champions\?view=champions.*champion=jose-raul-capablanca/);
+  await archiveReturn.click();
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
   await page.getByRole('link', { name: 'Open personal library' }).click();
   await expect(page).toHaveURL(/\/game-library$/);

@@ -8,7 +8,8 @@ import {
   validateChampionshipArchive
 } from '../js/game-library/championship-archive-data.js';
 import {
-  buildPgnReaderHref, getKnownPgnCollection, getPgnCollection, listPublishablePgnCollections,
+  buildPgnReaderHref, getApprovedExternalPgnDownload, getKnownPgnCollection, getPgnCollection,
+  getPgnCollectionForEvent, listPublishablePgnCollections,
   pgnCollectionRegistryValidation, REDISTRIBUTION_STATUSES, validatePgnCollectionRegistry
 } from '../js/game-library/pgn-collection-registry.js';
 import { createCaissaPgnReader } from '../js/game-library/caissa-pgn-reader.js';
@@ -83,7 +84,39 @@ test('PGN registry exposes only rights-cleared assets in production', () => {
     assert.equal(entry.mimeType, null, entry.id);
     assert.equal(entry.downloadable, false, entry.id);
     assert.equal(entry.readerCompatible, false, entry.id);
+    assert.equal(getApprovedExternalPgnDownload(entry.id), null, entry.id);
   }
+});
+
+test('event reader and external download capabilities require explicit registry approval', () => {
+  const approvedMatch = {
+    ...pgnCollections[0],
+    id: 'capablanca-alekhine-1927',
+    title: 'Capablanca–Alekhine 1927',
+    type: 'championship-match',
+    eventId: 'wcc-1927'
+  };
+  assert.equal(validatePgnCollectionRegistry([approvedMatch]).valid, true);
+  assert.equal(getPgnCollectionForEvent('wcc-1927', [approvedMatch])?.id, approvedMatch.id);
+  assert.equal(getPgnCollectionForEvent('wcc-1927'), null, 'the player collection must not be presented as the 1927 match');
+  assert.ok(validatePgnCollectionRegistry([approvedMatch, { ...approvedMatch, id: 'second-approved-1927-match' }]).errors.includes('second-approved-1927-match duplicates public event association wcc-1927'));
+
+  const approvedExternal = {
+    ...pgnCollections[1],
+    id: 'approved-external-match',
+    redistributionStatus: REDISTRIBUTION_STATUSES.LINK_ONLY,
+    externalDownloadUrl: 'https://archive.example/chess/approved-match.pgn',
+    externalDownloadApproved: true
+  };
+  assert.equal(validatePgnCollectionRegistry([approvedExternal]).valid, true);
+  assert.deepEqual(getApprovedExternalPgnDownload(approvedExternal.id, [approvedExternal]), {
+    collectionId: approvedExternal.id,
+    url: approvedExternal.externalDownloadUrl,
+    sourceName: approvedExternal.sourceName
+  });
+  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'http://archive.example/match.pgn' }]).errors.includes(`${approvedExternal.id} has invalid externalDownloadUrl`));
+  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadApproved: false }]).errors.includes(`${approvedExternal.id} exposes an unapproved externalDownloadUrl`));
+  assert.equal(getApprovedExternalPgnDownload('capablanca-complete'), null, 'no external source is registered for Capablanca');
 });
 
 test('Capablanca public collection has exact release metadata and is honestly classified', () => {
@@ -102,6 +135,8 @@ test('Capablanca public collection has exact release metadata and is honestly cl
   assert.equal(collection.downloadFilename, 'capablanca-games-1901-1941.pgn');
   assert.equal(collection.mimeType, 'application/x-chess-pgn');
   assert.equal(collection.readerCompatible, true);
+  assert.equal(collection.externalDownloadUrl, null);
+  assert.equal(collection.externalDownloadApproved, false);
   assert.equal((bytes.toString('utf8').match(/^\[Event /gm) || []).length, 597);
   assert.equal(`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`, collection.checksum);
   assert.equal(provenance.collectionId, collection.id);
@@ -125,11 +160,13 @@ test('CaissaPgnReader opens only reader-compatible registry entries', () => {
   const returnTo = buildArchiveReturnTo({ view: 'matches', lineage: 'undisputed', champion: 'jose-raul-capablanca', reign: 'capablanca-1921', event: 'wcc-1927', scroll: 640, mural: 1200 });
   assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: null, target: 'best-available', returnTo }), true);
   assert.equal(navigations[0], `/watch/game-replayer?collection=capablanca-complete&returnTo=${encodeURIComponent(returnTo)}`);
+  assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: 0, target: 'best-available', returnTo }), true);
+  assert.equal(navigations[1], `/watch/game-replayer?collection=capablanca-complete&game=0&returnTo=${encodeURIComponent(returnTo)}`);
   assert.equal(reader.open({ collectionId: 'fischer-spassky-1972-complete', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: 'fischer-spassky-game-6', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: '../../secret', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: 'capablanca-complete', target: 'desktop' }), false);
-  assert.equal(navigations.length, 1);
+  assert.equal(navigations.length, 2);
 });
 
 test('archive return state round-trips canonical state and rejects open redirects', () => {
@@ -155,6 +192,7 @@ test('events remain chronological and portrait policy fields are present without
 
 test('release-candidate route has the archive hierarchy, intentional monograms, and no portrait dependency', () => {
   const page = load(read('game-library-champions.html'));
+  const archivePage = read('js/game-library/championship-archive-page.js');
   assert.equal(page('h1#archive-title').text().replace(/\s+/g, ' ').trim(), 'World Chess Champions');
   assert.equal(page('[data-champion-track]').length, 1);
   assert.equal(page('[data-champion-track].champion-grid').length, 1);
@@ -168,8 +206,11 @@ test('release-candidate route has the archive hierarchy, intentional monograms, 
   assert.match(page('.archive-edition-badge').text(), /Historical archive/);
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);
   assert.equal(page('img').length, 0, 'release candidate must not include portrait assets');
-  assert.match(read('js/game-library/championship-archive-page.js'), /CAISSA archival monogram/);
-  assert.match(read('js/game-library/championship-archive-page.js'), /version: '1\.0\.0-rc\.1'/);
+  assert.match(archivePage, /CAISSA archival monogram/);
+  assert.match(archivePage, /version: '1\.0\.0-rc\.2'/);
+  assert.match(archivePage, /openReader\(button\.dataset\.eventPgn, button\.dataset\.event, 0\)/);
+  assert.match(archivePage, /href="\$\{escapeHtml\(external\.url\)\}" target="_blank" rel="noopener noreferrer external"/);
+  assert.doesNotMatch(archivePage, /href="\$\{escapeHtml\(runtime\.localAsset\)\}"/);
   assert.doesNotMatch(page.text(), /prototype|internal|test asset|registry mode|portrait rights pending/i);
   assert.equal(load(read('index.html'))('a.library-archive-link[href="/game-library/champions"]').length, 1);
   assert.match(read('server.js'), /\/game-library\/champions/);

@@ -168,6 +168,8 @@ export function validateChampionshipArchive() {
   }
   for (const event of championshipEvents) {
     if (event.pgnCollectionId && !collectionIds.has(event.pgnCollectionId)) errors.push(`${event.id} references missing collection ${event.pgnCollectionId}`);
+    const eventCollection = event.pgnCollectionId ? getCollection(event.pgnCollectionId) : null;
+    if (eventCollection && (eventCollection.type !== 'championship-match' || eventCollection.eventId !== event.id)) errors.push(`${event.id} references a collection that is not scoped to this event`);
     if (!validStatuses.has(event.status)) errors.push(`${event.id} has invalid or missing status`);
   }
   for (const collection of pgnCollections) if (collection.championId && !championIds.has(collection.championId)) errors.push(`${collection.id} references missing champion ${collection.championId}`);
