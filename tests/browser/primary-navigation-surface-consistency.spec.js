@@ -19,7 +19,7 @@ const standalone = [
   ['Polyglot Tool', '/tools/polyglot', 'h1', /Polyglot/],
   ['Opening Database', '/opening-database', 'h1', /Opening Database/],
   ['ECO Codes', '/eco', 'h1', /ECO Codes/],
-  ['Game Library', '/game-library', '[data-caissa-library-public-presentation]', /Game Library.*Under Construction/],
+  ['World Champions', '/game-library/champions', '.archive-hero', /World Chess Champions Archive/],
   ['Vault', '/vault', 'h1', /Vault/],
   ['Blog', '/blog', 'h1', /Blog/],
   ['Lichess TV', '/watch/lichess-tv', 'h1', /Watch Lichess TV Live/]
@@ -43,6 +43,7 @@ for (const [label, route, surface, marker] of legacy) {
 test('standalone product links resolve to their own observable surfaces', async ({ page }) => {
   for (const [label, route, marker, title] of standalone) {
     await page.goto('/play');
+    if (label === 'Blog') await page.getByRole('button', { name: 'More' }).click();
     await page.getByRole('link', { name: label, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${route.replaceAll('/', '\\/')}$`));
     await expect(page.locator(marker).first()).toBeVisible();

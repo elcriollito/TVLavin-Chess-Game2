@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.16.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.17.0';
     const i18n = global.CaissaI18n || Object.freeze({
         enabledLocales: Object.freeze(['en']),
         supportedLocales: Object.freeze({ en: Object.freeze({ code: 'en', name: 'English', enabled: true }) }),
@@ -48,7 +48,7 @@
             { id: 'polyglot', label: 'Polyglot Tool', icon: 'fas fa-book-open', route: '/tools/polyglot', externalIndicator: true },
             { id: 'opening-database', label: 'Opening Database', icon: 'fas fa-chess-board', route: '/opening-database' },
             { id: 'eco', label: 'ECO Codes', icon: 'fas fa-book', route: '/eco' },
-            { id: 'library', label: 'Game Library', icon: 'fas fa-database', section: 'library', route: '/game-library', canonicalNavigation: true },
+            { id: 'world-champions', label: 'World Champions', icon: 'fas fa-crown', route: '/game-library/champions' },
             { id: 'history', label: 'History', icon: 'fas fa-history', section: 'history', route: '/history', canonicalNavigation: true },
             { id: 'dosChess', label: 'DOS Chess', icon: 'fas fa-desktop', section: 'dosChess', route: '/dos-chess', canonicalNavigation: true },
             { id: 'vault', label: 'Vault', icon: 'fas fa-box-archive', route: '/vault', externalIndicator: true }

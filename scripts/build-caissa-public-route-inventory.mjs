@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const origin = 'https://www.caissa-chess.org';
-const contractId = 'CaissaPublicRouteInventory@1.2.0';
+const contractId = 'CaissaPublicRouteInventory@1.3.0';
 
 function loadNavigation() {
   const window = {};
@@ -56,6 +56,7 @@ const additionalMetadata = new Map([
   ['/roadmap', ['roadmap', 'Roadmap', 'vercel.json']],
   ['/database', ['database', 'Chess Database', 'vercel.json']],
   ['/library', ['library-page', 'Library', 'vercel.json']],
+  ['/game-library', ['game-library-legacy', 'Legacy Game Library', 'vercel.json and server.js']],
   ['/game-library/champions', ['game-library-champions', 'World Champions Archive', 'vercel.json and server.js']],
   ['/game-library/champions/replay', ['game-library-champions-replay', 'World Championship Replay', 'vercel.json and server.js']],
   ['/watch/game-replayer', ['capablanca-game-replayer', 'Capablanca Game Replayer', 'vercel.json and server.js']],

@@ -12,6 +12,7 @@ for (const width of widths) {
         await page.goto('/play');
         await page.getByRole('button', { name: /Open navigation menu|Abrir menú de navegación/ }).first().click();
 
+        await page.locator('#mainNav .nav-more-toggle').click();
         const nav = page.locator('#mainNav');
         const result = await nav.evaluate(element => {
             const destinations = [...element.querySelectorAll('.nav-item[data-nav-key]')];
@@ -34,12 +35,13 @@ for (const width of widths) {
             };
         });
 
-        expect(result.count).toBe(37);
+        expect(result.count).toBe(33);
         expect(result.failures).toEqual([]);
         expect(result.navOverflow).toBe(false);
         expect(result.documentOverflow).toBe(false);
         await expect(nav.locator('[data-nav-key="play"] .nav-label')).toHaveText(width % 2 ? 'Play' : 'Jugar');
-        await expect(nav.locator('[data-nav-key="library"]')).toHaveAttribute('href', '/game-library');
+        await expect(nav.locator('[data-nav-key="library"]')).toHaveCount(0);
+        await expect(nav.locator('[data-nav-key="world-champions"]')).toHaveAttribute('href', '/game-library/champions');
     });
 }
 

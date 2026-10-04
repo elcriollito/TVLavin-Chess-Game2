@@ -301,7 +301,7 @@ test('release-candidate route has the archive hierarchy, intentional monograms, 
   assert.equal(page('[data-match-filter]').length, 5);
   assert.equal(page('[data-filter-count]').length, 5);
   assert.match(page('.archive-edition-badge').text(), /Historical archive/);
-  assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);
+  assert.equal(page('[data-caissa-standalone-sidebar][data-active="world-champions"]').length, 1);
   assert.equal(page('img').length, 0, 'release candidate must not include portrait assets');
   assert.match(archivePage, /CAISSA archival monogram/);
   assert.match(archivePage, /version: '1\.0\.0-rc\.3'/);

@@ -83,7 +83,7 @@ test('navigation, routes, sitemap, CSP, and wrapper exclusion are coherent', () 
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.16.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.17.0');
   assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 30);
   assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena']);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'game-replayer').length, 0);

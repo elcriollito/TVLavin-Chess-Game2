@@ -7,7 +7,7 @@ const routes = [
   ['/puzzles', 'Puzzles'],
   ['/academy', 'Academy'], ['/mentor', 'CAISSA Mentor'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
   ['/analyze', 'Analyze'], ['/spectator-tv', 'Chess TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/arena', 'Engine Arena'],
-  ['/game-library', 'Game Library'], ['/blog', 'Blog']
+  ['/game-library/champions', 'World Champions'], ['/blog', 'Blog']
 ];
 
 const canonicalOrder = [
@@ -15,11 +15,11 @@ const canonicalOrder = [
   'Puzzles', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
   'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
-  'Game Library', 'History', 'DOS Chess', 'Vault',
+  'World Champions', 'History', 'DOS Chess', 'Vault',
   'Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.16.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.17.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.getByRole('navigation', { name: 'CAISSA main navigation' });

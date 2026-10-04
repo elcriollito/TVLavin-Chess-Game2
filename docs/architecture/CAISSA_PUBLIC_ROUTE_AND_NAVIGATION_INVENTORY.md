@@ -1,6 +1,6 @@
 # CAISSA Public Route and Navigation Inventory
 
-Contract: `CaissaPublicRouteInventory@1.2.0`
+Contract: `CaissaPublicRouteInventory@1.3.0`
 
 This document and [the machine-readable inventory](../../config/caissa-public-route-inventory.json) are generated deterministically from the routing and navigation owners. Do not edit either output manually.
 
@@ -51,7 +51,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 21 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
 | 22 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
 | 23 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
-| 24 | tools | Game Library | /game-library | internal-page | CaissaPrimaryNavigation |
+| 24 | tools | World Champions | /game-library/champions | internal-page | CaissaPrimaryNavigation |
 | 25 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
 | 26 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
 | 27 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
@@ -73,7 +73,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | Who Is Caissa Goddess Of Chess | /blog/who-is-caissa-goddess-of-chess | public/sitemap.xml | public |
 | Yahoo Chess Spirit Caissa Classic | /blog/yahoo-chess-spirit-caissa-classic | public/sitemap.xml | public |
 | Chess Database | /database | vercel.json | public |
-| World Champions Archive | /game-library/champions | vercel.json and server.js | public |
+| Legacy Game Library | /game-library | vercel.json and server.js | public |
 | World Championship Replay | /game-library/champions/replay | vercel.json and server.js | public |
 | Library | /library | vercel.json | public |
 | Play Bots | /play/bots | PlayV2RouteController | public |
