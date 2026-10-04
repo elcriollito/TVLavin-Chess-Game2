@@ -102,14 +102,42 @@ function collectionForRuntime(id) {
   return id ? getPgnCollection(id) : null;
 }
 
+function portraitFor(champion) {
+  const portrait = champion?.portrait;
+  if (!portrait || portrait.type !== 'original-art' || !portrait.asset || !portrait.alt) return null;
+  return portrait;
+}
+
+function portraitStyle(portrait) {
+  const position = /^\d{1,3}% \d{1,3}%$/.test(portrait.objectPosition || '') ? portrait.objectPosition : '50% 36%';
+  return `--champion-portrait-position:${escapeHtml(position)}`;
+}
+
+function championCardVisual(champion, index) {
+  const portrait = portraitFor(champion);
+  if (portrait) {
+    const loading = index === 0 ? 'eager' : 'lazy';
+    return `<div class="champion-card__portrait has-portrait"><img class="champion-card__portrait-image" src="${escapeHtml(portrait.asset)}" alt="${escapeHtml(portrait.alt)}" width="768" height="1024" loading="${loading}" decoding="async" style="${portraitStyle(portrait)}"></div>`;
+  }
+  return `<div class="champion-card__portrait" role="img" aria-label="CAISSA archival monogram for ${escapeHtml(champion.displayName)}"><span class="champion-card__number" aria-hidden="true">${String(champion.order).padStart(2, '0')}</span><span class="champion-card__medallion" aria-hidden="true"></span><span class="champion-card__initials">${escapeHtml(champion.initials)}</span><span class="champion-card__portrait-status">CAISSA archival monogram</span></div>`;
+}
+
+function championDetailVisual(champion) {
+  const portrait = portraitFor(champion);
+  if (portrait) {
+    return `<div class="detail-monogram detail-monogram--portrait"><img class="detail-monogram__portrait" src="${escapeHtml(portrait.asset)}" alt="${escapeHtml(portrait.alt)}" width="768" height="1024" decoding="async" style="${portraitStyle(portrait)}"></div>`;
+  }
+  return `<div class="detail-monogram" role="img" aria-label="CAISSA archival monogram for ${escapeHtml(champion.displayName)}"><span class="detail-monogram__number" aria-hidden="true">${String(champion.order || '').padStart(2, '0')}</span><span class="detail-monogram__initials">${escapeHtml(champion.initials)}</span><small>CAISSA archival monogram</small></div>`;
+}
+
 function renderChampionCards() {
   const track = document.querySelector('[data-champion-track]');
-  track.innerHTML = primaryChampions.map(champion => {
+  track.innerHTML = primaryChampions.map((champion, index) => {
     const collections = (champion.collectionIds || []).map(getKnownPgnCollection).filter(Boolean);
     const available = collections.filter(entry => collectionForRuntime(entry.id)?.readerCompatible || getApprovedExternalPgnDownload(entry.id)).length;
     return `<article class="champion-card${champion.id === archiveMeta.currentChampionId ? ' is-current' : ''}" id="${escapeHtml(champion.id)}" data-era="${escapeHtml(championEra(champion))}" role="listitem">
       <div class="champion-card__index"><span>No. ${String(champion.order).padStart(2, '0')}</span><span>${champion.id === archiveMeta.currentChampionId ? 'Current' : 'World champion'}</span></div>
-      <div class="champion-card__portrait" role="img" aria-label="CAISSA archival monogram for ${escapeHtml(champion.displayName)}"><span class="champion-card__number" aria-hidden="true">${String(champion.order).padStart(2, '0')}</span><span class="champion-card__medallion" aria-hidden="true"></span><span class="champion-card__initials">${escapeHtml(champion.initials)}</span><span class="champion-card__portrait-status">CAISSA archival monogram</span></div>
+      ${championCardVisual(champion, index)}
       <div class="champion-card__body"><p class="champion-card__era">${escapeHtml(championEra(champion))}</p><div class="champion-card__reign">${escapeHtml(reignLabel(champion))}</div><h3>${escapeHtml(champion.displayName)}</h3>
         ${champion.nationalIdentityVerified ? `<div class="champion-card__country">${escapeHtml(champion.country)}</div>` : ''}
         <p class="champion-card__summary">${escapeHtml(champion.summary)}</p>
@@ -202,7 +230,7 @@ function openChampionDetail(championId, options = {}) {
   const championCollectionEmptyState = championCollectionIds.length
     ? '<div class="empty-collection"><strong>Collection not publicly available</strong><span>This player collection remains unavailable while its publication status is reviewed.</span></div>'
     : '<div class="empty-collection"><strong>Historical data only</strong><span>No approved player collection is attached to this champion.</span></div>';
-  target.innerHTML = `<header class="detail-hero"><div class="detail-monogram" role="img" aria-label="CAISSA archival monogram for ${escapeHtml(champion.displayName)}"><span class="detail-monogram__number" aria-hidden="true">${String(champion.order || '').padStart(2, '0')}</span><span class="detail-monogram__initials">${escapeHtml(champion.initials)}</span><small>CAISSA archival monogram</small></div><div><div class="detail-order">${champion.order ? `World champion no. ${String(champion.order).padStart(2, '0')}` : 'Parallel FIDE lineage'}</div><h2 id="champion-detail-title" tabindex="-1">${escapeHtml(champion.displayName)}</h2><p>${escapeHtml(champion.summary)}</p><div class="detail-metadata"><span>${escapeHtml(reignLabel(champion))}</span><span>${collectionIds.length ? `${collectionIds.length} PGN ${collectionIds.length === 1 ? 'collection' : 'collections'}` : 'Historical record only'}</span></div></div></header>
+  target.innerHTML = `<header class="detail-hero">${championDetailVisual(champion)}<div><div class="detail-order">${champion.order ? `World champion no. ${String(champion.order).padStart(2, '0')}` : 'Parallel FIDE lineage'}</div><h2 id="champion-detail-title" tabindex="-1">${escapeHtml(champion.displayName)}</h2><p>${escapeHtml(champion.summary)}</p><div class="detail-metadata"><span>${escapeHtml(reignLabel(champion))}</span><span>${collectionIds.length ? `${collectionIds.length} PGN ${collectionIds.length === 1 ? 'collection' : 'collections'}` : 'Historical record only'}</span></div></div></header>
     <div class="detail-content"><div><section class="detail-section"><div class="detail-section__heading"><h3>Reigns</h3><span>${championReigns.length} ${championReigns.length === 1 ? 'chapter' : 'chapters'} in the lineage</span></div><div class="reign-list">${championReigns.map((reign, reignIndex) => `<button type="button" class="reign-card${reign.id === requestedReign?.id ? ' is-selected' : ''}" data-detail-reign="${escapeHtml(reign.id)}" aria-pressed="${reign.id === requestedReign?.id}"><small>Reign ${String(reignIndex + 1).padStart(2, '0')}</small><strong>${reign.startYear}–${reign.endYear || 'Present'}</strong><span>${escapeHtml(reign.lineage)} lineage · ${reign.defenseCount} ${reign.defenseCount === 1 ? 'defense' : 'defenses'}</span></button>`).join('')}</div></section>
       <section class="detail-section"><h3>Selected reign at a glance</h3><div class="reign-summary"><div><strong>${requestedReign?.startYear ?? '—'}</strong><span>Crowned</span></div><div><strong>${escapeHtml(requestedReign?.lineage || '—')}</strong><span>Lineage</span></div><div><strong>${requestedReign?.defenseCount ?? '—'}</strong><span>Title defenses</span></div></div></section>
       <section class="detail-section"><h3>Historical context</h3><p class="detail-context">${escapeHtml(champion.summary)} ${events.length ? `The archive connects ${events.length} relevant championship ${events.length === 1 ? 'event' : 'events'} to this career.` : 'No championship event record is attached yet.'}</p></section>

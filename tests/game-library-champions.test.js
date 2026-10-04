@@ -276,9 +276,37 @@ test('archive return state round-trips canonical state and rejects open redirect
   }
 });
 
-test('events remain chronological and portrait policy fields are present without image dependencies', () => {
+test('events remain chronological and approved original-art portraits follow the asset contract', () => {
   assert.deepEqual([...championshipEvents].sort((a, b) => a.year - b.year).map(event => event.id), championshipEvents.map(event => event.id));
+  const approvedPortraits = new Map([
+    ['wilhelm-steinitz', ['/images/champions/steinitz.webp', 'Illustrated portrait of Wilhelm Steinitz']],
+    ['emanuel-lasker', ['/images/champions/lasker.webp', 'Illustrated portrait of Emanuel Lasker']],
+    ['jose-raul-capablanca', ['/images/champions/capablanca.webp', 'Illustrated portrait of José Raúl Capablanca']],
+    ['alexander-alekhine', ['/images/champions/alekhine.webp', 'Illustrated portrait of Alexander Alekhine']],
+    ['max-euwe', ['/images/champions/euwe.webp', 'Illustrated portrait of Max Euwe']],
+    ['mikhail-botvinnik', ['/images/champions/botvinnik.webp', 'Illustrated portrait of Mikhail Botvinnik']],
+    ['vasily-smyslov', ['/images/champions/smyslov.webp', 'Illustrated portrait of Vasily Smyslov']],
+    ['mikhail-tal', ['/images/champions/tal.webp', 'Illustrated portrait of Mikhail Tal']],
+    ['tigran-petrosian', ['/images/champions/petrosian.webp', 'Illustrated portrait of Tigran Petrosian']],
+    ['boris-spassky', ['/images/champions/spassky.webp', 'Illustrated portrait of Boris Spassky']],
+    ['bobby-fischer', ['/images/champions/fischer.webp', 'Illustrated portrait of Bobby Fischer']],
+    ['anatoly-karpov', ['/images/champions/karpov.webp', 'Illustrated portrait of Anatoly Karpov']],
+    ['garry-kasparov', ['/images/champions/kasparov.webp', 'Illustrated portrait of Garry Kasparov']],
+    ['vladimir-kramnik', ['/images/champions/kramnik.webp', 'Illustrated portrait of Vladimir Kramnik']],
+    ['viswanathan-anand', ['/images/champions/anand.webp', 'Illustrated portrait of Viswanathan Anand']],
+    ['magnus-carlsen', ['/images/champions/carlsen.webp', 'Illustrated portrait of Magnus Carlsen']],
+    ['ding-liren', ['/images/champions/ding.webp', 'Illustrated portrait of Ding Liren']],
+    ['gukesh-dommaraju', ['/images/champions/gukesh.webp', 'Illustrated portrait of Gukesh Dommaraju']]
+  ]);
   for (const champion of champions) {
+    const expected = approvedPortraits.get(champion.id);
+    if (expected) {
+      assert.deepEqual(champion.portrait, { asset: expected[0], alt: expected[1], type: 'original-art', objectPosition: '50% 36%' });
+      const asset = fs.statSync(new URL(`../public${expected[0]}`, import.meta.url));
+      assert.ok(asset.size > 0 && asset.size < 100_000, `${champion.id} should ship a compact production derivative`);
+    } else {
+      assert.equal(champion.portrait, null);
+    }
     assert.equal(champion.portraitAsset, null);
     assert.equal(champion.attribution, null);
     assert.equal(champion.source, null);
@@ -287,7 +315,7 @@ test('events remain chronological and portrait policy fields are present without
   }
 });
 
-test('release-candidate route has the archive hierarchy, intentional monograms, and no portrait dependency', () => {
+test('release-candidate route has the archive hierarchy and progressive portrait enhancement', () => {
   const page = load(read('game-library-champions.html'));
   const archivePage = read('js/game-library/championship-archive-page.js');
   assert.equal(page('h1#archive-title').text().replace(/\s+/g, ' ').trim(), 'World Chess Champions');
@@ -302,8 +330,11 @@ test('release-candidate route has the archive hierarchy, intentional monograms, 
   assert.equal(page('[data-filter-count]').length, 5);
   assert.match(page('.archive-edition-badge').text(), /Historical archive/);
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="world-champions"]').length, 1);
-  assert.equal(page('img').length, 0, 'release candidate must not include portrait assets');
+  assert.equal(page('img').length, 0, 'portraits should be data-driven instead of hard-coded into the document shell');
   assert.match(archivePage, /CAISSA archival monogram/);
+  assert.match(archivePage, /championCardVisual/);
+  assert.match(archivePage, /championDetailVisual/);
+  assert.match(archivePage, /loading="\$\{loading\}"/);
   assert.match(archivePage, /version: '1\.0\.0-rc\.3'/);
   assert.match(archivePage, /openReader\(button\.dataset\.openPgn, uiState\.event\)/);
   assert.match(archivePage, /openReader\(button\.dataset\.eventPgn, button\.dataset\.event, 0, 'champions'\)/);
