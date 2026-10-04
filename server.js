@@ -648,9 +648,7 @@ const server = http.createServer(async (req, res) => {
     filePath = './polyglot.html';
   }
 
-  const protectedPlayerPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn'
-    || pathname === '/public/data/pgn/capablanca-games-1901-1941.pgn'
-    || pathname.startsWith('/data/pgn/players/')
+  const protectedPlayerPgn = pathname.startsWith('/data/pgn/players/')
     || pathname.startsWith('/public/data/pgn/players/')
     || pathname.startsWith('/api/_private/pgn/');
   if (protectedPlayerPgn) {
@@ -673,8 +671,8 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(404, { 'Content-Type': 'text/html' });
           res.end('<h1>404 - File Not Found</h1>', 'utf-8');
         } else {
-          res.writeHead(200, { 'Content-Type': mimeType });
-          res.end(content2, 'utf-8');
+          res.writeHead(200, { 'Content-Type': mimeType, ...(publicPgn ? { 'Content-Disposition': 'attachment; filename="capablanca-games-1901-1941.pgn"', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' } : {}) });
+          res.end(req.method === 'HEAD' ? undefined : content2);
         }
       });
     } else if (error) {

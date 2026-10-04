@@ -8,8 +8,8 @@ import {
   validateChampionshipArchive
 } from '../js/game-library/championship-archive-data.js';
 import {
-  buildPgnReaderHref, getPgnCollection, listPublishablePgnCollections,
-  REDISTRIBUTION_STATUSES, REGISTRY_MODES, validatePgnCollectionRegistry
+  buildPgnReaderHref, getKnownPgnCollection, getPgnCollection, listPublishablePgnCollections,
+  pgnCollectionRegistryValidation, REDISTRIBUTION_STATUSES, validatePgnCollectionRegistry
 } from '../js/game-library/pgn-collection-registry.js';
 import { createCaissaPgnReader } from '../js/game-library/caissa-pgn-reader.js';
 import { buildArchiveReturnTo, normalizeArchiveReturnTo, readArchiveState } from '../js/game-library/archive-return-state.js';
@@ -57,13 +57,15 @@ test('special transition events are encoded without pretending they were normal 
 });
 
 test('PGN registry exposes only rights-cleared assets in production', () => {
-  assert.equal(validatePgnCollectionRegistry().valid, true);
+  assert.equal(pgnCollectionRegistryValidation.valid, true, pgnCollectionRegistryValidation.errors.join('\n'));
   assert.deepEqual(listPublishablePgnCollections().map(value => value.id), ['capablanca-complete']);
   for (const collection of listPublishablePgnCollections()) {
     assert.match(collection.localAsset, /^\/(?:data\/)?pgn\//);
     assert.doesNotMatch(collection.localAsset, /\.\.|[?#]|^https?:/);
     const diskPath = collection.localAsset.startsWith('/data/') ? `public${collection.localAsset}` : collection.localAsset.slice(1);
     assert.equal(fs.existsSync(new URL(`../${diskPath}`, import.meta.url)), true, collection.id);
+    assert.equal(collection.downloadFilename, 'capablanca-games-1901-1941.pgn');
+    assert.equal(collection.mimeType, 'application/x-chess-pgn');
   }
   assert.deepEqual(validatePgnCollectionRegistry([{ ...pgnCollections[0], localAsset: 'https://example.com/file.pgn' }]).errors, ['capablanca-complete has unsafe localAsset']);
   assert.ok(validatePgnCollectionRegistry([{ ...pgnCollections[0], redistributionStatus: 'UNREVIEWED' }]).errors.includes('capablanca-complete has invalid redistributionStatus'));
@@ -71,44 +73,59 @@ test('PGN registry exposes only rights-cleared assets in production', () => {
   assert.equal(getPgnCollection('../../secret'), null);
   assert.equal(getPgnCollection('https://example.com'), null);
   assert.equal(buildPgnReaderHref('not-allowlisted'), null);
-  const fischer = getPgnCollection('fischer-spassky-1972-complete');
-  assert.equal(fischer.redistributionStatus, REDISTRIBUTION_STATUSES.INTERNAL_TEST_ONLY);
-  assert.equal(fischer.localAsset, null);
-  assert.equal(fischer.readerCompatible, false);
-  assert.doesNotMatch(JSON.stringify(fischer), /__caissa_internal_qa/);
-  const internal = getPgnCollection('fischer-spassky-1972-complete', { mode: REGISTRY_MODES.INTERNAL_QA });
-  assert.equal(internal.localAsset, '/__caissa_internal_qa/pgn/fischer-spassky-1972-complete.pgn');
-  assert.equal(internal.readerCompatible, true);
+  assert.equal(getPgnCollection('fischer-spassky-1972-complete'), null);
+  assert.equal(getKnownPgnCollection('fischer-spassky-1972-complete'), null);
+  assert.doesNotMatch(JSON.stringify(pgnCollections), /fischer-spassky-1972-complete|__caissa_internal_qa|internalQaAvailable|INTERNAL_TEST_ONLY/);
+  for (const entry of pgnCollections.filter(value => value.redistributionStatus !== REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE)) {
+    assert.equal(getPgnCollection(entry.id), null, entry.id);
+    assert.equal(entry.localAsset, null, entry.id);
+    assert.equal(entry.downloadFilename, null, entry.id);
+    assert.equal(entry.mimeType, null, entry.id);
+    assert.equal(entry.downloadable, false, entry.id);
+    assert.equal(entry.readerCompatible, false, entry.id);
+  }
 });
 
-test('Fischer–Spassky review asset is complete, checksummed, internal-only, and attached to 1972', () => {
-  const collection = getPgnCollection('fischer-spassky-1972-complete');
-  const bytes = fs.readFileSync(new URL('../internal-assets/pgn/fischer-spassky-1972.pgn', import.meta.url));
-  const provenance = JSON.parse(read('internal-assets/pgn/fischer-spassky-1972.provenance.json'));
-  assert.equal(collection.type, 'championship-match');
-  assert.equal(collection.gamesCount, 21);
-  assert.equal((bytes.toString('utf8').match(/^\[Event /gm) || []).length, 21);
+test('Capablanca public collection has exact release metadata and is honestly classified', () => {
+  const collection = getPgnCollection('capablanca-complete');
+  const bytes = fs.readFileSync(new URL('../public/data/pgn/capablanca-games-1901-1941.pgn', import.meta.url));
+  const provenance = JSON.parse(read('public/data/pgn/capablanca-games-1901-1941.provenance.json'));
+  assert.equal(collection.type, 'player-collection');
+  assert.equal(collection.eventId, null);
+  assert.equal(collection.gamesCount, 597);
+  assert.equal(collection.sourceName, 'CAISSA repository owner');
+  assert.equal(collection.sourceUrl, null);
+  assert.equal(collection.attribution, 'Factual Capablanca game scores supplied and authorized by the repository owner.');
+  assert.equal(collection.license, 'Owner authorization for use in the CAISSA Game Replayer');
+  assert.equal(collection.redistributionStatus, REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE);
+  assert.equal(collection.localAsset, '/data/pgn/capablanca-games-1901-1941.pgn');
+  assert.equal(collection.downloadFilename, 'capablanca-games-1901-1941.pgn');
+  assert.equal(collection.mimeType, 'application/x-chess-pgn');
+  assert.equal(collection.readerCompatible, true);
+  assert.equal((bytes.toString('utf8').match(/^\[Event /gm) || []).length, 597);
   assert.equal(`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`, collection.checksum);
+  assert.equal(provenance.collectionId, collection.id);
+  assert.equal(provenance.publicFilename, collection.downloadFilename);
   assert.equal(provenance.publicDerivativeSha256, collection.checksum.slice(7));
-  assert.equal(championshipEvents.find(event => event.id === 'wcc-1972').pgnCollectionId, collection.id);
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1927').pgnCollectionId, undefined);
 });
 
-test('internal QA PGN is excluded from production output and served by a fixed loopback allowlist', () => {
+test('non-public Fischer asset and local-only endpoint are absent from production surfaces', () => {
   assert.equal(fs.existsSync(new URL('../public/data/pgn/world-championships/fischer-spassky-1972.pgn', import.meta.url)), false);
   assert.match(read('.vercelignore'), /^internal-assets\/\*\*$/m);
   assert.doesNotMatch(read('vercel.json'), /fischer-spassky-1972/);
   const server = read('server.js');
-  assert.match(server, /INTERNAL_QA_ENABLED = \['127\.0\.0\.1', 'localhost', '::1'\]\.includes\(HOST\)/);
-  assert.match(server, /INTERNAL_QA_PGN_ASSETS = new Map/);
-  assert.match(server, /\^\\\/__caissa_internal_qa\\\/pgn\\\/\(\[a-z0-9\]/);
+  assert.doesNotMatch(server, /__caissa_internal_qa|INTERNAL_QA_PGN_ASSETS|fischer-spassky-1972/);
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1972').pgnCollectionId, undefined);
 });
 
 test('CaissaPgnReader opens only reader-compatible registry entries', () => {
   const navigations = [];
-  const reader = createCaissaPgnReader(href => navigations.push(href), { hostname: '127.0.0.1' });
-  const returnTo = buildArchiveReturnTo({ view: 'matches', lineage: 'undisputed', champion: 'bobby-fischer', reign: 'fischer-1972', event: 'wcc-1972', scroll: 640, mural: 1200 });
-  assert.equal(reader.open({ collectionId: 'fischer-spassky-1972-complete', gameId: null, target: 'best-available', returnTo }), true);
-  assert.equal(navigations[0], `/watch/game-replayer?collection=fischer-spassky-1972-complete&returnTo=${encodeURIComponent(returnTo)}`);
+  const reader = createCaissaPgnReader(href => navigations.push(href));
+  const returnTo = buildArchiveReturnTo({ view: 'matches', lineage: 'undisputed', champion: 'jose-raul-capablanca', reign: 'capablanca-1921', event: 'wcc-1927', scroll: 640, mural: 1200 });
+  assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: null, target: 'best-available', returnTo }), true);
+  assert.equal(navigations[0], `/watch/game-replayer?collection=capablanca-complete&returnTo=${encodeURIComponent(returnTo)}`);
+  assert.equal(reader.open({ collectionId: 'fischer-spassky-1972-complete', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: 'fischer-spassky-game-6', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: '../../secret', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: 'capablanca-complete', target: 'desktop' }), false);
@@ -136,7 +153,7 @@ test('events remain chronological and portrait policy fields are present without
   }
 });
 
-test('prototype route has the archive hierarchy, desktop shell and no portrait dependency', () => {
+test('release-candidate route has the archive hierarchy, intentional monograms, and no portrait dependency', () => {
   const page = load(read('game-library-champions.html'));
   assert.equal(page('h1#archive-title').text().replace(/\s+/g, ' ').trim(), 'World Chess Champions');
   assert.equal(page('[data-champion-track]').length, 1);
@@ -148,11 +165,13 @@ test('prototype route has the archive hierarchy, desktop shell and no portrait d
   assert.equal(page('[data-archive-mode]').length, 2);
   assert.equal(page('[data-match-filter]').length, 5);
   assert.equal(page('[data-filter-count]').length, 5);
-  assert.match(page('.prototype-badge').text(), /Photo-free edition/);
+  assert.match(page('.archive-edition-badge').text(), /Historical archive/);
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);
-  assert.equal(page('img').length, 0, 'prototype must keep unlicensed portraits as generated placeholders');
-  assert.match(read('js/game-library/championship-archive-page.js'), /Archival monogram · no portrait/);
-  assert.match(read('js/game-library/championship-archive-page.js'), /version: '0\.4\.0'/);
+  assert.equal(page('img').length, 0, 'release candidate must not include portrait assets');
+  assert.match(read('js/game-library/championship-archive-page.js'), /CAISSA archival monogram/);
+  assert.match(read('js/game-library/championship-archive-page.js'), /version: '1\.0\.0-rc\.1'/);
+  assert.doesNotMatch(page.text(), /prototype|internal|test asset|registry mode|portrait rights pending/i);
+  assert.equal(load(read('index.html'))('a.library-archive-link[href="/game-library/champions"]').length, 1);
   assert.match(read('server.js'), /\/game-library\/champions/);
   assert.match(read('vercel.json'), /"source": "\/game-library\/champions"/);
 });

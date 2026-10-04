@@ -20,7 +20,7 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .archive-hero__topline { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 48px; }
 .archive-eyebrow, .section-kicker { margin: 0; color: var(--archive-gold-bright); font-size: 11px; font-weight: 800; letter-spacing: .19em; text-transform: uppercase; }
 .archive-eyebrow { display: flex; align-items: center; gap: 13px; }
-.prototype-badge { padding: 7px 10px; border: 1px solid var(--archive-line); border-radius: 999px; background: rgba(215, 164, 83, .07); color: #c6b18d; font-size: 9px; }
+.archive-edition-badge { padding: 7px 10px; border: 1px solid var(--archive-line); border-radius: 999px; background: rgba(215, 164, 83, .07); color: #c6b18d; font-size: 9px; }
 .personal-library-link { color: #cac6bd; text-decoration: none; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
 .personal-library-link:hover { color: var(--archive-gold-bright); }
 .personal-library-link i { margin-right: 7px; color: var(--archive-gold); }
@@ -159,7 +159,6 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .reader-notice { padding: 10px; border: 1px solid rgba(215,164,83,.28); color: var(--archive-gold-bright); font-size: 10px; }
 .pgn-availability { display: inline-flex; width: max-content; padding: 4px 7px; border: 1px solid rgba(255,255,255,.1); color: #8e8b84; font-size: 8px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
 .pgn-availability--available { border-color: rgba(102,192,139,.45); color: #9bddb6; }
-.pgn-availability--internal-qa { border-color: rgba(215,164,83,.5); color: var(--archive-gold-bright); }
 .pgn-availability--pending-review { border-color: rgba(207,139,84,.36); color: #cfa375; }
 .pgn-availability--historical-only { color: #77746e; }
 

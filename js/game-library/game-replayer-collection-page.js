@@ -1,11 +1,10 @@
-import { getPgnCollection, resolveRuntimeRegistryMode } from './pgn-collection-registry.js';
+import { getPgnCollection } from './pgn-collection-registry.js';
 import { normalizeArchiveReturnTo } from './archive-return-state.js';
 
 const params = new URLSearchParams(location.search);
-const registryMode = resolveRuntimeRegistryMode(location.hostname);
-const fallback = getPgnCollection('capablanca-complete', { mode: registryMode });
+const fallback = getPgnCollection('capablanca-complete');
 const requestedId = params.get('collection');
-const requested = requestedId ? getPgnCollection(requestedId, { mode: registryMode }) : fallback;
+const requested = requestedId ? getPgnCollection(requestedId) : fallback;
 const collection = requested?.readerCompatible ? requested : fallback;
 const returnTo = normalizeArchiveReturnTo(params.get('returnTo'));
 const isChampionship = collection.type === 'championship-match';
@@ -16,7 +15,7 @@ document.querySelector('[data-game-replayer-deck]').textContent = `Explore ${col
 document.querySelector('[data-collection-provenance]').textContent = collection.attribution;
 document.querySelectorAll('[data-collection-download]').forEach(link => {
   link.href = collection.localAsset;
-  link.download = '';
+  link.download = collection.downloadFilename;
   link.textContent = `Download ${collection.title} PGN`;
 });
 frame.title = collection.id === 'capablanca-complete'

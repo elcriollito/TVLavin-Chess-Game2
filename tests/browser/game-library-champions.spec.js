@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-const desktopSizes = [{ width: 1920, height: 1080 }, { width: 1440, height: 900 }, { width: 1366, height: 768 }];
+const desktopSizes = [{ width: 1920, height: 1080 }, { width: 1440, height: 900 }, { width: 1366, height: 768 }, { width: 1024, height: 768 }];
 
 test('championship archive renders its chronological mural at required desktop sizes', async ({ page }) => {
   await page.goto('/game-library/champions');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('World Chess');
   await expect(page.locator('.champion-card')).toHaveCount(18);
   await expect(page.locator('.champion-card__portrait')).toHaveCount(18);
-  await expect(page.locator('.champion-card__portrait-status')).toHaveText(Array(18).fill('Archival monogram · no portrait'));
+  await expect(page.locator('.champion-card__portrait-status')).toHaveText(Array(18).fill('CAISSA archival monogram'));
   await expect(page.locator('img')).toHaveCount(0);
   await expect(page.locator('.champion-card').first()).toContainText('Wilhelm Steinitz');
   await expect(page.locator('.champion-card').first()).toContainText('No. 01');
@@ -24,38 +24,57 @@ test('championship archive renders its chronological mural at required desktop s
   }
 });
 
-test('Fischer match opens the internal QA reader and restores archive state', async ({ page }) => {
+test('Capablanca production slice opens, navigates, downloads, and restores exact archive state', async ({ page }) => {
   await page.goto('/game-library/champions');
   await page.getByRole('button', { name: 'Championship Matches' }).click();
   await page.getByRole('button', { name: 'Undisputed', exact: true }).click();
-  const match = page.locator('[data-match-event="wcc-1972"]');
+  const match = page.locator('[data-match-event="wcc-1927"]');
   await match.scrollIntoViewIfNeeded();
   await match.getByRole('button', { name: 'Champion context' }).click();
   const dialog = page.locator('[data-champion-dialog]');
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('[data-event-id="wcc-1972"]')).toHaveClass(/is-selected/);
-  await expect(dialog).toContainText('21 games');
-  await expect(dialog).toContainText('PGN internal QA');
+  await expect(dialog.getByRole('heading', { name: 'José Raúl Capablanca' })).toBeFocused();
+  await expect(dialog.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
+  await expect(dialog).toContainText('Capablanca–Alekhine');
+  await expect(dialog).toContainText('Player collection');
+  await expect(dialog).toContainText('597 games');
+  await expect(dialog).toContainText('PGN available');
   const complete = dialog.locator('.collection-card.is-complete');
-  await expect(complete.getByRole('link', { name: 'Download PGN' })).toHaveAttribute('href', '/__caissa_internal_qa/pgn/fischer-spassky-1972-complete.pgn');
+  const downloadLink = complete.getByRole('link', { name: 'Download PGN' });
+  await expect(downloadLink).toHaveAttribute('href', '/data/pgn/capablanca-games-1901-1941.pgn');
+  await expect(downloadLink).toHaveAttribute('download', 'capablanca-games-1901-1941.pgn');
   await complete.getByRole('button', { name: 'Open in PGN Reader' }).click();
-  await expect(page).toHaveURL(/\/watch\/game-replayer\?collection=fischer-spassky-1972-complete&returnTo=/);
+  await expect(page).toHaveURL(/\/watch\/game-replayer\?collection=capablanca-complete&returnTo=/);
   const returnTo = new URL(page.url()).searchParams.get('returnTo');
-  for (const part of ['view=matches', 'lineage=undisputed', 'champion=bobby-fischer', 'reign=fischer-1972', 'event=wcc-1972']) expect(returnTo).toContain(part);
+  for (const part of ['view=matches', 'lineage=undisputed', 'champion=jose-raul-capablanca', 'reign=capablanca-1921', 'event=wcc-1927']) expect(returnTo).toContain(part);
   expect(returnTo).toMatch(/scroll=[1-9]\d*/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Fischer–Spassky 1972');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Replay and Study Chess Games');
   const frame = page.frameLocator('iframe[data-game-replayer-frame]');
   await expect(page.locator('[data-game-replayer-shell]')).toHaveClass(/is-ready/, { timeout: 20_000 });
   await frame.getByRole('button', { name: 'Games', exact: true }).click();
-  await expect(frame.locator('.cbreplay')).toContainText(/Fischer|Spassky/);
+  await expect(frame.locator('.cbreplay')).toContainText(/Capablanca/);
   await frame.getByRole('button', { name: 'Next Game', exact: true }).click();
-  await page.getByRole('link', { name: 'Return to World Champions' }).click();
+  await frame.getByRole('button', { name: 'Next Game', exact: true }).click();
+  await frame.getByRole('button', { name: 'Previous Game', exact: true }).click();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/game-library\/champions\?view=matches/);
+  await expect(page.locator('[data-champion-dialog]')).toBeVisible();
+  await expect(page.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
+  await expect(page.getByRole('button', { name: 'Undisputed', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+  await page.locator('.collection-card.is-complete').getByRole('button', { name: 'Open in PGN Reader' }).click();
+  const explicitReturn = page.getByRole('link', { name: 'Return to World Champions' });
+  await expect(explicitReturn).toHaveAttribute('href', /\/game-library\/champions\?view=matches.*event=wcc-1927/);
+  await explicitReturn.click();
   await expect(page).toHaveURL(/\/game-library\/champions\?view=matches/);
   await expect(page.getByRole('button', { name: 'Championship Matches' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undisputed', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
-  await expect(page.locator('[data-event-id="wcc-1972"]')).toHaveClass(/is-selected/);
+  await expect(page.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
   await expect.poll(() => page.evaluate(() => Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop))).toBeGreaterThan(100);
+
+  const download = await Promise.all([page.waitForEvent('download'), page.locator('.collection-card.is-complete').getByRole('link', { name: 'Download PGN' }).click()]);
+  expect(download[0].suggestedFilename()).toBe('capablanca-games-1901-1941.pgn');
 });
 
 test('Karpov detail distinguishes history from rights-pending PGN data', async ({ page }) => {
@@ -66,7 +85,7 @@ test('Karpov detail distinguishes history from rights-pending PGN data', async (
   await expect(dialog).toContainText('aborted');
   await expect(dialog).toContainText('48 games');
   await expect(dialog).toContainText('PGN pending review');
-  await expect(dialog).toContainText('Rights review required · Public actions disabled');
+  await expect(dialog).toContainText('Collection pending review · Public actions unavailable');
   await expect(dialog.getByRole('heading', { name: 'Reigns' })).toBeVisible();
   await expect(dialog.getByRole('heading', { name: 'Historical context' })).toBeVisible();
   const closeBox = await dialog.getByRole('button', { name: 'Close champion detail' }).boundingBox();
@@ -74,6 +93,9 @@ test('Karpov detail distinguishes history from rights-pending PGN data', async (
   expect(closeBox.y).toBeGreaterThanOrEqual(navigationBox.y + navigationBox.height);
   await expect(dialog.getByRole('link', { name: 'Download PGN' })).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Not available publicly' })).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('[data-open-champion="anatoly-karpov"]')).toBeFocused();
 });
 
 test('multiple reigns are explicit and the selected reign survives reload', async ({ page }) => {
@@ -103,6 +125,33 @@ test('match filters remain chronological and reflected in the URL', async ({ pag
   await expect(page.locator('[data-match-event="wcc-1984"]')).toContainText('aborted');
 });
 
+test('production route excludes private collections and hardens reader/download inputs', async ({ page, request }) => {
+  await page.goto('/game-library/champions');
+  const body = await page.locator('body').innerText();
+  expect(body).not.toMatch(/internal|test asset|fischer.spassky 1972.*complete match/i);
+  await expect(page.locator('[href*="__caissa_internal_qa"], [data-open-pgn="fischer-spassky-1972-complete"]')).toHaveCount(0);
+
+  const privateAsset = await request.get('/__caissa_internal_qa/pgn/fischer-spassky-1972-complete.pgn');
+  expect(privateAsset.status()).toBe(404);
+  const publicAsset = await request.get('/data/pgn/capablanca-games-1901-1941.pgn');
+  expect(publicAsset.status()).toBe(200);
+  expect(publicAsset.headers()['content-type']).toContain('application/x-chess-pgn');
+  expect(publicAsset.headers()['content-disposition']).toBe('attachment; filename="capablanca-games-1901-1941.pgn"');
+  expect((await publicAsset.body()).toString('utf8').match(/^\[Event /gm)).toHaveLength(597);
+
+  await page.goto('/watch/game-replayer?collection=../../secret&returnTo=https://evil.example/');
+  await expect(page.locator('iframe[data-game-replayer-frame]')).toHaveAttribute('data-collection-id', 'capablanca-complete');
+  await expect(page.locator('[data-invalid-collection]')).toContainText('return destination was not accepted');
+  await expect(page.getByRole('link', { name: 'Return to World Champions' })).toHaveAttribute('href', '/game-library/champions');
+  await expect(page.locator('[data-collection-download]').first()).toHaveAttribute('href', '/data/pgn/capablanca-games-1901-1941.pgn');
+});
+
+test('direct Capablanca reader URL defaults to the archive return route', async ({ page }) => {
+  await page.goto('/watch/game-replayer?collection=capablanca-complete');
+  await expect(page.getByRole('link', { name: 'Return to World Champions' })).toHaveAttribute('href', '/game-library/champions');
+  await expect(page.locator('iframe[data-game-replayer-frame]')).toHaveAttribute('data-collection-id', 'capablanca-complete');
+});
+
 test('existing Game Library route and IndexedDB records remain isolated', async ({ page }) => {
   await page.goto('/game-library');
   await expect(page.locator('#libraryPanel')).toHaveClass(/open/);
@@ -119,6 +168,14 @@ test('existing Game Library route and IndexedDB records remain isolated', async 
   });
   await page.goto('/game-library/champions');
   await expect(page.locator('.champion-card')).toHaveCount(18);
+  await page.locator('[data-open-champion="jose-raul-capablanca"]').click();
+  await page.locator('.collection-card.is-complete').getByRole('button', { name: 'Open in PGN Reader' }).click();
+  await expect(page).toHaveURL(/collection=capablanca-complete/);
+  await page.getByRole('link', { name: 'Return to World Champions' }).click();
+  await expect(page.locator('[data-champion-dialog]')).toBeVisible();
+  await page.getByRole('link', { name: 'Open personal library' }).click();
+  await expect(page).toHaveURL(/\/game-library$/);
+  await expect(page.locator('#libraryPanel')).toHaveClass(/open/);
   const afterArchive = await page.evaluate(async () => {
     const db = await new Promise((resolve, reject) => { const request = indexedDB.open('caissa_library', 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     const read = (store, key) => new Promise((resolve, reject) => { const request = db.transaction(store, 'readonly').objectStore(store).get(key); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });

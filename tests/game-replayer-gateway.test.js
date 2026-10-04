@@ -36,12 +36,15 @@ test('Game Replayer parent owns exact SEO, accessible isolation, fallback, and d
   assert.match(page('.game-replayer-disclosure').text(), /CAISSA Chess supplies the displayed PGN collection and does not operate ChessBase/);
   assert.match(page('.game-replayer-disclosure').text(), /no prose comments or editorial annotations/);
   assert.ok(page(`a[href="${pgnUrl}"]`).length >= 2);
+  assert.equal(page(`a[href="${pgnUrl}"][download="capablanca-games-1901-1941.pgn"]`).length, 2);
+  assert.match(read('game-replayer.html'), /<noscript>[\s\S]*download="capablanca-games-1901-1941\.pgn"/);
 });
 
 test('wrapper is minimal, SRI-pinned, sandbox-compatible, and not navigation-visible', () => {
   const wrapper = load(read('integrations/chessbase-pgn-replayer.html'));
   const loader = read('js/chessbase-pgn-replayer-wrapper.js');
   assert.equal(wrapper('.cbreplay').attr('data-url'), undefined);
+  assert.equal(wrapper('[data-wrapper-download]').attr('download'), 'capablanca-games-1901-1941.pgn');
   assert.equal(wrapper('script[src^="https://pgn.chessbase.com"]').length, 0);
   assert.equal(wrapper('link[href="https://pgn.chessbase.com/CBReplay.css"]').length, 1);
   for (const element of [...wrapper('link[href^="https://pgn.chessbase.com"]')]) {
@@ -51,8 +54,10 @@ test('wrapper is minimal, SRI-pinned, sandbox-compatible, and not navigation-vis
   assert.match(loader, /https:\/\/pgn\.chessbase\.com\/jquery-3\.0\.0\.min\.js/);
   assert.match(loader, /https:\/\/pgn\.chessbase\.com\/cbreplay\.js/);
   assert.equal((loader.match(/sha384-/g) || []).length, 2);
-  assert.match(loader, /getPgnCollection\(requestedId, \{ mode: resolveRuntimeRegistryMode\(location\.hostname\) \}\)/);
+  assert.match(loader, /getPgnCollection\(requestedId\)/);
   assert.match(loader, /host\.dataset\.url = selected\.localAsset/);
+  assert.match(loader, /download\.download = selected\.downloadFilename/);
+  assert.match(loader, /location\.origin/);
   assert.equal(wrapper('meta[name="robots"]').attr('content'), 'noindex, nofollow');
   assert.equal(wrapper('iframe').length, 0);
   assert.doesNotMatch(read('js/caissa-primary-navigation.js'), /integrations\/chessbase-pgn-replayer/);
@@ -61,6 +66,7 @@ test('wrapper is minimal, SRI-pinned, sandbox-compatible, and not navigation-vis
 test('Capablanca derivative and provenance are exact, safe, and deterministic', () => {
   const pgn = bytes(pgnPath);
   const provenance = JSON.parse(read('public/data/pgn/capablanca-games-1901-1941.provenance.json'));
+  assert.equal(provenance.collectionId, 'capablanca-complete');
   assert.equal(crypto.createHash('sha256').update(pgn).digest('hex'), provenance.publicDerivativeSha256);
   assert.equal(provenance.originalSha256, 'fb5d46cd1ce78665b2d2ea3df03b5bbea72b6ddb643a0c930f66a686a8723a8a');
   assert.equal(provenance.gameCount, 597);
@@ -89,6 +95,9 @@ test('navigation, routes, sitemap, CSP, and wrapper exclusion are coherent', () 
   assert.doesNotMatch(csp, /\*\.chessbase\.com|worker-src|wss:/);
   const globalCsp = vercel.headers.find(item => item.source === '/(.*)').headers.find(item => item.key === 'Content-Security-Policy').value;
   assert.doesNotMatch(globalCsp, /unsafe-eval/);
+  const pgnHeaders = vercel.headers.find(item => item.source === pgnUrl).headers;
+  assert.equal(pgnHeaders.find(item => item.key === 'Content-Type').value, 'application/x-chess-pgn');
+  assert.equal(pgnHeaders.find(item => item.key === 'Content-Disposition').value, 'attachment; filename="capablanca-games-1901-1941.pgn"');
 });
 
 test('provider runtime stays absent from unrelated application and gateway entrypoints', () => {
