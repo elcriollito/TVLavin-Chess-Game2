@@ -35,12 +35,15 @@ async function openLab(page) {
 }
 
 async function squarePoint(page, square, xRatio = 0.37, yRatio = 0.41) {
-  const target = page.locator(`#openingDbBoard .square-${square}`);
-  await target.scrollIntoViewIfNeeded();
-  return target.evaluate((node, ratios) => {
+  await page.locator('#openingDbBoard').scrollIntoViewIfNeeded();
+  return page.evaluate(({ targetSquare, ratios }) => {
+    let node = document.querySelector(`#openingDbBoard .square-${targetSquare}`);
+    if (!node) throw new Error(`Opening Database square not found: ${targetSquare}`);
+    node = document.querySelector(`#openingDbBoard .square-${targetSquare}`);
+    if (!node) throw new Error(`Opening Database square detached during lookup: ${targetSquare}`);
     const rect = node.getBoundingClientRect();
     return { x: rect.left + rect.width * ratios.xRatio, y: rect.top + rect.height * ratios.yRatio };
-  }, { xRatio, yRatio });
+  }, { targetSquare: square, ratios: { xRatio, yRatio } });
 }
 
 async function drag(page, sourceSquare, targetSquare) {
