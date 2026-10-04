@@ -56,6 +56,9 @@ const additionalMetadata = new Map([
   ['/roadmap', ['roadmap', 'Roadmap', 'vercel.json']],
   ['/database', ['database', 'Chess Database', 'vercel.json']],
   ['/library', ['library-page', 'Library', 'vercel.json']],
+  ['/game-library/champions', ['game-library-champions', 'World Champions Archive', 'vercel.json and server.js']],
+  ['/game-library/champions/replay', ['game-library-champions-replay', 'World Championship Replay', 'vercel.json and server.js']],
+  ['/watch/game-replayer', ['capablanca-game-replayer', 'Capablanca Game Replayer', 'vercel.json and server.js']],
   ['/signin', ['signin', 'Sign In', 'vercel.json']],
   ['/signup', ['signup', 'Sign Up', 'vercel.json']]
 ]);
@@ -78,7 +81,6 @@ const publicCanonicalRoutes = [...additionalMetadata].filter(([canonicalPath]) =
 const serverOwnedRetiredRoutes = new Set([
   '/puzzles/chessbase-tactics', '/puzzles/chessbase-tactics/',
   '/endgame-practice', '/endgame-practice/',
-  '/watch/game-replayer', '/watch/game-replayer/',
   '/watch/lichess-broadcasts', '/watch/lichess-broadcasts/'
 ]);
 const redirectsAndAliases = vercel.redirects.map(rule => ({
