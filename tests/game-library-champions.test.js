@@ -310,7 +310,7 @@ test('release-candidate route has the archive hierarchy, intentional monograms, 
   assert.match(archivePage, /href="\$\{escapeHtml\(external\.url\)\}" target="_blank" rel="noopener noreferrer external"/);
   assert.doesNotMatch(archivePage, /href="\$\{escapeHtml\(runtime\.localAsset\)\}"/);
   assert.doesNotMatch(page.text(), /prototype|internal|test asset|registry mode|portrait rights pending/i);
-  assert.equal(load(read('index.html'))('a.library-archive-link[href="/game-library/champions"]').length, 1);
+  assert.equal(load(read('game-library.html'))('a.library-archive-link[href="/game-library/champions"]').length, 1);
   assert.match(read('server.js'), /\/game-library\/champions/);
   assert.match(read('vercel.json'), /"source": "\/game-library\/champions"/);
 });

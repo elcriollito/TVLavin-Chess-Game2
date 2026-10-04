@@ -7,7 +7,7 @@ import { load } from 'cheerio';
 
 const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-test('owns the canonical route and replaces the retired ChessBase replayer', () => {
+test('owns the canonical route and remains isolated from the approved Capablanca viewer', () => {
   const page = load(read('pgn-replayer.html'));
   assert.equal(page('title').text(), 'CAISSA PGN Reader | Open and Analyze Chess PGN Files');
   assert.equal(page('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/pgn-replayer');
@@ -19,7 +19,7 @@ test('owns the canonical route and replaces the retired ChessBase replayer', () 
   assert.doesNotMatch(read('pgn-replayer.html'), /pgn\.chessbase\.com|Credits:/i);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/pgn-replayer' && rule.destination === '/pgn-replayer.html'));
-  assert.ok(vercel.redirects.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/pgn-replayer' && rule.permanent));
+  assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/game-replayer.html'));
   assert.match(read('server.js'), /pathname === '\/pgn-replayer'/);
   assert.equal((read('public/sitemap.xml').match(/\/pgn-replayer<\/loc>/g) || []).length, 1);
 });

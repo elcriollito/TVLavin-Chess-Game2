@@ -83,10 +83,10 @@ test('navigation, routes, sitemap, CSP, and wrapper exclusion are coherent', () 
   const window = {};
   vm.runInNewContext(read('js/caissa-primary-navigation.js'), { window, document: { querySelectorAll: () => [] } });
   const navigation = window.CaissaPrimaryNavigation;
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.10.0');
-  assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 33);
-  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'Spectator TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Lichess Broadcasts', 'Game Replayer', 'Engine Arena']);
-  assert.equal(navigation.inventory.all.filter(item => item.id === 'game-replayer').length, 1);
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.16.0');
+  assert.equal(navigation.inventory.primary.length + navigation.inventory.connect.length, 30);
+  assert.deepEqual(Array.from(navigation.inventory.groups[2], item => item.label), ['Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena']);
+  assert.equal(navigation.inventory.all.filter(item => item.id === 'game-replayer').length, 0);
   const vercel = JSON.parse(read('vercel.json'));
   assert.ok(vercel.rewrites.some(rule => rule.source === '/watch/game-replayer' && rule.destination === '/game-replayer.html'));
   assert.equal((read('public/sitemap.xml').match(/<loc>https:\/\/www\.caissa-chess\.org\/watch\/game-replayer<\/loc>/g) || []).length, 1);
@@ -103,7 +103,7 @@ test('navigation, routes, sitemap, CSP, and wrapper exclusion are coherent', () 
 });
 
 test('provider runtime stays absent from unrelated application and gateway entrypoints', () => {
-  for (const path of ['index.html', 'yahoo-classic.html', 'play-v2-unavailable.html', 'playchess.html', 'fritz.html', 'tactics.html', 'live-blitz.html', 'endgame-trainer.html']) {
+  for (const path of ['index.html', 'yahoo-classic.html', 'play-v2-unavailable.html', 'playchess.html', 'fritz.html', 'puzzles.html', 'live-blitz.html', 'endgame-trainer.html']) {
     assert.doesNotMatch(read(path), /pgn\.chessbase\.com|cbreplay\.js/i, path);
   }
   assert.doesNotMatch(read('game-replayer.html'), /pgn\.chessbase\.com|jquery-3\.0\.0|cbreplay\.js/i);
