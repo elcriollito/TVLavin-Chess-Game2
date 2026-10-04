@@ -4,6 +4,10 @@ Audited main: `aea9d708dcfde574425f972034ad510fc38c264c`.
 
 Status: the authorized production instance has been created and its setup requirements reviewed; production identity cutover is not ready.
 
+## Product decision for this synchronization
+
+CAISSA remains free for now. Clerk stays on the existing Hobby plan, and paid plans, subscriptions and new payment activation are postponed to a separate approved project. The current credit logic and stored credit state remain in place without modification; this documentation sync neither removes nor activates billing behavior. No Clerk upgrade, Stripe change, entitlement change or credit migration is part of this work.
+
 ## Current evidence
 
 - The published `/api/public-auth-config` still supplies a development-class Clerk publishable key. No secret values were read or recorded for this audit.

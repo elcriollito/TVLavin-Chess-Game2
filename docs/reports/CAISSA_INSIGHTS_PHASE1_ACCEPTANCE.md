@@ -1,6 +1,6 @@
 # Insights Phase 1 — account reports and analysis correctness
 
-Historical base: `45de5ca2e0f4b3e711a6c39209fcd9caed7b6106`. Phase 1 was integrated with `origin/main` at `c43197a89a6511ee22e0813884823e69822ad954` without replacing the intervening Home, onboarding, Yahoo Quiet Drag or Arena Quiet Drag work. This implements INS-001 through INS-005. Production publication remains gated on Alex's visual and account testing.
+Historical base: `45de5ca2e0f4b3e711a6c39209fcd9caed7b6106`. Phase 1 was integrated with `origin/main` at `c43197a89a6511ee22e0813884823e69822ad954` without replacing the intervening Home, onboarding, Yahoo Quiet Drag or Arena Quiet Drag work. This implements INS-001 through INS-005. Alex subsequently approved the complete report and authorized production publication; the final release is recorded below.
 
 ## Resulting behavior
 
@@ -39,7 +39,7 @@ Alex approved the visual mockup after requesting Chessvia-inspired report conten
 - Progress includes the selected game, processed/total recorded positions and a runtime estimate. Partial batches can continue missing positions without weakening depth or silently reporting full coverage.
 - Immutable saves, same-operation Retry, owner-change cancellation/clearing, history recovery and Start Fresh semantics remain intact. Existing saved PGNs are reparsed to expose the new metadata without mutating their snapshots. No database migration is required for this report redesign.
 
-Current local validation: `npm run test:insights` 76/76, `npm run test:home` 64/64, Insights syntax checks pass, and auth/open-redirect/Analyzer/FICS/handoff/performance regressions 89/89. Preview publication and real-browser acceptance of this revision remain pending at this checkpoint; prior browser and SQL evidence below belongs to the earlier Phase 1 revision.
+Implementation-checkpoint validation: `npm run test:insights` 76/76, `npm run test:home` 64/64, Insights syntax checks pass, and auth/open-redirect/Analyzer/FICS/handoff/performance regressions 89/89. At that checkpoint, preview publication and real-browser acceptance of the revision were still pending; they were completed before the production release recorded below. Prior browser and SQL evidence in the next section belongs to the earlier Phase 1 revision.
 
 The Preview-only `/api/insights/engine-check?report=1` acceptance surface uses the real report components and ten explicitly synthetic legal games with the published Stockfish engine. It never reads account data, charges credits or persists an account report; it remains 404 outside Preview. It supplements, and does not replace, Alex's authenticated manual review.
 
@@ -54,7 +54,7 @@ The Preview-only `/api/insights/engine-check?report=1` acceptance surface uses t
 - Supabase security/performance advisors show no warning/error attributable to the new tables/functions.
 - The browser engine check remains Preview-only at `/api/insights/engine-check`; production and development return 404.
 - Real cloud-browser WASM acceptance passed on the integrated preview: runtime identity `Stockfish 18 Lite WASM`; all five legal positions evaluated at depth 12; both selected-player moves covered; the selected White player's `0-1` game counted as one loss and zero wins. Runtime was 866 ms. This proves the published engine/adapter integration, not engine-score calibration.
-- Desktop and 390 x 844 viewport checks passed: Insights loads independently of Play, dialogs open/close, the exact-player field remains visible, controls are usable and no blocking overflow was found. Alex's visual approval remains pending.
+- Desktop and 390 x 844 viewport checks passed: Insights loads independently of Play, dialogs open/close, the exact-player field remains visible, controls are usable and no blocking overflow was found. Alex's visual approval was pending at that earlier checkpoint and was granted for the complete report before publication.
 
 ## Authenticated staging evidence
 
@@ -66,8 +66,12 @@ The SQL acceptance additionally proves same-operation idempotency, different-pay
 
 An invalid local PGN was rejected in the browser as `No valid games found in PGN`; both synthetic accounts remained at five staging credits with zero credit events. The unrelated staging baseline currently has no `public.consume_credits(text, integer, text)` RPC, so a valid Insight emits a pre-existing credit-consume 500 even though the Phase 1 report flow completes. This closure does not create, bypass or modify that out-of-scope credit subsystem.
 
-## Release boundary
+## Production publication and remaining validation
 
-The migrations were applied only in staging. They must be applied to production after review and before publishing the feature. Preview report APIs explicitly reject a production database connection. Preview requires its Clerk test verifier and staging Supabase server credentials; `/api/insights/status` exposes only booleans to verify this boundary without leaking keys or user data.
+Alex approved the complete inline report and authorized production publication on 2026-10-03. PR #55 was squash-merged to `main` as `aea9d708dcfde574425f972034ad510fc38c264c`; its tree `62ae2db979077efcfba5180382b4880adb1536d3` is identical to the approved feature head. Production deployment `dpl_6aiLqUyuGYocr2uUtDBxLvDkwpfb` reached READY and serves both `www.caissa-chess.org` and `caissa-chess.org`.
 
-Manual review gate, in order: (1) inspect desktop and mobile copy/layout; (2) import your own small non-sensitive PGN and confirm the exact player/color; (3) generate, wait for `Saved to your account`, reload and reopen it; (4) use Start Fresh and confirm saved history remains; (5) delete only the synthetic report you choose. Do not merge or deploy to production until Alex approves the preview and the separate staging credit-baseline gap is dispositioned.
+The approved Insights migrations are present in production as `20261003231923_insights_account_reports_v1` and `20261003232101_insights_rpc_invoker_privileges`. Production verification confirmed forced RLS, no anonymous/authenticated table or RPC access, immutable service grants without UPDATE, and SECURITY INVOKER RPCs with an empty search path. The service-role rollback probe left no synthetic rows and did not modify users or credits.
+
+The published `/insights` route returned 200 with the approved inline report surface. `/api/insights/status` returned `authConfigured: true`, `storageConfigured: true`, and `previewUsesStaging: null`; anonymous report access returned 401 with `Cache-Control: private, no-store`; and `/api/insights/engine-check?report=1` returned 404 as required in production. The production credit RPC exists; the missing RPC remains a staging-only follow-up.
+
+The full authenticated save/reload/delete flow and physical mobile review were not repeated against production during publication. Alex's approved report review, the earlier two-account staging evidence and the production security verification remain the release basis. Preview account reports stayed in staging and were not copied to production.
