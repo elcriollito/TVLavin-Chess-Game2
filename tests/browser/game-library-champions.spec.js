@@ -379,9 +379,11 @@ test('isolated Champions replay rejects arbitrary URLs, unapproved collections, 
 
 test('existing Game Library route and IndexedDB records remain isolated', async ({ page }) => {
   await page.goto('/game-library');
-  await expect(page.locator('#libraryPanel')).toHaveClass(/open/);
-  await expect(page.locator('#libraryTabPositions')).toBeVisible();
-  await expect(page.locator('#libraryTabGames')).toBeVisible();
+  await expect(page.locator('body')).toHaveAttribute('data-game-library-release', 'under-construction');
+  await expect(page.locator('[data-caissa-library-public-presentation]')).toBeVisible();
+  await expect(page.locator('#libraryPanel')).toBeHidden();
+  await expect(page.locator('#libraryTabPositions')).toHaveCount(1);
+  await expect(page.locator('#libraryTabGames')).toHaveCount(1);
   await expect(page.locator('script[src*="championship-archive"]')).toHaveCount(0);
   const beforeArchive = await page.evaluate(async () => {
     await window.CaissaLibraryUIReady;
@@ -402,7 +404,9 @@ test('existing Game Library route and IndexedDB records remain isolated', async 
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
   await page.getByRole('link', { name: 'Open personal library' }).click();
   await expect(page).toHaveURL(/\/game-library$/);
-  await expect(page.locator('#libraryPanel')).toHaveClass(/open/);
+  await expect(page.locator('body')).toHaveAttribute('data-game-library-release', 'under-construction');
+  await expect(page.locator('[data-caissa-library-public-presentation]')).toBeVisible();
+  await expect(page.locator('#libraryPanel')).toBeHidden();
   const afterArchive = await page.evaluate(async () => {
     const db = await new Promise((resolve, reject) => { const request = indexedDB.open('caissa_library', 2); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     const read = (store, key) => new Promise((resolve, reject) => { const request = db.transaction(store, 'readonly').objectStore(store).get(key); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
