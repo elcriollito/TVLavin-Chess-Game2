@@ -219,10 +219,7 @@ export function validatePgnCollectionRegistry(entries = pgnCollections) {
 
 export const pgnCollectionRegistryValidation = validatePgnCollectionRegistry();
 
-export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = null, target = 'native' } = {}) {
-  const entry = getPgnCollection(collectionId);
-  if (!entry?.readerCompatible) return null;
-  if (!['native', 'fallback'].includes(target)) return null;
+function appendReaderParams(entry, gameId, returnTo) {
   const params = new URLSearchParams({ collection: entry.id });
   if (gameId !== null) {
     const normalizedGameId = String(gameId);
@@ -234,6 +231,19 @@ export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = nul
     if (!safeReturnTo) return null;
     params.set('returnTo', safeReturnTo);
   }
-  const pathname = target === 'fallback' ? '/watch/game-replayer' : '/pgn-replayer';
-  return `${pathname}?${params.toString()}`;
+  return params;
+}
+
+export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = null } = {}) {
+  const entry = getPgnCollection(collectionId);
+  if (!entry?.readerCompatible) return null;
+  const params = appendReaderParams(entry, gameId, returnTo);
+  return params ? `/watch/game-replayer?${params.toString()}` : null;
+}
+
+export function buildChampionshipReplayHref(collectionId, gameId = 0, { returnTo = null } = {}) {
+  const entry = getPgnCollection(collectionId);
+  if (!entry?.readerCompatible || entry.type !== 'championship-match') return null;
+  const params = appendReaderParams(entry, gameId, returnTo);
+  return params ? `/game-library/champions/replay?${params.toString()}` : null;
 }

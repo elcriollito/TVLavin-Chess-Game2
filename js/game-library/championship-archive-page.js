@@ -164,8 +164,8 @@ function collectionMarkup(collectionId) {
   return `<article class="collection-card${known.gamesCount > 1 ? ' is-complete' : ''} collection-card--${availability.code}"><div class="collection-card__type"><span>Player collection</span>${availabilityBadge(known.id)}</div><h4>${escapeHtml(known.title)}</h4><p><strong>${known.gamesCount} ${known.gamesCount === 1 ? 'game' : 'games'}</strong> · ${escapeHtml(known.attribution)}</p><p class="collection-card__availability">${escapeHtml(availabilityCopy(known.id))}</p><div class="collection-actions">${readerAction}${externalDownloadAction(known.id)}</div></article>`;
 }
 
-function openReader(collectionId, eventId = null, gameId = null) {
-  const opened = CaissaPgnReader.open({ collectionId, gameId, target: 'native', returnTo: currentReturnTo({ event: eventId || uiState.event }) });
+function openReader(collectionId, eventId = null, gameId = null, target = 'best-available') {
+  const opened = CaissaPgnReader.open({ collectionId, gameId, target, returnTo: currentReturnTo({ event: eventId || uiState.event }) });
   if (!opened) document.querySelector('[data-reader-notice]')?.removeAttribute('hidden');
 }
 
@@ -210,8 +210,8 @@ function openChampionDetail(championId, options = {}) {
       <section class="detail-section champion-collection"><div class="detail-section__heading"><h3>Champion collection</h3><span>Games by this player</span></div><p class="collection-policy">Explore approved player collections in the CAISSA reader. External downloads appear only when an approved source is registered.</p><p data-reader-notice hidden class="reader-notice">This collection is not available for public access.</p><div class="collection-list">${availableChampionCollectionIds.length ? availableChampionCollectionIds.map(collectionMarkup).join('') : championCollectionEmptyState}</div></section></aside></div>`;
   target.querySelectorAll('[data-dialog-champion]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); openChampionDetail(link.dataset.dialogChampion); }));
   target.querySelectorAll('[data-detail-reign]').forEach(button => button.addEventListener('click', () => openChampionDetail(champion.id, { reignId: button.dataset.detailReign })));
-  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => openReader(button.dataset.openPgn, uiState.event, 0)));
-  target.querySelectorAll('[data-event-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.eventPgn, button.dataset.event, 0); }));
+  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => openReader(button.dataset.openPgn, uiState.event)));
+  target.querySelectorAll('[data-event-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.eventPgn, button.dataset.event, 0, 'champions'); }));
   const anchor = uiState.view === 'matches' && requestedEvent
     ? document.querySelector(`[data-match-event="${requestedEvent.id}"]`)
     : document.getElementById(champion.id);
@@ -258,7 +258,7 @@ function renderMatches() {
     const factLine = [event.score ? `Score ${event.score}` : null, event.numberOfGames !== undefined ? `${event.numberOfGames} games` : null, event.location].filter(Boolean).join(' · ');
     return `<article class="match-card${event.id === uiState.event ? ' is-selected' : ''}" data-match-event="${event.id}"><div class="match-card__date"><span>${String(eventIndex + 1).padStart(2, '0')}</span><strong class="match-card__year">${event.year}</strong></div><div class="match-card__body"><div class="match-card__meta"><span>${escapeHtml(event.lineage)}</span><span>${escapeHtml(event.status)}</span></div><h3>${escapeHtml(event.title)}</h3><p>${escapeHtml(participants)}</p>${factLine ? `<div class="match-card__facts">${escapeHtml(factLine)}</div>` : ''}${event.historicalNote ? `<small>${escapeHtml(event.historicalNote)}</small>` : ''}</div><div class="match-card__actions">${availabilityBadge(known?.id)}${runtime?.readerCompatible ? `<button type="button" data-match-pgn="${runtime.id}" data-event="${event.id}">View match</button>` : ''}${known ? externalDownloadAction(known.id) : ''}${championId ? `<button type="button" data-match-champion="${championId}" data-event="${event.id}">Champion context</button>` : ''}</div></article>`;
   }).join('') || '<p class="match-empty">No events match this filter.</p>';
-  target.querySelectorAll('[data-match-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.matchPgn, button.dataset.event, 0); }));
+  target.querySelectorAll('[data-match-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.matchPgn, button.dataset.event, 0, 'champions'); }));
   target.querySelectorAll('[data-match-champion]').forEach(button => button.addEventListener('click', () => openChampionDetail(button.dataset.matchChampion, { eventId: button.dataset.event, returnFocus: button })));
 }
 

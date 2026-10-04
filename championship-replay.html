@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src-elem 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Championship Replay | CAISSA Chess</title>
+  <meta name="description" content="Replay an approved World Chess Championship collection inside the CAISSA historical archive.">
+  <meta name="theme-color" content="#090b0d">
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/championship-replay.css?v=1.0.0">
+</head>
+<body class="championship-replay-page">
+  <main class="championship-replay" data-championship-replay aria-busy="true">
+    <header class="championship-replay__header">
+      <a class="championship-replay__brand" href="/game-library/champions" aria-label="CAISSA World Champions Archive">
+        <span>CAISSA</span>
+        <small>World Champions Archive</small>
+      </a>
+      <div class="championship-replay__identity">
+        <span class="championship-replay__eyebrow">Championship match</span>
+        <h1 data-replay-title>Preparing the archive…</h1>
+        <p data-replay-subtitle>Validating the requested collection</p>
+      </div>
+      <a class="championship-replay__return" data-replay-return href="/game-library/champions">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+        <span>Return to Champions</span>
+      </a>
+    </header>
+
+    <div class="championship-replay__status" data-replay-status role="status" aria-live="polite">Opening approved championship collection…</div>
+
+    <section class="championship-replay__workspace" aria-label="Championship replay workspace">
+      <section class="championship-replay__board-column" aria-label="Board and move controls">
+        <div class="championship-player championship-player--black">
+          <span class="championship-player__piece" aria-hidden="true">♟</span>
+          <strong data-replay-black>Black</strong>
+          <span data-replay-black-elo>—</span>
+        </div>
+        <div class="championship-board-shell">
+          <div id="championship-replay-board" class="championship-board"></div>
+          <div class="championship-board__loading" data-replay-board-loading>
+            <i class="fas fa-chess-board" aria-hidden="true"></i>
+            <strong>Preparing Game 1</strong>
+            <span>The board will appear when the approved PGN is ready.</span>
+          </div>
+        </div>
+        <div class="championship-player championship-player--white">
+          <span class="championship-player__piece" aria-hidden="true">♙</span>
+          <strong data-replay-white>White</strong>
+          <span data-replay-white-elo>—</span>
+        </div>
+        <div class="championship-move-controls" role="toolbar" aria-label="Move navigation">
+          <button type="button" data-replay-first aria-label="Go to starting position" disabled>⏮</button>
+          <button type="button" data-replay-previous aria-label="Previous move" disabled>‹</button>
+          <button type="button" class="championship-move-controls__play" data-replay-play aria-label="Play moves automatically" disabled><span data-replay-play-icon>▶</span></button>
+          <button type="button" data-replay-next aria-label="Next move" disabled>›</button>
+          <button type="button" data-replay-last aria-label="Go to final position" disabled>⏭</button>
+          <button type="button" data-replay-flip aria-label="Flip board" disabled>⇅</button>
+        </div>
+      </section>
+
+      <aside class="championship-replay__archive" aria-label="Match games and metadata">
+        <section class="championship-match-card">
+          <div>
+            <span class="championship-match-card__year" data-replay-year>—</span>
+            <span class="championship-match-card__label">World Championship archive</span>
+          </div>
+          <strong data-replay-game-position>Game —</strong>
+        </section>
+
+        <section class="championship-metadata" aria-labelledby="championship-metadata-heading">
+          <div class="championship-section-heading">
+            <div><span>Current game</span><h2 id="championship-metadata-heading" data-replay-game-title>No game loaded</h2></div>
+            <span class="championship-result" data-replay-result>Result —</span>
+          </div>
+          <dl data-replay-metadata></dl>
+        </section>
+
+        <section class="championship-games" aria-labelledby="championship-games-heading">
+          <div class="championship-section-heading championship-section-heading--games">
+            <div><span>Match scorebook</span><h2 id="championship-games-heading">Games</h2></div>
+            <div class="championship-game-nav">
+              <button type="button" data-replay-previous-game aria-label="Previous game" disabled><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+              <button type="button" data-replay-next-game aria-label="Next game" disabled><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            </div>
+          </div>
+          <div class="championship-game-list" data-replay-games role="list"></div>
+        </section>
+
+        <section class="championship-notation" aria-labelledby="championship-notation-heading">
+          <div class="championship-section-heading"><div><span>Score</span><h2 id="championship-notation-heading">Moves</h2></div></div>
+          <div class="championship-notation__moves" data-replay-notation></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/js/game-library/championship-replay-page.js?v=1.0.0"></script>
+</body>
+</html>

@@ -8,7 +8,7 @@ import {
   validateChampionshipArchive
 } from '../js/game-library/championship-archive-data.js';
 import {
-  buildPgnReaderHref, getApprovedExternalPgnDownload, getKnownPgnCollection, getPgnCollection,
+  buildChampionshipReplayHref, buildPgnReaderHref, getApprovedExternalPgnDownload, getKnownPgnCollection, getPgnCollection,
   getPgnCollectionForEvent, listPublishablePgnCollections, listReaderPgnCollections,
   pgnCollectionRegistryValidation, REDISTRIBUTION_STATUSES, RIGHTS_CLASSIFICATIONS, validatePgnCollectionRegistry
 } from '../js/game-library/pgn-collection-registry.js';
@@ -200,19 +200,21 @@ test('CaissaPgnReader opens only reader-compatible registry entries', () => {
   const reader = createCaissaPgnReader(href => navigations.push(href));
   const returnTo = buildArchiveReturnTo({ view: 'matches', lineage: 'undisputed', champion: 'jose-raul-capablanca', reign: 'capablanca-1921', event: 'wcc-1927', scroll: 640, mural: 1200 });
   assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: null, target: 'best-available', returnTo }), true);
-  assert.equal(navigations[0], `/pgn-replayer?collection=capablanca-complete&returnTo=${encodeURIComponent(returnTo)}`);
+  assert.equal(navigations[0], `/watch/game-replayer?collection=capablanca-complete&returnTo=${encodeURIComponent(returnTo)}`);
   assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: 0, target: 'best-available', returnTo }), true);
-  assert.equal(navigations[1], `/pgn-replayer?collection=capablanca-complete&game=0&returnTo=${encodeURIComponent(returnTo)}`);
+  assert.equal(navigations[1], `/watch/game-replayer?collection=capablanca-complete&game=0&returnTo=${encodeURIComponent(returnTo)}`);
   assert.equal(reader.open({ collectionId: 'fischer-spassky-1972-complete', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: 'fischer-spassky-game-6', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: '../../secret', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: 'capablanca-complete', target: 'desktop' }), false);
-  assert.equal(reader.open({ collectionId: 'world-championship-worldchamp2024', gameId: 0, target: 'best-available', returnTo }), true);
-  assert.equal(navigations[2], `/pgn-replayer?collection=world-championship-worldchamp2024&game=0&returnTo=${encodeURIComponent(returnTo)}`);
+  assert.equal(reader.open({ collectionId: 'world-championship-worldchamp2024', gameId: 0, target: 'champions', returnTo }), true);
+  assert.equal(navigations[2], `/game-library/champions/replay?collection=world-championship-worldchamp2024&game=0&returnTo=${encodeURIComponent(returnTo)}`);
   assert.equal(reader.open({ collectionId: 'world-championship-worldchamp2024', gameId: 0, target: 'fallback', returnTo }), true);
   assert.equal(navigations[3], `/watch/game-replayer?collection=world-championship-worldchamp2024&game=0&returnTo=${encodeURIComponent(returnTo)}`);
-  assert.equal(buildPgnReaderHref('world-championship-worldchamp2024', 0, { target: 'fallback' }), '/watch/game-replayer?collection=world-championship-worldchamp2024&game=0');
-  assert.equal(buildPgnReaderHref('world-championship-worldchamp2024', 0, { target: 'arbitrary' }), null);
+  assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: 0, target: 'champions', returnTo }), false, 'player collections do not enter the match replay page');
+  assert.equal(buildPgnReaderHref('world-championship-worldchamp2024', 0), '/watch/game-replayer?collection=world-championship-worldchamp2024&game=0');
+  assert.equal(buildChampionshipReplayHref('world-championship-worldchamp2024', 0), '/game-library/champions/replay?collection=world-championship-worldchamp2024&game=0');
+  assert.equal(buildChampionshipReplayHref('capablanca-complete', 0), null);
   assert.equal(navigations.length, 4);
 });
 
@@ -255,8 +257,8 @@ test('release-candidate route has the archive hierarchy, intentional monograms, 
   assert.equal(page('img').length, 0, 'release candidate must not include portrait assets');
   assert.match(archivePage, /CAISSA archival monogram/);
   assert.match(archivePage, /version: '1\.0\.0-rc\.3'/);
-  assert.match(archivePage, /openReader\(button\.dataset\.openPgn, uiState\.event, 0\)/);
-  assert.match(archivePage, /openReader\(button\.dataset\.eventPgn, button\.dataset\.event, 0\)/);
+  assert.match(archivePage, /openReader\(button\.dataset\.openPgn, uiState\.event\)/);
+  assert.match(archivePage, /openReader\(button\.dataset\.eventPgn, button\.dataset\.event, 0, 'champions'\)/);
   assert.match(archivePage, /href="\$\{escapeHtml\(external\.url\)\}" target="_blank" rel="noopener noreferrer external"/);
   assert.doesNotMatch(archivePage, /href="\$\{escapeHtml\(runtime\.localAsset\)\}"/);
   assert.doesNotMatch(page.text(), /prototype|internal|test asset|registry mode|portrait rights pending/i);
@@ -265,20 +267,43 @@ test('release-candidate route has the archive hierarchy, intentional monograms, 
   assert.match(read('vercel.json'), /"source": "\/game-library\/champions"/);
 });
 
-test('native PGN Reader loads only registry collections and preserves the fallback route', () => {
+test('original PGN Reader is restored and isolated from Champions replay', () => {
   const page = load(read('pgn-replayer.html'));
-  const loader = read('js/pgn-replayer/pgn-replayer-page.js');
+  const runtime = read('js/pgn-replayer/pgn-replayer-page.js');
   assert.equal(page('[data-pgn-app]').length, 1);
+  assert.deepEqual(page('[data-pgn-tab]').map((_, node) => page(node).find('[data-pgn-copy]').text().trim()).get(), ['Albums', 'Games', 'Notation', 'Analysis']);
+  assert.equal(page('[data-pgn-tab="albums"]').attr('aria-selected'), 'true');
   assert.equal(page('[data-pgn-games]').length, 1);
   assert.equal(page('[data-pgn-notation]').length, 1);
-  assert.equal(page('[data-pgn-return]').length, 1);
-  assert.equal(page('script[src*="pgn-mentor-historical-library"]').length, 0, 'native handoff must not ship a second championship catalog');
-  assert.match(loader, /getPgnCollection\(collectionId\)/);
-  assert.match(loader, /allowedParams = new Set\(\['collection', 'game', 'returnTo'\]\)/);
-  assert.match(loader, /fetch\(collection\.readerAsset/);
-  assert.doesNotMatch(loader, /fetch\(params\.get|fetch\(new URLSearchParams/i);
-  assert.match(loader, /sourceSaveAllowed/);
+  assert.equal(page('[data-pgn-engine]').length, 1);
+  assert.equal(page('[data-pgn-open]').length, 1);
+  assert.equal(page('[data-pgn-language]').length, 1);
+  assert.equal(page('[data-pgn-options]').length, 1);
+  assert.equal(page('[data-pgn-return], [data-pgn-fallback]').length, 0);
+  assert.equal(page('script[src*="pgn-mentor-historical-library"]').length, 1);
+  assert.equal(page('script[src*="pgn-opening-library"]').length, 1);
+  assert.doesNotMatch(runtime, /getPgnCollection|normalizeArchiveReturnTo|loadRegisteredCollectionFromLocation|returnTo/);
   assert.match(read('server.js'), /pathname === '\/pgn-replayer'/);
   assert.match(read('vercel.json'), /"source": "\/pgn-replayer"/);
-  assert.equal(buildPgnReaderHref('fischer-spassky-game-6', 0), null);
+});
+
+test('isolated Champions replay is registry-gated, hidden from navigation, and has no download path', () => {
+  const page = load(read('championship-replay.html'));
+  const runtime = read('js/game-library/championship-replay-page.js');
+  const navigation = read('js/caissa-primary-navigation.js') + read('js/caissa-standalone-sidebar.js');
+  assert.equal(page('[data-championship-replay]').length, 1);
+  assert.equal(page('[data-replay-return]').text().replace(/\s+/g, ' ').trim(), 'Return to Champions');
+  assert.equal(page('[data-replay-games]').length, 1);
+  assert.equal(page('#championship-replay-board').length, 1);
+  assert.equal(page('[download]').length, 0);
+  assert.equal(page('[data-caissa-standalone-sidebar]').length, 0);
+  assert.doesNotMatch(navigation, /game-library\/champions\/replay/);
+  assert.match(runtime, /getPgnCollection\(collectionId\)/);
+  assert.match(runtime, /entry\.type !== 'championship-match'/);
+  assert.match(runtime, /ALLOWED_PARAMS = new Set\(\['collection', 'game', 'returnTo'\]\)/);
+  assert.match(runtime, /fetch\(entry\.readerAsset/);
+  assert.doesNotMatch(runtime, /externalDownloadUrl|downloadBlob|params\.get\(['"]url/);
+  assert.match(read('server.js'), /pathname === '\/game-library\/champions\/replay'/);
+  assert.match(read('vercel.json'), /"source": "\/game-library\/champions\/replay"/);
+  assert.equal(buildChampionshipReplayHref('fischer-spassky-game-6', 0), null);
 });

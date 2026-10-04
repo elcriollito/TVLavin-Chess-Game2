@@ -66,27 +66,15 @@ test('Capablanca champion collection opens and restores exact archive state', as
   await expect(complete.getByRole('link', { name: /external source/i })).toHaveCount(0);
   await expect(complete.locator('a[download]')).toHaveCount(0);
   await complete.getByRole('button', { name: 'Open in PGN Reader' }).click();
-  await expect(page).toHaveURL(/\/pgn-replayer\?collection=capablanca-complete&game=0&returnTo=/);
-  expect(new URL(page.url()).searchParams.get('game')).toBe('0');
+  await expect(page).toHaveURL(/\/watch\/game-replayer\?collection=capablanca-complete&returnTo=/);
+  expect(new URL(page.url()).searchParams.has('game')).toBe(false);
   const returnTo = new URL(page.url()).searchParams.get('returnTo');
   for (const part of ['view=matches', 'lineage=undisputed', 'champion=jose-raul-capablanca', 'reign=capablanca-1921', 'event=wcc-1927']) expect(returnTo).toContain(part);
   expect(returnTo).toMatch(/scroll=[1-9]\d*/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('PGN Reader');
-  await expect(page.locator('[data-pgn-games] [data-game-index]')).toHaveCount(597, { timeout: 20_000 });
-  await expect(page.locator('[data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
-  await expect(page.locator('#pgn-chessboard .caissa-board')).toBeVisible();
-  await page.locator('[data-game-index="1"]').click();
-  await expect(page.locator('[data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
-  await page.locator('[data-pgn-next-game]').click();
-  await expect(page.locator('[data-game-index="2"]')).toHaveAttribute('aria-current', 'true');
-  await page.goBack();
-  await expect(page).toHaveURL(/\/game-library\/champions\?view=matches/);
-  await expect(page.locator('[data-champion-dialog]')).toBeVisible();
-  await expect(page.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
-  await expect(page.getByRole('button', { name: 'Undisputed', exact: true })).toHaveAttribute('aria-pressed', 'true');
-
-  await page.locator('.collection-card.is-complete').getByRole('button', { name: 'Open in PGN Reader' }).click();
-  const explicitReturn = page.getByRole('link', { name: 'Return to Champions' });
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Replay and Study Chess Games');
+  await expect(page.locator('[data-game-replayer-shell]')).toHaveClass(/is-ready/, { timeout: 20_000 });
+  await expect(page.locator('iframe[data-game-replayer-frame]')).toHaveAttribute('data-collection-id', 'capablanca-complete');
+  const explicitReturn = page.getByRole('link', { name: 'Return to World Champions' });
   await expect(explicitReturn).toHaveAttribute('href', /\/game-library\/champions\?view=matches.*event=wcc-1927/);
   await explicitReturn.click();
   await expect(page).toHaveURL(/\/game-library\/champions\?view=matches/);
@@ -137,23 +125,32 @@ test('recent championship View match opens game 1 and restores the exact archive
   await expect(event).toContainText('14 games');
   await expect(event.getByRole('link', { name: /Download PGN from external source/i })).toHaveAttribute('href', 'https://www.pgnmentor.com/events/WorldChamp2024.pgn');
   await event.getByRole('button', { name: /View Ding.*Gukesh in PGN Reader/i }).click();
-  await expect(page).toHaveURL(/\/pgn-replayer\?collection=world-championship-worldchamp2024&game=0/);
+  await expect(page).toHaveURL(/\/game-library\/champions\/replay\?collection=world-championship-worldchamp2024&game=0/);
   const readerUrl = new URL(page.url());
-  expect(readerUrl.pathname).toBe('/pgn-replayer');
+  expect(readerUrl.pathname).toBe('/game-library/champions/replay');
   expect(readerUrl.searchParams.get('collection')).toBe('world-championship-worldchamp2024');
   expect(readerUrl.searchParams.get('game')).toBe('0');
   const returnTo = readerUrl.searchParams.get('returnTo');
   for (const part of ['view=champions', 'champion=gukesh-dommaraju', 'reign=gukesh-2024', 'event=wcc-2024']) expect(returnTo).toContain(part);
-  await expect(page.locator('[data-pgn-title]')).toHaveText(/Ding Liren.*Gukesh D/, { timeout: 20_000 });
-  await expect(page.locator('[data-pgn-games] [data-game-index]')).toHaveCount(2);
-  await expect(page.locator('[data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
-  await expect(page.locator('[data-pgn-game-info]')).toContainText('World Championship 2024');
-  await expect(page.locator('#pgn-chessboard .caissa-board')).toBeVisible();
-  await expect(page.locator('[data-pgn-save-source]')).toBeDisabled();
+  await expect(page.locator('[data-replay-game-title]')).toHaveText(/Ding Liren.*Gukesh D/, { timeout: 20_000 });
+  await expect(page.locator('[data-replay-games] [data-game-index]')).toHaveCount(2);
+  await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('[data-replay-metadata]')).toContainText('World Championship 2024');
+  await expect(page.locator('[data-replay-year]')).toHaveText('2024');
+  await expect(page.locator('[data-championship-replay]')).toHaveAttribute('data-collection-id', 'world-championship-worldchamp2024');
+  await expect(page.locator('#championship-replay-board .caissa-board')).toBeVisible();
+  await expect(page.locator('[download]')).toHaveCount(0);
   await page.keyboard.press('PageDown');
-  await expect(page.locator('[data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('[data-replay-games] [data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
   await page.keyboard.press('PageUp');
-  await expect(page.locator('[data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
+  await page.reload();
+  await expect(page.locator('[data-replay-game-title]')).toHaveText(/Ding Liren.*Gukesh D/, { timeout: 20_000 });
+  await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
+  for (const size of desktopSizes) {
+    await page.setViewportSize(size);
+    await expect.poll(() => page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))).toEqual({ client: size.width, scroll: size.width });
+  }
   await page.getByRole('link', { name: 'Return to Champions' }).click();
   await expect(page).toHaveURL(/champion=gukesh-dommaraju/);
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
@@ -182,13 +179,21 @@ for (const sample of [
     const url = new URL(page.url());
     expect(url.searchParams.get('collection')).toBe(sample.collection);
     expect(url.searchParams.get('game')).toBe('0');
-    await expect(page.locator('[data-pgn-title]')).toContainText(sample.white, { timeout: 20_000 });
-    await expect(page.locator('[data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
+    expect(url.pathname).toBe('/game-library/champions/replay');
+    await expect(page.locator('[data-replay-game-title]')).toContainText(sample.white, { timeout: 20_000 });
+    await expect(page.locator('[data-replay-year]')).toHaveText(sample.date.slice(0, 4));
+    await expect(page.locator('[data-replay-metadata]')).toContainText(sample.black);
+    await expect(page.locator('[data-championship-replay]')).toHaveAttribute('data-collection-id', sample.collection);
+    await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
     await page.keyboard.press('PageDown');
-    await expect(page.locator('[data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('[data-replay-games] [data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
     await page.keyboard.press('PageUp');
-    await expect(page.locator('[data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
     expect(new URL(requestedUrl).searchParams.get('file')).toBe(sample.file);
+    if (sample.event === 'wcc-2018') await page.evaluate(() => history.back());
+    else await page.getByRole('link', { name: 'Return to Champions' }).click();
+    await expect(page.locator('[data-champion-dialog]')).toBeVisible();
+    await expect(page.locator(`[data-event-id="${sample.event}"]`)).toHaveClass(/is-selected/);
   });
 }
 
@@ -246,28 +251,26 @@ test('direct Capablanca reader URL defaults to the archive return route', async 
   await expect(page.locator('iframe[data-game-replayer-frame]')).toHaveAttribute('data-collection-id', 'capablanca-complete');
 });
 
-test('native Reader rejects arbitrary URLs, unapproved collections, and invalid game indexes before fetch', async ({ page }) => {
+test('isolated Champions replay rejects arbitrary URLs, unapproved collections, and invalid game indexes before fetch', async ({ page }) => {
   let collectionRequests = 0;
   page.on('request', request => {
     if (request.url().includes('/api/pgn/pgnmentor') || request.url().includes('/data/pgn/')) collectionRequests += 1;
   });
-  await page.goto('/pgn-replayer?collection=world-championship-worldchamp2024&game=0&url=https://evil.example/file.pgn');
-  await expect(page.locator('[data-pgn-message]')).toContainText('unsupported parameters');
+  await page.goto('/game-library/champions/replay?collection=world-championship-worldchamp2024&game=0&url=https://evil.example/file.pgn');
+  await expect(page.locator('[data-replay-status]')).toContainText('unsupported parameters');
   expect(collectionRequests).toBe(0);
 
-  await page.goto('/pgn-replayer?collection=fischer-spassky-game-6&game=0');
-  await expect(page.locator('[data-pgn-message]')).toContainText('not approved');
+  await page.goto('/game-library/champions/replay?collection=fischer-spassky-game-6&game=0');
+  await expect(page.locator('[data-replay-status]')).toContainText('not approved');
   expect(collectionRequests).toBe(0);
 
-  await page.goto('/pgn-replayer?collection=world-championship-worldchamp2024&game=9999');
-  await expect(page.locator('[data-pgn-message]')).toContainText('requested game is not available');
+  await page.goto('/game-library/champions/replay?collection=world-championship-worldchamp2024&game=9999');
+  await expect(page.locator('[data-replay-status]')).toContainText('requested game is not available');
   expect(collectionRequests).toBe(0);
 
-  await page.route('**/api/pgn/pgnmentor?kind=event&file=WorldChamp2024.pgn', route => route.fulfill({ status: 503, body: 'Unavailable' }));
-  await page.goto('/pgn-replayer?collection=world-championship-worldchamp2024&game=0');
-  await expect(page.locator('[data-pgn-message]')).toContainText('fallback reader is available');
-  await expect(page.locator('[data-pgn-fallback]')).toHaveAttribute('href', '/watch/game-replayer?collection=world-championship-worldchamp2024&game=0');
-  expect(collectionRequests).toBe(1);
+  await page.goto('/game-library/champions/replay?collection=capablanca-complete&game=0');
+  await expect(page.locator('[data-replay-status]')).toContainText('not approved');
+  expect(collectionRequests).toBe(0);
 });
 
 test('existing Game Library route and IndexedDB records remain isolated', async ({ page }) => {
@@ -289,7 +292,7 @@ test('existing Game Library route and IndexedDB records remain isolated', async 
   await page.locator('[data-open-champion="jose-raul-capablanca"]').click();
   await page.locator('.collection-card.is-complete').getByRole('button', { name: 'Open in PGN Reader' }).click();
   await expect(page).toHaveURL(/collection=capablanca-complete/);
-  const archiveReturn = page.getByRole('link', { name: 'Return to Champions' });
+  const archiveReturn = page.getByRole('link', { name: 'Return to World Champions' });
   await expect(archiveReturn).toHaveAttribute('href', /\/game-library\/champions\?view=champions.*champion=jose-raul-capablanca/);
   await archiveReturn.click();
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
