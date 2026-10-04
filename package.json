@@ -68,6 +68,8 @@
     "test:tablebase:browser": "playwright test --project=chromium tests/browser/endgame-tablebase.spec.js",
     "lint:tablebase": "node --check api/tablebase/standard.js && node --check api/tablebase/shared-limiter.js && node --check js/tablebase/model.js && node --check js/tablebase/page.js && node --check tests/tablebase.test.js && node --check tests/tablebase-live.test.js && node --check tests/browser/endgame-tablebase.spec.js",
     "test:navigation": "node --test tests/navigation-integrity.test.js",
+    "test:championship-archive": "node --test tests/game-library-champions.test.js && playwright test tests/browser/game-library-champions.spec.js --project=chromium",
+    "lint:championship-archive": "node --check js/game-library/championship-archive-data.js && node --check js/game-library/championship-archive-page.js && node --check tests/game-library-champions.test.js",
     "lint:navigation": "node --check js/caissa-primary-navigation.js && node --check js/caissa-standalone-sidebar.js && node --check js/caissa-navigation.js && node --check tests/navigation-integrity.test.js",
     "test:i18n": "node --test tests/i18n-foundation.test.js",
     "test:i18n:browser": "playwright test tests/browser/i18n-navigation.spec.js --project=chromium",
