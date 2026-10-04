@@ -615,6 +615,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/support' || pathname === '/support/') {
     filePath = './support.html';
   }
+  if (pathname === '/pgn-replayer' || pathname === '/pgn-replayer/') {
+    filePath = './pgn-replayer.html';
+  }
   if (pathname === '/game-library/champions' || pathname === '/game-library/champions/') {
     filePath = './game-library-champions.html';
   }

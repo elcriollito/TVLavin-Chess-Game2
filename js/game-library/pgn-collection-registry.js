@@ -219,9 +219,10 @@ export function validatePgnCollectionRegistry(entries = pgnCollections) {
 
 export const pgnCollectionRegistryValidation = validatePgnCollectionRegistry();
 
-export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = null } = {}) {
+export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = null, target = 'native' } = {}) {
   const entry = getPgnCollection(collectionId);
   if (!entry?.readerCompatible) return null;
+  if (!['native', 'fallback'].includes(target)) return null;
   const params = new URLSearchParams({ collection: entry.id });
   if (gameId !== null) {
     const normalizedGameId = String(gameId);
@@ -233,5 +234,6 @@ export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = nul
     if (!safeReturnTo) return null;
     params.set('returnTo', safeReturnTo);
   }
-  return `/watch/game-replayer?${params.toString()}`;
+  const pathname = target === 'fallback' ? '/watch/game-replayer' : '/pgn-replayer';
+  return `${pathname}?${params.toString()}`;
 }

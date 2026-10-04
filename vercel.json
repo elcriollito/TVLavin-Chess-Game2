@@ -92,6 +92,7 @@
     { "source": "/pgn-replayer", "destination": "/pgn-replayer.html" },
     { "source": "/watch/lichess-broadcasts", "destination": "/lichess-broadcasts.html" },
     { "source": "/watch/game-replayer", "destination": "/game-replayer.html" },
+    { "source": "/pgn-replayer", "destination": "/pgn-replayer.html" },
     { "source": "/game-library/champions", "destination": "/game-library-champions.html" },
     { "source": "/game-library/champions/", "destination": "/game-library-champions.html" },
     { "source": "/learn/interactive-diagrams", "destination": "/interactive-diagrams.html" },

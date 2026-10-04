@@ -165,7 +165,7 @@ function collectionMarkup(collectionId) {
 }
 
 function openReader(collectionId, eventId = null, gameId = null) {
-  const opened = CaissaPgnReader.open({ collectionId, gameId, target: 'best-available', returnTo: currentReturnTo({ event: eventId || uiState.event }) });
+  const opened = CaissaPgnReader.open({ collectionId, gameId, target: 'native', returnTo: currentReturnTo({ event: eventId || uiState.event }) });
   if (!opened) document.querySelector('[data-reader-notice]')?.removeAttribute('hidden');
 }
 
@@ -210,7 +210,7 @@ function openChampionDetail(championId, options = {}) {
       <section class="detail-section champion-collection"><div class="detail-section__heading"><h3>Champion collection</h3><span>Games by this player</span></div><p class="collection-policy">Explore approved player collections in the CAISSA reader. External downloads appear only when an approved source is registered.</p><p data-reader-notice hidden class="reader-notice">This collection is not available for public access.</p><div class="collection-list">${availableChampionCollectionIds.length ? availableChampionCollectionIds.map(collectionMarkup).join('') : championCollectionEmptyState}</div></section></aside></div>`;
   target.querySelectorAll('[data-dialog-champion]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); openChampionDetail(link.dataset.dialogChampion); }));
   target.querySelectorAll('[data-detail-reign]').forEach(button => button.addEventListener('click', () => openChampionDetail(champion.id, { reignId: button.dataset.detailReign })));
-  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => openReader(button.dataset.openPgn, uiState.event)));
+  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => openReader(button.dataset.openPgn, uiState.event, 0)));
   target.querySelectorAll('[data-event-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.eventPgn, button.dataset.event, 0); }));
   const anchor = uiState.view === 'matches' && requestedEvent
     ? document.querySelector(`[data-match-event="${requestedEvent.id}"]`)
