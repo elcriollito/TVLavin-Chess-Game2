@@ -147,8 +147,12 @@ test('prototype route has the archive hierarchy, desktop shell and no portrait d
   assert.equal(page('dialog').length, 0);
   assert.equal(page('[data-archive-mode]').length, 2);
   assert.equal(page('[data-match-filter]').length, 5);
+  assert.equal(page('[data-filter-count]').length, 5);
+  assert.match(page('.prototype-badge').text(), /Photo-free edition/);
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);
   assert.equal(page('img').length, 0, 'prototype must keep unlicensed portraits as generated placeholders');
+  assert.match(read('js/game-library/championship-archive-page.js'), /Archival monogram · no portrait/);
+  assert.match(read('js/game-library/championship-archive-page.js'), /version: '0\.4\.0'/);
   assert.match(read('server.js'), /\/game-library\/champions/);
   assert.match(read('vercel.json'), /"source": "\/game-library\/champions"/);
 });

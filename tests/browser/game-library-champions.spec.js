@@ -6,7 +6,13 @@ test('championship archive renders its chronological mural at required desktop s
   await page.goto('/game-library/champions');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('World Chess');
   await expect(page.locator('.champion-card')).toHaveCount(18);
+  await expect(page.locator('.champion-card__portrait')).toHaveCount(18);
+  await expect(page.locator('.champion-card__portrait-status')).toHaveText(Array(18).fill('Archival monogram · no portrait'));
+  await expect(page.locator('img')).toHaveCount(0);
   await expect(page.locator('.champion-card').first()).toContainText('Wilhelm Steinitz');
+  await expect(page.locator('.champion-card').first()).toContainText('No. 01');
+  await expect(page.locator('.champion-card').first()).toContainText('World champion');
+  await expect(page.locator('.champion-card').first()).toContainText('1886–1894');
   await expect(page.locator('.champion-card').last()).toContainText('Gukesh Dommaraju');
   await expect(page.locator('[data-split-diagram]')).toContainText('Classical lineage');
   await expect(page.locator('[data-split-diagram]')).toContainText('FIDE lineage');
@@ -60,8 +66,28 @@ test('Karpov detail distinguishes history from rights-pending PGN data', async (
   await expect(dialog).toContainText('aborted');
   await expect(dialog).toContainText('48 games');
   await expect(dialog).toContainText('PGN pending review');
+  await expect(dialog).toContainText('Rights review required · Public actions disabled');
+  await expect(dialog.getByRole('heading', { name: 'Reigns' })).toBeVisible();
+  await expect(dialog.getByRole('heading', { name: 'Historical context' })).toBeVisible();
+  const closeBox = await dialog.getByRole('button', { name: 'Close champion detail' }).boundingBox();
+  const navigationBox = await page.locator('.era-navigation').boundingBox();
+  expect(closeBox.y).toBeGreaterThanOrEqual(navigationBox.y + navigationBox.height);
   await expect(dialog.getByRole('link', { name: 'Download PGN' })).toHaveCount(0);
-  await expect(dialog.getByRole('button', { name: 'Reader unavailable' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Not available publicly' })).toBeDisabled();
+});
+
+test('multiple reigns are explicit and the selected reign survives reload', async ({ page }) => {
+  await page.goto('/game-library/champions');
+  await page.locator('[data-open-champion="mikhail-botvinnik"]').click();
+  const dialog = page.locator('[data-champion-dialog]');
+  await expect(dialog.locator('[data-detail-reign]')).toHaveCount(3);
+  await dialog.locator('[data-detail-reign="botvinnik-1961"]').click();
+  await expect(page).toHaveURL(/champion=mikhail-botvinnik/);
+  await expect(page).toHaveURL(/reign=botvinnik-1961/);
+  await page.reload();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('[data-detail-reign="botvinnik-1961"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-open-champion="mikhail-botvinnik"]')).toHaveAttribute('aria-expanded', 'true');
 });
 
 test('match filters remain chronological and reflected in the URL', async ({ page }) => {
@@ -73,6 +99,7 @@ test('match filters remain chronological and reflected in the URL', async ({ pag
   expect(years).toEqual([...years].sort((a, b) => a - b));
   await page.getByRole('button', { name: 'Special transitions' }).click();
   await expect(page).toHaveURL(/lineage=special/);
+  await expect(page.locator('[data-match-results]')).toContainText('Exceptional transitions');
   await expect(page.locator('[data-match-event="wcc-1984"]')).toContainText('aborted');
 });
 
