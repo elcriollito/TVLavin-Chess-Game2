@@ -72,7 +72,7 @@ function availabilityCopy(collectionId) {
     available: collection?.rightsClassification === 'REMOTE_VIEW_ONLY'
       ? 'Remote view only · Reader available · External source registered'
       : 'Rights-cleared local collection · Reader available',
-    'external-only': 'Approved source · External download available',
+    'external-only': 'Player collection available from an external source.',
     'pending-review': 'Collection pending review · Public actions unavailable',
     'historical-only': 'Historical record · No PGN collection attached'
   };
@@ -106,14 +106,14 @@ function renderChampionCards() {
   const track = document.querySelector('[data-champion-track]');
   track.innerHTML = primaryChampions.map(champion => {
     const collections = (champion.collectionIds || []).map(getKnownPgnCollection).filter(Boolean);
-    const available = collections.filter(entry => collectionForRuntime(entry.id)?.readerCompatible).length;
+    const available = collections.filter(entry => collectionForRuntime(entry.id)?.readerCompatible || getApprovedExternalPgnDownload(entry.id)).length;
     return `<article class="champion-card${champion.id === archiveMeta.currentChampionId ? ' is-current' : ''}" id="${escapeHtml(champion.id)}" data-era="${escapeHtml(championEra(champion))}" role="listitem">
       <div class="champion-card__index"><span>No. ${String(champion.order).padStart(2, '0')}</span><span>${champion.id === archiveMeta.currentChampionId ? 'Current' : 'World champion'}</span></div>
       <div class="champion-card__portrait" role="img" aria-label="CAISSA archival monogram for ${escapeHtml(champion.displayName)}"><span class="champion-card__number" aria-hidden="true">${String(champion.order).padStart(2, '0')}</span><span class="champion-card__medallion" aria-hidden="true"></span><span class="champion-card__initials">${escapeHtml(champion.initials)}</span><span class="champion-card__portrait-status">CAISSA archival monogram</span></div>
       <div class="champion-card__body"><p class="champion-card__era">${escapeHtml(championEra(champion))}</p><div class="champion-card__reign">${escapeHtml(reignLabel(champion))}</div><h3>${escapeHtml(champion.displayName)}</h3>
         ${champion.nationalIdentityVerified ? `<div class="champion-card__country">${escapeHtml(champion.country)}</div>` : ''}
         <p class="champion-card__summary">${escapeHtml(champion.summary)}</p>
-        <div class="champion-card__footer"><span>${available ? `${available} playable PGN ${available === 1 ? 'collection' : 'collections'}` : collections.length ? 'Collection pending review' : 'Historical record'}</span><button type="button" data-open-champion="${escapeHtml(champion.id)}" aria-expanded="false" aria-controls="champion-detail">Explore champion</button></div>
+        <div class="champion-card__footer"><span>${available ? `${available} PGN ${available === 1 ? 'collection' : 'collections'} available` : collections.length ? 'Collection pending review' : 'Historical record'}</span><button type="button" data-open-champion="${escapeHtml(champion.id)}" aria-expanded="false" aria-controls="champion-detail">Explore champion</button></div>
       </div></article>`;
   }).join('');
 }
@@ -139,7 +139,16 @@ function availabilityBadge(collectionId) {
 function externalDownloadAction(collectionId) {
   const external = getApprovedExternalPgnDownload(collectionId);
   if (!external) return '';
-  return `<a class="external-pgn-link" href="${escapeHtml(external.url)}" target="_blank" rel="noopener noreferrer external" aria-label="Download PGN from external source (opens in a new tab)"><i class="fas fa-external-link-alt" aria-hidden="true"></i>Download PGN — External ↗</a>`;
+  const collection = getKnownPgnCollection(collectionId);
+  const playerCollection = collection?.type === 'player-collection';
+  const label = playerCollection
+    ? external.linkKind === 'direct-pgn' ? 'Download Player PGN — External ↗' : 'Open External Player Collection ↗'
+    : 'Download PGN — External ↗';
+  const ariaLabel = playerCollection
+    ? external.linkKind === 'direct-pgn' ? 'Download player PGN from external source (opens in a new tab)' : 'Open external player collection (opens in a new tab)'
+    : 'Download PGN from external source (opens in a new tab)';
+  const playerAttribute = playerCollection ? ' data-external-player-collection' : '';
+  return `<a class="external-pgn-link"${playerAttribute} href="${escapeHtml(external.url)}" target="_blank" rel="noopener noreferrer external" aria-label="${ariaLabel}"><i class="fas fa-external-link-alt" aria-hidden="true"></i>${label}</a>`;
 }
 
 function knownCollectionForEvent(event) {
@@ -161,7 +170,8 @@ function collectionMarkup(collectionId) {
   const readerAction = runtime?.readerCompatible
     ? `<button type="button" data-open-pgn="${escapeHtml(known.id)}"><i class="fas fa-book-open" aria-hidden="true"></i>Open in PGN Reader</button>`
     : '';
-  return `<article class="collection-card${known.gamesCount > 1 ? ' is-complete' : ''} collection-card--${availability.code}"><div class="collection-card__type"><span>Player collection</span>${availabilityBadge(known.id)}</div><h4>${escapeHtml(known.title)}</h4><p><strong>${known.gamesCount} ${known.gamesCount === 1 ? 'game' : 'games'}</strong> · ${escapeHtml(known.attribution)}</p><p class="collection-card__availability">${escapeHtml(availabilityCopy(known.id))}</p><div class="collection-actions">${readerAction}${externalDownloadAction(known.id)}</div></article>`;
+  const provider = external ? `<small class="collection-card__source">External source: ${escapeHtml(external.sourceName)}</small>` : '';
+  return `<article class="collection-card${known.gamesCount > 1 ? ' is-complete' : ''} collection-card--${availability.code}" data-player-collection="${escapeHtml(known.id)}"><div class="collection-card__type"><span>Player collection</span>${availabilityBadge(known.id)}</div><h4>${escapeHtml(known.title)}</h4><p><strong>${known.gamesCount} ${known.gamesCount === 1 ? 'game' : 'games'}</strong> · ${escapeHtml(known.attribution)}</p><p class="collection-card__availability">${escapeHtml(availabilityCopy(known.id))}</p>${provider}<div class="collection-actions">${readerAction}${externalDownloadAction(known.id)}</div></article>`;
 }
 
 function openReader(collectionId, eventId = null, gameId = null, target = 'best-available') {

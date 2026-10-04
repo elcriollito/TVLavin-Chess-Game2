@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { load } from 'cheerio';
 import {
-  archiveMeta, champions, championshipEvents, pgnCollections, reigns,
+  archiveMeta, champions, championshipEvents, getChampion, pgnCollections, reigns,
   validateChampionshipArchive
 } from '../js/game-library/championship-archive-data.js';
 import {
   buildChampionshipReplayHref, buildPgnReaderHref, getApprovedExternalPgnDownload, getKnownPgnCollection, getPgnCollection,
   getPgnCollectionForEvent, listPublishablePgnCollections, listReaderPgnCollections,
-  pgnCollectionRegistryValidation, REDISTRIBUTION_STATUSES, RIGHTS_CLASSIFICATIONS, validatePgnCollectionRegistry
+  EXTERNAL_LINK_KINDS, pgnCollectionRegistryValidation, REDISTRIBUTION_STATUSES, RIGHTS_CLASSIFICATIONS, validatePgnCollectionRegistry
 } from '../js/game-library/pgn-collection-registry.js';
 import { worldChampionshipPgnCatalog, worldChampionshipPgnCatalogValidation } from '../js/game-library/world-championship-pgn-catalog.js';
 import { createCaissaPgnReader } from '../js/game-library/caissa-pgn-reader.js';
@@ -116,25 +116,73 @@ test('event reader and external download capabilities require explicit registry 
   assert.equal(getPgnCollectionForEvent('wcc-1927')?.id, 'world-championship-worldchamp1927');
   assert.ok(validatePgnCollectionRegistry([approvedMatch, { ...approvedMatch, id: 'second-approved-1927-match' }]).errors.includes('second-approved-1927-match duplicates public event association wcc-1927'));
 
-  const approvedExternal = {
-    ...pgnCollections[1],
-    id: 'approved-external-match',
-    redistributionStatus: REDISTRIBUTION_STATUSES.LINK_ONLY,
-    externalDownloadUrl: 'https://archive.example/chess/approved-match.pgn',
-    externalDownloadApproved: true
-  };
+  const approvedExternal = getKnownPgnCollection('smallchess-wilhelm-steinitz');
   assert.equal(validatePgnCollectionRegistry([approvedExternal]).valid, true);
   assert.deepEqual(getApprovedExternalPgnDownload(approvedExternal.id, [approvedExternal]), {
     collectionId: approvedExternal.id,
     url: approvedExternal.externalDownloadUrl,
-    sourceName: approvedExternal.sourceName
+    sourceName: approvedExternal.sourceName,
+    linkKind: EXTERNAL_LINK_KINDS.DIRECT_PGN
   });
-  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'http://archive.example/match.pgn' }]).errors.includes(`${approvedExternal.id} has invalid externalDownloadUrl`));
-  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'https://user:pass@archive.example/match.pgn' }]).errors.includes(`${approvedExternal.id} has invalid externalDownloadUrl`));
+  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'http://www.smallchess.com/Games/Wilhelm%20Steinitz.pgn' }]).errors.includes(`${approvedExternal.id} has invalid externalDownloadUrl`));
+  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'https://user:pass@www.smallchess.com/Games/Wilhelm%20Steinitz.pgn' }]).errors.includes(`${approvedExternal.id} has invalid externalDownloadUrl`));
+  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'https://evil.example/Wilhelm%20Steinitz.pgn' }]).errors.includes(`${approvedExternal.id} does not match the canonical external allowlist`));
   assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadApproved: false }]).errors.includes(`${approvedExternal.id} exposes an unapproved externalDownloadUrl`));
+  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, id: 'unregistered-player-collection' }]).errors.includes('unregistered-player-collection does not match the canonical external allowlist'));
+  assert.equal(getApprovedExternalPgnDownload('../../secret'), null);
+  assert.equal(getApprovedExternalPgnDownload('INTERNAL_TEST_ONLY'), null);
+  assert.equal(getApprovedExternalPgnDownload('fischer-byrne-1963'), null, 'NEEDS_REVIEW remains closed unless an external link is explicitly allowlisted');
   assert.equal(getApprovedExternalPgnDownload('capablanca-complete'), null, 'no external source is registered for Capablanca');
   const remote = getPgnCollection('world-championship-worldchamp2024');
   assert.ok(validatePgnCollectionRegistry([{ ...remote, externalDownloadUrl: 'https://www.pgnmentor.com/events/WorldChamp2023.pgn' }]).errors.includes(`${remote.id} does not match the canonical remote allowlist`));
+});
+
+test('all 18 primary champions resolve to the reviewed canonical Player catalog audit', () => {
+  const expected = new Map([
+    ['wilhelm-steinitz', ['Wilhelm Steinitz', 'smallchess-wilhelm-steinitz', 1089, 'Wilhelm Steinitz.pgn']],
+    ['emanuel-lasker', ['Emanuel Lasker', 'smallchess-emanuel-lasker', 378, 'Emanuel Lasker.pgn']],
+    ['jose-raul-capablanca', ['José Raúl Capablanca', 'capablanca-complete', 597, null]],
+    ['alexander-alekhine', ['Alexander Alekhine', 'smallchess-alexander-alekhine', 785, 'Alexander Alekhine.pgn']],
+    ['max-euwe', ['Max Euwe', 'smallchess-max-euwe', 1759, 'Max Euwe.pgn']],
+    ['mikhail-botvinnik', ['Mikhail Botvinnik', 'smallchess-mikhail-botvinnik', 1201, 'Mikhail Botvinnik.pgn']],
+    ['vasily-smyslov', ['Vasily Smyslov', 'smallchess-vasily-smyslov', 1478, 'Vasily Smyslov.pgn']],
+    ['mikhail-tal', ['Mikhail Tal', 'smallchess-mikhail-tal', 2960, 'Mikhail Tal.pgn']],
+    ['tigran-petrosian', ['Tigran Petrosian', 'smallchess-tigran-petrosian', 2159, 'Tigran Petrosian.pgn']],
+    ['boris-spassky', ['Boris Spassky', 'smallchess-boris-spassky', 2499, 'Boris Spassky.pgn']],
+    ['bobby-fischer', ['Bobby Fischer', 'smallchess-bobby-fischer', 1101, 'Bobby Fischer.pgn']],
+    ['anatoly-karpov', ['Anatoly Karpov', 'smallchess-anatoly-karpov', 1105, 'Anatoly Karpov.pgn']],
+    ['garry-kasparov', ['Garry Kasparov', 'smallchess-garry-kasparov', 1669, 'Garry Kasparov.pgn']],
+    ['vladimir-kramnik', ['Vladimir Kramnik', 'smallchess-vladimir-kramnik', 2763, 'Vladimir Kramnik.pgn']],
+    ['viswanathan-anand', ['Viswanathan Anand', 'smallchess-viswanathan-anand', 4079, 'Viswanathan Anand.pgn']],
+    ['magnus-carlsen', ['Magnus Carlsen', 'smallchess-magnus-carlsen', 5097, 'Magnus Carlsen.pgn']],
+    ['ding-liren', ['Ding Liren', 'smallchess-ding-liren', 635, 'Ding Liren.pgn']],
+    ['gukesh-dommaraju', ['Gukesh Dommaraju', 'smallchess-dommaraju-gukesh', 1514, 'Dommaraju Gukesh.pgn']]
+  ]);
+  const readerCatalog = read('js/pgn-replayer/pgn-album-catalog.js');
+  assert.equal(expected.size, 18);
+  for (const championId of archiveMeta.primaryChampionIds) {
+    const champion = getChampion(championId);
+    const [name, collectionId, gamesCount, file] = expected.get(championId);
+    const collection = getKnownPgnCollection(collectionId);
+    assert.equal(champion.displayName, name, championId);
+    assert.equal(collection.type, 'player-collection', championId);
+    assert.equal(collection.championId, championId, championId);
+    assert.equal(collection.gamesCount, gamesCount, championId);
+    assert.ok(champion.collectionIds.includes(collectionId), championId);
+    if (!file) {
+      assert.equal(collection.readerCompatible, true, championId);
+      assert.equal(getApprovedExternalPgnDownload(collectionId), null, championId);
+      continue;
+    }
+    const external = getApprovedExternalPgnDownload(collectionId);
+    assert.equal(collection.readerCompatible, false, championId);
+    assert.equal(collection.redistributionStatus, REDISTRIBUTION_STATUSES.LINK_ONLY, championId);
+    assert.equal(collection.rightsClassification, RIGHTS_CLASSIFICATIONS.NEEDS_REVIEW, championId);
+    assert.equal(external.sourceName, 'SmallChess', championId);
+    assert.equal(external.linkKind, EXTERNAL_LINK_KINDS.DIRECT_PGN, championId);
+    assert.equal(external.url, `https://www.smallchess.com/Games/${encodeURIComponent(file)}`, championId);
+    assert.match(readerCatalog, new RegExp(`"id":"${collectionId}"[^\\n]+"file":"${file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), championId);
+  }
 });
 
 test('Capablanca public collection has exact release metadata and is honestly classified', () => {

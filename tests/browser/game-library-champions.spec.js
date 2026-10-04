@@ -83,7 +83,7 @@ test('Capablanca champion collection opens and restores exact archive state', as
 
 });
 
-test('championship albums stay separate from rights-pending player collections', async ({ page }) => {
+test('championship albums stay separate from external-only player collections', async ({ page }) => {
   await page.goto('/game-library/champions');
   await page.locator('[data-open-champion="anatoly-karpov"]').click();
   const dialog = page.locator('[data-champion-dialog]');
@@ -91,8 +91,10 @@ test('championship albums stay separate from rights-pending player collections',
   await expect(dialog).toContainText('aborted');
   await expect(dialog).toContainText('48 games');
   await expect(dialog).toContainText('Reader available');
-  await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('Historical data only');
-  await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('No approved player collection');
+  const karpovCollection = dialog.locator('[data-player-collection="smallchess-anatoly-karpov"]');
+  await expect(karpovCollection).toContainText('Player collection available from an external source.');
+  await expect(karpovCollection.getByRole('link', { name: /Download player PGN from external source/i })).toHaveAttribute('href', 'https://www.smallchess.com/Games/Anatoly%20Karpov.pgn');
+  await expect(karpovCollection.locator('[data-open-pgn]')).toHaveCount(0);
   await expect(dialog.getByRole('heading', { name: 'Reigns' })).toBeVisible();
   await expect(dialog.getByRole('heading', { name: 'Historical context' })).toBeVisible();
   const closeBox = await dialog.getByRole('button', { name: 'Close champion detail' }).boundingBox();
@@ -100,15 +102,62 @@ test('championship albums stay separate from rights-pending player collections',
   expect(closeBox.y).toBeGreaterThanOrEqual(navigationBox.y + navigationBox.height);
   await expect(dialog.locator('[data-event-id="wcc-1984"] [data-event-pgn]')).toHaveCount(1);
   await expect(dialog.locator('[data-event-id="wcc-1984"] .external-pgn-link')).toHaveAttribute('href', 'https://www.pgnmentor.com/events/WorldChamp1984.pgn');
-  await expect(dialog.locator('.champion-collection [data-open-pgn], .champion-collection .external-pgn-link')).toHaveCount(0);
+  await expect(dialog.locator('.champion-collection [data-open-pgn]')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(page.locator('[data-open-champion="anatoly-karpov"]')).toBeFocused();
   await page.locator('[data-open-champion="bobby-fischer"]').click();
-  await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('Collection not publicly available');
+  const fischerCollection = dialog.locator('[data-player-collection="smallchess-bobby-fischer"]');
+  await expect(fischerCollection).toContainText('Player collection available from an external source.');
+  await expect(fischerCollection.getByRole('link', { name: /Download player PGN from external source/i })).toHaveAttribute('href', 'https://www.smallchess.com/Games/Bobby%20Fischer.pgn');
   await expect(dialog.locator('[data-event-id="wcc-1972"] [data-event-pgn]')).toHaveCount(1);
   await expect(dialog.locator('[data-event-id="wcc-1972"] .external-pgn-link')).toHaveAttribute('href', 'https://www.pgnmentor.com/events/WorldChamp1972.pgn');
-  await expect(dialog.locator('.champion-collection [data-open-pgn], .champion-collection .external-pgn-link')).toHaveCount(0);
+  await expect(dialog.locator('.champion-collection [data-open-pgn]')).toHaveCount(0);
+});
+
+test('reviewed champion Player links expose only canonical external PGN actions', async ({ page }) => {
+  const samples = [
+    ['wilhelm-steinitz', 'smallchess-wilhelm-steinitz', 'Wilhelm Steinitz.pgn'],
+    ['mikhail-tal', 'smallchess-mikhail-tal', 'Mikhail Tal.pgn'],
+    ['bobby-fischer', 'smallchess-bobby-fischer', 'Bobby Fischer.pgn'],
+    ['anatoly-karpov', 'smallchess-anatoly-karpov', 'Anatoly Karpov.pgn'],
+    ['garry-kasparov', 'smallchess-garry-kasparov', 'Garry Kasparov.pgn'],
+    ['viswanathan-anand', 'smallchess-viswanathan-anand', 'Viswanathan Anand.pgn'],
+    ['magnus-carlsen', 'smallchess-magnus-carlsen', 'Magnus Carlsen.pgn'],
+    ['ding-liren', 'smallchess-ding-liren', 'Ding Liren.pgn'],
+    ['gukesh-dommaraju', 'smallchess-dommaraju-gukesh', 'Dommaraju Gukesh.pgn']
+  ];
+  await page.goto('/game-library/champions');
+  const dialog = page.locator('[data-champion-dialog]');
+  for (const [championId, collectionId, file] of samples) {
+    await page.locator(`[data-open-champion="${championId}"]`).click();
+    const collection = dialog.locator(`[data-player-collection="${collectionId}"]`);
+    const external = collection.locator('[data-external-player-collection]');
+    await expect(collection).toContainText('External source: SmallChess');
+    await expect(collection).toContainText('Player collection available from an external source.');
+    await expect(external).toHaveText(/Download Player PGN — External/);
+    await expect(external).toHaveAttribute('href', `https://www.smallchess.com/Games/${encodeURIComponent(file)}`);
+    await expect(external).toHaveAttribute('target', '_blank');
+    await expect(external).toHaveAttribute('rel', 'noopener noreferrer external');
+    await expect(external).not.toHaveAttribute('download', /.*/);
+    await expect(collection.locator('[data-open-pgn]')).toHaveCount(0);
+    await expect(dialog.locator('.champion-collection [data-event-pgn]')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+  }
+
+  await page.locator('[data-open-champion="jose-raul-capablanca"]').click();
+  const capablanca = dialog.locator('[data-player-collection="capablanca-complete"]');
+  await expect(capablanca.getByRole('button', { name: 'Open in PGN Reader' })).toBeVisible();
+  await expect(capablanca.locator('[data-external-player-collection]')).toHaveCount(0);
+  await expect(capablanca).not.toContainText('External source:');
+
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Championship Matches' }).click();
+  await page.locator('[data-match-event="wcc-fide-1999"] [data-match-champion]').click();
+  await expect(dialog.getByRole('heading', { name: 'Alexander Khalifman' })).toBeVisible();
+  await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('Historical data only');
+  await expect(dialog.locator('.champion-collection [data-open-pgn], .champion-collection [data-external-player-collection]')).toHaveCount(0);
 });
 
 test('recent championship View match opens game 1 and restores the exact archive state', async ({ page }) => {

@@ -152,6 +152,7 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .collection-card h4 { margin: 0; font: 16px Georgia, serif; }
 .collection-card p { margin: 7px 0 12px; color: #77746d; font-size: 10px; line-height: 1.5; }
 .collection-card p.collection-card__availability { margin: 0 0 13px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.06); color: #9f9a90; font-size: 9px; font-weight: 700; letter-spacing: .035em; }
+.collection-card__source { display: block; margin: -3px 0 12px; color: #6f6c66; font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .collection-policy { margin: -5px 0 14px; color: #7f7c75; font-size: 11px; line-height: 1.55; }
 .collection-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .collection-actions a, .collection-actions button { min-height: 34px; padding: 9px 11px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(215,164,83,.26); background: rgba(215,164,83,.07); color: var(--archive-gold-bright); text-decoration: none; font: 800 9px/1 Inter, sans-serif; letter-spacing: .07em; text-transform: uppercase; }
