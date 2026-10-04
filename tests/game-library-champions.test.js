@@ -294,12 +294,18 @@ test('isolated Champions replay is registry-gated, hidden from navigation, and h
   assert.equal(page('[data-championship-replay]').length, 1);
   assert.equal(page('[data-replay-return]').text().replace(/\s+/g, ' ').trim(), 'Return to Champions');
   assert.equal(page('[data-replay-games]').length, 1);
+  assert.deepEqual(page('[data-replay-tab]').map((_, node) => page(node).find('span').text().trim()).get(), ['Games', 'Notation']);
+  assert.equal(page('[data-replay-tab="games"]').attr('aria-selected'), 'true');
+  assert.equal(page('[data-replay-tabpanel="games"]').attr('hidden'), undefined);
+  assert.equal(page('[data-replay-tabpanel="notation"]').attr('hidden'), 'hidden');
   assert.equal(page('#championship-replay-board').length, 1);
   assert.equal(page('[download]').length, 0);
   assert.equal(page('[data-caissa-standalone-sidebar]').length, 0);
   assert.doesNotMatch(navigation, /game-library\/champions\/replay/);
   assert.match(runtime, /getPgnCollection\(collectionId\)/);
   assert.match(runtime, /entry\.type !== 'championship-match'/);
+  assert.match(runtime, /selectTab\('games'\)/);
+  assert.match(runtime, /\['ArrowLeft', 'ArrowRight', 'Home', 'End'\]/);
   assert.match(runtime, /ALLOWED_PARAMS = new Set\(\['collection', 'game', 'returnTo'\]\)/);
   assert.match(runtime, /fetch\(entry\.readerAsset/);
   assert.doesNotMatch(runtime, /externalDownloadUrl|downloadBlob|params\.get\(['"]url/);

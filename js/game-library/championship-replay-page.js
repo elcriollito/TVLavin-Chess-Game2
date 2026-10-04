@@ -15,6 +15,7 @@ if (root) {
     status: root.querySelector('[data-replay-status]'),
     year: root.querySelector('[data-replay-year]'),
     gamePosition: root.querySelector('[data-replay-game-position]'),
+    gameCount: root.querySelector('[data-replay-game-count]'),
     gameTitle: root.querySelector('[data-replay-game-title]'),
     result: root.querySelector('[data-replay-result]'),
     metadata: root.querySelector('[data-replay-metadata]'),
@@ -33,7 +34,9 @@ if (root) {
     last: root.querySelector('[data-replay-last]'),
     flip: root.querySelector('[data-replay-flip]'),
     previousGame: root.querySelector('[data-replay-previous-game]'),
-    nextGame: root.querySelector('[data-replay-next-game]')
+    nextGame: root.querySelector('[data-replay-next-game]'),
+    tabs: [...root.querySelectorAll('[data-replay-tab]')],
+    tabPanels: [...root.querySelectorAll('[data-replay-tabpanel]')]
   };
 
   const state = {
@@ -42,6 +45,7 @@ if (root) {
     game: null,
     gameIndex: -1,
     moveIndex: -1,
+    activeTab: 'games',
     worker: null,
     requestId: 0,
     autoplayTimer: null
@@ -82,14 +86,35 @@ if (root) {
 
   function renderMetadata(game) {
     const headers = game.headers;
-    elements.metadata.replaceChildren(
+    const rows = [
       createMetadataRow('Event', headers.Event),
       createMetadataRow('Site', headers.Site),
       createMetadataRow('Date', headers.Date),
       createMetadataRow('Round', headers.Round),
       createMetadataRow('White', headers.White),
-      createMetadataRow('Black', headers.Black)
-    );
+      createMetadataRow('Black', headers.Black),
+      createMetadataRow('Result', headers.Result || game.result)
+    ];
+    if (headers.ECO) rows.push(createMetadataRow('ECO', headers.ECO));
+    if (headers.Opening) rows.push(createMetadataRow('Opening', headers.Opening));
+    if (headers.Variation) rows.push(createMetadataRow('Variation', headers.Variation));
+    elements.metadata.replaceChildren(...rows);
+  }
+
+  function selectTab(name, focus = false) {
+    if (!['games', 'notation'].includes(name)) return false;
+    state.activeTab = name;
+    elements.tabs.forEach(tab => {
+      const selected = tab.dataset.replayTab === name;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focus) tab.focus();
+    });
+    elements.tabPanels.forEach(panel => {
+      panel.hidden = panel.dataset.replayTabpanel !== name;
+    });
+    root.dataset.activeTab = name;
+    return true;
   }
 
   function gameSummary(game) {
@@ -99,6 +124,7 @@ if (root) {
 
   function renderGames() {
     elements.games.replaceChildren();
+    elements.gameCount.textContent = `(${state.collection.games.length})`;
     state.collection.games.forEach((game, index) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -314,8 +340,22 @@ if (root) {
   elements.flip.addEventListener('click', () => board?.flip());
   elements.previousGame.addEventListener('click', () => selectGame(state.gameIndex - 1));
   elements.nextGame.addEventListener('click', () => selectGame(state.gameIndex + 1));
+  elements.tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectTab(tab.dataset.replayTab));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      let targetIndex = index;
+      if (event.key === 'ArrowLeft') targetIndex = (index - 1 + elements.tabs.length) % elements.tabs.length;
+      if (event.key === 'ArrowRight') targetIndex = (index + 1) % elements.tabs.length;
+      if (event.key === 'Home') targetIndex = 0;
+      if (event.key === 'End') targetIndex = elements.tabs.length - 1;
+      selectTab(elements.tabs[targetIndex].dataset.replayTab, true);
+    });
+  });
   document.addEventListener('keydown', event => {
-    if (!state.game || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) return;
+    if (event.defaultPrevented || !state.game || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.target.closest('[role="tab"]')) return;
     if (event.key === 'ArrowLeft') { event.preventDefault(); stopAutoplay(); goToMove(state.moveIndex - 1); }
     if (event.key === 'ArrowRight') { event.preventDefault(); stopAutoplay(); goToMove(state.moveIndex + 1); }
     if (event.key === 'PageUp') { event.preventDefault(); selectGame(state.gameIndex - 1); }
@@ -327,5 +367,6 @@ if (root) {
     board?.destroy();
   }, { once: true });
 
+  selectTab('games');
   loadRequestedCollection();
 }

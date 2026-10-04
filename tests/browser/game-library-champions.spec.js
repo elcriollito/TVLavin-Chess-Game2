@@ -2,25 +2,22 @@ import { expect, test } from '@playwright/test';
 
 const desktopSizes = [{ width: 1920, height: 1080 }, { width: 1440, height: 900 }, { width: 1366, height: 768 }, { width: 1024, height: 768 }];
 
-const championshipFixture = ({ event, white, black, date }) => `[Event "${event}"]
+const championshipFixture = ({ event, white, black, date, games = 2 }) => Array.from({ length: games }, (_, index) => {
+  const round = index + 1;
+  const reversed = index % 2 === 1;
+  const result = reversed ? '1/2-1/2' : '1-0';
+  return `[Event "${event}"]
 [Site "CAISSA QA"]
 [Date "${date}"]
-[Round "1"]
-[White "${white}"]
-[Black "${black}"]
-[Result "1-0"]
+[Round "${round}"]
+[White "${reversed ? black : white}"]
+[Black "${reversed ? white : black}"]
+[Result "${result}"]
+[ECO "${reversed ? 'D30' : 'C60'}"]
+[Opening "${reversed ? "Queen's Gambit Declined" : 'Ruy Lopez'}"]
 
-1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 1-0
-
-[Event "${event}"]
-[Site "CAISSA QA"]
-[Date "${date}"]
-[Round "2"]
-[White "${black}"]
-[Black "${white}"]
-[Result "1/2-1/2"]
-
-1. d4 d5 2. c4 e6 1/2-1/2`;
+${reversed ? '1. d4 d5 2. c4 e6 1/2-1/2' : '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 1-0'}`;
+}).join('\n\n');
 
 test('championship archive renders its chronological mural at required desktop sizes', async ({ page }) => {
   await page.goto('/game-library/champions');
@@ -117,7 +114,7 @@ test('championship albums stay separate from rights-pending player collections',
 test('recent championship View match opens game 1 and restores the exact archive state', async ({ page }) => {
   await page.route('**/api/pgn/pgnmentor?kind=event&file=WorldChamp2024.pgn', route => route.fulfill({
     contentType: 'application/x-chess-pgn',
-    body: championshipFixture({ event: 'World Championship 2024', white: 'Ding Liren', black: 'Gukesh D', date: '2024.11.25' })
+    body: championshipFixture({ event: 'World Championship 2024', white: 'Ding Liren', black: 'Gukesh D', date: '2024.11.25', games: 14 })
   }));
   await page.goto('/game-library/champions');
   await page.locator('[data-open-champion="gukesh-dommaraju"]').click();
@@ -133,13 +130,48 @@ test('recent championship View match opens game 1 and restores the exact archive
   const returnTo = readerUrl.searchParams.get('returnTo');
   for (const part of ['view=champions', 'champion=gukesh-dommaraju', 'reign=gukesh-2024', 'event=wcc-2024']) expect(returnTo).toContain(part);
   await expect(page.locator('[data-replay-game-title]')).toHaveText(/Ding Liren.*Gukesh D/, { timeout: 20_000 });
-  await expect(page.locator('[data-replay-games] [data-game-index]')).toHaveCount(2);
+  await expect(page.locator('[data-replay-games] [data-game-index]')).toHaveCount(14);
   await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
   await expect(page.locator('[data-replay-metadata]')).toContainText('World Championship 2024');
   await expect(page.locator('[data-replay-year]')).toHaveText('2024');
   await expect(page.locator('[data-championship-replay]')).toHaveAttribute('data-collection-id', 'world-championship-worldchamp2024');
   await expect(page.locator('#championship-replay-board .caissa-board')).toBeVisible();
   await expect(page.locator('[download]')).toHaveCount(0);
+  const gamesTab = page.locator('[data-replay-tab="games"]');
+  const notationTab = page.locator('[data-replay-tab="notation"]');
+  await expect(gamesTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-replay-game-count]')).toHaveText('(14)');
+  await expect(page.locator('[data-replay-tabpanel="games"]')).toBeVisible();
+  await expect(page.locator('[data-replay-tabpanel="notation"]')).toBeHidden();
+  await expect.poll(() => page.locator('[data-replay-games]').evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
+
+  await page.locator('[data-replay-next]').click();
+  await expect(page.locator('[data-replay-notation] [data-move-index="0"]')).toHaveAttribute('aria-current', 'true');
+  const movedPosition = await page.locator('#championship-replay-board').evaluate(node => [...node.querySelectorAll('[data-piece][data-square]')].map(piece => `${piece.dataset.piece}:${piece.dataset.square}`).sort());
+  await notationTab.click();
+  await expect(notationTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-replay-tabpanel="games"]')).toBeHidden();
+  await expect(page.locator('[data-replay-tabpanel="notation"]')).toBeVisible();
+  await expect(page.locator('[data-replay-metadata]')).toContainText('C60');
+  await expect(page.locator('[data-replay-metadata]')).toContainText('Ruy Lopez');
+  await expect(page.locator('[data-replay-notation]')).toContainText('e4');
+  expect(await page.locator('#championship-replay-board').evaluate(node => [...node.querySelectorAll('[data-piece][data-square]')].map(piece => `${piece.dataset.piece}:${piece.dataset.square}`).sort())).toEqual(movedPosition);
+
+  await notationTab.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(gamesTab).toBeFocused();
+  await expect(gamesTab).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('ArrowRight');
+  await expect(notationTab).toBeFocused();
+  await expect(notationTab).toHaveAttribute('aria-selected', 'true');
+  await page.locator('[data-replay-next-game]').click();
+  await expect(page.locator('[data-replay-game-title]')).toContainText('Gukesh D');
+  await expect(page.locator('[data-replay-metadata]')).toContainText("Queen's Gambit Declined");
+  await expect(page.locator('[data-replay-notation]')).toContainText('d4');
+  await gamesTab.click();
+  await expect(page.locator('[data-replay-games] [data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
+  await page.locator('[data-replay-previous-game]').click();
+  await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
   await page.keyboard.press('PageDown');
   await expect(page.locator('[data-replay-games] [data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
   await page.keyboard.press('PageUp');
@@ -150,6 +182,21 @@ test('recent championship View match opens game 1 and restores the exact archive
   for (const size of desktopSizes) {
     await page.setViewportSize(size);
     await expect.poll(() => page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))).toEqual({ client: size.width, scroll: size.width });
+    const layout = await page.evaluate(() => {
+      const board = document.querySelector('.championship-board-shell').getBoundingClientRect();
+      const boardColumn = document.querySelector('.championship-replay__board-column').getBoundingClientRect();
+      const archive = document.querySelector('.championship-replay__archive').getBoundingClientRect();
+      const panels = document.querySelector('.championship-replay__panels');
+      return {
+        boardBottom: Math.round(board.bottom),
+        viewportHeight: window.innerHeight,
+        columnDelta: Math.abs(boardColumn.height - archive.height),
+        panelContained: panels.scrollHeight <= panels.clientHeight + 1
+      };
+    });
+    expect(layout.boardBottom).toBeLessThanOrEqual(layout.viewportHeight);
+    expect(layout.columnDelta).toBeLessThanOrEqual(1);
+    expect(layout.panelContained).toBe(true);
   }
   await page.getByRole('link', { name: 'Return to Champions' }).click();
   await expect(page).toHaveURL(/champion=gukesh-dommaraju/);
@@ -185,9 +232,17 @@ for (const sample of [
     await expect(page.locator('[data-replay-metadata]')).toContainText(sample.black);
     await expect(page.locator('[data-championship-replay]')).toHaveAttribute('data-collection-id', sample.collection);
     await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
-    await page.keyboard.press('PageDown');
+    await expect(page.locator('[data-replay-tab="games"]')).toHaveAttribute('aria-selected', 'true');
+    await page.locator('[data-replay-tab="notation"]').click();
+    await expect(page.locator('[data-replay-tab="notation"]')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('[data-replay-metadata]')).toContainText(sample.date);
+    await expect(page.locator('[data-replay-notation]')).toContainText('e4');
+    await page.locator('[data-replay-next-game]').click();
+    await expect(page.locator('[data-replay-metadata] > div').filter({ hasText: 'Round' }).locator('dd')).toHaveText('2');
+    await expect(page.locator('[data-replay-notation]')).toContainText('d4');
+    await page.locator('[data-replay-tab="games"]').click();
     await expect(page.locator('[data-replay-games] [data-game-index="1"]')).toHaveAttribute('aria-current', 'true');
-    await page.keyboard.press('PageUp');
+    await page.locator('[data-replay-previous-game]').click();
     await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
     expect(new URL(requestedUrl).searchParams.get('file')).toBe(sample.file);
     if (sample.event === 'wcc-2018') await page.evaluate(() => history.back());
