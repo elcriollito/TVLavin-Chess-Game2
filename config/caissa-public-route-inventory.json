@@ -13,11 +13,11 @@
   "counts": {
     "primaryNavigationEntries": 35,
     "internalPrimaryPages": 31,
-    "publicCanonicalRoutesNotInPrimaryNavigation": 13,
+    "publicCanonicalRoutesNotInPrimaryNavigation": 16,
     "externalDestinations": 4,
-    "redirects": 17,
+    "redirects": 15,
     "protectedRouteFamilies": 5,
-    "totalInventoriedRecords": 70
+    "totalInventoriedRecords": 71
   },
   "primaryNavigation": [
     {
@@ -658,6 +658,36 @@
       "status": "public"
     },
     {
+      "id": "game-library-champions",
+      "label": "World Champions Archive",
+      "canonicalPath": "/game-library/champions",
+      "absoluteUrl": "https://www.caissa-chess.org/game-library/champions",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "game-library-champions",
+      "owner": "vercel.json and server.js",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
+      "id": "game-library-champions-replay",
+      "label": "World Championship Replay",
+      "canonicalPath": "/game-library/champions/replay",
+      "absoluteUrl": "https://www.caissa-chess.org/game-library/champions/replay",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "game-library-champions-replay",
+      "owner": "vercel.json and server.js",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
       "id": "library-page",
       "label": "Library",
       "canonicalPath": "/library",
@@ -773,6 +803,21 @@
       "visibleInPrimaryNavigation": false,
       "activeIdentity": "signup",
       "owner": "vercel.json",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
+      "id": "capablanca-game-replayer",
+      "label": "Capablanca Game Replayer",
+      "canonicalPath": "/watch/game-replayer",
+      "absoluteUrl": "https://www.caissa-chess.org/watch/game-replayer",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "capablanca-game-replayer",
+      "owner": "vercel.json and server.js",
       "target": "_self",
       "rel": null,
       "status": "public"
@@ -933,30 +978,6 @@
       "status": "public",
       "redirectFrom": "/endgame-practice/",
       "redirectTo": "/endgame-trainer",
-      "expectedStatus": 308
-    },
-    {
-      "id": "redirect-watch-game-replayer",
-      "label": "/watch/game-replayer to /pgn-replayer",
-      "canonicalPath": "/pgn-replayer",
-      "absoluteUrl": "https://www.caissa-chess.org/pgn-replayer",
-      "type": "redirect",
-      "owner": "vercel.json and server.js",
-      "status": "public",
-      "redirectFrom": "/watch/game-replayer",
-      "redirectTo": "/pgn-replayer",
-      "expectedStatus": 308
-    },
-    {
-      "id": "redirect-watch-game-replayer",
-      "label": "/watch/game-replayer/ to /pgn-replayer",
-      "canonicalPath": "/pgn-replayer",
-      "absoluteUrl": "https://www.caissa-chess.org/pgn-replayer",
-      "type": "redirect",
-      "owner": "vercel.json and server.js",
-      "status": "public",
-      "redirectFrom": "/watch/game-replayer/",
-      "redirectTo": "/pgn-replayer",
       "expectedStatus": 308
     },
     {

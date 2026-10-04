@@ -1,0 +1,337 @@
+import {
+  archiveMeta, champions, reigns, championshipEvents,
+  getChampion, getReign, validateChampionshipArchive
+} from './championship-archive-data.js';
+import {
+  getApprovedExternalPgnDownload, getKnownPgnCollection, getKnownPgnCollectionForEvent,
+  getPgnCollection, getPgnCollectionForEvent, getPgnAvailability,
+  pgnCollectionRegistryValidation
+} from './pgn-collection-registry.js';
+import { buildArchiveReturnTo, readArchiveState } from './archive-return-state.js';
+import { CaissaPgnReader } from './caissa-pgn-reader.js';
+
+const byId = values => new Map(values.map(value => [value.id, value]));
+const championById = byId(champions);
+const reignById = byId(reigns);
+const eventById = byId(championshipEvents);
+const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+const primaryChampions = archiveMeta.primaryChampionIds.map(getChampion);
+const initialState = readArchiveState(location);
+let detailReturnFocus = null;
+const uiState = {
+  view: initialState.view,
+  lineage: initialState.lineage,
+  champion: championById.has(initialState.champion) ? initialState.champion : null,
+  reign: reignById.has(initialState.reign) ? initialState.reign : null,
+  event: eventById.has(initialState.event) ? initialState.event : null
+};
+
+const archiveScrollTop = () => Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop);
+const restoreArchiveScroll = value => {
+  window.scrollTo(0, value);
+  document.documentElement.scrollTop = value;
+  document.body.scrollTop = value;
+};
+
+const externalPeople = Object.freeze({
+  'johannes-zukertort': 'Johannes Zukertort', 'paul-keres': 'Paul Keres',
+  'samuel-reshevsky': 'Samuel Reshevsky', 'viktor-korchnoi': 'Viktor Korchnoi',
+  'nigel-short': 'Nigel Short', 'jan-timman': 'Jan Timman',
+  'ian-nepomniachtchi': 'Ian Nepomniachtchi', 'mikhail-chigorin': 'Mikhail Chigorin',
+  'isidor-gunsberg': 'Isidor Gunsberg', 'frank-marshall': 'Frank Marshall',
+  'siegbert-tarrasch': 'Siegbert Tarrasch', 'dawid-janowski': 'Dawid Janowski',
+  'carl-schlechter': 'Carl Schlechter', 'efim-bogoljubow': 'Efim Bogoljubow',
+  'david-bronstein': 'David Bronstein', 'gata-kamsky': 'Gata Kamsky',
+  'peter-leko': 'Peter Leko', 'boris-gelfand': 'Boris Gelfand',
+  'sergey-karjakin': 'Sergey Karjakin', 'fabiano-caruana': 'Fabiano Caruana'
+});
+
+function personName(id) {
+  return championById.get(id)?.displayName || externalPeople[id] || (id ? id.replaceAll('-', ' ') : 'Vacant title');
+}
+
+function reignLabel(champion) {
+  const values = (champion.reignIds || []).map(getReign).filter(reign => reign && reign.lineage !== 'fide');
+  if (!values.length) return 'Parallel FIDE line';
+  return values.map(reign => `${reign.startYear}–${reign.endYear || 'present'}`).join(' · ');
+}
+
+function championEra(champion) {
+  const firstReign = (champion.reignIds || []).map(getReign).filter(Boolean)[0];
+  if (!firstReign) return 'Championship lineage';
+  if (firstReign.startYear < 1948) return 'Founding era';
+  if (firstReign.startYear < 1975) return 'FIDE & Soviet era';
+  if (firstReign.startYear < 2007) return 'Rival dynasties';
+  return 'Reunified crown';
+}
+
+function availabilityCopy(collectionId) {
+  const availability = getPgnAvailability(collectionId);
+  const collection = getKnownPgnCollection(collectionId);
+  const descriptions = {
+    available: collection?.rightsClassification === 'REMOTE_VIEW_ONLY'
+      ? 'Remote view only · Reader available · External source registered'
+      : 'Rights-cleared local collection · Reader available',
+    'external-only': 'Player collection available from an external source.',
+    'pending-review': 'Collection pending review · Public actions unavailable',
+    'historical-only': 'Historical record · No PGN collection attached'
+  };
+  return descriptions[availability.code] || descriptions['historical-only'];
+}
+
+function setExpandedChampion(championId = null) {
+  document.querySelectorAll('.champion-card').forEach(card => card.classList.toggle('is-selected', card.id === championId));
+  document.querySelectorAll('[data-open-champion]').forEach(button => button.setAttribute('aria-expanded', String(button.dataset.openChampion === championId)));
+}
+
+function currentReturnTo(overrides = {}) {
+  const viewport = document.querySelector('[data-mural-viewport]');
+  return buildArchiveReturnTo({
+    ...uiState,
+    scroll: Math.max(0, Math.round(archiveScrollTop())),
+    mural: Math.max(0, Math.round(viewport?.scrollLeft || 0)),
+    ...overrides
+  });
+}
+
+function writeState({ replace = true } = {}) {
+  history[replace ? 'replaceState' : 'pushState'](null, '', currentReturnTo());
+}
+
+function collectionForRuntime(id) {
+  return id ? getPgnCollection(id) : null;
+}
+
+function renderChampionCards() {
+  const track = document.querySelector('[data-champion-track]');
+  track.innerHTML = primaryChampions.map(champion => {
+    const collections = (champion.collectionIds || []).map(getKnownPgnCollection).filter(Boolean);
+    const available = collections.filter(entry => collectionForRuntime(entry.id)?.readerCompatible || getApprovedExternalPgnDownload(entry.id)).length;
+    return `<article class="champion-card${champion.id === archiveMeta.currentChampionId ? ' is-current' : ''}" id="${escapeHtml(champion.id)}" data-era="${escapeHtml(championEra(champion))}" role="listitem">
+      <div class="champion-card__index"><span>No. ${String(champion.order).padStart(2, '0')}</span><span>${champion.id === archiveMeta.currentChampionId ? 'Current' : 'World champion'}</span></div>
+      <div class="champion-card__portrait" role="img" aria-label="CAISSA archival monogram for ${escapeHtml(champion.displayName)}"><span class="champion-card__number" aria-hidden="true">${String(champion.order).padStart(2, '0')}</span><span class="champion-card__medallion" aria-hidden="true"></span><span class="champion-card__initials">${escapeHtml(champion.initials)}</span><span class="champion-card__portrait-status">CAISSA archival monogram</span></div>
+      <div class="champion-card__body"><p class="champion-card__era">${escapeHtml(championEra(champion))}</p><div class="champion-card__reign">${escapeHtml(reignLabel(champion))}</div><h3>${escapeHtml(champion.displayName)}</h3>
+        ${champion.nationalIdentityVerified ? `<div class="champion-card__country">${escapeHtml(champion.country)}</div>` : ''}
+        <p class="champion-card__summary">${escapeHtml(champion.summary)}</p>
+        <div class="champion-card__footer"><span>${available ? `${available} PGN ${available === 1 ? 'collection' : 'collections'} available` : collections.length ? 'Collection pending review' : 'Historical record'}</span><button type="button" data-open-champion="${escapeHtml(champion.id)}" aria-expanded="false" aria-controls="champion-detail">Explore champion</button></div>
+      </div></article>`;
+  }).join('');
+}
+
+function renderSplitDiagram() {
+  const target = document.querySelector('[data-split-diagram]');
+  const track = (label, ids) => `<div class="split-track"><div class="split-track__label"><span>${label}</span><span>1993 → 2006</span></div><div class="split-track__line" style="--split-count:${ids.length}">${ids.map(id => {
+    const reign = reignById.get(id); const champion = championById.get(reign.championId);
+    return `<div class="split-node"><strong>${escapeHtml(champion.displayName)}</strong><span>${reign.startYear}–${reign.endYear}</span></div>`;
+  }).join('')}</div></div>`;
+  target.innerHTML = `${track('Classical lineage', archiveMeta.splitEra.classicalReignIds)}${track('FIDE lineage', archiveMeta.splitEra.fideReignIds)}<div class="split-merge"><span>Reunified · Kramnik–Topalov · 2006</span></div>`;
+}
+
+function eventsForChampion(championId) {
+  return championshipEvents.filter(event => event.championId === championId || event.challengerId === championId || event.winnerId === championId || event.loserId === championId || event.participantIds?.includes(championId)).sort((a, b) => a.year - b.year);
+}
+
+function availabilityBadge(collectionId) {
+  const availability = getPgnAvailability(collectionId);
+  return `<span class="pgn-availability pgn-availability--${availability.code}">${escapeHtml(availability.label)}</span>`;
+}
+
+function externalDownloadAction(collectionId) {
+  const external = getApprovedExternalPgnDownload(collectionId);
+  if (!external) return '';
+  const collection = getKnownPgnCollection(collectionId);
+  const playerCollection = collection?.type === 'player-collection';
+  const label = playerCollection
+    ? external.linkKind === 'direct-pgn' ? 'Download Player PGN — External ↗' : 'Open External Player Collection ↗'
+    : 'Download PGN — External ↗';
+  const ariaLabel = playerCollection
+    ? external.linkKind === 'direct-pgn' ? 'Download player PGN from external source (opens in a new tab)' : 'Open external player collection (opens in a new tab)'
+    : 'Download PGN from external source (opens in a new tab)';
+  const playerAttribute = playerCollection ? ' data-external-player-collection' : '';
+  return `<a class="external-pgn-link"${playerAttribute} href="${escapeHtml(external.url)}" target="_blank" rel="noopener noreferrer external" aria-label="${ariaLabel}"><i class="fas fa-external-link-alt" aria-hidden="true"></i>${label}</a>`;
+}
+
+function knownCollectionForEvent(event) {
+  return getKnownPgnCollection(event.pgnCollectionId) || getKnownPgnCollectionForEvent(event.id);
+}
+
+function runtimeCollectionForEvent(event) {
+  const explicit = collectionForRuntime(event.pgnCollectionId);
+  if (explicit?.type === 'championship-match' && explicit.eventId === event.id) return explicit;
+  return getPgnCollectionForEvent(event.id);
+}
+
+function collectionMarkup(collectionId) {
+  const known = getKnownPgnCollection(collectionId);
+  const runtime = collectionForRuntime(collectionId);
+  const external = getApprovedExternalPgnDownload(collectionId);
+  if (!known || (!runtime?.readerCompatible && !external)) return '';
+  const availability = getPgnAvailability(known.id);
+  const readerAction = runtime?.readerCompatible
+    ? `<button type="button" data-open-pgn="${escapeHtml(known.id)}"><i class="fas fa-book-open" aria-hidden="true"></i>Open in PGN Reader</button>`
+    : '';
+  const provider = external ? `<small class="collection-card__source">External source: ${escapeHtml(external.sourceName)}</small>` : '';
+  return `<article class="collection-card${known.gamesCount > 1 ? ' is-complete' : ''} collection-card--${availability.code}" data-player-collection="${escapeHtml(known.id)}"><div class="collection-card__type"><span>Player collection</span>${availabilityBadge(known.id)}</div><h4>${escapeHtml(known.title)}</h4><p><strong>${known.gamesCount} ${known.gamesCount === 1 ? 'game' : 'games'}</strong> · ${escapeHtml(known.attribution)}</p><p class="collection-card__availability">${escapeHtml(availabilityCopy(known.id))}</p>${provider}<div class="collection-actions">${readerAction}${externalDownloadAction(known.id)}</div></article>`;
+}
+
+function openReader(collectionId, eventId = null, gameId = null, target = 'best-available') {
+  const opened = CaissaPgnReader.open({ collectionId, gameId, target, returnTo: currentReturnTo({ event: eventId || uiState.event }) });
+  if (!opened) document.querySelector('[data-reader-notice]')?.removeAttribute('hidden');
+}
+
+function openChampionDetail(championId, options = {}) {
+  const champion = championById.get(championId);
+  const dialog = document.querySelector('[data-champion-dialog]');
+  const target = document.querySelector('[data-champion-detail]');
+  if (!champion || !dialog || !target) return false;
+  if (dialog.hidden && options.focus !== false) {
+    const activeElement = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+    detailReturnFocus = options.returnFocus || activeElement || document.querySelector(`[data-open-champion="${champion.id}"]`);
+  }
+  const championReigns = (champion.reignIds || []).map(id => reignById.get(id)).filter(Boolean);
+  const requestedReign = championReigns.find(value => value.id === options.reignId) || championReigns[0];
+  const events = eventsForChampion(champion.id);
+  const requestedEvent = events.find(value => value.id === options.eventId) || null;
+  const index = primaryChampions.findIndex(entry => entry.id === champion.id);
+  const predecessor = index > 0 ? primaryChampions[index - 1] : null;
+  const successor = index >= 0 && index < primaryChampions.length - 1 ? primaryChampions[index + 1] : null;
+  uiState.champion = champion.id; uiState.reign = requestedReign?.id || null; uiState.event = requestedEvent?.id || null;
+  const collectionIds = [...new Set([...(champion.collectionIds || []), ...events.map(event => knownCollectionForEvent(event)?.id).filter(Boolean)])];
+  const championCollectionIds = (champion.collectionIds || []).filter(id => getKnownPgnCollection(id)?.type === 'player-collection');
+  const availableChampionCollectionIds = championCollectionIds.filter(id => collectionForRuntime(id)?.readerCompatible || getApprovedExternalPgnDownload(id));
+  const championCollectionEmptyState = championCollectionIds.length
+    ? '<div class="empty-collection"><strong>Collection not publicly available</strong><span>This player collection remains unavailable while its publication status is reviewed.</span></div>'
+    : '<div class="empty-collection"><strong>Historical data only</strong><span>No approved player collection is attached to this champion.</span></div>';
+  target.innerHTML = `<header class="detail-hero"><div class="detail-monogram" role="img" aria-label="CAISSA archival monogram for ${escapeHtml(champion.displayName)}"><span class="detail-monogram__number" aria-hidden="true">${String(champion.order || '').padStart(2, '0')}</span><span class="detail-monogram__initials">${escapeHtml(champion.initials)}</span><small>CAISSA archival monogram</small></div><div><div class="detail-order">${champion.order ? `World champion no. ${String(champion.order).padStart(2, '0')}` : 'Parallel FIDE lineage'}</div><h2 id="champion-detail-title" tabindex="-1">${escapeHtml(champion.displayName)}</h2><p>${escapeHtml(champion.summary)}</p><div class="detail-metadata"><span>${escapeHtml(reignLabel(champion))}</span><span>${collectionIds.length ? `${collectionIds.length} PGN ${collectionIds.length === 1 ? 'collection' : 'collections'}` : 'Historical record only'}</span></div></div></header>
+    <div class="detail-content"><div><section class="detail-section"><div class="detail-section__heading"><h3>Reigns</h3><span>${championReigns.length} ${championReigns.length === 1 ? 'chapter' : 'chapters'} in the lineage</span></div><div class="reign-list">${championReigns.map((reign, reignIndex) => `<button type="button" class="reign-card${reign.id === requestedReign?.id ? ' is-selected' : ''}" data-detail-reign="${escapeHtml(reign.id)}" aria-pressed="${reign.id === requestedReign?.id}"><small>Reign ${String(reignIndex + 1).padStart(2, '0')}</small><strong>${reign.startYear}–${reign.endYear || 'Present'}</strong><span>${escapeHtml(reign.lineage)} lineage · ${reign.defenseCount} ${reign.defenseCount === 1 ? 'defense' : 'defenses'}</span></button>`).join('')}</div></section>
+      <section class="detail-section"><h3>Selected reign at a glance</h3><div class="reign-summary"><div><strong>${requestedReign?.startYear ?? '—'}</strong><span>Crowned</span></div><div><strong>${escapeHtml(requestedReign?.lineage || '—')}</strong><span>Lineage</span></div><div><strong>${requestedReign?.defenseCount ?? '—'}</strong><span>Title defenses</span></div></div></section>
+      <section class="detail-section"><h3>Historical context</h3><p class="detail-context">${escapeHtml(champion.summary)} ${events.length ? `The archive connects ${events.length} relevant championship ${events.length === 1 ? 'event' : 'events'} to this career.` : 'No championship event record is attached yet.'}</p></section>
+      <section class="detail-section"><div class="detail-section__heading"><h3>Championship events</h3><span>Chronological record</span></div><div class="event-list">${events.map(event => {
+        const knownEventCollection = knownCollectionForEvent(event);
+        const runtimeEventCollection = runtimeCollectionForEvent(event);
+        const eventActions = runtimeEventCollection
+          ? `<div class="event-inline-actions"><button type="button" data-event-pgn="${escapeHtml(runtimeEventCollection.id)}" data-event="${escapeHtml(event.id)}" aria-label="View ${escapeHtml(event.title)} in PGN Reader"><i class="fas fa-eye" aria-hidden="true"></i>View match</button>${externalDownloadAction(runtimeEventCollection.id)}</div>`
+          : knownEventCollection && getApprovedExternalPgnDownload(knownEventCollection.id)
+            ? `<div class="event-inline-actions">${externalDownloadAction(knownEventCollection.id)}</div>`
+            : '';
+        return `<article class="event-row${event.id === requestedEvent?.id ? ' is-selected' : ''}" data-event-id="${event.id}"><strong>${event.year}</strong><div><h4>${escapeHtml(event.title)}</h4><p>${escapeHtml([event.numberOfGames !== undefined ? `${event.numberOfGames} games` : null, event.score ? `Score ${event.score}` : null, event.location, event.historicalNote].filter(Boolean).join(' · '))}</p>${eventActions}</div><div class="event-badges">${availabilityBadge(knownEventCollection?.id)}<span class="event-status">${escapeHtml(event.status)}</span><span class="event-lineage">${escapeHtml(event.lineage)}</span></div></article>`;
+      }).join('')}</div></section></div>
+      <aside><section class="detail-section"><h3>Title transition</h3><div class="lineage-links">${predecessor ? `<a href="#champion=${predecessor.id}" data-dialog-champion="${predecessor.id}"><small>Predecessor</small>${escapeHtml(predecessor.displayName)}</a>` : '<span><small>Predecessor</small>First champion</span>'}${successor ? `<a href="#champion=${successor.id}" data-dialog-champion="${successor.id}"><small>Successor</small>${escapeHtml(successor.displayName)}</a>` : '<span><small>Successor</small>Current champion</span>'}</div></section>
+      <section class="detail-section champion-collection"><div class="detail-section__heading"><h3>Champion collection</h3><span>Games by this player</span></div><p class="collection-policy">Explore approved player collections in the CAISSA reader. External downloads appear only when an approved source is registered.</p><p data-reader-notice hidden class="reader-notice">This collection is not available for public access.</p><div class="collection-list">${availableChampionCollectionIds.length ? availableChampionCollectionIds.map(collectionMarkup).join('') : championCollectionEmptyState}</div></section></aside></div>`;
+  target.querySelectorAll('[data-dialog-champion]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); openChampionDetail(link.dataset.dialogChampion); }));
+  target.querySelectorAll('[data-detail-reign]').forEach(button => button.addEventListener('click', () => openChampionDetail(champion.id, { reignId: button.dataset.detailReign })));
+  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => openReader(button.dataset.openPgn, uiState.event)));
+  target.querySelectorAll('[data-event-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.eventPgn, button.dataset.event, 0, 'champions'); }));
+  const anchor = uiState.view === 'matches' && requestedEvent
+    ? document.querySelector(`[data-match-event="${requestedEvent.id}"]`)
+    : document.getElementById(champion.id);
+  if (anchor) anchor.after(dialog);
+  dialog.hidden = false;
+  setExpandedChampion(champion.id);
+  document.querySelectorAll('.match-card').forEach(card => card.classList.toggle('is-selected', card.dataset.matchEvent === requestedEvent?.id));
+  if (options.scrollIntoView !== false) dialog.scrollIntoView({ behavior: 'auto', block: 'start' });
+  if (options.focus !== false) target.querySelector('#champion-detail-title')?.focus({ preventScroll: true });
+  if (options.updateState !== false) writeState();
+  return true;
+}
+
+function eventFilterGroup(event) {
+  if (event.format === 'administrative' || ['aborted', 'forfeited', 'tournament', 'reunification'].includes(event.status)) return 'special';
+  return event.lineage;
+}
+
+function eventContextChampion(event) {
+  return event.championId && championById.has(event.championId) ? event.championId
+    : event.winnerId && championById.has(event.winnerId) ? event.winnerId
+      : event.challengerId && championById.has(event.challengerId) ? event.challengerId : null;
+}
+
+function renderMatches() {
+  const target = document.querySelector('[data-match-list]');
+  const results = document.querySelector('[data-match-results]');
+  const detail = document.querySelector('[data-champion-dialog]');
+  const parking = document.querySelector('[data-detail-parking]');
+  if (detail && parking && target.contains(detail)) { detail.hidden = true; parking.after(detail); }
+  const events = championshipEvents.filter(event => uiState.lineage === 'all' || eventFilterGroup(event) === uiState.lineage);
+  const filterLabels = { all: 'Complete championship record', undisputed: 'Undisputed lineage', classical: 'Classical lineage', fide: 'FIDE lineage', special: 'Exceptional transitions' };
+  document.querySelectorAll('[data-filter-count]').forEach(count => {
+    const filter = count.dataset.filterCount;
+    count.textContent = filter === 'all' ? championshipEvents.length : championshipEvents.filter(event => eventFilterGroup(event) === filter).length;
+  });
+  if (results) results.textContent = `${events.length} ${events.length === 1 ? 'event' : 'events'} · ${filterLabels[uiState.lineage]} · chronological order`;
+  target.innerHTML = events.map((event, eventIndex) => {
+    const participantIds = event.participantIds || [event.championId, event.challengerId].filter(Boolean);
+    const participants = participantIds.length ? participantIds.map(personName).join(' vs. ') : event.winnerId ? `Winner: ${personName(event.winnerId)}` : 'Championship transition';
+    const known = knownCollectionForEvent(event);
+    const runtime = runtimeCollectionForEvent(event);
+    const championId = eventContextChampion(event);
+    const factLine = [event.score ? `Score ${event.score}` : null, event.numberOfGames !== undefined ? `${event.numberOfGames} games` : null, event.location].filter(Boolean).join(' · ');
+    return `<article class="match-card${event.id === uiState.event ? ' is-selected' : ''}" data-match-event="${event.id}"><div class="match-card__date"><span>${String(eventIndex + 1).padStart(2, '0')}</span><strong class="match-card__year">${event.year}</strong></div><div class="match-card__body"><div class="match-card__meta"><span>${escapeHtml(event.lineage)}</span><span>${escapeHtml(event.status)}</span></div><h3>${escapeHtml(event.title)}</h3><p>${escapeHtml(participants)}</p>${factLine ? `<div class="match-card__facts">${escapeHtml(factLine)}</div>` : ''}${event.historicalNote ? `<small>${escapeHtml(event.historicalNote)}</small>` : ''}</div><div class="match-card__actions">${availabilityBadge(known?.id)}${runtime?.readerCompatible ? `<button type="button" data-match-pgn="${runtime.id}" data-event="${event.id}">View match</button>` : ''}${known ? externalDownloadAction(known.id) : ''}${championId ? `<button type="button" data-match-champion="${championId}" data-event="${event.id}">Champion context</button>` : ''}</div></article>`;
+  }).join('') || '<p class="match-empty">No events match this filter.</p>';
+  target.querySelectorAll('[data-match-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.matchPgn, button.dataset.event, 0, 'champions'); }));
+  target.querySelectorAll('[data-match-champion]').forEach(button => button.addEventListener('click', () => openChampionDetail(button.dataset.matchChampion, { eventId: button.dataset.event, returnFocus: button })));
+}
+
+function closeChampionDetail({ update = true, restoreFocus = true } = {}) {
+  const detail = document.querySelector('[data-champion-dialog]');
+  if (detail) {
+    detail.hidden = true;
+    document.querySelector('[data-detail-parking]').after(detail);
+  }
+  setExpandedChampion();
+  document.querySelectorAll('.match-card.is-selected').forEach(card => card.classList.remove('is-selected'));
+  uiState.champion = null; uiState.reign = null; uiState.event = null;
+  if (update) writeState();
+  if (restoreFocus && detailReturnFocus?.isConnected) detailReturnFocus.focus({ preventScroll: true });
+  detailReturnFocus = null;
+}
+
+function setView(view, { update = true } = {}) {
+  const detail = document.querySelector('[data-champion-dialog]');
+  if (update && detail && !detail.hidden) closeChampionDetail({ update: false });
+  uiState.view = view === 'matches' ? 'matches' : 'champions';
+  document.querySelectorAll('[data-archive-view]').forEach(element => { element.hidden = element.dataset.archiveView !== uiState.view; });
+  document.querySelectorAll('[data-archive-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.archiveMode === uiState.view)));
+  if (uiState.view === 'matches') renderMatches();
+  if (update) writeState({ replace: false });
+}
+
+function setLineage(lineage, { update = true } = {}) {
+  const detail = document.querySelector('[data-champion-dialog]');
+  if (update && detail && !detail.hidden) closeChampionDetail({ update: false });
+  uiState.lineage = ['all', 'undisputed', 'classical', 'fide', 'special'].includes(lineage) ? lineage : 'all';
+  document.querySelectorAll('[data-match-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.matchFilter === uiState.lineage)));
+  renderMatches();
+  if (update) writeState();
+}
+
+function bindInteractions() {
+  document.querySelectorAll('[data-open-champion]').forEach(button => button.addEventListener('click', () => openChampionDetail(button.dataset.openChampion, { returnFocus: button })));
+  document.querySelectorAll('[data-era-target]').forEach(button => button.addEventListener('click', () => document.getElementById(button.dataset.eraTarget)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' })));
+  document.querySelectorAll('[data-archive-mode]').forEach(button => button.addEventListener('click', () => setView(button.dataset.archiveMode)));
+  document.querySelectorAll('[data-match-filter]').forEach(button => button.addEventListener('click', () => setLineage(button.dataset.matchFilter)));
+  document.querySelector('[data-close-champion]').addEventListener('click', () => closeChampionDetail());
+  document.addEventListener('keydown', event => {
+    const detail = document.querySelector('[data-champion-dialog]');
+    if (event.key === 'Escape' && detail && !detail.hidden) closeChampionDetail();
+  });
+}
+
+function restoreState() {
+  setView(uiState.view, { update: false }); setLineage(uiState.lineage, { update: false });
+  requestAnimationFrame(() => {
+    const viewport = document.querySelector('[data-mural-viewport]');
+    if (viewport) viewport.scrollLeft = initialState.mural;
+    if (uiState.champion) openChampionDetail(uiState.champion, { reignId: uiState.reign, eventId: uiState.event, scrollIntoView: false, updateState: false, focus: false });
+    requestAnimationFrame(() => restoreArchiveScroll(initialState.scroll));
+  });
+}
+
+const archiveValidation = validateChampionshipArchive();
+const validation = Object.freeze({
+  valid: archiveValidation.valid && pgnCollectionRegistryValidation.valid,
+  errors: Object.freeze([...archiveValidation.errors, ...pgnCollectionRegistryValidation.errors])
+});
+if (!validation.valid) throw new Error(`Championship Archive validation failed: ${validation.errors.join('; ')}`);
+renderChampionCards(); renderSplitDiagram(); bindInteractions(); restoreState();
+window.CaissaChampionshipArchive = Object.freeze({ version: '1.0.0-rc.3', validation, openChampionDetail, getState: () => Object.freeze({ ...uiState }) });

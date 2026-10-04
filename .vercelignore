@@ -1,5 +1,6 @@
 data/pgn/**
 data/pgn_db/**
+internal-assets/**
 data/openingdb/shards/**
 data/openingdb/shards_build/**
 data/openingdb/subshards_build/**

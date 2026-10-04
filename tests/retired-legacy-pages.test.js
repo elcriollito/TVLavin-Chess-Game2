@@ -10,7 +10,6 @@ const exists = path => fs.existsSync(new URL(path, root));
 const retirements = Object.freeze([
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
-  ['/watch/game-replayer', '/pgn-replayer'],
   ['/watch/lichess-broadcasts', '/watch/live-tournaments']
 ]);
 
@@ -59,13 +58,13 @@ test('page-specific files are removed while reusable Lichess modules and shared 
     'scripts/build-interactive-diagrams-manifest.mjs',
     'tactics.html', 'css/tactics.css',
     'endgame-practice.html', 'css/endgame-practice.css', 'js/endgame-practice-page.js',
-    'game-replayer.html', 'css/game-replayer.css', 'js/game-replayer-parent.js',
-    'integrations/chessbase-pgn-replayer.html', 'css/chessbase-pgn-replayer-wrapper.css', 'js/chessbase-pgn-replayer-wrapper.js',
     'lichess-broadcasts.html', 'css/lichess-broadcasts.css'
   ]) assert.equal(exists(path), false, path);
   for (const path of [
     'js/lichess-broadcasts-config.js', 'js/lichess-broadcasts-parent.js',
     'puzzles.html', 'endgame-trainer.html', 'pgn-replayer.html', 'live-tournaments.html',
+    'game-replayer.html', 'css/game-replayer.css', 'js/game-replayer-parent.js',
+    'integrations/chessbase-pgn-replayer.html', 'css/chessbase-pgn-replayer-wrapper.css', 'js/chessbase-pgn-replayer-wrapper.js',
     'public/data/pgn/free/world-championship.pgn'
   ]) assert.equal(exists(path), true, path);
 });

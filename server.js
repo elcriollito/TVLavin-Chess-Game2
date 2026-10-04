@@ -18,6 +18,7 @@ import { createBetaProgramService } from './api/_lib/beta-program-service.js';
 import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-document.js';
 import { fetchLichessGames } from './api/_lib/lichess-games.js';
 import tablebaseHandler from './api/tablebase/standard.js';
+import { worldChampionshipPgnCatalog } from './js/game-library/world-championship-pgn-catalog.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +28,6 @@ const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const RETIRED_PAGE_REDIRECTS = new Map([
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
-  ['/watch/game-replayer', '/pgn-replayer'],
   ['/watch/lichess-broadcasts', '/watch/live-tournaments']
 ]);
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
@@ -100,6 +100,42 @@ function handleHealthCheck(res) {
     timestamp: new Date().toISOString(),
     endpoints: ['/api/health', '/api/lichess/games']
   }));
+}
+
+const PGN_MENTOR_EVENT_FILES = new Set(worldChampionshipPgnCatalog.map(entry => entry.file));
+const PGN_MENTOR_MAX_BYTES = 12 * 1024 * 1024;
+
+async function handlePgnMentorEvent(req, res, url) {
+  const file = url.searchParams.get('file');
+  const valid = url.searchParams.get('kind') === 'event'
+    && typeof file === 'string'
+    && /^[A-Za-z0-9][A-Za-z0-9._()-]{0,119}\.pgn$/.test(file)
+    && !file.includes('..') && !file.includes('/') && !file.includes('\\')
+    && PGN_MENTOR_EVENT_FILES.has(file);
+  const headers = { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow, noarchive' };
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { ...headers, Allow: 'GET, HEAD' }); res.end(JSON.stringify({ error: 'Method not allowed' })); return;
+  }
+  if (!valid) {
+    res.writeHead(404, headers); res.end(JSON.stringify({ error: 'Unknown PGN collection' })); return;
+  }
+  try {
+    const upstream = await fetch(`https://www.pgnmentor.com/events/${encodeURIComponent(file)}`, {
+      method: req.method === 'HEAD' ? 'HEAD' : 'GET', redirect: 'follow',
+      headers: { 'User-Agent': 'CAISSA-Chess-PGN-Gateway/1.0 (+https://www.caissa-chess.org/)', Accept: 'application/x-chess-pgn, text/plain;q=0.9, */*;q=0.1' }
+    });
+    if (!upstream.ok || Number(upstream.headers.get('content-length') || 0) > PGN_MENTOR_MAX_BYTES) throw new Error('Source unavailable');
+    if (req.method === 'HEAD') {
+      res.writeHead(200, { 'Content-Type': 'application/x-chess-pgn; charset=utf-8', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow, noarchive' });
+      res.end(); return;
+    }
+    const body = Buffer.from(await upstream.arrayBuffer());
+    if (body.byteLength > PGN_MENTOR_MAX_BYTES || !body.includes(Buffer.from('[Event ')) || !body.includes(Buffer.from('[White ')) || !body.includes(Buffer.from('[Black '))) throw new Error('Invalid PGN');
+    res.writeHead(200, { 'Content-Type': 'application/x-chess-pgn; charset=utf-8', 'Content-Disposition': `inline; filename="${file}"`, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow, noarchive', 'X-CAISSA-PGN-Source': 'pgnmentor-event' });
+    res.end(body);
+  } catch {
+    res.writeHead(502, headers); res.end(JSON.stringify({ error: 'PGN source unavailable' }));
+  }
 }
 
 // ============================================================================
@@ -458,6 +494,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/api/pgn/pgnmentor') {
+    await handlePgnMentorEvent(req, res, url);
+    return;
+  }
+
   if (pathname === '/api/mentor/chat') {
     res.writeHead(410, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ code: 'MENTOR_PROXY_RETIRED', error: 'Use the authenticated serverless Mentor API.' }));
@@ -540,6 +581,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/watch/live-tournaments' || pathname === '/watch/live-tournaments/') {
     filePath = './live-tournaments.html';
   }
+  if (pathname === '/watch/game-replayer' || pathname === '/watch/game-replayer/') {
+    filePath = './game-replayer.html';
+  }
   if (pathname === '/pgn-replayer' || pathname === '/pgn-replayer/') {
     filePath = './pgn-replayer.html';
   }
@@ -548,6 +592,12 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/support' || pathname === '/support/') {
     filePath = './support.html';
+  }
+  if (pathname === '/game-library/champions/replay' || pathname === '/game-library/champions/replay/') {
+    filePath = './championship-replay.html';
+  }
+  if (pathname === '/game-library/champions' || pathname === '/game-library/champions/') {
+    filePath = './game-library-champions.html';
   }
   if (pathname === '/academy') {
     filePath = './index.html';
@@ -621,9 +671,7 @@ const server = http.createServer(async (req, res) => {
     filePath = './polyglot.html';
   }
 
-  const protectedPlayerPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn'
-    || pathname === '/public/data/pgn/capablanca-games-1901-1941.pgn'
-    || pathname.startsWith('/data/pgn/players/')
+  const protectedPlayerPgn = pathname.startsWith('/data/pgn/players/')
     || pathname.startsWith('/public/data/pgn/players/')
     || pathname.startsWith('/api/_private/pgn/');
   if (protectedPlayerPgn) {
@@ -634,6 +682,7 @@ const server = http.createServer(async (req, res) => {
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeType = MIME_TYPES[extname] || 'application/octet-stream';
+  const publicPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn';
 
   // Try to read from root first, then from public/ folder
   fs.readFile(filePath, (error, content) => {
@@ -645,8 +694,8 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(404, { 'Content-Type': 'text/html' });
           res.end('<h1>404 - File Not Found</h1>', 'utf-8');
         } else {
-          res.writeHead(200, { 'Content-Type': mimeType });
-          res.end(content2, 'utf-8');
+          res.writeHead(200, { 'Content-Type': mimeType, ...(publicPgn ? { 'Content-Disposition': 'attachment; filename="capablanca-games-1901-1941.pgn"', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' } : {}) });
+          res.end(req.method === 'HEAD' ? undefined : content2);
         }
       });
     } else if (error) {

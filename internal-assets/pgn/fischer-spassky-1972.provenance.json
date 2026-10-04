@@ -1,0 +1,25 @@
+{
+  "schema": "CaissaPgnProvenance@1.0.0",
+  "collectionId": "fischer-spassky-1972-complete",
+  "title": "Fischer–Spassky 1972 · Complete Match",
+  "sourcePage": "https://www.pgnmentor.com/events/WorldChamp1972/",
+  "sourceAsset": "https://www.pgnmentor.com/events/WorldChamp1972.pgn",
+  "retrievedOn": "2026-10-04",
+  "sourceSha256": "2e328e7305609ed01821f6f40cf6da4e3b6bea7e93c10de9cb0c8b5b2d65f875",
+  "publicDerivativeSha256": "562adc8a35bcd62d7c0ad0974de9a75e662fd808f704915cfe2ea0f00bd97c24",
+  "transformation": "CRLF line endings normalized to LF; PGN content otherwise unchanged.",
+  "gameCount": 21,
+  "expectedRounds": "1–21",
+  "players": ["Spassky, Boris V", "Fischer, Robert James"],
+  "results": { "1-0": 5, "0-1": 5, "1/2-1/2": 11 },
+  "validation": {
+    "parser": "chess.js 1.4.0",
+    "parsedGames": 21,
+    "malformedGames": 0,
+    "zeroPlyGames": 0,
+    "notes": "Game 2 is recorded as Fischer's one-move forfeiture and parses as a completed 0-1 game."
+  },
+  "redistributionStatus": "INTERNAL_TEST_ONLY",
+  "licenseFinding": "No explicit redistribution license or permission was located. Free download is not treated as permission to republish.",
+  "usageNote": "Local QA only. Do not publish, deploy, or expose through a production route unless explicit redistribution permission is documented and the registry status is reviewed."
+}

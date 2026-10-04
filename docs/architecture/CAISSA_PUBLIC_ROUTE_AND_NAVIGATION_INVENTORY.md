@@ -18,11 +18,11 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 - Primary navigation entries: 35
 - Internal primary pages: 31
-- Public canonical routes not in primary navigation: 13
+- Public canonical routes not in primary navigation: 16
 - External destinations: 4
-- Redirects: 17
+- Redirects: 15
 - Protected route families: 5
-- Total inventoried records: 70
+- Total inventoried records: 71
 
 ## Primary navigation
 
@@ -73,6 +73,8 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | Who Is Caissa Goddess Of Chess | /blog/who-is-caissa-goddess-of-chess | public/sitemap.xml | public |
 | Yahoo Chess Spirit Caissa Classic | /blog/yahoo-chess-spirit-caissa-classic | public/sitemap.xml | public |
 | Chess Database | /database | vercel.json | public |
+| World Champions Archive | /game-library/champions | vercel.json and server.js | public |
+| World Championship Replay | /game-library/champions/replay | vercel.json and server.js | public |
 | Library | /library | vercel.json | public |
 | Play Bots | /play/bots | PlayV2RouteController | public |
 | Play Coach | /play/coach | PlayV2RouteController | public |
@@ -81,6 +83,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | Roadmap | /roadmap | vercel.json | public |
 | Sign In | /signin | vercel.json | public |
 | Sign Up | /signup | vercel.json | public |
+| Capablanca Game Replayer | /watch/game-replayer | vercel.json and server.js | public |
 
 ## Redirects and aliases
 
@@ -99,8 +102,6 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | /puzzles/chessbase-tactics/ | /puzzles | 308 | vercel.json and server.js |
 | /endgame-practice | /endgame-trainer | 308 | vercel.json and server.js |
 | /endgame-practice/ | /endgame-trainer | 308 | vercel.json and server.js |
-| /watch/game-replayer | /pgn-replayer | 308 | vercel.json and server.js |
-| /watch/game-replayer/ | /pgn-replayer | 308 | vercel.json and server.js |
 | /watch/lichess-broadcasts | /watch/live-tournaments | 308 | vercel.json and server.js |
 | /watch/lichess-broadcasts/ | /watch/live-tournaments | 308 | vercel.json and server.js |
 
