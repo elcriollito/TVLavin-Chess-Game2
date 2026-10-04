@@ -35,8 +35,8 @@ test('application, Classic, Play, and Trainer adopt the shared sidebar family', 
   }
 });
 
-test('fallbacks are deterministic and generated from the canonical 1.16.0 contract', async () => {
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.16.0');
+test('fallbacks are deterministic and generated from the canonical 1.17.0 contract', async () => {
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.17.0');
   assert.equal(expectedBodyLabels.length, 33);
   assert.deepEqual(Array.from(navigation.inventory.primary.slice(-2), item => item.label), ['DOS Chess', 'Vault']);
   assert.deepEqual(Array.from(navigation.inventory.social, item => item.label), ['Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord']);

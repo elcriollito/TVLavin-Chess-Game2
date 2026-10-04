@@ -13,9 +13,9 @@ function navigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('one immutable 1.16.0 model is shared by every shell adapter', () => {
+test('one immutable 1.17.0 model is shared by every shell adapter', () => {
   const api = navigation();
-  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.16.0');
+  assert.equal(api.contractId, 'CaissaGlobalNavigationOrderPolicy@1.17.0');
   assert.equal(api.inventory.primary.length + api.inventory.more.length + api.inventory.social.length, 35);
   assert.deepEqual(Object.keys(api.adapters), ['modernStandalone', 'application', 'trainer']);
   for (const adapter of Object.values(api.adapters)) {

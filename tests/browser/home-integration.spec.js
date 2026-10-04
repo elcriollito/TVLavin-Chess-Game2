@@ -320,7 +320,7 @@ test('tool routes remain reachable and their existing brand returns to Home', as
     '/puzzles', '/academy', '/mentor', '/endgame-trainer', '/endgame-library', '/endgame-tablebase',
     '/insights', '/analyze', '/pgn-replayer', '/spectator-tv', '/watch/lichess-tv',
     '/watch/live-blitz', '/watch/live-tournaments', '/arena', '/cheater-insight',
-    '/tools/polyglot', '/opening-database', '/eco', '/game-library', '/history',
+    '/tools/polyglot', '/opening-database', '/eco', '/game-library/champions', '/game-library', '/history',
     '/dos-chess', '/vault', '/about', '/help', '/support', '/blog'
   ];
   for (const route of routes) {

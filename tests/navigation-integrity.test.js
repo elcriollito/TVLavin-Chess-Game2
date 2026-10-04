@@ -23,7 +23,7 @@ test('canonical primary navigation inventory is unique and stable', () => {
       'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
       'puzzles', 'academy', 'mentor', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
       'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'arena',
-      'cheater-insight', 'polyglot', 'opening-database', 'eco', 'library',
+      'cheater-insight', 'polyglot', 'opening-database', 'eco', 'world-champions',
       'history', 'dosChess', 'vault'
     ]
   );
@@ -83,13 +83,13 @@ test('Endgame Library uses the standard sidebar shell and keeps its content cont
   }
 });
 
-test('Game Library uses the standard sidebar shell without a Classic host', () => {
+test('legacy Game Library keeps its standard shell without public navigation ownership', () => {
   const inventory = loadInventory();
-  const library = inventory.primary.find(({ id }) => id === 'library');
+  const champions = inventory.primary.find(({ id }) => id === 'world-champions');
   const page = load(read('game-library.html'));
-  assert.equal(library.route, '/game-library');
-  assert.equal(library.icon, 'fas fa-database');
-  assert.equal(library.className, undefined);
+  assert.equal(inventory.primary.some(({ id }) => id === 'library'), false);
+  assert.equal(champions.route, '/game-library/champions');
+  assert.equal(champions.icon, 'fas fa-crown');
   assert.doesNotMatch(read('styles.css'), /\.nav-item-tool/);
   assert.equal(page('.caissa-standalone-layout').length, 1);
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);

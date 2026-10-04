@@ -13,9 +13,9 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.16.0 owns the primary, More, and social destinations', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.17.0 owns the primary, More, and social destinations', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.16.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.17.0');
   assert.deepEqual(
     Array.from(navigation.inventory.more, (item) => item.label),
     ['Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback']
@@ -28,7 +28,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.16.0 owns the primary, More, and socia
     'Puzzles', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
     'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
-    'Game Library', 'History', 'DOS Chess', 'Vault'
+    'World Champions', 'History', 'DOS Chess', 'Vault'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.social, item => item.label), [
     'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord'

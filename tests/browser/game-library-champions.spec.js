@@ -402,7 +402,8 @@ test('existing Game Library route and IndexedDB records remain isolated', async 
   await expect(archiveReturn).toHaveAttribute('href', /\/game-library\/champions\?view=champions.*champion=jose-raul-capablanca/);
   await archiveReturn.click();
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
-  await page.getByRole('link', { name: 'Open personal library' }).click();
+  await expect(page.getByRole('link', { name: 'Open personal library' })).toHaveCount(0);
+  await page.goto('/game-library');
   await expect(page).toHaveURL(/\/game-library$/);
   await expect(page.locator('body')).toHaveAttribute('data-game-library-release', 'under-construction');
   await expect(page.locator('[data-caissa-library-public-presentation]')).toBeVisible();

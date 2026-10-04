@@ -1,5 +1,5 @@
 {
-  "contractId": "CaissaPublicRouteInventory@1.2.0",
+  "contractId": "CaissaPublicRouteInventory@1.3.0",
   "origin": "https://www.caissa-chess.org",
   "sources": [
     "home.html",
@@ -389,15 +389,15 @@
       "explicitClickRequired": false
     },
     {
-      "id": "library",
-      "label": "Game Library",
-      "canonicalPath": "/game-library",
-      "absoluteUrl": "https://www.caissa-chess.org/game-library",
+      "id": "world-champions",
+      "label": "World Champions",
+      "canonicalPath": "/game-library/champions",
+      "absoluteUrl": "https://www.caissa-chess.org/game-library/champions",
       "type": "internal-page",
       "group": "tools",
       "navigationPosition": 24,
       "visibleInPrimaryNavigation": true,
-      "activeIdentity": "library",
+      "activeIdentity": "world-champions",
       "owner": "CaissaPrimaryNavigation",
       "target": "_self",
       "rel": null,
@@ -658,15 +658,15 @@
       "status": "public"
     },
     {
-      "id": "game-library-champions",
-      "label": "World Champions Archive",
-      "canonicalPath": "/game-library/champions",
-      "absoluteUrl": "https://www.caissa-chess.org/game-library/champions",
+      "id": "game-library-legacy",
+      "label": "Legacy Game Library",
+      "canonicalPath": "/game-library",
+      "absoluteUrl": "https://www.caissa-chess.org/game-library",
       "type": "internal-page",
       "group": null,
       "navigationPosition": null,
       "visibleInPrimaryNavigation": false,
-      "activeIdentity": "game-library-champions",
+      "activeIdentity": "game-library-legacy",
       "owner": "vercel.json and server.js",
       "target": "_self",
       "rel": null,
