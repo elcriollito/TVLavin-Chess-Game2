@@ -2,6 +2,9 @@
   const state = {
     game: null,
     board: null,
+    boardCleanup: null,
+    quietDragAdapter: null,
+    boardDestroying: false,
     boardFlipped: false,
     ecoCodeDefs: [],
     openingDbShardCache: new Map(),
@@ -82,6 +85,13 @@
         errors: [],
         sanity: null
       }
+    },
+    interactionMetrics: {
+      boardMoveAttempts: 0,
+      boardMovesApplied: 0,
+      boardPositionWrites: 0,
+      moveListWrites: 0,
+      positionViewRequests: 0
     }
   };
 
@@ -90,6 +100,7 @@
   const DEFAULT_SHARD_ROOT = '/openingdb/shards';
   const DEFAULT_ACTIVE_VERSION = 'v3';
   const MANIFEST_URL = manifestUrl;
+  const REMOTE_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
   const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
   const MANIFEST_TTL_MS = 5 * 60 * 1000;
   const SHARD_PREFETCH_DELAY_MS = 200;
@@ -154,6 +165,8 @@
   const OPENINGDB_MAX_FULLMOVES = 15;
   const OPENINGDB_MAX_PLIES = OPENINGDB_MAX_FULLMOVES * 2;
   const OPENINGDB_DEPTH_LIMIT_MESSAGE = `Opening database depth limit reached. Analysis is capped at move ${OPENINGDB_MAX_FULLMOVES} for performance.`;
+  const OPENINGDB_QUIET_DRAG_URL = '/js/board/caissa-legacy-quiet-drag-adapter.js';
+  const OPENINGDB_QUIET_DRAG_QUERY = 'quiet-drag-lab';
   const QUICK_EVAL_STORAGE_KEY = 'odb_eval_next_moves_fast';
   const QUICK_EVAL_MODE_STORAGE_KEY = 'odb_eval_next_moves_mode';
 
@@ -1339,6 +1352,7 @@
   function updateMoveListFromGame(game) {
     if (!els.moveList) return;
     els.moveList.value = formatMoveList(game) || '(start position)';
+    state.interactionMetrics.moveListWrites += 1;
   }
 
   function toPercent(numerator, denominator) {
@@ -1384,8 +1398,8 @@
     return `caissa.openingdb.shard.${version}.${shard}`;
   }
 
-  function getManifestSessionCacheKey() {
-    return 'openingdb_manifest_cache';
+  function getManifestSessionCacheKey(sourceUrl = MANIFEST_URL) {
+    return `openingdb_manifest_cache:${encodeURIComponent(String(sourceUrl || MANIFEST_URL))}`;
   }
 
   function clearLegacyShardSessionCache() {
@@ -1418,10 +1432,10 @@
     els.turnPly.textContent = `Turn: ${turnLabel} | Ply: ${ply} | ${getDbVersionLabel()}`;
   }
 
-  function readManifestFromSession() {
+  function readManifestFromSession(sourceUrl) {
     try {
       if (!window.sessionStorage) return null;
-      const raw = sessionStorage.getItem(getManifestSessionCacheKey());
+      const raw = sessionStorage.getItem(getManifestSessionCacheKey(sourceUrl));
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return null;
@@ -1433,10 +1447,10 @@
     }
   }
 
-  function writeManifestToSession(manifest) {
+  function writeManifestToSession(manifest, sourceUrl) {
     try {
       if (!window.sessionStorage) return;
-      sessionStorage.setItem(getManifestSessionCacheKey(), JSON.stringify({
+      sessionStorage.setItem(getManifestSessionCacheKey(sourceUrl), JSON.stringify({
         ts: Date.now(),
         manifest
       }));
@@ -1621,19 +1635,25 @@
   }
 
   async function loadOpeningDbManifest() {
-    const cached = readManifestFromSession();
+    // Vercel proxies the canonical manifest at the same-origin path. The local
+    // static server does not implement those rewrites, so localhost must read
+    // the canonical manifest directly instead of the bundled legacy fixture.
+    const siteManifestUrl = MANIFEST_OVERRIDE_URL || (DEV_MODE ? REMOTE_MANIFEST_URL : MANIFEST_URL);
+    const cached = readManifestFromSession(siteManifestUrl);
     if (cached) {
       applyManifest(cached, false);
       return { source: 'session-cache', ok: true };
     }
 
-    const siteManifestUrl = MANIFEST_OVERRIDE_URL || MANIFEST_URL;
     const siteManifest = await fetchJsonWithTimeout(siteManifestUrl, MANIFEST_FETCH_TIMEOUT_MS);
     if (siteManifest && typeof siteManifest === 'object') {
       const runtimeManifest = DEV_MODE ? siteManifest : preferSameOriginManifest(siteManifest);
-      writeManifestToSession(runtimeManifest);
+      writeManifestToSession(runtimeManifest, siteManifestUrl);
       applyManifest(runtimeManifest, false);
-      return { source: 'site-proxy', ok: true };
+      return {
+        source: DEV_MODE && !MANIFEST_OVERRIDE_URL ? 'canonical-remote' : 'site-proxy',
+        ok: true
+      };
     }
 
     applyManifest({
@@ -2692,8 +2712,9 @@
 
     if (!move) return false;
 
+    cancelActiveBoardDrag();
     state.board.position(state.game.fen(), false);
-    updateMoveListFromGame(state.game);
+    state.interactionMetrics.boardPositionWrites += 1;
     updatePositionView(state.game.fen());
     return true;
   }
@@ -2928,6 +2949,7 @@
   }
 
   async function updatePositionView(inputFen, options = {}) {
+    state.interactionMetrics.positionViewRequests += 1;
     const lookupStartedAt = performance.now();
     const force = !!options.force;
     const requestId = (state.positionRequestId || 0) + 1;
@@ -3247,24 +3269,27 @@
     }
 
     els.startBtn.addEventListener('click', () => {
+      cancelActiveBoardDrag();
       state.game.reset();
       state.openingDbBasePly = 0;
       clearEngineEvalCache();
       state.board.position('start', false);
-      updateMoveListFromGame(state.game);
+      state.interactionMetrics.boardPositionWrites += 1;
       updatePositionView(state.game.fen());
     });
 
     els.takebackBtn.addEventListener('click', () => {
+      cancelActiveBoardDrag();
       const undone = state.game.undo();
       if (!undone) return;
       clearEngineEvalCache();
       state.board.position(state.game.fen(), false);
-      updateMoveListFromGame(state.game);
+      state.interactionMetrics.boardPositionWrites += 1;
       updatePositionView(state.game.fen());
     });
 
     els.flipBtn.addEventListener('click', () => {
+      cancelActiveBoardDrag();
       state.boardFlipped = !state.boardFlipped;
       state.board.orientation(state.boardFlipped ? 'black' : 'white');
       if (typeof state.board.resize === 'function') {
@@ -3306,8 +3331,9 @@
 
       els.fenError.hidden = true;
       els.fenPanel.hidden = true;
+      cancelActiveBoardDrag();
       state.board.position(state.game.fen(), false);
-      updateMoveListFromGame(state.game);
+      state.interactionMetrics.boardPositionWrites += 1;
       updatePositionView(state.game.fen());
     });
 
@@ -3506,65 +3532,247 @@
     });
 
     window.addEventListener('beforeunload', () => {
+      destroyBoard();
       clearEngineDebounce();
       if (state.engine.client) state.engine.client.terminate();
       if (state.engine.evalClient) state.engine.evalClient.terminate();
     });
+    window.addEventListener('pagehide', destroyBoard);
 
     setMovesListMode(state.moveListMode);
   }
 
-  function initBoard() {
-    state.game = new Chess();
+  function captureChessboardGlobalHandlers() {
+    const jquery = window.jQuery;
+    if (typeof jquery?._data !== 'function') return [];
+    const eventTypes = new Set(['mousedown', 'mousemove', 'mouseup', 'touchstart', 'touchmove', 'touchend']);
+    return [window, document.body].filter(Boolean).flatMap((target) => {
+      const events = jquery._data(target, 'events') || {};
+      return Object.entries(events).flatMap(([type, handlers]) => {
+        if (!eventTypes.has(type)) return [];
+        return handlers.map((binding) => ({ target, type, binding }));
+      });
+    });
+  }
+
+  function createLegacyInputController(existingBindings) {
+    const jquery = window.jQuery;
+    const ownedBindings = typeof jquery === 'function'
+      ? captureChessboardGlobalHandlers().filter((item) => !existingBindings.has(item.binding))
+      : [];
+    let attached = true;
+    let destroyed = false;
+    const eventNameFor = ({ type, binding }) => binding.namespace ? `${type}.${binding.namespace}` : type;
+    const remove = (item) => {
+      const target = jquery(item.target);
+      const eventName = eventNameFor(item);
+      if (item.binding.selector) target.off(eventName, item.binding.selector, item.binding.handler);
+      else target.off(eventName, item.binding.handler);
+    };
+    const add = (item) => {
+      const target = jquery(item.target);
+      const eventName = eventNameFor(item);
+      const { selector, data, handler } = item.binding;
+      if (selector && data !== undefined) target.on(eventName, selector, data, handler);
+      else if (selector) target.on(eventName, selector, handler);
+      else if (data !== undefined) target.on(eventName, data, handler);
+      else target.on(eventName, handler);
+    };
+    return {
+      detach() {
+        if (!attached || destroyed) return false;
+        ownedBindings.forEach(remove);
+        attached = false;
+        return true;
+      },
+      attach() {
+        if (attached || destroyed) return false;
+        ownedBindings.forEach(add);
+        attached = true;
+        return true;
+      },
+      destroy() {
+        if (destroyed) return false;
+        ownedBindings.forEach(remove);
+        attached = false;
+        destroyed = true;
+        return true;
+      },
+      snapshot() {
+        return Object.freeze({ attached, ownedBindingCount: ownedBindings.length, destroyed });
+      }
+    };
+  }
+
+  function cancelActiveBoardDrag() {
+    if (!state.quietDragAdapter) return false;
+    state.quietDragAdapter.setEnabled(false);
+    state.quietDragAdapter.refreshEnabledState();
+    return true;
+  }
+
+  function canStartBoardDrag(source, piece) {
+    if (!state.game || state.game.game_over()) return false;
+    if (isOpeningDbDepthLimitReached()) {
+      renderOpeningDbDepthLimit();
+      return false;
+    }
+    if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
+        (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
+      return false;
+    }
+    return /^[a-h][1-8]$/.test(String(source || ''));
+  }
+
+  function applyBoardDrop(source, target, piece, _newPos, _oldPos, orientation) {
+    state.interactionMetrics.boardMoveAttempts += 1;
+    debugLog('[OpeningDB] onDrop', { source, target, piece, fenBefore: state.game.fen(), orientation });
+
+    if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
+        (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
+      console.warn('[OpeningDB] illegal move: wrong turn piece', { source, target, piece });
+      return 'snapback';
+    }
+
+    // Opening Database's established product contract is automatic queen
+    // promotion. Quiet Drag delegates to this exact move path unchanged.
+    const move = state.game.move({ from: source, to: target, promotion: 'q' });
+    if (move === null) {
+      console.warn('[OpeningDB] illegal move', { source, target, piece });
+      return 'snapback';
+    }
+
+    state.interactionMetrics.boardMovesApplied += 1;
+    debugLog('[OpeningDB] legal move', { san: move.san, fenAfter: state.game.fen() });
+    state.board.position(state.game.fen(), false);
+    state.interactionMetrics.boardPositionWrites += 1;
+    updatePositionView(state.game.fen());
+    return undefined;
+  }
+
+  function getQuietDragSnapshot() {
+    const verboseHistory = state.game?.history?.({ verbose: true }) || [];
+    return Object.freeze({
+      fen: state.game?.fen?.() || '',
+      history: state.game?.history?.({ verbose: false }) || [],
+      uciHistory: verboseHistory.map((move) => `${move.from}${move.to}${move.promotion || ''}`),
+      turn: state.game?.turn?.() || null,
+      orientation: state.board?.orientation?.() || null,
+      boardPosition: state.board?.position?.() || null,
+      moveList: els.moveList?.value || '',
+      openingLabel: els.openingLabel?.textContent || '',
+      lookupStatus: els.lookupStatus?.textContent || '',
+      positionRequestId: state.positionRequestId,
+      lookupCount: openingDbDebugState.counters.lookupCount,
+      interaction: { ...state.interactionMetrics },
+      adapter: state.quietDragAdapter?.getMetrics?.() || null
+    });
+  }
+
+  function isLocalQuietDragLab() {
+    const localHosts = new Set(['127.0.0.1', 'localhost', '::1']);
+    return localHosts.has(window.location.hostname)
+      && URL_PARAMS.get(OPENINGDB_QUIET_DRAG_QUERY) === '1';
+  }
+
+  function installQuietDragLabApi() {
+    if (!isLocalQuietDragLab()) return;
+    window.__openingDbQuietDrag = Object.freeze({
+      getSnapshot: getQuietDragSnapshot,
+      getAdapter: () => state.quietDragAdapter,
+      destroyBoard,
+      recreateBoard: async () => {
+        destroyBoard();
+        await initBoard();
+        return getQuietDragSnapshot();
+      }
+    });
+  }
+
+  function destroyBoard() {
+    if (!state.board && !state.quietDragAdapter && !state.boardCleanup) return false;
+    state.boardDestroying = true;
+    state.quietDragAdapter?.destroy?.();
+    state.quietDragAdapter = null;
+    state.boardCleanup?.();
+    state.boardCleanup = null;
+    state.board = null;
+    state.boardDestroying = false;
+    return true;
+  }
+
+  async function initBoard() {
+    if (!state.game) state.game = new Chess();
+    destroyBoard();
+
+    let quietDragModule = null;
+    try {
+      quietDragModule = await import(OPENINGDB_QUIET_DRAG_URL);
+    } catch (error) {
+      console.error('[OpeningDB] Quiet Drag unavailable; retaining legacy board drag.', error);
+    }
 
     try {
-      state.board = Chessboard('openingDbBoard', {
+      const existingBindings = new Set(captureChessboardGlobalHandlers().map((item) => item.binding));
+      const board = Chessboard('openingDbBoard', {
         draggable: true,
-        position: 'start',
+        position: state.game.fen(),
+        orientation: state.boardFlipped ? 'black' : 'white',
         showNotation: true,
         pieceTheme: '/img/chesspieces/wikipedia/{piece}.png',
-        onDragStart: (source, piece) => {
-          if (state.game.game_over()) return false;
-          if (isOpeningDbDepthLimitReached()) {
-            renderOpeningDbDepthLimit();
-            return false;
-          }
-          if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
-              (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
-            return false;
-          }
-          return true;
-        },
-        onDrop: (source, target, piece, newPos, oldPos, orientation) => {
-          debugLog('[OpeningDB] onDrop', { source, target, piece, fenBefore: state.game.fen(), orientation });
-
-          if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
-              (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
-            console.warn('[OpeningDB] illegal move: wrong turn piece', { source, target, piece });
-            return 'snapback';
-          }
-
-          const move = state.game.move({ from: source, to: target, promotion: 'q' });
-          if (move === null) {
-            console.warn('[OpeningDB] illegal move', { source, target, piece });
-            return 'snapback';
-          }
-
-          debugLog('[OpeningDB] legal move', { san: move.san, fenAfter: state.game.fen() });
-          state.board.position(state.game.fen(), false);
-          updateMoveListFromGame(state.game);
-          updatePositionView(state.game.fen());
-          return undefined;
-        },
+        onDragStart: canStartBoardDrag,
+        onDrop: applyBoardDrop,
         onSnapEnd: () => {
-          state.board.position(state.game.fen(), false);
+          // Legacy comparison only. Quiet Drag commits the canonical board once
+          // inside applyBoardDrop and does not invoke this animated vendor phase.
+          state.board?.position(state.game.fen(), false);
         }
       });
+      const legacyInput = createLegacyInputController(existingBindings);
+      const nativeDestroy = board.destroy.bind(board);
+      state.board = board;
+      state.boardCleanup = () => {
+        legacyInput.destroy();
+        nativeDestroy();
+      };
+
+      if (quietDragModule?.create) {
+        legacyInput.detach();
+        try {
+          state.quietDragAdapter = quietDragModule.create(els.board, {
+            board,
+            qaQuery: OPENINGDB_QUIET_DRAG_QUERY,
+            qaLabel: 'Opening Database drag comparison',
+            qaTitle: 'Opening Database',
+            isEnabled: () => state.board === board && !state.boardDestroying,
+            onDragStart: canStartBoardDrag,
+            onDrop: (source, target, metadata) => applyBoardDrop(
+              source,
+              target,
+              metadata?.pieceId,
+              undefined,
+              undefined,
+              board.orientation()
+            ),
+            onEnabledChange: (enabled) => {
+              if (state.boardDestroying) return;
+              if (enabled) legacyInput.detach();
+              else legacyInput.attach();
+            },
+            getLegacyInputState: () => legacyInput.snapshot()
+          });
+        } catch (error) {
+          legacyInput.attach();
+          console.error('[OpeningDB] Quiet Drag adapter failed; retaining legacy board drag.', error);
+        }
+      }
     } catch (err) {
       console.error('[OpeningDB] Board failed to initialize', err);
       renderBoardFatal('The board could not load. Refresh and try again.');
       throw err;
     }
+
+    installQuietDragLabApi();
 
     setTimeout(() => {
       if (state.board && typeof state.board.resize === 'function') {
@@ -3580,7 +3788,7 @@
     }, 60);
   }
 
-  function runInit() {
+  async function runInit() {
     debugLog('[OpeningDB] init start');
     debugLog('[OpeningDB] Chessboard typeof:', typeof window.Chessboard);
     debugLog('[OpeningDB] Chess typeof:', typeof window.Chess);
@@ -3626,7 +3834,7 @@
       state.engine.debug.lastInfoAt = 0;
       state.engine.debug.errors = [];
       renderEnginePanel();
-      initBoard();
+      await initBoard();
       bindEvents();
       setActiveTab('moves');
       updateDownloadButtonLabel();
