@@ -1,6 +1,31 @@
 import { test, expect } from '@playwright/test';
 
+const openingDbFixture = {
+  '66be37feb35e7d6a': {
+    moves: [{ uci: 'e2e4', san: 'e4', games: 100, w: 40, d: 30, l: 30 }]
+  },
+  'fa6f7503caab4032': {
+    moves: [{ uci: 'c7c5', san: 'c5', games: 90, w: 40, d: 30, l: 30 }]
+  }
+};
+
+async function installOpeningDbFixture(page) {
+  await page.route('https://downloads.caissa-chess.org/openingdb/manifest.json', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      activeVersion: 'browser_test',
+      baseUrl: 'https://downloads.caissa-chess.org/openingdb/shards/browser_test',
+      maxPlies: 60
+    })
+  }));
+  await page.route('https://downloads.caissa-chess.org/openingdb/shards/browser_test/*.json', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify(openingDbFixture)
+  }));
+}
+
 async function openLab(page) {
+  await installOpeningDbFixture(page);
   await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
   await page.goto('/opening-database?quiet-drag-lab=1');
   await expect(page.locator('#openingDbBoard .board-b72b1')).toHaveAttribute(

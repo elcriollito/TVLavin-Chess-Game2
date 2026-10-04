@@ -4,7 +4,36 @@
 
 Technical implementation and automated gates: PASS.
 
-Release gate: PENDING HUMAN QA. The canonical standard requires a person to confirm the interaction feels silent, light, jitter-free, and immediate at `/opening-database?quiet-drag-lab=1` on localhost.
+Quiet Drag human QA: PASS. The interaction was confirmed silent, light, jitter-free, immediate on drop, naturally refreshing, and correct for special moves at `/opening-database?quiet-drag-lab=1` on localhost.
+
+Opening Database data-source parity: PASS after the local development manifest correction documented below.
+
+Release gate: PASS. Do not merge, push, publish, or deploy as part of this audit.
+
+## Opening Database data parity audit
+
+Starting FEN: `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`.
+
+Mode: Popular. Match level: exact. Source: `openingdb_shard_exact`.
+
+| Move | Local before | Production | Local after | W/D/L after |
+| --- | ---: | ---: | ---: | --- |
+| `1.e4` | 43 | 2,350,205 | 2,350,205 | 37.3% / 32.0% / 30.6% |
+| `1.d4` | 26 | 1,752,999 | 1,752,999 | 37.8% / 34.1% / 28.1% |
+| `1.c4` | 1 | 367,340 | 367,340 | 37.8% / 35.2% / 27.0% |
+| `1.Nf3` | 1 | 488,010 | 488,010 | 37.7% / 36.4% / 25.9% |
+
+Before the correction, localhost requested `/openingdb/manifest.json` from the repository's static `public` tree. That legacy fixture selected `v2`, generated 2026-02-18, and directed the browser to `https://downloads.caissa-chess.org/openingdb/shards/v2`. The exact start-position request was `v2/66.json`: HTTP 200, 745 decoded bytes, four rows, and 71 games total. This was a successful lookup against a reduced legacy corpus, not an HTTP, CORS, timeout, or rendering failure.
+
+Production requests `https://www.caissa-chess.org/openingdb/manifest.json`. The Vercel rewrite proxies that route to `https://downloads.caissa-chess.org/openingdb/manifest.json`, whose active version is `v3_p60`. Production then requests same-origin shard `/openingdb/shards/v3_p60/66.json`, also proxied to the download worker. The response is HTTP 200, 67,316,946 decoded bytes, 20 start-position rows, and 5,072,955 games total. The download worker reads `openingdb/manifest.json` and shard objects from its `OPENINGDB_BUCKET` R2 binding, falling back to `VAULT_BUCKET` only if the preferred binding is unavailable.
+
+The local Node static server does not implement the Vercel external rewrites. The correction therefore makes localhost request the canonical download-host manifest directly; its CORS response allows `*`. The manifest-selected shard URL remains remote and versioned. Production retains the same-origin proxy path. The session cache key now includes the manifest source URL, so an already-open local tab cannot reuse the old unqualified `v2` manifest cache entry.
+
+Fallback behavior remains the preexisting default-version path only when the selected manifest request fails. No fallback activated in before or after captures. Default Node API mode is off; `useNodeApi`, `strictNodeApi`, `nodeApiBase`, and `openingdbVersion` were absent from both audited URLs. No `.env` file or environment variable selected the reduced corpus.
+
+Commit `e43987b494094197fea2e5231eec346b47030db5` did not change manifest URLs, shard URLs, feature flags, query parameters, match levels, dataset versions, fallback rules, or statistics normalization. Its Opening Database changes were confined to input/drag ownership, lifecycle, metrics, and removal of a redundant move-list write. The small local corpus predates that commit and is classified as a local development-source configuration issue, not a Quiet Drag regression.
+
+After the correction, normal localhost, the Quiet Drag lab, and production all use `v3_p60`, render 20 start rows in identical order, total 5,072,955 games, and have identical W/D/L percentages. After `1.e4`, both environments show `King's Pawn Game (B00)`, match level `no_ep`, and identical continuation ordering/counts/percentages.
 
 ## Phase 1 audit
 
@@ -134,10 +163,10 @@ Local-only URL:
 
 `http://127.0.0.1:8000/opening-database?quiet-drag-lab=1`
 
-The panel exposes `Legacy Drag | Quiet Drag` only for `localhost`, `127.0.0.1`, or `::1`. Human acceptance must confirm silent feel, no heavy drag, no jitter, immediate drop, and a natural explorer refresh.
+The panel exposes `Legacy Drag | Quiet Drag` only for `localhost`, `127.0.0.1`, or `::1`. Human acceptance confirmed silent feel, no heavy drag, no jitter, immediate drop, a natural explorer refresh, and correct special moves.
 
 ## Remaining risks
 
-- Human feel cannot be certified by automation and remains the only open release gate.
+- Canonical data QA requires network access to `downloads.caissa-chess.org`; an unavailable canonical manifest still activates the preexisting fallback status rather than silently substituting the reduced `v2` fixture.
 - The page's existing mobile information architecture is outside this phase; no mobile redesign was attempted.
 - Browser console may show the preexisting local unauthenticated auth-runtime warning when Clerk is unavailable. It does not affect the board or explorer.

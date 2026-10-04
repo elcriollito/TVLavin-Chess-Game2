@@ -100,6 +100,7 @@
   const DEFAULT_SHARD_ROOT = '/openingdb/shards';
   const DEFAULT_ACTIVE_VERSION = 'v3';
   const MANIFEST_URL = manifestUrl;
+  const REMOTE_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
   const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
   const MANIFEST_TTL_MS = 5 * 60 * 1000;
   const SHARD_PREFETCH_DELAY_MS = 200;
@@ -1397,8 +1398,8 @@
     return `caissa.openingdb.shard.${version}.${shard}`;
   }
 
-  function getManifestSessionCacheKey() {
-    return 'openingdb_manifest_cache';
+  function getManifestSessionCacheKey(sourceUrl = MANIFEST_URL) {
+    return `openingdb_manifest_cache:${encodeURIComponent(String(sourceUrl || MANIFEST_URL))}`;
   }
 
   function clearLegacyShardSessionCache() {
@@ -1431,10 +1432,10 @@
     els.turnPly.textContent = `Turn: ${turnLabel} | Ply: ${ply} | ${getDbVersionLabel()}`;
   }
 
-  function readManifestFromSession() {
+  function readManifestFromSession(sourceUrl) {
     try {
       if (!window.sessionStorage) return null;
-      const raw = sessionStorage.getItem(getManifestSessionCacheKey());
+      const raw = sessionStorage.getItem(getManifestSessionCacheKey(sourceUrl));
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return null;
@@ -1446,10 +1447,10 @@
     }
   }
 
-  function writeManifestToSession(manifest) {
+  function writeManifestToSession(manifest, sourceUrl) {
     try {
       if (!window.sessionStorage) return;
-      sessionStorage.setItem(getManifestSessionCacheKey(), JSON.stringify({
+      sessionStorage.setItem(getManifestSessionCacheKey(sourceUrl), JSON.stringify({
         ts: Date.now(),
         manifest
       }));
@@ -1634,19 +1635,25 @@
   }
 
   async function loadOpeningDbManifest() {
-    const cached = readManifestFromSession();
+    // Vercel proxies the canonical manifest at the same-origin path. The local
+    // static server does not implement those rewrites, so localhost must read
+    // the canonical manifest directly instead of the bundled legacy fixture.
+    const siteManifestUrl = MANIFEST_OVERRIDE_URL || (DEV_MODE ? REMOTE_MANIFEST_URL : MANIFEST_URL);
+    const cached = readManifestFromSession(siteManifestUrl);
     if (cached) {
       applyManifest(cached, false);
       return { source: 'session-cache', ok: true };
     }
 
-    const siteManifestUrl = MANIFEST_OVERRIDE_URL || MANIFEST_URL;
     const siteManifest = await fetchJsonWithTimeout(siteManifestUrl, MANIFEST_FETCH_TIMEOUT_MS);
     if (siteManifest && typeof siteManifest === 'object') {
       const runtimeManifest = DEV_MODE ? siteManifest : preferSameOriginManifest(siteManifest);
-      writeManifestToSession(runtimeManifest);
+      writeManifestToSession(runtimeManifest, siteManifestUrl);
       applyManifest(runtimeManifest, false);
-      return { source: 'site-proxy', ok: true };
+      return {
+        source: DEV_MODE && !MANIFEST_OVERRIDE_URL ? 'canonical-remote' : 'site-proxy',
+        ok: true
+      };
     }
 
     applyManifest({
