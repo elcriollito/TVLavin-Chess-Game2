@@ -1,8 +1,9 @@
 import { pgnCollections, validatePgnCollectionRegistry } from './pgn-collection-registry.js';
+import { getWorldChampionshipPgnCollectionForEvent } from './world-championship-pgn-catalog.js';
 
 export { pgnCollections } from './pgn-collection-registry.js';
 
-export const CHAMPIONSHIP_ARCHIVE_VERSION = 'ChampionshipArchive@2.0.0-review';
+export const CHAMPIONSHIP_ARCHIVE_VERSION = 'ChampionshipArchive@3.0.0-review';
 
 export const LINEAGES = Object.freeze({
   UNDISPUTED: 'undisputed',
@@ -88,7 +89,7 @@ const transition = (id, year, title, championId, challengerId, winnerId, lineage
   historicalNote: extra.historicalNote || extra.note || null
 });
 
-export const championshipEvents = Object.freeze([
+const modeledChampionshipEvents = [
   transition('wcc-1886', 1886, 'Steinitz–Zukertort', 'wilhelm-steinitz', 'johannes-zukertort', 'wilhelm-steinitz', 'undisputed', { location: 'United States', note: 'First match generally recognized as the official World Championship.' }),
   transition('wcc-1894', 1894, 'Steinitz–Lasker', 'wilhelm-steinitz', 'emanuel-lasker', 'emanuel-lasker'),
   transition('wcc-1921', 1921, 'Lasker–Capablanca', 'emanuel-lasker', 'jose-raul-capablanca', 'jose-raul-capablanca'),
@@ -125,7 +126,45 @@ export const championshipEvents = Object.freeze([
   transition('wcc-2013', 2013, 'Anand–Carlsen', 'viswanathan-anand', 'magnus-carlsen', 'magnus-carlsen'),
   { id: 'wcc-2023', year: 2023, title: 'Nepomniachtchi–Ding', championId: null, challengerId: 'ian-nepomniachtchi', winnerId: 'ding-liren', loserId: 'ian-nepomniachtchi', format: 'match', lineage: 'undisputed', status: 'completed', classification: 'FIDE/classical', verification: 'verified', source: 'https://www.fide.com/fide-world-championship-cycle-2023-2024/', historicalNote: 'Carlsen declined to defend; Ding won the vacant title after rapid tiebreaks.' },
   transition('wcc-2024', 2024, 'Ding–Gukesh', 'ding-liren', 'gukesh-dommaraju', 'gukesh-dommaraju', 'undisputed', { score: '6½–7½', location: 'Singapore', source: 'https://www.fide.com/fide-world-championship-game-14-gukesh-d-claims-title/' })
-]);
+];
+
+const supplementalChampionshipEvents = [
+  transition('wcc-1889', 1889, 'Steinitz–Chigorin', 'wilhelm-steinitz', 'mikhail-chigorin', 'wilhelm-steinitz'),
+  transition('wcc-1890', 1890, 'Steinitz–Gunsberg', 'wilhelm-steinitz', 'isidor-gunsberg', 'wilhelm-steinitz'),
+  transition('wcc-1892', 1892, 'Steinitz–Chigorin', 'wilhelm-steinitz', 'mikhail-chigorin', 'wilhelm-steinitz'),
+  transition('wcc-1896', 1896, 'Lasker–Steinitz return match', 'emanuel-lasker', 'wilhelm-steinitz', 'emanuel-lasker'),
+  transition('wcc-1907', 1907, 'Lasker–Marshall', 'emanuel-lasker', 'frank-marshall', 'emanuel-lasker'),
+  transition('wcc-1908', 1908, 'Lasker–Tarrasch', 'emanuel-lasker', 'siegbert-tarrasch', 'emanuel-lasker'),
+  transition('wcc-1909', 1909, 'Lasker–Janowski', 'emanuel-lasker', 'dawid-janowski', 'emanuel-lasker'),
+  transition('wcc-1910-schlechter', 1910, 'Lasker–Schlechter', 'emanuel-lasker', 'carl-schlechter', 'emanuel-lasker', 'undisputed', { status: 'drawn', historicalNote: 'Lasker retained the title after the ten-game match was drawn.' }),
+  transition('wcc-1910-janowski', 1910, 'Lasker–Janowski', 'emanuel-lasker', 'dawid-janowski', 'emanuel-lasker'),
+  transition('wcc-1929', 1929, 'Alekhine–Bogoljubow', 'alexander-alekhine', 'efim-bogoljubow', 'alexander-alekhine'),
+  transition('wcc-1934', 1934, 'Alekhine–Bogoljubow', 'alexander-alekhine', 'efim-bogoljubow', 'alexander-alekhine'),
+  transition('wcc-1951', 1951, 'Botvinnik–Bronstein', 'mikhail-botvinnik', 'david-bronstein', 'mikhail-botvinnik', 'undisputed', { status: 'drawn', historicalNote: 'Botvinnik retained the title after a drawn match.' }),
+  transition('wcc-1954', 1954, 'Botvinnik–Smyslov', 'mikhail-botvinnik', 'vasily-smyslov', 'mikhail-botvinnik', 'undisputed', { status: 'drawn', historicalNote: 'Botvinnik retained the title after a drawn match.' }),
+  transition('wcc-1966', 1966, 'Petrosian–Spassky', 'tigran-petrosian', 'boris-spassky', 'tigran-petrosian'),
+  transition('wcc-classical-1995', 1995, 'Kasparov–Anand', 'garry-kasparov', 'viswanathan-anand', 'garry-kasparov', 'classical'),
+  transition('wcc-fide-1996', 1996, 'Karpov–Kamsky', 'anatoly-karpov', 'gata-kamsky', 'anatoly-karpov', 'fide'),
+  { id: 'wcc-fide-1998', year: 1998, title: 'FIDE Knockout Championship', winnerId: 'anatoly-karpov', format: 'knockout-tournament', lineage: 'fide', status: 'tournament', classification: 'FIDE', verification: 'verified', source: officialSource, historicalNote: 'The mapped Reader album contains the full knockout event, not only the Karpov–Anand final.' },
+  transition('wcc-classical-2004', 2004, 'Kramnik–Leko', 'vladimir-kramnik', 'peter-leko', 'vladimir-kramnik', 'classical', { status: 'drawn', historicalNote: 'Kramnik retained the classical title after a drawn match.' }),
+  transition('wcc-2008', 2008, 'Kramnik–Anand', 'vladimir-kramnik', 'viswanathan-anand', 'viswanathan-anand'),
+  transition('wcc-2010', 2010, 'Anand–Topalov', 'viswanathan-anand', 'veselin-topalov', 'viswanathan-anand'),
+  transition('wcc-2012', 2012, 'Anand–Gelfand', 'viswanathan-anand', 'boris-gelfand', 'viswanathan-anand'),
+  transition('wcc-2014', 2014, 'Carlsen–Anand', 'magnus-carlsen', 'viswanathan-anand', 'magnus-carlsen'),
+  transition('wcc-2016', 2016, 'Carlsen–Karjakin', 'magnus-carlsen', 'sergey-karjakin', 'magnus-carlsen'),
+  transition('wcc-2018', 2018, 'Carlsen–Caruana', 'magnus-carlsen', 'fabiano-caruana', 'magnus-carlsen'),
+  transition('wcc-2021', 2021, 'Carlsen–Nepomniachtchi', 'magnus-carlsen', 'ian-nepomniachtchi', 'magnus-carlsen')
+];
+
+export const championshipEvents = Object.freeze([...modeledChampionshipEvents, ...supplementalChampionshipEvents]
+  .sort((a, b) => a.year - b.year)
+  .map(event => {
+    const mapped = getWorldChampionshipPgnCollectionForEvent(event.id);
+    return Object.freeze({
+      ...event,
+      ...(mapped ? { pgnCollectionId: mapped.id, numberOfGames: event.numberOfGames ?? mapped.gamesCount } : {})
+    });
+  }));
 
 export const archiveMeta = Object.freeze({
   updated: '2026-10-04',

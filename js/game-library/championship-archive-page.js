@@ -37,7 +37,13 @@ const externalPeople = Object.freeze({
   'johannes-zukertort': 'Johannes Zukertort', 'paul-keres': 'Paul Keres',
   'samuel-reshevsky': 'Samuel Reshevsky', 'viktor-korchnoi': 'Viktor Korchnoi',
   'nigel-short': 'Nigel Short', 'jan-timman': 'Jan Timman',
-  'ian-nepomniachtchi': 'Ian Nepomniachtchi'
+  'ian-nepomniachtchi': 'Ian Nepomniachtchi', 'mikhail-chigorin': 'Mikhail Chigorin',
+  'isidor-gunsberg': 'Isidor Gunsberg', 'frank-marshall': 'Frank Marshall',
+  'siegbert-tarrasch': 'Siegbert Tarrasch', 'dawid-janowski': 'Dawid Janowski',
+  'carl-schlechter': 'Carl Schlechter', 'efim-bogoljubow': 'Efim Bogoljubow',
+  'david-bronstein': 'David Bronstein', 'gata-kamsky': 'Gata Kamsky',
+  'peter-leko': 'Peter Leko', 'boris-gelfand': 'Boris Gelfand',
+  'sergey-karjakin': 'Sergey Karjakin', 'fabiano-caruana': 'Fabiano Caruana'
 });
 
 function personName(id) {
@@ -61,8 +67,11 @@ function championEra(champion) {
 
 function availabilityCopy(collectionId) {
   const availability = getPgnAvailability(collectionId);
+  const collection = getKnownPgnCollection(collectionId);
   const descriptions = {
-    available: 'Rights-cleared · Reader available',
+    available: collection?.rightsClassification === 'REMOTE_VIEW_ONLY'
+      ? 'Remote view only · Reader available · External source registered'
+      : 'Rights-cleared local collection · Reader available',
     'external-only': 'Approved source · External download available',
     'pending-review': 'Collection pending review · Public actions unavailable',
     'historical-only': 'Historical record · No PGN collection attached'
@@ -130,7 +139,7 @@ function availabilityBadge(collectionId) {
 function externalDownloadAction(collectionId) {
   const external = getApprovedExternalPgnDownload(collectionId);
   if (!external) return '';
-  return `<a class="external-pgn-link" href="${escapeHtml(external.url)}" target="_blank" rel="noopener noreferrer external" aria-label="Download from external source (opens in a new tab)"><i class="fas fa-external-link-alt" aria-hidden="true"></i>Download from external source</a>`;
+  return `<a class="external-pgn-link" href="${escapeHtml(external.url)}" target="_blank" rel="noopener noreferrer external" aria-label="Download PGN from external source (opens in a new tab)"><i class="fas fa-external-link-alt" aria-hidden="true"></i>Download PGN — External ↗</a>`;
 }
 
 function knownCollectionForEvent(event) {
@@ -243,12 +252,13 @@ function renderMatches() {
   target.innerHTML = events.map((event, eventIndex) => {
     const participantIds = event.participantIds || [event.championId, event.challengerId].filter(Boolean);
     const participants = participantIds.length ? participantIds.map(personName).join(' vs. ') : event.winnerId ? `Winner: ${personName(event.winnerId)}` : 'Championship transition';
-    const runtime = collectionForRuntime(event.pgnCollectionId);
+    const known = knownCollectionForEvent(event);
+    const runtime = runtimeCollectionForEvent(event);
     const championId = eventContextChampion(event);
     const factLine = [event.score ? `Score ${event.score}` : null, event.numberOfGames !== undefined ? `${event.numberOfGames} games` : null, event.location].filter(Boolean).join(' · ');
-    return `<article class="match-card${event.id === uiState.event ? ' is-selected' : ''}" data-match-event="${event.id}"><div class="match-card__date"><span>${String(eventIndex + 1).padStart(2, '0')}</span><strong class="match-card__year">${event.year}</strong></div><div class="match-card__body"><div class="match-card__meta"><span>${escapeHtml(event.lineage)}</span><span>${escapeHtml(event.status)}</span></div><h3>${escapeHtml(event.title)}</h3><p>${escapeHtml(participants)}</p>${factLine ? `<div class="match-card__facts">${escapeHtml(factLine)}</div>` : ''}${event.historicalNote ? `<small>${escapeHtml(event.historicalNote)}</small>` : ''}</div><div class="match-card__actions">${availabilityBadge(event.pgnCollectionId)}${runtime?.readerCompatible ? `<button type="button" data-match-pgn="${runtime.id}" data-event="${event.id}">Open PGN</button>` : ''}${championId ? `<button type="button" data-match-champion="${championId}" data-event="${event.id}">Champion context</button>` : ''}</div></article>`;
+    return `<article class="match-card${event.id === uiState.event ? ' is-selected' : ''}" data-match-event="${event.id}"><div class="match-card__date"><span>${String(eventIndex + 1).padStart(2, '0')}</span><strong class="match-card__year">${event.year}</strong></div><div class="match-card__body"><div class="match-card__meta"><span>${escapeHtml(event.lineage)}</span><span>${escapeHtml(event.status)}</span></div><h3>${escapeHtml(event.title)}</h3><p>${escapeHtml(participants)}</p>${factLine ? `<div class="match-card__facts">${escapeHtml(factLine)}</div>` : ''}${event.historicalNote ? `<small>${escapeHtml(event.historicalNote)}</small>` : ''}</div><div class="match-card__actions">${availabilityBadge(known?.id)}${runtime?.readerCompatible ? `<button type="button" data-match-pgn="${runtime.id}" data-event="${event.id}">View match</button>` : ''}${known ? externalDownloadAction(known.id) : ''}${championId ? `<button type="button" data-match-champion="${championId}" data-event="${event.id}">Champion context</button>` : ''}</div></article>`;
   }).join('') || '<p class="match-empty">No events match this filter.</p>';
-  target.querySelectorAll('[data-match-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.matchPgn, button.dataset.event); }));
+  target.querySelectorAll('[data-match-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.matchPgn, button.dataset.event, 0); }));
   target.querySelectorAll('[data-match-champion]').forEach(button => button.addEventListener('click', () => openChampionDetail(button.dataset.matchChampion, { eventId: button.dataset.event, returnFocus: button })));
 }
 
@@ -314,4 +324,4 @@ const validation = Object.freeze({
 });
 if (!validation.valid) throw new Error(`Championship Archive validation failed: ${validation.errors.join('; ')}`);
 renderChampionCards(); renderSplitDiagram(); bindInteractions(); restoreState();
-window.CaissaChampionshipArchive = Object.freeze({ version: '1.0.0-rc.2', validation, openChampionDetail, getState: () => Object.freeze({ ...uiState }) });
+window.CaissaChampionshipArchive = Object.freeze({ version: '1.0.0-rc.3', validation, openChampionDetail, getState: () => Object.freeze({ ...uiState }) });

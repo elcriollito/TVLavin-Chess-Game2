@@ -33,7 +33,8 @@ test('Game Replayer parent owns exact SEO, accessible isolation, fallback, and d
   assert.equal(frame.attr('referrerpolicy'), 'no-referrer');
   assert.match(page('.game-replayer-banner').text(), /CAISSA Weekend Tournament — Coming Soon/);
   assert.match(page('.game-replayer-disclosure').text(), /provided and operated by ChessBase/);
-  assert.match(page('.game-replayer-disclosure').text(), /CAISSA Chess supplies the displayed PGN collection and does not operate ChessBase/);
+  assert.match(page('.game-replayer-disclosure').text(), /CAISSA selects only registered PGN collections and does not operate ChessBase/);
+  assert.match(page('.game-replayer-disclosure').text(), /remote-only collections remain unavailable as CAISSA downloads/);
   assert.match(page('.game-replayer-disclosure').text(), /no prose comments or editorial annotations/);
   assert.ok(page(`a[href="${pgnUrl}"]`).length >= 2);
   assert.equal(page(`a[href="${pgnUrl}"][download="capablanca-games-1901-1941.pgn"]`).length, 2);
@@ -55,7 +56,8 @@ test('wrapper is minimal, SRI-pinned, sandbox-compatible, and not navigation-vis
   assert.match(loader, /https:\/\/pgn\.chessbase\.com\/cbreplay\.js/);
   assert.equal((loader.match(/sha384-/g) || []).length, 2);
   assert.match(loader, /getPgnCollection\(requestedId\)/);
-  assert.match(loader, /host\.dataset\.url = selected\.localAsset/);
+  assert.match(loader, /host\.dataset\.url = selected\.readerAsset/);
+  assert.match(loader, /host\.dataset\.initialGameIndex = String\(gameIndex\)/);
   assert.match(loader, /download\.download = selected\.downloadFilename/);
   assert.match(loader, /location\.origin/);
   assert.equal(wrapper('meta[name="robots"]').attr('content'), 'noindex, nofollow');

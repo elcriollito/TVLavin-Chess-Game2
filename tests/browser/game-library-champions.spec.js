@@ -40,7 +40,8 @@ test('Capablanca champion collection opens and restores exact archive state', as
   await expect(dialog).toContainText('Player collection');
   await expect(dialog).toContainText('597 games');
   await expect(dialog).toContainText('Reader available');
-  await expect(dialog.locator('[data-event-id="wcc-1927"] [data-event-pgn]')).toHaveCount(0);
+  await expect(dialog.locator('[data-event-id="wcc-1927"] [data-event-pgn]')).toHaveCount(1);
+  await expect(dialog.locator('[data-event-id="wcc-1927"] .external-pgn-link')).toHaveAttribute('href', 'https://www.pgnmentor.com/events/WorldChamp1927.pgn');
   const complete = dialog.locator('.collection-card.is-complete');
   await expect(complete.getByRole('link', { name: /external source/i })).toHaveCount(0);
   await expect(complete.locator('a[download]')).toHaveCount(0);
@@ -58,7 +59,7 @@ test('Capablanca champion collection opens and restores exact archive state', as
   await frame.getByRole('button', { name: 'Next Game', exact: true }).click();
   await frame.getByRole('button', { name: 'Next Game', exact: true }).click();
   await frame.getByRole('button', { name: 'Previous Game', exact: true }).click();
-  await page.goBack();
+  await page.getByRole('link', { name: 'Return to World Champions' }).click();
   await expect(page).toHaveURL(/\/game-library\/champions\?view=matches/);
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
   await expect(page.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
@@ -77,14 +78,14 @@ test('Capablanca champion collection opens and restores exact archive state', as
 
 });
 
-test('Karpov detail distinguishes history from rights-pending PGN data', async ({ page }) => {
+test('championship albums stay separate from rights-pending player collections', async ({ page }) => {
   await page.goto('/game-library/champions');
   await page.locator('[data-open-champion="anatoly-karpov"]').click();
   const dialog = page.locator('[data-champion-dialog]');
   await expect(dialog).toContainText('Karpov–Korchnoi');
   await expect(dialog).toContainText('aborted');
   await expect(dialog).toContainText('48 games');
-  await expect(dialog).toContainText('PGN pending review');
+  await expect(dialog).toContainText('Reader available');
   await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('Historical data only');
   await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('No approved player collection');
   await expect(dialog.getByRole('heading', { name: 'Reigns' })).toBeVisible();
@@ -92,15 +93,64 @@ test('Karpov detail distinguishes history from rights-pending PGN data', async (
   const closeBox = await dialog.getByRole('button', { name: 'Close champion detail' }).boundingBox();
   const navigationBox = await page.locator('.era-navigation').boundingBox();
   expect(closeBox.y).toBeGreaterThanOrEqual(navigationBox.y + navigationBox.height);
-  await expect(dialog.getByRole('link', { name: 'Download PGN' })).toHaveCount(0);
-  await expect(dialog.locator('[data-open-pgn], [data-event-pgn], .external-pgn-link')).toHaveCount(0);
+  await expect(dialog.locator('[data-event-id="wcc-1984"] [data-event-pgn]')).toHaveCount(1);
+  await expect(dialog.locator('[data-event-id="wcc-1984"] .external-pgn-link')).toHaveAttribute('href', 'https://www.pgnmentor.com/events/WorldChamp1984.pgn');
+  await expect(dialog.locator('.champion-collection [data-open-pgn], .champion-collection .external-pgn-link')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(page.locator('[data-open-champion="anatoly-karpov"]')).toBeFocused();
   await page.locator('[data-open-champion="bobby-fischer"]').click();
   await expect(dialog.locator('.champion-collection .empty-collection')).toContainText('Collection not publicly available');
-  await expect(dialog.locator('[data-open-pgn], [data-event-pgn], .external-pgn-link')).toHaveCount(0);
+  await expect(dialog.locator('[data-event-id="wcc-1972"] [data-event-pgn]')).toHaveCount(1);
+  await expect(dialog.locator('[data-event-id="wcc-1972"] .external-pgn-link')).toHaveAttribute('href', 'https://www.pgnmentor.com/events/WorldChamp1972.pgn');
+  await expect(dialog.locator('.champion-collection [data-open-pgn], .champion-collection .external-pgn-link')).toHaveCount(0);
 });
+
+test('recent championship View match opens game 1 and restores the exact archive state', async ({ page }) => {
+  await page.goto('/game-library/champions');
+  await page.locator('[data-open-champion="gukesh-dommaraju"]').click();
+  const event = page.locator('[data-event-id="wcc-2024"]');
+  await expect(event).toContainText('14 games');
+  await expect(event.getByRole('link', { name: /Download PGN from external source/i })).toHaveAttribute('href', 'https://www.pgnmentor.com/events/WorldChamp2024.pgn');
+  await event.getByRole('button', { name: /View Ding.*Gukesh in PGN Reader/i }).click();
+  await expect(page).toHaveURL(/\/watch\/game-replayer\?collection=world-championship-worldchamp2024&game=0/);
+  const readerUrl = new URL(page.url());
+  expect(readerUrl.pathname).toBe('/watch/game-replayer');
+  expect(readerUrl.searchParams.get('collection')).toBe('world-championship-worldchamp2024');
+  expect(readerUrl.searchParams.get('game')).toBe('0');
+  const returnTo = readerUrl.searchParams.get('returnTo');
+  for (const part of ['view=champions', 'champion=gukesh-dommaraju', 'reign=gukesh-2024', 'event=wcc-2024']) expect(returnTo).toContain(part);
+  const frameElement = page.locator('iframe[data-game-replayer-frame]');
+  await expect(frameElement).toHaveAttribute('data-collection-id', 'world-championship-worldchamp2024');
+  await expect(frameElement).toHaveAttribute('data-game-index', '0');
+  await expect(page.locator('[data-game-replayer-shell]')).toHaveClass(/is-ready/, { timeout: 20_000 });
+  const frame = page.frameLocator('iframe[data-game-replayer-frame]');
+  await expect(frame.locator('.cbreplay')).toContainText(/Gukesh|Ding/, { timeout: 20_000 });
+  await expect(frame.locator('.hambCaption')).toContainText(/Gukesh,D.*Ding Liren/i, { timeout: 20_000 });
+  await expect(frame.locator('tr.jsgrid-header-row').last()).toContainText(/White.*Black.*Res/);
+  await expect(frame.locator('canvas')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('link', { name: 'Return to World Champions' }).click();
+  await expect(page).toHaveURL(/champion=gukesh-dommaraju/);
+  await expect(page.locator('[data-champion-dialog]')).toBeVisible();
+  await expect(page.locator('[data-event-id="wcc-2024"]')).toHaveClass(/is-selected/);
+});
+
+for (const sample of [
+  { champion: 'magnus-carlsen', event: 'wcc-2018', collection: 'world-championship-worldchamp2018' },
+  { champion: 'magnus-carlsen', event: 'wcc-2014', collection: 'world-championship-worldchamp2014' },
+  { champion: 'mikhail-botvinnik', event: 'wcc-1951', collection: 'world-championship-worldchamp1951' }
+]) {
+  test(`${sample.event} uses its deterministic Reader collection`, async ({ page }) => {
+    await page.goto('/game-library/champions');
+    await page.locator(`[data-open-champion="${sample.champion}"]`).click();
+    await page.locator(`[data-event-id="${sample.event}"] [data-event-pgn]`).click();
+    await expect(page).toHaveURL(new RegExp(`collection=${sample.collection}.*game=0`));
+    const url = new URL(page.url());
+    expect(url.searchParams.get('collection')).toBe(sample.collection);
+    expect(url.searchParams.get('game')).toBe('0');
+    await expect(page.locator('iframe[data-game-replayer-frame]')).toHaveAttribute('data-game-index', '0');
+  });
+}
 
 test('multiple reigns are explicit and the selected reign survives reload', async ({ page }) => {
   await page.goto('/game-library/champions');

@@ -9,9 +9,10 @@ import {
 } from '../js/game-library/championship-archive-data.js';
 import {
   buildPgnReaderHref, getApprovedExternalPgnDownload, getKnownPgnCollection, getPgnCollection,
-  getPgnCollectionForEvent, listPublishablePgnCollections,
-  pgnCollectionRegistryValidation, REDISTRIBUTION_STATUSES, validatePgnCollectionRegistry
+  getPgnCollectionForEvent, listPublishablePgnCollections, listReaderPgnCollections,
+  pgnCollectionRegistryValidation, REDISTRIBUTION_STATUSES, RIGHTS_CLASSIFICATIONS, validatePgnCollectionRegistry
 } from '../js/game-library/pgn-collection-registry.js';
+import { worldChampionshipPgnCatalog, worldChampionshipPgnCatalogValidation } from '../js/game-library/world-championship-pgn-catalog.js';
 import { createCaissaPgnReader } from '../js/game-library/caissa-pgn-reader.js';
 import { buildArchiveReturnTo, normalizeArchiveReturnTo, readArchiveState } from '../js/game-library/archive-return-state.js';
 
@@ -57,7 +58,7 @@ test('special transition events are encoded without pretending they were normal 
   assert.equal(championshipEvents.find(event => event.id === 'wcc-2006-reunification').status, 'reunification');
 });
 
-test('PGN registry exposes only rights-cleared assets in production', () => {
+test('PGN registry separates rights-cleared local assets from remote Reader access', () => {
   assert.equal(pgnCollectionRegistryValidation.valid, true, pgnCollectionRegistryValidation.errors.join('\n'));
   assert.deepEqual(listPublishablePgnCollections().map(value => value.id), ['capablanca-complete']);
   for (const collection of listPublishablePgnCollections()) {
@@ -77,7 +78,21 @@ test('PGN registry exposes only rights-cleared assets in production', () => {
   assert.equal(getPgnCollection('fischer-spassky-1972-complete'), null);
   assert.equal(getKnownPgnCollection('fischer-spassky-1972-complete'), null);
   assert.doesNotMatch(JSON.stringify(pgnCollections), /fischer-spassky-1972-complete|__caissa_internal_qa|internalQaAvailable|INTERNAL_TEST_ONLY/);
-  for (const entry of pgnCollections.filter(value => value.redistributionStatus !== REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE)) {
+  const remote = pgnCollections.filter(value => value.redistributionStatus === REDISTRIBUTION_STATUSES.REMOTE_VIEW_ONLY);
+  assert.equal(remote.length, 59);
+  assert.equal(listReaderPgnCollections().length, 60);
+  for (const entry of remote) {
+    assert.equal(getPgnCollection(entry.id), entry, entry.id);
+    assert.equal(entry.rightsClassification, RIGHTS_CLASSIFICATIONS.REMOTE_VIEW_ONLY);
+    assert.equal(entry.localAsset, null, entry.id);
+    assert.equal(entry.downloadFilename, null, entry.id);
+    assert.equal(entry.mimeType, null, entry.id);
+    assert.equal(entry.downloadable, false, entry.id);
+    assert.equal(entry.readerCompatible, true, entry.id);
+    assert.match(entry.readerAsset, /^\/api\/pgn\/pgnmentor\?kind=event&file=[A-Za-z0-9]+\.pgn$/);
+    assert.match(getApprovedExternalPgnDownload(entry.id)?.url || '', /^https:\/\/www\.pgnmentor\.com\/events\/[A-Za-z0-9]+\.pgn$/);
+  }
+  for (const entry of pgnCollections.filter(value => value.redistributionStatus === REDISTRIBUTION_STATUSES.NEEDS_REVIEW)) {
     assert.equal(getPgnCollection(entry.id), null, entry.id);
     assert.equal(entry.localAsset, null, entry.id);
     assert.equal(entry.downloadFilename, null, entry.id);
@@ -98,7 +113,7 @@ test('event reader and external download capabilities require explicit registry 
   };
   assert.equal(validatePgnCollectionRegistry([approvedMatch]).valid, true);
   assert.equal(getPgnCollectionForEvent('wcc-1927', [approvedMatch])?.id, approvedMatch.id);
-  assert.equal(getPgnCollectionForEvent('wcc-1927'), null, 'the player collection must not be presented as the 1927 match');
+  assert.equal(getPgnCollectionForEvent('wcc-1927')?.id, 'world-championship-worldchamp1927');
   assert.ok(validatePgnCollectionRegistry([approvedMatch, { ...approvedMatch, id: 'second-approved-1927-match' }]).errors.includes('second-approved-1927-match duplicates public event association wcc-1927'));
 
   const approvedExternal = {
@@ -115,8 +130,11 @@ test('event reader and external download capabilities require explicit registry 
     sourceName: approvedExternal.sourceName
   });
   assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'http://archive.example/match.pgn' }]).errors.includes(`${approvedExternal.id} has invalid externalDownloadUrl`));
+  assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadUrl: 'https://user:pass@archive.example/match.pgn' }]).errors.includes(`${approvedExternal.id} has invalid externalDownloadUrl`));
   assert.ok(validatePgnCollectionRegistry([{ ...approvedExternal, externalDownloadApproved: false }]).errors.includes(`${approvedExternal.id} exposes an unapproved externalDownloadUrl`));
   assert.equal(getApprovedExternalPgnDownload('capablanca-complete'), null, 'no external source is registered for Capablanca');
+  const remote = getPgnCollection('world-championship-worldchamp2024');
+  assert.ok(validatePgnCollectionRegistry([{ ...remote, externalDownloadUrl: 'https://www.pgnmentor.com/events/WorldChamp2023.pgn' }]).errors.includes(`${remote.id} does not match the canonical remote allowlist`));
 });
 
 test('Capablanca public collection has exact release metadata and is honestly classified', () => {
@@ -142,7 +160,7 @@ test('Capablanca public collection has exact release metadata and is honestly cl
   assert.equal(provenance.collectionId, collection.id);
   assert.equal(provenance.publicFilename, collection.downloadFilename);
   assert.equal(provenance.publicDerivativeSha256, collection.checksum.slice(7));
-  assert.equal(championshipEvents.find(event => event.id === 'wcc-1927').pgnCollectionId, undefined);
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1927').pgnCollectionId, 'world-championship-worldchamp1927');
 });
 
 test('non-public Fischer asset and local-only endpoint are absent from production surfaces', () => {
@@ -151,7 +169,30 @@ test('non-public Fischer asset and local-only endpoint are absent from productio
   assert.doesNotMatch(read('vercel.json'), /fischer-spassky-1972/);
   const server = read('server.js');
   assert.doesNotMatch(server, /__caissa_internal_qa|INTERNAL_QA_PGN_ASSETS|fischer-spassky-1972/);
-  assert.equal(championshipEvents.find(event => event.id === 'wcc-1972').pgnCollectionId, undefined);
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1972').pgnCollectionId, 'world-championship-worldchamp1972');
+  assert.equal(getPgnCollection('fischer-spassky-game-6'), null, 'the unreviewed local excerpt stays closed');
+  assert.equal(getPgnCollectionForEvent('wcc-1972')?.id, 'world-championship-worldchamp1972', 'the existing remote Reader album is a distinct approved capability');
+});
+
+test('World Championship catalog audit and archive mapping are complete and deterministic', () => {
+  assert.equal(worldChampionshipPgnCatalogValidation.valid, true, worldChampionshipPgnCatalogValidation.errors.join('\n'));
+  assert.equal(worldChampionshipPgnCatalog.length, 59);
+  assert.equal(new Set(worldChampionshipPgnCatalog.map(value => value.id)).size, 59);
+  assert.equal(new Set(worldChampionshipPgnCatalog.map(value => value.eventId)).size, 59);
+  assert.equal(championshipEvents.filter(event => event.pgnCollectionId).length, 59);
+  assert.deepEqual(championshipEvents.filter(event => !event.pgnCollectionId).map(event => event.id), ['wcc-1975', 'wcc-split-1993']);
+  for (const catalogEntry of worldChampionshipPgnCatalog) {
+    const event = championshipEvents.find(value => value.id === catalogEntry.eventId);
+    assert.ok(event, catalogEntry.eventId);
+    assert.equal(event.year, catalogEntry.year, catalogEntry.id);
+    assert.equal(event.pgnCollectionId, catalogEntry.id, catalogEntry.eventId);
+    assert.equal(getPgnCollectionForEvent(event.id)?.id, catalogEntry.id, event.id);
+  }
+  for (const eventId of ['wcc-2024', 'wcc-2023', 'wcc-2021', 'wcc-2018', 'wcc-2016', 'wcc-2014']) {
+    const mapped = getPgnCollectionForEvent(eventId);
+    assert.ok(mapped?.readerCompatible, eventId);
+    assert.match(buildPgnReaderHref(mapped.id, 0), /&game=0$/);
+  }
 });
 
 test('CaissaPgnReader opens only reader-compatible registry entries', () => {
@@ -166,7 +207,9 @@ test('CaissaPgnReader opens only reader-compatible registry entries', () => {
   assert.equal(reader.open({ collectionId: 'fischer-spassky-game-6', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: '../../secret', target: 'best-available' }), false);
   assert.equal(reader.open({ collectionId: 'capablanca-complete', target: 'desktop' }), false);
-  assert.equal(navigations.length, 2);
+  assert.equal(reader.open({ collectionId: 'world-championship-worldchamp2024', gameId: 0, target: 'best-available', returnTo }), true);
+  assert.equal(navigations[2], `/watch/game-replayer?collection=world-championship-worldchamp2024&game=0&returnTo=${encodeURIComponent(returnTo)}`);
+  assert.equal(navigations.length, 3);
 });
 
 test('archive return state round-trips canonical state and rejects open redirects', () => {
@@ -207,7 +250,7 @@ test('release-candidate route has the archive hierarchy, intentional monograms, 
   assert.equal(page('[data-caissa-standalone-sidebar][data-active="library"]').length, 1);
   assert.equal(page('img').length, 0, 'release candidate must not include portrait assets');
   assert.match(archivePage, /CAISSA archival monogram/);
-  assert.match(archivePage, /version: '1\.0\.0-rc\.2'/);
+  assert.match(archivePage, /version: '1\.0\.0-rc\.3'/);
   assert.match(archivePage, /openReader\(button\.dataset\.eventPgn, button\.dataset\.event, 0\)/);
   assert.match(archivePage, /href="\$\{escapeHtml\(external\.url\)\}" target="_blank" rel="noopener noreferrer external"/);
   assert.doesNotMatch(archivePage, /href="\$\{escapeHtml\(runtime\.localAsset\)\}"/);

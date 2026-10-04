@@ -7,6 +7,9 @@ const failure = document.querySelector('[data-wrapper-failure]');
 const download = document.querySelector('[data-wrapper-download]');
 const requestedId = new URLSearchParams(location.search).get('collection') || 'capablanca-complete';
 const selected = getPgnCollection(requestedId);
+const requestedGame = new URLSearchParams(location.search).get('game');
+const gameIndex = requestedGame !== null && /^\d+$/.test(requestedGame) && Number(requestedGame) < (selected?.gamesCount || 0)
+  ? Number(requestedGame) : 0;
 let finished = false;
 
 function notify(type, detail = {}) { parent.postMessage({ schema, type, collectionId: selected?.id || null, ...detail }, location.origin); }
@@ -39,10 +42,17 @@ function loadScript(src, integrity) {
 if (!selected?.readerCompatible) {
   fail('COLLECTION_NOT_ALLOWLISTED');
 } else {
-  host.dataset.url = selected.localAsset;
+  host.dataset.url = selected.readerAsset;
+  host.dataset.initialGameIndex = String(gameIndex);
   status.textContent = `Loading ${selected.title}…`;
-  download.href = selected.localAsset;
-  download.download = selected.downloadFilename;
+  if (selected.downloadable && selected.localAsset) {
+    download.href = selected.localAsset;
+    download.download = selected.downloadFilename;
+  } else {
+    download.hidden = true;
+    download.removeAttribute('href');
+    download.removeAttribute('download');
+  }
   try {
     await loadScript('https://pgn.chessbase.com/jquery-3.0.0.min.js', 'sha384-THPy051/pYDQGanwU6poAc/hOdQxjnOEXzbT+OuUAFqNqFjL+4IGLBgCJC3ZOShY');
     await loadScript('https://pgn.chessbase.com/cbreplay.js', 'sha384-v5TWW+6GNCylyjk5btsxh/9rU0h1eYECLHbJA9FomL6xwz1lAViAJa9eVNbh136I');

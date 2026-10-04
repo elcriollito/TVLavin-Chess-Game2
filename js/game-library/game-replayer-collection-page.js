@@ -6,6 +6,9 @@ const fallback = getPgnCollection('capablanca-complete');
 const requestedId = params.get('collection');
 const requested = requestedId ? getPgnCollection(requestedId) : fallback;
 const collection = requested?.readerCompatible ? requested : fallback;
+const requestedGame = params.get('game');
+const gameIndex = requestedGame !== null && /^\d+$/.test(requestedGame) && Number(requestedGame) < collection.gamesCount
+  ? Number(requestedGame) : 0;
 const returnTo = normalizeArchiveReturnTo(params.get('returnTo'));
 const isChampionship = collection.type === 'championship-match';
 const frame = document.querySelector('[data-game-replayer-frame]');
@@ -14,6 +17,13 @@ document.querySelector('[data-game-replayer-title]').textContent = isChampionshi
 document.querySelector('[data-game-replayer-deck]').textContent = `Explore ${collection.gamesCount} ${collection.gamesCount === 1 ? 'game' : 'games'} from ${collection.title} on an interactive board.`;
 document.querySelector('[data-collection-provenance]').textContent = collection.attribution;
 document.querySelectorAll('[data-collection-download]').forEach(link => {
+  if (!collection.downloadable || !collection.localAsset) {
+    link.hidden = true;
+    link.removeAttribute('href');
+    link.removeAttribute('download');
+    return;
+  }
+  link.hidden = false;
   link.href = collection.localAsset;
   link.download = collection.downloadFilename;
   link.textContent = `Download ${collection.title} PGN`;
@@ -21,8 +31,9 @@ document.querySelectorAll('[data-collection-download]').forEach(link => {
 frame.title = collection.id === 'capablanca-complete'
   ? 'Chess game replayer for the Capablanca collection'
   : `Chess game replayer for ${collection.title}`;
-frame.src = `/integrations/chessbase-pgn-replayer.html?collection=${encodeURIComponent(collection.id)}`;
+frame.src = `/integrations/chessbase-pgn-replayer.html?collection=${encodeURIComponent(collection.id)}&game=${gameIndex}`;
 frame.dataset.collectionId = collection.id;
+frame.dataset.gameIndex = String(gameIndex);
 
 const archiveReturn = document.querySelector('[data-archive-return]');
 if (archiveReturn) archiveReturn.href = returnTo || '/game-library/champions';
@@ -35,4 +46,8 @@ if (requestedId && collection === fallback && requestedId !== fallback.id) {
 if (params.has('returnTo') && !returnTo) {
   invalid.hidden = false;
   invalid.textContent = 'The return destination was not accepted. The archive home link is being used.';
+}
+if (requestedGame !== null && (!/^\d+$/.test(requestedGame) || Number(requestedGame) >= collection.gamesCount)) {
+  invalid.hidden = false;
+  invalid.textContent = 'The requested game was not accepted. Game 1 was selected.';
 }

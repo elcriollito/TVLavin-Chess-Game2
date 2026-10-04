@@ -194,7 +194,9 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .match-card__facts { margin-top: 8px; color: #b6a887; font-size: 10px; line-height: 1.45; }
 .match-card small { display: block; margin-top: 8px; color: #74716b; line-height: 1.45; }
 .match-card__actions { display: grid; justify-items: end; gap: 7px; }
-.match-card__actions button { min-width: 150px; padding: 9px 11px; border: 1px solid rgba(215,164,83,.25); background: rgba(215,164,83,.07); color: var(--archive-gold-bright); font: 800 9px/1 Inter, sans-serif; letter-spacing: .07em; text-transform: uppercase; cursor: pointer; }
+.match-card__actions button, .match-card__actions a { min-width: 150px; box-sizing: border-box; padding: 9px 11px; border: 1px solid rgba(215,164,83,.25); background: rgba(215,164,83,.07); color: var(--archive-gold-bright); text-decoration: none; text-align: center; font: 800 9px/1 Inter, sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+.match-card__actions button { cursor: pointer; }
+.match-card__actions button:hover, .match-card__actions button:focus-visible, .match-card__actions a:hover, .match-card__actions a:focus-visible { outline: none; border-color: var(--archive-gold); background: rgba(215,164,83,.13); }
 .match-empty { color: #8d8a83; }
 
 button:focus-visible, a:focus-visible { outline: 2px solid var(--archive-gold-bright); outline-offset: 3px; }
