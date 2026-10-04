@@ -1,51 +1,110 @@
-export const PGN_COLLECTION_REGISTRY_VERSION = 'CaissaPgnCollectionRegistry@1.0.0';
+import { normalizeArchiveReturnTo } from './archive-return-state.js';
+
+export const PGN_COLLECTION_REGISTRY_VERSION = 'CaissaPgnCollectionRegistry@2.0.0';
+
+export const REDISTRIBUTION_STATUSES = Object.freeze({
+  VERIFIED_REDISTRIBUTABLE: 'VERIFIED_REDISTRIBUTABLE',
+  LINK_ONLY: 'LINK_ONLY',
+  NEEDS_REVIEW: 'NEEDS_REVIEW',
+  INTERNAL_TEST_ONLY: 'INTERNAL_TEST_ONLY',
+  REJECTED: 'REJECTED'
+});
+
+export const REGISTRY_MODES = Object.freeze({ PRODUCTION: 'production', INTERNAL_QA: 'internal-qa' });
 
 const collection = value => Object.freeze(value);
+const legacySourceName = 'Legacy repository PGN catalog (README attribution only)';
+const legacySourceUrl = 'https://www.pgnmentor.com/files.html';
+const legacyLicense = 'No collection-specific redistribution permission recorded';
+const needsReview = Object.freeze({
+  sourceName: legacySourceName,
+  sourceUrl: legacySourceUrl,
+  retrievedAt: null,
+  license: legacyLicense,
+  licenseUrl: null,
+  redistributionStatus: REDISTRIBUTION_STATUSES.NEEDS_REVIEW,
+  transformations: Object.freeze([]),
+  notes: 'A free-download statement and the PGN tooling package MIT license do not establish redistribution rights for the game data.',
+  localAsset: null,
+  downloadable: false,
+  readerCompatible: false,
+  internalQaAvailable: false
+});
 
 export const pgnCollections = Object.freeze([
   collection({
-    id: 'capablanca-complete',
-    title: 'Capablanca Games 1901–1941',
-    type: 'player-collection',
-    eventId: null,
-    championId: 'jose-raul-capablanca',
-    gamesCount: 597,
-    source: 'Owner-authorized, user-supplied collection',
-    attribution: 'Factual Capablanca game scores supplied by the collection owner; line endings normalized by CAISSA.',
-    localAsset: '/data/pgn/capablanca-games-1901-1941.pgn',
-    downloadable: true,
-    readerCompatible: true,
-    checksum: 'sha256:33cbbea9421f14f51bf55dbd772fed3031e855235fedf05d9247886a9d96f71f'
+    id: 'capablanca-complete', title: 'Capablanca Games 1901–1941', type: 'player-collection', eventId: null,
+    championId: 'jose-raul-capablanca', gamesCount: 597,
+    sourceName: 'CAISSA repository owner', sourceUrl: null, retrievedAt: '2026-08-14',
+    attribution: 'Factual Capablanca game scores supplied and authorized by the repository owner.',
+    license: 'Owner authorization for use in the CAISSA Game Replayer', licenseUrl: null,
+    redistributionStatus: REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE,
+    checksum: 'sha256:33cbbea9421f14f51bf55dbd772fed3031e855235fedf05d9247886a9d96f71f',
+    transformations: Object.freeze(['CRLF line endings normalized to LF; game ordering and scores preserved.']),
+    notes: 'Approved with disclosed incomplete metadata; no comments, variations, or NAG symbols were present.',
+    localAsset: '/data/pgn/capablanca-games-1901-1941.pgn', downloadable: true, readerCompatible: true, internalQaAvailable: false
   }),
   collection({
-    id: 'fischer-spassky-1972-complete',
-    title: 'Fischer–Spassky 1972 · Complete Match',
-    type: 'championship-match',
-    eventId: 'wcc-1972',
-    championId: 'bobby-fischer',
-    gamesCount: 21,
-    source: 'https://www.pgnmentor.com/events/WorldChamp1972/',
+    id: 'fischer-spassky-1972-complete', title: 'Fischer–Spassky 1972 · Complete Match', type: 'championship-match',
+    eventId: 'wcc-1972', championId: 'bobby-fischer', gamesCount: 21,
+    sourceName: 'PGN Mentor', sourceUrl: 'https://www.pgnmentor.com/events/WorldChamp1972/', retrievedAt: '2026-10-04',
     attribution: 'PGN Mentor event collection; factual game scores for the 1972 World Championship match.',
-    localAsset: '/data/pgn/world-championships/fischer-spassky-1972.pgn',
-    downloadable: true,
-    readerCompatible: true,
-    checksum: 'sha256:562adc8a35bcd62d7c0ad0974de9a75e662fd808f704915cfe2ea0f00bd97c24'
+    license: 'No explicit redistribution license located', licenseUrl: null,
+    redistributionStatus: REDISTRIBUTION_STATUSES.INTERNAL_TEST_ONLY,
+    checksum: 'sha256:562adc8a35bcd62d7c0ad0974de9a75e662fd808f704915cfe2ea0f00bd97c24',
+    transformations: Object.freeze(['CRLF line endings normalized to LF; PGN content otherwise unchanged.']),
+    notes: 'PGN Mentor states that downloads are free; that statement is not treated as redistribution permission.',
+    localAsset: null, downloadable: false, readerCompatible: false, internalQaAvailable: true
   }),
-  collection({ id: 'fischer-spassky-game-6', title: 'Fischer–Spassky 1972 · Game 6', type: 'championship-match', eventId: 'wcc-1972', championId: 'bobby-fischer', gamesCount: 1, source: 'Existing repository asset', attribution: 'Incomplete one-game repository excerpt.', localAsset: '/pgn/demo/fischer-spassky-1972-g6.pgn', downloadable: true, readerCompatible: false }),
-  collection({ id: 'fischer-byrne-1963', title: 'Fischer–Byrne 1963', type: 'player-collection', eventId: null, championId: 'bobby-fischer', gamesCount: 1, source: 'Existing repository asset', attribution: 'Single factual game score; not a championship game.', localAsset: '/pgn/world-champions/Fischer_Bobby/fischer-byrne-1963.pgn', downloadable: true, readerCompatible: false }),
-  collection({ id: 'karpov-kasparov-1985', title: 'Karpov–Kasparov 1985 · Local Game', type: 'championship-match', eventId: 'wcc-1985', championId: 'anatoly-karpov', gamesCount: 1, source: 'Existing repository asset', attribution: 'Incomplete one-game repository excerpt.', localAsset: '/pgn/world-champions/Karpov_Anatoly/karpov-kasparov-1985.pgn', downloadable: true, readerCompatible: false }),
-  collection({ id: 'kasparov-topalov-1999', title: 'Kasparov–Topalov 1999', type: 'player-collection', eventId: null, championId: 'garry-kasparov', gamesCount: 1, source: 'Existing repository asset', attribution: 'Single factual game score; not a championship game.', localAsset: '/pgn/world-champions/Kasparov_Garry/kasparov-topalov-1999.pgn', downloadable: true, readerCompatible: false }),
-  collection({ id: 'carlsen-caruana-2018', title: 'Carlsen–Caruana 2018 · Local Game', type: 'championship-match', eventId: null, championId: 'magnus-carlsen', gamesCount: 1, source: 'Existing repository asset', attribution: 'Incomplete one-game repository excerpt.', localAsset: '/pgn/world-champions/Carlsen_Magnus/carlsen-caruana-2018.pgn', downloadable: true, readerCompatible: false }),
-  collection({ id: 'tal-smyslov-1959', title: 'Tal–Smyslov 1959', type: 'player-collection', eventId: null, championId: 'mikhail-tal', gamesCount: 1, source: 'Existing repository asset', attribution: 'Single Candidates Tournament game score.', localAsset: '/pgn/world-champions/Tal_Mikhail/tal-smyslov-1959.pgn', downloadable: true, readerCompatible: false })
+  collection({ id: 'fischer-spassky-game-6', title: 'Fischer–Spassky 1972 · Game 6', type: 'championship-match', eventId: 'wcc-1972', championId: 'bobby-fischer', gamesCount: 1, attribution: 'Incomplete one-game repository excerpt.', checksum: 'sha256:064797882f026935696f6911dd4627671d0d426055482b94256d4216fa7710ee', ...needsReview }),
+  collection({ id: 'fischer-byrne-1963', title: 'Fischer–Byrne 1963', type: 'player-collection', eventId: null, championId: 'bobby-fischer', gamesCount: 1, attribution: 'Single factual game score; not a championship game.', checksum: 'sha256:d27848a5a5107638d2b5d944316ead21eafc04e038b8c2b95b5c559c0a248fe5', ...needsReview }),
+  collection({ id: 'karpov-kasparov-1985', title: 'Karpov–Kasparov 1985 · Local Game', type: 'championship-match', eventId: 'wcc-1985', championId: 'anatoly-karpov', gamesCount: 1, attribution: 'Incomplete one-game repository excerpt.', checksum: 'sha256:e9af4fb8b99b80d59e67a29225649896b9a0e224d58c929c1151eeff964db9b1', ...needsReview }),
+  collection({ id: 'kasparov-topalov-1999', title: 'Kasparov–Topalov 1999', type: 'player-collection', eventId: null, championId: 'garry-kasparov', gamesCount: 1, attribution: 'Single factual game score; not a championship game.', checksum: 'sha256:4863048f0a60476f10d14ff9e1eb62d1c400329a0535707cead2626dd955d3f5', ...needsReview }),
+  collection({ id: 'carlsen-caruana-2018', title: 'Carlsen–Caruana 2018 · Local Game', type: 'championship-match', eventId: null, championId: 'magnus-carlsen', gamesCount: 1, attribution: 'Incomplete one-game repository excerpt.', checksum: 'sha256:ad66743a47fc277ef52e4725bef92973be81f0033a3ac84f5e39ee1a9e6b0b05', ...needsReview }),
+  collection({ id: 'tal-smyslov-1959', title: 'Tal–Smyslov 1959', type: 'player-collection', eventId: null, championId: 'mikhail-tal', gamesCount: 1, attribution: 'Single Candidates Tournament game score.', checksum: 'sha256:959ac06c59748e54c1380ad37b0ee14afd037461d407a5d54ee38e90d36db4c7', ...needsReview })
 ]);
 
-const allowedKeys = new Set(['id', 'title', 'type', 'eventId', 'championId', 'gamesCount', 'source', 'attribution', 'localAsset', 'downloadable', 'readerCompatible', 'checksum']);
+const allowedKeys = new Set(['id', 'title', 'type', 'eventId', 'championId', 'gamesCount', 'sourceUrl', 'sourceName', 'retrievedAt', 'attribution', 'license', 'licenseUrl', 'redistributionStatus', 'checksum', 'transformations', 'notes', 'localAsset', 'downloadable', 'readerCompatible', 'internalQaAvailable']);
 const collectionIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const localAssetPattern = /^\/(?:data\/)?pgn\/[A-Za-z0-9_./-]+\.pgn$/;
+const localAssetPattern = /^\/data\/pgn\/[A-Za-z0-9_./-]+\.pgn$/;
+const sha256Pattern = /^sha256:[a-f0-9]{64}$/;
+const validStatuses = new Set(Object.values(REDISTRIBUTION_STATUSES));
 
-export function getPgnCollection(collectionId) {
+export function resolveRuntimeRegistryMode(hostname = globalThis.location?.hostname || '') {
+  return ['127.0.0.1', 'localhost', '::1'].includes(String(hostname).toLowerCase()) ? REGISTRY_MODES.INTERNAL_QA : REGISTRY_MODES.PRODUCTION;
+}
+
+export function getKnownPgnCollection(collectionId) {
   if (typeof collectionId !== 'string' || !collectionIdPattern.test(collectionId)) return null;
   return pgnCollections.find(entry => entry.id === collectionId) || null;
+}
+
+export function getPgnCollection(collectionId, { mode = REGISTRY_MODES.PRODUCTION } = {}) {
+  const entry = getKnownPgnCollection(collectionId);
+  if (!entry) return null;
+  if (entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE) return entry;
+  if (mode === REGISTRY_MODES.INTERNAL_QA && entry.internalQaAvailable) {
+    return Object.freeze({
+      ...entry,
+      localAsset: `/__caissa_internal_qa/pgn/${entry.id}.pgn`,
+      downloadable: true,
+      readerCompatible: true,
+      accessMode: REGISTRY_MODES.INTERNAL_QA
+    });
+  }
+  return entry;
+}
+
+export function listPublishablePgnCollections() {
+  return Object.freeze(pgnCollections.filter(entry => entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE));
+}
+
+export function getPgnAvailability(collectionId, { mode = REGISTRY_MODES.PRODUCTION } = {}) {
+  const entry = getPgnCollection(collectionId, { mode });
+  if (!entry) return Object.freeze({ code: 'historical-only', label: 'Historical data only', accessible: false });
+  if (entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE) return Object.freeze({ code: 'available', label: 'PGN available', accessible: true });
+  if (mode === REGISTRY_MODES.INTERNAL_QA && entry.internalQaAvailable) return Object.freeze({ code: 'internal-qa', label: 'PGN internal QA', accessible: true });
+  return Object.freeze({ code: 'pending-review', label: 'PGN pending review', accessible: false });
 }
 
 export function validatePgnCollectionRegistry(entries = pgnCollections) {
@@ -59,21 +118,34 @@ export function validatePgnCollectionRegistry(entries = pgnCollections) {
     ids.add(entry.id);
     if (!['championship-match', 'player-collection'].includes(entry.type)) errors.push(`${entry.id} has invalid type`);
     if (!Number.isInteger(entry.gamesCount) || entry.gamesCount < 1) errors.push(`${entry.id} has invalid gamesCount`);
-    if (!localAssetPattern.test(entry.localAsset || '') || /\.\.|[?#]/.test(entry.localAsset || '')) errors.push(`${entry.id} has unsafe localAsset`);
-    if (typeof entry.downloadable !== 'boolean' || typeof entry.readerCompatible !== 'boolean') errors.push(`${entry.id} has invalid capability flags`);
-    if (entry.checksum && !/^sha256:[a-f0-9]{64}$/.test(entry.checksum)) errors.push(`${entry.id} has invalid checksum`);
+    if (!validStatuses.has(entry.redistributionStatus)) errors.push(`${entry.id} has invalid redistributionStatus`);
+    if (!sha256Pattern.test(entry.checksum || '')) errors.push(`${entry.id} has invalid checksum`);
+    if (entry.sourceUrl !== null && !/^https:\/\//.test(entry.sourceUrl || '')) errors.push(`${entry.id} has invalid sourceUrl`);
+    if (entry.licenseUrl !== null && !/^https:\/\//.test(entry.licenseUrl || '')) errors.push(`${entry.id} has invalid licenseUrl`);
+    if (entry.retrievedAt !== null && !/^\d{4}-\d{2}-\d{2}$/.test(entry.retrievedAt || '')) errors.push(`${entry.id} has invalid retrievedAt`);
+    if (!Array.isArray(entry.transformations)) errors.push(`${entry.id} has invalid transformations`);
+    const publishable = entry.redistributionStatus === REDISTRIBUTION_STATUSES.VERIFIED_REDISTRIBUTABLE;
+    if (publishable && (!localAssetPattern.test(entry.localAsset || '') || /\.\.|[?#]/.test(entry.localAsset || ''))) errors.push(`${entry.id} has unsafe localAsset`);
+    if (!publishable && entry.localAsset !== null) errors.push(`${entry.id} exposes a non-publishable localAsset`);
+    if (!publishable && (entry.downloadable || entry.readerCompatible)) errors.push(`${entry.id} exposes non-publishable capabilities`);
+    if (typeof entry.downloadable !== 'boolean' || typeof entry.readerCompatible !== 'boolean' || typeof entry.internalQaAvailable !== 'boolean') errors.push(`${entry.id} has invalid capability flags`);
   }
   return Object.freeze({ valid: errors.length === 0, errors: Object.freeze(errors) });
 }
 
-export function buildPgnReaderHref(collectionId, gameId = null) {
-  const entry = getPgnCollection(collectionId);
+export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = null, mode = REGISTRY_MODES.PRODUCTION } = {}) {
+  const entry = getPgnCollection(collectionId, { mode });
   if (!entry?.readerCompatible) return null;
   const params = new URLSearchParams({ collection: entry.id });
   if (gameId !== null) {
     const normalizedGameId = String(gameId);
     if (!/^\d+$/.test(normalizedGameId)) return null;
     params.set('game', normalizedGameId);
+  }
+  if (returnTo !== null) {
+    const safeReturnTo = normalizeArchiveReturnTo(returnTo);
+    if (!safeReturnTo) return null;
+    params.set('returnTo', safeReturnTo);
   }
   return `/watch/game-replayer?${params.toString()}`;
 }

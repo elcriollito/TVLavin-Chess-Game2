@@ -1,9 +1,13 @@
-import { getPgnCollection } from './pgn-collection-registry.js';
+import { getPgnCollection, resolveRuntimeRegistryMode } from './pgn-collection-registry.js';
+import { normalizeArchiveReturnTo } from './archive-return-state.js';
 
-const fallback = getPgnCollection('capablanca-complete');
-const requestedId = new URLSearchParams(location.search).get('collection');
-const requested = requestedId ? getPgnCollection(requestedId) : fallback;
+const params = new URLSearchParams(location.search);
+const registryMode = resolveRuntimeRegistryMode(location.hostname);
+const fallback = getPgnCollection('capablanca-complete', { mode: registryMode });
+const requestedId = params.get('collection');
+const requested = requestedId ? getPgnCollection(requestedId, { mode: registryMode }) : fallback;
 const collection = requested?.readerCompatible ? requested : fallback;
+const returnTo = normalizeArchiveReturnTo(params.get('returnTo'));
 const isChampionship = collection.type === 'championship-match';
 const frame = document.querySelector('[data-game-replayer-frame]');
 
@@ -21,8 +25,15 @@ frame.title = collection.id === 'capablanca-complete'
 frame.src = `/integrations/chessbase-pgn-replayer.html?collection=${encodeURIComponent(collection.id)}`;
 frame.dataset.collectionId = collection.id;
 
+const archiveReturn = document.querySelector('[data-archive-return]');
+if (archiveReturn) archiveReturn.href = returnTo || '/game-library/champions';
+
 const invalid = document.querySelector('[data-invalid-collection]');
 if (requestedId && collection === fallback && requestedId !== fallback.id) {
   invalid.hidden = false;
   invalid.textContent = 'The requested collection is not allowlisted. The Capablanca collection was loaded instead.';
+}
+if (params.has('returnTo') && !returnTo) {
+  invalid.hidden = false;
+  invalid.textContent = 'The return destination was not accepted. The archive home link is being used.';
 }

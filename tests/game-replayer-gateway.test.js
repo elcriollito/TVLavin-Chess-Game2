@@ -51,7 +51,7 @@ test('wrapper is minimal, SRI-pinned, sandbox-compatible, and not navigation-vis
   assert.match(loader, /https:\/\/pgn\.chessbase\.com\/jquery-3\.0\.0\.min\.js/);
   assert.match(loader, /https:\/\/pgn\.chessbase\.com\/cbreplay\.js/);
   assert.equal((loader.match(/sha384-/g) || []).length, 2);
-  assert.match(loader, /getPgnCollection\(requestedId\)/);
+  assert.match(loader, /getPgnCollection\(requestedId, \{ mode: resolveRuntimeRegistryMode\(location\.hostname\) \}\)/);
   assert.match(loader, /host\.dataset\.url = selected\.localAsset/);
   assert.equal(wrapper('meta[name="robots"]').attr('content'), 'noindex, nofollow');
   assert.equal(wrapper('iframe').length, 0);

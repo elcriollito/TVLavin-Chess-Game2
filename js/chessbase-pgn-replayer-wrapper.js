@@ -1,4 +1,4 @@
-import { getPgnCollection } from './game-library/pgn-collection-registry.js';
+import { getPgnCollection, resolveRuntimeRegistryMode } from './game-library/pgn-collection-registry.js';
 
 const schema = 'CaissaGameReplayerStatus@1.0.0';
 const host = document.querySelector('.cbreplay');
@@ -6,7 +6,7 @@ const status = document.querySelector('[data-wrapper-status]');
 const failure = document.querySelector('[data-wrapper-failure]');
 const download = document.querySelector('[data-wrapper-download]');
 const requestedId = new URLSearchParams(location.search).get('collection') || 'capablanca-complete';
-const selected = getPgnCollection(requestedId);
+const selected = getPgnCollection(requestedId, { mode: resolveRuntimeRegistryMode(location.hostname) });
 let finished = false;
 
 function notify(type, detail = {}) { parent.postMessage({ schema, type, collectionId: selected?.id || null, ...detail }, '*'); }

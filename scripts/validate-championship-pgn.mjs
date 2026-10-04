@@ -3,16 +3,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Chess } from 'chess.js';
-import { getPgnCollection } from '../js/game-library/pgn-collection-registry.js';
+import { getKnownPgnCollection } from '../js/game-library/pgn-collection-registry.js';
 
 const collectionId = process.argv[2] || 'fischer-spassky-1972-complete';
-const collection = getPgnCollection(collectionId);
+const collection = getKnownPgnCollection(collectionId);
 if (!collection) throw new Error(`Collection is not allowlisted: ${collectionId}`);
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const relativeAsset = collection.localAsset.startsWith('/data/')
-  ? path.join('public', collection.localAsset.slice(1))
-  : collection.localAsset.slice(1);
+const reviewAssetPaths = Object.freeze({
+  'capablanca-complete': 'public/data/pgn/capablanca-games-1901-1941.pgn',
+  'fischer-spassky-1972-complete': 'internal-assets/pgn/fischer-spassky-1972.pgn'
+});
+const relativeAsset = reviewAssetPaths[collection.id];
+if (!relativeAsset) throw new Error(`No review asset is registered for: ${collection.id}`);
 const assetPath = path.resolve(repositoryRoot, relativeAsset);
 if (!assetPath.startsWith(`${repositoryRoot}${path.sep}`)) throw new Error('Resolved asset escaped the repository');
 

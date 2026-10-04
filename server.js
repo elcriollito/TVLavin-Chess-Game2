@@ -27,8 +27,11 @@ const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const RETIRED_PAGE_REDIRECTS = new Map([
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
-  ['/watch/game-replayer', '/pgn-replayer'],
   ['/watch/lichess-broadcasts', '/watch/live-tournaments']
+]);
+const INTERNAL_QA_ENABLED = ['127.0.0.1', 'localhost', '::1'].includes(HOST);
+const INTERNAL_QA_PGN_ASSETS = new Map([
+  ['fischer-spassky-1972-complete', path.join(__dirname, 'internal-assets', 'pgn', 'fischer-spassky-1972.pgn')]
 ]);
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'";
@@ -489,6 +492,27 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ clerkPublishableKey: '', registrationTracking: false }));
     return;
   }
+  const internalPgnMatch = pathname.match(/^\/__caissa_internal_qa\/pgn\/([a-z0-9]+(?:-[a-z0-9]+)*)\.pgn$/);
+  if (internalPgnMatch) {
+    const assetPath = INTERNAL_QA_ENABLED ? INTERNAL_QA_PGN_ASSETS.get(internalPgnMatch[1]) : null;
+    if (!assetPath || !['GET', 'HEAD'].includes(req.method || '')) {
+      res.writeHead(assetPath ? 405 : 404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(assetPath ? 'Method Not Allowed' : 'Not Found');
+      return;
+    }
+    fs.readFile(assetPath, (error, content) => {
+      if (error) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); res.end('Not Found'); return; }
+      res.writeHead(200, {
+        'Content-Type': 'application/x-chess-pgn',
+        'Content-Disposition': 'attachment; filename="fischer-spassky-world-championship-1972.pgn"',
+        'Cache-Control': 'private, no-store, max-age=0',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
+        'X-Content-Type-Options': 'nosniff'
+      });
+      res.end(req.method === 'HEAD' ? undefined : content);
+    });
+    return;
+  }
   const retiredDestination = RETIRED_PAGE_REDIRECTS.get(pathname.replace(/\/$/, ''));
   if (retiredDestination && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(308, { Location: retiredDestination });
@@ -637,8 +661,7 @@ const server = http.createServer(async (req, res) => {
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeType = MIME_TYPES[extname] || 'application/octet-stream';
-  const publicPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn'
-    || pathname === '/data/pgn/world-championships/fischer-spassky-1972.pgn';
+  const publicPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn';
 
   // Try to read from root first, then from public/ folder
   fs.readFile(filePath, (error, content) => {

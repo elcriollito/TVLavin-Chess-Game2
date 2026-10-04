@@ -1,12 +1,13 @@
-import { buildPgnReaderHref, getPgnCollection } from './pgn-collection-registry.js';
+import { buildPgnReaderHref, getPgnCollection, resolveRuntimeRegistryMode } from './pgn-collection-registry.js';
 
-export const CAISSA_PGN_READER_VERSION = 'CaissaPgnReader@1.0.0';
+export const CAISSA_PGN_READER_VERSION = 'CaissaPgnReader@2.0.0';
 
-export function createCaissaPgnReader(navigate = href => window.location.assign(href)) {
+export function createCaissaPgnReader(navigate = href => window.location.assign(href), { hostname } = {}) {
   return Object.freeze({
-    open({ collectionId, gameId = null, target = 'best-available' } = {}) {
-      if (target !== 'best-available' || !getPgnCollection(collectionId)?.readerCompatible) return false;
-      const href = buildPgnReaderHref(collectionId, gameId);
+    open({ collectionId, gameId = null, target = 'best-available', returnTo = null } = {}) {
+      const mode = resolveRuntimeRegistryMode(hostname ?? globalThis.location?.hostname);
+      if (target !== 'best-available' || !getPgnCollection(collectionId, { mode })?.readerCompatible) return false;
+      const href = buildPgnReaderHref(collectionId, gameId, { returnTo, mode });
       if (!href) return false;
       navigate(href);
       return true;

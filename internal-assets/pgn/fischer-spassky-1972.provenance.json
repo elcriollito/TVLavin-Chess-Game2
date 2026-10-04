@@ -19,5 +19,7 @@
     "zeroPlyGames": 0,
     "notes": "Game 2 is recorded as Fischer's one-move forfeiture and parses as a completed 0-1 game."
   },
-  "usageNote": "PGN Mentor presents its event PGNs as freely downloadable factual game-score collections. Retain source attribution and re-review before publication."
+  "redistributionStatus": "INTERNAL_TEST_ONLY",
+  "licenseFinding": "No explicit redistribution license or permission was located. Free download is not treated as permission to republish.",
+  "usageNote": "Local QA only. Do not publish, deploy, or expose through a production route unless explicit redistribution permission is documented and the registry status is reviewed."
 }
