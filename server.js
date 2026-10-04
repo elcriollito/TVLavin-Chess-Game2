@@ -637,6 +637,8 @@ const server = http.createServer(async (req, res) => {
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeType = MIME_TYPES[extname] || 'application/octet-stream';
+  const publicPgn = pathname === '/data/pgn/capablanca-games-1901-1941.pgn'
+    || pathname === '/data/pgn/world-championships/fischer-spassky-1972.pgn';
 
   // Try to read from root first, then from public/ folder
   fs.readFile(filePath, (error, content) => {

@@ -2,6 +2,7 @@ import {
   archiveMeta, champions, reigns, championshipEvents, pgnCollections,
   getChampion, getReign, validateChampionshipArchive
 } from './championship-archive-data.js';
+import { CaissaPgnReader } from './caissa-pgn-reader.js';
 
 const byId = (values) => new Map(values.map(value => [value.id, value]));
 const championById = byId(champions);
@@ -27,7 +28,7 @@ function renderChampionCards() {
       <div class="champion-card__body">
         <div class="champion-card__reign">${escapeHtml(reignLabel(champion))}</div>
         <h3>${escapeHtml(champion.displayName)}</h3>
-        <div class="champion-card__country">${escapeHtml(champion.country)}</div>
+        ${champion.nationalIdentityVerified ? `<div class="champion-card__country">${escapeHtml(champion.country)}</div>` : ''}
         <p class="champion-card__summary">${escapeHtml(champion.summary)}</p>
         <div class="champion-card__footer"><span>${collections.length ? `${collections.length} PGN ${collections.length === 1 ? 'collection' : 'collections'}` : 'PGN not imported'}</span><button type="button" data-open-champion="${escapeHtml(champion.id)}">View reign</button></div>
       </div>
@@ -51,10 +52,16 @@ function eventsForChampion(championId) {
 }
 
 function collectionMarkup(collection) {
-  const readerAction = collection.readerCompatible && collection.readerHref
-    ? `<a href="${escapeHtml(collection.readerHref)}">Open in PGN Reader</a>`
+  const readerAction = collection.readerCompatible
+    ? `<button type="button" data-open-pgn="${escapeHtml(collection.id)}">Open in PGN Reader</button>`
     : `<button type="button" disabled title="The current web reader has no allowlisted collection handoff yet">Reader handoff pending</button>`;
-  return `<article class="collection-card"><h4>${escapeHtml(collection.title)}</h4><p>${escapeHtml(collection.gamesCount)} ${collection.gamesCount === 1 ? 'game' : 'games'} · ${escapeHtml(collection.provenance)}</p><div class="collection-actions">${readerAction}${collection.downloadable ? `<a href="${escapeHtml(collection.asset)}" download>Download PGN</a>` : ''}</div></article>`;
+  const typeLabel = collection.type === 'championship-match' ? 'Championship match' : 'Player collection';
+  return `<article class="collection-card${collection.gamesCount > 1 ? ' is-complete' : ''}">
+    <div class="collection-card__type">${escapeHtml(typeLabel)}${collection.gamesCount > 1 ? ' · Complete collection' : ''}</div>
+    <h4>${escapeHtml(collection.title)}</h4>
+    <p><strong>${escapeHtml(collection.gamesCount)} ${collection.gamesCount === 1 ? 'game' : 'games'}</strong> · ${escapeHtml(collection.attribution)}</p>
+    <div class="collection-actions">${readerAction}${collection.downloadable ? `<a href="${escapeHtml(collection.localAsset)}" download>Download PGN</a>` : ''}</div>
+  </article>`;
 }
 
 function openChampionDetail(championId, updateHash = true) {
@@ -69,15 +76,18 @@ function openChampionDetail(championId, updateHash = true) {
   const primaryReign = championReigns.find(reign => reign.lineage !== 'fide') || championReigns[0];
   const events = eventsForChampion(champion.id);
   const collections = (champion.collectionIds || []).map(id => collectionById.get(id)).filter(Boolean);
-  target.innerHTML = `<header class="detail-hero"><div class="detail-monogram" role="img" aria-label="Portrait placeholder for ${escapeHtml(champion.displayName)}">${escapeHtml(champion.initials)}</div><div><div class="detail-order">${champion.order ? `World champion no. ${String(champion.order).padStart(2, '0')}` : 'Parallel FIDE lineage'}</div><h2 id="champion-detail-title">${escapeHtml(champion.displayName)}</h2><p>${escapeHtml(champion.summary)}</p><div class="detail-metadata"><span>${escapeHtml(champion.country)}</span><span>${escapeHtml(reignLabel(champion))}</span><span>${collections.length ? `${collections.length} local PGN ${collections.length === 1 ? 'asset' : 'assets'}` : 'PGN assets not imported'}</span></div></div></header>
+  const wonFrom = predecessor ? predecessor.displayName : 'Inaugural championship';
+  const lostTo = successor ? successor.displayName : 'Current champion';
+  target.innerHTML = `<header class="detail-hero"><div class="detail-monogram" role="img" aria-label="Portrait placeholder for ${escapeHtml(champion.displayName)}">${escapeHtml(champion.initials)}</div><div><div class="detail-order">${champion.order ? `World champion no. ${String(champion.order).padStart(2, '0')}` : 'Parallel FIDE lineage'}</div><h2 id="champion-detail-title">${escapeHtml(champion.displayName)}</h2><p>${escapeHtml(champion.summary)}</p><div class="detail-metadata">${champion.nationalIdentityVerified ? `<span>${escapeHtml(champion.country)}</span>` : ''}<span>${escapeHtml(reignLabel(champion))}</span><span>${collections.length ? `${collections.length} local PGN ${collections.length === 1 ? 'asset' : 'assets'}` : 'PGN assets not imported'}</span></div></div></header>
     <div class="detail-content"><div>
-      <section class="detail-section"><h3>Reign at a glance</h3><div class="reign-summary"><div><strong>${escapeHtml(primaryReign?.startYear ?? '—')}</strong><span>Crowned</span></div><div><strong>${escapeHtml(primaryReign?.defenseCount ?? 0)}</strong><span>Title defenses</span></div><div><strong>${escapeHtml(primaryReign?.championshipMatchCount ?? 0)}</strong><span>Title events</span></div></div></section>
-      <section class="detail-section"><h3>Championship events</h3><div class="event-list">${events.map(event => `<article class="event-row"><strong>${event.year}</strong><div><h4>${escapeHtml(event.title)}</h4><p>${escapeHtml([event.format, event.score, event.location, event.note].filter(Boolean).join(' · '))}</p></div><span class="event-lineage">${escapeHtml(event.lineage)}</span></article>`).join('')}</div></section>
+      <section class="detail-section"><h3>Reign at a glance</h3><div class="reign-summary"><div><strong>${escapeHtml(primaryReign?.startYear ?? '—')}</strong><span>Crowned</span></div><div><strong>${escapeHtml(wonFrom)}</strong><span>Won title from</span></div><div><strong>${escapeHtml(lostTo)}</strong><span>${successor ? 'Title passed to' : 'Standing'}</span></div></div></section>
+      <section class="detail-section"><h3>Championship events</h3><div class="event-list">${events.map(event => `<article class="event-row"><strong>${event.year}</strong><div><h4>${escapeHtml(event.title)}</h4><p>${escapeHtml([event.numberOfGames !== undefined ? `${event.numberOfGames} games` : null, event.score, event.location, event.historicalNote].filter(Boolean).join(' · '))}</p></div><div class="event-badges"><span class="event-status">${escapeHtml(event.status || 'completed')}</span><span class="event-lineage">${escapeHtml(event.lineage)}</span></div></article>`).join('')}</div></section>
     </div><aside>
       <section class="detail-section"><h3>Lineage</h3><div class="lineage-links">${predecessor ? `<a href="#champion=${escapeHtml(predecessor.id)}" data-dialog-champion="${escapeHtml(predecessor.id)}"><small>Predecessor</small>${escapeHtml(predecessor.displayName)}</a>` : '<span><small>Predecessor</small>First champion</span>'}${successor ? `<a href="#champion=${escapeHtml(successor.id)}" data-dialog-champion="${escapeHtml(successor.id)}"><small>Successor</small>${escapeHtml(successor.displayName)}</a>` : '<span><small>Successor</small>Current champion</span>'}</div></section>
       <section class="detail-section"><h3>PGN collections</h3><div class="collection-list">${collections.length ? collections.map(collectionMarkup).join('') : '<div class="empty-collection">No approved local collection is attached yet. Actions remain unavailable until a source and asset are reviewed.</div>'}</div></section>
     </aside></div>`;
   target.querySelectorAll('[data-dialog-champion]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); openChampionDetail(link.dataset.dialogChampion); }));
+  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => CaissaPgnReader.open({ collectionId: button.dataset.openPgn, gameId: null, target: 'best-available' })));
   if (!dialog.open) dialog.showModal();
   if (updateHash) history.replaceState(null, '', `#champion=${champion.id}`);
 }
@@ -118,4 +128,4 @@ renderSplitDiagram();
 bindTimeline();
 bindInteractions();
 openHashChampion();
-window.CaissaChampionshipArchive = Object.freeze({ version: '0.1.0', validation, openChampionDetail });
+window.CaissaChampionshipArchive = Object.freeze({ version: '0.2.0', validation, openChampionDetail });

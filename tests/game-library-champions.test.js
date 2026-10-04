@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 import { load } from 'cheerio';
@@ -6,6 +7,10 @@ import {
   archiveMeta, champions, championshipEvents, pgnCollections, reigns,
   validateChampionshipArchive
 } from '../js/game-library/championship-archive-data.js';
+import {
+  buildPgnReaderHref, getPgnCollection, validatePgnCollectionRegistry
+} from '../js/game-library/pgn-collection-registry.js';
+import { createCaissaPgnReader } from '../js/game-library/caissa-pgn-reader.js';
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -39,21 +44,65 @@ test('split title era remains parallel until the explicit 2006 reunification eve
 
 test('special transition events are encoded without pretending they were normal matches', () => {
   assert.equal(championshipEvents.find(event => event.id === 'wcc-1948').format, 'quintuple-round-robin');
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1948').status, 'tournament');
   assert.equal(championshipEvents.find(event => event.id === 'wcc-1975').format, 'forfeit');
-  assert.equal(championshipEvents.find(event => event.id === 'wcc-1984').format, 'match-aborted');
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1975').status, 'forfeited');
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1984').status, 'aborted');
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1984').numberOfGames, 48);
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1987').status, 'drawn');
   assert.equal(championshipEvents.find(event => event.id === 'wcc-split-1993').format, 'administrative');
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-2006-reunification').status, 'reunification');
 });
 
-test('PGN actions use only declared local assets and the single certified reader route', () => {
+test('PGN registry is a strict local-asset allowlist', () => {
+  assert.equal(validatePgnCollectionRegistry().valid, true);
   for (const collection of pgnCollections) {
-    assert.match(collection.asset, /^\/(?:data\/)?pgn\//);
-    const diskPath = collection.asset.startsWith('/data/')
-      ? `public${collection.asset}`
-      : collection.asset.slice(1);
+    assert.match(collection.localAsset, /^\/(?:data\/)?pgn\//);
+    assert.doesNotMatch(collection.localAsset, /\.\.|[?#]|^https?:/);
+    const diskPath = collection.localAsset.startsWith('/data/')
+      ? `public${collection.localAsset}`
+      : collection.localAsset.slice(1);
     assert.equal(fs.existsSync(new URL(`../${diskPath}`, import.meta.url)), true, collection.id);
-    if (collection.readerCompatible) assert.equal(collection.readerHref, '/watch/game-replayer');
   }
-  assert.equal(pgnCollections.filter(collection => collection.readerCompatible).length, 1);
+  assert.deepEqual(validatePgnCollectionRegistry([{ ...pgnCollections[0], localAsset: 'https://example.com/file.pgn' }]).errors, ['capablanca-complete has unsafe localAsset']);
+  assert.deepEqual(validatePgnCollectionRegistry([{ ...pgnCollections[0], localAsset: '/../secret.pgn' }]).errors, ['capablanca-complete has unsafe localAsset']);
+  assert.equal(getPgnCollection('../../secret'), null);
+  assert.equal(getPgnCollection('https://example.com'), null);
+  assert.equal(buildPgnReaderHref('not-allowlisted'), null);
+});
+
+test('Fischer–Spassky collection is complete, checksummed, and attached to the 1972 event', () => {
+  const collection = getPgnCollection('fischer-spassky-1972-complete');
+  const bytes = fs.readFileSync(new URL('../public/data/pgn/world-championships/fischer-spassky-1972.pgn', import.meta.url));
+  const provenance = JSON.parse(read('public/data/pgn/world-championships/fischer-spassky-1972.provenance.json'));
+  assert.equal(collection.type, 'championship-match');
+  assert.equal(collection.gamesCount, 21);
+  assert.equal((bytes.toString('utf8').match(/^\[Event /gm) || []).length, 21);
+  assert.equal(`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`, collection.checksum);
+  assert.equal(provenance.publicDerivativeSha256, collection.checksum.slice(7));
+  assert.equal(championshipEvents.find(event => event.id === 'wcc-1972').pgnCollectionId, collection.id);
+});
+
+test('CaissaPgnReader opens only reader-compatible registry entries', () => {
+  const navigations = [];
+  const reader = createCaissaPgnReader(href => navigations.push(href));
+  assert.equal(reader.open({ collectionId: 'fischer-spassky-1972-complete', gameId: null, target: 'best-available' }), true);
+  assert.equal(navigations[0], '/watch/game-replayer?collection=fischer-spassky-1972-complete');
+  assert.equal(reader.open({ collectionId: 'fischer-spassky-game-6', target: 'best-available' }), false);
+  assert.equal(reader.open({ collectionId: '../../secret', target: 'best-available' }), false);
+  assert.equal(reader.open({ collectionId: 'capablanca-complete', target: 'desktop' }), false);
+  assert.equal(navigations.length, 1);
+});
+
+test('events remain chronological and portrait policy fields are present without image dependencies', () => {
+  assert.deepEqual([...championshipEvents].sort((a, b) => a.year - b.year).map(event => event.id), championshipEvents.map(event => event.id));
+  for (const champion of champions) {
+    assert.equal(champion.portraitAsset, null);
+    assert.equal(champion.attribution, null);
+    assert.equal(champion.source, null);
+    assert.equal(champion.license, null);
+    assert.equal(champion.licenseUrl, null);
+  }
 });
 
 test('prototype route has the archive hierarchy, desktop shell and no portrait dependency', () => {

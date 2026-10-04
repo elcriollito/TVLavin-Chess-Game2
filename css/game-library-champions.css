@@ -105,7 +105,7 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .detail-section h3 { margin: 0 0 16px; color: #b6b2aa; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; }
 .reign-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: rgba(255,255,255,.08); }
 .reign-summary div { padding: 16px; background: #171a1f; }
-.reign-summary strong { display: block; color: var(--archive-gold-bright); font: 22px Georgia, serif; }
+.reign-summary strong { display: block; min-height: 48px; color: var(--archive-gold-bright); font: 18px/1.25 Georgia, serif; }
 .reign-summary span { display: block; margin-top: 8px; color: #77746e; font-size: 9px; text-transform: uppercase; }
 .event-list, .collection-list { display: grid; gap: 8px; }
 .event-row { padding: 14px 16px; display: grid; grid-template-columns: 45px 1fr auto; gap: 14px; align-items: start; border: 1px solid rgba(255,255,255,.07); background: #14171b; }
@@ -113,14 +113,19 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .event-row h4 { margin: 0 0 4px; font: 15px Georgia, serif; }
 .event-row p { margin: 0; color: #77746e; font-size: 10px; line-height: 1.5; }
 .event-lineage { padding: 4px 7px; border: 1px solid rgba(255,255,255,.08); color: #817e77; font-size: 8px; letter-spacing: .09em; text-transform: uppercase; }
+.event-badges { display: grid; justify-items: end; gap: 6px; }
+.event-status { padding: 4px 7px; border: 1px solid rgba(215,164,83,.25); color: var(--archive-gold-bright); font-size: 8px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .lineage-links { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .lineage-links a, .lineage-links span { padding: 14px; border: 1px solid rgba(255,255,255,.07); background: #14171b; color: #c9c4bb; text-decoration: none; font-size: 11px; }
 .lineage-links small { display: block; margin-bottom: 6px; color: #6e6b65; font-size: 8px; letter-spacing: .12em; text-transform: uppercase; }
 .collection-card { padding: 16px; border: 1px solid rgba(255,255,255,.07); background: #14171b; }
+.collection-card.is-complete { border-color: rgba(215,164,83,.34); background: linear-gradient(140deg, rgba(215,164,83,.08), #14171b 52%); }
+.collection-card__type { margin-bottom: 8px; color: var(--archive-gold-bright); font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .collection-card h4 { margin: 0; font: 16px Georgia, serif; }
 .collection-card p { margin: 7px 0 12px; color: #77746d; font-size: 10px; line-height: 1.5; }
 .collection-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .collection-actions a, .collection-actions button { min-height: 34px; padding: 9px 11px; border: 1px solid rgba(215,164,83,.26); background: rgba(215,164,83,.07); color: var(--archive-gold-bright); text-decoration: none; font: 800 9px/1 Inter, sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+.collection-actions button:not([disabled]) { cursor: pointer; }
 .collection-actions button[disabled] { border-color: rgba(255,255,255,.07); background: transparent; color: #5f5d59; cursor: not-allowed; }
 .empty-collection { padding: 18px; border: 1px dashed rgba(255,255,255,.1); color: #77746e; font-size: 11px; line-height: 1.6; }
 
