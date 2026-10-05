@@ -259,17 +259,21 @@ test('CaissaPgnReader opens only reader-compatible registry entries', () => {
   assert.equal(navigations[2], `/game-library/champions/replay?collection=world-championship-worldchamp2024&game=0&returnTo=${encodeURIComponent(returnTo)}`);
   assert.equal(reader.open({ collectionId: 'world-championship-worldchamp2024', gameId: 0, target: 'fallback', returnTo }), true);
   assert.equal(navigations[3], `/watch/game-replayer?collection=world-championship-worldchamp2024&game=0&returnTo=${encodeURIComponent(returnTo)}`);
-  assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: 0, target: 'champions', returnTo }), false, 'player collections do not enter the match replay page');
+  assert.equal(reader.open({ collectionId: 'capablanca-complete', gameId: 0, target: 'champions', returnTo }), true, 'approved player collections enter the isolated Champions replay');
+  assert.equal(navigations[4], `/game-library/champions/replay?collection=capablanca-complete&game=0&returnTo=${encodeURIComponent(returnTo)}&context=player`);
   assert.equal(buildPgnReaderHref('world-championship-worldchamp2024', 0), '/watch/game-replayer?collection=world-championship-worldchamp2024&game=0');
   assert.equal(buildChampionshipReplayHref('world-championship-worldchamp2024', 0), '/game-library/champions/replay?collection=world-championship-worldchamp2024&game=0');
-  assert.equal(buildChampionshipReplayHref('capablanca-complete', 0), null);
-  assert.equal(navigations.length, 4);
+  assert.equal(buildChampionshipReplayHref('capablanca-complete', 0), '/game-library/champions/replay?collection=capablanca-complete&game=0&context=player');
+  assert.equal(buildChampionshipReplayHref('capablanca-complete', 0, { context: 'match' }), null);
+  assert.equal(buildChampionshipReplayHref('world-championship-worldchamp2024', 0, { context: 'player' }), null);
+  assert.equal(buildChampionshipReplayHref('capablanca-complete', 597), null);
+  assert.equal(navigations.length, 5);
 });
 
 test('archive return state round-trips canonical state and rejects open redirects', () => {
-  const href = buildArchiveReturnTo({ view: 'matches', lineage: 'fide', champion: 'vladimir-kramnik', reign: 'kramnik-classical-2000', event: 'wcc-2006-reunification', scroll: 432, mural: 876 });
+  const href = buildArchiveReturnTo({ view: 'matches', lineage: 'fide', champion: 'vladimir-kramnik', reign: 'kramnik-classical-2000', event: 'wcc-2006-reunification', collection: 'capablanca-complete', scroll: 432, mural: 876 });
   assert.equal(normalizeArchiveReturnTo(href), href);
-  assert.deepEqual({ ...readArchiveState(new URL(href, 'https://caissa.invalid')) }, { view: 'matches', lineage: 'fide', champion: 'vladimir-kramnik', reign: 'kramnik-classical-2000', event: 'wcc-2006-reunification', scroll: 432, mural: 876 });
+  assert.deepEqual({ ...readArchiveState(new URL(href, 'https://caissa.invalid')) }, { view: 'matches', lineage: 'fide', champion: 'vladimir-kramnik', reign: 'kramnik-classical-2000', event: 'wcc-2006-reunification', collection: 'capablanca-complete', scroll: 432, mural: 876 });
   for (const unsafe of ['https://evil.example/', '//evil.example/', '/watch/game-replayer', '/game-library/champions/../secret', '/game-library/champions?next=https://evil.example', '/game-library/champions?view=other', '/game-library/champions#bad']) {
     assert.equal(normalizeArchiveReturnTo(unsafe), null, unsafe);
     assert.equal(buildPgnReaderHref('capablanca-complete', null, { returnTo: unsafe }), null, unsafe);
@@ -335,8 +339,11 @@ test('release-candidate route has the archive hierarchy and progressive portrait
   assert.match(archivePage, /championCardVisual/);
   assert.match(archivePage, /championDetailVisual/);
   assert.match(archivePage, /loading="\$\{loading\}"/);
-  assert.match(archivePage, /version: '1\.0\.0-rc\.3'/);
-  assert.match(archivePage, /openReader\(button\.dataset\.openPgn, uiState\.event\)/);
+  assert.match(archivePage, /version: '1\.0\.0-rc\.5'/);
+  assert.match(archivePage, /openReader\(button\.dataset\.openPgn, uiState\.event, 0, 'champions'\)/);
+  assert.match(archivePage, /semanticReturnAnchor/);
+  assert.match(archivePage, /document\.fonts\?\.ready/);
+  assert.match(archivePage, /Math\.max\(0, root\.scrollHeight - viewportHeight\)/);
   assert.match(archivePage, /openReader\(button\.dataset\.eventPgn, button\.dataset\.event, 0, 'champions'\)/);
   assert.match(archivePage, /href="\$\{escapeHtml\(external\.url\)\}" target="_blank" rel="noopener noreferrer external"/);
   assert.doesNotMatch(archivePage, /href="\$\{escapeHtml\(runtime\.localAsset\)\}"/);
@@ -382,13 +389,14 @@ test('isolated Champions replay is registry-gated, hidden from navigation, and h
   assert.equal(page('[data-caissa-standalone-sidebar]').length, 0);
   assert.doesNotMatch(navigation, /game-library\/champions\/replay/);
   assert.match(runtime, /getPgnCollection\(collectionId\)/);
-  assert.match(runtime, /entry\.type !== 'championship-match'/);
+  assert.match(runtime, /requiredType = context === 'player' \? 'player-collection' : 'championship-match'/);
   assert.match(runtime, /selectTab\('games'\)/);
   assert.match(runtime, /\['ArrowLeft', 'ArrowRight', 'Home', 'End'\]/);
-  assert.match(runtime, /ALLOWED_PARAMS = new Set\(\['collection', 'game', 'returnTo'\]\)/);
+  assert.match(runtime, /ALLOWED_PARAMS = new Set\(\['collection', 'game', 'context', 'returnTo'\]\)/);
   assert.match(runtime, /fetch\(entry\.readerAsset/);
   assert.doesNotMatch(runtime, /externalDownloadUrl|downloadBlob|params\.get\(['"]url/);
   assert.match(read('server.js'), /pathname === '\/game-library\/champions\/replay'/);
   assert.match(read('vercel.json'), /"source": "\/game-library\/champions\/replay"/);
   assert.equal(buildChampionshipReplayHref('fischer-spassky-game-6', 0), null);
+  assert.equal(buildChampionshipReplayHref('capablanca-complete', 0, { context: 'player' }), '/game-library/champions/replay?collection=capablanca-complete&game=0&context=player');
 });

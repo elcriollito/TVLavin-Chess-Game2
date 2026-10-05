@@ -18,20 +18,82 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character =>
 const primaryChampions = archiveMeta.primaryChampionIds.map(getChampion);
 const initialState = readArchiveState(location);
 let detailReturnFocus = null;
+const RETURN_SCROLL_MARGIN = 24;
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 const uiState = {
   view: initialState.view,
   lineage: initialState.lineage,
   champion: championById.has(initialState.champion) ? initialState.champion : null,
   reign: reignById.has(initialState.reign) ? initialState.reign : null,
-  event: eventById.has(initialState.event) ? initialState.event : null
+  event: eventById.has(initialState.event) ? initialState.event : null,
+  collection: getKnownPgnCollection(initialState.collection)?.id || null
 };
 
-const archiveScrollTop = () => Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop);
+const archiveScrollRoot = () => document.scrollingElement || document.documentElement;
+const archiveScrollTop = () => archiveScrollRoot().scrollTop;
 const restoreArchiveScroll = value => {
-  window.scrollTo(0, value);
-  document.documentElement.scrollTop = value;
-  document.body.scrollTop = value;
+  const root = archiveScrollRoot();
+  const viewportHeight = root === document.body ? root.clientHeight : window.innerHeight;
+  const maxScroll = Math.max(0, root.scrollHeight - viewportHeight);
+  const top = Math.min(Math.max(0, Number(value) || 0), maxScroll);
+  const previousScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  root.scrollTo({ left: 0, top, behavior: 'auto' });
+  root.style.scrollBehavior = previousScrollBehavior;
 };
+const scrollArchiveElementIntoView = (element, options) => {
+  const root = archiveScrollRoot();
+  const previousScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  element.scrollIntoView(options);
+  root.style.scrollBehavior = previousScrollBehavior;
+};
+
+const nextAnimationFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+
+function visibleStickyOffset() {
+  return [...document.querySelectorAll('.era-navigation')].reduce((offset, element) => {
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    if (style.display === 'none' || style.visibility === 'hidden' || rect.height <= 0 || !['sticky', 'fixed'].includes(style.position)) return offset;
+    return Math.max(offset, (Number.parseFloat(style.top) || 0) + rect.height);
+  }, 0);
+}
+
+function semanticReturnAnchor() {
+  const detail = document.querySelector('[data-champion-dialog]:not([hidden])');
+  if (detail && uiState.collection) {
+    const collection = detail.querySelector(`[data-player-collection="${uiState.collection}"]`);
+    if (collection) return collection;
+  }
+  if (detail && uiState.event) {
+    const event = detail.querySelector(`[data-event-id="${uiState.event}"]`);
+    if (event) return event;
+  }
+  if (detail && uiState.reign) {
+    const reign = detail.querySelector(`[data-detail-reign="${uiState.reign}"]`);
+    if (reign) return reign;
+  }
+  if (detail) return detail;
+  return uiState.champion ? document.getElementById(uiState.champion) : null;
+}
+
+async function restoreArchivePosition() {
+  try { await document.fonts?.ready; } catch (_) { /* System-font layout remains a valid fallback. */ }
+  await nextAnimationFrame();
+  await nextAnimationFrame();
+  const anchor = semanticReturnAnchor();
+  if (!anchor) {
+    restoreArchiveScroll(initialState.scroll);
+    document.documentElement.dataset.archiveReturnRestored = 'true';
+    delete document.documentElement.dataset.archiveReturnRestoring;
+    return;
+  }
+  const targetTop = archiveScrollTop() + anchor.getBoundingClientRect().top - visibleStickyOffset() - RETURN_SCROLL_MARGIN;
+  restoreArchiveScroll(targetTop);
+  document.documentElement.dataset.archiveReturnRestored = 'true';
+  delete document.documentElement.dataset.archiveReturnRestoring;
+}
 
 const externalPeople = Object.freeze({
   'johannes-zukertort': 'Johannes Zukertort', 'paul-keres': 'Paul Keres',
@@ -189,7 +251,7 @@ function runtimeCollectionForEvent(event) {
   return getPgnCollectionForEvent(event.id);
 }
 
-function collectionMarkup(collectionId) {
+function collectionMarkup(collectionId, selectedCollectionId = null) {
   const known = getKnownPgnCollection(collectionId);
   const runtime = collectionForRuntime(collectionId);
   const external = getApprovedExternalPgnDownload(collectionId);
@@ -199,10 +261,12 @@ function collectionMarkup(collectionId) {
     ? `<button type="button" data-open-pgn="${escapeHtml(known.id)}"><i class="fas fa-book-open" aria-hidden="true"></i>Open in PGN Reader</button>`
     : '';
   const provider = external ? `<small class="collection-card__source">External source: ${escapeHtml(external.sourceName)}</small>` : '';
-  return `<article class="collection-card${known.gamesCount > 1 ? ' is-complete' : ''} collection-card--${availability.code}" data-player-collection="${escapeHtml(known.id)}"><div class="collection-card__type"><span>Player collection</span>${availabilityBadge(known.id)}</div><h4>${escapeHtml(known.title)}</h4><p><strong>${known.gamesCount} ${known.gamesCount === 1 ? 'game' : 'games'}</strong> · ${escapeHtml(known.attribution)}</p><p class="collection-card__availability">${escapeHtml(availabilityCopy(known.id))}</p>${provider}<div class="collection-actions">${readerAction}${externalDownloadAction(known.id)}</div></article>`;
+  return `<article class="collection-card${known.gamesCount > 1 ? ' is-complete' : ''}${known.id === selectedCollectionId ? ' is-selected' : ''} collection-card--${availability.code}" data-player-collection="${escapeHtml(known.id)}"><div class="collection-card__type"><span>Player collection</span>${availabilityBadge(known.id)}</div><h4>${escapeHtml(known.title)}</h4><p><strong>${known.gamesCount} ${known.gamesCount === 1 ? 'game' : 'games'}</strong> · ${escapeHtml(known.attribution)}</p><p class="collection-card__availability">${escapeHtml(availabilityCopy(known.id))}</p>${provider}<div class="collection-actions">${readerAction}${externalDownloadAction(known.id)}</div></article>`;
 }
 
 function openReader(collectionId, eventId = null, gameId = null, target = 'best-available') {
+  const collection = getPgnCollection(collectionId);
+  uiState.collection = collection?.type === 'player-collection' ? collection.id : null;
   const opened = CaissaPgnReader.open({ collectionId, gameId, target, returnTo: currentReturnTo({ event: eventId || uiState.event }) });
   if (!opened) document.querySelector('[data-reader-notice]')?.removeAttribute('hidden');
 }
@@ -223,9 +287,10 @@ function openChampionDetail(championId, options = {}) {
   const index = primaryChampions.findIndex(entry => entry.id === champion.id);
   const predecessor = index > 0 ? primaryChampions[index - 1] : null;
   const successor = index >= 0 && index < primaryChampions.length - 1 ? primaryChampions[index + 1] : null;
-  uiState.champion = champion.id; uiState.reign = requestedReign?.id || null; uiState.event = requestedEvent?.id || null;
   const collectionIds = [...new Set([...(champion.collectionIds || []), ...events.map(event => knownCollectionForEvent(event)?.id).filter(Boolean)])];
   const championCollectionIds = (champion.collectionIds || []).filter(id => getKnownPgnCollection(id)?.type === 'player-collection');
+  const requestedCollectionId = championCollectionIds.includes(options.collectionId) ? options.collectionId : null;
+  uiState.champion = champion.id; uiState.reign = requestedReign?.id || null; uiState.event = requestedEvent?.id || null; uiState.collection = requestedCollectionId;
   const availableChampionCollectionIds = championCollectionIds.filter(id => collectionForRuntime(id)?.readerCompatible || getApprovedExternalPgnDownload(id));
   const championCollectionEmptyState = championCollectionIds.length
     ? '<div class="empty-collection"><strong>Collection not publicly available</strong><span>This player collection remains unavailable while its publication status is reviewed.</span></div>'
@@ -245,10 +310,10 @@ function openChampionDetail(championId, options = {}) {
         return `<article class="event-row${event.id === requestedEvent?.id ? ' is-selected' : ''}" data-event-id="${event.id}"><strong>${event.year}</strong><div><h4>${escapeHtml(event.title)}</h4><p>${escapeHtml([event.numberOfGames !== undefined ? `${event.numberOfGames} games` : null, event.score ? `Score ${event.score}` : null, event.location, event.historicalNote].filter(Boolean).join(' · '))}</p>${eventActions}</div><div class="event-badges">${availabilityBadge(knownEventCollection?.id)}<span class="event-status">${escapeHtml(event.status)}</span><span class="event-lineage">${escapeHtml(event.lineage)}</span></div></article>`;
       }).join('')}</div></section></div>
       <aside><section class="detail-section"><h3>Title transition</h3><div class="lineage-links">${predecessor ? `<a href="#champion=${predecessor.id}" data-dialog-champion="${predecessor.id}"><small>Predecessor</small>${escapeHtml(predecessor.displayName)}</a>` : '<span><small>Predecessor</small>First champion</span>'}${successor ? `<a href="#champion=${successor.id}" data-dialog-champion="${successor.id}"><small>Successor</small>${escapeHtml(successor.displayName)}</a>` : '<span><small>Successor</small>Current champion</span>'}</div></section>
-      <section class="detail-section champion-collection"><div class="detail-section__heading"><h3>Champion collection</h3><span>Games by this player</span></div><p class="collection-policy">Explore approved player collections in the CAISSA reader. External downloads appear only when an approved source is registered.</p><p data-reader-notice hidden class="reader-notice">This collection is not available for public access.</p><div class="collection-list">${availableChampionCollectionIds.length ? availableChampionCollectionIds.map(collectionMarkup).join('') : championCollectionEmptyState}</div></section></aside></div>`;
+      <section class="detail-section champion-collection"><div class="detail-section__heading"><h3>Champion collection</h3><span>Games by this player</span></div><p class="collection-policy">Explore approved player collections in the CAISSA reader. External downloads appear only when an approved source is registered.</p><p data-reader-notice hidden class="reader-notice">This collection is not available for public access.</p><div class="collection-list">${availableChampionCollectionIds.length ? availableChampionCollectionIds.map(id => collectionMarkup(id, requestedCollectionId)).join('') : championCollectionEmptyState}</div></section></aside></div>`;
   target.querySelectorAll('[data-dialog-champion]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); openChampionDetail(link.dataset.dialogChampion); }));
   target.querySelectorAll('[data-detail-reign]').forEach(button => button.addEventListener('click', () => openChampionDetail(champion.id, { reignId: button.dataset.detailReign })));
-  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => openReader(button.dataset.openPgn, uiState.event)));
+  target.querySelectorAll('[data-open-pgn]').forEach(button => button.addEventListener('click', () => openReader(button.dataset.openPgn, uiState.event, 0, 'champions')));
   target.querySelectorAll('[data-event-pgn]').forEach(button => button.addEventListener('click', () => { uiState.event = button.dataset.event; writeState(); openReader(button.dataset.eventPgn, button.dataset.event, 0, 'champions'); }));
   const anchor = uiState.view === 'matches' && requestedEvent
     ? document.querySelector(`[data-match-event="${requestedEvent.id}"]`)
@@ -257,7 +322,7 @@ function openChampionDetail(championId, options = {}) {
   dialog.hidden = false;
   setExpandedChampion(champion.id);
   document.querySelectorAll('.match-card').forEach(card => card.classList.toggle('is-selected', card.dataset.matchEvent === requestedEvent?.id));
-  if (options.scrollIntoView !== false) dialog.scrollIntoView({ behavior: 'auto', block: 'start' });
+  if (options.scrollIntoView !== false) scrollArchiveElementIntoView(dialog, { behavior: 'auto', block: 'start' });
   if (options.focus !== false) target.querySelector('#champion-detail-title')?.focus({ preventScroll: true });
   if (options.updateState !== false) writeState();
   return true;
@@ -308,7 +373,7 @@ function closeChampionDetail({ update = true, restoreFocus = true } = {}) {
   }
   setExpandedChampion();
   document.querySelectorAll('.match-card.is-selected').forEach(card => card.classList.remove('is-selected'));
-  uiState.champion = null; uiState.reign = null; uiState.event = null;
+  uiState.champion = null; uiState.reign = null; uiState.event = null; uiState.collection = null;
   if (update) writeState();
   if (restoreFocus && detailReturnFocus?.isConnected) detailReturnFocus.focus({ preventScroll: true });
   detailReturnFocus = null;
@@ -346,12 +411,13 @@ function bindInteractions() {
 }
 
 function restoreState() {
+  document.documentElement.dataset.archiveReturnRestoring = 'true';
   setView(uiState.view, { update: false }); setLineage(uiState.lineage, { update: false });
   requestAnimationFrame(() => {
     const viewport = document.querySelector('[data-mural-viewport]');
     if (viewport) viewport.scrollLeft = initialState.mural;
-    if (uiState.champion) openChampionDetail(uiState.champion, { reignId: uiState.reign, eventId: uiState.event, scrollIntoView: false, updateState: false, focus: false });
-    requestAnimationFrame(() => restoreArchiveScroll(initialState.scroll));
+    if (uiState.champion) openChampionDetail(uiState.champion, { reignId: uiState.reign, eventId: uiState.event, collectionId: uiState.collection, scrollIntoView: false, updateState: false, focus: false });
+    restoreArchivePosition();
   });
 }
 
@@ -362,4 +428,4 @@ const validation = Object.freeze({
 });
 if (!validation.valid) throw new Error(`Championship Archive validation failed: ${validation.errors.join('; ')}`);
 renderChampionCards(); renderSplitDiagram(); bindInteractions(); restoreState();
-window.CaissaChampionshipArchive = Object.freeze({ version: '1.0.0-rc.3', validation, openChampionDetail, getState: () => Object.freeze({ ...uiState }) });
+window.CaissaChampionshipArchive = Object.freeze({ version: '1.0.0-rc.5', validation, openChampionDetail, getState: () => Object.freeze({ ...uiState }) });

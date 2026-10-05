@@ -1,7 +1,7 @@
 import { normalizeArchiveReturnTo } from './archive-return-state.js';
 import { worldChampionshipPgnCatalog, worldChampionshipPgnCatalogValidation } from './world-championship-pgn-catalog.js';
 
-export const PGN_COLLECTION_REGISTRY_VERSION = 'CaissaPgnCollectionRegistry@4.1.0';
+export const PGN_COLLECTION_REGISTRY_VERSION = 'CaissaPgnCollectionRegistry@4.2.0';
 
 export const REDISTRIBUTION_STATUSES = Object.freeze({
   VERIFIED_REDISTRIBUTABLE: 'VERIFIED_REDISTRIBUTABLE',
@@ -289,7 +289,8 @@ function appendReaderParams(entry, gameId, returnTo) {
   const params = new URLSearchParams({ collection: entry.id });
   if (gameId !== null) {
     const normalizedGameId = String(gameId);
-    if (!/^\d+$/.test(normalizedGameId)) return null;
+    const numericGameId = Number(normalizedGameId);
+    if (!/^\d+$/.test(normalizedGameId) || !Number.isSafeInteger(numericGameId) || numericGameId < 0 || numericGameId >= entry.gamesCount) return null;
     params.set('game', normalizedGameId);
   }
   if (returnTo !== null) {
@@ -307,9 +308,12 @@ export function buildPgnReaderHref(collectionId, gameId = null, { returnTo = nul
   return params ? `/watch/game-replayer?${params.toString()}` : null;
 }
 
-export function buildChampionshipReplayHref(collectionId, gameId = 0, { returnTo = null } = {}) {
+export function buildChampionshipReplayHref(collectionId, gameId = 0, { returnTo = null, context = null } = {}) {
   const entry = getPgnCollection(collectionId);
-  if (!entry?.readerCompatible || entry.type !== 'championship-match') return null;
+  if (!entry?.readerCompatible || !['championship-match', 'player-collection'].includes(entry.type)) return null;
+  const requiredContext = entry.type === 'player-collection' ? 'player' : 'match';
+  if (context !== null && context !== requiredContext) return null;
   const params = appendReaderParams(entry, gameId, returnTo);
+  if (params && requiredContext === 'player') params.set('context', 'player');
   return params ? `/game-library/champions/replay?${params.toString()}` : null;
 }

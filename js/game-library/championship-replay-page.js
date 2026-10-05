@@ -3,7 +3,7 @@ import { getPgnCollection } from './pgn-collection-registry.js';
 import { normalizeArchiveReturnTo } from './archive-return-state.js';
 
 const MAX_PGN_BYTES = 10 * 1024 * 1024;
-const ALLOWED_PARAMS = new Set(['collection', 'game', 'returnTo']);
+const ALLOWED_PARAMS = new Set(['collection', 'game', 'context', 'returnTo']);
 
 const root = document.querySelector('[data-championship-replay]');
 
@@ -11,9 +11,11 @@ if (root) {
   const elements = {
     title: root.querySelector('[data-replay-title]'),
     subtitle: root.querySelector('[data-replay-subtitle]'),
+    contextLabel: root.querySelector('[data-replay-context-label]'),
     returnLink: root.querySelector('[data-replay-return]'),
     status: root.querySelector('[data-replay-status]'),
     year: root.querySelector('[data-replay-year]'),
+    collectionLabel: root.querySelector('[data-replay-collection-label]'),
     gamePosition: root.querySelector('[data-replay-game-position]'),
     gameCount: root.querySelector('[data-replay-game-count]'),
     gameTitle: root.querySelector('[data-replay-game-title]'),
@@ -21,6 +23,8 @@ if (root) {
     metadata: root.querySelector('[data-replay-metadata]'),
     games: root.querySelector('[data-replay-games]'),
     notation: root.querySelector('[data-replay-notation]'),
+    listEyebrow: root.querySelector('[data-replay-list-eyebrow]'),
+    listTitle: root.querySelector('[data-replay-list-title]'),
     white: root.querySelector('[data-replay-white]'),
     whiteElo: root.querySelector('[data-replay-white-elo]'),
     black: root.querySelector('[data-replay-black]'),
@@ -46,6 +50,7 @@ if (root) {
     gameIndex: -1,
     moveIndex: -1,
     activeTab: 'games',
+    context: 'match',
     worker: null,
     requestId: 0,
     autoplayTimer: null
@@ -122,6 +127,18 @@ if (root) {
     return [headers.Event, headers.Date, headers.Round && `Round ${headers.Round}`].filter(Boolean).join(' · ');
   }
 
+  function isPlayerCollection() {
+    return state.context === 'player' && state.registryEntry?.type === 'player-collection';
+  }
+
+  function replayTitle() {
+    return isPlayerCollection() ? state.registryEntry.title : state.registryEntry.title.replace(/^\d{4}\s+[—-]\s+/, '');
+  }
+
+  function collectionPeriod(entry) {
+    return entry.title.match(/\b\d{4}[–-]\d{4}\b/)?.[0] || entry.title.match(/^\d{4}/)?.[0] || '—';
+  }
+
   function renderGames() {
     elements.games.replaceChildren();
     elements.gameCount.textContent = `(${state.collection.games.length})`;
@@ -142,7 +159,7 @@ if (root) {
       const names = document.createElement('strong');
       names.textContent = game.label;
       const detail = document.createElement('small');
-      detail.textContent = gameSummary(game) || 'Championship game';
+      detail.textContent = gameSummary(game) || (isPlayerCollection() ? 'Player archive game' : 'Championship game');
       players.append(names, detail);
       const result = document.createElement('span');
       result.className = 'championship-game-row__result';
@@ -233,9 +250,9 @@ if (root) {
     state.gameIndex = index;
     state.moveIndex = -1;
     const headers = game.headers;
-    elements.title.textContent = state.registryEntry.title.replace(/^\d{4}\s+[—-]\s+/, '');
-    elements.subtitle.textContent = gameSummary(game) || state.registryEntry.title;
-    elements.year.textContent = state.registryEntry.title.match(/^\d{4}/)?.[0] || headers.Date?.slice(0, 4) || '—';
+    elements.title.textContent = replayTitle();
+    elements.subtitle.textContent = isPlayerCollection() ? `Player Collection · ${state.collection.games.length} games` : gameSummary(game) || state.registryEntry.title;
+    elements.year.textContent = isPlayerCollection() ? collectionPeriod(state.registryEntry) : state.registryEntry.title.match(/^\d{4}/)?.[0] || headers.Date?.slice(0, 4) || '—';
     elements.gamePosition.textContent = `Game ${index + 1} of ${state.collection.games.length}`;
     elements.gameTitle.textContent = game.label;
     elements.result.textContent = `Result ${game.result || '*'}`;
@@ -251,6 +268,8 @@ if (root) {
     updateControls();
     queueMicrotask(keepCurrentGameVisible);
     root.dataset.collectionId = state.registryEntry.id;
+    root.dataset.collectionType = state.registryEntry.type;
+    root.dataset.replayContext = state.context;
     root.dataset.gameIndex = String(index);
     if (announce) setStatus(`Game ${index + 1} selected: ${game.label}`, 'info');
     return true;
@@ -265,16 +284,16 @@ if (root) {
       const response = event.data || {};
       if (response.requestId !== requestId) return;
       if (response.type !== 'parsed') {
-        fail(response.error?.message || 'The approved championship PGN could not be read.');
+        fail(response.error?.message || 'The approved PGN collection could not be read.');
         return;
       }
       state.collection = response.collection;
       if (!selectGame(requestedGameIndex, false)) {
-        fail('The requested game does not exist in this championship collection.');
+        fail('The requested game does not exist in this collection.');
         return;
       }
       finishBusy();
-      setStatus(`${state.collection.games.length} championship games ready. Game ${requestedGameIndex + 1} is selected.`, 'info');
+      setStatus(`${state.collection.games.length} ${isPlayerCollection() ? 'player' : 'championship'} games ready. Game ${requestedGameIndex + 1} is selected.`, 'info');
     });
     state.worker.addEventListener('error', () => fail('The local championship parser stopped unexpectedly.'), { once: true });
     state.worker.postMessage({ type: 'parse', requestId, text });
@@ -289,8 +308,14 @@ if (root) {
     }
     const collectionId = params.get('collection');
     const entry = getPgnCollection(collectionId);
-    if (!entry || entry.type !== 'championship-match') {
-      fail('This championship collection is not approved for public replay.');
+    const context = params.get('context') || 'match';
+    if (!['match', 'player'].includes(context)) {
+      fail('This replay context is not approved.');
+      return;
+    }
+    const requiredType = context === 'player' ? 'player-collection' : 'championship-match';
+    if (!entry || entry.type !== requiredType) {
+      fail('This collection is not approved for the requested replay context.');
       return;
     }
     const gameValue = params.get('game') ?? '0';
@@ -300,7 +325,7 @@ if (root) {
     }
     const gameIndex = Number(gameValue);
     if (!Number.isSafeInteger(gameIndex) || gameIndex < 0 || gameIndex >= entry.gamesCount) {
-      fail('The requested game is not available in this championship collection.');
+      fail('The requested game is not available in this collection.');
       return;
     }
     const returnValue = params.get('returnTo');
@@ -314,9 +339,15 @@ if (root) {
     }
 
     state.registryEntry = entry;
-    elements.title.textContent = entry.title.replace(/^\d{4}\s+[—-]\s+/, '');
-    elements.subtitle.textContent = 'Loading the approved match scorebook…';
-    elements.year.textContent = entry.title.match(/^\d{4}/)?.[0] || '—';
+    state.context = context;
+    const playerCollection = isPlayerCollection();
+    elements.contextLabel.textContent = playerCollection ? 'Player collection' : 'Championship match';
+    elements.collectionLabel.textContent = playerCollection ? `Player Collection · ${entry.gamesCount} games` : 'World Championship archive';
+    elements.listEyebrow.textContent = playerCollection ? 'Player archive' : 'Match scorebook';
+    elements.listTitle.textContent = playerCollection ? 'Complete collection' : 'Complete championship';
+    elements.title.textContent = replayTitle();
+    elements.subtitle.textContent = playerCollection ? `Player Collection · ${entry.gamesCount} games` : 'Loading the approved match scorebook…';
+    elements.year.textContent = playerCollection ? collectionPeriod(entry) : entry.title.match(/^\d{4}/)?.[0] || '—';
     try {
       const response = await fetch(entry.readerAsset, { credentials: 'same-origin', cache: 'force-cache', redirect: 'error' });
       const declaredSize = Number(response.headers.get('content-length') || 0);
@@ -325,10 +356,10 @@ if (root) {
       if (new Blob([text]).size > MAX_PGN_BYTES || !/^\s*\[(Event|Site|Date|Round|White|Black|Result)\s+"/m.test(text)) {
         throw new Error('Invalid PGN response');
       }
-      setStatus('Reading the championship scorebook locally…');
+      setStatus(playerCollection ? 'Reading the approved player collection locally…' : 'Reading the championship scorebook locally…');
       parsePgn(text, gameIndex);
     } catch (_) {
-      fail('The approved championship collection is temporarily unavailable.');
+      fail('The approved replay collection is temporarily unavailable.');
     }
   }
 

@@ -58,6 +58,24 @@ test('championship archive renders its chronological mural at required desktop s
     await expect.poll(() => page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))).toEqual({ client: size.width, scroll: size.width });
     await expect(page.locator('.archive-hero')).toBeVisible();
     await expect(page.locator('.champion-card').first()).toBeVisible();
+    const rowGeometry = await page.locator('.champion-card').evaluateAll(cards => {
+      const rows = new Map();
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const key = Math.round(rect.top);
+        if (!rows.has(key)) rows.set(key, []);
+        const action = card.querySelector('.champion-card__footer button')?.getBoundingClientRect();
+        rows.get(key).push({ height: rect.height, actionBottom: action?.bottom || 0 });
+      });
+      return [...rows.values()].map(row => ({
+        heightDelta: Math.max(...row.map(item => item.height)) - Math.min(...row.map(item => item.height)),
+        actionDelta: Math.max(...row.map(item => item.actionBottom)) - Math.min(...row.map(item => item.actionBottom))
+      }));
+    });
+    for (const row of rowGeometry) {
+      expect(row.heightDelta).toBeLessThanOrEqual(1);
+      expect(row.actionDelta).toBeLessThanOrEqual(1);
+    }
   }
 });
 
@@ -66,17 +84,85 @@ test('approved portrait art renders across cards and champion detail', async ({ 
   const portrait = page.locator('#wilhelm-steinitz .champion-card__portrait-image');
   await expect(portrait).toBeVisible();
   await expect.poll(() => portrait.evaluate(image => ({ complete: image.complete, width: image.naturalWidth, height: image.naturalHeight }))).toEqual({ complete: true, width: 768, height: 1024 });
+  await expect(portrait).toHaveCSS('object-fit', 'contain');
+  await expect(portrait).toHaveCSS('object-position', '50% 50%');
+  await expect(portrait).toHaveCSS('position', 'absolute');
+  const cardPortraitGeometry = await portrait.evaluate(image => {
+    const frame = image.parentElement;
+    return { clientHeight: frame.clientHeight, scrollHeight: frame.scrollHeight, imageHeight: image.getBoundingClientRect().height };
+  });
+  expect(cardPortraitGeometry.scrollHeight).toBe(cardPortraitGeometry.clientHeight);
+  expect(cardPortraitGeometry.imageHeight).toBe(cardPortraitGeometry.clientHeight);
   await page.locator('[data-open-champion="wilhelm-steinitz"]').click();
   const detail = page.locator('[data-champion-dialog]');
-  await expect(detail.locator('.detail-monogram__portrait')).toHaveAttribute('alt', 'Illustrated portrait of Wilhelm Steinitz');
+  const detailPortrait = detail.locator('.detail-monogram__portrait');
+  await expect(detailPortrait).toHaveAttribute('alt', 'Illustrated portrait of Wilhelm Steinitz');
+  await expect(detailPortrait).toHaveCSS('object-fit', 'contain');
+  await expect(detailPortrait).toHaveCSS('object-position', '50% 50%');
   await expect(detail.locator('.detail-monogram')).toHaveCSS('width', '164px');
   await expect(detail.locator('.detail-monogram')).toHaveCSS('height', '206px');
+  const detailPortraitGeometry = await detailPortrait.evaluate(image => {
+    const frame = image.parentElement;
+    return { clientHeight: frame.clientHeight, scrollHeight: frame.scrollHeight };
+  });
+  expect(detailPortraitGeometry.scrollHeight).toBe(detailPortraitGeometry.clientHeight);
   await page.keyboard.press('Escape');
   await page.locator('[data-open-champion="garry-kasparov"]').click();
   await expect(detail.locator('.detail-monogram__portrait')).toHaveAttribute('alt', 'Illustrated portrait of Garry Kasparov');
 });
 
+test('archive uses one document scroll root and ends at its real footer', async ({ page }) => {
+  for (const size of desktopSizes) {
+    await page.setViewportSize(size);
+    await page.goto('/game-library/champions');
+    await expect(page.locator('.champion-card')).toHaveCount(18);
+    await expect(page.locator('html')).toHaveAttribute('data-archive-return-restored', 'true');
+    const roots = await page.evaluate(() => {
+      const style = element => getComputedStyle(element);
+      const layout = document.querySelector('.caissa-standalone-layout');
+      const content = document.querySelector('.caissa-standalone-content');
+      return {
+        scrollingElement: document.scrollingElement?.tagName,
+        html: { overflowX: style(document.documentElement).overflowX, overflowY: style(document.documentElement).overflowY },
+        body: { overflowX: style(document.body).overflowX, overflowY: style(document.body).overflowY, clientHeight: document.body.clientHeight, scrollHeight: document.body.scrollHeight },
+        layoutOverflowY: style(layout).overflowY,
+        contentOverflowY: style(content).overflowY,
+        horizontal: { client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }
+      };
+    });
+    expect(roots.scrollingElement).toBe('HTML');
+    expect(roots.html).toEqual({ overflowX: 'hidden', overflowY: 'auto' });
+    expect(roots.body.overflowX).toBe('clip');
+    expect(roots.body.overflowY).toBe('visible');
+    expect(roots.body.scrollHeight).toBe(roots.body.clientHeight);
+    expect(roots.layoutOverflowY).toBe('visible');
+    expect(roots.contentOverflowY).toBe('visible');
+    expect(roots.horizontal.scroll).toBe(roots.horizontal.client);
+
+    const end = await page.evaluate(async () => {
+      const root = document.scrollingElement;
+      document.documentElement.style.scrollBehavior = 'auto';
+      window.scrollTo(0, root.scrollHeight);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const footer = document.querySelector('.archive-footer').getBoundingClientRect();
+      const documentFooterBottom = root.scrollTop + footer.bottom;
+      return {
+        footerTop: footer.top,
+        footerBottom: footer.bottom,
+        viewport: window.innerHeight,
+        remaining: root.scrollHeight - root.scrollTop - window.innerHeight,
+        tailAfterFooter: root.scrollHeight - documentFooterBottom
+      };
+    });
+    expect(Math.abs(end.remaining)).toBeLessThanOrEqual(1);
+    expect(end.footerTop).toBeLessThan(end.viewport);
+    expect(end.footerBottom).toBeGreaterThan(end.viewport - 2);
+    expect(Math.abs(end.tailAfterFooter)).toBeLessThanOrEqual(1);
+  }
+});
+
 test('Capablanca champion collection opens and restores exact archive state', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto('/game-library/champions');
   await page.getByRole('button', { name: 'Championship Matches' }).click();
   await page.getByRole('button', { name: 'Undisputed', exact: true }).click();
@@ -98,24 +184,90 @@ test('Capablanca champion collection opens and restores exact archive state', as
   await expect(complete.getByRole('link', { name: /external source/i })).toHaveCount(0);
   await expect(complete.locator('a[download]')).toHaveCount(0);
   await complete.getByRole('button', { name: 'Open in PGN Reader' }).click();
-  await expect(page).toHaveURL(/\/watch\/game-replayer\?collection=capablanca-complete&returnTo=/);
-  expect(new URL(page.url()).searchParams.has('game')).toBe(false);
-  const returnTo = new URL(page.url()).searchParams.get('returnTo');
-  for (const part of ['view=matches', 'lineage=undisputed', 'champion=jose-raul-capablanca', 'reign=capablanca-1921', 'event=wcc-1927']) expect(returnTo).toContain(part);
+  await expect(page).toHaveURL(/\/game-library\/champions\/replay\?collection=capablanca-complete&game=0/);
+  const replayUrl = new URL(page.url());
+  expect(replayUrl.searchParams.get('game')).toBe('0');
+  expect(replayUrl.searchParams.get('context')).toBe('player');
+  const returnTo = replayUrl.searchParams.get('returnTo');
+  for (const part of ['view=matches', 'lineage=undisputed', 'champion=jose-raul-capablanca', 'reign=capablanca-1921', 'event=wcc-1927', 'collection=capablanca-complete']) expect(returnTo).toContain(part);
   expect(returnTo).toMatch(/scroll=[1-9]\d*/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Replay and Study Chess Games');
-  await expect(page.locator('[data-game-replayer-shell]')).toHaveClass(/is-ready/, { timeout: 20_000 });
-  await expect(page.locator('iframe[data-game-replayer-frame]')).toHaveAttribute('data-collection-id', 'capablanca-complete');
-  const explicitReturn = page.getByRole('link', { name: 'Return to World Champions' });
-  await expect(explicitReturn).toHaveAttribute('href', /\/game-library\/champions\?view=matches.*event=wcc-1927/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Capablanca Games 1901–1941');
+  await expect(page.locator('[data-replay-subtitle]')).toHaveText('Player Collection · 597 games', { timeout: 20_000 });
+  await expect(page.locator('[data-replay-collection-label]')).toHaveText('Player Collection · 597 games');
+  await expect(page.locator('[data-replay-games] [data-game-index]')).toHaveCount(597, { timeout: 35_000 });
+  await expect(page.locator('[data-replay-games] [data-game-index="0"]')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('[data-replay-tab="games"]')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#championship-replay-board .caissa-board')).toBeVisible();
+  await expect(page.locator('[data-championship-replay]')).toHaveAttribute('data-collection-type', 'player-collection');
+  const explicitReturn = page.getByRole('link', { name: 'Return to Champions' });
+  await expect(explicitReturn).toHaveAttribute('href', /\/game-library\/champions\?view=matches.*collection=capablanca-complete/);
   await explicitReturn.click();
   await expect(page).toHaveURL(/\/game-library\/champions\?view=matches/);
   await expect(page.getByRole('button', { name: 'Championship Matches' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: 'Undisputed', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
   await expect(page.locator('[data-event-id="wcc-1927"]')).toHaveClass(/is-selected/);
-  await expect.poll(() => page.evaluate(() => Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop))).toBeGreaterThan(100);
+  await expect(page.locator('[data-player-collection="capablanca-complete"]')).toHaveClass(/is-selected/);
+  await expect(page.locator('html')).toHaveAttribute('data-archive-return-restored', 'true');
+  const returnPosition = await page.locator('[data-player-collection="capablanca-complete"]').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const root = document.body.scrollHeight > document.body.clientHeight ? document.body : document.scrollingElement;
+    return { top: rect.top, bottom: rect.bottom, viewport: root.clientHeight || window.innerHeight, scrollY: root.scrollTop, maxScroll: root.scrollHeight - (root.clientHeight || window.innerHeight) };
+  });
+  expect(returnPosition.top).toBeGreaterThanOrEqual(-1);
+  expect(returnPosition.top).toBeLessThan(returnPosition.viewport);
+  expect(returnPosition.bottom).toBeGreaterThan(0);
+  expect(returnPosition.scrollY).toBeLessThanOrEqual(returnPosition.maxScroll);
 
+});
+
+test('semantic return anchors remain visible and stable across focal champions and desktop widths', async ({ page }) => {
+  test.setTimeout(120_000);
+  const samples = [
+    { champion: 'gukesh-dommaraju', reign: 'gukesh-2024', event: 'wcc-2024' },
+    { champion: 'magnus-carlsen', reign: 'carlsen-2013', event: 'wcc-2018' },
+    { champion: 'tigran-petrosian', reign: 'petrosian-1963', event: 'wcc-1966' },
+    { champion: 'jose-raul-capablanca', reign: 'capablanca-1921', event: 'wcc-1927', collection: 'capablanca-complete' }
+  ];
+  for (const size of desktopSizes) {
+    await page.setViewportSize(size);
+    for (const sample of samples) {
+      const params = new URLSearchParams({ view: 'champions', lineage: 'all', champion: sample.champion, reign: sample.reign, event: sample.event, scroll: '1000000' });
+      if (sample.collection) params.set('collection', sample.collection);
+      await page.goto(`/game-library/champions?${params}`);
+      const detail = page.locator('[data-champion-dialog]');
+      await expect(detail).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-archive-return-restored', 'true');
+      await expect(detail.locator(`[data-detail-reign="${sample.reign}"]`)).toHaveAttribute('aria-pressed', 'true');
+      await expect(detail.locator(`[data-event-id="${sample.event}"]`)).toHaveClass(/is-selected/);
+      const anchor = sample.collection
+        ? detail.locator(`[data-player-collection="${sample.collection}"]`)
+        : detail.locator(`[data-event-id="${sample.event}"]`);
+      await expect.poll(async () => anchor.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.top >= -1 && rect.top < window.innerHeight && rect.bottom > 0;
+      })).toBe(true);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const before = await page.evaluate(() => (document.body.scrollHeight > document.body.clientHeight ? document.body : document.scrollingElement).scrollTop);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const metrics = await anchor.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        const root = document.body.scrollHeight > document.body.clientHeight ? document.body : document.scrollingElement;
+        return {
+          top: rect.top,
+          bottom: rect.bottom,
+          viewport: root.clientHeight || window.innerHeight,
+          scrollY: root.scrollTop,
+          maxScroll: Math.max(0, root.scrollHeight - (root.clientHeight || window.innerHeight))
+        };
+      });
+      expect(Math.abs(metrics.scrollY - before)).toBeLessThanOrEqual(1);
+      expect(metrics.top).toBeGreaterThanOrEqual(-1);
+      expect(metrics.top).toBeLessThan(metrics.viewport);
+      expect(metrics.bottom).toBeGreaterThan(0);
+      expect(metrics.scrollY).toBeLessThanOrEqual(metrics.maxScroll);
+    }
+  }
 });
 
 test('championship albums stay separate from external-only player collections', async ({ page }) => {
@@ -408,7 +560,27 @@ test('isolated Champions replay rejects arbitrary URLs, unapproved collections, 
   expect(collectionRequests).toBe(0);
 
   await page.goto('/game-library/champions/replay?collection=capablanca-complete&game=0');
+  await expect(page.locator('[data-replay-status]')).toContainText('not approved for the requested replay context');
+  expect(collectionRequests).toBe(0);
+
+  await page.goto('/game-library/champions/replay?collection=world-championship-worldchamp2024&game=0&context=player');
+  await expect(page.locator('[data-replay-status]')).toContainText('not approved for the requested replay context');
+  expect(collectionRequests).toBe(0);
+
+  await page.goto('/game-library/champions/replay?collection=capablanca-complete&game=0&context=match');
+  await expect(page.locator('[data-replay-status]')).toContainText('not approved for the requested replay context');
+  expect(collectionRequests).toBe(0);
+
+  await page.goto('/game-library/champions/replay?collection=capablanca-complete&game=597&context=player');
+  await expect(page.locator('[data-replay-status]')).toContainText('requested game is not available');
+  expect(collectionRequests).toBe(0);
+
+  await page.goto('/game-library/champions/replay?collection=fischer-byrne-1963&game=0&context=player');
   await expect(page.locator('[data-replay-status]')).toContainText('not approved');
+  expect(collectionRequests).toBe(0);
+
+  await page.goto('/game-library/champions/replay?collection=capablanca-complete&game=0&context=player&returnTo=https://evil.example/');
+  await expect(page.locator('[data-replay-status]')).toContainText('return destination is not an approved');
   expect(collectionRequests).toBe(0);
 });
 
@@ -433,8 +605,8 @@ test('existing Game Library route and IndexedDB records remain isolated', async 
   await page.locator('[data-open-champion="jose-raul-capablanca"]').click();
   await page.locator('.collection-card.is-complete').getByRole('button', { name: 'Open in PGN Reader' }).click();
   await expect(page).toHaveURL(/collection=capablanca-complete/);
-  const archiveReturn = page.getByRole('link', { name: 'Return to World Champions' });
-  await expect(archiveReturn).toHaveAttribute('href', /\/game-library\/champions\?view=champions.*champion=jose-raul-capablanca/);
+  const archiveReturn = page.getByRole('link', { name: 'Return to Champions' });
+  await expect(archiveReturn).toHaveAttribute('href', /\/game-library\/champions\?view=champions.*champion=jose-raul-capablanca.*collection=capablanca-complete/);
   await archiveReturn.click();
   await expect(page.locator('[data-champion-dialog]')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Open personal library' })).toHaveCount(0);
