@@ -24,8 +24,28 @@ test('championship archive renders its chronological mural at required desktop s
   await expect(page.getByRole('heading', { level: 1 })).toContainText('World Chess');
   await expect(page.locator('.champion-card')).toHaveCount(18);
   await expect(page.locator('.champion-card__portrait')).toHaveCount(18);
-  await expect(page.locator('.champion-card__portrait-status')).toHaveText(Array(18).fill('CAISSA archival monogram'));
-  await expect(page.locator('img')).toHaveCount(0);
+  await expect(page.locator('.champion-card__portrait-image')).toHaveCount(18);
+  await expect(page.locator('.champion-card__portrait-status')).toHaveCount(0);
+  await expect(page.locator('#wilhelm-steinitz img')).toHaveAttribute('alt', 'Illustrated portrait of Wilhelm Steinitz');
+  await expect(page.locator('#wilhelm-steinitz img')).toHaveAttribute('src', '/public/images/champions/steinitz.webp');
+  await expect(page.locator('#wilhelm-steinitz img')).toHaveAttribute('loading', 'eager');
+  await expect(page.locator('#emanuel-lasker img')).toHaveAttribute('alt', 'Illustrated portrait of Emanuel Lasker');
+  await expect(page.locator('#jose-raul-capablanca img')).toHaveAttribute('alt', 'Illustrated portrait of José Raúl Capablanca');
+  await expect(page.locator('#alexander-alekhine img')).toHaveAttribute('alt', 'Illustrated portrait of Alexander Alekhine');
+  await expect(page.locator('#max-euwe img')).toHaveAttribute('alt', 'Illustrated portrait of Max Euwe');
+  await expect(page.locator('#mikhail-botvinnik img')).toHaveAttribute('alt', 'Illustrated portrait of Mikhail Botvinnik');
+  await expect(page.locator('#vasily-smyslov img')).toHaveAttribute('alt', 'Illustrated portrait of Vasily Smyslov');
+  await expect(page.locator('#mikhail-tal img')).toHaveAttribute('alt', 'Illustrated portrait of Mikhail Tal');
+  await expect(page.locator('#tigran-petrosian img')).toHaveAttribute('alt', 'Illustrated portrait of Tigran Petrosian');
+  await expect(page.locator('#boris-spassky img')).toHaveAttribute('alt', 'Illustrated portrait of Boris Spassky');
+  await expect(page.locator('#bobby-fischer img')).toHaveAttribute('loading', 'lazy');
+  await expect(page.locator('#anatoly-karpov img')).toHaveAttribute('alt', 'Illustrated portrait of Anatoly Karpov');
+  await expect(page.locator('#garry-kasparov img')).toHaveAttribute('alt', 'Illustrated portrait of Garry Kasparov');
+  await expect(page.locator('#vladimir-kramnik img')).toHaveAttribute('alt', 'Illustrated portrait of Vladimir Kramnik');
+  await expect(page.locator('#viswanathan-anand img')).toHaveAttribute('alt', 'Illustrated portrait of Viswanathan Anand');
+  await expect(page.locator('#magnus-carlsen img')).toHaveAttribute('alt', 'Illustrated portrait of Magnus Carlsen');
+  await expect(page.locator('#ding-liren img')).toHaveAttribute('alt', 'Illustrated portrait of Ding Liren');
+  await expect(page.locator('#gukesh-dommaraju img')).toHaveAttribute('loading', 'lazy');
   await expect(page.locator('.champion-card').first()).toContainText('Wilhelm Steinitz');
   await expect(page.locator('.champion-card').first()).toContainText('No. 01');
   await expect(page.locator('.champion-card').first()).toContainText('World champion');
@@ -39,6 +59,21 @@ test('championship archive renders its chronological mural at required desktop s
     await expect(page.locator('.archive-hero')).toBeVisible();
     await expect(page.locator('.champion-card').first()).toBeVisible();
   }
+});
+
+test('approved portrait art renders across cards and champion detail', async ({ page }) => {
+  await page.goto('/game-library/champions');
+  const portrait = page.locator('#wilhelm-steinitz .champion-card__portrait-image');
+  await expect(portrait).toBeVisible();
+  await expect.poll(() => portrait.evaluate(image => ({ complete: image.complete, width: image.naturalWidth, height: image.naturalHeight }))).toEqual({ complete: true, width: 768, height: 1024 });
+  await page.locator('[data-open-champion="wilhelm-steinitz"]').click();
+  const detail = page.locator('[data-champion-dialog]');
+  await expect(detail.locator('.detail-monogram__portrait')).toHaveAttribute('alt', 'Illustrated portrait of Wilhelm Steinitz');
+  await expect(detail.locator('.detail-monogram')).toHaveCSS('width', '164px');
+  await expect(detail.locator('.detail-monogram')).toHaveCSS('height', '206px');
+  await page.keyboard.press('Escape');
+  await page.locator('[data-open-champion="garry-kasparov"]').click();
+  await expect(detail.locator('.detail-monogram__portrait')).toHaveAttribute('alt', 'Illustrated portrait of Garry Kasparov');
 });
 
 test('Capablanca champion collection opens and restores exact archive state', async ({ page }) => {
