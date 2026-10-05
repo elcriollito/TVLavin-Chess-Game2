@@ -102,6 +102,7 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .archive-footer { padding: 24px clamp(34px, 5vw, 86px); display: flex; justify-content: space-between; gap: 25px; color: #686660; font-size: 9px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
 
 .champion-detail { width: 100%; margin: 10px 0 34px; padding: 0; grid-column: 1 / -1; position: relative; border: 1px solid rgba(215,164,83,.48); background: #101318; color: var(--archive-ink); box-shadow: 0 32px 90px rgba(0,0,0,.42); overflow: hidden; scroll-margin-top: 104px; animation: detail-reveal .24s ease-out; }
+html[data-archive-return-restoring] .champion-detail { animation: none; }
 .detail-close { position: absolute; top: 18px; right: 18px; z-index: 3; width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.12); background: rgba(15,18,22,.9); color: #ddd8cf; cursor: pointer; }
 .detail-close:hover, .detail-close:focus-visible { outline: none; border-color: var(--archive-gold); color: var(--archive-gold-bright); }
 .detail-hero { min-height: 300px; padding: 48px 78px 44px 48px; display: grid; grid-template-columns: 164px 1fr; gap: 38px; align-items: center; border-bottom: 1px solid rgba(255,255,255,.07); background: radial-gradient(circle at 10% 0, rgba(215,164,83,.2), transparent 34%), linear-gradient(120deg, rgba(255,255,255,.025), transparent 44%), #15181d; }
@@ -152,6 +153,7 @@ body.champions-archive-page { margin: 0; background: #080a0d; color: var(--archi
 .lineage-links small { display: block; margin-bottom: 6px; color: #6e6b65; font-size: 8px; letter-spacing: .12em; text-transform: uppercase; }
 .collection-card { padding: 16px; border: 1px solid rgba(255,255,255,.07); background: #14171b; }
 .collection-card.is-complete { border-color: rgba(215,164,83,.34); background: linear-gradient(140deg, rgba(215,164,83,.08), #14171b 52%); }
+.collection-card.is-selected { border-color: var(--archive-gold); box-shadow: inset 3px 0 var(--archive-gold); }
 .collection-card__type { margin-bottom: 10px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--archive-gold-bright); font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .collection-card h4 { margin: 0; font: 16px Georgia, serif; }
 .collection-card p { margin: 7px 0 12px; color: #77746d; font-size: 10px; line-height: 1.5; }

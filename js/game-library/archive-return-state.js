@@ -1,10 +1,10 @@
-export const ARCHIVE_RETURN_STATE_VERSION = 'CaissaArchiveReturnState@1.0.0';
+export const ARCHIVE_RETURN_STATE_VERSION = 'CaissaArchiveReturnState@1.1.0';
 
 export const ARCHIVE_VIEWS = Object.freeze(['champions', 'matches']);
 export const MATCH_LINEAGE_FILTERS = Object.freeze(['all', 'undisputed', 'classical', 'fide', 'special']);
 
 const identifierPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const allowedKeys = new Set(['view', 'lineage', 'champion', 'reign', 'event', 'scroll', 'mural']);
+const allowedKeys = new Set(['view', 'lineage', 'champion', 'reign', 'event', 'collection', 'scroll', 'mural']);
 
 const safeIdentifier = value => typeof value === 'string' && identifierPattern.test(value) ? value : null;
 const safeOffset = value => {
@@ -19,7 +19,7 @@ export function buildArchiveReturnTo(state = {}) {
   const lineage = MATCH_LINEAGE_FILTERS.includes(state.lineage) ? state.lineage : 'all';
   params.set('view', view);
   params.set('lineage', lineage);
-  for (const key of ['champion', 'reign', 'event']) {
+  for (const key of ['champion', 'reign', 'event', 'collection']) {
     const value = safeIdentifier(state[key]);
     if (value) params.set(key, value);
   }
@@ -39,7 +39,7 @@ export function normalizeArchiveReturnTo(value) {
   const view = url.searchParams.get('view') || 'champions';
   const lineage = url.searchParams.get('lineage') || 'all';
   if (!ARCHIVE_VIEWS.includes(view) || !MATCH_LINEAGE_FILTERS.includes(lineage)) return null;
-  for (const key of ['champion', 'reign', 'event']) {
+  for (const key of ['champion', 'reign', 'event', 'collection']) {
     const valueForKey = url.searchParams.get(key);
     if (valueForKey !== null && !safeIdentifier(valueForKey)) return null;
   }
@@ -53,6 +53,7 @@ export function normalizeArchiveReturnTo(value) {
     champion: url.searchParams.get('champion'),
     reign: url.searchParams.get('reign'),
     event: url.searchParams.get('event'),
+    collection: url.searchParams.get('collection'),
     scroll: url.searchParams.get('scroll'),
     mural: url.searchParams.get('mural')
   });
@@ -67,6 +68,7 @@ export function readArchiveState(locationLike = globalThis.location) {
     champion: safeIdentifier(params.get('champion')) || legacyChampion,
     reign: safeIdentifier(params.get('reign')),
     event: safeIdentifier(params.get('event')),
+    collection: safeIdentifier(params.get('collection')),
     scroll: safeOffset(params.get('scroll')),
     mural: safeOffset(params.get('mural'))
   });

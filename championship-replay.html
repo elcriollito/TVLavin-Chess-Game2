@@ -22,7 +22,7 @@
         <small>World Champions Archive</small>
       </a>
       <div class="championship-replay__identity">
-        <span class="championship-replay__eyebrow">Championship match</span>
+        <span class="championship-replay__eyebrow" data-replay-context-label>Championship match</span>
         <h1 data-replay-title>Preparing the archive…</h1>
         <p data-replay-subtitle>Validating the requested collection</p>
       </div>
@@ -68,7 +68,7 @@
         <section class="championship-match-card">
           <div>
             <span class="championship-match-card__year" data-replay-year>—</span>
-            <span class="championship-match-card__label">World Championship archive</span>
+            <span class="championship-match-card__label" data-replay-collection-label>World Championship archive</span>
           </div>
           <strong data-replay-game-position aria-live="polite">Game —</strong>
         </section>
@@ -88,8 +88,8 @@
         <div class="championship-replay__panels">
           <section class="championship-games" role="tabpanel" id="championship-panel-games" aria-labelledby="championship-tab-games" data-replay-tabpanel="games">
             <div class="championship-panel-intro">
-              <span>Match scorebook</span>
-              <strong>Complete championship</strong>
+              <span data-replay-list-eyebrow>Match scorebook</span>
+              <strong data-replay-list-title>Complete championship</strong>
             </div>
             <div class="championship-game-list" data-replay-games role="list"></div>
           </section>
@@ -118,6 +118,6 @@
       </aside>
     </section>
   </main>
-  <script type="module" src="/js/game-library/championship-replay-page.js?v=1.1.0"></script>
+  <script type="module" src="/js/game-library/championship-replay-page.js?v=1.2.0"></script>
 </body>
 </html>
