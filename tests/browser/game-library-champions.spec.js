@@ -58,6 +58,24 @@ test('championship archive renders its chronological mural at required desktop s
     await expect.poll(() => page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))).toEqual({ client: size.width, scroll: size.width });
     await expect(page.locator('.archive-hero')).toBeVisible();
     await expect(page.locator('.champion-card').first()).toBeVisible();
+    const rowGeometry = await page.locator('.champion-card').evaluateAll(cards => {
+      const rows = new Map();
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const key = Math.round(rect.top);
+        if (!rows.has(key)) rows.set(key, []);
+        const action = card.querySelector('.champion-card__footer button')?.getBoundingClientRect();
+        rows.get(key).push({ height: rect.height, actionBottom: action?.bottom || 0 });
+      });
+      return [...rows.values()].map(row => ({
+        heightDelta: Math.max(...row.map(item => item.height)) - Math.min(...row.map(item => item.height)),
+        actionDelta: Math.max(...row.map(item => item.actionBottom)) - Math.min(...row.map(item => item.actionBottom))
+      }));
+    });
+    for (const row of rowGeometry) {
+      expect(row.heightDelta).toBeLessThanOrEqual(1);
+      expect(row.actionDelta).toBeLessThanOrEqual(1);
+    }
   }
 });
 
@@ -66,14 +84,81 @@ test('approved portrait art renders across cards and champion detail', async ({ 
   const portrait = page.locator('#wilhelm-steinitz .champion-card__portrait-image');
   await expect(portrait).toBeVisible();
   await expect.poll(() => portrait.evaluate(image => ({ complete: image.complete, width: image.naturalWidth, height: image.naturalHeight }))).toEqual({ complete: true, width: 768, height: 1024 });
+  await expect(portrait).toHaveCSS('object-fit', 'contain');
+  await expect(portrait).toHaveCSS('object-position', '50% 50%');
+  await expect(portrait).toHaveCSS('position', 'absolute');
+  const cardPortraitGeometry = await portrait.evaluate(image => {
+    const frame = image.parentElement;
+    return { clientHeight: frame.clientHeight, scrollHeight: frame.scrollHeight, imageHeight: image.getBoundingClientRect().height };
+  });
+  expect(cardPortraitGeometry.scrollHeight).toBe(cardPortraitGeometry.clientHeight);
+  expect(cardPortraitGeometry.imageHeight).toBe(cardPortraitGeometry.clientHeight);
   await page.locator('[data-open-champion="wilhelm-steinitz"]').click();
   const detail = page.locator('[data-champion-dialog]');
-  await expect(detail.locator('.detail-monogram__portrait')).toHaveAttribute('alt', 'Illustrated portrait of Wilhelm Steinitz');
+  const detailPortrait = detail.locator('.detail-monogram__portrait');
+  await expect(detailPortrait).toHaveAttribute('alt', 'Illustrated portrait of Wilhelm Steinitz');
+  await expect(detailPortrait).toHaveCSS('object-fit', 'contain');
+  await expect(detailPortrait).toHaveCSS('object-position', '50% 50%');
   await expect(detail.locator('.detail-monogram')).toHaveCSS('width', '164px');
   await expect(detail.locator('.detail-monogram')).toHaveCSS('height', '206px');
+  const detailPortraitGeometry = await detailPortrait.evaluate(image => {
+    const frame = image.parentElement;
+    return { clientHeight: frame.clientHeight, scrollHeight: frame.scrollHeight };
+  });
+  expect(detailPortraitGeometry.scrollHeight).toBe(detailPortraitGeometry.clientHeight);
   await page.keyboard.press('Escape');
   await page.locator('[data-open-champion="garry-kasparov"]').click();
   await expect(detail.locator('.detail-monogram__portrait')).toHaveAttribute('alt', 'Illustrated portrait of Garry Kasparov');
+});
+
+test('archive uses one document scroll root and ends at its real footer', async ({ page }) => {
+  for (const size of desktopSizes) {
+    await page.setViewportSize(size);
+    await page.goto('/game-library/champions');
+    await expect(page.locator('.champion-card')).toHaveCount(18);
+    await expect(page.locator('html')).toHaveAttribute('data-archive-return-restored', 'true');
+    const roots = await page.evaluate(() => {
+      const style = element => getComputedStyle(element);
+      const layout = document.querySelector('.caissa-standalone-layout');
+      const content = document.querySelector('.caissa-standalone-content');
+      return {
+        scrollingElement: document.scrollingElement?.tagName,
+        html: { overflowX: style(document.documentElement).overflowX, overflowY: style(document.documentElement).overflowY },
+        body: { overflowX: style(document.body).overflowX, overflowY: style(document.body).overflowY, clientHeight: document.body.clientHeight, scrollHeight: document.body.scrollHeight },
+        layoutOverflowY: style(layout).overflowY,
+        contentOverflowY: style(content).overflowY,
+        horizontal: { client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }
+      };
+    });
+    expect(roots.scrollingElement).toBe('HTML');
+    expect(roots.html).toEqual({ overflowX: 'hidden', overflowY: 'auto' });
+    expect(roots.body.overflowX).toBe('clip');
+    expect(roots.body.overflowY).toBe('visible');
+    expect(roots.body.scrollHeight).toBe(roots.body.clientHeight);
+    expect(roots.layoutOverflowY).toBe('visible');
+    expect(roots.contentOverflowY).toBe('visible');
+    expect(roots.horizontal.scroll).toBe(roots.horizontal.client);
+
+    const end = await page.evaluate(async () => {
+      const root = document.scrollingElement;
+      document.documentElement.style.scrollBehavior = 'auto';
+      window.scrollTo(0, root.scrollHeight);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const footer = document.querySelector('.archive-footer').getBoundingClientRect();
+      const documentFooterBottom = root.scrollTop + footer.bottom;
+      return {
+        footerTop: footer.top,
+        footerBottom: footer.bottom,
+        viewport: window.innerHeight,
+        remaining: root.scrollHeight - root.scrollTop - window.innerHeight,
+        tailAfterFooter: root.scrollHeight - documentFooterBottom
+      };
+    });
+    expect(Math.abs(end.remaining)).toBeLessThanOrEqual(1);
+    expect(end.footerTop).toBeLessThan(end.viewport);
+    expect(end.footerBottom).toBeGreaterThan(end.viewport - 2);
+    expect(Math.abs(end.tailAfterFooter)).toBeLessThanOrEqual(1);
+  }
 });
 
 test('Capablanca champion collection opens and restores exact archive state', async ({ page }) => {

@@ -339,7 +339,7 @@ test('release-candidate route has the archive hierarchy and progressive portrait
   assert.match(archivePage, /championCardVisual/);
   assert.match(archivePage, /championDetailVisual/);
   assert.match(archivePage, /loading="\$\{loading\}"/);
-  assert.match(archivePage, /version: '1\.0\.0-rc\.4'/);
+  assert.match(archivePage, /version: '1\.0\.0-rc\.5'/);
   assert.match(archivePage, /openReader\(button\.dataset\.openPgn, uiState\.event, 0, 'champions'\)/);
   assert.match(archivePage, /semanticReturnAnchor/);
   assert.match(archivePage, /document\.fonts\?\.ready/);

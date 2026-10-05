@@ -29,19 +29,24 @@ const uiState = {
   collection: getKnownPgnCollection(initialState.collection)?.id || null
 };
 
-const archiveScrollRoot = () => {
-  const body = document.body;
-  const bodyOverflow = getComputedStyle(body).overflowY;
-  if (['auto', 'scroll'].includes(bodyOverflow) && body.scrollHeight > body.clientHeight) return body;
-  return document.scrollingElement || document.documentElement;
-};
+const archiveScrollRoot = () => document.scrollingElement || document.documentElement;
 const archiveScrollTop = () => archiveScrollRoot().scrollTop;
 const restoreArchiveScroll = value => {
   const root = archiveScrollRoot();
   const viewportHeight = root === document.body ? root.clientHeight : window.innerHeight;
   const maxScroll = Math.max(0, root.scrollHeight - viewportHeight);
   const top = Math.min(Math.max(0, Number(value) || 0), maxScroll);
+  const previousScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
   root.scrollTo({ left: 0, top, behavior: 'auto' });
+  root.style.scrollBehavior = previousScrollBehavior;
+};
+const scrollArchiveElementIntoView = (element, options) => {
+  const root = archiveScrollRoot();
+  const previousScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  element.scrollIntoView(options);
+  root.style.scrollBehavior = previousScrollBehavior;
 };
 
 const nextAnimationFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -317,7 +322,7 @@ function openChampionDetail(championId, options = {}) {
   dialog.hidden = false;
   setExpandedChampion(champion.id);
   document.querySelectorAll('.match-card').forEach(card => card.classList.toggle('is-selected', card.dataset.matchEvent === requestedEvent?.id));
-  if (options.scrollIntoView !== false) dialog.scrollIntoView({ behavior: 'auto', block: 'start' });
+  if (options.scrollIntoView !== false) scrollArchiveElementIntoView(dialog, { behavior: 'auto', block: 'start' });
   if (options.focus !== false) target.querySelector('#champion-detail-title')?.focus({ preventScroll: true });
   if (options.updateState !== false) writeState();
   return true;
@@ -423,4 +428,4 @@ const validation = Object.freeze({
 });
 if (!validation.valid) throw new Error(`Championship Archive validation failed: ${validation.errors.join('; ')}`);
 renderChampionCards(); renderSplitDiagram(); bindInteractions(); restoreState();
-window.CaissaChampionshipArchive = Object.freeze({ version: '1.0.0-rc.4', validation, openChampionDetail, getState: () => Object.freeze({ ...uiState }) });
+window.CaissaChampionshipArchive = Object.freeze({ version: '1.0.0-rc.5', validation, openChampionDetail, getState: () => Object.freeze({ ...uiState }) });
