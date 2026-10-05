@@ -89,10 +89,19 @@ test('canonical Endgame Trainer uses catalog themes, generated counts and strict
     await expect(page.locator('#egt-theme-tags')).toContainText('Rook Endgame');
 
     const board = await page.locator('#egt-board').boundingBox();
+    const square = await page.locator('.caissa-board__square').first().boundingBox();
     const workspace = await page.locator('.endgame-puzzle__workspace').boundingBox();
     expect(board?.width).toBeGreaterThan(560);
+    expect(Math.abs((square?.width || 0) - (board?.width || 0) / 8)).toBeLessThanOrEqual(1);
     expect(board?.x).toBeLessThan(workspace?.x ?? 0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    const resources = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => new URL(entry.name).pathname));
+    expect(resources).not.toEqual(expect.arrayContaining([
+        '/assets/vendor/jquery/jquery-3.6.0.min.js',
+        '/assets/vendor/chessboard.js/chessboard-1.0.0.min.js',
+        '/js/endgame-trainer/endgame-trainer-page.js',
+        '/js/endgame-trainer/endgame-trainer-runtime.js',
+    ]));
 });
 
 test('training keeps analysis locked, records a miss once, and isolates engine exploration', async ({ page }) => {

@@ -1,6 +1,6 @@
 # CAISSA Endgame Trainer — Puzzle Database Season
 
-Status: implementation working map  
+Status: feature implementation and local QA complete; production publication not authorized
 Branch: `season/endgame-trainer-puzzle-database`  
 Baseline: `origin/main` at `9d3924dd4c377cdf716084b2511190e204929dbd` (2026-10-04)
 
@@ -79,10 +79,7 @@ The catalog, Worker, fallback data and progress service remain shared with
    write a separate endgame profile, or share history only. The reversible
    implementation keeps new Endgame Trainer counters session-local and makes
    no account progress mutation. Analysis and engine play never write progress.
-3. The committed Worker README still contains pre-provisioning wording while
-   `wrangler.toml` identifies the versioned D1 database. Documentation should
-   be reconciled separately from runtime behavior.
-4. Physical-device drag feel remains a human acceptance item even after the
+3. Physical-device drag feel remains a human acceptance item even after the
    automated Quiet Drag contract and browser performance checks pass.
 
 ## Data and security contract
@@ -94,6 +91,9 @@ The catalog, Worker, fallback data and progress service remain shared with
   browser.
 - Theme count presentation reads generated catalog metadata; UI source does
   not contain numeric totals.
+- The generated manifest includes explicit `endgame + materialEndgame`
+  intersection keys. This matters because one canonical `bishopEndgame` puzzle
+  (`lYevr`) is a middlegame puzzle and must not be counted in this trainer.
 - Rating, result count and cursor bounds remain enforced on both the Vercel
   API and Worker.
 - The Worker keeps indexed shuffle-key pagination and never uses
@@ -129,6 +129,67 @@ they never mutate the scored `PuzzleSession` or account progress.
   with no horizontal overflow or board-resize feedback loop.
 - Regression: `/puzzles`, `/endgame-tablebase`, `/play`, shared board unit tests,
   navigation and public-route contracts.
+
+## Implemented runtime
+
+- Canonical `/endgame-trainer` mounts the catalog-backed runtime. Historical,
+  Guided Study and private selectors retain their previous isolated owners.
+- Themes exposes All, Rook, Bishop, Pawn, Knight and Queen Endgame from the
+  canonical Phase taxonomy. Root requests use `endgame`; material requests use
+  `themeMode=all` with `endgame` plus the selected material theme.
+- Training uses `PuzzleSession`, including Lichess setup-ply semantics, chess.js
+  legality, SAN, promotion and en-passant state. Attempts continue indefinitely
+  through Next puzzle rather than ending after five fixtures.
+- Analysis remains locked during an unresolved attempt. A recorded solve, miss
+  or reveal unlocks bounded Stockfish analysis and an isolated Engine-vs-Engine
+  continuation. Leaving Analysis, choosing the other mode, loading the next
+  puzzle or unloading the page stops the owned Worker roles.
+- The shared persistent board and Quiet Drag controller remain the only board
+  interaction implementation on the canonical route.
+- The canonical bootstrap dynamically imports only this runtime. Legacy
+  trainer modules, jQuery, Chessboard.js and its stylesheet are loaded only for
+  explicit compatibility/private routes.
+
+## Verification evidence
+
+- Full-catalog aggregation checked all 6,100,952 local rows. Exact material
+  intersection totals are Rook 328,823; Bishop 83,603; Pawn 226,117; Knight
+  50,679; and Queen 71,270.
+- API and Worker tests cover validation, server-only bearer authentication,
+  bounded ranges/limits, signed-cursor filter isolation, indexed pool choice,
+  strict returned-theme filtering and unchanged OR behavior.
+- Shared puzzle tests cover setup-ply reconstruction, both sides of en passant,
+  all four promotion choices including underpromotion, legal wrong moves, SAN,
+  reveal and difficulty bands.
+- Browser coverage exercises tabs, selection, exact generated counts,
+  loading/error/empty states, solve/miss/retry/next, underpromotion, source-link
+  safety, the analysis fairness lock, Stockfish start/stop, Engine-vs-Engine
+  play/pause/resume/stop and Worker cleanup.
+- Responsive checks cover 1600x1000, 1366x768, 885x611, 390x844 and 320x700.
+  They assert board priority, stable sizing and no horizontal overflow. Visual
+  review confirmed the board remains the desktop and mobile protagonist.
+- A local Chromium measurement at 1366x768 reported a 598x598 board with 74.5
+  px squares and CLS 0. Lazy legacy loading reduced decoded startup resources
+  from about 1.75 MB to 1.22 MB (about 526 KB / 30%). DOMContentLoaded in the
+  same local run changed from about 403 ms to 91 ms. These are comparative local
+  measurements, not production latency commitments.
+
+## Progress decision retained for product approval
+
+This branch deliberately keeps Endgame Trainer outcomes session-local. It
+reuses the authenticated shell but sends no account progress mutation and does
+not change the general puzzle rating. Analysis and Engine-vs-Engine never count
+as attempts. A later product decision may choose shared history, a specialized
+endgame profile, or selected shared metrics; the current boundary prevents
+silent double-counting and is reversible.
+
+## Deferred cleanup
+
+Legacy exercise providers remain available only to historical, Guided Study
+and private routes. They are disconnected from the canonical public path but
+are not physically deleted in this season, because compatibility ownership is
+still live. `queenRookEndgame` remains excluded until it is present in the
+canonical Phase taxonomy and generated intersection counts.
 
 Production deployment, Worker publication, D1 mutation and merge to `main`
 remain outside this branch's authority.

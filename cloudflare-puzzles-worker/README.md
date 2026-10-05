@@ -7,9 +7,11 @@ storage only; it does not execute SQL.
 
 `/v1/select` accepts exactly one of `themes` or `openings`, a rating interval of
 at most 600 points, `quality=standard|relaxed|all`, an optional signed cursor,
-and `limit<=16`. It uses D1 Sessions, bounded indexed lookups, stable shuffle
-keys and an HMAC cursor. It does not use offset pagination, random sorting, or
-writes. `/health` verifies the bound catalog version. Both routes require
+and `limit<=16`. Theme requests may use `themeMode=all` to require every supplied
+theme; opening requests and existing theme requests retain the default OR
+behavior. It uses D1 Sessions, bounded indexed lookups, stable shuffle keys and
+an HMAC cursor. It does not use offset pagination, random sorting, or writes.
+`/health` verifies the bound catalog version. Both routes require
 `Authorization: Bearer <WORKER_TOKEN>`; missing or wrong authentication returns
 404.
 
