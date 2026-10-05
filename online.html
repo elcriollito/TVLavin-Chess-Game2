@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="theme-color" content="#08140f">
+    <title>Online Chess — CAISSA</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/css/caissa-board.css">
+    <link rel="stylesheet" href="/css/online.css">
+    <script src="/js/auth-config.js" defer></script>
+    <script src="/js/caissa-auth.js" defer></script>
+    <script src="/js/play/analyze-handoff.js" defer></script>
+    <script type="module" src="/js/online/online-page.js"></script>
+</head>
+<body class="online-page">
+    <header class="online-header">
+        <a class="brand" href="/" aria-label="CAISSA home"><span aria-hidden="true">♛</span><b>CAISSA</b><small>CHESS</small></a>
+        <nav aria-label="Primary navigation">
+            <a href="/online" aria-current="page">Play Online</a>
+            <a href="/puzzles">Puzzles</a>
+            <a href="/mentor">Mentor</a>
+            <a href="/watch/live-tournaments">Watch</a>
+        </nav>
+        <div class="connection-pill" data-connection="offline"><span aria-hidden="true"></span><strong id="connection-label">Connecting</strong></div>
+        <a id="account-link" class="account-link" href="/signin?redirect_url=%2Fonline">Sign in</a>
+    </header>
+
+    <main class="online-main">
+        <section class="online-titlebar" aria-labelledby="online-title">
+            <div><p>CAISSA PLAYING ROOM</p><h1 id="online-title">Online Chess</h1></div>
+            <p id="room-status" role="status" aria-live="polite">Preparing the playing room…</p>
+        </section>
+
+        <section class="online-layout">
+            <div class="board-column">
+                <div class="player-strip player-strip--top" id="player-top">
+                    <div class="player-avatar" aria-hidden="true">?</div>
+                    <div><strong class="player-name">Waiting for opponent</strong><span class="player-rating">—</span></div>
+                    <time class="player-clock" id="clock-top">—</time>
+                </div>
+                <div class="board-shell" id="board-shell">
+                    <div id="online-board" aria-label="Online chessboard"></div>
+                    <div class="board-curtain" id="board-curtain">
+                        <span class="curtain-mark" aria-hidden="true">♛</span>
+                        <strong id="curtain-title">CAISSA Online</strong>
+                        <p id="curtain-copy">Choose a time control to find an opponent.</p>
+                    </div>
+                </div>
+                <div class="player-strip player-strip--bottom" id="player-bottom">
+                    <div class="player-avatar" aria-hidden="true">C</div>
+                    <div><strong class="player-name">You</strong><span class="player-rating">—</span></div>
+                    <time class="player-clock" id="clock-bottom">—</time>
+                </div>
+            </div>
+
+            <aside class="play-workspace" aria-label="Online game workspace">
+                <div class="workspace-head">
+                    <div class="workspace-heading"><div><p>PLAYING ROOM</p><h2 id="workspace-title">Find a game</h2></div><span id="game-badge">READY</span></div>
+                    <div class="workspace-tabs" role="tablist" aria-label="Online sections">
+                        <button role="tab" id="tab-new" aria-controls="panel-new" aria-selected="true" data-tab="new">New Game</button>
+                        <button role="tab" id="tab-games" aria-controls="panel-games" aria-selected="false" data-tab="games">Games</button>
+                        <button role="tab" id="tab-players" aria-controls="panel-players" aria-selected="false" data-tab="players">Players</button>
+                    </div>
+                </div>
+
+                <div class="workspace-body">
+                    <section id="panel-new" role="tabpanel" aria-labelledby="tab-new" data-panel="new">
+                        <div id="lobby-view">
+                            <fieldset class="mode-fieldset"><legend>Time control</legend>
+                                <div class="time-grid" id="time-controls">
+                                    <button data-control="bullet-1-0"><b>1+0</b><span>Bullet</span></button>
+                                    <button data-control="blitz-3-2" class="selected"><b>3+2</b><span>Blitz</span></button>
+                                    <button data-control="blitz-5-0"><b>5+0</b><span>Blitz</span></button>
+                                    <button data-control="rapid-10-0"><b>10+0</b><span>Rapid</span></button>
+                                    <button data-control="rapid-15-10"><b>15+10</b><span>Rapid</span></button>
+                                    <button data-control="custom"><b>Custom</b><span>Your clock</span></button>
+                                </div>
+                            </fieldset>
+                            <div class="custom-clock" id="custom-clock" hidden><label>Minutes<input id="custom-minutes" type="number" min="1" max="180" value="7"></label><label>Increment<input id="custom-increment" type="number" min="0" max="60" value="3"><span>seconds</span></label></div>
+                            <label class="rated-row"><span><b>Rated game</b><small id="rated-help">Rating changes after the result is final.</small></span><input id="rated-toggle" type="checkbox" role="switch"></label>
+                            <button class="primary-action" id="find-game">Find an opponent</button>
+                            <div class="lobby-secondary"><button id="play-friend">Play a Friend</button><button id="browse-tournaments">Tournaments</button></div>
+                            <p class="trust-note"><span aria-hidden="true">◆</span> Legal moves, clocks and results are verified by CAISSA's server.</p>
+                        </div>
+
+                        <div id="queue-view" hidden>
+                            <div class="search-orbit" aria-hidden="true"><span>♟</span></div>
+                            <h3>Finding your opponent</h3>
+                            <p id="queue-control">3+2 · Blitz</p>
+                            <strong id="queue-elapsed">0:00</strong>
+                            <p>The rating range widens gradually while you wait.</p>
+                            <button class="secondary-action" id="cancel-search">Cancel search</button>
+                        </div>
+
+                        <div id="game-view" hidden>
+                            <div class="game-status-line"><span id="turn-indicator"></span><strong id="turn-copy">Game starting</strong></div>
+                            <ol class="move-list" id="move-list" aria-label="Move list"></ol>
+                            <div class="game-actions">
+                                <button id="offer-draw">Offer draw</button>
+                                <button id="decline-draw" hidden>Decline draw</button>
+                                <button id="resign-game" class="danger-action">Resign</button>
+                            </div>
+                        </div>
+
+                        <div id="result-view" hidden>
+                            <span class="result-mark" aria-hidden="true">♛</span>
+                            <p id="result-kicker">GAME OVER</p><h3 id="result-title">Draw</h3><p id="result-detail"></p>
+                            <div class="rating-change" id="rating-change" hidden></div>
+                            <button class="primary-action" id="new-opponent">New opponent</button>
+                            <div class="result-actions"><button id="rematch-game">Rematch</button><button id="analyze-game">Analyze</button><button id="download-pgn">Download PGN</button></div>
+                        </div>
+                    </section>
+
+                    <section id="panel-games" role="tabpanel" aria-labelledby="tab-games" data-panel="games" hidden>
+                        <div class="section-intro"><p>YOUR BOARD</p><h3>Games</h3><span>Active and recently completed games appear here.</span></div>
+                        <div id="games-list" class="empty-state"><span aria-hidden="true">♜</span><strong>No games yet</strong><p>Your first online game will be saved automatically.</p></div>
+                        <div class="tournament-card" id="tournament-card" hidden><p>TOURNAMENT HALL</p><h3>Live events</h3><p>Swiss, Arena and Round Robin foundations are ready behind a feature flag.</p><button id="open-tournaments">View tournaments</button></div>
+                    </section>
+
+                    <section id="panel-players" role="tabpanel" aria-labelledby="tab-players" data-panel="players" hidden>
+                        <div class="section-intro"><p>COMMUNITY</p><h3>Players</h3><span>Presence is approximate and expires automatically.</span></div>
+                        <label class="player-search">Find a player<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
+                        <div id="challenges-list" class="challenges-list" aria-live="polite"></div>
+                        <div id="players-list" class="empty-state"><span aria-hidden="true">♞</span><strong>No players visible</strong><p>Challenges and public presence remain disabled until their service flag is enabled.</p></div>
+                    </section>
+                </div>
+
+                <footer class="workspace-foot"><span id="protocol-label">Protocol 1.0.0</span><a href="/help">Fair play & help</a></footer>
+            </aside>
+        </section>
+    </main>
+
+    <dialog id="promotion-dialog"><form method="dialog"><p>Choose promotion</p><div><button value="q" aria-label="Promote to queen">♛</button><button value="r" aria-label="Promote to rook">♜</button><button value="b" aria-label="Promote to bishop">♝</button><button value="n" aria-label="Promote to knight">♞</button></div><button value="cancel" class="dialog-cancel">Cancel</button></form></dialog>
+    <dialog id="confirm-dialog"><form method="dialog"><h2 id="confirm-title">Resign this game?</h2><p id="confirm-copy">This result is final and will be recorded.</p><div><button value="cancel">Keep playing</button><button value="confirm" class="danger-action">Resign</button></div></form></dialog>
+    <div id="online-toast" role="alert" aria-live="assertive" hidden></div>
+</body>
+</html>

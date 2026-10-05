@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "test:online": "node --test tests/online/*.test.js",
+    "test:online:browser": "playwright test --config=playwright.online.config.js",
+    "lint:online": "node --check api/online.js && node --check api/_lib/online-game-engine.js && node --check api/_lib/online-matchmaking.js && node --check api/_lib/online-rating.js && node --check api/_lib/online-service.js && node --check js/online/online-protocol.js && node --check js/online/online-api.js && node --check js/online/online-clock.js && node --check js/online/online-realtime.js && node --check js/online/online-tournaments.js && node --check js/online/online-page.js && node --check tests/online/api.test.js && node --check tests/online/game-engine.test.js && node --check tests/online/policy.test.js && node --check tests/online/protocol.test.js && node --check tests/online/shell.test.js && node --check tests/browser/online-native.spec.js && node --check playwright.online.config.js",
     "test:home": "node --test tests/home-integration.test.js tests/homepage-seo.test.js tests/public-route-inventory.test.js tests/navigation-integrity.test.js tests/open-redirect-hardening.test.js",
     "test:home:browser": "playwright test tests/browser/home-integration.spec.js --project=chromium",
     "lint:home": "node --check js/home/home.js && node --check js/legacy-canonical-section-route-policy.js && node --check js/caissa-primary-navigation.js && node --check js/caissa-standalone-sidebar.js && node --check middleware.js && node --check server.js && node --check tests/home-integration.test.js && node --check tests/browser/home-integration.spec.js",
