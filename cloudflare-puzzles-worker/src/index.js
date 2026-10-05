@@ -76,6 +76,10 @@ export function parseSelection(url) {
     const defaultQuality = parameter === 'themes' && tags.length === 1 && tags[0] === 'equality' ? 'relaxed' : 'standard';
     const quality = params.get('quality') || defaultQuality;
     if (!['standard', 'relaxed', 'all'].includes(quality)) throw new Error('invalid quality');
+    const themeMode = params.get('themeMode') || 'any';
+    if (!['any', 'all'].includes(themeMode) || (parameter !== 'themes' && themeMode !== 'any')) {
+        throw new Error('invalid themeMode');
+    }
     return {
         dimension: parameter === 'themes' ? 'theme' : 'opening',
         tags,
@@ -83,6 +87,7 @@ export function parseSelection(url) {
         maximum,
         limit,
         quality,
+        themeMode,
         cursor: params.get('cursor') || '',
     };
 }
@@ -102,7 +107,11 @@ export function poolKeys(selection) {
     // the exact rating predicate. Narrow ranges retain their edge buckets.
     const bucketStart = firstCompleteBucket <= lastCompleteBucket ? firstCompleteBucket : firstBucket;
     const bucketEnd = firstCompleteBucket <= lastCompleteBucket ? lastCompleteBucket : lastBucket;
-    for (const tag of selection.tags) {
+    // An AND query walks the most specific supplied pool and verifies every
+    // returned row against the complete tag set below. Endgame Trainer sends
+    // the broad `endgame` tag first and its material subtheme last.
+    const poolTags = selection.themeMode === 'all' ? selection.tags.slice(-1) : selection.tags;
+    for (const tag of poolTags) {
         for (const tier of tiersFor(selection.quality)) {
             for (let bucket = bucketStart; bucket <= bucketEnd; bucket += 1) {
                 keys.push(`${selection.dimension}:${tag}:q${tier}:b${bucket}`);
@@ -121,6 +130,7 @@ async function filterDigest(selection) {
         minimum: selection.minimum,
         maximum: selection.maximum,
         quality: selection.quality,
+        themeMode: selection.themeMode,
         limit: selection.limit,
     });
     return base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(canonical))));
@@ -225,7 +235,12 @@ async function selectPuzzles(request, env) {
     }
     queryResults.push(puzzleResult);
     const byId = new Map((puzzleResult.results || []).map(row => [row.puzzle_id, row]));
-    const puzzles = chosen.map(item => byId.get(item.puzzle_id)).filter(Boolean);
+    const puzzles = chosen.map(item => byId.get(item.puzzle_id)).filter(row => {
+        if (!row) return false;
+        if (selection.dimension !== 'theme' || selection.themeMode !== 'all') return true;
+        const themes = new Set(String(row.themes || '').split(' ').filter(Boolean));
+        return selection.tags.every(tag => themes.has(tag));
+    });
     const last = chosen.at(-1);
     const hasMore = chosen.length === selection.limit;
     const nextCursor = hasMore ? await signCursor({

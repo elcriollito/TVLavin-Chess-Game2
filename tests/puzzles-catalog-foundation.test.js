@@ -11,6 +11,9 @@ test('generated full-count manifest covers every visible folder and subcategory'
     const expectedKeys = new Set([
         ...Object.keys(preview.categories).map(category => `category:${category}`),
         ...Object.values(preview.categories).flat().map(theme => `theme:${theme}`),
+        ...preview.categories.Phases
+            .filter(theme => theme !== 'endgame' && /Endgame$/u.test(theme))
+            .map(theme => `intersection:endgame+${theme}`),
     ]);
     assert.equal(manifest.schemaVersion, 1);
     assert.equal(manifest.sourceVersion, '2026-09-10');
@@ -28,12 +31,16 @@ test('full catalog category totals and selected rating counts do not use curated
             'category:Motifs': { total: 2_000_000, ranges: { '1800:normal:standard': 120_000 } },
             'theme:fork': { total: 500_000, ranges: { '1800:normal:standard': 30_000 } },
             'theme:equality': { total: 20_000, ranges: { '1800:normal:relaxed': 2_000 } },
+            'intersection:endgame+rookEndgame': { total: 300_000, ranges: { '1800:normal:standard': 29_000 } },
         },
     }) }) });
     assert.equal(await catalog.loadCounts(), true);
     assert.deepEqual(catalog.countFor('Motifs', '', 1800, 'normal'), { total: 2_000_000, matching: 120_000 });
     assert.deepEqual(catalog.countFor('Motifs', 'fork', 1800, 'normal'), { total: 500_000, matching: 30_000 });
     assert.deepEqual(catalog.countFor('Goals', 'equality', 1800, 'normal'), { total: 20_000, matching: 2_000 });
+    assert.deepEqual(catalog.countFor('Phases', 'rookEndgame', 1800, 'normal', ['endgame']), {
+        total: 300_000, matching: 29_000,
+    });
 });
 
 test('the full Lichess archive and generated catalogs are excluded from Git and Vercel', () => {

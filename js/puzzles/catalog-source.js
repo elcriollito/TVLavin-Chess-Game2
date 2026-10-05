@@ -41,22 +41,26 @@ export class PuzzleCatalogSource {
         } catch { return false; }
     }
 
-    countFor(category, theme, target, difficulty) {
-        const record = this.counts?.[theme ? `theme:${theme}` : `category:${category}`];
+    countFor(category, theme, target, difficulty, requiredThemes = []) {
+        const intersection = [...new Set([...(requiredThemes || []), ...(theme ? [theme] : [])])];
+        const key = intersection.length > 1
+            ? `intersection:${intersection.join('+')}`
+            : theme ? `theme:${theme}` : `category:${category}`;
+        const record = this.counts?.[key];
         const quality = theme === 'equality' ? 'relaxed' : 'standard';
         const matching = record?.ranges?.[`${target}:${difficulty}:${quality}`];
         return Number.isInteger(record?.total) && Number.isInteger(matching)
             ? { total: record.total, matching } : null;
     }
 
-    keyFor({ category, theme, target, difficulty }) {
-        return JSON.stringify([category, theme, target, difficulty]);
+    keyFor({ category, theme, target, difficulty, requiredThemes = [] }) {
+        return JSON.stringify([category, theme, target, difficulty, [...requiredThemes].sort()]);
     }
 
-    fallback({ category, theme, target, difficulty }, seen) {
+    fallback({ category, theme, target, difficulty, requiredThemes = [] }, seen) {
         const pool = poolFor(this.preview.puzzles, {
             category: this.preview.categories[category], theme, target, difficulty,
-        });
+        }).filter(puzzle => requiredThemes.every(tag => puzzle.themes.includes(tag)));
         let candidates = pool.filter(puzzle => !seen.has(puzzle.id));
         if (!candidates.length) candidates = pool;
         return {
@@ -78,12 +82,16 @@ export class PuzzleCatalogSource {
 
         if (allowRemote && !this.remoteExhausted.has(key) && this.now() >= this.remoteRetryAt) {
             const [minRating, maxRating] = ratingBounds(selection.target, selection.difficulty);
-            const tags = selection.theme ? [selection.theme] : this.preview.categories[selection.category];
+            const tags = [...new Set([
+                ...(selection.requiredThemes || []),
+                ...(selection.theme ? [selection.theme] : this.preview.categories[selection.category]),
+            ])];
             const cursor = this.cursors.get(key) || '';
             const params = new URLSearchParams({
                 themes: tags.join(','), minRating: String(minRating), maxRating: String(maxRating),
                 limit: '12',
             });
+            if (tags.length > 1 && selection.requiredThemes?.length) params.set('themeMode', 'all');
             if (cursor) params.set('cursor', cursor);
             try {
                 const response = await this.fetch(`/api/puzzles/select?${params}`);
@@ -92,7 +100,10 @@ export class PuzzleCatalogSource {
                 if (!Array.isArray(payload.puzzles) || !payload.puzzles.length) {
                     throw new Error('Puzzle API returned no candidates');
                 }
-                const shuffled = payload.puzzles.slice().sort(() => Math.random() - 0.5);
+                const shuffled = payload.puzzles
+                    .filter(puzzle => tags.every(tag => selection.requiredThemes?.length ? puzzle.themes?.includes(tag) : true))
+                    .sort(() => Math.random() - 0.5);
+                if (!shuffled.length) throw new Error('Puzzle API returned no matching candidates');
                 shuffled.estimatedTotal = payload.estimatedTotal;
                 shuffled.catalogSource = payload.source;
                 this.queues.set(key, shuffled);

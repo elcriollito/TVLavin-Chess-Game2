@@ -18,6 +18,16 @@ DIFFICULTIES = ("easier", "normal", "challenge")
 QUALITIES = ("standard", "relaxed")
 
 
+def count_intersections(categories):
+    """Return the bounded intersections needed by specialized catalog clients."""
+    phase_tags = categories.get("Phases", ())
+    return tuple(
+        ("endgame", tag)
+        for tag in phase_tags
+        if tag != "endgame" and tag.endswith("Endgame")
+    )
+
+
 def rating_bounds(target, difficulty):
     if difficulty == "easier":
         return target - 450, target - 100
@@ -41,6 +51,8 @@ def build_manifest(connection, categories, source_version="2026-09-10"):
         for tag in tags:
             tag_categories[tag].add(category)
 
+    intersections = count_intersections(categories)
+
     # One pass over canonical rows. The category membership is a set, so an
     # All-category count never counts a puzzle twice for overlapping themes.
     histogram = defaultdict(Counter)
@@ -55,12 +67,18 @@ def build_manifest(connection, categories, source_version="2026-09-10"):
         tags = set(str(themes).split()) & tag_categories.keys()
         keys = {f"theme:{tag}" for tag in tags}
         keys.update(f"category:{category}" for tag in tags for category in tag_categories[tag])
+        keys.update(
+            f"intersection:{'+'.join(intersection)}"
+            for intersection in intersections
+            if set(intersection).issubset(tags)
+        )
         for key in keys:
             histogram[(key, tier)][int(rating)] += 1
 
     result = {}
     for key in [*(f"category:{name}" for name in categories),
-                *(f"theme:{tag}" for tags in categories.values() for tag in tags)]:
+                *(f"theme:{tag}" for tags in categories.values() for tag in tags),
+                *(f"intersection:{'+'.join(tags)}" for tags in intersections)]:
         tiers = [histogram[(key, tier)] for tier in range(3)]
         counts = {"total": sum(sum(bucket.values()) for bucket in tiers), "ranges": {}}
         for target in range(1200, 2401, 100):
@@ -88,7 +106,11 @@ def main():
     if manifest["puzzles"] != args.expected_count:
         raise SystemExit(f"Unexpected puzzle count: {manifest['puzzles']:,}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(manifest, separators=(",", ":")) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(manifest, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     print(f"Wrote {args.output} with {manifest['puzzles']:,} puzzles and {len(manifest['counts'])} count keys")
 
 
