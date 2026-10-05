@@ -16,7 +16,7 @@ const officialSource = 'https://museum.fide.com/champions';
 const fideHistorySource = 'https://museum.fide.com/fide-history';
 
 const originalPortrait = (asset, alt, objectPosition = '50% 36%') => Object.freeze({
-  asset,
+  asset: `/public${asset}`,
   alt,
   type: 'original-art',
   objectPosition

@@ -27,6 +27,7 @@ test('championship archive renders its chronological mural at required desktop s
   await expect(page.locator('.champion-card__portrait-image')).toHaveCount(18);
   await expect(page.locator('.champion-card__portrait-status')).toHaveCount(0);
   await expect(page.locator('#wilhelm-steinitz img')).toHaveAttribute('alt', 'Illustrated portrait of Wilhelm Steinitz');
+  await expect(page.locator('#wilhelm-steinitz img')).toHaveAttribute('src', '/public/images/champions/steinitz.webp');
   await expect(page.locator('#wilhelm-steinitz img')).toHaveAttribute('loading', 'eager');
   await expect(page.locator('#emanuel-lasker img')).toHaveAttribute('alt', 'Illustrated portrait of Emanuel Lasker');
   await expect(page.locator('#jose-raul-capablanca img')).toHaveAttribute('alt', 'Illustrated portrait of José Raúl Capablanca');

@@ -18,7 +18,7 @@ Scope: all 18 primary-lineage World Champions, from Wilhelm Steinitz through Guk
 | --- | --- |
 | Source master | Lossless 3:4 image, 1086 × 1448 in this prototype; future masters should target 1536 × 2048 or another true 3:4 size. |
 | Production derivative | 768 × 1024 WebP, quality 82, metadata stripped. |
-| Public path | `/images/champions/<slug>.webp` under `public/images/champions/`. |
+| Public path | `/public/images/champions/<slug>.webp`, backed by `public/images/champions/` in the repository. |
 | Rendering | Fixed intrinsic `width="768"` and `height="1024"`; `object-fit: cover`; per-portrait `objectPosition`; no layout shift. |
 | Loading | First visible portrait eager; later portraits lazy; asynchronous decode. |
 | Accessibility | Descriptive alt in the form `Illustrated portrait of <full name>`. |
@@ -30,7 +30,7 @@ The source masters remain outside the public application tree. Only the compress
 
 ```js
 portrait: {
-  asset: '/images/champions/steinitz.webp',
+  asset: '/public/images/champions/steinitz.webp',
   alt: 'Illustrated portrait of Wilhelm Steinitz',
   type: 'original-art',
   objectPosition: '50% 36%'

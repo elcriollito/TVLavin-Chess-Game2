@@ -301,7 +301,7 @@ test('events remain chronological and approved original-art portraits follow the
   for (const champion of champions) {
     const expected = approvedPortraits.get(champion.id);
     if (expected) {
-      assert.deepEqual(champion.portrait, { asset: expected[0], alt: expected[1], type: 'original-art', objectPosition: '50% 36%' });
+      assert.deepEqual(champion.portrait, { asset: `/public${expected[0]}`, alt: expected[1], type: 'original-art', objectPosition: '50% 36%' });
       const asset = fs.statSync(new URL(`../public${expected[0]}`, import.meta.url));
       assert.ok(asset.size > 0 && asset.size < 100_000, `${champion.id} should ship a compact production derivative`);
     } else {
