@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 async function inspectPending(page, path, forbiddenSelector) {
     let releaseModule;
     const gate = new Promise((resolve) => { releaseModule = resolve; });
-    await page.route('**/js/endgame-trainer/endgame-trainer-page.js', async (route) => {
+    await page.route('**/js/endgame-trainer/endgame-trainer-bootstrap.js', async (route) => {
         await gate;
         await route.continue();
     });
@@ -22,7 +22,7 @@ async function inspectPending(page, path, forbiddenSelector) {
     await navigation;
     await expect(root).not.toHaveClass(/trainer-mode-pending/);
     await expect(page.locator('[data-trainer-bootstrap]')).not.toBeVisible();
-    await page.unroute('**/js/endgame-trainer/endgame-trainer-page.js');
+    await page.unroute('**/js/endgame-trainer/endgame-trainer-bootstrap.js');
 }
 
 test('default, explicit V2, and historical run never expose legacy during slow bootstrap', async ({ page }) => {

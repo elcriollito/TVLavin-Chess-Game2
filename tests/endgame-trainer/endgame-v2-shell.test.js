@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8');
-const entry = await readFile(new URL('../../js/endgame-trainer/endgame-trainer-page.js', import.meta.url), 'utf8');
+const entry = await readFile(new URL('../../js/endgame-trainer/endgame-trainer-bootstrap.js', import.meta.url), 'utf8');
 const page = await readFile(new URL('../../js/endgame-trainer/v2/endgame-trainer-v2-page.js', import.meta.url), 'utf8');
 
 test('V2 shell is progressively revealed for the canonical default while legacy stays explicit', () => {

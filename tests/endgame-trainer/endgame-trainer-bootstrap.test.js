@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../../endgame-trainer.html', import.meta.url), 'utf8');
 const css = await readFile(new URL('../../css/endgame-trainer.css', import.meta.url), 'utf8');
-const entry = await readFile(new URL('../../js/endgame-trainer/endgame-trainer-page.js', import.meta.url), 'utf8');
+const entry = await readFile(new URL('../../js/endgame-trainer/endgame-trainer-bootstrap.js', import.meta.url), 'utf8');
+const presentation = await readFile(new URL('../../js/endgame-trainer/endgame-trainer-presentation.js', import.meta.url), 'utf8');
 
 test('document begins in a neutral pending mode before any script can run', () => {
     assert.match(html, /class="endgame-trainer-page is-empty trainer-mode-pending caissa-trainer-sidebar-host"/);
@@ -12,7 +13,7 @@ test('document begins in a neutral pending mode before any script can run', () =
     assert.match(html, /data-trainer-bootstrap/);
     assert.match(html, /Loading Endgame Trainer…/);
     assert.ok(
-        html.indexOf('trainer-mode-pending') < html.indexOf('endgame-trainer-page.js'),
+        html.indexOf('trainer-mode-pending') < html.indexOf('endgame-trainer-bootstrap.js'),
         'pending state must be present before the module entrypoint'
     );
 });
@@ -26,15 +27,19 @@ test('blocking stylesheet hides every interactive view while mode is pending', (
 });
 
 test('resolved presentation is revealed only after its mount completes', () => {
+    assert.match(entry, /mountEndgamePuzzleDatabasePage\(\);\s*revealEndgameTrainerPresentation\('v2'\)/);
     assert.match(entry, /await mountEndgameTrainerV2Page\(\{ route \}\);\s*revealEndgameTrainerPresentation\('v2'\)/);
     assert.match(entry, /await mountEndgameTrainerPage\(\);\s*revealEndgameTrainerPresentation\('legacy'\)/);
-    assert.match(entry, /classList\.remove\('trainer-mode-pending'/);
-    assert.match(entry, /data-trainer-bootstrap/);
+    assert.match(presentation, /classList\.remove\('trainer-mode-pending'/);
+    assert.match(presentation, /data-trainer-bootstrap/);
+    assert.doesNotMatch(html, /<script src="\/assets\/vendor\/(?:jquery|chessboard[.]js)/);
+    assert.doesNotMatch(html, /chessboard-1[.]0[.]0[.]min[.]css/);
+    assert.match(entry, /await loadLegacyBoardVendor\(\)/);
 });
 
 test('no-JS and technical failure remain honest without exposing legacy', () => {
     assert.match(html, /requires JavaScript to load the interactive board/);
     assert.match(html, /data-trainer-bootstrap],\.endgame-trainer-page__workspace/);
     assert.match(entry, /renderEndgameTrainerLoadError/);
-    assert.match(entry, /root\.classList\.remove\('trainer-mode-pending'/);
+    assert.match(presentation, /root\.classList\.remove\('trainer-mode-pending'/);
 });
