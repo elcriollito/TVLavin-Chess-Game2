@@ -146,12 +146,12 @@ async function syncState(reason = 'poll') {
 function applyState(state) {
     if (!state) return;
     const priorGame = model.game;
-    const justCompleted = !state.game && priorGame?.status === 'active'
+    const retainedCompleted = !state.game && !state.ticket && priorGame
         ? state.recentGames?.find?.(game => game.id === priorGame.id && game.status === 'completed') : null;
     const previousGameId = model.game?.id;
     const previousVersion = model.game?.version || 0;
     model.state = state;
-    model.game = state.game || justCompleted || null;
+    model.game = state.game || retainedCompleted || null;
     model.pendingMove = null;
     renderPlayers(state.players || [], state.challenges || []);
     renderGames(state.recentGames || []);
@@ -353,8 +353,15 @@ function renderPlayers(players, challenges) {
         } else { const pending = document.createElement('small'); pending.textContent = 'Pending'; row.append(pending); }
         challengeList.append(row);
     });
-    if (!players.length) return;
-    ui.playersList.className = 'players-list'; ui.playersList.replaceChildren();
+    ui.playersList.replaceChildren();
+    if (!players.length) {
+        const icon = document.createElement('span'); icon.setAttribute('aria-hidden', 'true'); icon.textContent = '♞';
+        const title = document.createElement('strong'); title.textContent = 'No players visible';
+        const copy = document.createElement('p'); copy.textContent = 'Players will appear here while their presence is active.';
+        ui.playersList.className = 'empty-state'; ui.playersList.append(icon, title, copy);
+        return;
+    }
+    ui.playersList.className = 'players-list';
     players.forEach(player => {
         const row = document.createElement('div'); row.className = 'player-row';
         row.innerHTML = `<span class="presence presence--${escapeHtml(player.status)}"></span><strong>${escapeHtml(player.displayName)}</strong><small>${escapeHtml(String(player.rating))} · ${escapeHtml(titleCase(player.pool))}</small>`;
