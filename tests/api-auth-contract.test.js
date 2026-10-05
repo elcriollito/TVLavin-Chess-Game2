@@ -79,6 +79,22 @@ test('local Clerk JWT verification can use the instance public key without a bac
   assert.equal(result.authenticated, true);
   assert.equal(options.jwtKey, '-----BEGIN PUBLIC KEY-----\nsynthetic\n-----END PUBLIC KEY-----');
   assert.equal('secretKey' in options, false);
+  assert.deepEqual(options.authorizedParties, ['https://www.caissa-chess.org']);
+});
+
+test('Clerk verification binds tokens to canonical and explicitly configured frontend parties', async () => {
+  let options;
+  const authenticate = createAuthenticateRequest({
+    env: {
+      CLERK_SECRET_KEY: 'test',
+      CAISSA_CLERK_AUTHORIZED_PARTIES: 'https://preview.example, http://127.0.0.1:8000'
+    },
+    verifyToken: async (_token, received) => { options = received; return { sub: 'synthetic-user' }; }
+  });
+  assert.equal((await authenticate(request('GET', 'Bearer synthetic'))).authenticated, true);
+  assert.deepEqual(options.authorizedParties, [
+    'https://www.caissa-chess.org', 'https://preview.example', 'http://127.0.0.1:8000'
+  ]);
 });
 
 test('auth responder fails closed when a legacy failure omits status', () => {
