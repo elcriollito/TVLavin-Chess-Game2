@@ -19,6 +19,9 @@ test('selection parameters are bounded before reaching the catalog Worker', () =
     assert.equal(parsePuzzleSelection({ themes: 'equality' }).minPlays, 100);
     assert.equal(parsePuzzleSelection({ openings: 'Sicilian_Defense' }).dimension, 'opening');
     assert.equal(parsePuzzleSelection({ themes: 'fork', quality: 'all' }).minPlays, 0);
+    const intersection = parsePuzzleSelection({ themes: 'endgame,rookEndgame', themeMode: 'all' });
+    assert.equal(intersection.themeMode, 'all');
+    assert.deepEqual(intersection.tags, ['endgame', 'rookEndgame']);
     for (const invalid of [
         { themes: '' },
         { themes: 'fork);drop table puzzles' },
@@ -27,8 +30,20 @@ test('selection parameters are bounded before reaching the catalog Worker', () =
         { themes: 'fork', minRating: '1200', maxRating: '2400' },
         { themes: 'fork', limit: '1000' },
         { themes: 'fork', quality: 'invented' },
+        { themes: 'fork', themeMode: 'invented' },
+        { openings: 'Sicilian_Defense', themeMode: 'all' },
         { themes: 'fork', cursor: 'not-signed' },
     ]) assert.throws(() => parsePuzzleSelection(invalid), PuzzleCatalogRequestError);
+});
+
+test('theme intersections are forwarded explicitly without changing existing OR queries', () => {
+    const intersection = parsePuzzleSelection({
+        themes: 'endgame,rookEndgame', themeMode: 'all', minRating: '1600', maxRating: '2000',
+    });
+    const intersectionUrl = buildPuzzleCatalogUrl('https://catalog.example.workers.dev', intersection);
+    assert.equal(intersectionUrl.searchParams.get('themeMode'), 'all');
+    assert.equal(intersectionUrl.searchParams.get('themes'), 'endgame,rookEndgame');
+    assert.equal(buildPuzzleCatalogUrl('https://catalog.example.workers.dev', selection).searchParams.get('themeMode'), null);
 });
 
 test('the Worker query is filtered, cursor based, capped, and carries no credential in the URL', () => {
@@ -153,6 +168,42 @@ test('browser source uses full-catalog batches and falls back without blocking t
     const result = await fallback.next({ category: 'Motifs', theme: 'fork', target: 1800, difficulty: 'normal' }, new Set());
     assert.equal(result.source, 'curated-fallback');
     assert.equal(result.puzzle.id, 'old01');
+});
+
+test('browser source enforces required endgame themes in remote and fallback results', async () => {
+    const requests = [];
+    const source = new PuzzleCatalogSource({
+        fallbackUrl: '/preview.json',
+        fetchFn: async url => {
+            requests.push(String(url));
+            if (url === '/preview.json') return new Response(JSON.stringify({
+                categories: { Phases: ['endgame', 'rookEndgame'] },
+                puzzles: [
+                    { id: 'safe1', rating: 1800, themes: ['endgame', 'rookEndgame'] },
+                    { id: 'wrong', rating: 1800, themes: ['rookEndgame'] },
+                ],
+            }));
+            return new Response(JSON.stringify({
+                source: 'full-catalog', hasMore: false, cursor: null,
+                puzzles: [
+                    { id: 'wrong', rating: 1800, themes: ['rookEndgame'] },
+                    { id: 'safe2', rating: 1800, themes: ['endgame', 'rookEndgame'] },
+                ],
+            }));
+        },
+    });
+    await source.initialize();
+    const selection = {
+        category: 'Phases', theme: 'rookEndgame', requiredThemes: ['endgame'],
+        target: 1800, difficulty: 'normal',
+    };
+    assert.equal((await source.next(selection, new Set())).puzzle.id, 'safe2');
+    const url = new URL(requests[1], 'https://www.caissa-chess.org');
+    assert.equal(url.searchParams.get('themes'), 'endgame,rookEndgame');
+    assert.equal(url.searchParams.get('themeMode'), 'all');
+
+    source.remoteRetryAt = Number.POSITIVE_INFINITY;
+    assert.equal((await source.next(selection, new Set(['safe2']))).puzzle.id, 'safe1');
 });
 
 test('browser source keeps the native fetch receiver', async () => {

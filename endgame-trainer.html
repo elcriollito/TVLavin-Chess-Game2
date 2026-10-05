@@ -4,19 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>CAISSA Endgame Trainer — Practice Chess Endgames</title>
-    <meta name="description" content="Practice essential chess endgames with guided positions, clear objectives, and immediate feedback in CAISSA Endgame Trainer.">
+    <meta name="description" content="Train chess endgames with rating-matched positions from CAISSA's full Lichess puzzle catalog, plus fair post-attempt Stockfish analysis.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.caissa-chess.org/endgame-trainer">
     <meta property="og:title" content="CAISSA Endgame Trainer — Practice Chess Endgames">
-    <meta property="og:description" content="Practice essential chess endgames with guided positions, clear objectives, and immediate feedback in CAISSA Endgame Trainer.">
+    <meta property="og:description" content="Train chess endgames with rating-matched positions from CAISSA's full Lichess puzzle catalog.">
     <meta property="og:url" content="https://www.caissa-chess.org/endgame-trainer">
     <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
+    <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
     <link rel="stylesheet" href="/css/endgame-trainer.css">
     <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.3.0">
     <script type="importmap">{"imports":{"chess.js":"https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm"}}</script>
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"CAISSA Endgame Trainer","url":"https://www.caissa-chess.org/endgame-trainer","description":"Practice essential chess endgames with guided positions, clear objectives, and immediate feedback in CAISSA Endgame Trainer.","isPartOf":{"@type":"WebSite","name":"CAISSA Chess","url":"https://www.caissa-chess.org/"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"CAISSA Endgame Trainer","url":"https://www.caissa-chess.org/endgame-trainer","description":"Train chess endgames with rating-matched positions from CAISSA's full Lichess puzzle catalog.","isPartOf":{"@type":"WebSite","name":"CAISSA Chess","url":"https://www.caissa-chess.org/"}}</script>
 <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body data-clarity-mask>
@@ -75,6 +75,73 @@
             <h1 id="trainer-load-error-title" tabindex="-1">We could not load the trainer</h1>
             <p>This is a technical issue. Try again or open the compatibility view.</p>
             <div><button type="button" data-trainer-retry>Retry</button><a href="/endgame-trainer?legacy=1">Open Compatibility View</a><a href="/endgame-library">Explore the Endgame Library</a></div>
+        </section>
+        <section class="endgame-trainer-page__workspace endgame-puzzle" data-endgame-database-shell hidden aria-labelledby="egt-title">
+            <header class="endgame-puzzle__masthead">
+                <div><p class="endgame-puzzle__eyebrow">Lichess endgame puzzles</p><h1 id="egt-title">CAISSA Endgame Trainer</h1></div>
+                <dl class="endgame-puzzle__session" aria-label="Current training session">
+                    <div><dt>Solved</dt><dd id="egt-solved">0</dd></div>
+                    <div><dt>Missed</dt><dd id="egt-failed">0</dd></div>
+                    <div><dt>Streak</dt><dd id="egt-streak">0</dd></div>
+                </dl>
+            </header>
+            <div class="endgame-puzzle__layout">
+                <section class="endgame-puzzle__board-column" aria-labelledby="egt-board-title">
+                    <h2 id="egt-board-title" class="endgame-puzzle__sr-only">Endgame puzzle board</h2>
+                    <div class="endgame-puzzle__board-head"><span id="egt-side-to-move">Loading position…</span><button type="button" id="egt-flip" aria-label="Flip board">Flip board</button></div>
+                    <div class="endgame-puzzle__board-frame" id="egt-board"></div>
+                    <div class="endgame-puzzle__board-foot"><span id="egt-puzzle-id">Endgame puzzle</span><span id="egt-puzzle-rating">Rating —</span></div>
+                </section>
+                <section class="endgame-puzzle__workspace" aria-label="Endgame training workspace">
+                    <header class="endgame-puzzle__workspace-head">
+                        <div class="endgame-puzzle__selection"><strong id="egt-selected-theme">All Endgames</strong><span id="egt-selected-range">Rating 1600–2000</span></div>
+                        <div class="endgame-puzzle__tabs" role="tablist" aria-label="Endgame trainer tools">
+                            <button type="button" role="tab" id="egt-tab-themes" aria-controls="egt-panel-themes" aria-selected="true" tabindex="0">Themes</button>
+                            <button type="button" role="tab" id="egt-tab-training" aria-controls="egt-panel-training" aria-selected="false" tabindex="-1">Training</button>
+                            <button type="button" role="tab" id="egt-tab-analysis" aria-controls="egt-panel-analysis" aria-selected="false" tabindex="-1">Analysis</button>
+                        </div>
+                    </header>
+                    <div class="endgame-puzzle__workspace-body">
+                        <section id="egt-panel-themes" role="tabpanel" aria-labelledby="egt-tab-themes">
+                            <div class="endgame-puzzle__panel-title"><div><p class="endgame-puzzle__eyebrow">Endgame universe</p><h2>Choose what to practice</h2></div><span id="egt-theme-status" role="status">Loading catalog…</span></div>
+                            <div class="endgame-puzzle__filters">
+                                <label for="egt-target-rating">Player rating <output id="egt-rating-output">1800</output></label>
+                                <input id="egt-target-rating" type="range" min="1200" max="2400" step="100" value="1800">
+                                <label for="egt-difficulty">Difficulty</label>
+                                <select id="egt-difficulty"><option value="easier">Easier</option><option value="normal" selected>Normal</option><option value="challenge">Challenge</option></select>
+                                <p id="egt-difficulty-range">Puzzle ratings 1600–2000.</p>
+                            </div>
+                            <div id="egt-theme-list" class="endgame-puzzle__theme-list" aria-live="polite"></div>
+                        </section>
+                        <section id="egt-panel-training" role="tabpanel" aria-labelledby="egt-tab-training" hidden>
+                            <div class="endgame-puzzle__training-status"><p class="endgame-puzzle__eyebrow" id="egt-training-kicker">Current puzzle</p><h2 id="egt-prompt">Loading puzzle</h2><p id="egt-feedback" role="status" aria-live="polite">Selecting an endgame puzzle.</p></div>
+                            <div class="endgame-puzzle__actions"><button type="button" id="egt-hint">Hint</button><button type="button" id="egt-reveal">Show solution</button><button type="button" id="egt-retry" disabled>Retry puzzle</button></div>
+                            <section class="endgame-puzzle__moves-block" aria-labelledby="egt-moves-title"><h3 id="egt-moves-title">Moves</h3><ol id="egt-move-list" class="endgame-puzzle__moves"></ol></section>
+                            <div class="endgame-puzzle__details"><div id="egt-theme-tags" class="endgame-puzzle__tags"></div><a id="egt-source-game" target="_blank" rel="noopener noreferrer" hidden>View source game</a></div>
+                        </section>
+                        <section id="egt-panel-analysis" role="tabpanel" aria-labelledby="egt-tab-analysis" hidden>
+                            <div id="egt-analysis-lock" class="endgame-puzzle__analysis-lock"><h2>Analysis unlocks after the attempt</h2><p>Solve, miss, or show the solution before asking the engine. This keeps active training fair.</p></div>
+                            <div id="egt-analysis-tools" hidden>
+                                <div class="endgame-puzzle__analysis-modes" role="tablist" aria-label="Analysis modes">
+                                    <button type="button" role="tab" id="egt-analysis-engine-tab" aria-controls="egt-analysis-engine" aria-selected="true" tabindex="0">Engine On / Off</button>
+                                    <button type="button" role="tab" id="egt-analysis-match-tab" aria-controls="egt-analysis-match" aria-selected="false" tabindex="-1">Engine vs Engine</button>
+                                </div>
+                                <section id="egt-analysis-engine" role="tabpanel" aria-labelledby="egt-analysis-engine-tab">
+                                    <div class="endgame-puzzle__engine-head"><div><h2>Position analysis</h2><p id="egt-engine-state" role="status">Engine off</p></div><button type="button" id="egt-engine-toggle" aria-pressed="false">Start engine</button></div>
+                                    <div class="endgame-puzzle__engine-output" aria-live="polite"><strong id="egt-engine-eval">—</strong><p id="egt-engine-best">Start Stockfish to analyze this position.</p><p id="egt-engine-pv"></p></div>
+                                </section>
+                                <section id="egt-analysis-match" role="tabpanel" aria-labelledby="egt-analysis-match-tab" hidden>
+                                    <div class="endgame-puzzle__engine-head"><div><h2>Continue the position</h2><p id="egt-match-state" role="status">Ready</p></div><div class="endgame-puzzle__match-actions"><button type="button" id="egt-match-start">Play</button><button type="button" id="egt-match-pause" disabled>Pause</button><button type="button" id="egt-match-stop" disabled>Stop</button></div></div>
+                                    <ol id="egt-match-moves" class="endgame-puzzle__moves" aria-label="Engine continuation moves"></ol>
+                                </section>
+                            </div>
+                        </section>
+                    </div>
+                    <footer class="endgame-puzzle__workspace-foot"><p id="egt-session-policy">Session only · Account puzzle rating is unchanged</p><button type="button" id="egt-next">Next puzzle</button></footer>
+                </section>
+            </div>
+            <p class="endgame-puzzle__attribution">Puzzles are selected from CAISSA’s canonical <a href="/puzzles">Lichess puzzle catalog</a>, filtered to the Endgame universe. Lichess puzzle data is CC0.</p>
+            <dialog id="egt-promotion" class="endgame-puzzle__promotion" aria-labelledby="egt-promotion-title"><form method="dialog"><h2 id="egt-promotion-title">Choose promotion piece</h2><div><button type="button" data-egt-promotion="q" aria-label="Promote to queen">Queen</button><button type="button" data-egt-promotion="r" aria-label="Promote to rook">Rook</button><button type="button" data-egt-promotion="b" aria-label="Promote to bishop">Bishop</button><button type="button" data-egt-promotion="n" aria-label="Promote to knight">Knight</button></div><button type="button" id="egt-promotion-cancel">Cancel</button></form></dialog>
         </section>
         <header class="endgame-trainer-page__header">
             <p class="endgame-trainer-page__kicker">CAISSA Training</p>
@@ -386,13 +453,11 @@
         </section>
     </dialog>
 </div>
-<script src="/assets/vendor/jquery/jquery-3.6.0.min.js"></script>
-<script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js"></script>
 <script src="/js/caissa-i18n.js?v=1.0.0"></script><script src="/js/caissa-primary-navigation.js?v=1.0.2"></script>
 <script src="/js/auth-config.js?v=1.0.2" defer></script>
 <script src="/js/caissa-auth.js?v=1.0.2" defer></script>
 <script src="/js/caissa-access.js?v=1.0.3" defer></script>
 <script src="/js/caissa-ui-auth.js?v=1.0.3" defer></script>
-<script type="module" src="/js/endgame-trainer/endgame-trainer-page.js"></script>
+<script type="module" src="/js/endgame-trainer/endgame-trainer-bootstrap.js"></script>
 </body>
 </html>

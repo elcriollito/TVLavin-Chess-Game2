@@ -37,6 +37,10 @@ export function parsePuzzleSelection(query = {}) {
     const defaultQuality = parameter === 'themes' && tags.length === 1 && tags[0] === 'equality' ? 'relaxed' : 'standard';
     const quality = scalar(query.quality, 'quality') || defaultQuality;
     if (!['standard', 'relaxed', 'all'].includes(quality)) throw new PuzzleCatalogRequestError('quality is invalid');
+    const themeMode = scalar(query.themeMode, 'themeMode') || 'any';
+    if (!['any', 'all'].includes(themeMode) || (parameter !== 'themes' && themeMode !== 'any')) {
+        throw new PuzzleCatalogRequestError('themeMode is invalid');
+    }
     const cursor = scalar(query.cursor, 'cursor');
     if (cursor && (cursor.length > 1024 || !CURSOR.test(cursor))) throw new PuzzleCatalogRequestError('cursor is invalid');
     return {
@@ -48,6 +52,7 @@ export function parsePuzzleSelection(query = {}) {
         limit,
         cursor,
         quality,
+        themeMode,
         maxDeviation: 100,
         minPopularity: 80,
         minPlays: quality === 'standard' ? 500 : quality === 'relaxed' ? 100 : 0,
@@ -63,6 +68,7 @@ export function buildPuzzleCatalogUrl(baseUrl, selection) {
     url.searchParams.set('maxRating', String(selection.maxRating));
     url.searchParams.set('limit', String(selection.limit));
     url.searchParams.set('quality', selection.quality);
+    if (selection.dimension === 'theme' && selection.themeMode === 'all') url.searchParams.set('themeMode', 'all');
     if (selection.cursor) url.searchParams.set('cursor', selection.cursor);
     return url;
 }
@@ -89,9 +95,12 @@ export async function selectLocalPuzzles(selection, databasePath) {
         const qualityPredicate = selection.minPlays === 0 ? '1 = 1' : selection.minPlays === 100
             ? 'p.rating_deviation <= 100 and p.popularity >= 80 and p.nb_plays >= 100'
             : 'p.rating_deviation <= 100 and p.popularity >= 80 and p.nb_plays >= 500';
+        const allThemes = selection.themeMode === 'all';
         const themePredicate = selection.tags.length === 1 && selection.tags[0] === 'equality'
             ? "instr(' ' || p.themes || ' ', ' equality ') > 0"
-            : `exists (select 1 from puzzle_themes t where t.puzzle_id = p.puzzle_id and t.theme in (${placeholders}))`;
+            : allThemes
+                ? selection.tags.map(() => 'exists (select 1 from puzzle_themes t where t.puzzle_id = p.puzzle_id and t.theme = ?)').join(' and ')
+                : `exists (select 1 from puzzle_themes t where t.puzzle_id = p.puzzle_id and t.theme in (${placeholders}))`;
         const statement = database.prepare(
             `select p.puzzle_id, p.fen, p.moves, p.rating, p.rating_deviation, p.popularity,
                     p.nb_plays, p.themes, p.game_url, p.opening_tags

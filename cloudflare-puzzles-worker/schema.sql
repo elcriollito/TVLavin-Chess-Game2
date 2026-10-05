@@ -1,6 +1,6 @@
--- Candidate production schema for the immutable Lichess puzzle catalog.
--- This file creates no remote resource by itself. The authorized Free trial
--- was deleted; no persistent or production D1 database exists.
+-- Reproducible schema for the immutable Lichess puzzle catalog currently bound
+-- as caissa-puzzles-2026-09-10. Applying this file locally creates no remote
+-- resource; production changes still require the documented import workflow.
 
 create table catalog_metadata (
   key text primary key,
