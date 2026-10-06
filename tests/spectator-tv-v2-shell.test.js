@@ -156,7 +156,7 @@ test('rapid selection queues the newest game and rejects stale updates by id and
 });
 
 test('live opening recognition reuses the canonical ECO catalog and secure internal links', () => {
-    assert.match(html, /js\/eco-opening-resolver\.js\?v=1\.0\.0/);
+    assert.match(html, /js\/eco-opening-resolver\.js\?v=1\.1\.0/);
     assert.match(ecoResolver, /CATALOG_URL = '\/data\/eco\/eco_codes\.json'/);
     assert.doesNotMatch(ecoResolver, /Grob Opening|Ruy Lopez|King's Indian Defense/);
     assert.match(script, /window\.CaissaEcoOpeningResolver/);
