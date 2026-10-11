@@ -107,10 +107,24 @@ export function timeoutMatingPotential(chess) {
 function colorCanPossiblyMate(pieces, color) {
     const own = pieces.filter(piece => piece.color === color && piece.type !== 'k');
     if (!own.length) return false;
-    if (own.some(piece => ['p', 'r', 'q'].includes(piece.type)) || own.length >= 2) return true;
+    if (own.some(piece => ['p', 'r', 'q'].includes(piece.type))) return true;
     // A lone bishop or knight cannot mate a bare king. An opposing piece can
     // participate in a legal self-blocking mating position, so retain a win.
-    return pieces.some(piece => piece.color !== color && piece.type !== 'k');
+    if (pieces.some(piece => piece.color !== color && piece.type !== 'k')) return true;
+
+    const bishops = own.filter(piece => piece.type === 'b');
+    const knights = own.filter(piece => piece.type === 'n');
+    if (bishops.length && knights.length) return true;
+    if (knights.length >= 2) return true;
+    if (bishops.length >= 2) {
+        const colorComplexes = new Set(bishops.map(piece => {
+            const file = piece.square.charCodeAt(0) - 97;
+            const rank = Number(piece.square[1]) - 1;
+            return (file + rank) % 2;
+        }));
+        return colorComplexes.size > 1;
+    }
+    return false;
 }
 
 function timeoutResult(game) {

@@ -28,14 +28,19 @@ function command(eventType, overrides = {}) {
 
 test('public config is available without authentication and exposes no secret', async () => {
     const res = response();
-    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, res, { env });
+    const secret = 'server-secret-must-never-cross-config-boundary';
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, res, {
+        env: { ...env, SUPABASE_SERVICE_ROLE_KEY: secret }
+    });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.enabled, true);
     assert.equal(JSON.stringify(res.body).includes('SERVICE_ROLE'), false);
+    assert.equal(JSON.stringify(res.body).includes(secret), false);
 });
 
 test('move command validates locally then commits canonical projection through the service', async () => {
     let committed;
+    let broadcast;
     const canonical = {
         id: '11111111-1111-4111-8111-111111111111', status: 'active',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', initial_fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -52,10 +57,70 @@ test('move command validates locally then commits canonical projection through t
         gameId: canonical.id, clientSentAt: Date.now(), payload: { from: 'e2', to: 'e4', expectedVersion: 1 }
     } };
     const res = response();
-    await handler(req, res, { env, authenticate: allow, rateLimit, service });
+    await handler(req, res, {
+        env, authenticate: allow, rateLimit, service,
+        broadcastGameChange: async input => { broadcast = input; return { delivered: true }; }
+    });
     assert.equal(res.statusCode, 200);
     assert.equal(committed.projection.move.san, 'e4');
     assert.equal(res.body.eventType, 'game.moveAccepted');
+    assert.deepEqual(broadcast, {
+        env,
+        gameId: canonical.id,
+        version: 2,
+        eventType: 'game.moveAccepted',
+        correlationId: 'move:123456789012'
+    });
+});
+
+test('a rejected or timed-out Broadcast cannot turn an already committed move into a failed move', async () => {
+    const canonical = {
+        id: gameId, status: 'active',
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        initial_fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        moves: [], ply: 0, turn: 'white', version: 1,
+        white_clerk_id: 'user_white', black_clerk_id: 'user_black',
+        white_time_ms: 60_000, black_time_ms: 60_000, base_ms: 60_000, increment_ms: 0,
+        clock_started_at: new Date(Date.now() + 5000).toISOString()
+    };
+    let commitCalls = 0;
+    const service = {
+        getGame: async () => canonical,
+        commitMove: async input => {
+            commitCalls += 1;
+            return { game: { ...canonical, version: 2, fen: input.projection.fen } };
+        }
+    };
+    const timeout = new Error('request aborted');
+    timeout.name = 'AbortError';
+    const failures = [new Error('ONLINE_REALTIME_BROADCAST_HTTP_503'), timeout];
+    const originalWarn = console.warn;
+    const warnings = [];
+    console.warn = (...args) => warnings.push(args);
+
+    try {
+        for (const [index, failure] of failures.entries()) {
+            const req = command('game.move', {
+                eventId: `move:broadcast-failure-${index}`,
+                payload: { from: 'e2', to: 'e4', expectedVersion: 1 }
+            });
+            const res = response();
+            await handler(req, res, {
+                env, authenticate: allow, rateLimit, service,
+                broadcastGameChange: async () => { throw failure; }
+            });
+
+            assert.equal(res.statusCode, 200);
+            assert.equal(res.body.eventType, 'game.moveAccepted');
+            assert.equal(res.body.version, 2);
+        }
+    } finally {
+        console.warn = originalWarn;
+    }
+
+    assert.equal(commitCalls, failures.length);
+    assert.equal(warnings.length, failures.length);
+    assert.equal(warnings.every(([event]) => event === 'caissa_online_realtime_broadcast_failed'), true);
 });
 
 test('illegal moves never reach the persistence transaction', async () => {

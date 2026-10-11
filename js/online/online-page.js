@@ -2,7 +2,7 @@ import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import { createOnlineApi, OnlineApiError } from './online-api.js';
 import { formatClock, projectOnlineClock } from './online-clock.js';
-import { createOnlineRealtime } from './online-realtime.js';
+import { createOnlineRealtime, createOnlineResyncQueue } from './online-realtime.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const $ = id => document.getElementById(id);
@@ -23,7 +23,9 @@ const ui = {
 const model = {
     config: null, state: null, auth: null, game: null, selectedControl: 'blitz-3-2',
     pendingMove: null, queueStartedAt: null, realtime: null, realtimeGameId: null,
-    polling: null, syncing: false, disposed: false, toastTimer: null
+    realtimeUserId: null, realtimeTarget: null, realtimeEpoch: 0,
+    polling: null, presencePolling: null, syncing: false, disposed: false,
+    bootSettled: false, toastTimer: null
 };
 
 const board = new CaissaBoardAdapter($('online-board'), {
@@ -36,10 +38,12 @@ const board = new CaissaBoardAdapter($('online-board'), {
     label: 'CAISSA Online game board',
     onMoveAttempt: intent => void submitMove(intent)
 });
+const stateSyncQueue = createOnlineResyncQueue(fetchCanonicalState);
 
 window.addEventListener('beforeunload', dispose, { once: true });
+window.addEventListener('caissa-auth-change', onAuthEvent);
 document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && model.auth?.isSignedIn) void syncState('visibility');
+    if (!document.hidden && model.auth?.isSignedIn) void resumeFromBackground();
 });
 bindControls();
 if (location.pathname === '/online/tournaments') selectTab('games');
@@ -68,7 +72,50 @@ async function boot() {
         startPolling();
     } catch (error) {
         handleError(error, 'The playing room could not be reached.');
+    } finally {
+        model.bootSettled = true;
     }
+}
+
+function onAuthEvent(event) {
+    void handleAuthChange(event.detail);
+}
+
+async function handleAuthChange(nextAuth) {
+    const previousAuth = model.auth;
+    model.auth = nextAuth;
+    if (!model.bootSettled || model.disposed) return;
+
+    const previousUserId = previousAuth?.isSignedIn ? previousAuth.userId : null;
+    const nextUserId = nextAuth?.isSignedIn ? nextAuth.userId : null;
+    if (!nextUserId) {
+        stopPolling();
+        await disconnectRealtime();
+        renderSignedOut();
+        return;
+    }
+
+    if (previousUserId !== nextUserId) {
+        stopPolling();
+        await disconnectRealtime();
+        ui.account.textContent = nextAuth.fullName || nextAuth.email || 'Account';
+        ui.account.href = '/profile';
+        try {
+            await api.command('presence.join');
+            await syncState('auth-change');
+            startPolling();
+        } catch (error) {
+            handleError(error, 'The playing room could not be reached.');
+        }
+        return;
+    }
+
+    await model.realtime?.refreshAuth?.();
+}
+
+async function resumeFromBackground() {
+    await model.realtime?.refreshAuth?.();
+    if (!model.disposed && model.auth?.isSignedIn) await syncState('visibility');
 }
 
 async function waitForAuth() {
@@ -130,17 +177,22 @@ async function cancelSearch() {
 }
 
 async function syncState(reason = 'poll') {
-    if (model.syncing || model.disposed) return;
-    model.syncing = true;
+    if (model.disposed) return false;
+    return stateSyncQueue.request(reason);
+}
+
+async function fetchCanonicalState(reason) {
     if (reason !== 'poll') setConnection('reconnecting', 'Syncing');
     try {
         const envelope = await api.state();
         applyState(envelope.data?.state);
         setConnection('online', 'Connected');
+        return true;
     } catch (error) {
         setConnection('offline', 'Offline');
         if (reason !== 'poll') handleError(error, 'Connection lost. Your board will resync automatically.');
-    } finally { model.syncing = false; }
+        return false;
+    }
 }
 
 function applyState(state) {
@@ -398,27 +450,71 @@ async function respondChallenge(challengeId, eventType) {
 }
 
 async function connectRealtime(gameId) {
-    if (model.realtimeGameId === gameId) return;
-    await model.realtime?.close?.(); model.realtime = null; model.realtimeGameId = gameId;
-    model.realtime = await createOnlineRealtime(model.config.realtime, {
+    const userId = model.auth?.isSignedIn ? model.auth.userId : null;
+    if (!userId) return disconnectRealtime();
+    const target = `${userId}:${gameId}`;
+    if (model.realtimeTarget === target) return;
+
+    const epoch = ++model.realtimeEpoch;
+    const previous = model.realtime;
+    model.realtime = null;
+    model.realtimeGameId = gameId;
+    model.realtimeUserId = userId;
+    model.realtimeTarget = target;
+    await previous?.close?.();
+    if (epoch !== model.realtimeEpoch || model.disposed) return;
+
+    const realtime = await createOnlineRealtime(model.config.realtime, {
         gameId,
         getToken: () => window.CAISSA_AUTH?.getToken?.(),
-        onChange: () => void syncState('realtime'),
+        isCurrent: () => !model.disposed
+            && epoch === model.realtimeEpoch
+            && model.auth?.isSignedIn
+            && model.auth.userId === userId
+            && model.realtimeTarget === target,
+        onChange: () => syncState('realtime'),
         onStatus: status => {
             if (status === 'SUBSCRIBED') setConnection('online', 'Live');
             else if (status === 'FALLBACK') setConnection('online', 'Connected');
         }
     });
+    if (epoch !== model.realtimeEpoch || model.disposed || model.auth?.userId !== userId) {
+        await realtime?.close?.();
+        return;
+    }
+    model.realtime = realtime;
+    if (!realtime) {
+        model.realtimeGameId = null;
+        model.realtimeUserId = null;
+        model.realtimeTarget = null;
+    }
+}
+
+async function disconnectRealtime() {
+    model.realtimeEpoch += 1;
+    const realtime = model.realtime;
+    model.realtime = null;
+    model.realtimeGameId = null;
+    model.realtimeUserId = null;
+    model.realtimeTarget = null;
+    await realtime?.close?.();
 }
 
 function startPolling() {
-    clearInterval(model.polling);
+    stopPolling();
     model.polling = setInterval(() => {
         if (!document.hidden) void syncState('poll');
     }, model.game?.status === 'active' ? 1200 : 2500);
-    setInterval(() => {
+    model.presencePolling = setInterval(() => {
         if (!document.hidden && model.auth?.isSignedIn) void api.command('presence.join').catch(() => {});
     }, 25_000);
+}
+
+function stopPolling() {
+    clearInterval(model.polling);
+    clearInterval(model.presencePolling);
+    model.polling = null;
+    model.presencePolling = null;
 }
 
 function analyzeGame() {
@@ -497,4 +593,11 @@ function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.
 function handleError(error, fallback) { console.warn('CAISSA Online:', error?.code || error?.message); showToast(error instanceof OnlineApiError ? messageForError(error) : fallback); }
 function showToast(message) { clearTimeout(model.toastTimer); ui.toast.textContent = message; ui.toast.hidden = false; model.toastTimer = setTimeout(() => { ui.toast.hidden = true; }, 4200); }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]); }
-async function dispose() { model.disposed = true; clearInterval(model.polling); await model.realtime?.close?.(); board.destroy(); }
+async function dispose() {
+    model.disposed = true;
+    stateSyncQueue.close();
+    window.removeEventListener('caissa-auth-change', onAuthEvent);
+    stopPolling();
+    await disconnectRealtime();
+    board.destroy();
+}

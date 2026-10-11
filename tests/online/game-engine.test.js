@@ -112,11 +112,22 @@ test('clock projection uses only the server anchor and detects expiration', () =
     assert.equal(drawnFlag.timeoutResult.result, '1/2-1/2');
 });
 
-test('timeout mating potential distinguishes a bare king from possible mating material', () => {
-    const bareKings = timeoutMatingPotential(new Chess('4k3/8/8/8/8/8/8/4K3 w - - 0 1'));
-    assert.deepEqual(bareKings, { white: false, black: false });
-    const loneBishop = timeoutMatingPotential(new Chess('4k3/8/8/8/8/8/8/3BK3 w - - 0 1'));
-    assert.deepEqual(loneBishop, { white: false, black: false });
-    const rook = timeoutMatingPotential(new Chess('4k3/8/8/8/8/8/8/3RK3 w - - 0 1'));
-    assert.equal(rook.white, true);
+test('timeout mating potential follows possible legal mate rather than material sum', () => {
+    const cases = [
+        ['bare kings', '4k3/8/8/8/8/8/8/4K3 w - - 0 1', false],
+        ['lone bishop', '4k3/8/8/8/8/8/8/3BK3 w - - 0 1', false],
+        ['lone knight', '4k3/8/8/8/8/8/8/3NK3 w - - 0 1', false],
+        ['two knights', '4k3/8/8/8/8/8/8/2NNK3 w - - 0 1', true],
+        ['rook', '4k3/8/8/8/8/8/8/3RK3 w - - 0 1', true],
+        ['queen', '4k3/8/8/8/8/8/8/3QK3 w - - 0 1', true],
+        ['promotable pawn', '4k3/8/8/8/8/8/P7/4K3 w - - 0 1', true],
+        ['bishop and knight', '4k3/8/8/8/8/8/8/2BNK3 w - - 0 1', true],
+        ['same-color bishops only', '4k3/8/8/8/8/4B3/8/2B1K3 w - - 0 1', false],
+        ['opposite-color bishops', '4k3/8/8/8/8/3B4/8/2B1K3 w - - 0 1', true],
+        ['lone bishop with enemy blocker', '4k3/8/8/8/8/3n4/8/3BK3 w - - 0 1', true]
+    ];
+
+    for (const [label, fen, expected] of cases) {
+        assert.equal(timeoutMatingPotential(new Chess(fen)).white, expected, label);
+    }
 });

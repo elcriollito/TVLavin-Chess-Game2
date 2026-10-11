@@ -64,3 +64,24 @@ test('migration keeps writes behind service-role RPCs and private Realtime autho
     assert.match(sql, /realtime\.topic\(\)\) like 'online-game:%'[\s\S]+game\.id::text = split_part/i);
     assert.doesNotMatch(sql, /alter table realtime\.messages enable row level security/i);
 });
+
+test('Online-only v3 hardening cannot target historical functions or diagnostic publications', () => {
+    const sql = fs.readFileSync(new URL(
+        '../../supabase/migrations/20261011150814_caissa_online_hardening_only_v3.sql',
+        import.meta.url
+    ), 'utf8');
+    const functionTargets = [...sql.matchAll(
+        /(?:create\s+or\s+replace|alter|grant\s+execute\s+on|revoke\s+all\s+on)\s+function\s+([a-z0-9_.]+)/gi
+    )].map(match => match[1].toLowerCase());
+
+    assert.deepEqual(new Set(functionTargets), new Set([
+        'public.caissa_online_join_queue',
+        'public.caissa_online_respond_challenge',
+        'caissa_online_private.apply_rating'
+    ]));
+    assert.equal((sql.match(/create\s+index\s+if\s+not\s+exists\s+caissa_online_/gi) || []).length, 9);
+    assert.match(sql, /pg_try_advisory_xact_lock[\s\S]+CAISSA_ONLINE_QUEUE_BUSY/i);
+    assert.match(sql, /rating_processed_at\s+is\s+not\s+null[\s\S]+status\s+<>\s+'completed'[\s\S]+termination\s+=\s+'aborted'/i);
+    assert.doesNotMatch(sql, /fulfill_stripe_webhook_event|credit_events|stripe_events|mentor|coach/i);
+    assert.doesNotMatch(sql, /alter\s+publication|create\s+publication|drop\s+publication/i);
+});

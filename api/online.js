@@ -11,6 +11,7 @@ import {
     validateQueueJoin
 } from '../js/online/online-protocol.js';
 import { applyAuthoritativeMove } from './_lib/online-game-engine.js';
+import { sendOnlineGameBroadcast } from './_lib/online-realtime-broadcast.js';
 
 const ROLLOUTS = new Set(['off', 'internal', 'preview', 'production']);
 
@@ -194,6 +195,12 @@ async function handleCommand(req, res, auth, service, dependencies) {
             ply: state?.game?.ply || null,
             termination: projected.value.termination || null
         });
+        await notifyGameChange(dependencies, dependencies.env || process.env, {
+            gameId: event.gameId,
+            version: state?.game?.version,
+            eventType: acceptedType,
+            correlationId: event.eventId
+        });
         return res.status(200).json(createServerEnvelope(
             acceptedType,
             { state },
@@ -293,6 +300,19 @@ function requestId(req) {
 
 function audit(event, fields = {}) {
     console.info(JSON.stringify({ scope: 'caissa-online', event, ...fields }));
+}
+
+async function notifyGameChange(dependencies, env, payload) {
+    try {
+        return await (dependencies.broadcastGameChange || sendOnlineGameBroadcast)({ ...payload, env });
+    } catch (error) {
+        console.warn('caissa_online_realtime_broadcast_failed', {
+            code: String(error?.message || 'ONLINE_REALTIME_BROADCAST_FAILED').slice(0, 80),
+            gameId: payload.gameId,
+            version: payload.version
+        });
+        return { delivered: false, reason: 'send-failed' };
+    }
 }
 
 function focusCompletedGame(state, gameId) {

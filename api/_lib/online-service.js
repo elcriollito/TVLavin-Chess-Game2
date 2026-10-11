@@ -2,16 +2,17 @@ import { getSupabase } from './supabase.js';
 
 export function createOnlineService(options = {}) {
     const db = options.db || getSupabase();
+    const sleep = options.sleep || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
     return Object.freeze({
         async joinQueue({ clerkId, displayName, control, rated }) {
-            return rpc(db, 'caissa_online_join_queue', {
+            return retryQueueBusy(() => rpc(db, 'caissa_online_join_queue', {
                 p_clerk_id: clerkId,
                 p_display_name: displayName,
                 p_pool: control.pool,
                 p_base_ms: control.baseMs,
                 p_increment_ms: control.incrementMs,
                 p_rated: rated
-            });
+            }), sleep);
         },
         async leaveQueue(clerkId) {
             return rpc(db, 'caissa_online_leave_queue', { p_clerk_id: clerkId });
@@ -99,6 +100,18 @@ export function createOnlineService(options = {}) {
             });
         }
     });
+}
+
+async function retryQueueBusy(operation, sleep) {
+    const delays = [5, 15, 35];
+    for (let attempt = 0; ; attempt += 1) {
+        try {
+            return await operation();
+        } catch (error) {
+            if (error?.code !== 'CAISSA_ONLINE_QUEUE_BUSY' || attempt >= delays.length) throw error;
+            await sleep(delays[attempt]);
+        }
+    }
 }
 
 async function rpc(db, name, args) {
