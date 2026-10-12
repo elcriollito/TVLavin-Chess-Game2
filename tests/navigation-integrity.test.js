@@ -20,17 +20,17 @@ test('canonical primary navigation inventory is unique and stable', () => {
   assert.deepEqual(
     Array.from(inventory.primary, ({ id }) => id),
     [
-      'play', 'yahooClassic', 'fics', 'playchess', 'fritz',
+      'play', 'online', 'yahooClassic', 'fics', 'playchess', 'fritz',
       'puzzles', 'academy', 'mentor', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
       'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'arena',
       'cheater-insight', 'polyglot', 'opening-database', 'eco', 'world-champions',
       'history', 'dosChess', 'vault'
     ]
   );
-  assert.equal(inventory.primary.length, 27);
+  assert.equal(inventory.primary.length, 28);
   assert.deepEqual(Array.from(inventory.more, ({ id }) => id), ['blog', 'support', 'help', 'about', 'feedback']);
   assert.deepEqual(Array.from(inventory.social, ({ id }) => id), ['facebook', 'youtube', 'discord']);
-  for (const label of ['Puzzles', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
+  for (const label of ['CAISSA Online', 'Puzzles', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');
@@ -45,6 +45,8 @@ test('canonical primary navigation inventory is unique and stable', () => {
   assert.doesNotMatch(read('js/caissa-primary-navigation.js'), /g5vTsSrDA|qqhycag|xbFpAtbUK/);
   assert.equal(inventory.primary.find(({ id }) => id === 'fics').route, '/fics');
   assert.equal(inventory.primary.find(({ id }) => id === 'spectator').route, '/spectator-tv');
+  assert.equal(inventory.primary.find(({ id }) => id === 'online').route, '/online');
+  assert.equal(inventory.primary.filter(({ route }) => route === '/online').length, 1);
 });
 
 test('main application and trainer consume the canonical inventory', () => {

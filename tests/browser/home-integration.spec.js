@@ -63,6 +63,12 @@ test('desktop Home renders approved identity, route discovery and clean console'
   await expect(page.getByRole('heading', { name: 'Welcome to CAISSA.' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'CAISSA Chess home' }).first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'All tools' })).toBeVisible();
+  await expect(page.locator('.sidebar').getByRole('link', { name: 'CAISSA Online', exact: true })).toBeVisible();
+  const onlineCallout = page.locator('.online-callout');
+  await expect(onlineCallout.getByRole('heading', { name: 'CAISSA Online', exact: true })).toBeVisible();
+  await expect(onlineCallout.getByText('Play against other people', { exact: true })).toBeVisible();
+  await expect(onlineCallout.getByRole('link', { name: 'Play online', exact: true })).toBeVisible();
+  await expect(page.locator('#all-tools-groups a[href="/online"]')).toHaveCount(1);
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeVisible();
   await expect(page.getByText('Coming next')).toBeVisible();
   await expect(page.getByText('Make it your own.')).toBeVisible();
@@ -101,6 +107,8 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
 
   await page.goto('/');
   await expect(page.locator('.mobile-nav')).toBeVisible();
+  await expect(page.locator('.mobile-nav').getByRole('link', { name: 'Online', exact: true })).toBeVisible();
+  await expect(page.locator('.online-callout').getByRole('link', { name: 'Play online', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeHidden();
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
@@ -144,6 +152,32 @@ test('auth check failure keeps Sign in, Register and Settings available without 
   expect(errors).toEqual([]);
 });
 
+test('Home and shared navigation reach CAISSA Online by keyboard without duplicate inventory links', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await installAuthMock(page, {
+    isLoaded: true,
+    isSignedIn: false,
+    userId: null,
+    status: 'signed-out'
+  });
+
+  await page.goto('/');
+  const homeOnline = page.locator('.online-callout').getByRole('link', { name: 'Play online', exact: true });
+  await homeOnline.focus();
+  await expect(homeOnline).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/online$/);
+  await expect(page.getByRole('heading', { name: 'Online Chess', exact: true })).toBeVisible();
+
+  await page.goto('/endgame-library');
+  const sharedOnline = page.getByRole('link', { name: 'CAISSA Online', exact: true });
+  await expect(sharedOnline).toHaveCount(1);
+  await sharedOnline.focus();
+  await expect(sharedOnline).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/online$/);
+});
+
 test('loading auth keeps entry points available and Settings persists the real locale preference', async ({ page }) => {
   await installAuthMock(page, {
     isLoaded: false,
@@ -185,6 +219,7 @@ test('connected Home renders only returned puzzle progress and preserves the emp
 
   await page.goto('/');
   await expect(page.getByText('Welcome back, Ada Player.')).toBeVisible();
+  await expect(page.locator('.online-callout').getByRole('link', { name: 'Play online', exact: true })).toBeVisible();
   await expect(page.locator('.account-stats')).toContainText('1,876');
   await expect(page.locator('.account-stats')).toContainText('12');
   await expect(page.locator('.account-stats')).toContainText('15');

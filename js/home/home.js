@@ -3,6 +3,7 @@
 
   const tools = Object.freeze({
     play: Object.freeze(['Play', '/play']),
+    online: Object.freeze(['CAISSA Online', '/online']),
     puzzles: Object.freeze(['Puzzles', '/puzzles']),
     analyze: Object.freeze(['Analyze', '/analyze']),
     openings: Object.freeze(['Openings', '/opening-database']),

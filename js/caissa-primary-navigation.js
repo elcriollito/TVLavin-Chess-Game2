@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.17.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.18.0';
     const i18n = global.CaissaI18n || Object.freeze({
         enabledLocales: Object.freeze(['en']),
         supportedLocales: Object.freeze({ en: Object.freeze({ code: 'en', name: 'English', enabled: true }) }),
@@ -20,6 +20,7 @@
     const allGroups = [
         Object.freeze([
             { id: 'play', label: 'Play', icon: 'fas fa-play-circle', section: 'play', route: '/play', canonicalNavigation: true },
+            { id: 'online', label: 'CAISSA Online', icon: 'fas fa-users', route: '/online', description: 'Play against other people' },
             { id: 'yahooClassic', label: 'CAISSA Classic', icon: 'fas fa-window-restore', section: 'yahooClassic', route: '/yahoo-classic', canonicalNavigation: true },
             { id: 'fics', label: 'FICS', icon: 'fas fa-globe', section: 'fics', route: '/fics', canonicalNavigation: true },
             { id: 'playchess', label: 'Playchess', icon: 'fas fa-chess-board', route: '/play-online/playchess' },
