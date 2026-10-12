@@ -30,6 +30,7 @@ export function createAuthenticateRequest(dependencies = {}) {
   const verify = dependencies.verifyToken || verifyToken;
   const env = dependencies.env || process.env;
   const log = dependencies.log || (message => console.warn(message));
+  const authorizedParties = clerkAuthorizedParties(env);
 
   const allowSessionCookie = dependencies.allowSessionCookie === true;
 
@@ -56,7 +57,8 @@ export function createAuthenticateRequest(dependencies = {}) {
         const payload = await verify(token, {
             ...(env.CLERK_JWT_KEY
                 ? { jwtKey: env.CLERK_JWT_KEY }
-                : { secretKey: env.CLERK_SECRET_KEY })
+                : { secretKey: env.CLERK_SECRET_KEY }),
+            authorizedParties
         });
 
         return {
@@ -74,6 +76,14 @@ export function createAuthenticateRequest(dependencies = {}) {
         return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
     }
   };
+}
+
+function clerkAuthorizedParties(env) {
+    const configured = `${env.CAISSA_CLERK_AUTHORIZED_PARTIES || ''},${env.CAISSA_BROWSER_ORIGINS || ''}`;
+    return [...new Set([
+        'https://www.caissa-chess.org',
+        ...configured.split(',').map(value => value.trim()).filter(Boolean)
+    ])];
 }
 
 export const authenticateRequest = createAuthenticateRequest();

@@ -18,6 +18,7 @@ import { createBetaProgramService } from './api/_lib/beta-program-service.js';
 import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-document.js';
 import { fetchLichessGames } from './api/_lib/lichess-games.js';
 import tablebaseHandler from './api/tablebase/standard.js';
+import onlineHandler from './api/online.js';
 import { worldChampionshipPgnCatalog } from './js/game-library/world-championship-pgn-catalog.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,7 @@ const RETIRED_PAGE_REDIRECTS = new Map([
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'";
 const BETA_PRIVATE_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+const ONLINE_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; script-src-elem 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://img.clerk.com https://images.clerk.dev; font-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://*.supabase.co wss://*.supabase.co; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
 const scannerExperiment = Object.freeze({ id: 'scanner', slug: 'scanner', displayName: 'CAISSA Scanner',
   description: 'Scan chess positions from your phone or screen.', stage: 'internal-beta', enabled: true,
@@ -358,6 +360,37 @@ const server = http.createServer(async (req, res) => {
   try { decodedPathname = decodeURIComponent(pathname); } catch (_) { /* malformed paths remain unavailable */ }
   const normalizedPathname = decodedPathname.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
 
+  if (pathname === '/api/online') {
+    let statusCode = 200;
+    let body = {};
+    if (req.method === 'POST') {
+      try {
+        const chunks = [];
+        let bytes = 0;
+        for await (const chunk of req) {
+          bytes += chunk.length;
+          if (bytes > 32 * 1024) throw new Error('PAYLOAD_TOO_LARGE');
+          chunks.push(chunk);
+        }
+        body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+      } catch (error) {
+        const oversized = error?.message === 'PAYLOAD_TOO_LARGE';
+        res.writeHead(oversized ? 413 : 400, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ code: oversized ? 'PAYLOAD_TOO_LARGE' : 'INVALID_JSON' }));
+        return;
+      }
+    }
+    req.body = body;
+    req.query = Object.fromEntries(url.searchParams.entries());
+    await onlineHandler(req, {
+      setHeader: (name, value) => res.setHeader(name, value),
+      status(code) { statusCode = code; return this; },
+      json(value) { res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(value)); return this; },
+      end(value = '') { res.writeHead(statusCode); res.end(value); return this; }
+    });
+    return;
+  }
+
   if (pathname === '/api/tablebase/standard') {
     let statusCode = 200;
     await tablebaseHandler({ method: req.method, query: { fen: url.searchParams.getAll('fen').length > 1
@@ -568,6 +601,12 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/mentor' || pathname === '/mentor/') {
     filePath = './mentor.html';
+  }
+  if (pathname === '/online' || pathname === '/online/' || pathname === '/online/tournaments') {
+    filePath = './online.html';
+    res.setHeader('Content-Security-Policy', ONLINE_CSP);
+    res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   }
   if (pathname === '/puzzles' || pathname === '/puzzles/') {
     filePath = './puzzles.html';
