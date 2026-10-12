@@ -16,6 +16,8 @@ CAISSA Online is a board-first, authenticated human-vs-human playing room at `/o
 
 - [Architecture and decisions](architecture.md)
 - [Protocol and state model](protocol.md)
+- [Open games contract boundary](open-games-scope.md)
+- [Human feedback validation](human-feedback-validation.md)
 - [Data model](data-model.md)
 - [Operations, rollout and rollback](operations.md)
 - [Private Realtime delivery](realtime-delivery.md)

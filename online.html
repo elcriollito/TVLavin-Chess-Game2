@@ -78,7 +78,7 @@
                                     <button data-control="custom"><b>Custom</b><span>Your clock</span></button>
                                 </div>
                             </fieldset>
-                            <div class="custom-clock" id="custom-clock" hidden><label>Minutes<input id="custom-minutes" type="number" min="1" max="180" value="7"></label><label>Increment<input id="custom-increment" type="number" min="0" max="60" value="3"><span>seconds</span></label></div>
+                            <div class="custom-clock" id="custom-clock" hidden><label><span>Minutes</span><input id="custom-minutes" type="number" min="1" max="180" value="7"></label><label><span>Increment (seconds)</span><input id="custom-increment" type="number" min="0" max="60" value="3"></label></div>
                             <label class="rated-row"><span><b>Rated game</b><small id="rated-help">Rating changes after the result is final.</small></span><input id="rated-toggle" type="checkbox" role="switch"></label>
                             <button class="primary-action" id="find-game">Find an opponent</button>
                             <div class="lobby-secondary"><button id="play-friend">Play a Friend</button><button id="browse-tournaments">Tournaments</button></div>
@@ -95,7 +95,7 @@
                         </div>
 
                         <div id="game-view" hidden>
-                            <div class="game-status-line"><span id="turn-indicator"></span><strong id="turn-copy">Game starting</strong></div>
+                            <p id="turn-copy" class="sr-only" role="status" aria-live="polite">Game starting</p>
                             <ol class="move-list" id="move-list" aria-label="Move list"></ol>
                             <div class="game-actions">
                                 <button id="offer-draw">Offer draw</button>
@@ -114,8 +114,17 @@
                     </section>
 
                     <section id="panel-games" role="tabpanel" aria-labelledby="tab-games" data-panel="games" hidden>
-                        <div class="section-intro"><p>YOUR BOARD</p><h3>Games</h3><span>Active and recently completed games appear here.</span></div>
-                        <div id="games-list" class="empty-state"><span aria-hidden="true">♜</span><strong>No games yet</strong><p>Your first online game will be saved automatically.</p></div>
+                        <div class="section-intro"><p>YOUR BOARD</p><h3>Games</h3><span>Review your own games or browse public opportunities when that service becomes available.</span></div>
+                        <div class="games-switch" role="tablist" aria-label="Game lists">
+                            <button role="tab" aria-selected="true" data-games-view="history" aria-controls="games-history">History</button>
+                            <button role="tab" aria-selected="false" data-games-view="open" aria-controls="games-open">Open games</button>
+                        </div>
+                        <div id="games-history" data-games-panel="history">
+                            <div id="games-list" class="empty-state"><span aria-hidden="true">♜</span><strong>No games yet</strong><p>Your first online game will be saved automatically.</p></div>
+                        </div>
+                        <div id="games-open" data-games-panel="open" hidden>
+                            <div class="empty-state"><span aria-hidden="true">♟</span><strong>No open games available</strong><p>Public joinable games are not part of the current private-game contract.</p></div>
+                        </div>
                         <div class="tournament-card" id="tournament-card" hidden><p>TOURNAMENT HALL</p><h3>Live events</h3><p>Swiss, Arena and Round Robin foundations are ready behind a feature flag.</p><button id="open-tournaments">View tournaments</button></div>
                     </section>
 
@@ -131,6 +140,16 @@
             </aside>
         </section>
     </main>
+
+    <aside id="challenge-notice" class="challenge-notice" aria-live="polite" hidden>
+        <p id="challenge-notice-kicker">GAME INVITATION</p>
+        <strong id="challenge-notice-title"></strong>
+        <span id="challenge-notice-control"></span>
+        <div id="challenge-notice-actions">
+            <button id="challenge-notice-accept">Accept</button>
+            <button id="challenge-notice-decline">Decline</button>
+        </div>
+    </aside>
 
     <dialog id="promotion-dialog"><form method="dialog"><p>Choose promotion</p><div><button value="q" aria-label="Promote to queen">♛</button><button value="r" aria-label="Promote to rook">♜</button><button value="b" aria-label="Promote to bishop">♝</button><button value="n" aria-label="Promote to knight">♞</button></div><button value="cancel" class="dialog-cancel">Cancel</button></form></dialog>
     <dialog id="confirm-dialog"><form method="dialog"><h2 id="confirm-title">Resign this game?</h2><p id="confirm-copy">This result is final and will be recorded.</p><div><button value="cancel">Keep playing</button><button value="confirm" class="danger-action">Resign</button></div></form></dialog>
