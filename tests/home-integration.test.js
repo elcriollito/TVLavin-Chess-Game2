@@ -66,6 +66,11 @@ test('Home owns canonical metadata and preserves the approved product boundaries
   assert.equal($('script[src*="mentor"]').length, 0);
   assert.equal($('a[href*="/mentor"]').length, 0);
   assert.equal($('a[href="/yahoo-classic"].desktop-only').length, 1);
+  assert.equal($('.sidebar a[href="/online"]').text().trim(), 'CAISSA Online');
+  assert.equal($('.mobile-nav a[href="/online"]').text().trim(), 'Online');
+  assert.equal($('.online-callout').text().includes('CAISSA Online'), true);
+  assert.equal($('.online-callout').text().includes('Play against other people'), true);
+  assert.equal($('.online-callout a[href="/online"]').text().trim(), 'Play online');
   assert.equal($('[data-tool]').toArray().every(node => ($(node).attr('href') || '').startsWith('/')), true);
   assert.equal($('a[href^="https://www.caissa-chess.org"]').length, 0);
   assert.equal($('html').attr('data-caissa-clerk-ui'), '');
@@ -78,7 +83,8 @@ test('All tools is sourced from the existing primary navigation contract', () =>
   const owned = new Set(vercel.rewrites.map(rule => rule.source));
   const shellRoutes = new Set(['/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight', '/history', '/dos-chess', '/academy']);
 
-  assert.equal(internal.length, 27);
+  assert.equal(internal.length, 28);
+  assert.equal(navigation.inventory.primary.filter(item => item.route === '/online').length, 1);
   for (const item of internal) {
     assert.ok(owned.has(item.route) || shellRoutes.has(item.route) || item.route === '/play', `${item.label} has no route owner`);
   }

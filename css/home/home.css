@@ -7,7 +7,7 @@ p,.hero p,.tool-card p,.player-panel p,.chat-panel p,.news-item p,.wide-card p,.
 .brand-knight{font-size:39px;line-height:1;color:#fff;width:38px;text-align:center;filter:drop-shadow(0 2px 5px #0006)}
 .brand small,.nav-caption,.breadcrumb,.eyebrow,.season-label,.section-heading>span,.feature-strip span,.position-caption,.subtle-link,.sidebar-bottom p,.sidebar-bottom a,footer,footer p{color:var(--home-muted)}
 .sidebar nav .active{color:#fff}.sidebar nav .active i{color:var(--home-purple)}
-[data-tool="play"]{--tool-color:var(--home-purple)}[data-tool="puzzles"]{--tool-color:var(--home-lime)}[data-tool="analyze"]{--tool-color:var(--home-blue)}[data-tool="openings"]{--tool-color:var(--home-cyan)}[data-tool="endgames"]{--tool-color:var(--home-gold)}[data-tool="arena"]{--tool-color:var(--home-coral)}[data-tool="tv"]{--tool-color:var(--home-cyan)}
+[data-tool="play"]{--tool-color:var(--home-purple)}[data-tool="online"]{--tool-color:var(--home-blue)}[data-tool="puzzles"]{--tool-color:var(--home-lime)}[data-tool="analyze"]{--tool-color:var(--home-blue)}[data-tool="openings"]{--tool-color:var(--home-cyan)}[data-tool="endgames"]{--tool-color:var(--home-gold)}[data-tool="arena"]{--tool-color:var(--home-coral)}[data-tool="tv"]{--tool-color:var(--home-cyan)}
 .sidebar nav a[data-tool] i,.tool-card .tool-heading i,.wide-card[data-tool]>i,.watch-card[data-tool]>i,.news-item[data-tool]>i,.mobile-nav a[data-tool] i{color:var(--tool-color)}
 .feature-strip a strong{color:var(--tool-color)}
 .sidebar nav a[href="#learn"] i,.mobile-nav a[href="#learn"] i{color:var(--home-cyan)}.sidebar nav a[href="#watch"] i{color:var(--home-blue)}
@@ -42,6 +42,8 @@ body{overflow-x:hidden}.shell,.topbar,main,.dashboard,.main-column,.right-column
 .all-tools-link i{width:18px;text-align:center;color:var(--home-purple)}.all-tools-link:hover{background:#1b1e28;color:#fff}
 .all-tools-link.all-tools-card{display:grid;grid-template-columns:18px minmax(0,1fr);grid-column:1/-1;align-items:start;min-height:68px;border:1px solid #2a2e3b;background:#151821}
 .all-tools-card i{grid-row:1/3;margin-top:2px}.all-tools-card-title{font-weight:700;color:#fff}.all-tools-card-description{grid-column:2;color:var(--home-copy);font-size:11px;line-height:1.4}
+.online-callout{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;margin-bottom:14px;padding:18px 20px;border:1px solid #554573;border-radius:10px;background:linear-gradient(110deg,#191425,#111722)}
+.online-callout-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#28223a;color:var(--home-blue);font-size:20px}.online-callout-copy h3{font-size:18px}.online-callout-copy p{margin-top:3px;font-size:13px}.online-callout .button{min-width:120px}
 @keyframes home-pulse{50%{opacity:.5}}
 @media(max-width:720px){
   .account-name{max-width:100px}.account-stats{grid-template-columns:1fr}.account-stats div{display:flex;justify-content:space-between;align-items:center}
@@ -49,6 +51,7 @@ body{overflow-x:hidden}.shell,.topbar,main,.dashboard,.main-column,.right-column
   .account-links .topbar-control{font-size:12px}.account-links .button.topbar-control{padding:8px 10px}.settings-control{min-width:38px;min-height:38px;justify-content:center;padding:7px}.settings-control .control-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .account-menu-panel{position:fixed;right:14px;top:64px}.home-settings-section{grid-template-columns:1fr}.home-settings-actions{align-items:flex-end}.home-settings-actions p{max-width:230px}
   .all-tools-groups{grid-template-columns:1fr}.all-tools-link.desktop-only{display:none}.all-tools-links{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .online-callout{grid-template-columns:auto minmax(0,1fr);padding:16px;gap:12px}.online-callout .button{grid-column:1/-1;width:100%}.mobile-nav a{min-width:0;flex:1}
 }
 @media(max-width:390px){.all-tools-links{grid-template-columns:1fr}.account-identity .account-name{display:none}.topbar{padding-inline:12px}.account-links>a:first-child{display:inline-flex}.account-links{gap:7px}.account-links .button.topbar-control{padding-inline:8px}.home-settings-actions{align-items:stretch;flex-direction:column}.home-settings-actions .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.account-spinner{animation:none}}
