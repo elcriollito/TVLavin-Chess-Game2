@@ -1,0 +1,380 @@
+{
+  "auditedCommit": "45de5ca2e0f4b3e711a6c39209fcd9caed7b6106",
+  "method": "Read-only source probes; no browser, network, account, credits or production data writes.",
+  "observations": [
+    {
+      "id": "I0-02-player-outcomes",
+      "method": "executed-production-function-in-node-vm",
+      "input": "Alex: 2 wins, 1 loss in three imported games",
+      "observed": {
+        "wld": {
+          "wins": 3,
+          "losses": 0,
+          "draws": 0
+        },
+        "userColors": [
+          "unknown",
+          "unknown",
+          "unknown"
+        ],
+        "parserStats": {
+          "total": 3,
+          "wins": 0,
+          "losses": 0,
+          "draws": 0,
+          "avgPlyCount": 4,
+          "openings": {
+            "C20": 3
+          }
+        }
+      },
+      "desired": "Resolve target player and each game color: wins=2, losses=1, draws=0."
+    },
+    {
+      "id": "I0-03-heuristic-radar",
+      "method": "executed-production-function-in-node-vm",
+      "input": "Reverse every decisive result while retaining game length and ECO",
+      "observed": {
+        "labels": [
+          "Tactics",
+          "Strategy",
+          "Opening",
+          "Endgame",
+          "Precision",
+          "Aggression",
+          "Defense",
+          "Consistency"
+        ],
+        "original": [
+          100,
+          0,
+          55,
+          0,
+          100,
+          100,
+          0,
+          100
+        ],
+        "reversedResults": [
+          100,
+          0,
+          55,
+          0,
+          100,
+          100,
+          0,
+          100
+        ]
+      },
+      "desired": "Skill scores require own-player move evaluation and denominators; result/length proxies cannot prove skill."
+    },
+    {
+      "id": "I0-01-ownerless-profile",
+      "method": "executed-production-function-in-node-vm",
+      "input": "Save an imported profile using the live save function",
+      "observed": {
+        "keys": [
+          "caissa_insight_profile"
+        ],
+        "ownerPresent": false
+      },
+      "desired": "Owner-scoped storage plus authenticated durable report history."
+    },
+    {
+      "id": "I0-04-keep-history",
+      "method": "executed-production-function-in-node-vm",
+      "input": "Start Fresh / Keep History immediately after saving a profile",
+      "observed": {
+        "remainingKeys": []
+      },
+      "desired": "Retain an actual historical snapshot; the current implementation deletes its only saved profile."
+    },
+    {
+      "id": "I0-05-invalid-pgn",
+      "method": "executed-production-function-in-node-vm",
+      "input": "A valid Event header followed by invalid SAN",
+      "observed": {
+        "countedGames": 1,
+        "plies": 0,
+        "moves": []
+      },
+      "desired": "Reject or quarantine failed PGN parse; never count a header alone as a valid analyzed game."
+    },
+    {
+      "id": "I0-06-color-filter-and-save",
+      "method": "executed-production-function-in-node-vm",
+      "input": "Generate White and Black reports for the same dataset",
+      "observed": {
+        "whiteCount": 3,
+        "blackCount": 3,
+        "persistedKeys": [],
+        "sourceHasReportWrite": false,
+        "sourceHasSessionWrite": false
+      },
+      "desired": "Filter by resolved player color before game limit; completed report is saved and recoverable."
+    },
+    {
+      "id": "I0-07-engine-fallback",
+      "method": "executed-production-function-in-node-vm",
+      "input": "Engine unavailable; Chess.js 0.10.3; queen captures a pawn",
+      "observed": {
+        "status": "threw",
+        "error": "Cannot read properties of undefined (reading 'split')",
+        "moveBeforePresent": false
+      },
+      "desired": "Replay positions explicitly and label heuristic fallback; unavailable engine must not produce certified skill scores."
+    },
+    {
+      "id": "I0-08-multipv-and-callbacks",
+      "method": "executed-production-consumer-with-synthetic-uci-info",
+      "input": "Simulated adapter emits ordered MultiPV 1,2,3 then bestmove=e2e4",
+      "observed": {
+        "evaluation": {
+          "score": 0.2,
+          "mate": null,
+          "bestMove": "g1f3",
+          "pv": [
+            "g1f3"
+          ],
+          "depth": 12
+        },
+        "infoHandlerRestored": false,
+        "bestMoveHandlerRestored": false
+      },
+      "desired": "Consume MultiPV=1 for headline eval/bestmove and isolate analysis ownership; restore lifecycle safely."
+    },
+    {
+      "id": "I0-09-positive-swing",
+      "method": "executed-production-analysis-with-synthetic-evaluations",
+      "input": "Synthetic White eval 0 to +2 after e4; suggested move d4",
+      "observed": [
+        {
+          "move": "e4",
+          "swing": 2,
+          "loss": 2,
+          "tags": [
+            "Back Rank Weakness"
+          ]
+        }
+      ],
+      "desired": "A favorable swing is not a 2-pawn loss; measure max(0, ownEvalBefore-ownEvalAfter) with comparable searches."
+    },
+    {
+      "id": "I0-10-setup-position",
+      "method": "executed-production-function-in-node-vm",
+      "input": "PGN starts at a kings-only FEN and plays Kf3",
+      "observed": {
+        "parsedMoves": [
+          "Kf3"
+        ],
+        "firstAnalyzedFen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "analyzedPositions": 2
+      },
+      "desired": "Replay from PGN FEN rather than chess.reset() standard position."
+    }
+  ],
+  "scope": {
+    "dateLocal": "2026-10-02",
+    "dateUTC": "2026-10-03",
+    "timezone": "America/New_York",
+    "repository": "elcriollito/TVLavin-Chess-Game2",
+    "branch": "docs/insights-phase0-truth-audit-2026-10-03",
+    "kind": "architecture-and-truth-audit",
+    "productImplementation": false,
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "source": {
+    "commit": "45de5ca2e0f4b3e711a6c39209fcd9caed7b6106",
+    "rootTree": "b96ad472a4a8ff6277040b40f4ce3d9be7da7e1d",
+    "files": [
+      {
+        "path": "AGENTS.md",
+        "blobSha": "414df1ea3c253d871f4dc6f7bd9cdf3d61145fbe"
+      },
+      {
+        "path": "package.json",
+        "blobSha": "c28ce25a3165fcd13f4725758ac5f6071e3ecf49"
+      },
+      {
+        "path": "vercel.json",
+        "blobSha": "4579db13db9f5d630bbba32c061ec9d3d389a464"
+      },
+      {
+        "path": "js/insights-section.js",
+        "blobSha": "f5cc98184793f5c9fbb826d0db4e79b9c9ab395a"
+      },
+      {
+        "path": "api/_lib/auth.js",
+        "blobSha": "9aab2369a428a56b1253fda36525604932381c33"
+      },
+      {
+        "path": "api/_lib/identity-resolution.js",
+        "blobSha": "34a8c922c11eb8b06fcac994e470e3a8b7f9ac5e"
+      },
+      {
+        "path": "api/_lib/supabase.js",
+        "blobSha": "36c8363b9bd0bf308289381bede84d4634ad9445"
+      },
+      {
+        "path": "api/library/push.js",
+        "blobSha": "7424f789bba66348ab46c83ef05986084dbd3571"
+      },
+      {
+        "path": "api/library/pull.js",
+        "blobSha": "fa1ebb80ad3f7ba624094b1a7187d880ce547cb8"
+      },
+      {
+        "path": "app.js",
+        "blobSha": "3642eae8d84b298572895ef72572571722ef0a97"
+      },
+      {
+        "path": "index.html",
+        "blobSha": "c0f491b77d631327de7e3d23f5260d0344635ebe"
+      },
+      {
+        "path": "caissa-library-db.js",
+        "blobSha": "0ea74609d0e1820fc8c2d0c50f8ba752d542f148"
+      },
+      {
+        "path": "caissa-library.js",
+        "blobSha": "8a992fc786c69cf010c22958bc2faf229d3c9559"
+      },
+      {
+        "path": "js/caissa-sync.js",
+        "blobSha": "9d0e9bab6081124da3b325942433a25191679012"
+      },
+      {
+        "path": "js/caissa-auth.js",
+        "blobSha": "a7dd4a8a297393504717d812a5e9562c13e4f071"
+      },
+      {
+        "path": "js/mentor/mentor-insights.js",
+        "blobSha": "de66a653fae78a7af115e2a2dbba54108237feb7"
+      },
+      {
+        "path": "tests/insight-coach-route.test.cjs",
+        "blobSha": "9e705cd06ede4ccde275c248986209ec38624e4a"
+      },
+      {
+        "path": "tests/insight-route-initialization.test.js",
+        "blobSha": "59a477e5d550062e0225035d074bb15b4ea75c20"
+      },
+      {
+        "path": "js/analyze-section.js",
+        "blobSha": "ce6a8159cf69a0bc0b3188f05a74125a04bff1bb"
+      },
+      {
+        "path": "js/legacy-canonical-section-route-policy.js",
+        "blobSha": "ac11f784a3535ab956763c6b245c36ea9474ed3d"
+      },
+      {
+        "path": "supabase/bootstrap/caissa-production-bootstrap.sql",
+        "blobSha": "47ec256d616bc7bd544a68be4c76e34bc7945672"
+      },
+      {
+        "path": "supabase-schema.sql",
+        "blobSha": "e00ef1f3fa6248815d406dff9f8f71cd0c2f519d"
+      },
+      {
+        "path": "supabase-schema-v2.sql",
+        "blobSha": "9f8794bd45998b4d9eeec1c26ecf3ca09370b13e"
+      },
+      {
+        "path": "docs/product/CAISSA_BOARD_WORKSPACE_UI_PATTERN.md",
+        "blobSha": "b91ca36d356e655502512f4036c7ce961386a6e7"
+      },
+      {
+        "path": "docs/standards/CAISSA_QUIET_DRAG.md",
+        "blobSha": "363cbda152eec5ec0d3b58833df36530ee6abd06"
+      },
+      {
+        "path": "api/puzzles/progress.js",
+        "blobSha": "f2b7499f83e40d5de8a30f13ed8edced602bd360"
+      },
+      {
+        "path": "js/engine-adapter.js",
+        "blobSha": "950571cc95ba6ed91dc3e4ab139f1bb7d70cd8cf"
+      },
+      {
+        "path": "mentor-ai.js",
+        "blobSha": "e7058a80c31a9d11d055d400ec4505c6483517e1"
+      },
+      {
+        "path": "js/play/engine-request-isolation.js",
+        "blobSha": "4a155a391c5d51e248573f9586b5fe3b6c078df0"
+      },
+      {
+        "path": "assets/vendor/chess.js/chess-0.10.3.min.js",
+        "blobSha": "ed78b9bc5861fbe51d4a2d602bc735522c228b50"
+      },
+      {
+        "path": "js/mentor/mentor-page.js",
+        "blobSha": "acb12fe05f30895aeac217c757f2717f8ab0e91a"
+      },
+      {
+        "path": "js/mentor/mentor-future-adapters.js",
+        "blobSha": "dfc8e9381e918027ddf83b142cb71b7757c68744"
+      },
+      {
+        "path": "js/mentor/educational-engine-analysis.js",
+        "blobSha": "5add82203198786710c62d57ecf930466eceec46"
+      },
+      {
+        "path": "js/mentor/educational-analysis-pipeline.js",
+        "blobSha": "eeaa4082787ac9a2828949852d15bb153fbdd3c5"
+      },
+      {
+        "path": "js/mentor/mentor-context-contract.js",
+        "blobSha": "f001ea10493d0974ecdc438b23f64b104675bc5b"
+      },
+      {
+        "path": "js/mentor/mentor-context.js",
+        "blobSha": "b6f1dff2bed1f49235b9ab07c91f61f3a51f882d"
+      }
+    ],
+    "appSha256Trimmed": "1412b72c0883243d05f36c59ec42399420b1673c24ab18bdd541ad851cb978c2"
+  },
+  "database": {
+    "projectName": "CAISSA-PRODUCTION-DO-NOT-DELETE",
+    "postgresMajor": 17,
+    "method": "metadata-only READ ONLY transactions",
+    "dedicatedInsightsReportTables": [],
+    "identity": {
+      "table": "public.users",
+      "idType": "uuid",
+      "externalSubjectColumn": "clerk_id",
+      "externalSubjectType": "text"
+    },
+    "existingReusableTables": [
+      "library_positions",
+      "library_collections",
+      "library_sync_log",
+      "puzzle_training_attempts",
+      "puzzle_training_progress"
+    ],
+    "rlsEnabled": [
+      "users",
+      "library_positions",
+      "library_collections",
+      "puzzle_training_attempts",
+      "puzzle_training_progress"
+    ],
+    "directClientPolicies": [],
+    "explicitClientGrants": [],
+    "notes": "Backend access is service_role with owner restrictions. No user-level rows, tokens, PGN or private reports included."
+  },
+  "tests": {
+    "command": "node --test tests/insight-route-initialization.test.js tests/insight-coach-route.test.cjs",
+    "runtime": "Node v24.19.0",
+    "passed": 12,
+    "failed": 0,
+    "scope": "Route/control tests; not a certificate of persistence or chess correctness."
+  },
+  "limitations": [
+    "No signed-in multi-device smoke",
+    "No real WASM engine benchmark",
+    "No Vercel deployment SHA confirmation",
+    "Synthetic UCI and eval data are labeled in observations"
+  ]
+}
