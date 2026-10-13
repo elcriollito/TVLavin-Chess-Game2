@@ -106,6 +106,45 @@ test('board-first shell remains usable at phone width and has no serious axe fin
     }
 });
 
+test('board group and workspace share aligned desktop geometry and one scrollable body', async ({ page }) => {
+    const desktopCases = [
+        { name: 'desktop', width: 1440, height: 900 },
+        { name: 'short', width: 1440, height: 720 }
+    ];
+    for (const viewport of desktopCases) {
+        await page.setViewportSize(viewport);
+        await page.goto('/online');
+        const geometry = await onlineLayoutGeometry(page);
+        expect(Math.abs(geometry.board.width - geometry.board.height)).toBeLessThan(1);
+        expect(geometry.board.width).toBeGreaterThan(geometry.panel.width);
+        expect(geometry.gap).toBeGreaterThanOrEqual(24);
+        expect(geometry.gap).toBeLessThanOrEqual(32.1);
+        expect(Math.abs(geometry.panel.y - geometry.boardColumn.y)).toBeLessThan(1);
+        expect(Math.abs(geometry.panel.bottom - geometry.boardColumn.bottom)).toBeLessThan(1);
+        expect(Math.abs(geometry.head.y - geometry.panel.y)).toBeLessThanOrEqual(1);
+        expect(Math.abs(geometry.foot.bottom - geometry.panel.bottom)).toBeLessThanOrEqual(1);
+        expect(geometry.bodyOverflowY).toBe('auto');
+        expect(geometry.moveListOverflowY).toBe('visible');
+        expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
+        if (process.env.CAISSA_CAPTURE_ONLINE_LAYOUT === '1') {
+            console.log(`CAISSA_ONLINE_LAYOUT_METRICS ${JSON.stringify({ viewport, geometry })}`);
+            await page.screenshot({ path: `test-results/online-layout-${viewport.name}.png`, fullPage: true });
+        }
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/online');
+    const mobile = await onlineLayoutGeometry(page);
+    expect(Math.abs(mobile.board.width - mobile.board.height)).toBeLessThan(1);
+    expect(Math.abs(mobile.panel.width - mobile.boardColumn.width)).toBeLessThan(1);
+    expect(mobile.panel.y - mobile.boardColumn.bottom).toBeGreaterThanOrEqual(13);
+    expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
+    if (process.env.CAISSA_CAPTURE_ONLINE_LAYOUT === '1') {
+        console.log(`CAISSA_ONLINE_LAYOUT_METRICS ${JSON.stringify({ viewport: { name: 'mobile', width: 390, height: 844 }, geometry: mobile })}`);
+        await page.screenshot({ path: 'test-results/online-layout-mobile.png', fullPage: true });
+    }
+});
+
 test('completed game actions survive at least three canonical polling cycles', async ({ page }) => {
     const harness = harnesses.get(page);
     await page.goto('/online');
@@ -399,6 +438,35 @@ async function customClockGeometry(page) {
             return { x: value.x, y: value.y, width: value.width, height: value.height };
         };
         return { minutes: rect('custom-minutes'), increment: rect('custom-increment') };
+    });
+}
+
+async function onlineLayoutGeometry(page) {
+    return page.evaluate(() => {
+        const rect = selector => {
+            const value = document.querySelector(selector).getBoundingClientRect();
+            return {
+                x: value.x,
+                y: value.y,
+                width: value.width,
+                height: value.height,
+                right: value.right,
+                bottom: value.bottom
+            };
+        };
+        const boardColumn = rect('.board-column');
+        const panel = rect('.play-workspace');
+        return {
+            boardColumn,
+            board: rect('#board-shell'),
+            panel,
+            head: rect('.workspace-head'),
+            foot: rect('.workspace-foot'),
+            gap: panel.x - boardColumn.right,
+            bodyOverflowY: getComputedStyle(document.querySelector('.workspace-body')).overflowY,
+            moveListOverflowY: getComputedStyle(document.querySelector('.move-list')).overflowY,
+            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
     });
 }
 

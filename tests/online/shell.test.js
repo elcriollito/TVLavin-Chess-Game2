@@ -11,7 +11,11 @@ test('online shell is board-first with one tabbed workspace and accessible statu
     assert.match(html, /role="tablist"/);
     assert.match(html, /data-tab="new"[\s\S]+data-tab="games"[\s\S]+data-tab="players"/);
     assert.match(html, /aria-live="polite"/);
-    assert.match(css, /grid-template-columns:minmax\(480px,1fr\) minmax\(350px,440px\)/);
+    assert.match(css, /--online-layout-gap:clamp\(24px,2vw,32px\)/);
+    assert.match(css, /--online-board-size:min\(/);
+    assert.match(css, /grid-template-rows:60px var\(--online-board-size\) 60px/);
+    assert.match(css, /\.play-workspace\{[\s\S]*?align-self:stretch/);
+    assert.match(css, /\.move-list\{[\s\S]*?overflow:visible/);
 });
 
 test('online route is isolated, private-cache, noindex, and keeps the retired play route intact', () => {
