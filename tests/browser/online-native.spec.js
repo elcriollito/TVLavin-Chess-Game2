@@ -109,7 +109,10 @@ test('board-first shell remains usable at phone width and has no serious axe fin
 test('board group and workspace share aligned desktop geometry and one scrollable body', async ({ page }) => {
     const desktopCases = [
         { name: 'desktop', width: 1440, height: 900 },
-        { name: 'short', width: 1440, height: 720 }
+        { name: 'short', width: 1440, height: 720 },
+        { name: 'zoom-75-effective-viewport', width: 1920, height: 1200 },
+        { name: 'zoom-90-effective-viewport', width: 1600, height: 1000 },
+        { name: 'zoom-125-effective-viewport', width: 1152, height: 720 }
     ];
     for (const viewport of desktopCases) {
         await page.setViewportSize(viewport);
