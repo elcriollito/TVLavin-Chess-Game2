@@ -56,3 +56,31 @@ test('queue join does not retry unrelated database failures', async () => {
     await assert.rejects(() => service.joinQueue(request), error => error.code === 'ONLINE_STORE_FAILED');
     assert.equal(calls, 1);
 });
+
+test('guest identity provisioning is isolated to a zero-credit online_guest row', async () => {
+    let upserted;
+    const selected = { id: 'internal-user-id', clerk_id: '11111111-1111-4111-8111-111111111111', role: 'online_guest' };
+    const db = {
+        from(name) {
+            assert.equal(name, 'users');
+            return {
+                upsert(value, options) {
+                    upserted = value;
+                    assert.deepEqual(options, { onConflict: 'clerk_id', ignoreDuplicates: false });
+                    return { select(columns) {
+                        assert.equal(columns, 'id,clerk_id,role');
+                        return { single: async () => ({ data: selected, error: null }) };
+                    } };
+                }
+            };
+        }
+    };
+    const service = createOnlineService({ db });
+
+    assert.deepEqual(await service.ensureGuestIdentity(selected.clerk_id), selected);
+    assert.equal(upserted.clerk_id, selected.clerk_id);
+    assert.equal(upserted.role, 'online_guest');
+    assert.equal(upserted.credits, 0);
+    assert.equal(upserted.is_premium, false);
+    assert.equal(upserted.email, null);
+});

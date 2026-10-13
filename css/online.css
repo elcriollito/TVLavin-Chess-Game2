@@ -359,3 +359,43 @@ body.online-page{position:relative;overflow-x:hidden}
     .online-main{width:calc(100vw - 20px);padding-top:52px}
     .online-layout{--online-board-size:100cqw}
 }
+
+/* Lobby information architecture: real Online history and presence stay
+   visually distinct from capabilities that remain staged for later. */
+.guest-note{margin:8px 0 0;text-align:center;color:var(--online-muted);font-size:10px;line-height:1.4}
+.guest-note[hidden]{display:none}
+.lobby-secondary #play-as-guest{border-color:#826b3c;color:#f1d28f;background:#272519}
+.lobby-secondary #play-as-guest:disabled{opacity:.55;cursor:wait}
+.games-directory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.games-column{min-width:0;min-height:150px;padding:13px;border:1px solid var(--online-line);border-radius:10px;background:#122019}
+.games-column>header{display:flex;align-items:center;gap:9px;padding-bottom:10px;border-bottom:1px solid #293a32}
+.games-column>header>span{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:#213329;color:var(--online-accent);font:500 19px/1 Georgia,serif}
+.games-column h3{margin:0;font:500 15px/1.2 Georgia,serif}
+.games-column small{display:block;margin-top:3px;color:var(--online-accent);font-size:8px;letter-spacing:.05em;text-transform:uppercase}
+.games-column>p,.games-column>div>p{margin:11px 0 0;color:var(--online-muted);font-size:10px;line-height:1.45}
+.games-column--history{grid-column:span 2;min-height:170px}
+.games-column .games-list{margin-top:10px}
+.games-column .game-row{padding:9px}
+.empty-state--compact{min-height:105px}
+.empty-state--compact p{margin-bottom:0}
+.players-heading{display:flex;align-items:end;justify-content:space-between;gap:14px;padding-bottom:13px;border-bottom:1px solid var(--online-line)}
+.players-heading p{margin:0;color:var(--online-accent);font-size:9px;font-weight:800;letter-spacing:.14em}
+.players-heading h3{margin:3px 0 0;font:500 23px Georgia,serif}
+.players-heading>strong{color:#79c69f;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.players-heading+.challenges-list{margin-top:13px}
+.players-list+.player-search{margin-top:16px;padding-top:13px;border-top:1px solid var(--online-line)}
+.tournament-demo-tabs{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;border-bottom:1px solid var(--online-line)}
+.tournament-demo-tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--online-muted);padding:9px;cursor:pointer}
+.tournament-demo-tabs button[aria-selected=true]{border-color:var(--online-accent);color:var(--online-text)}
+[data-tournament-panel][hidden]{display:none!important}
+.tournament-game-row{display:grid;gap:4px;padding:12px 4px;border-bottom:1px solid var(--online-line)}
+.tournament-game-row:first-child{margin-top:8px}
+.tournament-game-row strong{font-size:12px}
+.tournament-game-row span{color:var(--online-muted);font-size:10px}
+
+@media(max-width:390px){
+    .games-directory{grid-template-columns:1fr}
+    .games-column--history{grid-column:auto}
+    .lobby-secondary{flex-wrap:wrap}
+    .lobby-secondary button{flex-basis:calc(50% - 4px)}
+}

@@ -44,7 +44,6 @@ test('visitor board stays visible and sign-in is an explicit dialog action', () 
 test('player-facing panel copy follows enabled capabilities without internal diagnostics', () => {
     assert.doesNotMatch(html, /Protocol 1\.0\.0|private-game contract|feature flag|service flag/i);
     assert.match(html, /id="game-mode-label">Casual/);
-    assert.match(html, /Open games aren't available yet/);
     assert.match(html, /Public joinable games are not enabled in this version/);
     assert.match(html, /id="workspace-foot-context">Private, server-verified games/);
 });
@@ -54,6 +53,8 @@ test('tournament proposal is an isolated, synthetic and accessible panel', () =>
     assert.match(html, /id="tab-tournament"[^>]*hidden/);
     assert.match(html, /id="panel-tournament"[\s\S]*Visual demo[\s\S]*Current standings/);
     assert.match(html, /class="is-current-player"[\s\S]*Alexander <span>\(you\)<\/span>/);
+    assert.match(html, /data-tournament-view="standings"[\s\S]*>Standings<[\s\S]*data-tournament-view="games"[\s\S]*>Games</);
+    assert.doesNotMatch(html.match(/id="panel-tournament"[\s\S]*?<\/section>\s*<\/div>/)?.[0] || '', />Chat</i);
 });
 
 test('online route is isolated, private-cache, noindex, and keeps the retired play route intact', () => {
@@ -79,11 +80,23 @@ test('turn status is screen-reader only while clocks retain the visual turn sign
     assert.match(css, /\.sr-only\{/);
 });
 
-test('Games distinguishes personal history from unsupported open games', () => {
-    assert.match(html, /data-games-view="history"[\s\S]+data-games-view="open"/);
+test('Games presents four honest columns and removes the redundant intro block', () => {
+    assert.match(html, /id="daily-games-title">Daily Games/);
+    assert.match(html, /Daily Games[\s\S]*Coming soon/);
+    assert.match(html, /id="game-history-title">Game History/);
+    assert.match(html, /id="watch-games-title">Watch Games/);
+    assert.match(html, /id="open-games-title">Open Games/);
     assert.match(html, /id="games-list"/);
-    assert.match(html, /Open games aren't available yet/);
     assert.match(html, /Public joinable games are not enabled in this version/);
+    assert.doesNotMatch(html, /YOUR BOARD/);
+    assert.doesNotMatch(html, /Review completed games\. Joinable public games/);
+});
+
+test('Players leads with active presence and guest play is explicit and temporary', () => {
+    assert.match(html, /class="players-heading"[\s\S]*ACTIVE NOW[\s\S]*id="players-count"/);
+    assert.match(html, /id="players-list"[\s\S]*id="player-search"/);
+    assert.match(html, /id="play-as-guest" hidden>Play as Guest/);
+    assert.match(html, /Guest identity is temporary\. Guest games are always unrated\./);
 });
 
 test('custom clock labels are complete and share one aligned control grid', () => {

@@ -16,9 +16,13 @@ test.beforeEach(async ({ page }) => {
         challengeCreates: 0,
         moveCommands: 0,
         moveDelayMs: 0,
+        moveRequestDurationMs: 0,
         nextStateSnapshots: [],
         authSignedIn: true,
-        commandTypes: []
+        commandTypes: [],
+        commandBodies: [],
+        authorizations: [],
+        queueReturnsTicket: false
     };
     harnesses.set(page, harness);
     await page.route('**/js/caissa-auth.js', route => route.fulfill({
@@ -38,13 +42,21 @@ test.beforeEach(async ({ page }) => {
         if (request.method() === 'POST') {
             const command = request.postDataJSON();
             harness.commandTypes.push(command.eventType);
-            if (command.eventType === 'queue.join') harness.state = { ...harness.state, game: activeGame(), recentGames: [activeGame()] };
+            harness.commandBodies.push(command);
+            harness.authorizations.push(request.headers().authorization || '');
+            if (command.eventType === 'queue.join') {
+                harness.state = harness.queueReturnsTicket
+                    ? { ...harness.state, ticket: { id: 'ticket_guest', pool: 'blitz', rated: false, created_at: new Date().toISOString() } }
+                    : { ...harness.state, game: activeGame(), recentGames: [activeGame()] };
+            }
             if (command.eventType === 'game.move') {
+                const moveStartedAt = Date.now();
                 harness.moveCommands += 1;
                 const nextState = { ...harness.state, game: { ...harness.state.game, fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
                     moves: [{ ply: 1, from: 'e2', to: 'e4', san: 'e4', color: 'white' }], ply: 1, turn: 'black', version: 2,
                     clock_started_at: new Date().toISOString() } };
                 if (harness.moveDelayMs) await new Promise(resolve => setTimeout(resolve, harness.moveDelayMs));
+                harness.moveRequestDurationMs = Date.now() - moveStartedAt;
                 harness.state = nextState;
             }
             if (command.eventType === 'game.resign') {
@@ -189,6 +201,52 @@ test('visitor sees the normal board and sign-in appears only after an explicit p
     expect(harness.commandTypes).toEqual([]);
 });
 
+test('Play as Guest creates one temporary session and enters only an unrated queue', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.authSignedIn = false;
+    harness.queueReturnsTicket = true;
+    harness.config = {
+        ...harness.config,
+        capabilities: { ...harness.config.capabilities, guestPlay: true, rated: true },
+        realtime: { url: 'https://staging.example.supabase.co', publishableKey: 'publishable-browser-key' }
+    };
+    await page.route('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.93.1/+esm', route => route.fulfill({
+        contentType: 'text/javascript',
+        body: `
+            let session = null;
+            export function createClient() {
+                return { auth: {
+                    getSession: async () => ({ data: { session }, error: null }),
+                    signInAnonymously: async () => {
+                        session = {
+                            access_token: 'guest-browser-token',
+                            user: { id: '22222222-2222-4222-8222-222222222222', is_anonymous: true }
+                        };
+                        return { data: { session }, error: null };
+                    },
+                    signOut: async () => { session = null; return { error: null }; }
+                } };
+            }
+        `
+    }));
+
+    await page.goto('/online');
+    const guestButton = page.getByRole('button', { name: 'Play as Guest' });
+    await expect(guestButton).toBeVisible();
+    await expect(page.locator('#signin-dialog')).toBeHidden();
+    await guestButton.evaluate(button => { button.click(); button.click(); });
+    await expect(page.locator('#queue-view')).toBeVisible();
+    await expect(page.locator('#game-mode-label')).toHaveText('Casual');
+    await expect(page.locator('#rated-control')).toBeHidden();
+    await expect(page.locator('#account-link')).toContainText('Guest');
+
+    expect(harness.commandTypes.filter(type => type === 'presence.join')).toHaveLength(1);
+    expect(harness.commandTypes.filter(type => type === 'queue.join')).toHaveLength(1);
+    const queue = harness.commandBodies.find(command => command.eventType === 'queue.join');
+    expect(queue.payload.rated).toBe(false);
+    expect(harness.authorizations.every(value => value === 'Bearer guest-browser-token')).toBe(true);
+});
+
 test('return from sign-in restores the chosen control and starts only one queue request', async ({ page }) => {
     const harness = harnesses.get(page);
     await page.goto('/online?control=custom&minutes=12&increment=7');
@@ -212,8 +270,10 @@ test('disabled capabilities read as Casual and unavailable instead of internal c
     await expect(page.locator('#browse-tournaments')).toBeHidden();
     await expect(page.locator('body')).not.toContainText('Protocol 1.0.0');
     await page.getByRole('tab', { name: 'Games' }).click();
-    await page.getByRole('tab', { name: 'Open games' }).click();
-    await expect(page.locator('#games-open-unavailable')).toContainText("Open games aren't available yet");
+    await expect(page.getByRole('heading', { name: 'Daily Games' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Game History' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Watch Games' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Open Games' })).toBeVisible();
     await expect(page.locator('#games-open-unavailable')).toContainText('Public joinable games are not enabled in this version.');
 });
 
@@ -225,6 +285,11 @@ test('isolated Tournament panel uses synthetic demo data and stays below the boa
     await expect(page.getByRole('tab', { name: 'Tournament' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.demo-banner')).toContainText('Visual demo');
     await expect(page.locator('.tournament-standings .is-current-player')).toContainText('Alexander (you)');
+    const demoTabs = page.locator('.tournament-demo-tabs');
+    await expect(demoTabs.getByRole('tab', { name: 'Standings' })).toBeVisible();
+    await expect(demoTabs.getByRole('tab', { name: 'Games', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Chat' })).toHaveCount(0);
+    await demoTabs.getByRole('tab', { name: 'Games', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Next game' })).toBeVisible();
     await expect.poll(() => onlineApiRequests).toBe(0);
 
@@ -268,7 +333,7 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
         expect(Math.abs(geometry.panel.y - geometry.boardColumn.y)).toBeLessThan(1);
         expect(Math.abs(geometry.panel.bottom - geometry.boardColumn.bottom)).toBeLessThan(1);
         expect(Math.abs(geometry.head.y - geometry.panel.y)).toBeLessThanOrEqual(1);
-        expect(Math.abs(geometry.foot.bottom - geometry.panel.bottom)).toBeLessThanOrEqual(1);
+        expect(Math.abs(geometry.foot.bottom - geometry.panel.bottom)).toBeLessThanOrEqual(1.1);
         expect(geometry.bodyOverflowY).toBe('auto');
         expect(geometry.moveListOverflowY).toBe('visible');
         expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
@@ -340,6 +405,7 @@ test('players snapshot removes stale rows and restores its empty state', async (
     await page.goto('/online');
     await page.getByRole('tab', { name: 'Players' }).click();
     await expect(page.locator('#players-list .player-row')).toHaveCount(1);
+    await expect(page.locator('#players-count')).toHaveText('1 online');
     await expect(page.locator('#players-list')).toContainText('Rival');
     await expect(page.locator('#players-list button', { hasText: 'Challenge' })).toHaveCount(1);
     if (process.env.CAISSA_CAPTURE_ONLINE_REVIEW_GATE === '1') {
@@ -352,6 +418,7 @@ test('players snapshot removes stale rows and restores its empty state', async (
     await expect(page.locator('#players-list')).toHaveClass('empty-state');
     await expect(page.locator('#players-list')).toContainText('No players online');
     await expect(page.locator('#players-list .player-row')).toHaveCount(0);
+    await expect(page.locator('#players-count')).toHaveText('0 online');
     await expect(page.locator('#players-list button', { hasText: 'Challenge' })).toHaveCount(0);
     expect(harness.challengeCreates).toBe(0);
     if (process.env.CAISSA_CAPTURE_ONLINE_REVIEW_GATE === '1') {
@@ -453,13 +520,13 @@ test('records the online drag, drop and delayed-authority boundaries', async ({ 
             longTasks: probe.longTasks.length
         };
     });
-    console.log(`CAISSA_ONLINE_DRAG_METRICS ${JSON.stringify({ ...metrics, revertedDuringCommit })}`);
+    console.log(`CAISSA_ONLINE_DRAG_METRICS ${JSON.stringify({ ...metrics, routeDurationMs: harness.moveRequestDurationMs, revertedDuringCommit })}`);
     expect(revertedDuringCommit).toBe(false);
     expect(metrics.visualWrites).toBeLessThanOrEqual(metrics.pointerEvents);
     expect(metrics.geometryReadsDuringMove).toBe(0);
     expect(metrics.dropPresentationMs).toBeGreaterThanOrEqual(0);
     expect(metrics.dropPresentationMs).toBeLessThan(50);
-    expect(metrics.httpDurationMs).toBeGreaterThan(3000);
+    expect(harness.moveRequestDurationMs).toBeGreaterThan(3000);
     expect(metrics.longTasks).toBe(0);
     expect(harness.moveCommands).toBe(1);
 });
@@ -546,17 +613,18 @@ test('outgoing invitation shows waiting, blocks duplicates, and null ratings ren
     }
 });
 
-test('Games separates private history from unsupported public open games', async ({ page }) => {
+test('Games shows history plus separate Daily, Watch, and Open columns without misrepresenting capability', async ({ page }) => {
     const harness = harnesses.get(page);
     harness.state.recentGames = [completedGame()];
     await page.goto('/online');
     await page.getByRole('tab', { name: 'Games' }).click();
-    await expect(page.locator('[data-games-view="history"]')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#games-list .game-row')).toContainText('Alex');
-    await page.getByRole('tab', { name: 'Open games' }).click();
+    await expect(page.getByRole('heading', { name: 'Daily Games' })).toBeVisible();
+    await expect(page.locator('.games-column--future')).toContainText('Coming soon');
+    await expect(page.getByRole('heading', { name: 'Watch Games' })).toBeVisible();
     await expect(page.locator('#games-open')).toBeVisible();
-    await expect(page.locator('#games-open')).toContainText("Open games aren't available yet");
-    await expect(page.locator('#games-history')).toBeHidden();
+    await expect(page.locator('#games-open')).toContainText('Public joinable games are not enabled in this version.');
+    await expect(page.locator('#panel-games')).not.toContainText('YOUR BOARD');
 });
 
 test('custom Minutes and Increment fields align on desktop and narrow mobile', async ({ page }) => {

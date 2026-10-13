@@ -21,11 +21,13 @@ explícitamente la etiqueta `Visual demo` y utiliza únicamente nombres,
 clasificación, reloj y emparejamiento sintéticos. No consulta la API Online,
 no crea una inscripción y no activa la pestaña Tournament en `/online`.
 
-La cabecera del panel mantiene título, contexto y pestañas. El BODY es el
-único propietario del desplazamiento y reúne el tiempo restante, una tabla
-compacta con la fila del jugador resaltada y el estado entre partidas. El pie
-identifica que se trata de datos de demostración. En móvil, el mismo panel se
-apila debajo del tablero sin crear otro scroll interno.
+La cabecera del panel mantiene título, contexto y exactamente dos pestañas:
+`Standings` y `Games`. No incluye `Chat`. El BODY es el único propietario del
+desplazamiento: `Standings` reúne el tiempo restante y una tabla compacta con
+la fila del jugador resaltada; `Games` contiene la posición del jugador y
+`Next game`. El pie identifica que se trata de datos de demostración. En
+móvil, el mismo panel se apila debajo del tablero sin crear otro scroll
+interno.
 
 `Next game` es deliberadamente una acción demostrativa: explica el handoff
 que ocurriría después de recibir un emparejamiento confirmado, pero no abre ni

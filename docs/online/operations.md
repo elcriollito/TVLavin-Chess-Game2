@@ -6,6 +6,7 @@
 |---|---|
 | `CAISSA_ONLINE_ROLLOUT` | `off` (default), `internal`, `preview`, or `production` |
 | `CAISSA_ONLINE_INTERNAL_USERS` | Comma-separated Clerk subject allowlist in internal mode |
+| `CAISSA_ONLINE_GUESTS` | `1` enables the separately verified Supabase anonymous guest path; keep unset by default |
 | `CAISSA_ONLINE_RATED` | `1` enables rated pairing |
 | `CAISSA_ONLINE_TOURNAMENTS` | `1` advertises Tournament Hall foundation |
 | `CAISSA_ONLINE_MULTIBOARD` | `1` advertises multiboard foundation |
@@ -29,7 +30,9 @@ Never expose the service-role key to the browser. Keep all additional origin val
 6. Promote to `preview`; optionally enable rated play only after a rating audit.
 7. Set `production` only after concurrency/load testing, rollback rehearsal and explicit product approval.
 
-The endpoint enforces an instance-local first limit and a transactional shared Postgres user/bucket limit. Production fails closed if the shared limiter is unavailable. Default shared policy is 120 reads/minute, 90 writes/minute and 20 challenge creations/minute per authenticated Clerk subject.
+The endpoint enforces an instance-local first limit and a transactional shared Postgres user/bucket limit. Production fails closed if the shared limiter is unavailable. Default shared policy is 120 reads/minute, 90 writes/minute and 20 challenge creations/minute per authenticated subject.
+
+Guest play also requires **Allow anonymous sign-ins** in the same Supabase project. The server accepts a guest only after Supabase verifies the JWT, the issuer matches that exact project, the role and audience are `authenticated`, `is_anonymous` is true, and the subject is a UUID. Guest identity is held in browser `sessionStorage`, guest games are forced unrated on the server, and account/economic APIs remain on the existing Clerk-only path. Supabase does not automatically delete anonymous users, so an explicit retention/cleanup policy and CAPTCHA or Turnstile are required before a public production rollout of guest play.
 
 ## Safe rollback
 
@@ -47,5 +50,7 @@ Structured server logs contain event name, game ID, version, ply, pool, rated fl
 - Realtime is notification-only; polling adds read load.
 - The game row broadcast is bounded but can approach the 512 KiB PGN ceiling; move to compact invalidation payloads before materially raising the history limits.
 - Tournament pairing/organizer APIs and public spectator projections are not enabled in v1.
+- `Daily Games`, `Watch Games`, and `Open Games` are distinct product surfaces. Only Game History is backed by the current state contract; the other three remain explicit unavailable/coming-soon states until their own server contracts are reviewed.
+- Anonymous guest records are real Auth rows even though the browser identity is temporary. Automatic cleanup is not provided by Supabase and remains an operational prerequisite for any production enablement.
 - Fair-play detection and appeals are future work; no engine-side claims are made.
 - Local database lint requires a running Supabase/Docker stack; repository-only validation cannot replace a real branch apply.

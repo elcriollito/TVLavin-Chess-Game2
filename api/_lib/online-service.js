@@ -4,6 +4,19 @@ export function createOnlineService(options = {}) {
     const db = options.db || getSupabase();
     const sleep = options.sleep || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
     return Object.freeze({
+        async ensureGuestIdentity(clerkId) {
+            const { data, error } = await db.from('users').upsert({
+                clerk_id: clerkId,
+                email: null,
+                role: 'online_guest',
+                is_premium: false,
+                credits: 0,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'clerk_id', ignoreDuplicates: false })
+                .select('id,clerk_id,role').single();
+            if (error) throw serviceError('GUEST_IDENTITY_SYNC_FAILED', error);
+            return data;
+        },
         async joinQueue({ clerkId, displayName, control, rated }) {
             return retryQueueBusy(() => rpc(db, 'caissa_online_join_queue', {
                 p_clerk_id: clerkId,

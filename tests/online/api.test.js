@@ -36,6 +36,72 @@ test('public config is available without authentication and exposes no secret', 
     assert.equal(res.body.enabled, true);
     assert.equal(JSON.stringify(res.body).includes('SERVICE_ROLE'), false);
     assert.equal(JSON.stringify(res.body).includes(secret), false);
+    assert.equal(res.body.capabilities.guestPlay, false);
+});
+
+test('public config advertises guest play only when the Staging prerequisites are explicit', async () => {
+    const res = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, res, {
+        env: {
+            ...env,
+            CAISSA_ONLINE_GUESTS: '1',
+            SUPABASE_URL: 'https://staging.example.supabase.co',
+            SUPABASE_PUBLISHABLE_KEY: 'publishable-browser-key'
+        }
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.capabilities.guestPlay, true);
+    assert.deepEqual(res.body.realtime, {
+        url: 'https://staging.example.supabase.co',
+        publishableKey: 'publishable-browser-key'
+    });
+});
+
+test('guest matchmaking provisions a temporary identity and is server-forced unrated', async () => {
+    const guestId = '11111111-1111-4111-8111-111111111111';
+    const calls = [];
+    const service = {
+        async ensureGuestIdentity(subject) { calls.push(['ensure', subject]); },
+        async joinQueue(input) { calls.push(['join', input]); return { ticket: { state: 'queued' } }; }
+    };
+    const req = command('queue.join', {
+        displayName: 'Spoofed member name',
+        payload: { timeControlId: 'blitz-3-2', rated: true }
+    });
+    const res = response();
+
+    await handler(req, res, {
+        env: { ...env, CAISSA_ONLINE_ROLLOUT: 'internal', CAISSA_ONLINE_GUESTS: '1' },
+        authenticate: async () => ({ authenticated: true, userId: guestId, guest: true }),
+        rateLimit,
+        service
+    });
+
+    assert.equal(res.statusCode, 202);
+    assert.deepEqual(calls[0], ['ensure', guestId]);
+    assert.equal(calls[1][0], 'join');
+    assert.equal(calls[1][1].rated, false);
+    assert.equal(calls[1][1].displayName, 'Guest-111111');
+});
+
+test('a member challenge targeting a guest subject is server-forced unrated', async () => {
+    let challenged;
+    const req = command('challenge.create', {
+        payload: {
+            targetClerkId: '22222222-2222-4222-8222-222222222222',
+            timeControlId: 'rapid-10-0',
+            rated: true
+        }
+    });
+    const res = response();
+    await handler(req, res, {
+        env,
+        authenticate: allow,
+        rateLimit,
+        service: { async createChallenge(input) { challenged = input; return { challenges: [] }; } }
+    });
+    assert.equal(res.statusCode, 201);
+    assert.equal(challenged.rated, false);
 });
 
 test('move command validates locally then commits canonical projection through the service', async () => {

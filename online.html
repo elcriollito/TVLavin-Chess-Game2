@@ -8,7 +8,7 @@
     <title>Online Chess — CAISSA</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/css/caissa-board.css">
-    <link rel="stylesheet" href="/css/online.css?v=fullscreen-workspace-v4">
+    <link rel="stylesheet" href="/css/online.css?v=lobby-hub-v5">
     <script src="/js/auth-config.js" defer></script>
     <script src="/js/caissa-auth.js" defer></script>
     <script src="/js/play/analyze-handoff.js" defer></script>
@@ -87,7 +87,8 @@
                             <div class="game-mode-row"><span><b id="game-mode-label">Casual</b><small id="rated-help">Casual games do not change ratings.</small></span><label id="rated-control" hidden>Rated<input id="rated-toggle" type="checkbox" role="switch" aria-label="Rated game"></label></div>
                             <p class="action-guidance" id="room-status" role="status" aria-live="polite">Preparing the playing room…</p>
                             <button class="primary-action" id="find-game" disabled>Find an opponent</button>
-                            <div class="lobby-secondary"><button id="play-friend">Play a Friend</button><button id="browse-tournaments" hidden>Tournaments</button></div>
+                            <div class="lobby-secondary"><button id="play-as-guest" hidden>Play as Guest</button><button id="play-friend">Play a Friend</button><button id="browse-tournaments" hidden>Tournaments</button></div>
+                            <p class="guest-note" id="guest-note" hidden>Guest identity is temporary. Guest games are always unrated.</p>
                             <p class="trust-note"><span aria-hidden="true">◆</span> Legal moves, clocks and results are verified by CAISSA's server.</p>
                         </div>
 
@@ -120,42 +121,60 @@
                     </section>
 
                     <section id="panel-games" role="tabpanel" aria-labelledby="tab-games" data-panel="games" hidden>
-                        <div class="section-intro"><p>YOUR BOARD</p><h3>Games</h3><span>Review completed games. Joinable public games appear only when available.</span></div>
-                        <div class="games-switch" role="tablist" aria-label="Game lists">
-                            <button role="tab" aria-selected="true" data-games-view="history" aria-controls="games-history">History</button>
-                            <button role="tab" aria-selected="false" data-games-view="open" aria-controls="games-open">Open games</button>
-                        </div>
-                        <div id="games-history" data-games-panel="history">
-                            <div id="games-list" class="empty-state"><span aria-hidden="true">♜</span><strong>No games yet</strong><p>Your first online game will be saved automatically.</p></div>
-                        </div>
-                        <div id="games-open" data-games-panel="open" hidden>
-                            <div class="empty-state" id="games-open-unavailable"><span aria-hidden="true">♟</span><strong>Open games aren't available yet</strong><p>Public joinable games are not enabled in this version.</p></div>
-                            <div class="empty-state" id="games-open-empty" hidden><span aria-hidden="true">♟</span><strong>No open games right now</strong><p>Check again soon or start a private game.</p></div>
+                        <div class="games-directory" aria-label="Game sections">
+                            <section class="games-column games-column--future" aria-labelledby="daily-games-title">
+                                <header><span aria-hidden="true">▷</span><div><h3 id="daily-games-title">Daily Games</h3><small>Coming soon</small></div></header>
+                                <p>Correspondence games with a longer clock will arrive in a later release.</p>
+                            </section>
+                            <section class="games-column games-column--history" aria-labelledby="game-history-title">
+                                <header><span aria-hidden="true">♜</span><div><h3 id="game-history-title">Game History</h3><small>Your completed games</small></div></header>
+                                <div id="games-list" class="empty-state empty-state--compact"><strong>No games yet</strong><p>Your first online game will be saved automatically.</p></div>
+                            </section>
+                            <section class="games-column games-column--watch" aria-labelledby="watch-games-title">
+                                <header><span aria-hidden="true">◉</span><div><h3 id="watch-games-title">Watch Games</h3><small id="games-watch-status">Coming soon</small></div></header>
+                                <div id="games-watch-unavailable"><p>Live CAISSA Online spectating is not enabled in this version.</p></div>
+                                <div id="games-watch-empty" hidden><p>No public games are available to watch right now.</p></div>
+                            </section>
+                            <section class="games-column games-column--open" id="games-open" aria-labelledby="open-games-title">
+                                <header><span aria-hidden="true">♟</span><div><h3 id="open-games-title">Open Games</h3><small id="games-open-status">Coming soon</small></div></header>
+                                <div id="games-open-unavailable"><p>Public joinable games are not enabled in this version.</p></div>
+                                <div id="games-open-empty" hidden><p>No open games right now. Check again soon.</p></div>
+                            </section>
                         </div>
                         <div class="tournament-card" id="tournament-card" hidden><p>TOURNAMENT HALL</p><h3>Live events</h3><p>Scheduled and live events appear here when tournament play is available.</p><button id="open-tournaments">View tournaments</button></div>
                     </section>
 
                     <section id="panel-players" role="tabpanel" aria-labelledby="tab-players" data-panel="players" hidden>
-                        <div class="section-intro"><p>COMMUNITY</p><h3>Players</h3><span>Find people who are online and ready to play.</span></div>
-                        <label class="player-search">Find a player<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
+                        <div class="players-heading"><div><p>ACTIVE NOW</p><h3>Players</h3></div><strong id="players-count" aria-live="polite">0 online</strong></div>
                         <div id="challenges-list" class="challenges-list" aria-live="polite"></div>
                         <div id="players-list" class="empty-state"><span aria-hidden="true">♞</span><strong>No players online</strong><p>Players who are available to play will appear here.</p></div>
+                        <label class="player-search">Filter active players<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
                     </section>
 
                     <section id="panel-tournament" role="tabpanel" aria-labelledby="tab-tournament" data-panel="tournament" hidden>
                         <div class="demo-banner"><strong>Visual demo</strong><span>Future tournament experience</span></div>
                         <div class="tournament-demo-head"><div><p>CAISSA RAPID NIGHT</p><h3>Rapid Arena</h3></div><time datetime="PT18M42S"><span>Time remaining</span><strong>18:42</strong></time></div>
-                        <table class="tournament-standings">
-                            <caption>Current standings</caption>
-                            <thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col">Pts</th></tr></thead>
-                            <tbody>
-                                <tr><td>1</td><td>NovaKnight</td><td>12</td></tr>
-                                <tr class="is-current-player"><td>2</td><td>Alexander <span>(you)</span></td><td>10</td></tr>
-                                <tr><td>3</td><td>EndgameMuse</td><td>9</td></tr>
-                                <tr><td>4</td><td>Criollito</td><td>8</td></tr>
-                            </tbody>
-                        </table>
-                        <div class="tournament-next"><p>OPPONENT ASSIGNED</p><strong>Criollito · Black · 10+0</strong><span>Your next game is ready in this demonstration.</span><button id="demo-next-game">Next game</button></div>
+                        <div class="tournament-demo-tabs" role="tablist" aria-label="Tournament demo sections">
+                            <button role="tab" aria-selected="true" data-tournament-view="standings" aria-controls="tournament-demo-standings">Standings</button>
+                            <button role="tab" aria-selected="false" data-tournament-view="games" aria-controls="tournament-demo-games">Games</button>
+                        </div>
+                        <section id="tournament-demo-standings" data-tournament-panel="standings">
+                            <table class="tournament-standings">
+                                <caption>Current standings</caption>
+                                <thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col">Pts</th></tr></thead>
+                                <tbody>
+                                    <tr><td>1</td><td>NovaKnight</td><td>12</td></tr>
+                                    <tr class="is-current-player"><td>2</td><td>Alexander <span>(you)</span></td><td>10</td></tr>
+                                    <tr><td>3</td><td>EndgameMuse</td><td>9</td></tr>
+                                    <tr><td>4</td><td>Criollito</td><td>8</td></tr>
+                                </tbody>
+                            </table>
+                        </section>
+                        <section id="tournament-demo-games" data-tournament-panel="games" hidden>
+                            <div class="tournament-game-row"><strong>NovaKnight — EndgameMuse</strong><span>Playing · Board 1</span></div>
+                            <div class="tournament-game-row"><strong>Alexander — Criollito</strong><span>Next · 10+0</span></div>
+                            <div class="tournament-next"><p>OPPONENT ASSIGNED</p><strong>Criollito · Black · 10+0</strong><span>Your next game is ready in this demonstration.</span><button id="demo-next-game">Next game</button></div>
+                        </section>
                     </section>
                 </div>
 
