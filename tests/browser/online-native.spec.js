@@ -16,12 +16,17 @@ test.beforeEach(async ({ page }) => {
         challengeCreates: 0,
         moveCommands: 0,
         moveDelayMs: 0,
-        nextStateSnapshots: []
+        nextStateSnapshots: [],
+        authSignedIn: true,
+        commandTypes: []
     };
     harnesses.set(page, harness);
     await page.route('**/js/caissa-auth.js', route => route.fulfill({
         contentType: 'text/javascript',
-        body: `window.CAISSA_AUTH={isLoaded:true,isSignedIn:true,userId:'user_white',fullName:'Alex',email:'alex@example.com',getToken:async()=> 'browser-token',whenReady:async()=>window.CAISSA_AUTH};`
+        headers: { 'Cache-Control': 'no-store' },
+        body: harness.authSignedIn
+            ? `window.CAISSA_AUTH={isLoaded:true,isSignedIn:true,userId:'user_white',fullName:'Alex',email:'alex@example.com',getToken:async()=> 'browser-token',whenReady:async()=>window.CAISSA_AUTH};`
+            : `window.CAISSA_AUTH={isLoaded:true,isSignedIn:false,userId:null,fullName:null,email:null,getToken:async()=> null,whenReady:async()=>window.CAISSA_AUTH};`
     }));
     await page.route('**/api/online**', async route => {
         const request = route.request();
@@ -32,6 +37,7 @@ test.beforeEach(async ({ page }) => {
         let responseState = harness.state;
         if (request.method() === 'POST') {
             const command = request.postDataJSON();
+            harness.commandTypes.push(command.eventType);
             if (command.eventType === 'queue.join') harness.state = { ...harness.state, game: activeGame(), recentGames: [activeGame()] };
             if (command.eventType === 'game.move') {
                 harness.moveCommands += 1;
@@ -69,7 +75,7 @@ test('signed-in player finds a match and receives a canonical move acknowledgeme
     page.on('pageerror', error => browserErrors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') browserErrors.push(message.text()); });
     await page.goto('/online');
-    await expect(page.getByRole('heading', { name: 'Online Chess' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Online Chess' })).toHaveCount(1);
     await expect(page.locator('#connection-label')).toHaveText('Connected');
     await expect(page.locator('#online-board .caissa-board__piece')).toHaveCount(32);
     const lobbyBoardBox = await page.locator('#board-shell').boundingBox();
@@ -95,13 +101,13 @@ test('board-first shell remains usable at phone width and has no serious axe fin
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/online');
     await expect(page.locator('#online-board')).toBeVisible();
-    await expect(page.locator('.online-header').getByRole('heading', { name: 'Online Chess' })).toBeVisible();
-    await expect(page.locator('.online-header .brand')).toBeVisible();
-    await expect(page.locator('.online-header #account-link')).toBeVisible();
-    await expect(page.locator('.mobile-navigation')).toBeVisible();
-    await page.locator('.mobile-navigation summary').click();
-    await expect(page.getByRole('navigation', { name: 'Mobile primary navigation' })).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Mobile primary navigation' }).getByRole('link', { name: 'Puzzles' })).toBeVisible();
+    await expect(page.locator('.online-header')).toHaveCount(0);
+    await expect(page.locator('#online-side-menu summary')).toBeVisible();
+    await page.locator('#online-side-menu summary').click();
+    await expect(page.locator('#online-side-menu .brand')).toBeVisible();
+    await expect(page.locator('#online-side-menu #account-link')).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Puzzles' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Players' })).toBeVisible();
     const layout = await page.evaluate(() => ({
         domNodes: document.getElementsByTagName('*').length,
@@ -116,7 +122,7 @@ test('board-first shell remains usable at phone width and has no serious axe fin
     }
 });
 
-test('compact header recovers vertical space and tabs support keyboard navigation', async ({ page }) => {
+test('headerless workspace uses the released height and tabs support keyboard navigation', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/online');
     await expect(page.locator('.online-titlebar')).toHaveCount(0);
@@ -127,13 +133,12 @@ test('compact header recovers vertical space and tabs support keyboard navigatio
             return { y: value.y, width: value.width, height: value.height, bottom: value.bottom };
         };
         return {
-            header: rect('.online-header'), layout: rect('.online-layout'), board: rect('#board-shell'),
+            layout: rect('.online-layout'), board: rect('#board-shell'),
             panel: rect('.play-workspace'), pageOverflowY: document.documentElement.scrollHeight - document.documentElement.clientHeight
         };
     });
-    expect(geometry.header.height).toBe(68);
-    expect(geometry.layout.y).toBeCloseTo(92, 0);
-    expect(geometry.board.width).toBeCloseTo(654, 0);
+    expect(geometry.layout.y).toBeLessThan(18);
+    expect(geometry.board.width).toBeGreaterThanOrEqual(748);
     expect(geometry.board.width).toBe(geometry.board.height);
     expect(Math.abs(geometry.panel.bottom - geometry.layout.bottom)).toBeLessThan(1);
     expect(geometry.pageOverflowY).toBeLessThanOrEqual(0);
@@ -145,6 +150,54 @@ test('compact header recovers vertical space and tabs support keyboard navigatio
     await expect(page.getByRole('tab', { name: 'Games', exact: true })).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Players' })).toBeFocused();
+});
+
+test('visitor sees the normal board and sign-in appears only after an explicit play action', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.authSignedIn = false;
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/online');
+    await expect(page.locator('#connection-label')).toHaveText('Sign in required');
+    await expect(page.locator('#online-board .caissa-board__piece')).toHaveCount(32);
+    await expect(page.locator('#board-curtain')).toBeHidden();
+    await expect(page.locator('#signin-dialog')).toBeHidden();
+    if (process.env.CAISSA_CAPTURE_ONLINE_FULLSCREEN === '1') {
+        await page.screenshot({ path: 'test-results/online-fullscreen-visitor-1440x900.png', fullPage: true });
+    }
+
+    await page.locator('[data-control="rapid-10-0"]').click();
+    await expect(page.locator('#signin-dialog')).toBeHidden();
+    const newGameTab = page.getByRole('tab', { name: 'New Game' });
+    await newGameTab.click();
+    await expect(page.getByRole('dialog', { name: 'Sign in to play online' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#signin-dialog')).toBeHidden();
+    await expect(newGameTab).toBeFocused();
+
+    const startGame = page.getByRole('button', { name: 'Start game' });
+    await startGame.click();
+    await expect(page.locator('#signin-dialog')).toBeVisible();
+    await page.getByRole('button', { name: 'Not now' }).click();
+    await expect(page.locator('#signin-dialog')).toBeHidden();
+    await expect(startGame).toBeFocused();
+    expect(harness.commandTypes).toEqual([]);
+
+    await startGame.click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.waitForURL('**/signin?**');
+    expect(new URL(page.url()).searchParams.get('redirect_url')).toBe('/online?control=rapid-10-0');
+    expect(harness.commandTypes).toEqual([]);
+});
+
+test('return from sign-in restores the chosen control and starts only one queue request', async ({ page }) => {
+    const harness = harnesses.get(page);
+    await page.goto('/online?control=custom&minutes=12&increment=7');
+    await expect(page.locator('[data-control="custom"]')).toHaveClass(/selected/);
+    await expect(page.locator('#custom-clock')).toBeVisible();
+    await expect(page.locator('#custom-minutes')).toHaveValue('12');
+    await expect(page.locator('#custom-increment')).toHaveValue('7');
+    await page.getByRole('button', { name: 'Find an opponent' }).click();
+    expect(harness.commandTypes.filter(type => type === 'queue.join')).toHaveLength(1);
 });
 
 test('disabled capabilities read as Casual and unavailable instead of internal contracts', async ({ page }) => {
@@ -219,6 +272,8 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
         expect(geometry.bodyOverflowY).toBe('auto');
         expect(geometry.moveListOverflowY).toBe('visible');
         expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
+        expect(geometry.verticalOverflow).toBeLessThanOrEqual(0);
+        expect(geometry.menuBoardIntersection).toBe(0);
         if (process.env.CAISSA_CAPTURE_ONLINE_LAYOUT === '1') {
             console.log(`CAISSA_ONLINE_LAYOUT_METRICS ${JSON.stringify({ viewport, geometry })}`);
             const path = `test-results/online-layout-${viewport.name}.png`;
@@ -234,6 +289,7 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
     expect(Math.abs(mobile.panel.width - mobile.boardColumn.width)).toBeLessThan(1);
     expect(mobile.panel.y - mobile.boardColumn.bottom).toBeGreaterThanOrEqual(13);
     expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
+    expect(mobile.menuBoardIntersection).toBe(0);
     if (process.env.CAISSA_CAPTURE_ONLINE_LAYOUT === '1') {
         console.log(`CAISSA_ONLINE_LAYOUT_METRICS ${JSON.stringify({ viewport: { name: 'mobile', width: 390, height: 844 }, geometry: mobile })}`);
         await page.screenshot({ path: 'test-results/online-layout-mobile.png', fullPage: true });
@@ -552,10 +608,14 @@ async function onlineLayoutGeometry(page) {
         const boardColumn = rect('.board-column');
         const panel = rect('.play-workspace');
         const main = rect('.online-main');
+        const menuTrigger = rect('.online-side-menu>summary');
         const groupLeft = Math.min(boardColumn.x, panel.x);
         const groupRight = Math.max(boardColumn.right, panel.right);
+        const intersectionArea = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x))
+            * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y));
         return {
             main,
+            menuTrigger,
             boardColumn,
             board: rect('#board-shell'),
             panel,
@@ -571,7 +631,9 @@ async function onlineLayoutGeometry(page) {
             ),
             bodyOverflowY: getComputedStyle(document.querySelector('.workspace-body')).overflowY,
             moveListOverflowY: getComputedStyle(document.querySelector('.move-list')).overflowY,
-            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            verticalOverflow: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+            menuBoardIntersection: intersectionArea(menuTrigger, boardColumn)
         };
     });
 }

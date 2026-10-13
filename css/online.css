@@ -242,3 +242,120 @@
     .brand{letter-spacing:1px}
     .online-header h1{font-size:14px}
 }
+
+/* Full-screen playing room: navigation becomes a compact side surface so the
+   board/workspace pair owns the viewport instead of inheriting a page header. */
+body.online-page{position:relative;overflow-x:hidden}
+.online-menu-shell{
+    position:fixed;
+    top:14px;
+    left:14px;
+    z-index:12;
+}
+.online-side-menu{position:relative}
+.online-side-menu>summary{
+    position:relative;
+    z-index:2;
+    width:44px;
+    height:44px;
+    display:grid;
+    place-items:center;
+    border:1px solid #42564a;
+    border-radius:11px;
+    background:#0d1814ee;
+    color:var(--online-accent);
+    box-shadow:0 10px 28px #0008;
+    cursor:pointer;
+    list-style:none;
+    font:500 24px/1 Georgia,serif;
+}
+.online-side-menu>summary::-webkit-details-marker{display:none}
+.online-side-menu[open]>summary{background:#1a2b23;border-color:#826b3c}
+.online-side-menu__panel{
+    position:absolute;
+    top:-6px;
+    left:-6px;
+    width:min(264px,calc(100vw - 16px));
+    max-height:calc(100dvh - 16px);
+    overflow:auto;
+    display:grid;
+    gap:18px;
+    padding:68px 18px 18px;
+    border:1px solid #42564a;
+    border-radius:14px;
+    background:#0b1611fa;
+    box-shadow:0 24px 70px #000c;
+    backdrop-filter:blur(16px);
+}
+.online-side-menu:not([open]) .online-side-menu__panel{display:none}
+.online-side-menu__panel .brand{width:max-content}
+.online-side-menu__panel nav{display:grid;gap:4px}
+.online-side-menu__panel nav a{
+    padding:10px 11px;
+    border-radius:7px;
+    color:var(--online-muted);
+    text-decoration:none;
+    font-size:13px;
+}
+.online-side-menu__panel nav a:hover,
+.online-side-menu__panel nav a:focus-visible,
+.online-side-menu__panel nav a[aria-current]{background:#1a2b23;color:var(--online-text)}
+.online-side-menu__status{
+    display:grid;
+    gap:12px;
+    padding-top:14px;
+    border-top:1px solid var(--online-line);
+}
+.online-side-menu__status .connection-pill{margin:0}
+.online-side-menu__status .account-link{width:max-content}
+
+.online-main{
+    --online-page-pad-block:clamp(8px,1.67dvh,24px);
+    --online-vertical-reserve:calc(120px + clamp(16px,3.34dvh,48px));
+    width:min(1540px,calc(100vw - 112px));
+    margin-inline:auto;
+    padding:var(--online-page-pad-block) 0;
+}
+.online-layout{
+    --online-workspace-width:clamp(360px,28vw,420px);
+    --online-layout-gap:clamp(24px,2vw,32px);
+    --online-board-size:min(
+        calc(100dvh - var(--online-vertical-reserve)),
+        calc(100cqw - var(--online-workspace-width) - var(--online-layout-gap))
+    );
+}
+.challenge-notice{top:14px}
+#signin-dialog{width:min(390px,calc(100vw - 28px));padding:24px}
+#signin-dialog h2{margin:0;font:500 24px/1.15 Georgia,serif}
+#signin-dialog p{margin:10px auto 0;max-width:310px;color:var(--online-muted);font-size:13px;line-height:1.5}
+#signin-dialog form>div{margin-bottom:0}
+#signin-dialog button{min-width:118px}
+#signin-dialog .primary-action{width:auto}
+
+@media(min-width:901px) and (max-height:760px){
+    .online-main{
+        --online-page-pad-block:8px;
+        --online-vertical-reserve:116px;
+        padding:var(--online-page-pad-block) 0;
+    }
+    .online-layout{
+        --online-board-size:min(
+            calc(100dvh - var(--online-vertical-reserve)),
+            calc(100cqw - var(--online-workspace-width) - var(--online-layout-gap))
+        );
+    }
+}
+
+@media(max-width:900px){
+    .online-menu-shell{top:7px;left:8px}
+    .online-side-menu>summary{width:40px;height:40px;border-radius:9px;font-size:21px}
+    .online-side-menu__panel{top:-3px;left:-3px;padding-top:60px}
+    .online-main{width:min(94vw,700px);padding:52px 0 24px}
+    .online-layout{--online-board-size:min(100cqw,650px)}
+    .challenge-notice{top:auto}
+}
+
+@media(max-width:520px){
+    .online-main{width:calc(100vw - 20px);padding-top:52px}
+    .online-layout{--online-board-size:100cqw}
+}

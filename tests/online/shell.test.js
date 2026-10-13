@@ -21,15 +21,24 @@ test('online shell is board-first with one tabbed workspace and accessible statu
     assert.match(css, /\.move-list\{[\s\S]*?overflow:visible/);
 });
 
-test('online title shares the compact header and returns vertical space to the board', () => {
-    assert.match(html, /<header class="online-header">[\s\S]*?<h1 id="online-title">Online Chess<\/h1>/);
+test('online shell removes horizontal chrome and keeps accessible side navigation', () => {
+    assert.match(html, /<h1 id="online-title" class="sr-only">Online Chess<\/h1>/);
+    assert.doesNotMatch(html, /class="online-header"/);
     assert.doesNotMatch(html, /class="online-titlebar"/);
     assert.equal((html.match(/<h1\b/g) || []).length, 1);
     assert.match(html, /id="room-status"[\s\S]*?id="find-game"/);
-    assert.match(css, /calc\(100dvh - 246px\)/);
-    assert.match(css, /calc\(100dvh - 192px\)/);
-    assert.match(css, /\.online-header h1\{/);
-    assert.match(html, /class="mobile-navigation"[\s\S]*aria-label="Mobile primary navigation"/);
+    assert.match(css, /--online-vertical-reserve:calc\(120px \+ clamp\(16px,3\.34dvh,48px\)\)/);
+    assert.match(css, /width:min\(1540px,calc\(100vw - 112px\)\)/);
+    assert.match(html, /class="online-menu-shell"[\s\S]*aria-label="Primary navigation"/);
+    assert.match(html, /id="account-link"/);
+});
+
+test('visitor board stays visible and sign-in is an explicit dialog action', () => {
+    assert.match(html, /id="board-curtain" hidden/);
+    assert.match(html, /id="signin-dialog"[\s\S]*Sign in to play online/);
+    assert.match(html, /Sign in to find an opponent or challenge a friend\./);
+    assert.match(html, /<button value="cancel">Not now<\/button>/);
+    assert.match(html, /<button value="signin" class="primary-action">Sign in<\/button>/);
 });
 
 test('player-facing panel copy follows enabled capabilities without internal diagnostics', () => {

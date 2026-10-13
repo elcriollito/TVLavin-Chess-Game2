@@ -8,37 +8,33 @@
     <title>Online Chess — CAISSA</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/css/caissa-board.css">
-    <link rel="stylesheet" href="/css/online.css?v=compact-workspace-v3">
+    <link rel="stylesheet" href="/css/online.css?v=fullscreen-workspace-v4">
     <script src="/js/auth-config.js" defer></script>
     <script src="/js/caissa-auth.js" defer></script>
     <script src="/js/play/analyze-handoff.js" defer></script>
     <script type="module" src="/js/online/online-page.js"></script>
 </head>
 <body class="online-page">
-    <header class="online-header">
-        <div class="online-brand-group">
-            <a class="brand" href="/" aria-label="CAISSA home"><span aria-hidden="true">♛</span><b>CAISSA</b><small>CHESS</small></a>
-            <span class="online-header-divider" aria-hidden="true"></span>
-            <h1 id="online-title">Online Chess</h1>
-        </div>
-        <nav aria-label="Primary navigation">
-            <a href="/online" aria-current="page">Play Online</a>
-            <a href="/puzzles">Puzzles</a>
-            <a href="/mentor">Mentor</a>
-            <a href="/watch/live-tournaments">Watch</a>
-        </nav>
-        <details class="mobile-navigation">
-            <summary>Menu</summary>
-            <nav aria-label="Mobile primary navigation">
-                <a href="/online" aria-current="page">Play Online</a>
-                <a href="/puzzles">Puzzles</a>
-                <a href="/mentor">Mentor</a>
-                <a href="/watch/live-tournaments">Watch</a>
-            </nav>
+    <h1 id="online-title" class="sr-only">Online Chess</h1>
+    <aside class="online-menu-shell" aria-label="CAISSA navigation">
+        <details class="online-side-menu" id="online-side-menu">
+            <summary aria-label="Open CAISSA menu"><span aria-hidden="true">♛</span><span class="sr-only">Menu</span></summary>
+            <div class="online-side-menu__panel">
+                <a class="brand" href="/" aria-label="CAISSA home"><span aria-hidden="true">♛</span><b>CAISSA</b><small>CHESS</small></a>
+                <nav aria-label="Primary navigation">
+                    <a href="/">Home</a>
+                    <a href="/online" aria-current="page">Play Online</a>
+                    <a href="/puzzles">Puzzles</a>
+                    <a href="/mentor">Mentor</a>
+                    <a href="/watch/live-tournaments">Watch</a>
+                </nav>
+                <div class="online-side-menu__status">
+                    <div class="connection-pill" data-connection="offline"><span aria-hidden="true"></span><strong id="connection-label">Connecting</strong></div>
+                    <a id="account-link" class="account-link" href="/signin?redirect_url=%2Fonline">Sign in</a>
+                </div>
+            </div>
         </details>
-        <div class="connection-pill" data-connection="offline"><span aria-hidden="true"></span><strong id="connection-label">Connecting</strong></div>
-        <a id="account-link" class="account-link" href="/signin?redirect_url=%2Fonline">Sign in</a>
-    </header>
+    </aside>
 
     <main class="online-main">
         <section class="online-layout">
@@ -50,7 +46,7 @@
                 </div>
                 <div class="board-shell" id="board-shell">
                     <div id="online-board" aria-label="Online chessboard"></div>
-                    <div class="board-curtain" id="board-curtain">
+                    <div class="board-curtain" id="board-curtain" hidden>
                         <span class="curtain-mark" aria-hidden="true">♛</span>
                         <strong id="curtain-title">CAISSA Online</strong>
                         <p id="curtain-copy">Choose a time control to find an opponent.</p>
@@ -90,7 +86,7 @@
                             <div class="custom-clock" id="custom-clock" hidden><label><span>Minutes</span><input id="custom-minutes" type="number" min="1" max="180" value="7"></label><label><span>Increment (seconds)</span><input id="custom-increment" type="number" min="0" max="60" value="3"></label></div>
                             <div class="game-mode-row"><span><b id="game-mode-label">Casual</b><small id="rated-help">Casual games do not change ratings.</small></span><label id="rated-control" hidden>Rated<input id="rated-toggle" type="checkbox" role="switch" aria-label="Rated game"></label></div>
                             <p class="action-guidance" id="room-status" role="status" aria-live="polite">Preparing the playing room…</p>
-                            <button class="primary-action" id="find-game">Find an opponent</button>
+                            <button class="primary-action" id="find-game" disabled>Find an opponent</button>
                             <div class="lobby-secondary"><button id="play-friend">Play a Friend</button><button id="browse-tournaments" hidden>Tournaments</button></div>
                             <p class="trust-note"><span aria-hidden="true">◆</span> Legal moves, clocks and results are verified by CAISSA's server.</p>
                         </div>
@@ -180,6 +176,7 @@
 
     <dialog id="promotion-dialog"><form method="dialog"><p>Choose promotion</p><div><button value="q" aria-label="Promote to queen">♛</button><button value="r" aria-label="Promote to rook">♜</button><button value="b" aria-label="Promote to bishop">♝</button><button value="n" aria-label="Promote to knight">♞</button></div><button value="cancel" class="dialog-cancel">Cancel</button></form></dialog>
     <dialog id="confirm-dialog"><form method="dialog"><h2 id="confirm-title">Resign this game?</h2><p id="confirm-copy">This result is final and will be recorded.</p><div><button value="cancel">Keep playing</button><button value="confirm" class="danger-action">Resign</button></div></form></dialog>
+    <dialog id="signin-dialog" aria-labelledby="signin-dialog-title" aria-describedby="signin-dialog-copy"><form method="dialog"><h2 id="signin-dialog-title">Sign in to play online</h2><p id="signin-dialog-copy">Sign in to find an opponent or challenge a friend.</p><div><button value="cancel">Not now</button><button value="signin" class="primary-action">Sign in</button></div></form></dialog>
     <div id="online-toast" role="alert" aria-live="assertive" hidden></div>
 </body>
 </html>

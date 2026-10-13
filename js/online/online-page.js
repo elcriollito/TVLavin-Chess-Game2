@@ -25,7 +25,7 @@ const ui = {
     challengeNotice: $('challenge-notice'), challengeKicker: $('challenge-notice-kicker'),
     challengeTitle: $('challenge-notice-title'), challengeControl: $('challenge-notice-control'),
     challengeActions: $('challenge-notice-actions'), challengeAccept: $('challenge-notice-accept'),
-    challengeDecline: $('challenge-notice-decline')
+    challengeDecline: $('challenge-notice-decline'), signInDialog: $('signin-dialog')
 };
 
 const model = {
@@ -35,7 +35,8 @@ const model = {
     polling: null, pollEpoch: 0, presencePolling: null, syncing: false, disposed: false,
     bootSettled: false, toastTimer: null, challengeExpiryTimer: null,
     challengeNoticeId: null, inactiveChallengeIds: new Set(), respondingChallengeIds: new Set(),
-    challengeRequestTargets: new Set(), rematchRequestGameIds: new Set()
+    challengeRequestTargets: new Set(), rematchRequestGameIds: new Set(),
+    signInPromptOpener: null, signInRedirecting: false
 };
 
 const board = new CaissaBoardAdapter($('online-board'), {
@@ -56,6 +57,7 @@ document.addEventListener('visibilitychange', () => {
     if (!document.hidden && model.auth?.isSignedIn) void resumeFromBackground();
 });
 bindControls();
+restoreSelectedControlFromLocation();
 selectTab('new');
 selectGamesView('history');
 setInterval(renderClocks, 100);
@@ -160,20 +162,22 @@ async function waitForAuth() {
 
 function bindControls() {
     document.querySelectorAll('[data-tab]').forEach(tab => {
-        tab.addEventListener('click', () => selectTab(tab.dataset.tab));
+        tab.addEventListener('click', () => {
+            selectTab(tab.dataset.tab);
+            if (tab.dataset.tab === 'new' && model.bootSettled && !model.auth?.isSignedIn) showSignInDialog(tab);
+        });
         tab.addEventListener('keydown', handleTabKeydown);
     });
-    document.querySelectorAll('[data-control]').forEach(button => button.addEventListener('click', () => {
-        if (model.game?.status === 'active' || model.state?.ticket) return;
-        model.selectedControl = button.dataset.control;
-        document.querySelectorAll('[data-control]').forEach(item => item.classList.toggle('selected', item === button));
-        $('custom-clock').hidden = model.selectedControl !== 'custom';
-    }));
+    document.querySelectorAll('[data-control]').forEach(button => button.addEventListener('click', () => selectTimeControl(button)));
+    [$('custom-minutes'), $('custom-increment')].forEach(input => input.addEventListener('input', updateSignInHref));
     ui.find.addEventListener('click', findGame);
     ui.cancel.addEventListener('click', cancelSearch);
     $('new-opponent').addEventListener('click', () => { model.game = null; renderLobby(); });
     ui.rematch.addEventListener('click', requestRematch);
-    $('play-friend').addEventListener('click', () => selectTab('players'));
+    $('play-friend').addEventListener('click', event => {
+        if (!model.auth?.isSignedIn) return showSignInDialog(event.currentTarget);
+        selectTab('players');
+    });
     $('browse-tournaments').addEventListener('click', () => { selectTab('games'); $('tournament-card').scrollIntoView({ behavior: 'smooth' }); });
     $('resign-game').addEventListener('click', () => confirmAction('Resign this game?', 'This result is final and will be recorded.', 'Resign')
         .then(confirmed => confirmed && sendGameCommand('game.resign')));
@@ -189,6 +193,34 @@ function bindControls() {
     });
     ui.challengeAccept.addEventListener('click', () => respondVisibleChallenge('challenge.accept'));
     ui.challengeDecline.addEventListener('click', () => respondVisibleChallenge('challenge.decline'));
+    ui.signInDialog.addEventListener('close', handleSignInDialogClose);
+}
+
+function selectTimeControl(button) {
+    if (!button || model.game?.status === 'active' || model.state?.ticket) return;
+    model.selectedControl = button.dataset.control;
+    document.querySelectorAll('[data-control]').forEach(item => item.classList.toggle('selected', item === button));
+    $('custom-clock').hidden = model.selectedControl !== 'custom';
+    updateSignInHref();
+}
+
+function restoreSelectedControlFromLocation() {
+    const params = new URLSearchParams(location.search);
+    const requested = params.get('control');
+    const button = Array.from(document.querySelectorAll('[data-control]')).find(item => item.dataset.control === requested);
+    if (!button) return;
+    selectTimeControl(button);
+    if (requested !== 'custom') return;
+    restoreBoundedNumber($('custom-minutes'), params.get('minutes'));
+    restoreBoundedNumber($('custom-increment'), params.get('increment'));
+}
+
+function restoreBoundedNumber(input, rawValue) {
+    if (rawValue === null || rawValue === '') return;
+    const value = Number(rawValue);
+    const min = Number(input.min);
+    const max = Number(input.max);
+    if (Number.isFinite(value) && value >= min && value <= max) input.value = String(value);
 }
 
 function selectTab(name) {
@@ -250,7 +282,8 @@ function selectGamesView(name) {
 }
 
 async function findGame() {
-    if (!model.auth?.isSignedIn) return renderSignedOut();
+    if (!model.auth?.isSignedIn) return showSignInDialog(ui.find);
+    if (ui.find.disabled) return;
     setBusy(ui.find, true, 'Joining queue…');
     try {
         const envelope = await api.command('queue.join', selectedQueuePayload());
@@ -337,8 +370,8 @@ function renderLobby() {
     showView('lobby');
     ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
     ui.status.textContent = 'Choose a time control and enter matchmaking.';
-    ui.curtain.hidden = false; ui.curtainTitle.textContent = 'CAISSA Online';
-    ui.curtainCopy.textContent = 'Choose a time control to find an opponent.';
+    ui.find.disabled = false; ui.find.textContent = 'Find an opponent';
+    ui.curtain.hidden = true;
     board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
     board.setInteractive(false);
     resetPlayerStrips();
@@ -826,13 +859,63 @@ function renderUnavailable(copy) {
 
 function renderSignedOut() {
     clearTimeout(model.challengeExpiryTimer);
+    model.state = null;
+    model.game = null;
+    model.pendingMove = null;
+    model.signInRedirecting = false;
     model.challengeNoticeId = null;
     ui.challengeNotice.hidden = true;
-    setConnection('offline', 'Sign in required'); ui.find.textContent = 'Sign in to play';
-    ui.find.onclick = () => location.assign('/signin?redirect_url=%2Fonline');
-    ui.status.textContent = 'Sign in to enter matchmaking and resume games.';
-    ui.curtainTitle.textContent = 'Your seat is waiting'; ui.curtainCopy.textContent = 'Sign in to play another person on CAISSA.';
+    showView('lobby');
+    ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
+    setConnection('offline', 'Sign in required');
+    ui.find.disabled = false; ui.find.textContent = 'Start game';
+    ui.account.textContent = 'Sign in';
+    ui.status.textContent = 'Choose a time control. Sign in when you are ready to play.';
+    ui.curtain.hidden = true;
+    board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
+    board.setInteractive(false);
+    resetPlayerStrips();
+    updateSignInHref();
 }
+
+function showSignInDialog(opener) {
+    if (model.auth?.isSignedIn || model.signInRedirecting) return;
+    model.signInPromptOpener = opener instanceof HTMLElement ? opener : document.activeElement;
+    if (ui.signInDialog.open) return;
+    ui.signInDialog.returnValue = '';
+    ui.signInDialog.showModal();
+}
+
+function handleSignInDialogClose() {
+    const opener = model.signInPromptOpener;
+    model.signInPromptOpener = null;
+    if (ui.signInDialog.returnValue === 'signin') {
+        if (model.signInRedirecting) return;
+        model.signInRedirecting = true;
+        location.assign(signInUrl());
+        return;
+    }
+    queueMicrotask(() => opener?.isConnected && opener.focus());
+}
+
+function selectedOnlineReturnPath() {
+    const params = new URLSearchParams({ control: model.selectedControl });
+    if (model.selectedControl === 'custom') {
+        params.set('minutes', boundedInputValue($('custom-minutes')));
+        params.set('increment', boundedInputValue($('custom-increment')));
+    }
+    return `/online?${params}`;
+}
+
+function boundedInputValue(input) {
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const value = Number(input.value);
+    return String(Math.min(max, Math.max(min, Number.isFinite(value) ? value : min)));
+}
+
+function signInUrl() { return `/signin?redirect_url=${encodeURIComponent(selectedOnlineReturnPath())}`; }
+function updateSignInHref() { if (!model.auth?.isSignedIn) ui.account.href = signInUrl(); }
 
 function setConnection(state, label) { ui.connection.dataset.connection = state; ui.connectionLabel.textContent = label; }
 function setBusy(button, busy, label) { button.disabled = busy; button.textContent = label; }
