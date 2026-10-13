@@ -13,6 +13,24 @@ El cuerpo reuniría cuatro bloques:
 3. Posición del jugador, visible aunque quede fuera del tramo mostrado de la clasificación.
 4. `Next game`, con rival, color, ritmo y estado de preparación; nunca debe inventar un emparejamiento mientras el servidor no lo haya confirmado.
 
+## Maqueta visual revisable
+
+La preview expone `/online/tournament-demo` como demostración aislada. La
+ruta reutiliza el tablero y el único panel derecho de Online, muestra
+explícitamente la etiqueta `Visual demo` y utiliza únicamente nombres,
+clasificación, reloj y emparejamiento sintéticos. No consulta la API Online,
+no crea una inscripción y no activa la pestaña Tournament en `/online`.
+
+La cabecera del panel mantiene título, contexto y pestañas. El BODY es el
+único propietario del desplazamiento y reúne el tiempo restante, una tabla
+compacta con la fila del jugador resaltada y el estado entre partidas. El pie
+identifica que se trata de datos de demostración. En móvil, el mismo panel se
+apila debajo del tablero sin crear otro scroll interno.
+
+`Next game` es deliberadamente una acción demostrativa: explica el handoff
+que ocurriría después de recibir un emparejamiento confirmado, pero no abre ni
+inventa una partida.
+
 ## Contrato que falta antes de implementarlo
 
 - Identidad, estado y calendario autoritativos del torneo.
@@ -21,6 +39,11 @@ El cuerpo reuniría cuatro bloques:
 - Autorización RLS y Realtime específica para participantes; no se heredan permisos de una partida ni se exponen canales privados.
 - Reglas explícitas para inscripción, retirada, espectadores, reconexión, expiración y cierre.
 - Feature flag independiente de `CAISSA_ONLINE_ROLLOUT`; desactivada por defecto.
+- Estado de emparejamiento firmado por el servidor, con identificador de
+  partida, color, ritmo, versión y fecha de expiración antes de habilitar
+  `Next game`.
+- Estados explícitos `waiting`, `assigned`, `ready`, `finished` y una política
+  de recuperación cuando el emparejamiento caduque o cambie durante un resync.
 
 ## Responsive y accesibilidad
 

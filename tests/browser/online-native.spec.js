@@ -6,6 +6,10 @@ const harnesses = new WeakMap();
 
 test.beforeEach(async ({ page }) => {
     const harness = {
+        config: {
+            protocolVersion: '1.0.0', rollout: 'preview', enabled: true,
+            capabilities: { matchmaking: true, rated: true, tournaments: true, multiboard: true }, realtime: null
+        },
         state: { profile: { display_name: 'Alex' }, ticket: null, game: null, recentGames: [], players: [], challenges: [] },
         stateReads: 0,
         emptyPlayersAfterRead: null,
@@ -23,8 +27,7 @@ test.beforeEach(async ({ page }) => {
         const request = route.request();
         const url = new URL(request.url());
         if (request.method() === 'GET' && url.searchParams.get('action') === 'config') {
-            return route.fulfill({ json: { protocolVersion: '1.0.0', rollout: 'preview', enabled: true,
-                capabilities: { matchmaking: true, rated: true, tournaments: true, multiboard: true }, realtime: null } });
+            return route.fulfill({ json: harness.config });
         }
         let responseState = harness.state;
         if (request.method() === 'POST') {
@@ -92,6 +95,13 @@ test('board-first shell remains usable at phone width and has no serious axe fin
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/online');
     await expect(page.locator('#online-board')).toBeVisible();
+    await expect(page.locator('.online-header').getByRole('heading', { name: 'Online Chess' })).toBeVisible();
+    await expect(page.locator('.online-header .brand')).toBeVisible();
+    await expect(page.locator('.online-header #account-link')).toBeVisible();
+    await expect(page.locator('.mobile-navigation')).toBeVisible();
+    await page.locator('.mobile-navigation summary').click();
+    await expect(page.getByRole('navigation', { name: 'Mobile primary navigation' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Mobile primary navigation' }).getByRole('link', { name: 'Puzzles' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Players' })).toBeVisible();
     const layout = await page.evaluate(() => ({
         domNodes: document.getElementsByTagName('*').length,
@@ -104,6 +114,78 @@ test('board-first shell remains usable at phone width and has no serious axe fin
     if (process.env.CAISSA_CAPTURE_ONLINE_SCREENSHOT === '1') {
         await page.screenshot({ path: 'docs/visual-evidence/caissa-online-lobby-mobile.png', fullPage: true });
     }
+});
+
+test('compact header recovers vertical space and tabs support keyboard navigation', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/online');
+    await expect(page.locator('.online-titlebar')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Online Chess', level: 1 })).toHaveCount(1);
+    const geometry = await page.evaluate(() => {
+        const rect = selector => {
+            const value = document.querySelector(selector).getBoundingClientRect();
+            return { y: value.y, width: value.width, height: value.height, bottom: value.bottom };
+        };
+        return {
+            header: rect('.online-header'), layout: rect('.online-layout'), board: rect('#board-shell'),
+            panel: rect('.play-workspace'), pageOverflowY: document.documentElement.scrollHeight - document.documentElement.clientHeight
+        };
+    });
+    expect(geometry.header.height).toBe(68);
+    expect(geometry.layout.y).toBeCloseTo(92, 0);
+    expect(geometry.board.width).toBeCloseTo(654, 0);
+    expect(geometry.board.width).toBe(geometry.board.height);
+    expect(Math.abs(geometry.panel.bottom - geometry.layout.bottom)).toBeLessThan(1);
+    expect(geometry.pageOverflowY).toBeLessThanOrEqual(0);
+
+    const newGame = page.getByRole('tab', { name: 'New Game' });
+    await newGame.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Games', exact: true })).toBeFocused();
+    await expect(page.getByRole('tab', { name: 'Games', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Players' })).toBeFocused();
+});
+
+test('disabled capabilities read as Casual and unavailable instead of internal contracts', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.config = {
+        ...harness.config,
+        capabilities: { matchmaking: true, rated: false, tournaments: false, multiboard: false, openGames: false }
+    };
+    await page.goto('/online');
+    await expect(page.locator('#game-mode-label')).toHaveText('Casual');
+    await expect(page.locator('#rated-control')).toBeHidden();
+    await expect(page.locator('#browse-tournaments')).toBeHidden();
+    await expect(page.locator('body')).not.toContainText('Protocol 1.0.0');
+    await page.getByRole('tab', { name: 'Games' }).click();
+    await page.getByRole('tab', { name: 'Open games' }).click();
+    await expect(page.locator('#games-open-unavailable')).toContainText("Open games aren't available yet");
+    await expect(page.locator('#games-open-unavailable')).toContainText('Public joinable games are not enabled in this version.');
+});
+
+test('isolated Tournament panel uses synthetic demo data and stays below the board on mobile', async ({ page }) => {
+    let onlineApiRequests = 0;
+    page.on('request', request => { if (new URL(request.url()).pathname === '/api/online') onlineApiRequests += 1; });
+    await page.goto('/online?demo=tournament');
+    await expect(page.getByRole('tab', { name: 'Tournament' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Tournament' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.demo-banner')).toContainText('Visual demo');
+    await expect(page.locator('.tournament-standings .is-current-player')).toContainText('Alexander (you)');
+    await expect(page.getByRole('button', { name: 'Next game' })).toBeVisible();
+    await expect.poll(() => onlineApiRequests).toBe(0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobile = await page.evaluate(() => {
+        const board = document.querySelector('.board-column').getBoundingClientRect();
+        const panel = document.querySelector('.play-workspace').getBoundingClientRect();
+        return {
+            panelBelowBoard: panel.y >= board.bottom,
+            overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+    });
+    expect(mobile.panelBelowBoard).toBe(true);
+    expect(mobile.overflowX).toBeLessThanOrEqual(0);
 });
 
 test('board group and workspace share aligned desktop geometry and one scrollable body', async ({ page }) => {
@@ -212,7 +294,7 @@ test('players snapshot removes stale rows and restores its empty state', async (
 
     await expect.poll(() => harness.stateReads, { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
     await expect(page.locator('#players-list')).toHaveClass('empty-state');
-    await expect(page.locator('#players-list')).toContainText('No players visible');
+    await expect(page.locator('#players-list')).toContainText('No players online');
     await expect(page.locator('#players-list .player-row')).toHaveCount(0);
     await expect(page.locator('#players-list button', { hasText: 'Challenge' })).toHaveCount(0);
     expect(harness.challengeCreates).toBe(0);
@@ -417,7 +499,7 @@ test('Games separates private history from unsupported public open games', async
     await expect(page.locator('#games-list .game-row')).toContainText('Alex');
     await page.getByRole('tab', { name: 'Open games' }).click();
     await expect(page.locator('#games-open')).toBeVisible();
-    await expect(page.locator('#games-open')).toContainText('No open games available');
+    await expect(page.locator('#games-open')).toContainText("Open games aren't available yet");
     await expect(page.locator('#games-history')).toBeHidden();
 });
 

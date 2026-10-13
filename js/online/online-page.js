@@ -5,6 +5,8 @@ import { formatClock, projectOnlineClock } from './online-clock.js';
 import { createOnlineRealtime, createOnlineResyncQueue } from './online-realtime.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const TOURNAMENT_DEMO = location.pathname === '/online/tournament-demo'
+    || new URLSearchParams(location.search).get('demo') === 'tournament';
 const $ = id => document.getElementById(id);
 const api = createOnlineApi();
 const ui = {
@@ -14,10 +16,12 @@ const ui = {
     top: $('player-top'), bottom: $('player-bottom'), topClock: $('clock-top'), bottomClock: $('clock-bottom'),
     lobby: $('lobby-view'), queue: $('queue-view'), game: $('game-view'), result: $('result-view'),
     find: $('find-game'), cancel: $('cancel-search'), rated: $('rated-toggle'), ratedHelp: $('rated-help'),
+    ratedControl: $('rated-control'), gameModeLabel: $('game-mode-label'), browseTournaments: $('browse-tournaments'),
     queueControl: $('queue-control'), queueElapsed: $('queue-elapsed'), turnCopy: $('turn-copy'),
     moveList: $('move-list'), resultTitle: $('result-title'), resultDetail: $('result-detail'),
     ratingChange: $('rating-change'), gamesList: $('games-list'), playersList: $('players-list'),
-    tournamentCard: $('tournament-card'), toast: $('online-toast'), rematch: $('rematch-game'),
+    tournamentCard: $('tournament-card'), tournamentTab: $('tab-tournament'), toast: $('online-toast'), rematch: $('rematch-game'),
+    footContext: $('workspace-foot-context'),
     challengeNotice: $('challenge-notice'), challengeKicker: $('challenge-notice-kicker'),
     challengeTitle: $('challenge-notice-title'), challengeControl: $('challenge-notice-control'),
     challengeActions: $('challenge-notice-actions'), challengeAccept: $('challenge-notice-accept'),
@@ -52,22 +56,21 @@ document.addEventListener('visibilitychange', () => {
     if (!document.hidden && model.auth?.isSignedIn) void resumeFromBackground();
 });
 bindControls();
-if (location.pathname === '/online/tournaments') selectTab('games');
+selectTab('new');
+selectGamesView('history');
 setInterval(renderClocks, 100);
-void boot();
+if (TOURNAMENT_DEMO) renderTournamentDemo();
+else {
+    if (location.pathname === '/online/tournaments') selectTab('games');
+    void boot();
+}
 
 async function boot() {
     setConnection('reconnecting', 'Connecting');
     try {
         model.config = await api.config();
-        $('protocol-label').textContent = `Protocol ${model.config.protocolVersion || '1.0.0'}`;
-        if (!model.config.enabled) return renderUnavailable('Online play is currently behind a rollout flag.');
-        ui.rated.disabled = !model.config.capabilities?.rated;
-        if (ui.rated.disabled) {
-            ui.rated.checked = false;
-            ui.ratedHelp.textContent = 'Casual games are enabled in this rollout.';
-        }
-        ui.tournamentCard.hidden = !model.config.capabilities?.tournaments;
+        if (!model.config.enabled) return renderUnavailable('Online play is not available right now.');
+        configureCapabilities(model.config.capabilities || {});
         const auth = await waitForAuth();
         model.auth = auth;
         if (!auth?.isSignedIn) return renderSignedOut();
@@ -81,6 +84,26 @@ async function boot() {
     } finally {
         model.bootSettled = true;
     }
+}
+
+function configureCapabilities(capabilities) {
+    const ratedEnabled = capabilities.rated === true;
+    ui.rated.disabled = !ratedEnabled;
+    ui.rated.hidden = !ratedEnabled;
+    ui.ratedControl.hidden = !ratedEnabled;
+    ui.gameModeLabel.textContent = ratedEnabled ? 'Game mode' : 'Casual';
+    ui.ratedHelp.textContent = ratedEnabled
+        ? 'Turn on Rated to play for rating points.'
+        : 'Casual games do not change ratings.';
+    if (!ratedEnabled) ui.rated.checked = false;
+
+    const tournamentsEnabled = capabilities.tournaments === true;
+    ui.tournamentCard.hidden = !tournamentsEnabled;
+    ui.browseTournaments.hidden = !tournamentsEnabled;
+
+    const openGamesEnabled = capabilities.openGames === true;
+    $('games-open-unavailable').hidden = openGamesEnabled;
+    $('games-open-empty').hidden = !openGamesEnabled;
 }
 
 function onAuthEvent(event) {
@@ -136,7 +159,10 @@ async function waitForAuth() {
 }
 
 function bindControls() {
-    document.querySelectorAll('[data-tab]').forEach(tab => tab.addEventListener('click', () => selectTab(tab.dataset.tab)));
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+        tab.addEventListener('click', () => selectTab(tab.dataset.tab));
+        tab.addEventListener('keydown', handleTabKeydown);
+    });
     document.querySelectorAll('[data-control]').forEach(button => button.addEventListener('click', () => {
         if (model.game?.status === 'active' || model.state?.ticket) return;
         model.selectedControl = button.dataset.control;
@@ -156,18 +182,70 @@ function bindControls() {
     $('download-pgn').addEventListener('click', downloadPgn);
     $('analyze-game').addEventListener('click', analyzeGame);
     $('open-tournaments').addEventListener('click', () => location.assign('/online/tournaments'));
-    document.querySelectorAll('[data-games-view]').forEach(tab => tab.addEventListener('click', () => selectGamesView(tab.dataset.gamesView)));
+    $('demo-next-game').addEventListener('click', () => showToast('Demo only — a server-confirmed pairing would open the game.'));
+    document.querySelectorAll('[data-games-view]').forEach(tab => {
+        tab.addEventListener('click', () => selectGamesView(tab.dataset.gamesView));
+        tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-games-view]', 'gamesView', selectGamesView));
+    });
     ui.challengeAccept.addEventListener('click', () => respondVisibleChallenge('challenge.accept'));
     ui.challengeDecline.addEventListener('click', () => respondVisibleChallenge('challenge.decline'));
 }
 
 function selectTab(name) {
-    document.querySelectorAll('[data-tab]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === name)));
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+        const selected = tab.dataset.tab === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
     document.querySelectorAll('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== name; });
+    ui.footContext.textContent = ({
+        new: 'Private, server-verified games',
+        games: 'Your game history',
+        players: 'Private challenges',
+        tournament: 'Tournament concept · demo data'
+    })[name] || 'CAISSA Online';
+}
+
+function handleTabKeydown(event) {
+    handleRovingTabs(event, '[data-tab]', 'tab', selectTab);
+}
+
+function handleRovingTabs(event, selector, datasetKey, select) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const tabs = Array.from(document.querySelectorAll(selector)).filter(tab => !tab.hidden);
+    const current = tabs.indexOf(event.currentTarget);
+    const next = event.key === 'Home' ? 0
+        : event.key === 'End' ? tabs.length - 1
+            : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    event.preventDefault();
+    select(tabs[next].dataset[datasetKey]);
+    tabs[next].focus();
+}
+
+function renderTournamentDemo() {
+    document.body.dataset.tournamentDemo = 'true';
+    document.title = 'Tournament Panel Demo — CAISSA';
+    ui.tournamentTab.hidden = false;
+    ui.title.textContent = 'Tournament arena';
+    ui.badge.textContent = 'DEMO';
+    ui.footContext.textContent = 'Tournament concept · demo data';
+    setConnection('online', 'Demo');
+    ui.curtain.hidden = false;
+    ui.curtainTitle.textContent = 'Tournament preview';
+    ui.curtainCopy.textContent = 'The real game board remains unchanged until the server confirms a pairing.';
+    board.setPosition(START_FEN, { animate: false });
+    board.setReadOnly(true);
+    board.setInteractive(false);
+    resetPlayerStrips();
+    selectTab('tournament');
 }
 
 function selectGamesView(name) {
-    document.querySelectorAll('[data-games-view]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.gamesView === name)));
+    document.querySelectorAll('[data-games-view]').forEach(tab => {
+        const selected = tab.dataset.gamesView === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
     document.querySelectorAll('[data-games-panel]').forEach(panel => { panel.hidden = panel.dataset.gamesPanel !== name; });
 }
 
@@ -290,7 +368,7 @@ function renderGame(game, options = {}) {
     ui.curtain.hidden = true;
     ui.title.textContent = completed ? 'Game complete' : `${formatTimeControl(game)} ${titleCase(game.pool)}`;
     ui.badge.textContent = completed ? 'FINAL' : game.rated ? 'RATED' : 'CASUAL';
-    ui.status.textContent = completed ? 'The result and game record are final.' : 'Server-authoritative game in progress.';
+    ui.status.textContent = completed ? 'Game over. Review the result or choose what to do next.' : 'Game in progress.';
     renderPlayerStrips(game, color);
     renderMoves(game.moves || []);
     const ours = game.turn === color;
@@ -467,7 +545,7 @@ function renderPlayers(players, challenges) {
     ui.playersList.replaceChildren();
     if (!players.length) {
         const icon = document.createElement('span'); icon.setAttribute('aria-hidden', 'true'); icon.textContent = '♞';
-        const title = document.createElement('strong'); title.textContent = 'No players visible';
+        const title = document.createElement('strong'); title.textContent = 'No players online';
         const copy = document.createElement('p'); copy.textContent = 'Players will appear here while their presence is active.';
         ui.playersList.className = 'empty-state'; ui.playersList.append(icon, title, copy);
         return;

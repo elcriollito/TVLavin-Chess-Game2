@@ -21,6 +21,32 @@ test('online shell is board-first with one tabbed workspace and accessible statu
     assert.match(css, /\.move-list\{[\s\S]*?overflow:visible/);
 });
 
+test('online title shares the compact header and returns vertical space to the board', () => {
+    assert.match(html, /<header class="online-header">[\s\S]*?<h1 id="online-title">Online Chess<\/h1>/);
+    assert.doesNotMatch(html, /class="online-titlebar"/);
+    assert.equal((html.match(/<h1\b/g) || []).length, 1);
+    assert.match(html, /id="room-status"[\s\S]*?id="find-game"/);
+    assert.match(css, /calc\(100dvh - 246px\)/);
+    assert.match(css, /calc\(100dvh - 192px\)/);
+    assert.match(css, /\.online-header h1\{/);
+    assert.match(html, /class="mobile-navigation"[\s\S]*aria-label="Mobile primary navigation"/);
+});
+
+test('player-facing panel copy follows enabled capabilities without internal diagnostics', () => {
+    assert.doesNotMatch(html, /Protocol 1\.0\.0|private-game contract|feature flag|service flag/i);
+    assert.match(html, /id="game-mode-label">Casual/);
+    assert.match(html, /Open games aren't available yet/);
+    assert.match(html, /Public joinable games are not enabled in this version/);
+    assert.match(html, /id="workspace-foot-context">Private, server-verified games/);
+});
+
+test('tournament proposal is an isolated, synthetic and accessible panel', () => {
+    assert.ok(vercel.rewrites.some(item => item.source === '/online/tournament-demo' && item.destination === '/online.html'));
+    assert.match(html, /id="tab-tournament"[^>]*hidden/);
+    assert.match(html, /id="panel-tournament"[\s\S]*Visual demo[\s\S]*Current standings/);
+    assert.match(html, /class="is-current-player"[\s\S]*Alexander <span>\(you\)<\/span>/);
+});
+
 test('online route is isolated, private-cache, noindex, and keeps the retired play route intact', () => {
     assert.ok(vercel.rewrites.some(item => item.source === '/online' && item.destination === '/online.html'));
     assert.ok(vercel.rewrites.some(item => item.source === '/play' && item.destination === '/play-v2-unavailable.html'));
@@ -47,8 +73,8 @@ test('turn status is screen-reader only while clocks retain the visual turn sign
 test('Games distinguishes personal history from unsupported open games', () => {
     assert.match(html, /data-games-view="history"[\s\S]+data-games-view="open"/);
     assert.match(html, /id="games-list"/);
-    assert.match(html, /No open games available/);
-    assert.match(html, /Public joinable games are not part of the current private-game contract/);
+    assert.match(html, /Open games aren't available yet/);
+    assert.match(html, /Public joinable games are not enabled in this version/);
 });
 
 test('custom clock labels are complete and share one aligned control grid', () => {
