@@ -13,17 +13,19 @@
 
 /* Shared board/workspace geometry. The player strips, square board and panel
    intentionally participate in one grid row so their outer edges stay aligned. */
+.online-main{container-type:inline-size}
 .online-layout{
     --online-workspace-width:clamp(360px,28vw,420px);
     --online-layout-gap:clamp(24px,2vw,32px);
     --online-board-size:min(
         calc(100dvh - 270px),
-        calc(94vw - var(--online-workspace-width) - var(--online-layout-gap))
+        calc(100cqw - var(--online-workspace-width) - var(--online-layout-gap))
     );
     grid-template-columns:minmax(0,var(--online-board-size)) minmax(0,var(--online-workspace-width));
     gap:var(--online-layout-gap);
     align-items:stretch;
-    width:min(100%,calc(var(--online-board-size) + var(--online-workspace-width) + var(--online-layout-gap)));
+    width:100%;
+    justify-content:center;
     margin-inline:auto;
 }
 .board-column{
@@ -61,7 +63,7 @@
     .online-titlebar h1{font-size:30px}
     .online-layout{--online-board-size:min(
         calc(100dvh - 230px),
-        calc(94vw - var(--online-workspace-width) - var(--online-layout-gap))
+        calc(100cqw - var(--online-workspace-width) - var(--online-layout-gap))
     )}
     .board-column{grid-template-rows:50px var(--online-board-size) 50px}
     .player-strip{height:50px}
@@ -71,7 +73,7 @@
 
 @media(max-width:900px){
     .online-layout{
-        --online-board-size:min(100%,650px);
+        --online-board-size:min(100cqw,650px);
         display:grid;
         grid-template-columns:minmax(0,1fr);
         width:100%;

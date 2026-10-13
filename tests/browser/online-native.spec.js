@@ -110,9 +110,13 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
     const desktopCases = [
         { name: 'desktop', width: 1440, height: 900 },
         { name: 'short', width: 1440, height: 720 },
-        { name: 'zoom-75-effective-viewport', width: 1920, height: 1200 },
-        { name: 'zoom-90-effective-viewport', width: 1600, height: 1000 },
-        { name: 'zoom-125-effective-viewport', width: 1152, height: 720 }
+        { name: 'zoom-25-on-2560x1440', zoom: 25, width: 10240, height: 5760 },
+        { name: 'zoom-33-on-2560x1440', zoom: 33, width: 7758, height: 4364 },
+        { name: 'zoom-50-on-2560x1440', zoom: 50, width: 5120, height: 2880 },
+        { name: 'zoom-67-on-2560x1440', zoom: 67, width: 3821, height: 2149 },
+        { name: 'zoom-80-on-2560x1440', zoom: 80, width: 3200, height: 1800 },
+        { name: 'zoom-100-on-2560x1440', zoom: 100, width: 2560, height: 1440 },
+        { name: 'zoom-125-on-2560x1440', zoom: 125, width: 2048, height: 1152 }
     ];
     for (const viewport of desktopCases) {
         await page.setViewportSize(viewport);
@@ -122,6 +126,10 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
         expect(geometry.board.width).toBeGreaterThan(geometry.panel.width);
         expect(geometry.gap).toBeGreaterThanOrEqual(24);
         expect(geometry.gap).toBeLessThanOrEqual(32.1);
+        expect(geometry.horizontalIntersection).toBe(0);
+        expect(geometry.groupLeft).toBeGreaterThanOrEqual(geometry.main.x - 0.5);
+        expect(geometry.groupRight).toBeLessThanOrEqual(geometry.main.right + 0.5);
+        expect(Math.abs(geometry.groupCenterDelta)).toBeLessThan(1);
         expect(Math.abs(geometry.panel.y - geometry.boardColumn.y)).toBeLessThan(1);
         expect(Math.abs(geometry.panel.bottom - geometry.boardColumn.bottom)).toBeLessThan(1);
         expect(Math.abs(geometry.head.y - geometry.panel.y)).toBeLessThanOrEqual(1);
@@ -131,7 +139,9 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
         expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
         if (process.env.CAISSA_CAPTURE_ONLINE_LAYOUT === '1') {
             console.log(`CAISSA_ONLINE_LAYOUT_METRICS ${JSON.stringify({ viewport, geometry })}`);
-            await page.screenshot({ path: `test-results/online-layout-${viewport.name}.png`, fullPage: true });
+            const path = `test-results/online-layout-${viewport.name}.png`;
+            if (viewport.width <= 2560) await page.screenshot({ path, fullPage: true });
+            else await page.locator('.online-main').screenshot({ path });
         }
     }
 
@@ -459,13 +469,24 @@ async function onlineLayoutGeometry(page) {
         };
         const boardColumn = rect('.board-column');
         const panel = rect('.play-workspace');
+        const main = rect('.online-main');
+        const groupLeft = Math.min(boardColumn.x, panel.x);
+        const groupRight = Math.max(boardColumn.right, panel.right);
         return {
+            main,
             boardColumn,
             board: rect('#board-shell'),
             panel,
             head: rect('.workspace-head'),
             foot: rect('.workspace-foot'),
             gap: panel.x - boardColumn.right,
+            groupLeft,
+            groupRight,
+            groupCenterDelta: ((groupLeft + groupRight) / 2) - ((main.x + main.right) / 2),
+            horizontalIntersection: Math.max(
+                0,
+                Math.min(boardColumn.right, panel.right) - Math.max(boardColumn.x, panel.x)
+            ),
             bodyOverflowY: getComputedStyle(document.querySelector('.workspace-body')).overflowY,
             moveListOverflowY: getComputedStyle(document.querySelector('.move-list')).overflowY,
             horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth

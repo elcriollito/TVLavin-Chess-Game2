@@ -13,6 +13,9 @@ test('online shell is board-first with one tabbed workspace and accessible statu
     assert.match(html, /aria-live="polite"/);
     assert.match(css, /--online-layout-gap:clamp\(24px,2vw,32px\)/);
     assert.match(css, /--online-board-size:min\(/);
+    assert.match(css, /\.online-main\{container-type:inline-size\}/);
+    assert.match(css, /calc\(100cqw - var\(--online-workspace-width\) - var\(--online-layout-gap\)\)/);
+    assert.match(css, /justify-content:center/);
     assert.match(css, /grid-template-rows:60px var\(--online-board-size\) 60px/);
     assert.match(css, /\.play-workspace\{[\s\S]*?align-self:stretch/);
     assert.match(css, /\.move-list\{[\s\S]*?overflow:visible/);
