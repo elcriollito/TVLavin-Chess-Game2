@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "candidate": {
+    "name": "CAISSA Online Native v1",
+    "status": "APPROVAL_REQUIRED",
+    "branch": "fix/caissa-online-workspace-geometry",
+    "baseRevision": "932e630d3f0ea111232b7b47eac98670183e4452",
+    "headRevision": "932e630d3f0ea111232b7b47eac98670183e4452",
+    "kind": "working_tree",
+    "sourceDigestSha256": "b28b50de76a424f593e32f80eeb3f32a11e18cb67f9395862f3ade72132a3f87",
+    "digestAlgorithm": "SHA-256 over ordered UTF-8 LF lines: <repo-relative-path> <file-sha256>",
+    "reviewPackageDigestSha256": "5315c431421aac012d3fb53538de1280f593078a79255d2bdbedbee8fd8896f4",
+    "reviewPackageFileCount": 38,
+    "reviewPackageDigestScope": "The six tracked changes (.gitignore plus five source/test files), nine Markdown reports and 23 evidence PNGs; this manifest is excluded to avoid a circular digest."
+  },
+  "sourceFiles": [
+    {"path": "css/online.css", "sha256": "31bd1620738625d8ade699bcb561053a05d231452f133689341267cd67ed3f11"},
+    {"path": "js/online/online-page.js", "sha256": "37d22c38d49e4dfcbdc361a2a6a749b07fb6e393f5c4248468916a0756c1917d"},
+    {"path": "online.html", "sha256": "6782ce58ea579da146ec2245fb750f5c98c5821a2cdb2a1db28cec0a42c83438"},
+    {"path": "tests/browser/online-native.spec.js", "sha256": "6a4b3e7f3894bef32fd7d2cef843862ed5777a692df9519ec81649a9a3321cdc"},
+    {"path": "tests/online/shell.test.js", "sha256": "c972571dcc1da11aba8df4743c2a61bc537165aae19df45c38ecc852bc57d55b"}
+  ],
+  "dependencyIntegrity": {
+    "packageLockChanged": false,
+    "packageLockSha256": "d747afc28b9ce31a67137f6f9476ddb3976b648a844e5eb3f8971ee449208ebc",
+    "node": "24.12.0",
+    "npm": "11.6.2",
+    "playwright": "1.62.0",
+    "supabaseJs": "2.93.1",
+    "clerkBackend": "2.33.6"
+  },
+  "tests": {
+    "lintOnline": "PASS",
+    "online": "65/65 PASS",
+    "onlineBrowserChromium": "21/21 PASS",
+    "onlineCrossBrowser": "63/63 PASS",
+    "boardUnit": "26/26 PASS",
+    "boardBrowser": "19 PASS, 1 visual opt-in SKIP",
+    "navigation": "9/9 PASS",
+    "authPolicyDirected": "40/40 PASS",
+    "diffCheck": "PASS"
+  },
+  "security": {
+    "scanId": "04affbb8-f5ab-4187-ae30-9581d5e78870",
+    "snapshotDigest": "codex-security-snapshot/v1:sha256:acd7f83189c952e29bb8c2058b246e1be1f445758221993278f58f6001cb736c",
+    "findings": 0,
+    "coverage": "complete",
+    "hostedConfigurationVerified": false
+  },
+  "visualEvidence": {
+    "directory": "docs/release/caissa-online-native-v1/evidence",
+    "fileCount": 23,
+    "aggregateDigestSha256": "ce99852edc98c38802f1cd7f24c0a98d31d441d6f742385954d9ab7581ea510b",
+    "syntheticDataNotice": "Players and game harness screenshots are synthetic local evidence, not human or Staging sessions."
+  },
+  "environmentRequirements": {
+    "preview": "Vercel protected Preview",
+    "supabase": "Staging aqizagaskicotorfpwfn only",
+    "clerk": "Development only",
+    "rollout": "internal",
+    "tournaments": false,
+    "spectators": false,
+    "production": "out of scope"
+  },
+  "rollbackContract": "Frontend Preview rollback only; never infer database rollback or delete Staging data.",
+  "recommendation": "Authorize Gate A for exact commit/push/PR/protected Preview; keep hosted writes behind separate Gate B."
+}

@@ -91,7 +91,7 @@ test('signed-in player finds a match and receives a canonical move acknowledgeme
     await expect(page.locator('#connection-label')).toHaveText('Connected');
     await expect(page.locator('#online-board .caissa-board__piece')).toHaveCount(32);
     const lobbyBoardBox = await page.locator('#board-shell').boundingBox();
-    await page.getByRole('button', { name: 'Find an opponent' }).click();
+    await page.getByRole('button', { name: 'Start Game' }).click();
     await expect(page.locator('#curtain-title')).toBeHidden();
     await expect(page.locator('#turn-copy')).toHaveText('Your turn');
     await expect(page.locator('.game-status-line')).toHaveCount(0);
@@ -186,7 +186,9 @@ test('visitor sees the normal board and sign-in appears only after an explicit p
     await expect(page.locator('#signin-dialog')).toBeHidden();
     await expect(newGameTab).toBeFocused();
 
-    const startGame = page.getByRole('button', { name: 'Start game' });
+    await expect(page.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', /redirect_url=%2Fonline%3Fcontrol%3Drapid-10-0/);
+    await expect(page.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', /redirect_url=%2Fonline%3Fcontrol%3Drapid-10-0/);
+    const startGame = page.getByRole('button', { name: 'Start Game' });
     await startGame.click();
     await expect(page.locator('#signin-dialog')).toBeVisible();
     await page.getByRole('button', { name: 'Not now' }).click();
@@ -254,7 +256,7 @@ test('return from sign-in restores the chosen control and starts only one queue 
     await expect(page.locator('#custom-clock')).toBeVisible();
     await expect(page.locator('#custom-minutes')).toHaveValue('12');
     await expect(page.locator('#custom-increment')).toHaveValue('7');
-    await page.getByRole('button', { name: 'Find an opponent' }).click();
+    await page.getByRole('button', { name: 'Start Game' }).click();
     expect(harness.commandTypes.filter(type => type === 'queue.join')).toHaveLength(1);
 });
 
@@ -267,11 +269,16 @@ test('disabled capabilities read as Casual and unavailable instead of internal c
     await page.goto('/online');
     await expect(page.locator('#game-mode-label')).toHaveText('Casual');
     await expect(page.locator('#rated-control')).toBeHidden();
-    await expect(page.locator('#browse-tournaments')).toBeHidden();
+    await expect(page.locator('#browse-tournaments')).toBeVisible();
+    await expect(page.locator('#browse-tournaments')).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.locator('#tournament-availability')).toHaveText('Coming Soon');
     await expect(page.locator('body')).not.toContainText('Protocol 1.0.0');
     await page.getByRole('tab', { name: 'Games' }).click();
     await expect(page.getByRole('heading', { name: 'Daily Games' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Game History' })).toBeVisible();
+    await expect(page.locator('#games-panel-history')).toBeHidden();
+    await page.getByRole('tab', { name: 'Game History' }).click();
+    await expect(page.locator('#games-list')).toBeVisible();
+    await page.getByRole('tab', { name: /Watch Games/ }).click();
     await expect(page.getByRole('heading', { name: 'Watch Games' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Open Games' })).toBeVisible();
     await expect(page.locator('#games-open-unavailable')).toContainText('Public joinable games are not enabled in this version.');
@@ -347,25 +354,43 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
         }
     }
 
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/online');
-    const mobile = await onlineLayoutGeometry(page);
-    expect(Math.abs(mobile.board.width - mobile.board.height)).toBeLessThan(1);
-    expect(Math.abs(mobile.panel.width - mobile.boardColumn.width)).toBeLessThan(1);
-    expect(mobile.panel.y - mobile.boardColumn.bottom).toBeGreaterThanOrEqual(13);
-    expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
-    expect(mobile.menuBoardIntersection).toBe(0);
-    if (process.env.CAISSA_CAPTURE_ONLINE_LAYOUT === '1') {
-        console.log(`CAISSA_ONLINE_LAYOUT_METRICS ${JSON.stringify({ viewport: { name: 'mobile', width: 390, height: 844 }, geometry: mobile })}`);
-        await page.screenshot({ path: 'test-results/online-layout-mobile.png', fullPage: true });
+    const stackedCases = [
+        { name: 'mobile', width: 390, height: 844 },
+        { name: 'mobile-narrow', width: 340, height: 760 },
+        { name: 'breakpoint-900', width: 900, height: 844 }
+    ];
+    for (const viewport of stackedCases) {
+        await page.setViewportSize(viewport);
+        await page.goto('/online');
+        const mobile = await onlineLayoutGeometry(page);
+        expect(Math.abs(mobile.board.width - mobile.board.height)).toBeLessThan(1);
+        expect(Math.abs(mobile.panel.width - mobile.boardColumn.width)).toBeLessThan(1);
+        expect(mobile.panel.y - mobile.boardColumn.bottom).toBeGreaterThanOrEqual(13);
+        expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
+        expect(mobile.boardPanelIntersection).toBe(0);
+        expect(mobile.menuBoardIntersection).toBe(0);
+        if (process.env.CAISSA_CAPTURE_ONLINE_LAYOUT === '1') {
+            console.log(`CAISSA_ONLINE_LAYOUT_METRICS ${JSON.stringify({ viewport, geometry: mobile })}`);
+            await page.screenshot({ path: `test-results/online-layout-${viewport.name}.png`, fullPage: true });
+        }
     }
+
+    await page.setViewportSize({ width: 901, height: 844 });
+    await page.goto('/online');
+    const desktopBoundary = await onlineLayoutGeometry(page);
+    expect(desktopBoundary.panel.x).toBeGreaterThan(desktopBoundary.boardColumn.right);
+    expect(desktopBoundary.gap).toBeGreaterThanOrEqual(24);
+    expect(desktopBoundary.horizontalIntersection).toBe(0);
+    expect(desktopBoundary.horizontalOverflow).toBeLessThanOrEqual(0);
+    expect(Math.abs(desktopBoundary.panel.y - desktopBoundary.boardColumn.y)).toBeLessThan(1);
+    expect(Math.abs(desktopBoundary.panel.bottom - desktopBoundary.boardColumn.bottom)).toBeLessThan(1);
 });
 
 test('completed game actions survive at least three canonical polling cycles', async ({ page }) => {
     const harness = harnesses.get(page);
     await page.goto('/online');
     await expect(page.locator('#connection-label')).toHaveText('Connected');
-    await page.getByRole('button', { name: 'Find an opponent' }).click();
+    await page.getByRole('button', { name: 'Start Game' }).click();
     await expect(page.locator('#game-view')).toBeVisible();
     await page.locator('#resign-game').click();
     await page.locator('#confirm-dialog [value="confirm"]').click();
@@ -432,7 +457,7 @@ test('records the online drag, drop and delayed-authority boundaries', async ({ 
     const harness = harnesses.get(page);
     harness.moveDelayMs = 3500;
     await page.goto('/online');
-    await page.getByRole('button', { name: 'Find an opponent' }).click();
+    await page.getByRole('button', { name: 'Start Game' }).click();
     const source = await page.locator('.caissa-board__square[data-square="e2"]').boundingBox();
     const target = await page.locator('.caissa-board__square[data-square="e4"]').boundingBox();
     expect(source).toBeTruthy();
@@ -534,7 +559,7 @@ test('records the online drag, drop and delayed-authority boundaries', async ({ 
 test('a stale snapshot after commit cannot rewind the board or re-enable input', async ({ page }) => {
     const harness = harnesses.get(page);
     await page.goto('/online');
-    await page.getByRole('button', { name: 'Find an opponent' }).click();
+    await page.getByRole('button', { name: 'Start Game' }).click();
     await page.locator('.caissa-board__square[data-square="e2"]').click();
     await page.locator('.caissa-board__square[data-square="e4"]').click();
     await expect(page.locator('#move-list')).toContainText('e4');
@@ -604,6 +629,7 @@ test('outgoing invitation shows waiting, blocks duplicates, and null ratings ren
     await expect(page.locator('#players-list button')).toBeDisabled();
     expect(harness.challengeCreates).toBe(0);
     await page.getByRole('tab', { name: 'Games' }).click();
+    await page.getByRole('tab', { name: 'Game History' }).click();
     await page.locator('#games-list .game-row').click();
     await expect(page.locator('#result-view')).toBeVisible();
     await expect(page.locator('#rematch-game')).toHaveText('Waiting for rematch');
@@ -613,18 +639,211 @@ test('outgoing invitation shows waiting, blocks duplicates, and null ratings ren
     }
 });
 
-test('Games shows history plus separate Daily, Watch, and Open columns without misrepresenting capability', async ({ page }) => {
+test('Games uses three contextual subtabs and keeps Open Games independent', async ({ page }) => {
     const harness = harnesses.get(page);
     harness.state.recentGames = [completedGame()];
     await page.goto('/online');
     await page.getByRole('tab', { name: 'Games' }).click();
-    await expect(page.locator('#games-list .game-row')).toContainText('Alex');
+    const gameTabs = page.locator('.games-subtabs');
+    await expect(gameTabs.getByRole('tab')).toHaveCount(3);
+    await expect(gameTabs.getByRole('tab', { name: /Daily Games/ })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('heading', { name: 'Daily Games' })).toBeVisible();
-    await expect(page.locator('.games-column--future')).toContainText('Coming soon');
+    await expect(page.locator('#games-panel-history')).toBeHidden();
+    await gameTabs.getByRole('tab', { name: 'Game History' }).click();
+    await expect(page.locator('#games-list .game-row')).toContainText('Alex');
+    await expect(page.locator('#games-panel-daily')).toBeHidden();
+    await gameTabs.getByRole('tab', { name: 'Game History' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(gameTabs.getByRole('tab', { name: /Watch Games/ })).toBeFocused();
+    await expect(gameTabs.getByRole('tab', { name: /Watch Games/ })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('heading', { name: 'Watch Games' })).toBeVisible();
     await expect(page.locator('#games-open')).toBeVisible();
     await expect(page.locator('#games-open')).toContainText('Public joinable games are not enabled in this version.');
     await expect(page.locator('#panel-games')).not.toContainText('YOUR BOARD');
+});
+
+test('reference composition keeps New Game, Games, and Players visually contextual', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.authSignedIn = false;
+    harness.config = {
+        ...harness.config,
+        capabilities: {
+            ...harness.config.capabilities,
+            guestPlay: true,
+            openGames: false,
+            spectators: false,
+            tournaments: false
+        }
+    };
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/online');
+    await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sign up' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Play as Guest' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start Game' })).toBeVisible();
+    if (process.env.CAISSA_CAPTURE_ONLINE_REFERENCE === '1') {
+        await page.screenshot({ path: 'test-results/online-reference-new-game-1440x900.png', fullPage: true });
+    }
+
+    await page.getByRole('tab', { name: 'Games', exact: true }).click();
+    await expect(page.locator('.games-subtabs [role="tab"]')).toHaveCount(3);
+    await expect(page.locator('#games-open')).toBeVisible();
+    if (process.env.CAISSA_CAPTURE_ONLINE_REFERENCE === '1') {
+        await page.screenshot({ path: 'test-results/online-reference-games-1440x900.png', fullPage: true });
+    }
+
+    harness.authSignedIn = true;
+    harness.state.players = [
+        { clerkId: 'user_nova', displayName: 'NovaKnight', status: 'online', rating: 1824, pool: 'rapid' },
+        { clerkId: 'user_criollito', displayName: 'Criollito', status: 'seeking', rating: null, pool: 'blitz' },
+        { clerkId: 'user_muse', displayName: 'EndgameMuse', status: 'playing', rating: 1640, pool: 'rapid' }
+    ];
+    await page.reload();
+    await page.getByRole('tab', { name: 'Players' }).click();
+    await expect(page.locator('#players-count')).toHaveText('3 online');
+    await expect(page.locator('#player-search')).toBeVisible();
+    await expect(page.locator('#players-list .player-row')).toHaveCount(3);
+    if (process.env.CAISSA_CAPTURE_ONLINE_REFERENCE === '1') {
+        await page.screenshot({ path: 'test-results/online-reference-players-1440x900.png', fullPage: true });
+    }
+    const overflow = await page.evaluate(() => ({
+        x: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        y: document.documentElement.scrollHeight - document.documentElement.clientHeight
+    }));
+    expect(overflow.x).toBeLessThanOrEqual(0);
+    expect(overflow.y).toBeLessThanOrEqual(0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('tab', { name: 'New Game' }).click();
+    const mobile = await onlineLayoutGeometry(page);
+    expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
+    expect(mobile.panel.y).toBeGreaterThanOrEqual(mobile.boardColumn.bottom);
+    expect(mobile.boardPanelIntersection).toBe(0);
+    if (process.env.CAISSA_CAPTURE_ONLINE_REFERENCE === '1') {
+        await page.screenshot({ path: 'test-results/online-reference-mobile-390x844.png', fullPage: true });
+    }
+});
+
+test('New Game keeps authentication actions at its flexible footer and Tournaments honest', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.authSignedIn = false;
+    harness.config = {
+        ...harness.config,
+        capabilities: {
+            ...harness.config.capabilities,
+            guestPlay: true,
+            tournaments: false
+        }
+    };
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/online');
+    const tournament = page.locator('#browse-tournaments');
+    const access = page.locator('#lobby-access');
+    await expect(tournament).toBeVisible();
+    await expect(tournament).toContainText('Tournaments');
+    await expect(tournament).toContainText('Coming Soon');
+    await expect(tournament).toHaveAttribute('aria-disabled', 'true');
+    await expect(access).toBeVisible();
+    let geometry = await lobbyFooterGeometry(page);
+    expect(geometry.actionRowDelta).toBeLessThan(1);
+    expect(geometry.tournamentBeforeAccess).toBe(true);
+    expect(geometry.accessFooterVerticalOverlap).toBeLessThan(0.5);
+    expect(geometry.accessClippedTop).toBeLessThanOrEqual(0);
+    expect(geometry.accessClippedBottom).toBeLessThan(0.5);
+    if (process.env.CAISSA_CAPTURE_ONLINE_MICRO_POLISH === '1') {
+        await page.screenshot({ path: 'test-results/online-micro-polish-new-game-desktop-1440x900.png', fullPage: true });
+    }
+
+    await tournament.evaluate(button => button.click());
+    await expect(page.locator('#online-toast')).toContainText('coming soon');
+    await expect(page.getByRole('tab', { name: 'New Game' })).toHaveAttribute('aria-selected', 'true');
+
+    await page.setViewportSize({ width: 1440, height: 720 });
+    await page.reload();
+    await access.scrollIntoViewIfNeeded();
+    geometry = await lobbyFooterGeometry(page);
+    expect(geometry.actionRowDelta).toBeLessThan(1);
+    expect(geometry.accessFooterVerticalOverlap).toBeLessThan(0.5);
+    expect(geometry.accessClippedTop).toBeLessThanOrEqual(0);
+    expect(geometry.accessClippedBottom).toBeLessThan(0.5);
+
+    await page.setViewportSize({ width: 1152, height: 720 });
+    await page.reload();
+    await access.scrollIntoViewIfNeeded();
+    geometry = await lobbyFooterGeometry(page);
+    expect(geometry.actionRowDelta).toBeLessThan(1);
+    expect(geometry.accessFooterVerticalOverlap).toBeLessThan(0.5);
+    expect(geometry.accessClippedTop).toBeLessThanOrEqual(0);
+    expect(geometry.accessClippedBottom).toBeLessThan(0.5);
+    expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    if (process.env.CAISSA_CAPTURE_ONLINE_MICRO_POLISH === '1') {
+        await page.screenshot({ path: 'test-results/online-micro-polish-new-game-mobile-top-390x844.png', fullPage: true });
+    }
+    await access.scrollIntoViewIfNeeded();
+    geometry = await lobbyFooterGeometry(page);
+    expect(geometry.accessFooterVerticalOverlap).toBeLessThan(0.5);
+    expect(geometry.accessClippedTop).toBeLessThanOrEqual(0);
+    expect(geometry.accessClippedBottom).toBeLessThan(0.5);
+    expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
+    if (process.env.CAISSA_CAPTURE_ONLINE_MICRO_POLISH === '1') {
+        await page.screenshot({ path: 'test-results/online-micro-polish-new-game-mobile-footer-390x844.png', fullPage: true });
+    }
+
+    harness.authSignedIn = true;
+    await page.reload();
+    await expect(access).toBeHidden();
+    await expect(tournament).toBeVisible();
+});
+
+test('mobile navigation scrolls clear of the board and leaves footer access reachable', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.authSignedIn = false;
+    harness.config = {
+        ...harness.config,
+        capabilities: {
+            ...harness.config.capabilities,
+            guestPlay: true,
+            tournaments: false
+        }
+    };
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/online');
+
+    const top = await mobileNavigationGeometry(page);
+    expect(top.navigationBoardIntersection).toBe(0);
+    expect(top.navigationTop).toBeGreaterThanOrEqual(0);
+    if (process.env.CAISSA_CAPTURE_ONLINE_MOBILE_NAV === '1') {
+        await page.screenshot({ path: 'test-results/online-mobile-nav-top-390x844.png' });
+    }
+
+    const boardDocumentTop = await page.locator('#board-shell').evaluate(element => element.getBoundingClientRect().top + scrollY);
+    await page.evaluate(target => scrollTo(0, target), Math.max(1, Math.round(boardDocumentTop - 22)));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const middle = await mobileNavigationGeometry(page);
+    expect(middle.navigationBoardIntersection).toBe(0);
+    expect(middle.navigationBottom).toBeLessThanOrEqual(0);
+    expect(middle.boardProbeInsideBoard).toBe(true);
+    if (process.env.CAISSA_CAPTURE_ONLINE_MOBILE_NAV === '1') {
+        await page.screenshot({ path: 'test-results/online-mobile-nav-middle-390x844.png' });
+    }
+
+    const body = page.locator('.workspace-body');
+    await body.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await page.locator('#lobby-access').scrollIntoViewIfNeeded();
+    await expect(page.locator('#lobby-access')).toBeInViewport();
+    await expect(page.getByRole('link', { name: 'Log in' })).toBeInViewport();
+    await expect(page.getByRole('link', { name: 'Sign up' })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Play as Guest' })).toBeInViewport();
+    const bottom = await mobileNavigationGeometry(page);
+    expect(bottom.navigationBoardIntersection).toBe(0);
+    expect(bottom.navigationBottom).toBeLessThanOrEqual(0);
+    if (process.env.CAISSA_CAPTURE_ONLINE_MOBILE_NAV === '1') {
+        await page.screenshot({ path: 'test-results/online-mobile-nav-footer-390x844.png' });
+    }
 });
 
 test('custom Minutes and Increment fields align on desktop and narrow mobile', async ({ page }) => {
@@ -657,6 +876,50 @@ async function customClockGeometry(page) {
             return { x: value.x, y: value.y, width: value.width, height: value.height };
         };
         return { minutes: rect('custom-minutes'), increment: rect('custom-increment') };
+    });
+}
+
+async function lobbyFooterGeometry(page) {
+    return page.evaluate(() => {
+        const rectangle = selector => {
+            const value = document.querySelector(selector).getBoundingClientRect();
+            return { x: value.x, y: value.y, right: value.right, bottom: value.bottom, width: value.width, height: value.height };
+        };
+        const body = rectangle('.workspace-body');
+        const access = rectangle('#lobby-access');
+        const footer = rectangle('.workspace-foot');
+        const tournament = rectangle('#browse-tournaments');
+        const actionRows = Array.from(document.querySelectorAll('.lobby-access__actions > *'))
+            .map(element => element.getBoundingClientRect().y);
+        const intersection = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x))
+            * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y));
+        return {
+            actionRowDelta: Math.max(...actionRows) - Math.min(...actionRows),
+            tournamentBeforeAccess: tournament.bottom <= access.y,
+            accessFooterIntersection: intersection(access, footer),
+            accessFooterVerticalOverlap: Math.max(0, Math.min(access.bottom, footer.bottom) - Math.max(access.y, footer.y)),
+            accessClippedTop: body.y - access.y,
+            accessClippedBottom: access.bottom - body.bottom,
+            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+    });
+}
+
+async function mobileNavigationGeometry(page) {
+    return page.evaluate(() => {
+        const navigation = document.querySelector('.online-side-menu>summary').getBoundingClientRect();
+        const board = document.querySelector('#board-shell').getBoundingClientRect();
+        const overlapWidth = Math.max(0, Math.min(navigation.right, board.right) - Math.max(navigation.left, board.left));
+        const overlapHeight = Math.max(0, Math.min(navigation.bottom, board.bottom) - Math.max(navigation.top, board.top));
+        const probeX = Math.max(board.left + 16, 16);
+        const probeY = Math.max(board.top + 16, 16);
+        const target = document.elementFromPoint(probeX, probeY);
+        return {
+            navigationTop: navigation.top,
+            navigationBottom: navigation.bottom,
+            navigationBoardIntersection: overlapWidth * overlapHeight,
+            boardProbeInsideBoard: Boolean(target?.closest('#board-shell'))
+        };
     });
 }
 
@@ -701,6 +964,7 @@ async function onlineLayoutGeometry(page) {
             moveListOverflowY: getComputedStyle(document.querySelector('.move-list')).overflowY,
             horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
             verticalOverflow: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+            boardPanelIntersection: intersectionArea(boardColumn, panel),
             menuBoardIntersection: intersectionArea(menuTrigger, boardColumn)
         };
     });

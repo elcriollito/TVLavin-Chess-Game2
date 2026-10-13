@@ -347,7 +347,7 @@ body.online-page{position:relative;overflow-x:hidden}
 }
 
 @media(max-width:900px){
-    .online-menu-shell{top:7px;left:8px}
+    .online-menu-shell{position:absolute;top:7px;left:8px}
     .online-side-menu>summary{width:40px;height:40px;border-radius:9px;font-size:21px}
     .online-side-menu__panel{top:-3px;left:-3px;padding-top:60px}
     .online-main{width:min(94vw,700px);padding:52px 0 24px}
@@ -362,28 +362,58 @@ body.online-page{position:relative;overflow-x:hidden}
 
 /* Lobby information architecture: real Online history and presence stay
    visually distinct from capabilities that remain staged for later. */
-.guest-note{margin:8px 0 0;text-align:center;color:var(--online-muted);font-size:10px;line-height:1.4}
+.workspace-body>[role=tabpanel]{min-height:100%}
+#panel-new{height:100%}
+#lobby-view{min-height:100%;display:flex;flex-direction:column}
+#lobby-view[hidden]{display:none}
+#find-game{border-color:#78b94f;background:linear-gradient(#88c957,#66a83f);color:#0d1a11}
+.guest-note{margin:9px 0 0;text-align:center;color:#afbbb4;font-size:10px;line-height:1.45}
 .guest-note[hidden]{display:none}
-.lobby-secondary #play-as-guest{border-color:#826b3c;color:#f1d28f;background:#272519}
-.lobby-secondary #play-as-guest:disabled{opacity:.55;cursor:wait}
-.games-directory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.games-column{min-width:0;min-height:150px;padding:13px;border:1px solid var(--online-line);border-radius:10px;background:#122019}
-.games-column>header{display:flex;align-items:center;gap:9px;padding-bottom:10px;border-bottom:1px solid #293a32}
-.games-column>header>span{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:#213329;color:var(--online-accent);font:500 19px/1 Georgia,serif}
-.games-column h3{margin:0;font:500 15px/1.2 Georgia,serif}
-.games-column small{display:block;margin-top:3px;color:var(--online-accent);font-size:8px;letter-spacing:.05em;text-transform:uppercase}
-.games-column>p,.games-column>div>p{margin:11px 0 0;color:var(--online-muted);font-size:10px;line-height:1.45}
-.games-column--history{grid-column:span 2;min-height:170px}
-.games-column .games-list{margin-top:10px}
-.games-column .game-row{padding:9px}
+.lobby-secondary{display:grid;grid-template-columns:1fr;gap:8px;margin:9px 0 12px}
+.lobby-secondary button{width:100%;min-height:39px}
+.tournament-cta{display:grid!important;grid-template-columns:auto auto auto;align-items:center;justify-content:center;gap:9px;min-height:49px!important;border-color:#8a6b31!important;background:linear-gradient(135deg,#382817,#302318)!important;color:#f0c76e!important}
+.tournament-cta>span{font-size:17px;line-height:1}
+.tournament-cta>strong{font-size:13px}
+.tournament-cta>small{color:#d9bd82;font-size:9px;letter-spacing:.03em}
+.tournament-cta[data-availability=preview]{border-color:#607b64!important;background:linear-gradient(135deg,#1b3025,#17281f)!important}
+.lobby-access{flex:none;margin-top:auto;padding:15px 0 2px;border-top:1px solid var(--online-line)}
+.lobby-access[hidden]{display:none}
+.lobby-access>p:first-child{margin:0 0 9px;color:#afbbb4;font-size:10.5px;line-height:1.4;text-align:center}
+.lobby-access__actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.lobby-access__actions a,.lobby-access__actions button{min-height:41px;display:grid;place-items:center;border:1px solid #52695c;border-radius:7px;background:#14231c;color:var(--online-text);padding:7px;text-decoration:none;font-size:11px;font-weight:700;cursor:pointer}
+.lobby-access__actions a:first-child{border-color:#826b3c;color:#f1d28f}
+.lobby-access__actions #play-as-guest{border-color:#5f806c;background:#1a2d24}
+.lobby-access__actions #play-as-guest:disabled{opacity:.55;cursor:wait}
+.games-subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid var(--online-line)}
+.games-subtabs button{min-width:0;border:0;border-bottom:2px solid transparent;background:transparent;color:#afbbb4;padding:11px 5px 10px;cursor:pointer;font-size:10.5px;line-height:1.25}
+.games-subtabs button small{display:block;margin-top:3px;color:#b9a06c;font-size:7.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.games-subtabs button[aria-selected=true]{border-color:var(--online-accent);color:var(--online-text);background:linear-gradient(180deg,transparent,#7d67351a)}
+.games-subtabs button[aria-selected=true] small{color:var(--online-accent)}
+.games-context{min-height:245px;padding-top:4px}
+[data-games-panel][hidden]{display:none!important}
+.games-state{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--online-muted)}
+.games-state>span{color:#627a6b;font:500 34px/1 Georgia,serif}
+.games-state>p{margin:12px 0 4px;color:var(--online-accent);font-size:8px;font-weight:800;letter-spacing:.14em}
+.games-state>h3{margin:0;font:500 21px/1.2 Georgia,serif;color:var(--online-text)}
+.games-state>small{max-width:270px;margin-top:8px;font-size:10px;line-height:1.5}
+.open-games-space{margin-top:12px;padding:13px 2px 0;border-top:1px solid var(--online-line)}
+.open-games-space>header{display:flex;align-items:end;justify-content:space-between;gap:12px}
+.open-games-space>header p{margin:0;color:var(--online-accent);font-size:8px;font-weight:800;letter-spacing:.14em}
+.open-games-space>header h3{margin:3px 0 0;font:500 16px/1.2 Georgia,serif}
+.open-games-space>header>small{color:#b9a06c;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.open-games-space>div>p{margin:9px 0 0;color:var(--online-muted);font-size:10px;line-height:1.45}
 .empty-state--compact{min-height:105px}
 .empty-state--compact p{margin-bottom:0}
 .players-heading{display:flex;align-items:end;justify-content:space-between;gap:14px;padding-bottom:13px;border-bottom:1px solid var(--online-line)}
 .players-heading p{margin:0;color:var(--online-accent);font-size:9px;font-weight:800;letter-spacing:.14em}
 .players-heading h3{margin:3px 0 0;font:500 23px Georgia,serif}
 .players-heading>strong{color:#79c69f;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
-.players-heading+.challenges-list{margin-top:13px}
-.players-list+.player-search{margin-top:16px;padding-top:13px;border-top:1px solid var(--online-line)}
+.players-heading+.player-search{margin:14px 0 0}
+.player-search{color:#afbbb4}
+.player-search input{min-height:40px;padding-left:34px;background-color:#0a1510;background-image:linear-gradient(45deg,transparent 47%,#87958d 48%,#87958d 52%,transparent 53%);background-size:8px 8px;background-position:15px 16px;background-repeat:no-repeat}
+.player-search+.challenges-list{margin-top:12px}
+#players-list.empty-state{min-height:260px}
+.players-list{margin-top:10px}
 .tournament-demo-tabs{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;border-bottom:1px solid var(--online-line)}
 .tournament-demo-tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--online-muted);padding:9px;cursor:pointer}
 .tournament-demo-tabs button[aria-selected=true]{border-color:var(--online-accent);color:var(--online-text)}
@@ -394,8 +424,22 @@ body.online-page{position:relative;overflow-x:hidden}
 .tournament-game-row span{color:var(--online-muted);font-size:10px}
 
 @media(max-width:390px){
-    .games-directory{grid-template-columns:1fr}
-    .games-column--history{grid-column:auto}
-    .lobby-secondary{flex-wrap:wrap}
-    .lobby-secondary button{flex-basis:calc(50% - 4px)}
+    .games-subtabs button{padding-inline:3px;font-size:9px}
+    .lobby-access__actions{grid-template-columns:1fr 1fr}
+    .lobby-access__actions #play-as-guest{grid-column:1/-1}
+    .tournament-cta{grid-template-columns:auto auto;gap:7px}
+    .tournament-cta>small{grid-column:1/-1}
+}
+
+@media(min-width:901px) and (max-height:760px){
+    #panel-new{padding-block:14px}
+    #panel-new .time-grid button{min-height:56px}
+    #panel-new .game-mode-row{margin:11px 0 8px;padding:8px 0}
+    #panel-new .action-guidance{margin-bottom:7px}
+    #panel-new .lobby-secondary{gap:6px;margin-block:7px 8px}
+    #panel-new .lobby-secondary button{min-height:35px}
+    #panel-new .tournament-cta{min-height:43px!important}
+    #panel-new .trust-note{margin-top:9px}
+    #panel-new .lobby-access{padding-top:10px}
+    #panel-new .lobby-access__actions a,#panel-new .lobby-access__actions button{min-height:36px}
 }

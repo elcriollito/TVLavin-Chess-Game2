@@ -17,7 +17,9 @@ const ui = {
     lobby: $('lobby-view'), queue: $('queue-view'), game: $('game-view'), result: $('result-view'),
     find: $('find-game'), cancel: $('cancel-search'), rated: $('rated-toggle'), ratedHelp: $('rated-help'),
     ratedControl: $('rated-control'), gameModeLabel: $('game-mode-label'), browseTournaments: $('browse-tournaments'),
-    guest: $('play-as-guest'), guestNote: $('guest-note'),
+    tournamentAvailability: $('tournament-availability'),
+    guest: $('play-as-guest'), guestNote: $('guest-note'), lobbyAccess: $('lobby-access'),
+    login: $('online-login'), signup: $('online-signup'),
     queueControl: $('queue-control'), queueElapsed: $('queue-elapsed'), turnCopy: $('turn-copy'),
     moveList: $('move-list'), resultTitle: $('result-title'), resultDetail: $('result-detail'),
     ratingChange: $('rating-change'), gamesList: $('games-list'), playersList: $('players-list'), playersCount: $('players-count'),
@@ -66,6 +68,7 @@ document.addEventListener('visibilitychange', () => {
 bindControls();
 restoreSelectedControlFromLocation();
 selectTab('new');
+selectGamesView('daily');
 selectTournamentView('standings');
 setInterval(renderClocks, 100);
 if (TOURNAMENT_DEMO) renderTournamentDemo();
@@ -109,7 +112,9 @@ function configureCapabilities(capabilities) {
 
     const tournamentsEnabled = capabilities.tournaments === true;
     ui.tournamentCard.hidden = !tournamentsEnabled;
-    ui.browseTournaments.hidden = !tournamentsEnabled;
+    ui.browseTournaments.dataset.availability = tournamentsEnabled ? 'preview' : 'coming-soon';
+    ui.browseTournaments.setAttribute('aria-disabled', String(!tournamentsEnabled));
+    ui.tournamentAvailability.textContent = tournamentsEnabled ? 'Internal Preview' : 'Coming Soon';
 
     const openGamesEnabled = capabilities.openGames === true;
     $('games-open-unavailable').hidden = openGamesEnabled;
@@ -124,6 +129,7 @@ function configureCapabilities(capabilities) {
     const guestEnabled = capabilities.guestPlay === true;
     ui.guest.hidden = !guestEnabled || model.auth?.isSignedIn === true;
     ui.guestNote.hidden = !guestEnabled || model.auth?.isSignedIn === true;
+    ui.lobbyAccess.hidden = model.auth?.isSignedIn === true;
 }
 
 function onAuthEvent(event) {
@@ -202,6 +208,10 @@ function bindControls() {
         tab.addEventListener('keydown', handleTabKeydown);
     });
     document.querySelectorAll('[data-control]').forEach(button => button.addEventListener('click', () => selectTimeControl(button)));
+    document.querySelectorAll('[data-games-tab]').forEach(tab => {
+        tab.addEventListener('click', () => selectGamesView(tab.dataset.gamesTab));
+        tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-games-tab]', 'gamesTab', selectGamesView));
+    });
     [$('custom-minutes'), $('custom-increment')].forEach(input => input.addEventListener('input', updateSignInHref));
     ui.find.addEventListener('click', findGame);
     ui.guest.addEventListener('click', playAsGuest);
@@ -212,7 +222,15 @@ function bindControls() {
         if (!model.auth?.isSignedIn) return showSignInDialog(event.currentTarget);
         selectTab('players');
     });
-    $('browse-tournaments').addEventListener('click', () => { selectTab('games'); $('tournament-card').scrollIntoView({ behavior: 'smooth' }); });
+    ui.browseTournaments.addEventListener('click', () => {
+        if (TOURNAMENT_DEMO) return selectTab('tournament');
+        if (model.config?.capabilities?.tournaments !== true) {
+            showToast('CAISSA Tournament Season is coming soon.');
+            return;
+        }
+        selectTab('games');
+        ui.tournamentCard.scrollIntoView({ behavior: 'smooth' });
+    });
     $('resign-game').addEventListener('click', () => confirmAction('Resign this game?', 'This result is final and will be recorded.', 'Resign')
         .then(confirmed => confirmed && sendGameCommand('game.resign')));
     $('offer-draw').addEventListener('click', handleDrawAction);
@@ -275,6 +293,17 @@ function selectTab(name) {
 
 function handleTabKeydown(event) {
     handleRovingTabs(event, '[data-tab]', 'tab', selectTab);
+}
+
+function selectGamesView(name) {
+    document.querySelectorAll('[data-games-tab]').forEach(tab => {
+        const selected = tab.dataset.gamesTab === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll('[data-games-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.gamesPanel !== name;
+    });
 }
 
 function handleRovingTabs(event, selector, datasetKey, select) {
@@ -347,7 +376,7 @@ async function findGame() {
         const envelope = await api.command('queue.join', selectedQueuePayload());
         applyState(envelope.data?.state);
     } catch (error) { handleError(error, 'Could not join matchmaking.'); }
-    finally { setBusy(ui.find, false, 'Find an opponent'); }
+    finally { setBusy(ui.find, false, 'Start Game'); }
 }
 
 async function cancelSearch() {
@@ -428,7 +457,7 @@ function renderLobby() {
     showView('lobby');
     ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
     ui.status.textContent = 'Choose a time control and enter matchmaking.';
-    ui.find.disabled = false; ui.find.textContent = 'Find an opponent';
+    ui.find.disabled = false; ui.find.textContent = 'Start Game';
     ui.curtain.hidden = true;
     board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
     board.setInteractive(false);
@@ -933,7 +962,7 @@ function renderSignedOut() {
     showView('lobby');
     ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
     setConnection('offline', 'Sign in required');
-    ui.find.disabled = false; ui.find.textContent = 'Start game';
+    ui.find.disabled = false; ui.find.textContent = 'Start Game';
     ui.account.textContent = 'Sign in';
     ui.status.textContent = 'Choose a time control. Sign in when you are ready to play.';
     ui.curtain.hidden = true;
@@ -981,7 +1010,13 @@ function boundedInputValue(input) {
 }
 
 function signInUrl() { return `/signin?redirect_url=${encodeURIComponent(selectedOnlineReturnPath())}`; }
-function updateSignInHref() { if (!model.auth?.isSignedIn || model.auth?.isGuest) ui.account.href = signInUrl(); }
+function signUpUrl() { return `/signup?redirect_url=${encodeURIComponent(selectedOnlineReturnPath())}`; }
+function updateSignInHref() {
+    const signedOutOrGuest = !model.auth?.isSignedIn || model.auth?.isGuest;
+    if (signedOutOrGuest) ui.account.href = signInUrl();
+    ui.login.href = signInUrl();
+    ui.signup.href = signUpUrl();
+}
 
 async function onlineAccessToken() {
     if (model.auth?.isGuest) return model.guestSession?.getToken?.() || null;

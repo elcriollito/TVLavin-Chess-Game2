@@ -86,10 +86,19 @@
                             <div class="custom-clock" id="custom-clock" hidden><label><span>Minutes</span><input id="custom-minutes" type="number" min="1" max="180" value="7"></label><label><span>Increment (seconds)</span><input id="custom-increment" type="number" min="0" max="60" value="3"></label></div>
                             <div class="game-mode-row"><span><b id="game-mode-label">Casual</b><small id="rated-help">Casual games do not change ratings.</small></span><label id="rated-control" hidden>Rated<input id="rated-toggle" type="checkbox" role="switch" aria-label="Rated game"></label></div>
                             <p class="action-guidance" id="room-status" role="status" aria-live="polite">Preparing the playing room…</p>
-                            <button class="primary-action" id="find-game" disabled>Find an opponent</button>
-                            <div class="lobby-secondary"><button id="play-as-guest" hidden>Play as Guest</button><button id="play-friend">Play a Friend</button><button id="browse-tournaments" hidden>Tournaments</button></div>
-                            <p class="guest-note" id="guest-note" hidden>Guest identity is temporary. Guest games are always unrated.</p>
+                            <button class="primary-action" id="find-game" disabled>Start Game</button>
+                            <div class="lobby-secondary">
+                                <button id="play-friend">Play a Friend</button>
+                                <button class="tournament-cta" id="browse-tournaments" type="button" aria-disabled="true">
+                                    <span aria-hidden="true">🏆</span><strong>Tournaments</strong><small id="tournament-availability">Coming Soon</small>
+                                </button>
+                            </div>
                             <p class="trust-note"><span aria-hidden="true">◆</span> Legal moves, clocks and results are verified by CAISSA's server.</p>
+                            <div class="lobby-access" id="lobby-access">
+                                <p>Play with a CAISSA account or as a guest.</p>
+                                <div class="lobby-access__actions"><a id="online-login" href="/signin?redirect_url=%2Fonline">Log in</a><a id="online-signup" href="/signup?redirect_url=%2Fonline">Sign up</a><button id="play-as-guest" hidden>Play as Guest</button></div>
+                                <p class="guest-note" id="guest-note" hidden>Guest identity is temporary. Guest games are always unrated.</p>
+                            </div>
                         </div>
 
                         <div id="queue-view" hidden>
@@ -121,34 +130,36 @@
                     </section>
 
                     <section id="panel-games" role="tabpanel" aria-labelledby="tab-games" data-panel="games" hidden>
-                        <div class="games-directory" aria-label="Game sections">
-                            <section class="games-column games-column--future" aria-labelledby="daily-games-title">
-                                <header><span aria-hidden="true">▷</span><div><h3 id="daily-games-title">Daily Games</h3><small>Coming soon</small></div></header>
-                                <p>Correspondence games with a longer clock will arrive in a later release.</p>
+                        <div class="games-subtabs" role="tablist" aria-label="Game categories">
+                            <button id="games-tab-daily" role="tab" aria-selected="true" aria-controls="games-panel-daily" data-games-tab="daily">Daily Games <small>Coming soon</small></button>
+                            <button id="games-tab-history" role="tab" aria-selected="false" aria-controls="games-panel-history" data-games-tab="history" tabindex="-1">Game History</button>
+                            <button id="games-tab-watch" role="tab" aria-selected="false" aria-controls="games-panel-watch" data-games-tab="watch" tabindex="-1">Watch Games <small id="games-watch-status">Coming soon</small></button>
+                        </div>
+                        <div class="games-context">
+                            <section id="games-panel-daily" role="tabpanel" aria-labelledby="games-tab-daily" data-games-panel="daily">
+                                <div class="games-state"><span aria-hidden="true">▷</span><p>COMING SOON</p><h3>Daily Games</h3><small>Correspondence games with longer clocks are planned for a later release.</small></div>
                             </section>
-                            <section class="games-column games-column--history" aria-labelledby="game-history-title">
-                                <header><span aria-hidden="true">♜</span><div><h3 id="game-history-title">Game History</h3><small>Your completed games</small></div></header>
+                            <section id="games-panel-history" role="tabpanel" aria-labelledby="games-tab-history" data-games-panel="history" hidden>
                                 <div id="games-list" class="empty-state empty-state--compact"><strong>No games yet</strong><p>Your first online game will be saved automatically.</p></div>
                             </section>
-                            <section class="games-column games-column--watch" aria-labelledby="watch-games-title">
-                                <header><span aria-hidden="true">◉</span><div><h3 id="watch-games-title">Watch Games</h3><small id="games-watch-status">Coming soon</small></div></header>
-                                <div id="games-watch-unavailable"><p>Live CAISSA Online spectating is not enabled in this version.</p></div>
-                                <div id="games-watch-empty" hidden><p>No public games are available to watch right now.</p></div>
-                            </section>
-                            <section class="games-column games-column--open" id="games-open" aria-labelledby="open-games-title">
-                                <header><span aria-hidden="true">♟</span><div><h3 id="open-games-title">Open Games</h3><small id="games-open-status">Coming soon</small></div></header>
-                                <div id="games-open-unavailable"><p>Public joinable games are not enabled in this version.</p></div>
-                                <div id="games-open-empty" hidden><p>No open games right now. Check again soon.</p></div>
+                            <section id="games-panel-watch" role="tabpanel" aria-labelledby="games-tab-watch" data-games-panel="watch" hidden>
+                                <div id="games-watch-unavailable" class="games-state"><span aria-hidden="true">◉</span><p>COMING SOON</p><h3>Watch Games</h3><small>Live CAISSA Online spectating is not enabled in this version.</small></div>
+                                <div id="games-watch-empty" class="games-state" hidden><span aria-hidden="true">◉</span><h3>No live games</h3><small>No public games are available to watch right now.</small></div>
                             </section>
                         </div>
+                        <section class="open-games-space" id="games-open" aria-labelledby="open-games-title">
+                            <header><div><p>LOBBY DIRECTORY</p><h3 id="open-games-title">Open Games</h3></div><small id="games-open-status">Coming soon</small></header>
+                            <div id="games-open-unavailable"><p>Public joinable games are not enabled in this version.</p></div>
+                            <div id="games-open-empty" hidden><p>No open games right now. Check again soon.</p></div>
+                        </section>
                         <div class="tournament-card" id="tournament-card" hidden><p>TOURNAMENT HALL</p><h3>Live events</h3><p>Scheduled and live events appear here when tournament play is available.</p><button id="open-tournaments">View tournaments</button></div>
                     </section>
 
                     <section id="panel-players" role="tabpanel" aria-labelledby="tab-players" data-panel="players" hidden>
                         <div class="players-heading"><div><p>ACTIVE NOW</p><h3>Players</h3></div><strong id="players-count" aria-live="polite">0 online</strong></div>
+                        <label class="player-search">Filter active players<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
                         <div id="challenges-list" class="challenges-list" aria-live="polite"></div>
                         <div id="players-list" class="empty-state"><span aria-hidden="true">♞</span><strong>No players online</strong><p>Players who are available to play will appear here.</p></div>
-                        <label class="player-search">Filter active players<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
                     </section>
 
                     <section id="panel-tournament" role="tabpanel" aria-labelledby="tab-tournament" data-panel="tournament" hidden>

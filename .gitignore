@@ -75,4 +75,5 @@ lichess_db_puzzle.csv*
 *.png
 !scanner/recognition/datasets/piece-sets/assets/*/normalized/*.png
 !docs/visual-evidence/*.png
+!docs/release/caissa-online-native-v1/evidence/*.png
 r2_v2_list.json
