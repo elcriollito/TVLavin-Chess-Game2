@@ -1062,7 +1062,10 @@ function formatPlayerMeta(player) {
 }
 function isGuestSubject(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '')); }
 function resultLabel(value) { return ({ checkmate: 'Checkmate', stalemate: 'Stalemate', repetition: 'Threefold repetition', 'insufficient-material': 'Insufficient material', draw: 'Draw', resignation: 'Resignation', agreement: 'Draw agreed', timeout: 'Time expired' })[value] || 'Game complete'; }
-function announceOpponentMove(game) { if (game.moves?.at(-1)?.color !== playerColor(game)) ui.status.textContent = `${opponentName(game, playerColor(game))} moved ${game.moves.at(-1).san}.`; }
+function announceOpponentMove(game) {
+    const move = game.moves?.at(-1);
+    if (move && move.color !== playerColor(game)) ui.status.textContent = `${opponentName(game, playerColor(game))} moved ${move.san}.`;
+}
 function resetPlayerStrips() { fillEmpty(ui.top, 'Waiting for opponent'); fillEmpty(ui.bottom, model.auth?.fullName || 'You'); ui.topClock.textContent = '—'; ui.bottomClock.textContent = '—'; }
 function fillEmpty(strip, name) { strip.querySelector('.player-name').textContent = name; strip.querySelector('.player-rating').textContent = '—'; strip.querySelector('.player-avatar').textContent = initials(name); strip.dataset.running = 'false'; }
 function showBoardError(intent, message) { board.highlightSquares([{ square: intent.from, type: 'error' }, { square: intent.to, type: 'error' }]); showToast(message); setTimeout(() => board.clearHighlights(), 900); }

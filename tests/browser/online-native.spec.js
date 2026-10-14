@@ -961,6 +961,12 @@ test('active game actions stay in a stable footer while move history owns the sc
 
 test('draw and resign actions are canonical, single-submit, and restore across reconnect', async ({ page }) => {
     const harness = harnesses.get(page);
+    const productWarnings = [];
+    page.on('console', message => {
+        if (message.type() === 'warning' && message.text().startsWith('CAISSA Online:')) {
+            productWarnings.push(message.text());
+        }
+    });
     let game = activeGame();
     harness.state = { ...harness.state, game, recentGames: [game] };
     harness.gameCommandDelayMs = 250;
@@ -1000,6 +1006,7 @@ test('draw and resign actions are canonical, single-submit, and restore across r
     await expect(page.locator('#result-view')).toBeVisible();
     await expect(page.locator('.game-action-footer')).toBeHidden();
     expect(harness.commandTypes.filter(type => type === 'game.resign')).toHaveLength(1);
+    expect(productWarnings).toEqual([]);
 });
 
 async function customClockGeometry(page) {
