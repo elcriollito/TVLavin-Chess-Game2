@@ -17,6 +17,7 @@
 .online-layout{
     --online-workspace-width:clamp(360px,28vw,420px);
     --online-layout-gap:clamp(24px,2vw,32px);
+    --online-player-strip-height:60px;
     --online-board-size:min(
         calc(100dvh - 246px),
         calc(100cqw - var(--online-workspace-width) - var(--online-layout-gap))
@@ -32,7 +33,7 @@
     width:var(--online-board-size);
     min-width:0;
     display:grid;
-    grid-template-rows:60px var(--online-board-size) 60px;
+    grid-template-rows:var(--online-player-strip-height) var(--online-board-size) var(--online-player-strip-height);
     justify-self:stretch;
 }
 .board-shell{
@@ -41,7 +42,7 @@
 }
 .play-workspace{
     width:100%;
-    height:auto;
+    height:calc(var(--online-board-size) + var(--online-player-strip-height) + var(--online-player-strip-height));
     min-height:0;
     align-self:stretch;
 }
@@ -62,8 +63,8 @@
     .online-layout{--online-board-size:min(
         calc(100dvh - 192px),
         calc(100cqw - var(--online-workspace-width) - var(--online-layout-gap))
-    )}
-    .board-column{grid-template-rows:50px var(--online-board-size) 50px}
+    );--online-player-strip-height:50px}
+    .board-column{grid-template-rows:var(--online-player-strip-height) var(--online-board-size) var(--online-player-strip-height)}
     .player-strip{height:50px}
     .player-avatar{width:32px;height:32px}
     .player-clock{font-size:21px}
@@ -160,13 +161,53 @@
     line-height:1.4;
     text-align:center;
 }
-.game-actions{
-    position:sticky;
-    bottom:0;
-    z-index:1;
-    margin-top:auto;
-    background:linear-gradient(180deg,#0f1b16e6 0,#0f1b16 28%);
+.workspace-body:has(#game-view:not([hidden])){
+    overflow:hidden;
+    scrollbar-gutter:auto;
 }
+#panel-new:has(#game-view:not([hidden])){
+    min-height:0;
+    padding-bottom:0;
+}
+#game-view:not([hidden]){
+    height:100%;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+}
+#game-view .move-list{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+}
+.game-action-footer{
+    flex:none;
+    margin-top:auto;
+    min-height:69px;
+    padding:14px 0 14px;
+    border-top:1px solid var(--online-line);
+}
+.game-actions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
+    margin:0;
+    padding:0;
+    border:0;
+    background:none;
+}
+.game-actions #offer-draw{grid-column:span 2}
+.game-actions:has(#decline-draw:not([hidden])) #offer-draw{grid-column:span 1}
+.game-actions button{
+    min-width:0;
+    min-height:44px;
+    font-size:11px;
+    line-height:1.2;
+    white-space:nowrap;
+}
+.game-actions[aria-busy=true] button{cursor:wait}
 .result-actions--primary{margin-top:18px}
 .result-actions--primary button{min-height:47px}
 .result-actions--secondary{margin-top:8px;padding-top:0}

@@ -16,9 +16,10 @@ test('online shell is board-first with one tabbed workspace and accessible statu
     assert.match(css, /\.online-main\{container-type:inline-size\}/);
     assert.match(css, /calc\(100cqw - var\(--online-workspace-width\) - var\(--online-layout-gap\)\)/);
     assert.match(css, /justify-content:center/);
-    assert.match(css, /grid-template-rows:60px var\(--online-board-size\) 60px/);
+    assert.match(css, /--online-player-strip-height:60px/);
+    assert.match(css, /grid-template-rows:var\(--online-player-strip-height\) var\(--online-board-size\) var\(--online-player-strip-height\)/);
     assert.match(css, /\.play-workspace\{[\s\S]*?align-self:stretch/);
-    assert.match(css, /\.move-list\{[\s\S]*?overflow:visible/);
+    assert.match(css, /#game-view \.move-list\{[\s\S]*?overflow-y:auto/);
 });
 
 test('online shell removes horizontal chrome and keeps accessible side navigation', () => {
@@ -124,4 +125,18 @@ test('custom clock labels are complete and share one aligned control grid', () =
     assert.doesNotMatch(html, /<span>seconds<\/span>/);
     assert.match(css, /\.custom-clock\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)[^}]*align-items:start/);
     assert.match(css, /\.custom-clock input\{[^}]*height:40px/);
+});
+
+test('active game actions own a semantic footer above the informational footer', () => {
+    assert.match(html, /id="game-view"[\s\S]*?<footer class="game-action-footer" aria-label="Game actions">[\s\S]*?id="offer-draw"[\s\S]*?id="decline-draw"[\s\S]*?id="resign-game"[\s\S]*?<\/footer>[\s\S]*?<\/div>[\s\S]*?<footer class="workspace-foot"/);
+    assert.equal((html.match(/id="offer-draw"/g) || []).length, 1);
+    assert.equal((html.match(/id="decline-draw"/g) || []).length, 1);
+    assert.equal((html.match(/id="resign-game"/g) || []).length, 1);
+    assert.match(css, /#game-view:not\(\[hidden\]\)\{[\s\S]*?display:flex;[\s\S]*?flex-direction:column/);
+    assert.match(css, /#game-view \.move-list\{[\s\S]*?flex:1 1 auto;[\s\S]*?overflow-y:auto/);
+    assert.match(css, /\.game-action-footer\{[\s\S]*?flex:none;[\s\S]*?margin-top:auto/);
+    assert.match(css, /\.game-actions\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+    const footerRule = css.match(/\.game-action-footer\{[^}]*\}/)?.[0] || '';
+    const actionsRule = css.match(/\.game-actions\{[^}]*\}/)?.[0] || '';
+    assert.doesNotMatch(`${footerRule}${actionsRule}`, /position:(?:absolute|fixed|sticky)/);
 });

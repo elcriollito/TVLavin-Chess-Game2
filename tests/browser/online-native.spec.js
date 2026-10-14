@@ -17,6 +17,7 @@ test.beforeEach(async ({ page }) => {
         moveCommands: 0,
         moveDelayMs: 0,
         moveRequestDurationMs: 0,
+        gameCommandDelayMs: 0,
         nextStateSnapshots: [],
         authSignedIn: true,
         commandTypes: [],
@@ -59,8 +60,23 @@ test.beforeEach(async ({ page }) => {
                 harness.moveRequestDurationMs = Date.now() - moveStartedAt;
                 harness.state = nextState;
             }
+            if (harness.gameCommandDelayMs && ['game.drawOffer', 'game.drawAccept', 'game.drawDecline', 'game.resign'].includes(command.eventType)) {
+                await new Promise(resolve => setTimeout(resolve, harness.gameCommandDelayMs));
+            }
             if (command.eventType === 'game.resign') {
                 const completed = completedGame(harness.state.game);
+                harness.state = { ...harness.state, game: null, recentGames: [completed] };
+                responseState = { ...harness.state, game: completed };
+            } else if (command.eventType === 'game.drawOffer') {
+                const offered = { ...harness.state.game, draw_offer_by: 'user_white', version: Number(harness.state.game.version) + 1 };
+                harness.state = { ...harness.state, game: offered, recentGames: [offered] };
+                responseState = harness.state;
+            } else if (command.eventType === 'game.drawDecline') {
+                const declined = { ...harness.state.game, draw_offer_by: null, version: Number(harness.state.game.version) + 1 };
+                harness.state = { ...harness.state, game: declined, recentGames: [declined] };
+                responseState = harness.state;
+            } else if (command.eventType === 'game.drawAccept') {
+                const completed = drawnGame(harness.state.game);
                 harness.state = { ...harness.state, game: null, recentGames: [completed] };
                 responseState = { ...harness.state, game: completed };
             } else {
@@ -313,7 +329,7 @@ test('isolated Tournament panel uses synthetic demo data and stays below the boa
     expect(mobile.overflowX).toBeLessThanOrEqual(0);
 });
 
-test('board group and workspace share aligned desktop geometry and one scrollable body', async ({ page }) => {
+test('board group and workspace share aligned desktop geometry and contextual scroll ownership', async ({ page }) => {
     const desktopCases = [
         { name: 'desktop', width: 1440, height: 900 },
         { name: 'short', width: 1440, height: 720 },
@@ -342,7 +358,7 @@ test('board group and workspace share aligned desktop geometry and one scrollabl
         expect(Math.abs(geometry.head.y - geometry.panel.y)).toBeLessThanOrEqual(1);
         expect(Math.abs(geometry.foot.bottom - geometry.panel.bottom)).toBeLessThanOrEqual(1.1);
         expect(geometry.bodyOverflowY).toBe('auto');
-        expect(geometry.moveListOverflowY).toBe('visible');
+        expect(geometry.moveListOverflowY).toBe('auto');
         expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
         expect(geometry.verticalOverflow).toBeLessThanOrEqual(0);
         expect(geometry.menuBoardIntersection).toBe(0);
@@ -869,6 +885,123 @@ test('custom Minutes and Increment fields align on desktop and narrow mobile', a
     }
 });
 
+test('active game actions stay in a stable footer while move history owns the scroll', async ({ page }) => {
+    const harness = harnesses.get(page);
+    const moves = Array.from({ length: 80 }, (_, index) => ({
+        ply: index + 1,
+        from: index % 2 ? 'e7' : 'e2',
+        to: index % 2 ? 'e5' : 'e4',
+        san: index % 2 ? 'e5' : 'e4',
+        color: index % 2 ? 'black' : 'white'
+    }));
+    const game = { ...activeGame(), moves, ply: moves.length, version: moves.length + 1 };
+    harness.state = { ...harness.state, game, recentGames: [game] };
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/online');
+    await expect(page.locator('.game-action-footer')).toBeVisible();
+    await expect(page.locator('#offer-draw')).toHaveText('Offer draw');
+    await expect(page.locator('#decline-draw')).toBeHidden();
+    await expect(page.locator('#resign-game')).toBeVisible();
+    const normal = await gameActionFooterGeometry(page);
+    assertGameActionFooterGeometry(normal);
+    expect(normal.visibleButtons).toEqual(['Offer draw', 'Resign']);
+    if (process.env.CAISSA_CAPTURE_GAME_ACTION_FOOTER === '1') {
+        await page.screenshot({ path: 'test-results/game-action-footer/after-normal-1440x900.png', fullPage: true });
+    }
+
+    const scrollProbe = await page.locator('#move-list').evaluate(element => {
+        element.scrollTop = element.scrollHeight;
+        return { scrollTop: element.scrollTop, max: element.scrollHeight - element.clientHeight };
+    });
+    expect(scrollProbe.max).toBeGreaterThan(0);
+    expect(scrollProbe.scrollTop).toBeGreaterThan(0);
+    const afterScroll = await gameActionFooterGeometry(page);
+    expect(Math.abs(afterScroll.actionFooter.y - normal.actionFooter.y)).toBeLessThan(1);
+
+    const incoming = { ...game, draw_offer_by: 'user_black', version: game.version + 1 };
+    harness.state = { ...harness.state, game: incoming, recentGames: [incoming] };
+    await page.reload();
+    await expect(page.locator('#offer-draw')).toHaveText('Accept draw');
+    await expect(page.locator('#decline-draw')).toBeVisible();
+    const offered = await gameActionFooterGeometry(page);
+    assertGameActionFooterGeometry(offered);
+    expect(offered.visibleButtons).toEqual(['Accept draw', 'Decline draw', 'Resign']);
+    expect(Math.abs(offered.actionFooter.y - normal.actionFooter.y)).toBeLessThan(1);
+    expect(Math.abs(offered.actionFooter.height - normal.actionFooter.height)).toBeLessThan(1);
+    if (process.env.CAISSA_CAPTURE_GAME_ACTION_FOOTER === '1') {
+        await page.screenshot({ path: 'test-results/game-action-footer/after-incoming-draw-1440x900.png', fullPage: true });
+    }
+
+    for (const viewport of [
+        { width: 1440, height: 720, label: 'short-desktop' },
+        { width: 1152, height: 720, label: 'zoom-125-equivalent' },
+        { width: 820, height: 1024, label: 'tablet' },
+        { width: 390, height: 844, label: 'mobile' }
+    ]) {
+        await page.setViewportSize(viewport);
+        await page.locator('.game-action-footer').scrollIntoViewIfNeeded();
+        const geometry = await gameActionFooterGeometry(page);
+        assertGameActionFooterGeometry(geometry);
+        expect(geometry.minimumButtonHeight).toBeGreaterThanOrEqual(44);
+        expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
+        expect(geometry.boardActionsIntersection).toBe(0);
+        if (process.env.CAISSA_CAPTURE_GAME_ACTION_FOOTER === '1' && viewport.label === 'mobile') {
+            await page.screenshot({ path: 'test-results/game-action-footer/after-incoming-draw-mobile-390x844.png', fullPage: true });
+        }
+    }
+
+    harness.state = { ...harness.state, game, recentGames: [game] };
+    await page.reload();
+    await page.locator('.game-action-footer').scrollIntoViewIfNeeded();
+    if (process.env.CAISSA_CAPTURE_GAME_ACTION_FOOTER === '1') {
+        await page.screenshot({ path: 'test-results/game-action-footer/after-normal-mobile-390x844.png', fullPage: true });
+    }
+});
+
+test('draw and resign actions are canonical, single-submit, and restore across reconnect', async ({ page }) => {
+    const harness = harnesses.get(page);
+    let game = activeGame();
+    harness.state = { ...harness.state, game, recentGames: [game] };
+    harness.gameCommandDelayMs = 250;
+    await page.goto('/online');
+
+    await page.locator('#offer-draw').evaluate(button => { button.click(); button.click(); });
+    await expect(page.locator('.game-actions')).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('#offer-draw')).toBeDisabled();
+    await expect(page.locator('#resign-game')).toBeDisabled();
+    await expect.poll(() => harness.commandTypes.filter(type => type === 'game.drawOffer').length).toBe(1);
+    await expect(page.locator('#offer-draw')).toHaveText('Draw offered');
+    await expect(page.locator('.game-actions')).toHaveAttribute('aria-busy', 'false');
+
+    game = { ...harness.state.game, draw_offer_by: 'user_black', version: harness.state.game.version + 1 };
+    harness.state = { ...harness.state, game, recentGames: [game] };
+    await page.reload();
+    await expect(page.locator('#offer-draw')).toHaveText('Accept draw');
+    await page.locator('#decline-draw').click();
+    await expect(page.locator('#offer-draw')).toHaveText('Offer draw');
+    expect(harness.commandTypes.filter(type => type === 'game.drawDecline')).toHaveLength(1);
+
+    game = { ...harness.state.game, draw_offer_by: 'user_black', version: harness.state.game.version + 1 };
+    harness.state = { ...harness.state, game, recentGames: [game] };
+    await page.reload();
+    await expect(page.locator('#offer-draw')).toHaveText('Accept draw');
+    await page.locator('#offer-draw').click();
+    await page.locator('#confirm-dialog button[value="confirm"]').click();
+    await expect(page.locator('#result-view')).toBeVisible();
+    await expect(page.locator('.game-action-footer')).toBeHidden();
+    expect(harness.commandTypes.filter(type => type === 'game.drawAccept')).toHaveLength(1);
+
+    game = { ...activeGame(), id: '33333333-3333-4333-8333-333333333333' };
+    harness.state = { ...harness.state, game, recentGames: [game] };
+    await page.reload();
+    await page.locator('#resign-game').click();
+    await page.locator('#confirm-dialog button[value="confirm"]').click();
+    await expect(page.locator('#result-view')).toBeVisible();
+    await expect(page.locator('.game-action-footer')).toBeHidden();
+    expect(harness.commandTypes.filter(type => type === 'game.resign')).toHaveLength(1);
+});
+
 async function customClockGeometry(page) {
     return page.evaluate(() => {
         const rect = id => {
@@ -877,6 +1010,46 @@ async function customClockGeometry(page) {
         };
         return { minutes: rect('custom-minutes'), increment: rect('custom-increment') };
     });
+}
+
+async function gameActionFooterGeometry(page) {
+    return page.evaluate(() => {
+        const rect = selector => {
+            const value = document.querySelector(selector).getBoundingClientRect();
+            return { x: value.x, y: value.y, right: value.right, bottom: value.bottom, width: value.width, height: value.height };
+        };
+        const intersection = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x))
+            * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y));
+        const moveList = document.querySelector('#move-list');
+        const actionFooterElement = document.querySelector('.game-action-footer');
+        const actionFooter = rect('.game-action-footer');
+        const infoFooter = rect('.workspace-foot');
+        const board = rect('#board-shell');
+        const buttons = Array.from(document.querySelectorAll('.game-actions button:not([hidden])'));
+        return {
+            actionFooter,
+            infoFooter,
+            moveList: rect('#move-list'),
+            actionInfoGap: infoFooter.y - actionFooter.bottom,
+            actionInfoIntersection: intersection(actionFooter, infoFooter),
+            boardActionsIntersection: intersection(board, actionFooter),
+            moveScrollable: moveList.scrollHeight > moveList.clientHeight,
+            moveOverflowY: getComputedStyle(moveList).overflowY,
+            actionPosition: getComputedStyle(actionFooterElement).position,
+            visibleButtons: buttons.map(button => button.textContent.trim()),
+            minimumButtonHeight: Math.min(...buttons.map(button => button.getBoundingClientRect().height)),
+            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+    });
+}
+
+function assertGameActionFooterGeometry(geometry) {
+    expect(geometry.actionInfoIntersection).toBe(0);
+    expect(geometry.actionInfoGap).toBeGreaterThanOrEqual(0);
+    expect(geometry.actionInfoGap).toBeLessThanOrEqual(1);
+    expect(geometry.moveList.bottom).toBeLessThanOrEqual(geometry.actionFooter.y + 1);
+    expect(geometry.moveOverflowY).toBe('auto');
+    expect(geometry.actionPosition).toBe('static');
 }
 
 async function lobbyFooterGeometry(page) {
@@ -999,6 +1172,18 @@ function completedGame(source = activeGame()) {
         pgn: '[Event "CAISSA Online"]\n[Result "0-1"]\n\n0-1', clock_started_at: null,
         white_rating_after: 1480, white_rating_delta: -20,
         black_rating_after: 1532, black_rating_delta: 20,
+        completed_at: new Date().toISOString()
+    };
+}
+
+function drawnGame(source = activeGame()) {
+    return {
+        ...source,
+        status: 'completed', result: '1/2-1/2', termination: 'agreement', draw_offer_by: null,
+        version: Number(source?.version || 1) + 1,
+        pgn: '[Event "CAISSA Online"]\n[Result "1/2-1/2"]\n\n1/2-1/2', clock_started_at: null,
+        white_rating_after: source.white_rating_before, white_rating_delta: 0,
+        black_rating_after: source.black_rating_before, black_rating_delta: 0,
         completed_at: new Date().toISOString()
     };
 }

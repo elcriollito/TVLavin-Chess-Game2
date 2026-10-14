@@ -40,7 +40,7 @@ const model = {
     challengeNoticeId: null, inactiveChallengeIds: new Set(), respondingChallengeIds: new Set(),
     challengeRequestTargets: new Set(), rematchRequestGameIds: new Set(),
     signInPromptOpener: null, signInRedirecting: false,
-    guestSession: null, guestStarting: false
+    guestSession: null, guestStarting: false, pendingGameCommand: null
 };
 
 const api = createOnlineApi({
@@ -493,11 +493,20 @@ function renderGame(game, options = {}) {
     renderMoves(game.moves || []);
     const ours = game.turn === color;
     ui.turnCopy.textContent = completed ? 'Game over' : ours ? 'Your turn' : `${opponentName(game, color)} to move`;
-    const incomingDraw = game.draw_offer_by && game.draw_offer_by !== model.auth?.userId;
-    $('offer-draw').textContent = incomingDraw ? 'Accept draw' : game.draw_offer_by ? 'Draw offered' : 'Offer draw';
-    $('offer-draw').disabled = !!game.draw_offer_by && !incomingDraw;
-    $('decline-draw').hidden = !incomingDraw;
+    renderGameActions(game);
     if (completed) renderResult(game, color);
+}
+
+function renderGameActions(game) {
+    const incomingDraw = game.draw_offer_by && game.draw_offer_by !== model.auth?.userId;
+    const pending = !!model.pendingGameCommand;
+    const actions = document.querySelector('.game-actions');
+    actions.setAttribute('aria-busy', String(pending));
+    $('offer-draw').textContent = incomingDraw ? 'Accept draw' : game.draw_offer_by ? 'Draw offered' : 'Offer draw';
+    $('offer-draw').disabled = pending || (!!game.draw_offer_by && !incomingDraw);
+    $('decline-draw').hidden = !incomingDraw;
+    $('decline-draw').disabled = pending;
+    $('resign-game').disabled = pending;
 }
 
 function renderPlayerStrips(game, color) {
@@ -605,11 +614,19 @@ async function handleDrawAction() {
 }
 
 async function sendGameCommand(eventType) {
-    if (!model.game) return;
+    if (!model.game || model.pendingGameCommand) return;
+    const pendingGame = model.game;
+    model.pendingGameCommand = eventType;
+    renderGameActions(pendingGame);
     try {
-        const envelope = await api.command(eventType, {}, { gameId: model.game.id });
+        const envelope = await api.command(eventType, {}, { gameId: pendingGame.id });
         applyState(envelope.data?.state);
     } catch (error) { handleError(error, messageForError(error)); }
+    finally {
+        if (model.pendingGameCommand !== eventType) return;
+        model.pendingGameCommand = null;
+        if (model.game?.id === pendingGame.id && model.game.status === 'active') renderGameActions(model.game);
+    }
 }
 
 function renderResult(game, color) {

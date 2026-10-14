@@ -113,11 +113,13 @@
                         <div id="game-view" hidden>
                             <p id="turn-copy" class="sr-only" role="status" aria-live="polite">Game starting</p>
                             <ol class="move-list" id="move-list" aria-label="Move list"></ol>
-                            <div class="game-actions">
-                                <button id="offer-draw">Offer draw</button>
-                                <button id="decline-draw" hidden>Decline draw</button>
-                                <button id="resign-game" class="danger-action">Resign</button>
-                            </div>
+                            <footer class="game-action-footer" aria-label="Game actions">
+                                <div class="game-actions">
+                                    <button id="offer-draw">Offer draw</button>
+                                    <button id="decline-draw" hidden>Decline draw</button>
+                                    <button id="resign-game" class="danger-action">Resign</button>
+                                </div>
+                            </footer>
                         </div>
 
                         <div id="result-view" hidden>
