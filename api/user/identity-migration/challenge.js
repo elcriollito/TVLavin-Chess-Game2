@@ -34,8 +34,9 @@ export function createChallengeHandler(dependencies = {}) {
         });
         if (!verified.ok) return res.status(401).json({ error: 'Identity verification failed' });
 
-        const { data, error } = await supabase.rpc('resolve_clerk_identity_for_sync', {
-            p_external_subject: verified.legacySubject
+        const { data, error } = await supabase.rpc('resolve_clerk_identity_binding', {
+            p_external_subject: verified.legacySubject,
+            p_environment: 'legacy_development'
         });
         const resolution = data?.[0] || data;
         if (error || resolution?.resolution !== 'BOUND' || !resolution.user_id) {
