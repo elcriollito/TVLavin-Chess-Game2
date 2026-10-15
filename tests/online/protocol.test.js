@@ -4,6 +4,7 @@ import {
     ONLINE_PROTOCOL_VERSION, TIME_CONTROLS, createServerEnvelope,
     validateChallengeCreate, validateEnvelope, validateMove, validateQueueJoin
 } from '../../js/online/online-protocol.js';
+import { createOnlineApi } from '../../js/online/online-api.js';
 
 test('protocol accepts a bounded, versioned move intent', () => {
     const envelope = validateEnvelope({
@@ -37,4 +38,26 @@ test('server envelopes carry correlation and canonical versions', () => {
     });
     assert.equal(envelope.version, 8);
     assert.equal(envelope.protocolVersion, ONLINE_PROTOCOL_VERSION);
+});
+
+test('the browser command contract never sends a client-controlled displayName', async () => {
+    let sent;
+    const api = createOnlineApi({
+        tokenProvider: async () => 'synthetic-token',
+        fetchImpl: async (_url, init) => {
+            sent = JSON.parse(init.body);
+            return new Response(JSON.stringify({ ok: true }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' }
+            });
+        }
+    });
+    await api.command('queue.join', {
+        timeControlId: 'blitz-3-2',
+        rated: false,
+        displayName: 'private@example.test'
+    });
+    assert.equal(Object.hasOwn(sent, 'displayName'), false);
+    assert.equal(Object.hasOwn(sent.payload, 'displayName'), false);
+    assert.equal(sent.payload.timeControlId, 'blitz-3-2');
 });

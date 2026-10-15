@@ -84,6 +84,50 @@ test('guest matchmaking provisions a temporary identity and is server-forced unr
     assert.equal(calls[1][1].displayName, 'Guest-111111');
 });
 
+test('repeated guest state polling never provisions or updates identity', async () => {
+    let provisions = 0;
+    let reads = 0;
+    const service = {
+        async ensureGuestIdentity() { provisions += 1; },
+        async getState() { reads += 1; return { game: null, recentGames: [], players: [], challenges: [] }; }
+    };
+    for (let index = 0; index < 8; index += 1) {
+        const res = response();
+        await handler({ method: 'GET', query: { action: 'state' }, headers: {} }, res, {
+            env,
+            authenticate: async () => ({ authenticated: true, userId: gameId, guest: true }),
+            rateLimit,
+            service
+        });
+        assert.equal(res.statusCode, 200);
+    }
+    assert.equal(reads, 8);
+    assert.equal(provisions, 0);
+});
+
+test('member matchmaking ignores client displayName and snapshots the server-owned public identity', async () => {
+    let joined;
+    const res = response();
+    await handler(command('queue.join', {
+        displayName: 'private@example.test',
+        payload: { timeControlId: 'blitz-3-2', rated: false }
+    }), res, {
+        env,
+        authenticate: allow,
+        rateLimit,
+        service: {
+            resolvePublicIdentity: async subject => {
+                assert.equal(subject, 'user_white');
+                return { displayName: 'PublicKnight' };
+            },
+            joinQueue: async input => { joined = input; return { ticket: { state: 'queued' } }; }
+        }
+    });
+    assert.equal(res.statusCode, 202);
+    assert.equal(joined.displayName, 'PublicKnight');
+    assert.equal(JSON.stringify(joined).includes('private@example.test'), false);
+});
+
 test('a member challenge targeting a guest subject is server-forced unrated', async () => {
     let challenged;
     const req = command('challenge.create', {

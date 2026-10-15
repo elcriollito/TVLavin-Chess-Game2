@@ -44,8 +44,7 @@ const model = {
 };
 
 const api = createOnlineApi({
-    tokenProvider: onlineAccessToken,
-    displayNameProvider: () => model.auth?.fullName || 'CAISSA Player'
+    tokenProvider: onlineAccessToken
 });
 
 const board = new CaissaBoardAdapter($('online-board'), {

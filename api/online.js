@@ -52,12 +52,6 @@ export default async function handler(req, res, dependencies = {}) {
 
     const service = dependencies.service || createOnlineService();
     try {
-        if (auth.guest) {
-            if (typeof service.ensureGuestIdentity !== 'function') {
-                return res.status(503).json({ code: 'GUEST_IDENTITY_UNAVAILABLE' });
-            }
-            await service.ensureGuestIdentity(auth.userId);
-        }
         const sharedPolicy = distributedRatePolicy(req);
         if (typeof service.checkRateLimit === 'function') {
             const sharedRate = await service.checkRateLimit({ clerkId: auth.userId, ...sharedPolicy });
@@ -67,6 +61,12 @@ export default async function handler(req, res, dependencies = {}) {
             }
         } else if (rollout === 'production') {
             return res.status(503).json({ code: 'SHARED_RATE_LIMIT_UNAVAILABLE' });
+        }
+        if (auth.guest && requiresGuestProvision(req)) {
+            if (typeof service.ensureGuestIdentity !== 'function') {
+                return res.status(503).json({ code: 'GUEST_IDENTITY_UNAVAILABLE' });
+            }
+            await service.ensureGuestIdentity(auth.userId);
         }
         if (req.method === 'GET') return handleRead(req, res, auth, service);
         if (req.method === 'POST') return handleCommand(req, res, auth, service, dependencies);
@@ -96,13 +96,13 @@ async function handleCommand(req, res, auth, service, dependencies) {
     const checked = validateEnvelope(req.body);
     if (!checked.ok) return res.status(400).json({ code: checked.code });
     const event = checked.value;
-    const displayName = safeDisplayName(req.body?.displayName, auth);
-
     if (event.eventType === 'presence.join') {
+        const displayName = await resolveOnlineDisplayName(auth, service);
         const state = await service.heartbeat(auth.userId, displayName);
         return res.status(200).json(createServerEnvelope('presence.snapshot', { state }, { correlationId: event.eventId }));
     }
     if (event.eventType === 'queue.join') {
+        const displayName = await resolveOnlineDisplayName(auth, service);
         const queue = validateQueueJoin(event.payload);
         if (!queue.ok) return res.status(400).json({ code: queue.code });
         const queueRated = auth.guest ? false : queue.value.rated;
@@ -308,15 +308,24 @@ function internalUsers(env) {
     return new Set(String(env.CAISSA_ONLINE_INTERNAL_USERS || '').split(',').map(value => value.trim()).filter(Boolean));
 }
 
-function safeDisplayName(value, auth) {
+async function resolveOnlineDisplayName(auth, service) {
     if (auth?.guest) {
         const suffix = String(auth.userId || '').replace(/-/g, '').slice(-6).toUpperCase();
         return `Guest-${suffix || 'PLAYER'}`;
     }
-    const candidate = String(value || '').trim();
-    if (/^[\p{L}\p{N} ._'’-]{1,40}$/u.test(candidate)) return candidate;
-    const local = String(auth.email || '').split('@')[0].replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 24);
-    return local || `Player-${String(auth.userId).slice(-6)}`;
+    if (typeof service.resolvePublicIdentity !== 'function') {
+        const error = new Error('PUBLIC_IDENTITY_UNAVAILABLE');
+        error.code = 'PUBLIC_IDENTITY_UNAVAILABLE';
+        throw error;
+    }
+    const identity = await service.resolvePublicIdentity(auth.userId);
+    const displayName = String(identity?.displayName || '');
+    if (!displayName || /[<>\u0000-\u001f\u007f]/u.test(displayName)) {
+        const error = new Error('PUBLIC_IDENTITY_UNAVAILABLE');
+        error.code = 'PUBLIC_IDENTITY_UNAVAILABLE';
+        throw error;
+    }
+    return displayName;
 }
 
 function requestId(req) {
@@ -368,4 +377,9 @@ function distributedRatePolicy(req) {
         return { bucket: 'challenge-create', limit: 20, windowSeconds: 60 };
     }
     return { bucket: 'write', limit: 90, windowSeconds: 60 };
+}
+
+function requiresGuestProvision(req) {
+    if (req.method !== 'POST') return false;
+    return new Set(['presence.join', 'queue.join', 'challenge.create']).has(req.body?.eventType);
 }

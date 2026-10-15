@@ -28,7 +28,7 @@ The new route does not revive or modify the retired `/play` contract. It reuses 
 
 ### ADR-004: intentionally small public surface
 
-The browser receives a public capability document, authenticated per-user state, and private Broadcast notifications. Direct table writes and gameplay RPC execution are revoked from `anon` and `authenticated`; only the server's service role may execute mutations. Participant game SELECT exists solely to authorize private Realtime topics.
+The browser receives a public capability document, authenticated per-user state, and private Broadcast notifications. Direct game-table access, table writes and gameplay RPC execution are revoked from `anon` and `authenticated`; only the server's service role reads canonical rows or executes mutations. A narrow `SECURITY DEFINER` participant predicate authorizes private Realtime topics without exposing game rows, and the database trigger sends only game ID, version and event type.
 
 ## Ownership
 

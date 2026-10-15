@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const html = fs.readFileSync(new URL('../../online.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../../css/online.css', import.meta.url), 'utf8');
 const vercel = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
+const server = fs.readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
 
 test('online shell is board-first with one tabbed workspace and accessible status', () => {
     assert.match(html, /id="online-board"/);
@@ -54,6 +55,7 @@ test('player-facing panel copy follows enabled capabilities without internal dia
 
 test('tournament proposal is an isolated, synthetic and accessible panel', () => {
     assert.ok(vercel.rewrites.some(item => item.source === '/online/tournament-demo' && item.destination === '/online.html'));
+    assert.match(server, /pathname === '\/online\/tournament-demo'/);
     assert.match(html, /id="browse-tournaments"[^>]*aria-disabled="true"[\s\S]*?🏆[\s\S]*?Tournaments[\s\S]*?id="tournament-availability">Coming Soon/);
     assert.match(html, /id="tab-tournament"[^>]*hidden/);
     assert.match(html, /id="panel-tournament"[\s\S]*Visual demo[\s\S]*Current standings/);
