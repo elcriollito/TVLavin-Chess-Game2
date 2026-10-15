@@ -30,7 +30,7 @@ erDiagram
 
 ## Access model
 
-RLS is enabled on every table. Browser roles have no mutation privileges. Authenticated users may select only games in which their Clerk subject is white or black, enabling private Realtime authorization. Mutation RPCs are revoked from public browser roles and granted to `service_role` only.
+RLS is enabled on every table. Browser roles have no mutation privileges and, after Public Identity v1, cannot select full game rows directly. Private Realtime authorization uses a narrow `SECURITY DEFINER` participant predicate that returns only a boolean decision for the current topic. Mutation RPCs remain revoked from public browser roles and granted to `service_role` only.
 
 The current Supabase Realtime schema is intentionally not altered. Only a SELECT policy is added to `realtime.messages`, matching current Supabase guidance for private Broadcast channels.
 

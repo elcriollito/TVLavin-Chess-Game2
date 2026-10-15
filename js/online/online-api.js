@@ -13,7 +13,6 @@ export class OnlineApiError extends Error {
 export function createOnlineApi(options = {}) {
     const fetchImpl = options.fetchImpl || globalThis.fetch.bind(globalThis);
     const tokenProvider = options.tokenProvider || (async () => globalThis.CAISSA_AUTH?.getToken?.());
-    const displayNameProvider = options.displayNameProvider || (() => globalThis.CAISSA_AUTH?.fullName || 'CAISSA Player');
 
     async function request(url, init = {}, authenticated = true) {
         const headers = new Headers(init.headers || {});
@@ -34,14 +33,17 @@ export function createOnlineApi(options = {}) {
         config: () => request('/api/online?action=config', {}, false),
         state: () => request('/api/online?action=state'),
         command(eventType, payload = {}, context = {}) {
+            const safePayload = payload && typeof payload === 'object' && !Array.isArray(payload)
+                ? { ...payload }
+                : {};
+            delete safePayload.displayName;
             const body = {
                 protocolVersion: ONLINE_PROTOCOL_VERSION,
                 eventType,
                 eventId: context.eventId || createEventId(eventType),
                 gameId: context.gameId || null,
                 clientSentAt: Date.now(),
-                displayName: displayNameProvider(),
-                payload
+                payload: safePayload
             };
             return request('/api/online', { method: 'POST', body: JSON.stringify(body) });
         }

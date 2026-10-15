@@ -263,7 +263,7 @@
                         event.preventDefault();
                         event.stopPropagation();
                         this.closeSidebarMenu();
-                        this.toggleDropdown();
+                        void this._openAccountDialog(event.currentTarget);
                     });
                 }
 
@@ -440,6 +440,7 @@
                             </div>
                         </div>
                         <div class="auth-dropdown-actions">
+                            <button type="button" class="auth-dropdown-item account"><i class="fas fa-user-circle"></i><span>My Account</span></button>
                             ${!isPremium ? '<a href="/premium" class="auth-dropdown-item upgrade"><i class="fas fa-crown"></i><span data-caissa-i18n="shell.upgradePremium">Upgrade to Premium</span></a>' : ''}
                             <a href="/premium" class="auth-dropdown-item"><i class="fas fa-bolt"></i><span data-caissa-i18n="shell.buyCredits">Buy Credits</span></a>
                             <button type="button" class="auth-dropdown-item signout"><i class="fas fa-sign-out-alt"></i><span data-caissa-i18n="shell.signOut">Sign Out</span></button>
@@ -462,6 +463,7 @@
 
             const userButton = container.querySelector('.auth-user-button');
             const signOutBtn = container.querySelector('.auth-dropdown-item.signout');
+            const accountBtn = container.querySelector('.auth-dropdown-item.account');
             const dropdown = container.querySelector('.auth-dropdown');
 
             this.elements.dropdown = dropdown;
@@ -478,6 +480,23 @@
                     e.preventDefault();
                     await this.handleSignOut();
                 });
+            }
+            if (accountBtn) {
+                accountBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.closeDropdown();
+                    void this._openAccountDialog(accountBtn);
+                });
+            }
+        },
+
+        _openAccountDialog: async function(opener) {
+            if (!window.CAISSA_AUTH?.isSignedIn) return;
+            try {
+                const module = await import('/js/identity/public-identity-dialog.js');
+                await module.openPublicIdentityAccount({ auth: window.CAISSA_AUTH, opener });
+            } catch (_) {
+                window.CAISSA_NOTIFICATIONS?.error?.('Account settings are temporarily unavailable.');
             }
         },
 

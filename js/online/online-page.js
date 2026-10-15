@@ -2,11 +2,13 @@ import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import { createOnlineApi, OnlineApiError } from './online-api.js';
 import { formatClock, projectOnlineClock } from './online-clock.js';
+import { createOnlineGuestSession } from './online-guest-session.js';
 import { createOnlineRealtime, createOnlineResyncQueue } from './online-realtime.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const TOURNAMENT_DEMO = location.pathname === '/online/tournament-demo'
+    || new URLSearchParams(location.search).get('demo') === 'tournament';
 const $ = id => document.getElementById(id);
-const api = createOnlineApi();
 const ui = {
     connection: document.querySelector('.connection-pill'), connectionLabel: $('connection-label'),
     account: $('account-link'), status: $('room-status'), title: $('workspace-title'), badge: $('game-badge'),
@@ -14,14 +16,19 @@ const ui = {
     top: $('player-top'), bottom: $('player-bottom'), topClock: $('clock-top'), bottomClock: $('clock-bottom'),
     lobby: $('lobby-view'), queue: $('queue-view'), game: $('game-view'), result: $('result-view'),
     find: $('find-game'), cancel: $('cancel-search'), rated: $('rated-toggle'), ratedHelp: $('rated-help'),
+    ratedControl: $('rated-control'), gameModeLabel: $('game-mode-label'), browseTournaments: $('browse-tournaments'),
+    tournamentAvailability: $('tournament-availability'),
+    guest: $('play-as-guest'), guestNote: $('guest-note'), lobbyAccess: $('lobby-access'),
+    login: $('online-login'), signup: $('online-signup'),
     queueControl: $('queue-control'), queueElapsed: $('queue-elapsed'), turnCopy: $('turn-copy'),
     moveList: $('move-list'), resultTitle: $('result-title'), resultDetail: $('result-detail'),
-    ratingChange: $('rating-change'), gamesList: $('games-list'), playersList: $('players-list'),
-    tournamentCard: $('tournament-card'), toast: $('online-toast'), rematch: $('rematch-game'),
+    ratingChange: $('rating-change'), gamesList: $('games-list'), playersList: $('players-list'), playersCount: $('players-count'),
+    tournamentCard: $('tournament-card'), tournamentTab: $('tab-tournament'), toast: $('online-toast'), rematch: $('rematch-game'),
+    footContext: $('workspace-foot-context'),
     challengeNotice: $('challenge-notice'), challengeKicker: $('challenge-notice-kicker'),
     challengeTitle: $('challenge-notice-title'), challengeControl: $('challenge-notice-control'),
     challengeActions: $('challenge-notice-actions'), challengeAccept: $('challenge-notice-accept'),
-    challengeDecline: $('challenge-notice-decline')
+    challengeDecline: $('challenge-notice-decline'), signInDialog: $('signin-dialog')
 };
 
 const model = {
@@ -31,8 +38,14 @@ const model = {
     polling: null, pollEpoch: 0, presencePolling: null, syncing: false, disposed: false,
     bootSettled: false, toastTimer: null, challengeExpiryTimer: null,
     challengeNoticeId: null, inactiveChallengeIds: new Set(), respondingChallengeIds: new Set(),
-    challengeRequestTargets: new Set(), rematchRequestGameIds: new Set()
+    challengeRequestTargets: new Set(), rematchRequestGameIds: new Set(),
+    signInPromptOpener: null, signInRedirecting: false,
+    guestSession: null, guestStarting: false, pendingGameCommand: null
 };
+
+const api = createOnlineApi({
+    tokenProvider: onlineAccessToken
+});
 
 const board = new CaissaBoardAdapter($('online-board'), {
     position: START_FEN,
@@ -52,35 +65,70 @@ document.addEventListener('visibilitychange', () => {
     if (!document.hidden && model.auth?.isSignedIn) void resumeFromBackground();
 });
 bindControls();
-if (location.pathname === '/online/tournaments') selectTab('games');
+restoreSelectedControlFromLocation();
+selectTab('new');
+selectGamesView('daily');
+selectTournamentView('standings');
 setInterval(renderClocks, 100);
-void boot();
+if (TOURNAMENT_DEMO) renderTournamentDemo();
+else {
+    if (location.pathname === '/online/tournaments') selectTab('games');
+    void boot();
+}
 
 async function boot() {
     setConnection('reconnecting', 'Connecting');
     try {
         model.config = await api.config();
-        $('protocol-label').textContent = `Protocol ${model.config.protocolVersion || '1.0.0'}`;
-        if (!model.config.enabled) return renderUnavailable('Online play is currently behind a rollout flag.');
-        ui.rated.disabled = !model.config.capabilities?.rated;
-        if (ui.rated.disabled) {
-            ui.rated.checked = false;
-            ui.ratedHelp.textContent = 'Casual games are enabled in this rollout.';
+        if (!model.config.enabled) return renderUnavailable('Online play is not available right now.');
+        configureCapabilities(model.config.capabilities || {});
+        if (model.config.capabilities?.guestPlay === true) {
+            model.guestSession = await createOnlineGuestSession(model.config.realtime);
         }
-        ui.tournamentCard.hidden = !model.config.capabilities?.tournaments;
-        const auth = await waitForAuth();
-        model.auth = auth;
-        if (!auth?.isSignedIn) return renderSignedOut();
-        ui.account.textContent = auth.fullName || auth.email || 'Account';
-        ui.account.href = '/profile';
-        await api.command('presence.join');
-        await syncState('boot');
-        startPolling();
+        const memberAuth = await waitForAuth();
+        if (memberAuth?.isSignedIn) return activateIdentity(memberAuth, 'boot');
+        const guestAuth = await model.guestSession?.restore?.();
+        if (guestAuth?.isSignedIn) return activateIdentity(guestAuth, 'guest-restore');
+        model.auth = memberAuth;
+        renderSignedOut();
     } catch (error) {
         handleError(error, 'The playing room could not be reached.');
     } finally {
         model.bootSettled = true;
     }
+}
+
+function configureCapabilities(capabilities) {
+    const ratedEnabled = capabilities.rated === true && model.auth?.isGuest !== true;
+    ui.rated.disabled = !ratedEnabled;
+    ui.rated.hidden = !ratedEnabled;
+    ui.ratedControl.hidden = !ratedEnabled;
+    ui.gameModeLabel.textContent = ratedEnabled ? 'Game mode' : 'Casual';
+    ui.ratedHelp.textContent = ratedEnabled
+        ? 'Turn on Rated to play for rating points.'
+        : 'Casual games do not change ratings.';
+    if (!ratedEnabled) ui.rated.checked = false;
+
+    const tournamentsEnabled = capabilities.tournaments === true;
+    ui.tournamentCard.hidden = !tournamentsEnabled;
+    ui.browseTournaments.dataset.availability = tournamentsEnabled ? 'preview' : 'coming-soon';
+    ui.browseTournaments.setAttribute('aria-disabled', String(!tournamentsEnabled));
+    ui.tournamentAvailability.textContent = tournamentsEnabled ? 'Internal Preview' : 'Coming Soon';
+
+    const openGamesEnabled = capabilities.openGames === true;
+    $('games-open-unavailable').hidden = openGamesEnabled;
+    $('games-open-empty').hidden = !openGamesEnabled;
+    $('games-open-status').textContent = openGamesEnabled ? 'Joinable now' : 'Coming soon';
+
+    const spectatorsEnabled = capabilities.spectators === true;
+    $('games-watch-unavailable').hidden = spectatorsEnabled;
+    $('games-watch-empty').hidden = !spectatorsEnabled;
+    $('games-watch-status').textContent = spectatorsEnabled ? 'Live games' : 'Coming soon';
+
+    const guestEnabled = capabilities.guestPlay === true;
+    ui.guest.hidden = !guestEnabled || model.auth?.isSignedIn === true;
+    ui.guestNote.hidden = !guestEnabled || model.auth?.isSignedIn === true;
+    ui.lobbyAccess.hidden = model.auth?.isSignedIn === true;
 }
 
 function onAuthEvent(event) {
@@ -89,8 +137,11 @@ function onAuthEvent(event) {
 
 async function handleAuthChange(nextAuth) {
     const previousAuth = model.auth;
-    model.auth = nextAuth;
     if (!model.bootSettled || model.disposed) return;
+
+    if (!nextAuth?.isSignedIn && previousAuth?.isGuest) return;
+    if (nextAuth?.isSignedIn && previousAuth?.isGuest) await model.guestSession?.end?.();
+    model.auth = nextAuth;
 
     const previousUserId = previousAuth?.isSignedIn ? previousAuth.userId : null;
     const nextUserId = nextAuth?.isSignedIn ? nextAuth.userId : null;
@@ -104,12 +155,8 @@ async function handleAuthChange(nextAuth) {
     if (previousUserId !== nextUserId) {
         stopPolling();
         await disconnectRealtime();
-        ui.account.textContent = nextAuth.fullName || nextAuth.email || 'Account';
-        ui.account.href = '/profile';
         try {
-            await api.command('presence.join');
-            await syncState('auth-change');
-            startPolling();
+            await activateIdentity(nextAuth, 'auth-change');
         } catch (error) {
             handleError(error, 'The playing room could not be reached.');
         }
@@ -117,6 +164,22 @@ async function handleAuthChange(nextAuth) {
     }
 
     await model.realtime?.refreshAuth?.();
+}
+
+async function activateIdentity(auth, reason) {
+    model.auth = auth;
+    configureCapabilities(model.config?.capabilities || {});
+    if (auth.isGuest) {
+        ui.account.textContent = 'Guest · Sign in';
+        ui.account.href = signInUrl();
+        setConnection('reconnecting', 'Guest');
+    } else {
+        ui.account.textContent = auth.fullName || auth.email || 'Account';
+        ui.account.href = '/profile';
+    }
+    await api.command('presence.join');
+    await syncState(reason);
+    startPolling();
 }
 
 async function resumeFromBackground() {
@@ -136,19 +199,37 @@ async function waitForAuth() {
 }
 
 function bindControls() {
-    document.querySelectorAll('[data-tab]').forEach(tab => tab.addEventListener('click', () => selectTab(tab.dataset.tab)));
-    document.querySelectorAll('[data-control]').forEach(button => button.addEventListener('click', () => {
-        if (model.game?.status === 'active' || model.state?.ticket) return;
-        model.selectedControl = button.dataset.control;
-        document.querySelectorAll('[data-control]').forEach(item => item.classList.toggle('selected', item === button));
-        $('custom-clock').hidden = model.selectedControl !== 'custom';
-    }));
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+        tab.addEventListener('click', () => {
+            selectTab(tab.dataset.tab);
+            if (tab.dataset.tab === 'new' && model.bootSettled && !model.auth?.isSignedIn) showSignInDialog(tab);
+        });
+        tab.addEventListener('keydown', handleTabKeydown);
+    });
+    document.querySelectorAll('[data-control]').forEach(button => button.addEventListener('click', () => selectTimeControl(button)));
+    document.querySelectorAll('[data-games-tab]').forEach(tab => {
+        tab.addEventListener('click', () => selectGamesView(tab.dataset.gamesTab));
+        tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-games-tab]', 'gamesTab', selectGamesView));
+    });
+    [$('custom-minutes'), $('custom-increment')].forEach(input => input.addEventListener('input', updateSignInHref));
     ui.find.addEventListener('click', findGame);
+    ui.guest.addEventListener('click', playAsGuest);
     ui.cancel.addEventListener('click', cancelSearch);
     $('new-opponent').addEventListener('click', () => { model.game = null; renderLobby(); });
     ui.rematch.addEventListener('click', requestRematch);
-    $('play-friend').addEventListener('click', () => selectTab('players'));
-    $('browse-tournaments').addEventListener('click', () => { selectTab('games'); $('tournament-card').scrollIntoView({ behavior: 'smooth' }); });
+    $('play-friend').addEventListener('click', event => {
+        if (!model.auth?.isSignedIn) return showSignInDialog(event.currentTarget);
+        selectTab('players');
+    });
+    ui.browseTournaments.addEventListener('click', () => {
+        if (TOURNAMENT_DEMO) return selectTab('tournament');
+        if (model.config?.capabilities?.tournaments !== true) {
+            showToast('CAISSA Tournament Season is coming soon.');
+            return;
+        }
+        selectTab('games');
+        ui.tournamentCard.scrollIntoView({ behavior: 'smooth' });
+    });
     $('resign-game').addEventListener('click', () => confirmAction('Resign this game?', 'This result is final and will be recorded.', 'Resign')
         .then(confirmed => confirmed && sendGameCommand('game.resign')));
     $('offer-draw').addEventListener('click', handleDrawAction);
@@ -156,29 +237,145 @@ function bindControls() {
     $('download-pgn').addEventListener('click', downloadPgn);
     $('analyze-game').addEventListener('click', analyzeGame);
     $('open-tournaments').addEventListener('click', () => location.assign('/online/tournaments'));
-    document.querySelectorAll('[data-games-view]').forEach(tab => tab.addEventListener('click', () => selectGamesView(tab.dataset.gamesView)));
+    $('demo-next-game').addEventListener('click', () => showToast('Demo only — a server-confirmed pairing would open the game.'));
+    document.querySelectorAll('[data-tournament-view]').forEach(tab => {
+        tab.addEventListener('click', () => selectTournamentView(tab.dataset.tournamentView));
+        tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-tournament-view]', 'tournamentView', selectTournamentView));
+    });
+    $('player-search').addEventListener('input', () => renderPlayers(model.state?.players || [], model.state?.challenges || []));
     ui.challengeAccept.addEventListener('click', () => respondVisibleChallenge('challenge.accept'));
     ui.challengeDecline.addEventListener('click', () => respondVisibleChallenge('challenge.decline'));
+    ui.signInDialog.addEventListener('close', handleSignInDialogClose);
+}
+
+function selectTimeControl(button) {
+    if (!button || model.game?.status === 'active' || model.state?.ticket) return;
+    model.selectedControl = button.dataset.control;
+    document.querySelectorAll('[data-control]').forEach(item => item.classList.toggle('selected', item === button));
+    $('custom-clock').hidden = model.selectedControl !== 'custom';
+    updateSignInHref();
+}
+
+function restoreSelectedControlFromLocation() {
+    const params = new URLSearchParams(location.search);
+    const requested = params.get('control');
+    const button = Array.from(document.querySelectorAll('[data-control]')).find(item => item.dataset.control === requested);
+    if (!button) return;
+    selectTimeControl(button);
+    if (requested !== 'custom') return;
+    restoreBoundedNumber($('custom-minutes'), params.get('minutes'));
+    restoreBoundedNumber($('custom-increment'), params.get('increment'));
+}
+
+function restoreBoundedNumber(input, rawValue) {
+    if (rawValue === null || rawValue === '') return;
+    const value = Number(rawValue);
+    const min = Number(input.min);
+    const max = Number(input.max);
+    if (Number.isFinite(value) && value >= min && value <= max) input.value = String(value);
 }
 
 function selectTab(name) {
-    document.querySelectorAll('[data-tab]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === name)));
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+        const selected = tab.dataset.tab === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
     document.querySelectorAll('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== name; });
+    ui.footContext.textContent = ({
+        new: 'Private, server-verified games',
+        games: 'Your game history',
+        players: 'Private challenges',
+        tournament: 'Tournament concept · demo data'
+    })[name] || 'CAISSA Online';
+}
+
+function handleTabKeydown(event) {
+    handleRovingTabs(event, '[data-tab]', 'tab', selectTab);
 }
 
 function selectGamesView(name) {
-    document.querySelectorAll('[data-games-view]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.gamesView === name)));
-    document.querySelectorAll('[data-games-panel]').forEach(panel => { panel.hidden = panel.dataset.gamesPanel !== name; });
+    document.querySelectorAll('[data-games-tab]').forEach(tab => {
+        const selected = tab.dataset.gamesTab === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll('[data-games-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.gamesPanel !== name;
+    });
+}
+
+function handleRovingTabs(event, selector, datasetKey, select) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const tabs = Array.from(document.querySelectorAll(selector)).filter(tab => !tab.hidden);
+    const current = tabs.indexOf(event.currentTarget);
+    const next = event.key === 'Home' ? 0
+        : event.key === 'End' ? tabs.length - 1
+            : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    event.preventDefault();
+    select(tabs[next].dataset[datasetKey]);
+    tabs[next].focus();
+}
+
+function renderTournamentDemo() {
+    document.body.dataset.tournamentDemo = 'true';
+    document.title = 'Tournament Panel Demo — CAISSA';
+    ui.tournamentTab.hidden = false;
+    ui.title.textContent = 'Tournament arena';
+    ui.badge.textContent = 'DEMO';
+    ui.footContext.textContent = 'Tournament concept · demo data';
+    setConnection('online', 'Demo');
+    ui.curtain.hidden = false;
+    ui.curtainTitle.textContent = 'Tournament preview';
+    ui.curtainCopy.textContent = 'The real game board remains unchanged until the server confirms a pairing.';
+    board.setPosition(START_FEN, { animate: false });
+    board.setReadOnly(true);
+    board.setInteractive(false);
+    resetPlayerStrips();
+    selectTab('tournament');
+}
+
+function selectTournamentView(name) {
+    document.querySelectorAll('[data-tournament-view]').forEach(tab => {
+        const selected = tab.dataset.tournamentView === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll('[data-tournament-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.tournamentPanel !== name;
+    });
+}
+
+async function playAsGuest() {
+    if (model.guestStarting || model.auth?.isSignedIn) return;
+    if (!model.guestSession) return showToast('Guest play is not available right now.');
+    model.guestStarting = true;
+    setBusy(ui.guest, true, 'Creating guest seat…');
+    try {
+        const guestAuth = await model.guestSession.start();
+        await activateIdentity(guestAuth, 'guest-start');
+        await findGame();
+    } catch (error) {
+        model.auth = { isLoaded: true, isSignedIn: false, status: 'anonymous' };
+        renderSignedOut();
+        handleError(error, 'A temporary guest seat could not be created.');
+    } finally {
+        model.guestStarting = false;
+        ui.guest.disabled = false;
+        ui.guest.textContent = 'Play as Guest';
+        configureCapabilities(model.config?.capabilities || {});
+    }
 }
 
 async function findGame() {
-    if (!model.auth?.isSignedIn) return renderSignedOut();
+    if (!model.auth?.isSignedIn) return showSignInDialog(ui.find);
+    if (ui.find.disabled) return;
     setBusy(ui.find, true, 'Joining queue…');
     try {
         const envelope = await api.command('queue.join', selectedQueuePayload());
         applyState(envelope.data?.state);
     } catch (error) { handleError(error, 'Could not join matchmaking.'); }
-    finally { setBusy(ui.find, false, 'Find an opponent'); }
+    finally { setBusy(ui.find, false, 'Start Game'); }
 }
 
 async function cancelSearch() {
@@ -259,8 +456,8 @@ function renderLobby() {
     showView('lobby');
     ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
     ui.status.textContent = 'Choose a time control and enter matchmaking.';
-    ui.curtain.hidden = false; ui.curtainTitle.textContent = 'CAISSA Online';
-    ui.curtainCopy.textContent = 'Choose a time control to find an opponent.';
+    ui.find.disabled = false; ui.find.textContent = 'Start Game';
+    ui.curtain.hidden = true;
     board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
     board.setInteractive(false);
     resetPlayerStrips();
@@ -290,16 +487,25 @@ function renderGame(game, options = {}) {
     ui.curtain.hidden = true;
     ui.title.textContent = completed ? 'Game complete' : `${formatTimeControl(game)} ${titleCase(game.pool)}`;
     ui.badge.textContent = completed ? 'FINAL' : game.rated ? 'RATED' : 'CASUAL';
-    ui.status.textContent = completed ? 'The result and game record are final.' : 'Server-authoritative game in progress.';
+    ui.status.textContent = completed ? 'Game over. Review the result or choose what to do next.' : 'Game in progress.';
     renderPlayerStrips(game, color);
     renderMoves(game.moves || []);
     const ours = game.turn === color;
     ui.turnCopy.textContent = completed ? 'Game over' : ours ? 'Your turn' : `${opponentName(game, color)} to move`;
-    const incomingDraw = game.draw_offer_by && game.draw_offer_by !== model.auth?.userId;
-    $('offer-draw').textContent = incomingDraw ? 'Accept draw' : game.draw_offer_by ? 'Draw offered' : 'Offer draw';
-    $('offer-draw').disabled = !!game.draw_offer_by && !incomingDraw;
-    $('decline-draw').hidden = !incomingDraw;
+    renderGameActions(game);
     if (completed) renderResult(game, color);
+}
+
+function renderGameActions(game) {
+    const incomingDraw = game.draw_offer_by && game.draw_offer_by !== model.auth?.userId;
+    const pending = !!model.pendingGameCommand;
+    const actions = document.querySelector('.game-actions');
+    actions.setAttribute('aria-busy', String(pending));
+    $('offer-draw').textContent = incomingDraw ? 'Accept draw' : game.draw_offer_by ? 'Draw offered' : 'Offer draw';
+    $('offer-draw').disabled = pending || (!!game.draw_offer_by && !incomingDraw);
+    $('decline-draw').hidden = !incomingDraw;
+    $('decline-draw').disabled = pending;
+    $('resign-game').disabled = pending;
 }
 
 function renderPlayerStrips(game, color) {
@@ -407,11 +613,19 @@ async function handleDrawAction() {
 }
 
 async function sendGameCommand(eventType) {
-    if (!model.game) return;
+    if (!model.game || model.pendingGameCommand) return;
+    const pendingGame = model.game;
+    model.pendingGameCommand = eventType;
+    renderGameActions(pendingGame);
     try {
-        const envelope = await api.command(eventType, {}, { gameId: model.game.id });
+        const envelope = await api.command(eventType, {}, { gameId: pendingGame.id });
         applyState(envelope.data?.state);
     } catch (error) { handleError(error, messageForError(error)); }
+    finally {
+        if (model.pendingGameCommand !== eventType) return;
+        model.pendingGameCommand = null;
+        if (model.game?.id === pendingGame.id && model.game.status === 'active') renderGameActions(model.game);
+    }
 }
 
 function renderResult(game, color) {
@@ -436,7 +650,7 @@ function renderGames(games) {
         const icon = document.createElement('span'); icon.setAttribute('aria-hidden', 'true'); icon.textContent = '♜';
         const title = document.createElement('strong'); title.textContent = 'No games yet';
         const copy = document.createElement('p'); copy.textContent = 'Your first online game will be saved automatically.';
-        ui.gamesList.className = 'empty-state'; ui.gamesList.append(icon, title, copy);
+        ui.gamesList.className = 'empty-state empty-state--compact'; ui.gamesList.append(icon, title, copy);
         return;
     }
     ui.gamesList.className = 'games-list';
@@ -464,16 +678,23 @@ function renderPlayers(players, challenges) {
         } else { const pending = document.createElement('small'); pending.textContent = 'Waiting for response'; row.append(pending); }
         challengeList.append(row);
     });
+    ui.playersCount.textContent = `${players.length} online`;
+    const query = $('player-search').value.trim().toLocaleLowerCase();
+    const visiblePlayers = query
+        ? players.filter(player => String(player.displayName || '').toLocaleLowerCase().includes(query))
+        : players;
     ui.playersList.replaceChildren();
-    if (!players.length) {
+    if (!visiblePlayers.length) {
         const icon = document.createElement('span'); icon.setAttribute('aria-hidden', 'true'); icon.textContent = '♞';
-        const title = document.createElement('strong'); title.textContent = 'No players visible';
-        const copy = document.createElement('p'); copy.textContent = 'Players will appear here while their presence is active.';
+        const title = document.createElement('strong'); title.textContent = players.length ? 'No matching players' : 'No players online';
+        const copy = document.createElement('p'); copy.textContent = players.length
+            ? 'Try a different name or handle.'
+            : 'Players will appear here while their presence is active.';
         ui.playersList.className = 'empty-state'; ui.playersList.append(icon, title, copy);
         return;
     }
     ui.playersList.className = 'players-list';
-    players.forEach(player => {
+    visiblePlayers.forEach(player => {
         const row = document.createElement('div'); row.className = 'player-row';
         const playerMeta = formatPlayerMeta(player);
         row.innerHTML = `<span class="presence presence--${escapeHtml(player.status)}"></span><strong>${escapeHtml(player.displayName)}</strong><small>${escapeHtml(playerMeta)}</small>`;
@@ -505,7 +726,7 @@ async function createChallenge(targetClerkId) {
 function selectedQueuePayload() {
     const payload = {
         timeControlId: model.selectedControl,
-        rated: ui.rated.checked && model.config.capabilities?.rated === true
+        rated: model.auth?.isGuest !== true && ui.rated.checked && model.config.capabilities?.rated === true
     };
     if (model.selectedControl === 'custom') {
         payload.baseMinutes = Number($('custom-minutes').value);
@@ -635,7 +856,7 @@ async function connectRealtime(gameId) {
 
     const realtime = await createOnlineRealtime(model.config.realtime, {
         gameId,
-        getToken: () => window.CAISSA_AUTH?.getToken?.(),
+        getToken: onlineAccessToken,
         isCurrent: () => !model.disposed
             && epoch === model.realtimeEpoch
             && model.auth?.isSignedIn
@@ -748,12 +969,74 @@ function renderUnavailable(copy) {
 
 function renderSignedOut() {
     clearTimeout(model.challengeExpiryTimer);
+    model.state = null;
+    model.game = null;
+    model.pendingMove = null;
+    model.signInRedirecting = false;
     model.challengeNoticeId = null;
     ui.challengeNotice.hidden = true;
-    setConnection('offline', 'Sign in required'); ui.find.textContent = 'Sign in to play';
-    ui.find.onclick = () => location.assign('/signin?redirect_url=%2Fonline');
-    ui.status.textContent = 'Sign in to enter matchmaking and resume games.';
-    ui.curtainTitle.textContent = 'Your seat is waiting'; ui.curtainCopy.textContent = 'Sign in to play another person on CAISSA.';
+    showView('lobby');
+    ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
+    setConnection('offline', 'Sign in required');
+    ui.find.disabled = false; ui.find.textContent = 'Start Game';
+    ui.account.textContent = 'Sign in';
+    ui.status.textContent = 'Choose a time control. Sign in when you are ready to play.';
+    ui.curtain.hidden = true;
+    board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
+    board.setInteractive(false);
+    resetPlayerStrips();
+    updateSignInHref();
+    configureCapabilities(model.config?.capabilities || {});
+}
+
+function showSignInDialog(opener) {
+    if (model.auth?.isSignedIn || model.signInRedirecting) return;
+    model.signInPromptOpener = opener instanceof HTMLElement ? opener : document.activeElement;
+    if (ui.signInDialog.open) return;
+    ui.signInDialog.returnValue = '';
+    ui.signInDialog.showModal();
+}
+
+function handleSignInDialogClose() {
+    const opener = model.signInPromptOpener;
+    model.signInPromptOpener = null;
+    if (ui.signInDialog.returnValue === 'signin') {
+        if (model.signInRedirecting) return;
+        model.signInRedirecting = true;
+        location.assign(signInUrl());
+        return;
+    }
+    queueMicrotask(() => opener?.isConnected && opener.focus());
+}
+
+function selectedOnlineReturnPath() {
+    const params = new URLSearchParams({ control: model.selectedControl });
+    if (model.selectedControl === 'custom') {
+        params.set('minutes', boundedInputValue($('custom-minutes')));
+        params.set('increment', boundedInputValue($('custom-increment')));
+    }
+    return `/online?${params}`;
+}
+
+function boundedInputValue(input) {
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const value = Number(input.value);
+    return String(Math.min(max, Math.max(min, Number.isFinite(value) ? value : min)));
+}
+
+function signInUrl() { return `/signin?redirect_url=${encodeURIComponent(selectedOnlineReturnPath())}`; }
+function signUpUrl() { return `/signup?redirect_url=${encodeURIComponent(selectedOnlineReturnPath())}`; }
+function updateSignInHref() {
+    const signedOutOrGuest = !model.auth?.isSignedIn || model.auth?.isGuest;
+    if (signedOutOrGuest) ui.account.href = signInUrl();
+    ui.login.href = signInUrl();
+    ui.signup.href = signUpUrl();
+}
+
+async function onlineAccessToken() {
+    if (model.auth?.isGuest) return model.guestSession?.getToken?.() || null;
+    return window.CAISSA_AUTH?.getToken?.() || null;
 }
 
 function setConnection(state, label) { ui.connection.dataset.connection = state; ui.connectionLabel.textContent = label; }
@@ -771,12 +1054,17 @@ function opponentClerkId(game) {
 function gameVersion(game) { const version = Number(game?.version); return Number.isSafeInteger(version) && version >= 0 ? version : 0; }
 function hasNumericRating(value) { return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)); }
 function formatPlayerMeta(player) {
+    if (isGuestSubject(player.clerkId)) return `Guest · ${titleCase(player.pool) || 'Casual'}`;
     const rating = hasNumericRating(player.rating) ? String(player.rating) : 'Casual';
     const pool = titleCase(player.pool);
     return [rating, pool].filter(Boolean).join(' · ');
 }
+function isGuestSubject(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '')); }
 function resultLabel(value) { return ({ checkmate: 'Checkmate', stalemate: 'Stalemate', repetition: 'Threefold repetition', 'insufficient-material': 'Insufficient material', draw: 'Draw', resignation: 'Resignation', agreement: 'Draw agreed', timeout: 'Time expired' })[value] || 'Game complete'; }
-function announceOpponentMove(game) { if (game.moves?.at(-1)?.color !== playerColor(game)) ui.status.textContent = `${opponentName(game, playerColor(game))} moved ${game.moves.at(-1).san}.`; }
+function announceOpponentMove(game) {
+    const move = game.moves?.at(-1);
+    if (move && move.color !== playerColor(game)) ui.status.textContent = `${opponentName(game, playerColor(game))} moved ${move.san}.`;
+}
 function resetPlayerStrips() { fillEmpty(ui.top, 'Waiting for opponent'); fillEmpty(ui.bottom, model.auth?.fullName || 'You'); ui.topClock.textContent = '—'; ui.bottomClock.textContent = '—'; }
 function fillEmpty(strip, name) { strip.querySelector('.player-name').textContent = name; strip.querySelector('.player-rating').textContent = '—'; strip.querySelector('.player-avatar').textContent = initials(name); strip.dataset.running = 'false'; }
 function showBoardError(intent, message) { board.highlightSquares([{ square: intent.from, type: 'error' }, { square: intent.to, type: 'error' }]); showToast(message); setTimeout(() => board.clearHighlights(), 900); }
@@ -791,5 +1079,6 @@ async function dispose() {
     window.removeEventListener('caissa-auth-change', onAuthEvent);
     stopPolling();
     await disconnectRealtime();
+    model.guestSession?.close?.();
     board.destroy();
 }

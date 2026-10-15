@@ -6,13 +6,15 @@ CAISSA Online keeps two private invalidation emitters active after a canonical
 move mutation:
 
 1. The database trigger created by
-   `20261005204209_caissa_online_native_v1.sql` calls
-   `realtime.broadcast_changes()`.
+   `20261005204209_caissa_online_native_v1.sql`, and privacy-hardened by
+   `20261014035549_caissa_public_identity_v1.sql`, calls `realtime.send()`
+   with only `gameId`, `version` and `eventType`.
 2. After `caissa_online_commit_move` returns successfully, the server sends a
    compact private Broadcast through Supabase Realtime's REST batch endpoint.
 
-Both emitters carry the game topic and canonical version. They do not carry or
-mutate authoritative chess state. The browser treats every message as an
+Both emitters carry the game topic and canonical version. Neither carries a
+game row, a name, PGN, participant identifier, rating field, or authoritative
+chess state. The browser treats every message as an
 invalidation and performs an authenticated state read. Polling remains the
 recovery path if WebSocket delivery is unavailable.
 
@@ -32,7 +34,7 @@ transaction.
 The canonical move commits before the REST Broadcast is attempted. The send is
 bounded to five seconds. A timeout or non-202 response is logged as delivery
 degradation and does not turn the already accepted move into an API failure.
-The opponent can still recover through the database-trigger path or polling.
+The opponent can still recover through the compact database-trigger path or polling.
 
 The REST emitter lives only under `api/` and reads its credential from the
 server environment. The public configuration exposes only the publishable key;
@@ -96,7 +98,15 @@ Automated coverage must demonstrate:
 - a newer version received during a resync causes a trailing canonical read;
 - REST rejection and timeout leave an already committed move successful;
 - the REST wait is bounded and its payload is private and version-correlated;
-- public configuration never exposes the server Broadcast credential.
+- public configuration never exposes the server Broadcast credential;
+- authenticated browser roles cannot SELECT full game rows directly;
+- trigger payloads contain only `gameId`, `version` and `eventType`.
+
+Before Public Identity v1, the database trigger used `broadcast_changes()` and
+therefore produced a full-row payload. Identity v1 replaces that function with
+the compact `realtime.send()` payload and removes direct authenticated SELECT
+on the game table. Private topic authorization is preserved through a narrow
+participant predicate rather than a table grant.
 
 Hosted evidence remains external to the repository. Backups, recovery keys,
 Development account data, tokens, cookies, and storage state are not release

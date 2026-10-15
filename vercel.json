@@ -60,6 +60,7 @@
     { "source": "/mentor/", "destination": "/mentor.html" },
     { "source": "/online", "destination": "/online.html" },
     { "source": "/online/", "destination": "/online.html" },
+    { "source": "/online/tournament-demo", "destination": "/online.html" },
     { "source": "/online/tournaments", "destination": "/online.html" },
     { "source": "/beta", "destination": "/api/beta/page" },
     { "source": "/beta/", "destination": "/api/beta/page" },

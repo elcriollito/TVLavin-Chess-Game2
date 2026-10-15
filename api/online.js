@@ -1,4 +1,5 @@
-import { authenticateRequest, respondAuthFailure, setCorsHeaders } from './_lib/auth.js';
+import { respondAuthFailure, setCorsHeaders } from './_lib/auth.js';
+import { createOnlineAuthenticator, isOnlineGuestSubject } from './_lib/online-guest-auth.js';
 import { checkRateLimit } from './_lib/rate-limit.js';
 import { createOnlineService } from './_lib/online-service.js';
 import {
@@ -31,9 +32,11 @@ export default async function handler(req, res, dependencies = {}) {
     }
     if (rollout === 'off') return res.status(404).json({ code: 'ONLINE_DISABLED' });
 
-    const auth = await (dependencies.authenticate || authenticateRequest)(req);
+    const env = dependencies.env || process.env;
+    const authenticate = dependencies.authenticate || createOnlineAuthenticator({ env });
+    const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
-    if (rollout === 'internal' && !internalUsers(dependencies.env || process.env).has(auth.userId)) {
+    if (rollout === 'internal' && !auth.guest && !internalUsers(env).has(auth.userId)) {
         return res.status(403).json({ code: 'ONLINE_INTERNAL_ONLY' });
     }
 
@@ -58,6 +61,12 @@ export default async function handler(req, res, dependencies = {}) {
             }
         } else if (rollout === 'production') {
             return res.status(503).json({ code: 'SHARED_RATE_LIMIT_UNAVAILABLE' });
+        }
+        if (auth.guest && requiresGuestProvision(req)) {
+            if (typeof service.ensureGuestIdentity !== 'function') {
+                return res.status(503).json({ code: 'GUEST_IDENTITY_UNAVAILABLE' });
+            }
+            await service.ensureGuestIdentity(auth.userId);
         }
         if (req.method === 'GET') return handleRead(req, res, auth, service);
         if (req.method === 'POST') return handleCommand(req, res, auth, service, dependencies);
@@ -87,21 +96,27 @@ async function handleCommand(req, res, auth, service, dependencies) {
     const checked = validateEnvelope(req.body);
     if (!checked.ok) return res.status(400).json({ code: checked.code });
     const event = checked.value;
-    const displayName = safeDisplayName(req.body?.displayName, auth);
-
     if (event.eventType === 'presence.join') {
+        const displayName = await resolveOnlineDisplayName(auth, service);
         const state = await service.heartbeat(auth.userId, displayName);
         return res.status(200).json(createServerEnvelope('presence.snapshot', { state }, { correlationId: event.eventId }));
     }
     if (event.eventType === 'queue.join') {
+        const displayName = await resolveOnlineDisplayName(auth, service);
         const queue = validateQueueJoin(event.payload);
         if (!queue.ok) return res.status(400).json({ code: queue.code });
-        if (queue.value.rated && (dependencies.env || process.env).CAISSA_ONLINE_RATED !== '1') {
+        const queueRated = auth.guest ? false : queue.value.rated;
+        if (queueRated && (dependencies.env || process.env).CAISSA_ONLINE_RATED !== '1') {
             return res.status(403).json({ code: 'RATED_NOT_ENABLED' });
         }
-        const state = await service.joinQueue({ clerkId: auth.userId, displayName, ...queue.value });
+        const state = await service.joinQueue({
+            clerkId: auth.userId,
+            displayName,
+            ...queue.value,
+            rated: queueRated
+        });
         const type = state?.game ? 'match.found' : 'queue.status';
-        audit(type, { gameId: state?.game?.id || null, pool: queue.value.control.pool, rated: queue.value.rated });
+        audit(type, { gameId: state?.game?.id || null, pool: queue.value.control.pool, rated: queueRated });
         return res.status(state?.game ? 201 : 202).json(createServerEnvelope(type, { state }, {
             correlationId: event.eventId,
             gameId: state?.game?.id || null,
@@ -115,14 +130,16 @@ async function handleCommand(req, res, auth, service, dependencies) {
     if (event.eventType === 'challenge.create') {
         const challenge = validateChallengeCreate(event.payload);
         if (!challenge.ok) return res.status(400).json({ code: challenge.code });
-        if (challenge.value.rated && (dependencies.env || process.env).CAISSA_ONLINE_RATED !== '1') {
+        const challengeRated = auth.guest || isOnlineGuestSubject(challenge.value.targetClerkId)
+            ? false : challenge.value.rated;
+        if (challengeRated && (dependencies.env || process.env).CAISSA_ONLINE_RATED !== '1') {
             return res.status(403).json({ code: 'RATED_NOT_ENABLED' });
         }
         const state = await service.createChallenge({
             clerkId: auth.userId,
             targetClerkId: challenge.value.targetClerkId,
             control: challenge.value.control,
-            rated: challenge.value.rated
+            rated: challengeRated
         });
         return res.status(201).json(createServerEnvelope('challenge.updated', { state }, { correlationId: event.eventId }));
     }
@@ -231,7 +248,10 @@ async function handleCommand(req, res, auth, service, dependencies) {
             clerkId: auth.userId,
             targetClerkId,
             control: { pool: game.pool, baseMs: game.base_ms, incrementMs: game.increment_ms },
-            rated: game.rated === true && (dependencies.env || process.env).CAISSA_ONLINE_RATED === '1'
+            rated: game.rated === true
+                && !auth.guest
+                && !isOnlineGuestSubject(targetClerkId)
+                && (dependencies.env || process.env).CAISSA_ONLINE_RATED === '1'
         });
         return res.status(201).json(createServerEnvelope('challenge.updated', { state }, {
             correlationId: event.eventId, gameId: event.gameId, version: game.version
@@ -263,6 +283,7 @@ function publicConfig(rollout, env) {
         enabled,
         capabilities: {
             matchmaking: enabled,
+            guestPlay: !!(enabled && env.CAISSA_ONLINE_GUESTS === '1' && realtimeUrl && publishableKey),
             rated: enabled && env.CAISSA_ONLINE_RATED === '1',
             chat: false,
             tournaments: enabled && env.CAISSA_ONLINE_TOURNAMENTS === '1',
@@ -287,11 +308,24 @@ function internalUsers(env) {
     return new Set(String(env.CAISSA_ONLINE_INTERNAL_USERS || '').split(',').map(value => value.trim()).filter(Boolean));
 }
 
-function safeDisplayName(value, auth) {
-    const candidate = String(value || '').trim();
-    if (/^[\p{L}\p{N} ._'’-]{1,40}$/u.test(candidate)) return candidate;
-    const local = String(auth.email || '').split('@')[0].replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 24);
-    return local || `Player-${String(auth.userId).slice(-6)}`;
+async function resolveOnlineDisplayName(auth, service) {
+    if (auth?.guest) {
+        const suffix = String(auth.userId || '').replace(/-/g, '').slice(-6).toUpperCase();
+        return `Guest-${suffix || 'PLAYER'}`;
+    }
+    if (typeof service.resolvePublicIdentity !== 'function') {
+        const error = new Error('PUBLIC_IDENTITY_UNAVAILABLE');
+        error.code = 'PUBLIC_IDENTITY_UNAVAILABLE';
+        throw error;
+    }
+    const identity = await service.resolvePublicIdentity(auth.userId);
+    const displayName = String(identity?.displayName || '');
+    if (!displayName || /[<>\u0000-\u001f\u007f]/u.test(displayName)) {
+        const error = new Error('PUBLIC_IDENTITY_UNAVAILABLE');
+        error.code = 'PUBLIC_IDENTITY_UNAVAILABLE';
+        throw error;
+    }
+    return displayName;
 }
 
 function requestId(req) {
@@ -343,4 +377,9 @@ function distributedRatePolicy(req) {
         return { bucket: 'challenge-create', limit: 20, windowSeconds: 60 };
     }
     return { bucket: 'write', limit: 90, windowSeconds: 60 };
+}
+
+function requiresGuestProvision(req) {
+    if (req.method !== 'POST') return false;
+    return new Set(['presence.join', 'queue.join', 'challenge.create']).has(req.body?.eventType);
 }

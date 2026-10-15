@@ -5,13 +5,63 @@ import fs from 'node:fs';
 const html = fs.readFileSync(new URL('../../online.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../../css/online.css', import.meta.url), 'utf8');
 const vercel = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
+const server = fs.readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
 
 test('online shell is board-first with one tabbed workspace and accessible status', () => {
     assert.match(html, /id="online-board"/);
     assert.match(html, /role="tablist"/);
     assert.match(html, /data-tab="new"[\s\S]+data-tab="games"[\s\S]+data-tab="players"/);
     assert.match(html, /aria-live="polite"/);
-    assert.match(css, /grid-template-columns:minmax\(480px,1fr\) minmax\(350px,440px\)/);
+    assert.match(css, /--online-layout-gap:clamp\(24px,2vw,32px\)/);
+    assert.match(css, /--online-board-size:min\(/);
+    assert.match(css, /\.online-main\{container-type:inline-size\}/);
+    assert.match(css, /calc\(100cqw - var\(--online-workspace-width\) - var\(--online-layout-gap\)\)/);
+    assert.match(css, /justify-content:center/);
+    assert.match(css, /--online-player-strip-height:60px/);
+    assert.match(css, /grid-template-rows:var\(--online-player-strip-height\) var\(--online-board-size\) var\(--online-player-strip-height\)/);
+    assert.match(css, /\.play-workspace\{[\s\S]*?align-self:stretch/);
+    assert.match(css, /#game-view \.move-list\{[\s\S]*?overflow-y:auto/);
+});
+
+test('online shell removes horizontal chrome and keeps accessible side navigation', () => {
+    assert.match(html, /<h1 id="online-title" class="sr-only">Online Chess<\/h1>/);
+    assert.doesNotMatch(html, /class="online-header"/);
+    assert.doesNotMatch(html, /class="online-titlebar"/);
+    assert.equal((html.match(/<h1\b/g) || []).length, 1);
+    assert.match(html, /id="room-status"[\s\S]*?id="find-game"/);
+    assert.match(css, /--online-vertical-reserve:calc\(120px \+ clamp\(16px,3\.34dvh,48px\)\)/);
+    assert.match(css, /width:min\(1540px,calc\(100vw - 112px\)\)/);
+    assert.match(html, /class="online-menu-shell"[\s\S]*aria-label="Primary navigation"/);
+    assert.match(html, /id="account-link"/);
+});
+
+test('visitor board stays visible and sign-in is an explicit dialog action', () => {
+    assert.match(html, /id="board-curtain" hidden/);
+    assert.match(html, /id="signin-dialog"[\s\S]*Sign in to play online/);
+    assert.match(html, /Sign in to find an opponent or challenge a friend\./);
+    assert.match(html, /<button value="cancel">Not now<\/button>/);
+    assert.match(html, /<button value="signin" class="primary-action">Sign in<\/button>/);
+    assert.match(html, /id="online-login"[^>]*>Log in<\/a>/);
+    assert.match(html, /id="online-signup"[^>]*>Sign up<\/a>/);
+    assert.match(html, /id="find-game" disabled>Start Game<\/button>/);
+});
+
+test('player-facing panel copy follows enabled capabilities without internal diagnostics', () => {
+    assert.doesNotMatch(html, /Protocol 1\.0\.0|private-game contract|feature flag|service flag/i);
+    assert.match(html, /id="game-mode-label">Casual/);
+    assert.match(html, /Public joinable games are not enabled in this version/);
+    assert.match(html, /id="workspace-foot-context">Private, server-verified games/);
+});
+
+test('tournament proposal is an isolated, synthetic and accessible panel', () => {
+    assert.ok(vercel.rewrites.some(item => item.source === '/online/tournament-demo' && item.destination === '/online.html'));
+    assert.match(server, /pathname === '\/online\/tournament-demo'/);
+    assert.match(html, /id="browse-tournaments"[^>]*aria-disabled="true"[\s\S]*?🏆[\s\S]*?Tournaments[\s\S]*?id="tournament-availability">Coming Soon/);
+    assert.match(html, /id="tab-tournament"[^>]*hidden/);
+    assert.match(html, /id="panel-tournament"[\s\S]*Visual demo[\s\S]*Current standings/);
+    assert.match(html, /class="is-current-player"[\s\S]*Alexander <span>\(you\)<\/span>/);
+    assert.match(html, /data-tournament-view="standings"[\s\S]*>Standings<[\s\S]*data-tournament-view="games"[\s\S]*>Games</);
+    assert.doesNotMatch(html.match(/id="panel-tournament"[\s\S]*?<\/section>\s*<\/div>/)?.[0] || '', />Chat</i);
 });
 
 test('online route is isolated, private-cache, noindex, and keeps the retired play route intact', () => {
@@ -37,11 +87,38 @@ test('turn status is screen-reader only while clocks retain the visual turn sign
     assert.match(css, /\.sr-only\{/);
 });
 
-test('Games distinguishes personal history from unsupported open games', () => {
-    assert.match(html, /data-games-view="history"[\s\S]+data-games-view="open"/);
+test('Games presents three contextual tabs and keeps Open Games independent', () => {
+    assert.match(html, /class="games-subtabs"[^>]*role="tablist"/);
+    assert.match(html, /data-games-tab="daily"[^>]*>Daily Games[\s\S]*Coming soon/);
+    assert.match(html, /data-games-tab="history"[^>]*>Game History/);
+    assert.match(html, /data-games-tab="watch"[^>]*>Watch Games/);
+    assert.match(html, /data-games-panel="daily"/);
+    assert.match(html, /data-games-panel="history" hidden/);
+    assert.match(html, /data-games-panel="watch" hidden/);
+    assert.match(html, /id="open-games-title">Open Games/);
     assert.match(html, /id="games-list"/);
-    assert.match(html, /No open games available/);
-    assert.match(html, /Public joinable games are not part of the current private-game contract/);
+    assert.match(html, /Public joinable games are not enabled in this version/);
+    assert.match(css, /\.games-subtabs\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+    assert.doesNotMatch(html, /class="games-column/);
+    assert.doesNotMatch(html, /YOUR BOARD/);
+    assert.doesNotMatch(html, /Review completed games\. Joinable public games/);
+});
+
+test('Players leads with active presence and guest play is explicit and temporary', () => {
+    assert.match(html, /class="players-heading"[\s\S]*ACTIVE NOW[\s\S]*id="players-count"/);
+    assert.match(html, /id="player-search"[\s\S]*id="players-list"/);
+    assert.match(html, /id="play-as-guest" hidden>Play as Guest/);
+    assert.match(html, /Guest identity is temporary\. Guest games are always unrated\./);
+});
+
+test('New Game keeps authentication actions in a flexible footer without absolute positioning', () => {
+    assert.match(html, /id="lobby-view"[\s\S]*id="browse-tournaments"[\s\S]*id="lobby-access"/);
+    assert.match(html, /Play with a CAISSA account or as a guest\./);
+    assert.match(css, /#lobby-view\{min-height:100%;display:flex;flex-direction:column\}/);
+    assert.match(css, /\.lobby-access\{[^}]*margin-top:auto/);
+    assert.match(css, /\.lobby-access__actions\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+    const accessRule = css.match(/\.lobby-access\{[^}]*\}/)?.[0] || '';
+    assert.doesNotMatch(accessRule, /position:absolute|position:fixed/);
 });
 
 test('custom clock labels are complete and share one aligned control grid', () => {
@@ -50,4 +127,18 @@ test('custom clock labels are complete and share one aligned control grid', () =
     assert.doesNotMatch(html, /<span>seconds<\/span>/);
     assert.match(css, /\.custom-clock\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)[^}]*align-items:start/);
     assert.match(css, /\.custom-clock input\{[^}]*height:40px/);
+});
+
+test('active game actions own a semantic footer above the informational footer', () => {
+    assert.match(html, /id="game-view"[\s\S]*?<footer class="game-action-footer" aria-label="Game actions">[\s\S]*?id="offer-draw"[\s\S]*?id="decline-draw"[\s\S]*?id="resign-game"[\s\S]*?<\/footer>[\s\S]*?<\/div>[\s\S]*?<footer class="workspace-foot"/);
+    assert.equal((html.match(/id="offer-draw"/g) || []).length, 1);
+    assert.equal((html.match(/id="decline-draw"/g) || []).length, 1);
+    assert.equal((html.match(/id="resign-game"/g) || []).length, 1);
+    assert.match(css, /#game-view:not\(\[hidden\]\)\{[\s\S]*?display:flex;[\s\S]*?flex-direction:column/);
+    assert.match(css, /#game-view \.move-list\{[\s\S]*?flex:1 1 auto;[\s\S]*?overflow-y:auto/);
+    assert.match(css, /\.game-action-footer\{[\s\S]*?flex:none;[\s\S]*?margin-top:auto/);
+    assert.match(css, /\.game-actions\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+    const footerRule = css.match(/\.game-action-footer\{[^}]*\}/)?.[0] || '';
+    const actionsRule = css.match(/\.game-actions\{[^}]*\}/)?.[0] || '';
+    assert.doesNotMatch(`${footerRule}${actionsRule}`, /position:(?:absolute|fixed|sticky)/);
 });

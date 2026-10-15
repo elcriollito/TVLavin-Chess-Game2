@@ -602,7 +602,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/mentor' || pathname === '/mentor/') {
     filePath = './mentor.html';
   }
-  if (pathname === '/online' || pathname === '/online/' || pathname === '/online/tournaments') {
+  if (pathname === '/online' || pathname === '/online/'
+    || pathname === '/online/tournament-demo' || pathname === '/online/tournaments') {
     filePath = './online.html';
     res.setHeader('Content-Security-Policy', ONLINE_CSP);
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
