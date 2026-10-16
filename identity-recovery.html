@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0b0f1a">
+  <title>Verify your CAISSA account</title>
+  <link rel="stylesheet" href="/css/caissa-auth.css?v=1.1.1">
+</head>
+<body class="auth-page-body">
+  <main class="auth-page-container">
+    <section class="auth-page-card auth-setup-card" aria-labelledby="identity-recovery-title" aria-live="polite">
+      <h1 id="identity-recovery-title" class="auth-page-title">Verify your existing CAISSA account</h1>
+      <p id="identity-recovery-status" class="auth-page-subtitle">
+        Continue with the CAISSA account you used before the Production identity upgrade.
+      </p>
+      <button id="identity-recovery-continue" class="auth-setup-retry" type="button">Continue securely</button>
+      <p class="auth-recovery-note">No password or session token is copied manually or shared with the Production window.</p>
+    </section>
+  </main>
+  <script src="/js/auth-config.js?v=1.0.5"></script>
+  <script src="/js/caissa-auth.js?v=1.0.4" defer></script>
+  <script src="/js/identity-recovery.js?v=1.1.0" defer></script>
+</body>
+</html>

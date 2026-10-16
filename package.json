@@ -7,7 +7,7 @@
     "start": "node server.js",
     "test:online": "node --test tests/online/*.test.js",
     "test:public-identity": "node --test tests/public-identity-policy.test.js tests/public-identity-api.test.js tests/public-identity-migration.test.js tests/online/public-identity-projection.test.js",
-    "test:sec005": "node --test tests/identity-remapping-foundation.test.js tests/clerk-migration-cutover-tooling.test.js tests/identity-migration-default-off.test.js tests/sec005-cutover-compatibility.test.js",
+    "test:sec005": "node --test tests/identity-remapping-foundation.test.js tests/clerk-migration-cutover-tooling.test.js tests/identity-migration-default-off.test.js tests/sec005-cutover-compatibility.test.js tests/identity-owner-handoff.test.js tests/auth-complete-recovery.test.js tests/identity-recovery-client.test.js",
     "test:public-identity:browser": "playwright test tests/browser/public-identity.spec.js --project=chromium --project=firefox --project=webkit",
     "lint:public-identity": "node --check api/_lib/public-identity.js && node --check api/_lib/online-public-projection.js && node --check api/user/public-identity.js && node --check js/identity/public-nickname-policy.js && node --check js/identity/public-identity-api.js && node --check js/identity/public-identity-dialog.js && node --check tests/public-identity-policy.test.js && node --check tests/public-identity-api.test.js && node --check tests/public-identity-migration.test.js && node --check tests/online/public-identity-projection.test.js && node --check tests/browser/public-identity.spec.js",
     "test:online:browser": "playwright test --config=playwright.online.config.js",

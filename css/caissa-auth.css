@@ -498,6 +498,11 @@
 }
 .auth-setup-retry:hover { background: #63ddd5; }
 .auth-setup-retry:focus-visible { outline: 3px solid #f3f6fb; outline-offset: 3px; }
+.auth-setup-retry:disabled { cursor: wait; opacity: 0.7; }
+.auth-setup-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.auth-setup-secondary { background: transparent; color: #63ddd5; }
+.auth-setup-secondary:hover { background: rgba(78, 205, 196, 0.12); }
+.auth-recovery-note { margin: 18px 0 0; color: #9aa0a6; font-size: 13px; line-height: 1.5; }
 @keyframes auth-setup-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .auth-setup-spinner { animation: none; border-top-color: #63ddd5; } }
 

@@ -10,6 +10,7 @@ export async function createMigrationHandoff({
     supabase,
     existingAccount,
     verifiedProductionSubject,
+    challengeToken,
     proofMethod = 'DUAL_AUTH',
     ttlMs = 10 * 60 * 1000,
     now = Date.now()
@@ -21,7 +22,12 @@ export async function createMigrationHandoff({
         return { ok: false, code: 'INVALID_EXPIRY' };
     }
 
-    const token = crypto.randomBytes(32).toString('base64url');
+    if (challengeToken !== undefined
+        && (typeof challengeToken !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(challengeToken))) {
+        return { ok: false, code: 'INVALID_CHALLENGE_TOKEN' };
+    }
+
+    const token = challengeToken || crypto.randomBytes(32).toString('base64url');
     const tokenHash = sha256(token);
     const expiresAt = new Date(now + ttlMs).toISOString();
     const { data, error } = await supabase.rpc('create_clerk_migration_challenge', {
