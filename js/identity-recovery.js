@@ -1,11 +1,11 @@
 (function () {
     'use strict';
 
-    const PRODUCTION_ORIGIN = 'https://www.caissa-chess.org';
-    const LEGACY_HANDOFF_ORIGIN = 'https://caissa-online-native-v1-validation-26a830.vercel.app';
     const RECOVERY_MESSAGE_TYPE = 'caissa:sec005-owner-proof:v1';
     const STATE_KEY = 'caissa.sec005.owner-handoff.v1';
     let running = false;
+    let trustedOrigins = null;
+    let opaqueState = '';
 
     function captureOpaqueState() {
         const fragment = new URLSearchParams(window.location.hash.slice(1));
@@ -54,6 +54,30 @@
             && /^r1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
     }
 
+    function strictHttpsOrigin(value) {
+        try {
+            const parsed = new URL(String(value || ''));
+            if (parsed.protocol !== 'https:' || parsed.username || parsed.password
+                || parsed.pathname !== '/' || parsed.search || parsed.hash) return '';
+            return parsed.origin;
+        } catch {
+            return '';
+        }
+    }
+
+    async function loadTrustedOrigins() {
+        await window.CAISSA_AUTH_CONFIG_READY;
+        const value = window.CAISSA_AUTH_CONFIG?.IDENTITY_OWNER_HANDOFF;
+        const productionOrigin = strictHttpsOrigin(value?.productionOrigin);
+        const legacyOrigin = strictHttpsOrigin(value?.legacyOrigin);
+        if (!value || typeof value !== 'object' || Array.isArray(value)
+            || Object.keys(value).sort().join(',') !== 'legacyOrigin,productionOrigin'
+            || !productionOrigin || !legacyOrigin || productionOrigin === legacyOrigin
+            || productionOrigin !== value.productionOrigin || legacyOrigin !== value.legacyOrigin
+            || window.location.origin !== legacyOrigin) return null;
+        return Object.freeze({ productionOrigin, legacyOrigin });
+    }
+
     function unavailableWithoutOpener(status, button) {
         status.textContent = 'This verification window was not opened by CAISSA Production. Restart account recovery there.';
         button.hidden = true;
@@ -63,8 +87,7 @@
         if (running) return;
         const button = document.getElementById('identity-recovery-continue');
         const status = document.getElementById('identity-recovery-status');
-        const opaqueState = captureOpaqueState();
-        if (window.location.origin !== LEGACY_HANDOFF_ORIGIN) {
+        if (!trustedOrigins || window.location.origin !== trustedOrigins.legacyOrigin) {
             status.textContent = 'Account recovery is unavailable on this deployment.';
             button.hidden = true;
             return;
@@ -98,7 +121,7 @@
             if (!token) throw new Error('session unavailable');
 
             sessionStorage.removeItem(STATE_KEY);
-            const response = await fetch(PRODUCTION_ORIGIN + '/api/user/identity-migration/owner/prove', {
+            const response = await fetch(trustedOrigins.productionOrigin + '/api/user/identity-migration/owner/prove', {
                 method: 'POST',
                 mode: 'cors',
                 credentials: 'omit',
@@ -115,7 +138,7 @@
             window.opener.postMessage({
                 type: RECOVERY_MESSAGE_TYPE,
                 proofReceipt: body.proofReceipt
-            }, PRODUCTION_ORIGIN);
+            }, trustedOrigins.productionOrigin);
             window.close();
         } catch {
             status.textContent = 'We could not verify this handoff. Do not retry this page; return to CAISSA Production for a safe restart.';
@@ -125,17 +148,31 @@
         }
     }
 
-    const button = document.getElementById('identity-recovery-continue');
-    button?.addEventListener('click', continueRecovery);
-    if (window.location.origin !== LEGACY_HANDOFF_ORIGIN) {
-        document.getElementById('identity-recovery-status').textContent =
-            'Account recovery is unavailable on this deployment.';
-        if (button) button.hidden = true;
-    } else if (!hasProductionOpener()) {
-        unavailableWithoutOpener(document.getElementById('identity-recovery-status'), button);
-    } else if (!captureOpaqueState()) {
-        document.getElementById('identity-recovery-status').textContent =
-            'This secure handoff is missing or no longer available. Restart account recovery from CAISSA Production.';
-        if (button) button.hidden = true;
+    async function initialize() {
+        const button = document.getElementById('identity-recovery-continue');
+        const status = document.getElementById('identity-recovery-status');
+        if (button) button.disabled = true;
+        opaqueState = captureOpaqueState();
+        try { trustedOrigins = await loadTrustedOrigins(); } catch { trustedOrigins = null; }
+        if (!trustedOrigins) {
+            status.textContent = 'Account recovery is unavailable on this deployment.';
+            if (button) button.hidden = true;
+            return;
+        }
+        if (!hasProductionOpener()) {
+            unavailableWithoutOpener(status, button);
+            return;
+        }
+        if (!opaqueState) {
+            status.textContent = 'This secure handoff is missing or no longer available. Restart account recovery from CAISSA Production.';
+            if (button) button.hidden = true;
+            return;
+        }
+        if (button) {
+            button.disabled = false;
+            button.addEventListener('click', continueRecovery);
+        }
     }
+
+    initialize();
 })();

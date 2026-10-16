@@ -3,18 +3,18 @@
 
     const MAX_ATTEMPTS = 3;
     const RETRY_DELAYS_MS = [0, 500, 1200];
-    const LEGACY_HANDOFF_ORIGIN = 'https://caissa-online-native-v1-validation-26a830.vercel.app';
     const RECOVERY_MESSAGE_TYPE = 'caissa:sec005-owner-proof:v1';
     const MAX_RECOVERY_WAIT_MS = 10 * 60 * 1000;
     const IDENTITY_RECOVERY_CODES = new Set(['IDENTITY_RESOLUTION_REQUIRED', 'IDENTITY_MIGRATION_REQUIRED']);
     let running = false;
 
     class SyncFailure extends Error {
-        constructor(status, code, transient = false) {
+        constructor(status, code, transient = false, details = null) {
             super('account sync failed');
             this.status = status;
             this.code = code;
             this.transient = transient;
+            this.details = details;
         }
     }
 
@@ -56,7 +56,7 @@
         }
         const result = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new SyncFailure(response.status, result.code || 'REQUEST_REJECTED', response.status >= 500);
+            throw new SyncFailure(response.status, result.code || 'REQUEST_REJECTED', response.status >= 500, result);
         }
         return result;
     }
@@ -70,7 +70,33 @@
             && /^r1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
     }
 
-    function waitForProofReceipt(popup, expiresAt) {
+    function strictHttpsOrigin(value) {
+        try {
+            const parsed = new URL(String(value || ''));
+            if (parsed.protocol !== 'https:' || parsed.username || parsed.password
+                || parsed.pathname !== '/' || parsed.search || parsed.hash) return '';
+            return parsed.origin;
+        } catch {
+            return '';
+        }
+    }
+
+    async function ownerHandoffConfig() {
+        await window.CAISSA_AUTH_CONFIG_READY;
+        const value = window.CAISSA_AUTH_CONFIG?.IDENTITY_OWNER_HANDOFF;
+        const productionOrigin = strictHttpsOrigin(value?.productionOrigin);
+        const legacyOrigin = strictHttpsOrigin(value?.legacyOrigin);
+        if (!value || typeof value !== 'object' || Array.isArray(value)
+            || Object.keys(value).sort().join(',') !== 'legacyOrigin,productionOrigin'
+            || !productionOrigin || !legacyOrigin || productionOrigin === legacyOrigin
+            || productionOrigin !== value.productionOrigin || legacyOrigin !== value.legacyOrigin
+            || window.location.origin !== productionOrigin) {
+            throw new SyncFailure(503, 'HANDOFF_CONFIG_INVALID');
+        }
+        return Object.freeze({ productionOrigin, legacyOrigin });
+    }
+
+    function waitForProofReceipt(popup, expiresAt, legacyOrigin) {
         const serverExpiry = Date.parse(String(expiresAt || ''));
         const remaining = Number.isFinite(serverExpiry) ? serverExpiry - Date.now() : MAX_RECOVERY_WAIT_MS;
         const timeoutMs = Math.max(1, Math.min(MAX_RECOVERY_WAIT_MS, remaining));
@@ -88,7 +114,7 @@
                 else resolve(receipt);
             };
             const onMessage = (event) => {
-                if (event.origin !== LEGACY_HANDOFF_ORIGIN || event.source !== popup) return;
+                if (event.origin !== legacyOrigin || event.source !== popup) return;
                 const data = event.data;
                 if (!data || typeof data !== 'object' || Array.isArray(data)
                     || Object.keys(data).sort().join(',') !== 'proofReceipt,type'
@@ -138,17 +164,18 @@
         let proofReceived = false;
         let activationConfirmed = false;
         try {
+            const origins = await ownerHandoffConfig();
             const result = await authenticatedPost('/api/user/identity-migration/owner/start', {
                 returnTo: destination()
             });
             const target = new URL(String(result.handoffUrl || ''));
-            if (target.origin !== LEGACY_HANDOFF_ORIGIN || target.username || target.password
+            if (target.origin !== origins.legacyOrigin || target.username || target.password
                 || target.pathname !== '/identity-recovery' || target.search
                 || !target.hash.startsWith('#handoff=v1.')) {
                 throw new SyncFailure(503, 'HANDOFF_DESTINATION_INVALID');
             }
 
-            const proofPromise = waitForProofReceipt(popup, result.expiresAt);
+            const proofPromise = waitForProofReceipt(popup, result.expiresAt, origins.legacyOrigin);
             popup.location.replace(target.href);
             status.textContent = 'Complete verification in the secure window. Keep this page open.';
             const proofReceipt = await proofPromise;
@@ -174,12 +201,19 @@
                 status.textContent = 'Your account was recovered, but setup could not finish. It is safe to try setup again.';
                 retry.hidden = false;
                 retry.focus();
+            } else if (error instanceof SyncFailure && error.code === 'IDENTITY_RECOVERY_PENDING') {
+                const expiresAt = Date.parse(String(error.details?.expiresAt || ''));
+                const until = Number.isFinite(expiresAt)
+                    ? ` until ${new Date(expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : '';
+                status.textContent = `A previous secure verification is still pending${until}. Continue from its original Production window, or wait for it to expire before restarting.`;
+                recover.hidden = true;
             } else {
                 status.textContent = error instanceof SyncFailure
                     && error.code === 'IDENTITY_RECOVERY_WINDOW_CLOSED'
                     ? 'Verification was canceled. Restart account recovery when you are ready.'
                     : 'Secure account verification could not be completed. No identity binding was activated.';
-                recover.disabled = false;
+                recover.disabled = error instanceof SyncFailure && error.code === 'HANDOFF_CONFIG_INVALID';
             }
         } finally {
             running = false;

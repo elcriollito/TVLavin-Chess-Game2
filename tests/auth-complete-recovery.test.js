@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../js/auth-complete.js', import.meta.url), 'utf8');
 const legacyOrigin = 'https://caissa-online-native-v1-validation-26a830.vercel.app';
+const productionOrigin = 'https://www.caissa-chess.org';
 const handoffUrl = legacyOrigin + '/identity-recovery#handoff=v1.iv.cipher.tag';
 const proofReceipt = 'r1.iv.cipher.tag';
 
@@ -15,7 +16,9 @@ function response(status, body) {
 function harness({
     search = '?redirect_url=%2Fpuzzles',
     responses = [],
-    popupAvailable = true
+    popupAvailable = true,
+    runtimeOrigin = productionOrigin,
+    handoffOrigins = { productionOrigin, legacyOrigin }
 } = {}) {
     const nodes = new Map(['account-setup-status', 'account-setup-retry', 'account-setup-recover', 'account-setup-recovery-note']
         .map(id => [id, {
@@ -60,10 +63,15 @@ function harness({
         clearInterval() {},
         window: {
             location: {
+                origin: runtimeOrigin,
                 search,
                 replace(value) { navigations.push({ type: 'replace', value }); },
                 assign(value) { navigations.push({ type: 'assign', value }); }
             },
+            CAISSA_AUTH_CONFIG: {
+                IDENTITY_OWNER_HANDOFF: handoffOrigins
+            },
+            CAISSA_AUTH_CONFIG_READY: Promise.resolve(),
             open() { return popupAvailable ? popup : null; },
             addEventListener(type, fn) {
                 const group = listeners.get(type) || new Set();
@@ -81,6 +89,7 @@ function harness({
         calls,
         navigations,
         popup,
+        window: context.window,
         popupNavigations,
         emitMessage(origin, sourceWindow, data) {
             for (const listener of listeners.get('message') || []) {
@@ -192,4 +201,61 @@ test('an ambiguous activation is submitted once and never shown as a retryable c
     ]);
     assert.equal(run.nodes.get('account-setup-retry').hidden, true);
     assert.match(run.nodes.get('account-setup-status').textContent, /Do not retry/);
+});
+
+test('configured origins replace deployment aliases without weakening exact sender checks', async () => {
+    const replacement = 'https://replacement-validation.example.test';
+    const replacementUrl = replacement + '/identity-recovery#handoff=v1.iv.cipher.tag';
+    const run = harness({
+        handoffOrigins: { productionOrigin, legacyOrigin: replacement },
+        responses: [
+            response(409, { code: 'IDENTITY_RESOLUTION_REQUIRED' }),
+            response(201, { handoffUrl: replacementUrl, expiresAt: new Date(Date.now() + 600_000).toISOString() }),
+            response(200, { migrated: true }),
+            response(200, { user: {} })
+        ]
+    });
+    await run.settle();
+    const recovery = run.nodes.get('account-setup-recover').listeners.click();
+    await run.settle();
+    assert.deepEqual(run.popupNavigations, [replacementUrl]);
+    run.emitMessage(legacyOrigin, run.popup, { type: 'caissa:sec005-owner-proof:v1', proofReceipt });
+    await run.settle();
+    assert.equal(run.calls.length, 2);
+    run.emitMessage(replacement, run.popup, { type: 'caissa:sec005-owner-proof:v1', proofReceipt });
+    await recovery;
+    assert.deepEqual(run.calls.map(call => call.url), [
+        '/api/user/sync',
+        '/api/user/identity-migration/owner/start',
+        '/api/user/identity-migration/owner/complete',
+        '/api/user/sync'
+    ]);
+});
+
+test('missing or mismatched public origin metadata fails closed before owner start', async () => {
+    const run = harness({
+        handoffOrigins: { productionOrigin: 'https://wrong-production.example.test', legacyOrigin },
+        responses: [response(409, { code: 'IDENTITY_RESOLUTION_REQUIRED' })]
+    });
+    await run.settle();
+    await run.nodes.get('account-setup-recover').listeners.click();
+    assert.deepEqual(run.calls.map(call => call.url), ['/api/user/sync']);
+    assert.equal(run.popup.closed, true);
+    assert.equal(run.nodes.get('account-setup-recover').disabled, true);
+});
+
+test('a pending challenge without its state cookie reports expiry and offers no blind restart loop', async () => {
+    const expiresAt = new Date(Date.now() + 300_000).toISOString();
+    const run = harness({ responses: [
+        response(409, { code: 'IDENTITY_MIGRATION_REQUIRED' }),
+        response(409, { code: 'IDENTITY_RECOVERY_PENDING', expiresAt })
+    ] });
+    await run.settle();
+    await run.nodes.get('account-setup-recover').listeners.click();
+    assert.deepEqual(run.calls.map(call => call.url), [
+        '/api/user/sync',
+        '/api/user/identity-migration/owner/start'
+    ]);
+    assert.equal(run.nodes.get('account-setup-recover').hidden, true);
+    assert.match(run.nodes.get('account-setup-status').textContent, /previous secure verification is still pending/i);
 });

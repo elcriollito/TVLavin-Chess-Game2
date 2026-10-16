@@ -13,7 +13,8 @@ function clientHarness({
     origin = legacyOrigin,
     signedIn = true,
     responseStatus = 201,
-    openerAvailable = true
+    openerAvailable = true,
+    handoffOrigins = { productionOrigin, legacyOrigin }
 } = {}) {
     const storage = new Map();
     const nodes = new Map([
@@ -67,6 +68,8 @@ function clientHarness({
             history: { replaceState() { location.hash = ''; } },
             addEventListener() {},
             removeEventListener() {},
+            CAISSA_AUTH_CONFIG: { IDENTITY_OWNER_HANDOFF: handoffOrigins },
+            CAISSA_AUTH_CONFIG_READY: Promise.resolve(),
             CAISSA_AUTH: {
                 isLoaded: true,
                 isSignedIn: signedIn,
@@ -91,6 +94,7 @@ function clientHarness({
 test('legacy client scrubs the fragment, proves once, and posts the receipt only to its Production opener', async () => {
     const run = clientHarness();
     assert.equal(run.storage.size, 1);
+    await run.settle();
     await run.nodes.get('identity-recovery-continue').listeners.click();
     await run.settle();
     assert.equal(run.storage.size, 0);
@@ -108,6 +112,7 @@ test('legacy client scrubs the fragment, proves once, and posts the receipt only
 
 test('a transferred handoff opened without the Production opener fails closed before authentication or proof', async () => {
     const run = clientHarness({ openerAvailable: false });
+    await run.settle();
     assert.equal(run.nodes.get('identity-recovery-continue').hidden, true);
     assert.match(run.nodes.get('identity-recovery-status').textContent, /not opened by CAISSA Production/);
     assert.equal(run.calls.length, 0);
@@ -116,6 +121,7 @@ test('a transferred handoff opened without the Production opener fails closed be
 
 test('legacy proof is unavailable from any unpinned deployment origin', async () => {
     const run = clientHarness({ origin: 'https://attacker.invalid' });
+    await run.settle();
     assert.equal(run.nodes.get('identity-recovery-continue').hidden, true);
     assert.match(run.nodes.get('identity-recovery-status').textContent, /unavailable on this deployment/);
     assert.equal(run.calls.length, 0);
@@ -123,6 +129,7 @@ test('legacy proof is unavailable from any unpinned deployment origin', async ()
 
 test('signed-out legacy session redirects only after the owner action and retains opaque state', async () => {
     const run = clientHarness({ signedIn: false });
+    await run.settle();
     assert.deepEqual(run.navigations, []);
     await run.nodes.get('identity-recovery-continue').listeners.click();
     await run.settle();
@@ -133,6 +140,7 @@ test('signed-out legacy session redirects only after the owner action and retain
 
 test('an ambiguous proof is single-attempt and removes the opaque state before reporting failure', async () => {
     const run = clientHarness({ responseStatus: 503 });
+    await run.settle();
     await run.nodes.get('identity-recovery-continue').listeners.click();
     await run.settle();
     assert.equal(run.calls.length, 1);
@@ -144,10 +152,44 @@ test('an ambiguous proof is single-attempt and removes the opaque state before r
 
 test('closing the Production opener before proof delivery prevents the receipt from leaving the legacy window', async () => {
     const run = clientHarness();
+    await run.settle();
     run.opener.closed = true;
     await run.nodes.get('identity-recovery-continue').listeners.click();
     await run.settle();
     assert.equal(run.calls.length, 0);
     assert.equal(run.messages.length, 0);
     assert.match(run.nodes.get('identity-recovery-status').textContent, /not opened by CAISSA Production/);
+});
+
+test('a certified replacement alias works only when supplied by public server metadata', async () => {
+    const replacement = 'https://replacement-validation.example.test';
+    const run = clientHarness({
+        origin: replacement,
+        handoffOrigins: { productionOrigin, legacyOrigin: replacement }
+    });
+    await run.settle();
+    await run.nodes.get('identity-recovery-continue').listeners.click();
+    await run.settle();
+    assert.equal(run.calls[0].url, productionOrigin + '/api/user/identity-migration/owner/prove');
+    assert.equal(run.messages[0].targetOrigin, productionOrigin);
+});
+
+test('mismatched or malformed public metadata fails closed without proof or authentication', async () => {
+    for (const handoffOrigins of [
+        { productionOrigin, legacyOrigin: 'https://wrong-validation.example.test' },
+        null,
+        { productionOrigin: 'http://www.caissa-chess.org', legacyOrigin }
+    ]) {
+        const run = clientHarness({ handoffOrigins });
+        await run.settle();
+        assert.equal(run.nodes.get('identity-recovery-continue').hidden, true);
+        assert.equal(run.calls.length, 0);
+        assert.equal(run.messages.length, 0);
+    }
+});
+
+test('clients contain no pinned Production or validation deployment origins', () => {
+    assert.doesNotMatch(source, /www\.caissa-chess\.org|caissa-online-native-v1-validation-26a830/);
+    const productionClient = fs.readFileSync(new URL('../js/auth-complete.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(productionClient, /www\.caissa-chess\.org|caissa-online-native-v1-validation-26a830/);
 });

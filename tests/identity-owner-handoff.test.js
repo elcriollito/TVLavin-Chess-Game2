@@ -17,6 +17,8 @@ import {
 import { createOwnerHandoffStartHandler } from '../api/user/identity-migration/owner/start.js';
 import { createOwnerHandoffProofHandler } from '../api/user/identity-migration/owner/prove.js';
 import { createOwnerHandoffCompleteHandler } from '../api/user/identity-migration/owner/complete.js';
+import { publicOwnerHandoffMetadata } from '../api/public-auth-config.js';
+import { findPendingMigrationHandoff } from '../api/_lib/identity-migration.js';
 
 const NOW = Date.parse('2030-01-01T00:00:00.000Z');
 const PROD_ORIGIN = 'https://www.caissa-chess.org';
@@ -70,6 +72,43 @@ test('opaque owner state is confidential, authenticated, expiring, and preserves
     assert.equal(safeOwnerReturnTo('https://attacker.invalid/x', PROD_ORIGIN), '/play');
     assert.equal(safeOwnerReturnTo('//attacker.invalid/x', PROD_ORIGIN), '/play');
     assert.equal(safeOwnerReturnTo('/safe\\evil', PROD_ORIGIN), '/play');
+});
+
+test('public handoff metadata exposes only the exact server-configured HTTPS origin pair', () => {
+    assert.deepEqual(publicOwnerHandoffMetadata(env), {
+        productionOrigin: PROD_ORIGIN,
+        legacyOrigin: LEGACY_ORIGIN
+    });
+    assert.equal(publicOwnerHandoffMetadata({ ...env, CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: '' }), null);
+    assert.equal(publicOwnerHandoffMetadata({ ...env, CAISSA_APP_ORIGIN: 'http://www.caissa-chess.org' }), null);
+    assert.equal(publicOwnerHandoffMetadata({ ...env, CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: PROD_ORIGIN }), null);
+    assert.equal(publicOwnerHandoffMetadata({ ...env, CAISSA_IDENTITY_MIGRATION_MODE: 'off' }), null);
+});
+
+test('pending challenge lookup is read-only, hashed, exact, and expiry-bounded', async () => {
+    const calls = [];
+    const row = { expires_at: new Date(NOW + 60_000).toISOString() };
+    const builder = {
+        select(value) { calls.push(['select', value]); return this; },
+        eq(column, value) { calls.push(['eq', column, value]); return this; },
+        gt(column, value) { calls.push(['gt', column, value]); return this; },
+        order(column, value) { calls.push(['order', column, value]); return this; },
+        limit(value) { calls.push(['limit', value]); return Promise.resolve({ data: [row], error: null }); }
+    };
+    const supabase = { from(table) { calls.push(['from', table]); return builder; } };
+    const result = await findPendingMigrationHandoff({
+        supabase,
+        verifiedProductionSubject: 'PROD_A',
+        userId: 'U1',
+        challengeToken: 'a'.repeat(43),
+        now: NOW
+    });
+    assert.deepEqual(result, { ok: true, found: true, expiresAt: row.expires_at });
+    assert.ok(calls.some(call => call[0] === 'eq' && call[1] === 'user_id' && call[2] === 'U1'));
+    assert.ok(calls.some(call => call[0] === 'eq' && call[1] === 'proof_method' && call[2] === 'SESSION_HANDOFF'));
+    assert.equal(JSON.stringify(calls).includes('PROD_A'), false);
+    assert.equal(JSON.stringify(calls).includes('a'.repeat(43)), false);
+    assert.equal(calls.at(-1)[1], 1);
 });
 
 test('challenge token is deterministic, fixed length, and not the opaque state', () => {
@@ -141,6 +180,7 @@ test('start proves a fresh unresolved Production session and sets no token in re
     assert.equal(issuedSubject, 'PROD_A');
     assert.match(res.headers['Set-Cookie'], /HttpOnly; SameSite=Strict/);
     assert.match(res.body.handoffUrl, new RegExp(`^${LEGACY_ORIGIN.replaceAll('.', '\\.')}\/identity-recovery#handoff=v1\\.`));
+    assert.equal(res.body.resumed, false);
     assert.equal('challengeToken' in res.body, false);
     assert.equal(JSON.stringify(res.body).includes('PROD_A'), false);
 });
@@ -169,7 +209,8 @@ test('proof accepts one fixed legacy authority and creates a hidden deterministi
     assert.equal(handoffInput.verifiedProductionSubject, 'PROD_A');
     assert.equal(handoffInput.proofMethod, 'SESSION_HANDOFF');
     assert.equal(handoffInput.challengeToken, deriveOwnerChallengeToken(state, env));
-    assert.deepEqual(Object.keys(res.body).sort(), ['expiresAt', 'proofReceipt', 'verified']);
+    assert.deepEqual(Object.keys(res.body).sort(), ['expiresAt', 'proofReceipt', 'resumed', 'verified']);
+    assert.equal(res.body.resumed, false);
     assert.equal(verifyOwnerProofReceipt(res.body.proofReceipt, state, env, NOW + 2).ok, true);
     assert.equal(JSON.stringify(res.body).includes(handoffInput.challengeToken), false);
 });
@@ -231,4 +272,98 @@ test('proof and completion fail closed for wrong subjects, origins, and replay-s
     assert.equal(wrongReceipt.statusCode, 409);
     assert.equal(identityOwnerHandoffInternals.maxTtlMs, 15 * 60 * 1000);
     assert.equal(identityOwnerHandoffInternals.receiptVersion, 'r1');
+});
+
+test('start safely resumes the exact encrypted cookie when a challenge response was lost', async () => {
+    const state = issueOwnerHandoff('PROD_A', env, NOW, 10 * 60 * 1000, '/puzzles').state;
+    let newlyIssued = false;
+    const handler = createOwnerHandoffStartHandler({
+        env,
+        getSupabase: () => ({}),
+        getFixedMigrationAuthority: () => ({ name: 'production' }),
+        verifyMigrationToken: async () => ({ ok: true, subject: 'PROD_A' }),
+        resolveIdentityForSync: async () => ({ ok: true, resolution: 'MIGRATION_REQUIRED' }),
+        consumePersistentMigrationThrottle: async () => ({ ok: true }),
+        issueOwnerHandoff: () => { newlyIssued = true; throw new Error('must not issue'); },
+        now: () => NOW + 1000
+    });
+    const res = responseHarness();
+    await handler(request(PROD_ORIGIN, { returnTo: '/puzzles' }, { cookie: ownerHandoffCookie(state) }), res);
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.resumed, true);
+    assert.equal(res.body.expiresAt, new Date(NOW + 600_000).toISOString());
+    assert.match(res.body.handoffUrl, new RegExp(encodeURIComponent(state).replaceAll('.', '\\.')));
+    assert.equal(newlyIssued, false);
+});
+
+test('start does not supersede a pending challenge when its exact state cookie is unavailable', async () => {
+    const expiresAt = new Date(NOW + 300_000).toISOString();
+    let newlyIssued = false;
+    const handler = createOwnerHandoffStartHandler({
+        env,
+        getSupabase: () => ({}),
+        getFixedMigrationAuthority: () => ({ name: 'production' }),
+        verifyMigrationToken: async () => ({ ok: true, subject: 'PROD_A' }),
+        resolveIdentityForSync: async () => ({ ok: true, resolution: 'MIGRATION_REQUIRED' }),
+        consumePersistentMigrationThrottle: async () => ({ ok: true }),
+        findPendingMigrationHandoff: async input => {
+            assert.equal(input.verifiedProductionSubject, 'PROD_A');
+            return { ok: true, found: true, expiresAt };
+        },
+        issueOwnerHandoff: () => { newlyIssued = true; throw new Error('must not issue'); },
+        now: () => NOW
+    });
+    const res = responseHarness();
+    await handler(request(PROD_ORIGIN, { returnTo: '/puzzles' }), res);
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(res.body, { code: 'IDENTITY_RECOVERY_PENDING', expiresAt });
+    assert.equal(res.headers['Retry-After'], '300');
+    assert.equal(newlyIssued, false);
+});
+
+test('proof resumes only the exact deterministic pending challenge after a lost response', async () => {
+    const state = issueOwnerHandoff('PROD_A', env, NOW, 10 * 60 * 1000, '/puzzles').state;
+    const expectedToken = deriveOwnerChallengeToken(state, env);
+    let lookup;
+    const supabase = { rpc: async () => ({ data: [{ resolution: 'BOUND', user_id: 'U1' }], error: null }) };
+    const handler = createOwnerHandoffProofHandler({
+        env,
+        getSupabase: () => supabase,
+        getFixedMigrationAuthority: () => ({ name: 'legacy' }),
+        verifyMigrationToken: async () => ({ ok: true, subject: 'LEGACY_A' }),
+        consumePersistentMigrationThrottle: async () => ({ ok: true }),
+        createMigrationHandoff: async () => ({ ok: false, code: 'CHALLENGE_CONFLICT' }),
+        findPendingMigrationHandoff: async input => {
+            lookup = input;
+            return { ok: true, found: true, expiresAt: new Date(NOW + 600_000).toISOString() };
+        },
+        now: () => NOW + 1
+    });
+    const res = responseHarness();
+    await handler(request(LEGACY_ORIGIN, { handoffState: state }), res);
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.resumed, true);
+    assert.equal(lookup.userId, 'U1');
+    assert.equal(lookup.challengeToken, expectedToken);
+    assert.equal(lookup.verifiedProductionSubject, 'PROD_A');
+    assert.equal(verifyOwnerProofReceipt(res.body.proofReceipt, state, env, NOW + 2).ok, true);
+});
+
+test('proof refuses a conflict that is not the exact pending challenge', async () => {
+    const state = issueOwnerHandoff('PROD_A', env, NOW).state;
+    const supabase = { rpc: async () => ({ data: [{ resolution: 'BOUND', user_id: 'U1' }], error: null }) };
+    const handler = createOwnerHandoffProofHandler({
+        env,
+        getSupabase: () => supabase,
+        getFixedMigrationAuthority: () => ({ name: 'legacy' }),
+        verifyMigrationToken: async () => ({ ok: true, subject: 'LEGACY_A' }),
+        consumePersistentMigrationThrottle: async () => ({ ok: true }),
+        createMigrationHandoff: async () => ({ ok: false, code: 'CHALLENGE_CONFLICT' }),
+        findPendingMigrationHandoff: async () => ({ ok: true, found: false }),
+        issueOwnerProofReceipt: () => assert.fail('no receipt may be issued'),
+        now: () => NOW + 1
+    });
+    const res = responseHarness();
+    await handler(request(LEGACY_ORIGIN, { handoffState: state }), res);
+    assert.equal(res.statusCode, 409);
 });

@@ -1,5 +1,5 @@
 import { getSupabase } from '../../../_lib/supabase.js';
-import { createMigrationHandoff } from '../../../_lib/identity-migration.js';
+import { createMigrationHandoff, findPendingMigrationHandoff } from '../../../_lib/identity-migration.js';
 import { getFixedMigrationAuthority, verifyMigrationToken } from '../../../_lib/clerk-migration-verifiers.js';
 import { consumePersistentMigrationThrottle, prepareSensitiveJsonRoute, rejectSensitiveRoute } from '../../../_lib/identity-migration-http.js';
 import { isIdentityMigrationEnforced } from '../../../_lib/identity-resolution.js';
@@ -19,6 +19,7 @@ export function createOwnerHandoffProofHandler(dependencies = {}) {
     const getAuthority = dependencies.getFixedMigrationAuthority || getFixedMigrationAuthority;
     const verifyToken = dependencies.verifyMigrationToken || verifyMigrationToken;
     const createHandoff = dependencies.createMigrationHandoff || createMigrationHandoff;
+    const findPendingHandoff = dependencies.findPendingMigrationHandoff || findPendingMigrationHandoff;
     const consumeThrottle = dependencies.consumePersistentMigrationThrottle || consumePersistentMigrationThrottle;
     const issueProofReceipt = dependencies.issueOwnerProofReceipt || issueOwnerProofReceipt;
     const now = dependencies.now || Date.now;
@@ -66,18 +67,36 @@ export function createOwnerHandoffProofHandler(dependencies = {}) {
             }
 
             const ttlMs = state.expiresAt - timestamp;
-            const proofReceipt = issueProofReceipt(req.body.handoffState, verified.subject, environment, timestamp);
+            const challengeToken = deriveOwnerChallengeToken(req.body.handoffState, environment);
             const result = await createHandoff({
                 supabase,
                 existingAccount: { userId: resolution.user_id, legacySubject: verified.subject },
                 verifiedProductionSubject: state.productionSubject,
-                challengeToken: deriveOwnerChallengeToken(req.body.handoffState, environment),
+                challengeToken,
                 proofMethod: 'SESSION_HANDOFF',
                 ttlMs,
                 now: timestamp
             });
-            if (!result.ok) return res.status(409).json({ error: 'Identity migration unavailable' });
-            return res.status(201).json({ verified: true, expiresAt: result.expiresAt, proofReceipt });
+            let expiresAt = result.expiresAt;
+            let resumed = false;
+            if (!result.ok && result.code === 'CHALLENGE_CONFLICT') {
+                const pending = await findPendingHandoff({
+                    supabase,
+                    verifiedProductionSubject: state.productionSubject,
+                    userId: resolution.user_id,
+                    challengeToken,
+                    now: timestamp
+                });
+                if (!pending.ok) return res.status(503).json({ error: 'Identity migration unavailable' });
+                if (!pending.found) return res.status(409).json({ error: 'Identity migration unavailable' });
+                expiresAt = pending.expiresAt;
+                resumed = true;
+            } else if (!result.ok) {
+                const status = result.code === 'IDENTITY_SERVICE_UNAVAILABLE' ? 503 : 409;
+                return res.status(status).json({ error: 'Identity migration unavailable' });
+            }
+            const proofReceipt = issueProofReceipt(req.body.handoffState, verified.subject, environment, timestamp);
+            return res.status(201).json({ verified: true, expiresAt, proofReceipt, resumed });
         } catch {
             return res.status(503).json({ error: 'Identity migration unavailable' });
         }

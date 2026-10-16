@@ -34,19 +34,25 @@ test('passive native Play initialization does not materialize default preference
     assert.match(app, /supportsChess960[\s\S]*?window\.localStorage && !nativePlayV2[\s\S]*?localStorage\.setItem\('caissa\.chess960'/);
 });
 
-test('public auth endpoint exposes only its two allowlisted public fields', () => {
+test('public auth endpoint exposes only its allowlisted public fields', () => {
     const prior = {
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
         CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
         CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
         SUPABASE_URL: process.env.SUPABASE_URL,
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        CAISSA_IDENTITY_MIGRATION_MODE: process.env.CAISSA_IDENTITY_MIGRATION_MODE,
+        CAISSA_APP_ORIGIN: process.env.CAISSA_APP_ORIGIN,
+        CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: process.env.CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN
     };
     Object.assign(process.env, {
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_live_public_identifier',
         CLERK_SECRET_KEY: 'secret-must-not-escape',
         SUPABASE_URL: 'https://private-service.invalid',
-        SUPABASE_SERVICE_ROLE_KEY: 'service-role-must-not-escape'
+        SUPABASE_SERVICE_ROLE_KEY: 'service-role-must-not-escape',
+        CAISSA_IDENTITY_MIGRATION_MODE: 'enforced',
+        CAISSA_APP_ORIGIN: 'https://www.caissa-chess.org',
+        CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: 'https://validation.example.test'
     });
     let status = null;
     let payload = null;
@@ -54,9 +60,13 @@ test('public auth endpoint exposes only its two allowlisted public fields', () =
     try {
         handler({ method: 'GET' }, response);
         assert.equal(status, 200);
-        assert.deepEqual(Object.keys(payload).sort(), ['clerkPublishableKey', 'registrationTracking']);
+        assert.deepEqual(Object.keys(payload).sort(), ['clerkPublishableKey', 'identityOwnerHandoff', 'registrationTracking']);
         assert.equal(payload.clerkPublishableKey, 'pk_live_public_identifier');
         assert.equal(payload.registrationTracking, true);
+        assert.deepEqual(payload.identityOwnerHandoff, {
+            productionOrigin: 'https://www.caissa-chess.org',
+            legacyOrigin: 'https://validation.example.test'
+        });
         assert.doesNotMatch(JSON.stringify(payload), /secret-must-not-escape|service-role-must-not-escape|private-service/);
     } finally {
         for (const [key, value] of Object.entries(prior)) {
