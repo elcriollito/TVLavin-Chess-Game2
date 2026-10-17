@@ -44,6 +44,7 @@ const CAISSA_AUTH_CONFIG = {
     // Fallback only. Production should hydrate this from /api/public-auth-config.
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
     REGISTRATION_TRACKING_AVAILABLE: false,
+    IDENTITY_OWNER_HANDOFF: null,
 
     // Redirect URLs after auth actions
     REDIRECT_AFTER_SIGN_IN: '/',
@@ -96,12 +97,33 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
             }
         }
         CAISSA_AUTH_CONFIG.REGISTRATION_TRACKING_AVAILABLE = data.registrationTracking === true;
+        CAISSA_AUTH_CONFIG.IDENTITY_OWNER_HANDOFF = normalizeOwnerHandoffMetadata(data.identityOwnerHandoff);
     } catch (error) {
         console.warn('[Auth Config] Public auth config failed to load', error.message);
     }
 
     return CAISSA_AUTH_CONFIG;
 })();
+
+function normalizeOwnerHandoffMetadata(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+        || Object.keys(value).sort().join(',') !== 'legacyOrigin,productionOrigin') return null;
+    const productionOrigin = strictHttpsOrigin(value.productionOrigin);
+    const legacyOrigin = strictHttpsOrigin(value.legacyOrigin);
+    if (!productionOrigin || !legacyOrigin || productionOrigin === legacyOrigin) return null;
+    return Object.freeze({ productionOrigin, legacyOrigin });
+}
+
+function strictHttpsOrigin(value) {
+    try {
+        const parsed = new URL(String(value || ''));
+        if (parsed.protocol !== 'https:' || parsed.username || parsed.password
+            || parsed.pathname !== '/' || parsed.search || parsed.hash) return '';
+        return parsed.origin;
+    } catch {
+        return '';
+    }
+}
 
 // Keep the top-level config mutable so the public server config can hydrate it.
 Object.freeze(CAISSA_AUTH_CONFIG.FEATURES);

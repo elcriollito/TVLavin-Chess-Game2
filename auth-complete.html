@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#0b0f1a">
   <title>Finishing account setup – CAISSA Chess</title>
-  <link rel="stylesheet" href="/css/caissa-auth.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/caissa-auth.css?v=1.1.1">
 </head>
 <body class="auth-page-body">
   <main class="auth-page-container">
@@ -14,11 +14,19 @@
       <div class="auth-setup-spinner" aria-hidden="true"></div>
       <h1 id="account-setup-title" class="auth-page-title">Finishing your account setup…</h1>
       <p id="account-setup-status" class="auth-page-subtitle">This should only take a moment.</p>
-      <button id="account-setup-retry" class="auth-setup-retry" type="button" hidden>Try again</button>
+      <div class="auth-setup-actions">
+        <button id="account-setup-retry" class="auth-setup-retry" type="button" hidden>Try again</button>
+        <button id="account-setup-recover" class="auth-setup-retry auth-setup-secondary" type="button" hidden>
+          Recover existing account
+        </button>
+      </div>
+      <p id="account-setup-recovery-note" class="auth-recovery-note" hidden>
+        This verifies your existing and Production sign-ins in a separate secure window without manual token copying.
+      </p>
     </section>
   </main>
-  <script src="/js/auth-config.js?v=1.0.5"></script>
+  <script src="/js/auth-config.js?v=1.0.6"></script>
   <script src="/js/caissa-auth.js?v=1.0.4" defer></script>
-  <script src="/js/auth-complete.js?v=1.0.0" defer></script>
+  <script src="/js/auth-complete.js?v=1.3.0" defer></script>
 </body>
 </html>

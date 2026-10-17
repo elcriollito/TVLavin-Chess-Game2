@@ -7,7 +7,7 @@
     "start": "node server.js",
     "test:online": "node --test tests/online/*.test.js",
     "test:public-identity": "node --test tests/public-identity-policy.test.js tests/public-identity-api.test.js tests/public-identity-migration.test.js tests/online/public-identity-projection.test.js",
-    "test:sec005": "node --test tests/identity-remapping-foundation.test.js tests/clerk-migration-cutover-tooling.test.js tests/identity-migration-default-off.test.js tests/sec005-cutover-compatibility.test.js",
+    "test:sec005": "node --test tests/identity-remapping-foundation.test.js tests/clerk-migration-cutover-tooling.test.js tests/identity-migration-default-off.test.js tests/sec005-cutover-compatibility.test.js tests/identity-owner-handoff.test.js tests/auth-complete-recovery.test.js tests/identity-recovery-client.test.js",
     "test:public-identity:browser": "playwright test tests/browser/public-identity.spec.js --project=chromium --project=firefox --project=webkit",
     "lint:public-identity": "node --check api/_lib/public-identity.js && node --check api/_lib/online-public-projection.js && node --check api/user/public-identity.js && node --check js/identity/public-nickname-policy.js && node --check js/identity/public-identity-api.js && node --check js/identity/public-identity-dialog.js && node --check tests/public-identity-policy.test.js && node --check tests/public-identity-api.test.js && node --check tests/public-identity-migration.test.js && node --check tests/online/public-identity-projection.test.js && node --check tests/browser/public-identity.spec.js",
     "test:online:browser": "playwright test --config=playwright.online.config.js",
@@ -222,7 +222,7 @@
     "@vercel/functions": "3.9.9",
     "@mliebelt/pgn-parser": "1.4.19",
     "@supabase/supabase-js": "^2.93.1",
-    "adm-zip": "0.6.0",
+    "adm-zip": "0.6.1",
     "chess-openings": "^0.1.1",
     "chess.js": "^1.4.0",
     "js-dos": "^8.3.20",
@@ -236,12 +236,12 @@
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.62.0",
     "cheerio": "^1.2.0",
-    "sharp": "0.35.3"
+    "sharp": "0.35.5"
   },
   "overrides": {
     "lodash": "4.18.1",
     "nanoid": "3.3.18",
-    "qs": "6.15.3",
-    "undici": "7.29.0"
+    "qs": "6.16.0",
+    "undici": "7.29.1"
   }
 }

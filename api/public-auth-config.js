@@ -1,3 +1,6 @@
+import { ownerHandoffOrigins } from './_lib/identity-owner-handoff.js';
+import { isIdentityMigrationEnforced } from './_lib/identity-resolution.js';
+
 /**
  * Public auth configuration for the browser.
  *
@@ -30,8 +33,22 @@ export default function handler(req, res) {
             process.env.CLERK_SECRET_KEY &&
             supabaseUrl &&
             process.env.SUPABASE_SERVICE_ROLE_KEY
-        )
+        ),
+        identityOwnerHandoff: publicOwnerHandoffMetadata(process.env)
     });
+}
+
+export function publicOwnerHandoffMetadata(env = process.env) {
+    if (!isIdentityMigrationEnforced(env)) return null;
+    try {
+        const origins = ownerHandoffOrigins(env);
+        return Object.freeze({
+            productionOrigin: origins.production,
+            legacyOrigin: origins.legacy
+        });
+    } catch {
+        return null;
+    }
 }
 
 export function isValidClerkPublishableKey(value) {

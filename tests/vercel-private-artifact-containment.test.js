@@ -48,7 +48,10 @@ test('large local OpeningDB build intermediates are not deployment assets', () =
 test('SEC-005 routes remain present and exact-default-off gated', () => {
   for (const route of [
     'api/user/identity-migration/challenge.js',
-    'api/user/identity-migration/activate.js'
+    'api/user/identity-migration/activate.js',
+    'api/user/identity-migration/owner/start.js',
+    'api/user/identity-migration/owner/prove.js',
+    'api/user/identity-migration/owner/complete.js'
   ]) {
     assert.equal(fs.existsSync(route), true, route);
     const source = fs.readFileSync(route, 'utf8');
