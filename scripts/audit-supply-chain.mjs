@@ -50,10 +50,10 @@ for (const [location, record] of Object.entries(lock.packages || {})) {
         failures.push(`${location}: unexpected package source`);
     if (record.resolved && !record.integrity) failures.push(`${location}: registry package lacks integrity`);
 }
-for (const [name, version] of Object.entries({ lodash: '4.18.1', nanoid: '3.3.18', qs: '6.15.3', undici: '7.29.0' })) {
+for (const [name, version] of Object.entries({ lodash: '4.18.1', nanoid: '3.3.18', qs: '6.16.0', undici: '7.29.1' })) {
     if (packageJson.overrides?.[name] !== version) failures.push(`override drift: ${name}`);
 }
-if (packageJson.dependencies?.['adm-zip'] !== '0.6.0' || packageJson.devDependencies?.sharp !== '0.35.3')
+if (packageJson.dependencies?.['adm-zip'] !== '0.6.1' || packageJson.devDependencies?.sharp !== '0.35.5')
     failures.push('direct remediation version drift');
 
 if (failures.length) {
