@@ -10,11 +10,13 @@ const legacyOrigin = 'https://caissa-online-native-v1-validation-26a830.vercel.a
 const productionOrigin = 'https://www.caissa-chess.org';
 const opaqueState = 'v1.canonical-iv.canonical-cipher.canonical-tag';
 const proofReceipt = 'r1.canonical-iv.canonical-cipher.canonical-tag';
+const proofExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
 function clientHarness({
     origin = legacyOrigin,
     signedIn = true,
     responseStatus = 201,
+    responseExpiresAt = proofExpiresAt,
     openerAvailable = true,
     handoffOrigins = { productionOrigin, legacyOrigin }
 } = {}) {
@@ -61,7 +63,8 @@ function clientHarness({
                 status: responseStatus,
                 json: async () => responseStatus === 201 ? {
                     verified: true,
-                    proofReceipt
+                    proofReceipt,
+                    expiresAt: responseExpiresAt
                 } : {}
             };
         },
@@ -116,7 +119,8 @@ test('legacy client scrubs the fragment, proves once, and returns the receipt th
     const callback = new URL(run.navigations[0]);
     assert.equal(callback.origin, productionOrigin);
     assert.equal(callback.pathname, '/identity-recovery/return');
-    assert.match(callback.hash, /^#channel=[A-Za-z0-9_-]{43}&proofReceipt=r1\./);
+    assert.match(callback.hash, /^#channel=[A-Za-z0-9_-]{43}&proofReceipt=r1\..*&expiresAt=/);
+    assert.equal(new URLSearchParams(callback.hash.slice(1)).get('expiresAt'), proofExpiresAt);
 });
 
 test('a severed WindowProxy does not block a cryptographically bound callback return', async () => {
@@ -159,6 +163,19 @@ test('an ambiguous proof is single-attempt and removes the opaque state before r
     assert.equal(run.nodes.get('identity-recovery-continue').hidden, true);
     assert.match(run.nodes.get('identity-recovery-status').textContent, /do not retry/i);
     assert.equal(run.messages.length, 0);
+});
+
+test('legacy client rejects a server expiry that would extend the cryptographic handoff lifetime', async () => {
+    const run = clientHarness({
+        responseExpiresAt: new Date(Date.now() + 11 * 60 * 1000).toISOString()
+    });
+    await run.settle();
+    await run.nodes.get('identity-recovery-continue').listeners.click();
+    await run.settle();
+    assert.equal(run.calls.length, 1);
+    assert.equal(run.storage.size, 0);
+    assert.deepEqual(run.navigations, []);
+    assert.match(run.nodes.get('identity-recovery-status').textContent, /do not retry/i);
 });
 
 test('a WindowProxy that reports closed does not create a false cancellation', async () => {

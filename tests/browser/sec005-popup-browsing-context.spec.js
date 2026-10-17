@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
 import http from 'node:http';
 
 const channelId = 'a'.repeat(43);
 const proofReceipt = 'r1.iv.cipher.tag';
+const channelSource = fs.readFileSync(new URL('../../js/identity-recovery-channel.js', import.meta.url), 'utf8');
+const returnSource = fs.readFileSync(new URL('../../js/identity-recovery-return.js', import.meta.url), 'utf8');
 let production;
 let sso;
 let legacy;
@@ -30,42 +33,50 @@ function html(res, coop, body) {
     res.end(`<!doctype html><meta charset="utf-8">${body}`);
 }
 
+function javascript(res, body) {
+    res.writeHead(200, {
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
+    });
+    res.end(body);
+}
+
 test.beforeAll(async () => {
     production = await listen((req, res) => {
+        if (req.url === '/js/identity-recovery-channel.js') {
+            return javascript(res, channelSource);
+        }
+        if (req.url === '/js/identity-recovery-return.js') {
+            return javascript(res, returnSource);
+        }
         if (req.url?.startsWith('/return')) {
-            return html(res, 'same-origin-allow-popups', `<p id="state">returning</p><script>
-                const params = new URLSearchParams(location.hash.slice(1));
-                history.replaceState(null, '', '/return');
-                const id = params.get('channel');
-                const receipt = params.get('proofReceipt');
-                const bc = new BroadcastChannel('caissa:sec005-owner-proof:v2:' + id);
-                const ready = () => bc.postMessage({ type: 'ready', channelId: id });
-                bc.onmessage = event => {
-                    if (event.data?.type === 'request' && event.data?.channelId === id) {
-                        bc.postMessage({ type: 'proof', channelId: id, proofReceipt: receipt });
-                    }
-                    if (event.data?.type === 'ack' && event.data?.channelId === id) {
-                        document.querySelector('#state').textContent = 'acknowledged';
-                        bc.close();
-                        close();
-                    }
-                };
-                setInterval(ready, 100); ready();
-            </script>`);
+            return html(res, 'same-origin-allow-popups', `
+                <p id="identity-recovery-return-status">returning</p>
+                <script src="/js/identity-recovery-channel.js"></script>
+                <script src="/js/identity-recovery-return.js"></script>
+            `);
         }
         return html(res, 'same-origin-allow-popups', `<button id="open">open</button><output id="result">pending</output><script>
             const id = '${channelId}';
-            const bc = new BroadcastChannel('caissa:sec005-owner-proof:v2:' + id);
-            bc.onmessage = event => {
-                if (event.data?.type === 'ready' && event.data?.channelId === id) {
-                    bc.postMessage({ type: 'request', channelId: id });
-                }
-                if (event.data?.type === 'proof' && event.data?.channelId === id
-                    && event.data?.proofReceipt === '${proofReceipt}') {
-                    document.querySelector('#result').textContent = 'proof-received';
-                    bc.postMessage({ type: 'ack', channelId: id });
-                }
+            let bc = null;
+            window.armReceiver = () => {
+                if (bc) return;
+                bc = new BroadcastChannel('caissa:sec005-owner-proof:v2:' + id);
+                bc.onmessage = event => {
+                    if (event.data?.type === 'caissa:sec005-owner-proof-ready:v2'
+                        && event.data?.channelId === id) {
+                        bc.postMessage({ type: 'caissa:sec005-owner-proof-request:v2', channelId: id });
+                    }
+                    if (event.data?.type === 'caissa:sec005-owner-proof:v2'
+                        && event.data?.channelId === id
+                        && event.data?.proofReceipt === '${proofReceipt}') {
+                        document.querySelector('#result').textContent = 'proof-received';
+                        bc.postMessage({ type: 'caissa:sec005-owner-proof-ack:v2', channelId: id });
+                    }
+                };
             };
+            if (!new URLSearchParams(location.search).has('manual')) window.armReceiver();
             document.querySelector('#open').onclick = () => {
                 window.recoveryPopup = open('', '_blank', 'popup=yes,width=500,height=600');
                 recoveryPopup.location.replace('${ssoOrigin}/intermediate');
@@ -78,17 +89,27 @@ test.beforeAll(async () => {
         const unsafe = req.url?.startsWith('/unsafe');
         html(res, unsafe ? 'unsafe-none' : 'same-origin-allow-popups', `<p id="physical">popup-open</p><button id="deliver">deliver</button><script>
             window.openerAvailable = Boolean(window.opener);
-            document.querySelector('#deliver').onclick = () => location.replace(
-                '${productionOrigin}/return#channel=${channelId}&proofReceipt=${proofReceipt}'
-            );
+            document.querySelector('#deliver').onclick = () => {
+                const ttl = Number(new URLSearchParams(location.search).get('ttl') || 60000);
+                const expiresAt = new Date(Date.now() + ttl).toISOString();
+                const fragment = new URLSearchParams({
+                    channel: '${channelId}',
+                    proofReceipt: '${proofReceipt}',
+                    expiresAt
+                });
+                location.replace('${productionOrigin}/return#' + fragment);
+            };
         </script>`);
     });
     legacyOrigin = origin(legacy);
 
     sso = await listen((req, res) => {
-        const destination = req.url?.includes('unsafe') ? '/unsafe' : '/final';
+        const requestUrl = new URL(req.url, 'http://local.test');
+        const destination = requestUrl.searchParams.has('unsafe') ? '/unsafe' : '/final';
+        const ttl = requestUrl.searchParams.get('ttl');
+        const suffix = ttl ? `?ttl=${encodeURIComponent(ttl)}` : '';
         html(res, 'restrict-properties', `<p>SSO intermediate</p><script>
-            location.replace('${legacyOrigin}${destination}');
+            location.replace('${legacyOrigin}${destination}${suffix}');
         </script>`);
     });
     ssoOrigin = origin(sso);
@@ -132,6 +153,43 @@ test('same-origin callback channel returns the proof across separated browsing c
 
     await expect(page.locator('#result')).toHaveText('proof-received');
     await expect.poll(() => popup.isClosed()).toBe(true);
+});
+
+test('callback survives a Production receiver suspended beyond 15 seconds but before handoff expiry', async ({ page }) => {
+    test.setTimeout(35_000);
+    await page.goto(productionOrigin + '/opener?manual=1');
+    const popupPromise = page.waitForEvent('popup');
+    await page.click('#open');
+    const popup = await popupPromise;
+    await popup.waitForURL(legacyOrigin + '/final');
+    await popup.click('#deliver');
+    await popup.waitForURL(productionOrigin + '/return');
+
+    await page.waitForTimeout(16_000);
+    await expect(page.locator('#result')).toHaveText('pending');
+    await page.evaluate(() => window.armReceiver());
+    await expect(page.locator('#result')).toHaveText('proof-received');
+    await expect.poll(() => popup.isClosed()).toBe(true);
+});
+
+test('callback fails closed when the Production suspension exceeds the handoff TTL', async ({ page }) => {
+    await page.goto(productionOrigin + '/opener?manual=1');
+    const popupPromise = page.waitForEvent('popup');
+    await page.evaluate((target) => {
+        window.recoveryPopup = open('', '_blank', 'popup=yes,width=500,height=600');
+        window.recoveryPopup.location.replace(target + '/intermediate?ttl=1200');
+    }, ssoOrigin);
+    const popup = await popupPromise;
+    await popup.waitForURL(legacyOrigin + '/final?ttl=1200');
+    await popup.click('#deliver');
+    await popup.waitForURL(productionOrigin + '/return');
+
+    await page.waitForTimeout(1_600);
+    await expect(popup.locator('#identity-recovery-return-status')).toContainText('could not be returned');
+    await page.evaluate(() => window.armReceiver());
+    await page.waitForTimeout(350);
+    await expect(page.locator('#result')).toHaveText('pending');
+    expect(popup.isClosed()).toBe(false);
 });
 
 test('physical close without a callback never fabricates a proof', async ({ page }) => {

@@ -2,6 +2,7 @@
     'use strict';
 
     const STATE_KEY = 'caissa.sec005.owner-handoff.v1';
+    const MAX_HANDOFF_TTL_MS = 10 * 60 * 1000;
     let running = false;
     let trustedOrigins = null;
     let opaqueState = '';
@@ -64,14 +65,28 @@
         return Object.freeze({ productionOrigin, legacyOrigin });
     }
 
-    async function secureReturnUrl(productionOrigin, state, proofReceipt) {
+    function validServerExpiry(value) {
+        const parsed = Date.parse(String(value || ''));
+        const now = Date.now();
+        if (!Number.isFinite(parsed) || parsed <= now || parsed - now > MAX_HANDOFF_TTL_MS) return '';
+        const canonical = new Date(parsed).toISOString();
+        return canonical === value ? canonical : '';
+    }
+
+    async function secureReturnUrl(productionOrigin, state, proofReceipt, expiresAt) {
         const channelApi = window.CAISSA_IDENTITY_RECOVERY_CHANNEL;
-        if (!channelApi?.validOpaqueState(state) || !channelApi.validProofReceipt(proofReceipt)) {
+        const trustedExpiry = validServerExpiry(expiresAt);
+        if (!channelApi?.validOpaqueState(state) || !channelApi.validProofReceipt(proofReceipt)
+            || !trustedExpiry) {
             throw new Error('invalid return payload');
         }
         const channelId = await channelApi.deriveChannelId(state);
         const target = new URL('/identity-recovery/return', productionOrigin);
-        target.hash = new URLSearchParams({ channel: channelId, proofReceipt }).toString();
+        target.hash = new URLSearchParams({
+            channel: channelId,
+            proofReceipt,
+            expiresAt: trustedExpiry
+        }).toString();
         return target.href;
     }
 
@@ -114,14 +129,16 @@
             });
             const body = await response.json().catch(() => ({}));
             if (response.status !== 201 || body.verified !== true
-                || !window.CAISSA_IDENTITY_RECOVERY_CHANNEL?.validProofReceipt(body.proofReceipt)) {
+                || !window.CAISSA_IDENTITY_RECOVERY_CHANNEL?.validProofReceipt(body.proofReceipt)
+                || !validServerExpiry(body.expiresAt)) {
                 throw new Error('verification rejected');
             }
             status.textContent = 'Existing account verified. Finishing securely in CAISSA Production…';
             const returnUrl = await secureReturnUrl(
                 trustedOrigins.productionOrigin,
                 opaqueState,
-                body.proofReceipt
+                body.proofReceipt,
+                body.expiresAt
             );
             window.location.replace(returnUrl);
         } catch {
