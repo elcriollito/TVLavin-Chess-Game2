@@ -2,17 +2,21 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { webcrypto } from 'node:crypto';
 
 const source = fs.readFileSync(new URL('../js/identity-recovery.js', import.meta.url), 'utf8');
+const channelSource = fs.readFileSync(new URL('../js/identity-recovery-channel.js', import.meta.url), 'utf8');
 const legacyOrigin = 'https://caissa-online-native-v1-validation-26a830.vercel.app';
 const productionOrigin = 'https://www.caissa-chess.org';
 const opaqueState = 'v1.canonical-iv.canonical-cipher.canonical-tag';
 const proofReceipt = 'r1.canonical-iv.canonical-cipher.canonical-tag';
+const proofExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
 function clientHarness({
     origin = legacyOrigin,
     signedIn = true,
     responseStatus = 201,
+    responseExpiresAt = proofExpiresAt,
     openerAvailable = true,
     handoffOrigins = { productionOrigin, legacyOrigin }
 } = {}) {
@@ -35,12 +39,17 @@ function clientHarness({
         origin,
         pathname: '/identity-recovery',
         search: '',
-        hash: '#handoff=' + encodeURIComponent(opaqueState)
+        hash: '#handoff=' + encodeURIComponent(opaqueState),
+        replace(value) { navigations.push(value); }
     };
     const context = {
         URL,
         URLSearchParams,
         Promise,
+        TextEncoder,
+        Uint8Array,
+        crypto: webcrypto,
+        btoa: value => Buffer.from(value, 'binary').toString('base64'),
         sessionStorage: {
             getItem: key => storage.get(key) || null,
             setItem: (key, value) => storage.set(key, value),
@@ -54,7 +63,8 @@ function clientHarness({
                 status: responseStatus,
                 json: async () => responseStatus === 201 ? {
                     verified: true,
-                    proofReceipt
+                    proofReceipt,
+                    expiresAt: responseExpiresAt
                 } : {}
             };
         },
@@ -78,6 +88,7 @@ function clientHarness({
             }
         }
     };
+    vm.runInNewContext(channelSource, context);
     vm.runInNewContext(source, context);
     return {
         nodes,
@@ -91,7 +102,7 @@ function clientHarness({
     };
 }
 
-test('legacy client scrubs the fragment, proves once, and posts the receipt only to its Production opener', async () => {
+test('legacy client scrubs the fragment, proves once, and returns the receipt through a same-origin callback', async () => {
     const run = clientHarness();
     assert.equal(run.storage.size, 1);
     await run.settle();
@@ -102,20 +113,24 @@ test('legacy client scrubs the fragment, proves once, and posts the receipt only
     assert.equal(run.calls[0].url, productionOrigin + '/api/user/identity-migration/owner/prove');
     assert.equal(run.calls[0].options.credentials, 'omit');
     assert.equal(JSON.parse(run.calls[0].options.body).handoffState, opaqueState);
-    assert.equal(JSON.stringify(run.messages), JSON.stringify([{
-        data: { type: 'caissa:sec005-owner-proof:v1', proofReceipt },
-        targetOrigin: productionOrigin
-    }]));
-    assert.equal(run.window.closedByScript, true);
-    assert.deepEqual(run.navigations, []);
+    assert.equal(run.messages.length, 0);
+    assert.equal(run.window.closedByScript, false);
+    assert.equal(run.navigations.length, 1);
+    const callback = new URL(run.navigations[0]);
+    assert.equal(callback.origin, productionOrigin);
+    assert.equal(callback.pathname, '/identity-recovery/return');
+    assert.match(callback.hash, /^#channel=[A-Za-z0-9_-]{43}&proofReceipt=r1\..*&expiresAt=/);
+    assert.equal(new URLSearchParams(callback.hash.slice(1)).get('expiresAt'), proofExpiresAt);
 });
 
-test('a transferred handoff opened without the Production opener fails closed before authentication or proof', async () => {
+test('a severed WindowProxy does not block a cryptographically bound callback return', async () => {
     const run = clientHarness({ openerAvailable: false });
     await run.settle();
-    assert.equal(run.nodes.get('identity-recovery-continue').hidden, true);
-    assert.match(run.nodes.get('identity-recovery-status').textContent, /not opened by CAISSA Production/);
-    assert.equal(run.calls.length, 0);
+    assert.equal(run.nodes.get('identity-recovery-continue').hidden, false);
+    await run.nodes.get('identity-recovery-continue').listeners.click();
+    await run.settle();
+    assert.equal(run.calls.length, 1);
+    assert.equal(new URL(run.navigations[0]).pathname, '/identity-recovery/return');
     assert.equal(run.messages.length, 0);
 });
 
@@ -150,15 +165,28 @@ test('an ambiguous proof is single-attempt and removes the opaque state before r
     assert.equal(run.messages.length, 0);
 });
 
-test('closing the Production opener before proof delivery prevents the receipt from leaving the legacy window', async () => {
+test('legacy client rejects a server expiry that would extend the cryptographic handoff lifetime', async () => {
+    const run = clientHarness({
+        responseExpiresAt: new Date(Date.now() + 11 * 60 * 1000).toISOString()
+    });
+    await run.settle();
+    await run.nodes.get('identity-recovery-continue').listeners.click();
+    await run.settle();
+    assert.equal(run.calls.length, 1);
+    assert.equal(run.storage.size, 0);
+    assert.deepEqual(run.navigations, []);
+    assert.match(run.nodes.get('identity-recovery-status').textContent, /do not retry/i);
+});
+
+test('a WindowProxy that reports closed does not create a false cancellation', async () => {
     const run = clientHarness();
     await run.settle();
     run.opener.closed = true;
     await run.nodes.get('identity-recovery-continue').listeners.click();
     await run.settle();
-    assert.equal(run.calls.length, 0);
+    assert.equal(run.calls.length, 1);
     assert.equal(run.messages.length, 0);
-    assert.match(run.nodes.get('identity-recovery-status').textContent, /not opened by CAISSA Production/);
+    assert.equal(new URL(run.navigations[0]).pathname, '/identity-recovery/return');
 });
 
 test('a certified replacement alias works only when supplied by public server metadata', async () => {
@@ -171,7 +199,7 @@ test('a certified replacement alias works only when supplied by public server me
     await run.nodes.get('identity-recovery-continue').listeners.click();
     await run.settle();
     assert.equal(run.calls[0].url, productionOrigin + '/api/user/identity-migration/owner/prove');
-    assert.equal(run.messages[0].targetOrigin, productionOrigin);
+    assert.equal(new URL(run.navigations[0]).origin, productionOrigin);
 });
 
 test('mismatched or malformed public metadata fails closed without proof or authentication', async () => {
