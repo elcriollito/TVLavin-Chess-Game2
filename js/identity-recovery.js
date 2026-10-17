@@ -1,7 +1,6 @@
 (function () {
     'use strict';
 
-    const RECOVERY_MESSAGE_TYPE = 'caissa:sec005-owner-proof:v1';
     const STATE_KEY = 'caissa.sec005.owner-handoff.v1';
     let running = false;
     let trustedOrigins = null;
@@ -41,19 +40,6 @@
         });
     }
 
-    function hasProductionOpener() {
-        try {
-            return Boolean(window.opener) && window.opener.closed === false;
-        } catch {
-            return false;
-        }
-    }
-
-    function validProofReceipt(value) {
-        return typeof value === 'string' && value.length <= 4096
-            && /^r1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
-    }
-
     function strictHttpsOrigin(value) {
         try {
             const parsed = new URL(String(value || ''));
@@ -78,9 +64,15 @@
         return Object.freeze({ productionOrigin, legacyOrigin });
     }
 
-    function unavailableWithoutOpener(status, button) {
-        status.textContent = 'This verification window was not opened by CAISSA Production. Restart account recovery there.';
-        button.hidden = true;
+    async function secureReturnUrl(productionOrigin, state, proofReceipt) {
+        const channelApi = window.CAISSA_IDENTITY_RECOVERY_CHANNEL;
+        if (!channelApi?.validOpaqueState(state) || !channelApi.validProofReceipt(proofReceipt)) {
+            throw new Error('invalid return payload');
+        }
+        const channelId = await channelApi.deriveChannelId(state);
+        const target = new URL('/identity-recovery/return', productionOrigin);
+        target.hash = new URLSearchParams({ channel: channelId, proofReceipt }).toString();
+        return target.href;
     }
 
     async function continueRecovery() {
@@ -90,10 +82,6 @@
         if (!trustedOrigins || window.location.origin !== trustedOrigins.legacyOrigin) {
             status.textContent = 'Account recovery is unavailable on this deployment.';
             button.hidden = true;
-            return;
-        }
-        if (!hasProductionOpener()) {
-            unavailableWithoutOpener(status, button);
             return;
         }
         if (!opaqueState) {
@@ -113,10 +101,6 @@
                 auth.redirectToSignIn('/identity-recovery');
                 return;
             }
-            if (!hasProductionOpener()) {
-                unavailableWithoutOpener(status, button);
-                return;
-            }
             const token = await auth.getToken?.();
             if (!token) throw new Error('session unavailable');
 
@@ -129,17 +113,17 @@
                 body: JSON.stringify({ handoffState: opaqueState })
             });
             const body = await response.json().catch(() => ({}));
-            if (response.status !== 201 || body.verified !== true || !validProofReceipt(body.proofReceipt)) {
+            if (response.status !== 201 || body.verified !== true
+                || !window.CAISSA_IDENTITY_RECOVERY_CHANNEL?.validProofReceipt(body.proofReceipt)) {
                 throw new Error('verification rejected');
             }
-            if (!hasProductionOpener()) throw new Error('production window unavailable');
-
             status.textContent = 'Existing account verified. Finishing securely in CAISSA Production…';
-            window.opener.postMessage({
-                type: RECOVERY_MESSAGE_TYPE,
-                proofReceipt: body.proofReceipt
-            }, trustedOrigins.productionOrigin);
-            window.close();
+            const returnUrl = await secureReturnUrl(
+                trustedOrigins.productionOrigin,
+                opaqueState,
+                body.proofReceipt
+            );
+            window.location.replace(returnUrl);
         } catch {
             status.textContent = 'We could not verify this handoff. Do not retry this page; return to CAISSA Production for a safe restart.';
             button.hidden = true;
@@ -157,10 +141,6 @@
         if (!trustedOrigins) {
             status.textContent = 'Account recovery is unavailable on this deployment.';
             if (button) button.hidden = true;
-            return;
-        }
-        if (!hasProductionOpener()) {
-            unavailableWithoutOpener(status, button);
             return;
         }
         if (!opaqueState) {

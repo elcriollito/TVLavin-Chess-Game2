@@ -15,7 +15,25 @@
         return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(params.get('redirect_url'), '/');
     }
 
+    function isLegacyRecoverySignIn() {
+        const handoff = window.CAISSA_AUTH_CONFIG?.IDENTITY_OWNER_HANDOFF;
+        if (!handoff || typeof handoff !== 'object' || Array.isArray(handoff)
+            || Object.keys(handoff).sort().join(',') !== 'legacyOrigin,productionOrigin'
+            || window.location.pathname !== '/signin'
+            || getRedirectUrl() !== '/identity-recovery') return false;
+        try {
+            const legacy = new URL(String(handoff.legacyOrigin || ''));
+            return legacy.protocol === 'https:' && !legacy.username && !legacy.password
+                && legacy.pathname === '/' && !legacy.search && !legacy.hash
+                && legacy.origin === handoff.legacyOrigin
+                && window.location.origin === legacy.origin;
+        } catch {
+            return false;
+        }
+    }
+
     function getCompletionUrl() {
+        if (isLegacyRecoverySignIn()) return '/identity-recovery';
         return '/auth/complete?redirect_url=' + encodeURIComponent(getRedirectUrl());
     }
 
@@ -109,10 +127,12 @@
             }
 
             // Mount Sign In component
+            const legacyRecovery = isLegacyRecoverySignIn();
             Clerk.mountSignIn(container, {
                 signInForceRedirectUrl: getCompletionUrl(),
                 signUpForceRedirectUrl: getCompletionUrl(),
                 signUpUrl: '/signup',
+                ...(legacyRecovery ? { oauthFlow: 'popup' } : {}),
                 appearance: {
                     variables: {
                         colorPrimary: '#4ecdc4',

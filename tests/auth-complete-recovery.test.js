@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { webcrypto } from 'node:crypto';
 
 const source = fs.readFileSync(new URL('../js/auth-complete.js', import.meta.url), 'utf8');
+const channelSource = fs.readFileSync(new URL('../js/identity-recovery-channel.js', import.meta.url), 'utf8');
 const legacyOrigin = 'https://caissa-online-native-v1-validation-26a830.vercel.app';
 const productionOrigin = 'https://www.caissa-chess.org';
 const handoffUrl = legacyOrigin + '/identity-recovery#handoff=v1.iv.cipher.tag';
@@ -17,6 +19,7 @@ function harness({
     search = '?redirect_url=%2Fpuzzles',
     responses = [],
     popupAvailable = true,
+    popupNavigationFails = false,
     runtimeOrigin = productionOrigin,
     handoffOrigins = { productionOrigin, legacyOrigin }
 } = {}) {
@@ -30,9 +33,20 @@ function harness({
     const navigations = [];
     const popupNavigations = [];
     const listeners = new Map();
+    const channels = [];
+    const channelMessages = [];
+    class FakeBroadcastChannel {
+        constructor(name) { this.name = name; this.closed = false; channels.push(this); }
+        postMessage(data) { channelMessages.push(data); }
+        close() { this.closed = true; }
+        emit(data) { this.onmessage?.({ data }); }
+    }
     const popup = {
         closed: false,
-        location: { replace(value) { popupNavigations.push(value); } },
+        location: { replace(value) {
+            if (popupNavigationFails) throw new Error('synthetic navigation failure');
+            popupNavigations.push(value);
+        } },
         close() { this.closed = true; }
     };
     let nextTimer = 1;
@@ -46,6 +60,11 @@ function harness({
         Object,
         Array,
         Number,
+        TextEncoder,
+        Uint8Array,
+        crypto: webcrypto,
+        btoa: value => Buffer.from(value, 'binary').toString('base64'),
+        BroadcastChannel: FakeBroadcastChannel,
         document: { getElementById: id => nodes.get(id) || null },
         fetch: async (url, options) => {
             calls.push({ url, options });
@@ -83,6 +102,7 @@ function harness({
             CAISSA_AUTH: { isLoaded: true, isSignedIn: true, getToken: async () => 'synthetic-token' }
         }
     };
+    vm.runInNewContext(channelSource, context);
     vm.runInNewContext(source, context);
     return {
         nodes,
@@ -91,12 +111,20 @@ function harness({
         popup,
         window: context.window,
         popupNavigations,
+        channels,
+        channelMessages,
         emitMessage(origin, sourceWindow, data) {
             for (const listener of listeners.get('message') || []) {
                 listener({ origin, source: sourceWindow, data });
             }
         },
-        settle: () => new Promise(resolve => setImmediate(resolve))
+        settle: () => new Promise(resolve => setImmediate(resolve)),
+        async waitForChannel() {
+            for (let index = 0; index < 50 && channels.length === 0; index += 1) {
+                await new Promise(resolve => setImmediate(resolve));
+            }
+            return channels[0];
+        }
     };
 }
 
@@ -119,7 +147,7 @@ test('only transient failures receive bounded automatic retries', async () => {
     assert.equal(run.nodes.get('account-setup-recover').hidden, true);
 });
 
-test('recovery uses one popup, ignores wrong senders, completes with the exact receipt, and syncs once', async () => {
+test('recovery uses one popup, ignores foreign channel traffic, completes with the exact receipt, and syncs once', async () => {
     const run = harness({ responses: [
         response(409, { code: 'IDENTITY_RESOLUTION_REQUIRED' }),
         response(201, { handoffUrl, expiresAt: new Date(Date.now() + 600_000).toISOString() }),
@@ -128,25 +156,18 @@ test('recovery uses one popup, ignores wrong senders, completes with the exact r
     ] });
     await run.settle();
     const recovery = run.nodes.get('account-setup-recover').listeners.click();
-    await run.settle();
+    const channel = await run.waitForChannel();
     assert.deepEqual(run.popupNavigations, [handoffUrl]);
     assert.equal(run.calls.length, 2);
-
-    run.emitMessage('https://attacker.invalid', run.popup, {
-        type: 'caissa:sec005-owner-proof:v1',
-        proofReceipt
-    });
-    run.emitMessage(legacyOrigin, {}, {
-        type: 'caissa:sec005-owner-proof:v1',
-        proofReceipt
-    });
+    const channelId = channel.name.split(':').at(-1);
+    run.popup.closed = true;
+    channel.emit({ type: 'attacker-noise', channelId, proofReceipt });
+    channel.emit({ type: 'caissa:sec005-owner-proof-ready:v2', channelId: 'x'.repeat(43) });
     await run.settle();
     assert.equal(run.calls.length, 2);
-
-    run.emitMessage(legacyOrigin, run.popup, {
-        type: 'caissa:sec005-owner-proof:v1',
-        proofReceipt
-    });
+    channel.emit({ type: 'caissa:sec005-owner-proof-ready:v2', channelId });
+    assert.ok(run.channelMessages.some(message => message.type === 'caissa:sec005-owner-proof-request:v2'));
+    channel.emit({ type: 'caissa:sec005-owner-proof:v2', channelId, proofReceipt });
     await recovery;
     assert.deepEqual(run.calls.map(call => call.url), [
         '/api/user/sync',
@@ -156,6 +177,7 @@ test('recovery uses one popup, ignores wrong senders, completes with the exact r
     ]);
     assert.deepEqual(JSON.parse(run.calls[2].options.body), { proofReceipt });
     assert.equal(run.popup.closed, true);
+    assert.ok(run.channelMessages.some(message => message.type === 'caissa:sec005-owner-proof-ack:v2'));
     assert.deepEqual(run.navigations, [{ type: 'replace', value: '/puzzles' }]);
 });
 
@@ -168,6 +190,24 @@ test('a blocked popup prevents creation of any owner handoff', async () => {
     await run.nodes.get('account-setup-recover').listeners.click();
     assert.equal(run.calls.length, 1);
     assert.match(run.nodes.get('account-setup-status').textContent, /Allow the secure verification window/);
+});
+
+test('a failed popup navigation disposes the ephemeral receiver without completing recovery', async () => {
+    const run = harness({
+        popupNavigationFails: true,
+        responses: [
+            response(409, { code: 'IDENTITY_RESOLUTION_REQUIRED' }),
+            response(201, { handoffUrl, expiresAt: new Date(Date.now() + 600_000).toISOString() })
+        ]
+    });
+    await run.settle();
+    await run.nodes.get('account-setup-recover').listeners.click();
+    await run.waitForChannel();
+    assert.equal(run.channels[0].closed, true);
+    assert.deepEqual(run.calls.map(call => call.url), [
+        '/api/user/sync',
+        '/api/user/identity-migration/owner/start'
+    ]);
 });
 
 test('legacy navigation query cannot invoke completion without a channel-delivered receipt', async () => {
@@ -188,11 +228,10 @@ test('an ambiguous activation is submitted once and never shown as a retryable c
     ] });
     await run.settle();
     const recovery = run.nodes.get('account-setup-recover').listeners.click();
-    await run.settle();
-    run.emitMessage(legacyOrigin, run.popup, {
-        type: 'caissa:sec005-owner-proof:v1',
-        proofReceipt
-    });
+    const channel = await run.waitForChannel();
+    const channelId = channel.name.split(':').at(-1);
+    channel.emit({ type: 'caissa:sec005-owner-proof-ready:v2', channelId });
+    channel.emit({ type: 'caissa:sec005-owner-proof:v2', channelId, proofReceipt });
     await recovery;
     assert.deepEqual(run.calls.map(call => call.url), [
         '/api/user/sync',
@@ -203,7 +242,7 @@ test('an ambiguous activation is submitted once and never shown as a retryable c
     assert.match(run.nodes.get('account-setup-status').textContent, /Do not retry/);
 });
 
-test('configured origins replace deployment aliases without weakening exact sender checks', async () => {
+test('configured origins replace deployment aliases without weakening channel isolation', async () => {
     const replacement = 'https://replacement-validation.example.test';
     const replacementUrl = replacement + '/identity-recovery#handoff=v1.iv.cipher.tag';
     const run = harness({
@@ -217,12 +256,14 @@ test('configured origins replace deployment aliases without weakening exact send
     });
     await run.settle();
     const recovery = run.nodes.get('account-setup-recover').listeners.click();
-    await run.settle();
+    const channel = await run.waitForChannel();
     assert.deepEqual(run.popupNavigations, [replacementUrl]);
-    run.emitMessage(legacyOrigin, run.popup, { type: 'caissa:sec005-owner-proof:v1', proofReceipt });
+    const channelId = channel.name.split(':').at(-1);
+    channel.emit({ type: 'caissa:sec005-owner-proof-ready:v2', channelId });
+    channel.emit({ type: 'caissa:sec005-owner-proof:v2', channelId: 'x'.repeat(43), proofReceipt });
     await run.settle();
     assert.equal(run.calls.length, 2);
-    run.emitMessage(replacement, run.popup, { type: 'caissa:sec005-owner-proof:v1', proofReceipt });
+    channel.emit({ type: 'caissa:sec005-owner-proof:v2', channelId, proofReceipt });
     await recovery;
     assert.deepEqual(run.calls.map(call => call.url), [
         '/api/user/sync',

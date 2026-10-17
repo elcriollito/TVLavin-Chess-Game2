@@ -129,6 +129,7 @@
     { "source": "/signup", "destination": "/signup.html" },
     { "source": "/auth/complete", "destination": "/auth-complete.html" },
     { "source": "/identity-recovery", "destination": "/identity-recovery.html" },
+    { "source": "/identity-recovery/return", "destination": "/identity-recovery-return.html" },
     { "source": "/store", "destination": "/credit-store.html" },
     { "source": "/dos/dos_chess_games.json", "destination": "/public/dos/dos_chess_games.json" },
     { "source": "/data/:path*", "destination": "/public/data/:path*" },

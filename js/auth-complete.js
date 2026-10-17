@@ -3,7 +3,6 @@
 
     const MAX_ATTEMPTS = 3;
     const RETRY_DELAYS_MS = [0, 500, 1200];
-    const RECOVERY_MESSAGE_TYPE = 'caissa:sec005-owner-proof:v1';
     const MAX_RECOVERY_WAIT_MS = 10 * 60 * 1000;
     const IDENTITY_RECOVERY_CODES = new Set(['IDENTITY_RESOLUTION_REQUIRED', 'IDENTITY_MIGRATION_REQUIRED']);
     let running = false;
@@ -65,11 +64,6 @@
         return authenticatedPost('/api/user/sync', {});
     }
 
-    function validProofReceipt(value) {
-        return typeof value === 'string' && value.length <= 4096
-            && /^r1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
-    }
-
     function strictHttpsOrigin(value) {
         try {
             const parsed = new URL(String(value || ''));
@@ -96,43 +90,62 @@
         return Object.freeze({ productionOrigin, legacyOrigin });
     }
 
-    function waitForProofReceipt(popup, expiresAt, legacyOrigin) {
+    async function createProofReceiver(handoffState, expiresAt) {
+        const channelApi = window.CAISSA_IDENTITY_RECOVERY_CHANNEL;
+        if (!channelApi) throw new SyncFailure(503, 'HANDOFF_CHANNEL_UNAVAILABLE');
+        const channelId = await channelApi.deriveChannelId(handoffState)
+            .catch(() => { throw new SyncFailure(503, 'HANDOFF_CHANNEL_UNAVAILABLE'); });
+        let channel;
+        try { channel = new BroadcastChannel(channelApi.channelName(channelId)); }
+        catch { throw new SyncFailure(503, 'HANDOFF_CHANNEL_UNAVAILABLE'); }
         const serverExpiry = Date.parse(String(expiresAt || ''));
         const remaining = Number.isFinite(serverExpiry) ? serverExpiry - Date.now() : MAX_RECOVERY_WAIT_MS;
         const timeoutMs = Math.max(1, Math.min(MAX_RECOVERY_WAIT_MS, remaining));
-        return new Promise((resolve, reject) => {
+        let dispose = () => false;
+        const promise = new Promise((resolve, reject) => {
             let settled = false;
             let timeout;
-            let closedMonitor;
-            const finish = (error, receipt) => {
-                if (settled) return;
+            dispose = () => {
+                if (settled) return false;
                 settled = true;
                 clearTimeout(timeout);
-                clearInterval(closedMonitor);
-                window.removeEventListener('message', onMessage);
+                try { channel.close(); } catch {}
+                return true;
+            };
+            const finish = (error, receipt) => {
+                if (!dispose()) return;
                 if (error) reject(error);
                 else resolve(receipt);
             };
-            const onMessage = (event) => {
-                if (event.origin !== legacyOrigin || event.source !== popup) return;
-                const data = event.data;
+            channel.onmessage = (event) => {
+                const data = event?.data;
                 if (!data || typeof data !== 'object' || Array.isArray(data)
-                    || Object.keys(data).sort().join(',') !== 'proofReceipt,type'
-                    || data.type !== RECOVERY_MESSAGE_TYPE || !validProofReceipt(data.proofReceipt)) {
-                    finish(new SyncFailure(409, 'IDENTITY_RECOVERY_INVALID_PROOF'));
+                    || data.channelId !== channelId) return;
+                if (Object.keys(data).sort().join(',') === 'channelId,type'
+                    && data.type === channelApi.TYPES.ready) {
+                    channel.postMessage({ type: channelApi.TYPES.request, channelId });
                     return;
                 }
+                if (Object.keys(data).sort().join(',') !== 'channelId,proofReceipt,type'
+                    || data.type !== channelApi.TYPES.proof
+                    || !channelApi.validProofReceipt(data.proofReceipt)) return;
+                channel.postMessage({ type: channelApi.TYPES.acknowledged, channelId });
                 finish(null, data.proofReceipt);
             };
             timeout = setTimeout(
                 () => finish(new SyncFailure(408, 'IDENTITY_RECOVERY_EXPIRED')),
                 timeoutMs
             );
-            closedMonitor = setInterval(() => {
-                if (popup.closed) finish(new SyncFailure(409, 'IDENTITY_RECOVERY_WINDOW_CLOSED'));
-            }, 250);
-            window.addEventListener('message', onMessage);
         });
+        return Object.freeze({
+            channelId,
+            promise,
+            dispose
+        });
+    }
+
+    function closePopup(popup) {
+        try { popup?.close(); } catch {}
     }
 
     function showIdentityRecovery(code) {
@@ -163,6 +176,7 @@
         status.textContent = 'Preparing secure account verification…';
         let proofReceived = false;
         let activationConfirmed = false;
+        let receiver = null;
         try {
             const origins = await ownerHandoffConfig();
             const result = await authenticatedPost('/api/user/identity-migration/owner/start', {
@@ -174,13 +188,19 @@
                 || !target.hash.startsWith('#handoff=v1.')) {
                 throw new SyncFailure(503, 'HANDOFF_DESTINATION_INVALID');
             }
+            const fragment = new URLSearchParams(target.hash.slice(1));
+            const handoffState = fragment.get('handoff') || '';
+            if ([...fragment.keys()].join(',') !== 'handoff'
+                || !window.CAISSA_IDENTITY_RECOVERY_CHANNEL?.validOpaqueState(handoffState)) {
+                throw new SyncFailure(503, 'HANDOFF_DESTINATION_INVALID');
+            }
 
-            const proofPromise = waitForProofReceipt(popup, result.expiresAt, origins.legacyOrigin);
+            receiver = await createProofReceiver(handoffState, result.expiresAt);
             popup.location.replace(target.href);
             status.textContent = 'Complete verification in the secure window. Keep this page open.';
-            const proofReceipt = await proofPromise;
+            const proofReceipt = await receiver.promise;
             proofReceived = true;
-            if (!popup.closed) popup.close();
+            closePopup(popup);
 
             status.textContent = 'Finishing the verified account link…';
             const completed = await authenticatedPost(
@@ -194,7 +214,8 @@
             await attemptSync();
             window.location.replace(destination());
         } catch (error) {
-            if (!popup.closed) popup.close();
+            receiver?.dispose();
+            closePopup(popup);
             if (proofReceived && !activationConfirmed) {
                 status.textContent = 'Account recovery could not be confirmed. Do not retry; contact CAISSA support so the account state can be checked safely.';
             } else if (activationConfirmed) {
@@ -209,9 +230,8 @@
                 status.textContent = `A previous secure verification is still pending${until}. Continue from its original Production window, or wait for it to expire before restarting.`;
                 recover.hidden = true;
             } else {
-                status.textContent = error instanceof SyncFailure
-                    && error.code === 'IDENTITY_RECOVERY_WINDOW_CLOSED'
-                    ? 'Verification was canceled. Restart account recovery when you are ready.'
+                status.textContent = error instanceof SyncFailure && error.code === 'IDENTITY_RECOVERY_EXPIRED'
+                    ? 'Secure verification expired before it returned. No identity binding was activated.'
                     : 'Secure account verification could not be completed. No identity binding was activated.';
                 recover.disabled = error instanceof SyncFailure && error.code === 'HANDOFF_CONFIG_INVALID';
             }
