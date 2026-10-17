@@ -45,6 +45,11 @@ const CAISSA_AUTH_CONFIG = {
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
     REGISTRATION_TRACKING_AVAILABLE: false,
     IDENTITY_OWNER_HANDOFF: null,
+    ACCOUNT_SYSTEM: Object.freeze({
+        mode: 'legacy',
+        registrationOpen: true,
+        resetNotice: false
+    }),
 
     // Redirect URLs after auth actions
     REDIRECT_AFTER_SIGN_IN: '/',
@@ -98,12 +103,28 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
         }
         CAISSA_AUTH_CONFIG.REGISTRATION_TRACKING_AVAILABLE = data.registrationTracking === true;
         CAISSA_AUTH_CONFIG.IDENTITY_OWNER_HANDOFF = normalizeOwnerHandoffMetadata(data.identityOwnerHandoff);
+        CAISSA_AUTH_CONFIG.ACCOUNT_SYSTEM = normalizeAccountSystem(data.accountSystem);
     } catch (error) {
         console.warn('[Auth Config] Public auth config failed to load', error.message);
     }
 
     return CAISSA_AUTH_CONFIG;
 })();
+
+function normalizeAccountSystem(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+        || Object.keys(value).sort().join(',') !== 'mode,registrationOpen,resetNotice') {
+        return Object.freeze({ mode: 'maintenance', registrationOpen: false, resetNotice: false });
+    }
+    const mode = ['legacy', 'maintenance', 'clean_start'].includes(value.mode)
+        ? value.mode
+        : 'maintenance';
+    return Object.freeze({
+        mode,
+        registrationOpen: mode !== 'maintenance' && value.registrationOpen === true,
+        resetNotice: mode === 'clean_start' && value.resetNotice === true
+    });
+}
 
 function normalizeOwnerHandoffMetadata(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)

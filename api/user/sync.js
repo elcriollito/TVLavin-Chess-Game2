@@ -9,6 +9,7 @@ import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js'
 import { getSupabase } from '../_lib/supabase.js';
 import { logAction, logError } from '../_lib/logger.js';
 import { isIdentityMigrationEnforced, syncResolvedIdentity } from '../_lib/identity-resolution.js';
+import { ACCOUNT_SYSTEM_MODES, resolveAccountSystemMode } from '../_lib/account-system.js';
 
 export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['POST'])) return;
@@ -19,8 +20,22 @@ export default async function handler(req, res, dependencies = {}) {
     // Verify Clerk token
     const authenticate = dependencies.verifyAuth || verifyAuth;
     const createSupabase = dependencies.getSupabase || getSupabase;
+    const environment = dependencies.env || process.env;
     const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
+
+    const accountMode = resolveAccountSystemMode(environment);
+    if ([ACCOUNT_SYSTEM_MODES.maintenance, ACCOUNT_SYSTEM_MODES.invalid].includes(accountMode)) {
+        return res.status(503).json({
+            code: accountMode === ACCOUNT_SYSTEM_MODES.maintenance
+                ? 'ACCOUNT_SYSTEM_MAINTENANCE'
+                : 'ACCOUNT_SYSTEM_MISCONFIGURED',
+            error: accountMode === ACCOUNT_SYSTEM_MODES.maintenance
+                ? 'Account access is temporarily paused.'
+                : 'User sync is temporarily unavailable',
+            recoverable: true
+        });
+    }
 
     try {
         const supabase = createSupabase();
@@ -30,7 +45,7 @@ export default async function handler(req, res, dependencies = {}) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const safeEmail = (emailVal && emailRegex.test(emailVal)) ? emailVal : null;
 
-        if (isIdentityMigrationEnforced()) {
+        if (accountMode === ACCOUNT_SYSTEM_MODES.legacy && isIdentityMigrationEnforced(environment)) {
             const identityResult = await syncResolvedIdentity({
                 supabase,
                 externalSubject: auth.userId,

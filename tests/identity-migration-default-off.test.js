@@ -53,6 +53,12 @@ test('migration mode accepts only the exact server-controlled enforced value', (
         assert.equal(isIdentityMigrationEnforced({ CAISSA_IDENTITY_MIGRATION_MODE: value }), false, String(value));
     }
     assert.equal(isIdentityMigrationEnforced({ CAISSA_IDENTITY_MIGRATION_MODE: 'enforced' }), true);
+    for (const mode of ['maintenance', 'clean_start']) {
+        assert.equal(isIdentityMigrationEnforced({
+            CAISSA_IDENTITY_MIGRATION_MODE: 'enforced',
+            CAISSA_ACCOUNT_SYSTEM_MODE: mode
+        }), false);
+    }
 });
 
 test('challenge and activation stay inert for the complete disabled-value matrix', async () => {

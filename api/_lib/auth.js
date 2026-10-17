@@ -6,6 +6,11 @@
 
 import { verifyToken } from '@clerk/backend';
 import { TokenVerificationError } from '@clerk/backend/errors';
+import {
+    ACCOUNT_SYSTEM_MODES,
+    cleanStartTokenCutoff,
+    resolveAccountSystemMode
+} from './account-system.js';
 
 const INVALID_TOKEN_REASONS = new Set([
     'token-expired', 'token-invalid', 'token-invalid-algorithm',
@@ -13,12 +18,12 @@ const INVALID_TOKEN_REASONS = new Set([
     'token-not-active-yet', 'token-iat-in-the-future', 'token-verification-failed'
 ]);
 
-const failure = (status, code) => ({
+const failure = (status, code, error) => ({
     authenticated: false,
     ok: false,
     status,
     code,
-    error: status === 503 ? 'Authentication service unavailable.' : 'Authentication required.'
+    error: error || (status === 503 ? 'Authentication service unavailable.' : 'Authentication required.')
 });
 
 /**
@@ -48,6 +53,15 @@ export function createAuthenticateRequest(dependencies = {}) {
     }
     if (!token) return failure(401, 'AUTH_REQUIRED');
 
+    const accountMode = resolveAccountSystemMode(env);
+    if (accountMode === ACCOUNT_SYSTEM_MODES.maintenance) {
+        return failure(503, 'ACCOUNT_SYSTEM_MAINTENANCE', 'Account access is temporarily paused.');
+    }
+    if (accountMode === ACCOUNT_SYSTEM_MODES.invalid) {
+        log('account_system_configuration_invalid');
+        return failure(503, 'ACCOUNT_SYSTEM_MISCONFIGURED');
+    }
+
     if (!env.CLERK_SECRET_KEY && !env.CLERK_JWT_KEY) {
         log('auth_configuration_unavailable');
         return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
@@ -60,6 +74,18 @@ export function createAuthenticateRequest(dependencies = {}) {
                 : { secretKey: env.CLERK_SECRET_KEY }),
             authorizedParties
         });
+
+        if (accountMode === ACCOUNT_SYSTEM_MODES.cleanStart) {
+            const cutoff = cleanStartTokenCutoff(env);
+            if (!cutoff) {
+                log('account_system_cutoff_unavailable');
+                return failure(503, 'ACCOUNT_SYSTEM_MISCONFIGURED');
+            }
+            const issuedAt = Number(payload.iat);
+            if (!Number.isSafeInteger(issuedAt) || issuedAt < cutoff) {
+                return failure(401, 'SESSION_RESET_REQUIRED', 'Please sign in again to start your new CAISSA account.');
+            }
+        }
 
         return {
             authenticated: true,
@@ -96,10 +122,23 @@ export const verifyAuth = authenticateRequest;
 
 export function respondAuthFailure(res, auth) {
     const status = [401, 403, 503].includes(auth?.status) ? auth.status : 401;
-    const code = status === 503 ? 'AUTH_SERVICE_UNAVAILABLE'
-        : status === 403 ? 'FORBIDDEN' : auth?.code === 'INVALID_TOKEN' ? 'INVALID_TOKEN' : 'AUTH_REQUIRED';
-    const error = status === 503 ? 'Authentication service unavailable.'
-        : status === 403 ? 'Operation forbidden.' : 'Authentication required.';
+    const permittedCodes = new Set([
+        'AUTH_REQUIRED', 'INVALID_TOKEN', 'FORBIDDEN', 'AUTH_SERVICE_UNAVAILABLE',
+        'ACCOUNT_SYSTEM_MAINTENANCE', 'ACCOUNT_SYSTEM_MISCONFIGURED', 'SESSION_RESET_REQUIRED'
+    ]);
+    const code = permittedCodes.has(auth?.code) ? auth.code
+        : status === 503 ? 'AUTH_SERVICE_UNAVAILABLE'
+        : status === 403 ? 'FORBIDDEN' : 'AUTH_REQUIRED';
+    const messages = {
+        ACCOUNT_SYSTEM_MAINTENANCE: 'Account access is temporarily paused.',
+        SESSION_RESET_REQUIRED: 'Please sign in again to start your new CAISSA account.',
+        FORBIDDEN: 'Operation forbidden.',
+        AUTH_REQUIRED: 'Authentication required.',
+        INVALID_TOKEN: 'Authentication required.',
+        AUTH_SERVICE_UNAVAILABLE: 'Authentication service unavailable.',
+        ACCOUNT_SYSTEM_MISCONFIGURED: 'Authentication service unavailable.'
+    };
+    const error = messages[code] || messages.AUTH_REQUIRED;
     return res.status(status).json({ code, error });
 }
 

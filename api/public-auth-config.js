@@ -1,5 +1,6 @@
 import { ownerHandoffOrigins } from './_lib/identity-owner-handoff.js';
 import { isIdentityMigrationEnforced } from './_lib/identity-resolution.js';
+import { ACCOUNT_SYSTEM_MODES, publicAccountSystemState, resolveAccountSystemMode } from './_lib/account-system.js';
 
 /**
  * Public auth configuration for the browser.
@@ -34,12 +35,14 @@ export default function handler(req, res) {
             supabaseUrl &&
             process.env.SUPABASE_SERVICE_ROLE_KEY
         ),
+        accountSystem: publicAccountSystemState(process.env),
         identityOwnerHandoff: publicOwnerHandoffMetadata(process.env)
     });
 }
 
 export function publicOwnerHandoffMetadata(env = process.env) {
-    if (!isIdentityMigrationEnforced(env)) return null;
+    if (resolveAccountSystemMode(env) !== ACCOUNT_SYSTEM_MODES.legacy
+        || !isIdentityMigrationEnforced(env)) return null;
     try {
         const origins = ownerHandoffOrigins(env);
         return Object.freeze({
