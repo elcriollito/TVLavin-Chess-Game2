@@ -14,6 +14,9 @@ This runbook replaces SEC-005 account recovery. It resets CAISSA account data on
 - `CAISSA_ACCOUNT_SYSTEM_MODE=maintenance` must be effective before backup or deletion starts.
 - `CAISSA_ACCOUNT_SYSTEM_MODE=clean_start` is invalid without `CAISSA_ACCOUNT_TOKEN_NOT_BEFORE`.
 - The destructive SQL accepts only the certified Production ledger, an exact same-snapshot manifest, a restore-tested encrypted backup, and a finite retention date.
+- The manifest pins the recursive `public.users` dependency graph at 56 foreign keys across 35 relations (`7eaa482811ddab5b65dc4637f461307b`) and aborts on any graph drift, including a new empty table.
+- Identity-bearing tables without a `users` FK are separately pinned: `caissa_online_rate_limits` and `identity_enrollment_decisions`. Any additional unmodeled identity surface aborts the reset.
+- The reset independently pins the owner-approved scope at exactly 14 users, 14 public identities, 65 total credits, and exactly one active `beta_tester` entitlement. A newly captured manifest cannot widen that scope.
 - The destructive SQL is hard-pinned to database `postgres` and Production PostgreSQL system identifier `7581440907192989109`; the operator-supplied project reference is not treated as proof of destination identity.
 - No automatic retry is permitted for backup, restore, Clerk deletion, database reset, or first Production registration.
 
@@ -45,7 +48,7 @@ Use PostgreSQL Direct with TLS `verify-full`, the certified Supabase CA, pinned 
 Capture from one exported MVCC snapshot:
 
 - schema definitions for the affected `public` tables, functions, triggers, constraints, owners, grants, RLS policies, publications, and extensions;
-- data for `users`, public identities, identity bindings/challenges/audit, credits/reservations/usage, Stripe events, entitlements, Puzzles progress/attempts, Online account rows, Insights, Library, Mentor results, beta account audit, and the account link columns of Scanner rows;
+- data for `users`, public identities, identity bindings/challenges/audit/manual previews/enrollment decisions, credits/reservations/usage, Stripe events, entitlements, Puzzles progress/attempts, every Online account row (including rate limits, ratings, profiles and tournament ownership), Insights, Library including `library_sync_log`, Mentor results, beta account audit, and Scanner rows plus predictions/corrections;
 - the exact aggregate preflight manifest and migration-ledger fingerprint;
 - Clerk Production aggregate inventory and session/user deletion manifest, without passwords, OTPs, cookies, or tokens.
 
@@ -57,6 +60,10 @@ Proposed retention is 14 days, bounded by the reset script to 7–30 days. Delet
 
 The certified baseline currently contains one active `beta_tester` entitlement, granted by the system with no expiry, and zero Stripe event rows. This is evidence of a non-billing feature grant, not evidence of an external recurring charge. Revalidate those facts immediately before backup/reset and stop if the entitlement, Stripe rows, or any external billing metadata has changed.
 
+`beta_audit_events` records only beta-center views and experiment opens. It is account telemetry, not payment evidence or the SEC-005 security audit. The reset therefore includes its exact count in the manifest, preserves its preimage in the encrypted restore-tested backup for the same 14-day retention, and then deletes it explicitly before `users`; it is never an unreported cascade. `identity_migration_audit` remains in Production with `user_id`, `binding_id`, and `challenge_id` detached to NULL. Scanner corpus rows and their predictions/corrections remain, while user links and local `selectedImage` filenames are removed.
+
+The local PostgreSQL 17 rehearsal must run `pg_dump --format=custom`, restore into a second isolated database, compare the complete manifest, destroy that restored database, inject a new synthetic FK and prove the graph guard fails before deletion, and only then execute the synthetic reset. This validates the procedure but does not replace the fresh encrypted Production backup and isolated restore proof required below.
+
 ## 3. Coordinated Production reset
 
 1. Reconfirm both Vercel projects serve the approved code and `CAISSA_ONLINE_ROLLOUT=off`.
@@ -64,7 +71,7 @@ The certified baseline currently contains one active `beta_tester` entitlement, 
 3. Disable new Clerk Production sign-up during the maintenance window. Keep Google OAuth disabled; email code is the launch method.
 4. Complete and restore-test the restricted backup.
 5. Run `tools/clean-start/production-account-preflight.sql` over Direct/TLS and save its sanitized JSON. Require database `postgres` and system identifier `7581440907192989109` before continuing.
-6. Compare it byte-for-byte as JSON with the reset manifest. Stop on any new user, entitlement, Online activity, ledger change, or other count divergence.
+6. Use only the `.counts` object from that same-snapshot preflight as `expected_manifest_b64`. Compare it as JSONB inside the reset transaction. Stop on any new user, entitlement, Online activity, ledger change, FK graph change, semantic identity-surface change, or count divergence.
 7. Execute `tools/clean-start/production-account-reset.sql` once with the seven non-secret evidence variables. Do not use `db reset`, migration repair, seed, or generic cleanup.
 8. Run `tools/clean-start/production-account-postflight.sql`. Require zero accounts, identities, challenges, bindings, active entitlements, Puzzles account rows, Online queue/presence, and Scanner account links.
 9. Revoke all Clerk Production sessions, then delete exactly the Clerk Production user records captured in the manifest. Do not touch Clerk Development or Vercel users.
