@@ -66,6 +66,53 @@ test('successful verification preserves the authenticated identity contract', as
   });
 });
 
+test('clean-start rejects stale sessions and requires a valid server cutoff', async () => {
+  const stale = createAuthenticateRequest({
+    env: {
+      CLERK_SECRET_KEY: 'test',
+      CAISSA_ACCOUNT_SYSTEM_MODE: 'clean_start',
+      CAISSA_ACCOUNT_TOKEN_NOT_BEFORE: '2026-10-17T20:00:00Z'
+    },
+    verifyToken: async () => ({ sub: 'synthetic-user', iat: Math.floor(Date.parse('2026-10-17T19:59:59Z') / 1000) })
+  });
+  assert.deepEqual(await stale(request('GET', 'Bearer synthetic')), {
+    authenticated: false,
+    ok: false,
+    status: 401,
+    code: 'SESSION_RESET_REQUIRED',
+    error: 'Please sign in again to start your new CAISSA account.'
+  });
+
+  const current = createAuthenticateRequest({
+    env: {
+      CLERK_SECRET_KEY: 'test',
+      CAISSA_ACCOUNT_SYSTEM_MODE: 'clean_start',
+      CAISSA_ACCOUNT_TOKEN_NOT_BEFORE: '2026-10-17T20:00:00Z'
+    },
+    verifyToken: async () => ({ sub: 'synthetic-user', iat: Math.floor(Date.parse('2026-10-17T20:00:00Z') / 1000) })
+  });
+  assert.equal((await current(request('GET', 'Bearer synthetic'))).authenticated, true);
+
+  const missingCutoff = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'test', CAISSA_ACCOUNT_SYSTEM_MODE: 'clean_start' },
+    verifyToken: async () => ({ sub: 'synthetic-user', iat: 1 }),
+    log() {}
+  });
+  assert.equal((await missingCutoff(request('GET', 'Bearer synthetic'))).code, 'ACCOUNT_SYSTEM_MISCONFIGURED');
+});
+
+test('maintenance stops authenticated traffic before token verification', async () => {
+  let verified = false;
+  const authenticate = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'test', CAISSA_ACCOUNT_SYSTEM_MODE: 'maintenance' },
+    verifyToken: async () => { verified = true; return { sub: 'synthetic-user' }; }
+  });
+  const result = await authenticate(request('GET', 'Bearer synthetic'));
+  assert.equal(result.code, 'ACCOUNT_SYSTEM_MAINTENANCE');
+  assert.equal(result.status, 503);
+  assert.equal(verified, false);
+});
+
 test('local Clerk JWT verification can use the instance public key without a backend API request', async () => {
   let options;
   const authenticate = createAuthenticateRequest({

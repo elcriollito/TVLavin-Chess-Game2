@@ -54,7 +54,10 @@ test('auth completion is bounded, retryable, and registration redirects through 
   const signup=fs.readFileSync('js/signup-page.js','utf8');
   const signin=fs.readFileSync('js/signin-page.js','utf8');
   assert.match(completion,/MAX_ATTEMPTS = 3/);
-  assert.match(completion,/authenticatedPost\('\/api\/user\/sync', \{\}\)/);
+  assert.match(completion,/authenticatedRequest\('\/api\/user\/sync', 'POST', \{\}\)/);
+  assert.match(completion,/\/api\/user\/public-identity/);
+  assert.match(completion,/How should other players see you\?/);
+  assert.doesNotMatch(completion,/IDENTITY_(?:RESOLUTION|MIGRATION)_REQUIRED|Recover existing account/);
   assert.match(completion,/retry\.focus\(\)/);
   assert.match(signup,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
   assert.match(signup,/signInForceRedirectUrl: getCompletionUrl\(\)/);

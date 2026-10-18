@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#0b0f1a">
   <title>Finishing account setup – CAISSA Chess</title>
-  <link rel="stylesheet" href="/css/caissa-auth.css?v=1.1.1">
+  <link rel="stylesheet" href="/css/caissa-auth.css?v=1.2.0">
 </head>
 <body class="auth-page-body">
   <main class="auth-page-container">
@@ -14,20 +14,25 @@
       <div class="auth-setup-spinner" aria-hidden="true"></div>
       <h1 id="account-setup-title" class="auth-page-title">Finishing your account setup…</h1>
       <p id="account-setup-status" class="auth-page-subtitle">This should only take a moment.</p>
+      <form id="account-nickname-form" class="auth-nickname-step" hidden novalidate>
+        <label for="account-nickname">Choose your chess name</label>
+        <input id="account-nickname" name="nickname" type="text" required minlength="3" maxlength="40"
+          autocomplete="nickname" spellcheck="false" placeholder="elcriollito, TVLAVIN, ChessMaster27"
+          aria-describedby="account-nickname-help account-nickname-status">
+        <p id="account-nickname-help" class="auth-nickname-help">
+          Use 3–24 visible characters. Your nickname must be unique and can be changed later in My Account.
+        </p>
+        <p id="account-nickname-status" class="auth-nickname-status" role="status"></p>
+        <button id="account-nickname-save" class="auth-setup-retry" type="submit">Continue to CAISSA</button>
+        <button id="account-nickname-skip" class="auth-setup-retry auth-setup-secondary" type="button">Choose later</button>
+      </form>
       <div class="auth-setup-actions">
         <button id="account-setup-retry" class="auth-setup-retry" type="button" hidden>Try again</button>
-        <button id="account-setup-recover" class="auth-setup-retry auth-setup-secondary" type="button" hidden>
-          Recover existing account
-        </button>
       </div>
-      <p id="account-setup-recovery-note" class="auth-recovery-note" hidden>
-        This verifies your existing and Production sign-ins in a separate secure window without manual token copying.
-      </p>
     </section>
   </main>
-  <script src="/js/auth-config.js?v=1.0.6"></script>
+  <script src="/js/auth-config.js?v=1.1.0"></script>
   <script src="/js/caissa-auth.js?v=1.0.4" defer></script>
-  <script src="/js/identity-recovery-channel.js?v=1.0.0" defer></script>
-  <script src="/js/auth-complete.js?v=1.4.0" defer></script>
+  <script src="/js/auth-complete.js?v=2.0.0" defer></script>
 </body>
 </html>

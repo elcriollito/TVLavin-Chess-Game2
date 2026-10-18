@@ -1,0 +1,62 @@
+[data-caissa-account-reset-notice] {
+    position: relative;
+    z-index: 30;
+    width: 100%;
+}
+
+.caissa-account-reset-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 12px;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 18px;
+    border-bottom: 1px solid rgba(255, 193, 7, 0.45);
+    background: #2b2412;
+    color: #f8f3df;
+    font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: center;
+}
+
+.caissa-account-reset-notice strong { color: #ffd76a; }
+
+.caissa-account-reset-notice__copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.caissa-account-reset-notice a {
+    flex: 0 0 auto;
+    padding: 7px 12px;
+    border: 1px solid #ffd76a;
+    border-radius: 999px;
+    color: #fff4cf;
+    font-weight: 750;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.caissa-account-reset-notice a:hover,
+.caissa-account-reset-notice a:focus-visible {
+    background: rgba(255, 215, 106, 0.12);
+    outline: 2px solid #fff4cf;
+    outline-offset: 2px;
+}
+
+body.caissa-reset-notice-visible .sidebar {
+    top: var(--caissa-reset-notice-height, 0px);
+}
+
+@media (max-width: 700px) {
+    .caissa-account-reset-notice {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .caissa-account-reset-notice a { align-self: center; }
+}

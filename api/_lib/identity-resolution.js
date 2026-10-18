@@ -1,7 +1,10 @@
+import { ACCOUNT_SYSTEM_MODES, resolveAccountSystemMode } from './account-system.js';
+
 const MIGRATION_MODE = 'enforced';
 
 export function isIdentityMigrationEnforced(env = process.env) {
-    return env.CAISSA_IDENTITY_MIGRATION_MODE === MIGRATION_MODE;
+    return resolveAccountSystemMode(env) === ACCOUNT_SYSTEM_MODES.legacy
+        && env.CAISSA_IDENTITY_MIGRATION_MODE === MIGRATION_MODE;
 }
 
 export async function resolveIdentityForSync(supabase, externalSubject) {

@@ -51,6 +51,7 @@ async function authPageDestination(script, search, signedIn = false, options = {
         Clerk,
         CAISSA_AUTH_CONFIG: {
             CLERK_PUBLISHABLE_KEY: 'pk_test_synthetic',
+            ACCOUNT_SYSTEM: { mode: 'clean_start', registrationOpen: true, resetNotice: false },
             ...(options.handoff ? { IDENTITY_OWNER_HANDOFF: options.handoff } : {})
         },
         CAISSA_AUTH_CONFIG_READY: Promise.resolve(),
@@ -81,7 +82,7 @@ test('already authenticated navigation uses the sanitized destination', async ()
     assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example', true)).href, '/auth/complete?redirect_url=%2F');
 });
 
-test('legacy recovery sign-in returns directly to recovery and isolates OAuth in a nested popup', async () => {
+test('clean-start ignores legacy handoff metadata and uses the normal completion route', async () => {
     const legacyOrigin = 'https://validation.example.test';
     const result = await authPageDestination(
         'js/signin-page.js',
@@ -92,12 +93,12 @@ test('legacy recovery sign-in returns directly to recovery and isolates OAuth in
             handoff: { productionOrigin: 'https://www.caissa-chess.org', legacyOrigin }
         }
     );
-    assert.equal(result.mounted.signInForceRedirectUrl, '/identity-recovery');
-    assert.equal(result.mounted.signUpForceRedirectUrl, '/identity-recovery');
-    assert.equal(result.mounted.oauthFlow, 'popup');
+    assert.equal(result.mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2Fidentity-recovery');
+    assert.equal(result.mounted.signUpForceRedirectUrl, '/auth/complete?redirect_url=%2Fidentity-recovery');
+    assert.equal('oauthFlow' in result.mounted, false);
 });
 
-test('Production cannot opt into the legacy recovery sign-in exception', async () => {
+test('Production cannot opt back into the retired legacy recovery exception', async () => {
     const result = await authPageDestination(
         'js/signin-page.js',
         '?redirect_url=%2Fidentity-recovery',
@@ -114,7 +115,7 @@ test('Production cannot opt into the legacy recovery sign-in exception', async (
     assert.equal('oauthFlow' in result.mounted, false);
 });
 
-test('the legacy recovery exception is unavailable outside the exact sign-in route', async () => {
+test('retired legacy recovery metadata cannot change behavior on another route', async () => {
     const legacyOrigin = 'https://validation.example.test';
     const result = await authPageDestination(
         'js/signin-page.js',

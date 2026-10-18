@@ -80,6 +80,17 @@
             }
         }
 
+        if (config?.ACCOUNT_SYSTEM?.registrationOpen !== true) {
+            container.innerHTML = `
+                <div class="auth-unavailable" role="status">
+                    <i class="fas fa-clock" aria-hidden="true"></i>
+                    <p>Account registration is temporarily paused while CAISSA completes a secure account reset.</p>
+                    <p>Please return shortly. No registration attempt was made.</p>
+                </div>
+            `;
+            return;
+        }
+
         // Check if key is configured before waiting for the Clerk SDK.
         const publishableKey = config?.CLERK_PUBLISHABLE_KEY;
         if (!publishableKey || publishableKey === 'pk_test_REPLACE_WITH_YOUR_KEY') {
