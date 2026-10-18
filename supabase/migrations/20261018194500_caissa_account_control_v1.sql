@@ -55,6 +55,8 @@ create table public.caissa_account_control_audit (
 
 create index caissa_account_control_operations_user_status_idx
   on public.caissa_account_control_operations(user_id, status, created_at desc);
+create index caissa_account_control_operations_binding_idx
+  on public.caissa_account_control_operations(binding_id);
 create index caissa_account_control_operations_pending_idx
   on public.caissa_account_control_operations(expires_at)
   where status in ('PREPARED', 'LOCKED', 'AUTH_DELETION_PENDING');
@@ -63,6 +65,9 @@ create unique index caissa_account_control_one_pending_kind_idx
   where status in ('PREPARED','LOCKED','AUTH_DELETION_PENDING');
 create index caissa_account_control_audit_operation_idx
   on public.caissa_account_control_audit(operation_id, created_at);
+create index caissa_account_states_operation_idx
+  on public.caissa_account_states(operation_id)
+  where operation_id is not null;
 
 create table public.caissa_account_control_rate_limits (
   scope_hash text not null check (scope_hash ~ '^[0-9a-f]{64}$'),
