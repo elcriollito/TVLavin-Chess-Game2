@@ -35,7 +35,7 @@ La sección inicial es informativa y debe mostrar controles **solo cuando el bac
 - El usuario **solo puede solicitar operaciones sobre su subject Clerk Production verificado** y el UUID de Supabase vinculado de manera inequívoca.
 - Prohibido aceptar `user_id`, `clerk_id`, subject o email elegidos por el cliente como objetivo de borrado. Resolver siempre del JWT autenticado.
 - La sesión debe ser Production, fresca, sin ambigüedad y sin conflicto de bindings.
-- **Incidente histórico TVLAVIN/elcriollito:** si un subject Production apunta al UUID histórico de **otra** identidad, bloquear **EXPORT, RESET y DELETE de ese UUID** con `OWNERSHIP_REVIEW_REQUIRED`. No seguir un binding cruzado aunque Supabase lo marque `ACTIVE`.
+- **Conflicto histórico de propiedad cruzada:** si un subject Production apunta al UUID histórico de **otra** identidad, bloquear **EXPORT, RESET y DELETE de ese UUID** con `OWNERSHIP_REVIEW_REQUIRED`. No seguir un binding cruzado aunque Supabase lo marque `ACTIVE`.
 - No usar email, nickname ni alias como prueba de propiedad.
 - El rechazo de ownership no cancela el derecho a solicitar baja: ofrecer una vía manual de revisión y seguimiento de borrado **de la propia identidad** sin destruir datos de otra persona.
 - Nunca borrar cuentas Clerk Development desde la acción de un usuario Production.
@@ -75,7 +75,7 @@ El esquema de Supabase Production tenía 35 claves foráneas directas a `public.
 | Economía | `credit_events`, `credit_reservations`, `user_entitlements`, `stripe_events` | Comprobar compras, billing/subscriptions, conservar solo evidencia exigida y cancelar futuras prestaciones/cargos apropiadamente |
 | Seguridad y auditoría | bindings, challenges, rate limits, audit events | Retención mínima legal/técnica, pseudonimizada; no borrar evidencia de fraude/incidentes ajenos |
 
-En Production se observaron **65 créditos, un entitlement activo y seis eventos de crédito**; aunque no hubiese filas Stripe en ese snapshot, no omitir pruebas de suscripciones futuras.
+No omitir pruebas de prestaciones de pago, cobros o suscripciones actuales o futuras, aunque un snapshot concreto tenga cero eventos de facturación.
 
 El esquema y los datos personales pueden abarcar registros fuera de `public.users`; exportación y erasure no se limitan a `DELETE FROM public.users`.
 
@@ -108,7 +108,7 @@ Si se completó la baja:
 
 ### Gates de publicación
 1. Documentación de política de borrado, retención y propiedad aprobada.
-2. Regresión especial TVLAVIN/elcriollito y dataset sintético certificado.
+2. Regresión del conflicto de propiedad cruzada con dataset exclusivamente sintético certificado.
 3. Snapshot/backup verificable, pruebas de restauración y planes de rollback/auditoría.
 4. Scanner/CI, review de seguridad independiente, Preview aislada y smoke.
 5. **Autorización separada** para cualquier cambio o borrado real en Production.
