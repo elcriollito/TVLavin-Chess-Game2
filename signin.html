@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.1">
     <link rel="stylesheet" href="css/caissa-auth.css?v=1.1.0">
+    <link rel="stylesheet" href="/css/registration-paused.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
@@ -42,11 +43,17 @@
             <h1 class="auth-page-title">Welcome Back</h1>
             <p class="auth-page-subtitle">Sign in to continue to CAISSA Chess</p>
 
+            <section class="caissa-registration-notice caissa-registration-notice--signin" role="status" aria-label="Registration status">
+                <strong>New registration temporarily paused · Registro temporalmente suspendido</strong>
+                <p lang="es">Disculpa las molestias. Estamos actualizando las cuentas de CAISSA. Vuelve pronto si deseas registrarte.</p>
+                <p lang="en">Sorry for the inconvenience. We're updating CAISSA accounts. Please check back soon to register.</p>
+            </section>
+
             <!-- Clerk Sign In Component -->
             <div id="clerk-sign-in" class="auth-clerk-container"></div>
 
             <div class="auth-page-footer">
-                <p>Don't have an account? <a href="/signup">Sign up</a></p>
+                <p>New sign-ups are paused during maintenance. · El registro nuevo está en pausa.</p>
                 <p><a href="/">Back to CAISSA Chess</a></p>
             </div>
         </div>

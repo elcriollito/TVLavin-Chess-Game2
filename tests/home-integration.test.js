@@ -116,7 +116,7 @@ test('Home auth and progress presentation distinguishes loading, guest, connecte
   assert.match(source, /caissa\.home\.recent-tools\.v1/);
   assert.match(source, /openUserProfile/);
   assert.match(source, /authHref\('signin'\)/);
-  assert.match(source, /authHref\('signup'\)/);
+  assert.doesNotMatch(source, /authHref\('signup'\)/);
   assert.doesNotMatch(source, /recent games|continue position|streak|accuracy/i);
 });
 

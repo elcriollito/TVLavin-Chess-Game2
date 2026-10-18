@@ -1,0 +1,18 @@
+/* Temporary CAISSA registration pause; remove with the feature reopening. */
+.caissa-registration-notice,.caissa-registration-paused-card{border:1px solid #62583f;background:linear-gradient(120deg,#1b1c1c,#141820);color:#f4efe6;border-radius:12px}
+.caissa-registration-notice{padding:18px 22px}
+.caissa-registration-notice--home{margin:0 0 26px}
+.caissa-registration-notice--signin{margin:18px 0 20px;text-align:left;padding:15px 17px}
+.caissa-registration-notice h2{font-size:18px;line-height:1.4;color:#f6e5be;margin:4px 0 10px}
+.caissa-registration-notice strong{display:block;color:#f6e5be;font-size:14px;line-height:1.5}
+.caissa-registration-notice p,.caissa-registration-paused-card p{color:#d8d0c4;line-height:1.55}
+.caissa-registration-notice p[lang],.caissa-registration-paused-card p[lang]{margin:8px 0}
+.caissa-registration-eyebrow{font-size:11px!important;font-weight:750;letter-spacing:1.5px;color:#e7bf76!important;margin-bottom:9px!important}
+.caissa-registration-paused-card{text-align:left;max-width:580px;width:100%;padding:30px}
+.caissa-registration-paused-card h1{line-height:1.2;margin-bottom:16px}
+.caissa-registration-paragraph{font-size:15px;margin:12px 0}
+.caissa-registration-footnote{font-size:12px!important;color:#aeb4bf!important;margin-top:13px!important}
+.caissa-registration-paused-card .auth-page-footer{margin-top:24px}
+.caissa-registration-paused-card .auth-page-footer p{margin:8px 0}
+@media(max-width:720px){.caissa-registration-notice{padding:16px;margin-bottom:19px}.caissa-registration-notice h2{font-size:16px}.caissa-registration-paused-card{padding:22px 19px}}
+@media(prefers-reduced-motion:reduce){.caissa-registration-notice,.caissa-registration-paused-card{transition:none}}
