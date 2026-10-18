@@ -81,8 +81,8 @@ Apply through Supabase managed `apply_migration`, once each, in this order:
 
 | Order | Managed migration name | File | SHA-256 |
 |---:|---|---|---|
-| 1 | `sec005_clerk_identity_remapping_foundation_v1` | `20260811_clerk_identity_remapping_foundation.sql` | `f28731f818943dff0b394560e5e79433e4e50a142a1270923bfebf94914377cc` |
-| 2 | `sec005_clerk_migration_cutover_tooling_v1` | `20260811_clerk_migration_cutover_tooling.sql` | `e90b81eb7462e6d555b9f4de0ece85e75ecd809eac6a513fc047db52c12b9246` |
+| 1 | `sec005_clerk_identity_remapping_foundation_v1` | `20260811_clerk_identity_remapping_foundation.sql` | `8aa39c19e3d6a41d319cf9738a1b50a2b0d68365204912ab49287e10e6c9484b` |
+| 2 | `sec005_clerk_migration_cutover_tooling_v1` | `20260811_clerk_migration_cutover_tooling.sql` | `2d53b7345b7dcee5fdb204ec568bb97475e2931ae75fa35a7a1d595f324ee6ee` |
 | 3 | `sec005_cutover_compatibility_v1` | `20261015220000_sec005_cutover_compatibility_v1.sql` | `3644577e080fca71b70f7fa31e07ab0980d9f8884d861dd6eaa9a02f0fd689f2` |
 | 4 | `caissa_identity_ownership_v1` | `20261018171912_caissa_identity_ownership_v1.sql` | `db2d75b54b5c64eb36488beae27e10e2ad2266bd5adf54f3841183757f4acda5` |
 | 5 | `caissa_account_control_v1` | `20261018194500_caissa_account_control_v1.sql` | `3d0dfdadc9f89fe12be40a086bc491d4971fca40901a4ee7544bb7965a940950` |
@@ -94,6 +94,12 @@ name, source hash, catalog effects, and dependency order read-only; do not
 reapply it. If any prerequisite is absent, stop until the owner explicitly
 authorizes that exact migration as part of the Production release. Never start
 Identity Ownership against a schema without all three prerequisites.
+
+The table hashes the committed SQL payload with LF line endings. Earlier
+Windows evidence recorded raw CRLF hashes `f28731f...` and `e90b81e...` for the
+first two files; normalized comparison proves those artifacts are textually
+identical to the canonical LF payloads above. A future operator must normalize
+line endings before hashing and must stop on any semantic difference.
 
 The file timestamps are source identifiers; the managed ledger version may
 differ when an operator supplied an explicit migration name. Compare content,

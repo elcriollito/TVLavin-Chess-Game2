@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {
     clerkAuthorityFromEnvironment,
@@ -346,19 +347,23 @@ test('ownership migration is service-role only and defaults historical Productio
 test('Production release runbook orders SEC-005 prerequisites before Identity Ownership and Account Control', () => {
     const runbook = fs.readFileSync('docs/security/CAISSA_ACCOUNT_CONTROL_V1_RELEASE_READINESS.md', 'utf8');
     const orderedArtifacts = [
-        '20260811_clerk_identity_remapping_foundation.sql',
-        '20260811_clerk_migration_cutover_tooling.sql',
-        '20261015220000_sec005_cutover_compatibility_v1.sql',
-        '20261018171912_caissa_identity_ownership_v1.sql',
-        '20261018194500_caissa_account_control_v1.sql',
-        '20261018180000_caissa_account_control_v1_fk_indexes.sql',
-        '20261018203000_caissa_account_control_v1_security_followup.sql'
+        ['20260811_clerk_identity_remapping_foundation.sql', '8aa39c19e3d6a41d319cf9738a1b50a2b0d68365204912ab49287e10e6c9484b'],
+        ['20260811_clerk_migration_cutover_tooling.sql', '2d53b7345b7dcee5fdb204ec568bb97475e2931ae75fa35a7a1d595f324ee6ee'],
+        ['20261015220000_sec005_cutover_compatibility_v1.sql', '3644577e080fca71b70f7fa31e07ab0980d9f8884d861dd6eaa9a02f0fd689f2'],
+        ['20261018171912_caissa_identity_ownership_v1.sql', 'db2d75b54b5c64eb36488beae27e10e2ad2266bd5adf54f3841183757f4acda5'],
+        ['20261018194500_caissa_account_control_v1.sql', '3d0dfdadc9f89fe12be40a086bc491d4971fca40901a4ee7544bb7965a940950'],
+        ['20261018180000_caissa_account_control_v1_fk_indexes.sql', '9d7e4b69e691c57dc2a81408d74fd988055375c7d7424a4305133fc4f87d786c'],
+        ['20261018203000_caissa_account_control_v1_security_followup.sql', 'dccd0cebfd56a434337ea960c7ff426001b5e37eee589d8172f4d1a5dc4d402b']
     ];
     let priorIndex = -1;
-    for (const artifact of orderedArtifacts) {
+    for (const [artifact, expectedHash] of orderedArtifacts) {
         const index = runbook.indexOf(`| \`${artifact}\``);
         assert.ok(index > priorIndex, `${artifact} must appear once and in dependency order`);
         assert.equal(runbook.indexOf(`| \`${artifact}\``, index + 1), -1, `${artifact} must not be duplicated`);
+        const sql = fs.readFileSync(`supabase/migrations/${artifact}`, 'utf8').replace(/\r\n/g, '\n');
+        const actualHash = crypto.createHash('sha256').update(sql).digest('hex');
+        assert.equal(actualHash, expectedHash, `${artifact} canonical LF hash must remain immutable`);
+        assert.ok(runbook.includes(`\`${expectedHash}\``), `${artifact} hash must be documented`);
         priorIndex = index;
     }
     assert.match(runbook, /Their verified presence is\s+therefore a hard prerequisite/i);
