@@ -22,13 +22,9 @@ Los nombres de usuario, correos, aliases y nicknames no conceden acceso administ
 
 ## 2. Incidente y estado histórico
 
-Conservar como caso de regresión la asociación incorrecta demostrada entre una sesión Clerk Production y **otro** perfil histórico Clerk Development (caso TVLAVIN/elcriollito). El usuario autenticado en Production **no adquiere propiedad** sobre un UUID histórico por el mero hecho de tener dos sesiones auténticas.
+Conservar como caso de regresión un conflicto de propiedad cruzada documentado en un expediente interno entre una sesión Clerk Production y **otro** perfil histórico Clerk Development. El usuario autenticado en Production **no adquiere propiedad** sobre un UUID histórico por el mero hecho de tener dos sesiones auténticas.
 
-Baseline read-only observado el 18-10-2026 en Supabase Production:
-- 14 usuarios y 14 identidades públicas.
-- 13 bindings legacy Development activos, 1 retirado, 1 binding Production activo.
-- 85 intentos de Puzzles; 65 créditos globales y un entitlement activo.
-- Estos conteos son **diagnóstico fechado**, no invariantes que se puedan sobrescribir posteriormente.
+Un baseline read-only restringido fue certificado el 18-10-2026. Los conteos y la correspondencia entre sujetos constan únicamente en el expediente interno de seguridad, no en esta especificación pública. Son diagnósticos fechados, no invariantes que deban sobrescribirse.
 
 No borrar ni transferir automáticamente las cuentas de Development: allí hay identidades históricas auténticas además de usuarios sintéticos. No inferir el carácter sintético únicamente por correo, display name o antigüedad.
 
