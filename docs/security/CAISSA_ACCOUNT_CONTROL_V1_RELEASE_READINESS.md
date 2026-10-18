@@ -177,10 +177,22 @@ Only after database postflight and separate configuration authorization:
 6. Do not reset progress, delete an account, create a recovery binding, or test
    re-registration with a real user during release smoke.
 
-Rollback for a code/config failure is the previous deployment plus disabling
-the new runtime flags. Preserve additive database evidence; do not drop tables,
-broaden grants, or restore insecure permissions. A database integrity failure
-stops rollout and invokes the separately approved recovery procedure.
+## Rollback contract
+
+Before the first migration, the rollback candidate must be proven to honor
+`CAISSA_IDENTITY_MIGRATION_MODE=enforced` and fail closed when the SEC-005 RPCs
+are absent. During and after any committed migration, keep migration mode
+exactly `enforced` across every rollback deployment. Ownership and Account
+Control may remain `off`, but identity migration enforcement must not be
+disabled while the database contains any part of the new identity chain.
+
+Never route traffic to an older artifact that ignores migration mode or reaches
+the ordinary `users.upsert` path. If no compatible previous deployment exists,
+use an owner-approved forward fix or the certified restore procedure; do not
+weaken identity enforcement to recover availability. Preserve additive database
+evidence, and do not drop tables, broaden grants, or restore insecure
+permissions. A database integrity failure stops rollout and invokes the
+separately approved recovery procedure.
 
 ## Clean Start and registration gate
 
