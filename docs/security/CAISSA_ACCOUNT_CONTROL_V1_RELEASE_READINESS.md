@@ -75,13 +75,15 @@ the legacy ordinary upsert cannot create an unapproved profile during the
 migration window. This step requires separate merge, configuration, and
 Production deployment authorization; this runbook does not grant it.
 
-1. Merge and deploy the exact reviewed stack, including the release-readiness
-   repair, while public registration remains paused and Clerk Production stays
-   restricted.
-2. Set `CAISSA_IDENTITY_MIGRATION_MODE=enforced` on the Production deployment
-   before it receives traffic. Keep `CAISSA_IDENTITY_OWNERSHIP_MODE=off` and
-   `CAISSA_ACCOUNT_CONTROL_MODE=off` until their dependent migrations and
-   postflight checks pass.
+1. Configure the *next* Production deployment with
+   `CAISSA_IDENTITY_MIGRATION_MODE=enforced`,
+   `CAISSA_IDENTITY_OWNERSHIP_MODE=off`, and
+   `CAISSA_ACCOUNT_CONTROL_MODE=off`. Verify the current deployment is
+   unaffected; Vercel must not activate these values on existing traffic.
+2. Only then merge and deploy the exact reviewed stack, including the
+   release-readiness repair. The automatic Git deployment must inherit those
+   exact values before it can receive traffic. Public registration remains
+   paused and Clerk Production stays restricted.
 3. Verify a controlled authenticated `/api/user/sync` cannot reach the ordinary
    upsert. Before SEC-005 exists, the expected result is a fail-closed 503 from
    the missing identity dependency, with no new `users` row or binding.

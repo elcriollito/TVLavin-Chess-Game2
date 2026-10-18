@@ -374,8 +374,11 @@ test('Production release runbook orders SEC-005 prerequisites before Identity Ow
     const activation = runbook.indexOf('## Final activation and smoke');
     assert.ok(preMigrationGate > -1 && preMigrationGate < migrationOrder);
     assert.ok(migrationOrder < postflight && postflight < activation);
-    assert.match(runbook, /Set `CAISSA_IDENTITY_MIGRATION_MODE=enforced`[\s\S]*before it receives traffic/i);
-    assert.match(runbook, /Keep `CAISSA_IDENTITY_OWNERSHIP_MODE=off` and\s+`CAISSA_ACCOUNT_CONTROL_MODE=off`/i);
+    const gateText = runbook.slice(preMigrationGate, migrationOrder);
+    assert.match(gateText, /Configure the \*next\* Production deployment with[\s\S]*`CAISSA_IDENTITY_MIGRATION_MODE=enforced`/i);
+    assert.match(gateText, /`CAISSA_IDENTITY_OWNERSHIP_MODE=off`[\s\S]*`CAISSA_ACCOUNT_CONTROL_MODE=off`/i);
+    assert.ok(gateText.indexOf('CAISSA_IDENTITY_MIGRATION_MODE=enforced') < gateText.indexOf('merge and deploy'));
+    assert.match(gateText, /automatic Git deployment must inherit those[\s\S]*exact values before it can receive traffic/i);
     assert.match(runbook, /Keep migration mode exactly `enforced` throughout all seven migrations/i);
     assert.doesNotMatch(runbook, /before code deployment/i);
 });
