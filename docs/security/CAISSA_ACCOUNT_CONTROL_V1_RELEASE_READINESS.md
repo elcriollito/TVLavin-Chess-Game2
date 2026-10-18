@@ -68,6 +68,30 @@ Before the first Production migration:
 An upload or checksum alone is not a recovery certificate. Production remains
 blocked until restore verification passes.
 
+## Pre-migration fail-closed code gate
+
+The repaired sync code must be deployed before the first SEC-005 migration so
+the legacy ordinary upsert cannot create an unapproved profile during the
+migration window. This step requires separate merge, configuration, and
+Production deployment authorization; this runbook does not grant it.
+
+1. Merge and deploy the exact reviewed stack, including the release-readiness
+   repair, while public registration remains paused and Clerk Production stays
+   restricted.
+2. Set `CAISSA_IDENTITY_MIGRATION_MODE=enforced` on the Production deployment
+   before it receives traffic. Keep `CAISSA_IDENTITY_OWNERSHIP_MODE=off` and
+   `CAISSA_ACCOUNT_CONTROL_MODE=off` until their dependent migrations and
+   postflight checks pass.
+3. Verify a controlled authenticated `/api/user/sync` cannot reach the ordinary
+   upsert. Before SEC-005 exists, the expected result is a fail-closed 503 from
+   the missing identity dependency, with no new `users` row or binding.
+4. Verify Account Control endpoints remain unavailable, existing unrelated
+   routes stay healthy, and the previous deployment is available for code
+   rollback without changing the database.
+5. Keep migration mode exactly `enforced` throughout all seven migrations and
+   postflight. Stop if sync returns success by provisioning a new identity
+   before the SEC-005 prerequisites are complete, or if any write occurs.
+
 ## Approved migration artifacts and order
 
 Identity Ownership has foreign keys and `%rowtype` dependencies on
@@ -113,7 +137,8 @@ owner-approved forward or restore plan.
 
 ## Postflight
 
-Require all of the following before code deployment:
+Require all of the following before final ownership and Account Control
+activation:
 
 - the ledger contains exactly the expected new entries;
 - aggregate protected-data counts are preserved, allowing only identified
@@ -131,15 +156,19 @@ Require all of the following before code deployment:
   tombstone/audit contracts are unchanged;
 - the private export remains owner-scoped, bounded, paginated, and streamed.
 
-## Deployment and smoke
+## Final activation and smoke
 
-Only after database postflight and separate merge/deploy authorization:
+Only after database postflight and separate configuration authorization:
 
-1. Merge the stack in the approved order, including the repair PR.
-2. Certify both automatic Vercel deployments against their exact commits.
-3. Keep Clerk Production restricted and public registration paused.
-4. Enable ownership/account-control flags only in the explicitly approved
-   Production environment. Never activate by changing a Preview.
+1. Reconfirm the pre-migration deployment serves the exact reviewed commit and
+   that migration mode remained `enforced` without interruption.
+2. Keep Clerk Production restricted and public registration paused.
+3. Enable `CAISSA_IDENTITY_OWNERSHIP_MODE=enforced` only after ownership
+   reviews and resolver postflight pass. Verify a known bound identity and an
+   unresolved identity before proceeding.
+4. Enable Account Control only in the explicitly approved Production
+   environment after all four Account Control migrations pass postflight.
+   Never activate by changing a Preview.
 5. Run non-destructive smoke checks: anonymous denial, authenticated owner
    summary, private export headers/first bounded page, UI keyboard/error states,
    and existing Home/Play/Puzzles/Analyzer routes.

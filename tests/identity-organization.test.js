@@ -368,4 +368,14 @@ test('Production release runbook orders SEC-005 prerequisites before Identity Ow
     }
     assert.match(runbook, /Their verified presence is\s+therefore a hard prerequisite/i);
     assert.match(runbook, /If any prerequisite is absent, stop until the owner explicitly\s+authorizes/i);
+    const preMigrationGate = runbook.indexOf('## Pre-migration fail-closed code gate');
+    const migrationOrder = runbook.indexOf('## Approved migration artifacts and order');
+    const postflight = runbook.indexOf('## Postflight');
+    const activation = runbook.indexOf('## Final activation and smoke');
+    assert.ok(preMigrationGate > -1 && preMigrationGate < migrationOrder);
+    assert.ok(migrationOrder < postflight && postflight < activation);
+    assert.match(runbook, /Set `CAISSA_IDENTITY_MIGRATION_MODE=enforced`[\s\S]*before it receives traffic/i);
+    assert.match(runbook, /Keep `CAISSA_IDENTITY_OWNERSHIP_MODE=off` and\s+`CAISSA_ACCOUNT_CONTROL_MODE=off`/i);
+    assert.match(runbook, /Keep migration mode exactly `enforced` throughout all seven migrations/i);
+    assert.doesNotMatch(runbook, /before code deployment/i);
 });
