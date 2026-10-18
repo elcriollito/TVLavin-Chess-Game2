@@ -74,22 +74,22 @@ test('My Account public identity states are accessible and preserve private/publ
     await expect(page.locator('[data-unsaved]')).toBeVisible();
     await dialog.screenshot({ path: output('03-account-editor-open') });
     await page.locator('[data-check-nickname]').click();
-    await expect(dialog.locator('[role=status]')).toContainText('is available');
+    await expect(dialog.locator('#public-nickname-status')).toContainText('is available');
     await dialog.screenshot({ path: output('04-nickname-available') });
 
     await page.locator('#public-nickname-input').fill('TakenKnight');
     await page.locator('[data-check-nickname]').click();
-    await expect(dialog.locator('[role=status]')).toContainText('unavailable');
+    await expect(dialog.locator('#public-nickname-status')).toContainText('unavailable');
     await dialog.screenshot({ path: output('05-nickname-occupied') });
 
     await page.locator('#public-nickname-input').fill('ÉchecsRoyal');
     await page.locator('.public-identity-save').click();
-    await expect(dialog.locator('[role=status]')).toHaveText('Public identity saved.');
+    await expect(dialog.locator('#public-nickname-status')).toHaveText('Public identity saved.');
     await expect(page.locator('[data-public-preview]')).toHaveText('ÉchecsRoyal');
     await dialog.screenshot({ path: output('06-nickname-saved') });
 
     await page.locator('#public-nickname-input').fill('Knight\u202Evil');
-    await expect(dialog.locator('[role=status]')).toContainText('Invisible');
+    await expect(dialog.locator('#public-nickname-status')).toContainText('Invisible');
     await dialog.screenshot({ path: output('07-unicode-validation-error') });
 
     fixture.identity = {

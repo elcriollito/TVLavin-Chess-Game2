@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {
     clerkAuthorityFromEnvironment,
@@ -88,7 +89,10 @@ test('enforced sync cannot write a cross-bound historical UUID', async () => {
     let writes = 0;
     const res = response();
     await syncHandler({ method: 'POST', headers: {}, body: {} }, res, {
-        env: { CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced' },
+        env: {
+            CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced',
+            CAISSA_IDENTITY_MIGRATION_MODE: 'enforced'
+        },
         verifyAuth: async () => ({ authenticated: true, userId: 'production-subject', authority: 'production' }),
         getSupabase: () => ({ from() { writes += 1; throw new Error('must not write'); } }),
         resolveIdentityOwnership: async () => ({ ok: false, status: 409, code: 'OWNERSHIP_REVIEW_REQUIRED' })
@@ -96,6 +100,187 @@ test('enforced sync cannot write a cross-bound historical UUID', async () => {
     assert.equal(res.statusCode, 409);
     assert.equal(res.body.code, 'OWNERSHIP_REVIEW_REQUIRED');
     assert.equal(writes, 0);
+});
+
+test('enforced Production sync provisions only an explicitly approved new identity before ownership verification', async () => {
+    const calls = [];
+    const res = response();
+    const user = {
+        clerk_id: 'approved-production-subject',
+        email: 'owner@example.invalid',
+        role: 'user',
+        is_premium: false,
+        credits: 0
+    };
+    const chain = {
+        update(value) { calls.push(['update', value]); return this; },
+        eq(column, value) { calls.push(['eq', column, value]); return this; },
+        select(value) { calls.push(['select', value]); return this; },
+        async single() { return { data: user, error: null }; }
+    };
+    let ownershipChecks = 0;
+
+    await syncHandler({ method: 'POST', headers: {}, body: {} }, res, {
+        env: {
+            CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced',
+            CAISSA_IDENTITY_MIGRATION_MODE: 'enforced'
+        },
+        verifyAuth: async () => ({
+            authenticated: true,
+            userId: 'approved-production-subject',
+            authority: 'production',
+            email: 'owner@example.invalid'
+        }),
+        getSupabase: () => ({ from: () => chain }),
+        resolveIdentityOwnership: async () => {
+            ownershipChecks += 1;
+            return ownershipChecks === 1
+                ? { ok: false, status: 409, code: 'IDENTITY_RESOLUTION_REQUIRED' }
+                : { ok: true, status: 200, userId: 'new-internal-user' };
+        },
+        resolveIdentityForSync: async (_db, subject) => {
+            calls.push(['resolve', subject]);
+            return { ok: true, resolution: 'APPROVED_NEW', userId: null };
+        },
+        provisionApprovedIdentity: async (_db, subject, email) => {
+            calls.push(['provision', subject, email]);
+            return { ok: true, code: 'NEW_ACCOUNT_PROVISIONED', userId: 'new-internal-user' };
+        }
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.user.clerkId, 'approved-production-subject');
+    assert.equal(ownershipChecks, 2);
+    assert.deepEqual(calls.slice(0, 2), [
+        ['resolve', 'approved-production-subject'],
+        ['provision', 'approved-production-subject', 'owner@example.invalid']
+    ]);
+    assert.ok(calls.some(call => call[0] === 'eq' && call[1] === 'id' && call[2] === 'new-internal-user'));
+    assert.ok(calls.some(call => call[0] === 'eq' && call[1] === 'clerk_id' && call[2] === 'approved-production-subject'));
+});
+
+test('enforced sync never provisions unresolved, historical, or Development identities', async () => {
+    for (const authority of ['production', 'legacy_development']) {
+        let provisions = 0;
+        const res = response();
+        await syncHandler({ method: 'POST', headers: {}, body: {} }, res, {
+            env: {
+                CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced',
+                CAISSA_IDENTITY_MIGRATION_MODE: 'enforced'
+            },
+            verifyAuth: async () => ({ authenticated: true, userId: 'unresolved-subject', authority }),
+            getSupabase: () => ({ from: () => assert.fail('must not write') }),
+            resolveIdentityOwnership: async () => ({
+                ok: false,
+                status: 409,
+                code: 'IDENTITY_RESOLUTION_REQUIRED'
+            }),
+            resolveIdentityForSync: async () => ({
+                ok: true,
+                resolution: 'MIGRATION_REQUIRED',
+                userId: 'historical-user'
+            }),
+            provisionApprovedIdentity: async () => {
+                provisions += 1;
+                return { ok: true };
+            }
+        });
+        assert.equal(res.statusCode, 409);
+        assert.equal(provisions, 0);
+    }
+});
+
+test('ownership enforcement will not consume approval outside the migration window', async () => {
+    let resolutions = 0;
+    let provisions = 0;
+    const res = response();
+    await syncHandler({ method: 'POST', headers: {}, body: {} }, res, {
+        env: {
+            CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced',
+            CAISSA_IDENTITY_MIGRATION_MODE: 'off'
+        },
+        verifyAuth: async () => ({
+            authenticated: true,
+            userId: 'approved-production-subject',
+            authority: 'production'
+        }),
+        getSupabase: () => ({ from: () => assert.fail('must not write') }),
+        resolveIdentityOwnership: async () => ({
+            ok: false,
+            status: 409,
+            code: 'IDENTITY_RESOLUTION_REQUIRED'
+        }),
+        resolveIdentityForSync: async () => {
+            resolutions += 1;
+            return { ok: true, resolution: 'APPROVED_NEW' };
+        },
+        provisionApprovedIdentity: async () => {
+            provisions += 1;
+            return { ok: true };
+        }
+    });
+
+    assert.equal(res.statusCode, 409);
+    assert.equal(res.body.code, 'IDENTITY_RESOLUTION_REQUIRED');
+    assert.equal(resolutions, 0);
+    assert.equal(provisions, 0);
+});
+
+test('approved-new enrollment race re-verifies ownership before updating the user', async () => {
+    const calls = [];
+    const res = response();
+    const chain = {
+        update(value) { calls.push(['update', value]); return this; },
+        eq(column, value) { calls.push(['eq', column, value]); return this; },
+        select(value) { calls.push(['select', value]); return this; },
+        async single() {
+            return {
+                data: {
+                    clerk_id: 'approved-production-subject',
+                    email: null,
+                    role: 'user',
+                    is_premium: false,
+                    credits: 0
+                },
+                error: null
+            };
+        }
+    };
+    let ownershipChecks = 0;
+
+    await syncHandler({ method: 'POST', headers: {}, body: {} }, res, {
+        env: {
+            CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced',
+            CAISSA_IDENTITY_MIGRATION_MODE: 'enforced'
+        },
+        verifyAuth: async () => ({
+            authenticated: true,
+            userId: 'approved-production-subject',
+            authority: 'production'
+        }),
+        getSupabase: () => ({ from: () => chain }),
+        resolveIdentityOwnership: async () => {
+            ownershipChecks += 1;
+            return ownershipChecks === 1
+                ? { ok: false, status: 409, code: 'IDENTITY_RESOLUTION_REQUIRED' }
+                : { ok: true, status: 200, userId: 'existing-internal-user' };
+        },
+        resolveIdentityForSync: async () => ({
+            ok: true,
+            resolution: 'APPROVED_NEW',
+            userId: null
+        }),
+        provisionApprovedIdentity: async () => ({
+            ok: false,
+            code: 'SUBJECT_ALREADY_BOUND',
+            userId: null
+        })
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(ownershipChecks, 2);
+    assert.ok(calls.some(call => call[0] === 'eq' && call[1] === 'id' && call[2] === 'existing-internal-user'));
+    assert.ok(calls.some(call => call[0] === 'eq' && call[1] === 'clerk_id' && call[2] === 'approved-production-subject'));
 });
 
 test('nickname and progress endpoints stop before accessing another owner data', async () => {
@@ -127,6 +312,28 @@ test('nickname and progress endpoints stop before accessing another owner data',
     assert.equal(tableReads, 0);
 });
 
+test('public identity maps an ownership resolver exception to a retryable response', async () => {
+    const res = response();
+    await assert.doesNotReject(() => publicIdentityHandler(
+        { method: 'GET', headers: {}, body: null },
+        res,
+        {
+            env: { CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced' },
+            verifyAuth: async () => ({
+                authenticated: true,
+                userId: 'production-subject',
+                authority: 'production'
+            }),
+            getSupabase: () => ({}),
+            resolveIdentityOwnership: async () => {
+                throw Object.assign(new Error('temporary resolver failure'), { code: 'ECONNRESET' });
+            }
+        }
+    ));
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.body.code, 'PUBLIC_IDENTITY_UNAVAILABLE');
+});
+
 test('ownership migration is service-role only and defaults historical Production cutovers to review', () => {
     const sql = fs.readFileSync('supabase/migrations/20261018171912_caissa_identity_ownership_v1.sql', 'utf8');
     assert.match(sql, /enable row level security/i);
@@ -135,4 +342,48 @@ test('ownership migration is service-role only and defaults historical Productio
     assert.match(sql, /proof_method = 'NEW_ACCOUNT'/);
     assert.match(sql, /return query select 'REVIEW_REQUIRED'/);
     assert.doesNotMatch(sql, /\n\s+(?:email|nickname)\s+/i);
+});
+
+test('Production release runbook orders SEC-005 prerequisites before Identity Ownership and Account Control', () => {
+    const runbook = fs.readFileSync('docs/security/CAISSA_ACCOUNT_CONTROL_V1_RELEASE_READINESS.md', 'utf8');
+    const orderedArtifacts = [
+        ['20260811_clerk_identity_remapping_foundation.sql', '8aa39c19e3d6a41d319cf9738a1b50a2b0d68365204912ab49287e10e6c9484b'],
+        ['20260811_clerk_migration_cutover_tooling.sql', '2d53b7345b7dcee5fdb204ec568bb97475e2931ae75fa35a7a1d595f324ee6ee'],
+        ['20261015220000_sec005_cutover_compatibility_v1.sql', '3644577e080fca71b70f7fa31e07ab0980d9f8884d861dd6eaa9a02f0fd689f2'],
+        ['20261018171912_caissa_identity_ownership_v1.sql', 'db2d75b54b5c64eb36488beae27e10e2ad2266bd5adf54f3841183757f4acda5'],
+        ['20261018194500_caissa_account_control_v1.sql', '3d0dfdadc9f89fe12be40a086bc491d4971fca40901a4ee7544bb7965a940950'],
+        ['20261018180000_caissa_account_control_v1_fk_indexes.sql', '9d7e4b69e691c57dc2a81408d74fd988055375c7d7424a4305133fc4f87d786c'],
+        ['20261018203000_caissa_account_control_v1_security_followup.sql', 'dccd0cebfd56a434337ea960c7ff426001b5e37eee589d8172f4d1a5dc4d402b']
+    ];
+    let priorIndex = -1;
+    for (const [artifact, expectedHash] of orderedArtifacts) {
+        const index = runbook.indexOf(`| \`${artifact}\``);
+        assert.ok(index > priorIndex, `${artifact} must appear once and in dependency order`);
+        assert.equal(runbook.indexOf(`| \`${artifact}\``, index + 1), -1, `${artifact} must not be duplicated`);
+        const sql = fs.readFileSync(`supabase/migrations/${artifact}`, 'utf8').replace(/\r\n/g, '\n');
+        const actualHash = crypto.createHash('sha256').update(sql).digest('hex');
+        assert.equal(actualHash, expectedHash, `${artifact} canonical LF hash must remain immutable`);
+        assert.ok(runbook.includes(`\`${expectedHash}\``), `${artifact} hash must be documented`);
+        priorIndex = index;
+    }
+    assert.match(runbook, /Their verified presence is\s+therefore a hard prerequisite/i);
+    assert.match(runbook, /If any prerequisite is absent, stop until the owner explicitly\s+authorizes/i);
+    const preMigrationGate = runbook.indexOf('## Pre-migration fail-closed code gate');
+    const migrationOrder = runbook.indexOf('## Approved migration artifacts and order');
+    const postflight = runbook.indexOf('## Postflight');
+    const activation = runbook.indexOf('## Final activation and smoke');
+    const rollback = runbook.indexOf('## Rollback contract');
+    assert.ok(preMigrationGate > -1 && preMigrationGate < migrationOrder);
+    assert.ok(migrationOrder < postflight && postflight < activation && activation < rollback);
+    const gateText = runbook.slice(preMigrationGate, migrationOrder);
+    assert.match(gateText, /Configure the \*next\* Production deployment with[\s\S]*`CAISSA_IDENTITY_MIGRATION_MODE=enforced`/i);
+    assert.match(gateText, /`CAISSA_IDENTITY_OWNERSHIP_MODE=off`[\s\S]*`CAISSA_ACCOUNT_CONTROL_MODE=off`/i);
+    assert.ok(gateText.indexOf('CAISSA_IDENTITY_MIGRATION_MODE=enforced') < gateText.indexOf('merge and deploy'));
+    assert.match(gateText, /automatic Git deployment must inherit those[\s\S]*exact values before it can receive traffic/i);
+    assert.match(runbook, /Keep migration mode exactly `enforced` throughout all seven migrations/i);
+    const rollbackText = runbook.slice(rollback, runbook.indexOf('## Clean Start and registration gate'));
+    assert.match(rollbackText, /keep migration mode\s+exactly `enforced` across every rollback deployment/i);
+    assert.match(rollbackText, /Never route traffic to an older artifact that ignores migration mode/i);
+    assert.doesNotMatch(rollbackText, /disabl(?:e|ing)\s+(?:all\s+)?(?:the\s+)?new runtime flags/i);
+    assert.doesNotMatch(runbook, /before code deployment/i);
 });

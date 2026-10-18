@@ -8,7 +8,12 @@
 import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js';
 import { getSupabase } from '../_lib/supabase.js';
 import { logAction, logError } from '../_lib/logger.js';
-import { isIdentityMigrationEnforced, syncResolvedIdentity } from '../_lib/identity-resolution.js';
+import {
+    isIdentityMigrationEnforced,
+    provisionApprovedIdentity,
+    resolveIdentityForSync,
+    syncResolvedIdentity
+} from '../_lib/identity-resolution.js';
 import {
     isIdentityOwnershipEnforced,
     resolveVerifiedIdentityOwnership,
@@ -37,10 +42,12 @@ export default async function handler(req, res, dependencies = {}) {
         const safeEmail = (emailVal && emailRegex.test(emailVal)) ? emailVal : null;
 
         if (isIdentityOwnershipEnforced(env)) {
-            const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({
-                db: supabase,
+            const ownership = await resolveOwnershipForSync({
+                supabase,
                 auth,
-                env
+                env,
+                email: safeEmail,
+                dependencies
             });
             if (!ownership.ok) return respondIdentityOwnershipFailure(res, ownership);
 
@@ -134,4 +141,42 @@ function formatUser(data) {
         isPremium: data.is_premium,
         credits: data.credits
     };
+}
+
+async function resolveOwnershipForSync({ supabase, auth, env, email, dependencies }) {
+    const resolveOwnership = dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership;
+    let ownership = await resolveOwnership({ db: supabase, auth, env });
+    if (ownership.ok) return ownership;
+
+    // Ownership enforcement must not bypass the explicit enrollment decision.
+    // Only a Production subject in the existing migration window may consume an
+    // APPROVED_NEW decision, and the resulting binding is verified again before
+    // any user row can be updated.
+    const canProvisionApprovedNew = ownership.code === 'IDENTITY_RESOLUTION_REQUIRED'
+        && auth.authority === 'production'
+        && isIdentityMigrationEnforced(env);
+    if (!canProvisionApprovedNew) return ownership;
+
+    const resolveForSync = dependencies.resolveIdentityForSync || resolveIdentityForSync;
+    const identity = await resolveForSync(supabase, auth.userId);
+    if (!identity.ok) {
+        return { ok: false, status: 503, code: 'IDENTITY_SERVICE_UNAVAILABLE' };
+    }
+
+    if (identity.resolution === 'APPROVED_NEW') {
+        const provision = dependencies.provisionApprovedIdentity || provisionApprovedIdentity;
+        const result = await provision(supabase, auth.userId, email);
+        if (!result.ok && result.code !== 'SUBJECT_ALREADY_BOUND') {
+            return {
+                ok: false,
+                status: result.code === 'IDENTITY_SERVICE_UNAVAILABLE' ? 503 : 409,
+                code: result.code
+            };
+        }
+    } else if (identity.resolution !== 'BOUND') {
+        return ownership;
+    }
+
+    ownership = await resolveOwnership({ db: supabase, auth, env });
+    return ownership;
 }

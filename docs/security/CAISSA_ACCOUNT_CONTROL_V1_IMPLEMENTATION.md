@@ -75,6 +75,11 @@ used to recover the deleted UUID, credits, ratings, bindings, or progress.
 
 ## Release gates
 
+- When ownership and migration enforcement are both enabled, `/api/user/sync`
+  may consume only a server-side `APPROVED_NEW` resolution for a Production
+  subject. It provisions through the restricted RPC and then resolves ownership
+  again before updating the user. Historical, unresolved, Development, crossed,
+  and raced bindings continue to fail closed.
 - Apply `20261018194500_caissa_account_control_v1.sql` only after exact-hash,
   ledger, schema, lock and baseline checks.
 - Exercise destructive paths only with synthetic data or transaction rollback.
