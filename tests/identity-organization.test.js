@@ -342,3 +342,25 @@ test('ownership migration is service-role only and defaults historical Productio
     assert.match(sql, /return query select 'REVIEW_REQUIRED'/);
     assert.doesNotMatch(sql, /\n\s+(?:email|nickname)\s+/i);
 });
+
+test('Production release runbook orders SEC-005 prerequisites before Identity Ownership and Account Control', () => {
+    const runbook = fs.readFileSync('docs/security/CAISSA_ACCOUNT_CONTROL_V1_RELEASE_READINESS.md', 'utf8');
+    const orderedArtifacts = [
+        '20260811_clerk_identity_remapping_foundation.sql',
+        '20260811_clerk_migration_cutover_tooling.sql',
+        '20261015220000_sec005_cutover_compatibility_v1.sql',
+        '20261018171912_caissa_identity_ownership_v1.sql',
+        '20261018194500_caissa_account_control_v1.sql',
+        '20261018180000_caissa_account_control_v1_fk_indexes.sql',
+        '20261018203000_caissa_account_control_v1_security_followup.sql'
+    ];
+    let priorIndex = -1;
+    for (const artifact of orderedArtifacts) {
+        const index = runbook.indexOf(`| \`${artifact}\``);
+        assert.ok(index > priorIndex, `${artifact} must appear once and in dependency order`);
+        assert.equal(runbook.indexOf(`| \`${artifact}\``, index + 1), -1, `${artifact} must not be duplicated`);
+        priorIndex = index;
+    }
+    assert.match(runbook, /Their verified presence is\s+therefore a hard prerequisite/i);
+    assert.match(runbook, /If any prerequisite is absent, stop until the owner explicitly\s+authorizes/i);
+});
