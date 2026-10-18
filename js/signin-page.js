@@ -129,6 +129,9 @@
             // Mount Sign In component
             const legacyRecovery = isLegacyRecoverySignIn();
             Clerk.mountSignIn(container, {
+                // Never transfer an unknown OAuth identity into new-user registration.
+                transferable: false,
+                withSignUp: false,
                 signInForceRedirectUrl: getCompletionUrl(),
                 signUpForceRedirectUrl: getCompletionUrl(),
                 signUpUrl: '/signup',

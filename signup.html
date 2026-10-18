@@ -6,9 +6,9 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk.caissa-chess.org https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com; ">
 
     <!-- Primary Meta Tags -->
-    <title>Sign Up – CAISSA Chess</title>
-    <meta name="title" content="Sign Up – CAISSA Chess">
-    <meta name="description" content="Create your CAISSA Chess account to save positions, get AI insights, and unlock premium features.">
+    <title>Registration Temporarily Paused – CAISSA Chess</title>
+    <meta name="title" content="Registration Temporarily Paused – CAISSA Chess">
+    <meta name="description" content="CAISSA Chess new account registrations are temporarily paused during maintenance.">
     <link rel="canonical" href="https://www.caissa-chess.org/signup" />
 
     <!-- Additional Meta Tags -->
@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.1">
     <link rel="stylesheet" href="css/caissa-auth.css?v=1.1.0">
+    <link rel="stylesheet" href="/css/registration-paused.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
@@ -37,23 +38,21 @@
             <span>CAISSA Chess</span>
         </a>
 
-        <!-- Auth Card -->
-        <div class="auth-page-card">
-            <h1 class="auth-page-title">Create Account</h1>
-            <p class="auth-page-subtitle">Join CAISSA Chess and improve your game</p>
-
-            <!-- Clerk Sign Up Component -->
-            <div id="clerk-sign-up" class="auth-clerk-container"></div>
-
+        <!-- Emergency registration pause: the Clerk SignUp component is deliberately not loaded. -->
+        <section class="auth-page-card caissa-registration-paused-card" role="status" aria-labelledby="registration-paused-title">
+            <p class="caissa-registration-eyebrow">CAISSA CHESS · ACCOUNT UPDATE</p>
+            <h1 class="auth-page-title" id="registration-paused-title">New registrations are temporarily paused</h1>
+            <p class="caissa-registration-paragraph" lang="es">Lo sentimos. Estamos renovando nuestro sistema de cuentas para ofrecer un registro más sencillo y seguro. Por ahora no es posible crear cuentas nuevas. Vuelve pronto.</p>
+            <p class="caissa-registration-paragraph" lang="en">We're sorry for the inconvenience. We're updating our account system to make registration simpler and more secure. New account creation is temporarily unavailable. Please check back soon.</p>
+            <p class="caissa-registration-footnote" lang="es">Las herramientas gratuitas de ajedrez siguen disponibles. Las cuentas antiguas aún no han sido reiniciadas.</p>
+            <p class="caissa-registration-footnote" lang="en">Free chess tools remain available. Existing accounts have not been reset yet.</p>
             <div class="auth-page-footer">
-                <p>Already have an account? <a href="/signin">Sign in</a></p>
-                <p><a href="/">Back to CAISSA Chess</a></p>
+                <p><a href="/">Return to CAISSA · Volver a CAISSA</a></p>
+                <p><a href="/signin">Existing member? Sign in · ¿Ya tienes cuenta? Inicia sesión</a></p>
             </div>
-        </div>
+        </section>
     </div>
 
     <!-- Scripts -->
-    <script src="js/auth-config.js?v=1.0.5" defer></script>
-    <script src="js/signup-page.js?v=1.1.2" defer></script>
 </body>
 </html>

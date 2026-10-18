@@ -81,7 +81,6 @@
 
   function appendAuthEntryPoints(parent) {
     appendLink(parent, { href: authHref('signin'), className: 'topbar-control', text: 'Sign in' });
-    appendLink(parent, { href: authHref('signup'), className: 'button small topbar-control', text: 'Register' });
   }
 
   function openSettings(trigger) {
@@ -213,10 +212,9 @@
     if (state === 'guest') {
       accountContent.append(
         element('div', 'journey-mark', '♙'),
-        element('h3', '', 'Make it your own.'),
-        element('p', '', 'Create a free account to save your puzzle training progress.')
+        element('h3', '', 'New accounts are temporarily paused.'),
+        element('p', '', 'We are updating registration. Please check back soon; free chess tools are still available.')
       );
-      appendLink(accountContent, { href: authHref('signup'), className: 'button', text: 'Create your account' });
       appendLink(accountContent, { href: authHref('signin'), className: 'subtle-link', text: 'Already a member? Sign in' });
       return;
     }
@@ -224,10 +222,9 @@
       accountContent.append(
         element('div', 'journey-mark account-warning', '!'),
         element('h3', '', 'Account status unavailable.'),
-        element('p', '', 'CAISSA could not check your session. You can still try to sign in or create an account.')
+        element('p', '', 'CAISSA could not check your session. Existing members can try signing in; new registration is temporarily paused.')
       );
       appendLink(accountContent, { href: authHref('signin'), className: 'button', text: 'Sign in' });
-      appendLink(accountContent, { href: authHref('signup'), className: 'subtle-link', text: 'Register' });
       return;
     }
 

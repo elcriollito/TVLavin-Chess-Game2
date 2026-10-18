@@ -146,8 +146,10 @@
     { "source": "/caissa-indexnow-2026.txt", "destination": "/public/caissa-indexnow-2026.txt" },
     { "source": "/og-image.png", "destination": "/public/og-image.png" },
     { "source": "/favicon-test.html", "destination": "/public/favicon-test.html" }
-  ],
+  ], 
   "headers": [
+    { "source": "/signup", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0, must-revalidate" }] },
+    { "source": "/signup.html", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0, must-revalidate" }] },
     {
       "source": "/",
       "headers": [
