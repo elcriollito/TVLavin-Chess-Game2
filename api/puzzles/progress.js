@@ -1,6 +1,11 @@
 import { authenticateRequest, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js';
 import { getSupabase } from '../_lib/supabase.js';
 import { checkRateLimit } from '../_lib/rate-limit.js';
+import {
+    isIdentityOwnershipEnforced,
+    resolveVerifiedIdentityOwnership,
+    respondIdentityOwnershipFailure
+} from '../_lib/identity-ownership.js';
 
 const PUZZLE_ID = /^[A-Za-z0-9]{5}$/u;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -17,9 +22,9 @@ function progressReadOrigin(env = process.env) {
     }
 }
 
-async function relayProgressRead(req, res, dependencies = {}) {
+async function relayProgressRead(req, res, auth, dependencies = {}) {
     const origin = progressReadOrigin(dependencies.env || process.env);
-    if (!origin || req.method !== 'GET') return false;
+    if (!origin || req.method !== 'GET' || auth?.authority !== 'production') return false;
     const authorization = req.headers?.authorization || req.headers?.Authorization;
     const log = dependencies.log || console;
     try {
@@ -56,12 +61,25 @@ export default async function handler(req, res, dependencies = {}) {
         prefix: 'puzzles-progress', windowMs: 60_000, max: 40,
     });
     if (!rate.allowed) return res.status(429).json({ code: 'RATE_LIMITED' });
-    if (await relayProgressRead(req, res, dependencies)) return;
+    if (await relayProgressRead(req, res, auth, dependencies)) return;
     const db = (dependencies.getSupabase || getSupabase)();
     try {
-        const { data: user, error: userError } = await db.from('users')
-            .select('id').eq('clerk_id', auth.userId).single();
-        if (userError || !user?.id) return res.status(409).json({ code: 'ACCOUNT_NOT_READY' });
+        const env = dependencies.env || process.env;
+        let user;
+        if (isIdentityOwnershipEnforced(env)) {
+            const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({
+                db,
+                auth,
+                env
+            });
+            if (!ownership.ok) return respondIdentityOwnershipFailure(res, ownership);
+            user = { id: ownership.userId };
+        } else {
+            const result = await db.from('users')
+                .select('id').eq('clerk_id', auth.userId).single();
+            user = result.data;
+            if (result.error || !user?.id) return res.status(409).json({ code: 'ACCOUNT_NOT_READY' });
+        }
         if (req.method === 'GET') {
             const { data, error } = await db.from('puzzle_training_progress')
                 .select('rating, solved, failed, updated_at').eq('user_id', user.id).maybeSingle();

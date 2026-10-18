@@ -62,8 +62,67 @@ test('successful verification preserves the authenticated identity contract', as
     env: { CLERK_SECRET_KEY: 'test' }, verifyToken: async () => ({ sub: 'synthetic-user', email: 'synthetic@example.test' })
   });
   assert.deepEqual(await authenticate(request('GET', 'Bearer synthetic')), {
-    authenticated: true, ok: true, userId: 'synthetic-user', email: 'synthetic@example.test'
+    authenticated: true, ok: true, userId: 'synthetic-user', email: 'synthetic@example.test',
+    authority: null, issuer: null, sessionId: null, issuedAt: null
   });
+});
+
+test('Clerk instance authority and issuer are fixed by server configuration', async () => {
+  const publishable = `pk_test_${Buffer.from('development.example.test$').toString('base64url')}`;
+  const authenticate = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'sk_test_synthetic', NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: publishable },
+    verifyToken: async () => ({
+      sub: 'synthetic-user', iss: 'https://development.example.test', sid: 'session', iat: 42
+    })
+  });
+  const result = await authenticate(request('GET', 'Bearer synthetic'));
+  assert.equal(result.authenticated, true);
+  assert.equal(result.authority, 'legacy_development');
+  assert.equal(result.issuer, 'https://development.example.test');
+  assert.equal(result.sessionId, 'session');
+  assert.equal(result.issuedAt, 42);
+
+  const crossed = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'sk_test_synthetic', NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: publishable },
+    verifyToken: async () => ({ sub: 'synthetic-user', iss: 'https://production.example.test' })
+  });
+  assert.equal((await crossed(request('GET', 'Bearer synthetic'))).code, 'INVALID_TOKEN');
+});
+
+test('enforced ownership fails closed when Clerk authority or issuer cannot be fixed', async () => {
+  let verificationCalls = 0;
+  const verify = async () => { verificationCalls += 1; return { sub: 'synthetic-user' }; };
+  for (const env of [
+    { CLERK_SECRET_KEY: 'test', CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced' },
+    {
+      CLERK_SECRET_KEY: 'sk_test_synthetic',
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_not-valid-base64-host',
+      CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced'
+    },
+    {
+      CLERK_SECRET_KEY: 'sk_test_synthetic',
+      CAISSA_CLERK_AUTHORITY: 'legacy_development',
+      CAISSA_CLERK_ISSUER: 'not a URL',
+      CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced'
+    },
+    {
+      CLERK_SECRET_KEY: 'sk_test_synthetic',
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: `pk_test_${Buffer.from('development.example.test$').toString('base64url')}`,
+      CAISSA_CLERK_AUTHORITY: 'production',
+      CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced'
+    },
+    {
+      CLERK_SECRET_KEY: 'sk_live_synthetic',
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: `pk_test_${Buffer.from('development.example.test$').toString('base64url')}`,
+      CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced'
+    }
+  ]) {
+    const authenticate = createAuthenticateRequest({ env, verifyToken: verify, log() {} });
+    const result = await authenticate(request('GET', 'Bearer synthetic'));
+    assert.equal(result.status, 503);
+    assert.equal(result.code, 'AUTH_SERVICE_UNAVAILABLE');
+  }
+  assert.equal(verificationCalls, 0);
 });
 
 test('local Clerk JWT verification can use the instance public key without a backend API request', async () => {
