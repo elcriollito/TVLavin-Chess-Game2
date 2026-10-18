@@ -27,21 +27,22 @@ export default async function handler(req, res, dependencies = {}) {
     const authenticate = dependencies.verifyAuth || verifyAuth;
     const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
-    const env = dependencies.env || process.env;
-    let store = dependencies.store;
-    if (isIdentityOwnershipEnforced(env)) {
-        const db = (dependencies.getSupabase || getSupabase)();
-        const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({
-            db,
-            auth,
-            env
-        });
-        if (!ownership.ok) return respondIdentityOwnershipFailure(res, ownership);
-        store ||= createPublicIdentityStore({ ...dependencies, db });
-    }
-    store ||= createPublicIdentityStore(dependencies);
 
     try {
+        const env = dependencies.env || process.env;
+        let store = dependencies.store;
+        if (isIdentityOwnershipEnforced(env)) {
+            const db = (dependencies.getSupabase || getSupabase)();
+            const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({
+                db,
+                auth,
+                env
+            });
+            if (!ownership.ok) return respondIdentityOwnershipFailure(res, ownership);
+            store ||= createPublicIdentityStore({ ...dependencies, db });
+        }
+        store ||= createPublicIdentityStore(dependencies);
+
         if (req.method === 'GET') {
             return res.status(200).json({ identity: sanitizeIdentity(await store.getOrCreate(auth.userId)) });
         }

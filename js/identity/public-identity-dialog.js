@@ -105,7 +105,7 @@ function createDialogController() {
     const accountApi = createAccountControlApi();
     const input = dialog.querySelector('#public-nickname-input');
     const form = dialog.querySelector('form');
-    const status = dialog.querySelector('[role=status]');
+    const status = dialog.querySelector('#public-nickname-status');
     const save = dialog.querySelector('.public-identity-save');
     const check = dialog.querySelector('[data-check-nickname]');
     const fallbackButton = dialog.querySelector('[data-use-fallback]');
