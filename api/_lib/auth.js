@@ -80,7 +80,11 @@ export function createAuthenticateRequest(dependencies = {}) {
             authority,
             issuer: payload.iss || null,
             sessionId: payload.sid || null,
-            issuedAt: Number.isFinite(payload.iat) ? payload.iat : null
+            issuedAt: Number.isFinite(payload.iat) ? payload.iat : null,
+            tokenId: typeof payload.jti === 'string' ? payload.jti : null,
+            factorVerificationAge: Array.isArray(payload.fva)
+                ? payload.fva.slice(0, 2).map(value => Number.isFinite(value) ? value : null)
+                : null
         };
     } catch (err) {
         if (err instanceof TokenVerificationError && INVALID_TOKEN_REASONS.has(err.reason)) {

@@ -63,7 +63,8 @@ test('successful verification preserves the authenticated identity contract', as
   });
   assert.deepEqual(await authenticate(request('GET', 'Bearer synthetic')), {
     authenticated: true, ok: true, userId: 'synthetic-user', email: 'synthetic@example.test',
-    authority: null, issuer: null, sessionId: null, issuedAt: null
+    authority: null, issuer: null, sessionId: null, issuedAt: null,
+    tokenId: null, factorVerificationAge: null
   });
 });
 
@@ -72,7 +73,8 @@ test('Clerk instance authority and issuer are fixed by server configuration', as
   const authenticate = createAuthenticateRequest({
     env: { CLERK_SECRET_KEY: 'sk_test_synthetic', NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: publishable },
     verifyToken: async () => ({
-      sub: 'synthetic-user', iss: 'https://development.example.test', sid: 'session', iat: 42
+      sub: 'synthetic-user', iss: 'https://development.example.test', sid: 'session', iat: 42,
+      jti: 'token-id', fva: [2, -1]
     })
   });
   const result = await authenticate(request('GET', 'Bearer synthetic'));
@@ -81,6 +83,8 @@ test('Clerk instance authority and issuer are fixed by server configuration', as
   assert.equal(result.issuer, 'https://development.example.test');
   assert.equal(result.sessionId, 'session');
   assert.equal(result.issuedAt, 42);
+  assert.equal(result.tokenId, 'token-id');
+  assert.deepEqual(result.factorVerificationAge, [2, -1]);
 
   const crossed = createAuthenticateRequest({
     env: { CLERK_SECRET_KEY: 'sk_test_synthetic', NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: publishable },
