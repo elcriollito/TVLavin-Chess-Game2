@@ -9,6 +9,11 @@ import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js'
 import { getSupabase } from '../_lib/supabase.js';
 import { logAction, logError } from '../_lib/logger.js';
 import { isIdentityMigrationEnforced, syncResolvedIdentity } from '../_lib/identity-resolution.js';
+import {
+    isIdentityOwnershipEnforced,
+    resolveVerifiedIdentityOwnership,
+    respondIdentityOwnershipFailure
+} from '../_lib/identity-ownership.js';
 
 export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['POST'])) return;
@@ -24,13 +29,39 @@ export default async function handler(req, res, dependencies = {}) {
 
     try {
         const supabase = createSupabase();
+        const env = dependencies.env || process.env;
 
         // Identity attributes come only from the verified Clerk session.
         const emailVal = (auth.email || '').trim();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const safeEmail = (emailVal && emailRegex.test(emailVal)) ? emailVal : null;
 
-        if (isIdentityMigrationEnforced()) {
+        if (isIdentityOwnershipEnforced(env)) {
+            const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({
+                db: supabase,
+                auth,
+                env
+            });
+            if (!ownership.ok) return respondIdentityOwnershipFailure(res, ownership);
+
+            const { data, error } = await supabase
+                .from('users')
+                .update({ email: safeEmail, updated_at: new Date().toISOString() })
+                .eq('id', ownership.userId)
+                .eq('clerk_id', auth.userId)
+                .select('clerk_id, email, role, is_premium, credits')
+                .single();
+            if (error || !data) {
+                return res.status(503).json({
+                    error: 'User sync is temporarily unavailable',
+                    recoverable: true
+                });
+            }
+            logAction('user_identity_ownership_synced');
+            return res.status(200).json({ user: formatUser(data) });
+        }
+
+        if (isIdentityMigrationEnforced(env)) {
             const identityResult = await syncResolvedIdentity({
                 supabase,
                 externalSubject: auth.userId,

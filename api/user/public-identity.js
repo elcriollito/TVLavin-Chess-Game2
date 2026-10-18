@@ -1,4 +1,10 @@
 import { respondAuthFailure, setCorsHeaders, verifyAuth } from '../_lib/auth.js';
+import { getSupabase } from '../_lib/supabase.js';
+import {
+    isIdentityOwnershipEnforced,
+    resolveVerifiedIdentityOwnership,
+    respondIdentityOwnershipFailure
+} from '../_lib/identity-ownership.js';
 import {
     createPublicIdentityStore,
     sanitizeIdentity,
@@ -21,7 +27,19 @@ export default async function handler(req, res, dependencies = {}) {
     const authenticate = dependencies.verifyAuth || verifyAuth;
     const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
-    const store = dependencies.store || createPublicIdentityStore(dependencies);
+    const env = dependencies.env || process.env;
+    let store = dependencies.store;
+    if (isIdentityOwnershipEnforced(env)) {
+        const db = (dependencies.getSupabase || getSupabase)();
+        const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({
+            db,
+            auth,
+            env
+        });
+        if (!ownership.ok) return respondIdentityOwnershipFailure(res, ownership);
+        store ||= createPublicIdentityStore({ ...dependencies, db });
+    }
+    store ||= createPublicIdentityStore(dependencies);
 
     try {
         if (req.method === 'GET') {
