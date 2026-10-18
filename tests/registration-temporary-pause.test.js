@@ -23,6 +23,9 @@ test('home and sign in explain pause while leaving sign in and chess tools avail
   assert.match(signin, /registration temporarily paused/i);
   assert.match(signin, /id="clerk-sign-in"/);
   assert.match(signin, /signin-page\.js/);
+  const signinClient = read('js/signin-page.js');
+  assert.match(signinClient, /transferable:\s*false/);
+  assert.match(signinClient, /withSignUp:\s*false/);
   assert.doesNotMatch(homeJs, /authHref\('signup'\)/);
   assert.match(homeJs, /authHref\('signin'\)/);
   assert.match(read('css/registration-paused.css'), /max-width:720px/);
