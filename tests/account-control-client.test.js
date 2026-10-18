@@ -33,6 +33,36 @@ test('client never sends an account target and maps fail-closed server errors', 
     });
 });
 
+test('client downloads the streamed export blob without reparsing and reserializing it', async () => {
+    const originalDocument = globalThis.document;
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    const clicks = [];
+    globalThis.document = { createElement: () => ({ click() { clicks.push(this.download); } }) };
+    URL.createObjectURL = () => 'blob:synthetic-export';
+    URL.revokeObjectURL = () => {};
+    try {
+        const blob = new Blob(['[{"section":"manifest"}]'], { type: 'application/json' });
+        const api = createAccountControlApi({
+            tokenProvider: async () => 'signed-token',
+            fetchImpl: async () => ({ ok: true, status: 200, blob: async () => blob })
+        });
+        const result = await api.exportData();
+        assert.deepEqual(result, { downloaded: true, bytes: blob.size });
+        assert.equal(clicks.length, 1);
+        assert.match(clicks[0], /^caissa-account-data-\d{4}-\d{2}-\d{2}\.json$/u);
+    } finally {
+        globalThis.document = originalDocument;
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+    }
+});
+
 function response(status, payload) {
-    return { ok: status >= 200 && status < 300, status, json: async () => payload };
+    return {
+        ok: status >= 200 && status < 300,
+        status,
+        json: async () => payload,
+        blob: async () => new Blob([JSON.stringify(payload)], { type: 'application/json' })
+    };
 }

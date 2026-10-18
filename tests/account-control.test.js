@@ -54,15 +54,20 @@ function response() {
         statusCode: 200,
         body: null,
         headers: {},
+        chunks: [],
+        headersSent: false,
+        ended: false,
         status(code) { this.statusCode = code; return this; },
         json(body) { this.body = body; return this; },
         send(body) { this.body = body; return this; },
-        end() { return this; },
+        write(chunk) { this.headersSent = true; this.chunks.push(Buffer.from(chunk)); return true; },
+        end() { this.ended = true; return this; },
+        destroy(error) { this.destroyed = error || true; },
         setHeader(name, value) { this.headers[name] = value; }
     };
 }
 
-function fixture({ authResult = auth(), rpcImpl, createClerkClient, rateAllowed = true } = {}) {
+function fixture({ authResult = auth(), rpcImpl, createClerkClient, rateAllowed = true, streamAccountExport } = {}) {
     const calls = [];
     const db = {
         rpc: async (name, args) => {
@@ -83,7 +88,6 @@ function fixture({ authResult = auth(), rpcImpl, createClerkClient, rateAllowed 
             if (name === 'complete_caissa_account_deletion') return { data: { accountDeleted: true }, error: null };
             if (name === 'mark_caissa_auth_deletion_failed') return { data: null, error: null };
             if (name === 'mark_caissa_data_deletion_failed') return { data: null, error: null };
-            if (name === 'export_caissa_account_data') return { data: { schemaVersion: 'caissa.account-export.v1' }, error: null };
             throw new Error(`Unexpected RPC ${name}`);
         }
     };
@@ -94,6 +98,11 @@ function fixture({ authResult = auth(), rpcImpl, createClerkClient, rateAllowed 
         resolveIdentityOwnership: async () => ({ ok: true, userId: owner, bindingId: binding }),
         consumeAccountRateLimit: async () => rateAllowed,
         createClerkClient,
+        streamAccountExport: streamAccountExport || (async ({ res }) => {
+            res.status(200);
+            res.write('{"schemaVersion":"caissa.account-export.v1"}');
+            res.end();
+        }),
         log: { warn() {} }
     });
     return { handlers, calls };
@@ -147,6 +156,23 @@ test('stale reverification, crossed authority, CSRF origin and owner fields fail
     const res = response();
     await assert.rejects(() => handlers.exportData(request('POST', { userId: 'victim' }), res), /OWNER_FIELD_FORBIDDEN/);
     assert.equal(calls.length, 0);
+});
+
+test('private export streams from the verified owner boundary without a buffering RPC', async () => {
+    const seen = [];
+    const { handlers, calls } = fixture({ streamAccountExport: async input => {
+        seen.push({ userId: input.userId, bindingId: input.bindingId });
+        input.res.status(200);
+        input.res.write('[{"section":"manifest"}]');
+        input.res.end();
+    } });
+    const res = response();
+    await handlers.exportData(request('POST', {}), res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.ended, true);
+    assert.equal(Buffer.concat(res.chunks).toString(), '[{"section":"manifest"}]');
+    assert.deepEqual(seen, [{ userId: owner, bindingId: binding }]);
+    assert.ok(!calls.some(call => call.name === 'export_caissa_account_data'));
 });
 
 test('reset confirmation is one owner-bound operation and preserves economic classes by contract', async () => {
@@ -292,6 +318,10 @@ test('migration is service-role only, keeps economic/shared history, and tombsto
     assert.match(sql, /grant execute on function public\.confirm_caissa_progress_reset\(uuid,uuid,uuid,text,text,text,text\) to service_role/iu);
     assert.match(sql, /grant execute on function public\.lock_caissa_account_deletion\(uuid,uuid,uuid,text,text,text,text\) to service_role/iu);
     assert.match(sql, /consume_caissa_account_control_rate_limit/iu);
+    assert.match(sql, /export_caissa_account_data_page\(uuid,uuid,text,integer,integer,timestamptz\)/iu);
+    assert.match(sql, /p_limit not between 1 and 100/iu);
+    assert.match(sql, /caissa_account_rate_limit_write_barrier/iu);
+    assert.match(sql, /pg_advisory_xact_lock/iu);
     assert.match(sql, /erase_caissa_account_data/iu);
     assert.match(sql, /delete from public\.puzzle_training_attempts/iu);
     assert.doesNotMatch(sql, /delete from public\.credit_events/iu);

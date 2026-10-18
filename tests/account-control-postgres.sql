@@ -392,6 +392,10 @@ do $$
 declare v_binding uuid; v_operation uuid;
 begin
   select id into v_binding from public.identity_bindings where external_subject='synthetic_dev_c';
+  insert into public.caissa_online_presence(user_id)
+  values('10000000-0000-4000-8000-000000000003');
+  insert into public.caissa_online_rate_limits(clerk_id,bucket)
+  values('synthetic_dev_c','before-delete');
   select operation_id into v_operation from public.prepare_caissa_account_control(
     '10000000-0000-4000-8000-000000000003',v_binding,'ACCOUNT_DELETION',
     repeat('1',64),repeat('2',64),repeat('3',64),pg_catalog.clock_timestamp()+interval '5 minutes');
@@ -399,6 +403,47 @@ begin
     '10000000-0000-4000-8000-000000000003',v_binding,
     repeat('2',64),repeat('3',64),repeat('1',64),
     pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to('synthetic_dev_c','UTF8')),'hex'));
+  begin
+    insert into public.caissa_online_presence(user_id)
+    values('10000000-0000-4000-8000-000000000003')
+    on conflict(user_id) do update set user_id=excluded.user_id;
+    raise exception 'write barrier unexpectedly allowed presence recreation';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
+    delete from public.caissa_online_presence
+    where user_id='10000000-0000-4000-8000-000000000003';
+    raise exception 'write barrier unexpectedly allowed account-scoped delete';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
+    insert into public.caissa_online_rate_limits(clerk_id,bucket)
+    values('synthetic_dev_c','pending-delete');
+    raise exception 'raw subject write unexpectedly bypassed deletion lock';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
+    update public.caissa_online_rate_limits set bucket='updated-after-lock'
+    where clerk_id='synthetic_dev_c' and bucket='before-delete';
+    raise exception 'raw subject update unexpectedly bypassed deletion lock';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
+    update public.users set email='blocked@example.invalid'
+    where id='10000000-0000-4000-8000-000000000003';
+    raise exception 'write barrier unexpectedly allowed user mutation';
+  exception when sqlstate '55000' then null;
+  end;
+  insert into public.caissa_online_presence(user_id)
+  values('10000000-0000-4000-8000-000000000002')
+  on conflict(user_id) do update set user_id=excluded.user_id;
+  begin
+    update public.caissa_online_presence
+    set user_id='10000000-0000-4000-8000-000000000003'
+    where user_id='10000000-0000-4000-8000-000000000002';
+    raise exception 'owner reassignment unexpectedly bypassed deletion lock';
+  exception when sqlstate '55000' then null;
+  end;
   perform public.erase_caissa_account_data(v_operation,
     '10000000-0000-4000-8000-000000000003',v_binding,
     pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to('synthetic_dev_c','UTF8')),'hex'));
@@ -415,22 +460,45 @@ $$;
 
 -- Successful erasure retains the UUID tombstone, economy, and shared game.
 do $$
-declare v_binding uuid; v_operation uuid; v_game_count integer; v_export jsonb;
+declare
+  v_binding uuid;
+  v_operation uuid;
+  v_game_count integer;
+  v_library integer;
+  v_scanner integer;
+  v_mentor integer;
+  v_beta integer;
+  v_economy integer;
+  v_owner_leaks integer;
 begin
   select id into v_binding from public.identity_bindings where external_subject='synthetic_dev_d';
   select count(*) into v_game_count from public.caissa_online_games;
-  v_export := public.export_caissa_account_data(
-    '10000000-0000-4000-8000-000000000004',v_binding);
-  perform pg_temp.assert_true(pg_catalog.jsonb_array_length(v_export->'library'->'positions')=1,
-    'library position missing from private export');
-  perform pg_temp.assert_true(pg_catalog.jsonb_array_length(v_export->'scanner'->'scans')=1,
-    'scanner record missing from private export');
-  perform pg_temp.assert_true(pg_catalog.jsonb_array_length(v_export->'mentor'->'results')=1,
-    'mentor result metadata missing from private export');
-  perform pg_temp.assert_true(pg_catalog.jsonb_array_length(v_export->'betaActivity')=1,
-    'beta activity missing from private export');
-  perform pg_temp.assert_true(pg_catalog.jsonb_array_length(v_export->'economy'->'creditReservations')=1,
-    'economic evidence missing from private export');
+  select
+    count(*) filter(where section='libraryPositions'),
+    count(*) filter(where section='scannerScans'),
+    count(*) filter(where section='mentorResults'),
+    count(*) filter(where section='betaActivity'),
+    count(*) filter(where section='creditReservations'),
+    count(*) filter(where data ? 'user_id')
+  into v_library,v_scanner,v_mentor,v_beta,v_economy,v_owner_leaks
+  from (
+    select 'libraryPositions' section,data from public.export_caissa_account_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'libraryPositions',0,100,clock_timestamp())
+    union all select 'scannerScans',data from public.export_caissa_account_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'scannerScans',0,100,clock_timestamp())
+    union all select 'mentorResults',data from public.export_caissa_account_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'mentorResults',0,100,clock_timestamp())
+    union all select 'betaActivity',data from public.export_caissa_account_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'betaActivity',0,100,clock_timestamp())
+    union all select 'creditReservations',data from public.export_caissa_account_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'creditReservations',0,100,clock_timestamp())
+  ) export_rows;
+  perform pg_temp.assert_true(v_library=1,'library position missing from private export');
+  perform pg_temp.assert_true(v_scanner=1,'scanner record missing from private export');
+  perform pg_temp.assert_true(v_mentor=1,'mentor result metadata missing from private export');
+  perform pg_temp.assert_true(v_beta=1,'beta activity missing from private export');
+  perform pg_temp.assert_true(v_economy=1,'economic evidence missing from private export');
+  perform pg_temp.assert_true(v_owner_leaks=0,'internal owner column leaked from private export');
   select operation_id into v_operation from public.prepare_caissa_account_control(
     '10000000-0000-4000-8000-000000000004',v_binding,'ACCOUNT_DELETION',
     repeat('4',64),repeat('5',64),repeat('6',64),pg_catalog.clock_timestamp()+interval '5 minutes');
@@ -477,6 +545,18 @@ begin
   perform pg_temp.assert_true(not exists(select 1 from public.identity_bindings
     where user_id='10000000-0000-4000-8000-000000000004' and external_subject='synthetic_dev_d'),
     'deleted Clerk subject was retained in plaintext');
+  begin
+    insert into public.caissa_public_identities(user_id,fallback_alias)
+    values('10000000-0000-4000-8000-000000000004','should-not-return');
+    raise exception 'write barrier unexpectedly allowed deleted identity recreation';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
+    insert into public.caissa_online_rate_limits(clerk_id,bucket)
+    values('synthetic_dev_d','post-delete');
+    raise exception 'raw external subject unexpectedly returned after deletion';
+  exception when sqlstate '42501' then null;
+  end;
 end;
 $$;
 
@@ -496,8 +576,41 @@ select pg_temp.assert_true(
   not pg_catalog.has_table_privilege('anon','public.caissa_account_control_operations','SELECT')
   and not pg_catalog.has_table_privilege('authenticated','public.caissa_account_control_operations','SELECT')
   and pg_catalog.has_function_privilege('service_role','public.caissa_account_control_summary(uuid,uuid)','EXECUTE')
+  and pg_catalog.has_function_privilege('service_role','public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
+  and not pg_catalog.has_function_privilege('authenticated','public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
   and not pg_catalog.has_function_privilege('authenticated','public.caissa_account_control_summary(uuid,uuid)','EXECUTE'),
   'account control privilege boundary is incorrect'
 );
+
+do $$ declare v_binding uuid; begin
+  select id into v_binding from public.identity_bindings where external_subject='synthetic_dev_a';
+  begin
+    perform * from public.export_caissa_account_data_page(
+      '10000000-0000-4000-8000-000000000001',v_binding,'puzzleAttempts',0,101,clock_timestamp());
+    raise exception 'oversized export page unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like '%CAISSA_ACCOUNT_EXPORT_PAGE_INVALID%' then raise; end if;
+  end;
+end $$;
+
+select pg_temp.assert_true(
+  exists(select 1 from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid=t.tgrelid
+    where c.oid='public.caissa_online_rate_limits'::regclass and t.tgname='caissa_account_write_barrier' and not t.tgisinternal),
+  'raw-subject rate-limit barrier is missing'
+);
+
+select pg_temp.assert_true(not exists(
+  select 1
+  from pg_catalog.pg_constraint fk
+  join pg_catalog.pg_class rel on rel.oid=fk.conrelid
+  join pg_catalog.pg_namespace ns on ns.oid=rel.relnamespace
+  where fk.contype='f' and fk.confrelid='public.users'::regclass and ns.nspname='public'
+    and rel.relname not in (
+      'caissa_account_states','caissa_account_control_operations',
+      'caissa_account_control_audit','caissa_account_control_rate_limits'
+    )
+    and not exists(select 1 from pg_catalog.pg_trigger t
+      where t.tgrelid=rel.oid and t.tgname='caissa_account_write_barrier' and not t.tgisinternal)
+), 'a current users foreign-key table is missing the account write barrier');
 
 \echo CAISSA_ACCOUNT_CONTROL_POSTGRES_PASS

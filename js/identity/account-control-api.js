@@ -38,6 +38,32 @@ export function createAccountControlApi(options = {}) {
         return payload;
     }
 
+    async function download(path, { body, idempotencyKey } = {}) {
+        const token = await tokenProvider();
+        if (!token) throw new AccountControlApiError('AUTH_REQUIRED', 401, 'Sign in to manage your data.');
+        const response = await fetchImpl(path, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Idempotency-Key': idempotencyKey
+            },
+            body: JSON.stringify(body || {})
+        });
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new AccountControlApiError(
+                payload.code || 'ACCOUNT_CONTROL_REQUEST_FAILED',
+                response.status,
+                payload.error || 'Account controls are temporarily unavailable.',
+                payload
+            );
+        }
+        return response.blob();
+    }
+
     async function prepare(kind, confirmation) {
         const idempotencyKey = crypto.randomUUID();
         const result = await request(`/api/account/${kind}/prepare`, {
@@ -61,8 +87,7 @@ export function createAccountControlApi(options = {}) {
         summary: () => request('/api/account/privacy/summary'),
         exportData: async () => {
             const idempotencyKey = crypto.randomUUID();
-            const payload = await request('/api/account/privacy/export', { method: 'POST', body: {}, idempotencyKey });
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const blob = await download('/api/account/privacy/export', { body: {}, idempotencyKey });
             const url = URL.createObjectURL(blob);
             try {
                 const link = document.createElement('a');
@@ -73,7 +98,7 @@ export function createAccountControlApi(options = {}) {
             } finally {
                 setTimeout(() => URL.revokeObjectURL(url), 0);
             }
-            return payload;
+            return { downloaded: true, bytes: blob.size };
         },
         prepareReset: confirmation => prepare('progress-reset', confirmation),
         confirmReset: prepared => confirm('progress-reset', prepared),

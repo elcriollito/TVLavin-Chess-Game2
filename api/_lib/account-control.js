@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { createClerkClient } from '@clerk/backend';
 import { verifyAuth, respondAuthFailure, setCorsHeaders } from './auth.js';
 import { getSupabase } from './supabase.js';
+import { streamAccountExport } from './account-export-stream.js';
 import {
     isIdentityOwnershipEnforced,
     resolveVerifiedIdentityOwnership,
@@ -136,13 +137,15 @@ export function createAccountControlHandlers(dependencies = {}) {
             const ctx = await context(req, res, { fresh: true, effect: true, rateLimit: 'export' });
             if (!ctx || !validEffectRequest(req, res)) return;
             rejectOwnerFields(req.body);
-            const result = await rpc(ctx.db, 'export_caissa_account_data', {
-                p_user_id: ctx.ownership.userId,
-                p_binding_id: ctx.ownership.bindingId
+            const exporter = dependencies.streamAccountExport || streamAccountExport;
+            await exporter({
+                res,
+                db: ctx.db,
+                userId: ctx.ownership.userId,
+                bindingId: ctx.ownership.bindingId,
+                now: dependencies.now
             });
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename="caissa-account-data-${new Date().toISOString().slice(0, 10)}.json"`);
-            return res.status(200).send(JSON.stringify(result, null, 2));
+            return res;
         },
 
         prepareReset: (req, res) => prepare(req, res, 'PROGRESS_RESET'),
@@ -309,6 +312,10 @@ export function createRouteHandler(name, dependencies = {}) {
         try {
             return await createAccountControlHandlers(dependencies)[name](req, res);
         } catch (error) {
+            if (res.headersSent) {
+                if (typeof res.destroy === 'function') res.destroy(error);
+                return;
+            }
             const mapped = mapError(error);
             dependencies.log?.warn?.('account_control_request_failed', mapped.code);
             return res.status(mapped.status).json({ code: mapped.code, error: mapped.message });
