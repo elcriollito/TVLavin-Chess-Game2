@@ -3,11 +3,14 @@ import { CaissaBoardAdapter } from '../board/caissa-board-adapter.js';
 import { createOnlineApi, OnlineApiError } from './online-api.js';
 import { formatClock, projectOnlineClock } from './online-clock.js';
 import { createOnlineGuestSession } from './online-guest-session.js';
+import { createOnlineLobbyPreferenceStore } from './online-lobby-preferences.js';
 import { createOnlineRealtime, createOnlineResyncQueue } from './online-realtime.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-const TOURNAMENT_DEMO = location.pathname === '/online/tournament-demo'
-    || new URLSearchParams(location.search).get('demo') === 'tournament';
+const PAGE_PARAMS = new URLSearchParams(location.search);
+const TOURNAMENT_DEMO = location.pathname === '/online/tournament-demo' || PAGE_PARAMS.get('demo') === 'tournament';
+const LOCAL_LOBBY_FIXTURES = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+    && PAGE_PARAMS.get('fixtures') === 'lobby';
 const $ = id => document.getElementById(id);
 const ui = {
     connection: document.querySelector('.connection-pill'), connectionLabel: $('connection-label'),
@@ -16,19 +19,23 @@ const ui = {
     top: $('player-top'), bottom: $('player-bottom'), topClock: $('clock-top'), bottomClock: $('clock-bottom'),
     lobby: $('lobby-view'), queue: $('queue-view'), game: $('game-view'), result: $('result-view'),
     find: $('find-game'), cancel: $('cancel-search'), rated: $('rated-toggle'), ratedHelp: $('rated-help'),
-    ratedControl: $('rated-control'), gameModeLabel: $('game-mode-label'), browseTournaments: $('browse-tournaments'),
-    tournamentAvailability: $('tournament-availability'),
+    ratedControl: $('rated-control'), gameModeLabel: $('game-mode-label'),
     guest: $('play-as-guest'), guestNote: $('guest-note'), lobbyAccess: $('lobby-access'),
     login: $('online-login'), signup: $('online-signup'),
     queueControl: $('queue-control'), queueElapsed: $('queue-elapsed'), turnCopy: $('turn-copy'),
     moveList: $('move-list'), resultTitle: $('result-title'), resultDetail: $('result-detail'),
     ratingChange: $('rating-change'), gamesList: $('games-list'), playersList: $('players-list'), playersCount: $('players-count'),
-    tournamentCard: $('tournament-card'), tournamentTab: $('tab-tournament'), toast: $('online-toast'), rematch: $('rematch-game'),
+    playersFixtureBadge: $('players-fixture-badge'),
+    toast: $('online-toast'), rematch: $('rematch-game'), returnToGame: $('return-to-game'),
     footContext: $('workspace-foot-context'),
     challengeNotice: $('challenge-notice'), challengeKicker: $('challenge-notice-kicker'),
     challengeTitle: $('challenge-notice-title'), challengeControl: $('challenge-notice-control'),
     challengeActions: $('challenge-notice-actions'), challengeAccept: $('challenge-notice-accept'),
-    challengeDecline: $('challenge-notice-decline'), signInDialog: $('signin-dialog')
+    challengeDecline: $('challenge-notice-decline'), signInDialog: $('signin-dialog'),
+    setupOpen: $('setup-open'), setupDialog: $('setup-dialog'), muteInvitationPopups: $('mute-invitation-popups'),
+    offersState: $('offers-state'), offersStatus: $('offers-status'), offersTableWrap: $('offers-table-wrap'),
+    offersTableBody: $('offers-table-body'), offersFixtureBanner: $('offers-fixture-banner'),
+    tournamentsComingSoon: $('tournaments-coming-soon'), tournamentDemoContent: $('tournament-demo-content')
 };
 
 const model = {
@@ -40,12 +47,15 @@ const model = {
     challengeNoticeId: null, inactiveChallengeIds: new Set(), respondingChallengeIds: new Set(),
     challengeRequestTargets: new Set(), rematchRequestGameIds: new Set(),
     signInPromptOpener: null, signInRedirecting: false,
-    guestSession: null, guestStarting: false, pendingGameCommand: null
+    guestSession: null, guestStarting: false, pendingGameCommand: null,
+    selectedTab: 'new', selectedLobbyView: 'players', muteInvitationPopups: false, preferenceEpoch: 0,
+    setupOpener: null
 };
 
 const api = createOnlineApi({
     tokenProvider: onlineAccessToken
 });
+const lobbyPreferences = createOnlineLobbyPreferenceStore();
 
 const board = new CaissaBoardAdapter($('online-board'), {
     position: START_FEN,
@@ -68,11 +78,16 @@ bindControls();
 restoreSelectedControlFromLocation();
 selectTab('new');
 selectGamesView('daily');
+selectLobbyView('players');
 selectTournamentView('standings');
+renderOffersDirectory();
 setInterval(renderClocks, 100);
 if (TOURNAMENT_DEMO) renderTournamentDemo();
 else {
-    if (location.pathname === '/online/tournaments') selectTab('games');
+    if (location.pathname === '/online/tournaments') {
+        selectLobbyView('tournaments');
+        selectTab('lobby');
+    }
     void boot();
 }
 
@@ -90,6 +105,7 @@ async function boot() {
         const guestAuth = await model.guestSession?.restore?.();
         if (guestAuth?.isSignedIn) return activateIdentity(guestAuth, 'guest-restore');
         model.auth = memberAuth;
+        await loadLobbyPreferences(memberAuth);
         renderSignedOut();
     } catch (error) {
         handleError(error, 'The playing room could not be reached.');
@@ -108,12 +124,6 @@ function configureCapabilities(capabilities) {
         ? 'Turn on Rated to play for rating points.'
         : 'Casual games do not change ratings.';
     if (!ratedEnabled) ui.rated.checked = false;
-
-    const tournamentsEnabled = capabilities.tournaments === true;
-    ui.tournamentCard.hidden = !tournamentsEnabled;
-    ui.browseTournaments.dataset.availability = tournamentsEnabled ? 'preview' : 'coming-soon';
-    ui.browseTournaments.setAttribute('aria-disabled', String(!tournamentsEnabled));
-    ui.tournamentAvailability.textContent = tournamentsEnabled ? 'Internal Preview' : 'Coming Soon';
 
     const openGamesEnabled = capabilities.openGames === true;
     $('games-open-unavailable').hidden = openGamesEnabled;
@@ -148,6 +158,7 @@ async function handleAuthChange(nextAuth) {
     if (!nextUserId) {
         stopPolling();
         await disconnectRealtime();
+        await loadLobbyPreferences(nextAuth);
         renderSignedOut();
         return;
     }
@@ -168,6 +179,7 @@ async function handleAuthChange(nextAuth) {
 
 async function activateIdentity(auth, reason) {
     model.auth = auth;
+    await loadLobbyPreferences(auth);
     configureCapabilities(model.config?.capabilities || {});
     if (auth.isGuest) {
         ui.account.textContent = 'Guest · Sign in';
@@ -211,6 +223,10 @@ function bindControls() {
         tab.addEventListener('click', () => selectGamesView(tab.dataset.gamesTab));
         tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-games-tab]', 'gamesTab', selectGamesView));
     });
+    document.querySelectorAll('[data-lobby-tab]').forEach(tab => {
+        tab.addEventListener('click', () => selectLobbyView(tab.dataset.lobbyTab));
+        tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-lobby-tab]', 'lobbyTab', selectLobbyView));
+    });
     [$('custom-minutes'), $('custom-increment')].forEach(input => input.addEventListener('input', updateSignInHref));
     ui.find.addEventListener('click', findGame);
     ui.guest.addEventListener('click', playAsGuest);
@@ -219,16 +235,8 @@ function bindControls() {
     ui.rematch.addEventListener('click', requestRematch);
     $('play-friend').addEventListener('click', event => {
         if (!model.auth?.isSignedIn) return showSignInDialog(event.currentTarget);
-        selectTab('players');
-    });
-    ui.browseTournaments.addEventListener('click', () => {
-        if (TOURNAMENT_DEMO) return selectTab('tournament');
-        if (model.config?.capabilities?.tournaments !== true) {
-            showToast('CAISSA Tournament Season is coming soon.');
-            return;
-        }
-        selectTab('games');
-        ui.tournamentCard.scrollIntoView({ behavior: 'smooth' });
+        selectLobbyView('players');
+        selectTab('lobby');
     });
     $('resign-game').addEventListener('click', () => confirmAction('Resign this game?', 'This result is final and will be recorded.', 'Resign')
         .then(confirmed => confirmed && sendGameCommand('game.resign')));
@@ -236,7 +244,6 @@ function bindControls() {
     $('decline-draw').addEventListener('click', () => sendGameCommand('game.drawDecline'));
     $('download-pgn').addEventListener('click', downloadPgn);
     $('analyze-game').addEventListener('click', analyzeGame);
-    $('open-tournaments').addEventListener('click', () => location.assign('/online/tournaments'));
     $('demo-next-game').addEventListener('click', () => showToast('Demo only — a server-confirmed pairing would open the game.'));
     document.querySelectorAll('[data-tournament-view]').forEach(tab => {
         tab.addEventListener('click', () => selectTournamentView(tab.dataset.tournamentView));
@@ -246,6 +253,10 @@ function bindControls() {
     ui.challengeAccept.addEventListener('click', () => respondVisibleChallenge('challenge.accept'));
     ui.challengeDecline.addEventListener('click', () => respondVisibleChallenge('challenge.decline'));
     ui.signInDialog.addEventListener('close', handleSignInDialogClose);
+    ui.returnToGame.addEventListener('click', () => selectTab('new'));
+    ui.setupOpen.addEventListener('click', event => openSetup(event.currentTarget));
+    ui.setupDialog.addEventListener('close', closeSetup);
+    ui.muteInvitationPopups.addEventListener('change', () => void updateInvitationPreference());
 }
 
 function selectTimeControl(button) {
@@ -276,6 +287,7 @@ function restoreBoundedNumber(input, rawValue) {
 }
 
 function selectTab(name) {
+    model.selectedTab = name;
     document.querySelectorAll('[data-tab]').forEach(tab => {
         const selected = tab.dataset.tab === name;
         tab.setAttribute('aria-selected', String(selected));
@@ -285,9 +297,9 @@ function selectTab(name) {
     ui.footContext.textContent = ({
         new: 'Private, server-verified games',
         games: 'Your game history',
-        players: 'Private challenges',
-        tournament: 'Tournament concept · demo data'
+        lobby: model.selectedLobbyView === 'players' ? 'Private challenges' : 'CAISSA Online lobby'
     })[name] || 'CAISSA Online';
+    renderWorkspaceHeader();
 }
 
 function handleTabKeydown(event) {
@@ -305,6 +317,21 @@ function selectGamesView(name) {
     });
 }
 
+function selectLobbyView(name) {
+    model.selectedLobbyView = name;
+    document.querySelectorAll('[data-lobby-tab]').forEach(tab => {
+        const selected = tab.dataset.lobbyTab === name;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll('[data-lobby-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.lobbyPanel !== name;
+    });
+    if (document.querySelector('[data-tab="lobby"]')?.getAttribute('aria-selected') === 'true') {
+        ui.footContext.textContent = name === 'players' ? 'Private challenges' : 'CAISSA Online lobby';
+    }
+}
+
 function handleRovingTabs(event, selector, datasetKey, select) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     const tabs = Array.from(document.querySelectorAll(selector)).filter(tab => !tab.hidden);
@@ -320,10 +347,13 @@ function handleRovingTabs(event, selector, datasetKey, select) {
 function renderTournamentDemo() {
     document.body.dataset.tournamentDemo = 'true';
     document.title = 'Tournament Panel Demo — CAISSA';
-    ui.tournamentTab.hidden = false;
+    selectLobbyView('tournaments');
+    selectTab('lobby');
     ui.title.textContent = 'Tournament arena';
     ui.badge.textContent = 'DEMO';
     ui.footContext.textContent = 'Tournament concept · demo data';
+    ui.tournamentsComingSoon.hidden = true;
+    ui.tournamentDemoContent.hidden = false;
     setConnection('online', 'Demo');
     ui.curtain.hidden = false;
     ui.curtainTitle.textContent = 'Tournament preview';
@@ -332,7 +362,6 @@ function renderTournamentDemo() {
     board.setReadOnly(true);
     board.setInteractive(false);
     resetPlayerStrips();
-    selectTab('tournament');
 }
 
 function selectTournamentView(name) {
@@ -344,6 +373,63 @@ function selectTournamentView(name) {
     document.querySelectorAll('[data-tournament-panel]').forEach(panel => {
         panel.hidden = panel.dataset.tournamentPanel !== name;
     });
+}
+
+function renderOffersDirectory() {
+    ui.offersTableBody.replaceChildren();
+    ui.playersFixtureBadge.hidden = !LOCAL_LOBBY_FIXTURES;
+    ui.offersFixtureBanner.dataset.mode = LOCAL_LOBBY_FIXTURES ? 'fixture' : 'unavailable';
+    ui.offersStatus.textContent = LOCAL_LOBBY_FIXTURES ? 'Local fixture' : 'Unavailable';
+    ui.offersState.textContent = LOCAL_LOBBY_FIXTURES
+        ? 'Synthetic visual data · no Join.'
+        : 'Public offers are off · no Join yet.';
+    if (!LOCAL_LOBBY_FIXTURES) return;
+
+    const fixtures = [
+        ['FixtureKnight', '1800', '3+2', 'Casual Blitz'],
+        ['FixtureRook', '1500', '10+0', 'Casual Rapid'],
+        ['FixtureGuest', '—', '5+0', 'Guest Blitz']
+    ];
+    fixtures.forEach(values => {
+        const row = document.createElement('tr');
+        row.dataset.fixture = 'true';
+        values.forEach(value => {
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.append(cell);
+        });
+        ui.offersTableBody.append(row);
+    });
+}
+
+async function loadLobbyPreferences(auth) {
+    const epoch = ++model.preferenceEpoch;
+    const preferences = await lobbyPreferences.load(auth);
+    if (epoch !== model.preferenceEpoch || model.disposed) return;
+    model.muteInvitationPopups = preferences.muteInvitationPopups === true;
+    ui.muteInvitationPopups.checked = model.muteInvitationPopups;
+    renderChallengeNotice(model.state?.challenges || []);
+}
+
+async function updateInvitationPreference() {
+    model.muteInvitationPopups = ui.muteInvitationPopups.checked;
+    renderChallengeNotice(model.state?.challenges || []);
+    const saved = await lobbyPreferences.save(model.auth, {
+        muteInvitationPopups: model.muteInvitationPopups
+    });
+    if (!saved) showToast('This preference could not be saved in this browser.');
+}
+
+function openSetup(opener) {
+    model.setupOpener = opener instanceof HTMLElement ? opener : document.activeElement;
+    ui.muteInvitationPopups.checked = model.muteInvitationPopups;
+    if (!ui.setupDialog.open) ui.setupDialog.showModal();
+}
+
+function closeSetup() {
+    const opener = model.setupOpener;
+    model.setupOpener = null;
+    queueMicrotask(() => opener?.isConnected && opener.focus());
 }
 
 async function playAsGuest() {
@@ -437,6 +523,7 @@ function applyState(state, options = {}) {
 
     model.state = state;
     model.game = nextGame;
+    updateReturnToGameControl();
     renderPlayers(state.players || [], state.challenges || []);
     renderChallengeNotice(state.challenges || []);
     renderGames(state.recentGames || []);
@@ -454,18 +541,19 @@ function applyState(state, options = {}) {
 
 function renderLobby() {
     showView('lobby');
-    ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
+    updateReturnToGameControl();
+    renderWorkspaceHeader();
     ui.status.textContent = 'Choose a time control and enter matchmaking.';
     ui.find.disabled = false; ui.find.textContent = 'Start Game';
     ui.curtain.hidden = true;
     board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
     board.setInteractive(false);
-    resetPlayerStrips();
+    resetPlayerStrips('idle');
 }
 
 function renderQueue(ticket) {
     showView('queue');
-    ui.title.textContent = 'Matchmaking'; ui.badge.textContent = 'SEARCHING';
+    renderWorkspaceHeader();
     ui.status.textContent = 'Looking for a compatible opponent…';
     if (!model.queueStartedAt) model.queueStartedAt = Date.parse(ticket.created_at) || Date.now();
     ui.queueControl.textContent = `${formatTimeControl(ticket)} · ${titleCase(ticket.pool)}`;
@@ -473,6 +561,7 @@ function renderQueue(ticket) {
     ui.curtainCopy.textContent = 'Your place is reserved. You may safely reconnect.';
     board.setReadOnly(true);
     board.setInteractive(false);
+    resetPlayerStrips('searching');
 }
 
 function renderGame(game, options = {}) {
@@ -485,15 +574,19 @@ function renderGame(game, options = {}) {
     board.setInteractive(!completed && !!color);
     board.setReadOnly(completed || game.turn !== color || !!model.pendingMove);
     ui.curtain.hidden = true;
-    ui.title.textContent = completed ? 'Game complete' : `${formatTimeControl(game)} ${titleCase(game.pool)}`;
-    ui.badge.textContent = completed ? 'FINAL' : game.rated ? 'RATED' : 'CASUAL';
+    renderWorkspaceHeader();
     ui.status.textContent = completed ? 'Game over. Review the result or choose what to do next.' : 'Game in progress.';
     renderPlayerStrips(game, color);
     renderMoves(game.moves || []);
     const ours = game.turn === color;
     ui.turnCopy.textContent = completed ? 'Game over' : ours ? 'Your turn' : `${opponentName(game, color)} to move`;
     renderGameActions(game);
+    updateReturnToGameControl();
     if (completed) renderResult(game, color);
+}
+
+function updateReturnToGameControl() {
+    ui.returnToGame.hidden = model.game?.status !== 'active';
 }
 
 function renderGameActions(game) {
@@ -784,6 +877,11 @@ async function requestRematch() {
 
 function renderChallengeNotice(challenges) {
     clearTimeout(model.challengeExpiryTimer);
+    if (model.muteInvitationPopups) {
+        model.challengeNoticeId = null;
+        ui.challengeNotice.hidden = true;
+        return;
+    }
     const active = activeChallenges(challenges);
     const previousId = model.challengeNoticeId;
     if (previousId && !active.some(challenge => challenge.id === previousId)) {
@@ -962,8 +1060,28 @@ function showView(name) {
     ui.game.hidden = name !== 'game'; ui.result.hidden = name !== 'result';
 }
 
+function renderWorkspaceHeader() {
+    const game = model.game;
+    const searching = !!model.state?.ticket && !game;
+    const runtimeBadge = game?.status === 'completed' ? 'FINAL'
+        : game?.status === 'active' ? (game.rated ? 'RATED' : 'CASUAL')
+            : searching ? 'SEARCHING' : 'READY';
+    let title = 'Find a game';
+    if (model.selectedTab === 'games') title = 'Games';
+    else if (model.selectedTab === 'lobby') title = 'Lobby';
+    else if (game?.status === 'completed') title = 'Game complete';
+    else if (game?.status === 'active') {
+        const color = playerColor(game);
+        const rival = color ? opponentName(game, color) : '';
+        title = rival ? `Playing ${rival}` : 'Game in progress';
+    } else if (searching) title = 'Finding an opponent';
+    ui.title.textContent = title;
+    ui.badge.textContent = runtimeBadge;
+}
+
 function renderUnavailable(copy) {
     setConnection('offline', 'Unavailable'); ui.find.disabled = true; ui.rated.disabled = true;
+    renderWorkspaceHeader();
     ui.status.textContent = copy; ui.curtainTitle.textContent = 'Online room closed'; ui.curtainCopy.textContent = copy;
 }
 
@@ -974,9 +1092,10 @@ function renderSignedOut() {
     model.pendingMove = null;
     model.signInRedirecting = false;
     model.challengeNoticeId = null;
+    updateReturnToGameControl();
     ui.challengeNotice.hidden = true;
     showView('lobby');
-    ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
+    renderWorkspaceHeader();
     setConnection('offline', 'Sign in required');
     ui.find.disabled = false; ui.find.textContent = 'Start Game';
     ui.account.textContent = 'Sign in';
@@ -984,7 +1103,7 @@ function renderSignedOut() {
     ui.curtain.hidden = true;
     board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
     board.setInteractive(false);
-    resetPlayerStrips();
+    resetPlayerStrips('signed-out');
     updateSignInHref();
     configureCapabilities(model.config?.capabilities || {});
 }
@@ -1065,7 +1184,15 @@ function announceOpponentMove(game) {
     const move = game.moves?.at(-1);
     if (move && move.color !== playerColor(game)) ui.status.textContent = `${opponentName(game, playerColor(game))} moved ${move.san}.`;
 }
-function resetPlayerStrips() { fillEmpty(ui.top, 'Waiting for opponent'); fillEmpty(ui.bottom, model.auth?.fullName || 'You'); ui.topClock.textContent = '—'; ui.bottomClock.textContent = '—'; }
+function resetPlayerStrips(state = 'idle') {
+    const topLabel = state === 'searching' ? 'Waiting for opponent'
+        : state === 'signed-out' ? 'Sign in to play' : 'Ready to play';
+    const selfLabel = model.state?.profile?.display_name || model.auth?.fullName || (model.auth?.isGuest ? 'Guest' : 'You');
+    fillEmpty(ui.top, topLabel);
+    fillEmpty(ui.bottom, selfLabel);
+    ui.topClock.textContent = '—';
+    ui.bottomClock.textContent = '—';
+}
 function fillEmpty(strip, name) { strip.querySelector('.player-name').textContent = name; strip.querySelector('.player-rating').textContent = '—'; strip.querySelector('.player-avatar').textContent = initials(name); strip.dataset.running = 'false'; }
 function showBoardError(intent, message) { board.highlightSquares([{ square: intent.from, type: 'error' }, { square: intent.to, type: 'error' }]); showToast(message); setTimeout(() => board.clearHighlights(), 900); }
 function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.', STALE_VERSION: 'The board changed; it has been synchronized.', ILLEGAL_MOVE: 'That move is not legal.', NOT_YOUR_TURN: 'Wait for your turn.', RATE_LIMITED: 'Too many requests. Please wait a moment.', DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.' })[error?.code] || 'The server could not confirm that action.'; }

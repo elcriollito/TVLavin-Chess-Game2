@@ -8,7 +8,7 @@
     <title>Online Chess — CAISSA</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/css/caissa-board.css">
-    <link rel="stylesheet" href="/css/online.css?v=lobby-hub-v5">
+    <link rel="stylesheet" href="/css/online.css?v=lobby-hub-v7">
     <script src="/js/auth-config.js" defer></script>
     <script src="/js/caissa-auth.js" defer></script>
     <script src="/js/play/analyze-handoff.js" defer></script>
@@ -41,7 +41,7 @@
             <div class="board-column">
                 <div class="player-strip player-strip--top" id="player-top">
                     <div class="player-avatar" aria-hidden="true">?</div>
-                    <div><strong class="player-name">Waiting for opponent</strong><span class="player-rating">—</span></div>
+                    <div><strong class="player-name">Ready to play</strong><span class="player-rating">—</span></div>
                     <time class="player-clock" id="clock-top">—</time>
                 </div>
                 <div class="board-shell" id="board-shell">
@@ -65,8 +65,7 @@
                     <div class="workspace-tabs" role="tablist" aria-label="Online sections">
                         <button role="tab" id="tab-new" aria-controls="panel-new" aria-selected="true" data-tab="new">New Game</button>
                         <button role="tab" id="tab-games" aria-controls="panel-games" aria-selected="false" data-tab="games">Games</button>
-                        <button role="tab" id="tab-players" aria-controls="panel-players" aria-selected="false" data-tab="players">Players</button>
-                        <button role="tab" id="tab-tournament" aria-controls="panel-tournament" aria-selected="false" data-tab="tournament" hidden>Tournament</button>
+                        <button role="tab" id="tab-lobby" aria-controls="panel-lobby" aria-selected="false" data-tab="lobby">Lobby</button>
                     </div>
                 </div>
 
@@ -89,9 +88,6 @@
                             <button class="primary-action" id="find-game" disabled>Start Game</button>
                             <div class="lobby-secondary">
                                 <button id="play-friend">Play a Friend</button>
-                                <button class="tournament-cta" id="browse-tournaments" type="button" aria-disabled="true">
-                                    <span aria-hidden="true">🏆</span><strong>Tournaments</strong><small id="tournament-availability">Coming Soon</small>
-                                </button>
                             </div>
                             <p class="trust-note"><span aria-hidden="true">◆</span> Legal moves, clocks and results are verified by CAISSA's server.</p>
                             <div class="lobby-access" id="lobby-access">
@@ -154,44 +150,71 @@
                             <div id="games-open-unavailable"><p>Public joinable games are not enabled in this version.</p></div>
                             <div id="games-open-empty" hidden><p>No open games right now. Check again soon.</p></div>
                         </section>
-                        <div class="tournament-card" id="tournament-card" hidden><p>TOURNAMENT HALL</p><h3>Live events</h3><p>Scheduled and live events appear here when tournament play is available.</p><button id="open-tournaments">View tournaments</button></div>
                     </section>
 
-                    <section id="panel-players" role="tabpanel" aria-labelledby="tab-players" data-panel="players" hidden>
-                        <div class="players-heading"><div><p>ACTIVE NOW</p><h3>Players</h3></div><strong id="players-count" aria-live="polite">0 online</strong></div>
-                        <label class="player-search">Filter active players<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
-                        <div id="challenges-list" class="challenges-list" aria-live="polite"></div>
-                        <div id="players-list" class="empty-state"><span aria-hidden="true">♞</span><strong>No players online</strong><p>Players who are available to play will appear here.</p></div>
-                    </section>
-
-                    <section id="panel-tournament" role="tabpanel" aria-labelledby="tab-tournament" data-panel="tournament" hidden>
-                        <div class="demo-banner"><strong>Visual demo</strong><span>Future tournament experience</span></div>
-                        <div class="tournament-demo-head"><div><p>CAISSA RAPID NIGHT</p><h3>Rapid Arena</h3></div><time datetime="PT18M42S"><span>Time remaining</span><strong>18:42</strong></time></div>
-                        <div class="tournament-demo-tabs" role="tablist" aria-label="Tournament demo sections">
-                            <button role="tab" aria-selected="true" data-tournament-view="standings" aria-controls="tournament-demo-standings">Standings</button>
-                            <button role="tab" aria-selected="false" data-tournament-view="games" aria-controls="tournament-demo-games">Games</button>
+                    <section id="panel-lobby" role="tabpanel" aria-labelledby="tab-lobby" data-panel="lobby" hidden>
+                        <button id="return-to-game" type="button" hidden>Return to game</button>
+                        <div class="lobby-subtabs" role="tablist" aria-label="Lobby sections">
+                            <button id="lobby-tab-players" role="tab" aria-selected="true" aria-controls="lobby-panel-players" data-lobby-tab="players">Players</button>
+                            <button id="lobby-tab-offers" role="tab" aria-selected="false" aria-controls="lobby-panel-offers" data-lobby-tab="offers" tabindex="-1">Tables / Offers</button>
+                            <button id="lobby-tab-tournaments" role="tab" aria-selected="false" aria-controls="lobby-panel-tournaments" data-lobby-tab="tournaments" tabindex="-1">Tournaments</button>
                         </div>
-                        <section id="tournament-demo-standings" data-tournament-panel="standings">
-                            <table class="tournament-standings">
-                                <caption>Current standings</caption>
-                                <thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col">Pts</th></tr></thead>
-                                <tbody>
-                                    <tr><td>1</td><td>NovaKnight</td><td>12</td></tr>
-                                    <tr class="is-current-player"><td>2</td><td>Alexander <span>(you)</span></td><td>10</td></tr>
-                                    <tr><td>3</td><td>EndgameMuse</td><td>9</td></tr>
-                                    <tr><td>4</td><td>Criollito</td><td>8</td></tr>
-                                </tbody>
-                            </table>
+
+                        <section id="lobby-panel-players" role="tabpanel" aria-labelledby="lobby-tab-players" data-lobby-panel="players">
+                            <div class="players-heading"><div><p>ACTIVE NOW</p><h3>Players</h3></div><div class="players-heading__status"><span id="players-fixture-badge" class="local-test-badge" hidden>Local test data</span><strong id="players-count" aria-live="polite">0 online</strong></div></div>
+                            <label class="player-search">Filter active players<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
+                            <div id="challenges-list" class="challenges-list" aria-live="polite"></div>
+                            <div id="players-list" class="empty-state"><span aria-hidden="true">♞</span><strong>No players online</strong><p>Players who are available to play will appear here.</p></div>
                         </section>
-                        <section id="tournament-demo-games" data-tournament-panel="games" hidden>
-                            <div class="tournament-game-row"><strong>NovaKnight — EndgameMuse</strong><span>Playing · Board 1</span></div>
-                            <div class="tournament-game-row"><strong>Alexander — Criollito</strong><span>Next · 10+0</span></div>
-                            <div class="tournament-next"><p>OPPONENT ASSIGNED</p><strong>Criollito · Black · 10+0</strong><span>Your next game is ready in this demonstration.</span><button id="demo-next-game">Next game</button></div>
+
+                        <section id="lobby-panel-offers" role="tabpanel" aria-labelledby="lobby-tab-offers" data-lobby-panel="offers" hidden>
+                            <div id="offers-table-wrap" class="offers-table-wrap">
+                                <table class="offers-table">
+                                    <caption class="sr-only">Local visual fixtures for the future public offers directory</caption>
+                                    <thead><tr><th scope="col">Name</th><th scope="col">Rating</th><th scope="col">Time</th><th scope="col">Type</th></tr></thead>
+                                    <tbody id="offers-table-body"></tbody>
+                                </table>
+                            </div>
+                            <div id="offers-fixture-banner" class="offers-availability" data-mode="unavailable" role="status">
+                                <strong id="offers-status">Unavailable</strong>
+                                <span id="offers-state">Public offers are off · no Join yet.</span>
+                            </div>
+                        </section>
+
+                        <section id="lobby-panel-tournaments" role="tabpanel" aria-labelledby="lobby-tab-tournaments" data-lobby-panel="tournaments" hidden>
+                            <div id="tournaments-coming-soon" class="tournaments-coming-soon">
+                                <span aria-hidden="true">🏆</span><p>FUTURE SEASON</p><h3>CAISSA Tournaments</h3><strong>Coming Soon</strong><small>Organized CAISSA competitions will arrive in a future, separately certified season.</small>
+                            </div>
+                            <div id="tournament-demo-content" hidden>
+                                <div class="demo-banner"><strong>Visual demo</strong><span>Future tournament experience — synthetic data</span></div>
+                                <div class="tournament-demo-head"><div><p>CAISSA RAPID NIGHT</p><h3>Rapid Arena</h3></div><time datetime="PT18M42S"><span>Time remaining</span><strong>18:42</strong></time></div>
+                                <div class="tournament-demo-tabs" role="tablist" aria-label="Tournament demo sections">
+                                    <button role="tab" aria-selected="true" data-tournament-view="standings" aria-controls="tournament-demo-standings">Standings</button>
+                                    <button role="tab" aria-selected="false" data-tournament-view="games" aria-controls="tournament-demo-games">Games</button>
+                                </div>
+                                <section id="tournament-demo-standings" data-tournament-panel="standings">
+                                    <table class="tournament-standings">
+                                        <caption>Current standings</caption>
+                                        <thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col">Pts</th></tr></thead>
+                                        <tbody>
+                                            <tr><td>1</td><td>NovaKnight</td><td>12</td></tr>
+                                            <tr class="is-current-player"><td>2</td><td>Alexander <span>(you)</span></td><td>10</td></tr>
+                                            <tr><td>3</td><td>EndgameMuse</td><td>9</td></tr>
+                                            <tr><td>4</td><td>Criollito</td><td>8</td></tr>
+                                        </tbody>
+                                    </table>
+                                </section>
+                                <section id="tournament-demo-games" data-tournament-panel="games" hidden>
+                                    <div class="tournament-game-row"><strong>NovaKnight — EndgameMuse</strong><span>Playing · Board 1</span></div>
+                                    <div class="tournament-game-row"><strong>Alexander — Criollito</strong><span>Next · 10+0</span></div>
+                                    <div class="tournament-next"><p>OPPONENT ASSIGNED</p><strong>Criollito · Black · 10+0</strong><span>Your next game is ready in this demonstration.</span><button id="demo-next-game">Next game</button></div>
+                                </section>
+                            </div>
                         </section>
                     </section>
                 </div>
 
-                <footer class="workspace-foot"><span id="workspace-foot-context">Private, server-verified games</span><a href="/help">Fair play & help</a></footer>
+                <footer class="workspace-foot"><span id="workspace-foot-context">Private, server-verified games</span><button id="setup-open" type="button" aria-haspopup="dialog"><span aria-hidden="true">⚙</span> Setup</button></footer>
             </aside>
         </section>
     </main>
@@ -209,6 +232,17 @@
     <dialog id="promotion-dialog"><form method="dialog"><p>Choose promotion</p><div><button value="q" aria-label="Promote to queen">♛</button><button value="r" aria-label="Promote to rook">♜</button><button value="b" aria-label="Promote to bishop">♝</button><button value="n" aria-label="Promote to knight">♞</button></div><button value="cancel" class="dialog-cancel">Cancel</button></form></dialog>
     <dialog id="confirm-dialog"><form method="dialog"><h2 id="confirm-title">Resign this game?</h2><p id="confirm-copy">This result is final and will be recorded.</p><div><button value="cancel">Keep playing</button><button value="confirm" class="danger-action">Resign</button></div></form></dialog>
     <dialog id="signin-dialog" aria-labelledby="signin-dialog-title" aria-describedby="signin-dialog-copy"><form method="dialog"><h2 id="signin-dialog-title">Sign in to play online</h2><p id="signin-dialog-copy">Sign in to find an opponent or challenge a friend.</p><div><button value="cancel">Not now</button><button value="signin" class="primary-action">Sign in</button></div></form></dialog>
+    <dialog id="setup-dialog" aria-labelledby="setup-dialog-title" aria-describedby="setup-dialog-copy">
+        <form method="dialog">
+            <div class="setup-dialog-head"><div><p>PLAYING ROOM</p><h2 id="setup-dialog-title">Setup</h2></div><button class="setup-close" value="close" aria-label="Close setup">×</button></div>
+            <p id="setup-dialog-copy">Preferences for this browser and CAISSA identity.</p>
+            <section class="setup-section" aria-labelledby="setup-invitations-title">
+                <div><h3 id="setup-invitations-title">Game Invitations</h3><p>Pending invitations remain available in Lobby → Players.</p></div>
+                <label class="setup-switch"><span><strong>Mute invitation pop-ups on this device</strong><small>Hide invitation pop-ups without blocking challenges.</small></span><input id="mute-invitation-popups" type="checkbox" role="switch"></label>
+            </section>
+            <a class="setup-help" href="/help"><span>Fair Play &amp; Help</span><small>Rules, conduct and assistance</small></a>
+        </form>
+    </dialog>
     <div id="online-toast" role="alert" aria-live="assertive" hidden></div>
 </body>
 </html>
