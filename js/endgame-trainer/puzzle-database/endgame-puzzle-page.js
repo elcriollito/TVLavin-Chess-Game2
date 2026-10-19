@@ -11,6 +11,7 @@ import {
 } from './endgame-catalog.js';
 
 const MAX_INVALID_PUZZLES = 24;
+const ANALYSIS_REPLAY_DELAY_MS = 700;
 let mounted = null;
 
 export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.document, window: win = globalThis,
@@ -49,6 +50,8 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         analysisSearchSequence: null,
         analysisRevision: 0,
         analysisPosition: new EndgameAnalysisPosition(),
+        analysisReplayTimer: null,
+        analysisReplaying: false,
         matchSnapshot: null,
         activeTab: 'themes',
         activeAnalysisMode: 'engine',
@@ -201,8 +204,10 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
     }
 
     function clearManualAnalysis() {
+        stopAnalysisReplay();
         state.analysisPosition.clear();
         state.analysisRevision += 1;
+        renderAnalysisNavigation();
     }
 
     function renderManualAnalysisPosition(move = null) {
@@ -210,13 +215,102 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         if (!snapshot) return;
         board.setPosition(snapshot.fen, { animate: false });
         showLastMove(move || snapshot.history.at(-1) || state.session?.game.history({ verbose: true }).at(-1));
+        renderAnalysisNavigation();
         $('egt-side-to-move').textContent = `${snapshot.turn === 'w' ? 'White' : 'Black'} to move · Analysis`;
+    }
+
+    function renderAnalysisNavigation() {
+        const navigation = $('egt-analysis-navigation');
+        const snapshot = state.analysisPosition.snapshot();
+        const visible = Boolean(snapshot && analysisUnlocked() && state.activeTab === 'analysis'
+            && state.activeAnalysisMode === 'engine' && !state.matchSnapshot);
+        navigation.hidden = !visible;
+        if (!visible) return;
+        $('egt-nav-first').disabled = snapshot.atStart || state.movePending;
+        $('egt-nav-previous').disabled = snapshot.atStart || state.movePending;
+        $('egt-nav-next').disabled = snapshot.atEnd || state.movePending;
+        $('egt-nav-last').disabled = snapshot.atEnd || state.movePending;
+        $('egt-nav-play').disabled = snapshot.positionCount < 2 || state.movePending;
+        $('egt-nav-play').setAttribute('aria-pressed', String(state.analysisReplaying));
+        $('egt-nav-play').setAttribute('aria-label', state.analysisReplaying ? 'Pause automatic replay' : 'Play automatic replay');
+        $('egt-nav-play').title = state.analysisReplaying ? 'Pause automatic replay' : 'Play automatic replay';
+        $('egt-nav-play').querySelector('span').textContent = state.analysisReplaying ? '⏸' : '▶';
+        $('egt-nav-status').textContent = `Position ${snapshot.cursor + 1} of ${snapshot.positionCount}`;
+    }
+
+    function stopAnalysisReplay({ render = true } = {}) {
+        if (state.analysisReplayTimer !== null) {
+            win.clearTimeout?.(state.analysisReplayTimer);
+            state.analysisReplayTimer = null;
+        }
+        state.analysisReplaying = false;
+        if (render) renderAnalysisNavigation();
+    }
+
+    function navigateAnalysis(index, { replay = false } = {}) {
+        if (!manualAnalysisReady() || state.movePending) return false;
+        const current = state.analysisPosition.snapshot();
+        if (!current || !Number.isInteger(index) || index < 0 || index > current.lastIndex) return false;
+        if (!replay) stopAnalysisReplay({ render: false });
+        if (index === current.cursor) {
+            renderAnalysisNavigation();
+            return false;
+        }
+        const engineWasActive = state.analysisActive;
+        if (engineWasActive) {
+            engine.stop();
+            state.analysisFen = null;
+            state.analysisSearchSequence = null;
+        }
+        cancelPromotion();
+        state.analysisRevision += 1;
+        const snapshot = state.analysisPosition.navigate(index);
+        if (!snapshot) return false;
+        renderManualAnalysisPosition();
+        board.setInteractive(true);
+        $('egt-analysis-feedback').textContent = `Position ${snapshot.cursor + 1} of ${snapshot.positionCount}. ${snapshot.turn === 'w' ? 'White' : 'Black'} to move.`;
+        if (engineWasActive) analyzeManualPosition();
+        return true;
+    }
+
+    function scheduleAnalysisReplay() {
+        if (!state.analysisReplaying || state.analysisReplayTimer !== null) return;
+        const revision = state.analysisRevision;
+        state.analysisReplayTimer = win.setTimeout(() => {
+            state.analysisReplayTimer = null;
+            if (!state.analysisReplaying || revision !== state.analysisRevision || !manualAnalysisReady()) {
+                stopAnalysisReplay();
+                return;
+            }
+            const before = state.analysisPosition.snapshot();
+            if (!before || before.atEnd || !navigateAnalysis(before.cursor + 1, { replay: true })) {
+                stopAnalysisReplay();
+                return;
+            }
+            if (state.analysisPosition.snapshot().atEnd) stopAnalysisReplay();
+            else scheduleAnalysisReplay();
+        }, ANALYSIS_REPLAY_DELAY_MS);
+    }
+
+    function toggleAnalysisReplay() {
+        if (state.analysisReplaying) {
+            stopAnalysisReplay();
+            return;
+        }
+        if (!manualAnalysisReady() || state.movePending) return;
+        const snapshot = state.analysisPosition.snapshot();
+        if (!snapshot || snapshot.positionCount < 2) return;
+        if (snapshot.atEnd && !navigateAnalysis(0, { replay: true })) return;
+        state.analysisReplaying = true;
+        renderAnalysisNavigation();
+        scheduleAnalysisReplay();
     }
 
     function enterManualAnalysis({ reset = false } = {}) {
         if (!analysisUnlocked() || !state.session || state.activeTab !== 'analysis'
             || state.activeAnalysisMode !== 'engine') return false;
         if (reset || !state.analysisPosition.active) {
+            stopAnalysisReplay({ render: false });
             state.analysisPosition.load(state.session.game.fen());
             state.analysisRevision += 1;
         }
@@ -276,6 +370,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         $('egt-analysis-tools').hidden = !unlocked;
         if (!unlocked) stopTrainingTools({ restore: true });
         else if (state.activeTab === 'analysis' && state.activeAnalysisMode === 'engine') enterManualAnalysis();
+        renderAnalysisNavigation();
     }
 
     function clearEngineOutput() {
@@ -416,14 +511,17 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
 
     async function handleAnalysisMove({ from, to, promotion }) {
         if (!manualAnalysisReady() || state.movePending) return;
+        stopAnalysisReplay();
         const revision = state.analysisRevision;
         const piece = board.getPieceAt(from);
         let selectedPromotion = promotion;
         if (!selectedPromotion && piece?.type === 'P' && (to[1] === '1' || to[1] === '8')) {
             state.movePending = true;
             board.setInteractive(false);
+            renderAnalysisNavigation();
             selectedPromotion = await choosePromotion();
             state.movePending = false;
+            renderAnalysisNavigation();
             if (revision !== state.analysisRevision || !selectedPromotion || !manualAnalysisReady()) {
                 if (revision === state.analysisRevision && manualAnalysisReady()) board.setInteractive(true);
                 return;
@@ -435,6 +533,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
             $('egt-analysis-feedback').textContent = 'Illegal move rejected. The analysis position is unchanged.';
             return;
         }
+        state.analysisRevision += 1;
         const engineWasActive = state.analysisActive;
         if (engineWasActive) {
             engine.stop();
@@ -443,7 +542,9 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         }
         renderManualAnalysisPosition(result.move);
         board.setInteractive(true);
-        $('egt-analysis-feedback').textContent = `${result.turn === 'w' ? 'White' : 'Black'} to move. Explore another legal continuation.`;
+        $('egt-analysis-feedback').textContent = result.truncated
+            ? `New continuation started. ${result.turn === 'w' ? 'White' : 'Black'} to move.`
+            : `${result.turn === 'w' ? 'White' : 'Black'} to move. Explore another legal continuation.`;
         if (engineWasActive) analyzeManualPosition();
     }
 
@@ -616,6 +717,20 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         state.orientation = state.orientation === 'white' ? 'black' : 'white';
         board.setOrientation(state.orientation);
     }, { signal });
+    $('egt-nav-first').addEventListener('click', () => { navigateAnalysis(0); }, { signal });
+    $('egt-nav-previous').addEventListener('click', () => {
+        const snapshot = state.analysisPosition.snapshot();
+        if (snapshot) navigateAnalysis(snapshot.cursor - 1);
+    }, { signal });
+    $('egt-nav-play').addEventListener('click', toggleAnalysisReplay, { signal });
+    $('egt-nav-next').addEventListener('click', () => {
+        const snapshot = state.analysisPosition.snapshot();
+        if (snapshot) navigateAnalysis(snapshot.cursor + 1);
+    }, { signal });
+    $('egt-nav-last').addEventListener('click', () => {
+        const snapshot = state.analysisPosition.snapshot();
+        if (snapshot) navigateAnalysis(snapshot.lastIndex);
+    }, { signal });
     $('egt-next').addEventListener('click', () => { switchTab('training'); void nextPuzzle(); }, { signal });
     $('egt-retry').addEventListener('click', retryPuzzle, { signal });
     $('egt-hint').addEventListener('click', () => {
@@ -711,6 +826,11 @@ export function unmountEndgamePuzzleDatabasePage() {
     if (!mounted) return false;
     const current = mounted;
     mounted = null;
+    if (current.state.analysisReplayTimer !== null) {
+        current.window.clearTimeout?.(current.state.analysisReplayTimer);
+        current.state.analysisReplayTimer = null;
+        current.state.analysisReplaying = false;
+    }
     current.abort.abort();
     current.engine.stop();
     current.engineMatch.stop({ notify: false });

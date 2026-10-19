@@ -59,3 +59,45 @@ test('manual exploration cannot mutate the canonical puzzle session', () => {
     assert.deepEqual(session.game.history(), canonicalHistory);
     assert.notEqual(analysis.fen, canonicalFen);
 });
+
+test('analysis navigation reconstructs every historical FEN', () => {
+    const analysis = new EndgameAnalysisPosition();
+    const origin = analysis.load(solvedSession().game.fen()).fen;
+    const afterBlack = analysis.attempt({ from: 'f3', to: 'e2' }).fen;
+    const afterWhite = analysis.attempt({ from: 'a3', to: 'e3' }).fen;
+    const afterSecondBlack = analysis.attempt({ from: 'e2', to: 'd2' }).fen;
+
+    assert.deepEqual([origin, afterBlack, afterWhite, afterSecondBlack], [
+        '8/8/8/8/8/R4k2/8/6K1 b - - 2 2',
+        '8/8/8/8/8/R7/4k3/6K1 w - - 3 3',
+        '8/8/8/8/8/4R3/4k3/6K1 b - - 4 3',
+        '8/8/8/8/8/4R3/3k4/6K1 w - - 5 4',
+    ]);
+    assert.equal(analysis.snapshot().positionCount, 4);
+    assert.equal(analysis.navigate(0).fen, origin);
+    assert.equal(analysis.navigate(1).fen, afterBlack);
+    assert.equal(analysis.navigate(2).fen, afterWhite);
+    assert.equal(analysis.navigate(3).fen, afterSecondBlack);
+    assert.equal(analysis.snapshot().atEnd, true);
+    assert.equal(analysis.navigate(-1), null);
+    assert.equal(analysis.navigate(4), null);
+});
+
+test('a legal move after rewind truncates the abandoned continuation', () => {
+    const analysis = new EndgameAnalysisPosition();
+    analysis.load(solvedSession().game.fen());
+    analysis.attempt({ from: 'f3', to: 'e2' });
+    analysis.attempt({ from: 'a3', to: 'e3' });
+    analysis.attempt({ from: 'e2', to: 'd2' });
+
+    analysis.navigate(1);
+    const branch = analysis.attempt({ from: 'a3', to: 'a4' });
+
+    assert.equal(branch.ok, true);
+    assert.equal(branch.truncated, 2);
+    assert.equal(branch.cursor, 2);
+    assert.equal(branch.lastIndex, 2);
+    assert.equal(analysis.snapshot().positionCount, 3);
+    assert.equal(analysis.snapshot().history.at(-1).san, 'Ra4');
+    assert.equal(analysis.navigate(3), null);
+});

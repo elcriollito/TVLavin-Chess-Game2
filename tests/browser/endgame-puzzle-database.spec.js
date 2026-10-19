@@ -162,6 +162,7 @@ test('training keeps analysis locked, records a miss once, and isolates engine e
     await page.locator('#egt-tab-analysis').click();
     await expect(page.locator('#egt-analysis-lock')).toBeVisible();
     await expect(page.locator('#egt-analysis-tools')).toBeHidden();
+    await expect(page.locator('#egt-analysis-navigation')).toBeHidden();
 
     await page.locator('#egt-tab-training').click();
     await playMove(page, 'd1', 'd2');
@@ -251,6 +252,130 @@ test('completed puzzles support Quiet Drag analysis for both sides with Stockfis
     await expect(page.locator('#egt-failed')).toHaveText('0');
 });
 
+test('analysis navigation reconstructs FENs, resynchronizes Stockfish, and truncates after rewind', async ({ page }) => {
+    await page.addInitScript(() => {
+        const NativeWorker = window.Worker;
+        window.__egtNavigationWorkers = { created: 0, terminated: 0, commands: [] };
+        window.Worker = class TrackedWorker extends NativeWorker {
+            constructor(...args) {
+                super(...args);
+                this.__isStockfish = String(args[0]).includes('/assets/vendor/stockfish/');
+                if (this.__isStockfish) window.__egtNavigationWorkers.created += 1;
+            }
+            postMessage(command, ...rest) {
+                if (this.__isStockfish) window.__egtNavigationWorkers.commands.push(String(command));
+                return super.postMessage(command, ...rest);
+            }
+            terminate() {
+                if (this.__isStockfish) window.__egtNavigationWorkers.terminated += 1;
+                return super.terminate();
+            }
+        };
+    });
+    await openTrainer(page, [], ANALYSIS_ENDGAME);
+    await page.locator('#egt-tab-training').click();
+    await playMove(page, 'a1', 'a3');
+    await page.locator('#egt-tab-analysis').click();
+
+    const navigation = page.locator('#egt-analysis-navigation');
+    await expect(navigation).toBeVisible();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 1');
+    await expect(page.locator('#egt-nav-first')).toHaveAttribute('title', 'First position');
+    await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-label', 'Play automatic replay');
+
+    await dragMove(page, 'f3', 'e2');
+    await dragMove(page, 'a3', 'e3');
+    await dragMove(page, 'e2', 'd2');
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 4 of 4');
+    expect(await page.evaluate(() => window.__egtNavigationWorkers.created)).toBe(0);
+
+    await page.locator('#egt-nav-first').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 4');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'f3');
+    await page.locator('#egt-nav-last').click();
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'd2');
+    await page.locator('#egt-nav-previous').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 4');
+    await page.locator('#egt-nav-first').click();
+    await page.locator('#egt-nav-next').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 4');
+
+    await page.locator('#egt-engine-toggle').click();
+    await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
+    const workersBeforeNavigation = await page.evaluate(() => window.__egtNavigationWorkers.created);
+    await page.locator('#egt-nav-next').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 4');
+    await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
+    await expect.poll(() => page.evaluate(() => window.__egtNavigationWorkers.created)).toBeGreaterThan(workersBeforeNavigation);
+    expect(await page.evaluate(() => window.__egtNavigationWorkers.commands.includes(
+        'position fen 8/8/8/8/8/4R3/4k3/6K1 b - - 4 3',
+    ))).toBe(true);
+    await page.locator('#egt-nav-last').click();
+    await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
+    await page.locator('#egt-engine-toggle').click();
+    const workersWithEngineOff = await page.evaluate(() => window.__egtNavigationWorkers.created);
+
+    await page.locator('#egt-nav-previous').click();
+    await page.locator('#egt-nav-previous').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 4');
+    await dragMove(page, 'a3', 'a4');
+    await expect(page.locator('#egt-analysis-feedback')).toContainText('New continuation started');
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 3');
+    await expect(page.locator('#egt-nav-next')).toBeDisabled();
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="wR"]')).toHaveAttribute('data-square', 'a4');
+    expect(await page.evaluate(() => window.__egtNavigationWorkers.created)).toBe(workersWithEngineOff);
+    const lifecycle = await page.evaluate(() => window.__egtNavigationWorkers);
+    expect(lifecycle.terminated).toBe(lifecycle.created);
+    await expect(page.locator('#egt-solved')).toHaveText('1');
+    await expect(page.locator('#egt-failed')).toHaveText('0');
+});
+
+test('automatic replay pauses, reaches the final position, and cleans up when Analysis closes', async ({ page }) => {
+    await openTrainer(page, [], ANALYSIS_ENDGAME);
+    await page.locator('#egt-tab-training').click();
+    await playMove(page, 'a1', 'a3');
+    await page.locator('#egt-tab-analysis').click();
+    await playMove(page, 'f3', 'e2');
+    await playMove(page, 'a3', 'e3');
+    await playMove(page, 'e2', 'd2');
+    await page.locator('#egt-nav-first').click();
+
+    await page.locator('#egt-nav-play').click();
+    await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 4', { timeout: 2_000 });
+    await page.locator('#egt-nav-play').click();
+    await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'false');
+    await page.waitForTimeout(850);
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 4');
+
+    await page.locator('#egt-nav-play').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 4 of 4', { timeout: 2_500 });
+    await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'd2');
+
+    await page.locator('#egt-nav-play').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 4');
+    await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#egt-tab-training').click();
+    await expect(page.locator('#egt-analysis-navigation')).toBeHidden();
+    await page.waitForTimeout(850);
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'f3');
+    await page.locator('#egt-tab-analysis').click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 1');
+    await expect(page.locator('#egt-nav-play')).toBeDisabled();
+
+    await playMove(page, 'f3', 'e2');
+    await playMove(page, 'a3', 'e3');
+    await page.locator('#egt-nav-first').click();
+    await page.locator('#egt-nav-play').click();
+    await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#egt-next').click();
+    await expect(page.locator('#egt-prompt')).toHaveText('Find the best move');
+    await page.waitForTimeout(850);
+    await expect(page.locator('#egt-analysis-navigation')).toBeHidden();
+    await expect(page.locator('#egt-puzzle-id')).not.toHaveText('Puzzle analysisRook');
+});
+
 test('explicit abandonment unlocks unscored analysis without a second result', async ({ page }) => {
     await openTrainer(page, [], ANALYSIS_ENDGAME);
     await page.locator('#egt-tab-analysis').click();
@@ -269,6 +394,7 @@ test('explicit abandonment unlocks unscored analysis without a second result', a
 test('mobile tap analysis remains legal and interactive after solve and flip', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openTrainer(page, [], ANALYSIS_ENDGAME);
+    const boardBefore = await page.locator('#egt-board').boundingBox();
     await page.locator('#egt-tab-training').click();
     await playMove(page, 'a1', 'a3');
     await page.locator('#egt-tab-analysis').click();
@@ -277,6 +403,12 @@ test('mobile tap analysis remains legal and interactive after solve and flip', a
     await page.locator('#egt-flip').click();
     await playMove(page, 'a3', 'e3');
     await expect(page.locator('#egt-side-to-move')).toHaveText('Black to move · Analysis');
+    const boardAfter = await page.locator('#egt-board').boundingBox();
+    const navigation = await page.locator('#egt-analysis-navigation').boundingBox();
+    const footer = await page.locator('.endgame-puzzle__workspace-foot').boundingBox();
+    expect(Math.abs((boardBefore?.width || 0) - (boardAfter?.width || 0))).toBeLessThanOrEqual(1);
+    expect((navigation?.y || 0) + (navigation?.height || 0)).toBeLessThanOrEqual((footer?.y || 0) + 1);
+    await expect(page.locator('.endgame-puzzle__analysis-navigation-controls button')).toHaveCount(5);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 });
 
@@ -321,6 +453,7 @@ test('Engine vs Engine starts from the canonical puzzle result, not the manual a
     await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'e2');
 
     await page.locator('#egt-analysis-match-tab').click();
+    await expect(page.locator('#egt-analysis-navigation')).toBeHidden();
     await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('aria-disabled', 'true');
     await page.locator('#egt-match-start').click();
     await expect(page.locator('#egt-match-stop')).toBeEnabled();

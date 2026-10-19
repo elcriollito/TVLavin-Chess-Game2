@@ -137,6 +137,16 @@
                             </div>
                         </section>
                     </div>
+                    <nav id="egt-analysis-navigation" class="endgame-puzzle__analysis-navigation" aria-label="Analysis move navigation" hidden>
+                        <div class="endgame-puzzle__analysis-navigation-controls">
+                            <button type="button" id="egt-nav-first" aria-label="First position" title="First position">|&lt;</button>
+                            <button type="button" id="egt-nav-previous" aria-label="Previous move" title="Previous move">&lt;</button>
+                            <button type="button" id="egt-nav-play" aria-label="Play automatic replay" title="Play automatic replay" aria-pressed="false"><span aria-hidden="true">▶</span></button>
+                            <button type="button" id="egt-nav-next" aria-label="Next move" title="Next move">&gt;</button>
+                            <button type="button" id="egt-nav-last" aria-label="Last position" title="Last position">&gt;|</button>
+                        </div>
+                        <output id="egt-nav-status" aria-live="polite">Position 1 of 1</output>
+                    </nav>
                     <footer class="endgame-puzzle__workspace-foot"><p id="egt-session-policy">Session only · Account puzzle rating is unchanged</p><button type="button" id="egt-next">Next puzzle</button></footer>
                 </section>
             </div>

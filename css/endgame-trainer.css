@@ -533,7 +533,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page .endgame-puzzle__board-head button { width: auto; min-height: 34px; padding: 5px 10px; }
 .endgame-puzzle__board-frame { width: 100%; aspect-ratio: 1; overflow: hidden; border: 1px solid #51627e; border-radius: 10px; background: #080f1c; box-shadow: 0 20px 42px #02071366; }
 .endgame-puzzle__board-frame .caissa-board { width: 100%; height: 100%; }
-.endgame-puzzle__workspace { min-width: 0; height: calc(var(--egt-board-size) + 76px); min-height: 540px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--egt-border); border-radius: 14px; background: linear-gradient(180deg, var(--egt-surface-raised), var(--egt-surface)); box-shadow: 0 18px 44px #02071340; }
+.endgame-puzzle__workspace { min-width: 0; height: calc(var(--egt-board-size) + 76px); min-height: 540px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; overflow: hidden; border: 1px solid var(--egt-border); border-radius: 14px; background: linear-gradient(180deg, var(--egt-surface-raised), var(--egt-surface)); box-shadow: 0 18px 44px #02071340; }
 .endgame-puzzle__workspace-head { border-bottom: 1px solid var(--egt-border); }
 .endgame-puzzle__selection { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 8px 14px; }
 .endgame-puzzle__selection span { color: var(--et-muted); font-size: .78rem; text-align: right; }
@@ -585,6 +585,11 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-puzzle__engine-output p { margin: 8px 0 0; color: var(--et-muted); overflow-wrap: anywhere; }
 .endgame-puzzle__match-actions { display: flex; gap: 6px; }
 .endgame-trainer-page .endgame-puzzle__match-actions button { width: auto; min-width: 64px; }
+.endgame-puzzle__analysis-navigation { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 46px; padding: 5px 12px; border-top: 1px solid var(--egt-border); background: #111d31; }
+.endgame-puzzle__analysis-navigation-controls { display: grid; grid-template-columns: repeat(5, 36px); gap: 5px; }
+.endgame-trainer-page .endgame-puzzle__analysis-navigation button { width: 36px; min-width: 36px; min-height: 34px; padding: 3px; border-color: #465d85; border-radius: 7px; background: #182844; color: #f3f6fb; font-size: .88rem; font-weight: 850; line-height: 1; }
+.endgame-trainer-page .endgame-puzzle__analysis-navigation button[aria-pressed="true"] { border-color: var(--egt-gold); background: #2b3450; color: var(--egt-gold); }
+.endgame-puzzle__analysis-navigation output { color: var(--et-muted); font-size: .72rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .endgame-puzzle__workspace-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 8px 12px; border-top: 1px solid var(--egt-border); background: #0c1525; }
 .endgame-puzzle__workspace-foot p { margin: 0; color: var(--et-muted); font-size: .72rem; }
 .endgame-trainer-page .endgame-puzzle__workspace-foot button { width: auto; min-width: 126px; background: #20345a; color: #fff; font-weight: 850; }
@@ -618,6 +623,9 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     .endgame-puzzle__details, .endgame-puzzle__engine-head { align-items: stretch; flex-direction: column; }
     .endgame-trainer-page .endgame-puzzle__engine-head > button { width: 100%; }
     .endgame-puzzle__match-actions button { flex: 1; min-width: 0; }
+    .endgame-puzzle__analysis-navigation { padding-inline: 8px; }
+    .endgame-puzzle__analysis-navigation-controls { grid-template-columns: repeat(5, 42px); gap: 4px; }
+    .endgame-trainer-page .endgame-puzzle__analysis-navigation button { width: 42px; min-width: 42px; min-height: 42px; }
     .endgame-puzzle__workspace-foot { position: sticky; bottom: 0; }
 }
 @media (max-width: 390px) {
@@ -627,6 +635,10 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     .endgame-puzzle__workspace-body > [role="tabpanel"] { padding: 12px; }
     .endgame-puzzle__analysis-modes { margin: -12px -12px 12px; }
     .endgame-puzzle__tabs button { padding-inline: 5px; }
+    .endgame-puzzle__analysis-navigation { gap: 6px; }
+    .endgame-puzzle__analysis-navigation-controls { flex: 1; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .endgame-trainer-page .endgame-puzzle__analysis-navigation button { width: 100%; min-width: 0; }
+    .endgame-puzzle__analysis-navigation output { font-size: .66rem; }
     .endgame-puzzle__workspace-foot { align-items: stretch; flex-direction: column; }
     .endgame-trainer-page .endgame-puzzle__workspace-foot button { width: 100%; }
 }
