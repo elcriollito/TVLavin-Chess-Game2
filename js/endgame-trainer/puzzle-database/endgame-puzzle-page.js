@@ -256,7 +256,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         const snapshot = state.analysisPosition.snapshot();
         if (!snapshot) return;
         board.setPosition(snapshot.fen, { animate: false });
-        showLastMove(move || snapshot.history.at(-1) || state.session?.game.history({ verbose: true }).at(-1));
+        showLastMove(snapshot.atStart ? null : (move || snapshot.history.at(-1)));
         renderAnalysisMoveList(snapshot);
         renderAnalysisNavigation();
         $('egt-side-to-move').textContent = `${snapshot.turn === 'w' ? 'White' : 'Black'} to move · Analysis`;

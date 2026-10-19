@@ -112,6 +112,20 @@ async function dragMove(page, from, to, { assertQuietDrag = false } = {}) {
     await expect(page.locator('#egt-board .caissa-board')).not.toHaveAttribute('data-quiet-drag-active', 'true');
 }
 
+async function expectLastMove(page, from = null, to = null) {
+    const highlights = page.locator('#egt-board .caissa-board__highlight--last');
+    const arrows = page.locator('#egt-board .caissa-board__arrow-line');
+    if (!from || !to) {
+        await expect(highlights).toHaveCount(0);
+        await expect(arrows).toHaveCount(0);
+        return;
+    }
+    await expect(highlights).toHaveCount(2);
+    await expect(page.locator(`#egt-board .caissa-board__highlight--last[data-square="${from}"]`)).toBeVisible();
+    await expect(page.locator(`#egt-board .caissa-board__highlight--last[data-square="${to}"]`)).toBeVisible();
+    await expect(arrows).toHaveCount(1);
+}
+
 test('canonical Endgame Trainer uses catalog themes, generated counts and strict intersections', async ({ page }) => {
     const requests = [];
     await page.setViewportSize({ width: 1366, height: 768 });
@@ -339,6 +353,7 @@ test('analysis navigation reconstructs FENs, resynchronizes Stockfish, and trunc
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 1');
     await expect(page.locator('#egt-nav-first')).toHaveAttribute('title', 'First position');
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-label', 'Play automatic replay');
+    await expectLastMove(page);
 
     await dragMove(page, 'f3', 'e2');
     await dragMove(page, 'a3', 'e3');
@@ -347,18 +362,27 @@ test('analysis navigation reconstructs FENs, resynchronizes Stockfish, and trunc
     await expect(page.locator('#egt-analysis-move-list > li')).toHaveCount(2);
     await expect(page.locator('#egt-analysis-move-list .move-number')).toHaveText(['2...', '3.']);
     await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Kd2');
+    await expectLastMove(page, 'e2', 'd2');
     expect(await page.evaluate(() => window.__egtNavigationWorkers.created)).toBe(0);
 
     await page.locator('#egt-nav-first').click();
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 4');
     await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'f3');
+    await expectLastMove(page);
     await page.locator('#egt-nav-last').click();
     await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'd2');
+    await expectLastMove(page, 'e2', 'd2');
     await page.locator('#egt-nav-previous').click();
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 4');
+    await expectLastMove(page, 'a3', 'e3');
     await page.locator('#egt-nav-first').click();
+    await expectLastMove(page);
     await page.locator('#egt-nav-next').click();
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 4');
+    await expectLastMove(page, 'f3', 'e2');
+    await page.locator('#egt-flip').click();
+    await expectLastMove(page, 'f3', 'e2');
+    await page.locator('#egt-flip').click();
 
     await page.locator('#egt-engine-toggle').click();
     await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
@@ -366,6 +390,7 @@ test('analysis navigation reconstructs FENs, resynchronizes Stockfish, and trunc
     await page.locator('#egt-nav-next').click();
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 4');
     await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
+    await expectLastMove(page, 'a3', 'e3');
     await expect.poll(() => page.evaluate(() => window.__egtNavigationWorkers.created)).toBeGreaterThan(workersBeforeNavigation);
     expect(await page.evaluate(() => window.__egtNavigationWorkers.commands.includes(
         'position fen 8/8/8/8/8/4R3/4k3/6K1 b - - 4 3',
@@ -383,6 +408,7 @@ test('analysis navigation reconstructs FENs, resynchronizes Stockfish, and trunc
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 3');
     await expect(page.locator('#egt-nav-next')).toBeDisabled();
     await expect(page.locator('#egt-board .caissa-board__piece[data-piece="wR"]')).toHaveAttribute('data-square', 'a4');
+    await expectLastMove(page, 'a3', 'a4');
     await expect(page.locator('#egt-analysis-move-list')).not.toContainText('Re3+');
     await expect(page.locator('#egt-analysis-move-list')).not.toContainText('Kd2');
     await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Ra4');
@@ -402,11 +428,13 @@ test('automatic replay pauses, reaches the final position, and cleans up when An
     await playMove(page, 'a3', 'e3');
     await playMove(page, 'e2', 'd2');
     await page.locator('#egt-nav-first').click();
+    await expectLastMove(page);
 
     await page.locator('#egt-nav-play').click();
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 4', { timeout: 2_000 });
     await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Ke2');
+    await expectLastMove(page, 'f3', 'e2');
     await page.locator('#egt-nav-play').click();
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'false');
     await page.waitForTimeout(850);
@@ -417,10 +445,12 @@ test('automatic replay pauses, reaches the final position, and cleans up when An
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'd2');
     await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Kd2');
+    await expectLastMove(page, 'e2', 'd2');
 
     await page.locator('#egt-nav-play').click();
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 4');
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'true');
+    await expectLastMove(page);
     await page.locator('#egt-tab-training').click();
     await expect(page.locator('#egt-analysis-navigation')).toBeHidden();
     await page.waitForTimeout(850);
@@ -434,11 +464,17 @@ test('automatic replay pauses, reaches the final position, and cleans up when An
     await page.locator('#egt-nav-first').click();
     await page.locator('#egt-nav-play').click();
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 3', { timeout: 2_000 });
+    await expectLastMove(page, 'f3', 'e2');
     await page.locator('#egt-next').click();
     await expect(page.locator('#egt-prompt')).toHaveText('Find the best move');
     await page.waitForTimeout(850);
     await expect(page.locator('#egt-analysis-navigation')).toBeHidden();
     await expect(page.locator('#egt-puzzle-id')).not.toHaveText('Puzzle analysisRook');
+    await expect(page.locator('#egt-board .caissa-board__highlight--last')).toHaveCount(2);
+    await expect(page.locator('#egt-board .caissa-board__arrow-line')).toHaveCount(1);
+    await expect(page.locator('#egt-board .caissa-board__highlight--last[data-square="f3"]')).toHaveCount(0);
+    await expect(page.locator('#egt-board .caissa-board__highlight--last[data-square="e2"]')).toHaveCount(0);
 });
 
 test('explicit abandonment unlocks unscored analysis without a second result', async ({ page }) => {
