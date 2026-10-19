@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b111b">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="Make an animated chess GIF from any valid PGN, or a custom FEN, with position editing, legal moves and animation controls. Free CAISSA GIF Studio.">
+  <title>CAISSA GIF Studio — Create Animated Chess Games</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.2.0">
+  <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
+  <link rel="stylesheet" href="/css/gif-studio.css?v=1.1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="/js/caissa-i18n.js?v=1.0.0" defer></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.2.0" defer></script>
+  <script type="module" src="/js/gif-studio/studio-page.js?v=1.1.0"></script>
+</head>
+<body class="gif-studio-page">
+  <a class="gif-skip" href="#gif-studio-main">Skip to GIF Studio</a>
+  <div class="caissa-standalone-layout gif-layout">
+    <div data-caissa-standalone-sidebar data-active="gif-studio"></div>
+    <main class="caissa-standalone-content gif-main" id="gif-studio-main" data-gif-studio>
+      <header class="gif-page-header">
+        <div>
+          <p class="gif-kicker">CAISSA Tools · Create &amp; share</p>
+          <h1>GIF Studio <span>1.1</span></h1>
+          <p class="gif-tagline">Create a custom position or turn any game into an animated GIF.</p>
+        </div>
+        <span class="gif-private"><i class="fas fa-lock" aria-hidden="true"></i> PGN &amp; FEN stay in your browser</span>
+      </header>
+      <div class="gif-workspace">
+        <section class="gif-board-region" aria-label="Game preview">
+          <div class="gif-board-head">
+            <div class="gif-players"><span data-gif-white>White</span><span class="gif-versus">vs</span><span data-gif-black>Black</span></div>
+            <span class="gif-result" data-gif-result>—</span>
+          </div>
+          <div class="gif-board-wrap">
+            <canvas id="gif-board" width="640" height="640" role="img" aria-label="Chessboard preview. In Setup Position, select a piece or Move tool and use pointer, touch, or keyboard arrows and Enter to edit or record moves." tabindex="0" aria-describedby="gif-board-guide"></canvas>
+            <div class="gif-drag-piece" data-gif-drag-piece aria-hidden="true" hidden></div>
+          </div>
+          <div class="gif-board-note" aria-live="polite"><span data-gif-ply>Starting position</span><span data-gif-count>0 moves</span></div>
+          <p id="gif-board-guide" class="gif-board-guide" data-gif-board-guide>In Setup Position, use the piece palette to place pieces or Move to drag them. Apply a legal position to record moves.</p>
+        </section>
+        <section class="gif-panel" aria-label="GIF creator controls">
+          <div class="gif-panel-head">
+            <div class="gif-tabs" role="tablist" aria-label="GIF Studio tools">
+              <button id="gif-tab-import" type="button" role="tab" aria-controls="gif-panel-import" aria-selected="true" tabindex="0" data-gif-tab="import">Import</button>
+              <button id="gif-tab-style" type="button" role="tab" aria-controls="gif-panel-style" aria-selected="false" tabindex="-1" data-gif-tab="style">Customize</button>
+              <button id="gif-tab-export" type="button" role="tab" aria-controls="gif-panel-export" aria-selected="false" tabindex="-1" data-gif-tab="export">Export</button>
+              <button id="gif-tab-setup" type="button" role="tab" aria-controls="gif-panel-setup" aria-selected="false" tabindex="-1" data-gif-tab="setup">Setup Position</button>
+            </div>
+          </div>
+          <div class="gif-panel-body">
+            <section id="gif-panel-import" role="tabpanel" aria-labelledby="gif-tab-import" data-gif-panel="import">
+              <h2>Import a game or FEN</h2>
+              <p class="gif-help">Paste a FEN to load any valid position, or import a complete PGN. You can record a new line from the FEN in Setup Position.</p>
+              <label for="gif-fen">Position FEN</label>
+              <input id="gif-fen" data-gif-fen type="text" spellcheck="false" autocomplete="off" maxlength="256" placeholder="8/8/4k3/8/3P4/4K3/8/8 w - - 0 1">
+              <button type="button" class="gif-button gif-button-subtle gif-load-fen" data-gif-load-fen>Load FEN &amp; record moves</button>
+              <label for="gif-pgn">Game PGN</label>
+              <textarea id="gif-pgn" data-gif-pgn rows="10" spellcheck="false" autocomplete="off" maxlength="262144" placeholder="[Event &quot;My game&quot;]&#10;[White &quot;Player 1&quot;]&#10;[Black &quot;Player 2&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6 ..."></textarea>
+              <div class="gif-import-actions">
+                <button type="button" class="gif-button gif-button-primary" data-gif-load>Load PGN</button>
+                <button type="button" class="gif-button gif-button-subtle" data-gif-open><i class="fas fa-folder-open" aria-hidden="true"></i> Open .pgn</button>
+                <input id="gif-file" data-gif-file type="file" accept=".pgn,.txt,text/plain,application/x-chess-pgn" hidden>
+              </div>
+              <button type="button" class="gif-link-button" data-gif-example>Try the Paul Morphy example game →</button>
+              <p class="gif-fineprint">Game URLs are planned for a later release. For now, copy the PGN from Chess.com, Lichess or CAISSA.</p>
+            </section>
+            <section id="gif-panel-style" role="tabpanel" aria-labelledby="gif-tab-style" data-gif-panel="style" hidden>
+              <h2>Customize</h2>
+              <p class="gif-help">Changes appear immediately on the preview board.</p>
+              <label for="gif-theme">Board theme</label>
+              <select id="gif-theme" data-gif-theme><option value="green">Classic Green</option><option value="walnut">Warm Walnut</option><option value="blue">Midnight Blue</option></select>
+              <label for="gif-pieces">Piece style</label>
+              <select id="gif-pieces" data-gif-pieces><option value="wikipedia">Classic Staunton</option><option value="symbols">Traditional Symbols</option></select>
+              <label for="gif-orientation">Board orientation</label>
+              <select id="gif-orientation" data-gif-orientation><option value="white">White at bottom</option><option value="black">Black at bottom</option></select>
+              <p class="gif-fineprint">The same board, pieces and orientation appear in the exported GIF.</p>
+            </section>
+            <section id="gif-panel-export" role="tabpanel" aria-labelledby="gif-tab-export" data-gif-panel="export" hidden>
+              <h2>Animation settings</h2>
+              <p class="gif-help">Select the moves you want to share and control the animation speed.</p>
+              <div class="gif-field-grid">
+                <div><label for="gif-start">Start position (ply)</label><input type="number" id="gif-start" data-gif-start min="0" max="0" value="0"></div>
+                <div><label for="gif-end">End position (ply)</label><input type="number" id="gif-end" data-gif-end min="0" max="0" value="0"></div>
+              </div>
+              <p class="gif-fineprint">0 = starting position; 1 = first half-move. Include only your favorite combination if you prefer.</p>
+              <label for="gif-speed">Time per move</label>
+              <select id="gif-speed" data-gif-speed><option value="500">Fast · 0.5 seconds</option><option value="850" selected>Normal · 0.85 seconds</option><option value="1300">Slow · 1.3 seconds</option><option value="2000">Study · 2 seconds</option></select>
+              <label for="gif-size">GIF size</label>
+              <select id="gif-size" data-gif-size><option value="384">Compact · 384 × 384</option><option value="512" selected>Standard · 512 × 512</option></select>
+              <p class="gif-fineprint">Animated GIFs loop automatically. Long games can produce large files.</p>
+            </section>
+            <section id="gif-panel-setup" role="tabpanel" aria-labelledby="gif-tab-setup" data-gif-panel="setup" hidden>
+              <h2>Setup Position</h2>
+              <p class="gif-help" data-gif-setup-hint>Create a custom endgame or any position. Place pieces freely, then apply a legal position and record moves on the board.</p>
+              <div class="gif-setup-edit" data-gif-setup-edit>
+                <label for="gif-setup-preset">Start with</label>
+                <div class="gif-preset-row"><select id="gif-setup-preset" data-gif-setup-preset><option value="start">Starting position</option><option value="pawn">Pawn endgame</option><option value="rook">Rook endgame</option><option value="empty">Empty board</option></select><button type="button" class="gif-button gif-button-subtle" data-gif-preset-load>Use</button></div>
+                <fieldset class="gif-tool-palette">
+                  <legend>Piece tool</legend>
+                  <div class="gif-tool-row">
+                    <button type="button" data-gif-setup-tool="move" class="is-selected" aria-pressed="true"><i class="fas fa-arrows-alt" aria-hidden="true"></i> Move</button>
+                    <button type="button" data-gif-setup-tool="erase" aria-pressed="false"><i class="fas fa-eraser" aria-hidden="true"></i> Erase</button>
+                  </div>
+                  <div class="gif-palette-group"><span>Black</span><div class="gif-palette-pieces" role="group" aria-label="Black pieces">
+                    <button type="button" data-gif-setup-piece="bP" aria-label="Place black pawn"><img src="/img/chesspieces/wikipedia/bP.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="bB" aria-label="Place black bishop"><img src="/img/chesspieces/wikipedia/bB.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="bN" aria-label="Place black knight"><img src="/img/chesspieces/wikipedia/bN.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="bR" aria-label="Place black rook"><img src="/img/chesspieces/wikipedia/bR.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="bQ" aria-label="Place black queen"><img src="/img/chesspieces/wikipedia/bQ.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="bK" aria-label="Place black king"><img src="/img/chesspieces/wikipedia/bK.png" alt=""></button>
+                  </div></div>
+                  <div class="gif-palette-group"><span>White</span><div class="gif-palette-pieces" role="group" aria-label="White pieces">
+                    <button type="button" data-gif-setup-piece="wP" aria-label="Place white pawn"><img src="/img/chesspieces/wikipedia/wP.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="wB" aria-label="Place white bishop"><img src="/img/chesspieces/wikipedia/wB.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="wN" aria-label="Place white knight"><img src="/img/chesspieces/wikipedia/wN.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="wR" aria-label="Place white rook"><img src="/img/chesspieces/wikipedia/wR.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="wQ" aria-label="Place white queen"><img src="/img/chesspieces/wikipedia/wQ.png" alt=""></button>
+                    <button type="button" data-gif-setup-piece="wK" aria-label="Place white king"><img src="/img/chesspieces/wikipedia/wK.png" alt=""></button>
+                  </div></div>
+                </fieldset>
+                <div class="gif-setup-row"><label for="gif-setup-turn">Side to move</label><select id="gif-setup-turn" data-gif-setup-turn><option value="w">White to move</option><option value="b">Black to move</option></select></div>
+                <fieldset class="gif-castling"><legend>Castling rights (optional)</legend>
+                  <label><input type="checkbox" data-gif-castling="K"> White O-O</label><label><input type="checkbox" data-gif-castling="Q"> White O-O-O</label>
+                  <label><input type="checkbox" data-gif-castling="k"> Black O-O</label><label><input type="checkbox" data-gif-castling="q"> Black O-O-O</label>
+                </fieldset>
+                <div class="gif-import-actions"><button type="button" class="gif-button gif-button-primary" data-gif-apply-position>Apply position &amp; play moves</button><button type="button" class="gif-button gif-button-subtle" data-gif-setup-clear>Clear board</button><button type="button" class="gif-button gif-button-subtle" data-gif-discard-draft>Discard draft</button></div>
+              </div>
+              <div class="gif-setup-record" data-gif-setup-record hidden>
+                <p class="gif-help">Drag a piece or tap its source and destination to play a <strong>legal move</strong>. Every move appears below and can be exported as a GIF.</p>
+                <div class="gif-import-actions"><button type="button" class="gif-button gif-button-subtle" data-gif-edit-position>Edit position</button><button type="button" class="gif-button gif-button-subtle" data-gif-undo-move>Undo move</button></div>
+                <label for="gif-setup-promotion">Pawn promotion</label><select id="gif-setup-promotion" data-gif-setup-promotion><option value="q">Queen</option><option value="r">Rook</option><option value="b">Bishop</option><option value="n">Knight</option></select>
+              </div>
+              <p class="gif-board-selection" data-gif-selection role="status" aria-live="polite">Select a piece or use Move to rearrange the board.</p>
+              <div class="gif-notation-head"><h3>Moves</h3><span data-gif-moves-count>0 half-moves</span></div>
+              <div class="gif-move-list" data-gif-moves aria-label="Recorded moves"><p class="gif-fineprint">After applying a position, play legal moves on the board to build a line.</p></div>
+              <div class="gif-setup-fen-wrap"><label>Current position FEN</label><output data-gif-setup-fen></output><button type="button" class="gif-link-button" data-gif-copy-fen>Copy FEN</button></div>
+            </section>
+          </div>
+          <footer class="gif-panel-foot">
+            <div class="gif-foot-replay">
+                  <div class="gif-replay" role="group" aria-label="Chess game replay controls">
+                    <button type="button" data-gif-first aria-label="First position" title="First position" disabled><span aria-hidden="true">⏮</span></button>
+                    <button type="button" data-gif-previous aria-label="Previous move" title="Previous move" disabled><span aria-hidden="true">◀</span></button>
+                    <button type="button" data-gif-play class="gif-play" aria-label="Play game" title="Play game" disabled><span data-gif-play-icon aria-hidden="true">▶</span><span data-gif-play-label>Play</span></button>
+                    <button type="button" data-gif-next aria-label="Next move" title="Next move" disabled><span aria-hidden="true">▶</span></button>
+                    <button type="button" data-gif-last aria-label="Final position" title="Final position" disabled><span aria-hidden="true">⏭</span></button>
+                  </div>
+                  <div class="gif-position-range"><label for="gif-position">Position <span data-gif-position-value>0</span></label><input id="gif-position" data-gif-position type="range" min="0" max="1" value="0" disabled></div>
+            </div>
+            <p class="gif-status" data-gif-status role="status" aria-live="polite">Open a PGN or try the example game to begin.</p>
+            <progress data-gif-progress max="100" value="0" hidden aria-label="GIF creation progress"></progress>
+            <button type="button" class="gif-button gif-button-primary gif-create" data-gif-create disabled><i class="fas fa-film" aria-hidden="true"></i> Create GIF</button>
+            <a class="gif-button gif-button-download" data-gif-download hidden download="caissa-chess-game.gif"><i class="fas fa-download" aria-hidden="true"></i> Download GIF</a>
+          </footer>
+        </section>
+      </div>
+      <section class="gif-about" aria-label="About CAISSA GIF Studio">
+        <h2>Make every chess game shareable</h2>
+        <p>Import a PGN or FEN, build a custom position, record moves, and export an animated GIF — free, with no registration or uploads. Created by CAISSA Chess.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

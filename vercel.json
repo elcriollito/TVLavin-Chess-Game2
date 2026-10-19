@@ -79,6 +79,8 @@
     { "source": "/database", "destination": "/database.html" },
     { "source": "/database/eco/:code", "destination": "/database.html" },
     { "source": "/tools/polyglot", "destination": "/polyglot.html" },
+    { "source": "/gif-maker", "destination": "/gif-maker.html" },
+    { "source": "/gif-maker/", "destination": "/gif-maker.html" },
     { "source": "/library", "destination": "/library.html" },
     { "source": "/premium", "destination": "/premium.html" },
     { "source": "/vault", "destination": "/vault.html" },
