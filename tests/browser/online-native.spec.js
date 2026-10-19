@@ -105,6 +105,8 @@ test('signed-in player finds a match and receives a canonical move acknowledgeme
     await page.goto('/online');
     await expect(page.getByRole('heading', { name: 'Online Chess' })).toHaveCount(1);
     await expect(page.locator('#connection-label')).toHaveText('Connected');
+    await expect(page.locator('#workspace-title')).toHaveText('Find a game');
+    await expect(page.locator('#player-top .player-name')).toHaveText('Ready to play');
     await expect(page.locator('#online-board .caissa-board__piece')).toHaveCount(32);
     const lobbyBoardBox = await page.locator('#board-shell').boundingBox();
     await page.getByRole('button', { name: 'Start Game' }).click();
@@ -112,6 +114,7 @@ test('signed-in player finds a match and receives a canonical move acknowledgeme
     await expect(page.locator('#turn-copy')).toHaveText('Your turn');
     await expect(page.locator('.game-status-line')).toHaveCount(0);
     await expect(page.locator('#player-top .player-name')).toHaveText('Rival');
+    await expect(page.locator('#workspace-title')).toHaveText('Playing Rival');
     const liveBoardBox = await page.locator('#board-shell').boundingBox();
     expect(Math.abs(liveBoardBox.width - lobbyBoardBox.width)).toBeLessThan(1);
     expect(Math.abs(liveBoardBox.height - lobbyBoardBox.height)).toBeLessThan(1);
@@ -186,6 +189,7 @@ test('visitor sees the normal board and sign-in appears only after an explicit p
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/online');
     await expect(page.locator('#connection-label')).toHaveText('Sign in required');
+    await expect(page.locator('#player-top .player-name')).toHaveText('Sign in to play');
     await expect(page.locator('#online-board .caissa-board__piece')).toHaveCount(32);
     await expect(page.locator('#board-curtain')).toBeHidden();
     await expect(page.locator('#signin-dialog')).toBeHidden();
@@ -297,7 +301,9 @@ test('disabled capabilities read as Casual and unavailable instead of internal c
     await expect(page.locator('#games-open-unavailable')).toContainText('Public joinable games are not enabled in this version.');
     await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
     await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tables / Offers' }).click();
-    await expect(page.locator('#offers-state')).toContainText('Public offers are unavailable');
+    await expect(page.locator('#offers-status')).toHaveText('Unavailable');
+    await expect(page.locator('#offers-state')).toContainText('Public offers are off');
+    await expect(page.locator('.offers-table th')).toHaveCount(4);
     await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tournaments' }).click();
     await expect(page.locator('#tournaments-coming-soon')).toContainText('Coming Soon');
 });
@@ -355,7 +361,8 @@ test('Lobby replaces the top-level Players tab and preserves its selected subtab
     await expect(page.locator('#players-list')).toContainText('Rival');
 
     await lobbyTabs.getByRole('tab', { name: 'Tables / Offers' }).click();
-    await expect(page.locator('#offers-state')).toContainText('Public offers are unavailable');
+    await expect(page.locator('#offers-status')).toHaveText('Unavailable');
+    await expect(page.locator('#offers-state')).toContainText('no Join yet');
     await expect(page.locator('#offers-table-body tr')).toHaveCount(0);
     await mainTabs.getByRole('tab', { name: 'Games' }).click();
     await mainTabs.getByRole('tab', { name: 'Lobby' }).click();
@@ -375,10 +382,13 @@ test('Lobby navigation preserves an active game, board instance, and obvious ret
     await page.getByRole('button', { name: 'Start Game' }).click();
     await expect(page.locator('#game-view')).toBeVisible();
     await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await expect(page.locator('#workspace-title')).toHaveText('Lobby');
+    await expect(page.getByRole('heading', { name: 'Lobby', exact: true })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Return to game' })).toBeVisible();
     await expect(page.locator('#player-top .player-name')).toHaveText('Rival');
     await page.getByRole('button', { name: 'Return to game' }).click();
     await expect(page.locator('#game-view')).toBeVisible();
+    await expect(page.locator('#workspace-title')).toHaveText('Playing Rival');
     expect(await page.evaluate(() => window.__lobbyHubBoard === document.getElementById('online-board'))).toBe(true);
     expect(harness.commandTypes.filter(type => type === 'queue.join')).toHaveLength(1);
     expect(harness.commandTypes.filter(type => type === 'queue.leave')).toHaveLength(0);
@@ -390,23 +400,79 @@ test('changing tabs does not cancel an active matchmaking search', async ({ page
     await page.goto('/online');
     await page.getByRole('button', { name: 'Start Game' }).click();
     await expect(page.locator('#queue-view')).toBeVisible();
+    await expect(page.locator('#workspace-title')).toHaveText('Finding an opponent');
+    await expect(page.locator('#player-top .player-name')).toHaveText('Waiting for opponent');
     await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await expect(page.locator('#workspace-title')).toHaveText('Lobby');
     await page.getByRole('tab', { name: 'Games', exact: true }).click();
+    await expect(page.locator('#workspace-title')).toHaveText('Games');
     await page.getByRole('tab', { name: 'New Game' }).click();
+    await expect(page.locator('#workspace-title')).toHaveText('Finding an opponent');
     await expect(page.locator('#queue-view')).toBeVisible();
     expect(harness.commandTypes.filter(type => type === 'queue.join')).toHaveLength(1);
     expect(harness.commandTypes.filter(type => type === 'queue.leave')).toHaveLength(0);
 });
 
 test('local offers fixtures are explicitly labeled and never expose a Join action', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.state.players = [
+        { clerkId: 'fixture_nova', displayName: 'FixtureNova', status: 'online', rating: 1824, pool: 'rapid' },
+        { clerkId: 'fixture_guest', displayName: 'FixtureGuest', status: 'seeking', rating: null, pool: 'blitz' }
+    ];
     await page.goto('/online?fixtures=lobby');
     await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await expect(page.locator('#workspace-title')).toHaveText('Lobby');
+    await expect(page.locator('#players-fixture-badge')).toHaveText('Local test data');
+    await expect(page.locator('#players-fixture-badge')).toBeVisible();
+    await expect(page.locator('#players-list .player-row')).toHaveCount(2);
     await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tables / Offers' }).click();
     await expect(page.locator('#offers-fixture-banner')).toContainText('Local fixture');
-    await expect(page.locator('#offers-fixture-banner')).toContainText('no games can be joined');
+    await expect(page.locator('#offers-fixture-banner')).toContainText('no Join');
     await expect(page.locator('#offers-table-body tr')).toHaveCount(3);
     await expect(page.locator('#offers-table-wrap').getByRole('button')).toHaveCount(0);
     await expect(page.locator('#offers-status')).toHaveText('Local fixture');
+
+    harness.state = { ...harness.state, players: [] };
+    await page.goto('/online');
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await expect(page.locator('#players-fixture-badge')).toBeHidden();
+    await expect(page.locator('#players-list .player-row')).toHaveCount(0);
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tables / Offers' }).click();
+    await expect(page.locator('#offers-table-body tr')).toHaveCount(0);
+    await expect(page.locator('#offers-status')).toHaveText('Unavailable');
+});
+
+test('offers directory begins directly below its subtabs at desktop, short desktop, and mobile sizes', async ({ page }) => {
+    const viewports = [
+        { width: 1440, height: 900 },
+        { width: 1280, height: 720 },
+        { width: 390, height: 844 }
+    ];
+    for (const viewport of viewports) {
+        await page.setViewportSize(viewport);
+        await page.goto('/online?fixtures=lobby');
+        await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+        await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tables / Offers' }).click();
+        const geometry = await page.evaluate(() => {
+            const subtabs = document.querySelector('.lobby-subtabs').getBoundingClientRect();
+            const table = document.querySelector('#offers-table-wrap').getBoundingClientRect();
+            const header = document.querySelector('.offers-table thead').getBoundingClientRect();
+            const footer = document.querySelector('.workspace-foot').getBoundingClientRect();
+            return {
+                subtabToTableGap: table.top - subtabs.bottom,
+                headerOffset: header.top - table.top,
+                horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                footerVisible: footer.height > 0,
+                deadBlocks: document.querySelectorAll('#lobby-panel-offers .lobby-section-heading, #lobby-panel-offers .lobby-section-copy, #lobby-panel-offers .games-state').length
+            };
+        });
+        expect(geometry.subtabToTableGap).toBeGreaterThanOrEqual(0);
+        expect(geometry.subtabToTableGap).toBeLessThanOrEqual(4.1);
+        expect(geometry.headerOffset).toBeLessThanOrEqual(1);
+        expect(geometry.horizontalOverflow).toBeLessThanOrEqual(0);
+        expect(geometry.footerVisible).toBe(true);
+        expect(geometry.deadBlocks).toBe(0);
+    }
 });
 
 test('a long local offers fixture scrolls inside the workspace and keeps its footer stable', async ({ page }) => {
@@ -450,7 +516,7 @@ test('a long local offers fixture scrolls inside the workspace and keeps its foo
     expect(after.bodyOverflowY).toBe('auto');
     expect(after.horizontalOverflow).toBeLessThanOrEqual(0);
 
-    await page.setViewportSize({ width: 320, height: 700 });
+    await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('.offers-table th')).toHaveCount(4);
     const mobile = await onlineLayoutGeometry(page);
     expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
@@ -498,10 +564,12 @@ test('captures sanitized Lobby Hub review states when requested', async ({ page 
 
     if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
         await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-players-1440x900.png', fullPage: true });
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-final-polish-1440x900.png', fullPage: true });
     }
     await lobbyTabs.getByRole('tab', { name: 'Tables / Offers' }).click();
     if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
         await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-offers-local-fixtures-1440x900.png', fullPage: true });
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-offers-density-1440x900.png', fullPage: true });
     }
     await lobbyTabs.getByRole('tab', { name: 'Tournaments' }).click();
     if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
@@ -523,6 +591,11 @@ test('captures sanitized Lobby Hub review states when requested', async ({ page 
     expect(mobile.boardPanelIntersection).toBe(0);
     if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
         await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-mobile-390x844.png', fullPage: true });
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-final-polish-390x844.png', fullPage: true });
+    }
+    await lobbyTabs.getByRole('tab', { name: 'Tables / Offers' }).click();
+    if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-offers-density-390x844.png', fullPage: true });
     }
 });
 

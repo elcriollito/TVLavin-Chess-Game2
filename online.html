@@ -8,7 +8,7 @@
     <title>Online Chess — CAISSA</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/css/caissa-board.css">
-    <link rel="stylesheet" href="/css/online.css?v=lobby-hub-v6">
+    <link rel="stylesheet" href="/css/online.css?v=lobby-hub-v7">
     <script src="/js/auth-config.js" defer></script>
     <script src="/js/caissa-auth.js" defer></script>
     <script src="/js/play/analyze-handoff.js" defer></script>
@@ -41,7 +41,7 @@
             <div class="board-column">
                 <div class="player-strip player-strip--top" id="player-top">
                     <div class="player-avatar" aria-hidden="true">?</div>
-                    <div><strong class="player-name">Waiting for opponent</strong><span class="player-rating">—</span></div>
+                    <div><strong class="player-name">Ready to play</strong><span class="player-rating">—</span></div>
                     <time class="player-clock" id="clock-top">—</time>
                 </div>
                 <div class="board-shell" id="board-shell">
@@ -153,10 +153,7 @@
                     </section>
 
                     <section id="panel-lobby" role="tabpanel" aria-labelledby="tab-lobby" data-panel="lobby" hidden>
-                        <div class="lobby-hub-head">
-                            <div><p>PLAYING ROOM</p><h3>Lobby</h3></div>
-                            <button id="return-to-game" type="button" hidden>Return to game</button>
-                        </div>
+                        <button id="return-to-game" type="button" hidden>Return to game</button>
                         <div class="lobby-subtabs" role="tablist" aria-label="Lobby sections">
                             <button id="lobby-tab-players" role="tab" aria-selected="true" aria-controls="lobby-panel-players" data-lobby-tab="players">Players</button>
                             <button id="lobby-tab-offers" role="tab" aria-selected="false" aria-controls="lobby-panel-offers" data-lobby-tab="offers" tabindex="-1">Tables / Offers</button>
@@ -164,25 +161,23 @@
                         </div>
 
                         <section id="lobby-panel-players" role="tabpanel" aria-labelledby="lobby-tab-players" data-lobby-panel="players">
-                            <div class="players-heading"><div><p>ACTIVE NOW</p><h3>Players</h3></div><strong id="players-count" aria-live="polite">0 online</strong></div>
+                            <div class="players-heading"><div><p>ACTIVE NOW</p><h3>Players</h3></div><div class="players-heading__status"><span id="players-fixture-badge" class="local-test-badge" hidden>Local test data</span><strong id="players-count" aria-live="polite">0 online</strong></div></div>
                             <label class="player-search">Filter active players<input id="player-search" type="search" placeholder="Name or handle" maxlength="40"></label>
                             <div id="challenges-list" class="challenges-list" aria-live="polite"></div>
                             <div id="players-list" class="empty-state"><span aria-hidden="true">♞</span><strong>No players online</strong><p>Players who are available to play will appear here.</p></div>
                         </section>
 
                         <section id="lobby-panel-offers" role="tabpanel" aria-labelledby="lobby-tab-offers" data-lobby-panel="offers" hidden>
-                            <div class="lobby-section-heading"><div><p>GAME DIRECTORY</p><h3>Tables / Offers</h3></div><strong id="offers-status">Unavailable</strong></div>
-                            <p class="lobby-section-copy">Browse public game offers when the server-side directory becomes available.</p>
-                            <div id="offers-fixture-banner" class="fixture-banner" hidden><strong>Local fixture</strong><span>Visual data only — no games can be joined.</span></div>
-                            <div id="offers-state" class="games-state offers-state" role="status">
-                                <span aria-hidden="true">♜</span><p>NOT ENABLED</p><h3>Public offers are unavailable</h3><small>Private matchmaking and challenges remain available. No queue or player data is exposed here.</small>
-                            </div>
-                            <div id="offers-table-wrap" class="offers-table-wrap" hidden>
+                            <div id="offers-table-wrap" class="offers-table-wrap">
                                 <table class="offers-table">
                                     <caption class="sr-only">Local visual fixtures for the future public offers directory</caption>
                                     <thead><tr><th scope="col">Name</th><th scope="col">Rating</th><th scope="col">Time</th><th scope="col">Type</th></tr></thead>
                                     <tbody id="offers-table-body"></tbody>
                                 </table>
+                            </div>
+                            <div id="offers-fixture-banner" class="offers-availability" data-mode="unavailable" role="status">
+                                <strong id="offers-status">Unavailable</strong>
+                                <span id="offers-state">Public offers are off · no Join yet.</span>
                             </div>
                         </section>
 

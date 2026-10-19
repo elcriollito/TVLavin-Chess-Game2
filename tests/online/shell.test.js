@@ -130,16 +130,32 @@ test('Lobby owns Players, gated Tables / Offers, Tournaments, and an active-game
     assert.match(html, /id="tab-lobby"[^>]*aria-controls="panel-lobby"/);
     assert.match(html, /data-lobby-tab="players"[\s\S]*data-lobby-tab="offers"[\s\S]*data-lobby-tab="tournaments"/);
     assert.match(html, /id="return-to-game"[^>]*hidden>Return to game/);
+    assert.doesNotMatch(html, /class="lobby-hub-head"/);
+    assert.match(html, /id="players-fixture-badge"[^>]*hidden>Local test data/);
     assert.match(html, /<th scope="col">Name<\/th><th scope="col">Rating<\/th><th scope="col">Time<\/th><th scope="col">Type<\/th>/);
-    assert.match(html, /Public offers are unavailable/);
-    assert.match(html, /No queue or player data is exposed here/);
+    assert.match(html, /id="offers-table-wrap"[\s\S]*<th scope="col">Name<\/th>/);
+    assert.match(html, /id="offers-state">Public offers are off · no Join yet\./);
+    assert.doesNotMatch(html, /Browse public game offers|Public offers are unavailable|No queue or player data is exposed here/);
     assert.doesNotMatch(html, /PlayerOne|PlayerTwo|GuestPlayer/);
     assert.match(css, /\.lobby-subtabs\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
     assert.match(css, /\.offers-table\{[^}]*table-layout:fixed/);
+    assert.match(css, /#lobby-panel-offers\{padding-top:4px\}/);
+    assert.doesNotMatch(css, /\.offers-state\{[^}]*min-height/);
     assert.match(onlinePage, /\['localhost', '127\.0\.0\.1', '\[::1\]'\]\.includes\(location\.hostname\)/);
     assert.match(onlinePage, /PAGE_PARAMS\.get\('fixtures'\) === 'lobby'/);
+    assert.match(onlinePage, /playersFixtureBadge\.hidden = !LOCAL_LOBBY_FIXTURES/);
     assert.match(onlinePage, /if \(!LOCAL_LOBBY_FIXTURES\) return/);
     assert.doesNotMatch(onlinePage, /offer\.(?:list|create|accept|join)|queue\.list/);
+});
+
+test('workspace and board-strip headings follow the selected tab and canonical game state', () => {
+    assert.match(onlinePage, /model\.selectedTab = name/);
+    assert.match(onlinePage, /model\.selectedTab === 'games'\) title = 'Games'/);
+    assert.match(onlinePage, /model\.selectedTab === 'lobby'\) title = 'Lobby'/);
+    assert.match(onlinePage, /title = 'Finding an opponent'/);
+    assert.match(onlinePage, /title = rival \? `Playing \$\{rival\}` : 'Game in progress'/);
+    assert.match(onlinePage, /state === 'searching' \? 'Waiting for opponent'/);
+    assert.match(onlinePage, /state === 'signed-out' \? 'Sign in to play' : 'Ready to play'/);
 });
 
 test('Setup keeps help and a real device-scoped invitation preference', () => {

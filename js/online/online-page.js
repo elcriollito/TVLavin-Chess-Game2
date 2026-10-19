@@ -25,6 +25,7 @@ const ui = {
     queueControl: $('queue-control'), queueElapsed: $('queue-elapsed'), turnCopy: $('turn-copy'),
     moveList: $('move-list'), resultTitle: $('result-title'), resultDetail: $('result-detail'),
     ratingChange: $('rating-change'), gamesList: $('games-list'), playersList: $('players-list'), playersCount: $('players-count'),
+    playersFixtureBadge: $('players-fixture-badge'),
     toast: $('online-toast'), rematch: $('rematch-game'), returnToGame: $('return-to-game'),
     footContext: $('workspace-foot-context'),
     challengeNotice: $('challenge-notice'), challengeKicker: $('challenge-notice-kicker'),
@@ -47,7 +48,7 @@ const model = {
     challengeRequestTargets: new Set(), rematchRequestGameIds: new Set(),
     signInPromptOpener: null, signInRedirecting: false,
     guestSession: null, guestStarting: false, pendingGameCommand: null,
-    selectedLobbyView: 'players', muteInvitationPopups: false, preferenceEpoch: 0,
+    selectedTab: 'new', selectedLobbyView: 'players', muteInvitationPopups: false, preferenceEpoch: 0,
     setupOpener: null
 };
 
@@ -286,6 +287,7 @@ function restoreBoundedNumber(input, rawValue) {
 }
 
 function selectTab(name) {
+    model.selectedTab = name;
     document.querySelectorAll('[data-tab]').forEach(tab => {
         const selected = tab.dataset.tab === name;
         tab.setAttribute('aria-selected', String(selected));
@@ -297,6 +299,7 @@ function selectTab(name) {
         games: 'Your game history',
         lobby: model.selectedLobbyView === 'players' ? 'Private challenges' : 'CAISSA Online lobby'
     })[name] || 'CAISSA Online';
+    renderWorkspaceHeader();
 }
 
 function handleTabKeydown(event) {
@@ -374,10 +377,12 @@ function selectTournamentView(name) {
 
 function renderOffersDirectory() {
     ui.offersTableBody.replaceChildren();
-    ui.offersFixtureBanner.hidden = !LOCAL_LOBBY_FIXTURES;
-    ui.offersTableWrap.hidden = !LOCAL_LOBBY_FIXTURES;
-    ui.offersState.hidden = LOCAL_LOBBY_FIXTURES;
+    ui.playersFixtureBadge.hidden = !LOCAL_LOBBY_FIXTURES;
+    ui.offersFixtureBanner.dataset.mode = LOCAL_LOBBY_FIXTURES ? 'fixture' : 'unavailable';
     ui.offersStatus.textContent = LOCAL_LOBBY_FIXTURES ? 'Local fixture' : 'Unavailable';
+    ui.offersState.textContent = LOCAL_LOBBY_FIXTURES
+        ? 'Synthetic visual data · no Join.'
+        : 'Public offers are off · no Join yet.';
     if (!LOCAL_LOBBY_FIXTURES) return;
 
     const fixtures = [
@@ -537,18 +542,18 @@ function applyState(state, options = {}) {
 function renderLobby() {
     showView('lobby');
     updateReturnToGameControl();
-    ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
+    renderWorkspaceHeader();
     ui.status.textContent = 'Choose a time control and enter matchmaking.';
     ui.find.disabled = false; ui.find.textContent = 'Start Game';
     ui.curtain.hidden = true;
     board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
     board.setInteractive(false);
-    resetPlayerStrips();
+    resetPlayerStrips('idle');
 }
 
 function renderQueue(ticket) {
     showView('queue');
-    ui.title.textContent = 'Matchmaking'; ui.badge.textContent = 'SEARCHING';
+    renderWorkspaceHeader();
     ui.status.textContent = 'Looking for a compatible opponent…';
     if (!model.queueStartedAt) model.queueStartedAt = Date.parse(ticket.created_at) || Date.now();
     ui.queueControl.textContent = `${formatTimeControl(ticket)} · ${titleCase(ticket.pool)}`;
@@ -556,6 +561,7 @@ function renderQueue(ticket) {
     ui.curtainCopy.textContent = 'Your place is reserved. You may safely reconnect.';
     board.setReadOnly(true);
     board.setInteractive(false);
+    resetPlayerStrips('searching');
 }
 
 function renderGame(game, options = {}) {
@@ -568,8 +574,7 @@ function renderGame(game, options = {}) {
     board.setInteractive(!completed && !!color);
     board.setReadOnly(completed || game.turn !== color || !!model.pendingMove);
     ui.curtain.hidden = true;
-    ui.title.textContent = completed ? 'Game complete' : `${formatTimeControl(game)} ${titleCase(game.pool)}`;
-    ui.badge.textContent = completed ? 'FINAL' : game.rated ? 'RATED' : 'CASUAL';
+    renderWorkspaceHeader();
     ui.status.textContent = completed ? 'Game over. Review the result or choose what to do next.' : 'Game in progress.';
     renderPlayerStrips(game, color);
     renderMoves(game.moves || []);
@@ -1055,8 +1060,28 @@ function showView(name) {
     ui.game.hidden = name !== 'game'; ui.result.hidden = name !== 'result';
 }
 
+function renderWorkspaceHeader() {
+    const game = model.game;
+    const searching = !!model.state?.ticket && !game;
+    const runtimeBadge = game?.status === 'completed' ? 'FINAL'
+        : game?.status === 'active' ? (game.rated ? 'RATED' : 'CASUAL')
+            : searching ? 'SEARCHING' : 'READY';
+    let title = 'Find a game';
+    if (model.selectedTab === 'games') title = 'Games';
+    else if (model.selectedTab === 'lobby') title = 'Lobby';
+    else if (game?.status === 'completed') title = 'Game complete';
+    else if (game?.status === 'active') {
+        const color = playerColor(game);
+        const rival = color ? opponentName(game, color) : '';
+        title = rival ? `Playing ${rival}` : 'Game in progress';
+    } else if (searching) title = 'Finding an opponent';
+    ui.title.textContent = title;
+    ui.badge.textContent = runtimeBadge;
+}
+
 function renderUnavailable(copy) {
     setConnection('offline', 'Unavailable'); ui.find.disabled = true; ui.rated.disabled = true;
+    renderWorkspaceHeader();
     ui.status.textContent = copy; ui.curtainTitle.textContent = 'Online room closed'; ui.curtainCopy.textContent = copy;
 }
 
@@ -1070,7 +1095,7 @@ function renderSignedOut() {
     updateReturnToGameControl();
     ui.challengeNotice.hidden = true;
     showView('lobby');
-    ui.title.textContent = 'Find a game'; ui.badge.textContent = 'READY';
+    renderWorkspaceHeader();
     setConnection('offline', 'Sign in required');
     ui.find.disabled = false; ui.find.textContent = 'Start Game';
     ui.account.textContent = 'Sign in';
@@ -1078,7 +1103,7 @@ function renderSignedOut() {
     ui.curtain.hidden = true;
     board.setPosition(START_FEN, { animate: false }); board.setReadOnly(true);
     board.setInteractive(false);
-    resetPlayerStrips();
+    resetPlayerStrips('signed-out');
     updateSignInHref();
     configureCapabilities(model.config?.capabilities || {});
 }
@@ -1159,7 +1184,15 @@ function announceOpponentMove(game) {
     const move = game.moves?.at(-1);
     if (move && move.color !== playerColor(game)) ui.status.textContent = `${opponentName(game, playerColor(game))} moved ${move.san}.`;
 }
-function resetPlayerStrips() { fillEmpty(ui.top, 'Waiting for opponent'); fillEmpty(ui.bottom, model.auth?.fullName || 'You'); ui.topClock.textContent = '—'; ui.bottomClock.textContent = '—'; }
+function resetPlayerStrips(state = 'idle') {
+    const topLabel = state === 'searching' ? 'Waiting for opponent'
+        : state === 'signed-out' ? 'Sign in to play' : 'Ready to play';
+    const selfLabel = model.state?.profile?.display_name || model.auth?.fullName || (model.auth?.isGuest ? 'Guest' : 'You');
+    fillEmpty(ui.top, topLabel);
+    fillEmpty(ui.bottom, selfLabel);
+    ui.topClock.textContent = '—';
+    ui.bottomClock.textContent = '—';
+}
 function fillEmpty(strip, name) { strip.querySelector('.player-name').textContent = name; strip.querySelector('.player-rating').textContent = '—'; strip.querySelector('.player-avatar').textContent = initials(name); strip.dataset.running = 'false'; }
 function showBoardError(intent, message) { board.highlightSquares([{ square: intent.from, type: 'error' }, { square: intent.to, type: 'error' }]); showToast(message); setTimeout(() => board.clearHighlights(), 900); }
 function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.', STALE_VERSION: 'The board changed; it has been synchronized.', ILLEGAL_MOVE: 'That move is not legal.', NOT_YOUR_TURN: 'Wait for your turn.', RATE_LIMITED: 'Too many requests. Please wait a moment.', DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.' })[error?.code] || 'The server could not confirm that action.'; }
