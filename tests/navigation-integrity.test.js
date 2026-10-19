@@ -23,11 +23,11 @@ test('canonical primary navigation inventory is unique and stable', () => {
       'play', 'online', 'yahooClassic', 'fics', 'playchess', 'fritz',
       'puzzles', 'academy', 'mentor', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
       'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'arena',
-      'cheater-insight', 'polyglot', 'opening-database', 'eco', 'world-champions',
+      'cheater-insight', 'polyglot', 'gif-studio', 'opening-database', 'eco', 'world-champions',
       'history', 'dosChess', 'vault'
     ]
   );
-  assert.equal(inventory.primary.length, 28);
+  assert.equal(inventory.primary.length, 29);
   assert.deepEqual(Array.from(inventory.more, ({ id }) => id), ['blog', 'support', 'help', 'about', 'feedback']);
   assert.deepEqual(Array.from(inventory.social, ({ id }) => id), ['facebook', 'youtube', 'discord']);
   for (const label of ['CAISSA Online', 'Puzzles', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
@@ -47,6 +47,8 @@ test('canonical primary navigation inventory is unique and stable', () => {
   assert.equal(inventory.primary.find(({ id }) => id === 'spectator').route, '/spectator-tv');
   assert.equal(inventory.primary.find(({ id }) => id === 'online').route, '/online');
   assert.equal(inventory.primary.filter(({ route }) => route === '/online').length, 1);
+  assert.equal(inventory.primary.find(({ id }) => id === 'gif-studio')?.route, '/gif-maker');
+  assert.equal(inventory.groups[3].filter(({ id }) => id === 'gif-studio').length, 1);
 });
 
 test('main application and trainer consume the canonical inventory', () => {
@@ -131,7 +133,7 @@ test('explicit legacy section routing remains ahead of the Home default', () => 
 test('all standalone shell pages load the canonical source before the renderer', () => {
   const pages = [
     'endgame-library.html', 'game-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
-    'polyglot.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'live-blitz.html',
+    'polyglot.html', 'gif-maker.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'live-blitz.html',
     'live-tournaments.html', 'lichess-tv.html', 'pgn-replayer.html', 'mentor.html'
   ];
   for (const path of pages) {

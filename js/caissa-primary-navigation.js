@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.18.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.19.0';
     const i18n = global.CaissaI18n || Object.freeze({
         enabledLocales: Object.freeze(['en']),
         supportedLocales: Object.freeze({ en: Object.freeze({ code: 'en', name: 'English', enabled: true }) }),
@@ -47,6 +47,7 @@
         Object.freeze([
             { id: 'cheater-insight', label: 'Cheater Insight', icon: 'fas fa-user-shield', section: 'cheater-insight', route: '/cheater-insight', canonicalNavigation: true },
             { id: 'polyglot', label: 'Polyglot Tool', icon: 'fas fa-book-open', route: '/tools/polyglot', externalIndicator: true },
+            { id: 'gif-studio', label: 'GIF Studio', icon: 'fas fa-film', route: '/gif-maker' },
             { id: 'opening-database', label: 'Opening Database', icon: 'fas fa-chess-board', route: '/opening-database' },
             { id: 'eco', label: 'ECO Codes', icon: 'fas fa-book', route: '/eco' },
             { id: 'world-champions', label: 'World Champions', icon: 'fas fa-crown', route: '/game-library/champions' },
