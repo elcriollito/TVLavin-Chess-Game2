@@ -489,7 +489,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page.is-puzzle-database > dialog { display: none !important; }
 .endgame-trainer-page.is-puzzle-database .endgame-trainer-page__main {
     min-height: 100dvh;
-    padding: clamp(12px, 1.7vw, 24px);
+    padding: clamp(6px, .8vw, 12px) clamp(12px, 1.7vw, 24px) clamp(12px, 1.7vw, 24px);
 }
 .endgame-puzzle[hidden],
 .endgame-trainer-page.trainer-mode-pending .endgame-puzzle { display: none !important; }
@@ -501,7 +501,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     --egt-blue: #82a1ff;
     --egt-success: #8ce0b2;
     display: grid;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
     max-width: 1500px;
 }
@@ -533,7 +533,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page .endgame-puzzle__board-head button { width: auto; min-height: 34px; padding: 5px 10px; }
 .endgame-puzzle__board-frame { width: 100%; aspect-ratio: 1; overflow: hidden; border: 1px solid #51627e; border-radius: 10px; background: #080f1c; box-shadow: 0 20px 42px #02071366; }
 .endgame-puzzle__board-frame .caissa-board { width: 100%; height: 100%; }
-.endgame-puzzle__workspace { min-width: 0; height: calc(var(--egt-board-size) + 76px); min-height: 540px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--egt-border); border-radius: 14px; background: linear-gradient(180deg, var(--egt-surface-raised), var(--egt-surface)); box-shadow: 0 18px 44px #02071340; }
+.endgame-puzzle__workspace { min-width: 0; height: calc(var(--egt-board-size) + 76px); min-height: 540px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; overflow: hidden; border: 1px solid var(--egt-border); border-radius: 14px; background: linear-gradient(180deg, var(--egt-surface-raised), var(--egt-surface)); box-shadow: 0 18px 44px #02071340; }
 .endgame-puzzle__workspace-head { border-bottom: 1px solid var(--egt-border); }
 .endgame-puzzle__selection { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 8px 14px; }
 .endgame-puzzle__selection span { color: var(--et-muted); font-size: .78rem; text-align: right; }
@@ -561,7 +561,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-puzzle__training-status { padding-bottom: 12px; border-bottom: 1px solid var(--egt-border); }
 .endgame-puzzle__training-status h2 { margin: 0 0 5px; font-size: 1.3rem; }
 .endgame-puzzle__training-status p:last-child { margin: 0; color: var(--et-muted); }
-.endgame-puzzle__actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+.endgame-puzzle__actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
 .endgame-puzzle__actions button:not(:disabled), .endgame-puzzle__workspace-foot button:not(:disabled) { border-color: #5270ae; }
 .endgame-puzzle__moves-block { margin-top: 14px; }
 .endgame-puzzle__moves-block h3 { margin-bottom: 7px; font-size: .88rem; }
@@ -569,6 +569,14 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-puzzle__moves li { display: flex; gap: 8px; padding: 6px 8px; border-radius: 7px; background: #0c1525; font-variant-numeric: tabular-nums; }
 .endgame-puzzle__moves .move-number { min-width: 34px; color: var(--et-muted); }
 .endgame-puzzle__moves .opponent { color: #aebbd1; }
+.endgame-puzzle__move-pairs li { display: grid; grid-template-columns: 42px repeat(2, minmax(0, 1fr)); align-items: center; gap: 5px; padding: 4px 5px; }
+.endgame-puzzle__move-pairs .move-number { min-width: 0; padding-left: 3px; font-size: .75rem; }
+.endgame-puzzle__move-pairs .move-cell { min-width: 0; min-height: 30px; }
+.endgame-trainer-page .endgame-puzzle__move-pairs button { width: 100%; min-width: 0; min-height: 30px; padding: 4px 7px; overflow: hidden; border-color: transparent; background: transparent; color: #e5ebf5; font-size: .82rem; line-height: 1.1; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.endgame-trainer-page .endgame-puzzle__move-pairs button:hover:not(:disabled) { border-color: #49638f; background: #192943; }
+.endgame-trainer-page .endgame-puzzle__move-pairs button[aria-current="move"] { border-color: var(--egt-gold); background: #2a3248; color: #fff2bd; }
+.endgame-puzzle__analysis-moves { margin-top: 12px; }
+.endgame-puzzle__analysis-moves .endgame-puzzle__moves { max-height: 150px; }
 .endgame-puzzle__details { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: 14px; }
 .endgame-puzzle__details a { color: var(--egt-blue); font-size: .8rem; white-space: nowrap; }
 .endgame-puzzle__tags { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -585,6 +593,11 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-puzzle__engine-output p { margin: 8px 0 0; color: var(--et-muted); overflow-wrap: anywhere; }
 .endgame-puzzle__match-actions { display: flex; gap: 6px; }
 .endgame-trainer-page .endgame-puzzle__match-actions button { width: auto; min-width: 64px; }
+.endgame-puzzle__analysis-navigation { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 46px; padding: 5px 12px; border-top: 1px solid var(--egt-border); background: #111d31; }
+.endgame-puzzle__analysis-navigation-controls { display: grid; grid-template-columns: repeat(5, 36px); gap: 5px; }
+.endgame-trainer-page .endgame-puzzle__analysis-navigation button { width: 36px; min-width: 36px; min-height: 34px; padding: 3px; border-color: #465d85; border-radius: 7px; background: #182844; color: #f3f6fb; font-size: .88rem; font-weight: 850; line-height: 1; }
+.endgame-trainer-page .endgame-puzzle__analysis-navigation button[aria-pressed="true"] { border-color: var(--egt-gold); background: #2b3450; color: var(--egt-gold); }
+.endgame-puzzle__analysis-navigation output { color: var(--et-muted); font-size: .72rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .endgame-puzzle__workspace-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 8px 12px; border-top: 1px solid var(--egt-border); background: #0c1525; }
 .endgame-puzzle__workspace-foot p { margin: 0; color: var(--et-muted); font-size: .72rem; }
 .endgame-trainer-page .endgame-puzzle__workspace-foot button { width: auto; min-width: 126px; background: #20345a; color: #fff; font-weight: 850; }
@@ -615,10 +628,12 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     .endgame-puzzle__theme-list button { grid-template-columns: 1fr; gap: 2px; }
     .endgame-puzzle__theme-list small { text-align: left; }
     .endgame-puzzle__actions { grid-template-columns: 1fr 1fr; }
-    .endgame-puzzle__actions #egt-retry { grid-column: 1 / -1; }
     .endgame-puzzle__details, .endgame-puzzle__engine-head { align-items: stretch; flex-direction: column; }
     .endgame-trainer-page .endgame-puzzle__engine-head > button { width: 100%; }
     .endgame-puzzle__match-actions button { flex: 1; min-width: 0; }
+    .endgame-puzzle__analysis-navigation { padding-inline: 8px; }
+    .endgame-puzzle__analysis-navigation-controls { grid-template-columns: repeat(5, 42px); gap: 4px; }
+    .endgame-trainer-page .endgame-puzzle__analysis-navigation button { width: 42px; min-width: 42px; min-height: 42px; }
     .endgame-puzzle__workspace-foot { position: sticky; bottom: 0; }
 }
 @media (max-width: 390px) {
@@ -628,6 +643,10 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     .endgame-puzzle__workspace-body > [role="tabpanel"] { padding: 12px; }
     .endgame-puzzle__analysis-modes { margin: -12px -12px 12px; }
     .endgame-puzzle__tabs button { padding-inline: 5px; }
+    .endgame-puzzle__analysis-navigation { gap: 6px; }
+    .endgame-puzzle__analysis-navigation-controls { flex: 1; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .endgame-trainer-page .endgame-puzzle__analysis-navigation button { width: 100%; min-width: 0; }
+    .endgame-puzzle__analysis-navigation output { font-size: .66rem; }
     .endgame-puzzle__workspace-foot { align-items: stretch; flex-direction: column; }
     .endgame-trainer-page .endgame-puzzle__workspace-foot button { width: 100%; }
 }

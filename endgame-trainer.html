@@ -78,7 +78,7 @@
         </section>
         <section class="endgame-trainer-page__workspace endgame-puzzle" data-endgame-database-shell hidden aria-labelledby="egt-title">
             <header class="endgame-puzzle__masthead">
-                <div><p class="endgame-puzzle__eyebrow">Lichess endgame puzzles</p><h1 id="egt-title">CAISSA Endgame Trainer</h1></div>
+                <div><h1 id="egt-title">CAISSA Endgame Trainer</h1></div>
                 <dl class="endgame-puzzle__session" aria-label="Current training session">
                     <div><dt>Solved</dt><dd id="egt-solved">0</dd></div>
                     <div><dt>Missed</dt><dd id="egt-failed">0</dd></div>
@@ -115,8 +115,8 @@
                         </section>
                         <section id="egt-panel-training" role="tabpanel" aria-labelledby="egt-tab-training" hidden>
                             <div class="endgame-puzzle__training-status"><p class="endgame-puzzle__eyebrow" id="egt-training-kicker">Current puzzle</p><h2 id="egt-prompt">Loading puzzle</h2><p id="egt-feedback" role="status" aria-live="polite">Selecting an endgame puzzle.</p></div>
-                            <div class="endgame-puzzle__actions"><button type="button" id="egt-hint">Hint</button><button type="button" id="egt-reveal">Show solution</button><button type="button" id="egt-retry" disabled>Retry puzzle</button></div>
-                            <section class="endgame-puzzle__moves-block" aria-labelledby="egt-moves-title"><h3 id="egt-moves-title">Moves</h3><ol id="egt-move-list" class="endgame-puzzle__moves"></ol></section>
+                            <div class="endgame-puzzle__actions"><button type="button" id="egt-hint">Hint</button><button type="button" id="egt-reveal">Show solution</button><button type="button" id="egt-abandon">Abandon puzzle</button><button type="button" id="egt-retry" disabled>Retry puzzle</button></div>
+                            <section class="endgame-puzzle__moves-block" aria-labelledby="egt-moves-title"><h3 id="egt-moves-title">Moves</h3><ol id="egt-move-list" class="endgame-puzzle__moves endgame-puzzle__move-pairs"></ol></section>
                             <div class="endgame-puzzle__details"><div id="egt-theme-tags" class="endgame-puzzle__tags"></div><a id="egt-source-game" target="_blank" rel="noopener noreferrer" hidden>View source game</a></div>
                         </section>
                         <section id="egt-panel-analysis" role="tabpanel" aria-labelledby="egt-tab-analysis" hidden>
@@ -128,7 +128,8 @@
                                 </div>
                                 <section id="egt-analysis-engine" role="tabpanel" aria-labelledby="egt-analysis-engine-tab">
                                     <div class="endgame-puzzle__engine-head"><div><h2>Position analysis</h2><p id="egt-engine-state" role="status">Engine off</p></div><button type="button" id="egt-engine-toggle" aria-pressed="false">Start engine</button></div>
-                                    <div class="endgame-puzzle__engine-output" aria-live="polite"><strong id="egt-engine-eval">—</strong><p id="egt-engine-best">Start Stockfish to analyze this position.</p><p id="egt-engine-pv"></p></div>
+                                    <div class="endgame-puzzle__engine-output" aria-live="polite"><strong id="egt-engine-eval">—</strong><p id="egt-engine-best">Start Stockfish to analyze this position.</p><p id="egt-engine-pv"></p><p id="egt-analysis-feedback" role="status">Move the side to move to explore legal continuations.</p></div>
+                                    <section id="egt-analysis-moves-block" class="endgame-puzzle__moves-block endgame-puzzle__analysis-moves" aria-labelledby="egt-analysis-moves-title" hidden><h3 id="egt-analysis-moves-title">Analysis moves</h3><ol id="egt-analysis-move-list" class="endgame-puzzle__moves endgame-puzzle__move-pairs"></ol></section>
                                 </section>
                                 <section id="egt-analysis-match" role="tabpanel" aria-labelledby="egt-analysis-match-tab" hidden>
                                     <div class="endgame-puzzle__engine-head"><div><h2>Continue the position</h2><p id="egt-match-state" role="status">Ready</p></div><div class="endgame-puzzle__match-actions"><button type="button" id="egt-match-start">Play</button><button type="button" id="egt-match-pause" disabled>Pause</button><button type="button" id="egt-match-stop" disabled>Stop</button></div></div>
@@ -137,6 +138,16 @@
                             </div>
                         </section>
                     </div>
+                    <nav id="egt-analysis-navigation" class="endgame-puzzle__analysis-navigation" aria-label="Analysis move navigation" hidden>
+                        <div class="endgame-puzzle__analysis-navigation-controls">
+                            <button type="button" id="egt-nav-first" aria-label="First position" title="First position">|&lt;</button>
+                            <button type="button" id="egt-nav-previous" aria-label="Previous move" title="Previous move">&lt;</button>
+                            <button type="button" id="egt-nav-play" aria-label="Play automatic replay" title="Play automatic replay" aria-pressed="false"><span aria-hidden="true">▶</span></button>
+                            <button type="button" id="egt-nav-next" aria-label="Next move" title="Next move">&gt;</button>
+                            <button type="button" id="egt-nav-last" aria-label="Last position" title="Last position">&gt;|</button>
+                        </div>
+                        <output id="egt-nav-status" aria-live="polite">Position 1 of 1</output>
+                    </nav>
                     <footer class="endgame-puzzle__workspace-foot"><p id="egt-session-policy">Session only · Account puzzle rating is unchanged</p><button type="button" id="egt-next">Next puzzle</button></footer>
                 </section>
             </div>

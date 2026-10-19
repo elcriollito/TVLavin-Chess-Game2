@@ -85,8 +85,16 @@ export class PuzzleEngine {
         }
     }
 
-    analyze(fen) { this.search = { mode: 'analysis', fen, sequence: ++this.sequence }; if (this.ready) this.execute(); }
-    play(fen) { this.search = { mode: 'play', fen, sequence: ++this.sequence }; if (this.ready) this.execute(); }
+    analyze(fen) {
+        this.search = { mode: 'analysis', fen, sequence: ++this.sequence };
+        if (this.ready) this.execute();
+        return this.search.sequence;
+    }
+    play(fen) {
+        this.search = { mode: 'play', fen, sequence: ++this.sequence };
+        if (this.ready) this.execute();
+        return this.search.sequence;
+    }
     execute() {
         this.send('stop');
         this.send(`position fen ${this.search.fen}`);

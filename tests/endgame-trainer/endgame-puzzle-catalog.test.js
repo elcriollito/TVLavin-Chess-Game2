@@ -14,13 +14,23 @@ const counts = JSON.parse(fs.readFileSync(new URL('../../public/data/puzzles/lic
 
 test('discovers only canonical counted material endgame themes from catalog metadata', () => {
     assert.deepEqual(discoverEndgameThemes(preview).map(theme => theme.id), [
-        'rookEndgame', 'bishopEndgame', 'pawnEndgame', 'knightEndgame', 'queenEndgame',
+        'queenEndgame', 'rookEndgame', 'bishopEndgame', 'knightEndgame', 'pawnEndgame',
     ]);
     for (const { id } of discoverEndgameThemes(preview)) {
         assert.ok(counts.counts[`theme:${id}`]);
         assert.equal(preview.puzzles.filter(puzzle => puzzle.themes.includes(id))
             .every(puzzle => puzzle.themes.includes(ENDGAME_ROOT_THEME)), true);
     }
+});
+
+test('product theme order is explicit and independent of catalog metadata or counts', () => {
+    const shuffled = {
+        categories: { Phases: ['pawnEndgame', 'endgame', 'rookEndgame', 'queenEndgame', 'knightEndgame', 'bishopEndgame'] },
+        puzzles: preview.puzzles,
+    };
+    assert.deepEqual(discoverEndgameThemes(shuffled).map(theme => theme.label), [
+        'Queen Endgame', 'Rook Endgame', 'Bishop Endgame', 'Knight Endgame', 'Pawn Endgame',
+    ]);
 });
 
 test('root and material selections retain an explicit endgame intersection', () => {

@@ -31,10 +31,11 @@ test('PuzzleEngine emits a new PV for the active position and cancels bounded se
         workers[0].emit('readyok');
         const firstFen = '8/8/8/8/8/8/4k3/6K1 w - - 0 1';
         const secondFen = '8/8/8/8/8/5k2/8/6K1 w - - 1 2';
-        engine.analyze(firstFen);
+        const firstSequence = engine.analyze(firstFen);
         workers[0].emit('info depth 8 score cp 24 pv g1f1 e2f3');
-        engine.analyze(secondFen);
+        const secondSequence = engine.analyze(secondFen);
         workers[0].emit('info depth 10 score cp -12 pv g1f1 f3g3');
+        assert.equal(secondSequence, firstSequence + 1);
         assert.deepEqual(updates.map(update => [update.depth, update.fen, update.pv[0]]), [
             [8, firstFen, 'g1f1'], [10, secondFen, 'g1f1'],
         ]);
@@ -43,6 +44,37 @@ test('PuzzleEngine emits a new PV for the active position and cancels bounded se
         assert.equal(engine.search, null);
         engine.stop();
         assert.equal(workers[0].terminated, true);
+    } finally {
+        globalThis.Worker = originalWorker;
+    }
+});
+
+test('a terminated Stockfish worker cannot publish a stale PV into its replacement search', () => {
+    const originalWorker = globalThis.Worker;
+    const workers = [];
+    class FakeWorker {
+        constructor() { this.commands = []; workers.push(this); }
+        postMessage(command) { this.commands.push(command); }
+        terminate() {}
+    }
+    globalThis.Worker = FakeWorker;
+    try {
+        const updates = [];
+        const engine = new PuzzleEngine(info => updates.push(info), () => {}, () => {});
+        engine.start();
+        const staleMessage = workers[0].onmessage;
+        engine.stop();
+        engine.start();
+        workers[1].onmessage({ data: 'uciok' });
+        workers[1].onmessage({ data: 'readyok' });
+        const activeFen = '8/8/8/8/8/5k2/8/6K1 w - - 1 2';
+        engine.analyze(activeFen);
+        staleMessage({ data: 'info depth 99 score cp 999 pv g1f1 e2f3' });
+        workers[1].onmessage({ data: 'info depth 7 score cp -8 pv g1f1 f3g3' });
+        assert.deepEqual(updates.map(update => [update.depth, update.fen, update.score]), [
+            [7, activeFen, -8],
+        ]);
+        engine.stop();
     } finally {
         globalThis.Worker = originalWorker;
     }
