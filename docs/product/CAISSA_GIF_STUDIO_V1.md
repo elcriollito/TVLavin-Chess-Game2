@@ -56,3 +56,15 @@ Create original, downloadable animated chess GIFs entirely in the user's browser
 ## Ownership and license
 
 Uses the pre-existing, same-origin chess.js ES module and the existing Wikipedia piece images in CAISSA. Check and retain all third-party asset license notices. New page layout, renderer and encoder are CAISSA-origin implementation.
+
+## v1.1 — Human-test requested UX (2026-10-19)
+
+Implemented on the **same isolated season branch** after the first Human Test:
+
+- Import now accepts either PGN or six-field FEN. A valid FEN creates a zero-move timeline and opens Setup Position to record legal moves. A GIF requires at least one recorded half-move.
+- A fourth **Setup Position** tab provides a free-placement draft, white/black piece palette, eraser, Move tool, side-to-move selection, castling rights, starting/empty and endgame presets, current FEN and a recordable SAN move list. The position is independently drafted until **Apply position & play moves**; rejected or malformed drafts never replace the loaded game.
+- Both free editing and legal line recording support pointer capture, one-piece Quiet Drag, and tap-select/tap-destination fallback. Setup recording uses `chess.js`; it can branch from any earlier recorded move and supports promotion selection.
+- The shared first/previous/play/next/last controls and position scrubber were moved from below the board into the **FOOT of the right workspace**, above status and Create GIF. The FOOT remains fixed within a bounded-height right panel while the BODY owns scrolling, independent of the four tabs.
+- Custom positions and recorded lines are browser-local and are not sent to a server. No Stockfish analysis or automatic external URL imports are in scope.
+
+**Quality gates:** Node unit tests, Chromium desktop/mobile UI geometry (including FOOT coordinates across tabs), editable-piece and legal-recording smoke tests, GIF89a decode. Production merge remains blocked pending real chess.js integrated Playwright tests and user physical approval. Browser smoke performed against a local test double must not be represented as a real chess.js certification.

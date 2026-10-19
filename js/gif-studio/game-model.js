@@ -50,7 +50,7 @@ export function parseGame(input, Chess) {
     white: String(headers.White || 'White').slice(0, 70),
     black: String(headers.Black || 'Black').slice(0, 70),
     result: String(headers.Result || '*').slice(0, 12),
-    plies: moves.length
+    plies: moves.length, source: 'pgn', startFen: positions[0]
   };
 }
 

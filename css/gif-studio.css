@@ -95,3 +95,84 @@
   .gif-field-grid { gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .gif-studio-page * { scroll-behavior: auto !important; } }
+
+/* v1.1 — four-tab studio with one scroll owner and a nonmoving right FOOT. */
+.gif-workspace { align-items: start; }
+.gif-panel {
+  height: clamp(640px, calc(100dvh - 170px), 790px);
+  min-height: 0;
+  max-height: none;
+}
+.gif-panel-head { flex-shrink: 0; }
+.gif-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+.gif-tabs button { min-width: 0; padding: 9px 2px; font-size: 12px; line-height: 1.2; }
+.gif-panel-body { flex: 1 1 auto; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.gif-panel-body :is(input[type="text"], textarea, select, input[type="number"]) {
+  width: 100%; min-width: 0; background: #0e1726; border: 1px solid #526077;
+  border-radius: 7px; color: #f1f4f8; padding: 10px 11px; font-size: 13px;
+}
+.gif-panel-body input[type="text"] { min-height: 43px; font-family: ui-monospace, Consolas, monospace; }
+.gif-load-fen { margin-top: 10px; }
+.gif-panel-foot { flex: 0 0 auto; position: relative; z-index: 1; padding: 10px 16px 13px; background: #101a2a; }
+.gif-foot-replay { border-bottom: 1px solid #304158; padding-bottom: 11px; margin-bottom: 10px; }
+.gif-replay { margin-top: 0; justify-content: space-between; gap: 7px; }
+.gif-replay button { flex: 1; min-width: 0; width: auto; height: 38px; }
+.gif-replay .gif-play { flex: 1.65; width: auto; }
+.gif-position-range { margin-top: 10px; gap: 12px; }
+.gif-status { min-height: 20px; margin-bottom: 8px; font-size: 11.5px; }
+.gif-create, .gif-button-download { min-height: 43px; }
+.gif-board-wrap { position: relative; }
+.gif-board-wrap.is-interactive canvas { touch-action: none; cursor: crosshair; }
+.gif-drag-piece {
+  position: absolute; z-index: 4; display: grid; place-items: center;
+  pointer-events: none; user-select: none; touch-action: none; will-change: transform;
+  transform: translate3d(0,0,0); transition: none !important;
+  box-shadow: none !important; filter: none !important;
+}
+.gif-drag-piece img { display: block; width: 84%; height: 84%; object-fit: contain; }
+.gif-drag-piece span { font-size: clamp(25px, 4.2vw, 52px); line-height: 1; }
+.gif-drag-piece span.is-white { color: #f9fbf9; -webkit-text-stroke: 1px #243143; }
+.gif-drag-piece span.is-black { color: #202634; -webkit-text-stroke: 1px #eff5e5; }
+.gif-board-guide { color: #b6c1d0; font-size: 11px; line-height: 1.5; margin: 7px 0; }
+.gif-tool-palette, .gif-castling { padding: 10px; border: 1px solid #33475e; border-radius: 8px; margin: 13px 0; }
+.gif-tool-palette legend, .gif-castling legend { color: #d5e0ed; font-size: 12px; font-weight: 700; padding: 0 4px; }
+.gif-tool-row { display: flex; gap: 8px; margin-bottom: 13px; }
+.gif-tool-row button { flex: 1; min-height: 42px; color: #dce5f0; background: #26354a; border: 1px solid #50627a; border-radius: 7px; cursor: pointer; }
+.gif-tool-row button.is-selected { border-color: #a4d690; background: #32563b; }
+.gif-palette-group { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 8px; margin-top: 9px; }
+.gif-palette-group > span { color: #c3d0dc; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.gif-palette-pieces { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.gif-palette-pieces button { min-width: 0; min-height: 40px; padding: 2px; background: #2c3c50; border: 1px solid #485c73; border-radius: 6px; cursor: pointer; }
+.gif-palette-pieces button img { display: block; width: 100%; max-width: 42px; margin: auto; aspect-ratio: 1; object-fit: contain; }
+.gif-palette-pieces button.is-selected { border-color: #a4d690; background: #355b3b; }
+.gif-castling { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gif-castling legend { grid-column: 1/-1; }
+.gif-panel-body .gif-castling label { margin: 0; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.gif-castling input { accent-color: #89bd7b; }
+.gif-setup-row { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: center; }
+.gif-panel-body .gif-setup-row label { margin: 0; }
+.gif-preset-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+.gif-board-selection { color: #c2d3e8; background: #1c2c40; border-left: 3px solid #88b773; margin: 14px 0; padding: 9px 11px; font-size: 12px; line-height: 1.55; }
+.gif-setup-fen-wrap { margin: 13px 0; }
+.gif-panel-body .gif-setup-fen-wrap label { margin-bottom: 6px; }
+.gif-setup-fen-wrap output { display: block; white-space: normal; overflow-wrap: anywhere; background: #0c1524; border: 1px solid #37495e; border-radius: 6px; padding: 9px; color: #b9d8f2; font: 11px/1.6 ui-monospace, Consolas, monospace; }
+.gif-notation-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 18px; border-top: 1px solid #33475e; padding-top: 12px; }
+.gif-notation-head h3 { margin: 0; font-size: 15px; }
+.gif-notation-head span { color: #a6b9d0; font-size: 11px; }
+.gif-move-list { display: flex; flex-wrap: wrap; align-items: start; gap: 6px; padding: 10px 0; }
+.gif-move-chip { color: #e6eef7; background: #24354a; border: 1px solid #455771; border-radius: 6px; padding: 7px 9px; cursor: pointer; font: 12px/1.3 ui-monospace, Consolas, monospace; }
+.gif-move-chip[aria-current="true"] { color: #fff; background: #427240; border-color: #a0cd82; }
+.gif-move-chip:hover { border-color: #a6bfd8; }
+.gif-setup-record .gif-import-actions { margin: 0; }
+@media (max-width: 930px) {
+  .gif-panel { height: 690px; min-height: 0; max-height: none; }
+  .gif-panel-body { overflow-y: auto; overflow-x: hidden; }
+}
+@media (max-width: 600px) {
+  .gif-panel { height: 655px; min-height: 0; max-height: none; }
+  .gif-tabs button { font-size: 11px; padding-inline: 2px; }
+  .gif-panel-foot { padding: 10px 12px 12px; }
+  .gif-replay button { height: 40px; }
+  .gif-palette-group { grid-template-columns: 33px minmax(0,1fr); gap: 5px; }
+  .gif-palette-pieces button { min-height: 37px; }
+}
