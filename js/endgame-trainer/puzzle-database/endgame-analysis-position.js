@@ -33,6 +33,28 @@ export class EndgameAnalysisPosition {
     get cursor() { return this.#cursor; }
     get lastIndex() { return this.#positions.length - 1; }
 
+    loadHistory(moves, cursor = moves?.length) {
+        if (!Array.isArray(moves) || !moves.length) throw new TypeError('analysis-history-unavailable');
+        this.load(moves[0].before);
+        for (const expected of moves) {
+            const result = this.attempt({
+                from: expected.from,
+                to: expected.to,
+                promotion: expected.promotion || 'q',
+            });
+            if (!result.ok || (expected.after && result.fen !== expected.after)) {
+                this.clear();
+                throw new Error('analysis-history-invalid');
+            }
+        }
+        const selected = cursor ?? moves.length;
+        if (!Number.isInteger(selected) || selected < 0 || selected > this.lastIndex) {
+            this.clear();
+            throw new RangeError('analysis-history-cursor-invalid');
+        }
+        return this.navigate(selected);
+    }
+
     navigate(index) {
         if (!this.#game || !Number.isInteger(index) || index < 0 || index >= this.#positions.length) return null;
         this.#cursor = index;
@@ -85,6 +107,7 @@ export class EndgameAnalysisPosition {
             atStart: this.#cursor === 0,
             atEnd: this.#cursor === this.lastIndex,
             history: Object.freeze(this.#moves.slice(0, this.#cursor)),
+            timeline: Object.freeze(this.#moves.slice()),
         });
     }
 }

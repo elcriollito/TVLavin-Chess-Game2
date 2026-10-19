@@ -52,6 +52,19 @@ const ANALYSIS_ENDGAME = Object.freeze({
     openingTags: [],
 });
 
+const PAIRED_HISTORY_ENDGAME = Object.freeze({
+    id: 'A6qdi',
+    fen: '8/8/2pk4/5Ppp/1P2K3/7P/8/8 b - - 1 37',
+    moves: 'g5g4 h3g4 h5g4 e4f4 c6c5 b4c5',
+    rating: 1659,
+    deviation: 75,
+    popularity: 100,
+    plays: 2593,
+    themes: ['crushing', 'endgame', 'long', 'pawnEndgame'],
+    gameUrl: 'https://lichess.org/QZ2xToKH/black#74',
+    openingTags: [],
+});
+
 async function mockCatalog(page, requests = [], puzzle = ROOK_ENDGAME) {
     await page.route('**/api/puzzles/select?**', async route => {
         requests.push(new URL(route.request().url()));
@@ -141,6 +154,50 @@ test('canonical Endgame Trainer uses catalog themes, generated counts and strict
         '/js/endgame-trainer/endgame-trainer-page.js',
         '/js/endgame-trainer/endgame-trainer-runtime.js',
     ]));
+});
+
+test('move history pairs real colors and fullmove numbers with individually navigable SAN cells', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await openTrainer(page, [], PAIRED_HISTORY_ENDGAME);
+    await page.locator('#egt-tab-training').click();
+    await page.locator('#egt-reveal').click();
+
+    const rows = page.locator('#egt-move-list > li');
+    await expect(rows).toHaveCount(4);
+    await expect(rows.locator('.move-number')).toHaveText(['37...', '38.', '39.', '40.']);
+    await expect(rows.locator('button.move-cell--white')).toHaveText(['hxg4', 'Kf4', 'bxc5+']);
+    await expect(rows.locator('button.move-cell--black')).toHaveText(['g4', 'hxg4', 'c5']);
+    await expect(rows.nth(0).locator('.move-cell--white')).toHaveText('');
+    await expect(rows.nth(3).locator('.move-cell--black')).toHaveText('');
+    await expect(rows.nth(3).locator('button.move-cell--black')).toHaveCount(0);
+    await expect(rows.nth(3).locator('button.move-cell--white')).toHaveAttribute('aria-current', 'move');
+
+    await page.locator('#egt-tab-analysis').click();
+    await page.locator('#egt-analysis-match-tab').click();
+    await page.locator('#egt-tab-training').click();
+    await rows.nth(1).locator('button.move-cell--white').click();
+    await expect(page.locator('#egt-tab-analysis')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#egt-analysis-engine-tab')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 7');
+    await expect(page.locator('#egt-analysis-move-list button[data-analysis-cursor="2"]')).toHaveAttribute('aria-current', 'move');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="wP"][data-square="g4"]')).toHaveCount(1);
+
+    await page.locator('#egt-analysis-move-list button.move-cell--black').filter({ hasText: 'c5' }).click();
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 6 of 7');
+    await expect(page.locator('#egt-analysis-move-list button[data-analysis-cursor="5"]')).toHaveAttribute('aria-current', 'move');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bP"][data-square="c5"]')).toHaveCount(1);
+
+    await page.locator('#egt-nav-previous').click();
+    await expect(page.locator('#egt-analysis-move-list button[data-analysis-cursor="4"]')).toHaveAttribute('aria-current', 'move');
+    await playMove(page, 'd6', 'e7');
+    await expect(page.locator('#egt-analysis-feedback')).toContainText('New continuation started');
+    await expect(page.locator('#egt-nav-status')).toHaveText('Position 6 of 6');
+    await expect(page.locator('#egt-analysis-move-list')).not.toContainText('c5');
+    await expect(page.locator('#egt-analysis-move-list')).not.toContainText('bxc5+');
+    await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Ke7');
+    await expect(page.locator('#egt-solved')).toHaveText('0');
+    await expect(page.locator('#egt-failed')).toHaveText('1');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 });
 
 test('training keeps analysis locked, records a miss once, and isolates engine exploration', async ({ page }) => {
@@ -287,6 +344,9 @@ test('analysis navigation reconstructs FENs, resynchronizes Stockfish, and trunc
     await dragMove(page, 'a3', 'e3');
     await dragMove(page, 'e2', 'd2');
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 4 of 4');
+    await expect(page.locator('#egt-analysis-move-list > li')).toHaveCount(2);
+    await expect(page.locator('#egt-analysis-move-list .move-number')).toHaveText(['2...', '3.']);
+    await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Kd2');
     expect(await page.evaluate(() => window.__egtNavigationWorkers.created)).toBe(0);
 
     await page.locator('#egt-nav-first').click();
@@ -323,6 +383,9 @@ test('analysis navigation reconstructs FENs, resynchronizes Stockfish, and trunc
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 3 of 3');
     await expect(page.locator('#egt-nav-next')).toBeDisabled();
     await expect(page.locator('#egt-board .caissa-board__piece[data-piece="wR"]')).toHaveAttribute('data-square', 'a4');
+    await expect(page.locator('#egt-analysis-move-list')).not.toContainText('Re3+');
+    await expect(page.locator('#egt-analysis-move-list')).not.toContainText('Kd2');
+    await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Ra4');
     expect(await page.evaluate(() => window.__egtNavigationWorkers.created)).toBe(workersWithEngineOff);
     const lifecycle = await page.evaluate(() => window.__egtNavigationWorkers);
     expect(lifecycle.terminated).toBe(lifecycle.created);
@@ -343,6 +406,7 @@ test('automatic replay pauses, reaches the final position, and cleans up when An
     await page.locator('#egt-nav-play').click();
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 2 of 4', { timeout: 2_000 });
+    await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Ke2');
     await page.locator('#egt-nav-play').click();
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'false');
     await page.waitForTimeout(850);
@@ -352,6 +416,7 @@ test('automatic replay pauses, reaches the final position, and cleans up when An
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 4 of 4', { timeout: 2_500 });
     await expect(page.locator('#egt-nav-play')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'd2');
+    await expect(page.locator('#egt-analysis-move-list button[aria-current="move"]')).toHaveText('Kd2');
 
     await page.locator('#egt-nav-play').click();
     await expect(page.locator('#egt-nav-status')).toHaveText('Position 1 of 4');
@@ -406,8 +471,11 @@ test('mobile tap analysis remains legal and interactive after solve and flip', a
     const boardAfter = await page.locator('#egt-board').boundingBox();
     const navigation = await page.locator('#egt-analysis-navigation').boundingBox();
     const footer = await page.locator('.endgame-puzzle__workspace-foot').boundingBox();
+    const moveList = await page.locator('#egt-analysis-move-list').boundingBox();
     expect(Math.abs((boardBefore?.width || 0) - (boardAfter?.width || 0))).toBeLessThanOrEqual(1);
     expect((navigation?.y || 0) + (navigation?.height || 0)).toBeLessThanOrEqual((footer?.y || 0) + 1);
+    expect((moveList?.width || 0)).toBeLessThanOrEqual(366);
+    await expect(page.locator('#egt-analysis-move-list button')).toHaveCount(2);
     await expect(page.locator('.endgame-puzzle__analysis-navigation-controls button')).toHaveCount(5);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 });

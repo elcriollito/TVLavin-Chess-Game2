@@ -569,6 +569,14 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-puzzle__moves li { display: flex; gap: 8px; padding: 6px 8px; border-radius: 7px; background: #0c1525; font-variant-numeric: tabular-nums; }
 .endgame-puzzle__moves .move-number { min-width: 34px; color: var(--et-muted); }
 .endgame-puzzle__moves .opponent { color: #aebbd1; }
+.endgame-puzzle__move-pairs li { display: grid; grid-template-columns: 42px repeat(2, minmax(0, 1fr)); align-items: center; gap: 5px; padding: 4px 5px; }
+.endgame-puzzle__move-pairs .move-number { min-width: 0; padding-left: 3px; font-size: .75rem; }
+.endgame-puzzle__move-pairs .move-cell { min-width: 0; min-height: 30px; }
+.endgame-trainer-page .endgame-puzzle__move-pairs button { width: 100%; min-width: 0; min-height: 30px; padding: 4px 7px; overflow: hidden; border-color: transparent; background: transparent; color: #e5ebf5; font-size: .82rem; line-height: 1.1; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.endgame-trainer-page .endgame-puzzle__move-pairs button:hover:not(:disabled) { border-color: #49638f; background: #192943; }
+.endgame-trainer-page .endgame-puzzle__move-pairs button[aria-current="move"] { border-color: var(--egt-gold); background: #2a3248; color: #fff2bd; }
+.endgame-puzzle__analysis-moves { margin-top: 12px; }
+.endgame-puzzle__analysis-moves .endgame-puzzle__moves { max-height: 150px; }
 .endgame-puzzle__details { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: 14px; }
 .endgame-puzzle__details a { color: var(--egt-blue); font-size: .8rem; white-space: nowrap; }
 .endgame-puzzle__tags { display: flex; flex-wrap: wrap; gap: 5px; }

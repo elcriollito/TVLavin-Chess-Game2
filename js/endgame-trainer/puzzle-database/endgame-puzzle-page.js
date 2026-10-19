@@ -3,6 +3,7 @@ import { PuzzleCatalogSource, ratingBounds } from '../../puzzles/catalog-source.
 import { EngineMatch, PuzzleEngine, readablePrincipalVariation } from '../../puzzles/engine.js';
 import { PuzzleSession, labelFor } from '../../puzzles/model.js';
 import { EndgameAnalysisPosition } from './endgame-analysis-position.js';
+import { pairEndgameMoves } from './endgame-move-history.js';
 import {
     discoverEndgameThemes,
     endgameCount,
@@ -174,19 +175,59 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         board.drawArrow(move.from, move.to, { color: '#e5bc58', opacity: 0.58 });
     }
 
-    function drawMoves() {
-        const history = state.session?.game.history({ verbose: true }) || [];
-        $('egt-move-list').replaceChildren(...history.map((move, index) => {
+    function renderMovePairs(list, moves, { currentCursor = null, disabled = false, onNavigate } = {}) {
+        const rows = pairEndgameMoves(moves);
+        list.replaceChildren(...rows.map(row => {
             const item = doc.createElement('li');
             const number = doc.createElement('span');
-            const san = doc.createElement('span');
             number.className = 'move-number';
-            number.textContent = `${move.before.split(' ')[5]}${move.color === 'w' ? '.' : '…'}`;
-            san.textContent = move.san;
-            if (index === 0) san.className = 'opponent';
-            item.append(number, san);
+            number.textContent = `${row.number}${row.white ? '.' : '...'}`;
+            item.append(number);
+            for (const [side, entry] of [['white', row.white], ['black', row.black]]) {
+                if (!entry) {
+                    const empty = doc.createElement('span');
+                    empty.className = `move-cell move-cell--${side}`;
+                    empty.setAttribute('aria-hidden', 'true');
+                    item.append(empty);
+                    continue;
+                }
+                const button = doc.createElement('button');
+                button.type = 'button';
+                button.className = `move-cell move-cell--${side}`;
+                button.textContent = entry.san;
+                button.disabled = disabled;
+                button.dataset.analysisCursor = String(entry.cursor);
+                button.setAttribute('aria-label', `${row.number}${side === 'white' ? '.' : '...'} ${entry.san}`);
+                if (entry.cursor === currentCursor) button.setAttribute('aria-current', 'move');
+                button.addEventListener('click', () => onNavigate?.(entry.cursor), { signal });
+                item.append(button);
+            }
             return item;
         }));
+    }
+
+    function drawMoves() {
+        const history = state.session?.game.history({ verbose: true }) || [];
+        renderMovePairs($('egt-move-list'), history, {
+            currentCursor: history.length,
+            disabled: !analysisUnlocked(),
+            onNavigate: openSessionHistoryAt,
+        });
+    }
+
+    function renderAnalysisMoveList(snapshot) {
+        const block = $('egt-analysis-moves-block');
+        const moves = snapshot?.timeline || [];
+        block.hidden = moves.length === 0;
+        if (!moves.length) {
+            $('egt-analysis-move-list').replaceChildren();
+            return;
+        }
+        renderMovePairs($('egt-analysis-move-list'), moves, {
+            currentCursor: snapshot.cursor,
+            disabled: state.movePending,
+            onNavigate: navigateAnalysis,
+        });
     }
 
     function renderPosition({ animate = false } = {}) {
@@ -207,6 +248,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         stopAnalysisReplay();
         state.analysisPosition.clear();
         state.analysisRevision += 1;
+        renderAnalysisMoveList(null);
         renderAnalysisNavigation();
     }
 
@@ -215,6 +257,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         if (!snapshot) return;
         board.setPosition(snapshot.fen, { animate: false });
         showLastMove(move || snapshot.history.at(-1) || state.session?.game.history({ verbose: true }).at(-1));
+        renderAnalysisMoveList(snapshot);
         renderAnalysisNavigation();
         $('egt-side-to-move').textContent = `${snapshot.turn === 'w' ? 'White' : 'Black'} to move · Analysis`;
     }
@@ -270,6 +313,25 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         board.setInteractive(true);
         $('egt-analysis-feedback').textContent = `Position ${snapshot.cursor + 1} of ${snapshot.positionCount}. ${snapshot.turn === 'w' ? 'White' : 'Black'} to move.`;
         if (engineWasActive) analyzeManualPosition();
+        return true;
+    }
+
+    function openSessionHistoryAt(cursor) {
+        if (!analysisUnlocked() || !state.session) return false;
+        const history = state.session.game.history({ verbose: true });
+        if (!history.length || !Number.isInteger(cursor) || cursor < 1 || cursor > history.length) return false;
+        switchTab('analysis');
+        if (state.activeAnalysisMode !== 'engine') switchAnalysisMode('engine');
+        stopAnalysis();
+        stopEngineMatch();
+        cancelPromotion();
+        stopAnalysisReplay({ render: false });
+        try { state.analysisPosition.loadHistory(history, cursor); }
+        catch { return false; }
+        state.analysisRevision += 1;
+        renderManualAnalysisPosition();
+        board.setInteractive(true);
+        $('egt-analysis-feedback').textContent = `Position ${cursor + 1} of ${history.length + 1}. Select a move or explore a new continuation.`;
         return true;
     }
 
@@ -356,6 +418,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         renderSessionMetrics();
         $('egt-retry').disabled = false;
         $('egt-abandon').disabled = true;
+        drawMoves();
         renderAnalysisAccess();
         return true;
     }
@@ -518,9 +581,11 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         if (!selectedPromotion && piece?.type === 'P' && (to[1] === '1' || to[1] === '8')) {
             state.movePending = true;
             board.setInteractive(false);
+            renderAnalysisMoveList(state.analysisPosition.snapshot());
             renderAnalysisNavigation();
             selectedPromotion = await choosePromotion();
             state.movePending = false;
+            renderAnalysisMoveList(state.analysisPosition.snapshot());
             renderAnalysisNavigation();
             if (revision !== state.analysisRevision || !selectedPromotion || !manualAnalysisReady()) {
                 if (revision === state.analysisRevision && manualAnalysisReady()) board.setInteractive(true);

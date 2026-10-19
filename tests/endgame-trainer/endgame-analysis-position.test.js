@@ -101,3 +101,21 @@ test('a legal move after rewind truncates the abandoned continuation', () => {
     assert.equal(analysis.snapshot().history.at(-1).san, 'Ra4');
     assert.equal(analysis.navigate(3), null);
 });
+
+test('a canonical history is cloned with an independent selectable cursor', () => {
+    const session = solvedSession();
+    const canonicalFen = session.game.fen();
+    const history = session.game.history({ verbose: true });
+    const analysis = new EndgameAnalysisPosition();
+
+    const selected = analysis.loadHistory(history, 1);
+
+    assert.equal(selected.cursor, 1);
+    assert.equal(selected.positionCount, 3);
+    assert.equal(selected.history.length, 1);
+    assert.equal(selected.timeline.length, 2);
+    assert.equal(selected.timeline[0].san, 'Kf3');
+    assert.equal(selected.timeline[1].san, 'Ra3+');
+    assert.equal(session.game.fen(), canonicalFen);
+    assert.equal(analysis.navigate(2).fen, canonicalFen);
+});
