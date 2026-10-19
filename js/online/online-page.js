@@ -347,6 +347,8 @@ function handleRovingTabs(event, selector, datasetKey, select) {
 function renderTournamentDemo() {
     document.body.dataset.tournamentDemo = 'true';
     document.title = 'Tournament Panel Demo — CAISSA';
+    selectLobbyView('tournaments');
+    selectTab('lobby');
     ui.title.textContent = 'Tournament arena';
     ui.badge.textContent = 'DEMO';
     ui.footContext.textContent = 'Tournament concept · demo data';
@@ -360,8 +362,6 @@ function renderTournamentDemo() {
     board.setReadOnly(true);
     board.setInteractive(false);
     resetPlayerStrips();
-    selectLobbyView('tournaments');
-    selectTab('lobby');
 }
 
 function selectTournamentView(name) {

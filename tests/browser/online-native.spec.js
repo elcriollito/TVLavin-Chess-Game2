@@ -314,6 +314,9 @@ test('isolated Tournament panel uses synthetic demo data and stays below the boa
     await page.goto('/online?demo=tournament');
     await expect(page.getByRole('tab', { name: 'Lobby', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tournaments' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#workspace-title')).toHaveText('Tournament arena');
+    await expect(page.locator('#game-badge')).toHaveText('DEMO');
+    await expect(page.locator('#workspace-foot-context')).toHaveText('Tournament concept · demo data');
     await expect(page.locator('.demo-banner')).toContainText('Visual demo');
     await expect(page.locator('.tournament-standings .is-current-player')).toContainText('Alexander (you)');
     const demoTabs = page.locator('.tournament-demo-tabs');
