@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b111b">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="Make an animated chess GIF from any valid PGN, with board colors, orientation, speed and move-range controls. Free CAISSA GIF Studio.">
+  <title>CAISSA GIF Studio — Create Animated Chess Games</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.2.0">
+  <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
+  <link rel="stylesheet" href="/css/gif-studio.css?v=1.0.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="/js/caissa-i18n.js?v=1.0.0" defer></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.2.0" defer></script>
+  <script type="module" src="/js/gif-studio/studio-page.js?v=1.0.0"></script>
+</head>
+<body class="gif-studio-page">
+  <a class="gif-skip" href="#gif-studio-main">Skip to GIF Studio</a>
+  <div class="caissa-standalone-layout gif-layout">
+    <div data-caissa-standalone-sidebar data-active="gif-studio"></div>
+    <main class="caissa-standalone-content gif-main" id="gif-studio-main" data-gif-studio>
+      <header class="gif-page-header">
+        <div>
+          <p class="gif-kicker">CAISSA Tools · Create &amp; share</p>
+          <h1>GIF Studio <span>1.0</span></h1>
+          <p class="gif-tagline">Turn your favorite chess game into an animated GIF.</p>
+        </div>
+        <span class="gif-private"><i class="fas fa-lock" aria-hidden="true"></i> PGN stays in your browser</span>
+      </header>
+      <div class="gif-workspace">
+        <section class="gif-board-region" aria-label="Game preview">
+          <div class="gif-board-head">
+            <div class="gif-players"><span data-gif-white>White</span><span class="gif-versus">vs</span><span data-gif-black>Black</span></div>
+            <span class="gif-result" data-gif-result>—</span>
+          </div>
+          <div class="gif-board-wrap">
+            <canvas id="gif-board" width="640" height="640" role="img" aria-label="Animated chessboard preview, initially showing the standard starting position"></canvas>
+          </div>
+          <div class="gif-board-note" aria-live="polite"><span data-gif-ply>Starting position</span><span data-gif-count>0 moves</span></div>
+          <div class="gif-replay" role="group" aria-label="Chess game replay controls">
+            <button type="button" data-gif-first aria-label="First position" title="First position" disabled><i class="fas fa-fast-backward" aria-hidden="true"></i></button>
+            <button type="button" data-gif-previous aria-label="Previous move" title="Previous move" disabled><i class="fas fa-step-backward" aria-hidden="true"></i></button>
+            <button type="button" data-gif-play class="gif-play" aria-label="Play game" title="Play game" disabled><i class="fas fa-play" aria-hidden="true"></i><span>Play</span></button>
+            <button type="button" data-gif-next aria-label="Next move" title="Next move" disabled><i class="fas fa-step-forward" aria-hidden="true"></i></button>
+            <button type="button" data-gif-last aria-label="Final position" title="Final position" disabled><i class="fas fa-fast-forward" aria-hidden="true"></i></button>
+          </div>
+          <div class="gif-position-range"><label for="gif-position">Position <span data-gif-position-value>0</span></label><input id="gif-position" data-gif-position type="range" min="0" max="1" value="0" disabled></div>
+        </section>
+        <section class="gif-panel" aria-label="GIF creator controls">
+          <div class="gif-panel-head">
+            <div class="gif-tabs" role="tablist" aria-label="GIF Studio tools">
+              <button id="gif-tab-import" type="button" role="tab" aria-controls="gif-panel-import" aria-selected="true" tabindex="0" data-gif-tab="import">Import</button>
+              <button id="gif-tab-style" type="button" role="tab" aria-controls="gif-panel-style" aria-selected="false" tabindex="-1" data-gif-tab="style">Customize</button>
+              <button id="gif-tab-export" type="button" role="tab" aria-controls="gif-panel-export" aria-selected="false" tabindex="-1" data-gif-tab="export">Export</button>
+            </div>
+          </div>
+          <div class="gif-panel-body">
+            <section id="gif-panel-import" role="tabpanel" aria-labelledby="gif-tab-import" data-gif-panel="import">
+              <h2>Import a game</h2>
+              <p class="gif-help">Paste the PGN of a chess game or open a <code>.pgn</code> file. No login required.</p>
+              <label for="gif-pgn">Game PGN</label>
+              <textarea id="gif-pgn" data-gif-pgn rows="10" spellcheck="false" autocomplete="off" maxlength="262144" placeholder="[Event &quot;My game&quot;]&#10;[White &quot;Player 1&quot;]&#10;[Black &quot;Player 2&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6 ..."></textarea>
+              <div class="gif-import-actions">
+                <button type="button" class="gif-button gif-button-primary" data-gif-load>Load PGN</button>
+                <button type="button" class="gif-button gif-button-subtle" data-gif-open><i class="fas fa-folder-open" aria-hidden="true"></i> Open .pgn</button>
+                <input id="gif-file" data-gif-file type="file" accept=".pgn,.txt,text/plain,application/x-chess-pgn" hidden>
+              </div>
+              <button type="button" class="gif-link-button" data-gif-example>Try the Paul Morphy example game →</button>
+              <p class="gif-fineprint">Game URLs are planned for a later release. For now, copy the PGN from Chess.com, Lichess or CAISSA.</p>
+            </section>
+            <section id="gif-panel-style" role="tabpanel" aria-labelledby="gif-tab-style" data-gif-panel="style" hidden>
+              <h2>Customize</h2>
+              <p class="gif-help">Changes appear immediately on the preview board.</p>
+              <label for="gif-theme">Board theme</label>
+              <select id="gif-theme" data-gif-theme><option value="green">Classic Green</option><option value="walnut">Warm Walnut</option><option value="blue">Midnight Blue</option></select>
+              <label for="gif-pieces">Piece style</label>
+              <select id="gif-pieces" data-gif-pieces><option value="wikipedia">Classic Staunton</option><option value="symbols">Traditional Symbols</option></select>
+              <label for="gif-orientation">Board orientation</label>
+              <select id="gif-orientation" data-gif-orientation><option value="white">White at bottom</option><option value="black">Black at bottom</option></select>
+              <p class="gif-fineprint">The same board, pieces and orientation appear in the exported GIF.</p>
+            </section>
+            <section id="gif-panel-export" role="tabpanel" aria-labelledby="gif-tab-export" data-gif-panel="export" hidden>
+              <h2>Animation settings</h2>
+              <p class="gif-help">Select the moves you want to share and control the animation speed.</p>
+              <div class="gif-field-grid">
+                <div><label for="gif-start">Start position (ply)</label><input type="number" id="gif-start" data-gif-start min="0" max="0" value="0"></div>
+                <div><label for="gif-end">End position (ply)</label><input type="number" id="gif-end" data-gif-end min="0" max="0" value="0"></div>
+              </div>
+              <p class="gif-fineprint">0 = starting position; 1 = first half-move. Include only your favorite combination if you prefer.</p>
+              <label for="gif-speed">Time per move</label>
+              <select id="gif-speed" data-gif-speed><option value="500">Fast · 0.5 seconds</option><option value="850" selected>Normal · 0.85 seconds</option><option value="1300">Slow · 1.3 seconds</option><option value="2000">Study · 2 seconds</option></select>
+              <label for="gif-size">GIF size</label>
+              <select id="gif-size" data-gif-size><option value="384">Compact · 384 × 384</option><option value="512" selected>Standard · 512 × 512</option></select>
+              <p class="gif-fineprint">Animated GIFs loop automatically. Long games can produce large files.</p>
+            </section>
+          </div>
+          <footer class="gif-panel-foot">
+            <p class="gif-status" data-gif-status role="status" aria-live="polite">Open a PGN or try the example game to begin.</p>
+            <progress data-gif-progress max="100" value="0" hidden aria-label="GIF creation progress"></progress>
+            <button type="button" class="gif-button gif-button-primary gif-create" data-gif-create disabled><i class="fas fa-film" aria-hidden="true"></i> Create GIF</button>
+            <a class="gif-button gif-button-download" data-gif-download hidden download="caissa-chess-game.gif"><i class="fas fa-download" aria-hidden="true"></i> Download GIF</a>
+          </footer>
+        </section>
+      </div>
+      <section class="gif-about" aria-label="About CAISSA GIF Studio">
+        <h2>Make every chess game shareable</h2>
+        <p>Import a PGN, replay the game, pick a board style and export an animated GIF — free, with no registration and no game uploads. Created by CAISSA Chess.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -710,6 +710,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/tools/polyglot') {
     filePath = './polyglot.html';
   }
+  if (pathname === '/gif-maker' || pathname === '/gif-maker/') {
+    filePath = './gif-maker.html';
+  }
 
   const protectedPlayerPgn = pathname.startsWith('/data/pgn/players/')
     || pathname.startsWith('/public/data/pgn/players/')
