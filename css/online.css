@@ -484,3 +484,74 @@ body.online-page{position:relative;overflow-x:hidden}
     #panel-new .lobby-access{padding-top:10px}
     #panel-new .lobby-access__actions a,#panel-new .lobby-access__actions button{min-height:36px}
 }
+
+/* CAISSA Online Lobby Hub v1: secondary navigation stays inside one workspace. */
+#panel-lobby{min-height:100%}
+.lobby-hub-head,.lobby-section-heading{display:flex;align-items:end;justify-content:space-between;gap:14px}
+.lobby-hub-head{padding-bottom:13px}
+.lobby-hub-head p,.lobby-section-heading p{margin:0;color:var(--online-accent);font-size:8px;font-weight:800;letter-spacing:.14em}
+.lobby-hub-head h3,.lobby-section-heading h3{margin:3px 0 0;font:500 21px/1.2 Georgia,serif}
+#return-to-game{min-height:34px;border:1px solid #826b3c;border-radius:7px;background:#282719;color:#f1d28f;padding:7px 10px;font-size:10px;font-weight:700;cursor:pointer}
+.lobby-subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-block:1px solid var(--online-line);background:#0b1712}
+.lobby-subtabs button{min-width:0;min-height:43px;border:0;border-bottom:2px solid transparent;background:transparent;color:#9facA5;padding:8px 4px;cursor:pointer;font-size:10px;line-height:1.2}
+.lobby-subtabs button[aria-selected=true]{border-color:var(--online-accent);background:linear-gradient(180deg,#23312633,#7d67351a);color:var(--online-text)}
+[data-lobby-panel]{padding-top:15px}
+[data-lobby-panel][hidden]{display:none!important}
+.lobby-section-heading>strong{color:#d9bd82;font-size:8px;letter-spacing:.08em;text-transform:uppercase}
+.lobby-section-copy{margin:9px 0 0;color:#a9b7af;font-size:10.5px;line-height:1.5}
+.fixture-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:13px;padding:8px 10px;border:1px solid #826b3c;border-radius:7px;background:#292719;color:#d9bd82;font-size:9px}
+.fixture-banner strong{text-transform:uppercase;letter-spacing:.1em}
+.fixture-banner span{color:#c5c0ad;text-align:right}
+.offers-state{min-height:255px}
+.offers-table-wrap{margin-top:12px;overflow:hidden;border:1px solid var(--online-line);border-radius:8px;background:#0b1712}
+.offers-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px;font-variant-numeric:tabular-nums}
+.offers-table th,.offers-table td{padding:10px 8px;border-bottom:1px solid #26382f;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.offers-table th{background:#1c2d24;color:#d7ddd9;font-size:8px;letter-spacing:.05em;text-transform:uppercase}
+.offers-table th:nth-child(2),.offers-table td:nth-child(2){width:58px;text-align:right}
+.offers-table th:nth-child(3),.offers-table td:nth-child(3){width:50px;text-align:center}
+.offers-table th:nth-child(4),.offers-table td:nth-child(4){width:88px}
+.offers-table tbody tr:nth-child(even){background:#14231c}
+.offers-table tbody tr:last-child td{border-bottom:0}
+.tournaments-coming-soon{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.tournaments-coming-soon>span{color:#d6af5c;font-size:36px}
+.tournaments-coming-soon>p{margin:13px 0 4px;color:var(--online-accent);font-size:8px;font-weight:800;letter-spacing:.15em}
+.tournaments-coming-soon>h3{margin:0;font:500 22px/1.25 Georgia,serif}
+.tournaments-coming-soon>strong{margin-top:9px;padding:5px 8px;border:1px solid #826b3c;border-radius:999px;color:#e2c178;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.tournaments-coming-soon>small{max-width:280px;margin-top:11px;color:#a9b7af;font-size:10.5px;line-height:1.5}
+.workspace-foot button{display:flex;align-items:center;gap:6px;border:0;background:transparent;color:#a8b6ae;padding:8px 0;cursor:pointer;font-size:9px}
+.workspace-foot button span{color:var(--online-accent);font-size:12px}
+#setup-dialog{width:min(430px,calc(100vw - 28px));padding:0;overflow:hidden}
+#setup-dialog form{margin:0;padding:20px;text-align:left}
+#setup-dialog form>div.setup-dialog-head{display:flex;align-items:start;justify-content:space-between;gap:18px;margin:0;padding:0}
+.setup-dialog-head p{margin:0;color:var(--online-accent);font-size:8px;font-weight:800;letter-spacing:.14em}
+.setup-dialog-head h2{margin:3px 0 0;font:500 24px/1.15 Georgia,serif}
+#setup-dialog .setup-close{width:34px;height:34px;padding:0;display:grid;place-items:center;font-size:20px;line-height:1}
+#setup-dialog-copy{margin:9px 0 18px;color:#a9b7af;font-size:11px;line-height:1.5}
+.setup-section{padding:15px;border:1px solid var(--online-line);border-radius:9px;background:#0d1914}
+.setup-section>div{display:block;margin:0;padding:0}
+.setup-section h3{margin:0;font-size:13px}
+.setup-section>div>p{margin:5px 0 0;color:#9fada5;font-size:10px;line-height:1.45}
+.setup-switch{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--online-line);cursor:pointer}
+.setup-switch>span{display:grid;gap:4px}
+.setup-switch strong{font-size:11px}
+.setup-switch small{color:#9fada5;font-size:9.5px;line-height:1.4}
+.setup-switch input{appearance:none;flex:none;width:42px;height:24px;margin:0;border-radius:999px;background:#38443e;position:relative;cursor:pointer}
+.setup-switch input:after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#d6ddd8;transition:transform .15s}
+.setup-switch input:checked{background:var(--online-green)}
+.setup-switch input:checked:after{transform:translateX(18px)}
+.setup-help{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:12px 14px;border:1px solid var(--online-line);border-radius:8px;color:var(--online-text);text-decoration:none}
+.setup-help span{font-size:11px;font-weight:700}
+.setup-help small{color:#9fada5;font-size:9px;text-align:right}
+
+@media(max-width:520px){
+    .lobby-subtabs button{padding-inline:2px;font-size:9px}
+    .lobby-hub-head h3,.lobby-section-heading h3{font-size:19px}
+    .offers-table th,.offers-table td{padding:9px 5px;font-size:8.5px}
+    .offers-table th:nth-child(2),.offers-table td:nth-child(2){width:48px}
+    .offers-table th:nth-child(3),.offers-table td:nth-child(3){width:43px}
+    .offers-table th:nth-child(4),.offers-table td:nth-child(4){width:76px}
+    .fixture-banner{align-items:start;flex-direction:column;gap:3px}
+    .fixture-banner span{text-align:left}
+    #setup-dialog form{padding:17px}
+    .setup-switch{gap:10px}
+}

@@ -211,7 +211,8 @@ test('Online surfaces render only public snapshots and preserve temporary guest 
     await expect(page.locator('.online-layout').getByText('Private Name Must Not Render')).toHaveCount(0);
     await page.screenshot({ path: output('09-new-game-canonical-player-strips'), fullPage: true });
 
-    await page.getByRole('tab', { name: 'Players' }).click();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Players' }).click();
     await expect(page.locator('#players-list')).toContainText('OpenKnight');
     await expect(page.locator('#players-list')).toContainText('Guest-AB12CD');
     await page.locator('.play-workspace').screenshot({ path: output('10-online-players-directory') });
@@ -237,7 +238,8 @@ test('Online surfaces render only public snapshots and preserve temporary guest 
     expect(exportedPgn).not.toContain('private@example.test');
     await download.saveAs('test-results/public-identity/14-historical-export-sanitized.pgn');
 
-    await page.getByRole('tab', { name: 'Players' }).click();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Players' }).click();
     await page.locator('.play-workspace').screenshot({ path: output('12-guest-vs-registered') });
 });
 

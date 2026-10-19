@@ -4,13 +4,15 @@ import fs from 'node:fs';
 
 const html = fs.readFileSync(new URL('../../online.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../../css/online.css', import.meta.url), 'utf8');
+const onlinePage = fs.readFileSync(new URL('../../js/online/online-page.js', import.meta.url), 'utf8');
 const vercel = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
 const server = fs.readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
 
 test('online shell is board-first with one tabbed workspace and accessible status', () => {
     assert.match(html, /id="online-board"/);
     assert.match(html, /role="tablist"/);
-    assert.match(html, /data-tab="new"[\s\S]+data-tab="games"[\s\S]+data-tab="players"/);
+    assert.match(html, /data-tab="new"[\s\S]+data-tab="games"[\s\S]+data-tab="lobby"/);
+    assert.doesNotMatch(html, /data-tab="players"/);
     assert.match(html, /aria-live="polite"/);
     assert.match(css, /--online-layout-gap:clamp\(24px,2vw,32px\)/);
     assert.match(css, /--online-board-size:min\(/);
@@ -56,12 +58,13 @@ test('player-facing panel copy follows enabled capabilities without internal dia
 test('tournament proposal is an isolated, synthetic and accessible panel', () => {
     assert.ok(vercel.rewrites.some(item => item.source === '/online/tournament-demo' && item.destination === '/online.html'));
     assert.match(server, /pathname === '\/online\/tournament-demo'/);
-    assert.match(html, /id="browse-tournaments"[^>]*aria-disabled="true"[\s\S]*?🏆[\s\S]*?Tournaments[\s\S]*?id="tournament-availability">Coming Soon/);
-    assert.match(html, /id="tab-tournament"[^>]*hidden/);
-    assert.match(html, /id="panel-tournament"[\s\S]*Visual demo[\s\S]*Current standings/);
+    assert.match(html, /data-lobby-tab="tournaments"[^>]*>Tournaments/);
+    assert.match(html, /id="tournaments-coming-soon"[\s\S]*CAISSA Tournaments[\s\S]*Coming Soon/);
+    assert.doesNotMatch(html, /id="tab-tournament"/);
+    assert.match(html, /id="tournament-demo-content" hidden[\s\S]*Visual demo[\s\S]*Current standings/);
     assert.match(html, /class="is-current-player"[\s\S]*Alexander <span>\(you\)<\/span>/);
     assert.match(html, /data-tournament-view="standings"[\s\S]*>Standings<[\s\S]*data-tournament-view="games"[\s\S]*>Games</);
-    assert.doesNotMatch(html.match(/id="panel-tournament"[\s\S]*?<\/section>\s*<\/div>/)?.[0] || '', />Chat</i);
+    assert.doesNotMatch(html.match(/id="tournament-demo-content"[\s\S]*?<\/div>\s*<\/section>/)?.[0] || '', />Chat</i);
 });
 
 test('online route is isolated, private-cache, noindex, and keeps the retired play route intact', () => {
@@ -105,6 +108,8 @@ test('Games presents three contextual tabs and keeps Open Games independent', ()
 });
 
 test('Players leads with active presence and guest play is explicit and temporary', () => {
+    assert.match(html, /data-lobby-tab="players"[^>]*>Players/);
+    assert.match(html, /data-lobby-panel="players"/);
     assert.match(html, /class="players-heading"[\s\S]*ACTIVE NOW[\s\S]*id="players-count"/);
     assert.match(html, /id="player-search"[\s\S]*id="players-list"/);
     assert.match(html, /id="play-as-guest" hidden>Play as Guest/);
@@ -112,13 +117,39 @@ test('Players leads with active presence and guest play is explicit and temporar
 });
 
 test('New Game keeps authentication actions in a flexible footer without absolute positioning', () => {
-    assert.match(html, /id="lobby-view"[\s\S]*id="browse-tournaments"[\s\S]*id="lobby-access"/);
+    assert.match(html, /id="lobby-view"[\s\S]*id="play-friend"[\s\S]*id="lobby-access"/);
     assert.match(html, /Play with a CAISSA account or as a guest\./);
     assert.match(css, /#lobby-view\{min-height:100%;display:flex;flex-direction:column\}/);
     assert.match(css, /\.lobby-access\{[^}]*margin-top:auto/);
     assert.match(css, /\.lobby-access__actions\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
     const accessRule = css.match(/\.lobby-access\{[^}]*\}/)?.[0] || '';
     assert.doesNotMatch(accessRule, /position:absolute|position:fixed/);
+});
+
+test('Lobby owns Players, gated Tables / Offers, Tournaments, and an active-game return', () => {
+    assert.match(html, /id="tab-lobby"[^>]*aria-controls="panel-lobby"/);
+    assert.match(html, /data-lobby-tab="players"[\s\S]*data-lobby-tab="offers"[\s\S]*data-lobby-tab="tournaments"/);
+    assert.match(html, /id="return-to-game"[^>]*hidden>Return to game/);
+    assert.match(html, /<th scope="col">Name<\/th><th scope="col">Rating<\/th><th scope="col">Time<\/th><th scope="col">Type<\/th>/);
+    assert.match(html, /Public offers are unavailable/);
+    assert.match(html, /No queue or player data is exposed here/);
+    assert.doesNotMatch(html, /PlayerOne|PlayerTwo|GuestPlayer/);
+    assert.match(css, /\.lobby-subtabs\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+    assert.match(css, /\.offers-table\{[^}]*table-layout:fixed/);
+    assert.match(onlinePage, /\['localhost', '127\.0\.0\.1', '\[::1\]'\]\.includes\(location\.hostname\)/);
+    assert.match(onlinePage, /PAGE_PARAMS\.get\('fixtures'\) === 'lobby'/);
+    assert.match(onlinePage, /if \(!LOCAL_LOBBY_FIXTURES\) return/);
+    assert.doesNotMatch(onlinePage, /offer\.(?:list|create|accept|join)|queue\.list/);
+});
+
+test('Setup keeps help and a real device-scoped invitation preference', () => {
+    assert.match(html, /id="setup-open"[^>]*aria-haspopup="dialog"/);
+    assert.match(html, /id="setup-dialog"[\s\S]*id="mute-invitation-popups"[^>]*role="switch"/);
+    assert.match(html, /Mute invitation pop-ups on this device/);
+    assert.match(html, /href="\/help"[\s\S]*Fair Play &amp; Help/);
+    assert.match(onlinePage, /model\.muteInvitationPopups[\s\S]*ui\.challengeNotice\.hidden = true/);
+    assert.match(onlinePage, /renderPlayers\(model\.state\?\.players \|\| \[\], model\.state\?\.challenges \|\| \[\]\)/);
+    assert.doesNotMatch(css.match(/\.workspace-foot button\{[^}]*\}/)?.[0] || '', /position:(?:absolute|fixed)/);
 });
 
 test('custom clock labels are complete and share one aligned control grid', () => {

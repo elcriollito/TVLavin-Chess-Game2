@@ -136,12 +136,12 @@ test('board-first shell remains usable at phone width and has no serious axe fin
     await expect(page.locator('#online-side-menu #account-link')).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Puzzles' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Players' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Lobby', exact: true })).toBeVisible();
     const layout = await page.evaluate(() => ({
         domNodes: document.getElementsByTagName('*').length,
         horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
     }));
-    expect(layout.domNodes).toBeLessThan(500);
+    expect(layout.domNodes).toBeLessThan(575);
     expect(layout.horizontalOverflow).toBeLessThanOrEqual(0);
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
@@ -177,7 +177,7 @@ test('headerless workspace uses the released height and tabs support keyboard na
     await expect(page.getByRole('tab', { name: 'Games', exact: true })).toBeFocused();
     await expect(page.getByRole('tab', { name: 'Games', exact: true })).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
-    await expect(page.getByRole('tab', { name: 'Players' })).toBeFocused();
+    await expect(page.getByRole('tab', { name: 'Lobby', exact: true })).toBeFocused();
 });
 
 test('visitor sees the normal board and sign-in appears only after an explicit play action', async ({ page }) => {
@@ -285,9 +285,6 @@ test('disabled capabilities read as Casual and unavailable instead of internal c
     await page.goto('/online');
     await expect(page.locator('#game-mode-label')).toHaveText('Casual');
     await expect(page.locator('#rated-control')).toBeHidden();
-    await expect(page.locator('#browse-tournaments')).toBeVisible();
-    await expect(page.locator('#browse-tournaments')).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.locator('#tournament-availability')).toHaveText('Coming Soon');
     await expect(page.locator('body')).not.toContainText('Protocol 1.0.0');
     await page.getByRole('tab', { name: 'Games' }).click();
     await expect(page.getByRole('heading', { name: 'Daily Games' })).toBeVisible();
@@ -298,14 +295,19 @@ test('disabled capabilities read as Casual and unavailable instead of internal c
     await expect(page.getByRole('heading', { name: 'Watch Games' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Open Games' })).toBeVisible();
     await expect(page.locator('#games-open-unavailable')).toContainText('Public joinable games are not enabled in this version.');
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tables / Offers' }).click();
+    await expect(page.locator('#offers-state')).toContainText('Public offers are unavailable');
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tournaments' }).click();
+    await expect(page.locator('#tournaments-coming-soon')).toContainText('Coming Soon');
 });
 
 test('isolated Tournament panel uses synthetic demo data and stays below the board on mobile', async ({ page }) => {
     let onlineApiRequests = 0;
     page.on('request', request => { if (new URL(request.url()).pathname === '/api/online') onlineApiRequests += 1; });
     await page.goto('/online?demo=tournament');
-    await expect(page.getByRole('tab', { name: 'Tournament' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Tournament' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Lobby', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tournaments' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.demo-banner')).toContainText('Visual demo');
     await expect(page.locator('.tournament-standings .is-current-player')).toContainText('Alexander (you)');
     const demoTabs = page.locator('.tournament-demo-tabs');
@@ -329,10 +331,206 @@ test('isolated Tournament panel uses synthetic demo data and stays below the boa
     expect(mobile.overflowX).toBeLessThanOrEqual(0);
 });
 
+test('the tournaments route opens the authorized Lobby coming-soon state', async ({ page }) => {
+    await page.goto('/online/tournaments');
+    await expect(page.getByRole('tab', { name: 'Lobby', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tournaments' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#tournaments-coming-soon')).toContainText('CAISSA Tournaments');
+    await expect(page.locator('#tournaments-coming-soon')).toContainText('Coming Soon');
+    await expect(page.locator('#tournament-demo-content')).toBeHidden();
+});
+
+test('Lobby replaces the top-level Players tab and preserves its selected subtab', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.state.players = [{ clerkId: 'user_rival', displayName: 'Rival', status: 'online', rating: 1512, pool: 'blitz' }];
+    await page.goto('/online');
+    const mainTabs = page.locator('.workspace-tabs');
+    const lobbyTabs = page.locator('.lobby-subtabs');
+    await expect(mainTabs.getByRole('tab')).toHaveCount(3);
+    await expect(mainTabs.getByRole('tab', { name: 'Players' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Play a Friend' }).click();
+    await expect(mainTabs.getByRole('tab', { name: 'Lobby' })).toHaveAttribute('aria-selected', 'true');
+    await expect(lobbyTabs.getByRole('tab', { name: 'Players' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#players-list')).toContainText('Rival');
+
+    await lobbyTabs.getByRole('tab', { name: 'Tables / Offers' }).click();
+    await expect(page.locator('#offers-state')).toContainText('Public offers are unavailable');
+    await expect(page.locator('#offers-table-body tr')).toHaveCount(0);
+    await mainTabs.getByRole('tab', { name: 'Games' }).click();
+    await mainTabs.getByRole('tab', { name: 'Lobby' }).click();
+    await expect(lobbyTabs.getByRole('tab', { name: 'Tables / Offers' })).toHaveAttribute('aria-selected', 'true');
+
+    await lobbyTabs.getByRole('tab', { name: 'Tables / Offers' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(lobbyTabs.getByRole('tab', { name: 'Tournaments' })).toBeFocused();
+    await expect(page.locator('#tournaments-coming-soon')).toBeVisible();
+    expect(harness.commandTypes.filter(type => type === 'queue.leave')).toHaveLength(0);
+});
+
+test('Lobby navigation preserves an active game, board instance, and obvious return action', async ({ page }) => {
+    const harness = harnesses.get(page);
+    await page.goto('/online');
+    await page.evaluate(() => { window.__lobbyHubBoard = document.getElementById('online-board'); });
+    await page.getByRole('button', { name: 'Start Game' }).click();
+    await expect(page.locator('#game-view')).toBeVisible();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Return to game' })).toBeVisible();
+    await expect(page.locator('#player-top .player-name')).toHaveText('Rival');
+    await page.getByRole('button', { name: 'Return to game' }).click();
+    await expect(page.locator('#game-view')).toBeVisible();
+    expect(await page.evaluate(() => window.__lobbyHubBoard === document.getElementById('online-board'))).toBe(true);
+    expect(harness.commandTypes.filter(type => type === 'queue.join')).toHaveLength(1);
+    expect(harness.commandTypes.filter(type => type === 'queue.leave')).toHaveLength(0);
+});
+
+test('changing tabs does not cancel an active matchmaking search', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.queueReturnsTicket = true;
+    await page.goto('/online');
+    await page.getByRole('button', { name: 'Start Game' }).click();
+    await expect(page.locator('#queue-view')).toBeVisible();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.getByRole('tab', { name: 'Games', exact: true }).click();
+    await page.getByRole('tab', { name: 'New Game' }).click();
+    await expect(page.locator('#queue-view')).toBeVisible();
+    expect(harness.commandTypes.filter(type => type === 'queue.join')).toHaveLength(1);
+    expect(harness.commandTypes.filter(type => type === 'queue.leave')).toHaveLength(0);
+});
+
+test('local offers fixtures are explicitly labeled and never expose a Join action', async ({ page }) => {
+    await page.goto('/online?fixtures=lobby');
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tables / Offers' }).click();
+    await expect(page.locator('#offers-fixture-banner')).toContainText('Local fixture');
+    await expect(page.locator('#offers-fixture-banner')).toContainText('no games can be joined');
+    await expect(page.locator('#offers-table-body tr')).toHaveCount(3);
+    await expect(page.locator('#offers-table-wrap').getByRole('button')).toHaveCount(0);
+    await expect(page.locator('#offers-status')).toHaveText('Local fixture');
+});
+
+test('a long local offers fixture scrolls inside the workspace and keeps its footer stable', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/online?fixtures=lobby');
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tables / Offers' }).click();
+    const before = await page.evaluate(() => {
+        const panel = document.querySelector('.play-workspace').getBoundingClientRect();
+        const foot = document.querySelector('.workspace-foot').getBoundingClientRect();
+        return { panelHeight: panel.height, panelBottom: panel.bottom, footBottom: foot.bottom };
+    });
+    await page.locator('#offers-table-body').evaluate(body => {
+        for (let index = 0; index < 80; index += 1) {
+            const row = document.createElement('tr');
+            ['FixturePlayer', '1500', '3+2', 'Casual Blitz'].forEach(value => {
+                const cell = document.createElement('td');
+                cell.textContent = `${value}${index + 1}`;
+                row.append(cell);
+            });
+            body.append(row);
+        }
+    });
+    const after = await page.evaluate(() => {
+        const panel = document.querySelector('.play-workspace').getBoundingClientRect();
+        const body = document.querySelector('.workspace-body');
+        const foot = document.querySelector('.workspace-foot').getBoundingClientRect();
+        return {
+            panelHeight: panel.height,
+            panelBottom: panel.bottom,
+            footBottom: foot.bottom,
+            bodyScrolls: body.scrollHeight > body.clientHeight,
+            bodyOverflowY: getComputedStyle(body).overflowY,
+            horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+    });
+    expect(Math.abs(after.panelHeight - before.panelHeight)).toBeLessThan(1);
+    expect(Math.abs(after.panelBottom - before.panelBottom)).toBeLessThan(1);
+    expect(Math.abs(after.footBottom - before.footBottom)).toBeLessThan(1);
+    expect(after.bodyScrolls).toBe(true);
+    expect(after.bodyOverflowY).toBe('auto');
+    expect(after.horizontalOverflow).toBeLessThanOrEqual(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await expect(page.locator('.offers-table th')).toHaveCount(4);
+    const mobile = await onlineLayoutGeometry(page);
+    expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
+    expect(mobile.boardPanelIntersection).toBe(0);
+});
+
+test('Setup mutes invitation pop-ups while pending challenges remain available', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.state.challenges = [challengeFixture({ direction: 'incoming' })];
+    await page.goto('/online');
+    await expect(page.locator('#challenge-notice')).toBeVisible();
+
+    const setupButton = page.getByRole('button', { name: /Setup/ });
+    await setupButton.click();
+    const dialog = page.getByRole('dialog', { name: 'Setup' });
+    await expect(dialog).toBeVisible();
+    await page.locator('#mute-invitation-popups').check();
+    await expect(page.locator('#challenge-notice')).toBeHidden();
+    await page.getByRole('button', { name: 'Close setup' }).click();
+    await expect(setupButton).toBeFocused();
+
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Players' }).click();
+    await expect(page.locator('#challenges-list .challenge-row')).toHaveCount(1);
+    await expect(page.locator('#challenges-list')).toContainText('Rival');
+    await page.reload();
+    await expect(page.locator('#challenge-notice')).toBeHidden();
+    await page.getByRole('button', { name: /Setup/ }).click();
+    await expect(page.locator('#mute-invitation-popups')).toBeChecked();
+    await page.locator('#mute-invitation-popups').uncheck();
+    await expect(page.locator('#challenge-notice')).toBeVisible();
+});
+
+test('captures sanitized Lobby Hub review states when requested', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.state.players = [
+        { clerkId: 'fixture_nova', displayName: 'FixtureNova', status: 'online', rating: 1824, pool: 'rapid' },
+        { clerkId: 'fixture_guest', displayName: 'FixtureGuest', status: 'seeking', rating: null, pool: 'blitz' }
+    ];
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/online?fixtures=lobby');
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    const lobbyTabs = page.locator('.lobby-subtabs');
+    await expect(page.locator('#players-list .player-row')).toHaveCount(2);
+
+    if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-players-1440x900.png', fullPage: true });
+    }
+    await lobbyTabs.getByRole('tab', { name: 'Tables / Offers' }).click();
+    if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-offers-local-fixtures-1440x900.png', fullPage: true });
+    }
+    await lobbyTabs.getByRole('tab', { name: 'Tournaments' }).click();
+    if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-tournaments-1440x900.png', fullPage: true });
+    }
+    await page.getByRole('button', { name: /Setup/ }).click();
+    if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/setup-open-1440x900.png', fullPage: true });
+    }
+    await page.locator('#mute-invitation-popups').check();
+    if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/setup-muted-1440x900.png', fullPage: true });
+    }
+    await page.getByRole('button', { name: 'Close setup' }).click();
+    await lobbyTabs.getByRole('tab', { name: 'Players' }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobile = await onlineLayoutGeometry(page);
+    expect(mobile.horizontalOverflow).toBeLessThanOrEqual(0);
+    expect(mobile.boardPanelIntersection).toBe(0);
+    if (process.env.CAISSA_CAPTURE_LOBBY_HUB === '1') {
+        await page.screenshot({ path: 'docs/visual-evidence/online-lobby-hub-v1/lobby-mobile-390x844.png', fullPage: true });
+    }
+});
+
 test('board group and workspace share aligned desktop geometry and contextual scroll ownership', async ({ page }) => {
     const desktopCases = [
         { name: 'desktop', width: 1440, height: 900 },
         { name: 'short', width: 1440, height: 720 },
+        { name: 'compact-desktop', width: 1280, height: 720 },
         { name: 'zoom-25-on-2560x1440', zoom: 25, width: 10240, height: 5760 },
         { name: 'zoom-33-on-2560x1440', zoom: 33, width: 7758, height: 4364 },
         { name: 'zoom-50-on-2560x1440', zoom: 50, width: 5120, height: 2880 },
@@ -372,6 +570,7 @@ test('board group and workspace share aligned desktop geometry and contextual sc
 
     const stackedCases = [
         { name: 'mobile', width: 390, height: 844 },
+        { name: 'mobile-compact', width: 320, height: 700 },
         { name: 'mobile-narrow', width: 340, height: 760 },
         { name: 'breakpoint-900', width: 900, height: 844 }
     ];
@@ -444,7 +643,8 @@ test('players snapshot removes stale rows and restores its empty state', async (
     harness.emptyPlayersAfterRead = 2;
 
     await page.goto('/online');
-    await page.getByRole('tab', { name: 'Players' }).click();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Players' }).click();
     await expect(page.locator('#players-list .player-row')).toHaveCount(1);
     await expect(page.locator('#players-count')).toHaveText('1 online');
     await expect(page.locator('#players-list')).toContainText('Rival');
@@ -601,7 +801,7 @@ test('incoming invitation stays visible across tabs, is deduplicated by id, and 
     await expect(page.locator('#challenge-notice-title')).toContainText('Rival');
     await expect(page.locator('#challenge-notice-control')).toContainText('3+2');
     await page.evaluate(() => { window.__challengeNoticeNode = document.getElementById('challenge-notice'); });
-    for (const tab of ['Games', 'Players', 'New Game']) {
+    for (const tab of ['Games', 'Lobby', 'New Game']) {
         await page.getByRole('tab', { name: tab, exact: true }).click();
         await expect(page.locator('#challenge-notice')).toBeVisible();
     }
@@ -638,7 +838,8 @@ test('outgoing invitation shows waiting, blocks duplicates, and null ratings ren
     await page.goto('/online');
     await expect(page.locator('#challenge-notice-title')).toHaveText('Waiting for Rival');
     await expect(page.locator('#challenge-notice-actions')).toBeHidden();
-    await page.getByRole('tab', { name: 'Players' }).click();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Players' }).click();
     await expect(page.locator('#players-list')).toContainText('Casual · Blitz');
     await expect(page.locator('#players-list')).not.toContainText('null');
     await expect(page.locator('#players-list button')).toHaveText('Waiting');
@@ -678,7 +879,7 @@ test('Games uses three contextual subtabs and keeps Open Games independent', asy
     await expect(page.locator('#panel-games')).not.toContainText('YOUR BOARD');
 });
 
-test('reference composition keeps New Game, Games, and Players visually contextual', async ({ page }) => {
+test('reference composition keeps New Game, Games, and Lobby Players visually contextual', async ({ page }) => {
     const harness = harnesses.get(page);
     harness.authSignedIn = false;
     harness.config = {
@@ -715,7 +916,8 @@ test('reference composition keeps New Game, Games, and Players visually contextu
         { clerkId: 'user_muse', displayName: 'EndgameMuse', status: 'playing', rating: 1640, pool: 'rapid' }
     ];
     await page.reload();
-    await page.getByRole('tab', { name: 'Players' }).click();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Players' }).click();
     await expect(page.locator('#players-count')).toHaveText('3 online');
     await expect(page.locator('#player-search')).toBeVisible();
     await expect(page.locator('#players-list .player-row')).toHaveCount(3);
@@ -740,7 +942,7 @@ test('reference composition keeps New Game, Games, and Players visually contextu
     }
 });
 
-test('New Game keeps authentication actions at its flexible footer and Tournaments honest', async ({ page }) => {
+test('New Game keeps authentication actions at its flexible footer and Lobby owns Tournaments', async ({ page }) => {
     const harness = harnesses.get(page);
     harness.authSignedIn = false;
     harness.config = {
@@ -754,26 +956,17 @@ test('New Game keeps authentication actions at its flexible footer and Tournamen
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/online');
-    const tournament = page.locator('#browse-tournaments');
     const access = page.locator('#lobby-access');
-    await expect(tournament).toBeVisible();
-    await expect(tournament).toContainText('Tournaments');
-    await expect(tournament).toContainText('Coming Soon');
-    await expect(tournament).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.locator('#panel-new')).not.toContainText('Tournaments');
     await expect(access).toBeVisible();
     let geometry = await lobbyFooterGeometry(page);
     expect(geometry.actionRowDelta).toBeLessThan(1);
-    expect(geometry.tournamentBeforeAccess).toBe(true);
     expect(geometry.accessFooterVerticalOverlap).toBeLessThan(0.5);
     expect(geometry.accessClippedTop).toBeLessThanOrEqual(0);
     expect(geometry.accessClippedBottom).toBeLessThan(0.5);
     if (process.env.CAISSA_CAPTURE_ONLINE_MICRO_POLISH === '1') {
         await page.screenshot({ path: 'test-results/online-micro-polish-new-game-desktop-1440x900.png', fullPage: true });
     }
-
-    await tournament.evaluate(button => button.click());
-    await expect(page.locator('#online-toast')).toContainText('coming soon');
-    await expect(page.getByRole('tab', { name: 'New Game' })).toHaveAttribute('aria-selected', 'true');
 
     await page.setViewportSize({ width: 1440, height: 720 });
     await page.reload();
@@ -812,7 +1005,10 @@ test('New Game keeps authentication actions at its flexible footer and Tournamen
     harness.authSignedIn = true;
     await page.reload();
     await expect(access).toBeHidden();
-    await expect(tournament).toBeVisible();
+    await page.getByRole('tab', { name: 'Lobby', exact: true }).click();
+    await page.locator('.lobby-subtabs').getByRole('tab', { name: 'Tournaments' }).click();
+    await expect(page.locator('#tournaments-coming-soon')).toContainText('CAISSA Tournaments');
+    await expect(page.locator('#tournaments-coming-soon')).toContainText('Coming Soon');
 });
 
 test('mobile navigation scrolls clear of the board and leaves footer access reachable', async ({ page }) => {
@@ -1068,14 +1264,12 @@ async function lobbyFooterGeometry(page) {
         const body = rectangle('.workspace-body');
         const access = rectangle('#lobby-access');
         const footer = rectangle('.workspace-foot');
-        const tournament = rectangle('#browse-tournaments');
         const actionRows = Array.from(document.querySelectorAll('.lobby-access__actions > *'))
             .map(element => element.getBoundingClientRect().y);
         const intersection = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x))
             * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y));
         return {
             actionRowDelta: Math.max(...actionRows) - Math.min(...actionRows),
-            tournamentBeforeAccess: tournament.bottom <= access.y,
             accessFooterIntersection: intersection(access, footer),
             accessFooterVerticalOverlap: Math.max(0, Math.min(access.bottom, footer.bottom) - Math.max(access.y, footer.y)),
             accessClippedTop: body.y - access.y,
