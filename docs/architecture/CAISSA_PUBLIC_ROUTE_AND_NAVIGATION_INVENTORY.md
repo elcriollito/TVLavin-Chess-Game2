@@ -16,13 +16,13 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 ## Calculated summary
 
-- Primary navigation entries: 36
-- Internal primary pages: 32
+- Primary navigation entries: 37
+- Internal primary pages: 33
 - Public canonical routes not in primary navigation: 16
 - External destinations: 4
 - Redirects: 15
 - Protected route families: 5
-- Total inventoried records: 72
+- Total inventoried records: 73
 
 ## Primary navigation
 
@@ -50,20 +50,21 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 20 | analyze-and-watch | Engine Arena | /arena | internal-page | CaissaPrimaryNavigation |
 | 21 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
 | 22 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
-| 23 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
-| 24 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
-| 25 | tools | World Champions | /game-library/champions | internal-page | CaissaPrimaryNavigation |
-| 26 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
-| 27 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
-| 28 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
-| 29 | more | Blog | /blog | internal-page | CaissaPrimaryNavigation |
-| 30 | more | Support CAISSA | /support | internal-page | CaissaPrimaryNavigation |
-| 31 | more | Help | /help | internal-page | CaissaPrimaryNavigation |
-| 32 | more | About | /about | internal-page | CaissaPrimaryNavigation |
-| 33 | more | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
-| 34 | social-footer | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
-| 35 | social-footer | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
-| 36 | social-footer | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
+| 23 | tools | GIF Studio | /gif-maker | internal-page | CaissaPrimaryNavigation |
+| 24 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
+| 25 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
+| 26 | tools | World Champions | /game-library/champions | internal-page | CaissaPrimaryNavigation |
+| 27 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
+| 28 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
+| 29 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
+| 30 | more | Blog | /blog | internal-page | CaissaPrimaryNavigation |
+| 31 | more | Support CAISSA | /support | internal-page | CaissaPrimaryNavigation |
+| 32 | more | Help | /help | internal-page | CaissaPrimaryNavigation |
+| 33 | more | About | /about | internal-page | CaissaPrimaryNavigation |
+| 34 | more | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
+| 35 | social-footer | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
+| 36 | social-footer | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
+| 37 | social-footer | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
 
 ## Public canonical routes outside primary navigation
 

@@ -7,19 +7,19 @@ const routes = [
   ['/puzzles', 'Puzzles'],
   ['/academy', 'Academy'], ['/mentor', 'CAISSA Mentor'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
   ['/analyze', 'Analyze'], ['/spectator-tv', 'Chess TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/arena', 'Engine Arena'],
-  ['/game-library/champions', 'World Champions'], ['/blog', 'Blog']
+  ['/game-library/champions', 'World Champions'], ['/gif-maker', 'GIF Studio'], ['/blog', 'Blog']
 ];
 
 const canonicalOrder = [
-  'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
+  'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
   'Puzzles', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
-  'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
+  'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
   'World Champions', 'History', 'DOS Chess', 'Vault',
   'Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.17.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.19.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.getByRole('navigation', { name: 'CAISSA main navigation' });
@@ -32,7 +32,7 @@ async function assertOrderAndIdentity(page, activeLabel) {
     return [...scope.querySelectorAll('.nav-item:not([data-nav-key="home"])')].map(item => item.textContent.replace(/\s+/g, ' ').trim());
   });
   expect(labels).toEqual(canonicalOrder);
-  expect(labels.slice(0, 5)).toEqual(['Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
+  expect(labels.slice(0, 5)).toEqual(['Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess']);
   expect(labels.filter(label => label === 'Play')).toHaveLength(1);
   expect(labels.filter(label => label === 'Playchess')).toHaveLength(1);
   expect(labels.filter(label => label === 'Playchess Guest')).toHaveLength(0);
@@ -98,7 +98,7 @@ test('Back Forward and rapid navigation change only active identity, never order
 
 test('brand returns Home from representative application and standalone shells', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
-  for (const route of ['/yahoo-classic', '/fics', '/academy', '/tools/polyglot', '/blog']) {
+  for (const route of ['/yahoo-classic', '/fics', '/academy', '/tools/polyglot', '/gif-maker', '/blog']) {
     await page.goto(route);
     await page.locator('#mainNav .nav-logo').click();
     await expect(page).toHaveURL(/\/$/);

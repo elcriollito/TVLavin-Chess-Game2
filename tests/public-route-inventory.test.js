@@ -27,8 +27,10 @@ test('CaissaPublicRouteInventory@1.3.0 is complete, unique, and ordered', () => 
   assert.equal(inventory.primaryNavigation[17].label, 'Live Blitz');
   assert.equal(inventory.primaryNavigation[18].label, 'Live Tournaments');
   assert.equal(inventory.primaryNavigation[19].label, 'Engine Arena');
-  assert.equal(inventory.primaryNavigation[28].group, 'more');
-  assert.equal(inventory.primaryNavigation[33].group, 'social-footer');
+  assert.equal(inventory.primaryNavigation.find(item => item.id === 'gif-studio')?.canonicalPath, '/gif-maker');
+  assert.equal(inventory.primaryNavigation.find(item => item.id === 'gif-studio')?.group, 'tools');
+  assert.equal(inventory.primaryNavigation[29].group, 'more');
+  assert.equal(inventory.primaryNavigation[34].group, 'social-footer');
   assert.equal(inventory.primaryNavigation.some(item => item.id === 'library'), false);
   assert.equal(inventory.primaryNavigation.find(item => item.id === 'world-champions')?.canonicalPath, '/game-library/champions');
   assert.equal(inventory.publicCanonicalRoutes.find(item => item.id === 'game-library-legacy')?.canonicalPath, '/game-library');
