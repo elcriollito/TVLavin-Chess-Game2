@@ -489,7 +489,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-trainer-page.is-puzzle-database > dialog { display: none !important; }
 .endgame-trainer-page.is-puzzle-database .endgame-trainer-page__main {
     min-height: 100dvh;
-    padding: clamp(12px, 1.7vw, 24px);
+    padding: clamp(6px, .8vw, 12px) clamp(12px, 1.7vw, 24px) clamp(12px, 1.7vw, 24px);
 }
 .endgame-puzzle[hidden],
 .endgame-trainer-page.trainer-mode-pending .endgame-puzzle { display: none !important; }
@@ -501,7 +501,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     --egt-blue: #82a1ff;
     --egt-success: #8ce0b2;
     display: grid;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
     max-width: 1500px;
 }
@@ -561,7 +561,7 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
 .endgame-puzzle__training-status { padding-bottom: 12px; border-bottom: 1px solid var(--egt-border); }
 .endgame-puzzle__training-status h2 { margin: 0 0 5px; font-size: 1.3rem; }
 .endgame-puzzle__training-status p:last-child { margin: 0; color: var(--et-muted); }
-.endgame-puzzle__actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+.endgame-puzzle__actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
 .endgame-puzzle__actions button:not(:disabled), .endgame-puzzle__workspace-foot button:not(:disabled) { border-color: #5270ae; }
 .endgame-puzzle__moves-block { margin-top: 14px; }
 .endgame-puzzle__moves-block h3 { margin-bottom: 7px; font-size: .88rem; }
@@ -615,7 +615,6 @@ html, body { margin: 0; min-width: 0; overflow-x: hidden; }
     .endgame-puzzle__theme-list button { grid-template-columns: 1fr; gap: 2px; }
     .endgame-puzzle__theme-list small { text-align: left; }
     .endgame-puzzle__actions { grid-template-columns: 1fr 1fr; }
-    .endgame-puzzle__actions #egt-retry { grid-column: 1 / -1; }
     .endgame-puzzle__details, .endgame-puzzle__engine-head { align-items: stretch; flex-direction: column; }
     .endgame-trainer-page .endgame-puzzle__engine-head > button { width: 100%; }
     .endgame-puzzle__match-actions button { flex: 1; min-width: 0; }

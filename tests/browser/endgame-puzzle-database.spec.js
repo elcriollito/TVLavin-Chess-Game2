@@ -39,6 +39,19 @@ const LONG_ENDGAME = Object.freeze({
     openingTags: [],
 });
 
+const ANALYSIS_ENDGAME = Object.freeze({
+    id: 'analysisRook',
+    fen: '8/8/8/8/8/8/4k3/R5K1 b - - 0 1',
+    moves: 'e2f3 a1a3',
+    rating: 1800,
+    deviation: 75,
+    popularity: 100,
+    plays: 500,
+    themes: ['endgame', 'rookEndgame'],
+    gameUrl: 'https://lichess.org/analysis-rook-test',
+    openingTags: [],
+});
+
 async function mockCatalog(page, requests = [], puzzle = ROOK_ENDGAME) {
     await page.route('**/api/puzzles/select?**', async route => {
         requests.push(new URL(route.request().url()));
@@ -69,12 +82,35 @@ async function playMove(page, from, to) {
     await page.locator(`#caissa-board-1-square-${to}`).click();
 }
 
+async function dragMove(page, from, to, { assertQuietDrag = false } = {}) {
+    const source = await page.locator(`#caissa-board-1-square-${from}`).boundingBox();
+    const target = await page.locator(`#caissa-board-1-square-${to}`).boundingBox();
+    if (!source || !target) throw new Error(`Missing drag geometry for ${from}-${to}`);
+    await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 6 });
+    if (assertQuietDrag) {
+        await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('data-quiet-drag-active', 'true');
+        const dragged = page.locator('#egt-board .caissa-board__piece[data-dragging="true"]');
+        await expect(dragged).toHaveCount(1);
+        expect(await dragged.evaluate(node => getComputedStyle(node).transitionDuration)).toBe('0s');
+    }
+    await page.mouse.up();
+    await expect(page.locator('#egt-board .caissa-board')).not.toHaveAttribute('data-quiet-drag-active', 'true');
+}
+
 test('canonical Endgame Trainer uses catalog themes, generated counts and strict intersections', async ({ page }) => {
     const requests = [];
     await page.setViewportSize({ width: 1366, height: 768 });
     await openTrainer(page, requests);
 
     await expect(page.getByRole('heading', { name: 'CAISSA Endgame Trainer' })).toBeVisible();
+    await expect(page.getByText('LICHESS ENDGAME PUZZLES', { exact: true })).toHaveCount(0);
+    await expect(page.locator('#egt-theme-list strong')).toHaveText([
+        'All Endgames', 'Queen Endgame', 'Rook Endgame', 'Bishop Endgame', 'Knight Endgame', 'Pawn Endgame',
+    ]);
+    await expect(page.locator('.endgame-puzzle__attribution')).toContainText('Lichess puzzle data is CC0');
+    await expect(page.locator('.endgame-puzzle__attribution a')).toHaveAttribute('href', '/puzzles');
     await expect(page.locator('#egt-theme-list button').first()).toContainText('3,061,498 total');
     await expect(page.locator('#egt-theme-list button').filter({ hasText: /^Rook Endgame/ })).toContainText('328,823 total');
     expect(requests[0].searchParams.get('themes')).toBe('endgame');
@@ -91,9 +127,12 @@ test('canonical Endgame Trainer uses catalog themes, generated counts and strict
     const board = await page.locator('#egt-board').boundingBox();
     const square = await page.locator('.caissa-board__square').first().boundingBox();
     const workspace = await page.locator('.endgame-puzzle__workspace').boundingBox();
+    const masthead = await page.locator('.endgame-puzzle__masthead').boundingBox();
+    const layout = await page.locator('.endgame-puzzle__layout').boundingBox();
     expect(board?.width).toBeGreaterThan(560);
     expect(Math.abs((square?.width || 0) - (board?.width || 0) / 8)).toBeLessThanOrEqual(1);
     expect(board?.x).toBeLessThan(workspace?.x ?? 0);
+    expect((layout?.y || 0) - ((masthead?.y || 0) + (masthead?.height || 0))).toBeLessThanOrEqual(10);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
     const resources = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => new URL(entry.name).pathname));
     expect(resources).not.toEqual(expect.arrayContaining([
@@ -147,6 +186,100 @@ test('training keeps analysis locked, records a miss once, and isolates engine e
     await expect(page.locator('#egt-session-policy')).toContainText('Account puzzle rating is unchanged');
 });
 
+test('completed puzzles support Quiet Drag analysis for both sides with Stockfish on or off', async ({ page }) => {
+    await page.addInitScript(() => {
+        const NativeWorker = window.Worker;
+        window.__egtAnalysisWorkers = { created: 0, terminated: 0, commands: [] };
+        window.Worker = class TrackedWorker extends NativeWorker {
+            constructor(...args) {
+                super(...args);
+                this.__isStockfish = String(args[0]).includes('/assets/vendor/stockfish/');
+                if (this.__isStockfish) window.__egtAnalysisWorkers.created += 1;
+            }
+            postMessage(command, ...rest) {
+                if (this.__isStockfish) window.__egtAnalysisWorkers.commands.push(String(command));
+                return super.postMessage(command, ...rest);
+            }
+            terminate() {
+                if (this.__isStockfish) window.__egtAnalysisWorkers.terminated += 1;
+                return super.terminate();
+            }
+        };
+    });
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await openTrainer(page, [], ANALYSIS_ENDGAME);
+    await page.locator('#egt-tab-training').click();
+    await playMove(page, 'a1', 'a3');
+    await expect(page.locator('#egt-prompt')).toHaveText('Puzzle solved');
+    await expect(page.locator('#egt-solved')).toHaveText('1');
+
+    await page.locator('#egt-tab-analysis').click();
+    await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('aria-disabled', 'false');
+
+    await dragMove(page, 'a3', 'a4', { assertQuietDrag: true });
+    await expect(page.locator('#egt-analysis-feedback')).toContainText('Illegal move rejected');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="wR"]')).toHaveAttribute('data-square', 'a3');
+
+    await dragMove(page, 'f3', 'e2');
+    await expect(page.locator('#egt-side-to-move')).toHaveText('White to move · Analysis');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'e2');
+
+    await page.locator('#egt-flip').click();
+    await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('data-orientation', 'black');
+    await dragMove(page, 'a3', 'e3');
+    await expect(page.locator('#egt-side-to-move')).toHaveText('Black to move · Analysis');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="wR"]')).toHaveAttribute('data-square', 'e3');
+
+    await page.locator('#egt-engine-toggle').click();
+    await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
+    await dragMove(page, 'e2', 'd2');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'd2');
+    await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
+    await expect.poll(() => page.evaluate(() => window.__egtAnalysisWorkers.created)).toBeGreaterThanOrEqual(2);
+    expect(await page.evaluate(() => window.__egtAnalysisWorkers.commands.some(command => command === 'position fen 8/8/8/8/8/4R3/3k4/6K1 w - - 5 4'))).toBe(true);
+
+    await page.locator('#egt-engine-toggle').click();
+    await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('aria-disabled', 'false');
+    await page.locator('#egt-engine-toggle').click();
+    await expect(page.locator('#egt-engine-eval')).not.toHaveText('—', { timeout: 15_000 });
+    await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('aria-disabled', 'false');
+    await page.locator('#egt-engine-toggle').click();
+
+    const lifecycle = await page.evaluate(() => window.__egtAnalysisWorkers);
+    expect(lifecycle.terminated).toBe(lifecycle.created);
+    await expect(page.locator('#egt-solved')).toHaveText('1');
+    await expect(page.locator('#egt-failed')).toHaveText('0');
+});
+
+test('explicit abandonment unlocks unscored analysis without a second result', async ({ page }) => {
+    await openTrainer(page, [], ANALYSIS_ENDGAME);
+    await page.locator('#egt-tab-analysis').click();
+    await expect(page.locator('#egt-analysis-lock')).toBeVisible();
+    await page.locator('#egt-tab-training').click();
+    await page.locator('#egt-abandon').click();
+    await expect(page.locator('#egt-prompt')).toHaveText('Puzzle abandoned');
+    await expect(page.locator('#egt-failed')).toHaveText('1');
+    await page.locator('#egt-tab-analysis').click();
+    await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('aria-disabled', 'false');
+    await playMove(page, 'f3', 'e2');
+    await expect(page.locator('#egt-failed')).toHaveText('1');
+    await expect(page.locator('#egt-solved')).toHaveText('0');
+});
+
+test('mobile tap analysis remains legal and interactive after solve and flip', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openTrainer(page, [], ANALYSIS_ENDGAME);
+    await page.locator('#egt-tab-training').click();
+    await playMove(page, 'a1', 'a3');
+    await page.locator('#egt-tab-analysis').click();
+    await playMove(page, 'f3', 'e2');
+    await expect(page.locator('#egt-side-to-move')).toHaveText('White to move · Analysis');
+    await page.locator('#egt-flip').click();
+    await playMove(page, 'a3', 'e3');
+    await expect(page.locator('#egt-side-to-move')).toHaveText('Black to move · Analysis');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+});
+
 test('solution, retry, source link and next puzzle form a continuous loop', async ({ page }) => {
     await openTrainer(page);
     await page.locator('#egt-tab-training').click();
@@ -177,6 +310,25 @@ test('underpromotion stays explicit and solves through the shared puzzle contrac
     await expect(page.locator('#egt-move-list')).toContainText('=N');
     await expect(page.locator('#egt-prompt')).toHaveText('Puzzle solved');
     await expect(page.locator('#egt-solved')).toHaveText('1');
+});
+
+test('Engine vs Engine starts from the canonical puzzle result, not the manual analysis branch', async ({ page }) => {
+    await openTrainer(page, [], ANALYSIS_ENDGAME);
+    await page.locator('#egt-tab-training').click();
+    await playMove(page, 'a1', 'a3');
+    await page.locator('#egt-tab-analysis').click();
+    await playMove(page, 'f3', 'e2');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'e2');
+
+    await page.locator('#egt-analysis-match-tab').click();
+    await expect(page.locator('#egt-board .caissa-board')).toHaveAttribute('aria-disabled', 'true');
+    await page.locator('#egt-match-start').click();
+    await expect(page.locator('#egt-match-stop')).toBeEnabled();
+    await page.locator('#egt-match-stop').click();
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="bK"]')).toHaveAttribute('data-square', 'f3');
+    await expect(page.locator('#egt-board .caissa-board__piece[data-piece="wR"]')).toHaveAttribute('data-square', 'a3');
+    await expect(page.locator('#egt-solved')).toHaveText('1');
+    await expect(page.locator('#egt-failed')).toHaveText('0');
 });
 
 test('Engine vs Engine pauses, resumes, stops and restores the scored position', async ({ page }) => {

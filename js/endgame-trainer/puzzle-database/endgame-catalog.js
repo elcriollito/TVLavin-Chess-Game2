@@ -1,13 +1,22 @@
 import { labelFor } from '../../puzzles/model.js';
 
 export const ENDGAME_ROOT_THEME = 'endgame';
+export const ENDGAME_THEME_ORDER = Object.freeze([
+    'queenEndgame',
+    'rookEndgame',
+    'bishopEndgame',
+    'knightEndgame',
+    'pawnEndgame',
+]);
 
 export function discoverEndgameThemes(preview) {
     const phases = Array.isArray(preview?.categories?.Phases) ? preview.categories.Phases : [];
-    return Object.freeze(phases
+    const available = new Set(phases
         .filter(theme => theme !== ENDGAME_ROOT_THEME && /Endgame$/u.test(theme))
         .filter(theme => preview.puzzles?.some(puzzle => puzzle.themes?.includes(theme)
-            && puzzle.themes.includes(ENDGAME_ROOT_THEME)))
+            && puzzle.themes.includes(ENDGAME_ROOT_THEME))));
+    return Object.freeze(ENDGAME_THEME_ORDER
+        .filter(id => available.has(id))
         .map(id => Object.freeze({ id, label: labelFor(id) })));
 }
 

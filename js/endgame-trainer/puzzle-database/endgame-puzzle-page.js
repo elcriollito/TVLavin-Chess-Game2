@@ -2,6 +2,7 @@ import { CaissaBoardAdapter } from '../../board/caissa-board-adapter.js';
 import { PuzzleCatalogSource, ratingBounds } from '../../puzzles/catalog-source.js';
 import { EngineMatch, PuzzleEngine, readablePrincipalVariation } from '../../puzzles/engine.js';
 import { PuzzleSession, labelFor } from '../../puzzles/model.js';
+import { EndgameAnalysisPosition } from './endgame-analysis-position.js';
 import {
     discoverEndgameThemes,
     endgameCount,
@@ -39,11 +40,15 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         outcomeRecorded: false,
         scoringActive: true,
         assisted: false,
+        abandoned: false,
         solved: 0,
         failed: 0,
         streak: 0,
         analysisActive: false,
         analysisFen: null,
+        analysisSearchSequence: null,
+        analysisRevision: 0,
+        analysisPosition: new EndgameAnalysisPosition(),
         matchSnapshot: null,
         activeTab: 'themes',
         activeAnalysisMode: 'engine',
@@ -135,14 +140,22 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
 
     function switchAnalysisMode(mode) {
         if (!['engine', 'match'].includes(mode)) return;
-        if (mode === 'engine') stopEngineMatch({ restore: true });
-        else stopAnalysis();
+        if (mode === 'engine') stopEngineMatch();
+        else {
+            stopAnalysis();
+            clearManualAnalysis();
+        }
         state.activeAnalysisMode = mode;
         for (const item of ['engine', 'match']) {
             const active = item === mode;
             $(`egt-analysis-${item}-tab`).setAttribute('aria-selected', String(active));
             $(`egt-analysis-${item}-tab`).tabIndex = active ? 0 : -1;
             $(`egt-analysis-${item}`).hidden = !active;
+        }
+        if (mode === 'engine') enterManualAnalysis({ reset: true });
+        else {
+            renderPosition();
+            board.setInteractive(false);
         }
     }
 
@@ -181,6 +194,38 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         $('egt-side-to-move').textContent = `${state.session.game.turn() === 'w' ? 'White' : 'Black'} to move`;
     }
 
+    function restorePuzzlePosition() {
+        if (!state.session) return;
+        renderPosition();
+        board.setInteractive(!state.session.solved && !state.abandoned && !state.movePending);
+    }
+
+    function clearManualAnalysis() {
+        state.analysisPosition.clear();
+        state.analysisRevision += 1;
+    }
+
+    function renderManualAnalysisPosition(move = null) {
+        const snapshot = state.analysisPosition.snapshot();
+        if (!snapshot) return;
+        board.setPosition(snapshot.fen, { animate: false });
+        showLastMove(move || snapshot.history.at(-1) || state.session?.game.history({ verbose: true }).at(-1));
+        $('egt-side-to-move').textContent = `${snapshot.turn === 'w' ? 'White' : 'Black'} to move · Analysis`;
+    }
+
+    function enterManualAnalysis({ reset = false } = {}) {
+        if (!analysisUnlocked() || !state.session || state.activeTab !== 'analysis'
+            || state.activeAnalysisMode !== 'engine') return false;
+        if (reset || !state.analysisPosition.active) {
+            state.analysisPosition.load(state.session.game.fen());
+            state.analysisRevision += 1;
+        }
+        renderManualAnalysisPosition();
+        board.setInteractive(true);
+        $('egt-analysis-feedback').textContent = `${state.analysisPosition.turn === 'w' ? 'White' : 'Black'} to move. Move either side in turn to explore legal continuations.`;
+        return true;
+    }
+
     function clearPuzzleDetails() {
         $('egt-puzzle-id').textContent = 'Endgame puzzle';
         $('egt-puzzle-rating').textContent = 'Rating —';
@@ -216,6 +261,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         }
         renderSessionMetrics();
         $('egt-retry').disabled = false;
+        $('egt-abandon').disabled = true;
         renderAnalysisAccess();
         return true;
     }
@@ -229,6 +275,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         $('egt-analysis-lock').hidden = unlocked;
         $('egt-analysis-tools').hidden = !unlocked;
         if (!unlocked) stopTrainingTools({ restore: true });
+        else if (state.activeTab === 'analysis' && state.activeAnalysisMode === 'engine') enterManualAnalysis();
     }
 
     function clearEngineOutput() {
@@ -241,27 +288,39 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         engine.stop();
         state.analysisActive = false;
         state.analysisFen = null;
+        state.analysisSearchSequence = null;
         $('egt-engine-toggle').setAttribute('aria-pressed', 'false');
         $('egt-engine-toggle').textContent = 'Start engine';
         if (clear) clearEngineOutput();
     }
 
-    function startAnalysis() {
-        if (!analysisUnlocked() || !state.session) return;
-        stopEngineMatch({ restore: true });
-        stopAnalysis();
-        state.analysisFen = state.session.game.fen();
+    function analyzeManualPosition() {
+        const fen = state.analysisPosition.fen;
+        if (!fen) return false;
+        engine.stop();
+        state.analysisFen = fen;
+        state.analysisSearchSequence = null;
         state.analysisActive = true;
         $('egt-engine-toggle').setAttribute('aria-pressed', 'true');
         $('egt-engine-toggle').textContent = 'Stop engine';
         $('egt-engine-state').textContent = 'Analyzing';
+        clearEngineOutput();
         $('egt-engine-best').textContent = 'Calculating best move…';
         engine.start();
-        engine.analyze(state.analysisFen);
+        state.analysisSearchSequence = engine.analyze(fen);
+        return true;
     }
 
-    function showEvaluation({ depth, type, score, pv, fen }) {
-        if (!state.analysisActive || fen !== state.analysisFen) return;
+    function startAnalysis() {
+        if (!enterManualAnalysis()) return;
+        stopEngineMatch();
+        analyzeManualPosition();
+        board.setInteractive(true);
+    }
+
+    function showEvaluation({ depth, type, score, pv, fen, sequence }) {
+        if (!state.analysisActive || fen !== state.analysisFen || fen !== state.analysisPosition.fen
+            || sequence !== state.analysisSearchSequence) return;
         const readable = readablePrincipalVariation(fen, pv);
         if (!readable) return;
         $('egt-engine-state').textContent = `Depth ${depth}`;
@@ -279,15 +338,17 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         $('egt-match-pause').textContent = 'Pause';
         $('egt-match-stop').disabled = true;
         if (restore && active && state.session) {
-            renderPosition();
-            board.setInteractive(!state.session.solved);
+            restorePuzzlePosition();
+            if (state.activeTab === 'analysis' && state.activeAnalysisMode === 'match') board.setInteractive(false);
         }
     }
 
     function stopTrainingTools({ restore = false } = {}) {
         stopAnalysis();
-        stopEngineMatch({ restore });
+        stopEngineMatch();
         cancelPromotion();
+        clearManualAnalysis();
+        if (restore) restorePuzzlePosition();
     }
 
     function updateEngineMatch(snapshot) {
@@ -315,12 +376,15 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
     function startEngineMatch() {
         if (!analysisUnlocked() || !state.session) return;
         stopAnalysis();
+        clearManualAnalysis();
+        renderPosition();
         board.setInteractive(false);
         $('egt-match-moves').replaceChildren();
         try { engineMatch.start(state.session.game.fen()); }
         catch {
             $('egt-match-state').textContent = 'This position cannot start an engine game.';
             renderPosition();
+            board.setInteractive(false);
         }
     }
 
@@ -345,7 +409,46 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         });
     }
 
+    function manualAnalysisReady() {
+        return analysisUnlocked() && state.activeTab === 'analysis' && state.activeAnalysisMode === 'engine'
+            && state.analysisPosition.active && !state.matchSnapshot;
+    }
+
+    async function handleAnalysisMove({ from, to, promotion }) {
+        if (!manualAnalysisReady() || state.movePending) return;
+        const revision = state.analysisRevision;
+        const piece = board.getPieceAt(from);
+        let selectedPromotion = promotion;
+        if (!selectedPromotion && piece?.type === 'P' && (to[1] === '1' || to[1] === '8')) {
+            state.movePending = true;
+            board.setInteractive(false);
+            selectedPromotion = await choosePromotion();
+            state.movePending = false;
+            if (revision !== state.analysisRevision || !selectedPromotion || !manualAnalysisReady()) {
+                if (revision === state.analysisRevision && manualAnalysisReady()) board.setInteractive(true);
+                return;
+            }
+            board.setInteractive(true);
+        }
+        const result = state.analysisPosition.attempt({ from, to, promotion: selectedPromotion || 'q' });
+        if (!result.ok) {
+            $('egt-analysis-feedback').textContent = 'Illegal move rejected. The analysis position is unchanged.';
+            return;
+        }
+        const engineWasActive = state.analysisActive;
+        if (engineWasActive) {
+            engine.stop();
+            state.analysisFen = null;
+            state.analysisSearchSequence = null;
+        }
+        renderManualAnalysisPosition(result.move);
+        board.setInteractive(true);
+        $('egt-analysis-feedback').textContent = `${result.turn === 'w' ? 'White' : 'Black'} to move. Explore another legal continuation.`;
+        if (engineWasActive) analyzeManualPosition();
+    }
+
     async function handleMoveAttempt({ from, to, promotion }) {
+        if (manualAnalysisReady()) return handleAnalysisMove({ from, to, promotion });
         const session = state.session;
         if (!session || state.movePending || state.matchSnapshot || session.solved) return;
         const loadToken = state.loadToken;
@@ -398,12 +501,14 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         state.outcomeRecorded = false;
         state.scoringActive = true;
         state.assisted = false;
+        state.abandoned = false;
         state.movePending = false;
         clearPuzzleDetails();
         board.setInteractive(false);
         $('egt-next').disabled = true;
         $('egt-hint').disabled = true;
         $('egt-reveal').disabled = true;
+        $('egt-abandon').disabled = true;
         $('egt-retry').disabled = true;
         $('egt-prompt').textContent = 'Loading puzzle';
         $('egt-feedback').textContent = 'Selecting a verified puzzle from the Endgame universe.';
@@ -457,6 +562,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         $('egt-next').disabled = false;
         $('egt-hint').disabled = false;
         $('egt-reveal').disabled = false;
+        $('egt-abandon').disabled = false;
         root.dataset.state = 'puzzle-database-ready';
         renderAnalysisAccess();
     }
@@ -468,6 +574,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         catch { return; }
         state.scoringActive = false;
         state.assisted = true;
+        state.abandoned = false;
         state.orientation = state.session.game.turn() === 'w' ? 'white' : 'black';
         board.setOrientation(state.orientation);
         board.setPosition(state.session.game.fen(), { animate: false });
@@ -478,6 +585,7 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         $('egt-feedback').textContent = 'This retry is for practice. Your session result for this puzzle is already recorded.';
         $('egt-hint').disabled = false;
         $('egt-reveal').disabled = false;
+        $('egt-abandon').disabled = true;
         renderAnalysisAccess();
     }
 
@@ -529,10 +637,21 @@ export function mountEndgamePuzzleDatabasePage({ document: doc = globalThis.docu
         $('egt-hint').disabled = true;
         $('egt-reveal').disabled = true;
     }, { signal });
+    $('egt-abandon').addEventListener('click', () => {
+        if (!state.session || state.session.solved || !state.scoringActive) return;
+        state.abandoned = true;
+        recordOutcome('failed');
+        board.setInteractive(false);
+        $('egt-prompt').textContent = 'Puzzle abandoned';
+        $('egt-feedback').textContent = 'The position is ready for unscored exploration in Analysis.';
+        $('egt-hint').disabled = true;
+        $('egt-reveal').disabled = true;
+    }, { signal });
     $('egt-engine-toggle').addEventListener('click', () => {
         if (state.analysisActive) {
             stopAnalysis();
             $('egt-engine-state').textContent = 'Engine off';
+            board.setInteractive(manualAnalysisReady());
         } else startAnalysis();
     }, { signal });
     $('egt-match-start').addEventListener('click', startEngineMatch, { signal });
