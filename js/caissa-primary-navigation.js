@@ -28,6 +28,7 @@
         ]),
         Object.freeze([
             { id: 'puzzles', label: 'Puzzles', icon: 'fas fa-puzzle-piece', route: '/puzzles' },
+            { id: 'chess-gym', label: 'Chess Gym', icon: 'fas fa-dumbbell', route: '/chess-gym' },
             { id: 'academy', label: 'Academy', icon: 'fas fa-graduation-cap', section: 'academy', route: '/academy', canonicalNavigation: true },
             { id: 'mentor', label: 'CAISSA Mentor', icon: 'fas fa-chess-queen', route: '/mentor', description: 'Personal coaching, game review and memory training' },
             { id: 'endgame-trainer', label: 'Endgame Trainer', icon: 'fas fa-chess-pawn', route: '/endgame-trainer' },
