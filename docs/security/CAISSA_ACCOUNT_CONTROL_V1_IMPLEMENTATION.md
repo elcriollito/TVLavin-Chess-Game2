@@ -80,7 +80,7 @@ used to recover the deleted UUID, credits, ratings, bindings, or progress.
   subject. It provisions through the restricted RPC and then resolves ownership
   again before updating the user. Historical, unresolved, Development, crossed,
   and raced bindings continue to fail closed.
-- Apply `20261018194500_caissa_account_control_v1.sql` only after exact-hash,
+- Apply `20261018174754_caissa_account_control_v1.sql` only after exact-hash,
   ledger, schema, lock and baseline checks.
 - Exercise destructive paths only with synthetic data or transaction rollback.
 - Keep Preview protected by Vercel SSO and bound to Clerk Development and

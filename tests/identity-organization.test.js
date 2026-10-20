@@ -351,10 +351,18 @@ test('Production release runbook orders SEC-005 prerequisites before Identity Ow
         ['20260811_clerk_migration_cutover_tooling.sql', '2d53b7345b7dcee5fdb204ec568bb97475e2931ae75fa35a7a1d595f324ee6ee'],
         ['20261015220000_sec005_cutover_compatibility_v1.sql', '3644577e080fca71b70f7fa31e07ab0980d9f8884d861dd6eaa9a02f0fd689f2'],
         ['20261018171912_caissa_identity_ownership_v1.sql', 'db2d75b54b5c64eb36488beae27e10e2ad2266bd5adf54f3841183757f4acda5'],
-        ['20261018194500_caissa_account_control_v1.sql', '3d0dfdadc9f89fe12be40a086bc491d4971fca40901a4ee7544bb7965a940950'],
-        ['20261018180000_caissa_account_control_v1_fk_indexes.sql', '9d7e4b69e691c57dc2a81408d74fd988055375c7d7424a4305133fc4f87d786c'],
-        ['20261018203000_caissa_account_control_v1_security_followup.sql', 'dccd0cebfd56a434337ea960c7ff426001b5e37eee589d8172f4d1a5dc4d402b']
+        ['20261018174754_caissa_account_control_v1.sql', '3d0dfdadc9f89fe12be40a086bc491d4971fca40901a4ee7544bb7965a940950'],
+        ['20261018174844_caissa_account_control_v1_fk_indexes.sql', '9d7e4b69e691c57dc2a81408d74fd988055375c7d7424a4305133fc4f87d786c'],
+        ['20261018181749_caissa_account_control_v1_security_followup.sql', 'dccd0cebfd56a434337ea960c7ff426001b5e37eee589d8172f4d1a5dc4d402b']
     ];
+    const accountControlArtifacts = orderedArtifacts.slice(3);
+    const filenameOrder = accountControlArtifacts.map(([artifact]) => artifact);
+    assert.deepEqual(filenameOrder, [...filenameOrder].sort(), 'migration filenames must encode dependency order');
+    assert.deepEqual(
+        filenameOrder.map(artifact => artifact.slice(0, 14)),
+        ['20261018171912', '20261018174754', '20261018174844', '20261018181749'],
+        'source versions must match the canonical Staging ledger and remain skip-safe'
+    );
     let priorIndex = -1;
     for (const [artifact, expectedHash] of orderedArtifacts) {
         const index = runbook.indexOf(`| \`${artifact}\``);
