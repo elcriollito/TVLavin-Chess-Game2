@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en" class="chess-gym-document">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b111b">
+  <meta name="description" content="CAISSA Chess Gym trains board vision, tactical awareness, calculation, defense and practical chess habits.">
+  <meta name="robots" content="index, follow">
+  <title>CAISSA Chess Gym — Interactive Chess Training</title>
+  <link rel="canonical" href="https://www.caissa-chess.org/chess-gym">
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.3.0">
+  <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/chess-gym.css?v=0.1.0">
+  <script src="/js/auth-config.js?v=1.0.5"></script>
+  <script src="/js/caissa-auth.js?v=1.0.4" defer></script>
+  <script src="/js/caissa-i18n.js?v=1.0.0" defer></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.19.0" defer></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.2.0" defer></script>
+  <script type="module" src="/js/chess-gym/page.js?v=0.1.0"></script>
+</head>
+<body class="chess-gym-page">
+  <a class="skip-link" href="#gym-board">Skip to training board</a>
+  <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="chess-gym">
+      <nav class="caissa-standalone-fallback" aria-label="CAISSA navigation">
+        <a href="/">CAISSA Chess</a>
+        <a href="/puzzles">Puzzles</a>
+      </nav>
+    </div>
+
+    <div class="caissa-standalone-content">
+      <main class="chess-gym-main">
+        <header class="chess-gym-header">
+          <div>
+            <p class="chess-gym-eyebrow">Learn &amp; Improve</p>
+            <h1>CAISSA Chess Gym</h1>
+            <p class="chess-gym-tagline">Train the skill behind the move.</p>
+          </div>
+          <div class="chess-gym-session" aria-label="Current training session">
+            <strong id="session-score">0 / 0</strong>
+            <span>session</span>
+          </div>
+        </header>
+
+        <section class="chess-gym-workspace" aria-label="Chess Gym training workspace">
+          <div class="chess-gym-board-column">
+            <div class="chess-gym-board-head">
+              <div>
+                <span class="chess-gym-board-kicker" id="gym-board-kicker">Board vision</span>
+                <strong id="gym-board-status">Choose a drill to begin</strong>
+              </div>
+              <button type="button" id="flip-board" class="chess-gym-quiet-button" aria-label="Flip board">
+                <i class="fas fa-arrows-rotate" aria-hidden="true"></i>
+                <span>Flip</span>
+              </button>
+            </div>
+            <div class="chess-gym-board-frame" id="gym-board"></div>
+            <div class="chess-gym-board-foot">
+              <span id="gym-position-note">CAISSA skill training</span>
+              <span id="gym-position-count">Preview foundation</span>
+            </div>
+          </div>
+
+          <aside class="chess-gym-panel" aria-label="Training controls">
+            <div class="chess-gym-panel-head">
+              <div class="chess-gym-tabs" role="tablist" aria-label="Chess Gym tools">
+                <button type="button" role="tab" id="tab-training" aria-controls="panel-training" aria-selected="true" tabindex="0">Training</button>
+                <button type="button" role="tab" id="tab-moves" aria-controls="panel-moves" aria-selected="false" tabindex="-1">Moves</button>
+                <button type="button" role="tab" id="tab-progress" aria-controls="panel-progress" aria-selected="false" tabindex="-1">Progress</button>
+              </div>
+            </div>
+
+            <div class="chess-gym-panel-body">
+              <section id="panel-training" role="tabpanel" aria-labelledby="tab-training">
+                <div class="chess-gym-subtabs" role="tablist" aria-label="Training mode">
+                  <button type="button" id="mode-train" aria-selected="true">Train</button>
+                  <button type="button" id="mode-learn" aria-selected="false">Learn</button>
+                </div>
+
+                <div id="training-train">
+                  <article class="chess-gym-daily">
+                    <div>
+                      <span class="chess-gym-card-kicker">Today</span>
+                      <h2>Daily Training</h2>
+                      <p>Short mixed practice for awareness, forcing moves and calculation.</p>
+                    </div>
+                    <button type="button" id="start-daily">Start 8-min session</button>
+                  </article>
+
+                  <div class="chess-gym-section-heading">
+                    <div>
+                      <span class="chess-gym-card-kicker">Skills</span>
+                      <h2>Choose what to train</h2>
+                    </div>
+                    <span id="ready-count">0 ready</span>
+                  </div>
+
+                  <div id="skill-groups" class="chess-gym-skill-groups"></div>
+
+                  <article class="chess-gym-current" aria-live="polite">
+                    <div class="chess-gym-current-head">
+                      <div>
+                        <span class="chess-gym-card-kicker">Current drill</span>
+                        <h2 id="current-drill-title">Loose Pieces</h2>
+                      </div>
+                      <span class="chess-gym-status-badge" id="current-drill-status">Ready</span>
+                    </div>
+                    <p id="current-drill-description">Find pieces that are hanging or insufficiently defended before they become blunders.</p>
+                    <div class="chess-gym-prompt" id="current-drill-prompt" role="status" aria-live="polite">Tap Start to load the first position.</div>
+                  </article>
+                </div>
+
+                <div id="training-learn" hidden>
+                  <div class="chess-gym-section-heading">
+                    <div>
+                      <span class="chess-gym-card-kicker">Learn</span>
+                      <h2>Concept → position → practice</h2>
+                    </div>
+                  </div>
+                  <div class="chess-gym-learn-grid">
+                    <article><span>Opening</span><h3>Development &amp; king safety</h3><p>Understand the idea, then test it on the board.</p></article>
+                    <article><span>Middlegame</span><h3>Weak squares &amp; open files</h3><p>Connect strategic concepts directly to practical positions.</p></article>
+                    <article><span>Endgame</span><h3>King activity &amp; conversion</h3><p>Learn the rule, then repeat the pattern until it becomes automatic.</p></article>
+                    <article><span>Tactics</span><h3>Checks, captures &amp; threats</h3><p>Build a scanning habit rather than waiting for a puzzle hint.</p></article>
+                    <article><span>General</span><h3>Decision process</h3><p>Candidate moves, danger checks and anti-blunder routines.</p></article>
+                  </div>
+                </div>
+              </section>
+
+              <section id="panel-moves" role="tabpanel" aria-labelledby="tab-moves" hidden>
+                <div class="chess-gym-panel-title">
+                  <span class="chess-gym-card-kicker">Interaction history</span>
+                  <h2>Moves &amp; answers</h2>
+                  <p>Chess Gym records what you noticed, not just SAN moves.</p>
+                </div>
+                <ol id="attempt-log" class="chess-gym-attempt-log" aria-label="Training attempts">
+                  <li class="is-empty">No attempts yet.</li>
+                </ol>
+                <article class="chess-gym-move-explainer">
+                  <h3>Why this tab adapts</h3>
+                  <p>Move drills can show notation. Vision and memory drills can show squares, pieces, timing and missed details instead.</p>
+                </article>
+              </section>
+
+              <section id="panel-progress" role="tabpanel" aria-labelledby="tab-progress" hidden>
+                <div class="chess-gym-progress-summary">
+                  <div><span>Attempts</span><strong id="progress-attempts">0</strong></div>
+                  <div><span>Correct</span><strong id="progress-correct">0</strong></div>
+                  <div><span>Accuracy</span><strong id="progress-accuracy">—</strong></div>
+                </div>
+
+                <div class="chess-gym-skill-bars" aria-label="Skill profile preview">
+                  <div><span>Vision</span><progress value="0" max="100"></progress><strong>—</strong></div>
+                  <div><span>Awareness</span><progress value="0" max="100"></progress><strong>—</strong></div>
+                  <div><span>Calculation</span><progress value="0" max="100"></progress><strong>—</strong></div>
+                  <div><span>Defense</span><progress value="0" max="100"></progress><strong>—</strong></div>
+                  <div><span>Conversion</span><progress value="0" max="100"></progress><strong>—</strong></div>
+                  <div><span>Time</span><progress value="0" max="100"></progress><strong>—</strong></div>
+                </div>
+
+                <div class="chess-gym-subtabs chess-gym-progress-tabs" role="tablist" aria-label="Progress assistance">
+                  <button type="button" id="progress-caissa" aria-selected="true">CAISSA</button>
+                  <button type="button" id="progress-mentor" aria-selected="false">Mentor ✦</button>
+                </div>
+
+                <div id="progress-caissa-panel">
+                  <article class="chess-gym-guidance">
+                    <span class="chess-gym-card-kicker">Free guidance</span>
+                    <h2>CAISSA</h2>
+                    <p id="caissa-guidance">Complete a few drills and CAISSA will point you toward the skill that needs the most repetition.</p>
+                    <div class="chess-gym-guidance-actions">
+                      <button type="button" id="practice-weakness">Practice weakness</button>
+                      <button type="button" id="repeat-drill">Repeat drill</button>
+                    </div>
+                  </article>
+                </div>
+
+                <div id="progress-mentor-panel" hidden>
+                  <article class="chess-gym-mentor-card">
+                    <div class="chess-gym-mentor-icon"><i class="fas fa-chess-queen" aria-hidden="true"></i></div>
+                    <span class="chess-gym-card-kicker">Premium adaptive coaching</span>
+                    <h2>CAISSA Mentor</h2>
+                    <p>Mentor will connect Chess Gym with Insights and recent games to explain recurring mistakes and build targeted sessions.</p>
+                    <a href="/premium">Explore Premium</a>
+                  </article>
+                </div>
+              </section>
+            </div>
+
+            <footer class="chess-gym-panel-foot-wrap" aria-label="Training actions">
+              <div class="chess-gym-panel-foot">
+                <button type="button" id="reset-session" class="chess-gym-secondary-action">Reset</button>
+                <div class="chess-gym-panel-foot-copy">
+                  <span id="footer-drill-name">Loose Pieces</span>
+                  <small id="footer-step">Ready to train</small>
+                </div>
+                <button type="button" id="next-position" class="chess-gym-primary-action">Start</button>
+              </div>
+            </footer>
+          </aside>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
