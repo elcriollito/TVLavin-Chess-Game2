@@ -92,7 +92,19 @@ test('a refreshed token without completed factor verification is never certified
 test('backend refusal remains fail-closed even after Clerk completes the factor', async () => {
     const { flow } = fixture({ summary: { backendReady: true, requiresReauthentication: true } });
     await flow.begin();
-    await assert.rejects(flow.complete('123456'), error => error.code === 'REVERIFICATION_NOT_CONFIRMED');
+    await assert.rejects(flow.complete('123456'), error => (
+        error.code === 'REVERIFICATION_NOT_CONFIRMED' && error.restartRequired === true
+    ));
+});
+
+test('post-factor token failure requires an immediate clean restart', async () => {
+    const { flow } = fixture({ session: { async getToken() { return null; } } });
+    await flow.begin();
+    await assert.rejects(flow.complete('123456'), error => (
+        error.code === 'REVERIFICATION_TOKEN_UNAVAILABLE' && error.restartRequired === true
+    ));
+    await assert.rejects(flow.complete('123456'), error => error.code === 'REVERIFICATION_NOT_STARTED');
+    assert.equal((await flow.begin()).status, 'needs_code');
 });
 
 test('identity or session changes invalidate the in-memory challenge before certification', async () => {

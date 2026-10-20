@@ -2,10 +2,11 @@ const SAFE_CODE_MAX_LENGTH = 64;
 const SAFE_PASSWORD_MAX_LENGTH = 1024;
 
 export class RecentReauthenticationError extends Error {
-    constructor(code, message) {
+    constructor(code, message, { restartRequired = false } = {}) {
         super(message);
         this.name = 'RecentReauthenticationError';
         this.code = code;
+        this.restartRequired = restartRequired;
     }
 }
 
@@ -73,6 +74,7 @@ export function createRecentReauthenticationFlow(options = {}) {
         if (!secret || secret.length > maxLength) throw safeError('REVERIFICATION_INPUT_INVALID');
 
         busy = true;
+        let factorCompleted = false;
         try {
             assertCurrent(active.operation, active.context);
             const result = await active.verification.attemptFirstFactorVerification(
@@ -83,10 +85,17 @@ export function createRecentReauthenticationFlow(options = {}) {
             assertCurrent(active.operation, active.context);
             const verification = result || active.verification;
             if (verification.status !== 'complete') throw safeError('REVERIFICATION_INCOMPLETE');
+            factorCompleted = true;
             pending = null;
             return await certify(active.operation, active.context);
         } catch (error) {
-            throw normalizeError(error);
+            const normalized = normalizeError(error);
+            if (factorCompleted) {
+                throw new RecentReauthenticationError(normalized.code, normalized.message, {
+                    restartRequired: true
+                });
+            }
+            throw normalized;
         } finally {
             if (active.operation === generation) busy = false;
         }

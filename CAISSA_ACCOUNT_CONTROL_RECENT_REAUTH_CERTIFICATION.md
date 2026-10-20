@@ -31,18 +31,18 @@ Result: `CAISSA_ACCOUNT_CONTROL_V1 — REAUTH_REPAIR_PREPARED / STAGING_DEPLOYME
 | Suite | Result |
 |---|---|
 | Account Control lint | PASS |
-| Account Control unit/client/export/reauth | 29/29 PASS |
+| Account Control unit/client/export/reauth | 30/30 PASS |
 | Identity Organization | 50/50 PASS |
 | Public Identity | 23/23 PASS |
 | SEC-005 | 90/90 PASS |
-| Account Control browser — Chromium/Firefox/WebKit | 15/15 PASS |
+| Account Control browser — Chromium/Firefox/WebKit | 18/18 PASS |
 | Public Identity browser — Chromium/Firefox/WebKit | 12/12 PASS |
 | RS256 auth contract: valid, expired, issuer, `azp`, tamper | PASS |
 | Mobile 390×844 and desktop visual/overflow checks | PASS |
 | Supply-chain audit | PASS; 0 npm vulnerabilities |
 | `git diff --check` | PASS |
 
-Security cases include valid and stale `fva`, missing/malformed/negative `fva`, missing `sid`/`jti`, expired/tampered JWT, wrong issuer/authorized party, crossed identity/session, revoked session, cancellation, duplicate submission, refreshed token without factor verification, and backend refusal.
+Security cases include valid and stale `fva`, missing/malformed/negative `fva`, missing `sid`/`jti`, expired/tampered JWT, wrong issuer/authorized party, crossed identity/session, revoked session, cancellation, duplicate submission, refreshed token without factor verification, backend refusal, and immediate clean restart after a post-factor token/certification failure.
 
 ## D. Staging
 

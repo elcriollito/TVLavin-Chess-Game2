@@ -326,7 +326,7 @@ function createDialogController() {
             finishReverification(result.summary);
         } catch (error) {
             reverifyInput.value = '';
-            if (['REVERIFICATION_NOT_CONFIRMED', 'REVERIFICATION_NOT_STARTED',
+            if (error?.restartRequired || ['REVERIFICATION_NOT_CONFIRMED', 'REVERIFICATION_NOT_STARTED',
                 'REVERIFICATION_SESSION_UNAVAILABLE', 'REVERIFICATION_IDENTITY_CHANGED'].includes(error?.code)) {
                 reauthentication.cancel();
                 resetReverification();

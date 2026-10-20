@@ -3,7 +3,9 @@ import AxeBuilder from '@axe-core/playwright';
 
 const output = name => `test-results/account-control/${name}.png`;
 
-async function installFixture(context, { reauthentication = false, review = false, rejectFreshToken = false } = {}) {
+async function installFixture(context, {
+    reauthentication = false, review = false, rejectFreshToken = false, dropFreshToken = false
+} = {}) {
     const calls = [];
     await context.addInitScript(() => Object.defineProperty(HTMLScriptElement.prototype, 'integrity', {
         configurable: true, get: () => '', set: () => {}
@@ -17,7 +19,7 @@ async function installFixture(context, { reauthentication = false, review = fals
         body: `window.__accountReauthCalls=[];
         window.Clerk={user:{id:'synthetic-owner',fullName:'Private Synthetic Name',firstName:'Private',imageUrl:null,primaryEmailAddress:{emailAddress:'private.synthetic@example.test'}},session:{
           id:'synthetic-session',
-          getToken:async(options)=>{window.__accountReauthCalls.push(['token',options||null]);return options?.skipCache?'fresh-fixture-token':'fixture-token'},
+          getToken:async(options)=>{window.__accountReauthCalls.push(['token',options||null]);return options?.skipCache?${dropFreshToken ? 'null' : "'fresh-fixture-token'"}:'fixture-token'},
           startVerification:async(options)=>{window.__accountReauthCalls.push(['start',options]);return {
             status:'needs_first_factor',
             supportedFirstFactors:[{strategy:'email_code',emailAddressId:'email_fixture',safeIdentifier:'p***@example.test',primary:true}],
@@ -174,6 +176,22 @@ test('fresh Clerk token without backend fva confirmation stays locked and cancel
     await page.locator('[data-account-reverify-cancel]').click();
     await expect(page.locator('[data-account-reverify-form]')).toBeHidden();
     await expect(page.locator('[data-account-controls]')).toBeHidden();
+    await context.close();
+});
+
+test('post-factor token failure resets to a usable verification start without an extra failed submission', async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 1152, height: 720 } });
+    await installFixture(context, { reauthentication: true, dropFreshToken: true });
+    const page = await context.newPage();
+    await openAccount(page);
+    await page.locator('[data-account-reverify]').click();
+    await page.locator('[data-account-reverify-input]').fill('123456');
+    await page.locator('[data-account-reverify-submit]').click();
+    await expect(page.locator('[data-account-control-status]')).toContainText('refreshed session could not be created');
+    await expect(page.locator('[data-account-reverify-form]')).toBeHidden();
+    await expect(page.locator('[data-account-reverify]')).toBeVisible();
+    await page.locator('[data-account-reverify]').click();
+    await expect(page.locator('[data-account-reverify-form]')).toBeVisible();
     await context.close();
 });
 
