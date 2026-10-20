@@ -201,8 +201,9 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: min(760px, calc(100dvh - 165px));
-  max-height: 760px;
+  min-height: 0;
+  height: var(--gym-workspace-height, 760px);
+  max-height: none;
   overflow: hidden;
   background: var(--gym-panel);
   border: 1px solid var(--gym-line);
@@ -211,7 +212,7 @@
 }
 
 .chess-gym-panel-head,
-.chess-gym-panel-foot {
+.chess-gym-panel-foot-wrap {
   flex: none;
   background: var(--gym-panel-2);
 }
@@ -651,13 +652,20 @@
   text-decoration: none;
 }
 
+.chess-gym-panel-foot-wrap {
+  flex: none;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--gym-line);
+  background: var(--gym-panel-2);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, .015);
+}
+
 .chess-gym-panel-foot {
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 10px;
   align-items: center;
-  padding: 12px 14px;
-  border-top: 1px solid var(--gym-line);
+  min-height: 44px;
 }
 
 .chess-gym-panel-foot-copy {
@@ -724,6 +732,7 @@
   .chess-gym-panel {
     width: min(100%, 760px);
     justify-self: center;
+    height: auto;
     min-height: 560px;
     max-height: none;
   }
