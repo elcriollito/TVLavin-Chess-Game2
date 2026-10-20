@@ -220,6 +220,29 @@ const board = new CaissaBoardAdapter($('gym-board'), {
   label: 'CAISSA Chess Gym training board'
 });
 
+const boardColumn = document.querySelector('.chess-gym-board-column');
+const workspacePanel = document.querySelector('.chess-gym-panel');
+const stackedWorkspaceQuery = window.matchMedia('(max-width: 980px)');
+
+function syncWorkspaceHeight() {
+  if (!boardColumn || !workspacePanel) return;
+  if (stackedWorkspaceQuery.matches) {
+    workspacePanel.style.removeProperty('--gym-workspace-height');
+    return;
+  }
+
+  const height = Math.ceil(boardColumn.getBoundingClientRect().height);
+  if (height > 0) workspacePanel.style.setProperty('--gym-workspace-height', height + 'px');
+}
+
+const workspaceResizeObserver = typeof ResizeObserver === 'function'
+  ? new ResizeObserver(() => syncWorkspaceHeight())
+  : null;
+workspaceResizeObserver?.observe(boardColumn);
+stackedWorkspaceQuery.addEventListener?.('change', syncWorkspaceHeight);
+window.addEventListener('resize', syncWorkspaceHeight, { passive: true });
+requestAnimationFrame(syncWorkspaceHeight);
+
 const dailyQueue = ['loose-pieces', 'checks-scan', 'what-changed', 'attackers-defenders'];
 
 function drillById(id) {
@@ -595,4 +618,9 @@ renderDrillHeader();
 renderProgress();
 loadNextExercise({ resetIndex: true });
 
-window.addEventListener('beforeunload', () => board.destroy(), { once: true });
+window.addEventListener('beforeunload', () => {
+  workspaceResizeObserver?.disconnect();
+  stackedWorkspaceQuery.removeEventListener?.('change', syncWorkspaceHeight);
+  window.removeEventListener('resize', syncWorkspaceHeight);
+  board.destroy();
+}, { once: true });
