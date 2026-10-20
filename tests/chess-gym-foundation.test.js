@@ -27,6 +27,7 @@ test('Chess Gym foundation keeps the board-first CAISSA workspace contract', () 
   );
   assert.equal(page('#training-train').length, 1);
   assert.equal(page('#training-learn').length, 1);
+  assert.equal(page('.chess-gym-panel-foot-wrap .chess-gym-panel-foot').length, 1);
 });
 
 test('Chess Gym reuses the canonical board and starts with skill-first trainers', () => {
@@ -54,7 +55,12 @@ test('Chess Gym responsive geometry preserves one right-column scroll owner', ()
   const css = read('css/chess-gym.css');
   assert.match(css, /\.chess-gym-workspace\s*\{[^}]*grid-template-columns:/s);
   assert.match(css, /\.chess-gym-panel-body\s*\{[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.chess-gym-panel-foot-wrap\s*\{[^}]*border-top:\s*1px solid var\(--gym-line\)/s);
   assert.match(css, /@media\s*\(max-width:\s*980px\)[\s\S]*\.chess-gym-workspace\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  const pageSource = read('js/chess-gym/page.js');
+  assert.match(pageSource, /syncWorkspaceHeight/);
+  assert.match(pageSource, /getBoundingClientRect\(\)\.height/);
+  assert.match(pageSource, /--gym-workspace-height/);
 });
 
 test('Chess Gym clean route is owned by local and Vercel routing', () => {
