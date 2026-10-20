@@ -58,6 +58,45 @@ test('client downloads the streamed export blob without reparsing and reserializ
     }
 });
 
+test('backend-certified fresh token stays memory-only for sensitive calls and clears on denial', async () => {
+    const authorizations = [];
+    const api = createAccountControlApi({
+        tokenProvider: async () => 'ordinary-token',
+        fetchImpl: async (_url, options) => {
+            authorizations.push(options.headers.Authorization);
+            if (authorizations.length === 3) return response(403, {
+                code: 'REVERIFICATION_REQUIRED', error: 'Verification required.'
+            });
+            return response(200, {
+                backendReady: true, requiresReauthentication: false,
+                summary: { capabilities: {} }
+            });
+        }
+    });
+    await api.certifyRecentSession('fresh-token');
+    await api.summary();
+    await assert.rejects(api.summary(), error => error.code === 'REVERIFICATION_REQUIRED');
+    await api.summary();
+    assert.deepEqual(authorizations, [
+        'Bearer fresh-token', 'Bearer fresh-token', 'Bearer fresh-token', 'Bearer ordinary-token'
+    ]);
+});
+
+test('an expired in-memory fresh token falls back to the live session provider', async () => {
+    const authorizations = [];
+    const api = createAccountControlApi({
+        recentTokenLifetimeMs: 0,
+        tokenProvider: async () => 'ordinary-token',
+        fetchImpl: async (_url, options) => {
+            authorizations.push(options.headers.Authorization);
+            return response(200, { backendReady: true, requiresReauthentication: false, summary: {} });
+        }
+    });
+    await api.certifyRecentSession('fresh-token');
+    await api.summary();
+    assert.deepEqual(authorizations, ['Bearer fresh-token', 'Bearer ordinary-token']);
+});
+
 function response(status, payload) {
     return {
         ok: status >= 200 && status < 300,

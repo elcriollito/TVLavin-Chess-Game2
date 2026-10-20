@@ -11,9 +11,17 @@ export class AccountControlApiError extends Error {
 export function createAccountControlApi(options = {}) {
     const fetchImpl = options.fetchImpl || globalThis.fetch.bind(globalThis);
     const tokenProvider = options.tokenProvider || (() => globalThis.CAISSA_AUTH?.getToken?.());
+    const recentTokenLifetimeMs = Number.isFinite(options.recentTokenLifetimeMs)
+        ? Math.max(0, options.recentTokenLifetimeMs)
+        // Clerk session JWTs are short-lived. Keep the certified token only long
+        // enough to bridge the step-up response; later requests obtain a fresh
+        // JWT whose server-verified fva claim still governs the five-minute gate.
+        : 45 * 1000;
+    let recentToken = null;
+    let recentTokenExpiresAt = 0;
 
-    async function request(path, { method = 'GET', body, idempotencyKey } = {}) {
-        const token = await tokenProvider();
+    async function request(path, { method = 'GET', body, idempotencyKey, accessToken } = {}) {
+        const token = accessToken || activeRecentToken() || await tokenProvider();
         if (!token) throw new AccountControlApiError('AUTH_REQUIRED', 401, 'Sign in to manage your data.');
         const response = await fetchImpl(path, {
             method,
@@ -28,6 +36,7 @@ export function createAccountControlApi(options = {}) {
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
+            if (response.status === 401 || response.status === 403) clearRecentSession();
             throw new AccountControlApiError(
                 payload.code || 'ACCOUNT_CONTROL_REQUEST_FAILED',
                 response.status,
@@ -38,8 +47,37 @@ export function createAccountControlApi(options = {}) {
         return payload;
     }
 
+    async function certifyRecentSession(accessToken) {
+        if (typeof accessToken !== 'string' || !accessToken) {
+            throw new AccountControlApiError('AUTH_REQUIRED', 401, 'Sign in to manage your data.');
+        }
+        const payload = await request('/api/account/privacy/summary', { accessToken });
+        if (!payload?.backendReady || payload.requiresReauthentication !== false) {
+            clearRecentSession();
+            throw new AccountControlApiError(
+                'REVERIFICATION_REQUIRED', 403, 'The server did not confirm a recent verification.'
+            );
+        }
+        recentToken = accessToken;
+        recentTokenExpiresAt = Date.now() + recentTokenLifetimeMs;
+        return payload;
+    }
+
+    function activeRecentToken() {
+        if (!recentToken || Date.now() >= recentTokenExpiresAt) {
+            clearRecentSession();
+            return null;
+        }
+        return recentToken;
+    }
+
+    function clearRecentSession() {
+        recentToken = null;
+        recentTokenExpiresAt = 0;
+    }
+
     async function download(path, { body, idempotencyKey } = {}) {
-        const token = await tokenProvider();
+        const token = activeRecentToken() || await tokenProvider();
         if (!token) throw new AccountControlApiError('AUTH_REQUIRED', 401, 'Sign in to manage your data.');
         const response = await fetchImpl(path, {
             method: 'POST',
@@ -53,6 +91,7 @@ export function createAccountControlApi(options = {}) {
             body: JSON.stringify(body || {})
         });
         if (!response.ok) {
+            if (response.status === 401 || response.status === 403) clearRecentSession();
             const payload = await response.json().catch(() => ({}));
             throw new AccountControlApiError(
                 payload.code || 'ACCOUNT_CONTROL_REQUEST_FAILED',
@@ -85,6 +124,8 @@ export function createAccountControlApi(options = {}) {
 
     return Object.freeze({
         summary: () => request('/api/account/privacy/summary'),
+        certifyRecentSession,
+        clearRecentSession,
         exportData: async () => {
             const idempotencyKey = crypto.randomUUID();
             const blob = await download('/api/account/privacy/export', { body: {}, idempotencyKey });

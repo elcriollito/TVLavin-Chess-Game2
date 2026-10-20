@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { TokenVerificationError } from '@clerk/backend/errors';
 import { createAuthenticateRequest, respondAuthFailure } from '../api/_lib/auth.js';
 import walletHandler from '../api/wallet.js';
@@ -21,6 +22,32 @@ function response() {
 const request = (method, authorization, body = {}) => ({
   method, headers: authorization === undefined ? {} : { authorization }, body, query: {}
 });
+
+const signingKeys = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const localJwtKey = signingKeys.publicKey.export({ type: 'spki', format: 'pem' });
+const localIssuer = 'https://synthetic-development.example.test';
+
+function signedToken(overrides = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    sub: 'synthetic-user', sid: 'session-a', jti: 'token-a',
+    iss: localIssuer, azp: 'https://www.caissa-chess.org',
+    iat: now, nbf: now - 1, exp: now + 120, fva: [0, -1],
+    ...overrides
+  })).toString('base64url');
+  const unsigned = `${header}.${payload}`;
+  const signature = crypto.sign('RSA-SHA256', Buffer.from(unsigned), signingKeys.privateKey).toString('base64url');
+  return `${unsigned}.${signature}`;
+}
+
+function localVerifier() {
+  return createAuthenticateRequest({ env: {
+    CLERK_JWT_KEY: localJwtKey,
+    CAISSA_CLERK_AUTHORITY: 'legacy_development',
+    CAISSA_CLERK_ISSUER: localIssuer
+  }, log() {} });
+}
 
 test('missing and malformed authorization fail with stable 401 responses', async () => {
   const authenticate = createAuthenticateRequest({ env: { CLERK_SECRET_KEY: 'test' }, verifyToken: async () => assert.fail() });
@@ -143,6 +170,36 @@ test('local Clerk JWT verification can use the instance public key without a bac
   assert.equal(options.jwtKey, '-----BEGIN PUBLIC KEY-----\nsynthetic\n-----END PUBLIC KEY-----');
   assert.equal('secretKey' in options, false);
   assert.deepEqual(options.authorizedParties, ['https://www.caissa-chess.org']);
+});
+
+test('real local Clerk verification accepts only intact, current, issuer-bound and party-bound JWT evidence', async () => {
+  const authenticate = localVerifier();
+  const valid = await authenticate(request('GET', `Bearer ${signedToken()}`));
+  assert.equal(valid.authenticated, true);
+  assert.equal(valid.userId, 'synthetic-user');
+  assert.equal(valid.sessionId, 'session-a');
+  assert.equal(valid.tokenId, 'token-a');
+  assert.deepEqual(valid.factorVerificationAge, [0, -1]);
+
+  const now = Math.floor(Date.now() / 1000);
+  const invalidTokens = [
+    signedToken({ exp: now - 600, iat: now - 900 }),
+    signedToken({ iss: 'https://wrong-issuer.example.test' }),
+    signedToken({ azp: 'https://wrong-party.example.test' })
+  ];
+  const intact = signedToken();
+  const [header, payload, signature] = intact.split('.');
+  const tamperedPayload = Buffer.from(JSON.stringify({
+    ...JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')),
+    sub: 'tampered-user'
+  })).toString('base64url');
+  invalidTokens.push(`${header}.${tamperedPayload}.${signature}`);
+  for (const [index, token] of invalidTokens.entries()) {
+    const result = await authenticate(request('GET', `Bearer ${token}`));
+    assert.equal(result.authenticated, false);
+    assert.equal(result.status, 401, `invalid token case ${index}`);
+    assert.equal(result.code, 'INVALID_TOKEN');
+  }
 });
 
 test('Clerk verification binds tokens to canonical and explicitly configured frontend parties', async () => {
