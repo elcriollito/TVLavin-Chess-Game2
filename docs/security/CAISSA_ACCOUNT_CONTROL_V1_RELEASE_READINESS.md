@@ -111,9 +111,9 @@ Apply through Supabase managed `apply_migration`, once each, in this order:
 | 2 | `sec005_clerk_migration_cutover_tooling_v1` | `20260811_clerk_migration_cutover_tooling.sql` | `2d53b7345b7dcee5fdb204ec568bb97475e2931ae75fa35a7a1d595f324ee6ee` |
 | 3 | `sec005_cutover_compatibility_v1` | `20261015220000_sec005_cutover_compatibility_v1.sql` | `3644577e080fca71b70f7fa31e07ab0980d9f8884d861dd6eaa9a02f0fd689f2` |
 | 4 | `caissa_identity_ownership_v1` | `20261018171912_caissa_identity_ownership_v1.sql` | `db2d75b54b5c64eb36488beae27e10e2ad2266bd5adf54f3841183757f4acda5` |
-| 5 | `caissa_account_control_v1` | `20261018194500_caissa_account_control_v1.sql` | `3d0dfdadc9f89fe12be40a086bc491d4971fca40901a4ee7544bb7965a940950` |
-| 6 | `caissa_account_control_v1_fk_indexes` | `20261018180000_caissa_account_control_v1_fk_indexes.sql` | `9d7e4b69e691c57dc2a81408d74fd988055375c7d7424a4305133fc4f87d786c` |
-| 7 | `caissa_account_control_v1_security_followup` | `20261018203000_caissa_account_control_v1_security_followup.sql` | `dccd0cebfd56a434337ea960c7ff426001b5e37eee589d8172f4d1a5dc4d402b` |
+| 5 | `caissa_account_control_v1` | `20261018174754_caissa_account_control_v1.sql` | `3d0dfdadc9f89fe12be40a086bc491d4971fca40901a4ee7544bb7965a940950` |
+| 6 | `caissa_account_control_v1_fk_indexes` | `20261018174844_caissa_account_control_v1_fk_indexes.sql` | `9d7e4b69e691c57dc2a81408d74fd988055375c7d7424a4305133fc4f87d786c` |
+| 7 | `caissa_account_control_v1_security_followup` | `20261018181749_caissa_account_control_v1_security_followup.sql` | `dccd0cebfd56a434337ea960c7ff426001b5e37eee589d8172f4d1a5dc4d402b` |
 
 If the ledger already contains any SEC-005 prerequisite, verify its managed
 name, source hash, catalog effects, and dependency order read-only; do not
@@ -127,10 +127,17 @@ first two files; normalized comparison proves those artifacts are textually
 identical to the canonical LF payloads above. A future operator must normalize
 line endings before hashing and must stop on any semantic difference.
 
-The file timestamps are source identifiers; the managed ledger version may
-differ when an operator supplied an explicit migration name. Compare content,
-name, hash, and effects. Do not execute unrelated pending migrations, seeds,
-`db reset`, or `migration repair`.
+The four Identity / Account Control filenames now use the exact versions already
+recorded by the Staging managed ledger: `20261018171912`, `20261018174754`,
+`20261018174844`, and `20261018181749`. This prevents the CLI from treating the
+already-applied Staging migrations as new work. Staging originally applied the
+Account Control base at its initial canonical hash
+`35ba7668c9cccaeff34086ea6c720045f00bf2b6bb998294336eee787e28c54f`;
+the later security follow-up brought that schema to the current contract. The
+repository base payload remains the newer immutable hash shown in the table for
+fresh installations. Compare version, managed name, payload lineage and catalog
+effects. Do not execute unrelated pending migrations, seeds, `db reset`, or
+`migration repair`.
 
 For an ambiguous `apply_migration` response, stop and inspect the ledger and
 catalog read-only. Never retry blindly and never run an automatic destructive

@@ -18,18 +18,14 @@ create table public.users (
 );
 
 \ir ../supabase/migrations/20260811_clerk_identity_remapping_foundation.sql
+\ir ../supabase/migrations/20260811_clerk_migration_cutover_tooling.sql
+\ir ../supabase/migrations/20261015220000_sec005_cutover_compatibility_v1.sql
 \ir ../supabase/migrations/20261018171912_caissa_identity_ownership_v1.sql
 
 create table public.identity_incident_holds (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete restrict,
   status text not null check (status in ('ACTIVE','RELEASED'))
-);
-create table public.identity_manual_recovery_previews (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.users(id) on delete restrict,
-  status text not null check(status in ('PENDING','EXPIRED','REVOKED','EXECUTED')),
-  expires_at timestamptz not null
 );
 create table public.product_entitlements (
   id uuid primary key default gen_random_uuid(),
@@ -79,7 +75,8 @@ create table public.caissa_online_profiles (
   user_id uuid primary key references public.users(id) on delete cascade,
   clerk_id text not null unique,
   display_name text not null,
-  created_at timestamptz not null default pg_catalog.clock_timestamp()
+  created_at timestamptz not null default pg_catalog.clock_timestamp(),
+  updated_at timestamptz not null default pg_catalog.clock_timestamp()
 );
 create table public.caissa_online_ratings (
   user_id uuid not null references public.users(id) on delete cascade,
@@ -96,20 +93,30 @@ create table public.caissa_online_games (
   white_display_name text not null default 'White',
   black_display_name text not null default 'Black',
   identity_policy_version smallint not null default 1,
+  draw_offer_by text,
+  version bigint not null default 1,
+  status text not null default 'active',
   pgn text not null default '[White "White"]' || E'\n' || '[Black "Black"]',
-  created_at timestamptz not null default pg_catalog.clock_timestamp()
+  created_at timestamptz not null default pg_catalog.clock_timestamp(),
+  updated_at timestamptz not null default pg_catalog.clock_timestamp()
 );
 create table public.caissa_online_rate_limits (
   clerk_id text not null,
   bucket text not null,
+  window_started_at timestamptz not null default pg_catalog.clock_timestamp(),
+  request_count integer not null default 0,
+  updated_at timestamptz not null default pg_catalog.clock_timestamp(),
   primary key(clerk_id,bucket)
 );
 create table public.caissa_online_matchmaking_tickets (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.users(id) on delete cascade
+  user_id uuid not null references public.users(id) on delete cascade,
+  clerk_id text not null default 'ticket_subject',
+  updated_at timestamptz not null default pg_catalog.clock_timestamp()
 );
 create table public.caissa_online_presence (
-  user_id uuid primary key references public.users(id) on delete cascade
+  user_id uuid primary key references public.users(id) on delete cascade,
+  clerk_id text not null default 'presence_subject'
 );
 create table public.caissa_online_challenges (
   id uuid primary key default gen_random_uuid(),
@@ -224,7 +231,10 @@ create table public.scanner_beta_scan_failures (
   user_id uuid references public.users(id) on delete restrict
 );
 
-\ir ../supabase/migrations/20261018194500_caissa_account_control_v1.sql
+-- Keep this block in the exact filename order used by Supabase.
+\ir ../supabase/migrations/20261018174754_caissa_account_control_v1.sql
+\ir ../supabase/migrations/20261018174844_caissa_account_control_v1_fk_indexes.sql
+\ir ../supabase/migrations/20261018181749_caissa_account_control_v1_security_followup.sql
 
 create or replace function pg_temp.assert_true(p_condition boolean, p_message text)
 returns void language plpgsql as $$
