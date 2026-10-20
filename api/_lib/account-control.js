@@ -77,7 +77,7 @@ export function createAccountControlHandlers(dependencies = {}) {
         if (fresh && !freshReverification(auth)) {
             res.status(403).json({
                 code: 'REVERIFICATION_REQUIRED',
-                error: 'Sign in again before performing this sensitive action.',
+                error: 'Verify your identity again before performing this sensitive action.',
                 level: 'first_factor',
                 maxAgeMinutes: FRESH_MINUTES
             });

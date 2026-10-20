@@ -119,8 +119,15 @@ test('environment gate binds mode, Clerk authority, ownership mode and exact Sup
 
 test('fresh reverification uses signed Clerk fva and rejects token age or missing session metadata', () => {
     assert.equal(freshReverification(auth()), true);
+    assert.equal(freshReverification(auth({ factorVerificationAge: [0, -1] })), true);
+    assert.equal(freshReverification(auth({ factorVerificationAge: [5, -1] })), true);
     assert.equal(freshReverification(auth({ factorVerificationAge: [6, -1] })), false);
+    assert.equal(freshReverification(auth({ factorVerificationAge: [-1, -1] })), false);
+    assert.equal(freshReverification(auth({ factorVerificationAge: ['0', -1] })), false);
+    assert.equal(freshReverification(auth({ factorVerificationAge: [NaN, -1] })), false);
+    assert.equal(freshReverification(auth({ factorVerificationAge: {} })), false);
     assert.equal(freshReverification(auth({ factorVerificationAge: null })), false);
+    assert.equal(freshReverification(auth({ sessionId: null })), false);
     assert.equal(freshReverification(auth({ tokenId: null })), false);
 });
 
