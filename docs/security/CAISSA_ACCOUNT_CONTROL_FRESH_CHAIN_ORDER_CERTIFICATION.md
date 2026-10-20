@@ -8,7 +8,7 @@ Isolated branch: `fix/account-control-fresh-chain-order-20261019`
 
 Stack base: PR #84 at `f2318cebd4c9bc71eb66e7ca4380742bad2db867`
 
-Implementation commit: `a00b89a261f15da39702f8bdc4cabf7b5c996f5c`
+Implementation commit: `a00b89a9eb173793855374647c00eaea1a51df69`
 
 No hosted migration, migration-history repair, Supabase write, Production
 connection, password operation, merge, or destructive user operation was
@@ -149,16 +149,18 @@ registration.
 - Isolated branch: `fix/account-control-fresh-chain-order-20261019`.
 - Base HEAD: `f2318cebd4c9bc71eb66e7ca4380742bad2db867`.
 - Base tree: `3b1755eb86e57b3a8d9395a6e817c7a836a172f9`.
-- Hotfix commit: `a00b89a261f15da39702f8bdc4cabf7b5c996f5c`.
+- Hotfix commit: `a00b89a9eb173793855374647c00eaea1a51df69`.
 - Certification report commit: the commit containing this file; its final HEAD
   and tree are recorded in the release handoff and PR metadata rather than
   embedded self-referentially.
 - Pull request: #92, based on the still-open PR #84 branch.
 - GitHub workflows contain no hosted migration job. The mutable PGN workflows
   run only on `main` and unrelated path filters; Scanner paths do not match.
-- The linked Vercel project creates only a non-Production Preview for this
-  non-production branch, with SSO enabled for non-custom domains. No migration
-  command is part of the repository deployment configuration.
+- GitHub reports three Vercel Preview build contexts for the non-production
+  branch (`account-control-release-readiness`, `caissa-chess`, and
+  `tv-lavin-chess-game2`). The primary project remains protected by SSO for
+  non-custom domains. No migration command is part of the repository deployment
+  configuration, and no Production target was requested or promoted.
 - Worktrees: all pre-existing worktrees preserved; one new isolated worktree was
   added for this mission. No prune, reset, stash, or worktree deletion occurred.
 - Worktree state at report authoring: changes limited to the canonical migration
