@@ -21,16 +21,16 @@ test('canonical primary navigation inventory is unique and stable', () => {
     Array.from(inventory.primary, ({ id }) => id),
     [
       'play', 'online', 'yahooClassic', 'fics', 'playchess', 'fritz',
-      'puzzles', 'academy', 'mentor', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
+      'puzzles', 'chess-gym', 'academy', 'mentor', 'endgame-trainer', 'endgame-library', 'endgame-tablebase',
       'insights', 'analyze', 'pgn-replayer', 'spectator', 'lichess-tv', 'live-blitz', 'live-tournaments', 'arena',
       'cheater-insight', 'polyglot', 'gif-studio', 'opening-database', 'eco', 'world-champions',
       'history', 'dosChess', 'vault'
     ]
   );
-  assert.equal(inventory.primary.length, 29);
+  assert.equal(inventory.primary.length, 30);
   assert.deepEqual(Array.from(inventory.more, ({ id }) => id), ['blog', 'support', 'help', 'about', 'feedback']);
   assert.deepEqual(Array.from(inventory.social, ({ id }) => id), ['facebook', 'youtube', 'discord']);
-  for (const label of ['CAISSA Online', 'Puzzles', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
+  for (const label of ['CAISSA Online', 'Puzzles', 'Chess Gym', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);
   }
   assert.ok(!labels.includes('Settings'), 'game-specific Settings must not be global navigation');
@@ -47,6 +47,8 @@ test('canonical primary navigation inventory is unique and stable', () => {
   assert.equal(inventory.primary.find(({ id }) => id === 'spectator').route, '/spectator-tv');
   assert.equal(inventory.primary.find(({ id }) => id === 'online').route, '/online');
   assert.equal(inventory.primary.filter(({ route }) => route === '/online').length, 1);
+  assert.equal(inventory.primary.find(({ id }) => id === 'chess-gym')?.route, '/chess-gym');
+  assert.equal(inventory.groups[1][1]?.id, 'chess-gym');
   assert.equal(inventory.primary.find(({ id }) => id === 'gif-studio')?.route, '/gif-maker');
   assert.equal(inventory.groups[3].filter(({ id }) => id === 'gif-studio').length, 1);
 });
@@ -134,7 +136,7 @@ test('all standalone shell pages load the canonical source before the renderer',
   const pages = [
     'endgame-library.html', 'game-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
     'polyglot.html', 'gif-maker.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'live-blitz.html',
-    'live-tournaments.html', 'lichess-tv.html', 'pgn-replayer.html', 'mentor.html'
+    'live-tournaments.html', 'lichess-tv.html', 'pgn-replayer.html', 'mentor.html', 'chess-gym.html'
   ];
   for (const path of pages) {
     const html = read(path);

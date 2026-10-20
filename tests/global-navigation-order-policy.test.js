@@ -13,9 +13,9 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.17.0 owns the primary, More, and social destinations', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.19.0 owns the primary, More, and social destinations', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.17.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.19.0');
   assert.deepEqual(
     Array.from(navigation.inventory.more, (item) => item.label),
     ['Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback']
@@ -24,10 +24,10 @@ test('CaissaGlobalNavigationOrderPolicy@1.17.0 owns the primary, More, and socia
     'Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.primary, item => item.label), [
-    'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-    'Puzzles', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
+    'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
+    'Puzzles', 'Chess Gym', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
-    'Cheater Insight', 'Polyglot Tool', 'Opening Database', 'ECO Codes',
+    'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
     'World Champions', 'History', 'DOS Chess', 'Vault'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.social, item => item.label), [
@@ -41,10 +41,10 @@ test('CaissaGlobalNavigationOrderPolicy@1.17.0 owns the primary, More, and socia
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-blitz').length, 1);
   assert.equal(navigation.inventory.all.filter(item => item.id === 'live-tournaments').length, 1);
   assert.deepEqual(Array.from(navigation.inventory.groups[0], item => item.label), [
-    'Play', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz'
+    'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), [
-    'Puzzles', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
+    'Puzzles', 'Chess Gym', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
   ]);
   const social = load(navigation.renderSocialFooter());
   assert.equal(social('.nav-social-link').length, 3);
