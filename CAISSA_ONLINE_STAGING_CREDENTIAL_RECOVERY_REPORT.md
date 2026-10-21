@@ -1,7 +1,7 @@
 # CAISSA Online — Staging Credential Recovery Report
 
-**Fecha:** 2026-10-21  
-**Estado:** `LOCAL_RECOVERED / REMOTE_CONFIGURATION_PENDING`  
+**Fecha:** 2026-10-21
+**Estado:** `CAISSA_ONLINE — STAGING_CREDENTIAL_REPAIR_READY / HOSTED_APPROVAL_PENDING`
 **Alcance:** diagnóstico y compatibilidad local; no se desplegó ni se modificó configuración remota.
 
 ## Resultado
@@ -61,3 +61,13 @@ En una nueva rama/Preview aislada, y sólo tras autorización humana:
 5. Ejecutar primero smoke read-only y detenerse ante cualquier `401`, `403` o `5xx`; el retest de dos jugadores necesita autorización separada.
 
 Rollback: retirar exclusivamente las variables de la nueva rama y descartar su Preview. No rotar claves, no tocar variables compartidas y no modificar Production.
+
+## Gate humano
+
+La reparación está lista en código local, pero todavía no está certificada contra una Preview alojada. La siguiente escritura remota necesaria sería instalar las tres variables modernas, limitadas a una rama nueva y al target Preview, después de cotejar que las dos claves pertenecen a Supabase Staging `aqizagaskicotorfpwfn`. Esa operación, el push y el deploy requieren autorización posterior. Hasta entonces no debe interpretarse este estado como recuperación alojada del flujo multijugador.
+
+## Referencias de contrato
+
+- [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)
+- [Supabase Realtime Broadcast desde el servidor](https://supabase.com/docs/guides/realtime/broadcast)
+- [Supabase Auth headers](https://supabase.com/docs/guides/functions/auth-headers)
