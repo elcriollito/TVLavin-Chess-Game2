@@ -7,7 +7,8 @@ import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import { SavedRepertoireStore } from '../js/opening-trainer/repertoire-store.js';
 import { TrainingSession } from '../js/opening-trainer/training-session.js';
 import { buildOpeningIndex } from '../js/opening-trainer/opening-index.js';
-import { buildLineKey, OpeningGamesClient, splitPgnGames } from '../js/opening-trainer/games-client.js';
+import { OpeningGamesClient, rankOpeningCollections, splitPgnGames } from '../js/opening-trainer/games-client.js';
+import { PgnOpeningProxyClient, validateOpeningCatalog } from '../js/pgn-replayer/pgn-opening-proxy-client.js';
 import { wikibookTitleForMoves } from '../js/opening-trainer/wikibook-client.js';
 import { RepertoireCloudSync } from '../js/opening-trainer/repertoire-cloud-sync.js';
 import repertoireHandler, { sanitizeRepertoire } from '../api/opening-trainer/repertoires.js';
@@ -69,9 +70,15 @@ test('route shell exposes exactly the five required tabs and fixed footer action
     const html = read('opening-trainer.html');
     const tabs = [...html.matchAll(/data-trainer-tab="([^"]+)"/g)].map(match => match[1]);
     assert.deepEqual(tabs, ['analysis', 'practice', 'games', 'opening', 'wikibook']);
-    for (const id of ['trainerFlipBoard', 'trainerEngineToggle', 'trainerFirstMove', 'trainerPreviousMove', 'trainerNextMove', 'trainerLastMove']) {
+    for (const id of ['trainerNewStudy', 'trainerFlipBoard', 'trainerEngineToggle', 'trainerSaveButton', 'trainerSaveTrainButton', 'trainerFirstMove', 'trainerPreviousMove', 'trainerNextMove', 'trainerLastMove']) {
         assert.match(html, new RegExp(`id="${id}"`));
     }
+    assert.equal((html.match(/id="trainerSaveButton"/g) || []).length, 1);
+    assert.equal((html.match(/id="trainerSaveTrainButton"/g) || []).length, 1);
+    assert.ok(html.indexOf('id="trainerNewStudy"') < html.indexOf('id="trainerFlipBoard"'));
+    assert.ok(html.indexOf('id="trainerFlipBoard"') < html.indexOf('id="trainerEngineToggle"'));
+    assert.ok(html.indexOf('id="trainerEngineToggle"') < html.indexOf('id="trainerSaveButton"'));
+    assert.ok(html.indexOf('id="trainerSaveTrainButton"') < html.indexOf('id="trainerFirstMove"'));
     assert.match(html, /trainerRevealButton/);
     assert.match(html, /trainerNextLine/);
     assert.match(html, /trainerSaveTrainDialog/);
@@ -131,27 +138,64 @@ test('opening resolver recognizes exact sequences and position-verified transpos
     assert.equal(positionOnly.transpositionVerified, true);
 });
 
-test('Wikibook titles follow the legal sequence and game keys are bounded', () => {
+test('Wikibook titles follow the legal sequence and opening proxy searches rank real collections', () => {
     assert.equal(wikibookTitleForMoves(['e4', 'c5', 'Nf3']), 'Chess Opening Theory/1. e4/1...c5/2. Nf3');
-    assert.equal(buildLineKey(lineFromSan(['e4', 'e5', 'Nf3', 'Nc6']), 3), 'e7e5 g1f3 b8c6');
+    const ranked = rankOpeningCollections({ openings: [
+        { id: 'opening-vienna', title: 'Vienna', file: 'Vienna.zip' },
+        { id: 'opening-sicilian-najdorf', title: 'Sicilian Najdorf', file: 'SicilianNajdorf6Bg5.zip' }
+    ] }, 'B90', ['Sicilian Defense', 'Najdorf Variation']);
+    assert.equal(ranked[0].id, 'opening-sicilian-najdorf');
 });
 
-test('game client returns at most ten and resolves a selected CAISSA public PGN', async () => {
-    const samplePgn = '[Event "Test Event"]\n[Site "Test Site"]\n[Date "2026.01.01"]\n[White "White Player"]\n[Black "Black Player"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 1-0';
+test('game client uses the shared PGN Reader proxy, caps pages at ten and resolves selected notation', async () => {
+    const samplePgn = index => `[Event "Test Event ${index}"]\n[Site "Test Site"]\n[Date "2026.01.${String(index + 1).padStart(2, '0')}"]\n[White "White ${index}"]\n[Black "Black ${index}"]\n[Result "1-0"]\n[ECO "C25"]\n\n1. e4 e5 2. Nc3 Nf6 1-0`;
+    const pagePgn = Array.from({ length: 12 }, (_, index) => samplePgn(index)).join('\n\n');
+    const catalog = { schemaVersion: 1, access: 'free', sourceUpdated: 'January 2026', pageSize: 100, count: 233,
+        openings: [
+            { id: 'opening-vienna', title: 'Vienna', file: 'Vienna.zip' },
+            ...Array.from({ length: 232 }, (_, index) => ({ id: `opening-fill-${index}`, title: `Filler ${index}`, file: `Filler${index}.zip` }))
+        ] };
+    const calls = [];
     const fetchFn = async url => {
         const value = String(url);
-        if (value.includes('manifest.json') && value.includes('gamesearch')) return new Response(JSON.stringify({ maxPlies: 10 }), { status: 200 });
-        if (value.includes('/gamesearch/line')) return new Response(JSON.stringify({ ok: true, games: 12, top: Array.from({ length: 12 }, (_, index) => ({ gameId: `g_${String(index).padStart(16, '0')}`, white: 'White Player', black: 'Black Player', event: 'Test Event', site: 'Test Site', date: '2026.01.01', result: '1-0' })) }), { status: 200 });
-        if (value === '/pgn/library.json') return new Response(JSON.stringify({ Public: { Test: [{ file: 'pgn/test.pgn' }] } }), { status: 200 });
-        if (value === '/pgn/test.pgn') return new Response(samplePgn, { status: 200, headers: { 'content-length': String(samplePgn.length) } });
+        calls.push(value);
+        if (value === '/api/pgn/opening') return new Response(JSON.stringify(catalog), { status: 200 });
+        if (value === '/api/pgn/opening?file=Vienna.zip&page=1') return new Response(pagePgn, { status: 200, headers: {
+            'content-length': String(pagePgn.length),
+            'X-CAISSA-PGN-Source': 'pgnmentor-opening-paged',
+            'X-CAISSA-Opening-Page': '1',
+            'X-CAISSA-Opening-Pages': '1',
+            'X-CAISSA-Opening-Games': '12',
+            'X-CAISSA-Opening-Page-Games': '12'
+        } });
         return new Response('', { status: 404 });
     };
     const client = new OpeningGamesClient({ fetchFn });
-    const result = await client.search(lineFromSan(['e4', 'e5']));
+    const result = await client.search({ query: 'C25', aliases: ['Vienna'], page: 1 });
     assert.equal(result.games.length, 10);
+    assert.equal(result.pageCount, 2);
+    assert.equal(result.source, 'pgnmentor-opening-paged');
+    assert.ok(calls.every(url => url.startsWith('/api/pgn/opening')));
     const loaded = await client.loadGame(result.games[0]);
     assert.equal(loaded.moves.length, 4);
-    assert.equal(splitPgnGames(`${samplePgn}\n\n${samplePgn}`).length, 2);
+    assert.match(loaded.pgn, /White 0/);
+    const second = await client.search({ query: 'Vienna', page: 2 });
+    assert.equal(second.games.length, 2);
+    assert.equal(splitPgnGames(`${samplePgn(1)}\n\n${samplePgn(2)}`).length, 2);
+});
+
+test('PGN Reader and Opening Trainer share one bounded same-origin opening proxy client', () => {
+    const reader = read('js/pgn-replayer/pgn-opening-library.js');
+    const trainer = read('js/opening-trainer/games-client.js');
+    const shared = read('js/pgn-replayer/pgn-opening-proxy-client.js');
+    assert.match(reader, /PgnOpeningProxyClient/);
+    assert.match(trainer, /PgnOpeningProxyClient/);
+    assert.match(shared, /credentials: 'same-origin'/);
+    assert.match(shared, /PGN_OPENING_PROXY_MAX_PAGE_BYTES = 10 \* 1024 \* 1024/);
+    assert.doesNotMatch(trainer, /pgnmentor\.com|downloads\.caissa-chess\.org|gamesearch/);
+    assert.match(read('server.js'), /pgnOpeningHandler/);
+    assert.throws(() => validateOpeningCatalog({ access: 'free', pageSize: 100, openings: [] }), /catalog is invalid/i);
+    assert.equal(typeof PgnOpeningProxyClient, 'function');
 });
 
 test('cloud sync is authenticated, bearer-scoped and falls back cleanly for guests', async () => {

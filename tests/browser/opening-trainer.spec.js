@@ -31,6 +31,35 @@ async function tapMove(page, from, to) {
     await page.locator(`.caissa-board__square[data-square="${to}"]`).click();
 }
 
+function proxyCatalog(primary = { id: 'opening-kings-pawn', title: "King's Pawn Game", file: 'KingsPawn.zip' }) {
+    return {
+        schemaVersion: 1,
+        access: 'free',
+        sourceUpdated: 'January 2026',
+        pageSize: 100,
+        count: 233,
+        openings: [primary, ...Array.from({ length: 232 }, (_, index) => ({
+            id: `opening-filler-${index}`,
+            title: `Filler ${index}`,
+            file: `Filler${index}.zip`
+        }))]
+    };
+}
+
+function proxyPgn(count = 12) {
+    return Array.from({ length: count }, (_, index) => [
+        `[Event "${index ? `Event ${index}` : 'Russia vs Rest of World'}"]`,
+        '[Site "Moscow"]',
+        `[Date "2002.09.${String(index + 1).padStart(2, '0')}"]`,
+        `[White "${index ? `White ${index}` : 'Polgar, Judit'}"]`,
+        `[Black "${index ? `Black ${index}` : 'Kasparov, Garry'}"]`,
+        '[Result "1-0"]',
+        '[ECO "C67"]',
+        '',
+        '1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. O-O Nxe4 5. d4 Nd6 1-0'
+    ].join('\n')).join('\n\n');
+}
+
 test('five-tab workspace keeps board geometry stable and Auto WikiBook returns to analysis', async ({ page }) => {
     await openTrainer(page);
     const tabs = page.locator('[data-trainer-tab]');
@@ -60,7 +89,19 @@ test('five-tab workspace keeps board geometry stable and Auto WikiBook returns t
     const boardAfter = await page.locator('#openingTrainerBoard').boundingBox();
     expect(Math.abs(boardAfter.width - boardBefore.width)).toBeLessThan(1);
     expect(Math.abs(boardAfter.height - boardBefore.height)).toBeLessThan(1);
-    await expect(page.locator('.opening-trainer-workspace__foot')).toBeVisible();
+    const footer = page.locator('.opening-trainer-workspace__foot');
+    await expect(footer).toBeVisible();
+    await page.locator('#trainerTabOpening').click();
+    const footerBeforeScroll = await footer.boundingBox();
+    const bodyScrollable = await page.evaluate(() => {
+        const body = document.querySelector('.opening-trainer-workspace__body');
+        const scrollable = body.scrollHeight > body.clientHeight;
+        body.scrollTop = body.scrollHeight;
+        return scrollable;
+    });
+    expect(bodyScrollable).toBe(true);
+    const footerAfterScroll = await footer.boundingBox();
+    expect(Math.abs(footerAfterScroll.y - footerBeforeScroll.y)).toBeLessThan(1);
 });
 
 test('Save & Train creates a protected memory session with retry, hint, reveal and next', async ({ page }) => {
@@ -93,44 +134,120 @@ test('Save & Train creates a protected memory session with retry, hint, reveal a
     expect(state.training.userColor).toBe('w');
 });
 
-test('Games caps results at ten, loads the real public PGN and navigates without mutating Analysis', async ({ page }) => {
-    await page.route('**/gamesearch/manifest.json', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ maxPlies: 10 }) }));
-    await page.route('**/gamesearch/line?**', route => route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-            ok: true,
-            games: 25,
-            top: Array.from({ length: 12 }, (_, index) => ({
-                gameId: index === 0 ? 'g_2413f2ecc7c12314' : `g_${String(index).padStart(16, '0')}`,
-                event: index === 0 ? 'Russia vs Rest of World' : `Event ${index}`,
-                site: index === 0 ? 'Moscow' : 'Site',
-                date: index === 0 ? '2002.09.08' : '2020.01.01',
-                year: index === 0 ? 2002 : 2020,
-                white: index === 0 ? 'Polgar, Judit' : `White ${index}`,
-                black: index === 0 ? 'Kasparov, Garry' : `Black ${index}`,
-                result: '1-0',
-                eco: index === 0 ? 'C67' : 'C20'
-            }))
-        })
-    }));
+test('persistent Save and Save & Train work from every primary tab without losing the selected line', async ({ page }) => {
+    await openTrainer(page);
+    await tapMove(page, 'e2', 'e4');
+    await page.locator('#trainerWikiReturn').click();
+    await page.locator('#trainerRepertoireColor').selectOption('black');
+    const tabs = ['Analysis', 'Practice', 'Games', 'Opening', 'WikiBook'];
+    for (const name of tabs) {
+        await page.getByRole('tab', { name, exact: true }).click();
+        await expect(page.locator('#trainerSaveButton')).toBeEnabled();
+        await page.locator('#trainerSaveButton').click();
+        await page.locator('#trainerSaveTrainButton').click();
+        await expect(page.locator('#trainerSaveTrainDialog')).toBeVisible();
+        await page.locator('#trainerContinueAnalysis').click();
+        const state = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+        expect(state.analysis.nodes).toHaveLength(2);
+        expect(state.repertoires.at(-1).color).toBe('black');
+    }
+});
+
+test('NEW supports cancel, discard, clean reset and preserves saved repertoires and preferences', async ({ page }) => {
+    await openTrainer(page);
+    await tapMove(page, 'e2', 'e4');
+    await page.locator('#trainerWikiReturn').click();
+    await page.locator('#trainerSaveButton').click();
+    await tapMove(page, 'e7', 'e5');
+    await page.locator('#trainerWikiReturn').click();
+    const before = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(before.unsavedStudy).toBe(true);
+    await page.locator('#trainerNewStudy').click();
+    await expect(page.locator('#trainerNewStudyDialog')).toBeVisible();
+    await page.locator('#trainerNewStudyDialog button[value="cancel"]').click();
+    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState())).analysis.nodes).toHaveLength(3);
+    await page.locator('#trainerNewStudy').click();
+    await page.locator('#trainerNewStudyDialog button[value="discard"]').click();
+    await expect(page.locator('#trainerTabOpening')).toHaveAttribute('aria-selected', 'true');
+    const reset = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(reset.analysis.nodes).toHaveLength(1);
+    expect(reset.repertoires).toHaveLength(1);
+    expect(reset.engineEnabled).toBe(false);
+    expect(reset.unsavedStudy).toBe(false);
+    await page.locator('#trainerNewStudy').click();
+    await expect(page.locator('#trainerNewStudyDialog')).toBeHidden();
+    await expect(page.locator('#trainerEcoSearch')).toBeFocused();
+
+    await page.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['d4']));
+    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState())).unsavedStudy).toBe(true);
+    await page.locator('#trainerNewStudy').click();
+    await page.locator('#trainerNewStudyDialog button[value="save"]').click();
+    await expect(page.locator('#trainerTabOpening')).toHaveAttribute('aria-selected', 'true');
+    const savedReset = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(savedReset.analysis.nodes).toHaveLength(1);
+    expect(savedReset.repertoires).toHaveLength(2);
+    expect(savedReset.unsavedStudy).toBe(false);
+});
+
+test('Games uses the PGN Reader proxy, caps pages at ten and navigates notation without mutating Analysis', async ({ page }) => {
+    const pgn = proxyPgn();
+    await page.route('**/api/pgn/opening**', route => {
+        const url = new URL(route.request().url());
+        if (!url.searchParams.has('file')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(proxyCatalog()) });
+        return route.fulfill({ status: 200, contentType: 'application/x-chess-pgn', body: pgn, headers: {
+            'content-length': String(pgn.length),
+            'X-CAISSA-PGN-Source': 'pgnmentor-opening-paged',
+            'X-CAISSA-Opening-Page': '1',
+            'X-CAISSA-Opening-Pages': '1',
+            'X-CAISSA-Opening-Games': '12',
+            'X-CAISSA-Opening-Page-Games': '12'
+        } });
+    });
     await openTrainer(page);
     await page.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'e5']));
     await page.locator('#trainerTabGames').click();
     await expect(page.locator('.opening-trainer-game')).toHaveCount(10);
+    await expect(page.locator('#trainerGamesStatus')).toContainText('CAISSA PGN Reader proxy');
     const analysisNodeCount = await page.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.nodes.length);
     await page.locator('.opening-trainer-game').first().getByRole('button', { name: 'Load game' }).click();
     await expect(page.locator('#trainerGameNotation')).toContainText('[White "Polgar, Judit"]');
-    await expect(page.locator('#trainerGameNotationStatus')).toContainText('Source validation warning');
+    await expect(page.locator('#trainerGameNotationStatus')).toContainText('complete board navigation');
     const gameState = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
-    expect(gameState.selectedGame.totalPlies).toBeGreaterThan(10);
+    expect(gameState.selectedGame.totalPlies).toBe(10);
     expect(gameState.analysis.nodes).toHaveLength(analysisNodeCount);
     const before = gameState.selectedGame.ply;
     await page.locator('#trainerNextMove').click();
     const after = await page.evaluate(() => window.CaissaOpeningTrainer.getState().selectedGame.ply);
     expect(after).toBe(before + 1);
+    await page.locator('[data-games-view="games"]').click();
+    await page.locator('#trainerGamesNextPage').click();
+    await expect(page.locator('.opening-trainer-game')).toHaveCount(2);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test('NEW invalidates a late PGN proxy response from the previous workspace generation', async ({ page }) => {
+    let releaseCatalog;
+    const catalogGate = new Promise(resolve => { releaseCatalog = resolve; });
+    await page.route('**/api/pgn/opening', async route => {
+        await catalogGate;
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(proxyCatalog({ id: 'opening-vienna', title: 'Vienna', file: 'Vienna.zip' })) });
+    });
+    await openTrainer(page);
+    await page.locator('#trainerTabGames').click();
+    await page.locator('#trainerGamesQuery').fill('Vienna');
+    await page.locator('#trainerSearchGames').click();
+    await expect(page.locator('#trainerGamesStatus')).toContainText('Searching');
+    const generation = await page.evaluate(() => window.CaissaOpeningTrainer.getState().workspaceGeneration);
+    await page.locator('#trainerNewStudy').click();
+    await expect(page.locator('#trainerTabOpening')).toHaveAttribute('aria-selected', 'true');
+    releaseCatalog();
+    await page.waitForTimeout(300);
+    const state = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(state.workspaceGeneration).toBe(generation + 1);
+    expect(state.selectedGame).toBeNull();
+    await expect(page.locator('#trainerGamesList')).toBeEmpty();
+    await expect(page.locator('#trainerGamesStatus')).toContainText('PGN Reader');
 });
 
 test('Quiet Drag remains single-piece and responsive layout has no serious accessibility violations', async ({ page, browserName }) => {
@@ -156,6 +273,23 @@ test('Quiet Drag remains single-piece and responsive layout has no serious acces
     expect(drag.dragging).toBe(0);
     expect(drag.width).toBeLessThanOrEqual(drag.viewport);
     await expect(board).toBeVisible();
+    await page.locator('.opening-trainer-workspace__foot').scrollIntoViewIfNeeded();
+    await expect(page.locator('#trainerNewStudy')).toBeVisible();
+    await expect(page.locator('#trainerSaveTrainButton')).toBeVisible();
+    await expect(page.locator('#trainerFirstMove')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await page.locator('#trainerTabOpening').click();
+    const mobileFooter = page.locator('.opening-trainer-workspace__foot');
+    const mobileFooterBeforeScroll = await mobileFooter.boundingBox();
+    const mobileBodyScrollable = await page.evaluate(() => {
+        const body = document.querySelector('.opening-trainer-workspace__body');
+        const scrollable = body.scrollHeight > body.clientHeight;
+        body.scrollTop = body.scrollHeight;
+        return scrollable;
+    });
+    expect(mobileBodyScrollable).toBe(true);
+    const mobileFooterAfterScroll = await mobileFooter.boundingBox();
+    expect(Math.abs(mobileFooterAfterScroll.y - mobileFooterBeforeScroll.y)).toBeLessThan(1);
     const accessibility = await new AxeBuilder({ page }).analyze();
     expect(accessibility.violations, `${browserName}: ${JSON.stringify(accessibility.violations)}`).toEqual([]);
 });

@@ -49,7 +49,13 @@ const els = {
     nextLine: byId('trainerNextLine'),
     gamesStatus: byId('trainerGamesStatus'),
     gamesList: byId('trainerGamesList'),
+    gamesSearchForm: byId('trainerGamesSearchForm'),
+    gamesQuery: byId('trainerGamesQuery'),
     searchGames: byId('trainerSearchGames'),
+    gamesPagination: byId('trainerGamesPagination'),
+    gamesPreviousPage: byId('trainerGamesPreviousPage'),
+    gamesNextPage: byId('trainerGamesNextPage'),
+    gamesPageStatus: byId('trainerGamesPageStatus'),
     gameNotationTitle: byId('trainerGameNotationTitle'),
     gameNotationStatus: byId('trainerGameNotationStatus'),
     gameNotation: byId('trainerGameNotation'),
@@ -73,6 +79,7 @@ const els = {
     engineLines: byId('trainerEngineLines'),
     evalRailFill: byId('trainerEvalRailFill'),
     evalRailScore: byId('trainerEvalRailScore'),
+    newStudy: byId('trainerNewStudy'),
     flip: byId('trainerFlipBoard'),
     engineToggle: byId('trainerEngineToggle'),
     first: byId('trainerFirstMove'),
@@ -82,7 +89,9 @@ const els = {
     toast: byId('trainerToast'),
     saveTrainDialog: byId('trainerSaveTrainDialog'),
     saveTrainSummary: byId('trainerSaveTrainSummary'),
-    confirmPractice: byId('trainerConfirmPractice')
+    confirmPractice: byId('trainerConfirmPractice'),
+    newStudyDialog: byId('trainerNewStudyDialog'),
+    saveReason: byId('trainerSaveReason')
 };
 
 const repertoireStore = new SavedRepertoireStore();
@@ -114,6 +123,7 @@ let analysisOrientation = 'white';
 let engine = null;
 let engineEnabled = readEnginePreference();
 let engineReady = false;
+let engineWorkspaceGeneration = -1;
 let engineLines = new Map();
 let lastEngineInfo = null;
 let wikiAbort = null;
@@ -121,10 +131,14 @@ let wikiLocked = false;
 let gamesAbort = null;
 let gameLoadAbort = null;
 let gamesLoadedKey = '';
+let gamesSearchPage = 1;
+let gamesSearchQuery = '';
 let selectedGame = null;
 let selectedGamePly = 0;
 let pendingPracticeRepertoireId = '';
 let toastTimer = null;
+let workspaceGeneration = 0;
+let lastSavedStudyFingerprint = '';
 
 function toast(message) {
     els.toast.textContent = message;
@@ -313,6 +327,33 @@ function collectSelectedLines() {
     return selected.map(treeLineTo).filter(line => line.length);
 }
 
+function studyFingerprint() {
+    const snapshot = tree.inspect();
+    return JSON.stringify({
+        color: els.repertoireColor.value,
+        currentNodeId: snapshot.currentNodeId,
+        selected: [...selectedLineNodes].sort(),
+        nodes: snapshot.nodes.map(node => ({ id: node.id, parentId: node.parentId, uci: node.uci || '' }))
+    });
+}
+
+function hasUnsavedStudyChanges() {
+    return tree.inspect().nodes.length > 1 && studyFingerprint() !== lastSavedStudyFingerprint;
+}
+
+function updateSaveControls() {
+    const lines = collectSelectedLines();
+    const enabled = lines.length > 0;
+    els.save.disabled = !enabled;
+    els.saveTrain.disabled = !enabled;
+    const reason = enabled
+        ? `${lines.length} selected ${lines.length === 1 ? 'variation' : 'variations'} ready · ${els.repertoireColor.value === 'black' ? 'Black' : 'White'}.`
+        : 'Play or load a legal opening line to enable Save.';
+    els.saveReason.textContent = reason;
+    els.save.title = enabled ? 'Save the selected analysis variations' : reason;
+    els.saveTrain.title = enabled ? 'Save the selected variations and open Practice' : reason;
+}
+
 function saveRepertoire({ train = false } = {}) {
     try {
         const lines = collectSelectedLines();
@@ -324,6 +365,8 @@ function saveRepertoire({ train = false } = {}) {
             initialFen: START_FEN,
             lines
         });
+        lastSavedStudyFingerprint = studyFingerprint();
+        updateSaveControls();
         renderRepertoireOptions(saved.id);
         cloudSync.push(saved);
         toast(`Saved ${saved.lines.length} ${saved.lines.length === 1 ? 'line' : 'lines'} to ${saved.name}.`);
@@ -382,6 +425,7 @@ function renderTree() {
         checkbox.addEventListener('change', () => {
             if (checkbox.checked) selectedLineNodes.add(node.id);
             else selectedLineNodes.delete(node.id);
+            updateSaveControls();
         });
         include.append(checkbox);
         row.append(include);
@@ -396,6 +440,7 @@ function renderTree() {
     els.analysisEmpty.hidden = moveCount > 0;
     els.variationTree.hidden = moveCount === 0;
     updateNavigationControls();
+    updateSaveControls();
 }
 
 function updateNavigationControls() {
@@ -585,7 +630,7 @@ function pvToSan(pv, fen) {
 }
 
 function renderEngineInfo(info) {
-    if (!info || !engineEnabled || activeTab === 'practice') return;
+    if (!info || !engineEnabled || activeTab === 'practice' || engineWorkspaceGeneration !== workspaceGeneration) return;
     lastEngineInfo = info;
     engineLines.set(info.multipv || 1, info);
     const activeFen = boardPosition();
@@ -611,6 +656,7 @@ function renderEngineInfo(info) {
 }
 
 async function initEngine() {
+    const generation = workspaceGeneration;
     els.engineToggle.setAttribute('aria-pressed', String(engineEnabled));
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
@@ -623,16 +669,24 @@ async function initEngine() {
         els.enginePv.textContent = 'Engine unavailable';
         return;
     }
-    engine = new window.StockfishClient({ workerUrl: new URL('/engine/stockfish.worker.js', location.origin).toString() });
-    engine.onInfo(renderEngineInfo);
-    engine.onError(error => {
+    const candidate = new window.StockfishClient({ workerUrl: new URL('/engine/stockfish.worker.js', location.origin).toString() });
+    engine = candidate;
+    candidate.onInfo(info => {
+        if (generation === workspaceGeneration && engine === candidate) renderEngineInfo(info);
+    });
+    candidate.onError(error => {
+        if (generation !== workspaceGeneration || engine !== candidate) return;
         els.engineStrip.dataset.engineState = 'error';
         els.enginePv.textContent = error.message || 'Engine unavailable';
     });
     try {
-        await engine.init();
+        await candidate.init();
+        if (generation !== workspaceGeneration || engine !== candidate) {
+            candidate.terminate();
+            return;
+        }
         engineReady = true;
-        engine.setOptions({ multiPV: 3 });
+        candidate.setOptions({ multiPV: 3 });
         els.engineStrip.dataset.engineState = 'ready';
         if (engineEnabled) analyzeCurrentPosition();
         else {
@@ -640,7 +694,7 @@ async function initEngine() {
             els.enginePv.textContent = 'Engine off';
         }
     } catch {
-        engineReady = false;
+        if (engine === candidate) engineReady = false;
     }
 }
 
@@ -655,6 +709,7 @@ function analyzeCurrentPosition() {
         return;
     }
     const fen = boardPosition();
+    engineWorkspaceGeneration = workspaceGeneration;
     engine.stop();
     engine.setOptions({ multiPV: 3 });
     engine.setPositionFEN(fen);
@@ -703,6 +758,7 @@ function resolveOpening() {
 
 async function syncWiki({ autoOpen = false } = {}) {
     if (!els.wikiAuto.checked || wikiLocked) return;
+    const generation = workspaceGeneration;
     wikiAbort?.abort();
     const controller = new AbortController();
     wikiAbort = controller;
@@ -715,7 +771,7 @@ async function syncWiki({ autoOpen = false } = {}) {
         : 'Looking for the closest Chess Opening Theory article…';
     try {
         const article = await wikiClient.load(moves, { signal: controller.signal });
-        if (controller.signal.aborted || wikiAbort !== controller) return;
+        if (generation !== workspaceGeneration || controller.signal.aborted || wikiAbort !== controller) return;
         if (!article) throw new Error('No matching Wikibooks article was found.');
         els.wikiTitle.textContent = article.title.replace(/^Chess Opening Theory\/?/, '') || 'Chess Opening Theory';
         els.wikiContent.replaceChildren();
@@ -733,12 +789,12 @@ async function syncWiki({ autoOpen = false } = {}) {
         els.wikiAttribution.hidden = false;
         if (autoOpen && activeTab === 'analysis' && !wikiLocked) setTab('wikibook');
     } catch (error) {
-        if (controller.signal.aborted || wikiAbort !== controller) return;
-        await renderLocalTheoryFallback(error.message, { signal: controller.signal, opening });
+        if (generation !== workspaceGeneration || controller.signal.aborted || wikiAbort !== controller) return;
+        await renderLocalTheoryFallback(error.message, { signal: controller.signal, opening, generation });
     }
 }
 
-async function renderLocalTheoryFallback(reason = '', { signal, opening = activeOpening } = {}) {
+async function renderLocalTheoryFallback(reason = '', { signal, opening = activeOpening, generation = workspaceGeneration } = {}) {
     const fragment = document.createDocumentFragment();
     let rendered = false;
     if (opening?.eco) {
@@ -771,7 +827,7 @@ async function renderLocalTheoryFallback(reason = '', { signal, opening = active
             rendered = false;
         }
     }
-    if (signal?.aborted) return;
+    if (signal?.aborted || generation !== workspaceGeneration) return;
     if (!rendered) {
         const paragraph = document.createElement('p');
         paragraph.textContent = opening
@@ -785,10 +841,12 @@ async function renderLocalTheoryFallback(reason = '', { signal, opening = active
 }
 
 async function refreshExplorer() {
+    const generation = workspaceGeneration;
     els.explorerStatus.textContent = 'Loading CAISSA Explorer continuations…';
     els.explorerMoves.replaceChildren();
     try {
         const result = await explorerClient.load(tree.getCurrentNode().fen || START_FEN);
+        if (generation !== workspaceGeneration) return;
         if (!result.moves.length) {
             els.explorerStatus.textContent = 'No indexed continuations for this exact position.';
             return;
@@ -814,6 +872,7 @@ async function refreshExplorer() {
             els.explorerMoves.append(row);
         });
     } catch (error) {
+        if (generation !== workspaceGeneration) return;
         els.explorerStatus.textContent = error.message || 'CAISSA Explorer is unavailable.';
     }
 }
@@ -881,27 +940,59 @@ function loadOpeningLine(moves) {
     toast('ECO line loaded into Analysis.');
 }
 
-async function searchGames() {
-    const moves = currentAnalysisMoves();
-    if (!moves.length) {
-        els.gamesStatus.textContent = 'Play opening moves before searching games.';
+function gamesAliases(query) {
+    const needle = String(query || '').trim().toLowerCase();
+    const aliases = [activeOpening?.name, activeOpening?.eco].filter(Boolean);
+    if (/^[a-e]\d{2}$/i.test(needle)) {
+        ecoRows.filter(row => String(row.code || row.eco || '').toLowerCase() === needle)
+            .forEach(row => aliases.push(row.name));
+    }
+    return [...new Set(aliases.filter(Boolean))];
+}
+
+function renderGamesPagination(result = null) {
+    const visible = Boolean(result?.pageCount > 1);
+    els.gamesPagination.hidden = !visible;
+    if (!result) return;
+    els.gamesPageStatus.textContent = `Page ${result.page.toLocaleString()} of ${result.pageCount.toLocaleString()}`;
+    els.gamesPreviousPage.disabled = result.page <= 1;
+    els.gamesNextPage.disabled = result.page >= result.pageCount;
+}
+
+async function searchGames({ page = 1, query = null } = {}) {
+    const generation = workspaceGeneration;
+    const requestedQuery = String(query ?? els.gamesQuery.value ?? '').trim()
+        || activeOpening?.name
+        || activeOpening?.eco
+        || '';
+    if (!requestedQuery) {
+        els.gamesStatus.textContent = 'Enter an opening, variation or ECO code, or analyze a recognized opening first.';
+        renderGamesPagination();
         return;
     }
+    els.gamesQuery.value = requestedQuery;
+    const aliases = gamesAliases(requestedQuery);
     gamesAbort?.abort();
     const controller = new AbortController();
     gamesAbort = controller;
     els.searchGames.disabled = true;
-    els.gamesStatus.textContent = 'Searching the CAISSA games index…';
+    els.gamesPreviousPage.disabled = true;
+    els.gamesNextPage.disabled = true;
+    els.gamesStatus.textContent = 'Searching the CAISSA PGN Reader proxy…';
     try {
-        const result = await gamesClient.search(moves, { signal: controller.signal, limit: 10 });
-        if (controller.signal.aborted || gamesAbort !== controller) return;
-        gamesLoadedKey = result.lineKey;
-        els.gamesStatus.textContent = `${result.total.toLocaleString()} matches · showing ${result.games.length} of at most 10`;
+        const result = await gamesClient.search({ query: requestedQuery, aliases, page, signal: controller.signal, limit: 10 });
+        if (generation !== workspaceGeneration || controller.signal.aborted || gamesAbort !== controller) return;
+        gamesSearchPage = result.page;
+        gamesSearchQuery = requestedQuery;
+        gamesLoadedKey = `${requestedQuery.toLowerCase()}|${result.page}`;
+        els.gamesStatus.textContent = result.collection
+            ? `${result.collection.title} · ${result.total.toLocaleString()} authentic games · CAISSA PGN Reader proxy`
+            : `No PGN Reader opening collection matched “${requestedQuery}”.`;
         els.gamesList.replaceChildren();
         if (!result.games.length) {
             const empty = document.createElement('p');
             empty.className = 'opening-trainer-help';
-            empty.textContent = 'No indexed games were found for this line.';
+            empty.textContent = 'Try a broader opening name, a variation, or its ECO code.';
             els.gamesList.append(empty);
         }
         result.games.forEach((game, index) => {
@@ -911,7 +1002,7 @@ async function searchGames() {
             row.setAttribute('aria-current', String(selectedGame?.gameId === game.gameId));
             const body = document.createElement('div');
             const names = document.createElement('strong');
-            names.textContent = `${index + 1}. ${game.white} — ${game.black} ${game.result}`;
+            names.textContent = `${((result.page - 1) * 10) + index + 1}. ${game.white} — ${game.black} ${game.result}`;
             const metadata = document.createElement('span');
             metadata.textContent = [game.event, game.site, game.year, game.eco].filter(Boolean).join(' · ');
             body.append(names, metadata);
@@ -923,16 +1014,20 @@ async function searchGames() {
             row.append(body, load);
             els.gamesList.append(row);
         });
+        renderGamesPagination(result);
     } catch (error) {
-        if (!controller.signal.aborted && gamesAbort === controller) {
+        if (generation === workspaceGeneration && !controller.signal.aborted && gamesAbort === controller) {
             els.gamesStatus.textContent = error.message || 'Game search is unavailable.';
+            els.gamesList.replaceChildren();
+            renderGamesPagination();
         }
     } finally {
-        if (gamesAbort === controller) els.searchGames.disabled = false;
+        if (generation === workspaceGeneration && gamesAbort === controller) els.searchGames.disabled = false;
     }
 }
 
 async function loadSelectedGame(game, button) {
+    const generation = workspaceGeneration;
     gameLoadAbort?.abort();
     const controller = new AbortController();
     gameLoadAbort = controller;
@@ -941,6 +1036,7 @@ async function loadSelectedGame(game, button) {
     button.textContent = 'Loading…';
     try {
         const loaded = await gamesClient.loadGame(game, { signal: controller.signal });
+        if (generation !== workspaceGeneration || controller.signal.aborted || gameLoadAbort !== controller) return;
         selectedGame = Object.freeze({ ...loaded, ...game });
         const openingPlies = Math.min(currentAnalysisMoves().length, selectedGame.moves.length);
         selectedGamePly = openingPlies;
@@ -958,7 +1054,7 @@ async function loadSelectedGame(game, button) {
         analyzeCurrentPosition();
         toast(`Loaded ${selectedGame.moves.length} moves. Use the footer to navigate.`);
     } catch (error) {
-        if (!controller.signal.aborted) toast(error.message || 'The selected PGN could not be loaded.');
+        if (generation === workspaceGeneration && !controller.signal.aborted) toast(error.message || 'The selected PGN could not be loaded.');
     } finally {
         button.disabled = false;
         button.textContent = originalLabel;
@@ -980,6 +1076,85 @@ function updateNotation() {
     els.gameNotation.textContent = moves.length
         ? tree.serialize({ headers: { Event: 'CAISSA Opening Trainer', Opening: activeOpening?.name || 'Custom opening' } })
         : 'No moves yet.';
+}
+
+function resetWorkspace() {
+    workspaceGeneration += 1;
+    wikiAbort?.abort();
+    gamesAbort?.abort();
+    gameLoadAbort?.abort();
+    explorerClient.cancel();
+    engine?.terminate();
+    engine = null;
+    engineReady = false;
+    engineWorkspaceGeneration = -1;
+    engineLines.clear();
+    lastEngineInfo = null;
+
+    tree.dispose();
+    tree = TREE_API.create({ initialFen: START_FEN, selectedPly: 0 });
+    analysisGame = new Chess();
+    selectedLineNodes = new Set();
+    selectedSquare = null;
+    trainingSession = null;
+    trainingRecorded = false;
+    trainingLineIndex = 0;
+    selectedGame = null;
+    selectedGamePly = 0;
+    gamesLoadedKey = '';
+    gamesSearchPage = 1;
+    gamesSearchQuery = '';
+    pendingPracticeRepertoireId = '';
+    activeOpening = null;
+    wikiLocked = false;
+    lastSavedStudyFingerprint = '';
+
+    if (els.saveTrainDialog.open) els.saveTrainDialog.close('reset');
+    els.gamesQuery.value = '';
+    els.gamesList.replaceChildren();
+    els.gamesStatus.textContent = 'Search the same allowlisted opening collections used by CAISSA PGN Reader.';
+    renderGamesPagination();
+    setSubtab('games', 'games');
+    els.practiceCard.hidden = true;
+    els.practiceEmpty.hidden = false;
+    els.sessionLock.hidden = true;
+    els.practiceFeedback.textContent = 'CAISSA is ready.';
+    els.wikiLock.setAttribute('aria-pressed', 'false');
+    els.wikiLock.title = 'Lock the current article';
+    els.wikiLock.querySelector('i').className = 'fas fa-lock-open';
+    els.wikiTitle.textContent = 'Chess Opening Theory';
+    els.wikiMatch.textContent = 'Theory follows legal move sequences and verified transpositions.';
+    els.wikiContent.innerHTML = '<p>Play opening moves to load synchronized theory from Wikibooks Chess Opening Theory.</p>';
+    els.wikiAttribution.hidden = true;
+    els.ecoSearch.value = '';
+    els.evalRailFill.style.height = '50%';
+    els.evalRailScore.textContent = '0.00';
+    els.engineEval.textContent = '0.00';
+    els.engineDepth.textContent = 'Depth 0';
+    els.engineLines.innerHTML = '<li>Waiting for Stockfish…</li>';
+    els.enginePv.textContent = engineEnabled ? 'Starting engine…' : 'Engine off';
+    els.engineStrip.dataset.engineState = engineEnabled ? 'loading' : 'off';
+
+    setBoardPosition(START_FEN);
+    resolveOpening();
+    updateNotation();
+    renderTree();
+    renderRepertoireOptions();
+    renderEcoRows();
+    setTab('opening');
+    els.ecoSearch.focus({ preventScroll: true });
+    if (els.wikiAuto.checked) syncWiki();
+    if (engineEnabled) initEngine();
+    toast('New opening workspace ready. Saved repertoires were preserved.');
+}
+
+function requestNewStudy() {
+    if (!hasUnsavedStudyChanges()) {
+        resetWorkspace();
+        return;
+    }
+    if (typeof els.newStudyDialog.showModal === 'function') els.newStudyDialog.showModal();
+    else toast('Save or discard the current study before starting a new opening.');
 }
 
 function setSubtab(group, view) {
@@ -1020,8 +1195,11 @@ function setTab(tab) {
     }
     if (tab === 'games') {
         updateNotation();
-        const key = currentAnalysisMoves().map(move => move.uci).slice(-10).join(' ');
-        if (key && key !== gamesLoadedKey) searchGames();
+        const suggested = activeOpening?.name || activeOpening?.eco || '';
+        if (!els.gamesQuery.value && suggested) els.gamesQuery.value = suggested;
+        const query = els.gamesQuery.value.trim();
+        const key = `${query.toLowerCase()}|1`;
+        if (query && key !== gamesLoadedKey) searchGames({ page: 1, query });
     }
     if (tab === 'opening') refreshExplorer();
     renderTree();
@@ -1031,10 +1209,19 @@ function setTab(tab) {
 function afterAnalysisPositionChanged({ keepWikiArticle = false } = {}) {
     renderTree();
     resolveOpening();
+    gamesAbort?.abort();
+    gameLoadAbort?.abort();
     selectedGame = null;
     selectedGamePly = 0;
+    gamesSearchPage = 1;
     updateNotation();
     gamesLoadedKey = '';
+    els.gamesQuery.value = activeOpening?.name || activeOpening?.eco || '';
+    els.gamesList.replaceChildren();
+    els.gamesStatus.textContent = activeOpening
+        ? `Ready to search PGN Reader collections for ${activeOpening.name}.`
+        : 'Enter an opening, variation or ECO code to search the PGN Reader collections.';
+    renderGamesPagination();
     if (!keepWikiArticle) syncWiki({ autoOpen: true });
     if (document.querySelector('[data-opening-panel="explorer"]')?.hidden === false) refreshExplorer();
     analyzeCurrentPosition();
@@ -1076,15 +1263,22 @@ function bindEvents() {
     });
     document.querySelectorAll('[data-games-view]').forEach(button => button.addEventListener('click', () => setSubtab('games', button.dataset.gamesView)));
     document.querySelectorAll('[data-opening-view]').forEach(button => button.addEventListener('click', () => setSubtab('opening', button.dataset.openingView)));
+    els.newStudy.addEventListener('click', requestNewStudy);
     els.save.addEventListener('click', () => saveRepertoire());
     els.saveTrain.addEventListener('click', () => saveRepertoire({ train: true }));
+    els.repertoireColor.addEventListener('change', updateSaveControls);
     els.repertoireSelect.addEventListener('change', renderLineOptions);
     els.startPractice.addEventListener('click', () => startPractice());
     els.retryPractice.addEventListener('click', () => startPractice(trainingSession?.snapshot.id || els.repertoireSelect.value, trainingLineIndex));
     els.hint.addEventListener('click', requestHint);
     els.reveal.addEventListener('click', revealPracticeMove);
     els.nextLine.addEventListener('click', startNextPracticeLine);
-    els.searchGames.addEventListener('click', searchGames);
+    els.gamesSearchForm.addEventListener('submit', event => {
+        event.preventDefault();
+        searchGames({ page: 1, query: els.gamesQuery.value });
+    });
+    els.gamesPreviousPage.addEventListener('click', () => searchGames({ page: Math.max(1, gamesSearchPage - 1), query: gamesSearchQuery }));
+    els.gamesNextPage.addEventListener('click', () => searchGames({ page: gamesSearchPage + 1, query: gamesSearchQuery }));
     els.ecoSearch.addEventListener('input', () => renderEcoRows(els.ecoSearch.value));
     els.wikiAuto.addEventListener('change', () => {
         if (els.wikiAuto.checked && !wikiLocked) syncWiki();
@@ -1113,6 +1307,13 @@ function bindEvents() {
         startPractice(repertoireId, 0);
     });
     els.saveTrainDialog.addEventListener('close', () => { pendingPracticeRepertoireId = ''; });
+    els.newStudyDialog.addEventListener('close', () => {
+        if (els.newStudyDialog.returnValue === 'save') {
+            if (saveRepertoire()) resetWorkspace();
+        } else if (els.newStudyDialog.returnValue === 'discard') {
+            resetWorkspace();
+        }
+    });
     els.first.addEventListener('click', () => navigateTree('first'));
     els.previous.addEventListener('click', () => navigateTree('previous'));
     els.next.addEventListener('click', () => navigateTree('next'));
@@ -1120,6 +1321,8 @@ function bindEvents() {
     window.addEventListener('beforeunload', () => {
         engine?.terminate();
         explorerClient.cancel();
+        wikiAbort?.abort();
+        gamesAbort?.abort();
         gameLoadAbort?.abort();
         board?.destroy();
     });
@@ -1188,12 +1391,16 @@ function exposeQaApi() {
             selectedGame: selectedGame ? Object.freeze({ gameId: selectedGame.gameId, ply: selectedGamePly, totalPlies: selectedGame.moves.length }) : null,
             boardMetrics: board.getMetrics(),
             opening: activeOpening,
-            engineEnabled
+            engineEnabled,
+            unsavedStudy: hasUnsavedStudyChanges(),
+            workspaceGeneration
         }),
         setTab,
         loadOpeningLine,
         searchGames,
         startPractice,
+        requestNewStudy,
+        resetWorkspace,
         destroy: () => {
             engine?.terminate();
             explorerClient.cancel();

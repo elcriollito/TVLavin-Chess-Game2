@@ -26,6 +26,7 @@ await desktop.locator('#trainerWikiAuto').uncheck();
 await desktop.locator('#trainerWikiReturn').click();
 await desktop.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'e5', 'Nf3', 'Nc6', 'Bb5']));
 await desktop.locator('#trainerEngineDepth').filter({ hasText: 'Depth' }).waitFor({ timeout: 30_000 });
+await desktop.locator('#trainerToast').waitFor({ state: 'hidden', timeout: 10_000 });
 await desktop.screenshot({ path: path.join(output, 'analysis-desktop.png'), fullPage: false });
 
 const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -43,6 +44,7 @@ await mobile.locator('#trainerTabGames').click();
 await mobile.locator('.opening-trainer-game').first().waitFor({ timeout: 30_000 });
 await mobile.locator('.opening-trainer-game').first().getByRole('button', { name: 'Load game' }).click();
 await mobile.locator('#trainerGameNotationStatus').waitFor({ state: 'visible', timeout: 30_000 });
+await mobile.locator('#trainerToast').waitFor({ state: 'hidden', timeout: 10_000 });
 const mobileGeometry = await mobile.evaluate(() => ({
     viewport: innerWidth,
     documentWidth: document.documentElement.scrollWidth,

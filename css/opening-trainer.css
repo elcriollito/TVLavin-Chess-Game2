@@ -346,6 +346,11 @@ body:has(.opening-trainer-app) {
   font-size: 0.82rem;
 }
 
+.opening-trainer-help-inline {
+  color: var(--trainer-muted);
+  font-size: 0.74rem;
+}
+
 .opening-trainer-page select,
 .opening-trainer-page input[type="search"] {
   min-height: 40px;
@@ -487,6 +492,21 @@ body:has(.opening-trainer-app) {
 .opening-trainer-subtabs button.is-active { border-color: var(--trainer-accent-strong); color: var(--trainer-accent); background: #233b5b; }
 
 .opening-trainer-games-list { display: grid; gap: 8px; }
+.opening-trainer-games-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.opening-trainer-games-pagination {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.opening-trainer-games-pagination[hidden] { display: none; }
+.opening-trainer-games-pagination span { color: var(--trainer-muted); font-size: 0.76rem; text-align: center; }
 .opening-trainer-game {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -558,18 +578,46 @@ body:has(.opening-trainer-app) {
 .opening-trainer-attribution a { color: #9dcaff; }
 
 .opening-trainer-workspace__foot {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 62px;
-  padding: 10px 14px;
+  gap: 5px 8px;
+  min-height: 82px;
+  padding: 8px 10px 7px;
   border-top: 1px solid var(--trainer-line);
   background: #0d1a2c;
 }
 
-.opening-trainer-workspace__foot button { border-color: transparent; background: transparent; }
-.opening-trainer-move-nav button { width: 38px; padding: 0; border-color: #405978; background: #182d49; }
+.opening-trainer-workspace__foot button {
+  min-height: 36px;
+  padding: 6px 7px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.opening-trainer-foot-actions { min-width: 0; gap: 3px; }
+.opening-trainer-workspace__foot .opening-trainer-footer-new {
+  border-color: #5a5549;
+  border-radius: 999px;
+  background: #343434;
+}
+.opening-trainer-workspace__foot .opening-trainer-footer-primary {
+  border-color: #f1b751;
+  border-radius: 999px;
+  color: #10151d;
+  background: linear-gradient(135deg, #fff2cf, #f0b24c);
+}
+.opening-trainer-move-nav { gap: 4px; }
+.opening-trainer-move-nav button { width: 34px; padding: 0; border-color: #405978; background: #182d49; }
+.opening-trainer-footer-status {
+  grid-column: 1 / -1;
+  min-height: 15px;
+  margin: 0;
+  color: #8fa6c0;
+  font-size: 0.66rem;
+  line-height: 1.25;
+}
 
 .opening-trainer-toast {
   position: fixed;
@@ -609,7 +657,7 @@ body:has(.opening-trainer-app) {
   .opening-trainer-board-column { min-height: min(82vw, 720px); }
   .opening-trainer-board-frame { width: min(100%, 680px); }
   .opening-trainer-eval-rail { max-height: min(82vw, 680px); }
-  .opening-trainer-workspace { min-height: 720px; }
+  .opening-trainer-workspace { height: 720px; min-height: 720px; }
 }
 
 @media (max-width: 700px) {
@@ -620,15 +668,32 @@ body:has(.opening-trainer-app) {
   .opening-trainer-board-column { min-height: calc(100vw - 20px); }
   .opening-trainer-eval-rail { width: 22px; margin-right: 5px; }
   .opening-trainer-board-caption { padding-left: 27px; }
-  .opening-trainer-workspace { min-height: 690px; border-radius: 13px; }
+  .opening-trainer-workspace { height: 748px; min-height: 748px; border-radius: 13px; }
   .opening-trainer-tabs { gap: 3px; padding: 6px; overflow: hidden; grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .opening-trainer-tab { min-height: 44px; padding-inline: 2px; font-size: 0.7rem; }
   .opening-trainer-engine-strip { grid-template-columns: auto auto auto minmax(100px, 1fr); font-size: 0.74rem; }
   .opening-trainer-engine-strip .opening-trainer-engine-separator:nth-of-type(2) { display: none; }
   .opening-trainer-engine-pv { grid-column: span 1; }
   .opening-trainer-panel { padding: 15px; }
-  .opening-trainer-workspace__foot { position: sticky; bottom: 0; }
-  .opening-trainer-foot-actions button { font-size: 0.74rem; padding-inline: 7px; }
+  .opening-trainer-workspace__foot {
+    position: sticky;
+    bottom: 0;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 126px;
+    gap: 5px;
+    padding: 7px;
+  }
+  .opening-trainer-foot-actions {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .opening-trainer-foot-actions button { min-width: 0; padding-inline: 3px; font-size: 0.66rem; }
+  .opening-trainer-footer-primary { grid-column: span 2; }
+  .opening-trainer-move-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .opening-trainer-move-nav button { width: auto; }
+  .opening-trainer-footer-status { text-align: center; }
+  .opening-trainer-games-search { grid-template-columns: minmax(0, 1fr); }
   .opening-trainer-game { grid-template-columns: 1fr; }
   .opening-trainer-score-grid { grid-template-columns: repeat(2, 1fr); }
   .opening-trainer-dialog__actions { flex-direction: column-reverse; }

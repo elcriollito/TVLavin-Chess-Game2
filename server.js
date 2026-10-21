@@ -20,6 +20,7 @@ import { fetchLichessGames } from './api/_lib/lichess-games.js';
 import tablebaseHandler from './api/tablebase/standard.js';
 import onlineHandler from './api/online.js';
 import { worldChampionshipPgnCatalog } from './js/game-library/world-championship-pgn-catalog.js';
+import pgnOpeningHandler from './api/pgn/opening.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -138,6 +139,22 @@ async function handlePgnMentorEvent(req, res, url) {
   } catch {
     res.writeHead(502, headers); res.end(JSON.stringify({ error: 'PGN source unavailable' }));
   }
+}
+
+async function handlePgnOpening(req, res, url) {
+  const adapter = {
+    setHeader(name, value) { res.setHeader(name, value); },
+    status(code) { res.statusCode = code; return this; },
+    json(value) {
+      if (!res.hasHeader('Content-Type')) res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify(value));
+      return this;
+    },
+    send(value) { res.end(value); return this; },
+    end() { res.end(); return this; }
+  };
+  req.query = Object.fromEntries(url.searchParams.entries());
+  await pgnOpeningHandler(req, adapter);
 }
 
 // ============================================================================
@@ -529,6 +546,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/pgn/pgnmentor') {
     await handlePgnMentorEvent(req, res, url);
+    return;
+  }
+
+  if (pathname === '/api/pgn/opening') {
+    await handlePgnOpening(req, res, url);
     return;
   }
 

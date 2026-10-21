@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/opening-trainer.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/opening-trainer.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
 </head>
 <body data-clarity-mask>
@@ -87,8 +87,7 @@
                     <option value="black">Black</option>
                   </select>
                 </label>
-                <button id="trainerSaveButton" class="opening-trainer-button" type="button"><i class="fas fa-bookmark" aria-hidden="true"></i> Save</button>
-                <button id="trainerSaveTrainButton" class="opening-trainer-button opening-trainer-button--primary" type="button"><i class="fas fa-bolt" aria-hidden="true"></i> Save &amp; Train</button>
+                <span class="opening-trainer-help-inline">Save actions remain available in the persistent footer.</span>
               </div>
 
               <p class="opening-trainer-help">Move freely on the board. Mark any terminal variation you want to include, then save it to your personal repertoire.</p>
@@ -150,17 +149,29 @@
               <div class="opening-trainer-panel-heading">
                 <div>
                   <p class="opening-trainer-kicker">Opening games</p>
-                  <h2>Games from this line</h2>
+                  <h2>CAISSA PGN Reader collections</h2>
                 </div>
-                <button id="trainerSearchGames" class="opening-trainer-button" type="button"><i class="fas fa-magnifying-glass" aria-hidden="true"></i> Search</button>
               </div>
+              <form id="trainerGamesSearchForm" class="opening-trainer-games-search" role="search">
+                <label class="opening-trainer-search">
+                  <span class="sr-only">Search games by opening, variation or ECO</span>
+                  <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                  <input id="trainerGamesQuery" type="search" placeholder="Opening, variation or ECO…" autocomplete="off">
+                </label>
+                <button id="trainerSearchGames" class="opening-trainer-button" type="submit">Search</button>
+              </form>
               <div class="opening-trainer-subtabs" role="tablist" aria-label="Games views">
                 <button class="is-active" type="button" role="tab" aria-selected="true" data-games-view="games">Games</button>
                 <button type="button" role="tab" aria-selected="false" data-games-view="notation">Notation</button>
               </div>
               <div data-games-panel="games">
-                <p id="trainerGamesStatus" class="opening-trainer-help" aria-live="polite">Play opening moves, then search the CAISSA games index.</p>
+                <p id="trainerGamesStatus" class="opening-trainer-help" aria-live="polite">Search the same allowlisted opening collections used by CAISSA PGN Reader.</p>
                 <div id="trainerGamesList" class="opening-trainer-games-list"></div>
+                <nav id="trainerGamesPagination" class="opening-trainer-games-pagination" aria-label="Games result pages" hidden>
+                  <button id="trainerGamesPreviousPage" class="opening-trainer-button" type="button"><i class="fas fa-chevron-left" aria-hidden="true"></i> Previous</button>
+                  <span id="trainerGamesPageStatus">Page 1</span>
+                  <button id="trainerGamesNextPage" class="opening-trainer-button" type="button">Next <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                </nav>
               </div>
               <div data-games-panel="notation" hidden>
                 <article class="opening-trainer-notation-card">
@@ -225,8 +236,11 @@
 
           <footer class="opening-trainer-workspace__foot">
             <div class="opening-trainer-foot-actions">
+              <button id="trainerNewStudy" class="opening-trainer-footer-new" type="button"><i class="fas fa-rotate-left" aria-hidden="true"></i> NEW</button>
               <button id="trainerFlipBoard" type="button"><i class="fas fa-arrows-rotate" aria-hidden="true"></i> Flip</button>
               <button id="trainerEngineToggle" type="button" aria-pressed="true"><i class="fas fa-microchip" aria-hidden="true"></i> Engine</button>
+              <button id="trainerSaveButton" type="button" aria-describedby="trainerSaveReason"><i class="fas fa-bookmark" aria-hidden="true"></i> Save</button>
+              <button id="trainerSaveTrainButton" class="opening-trainer-footer-primary" type="button" aria-describedby="trainerSaveReason"><i class="fas fa-bolt" aria-hidden="true"></i> Save &amp; Train</button>
             </div>
             <nav class="opening-trainer-move-nav" aria-label="Move navigation">
               <button id="trainerFirstMove" type="button" aria-label="First position"><i class="fas fa-backward-fast" aria-hidden="true"></i></button>
@@ -234,6 +248,7 @@
               <button id="trainerNextMove" type="button" aria-label="Next move"><i class="fas fa-forward-step" aria-hidden="true"></i></button>
               <button id="trainerLastMove" type="button" aria-label="Last position"><i class="fas fa-forward-fast" aria-hidden="true"></i></button>
             </nav>
+            <p id="trainerSaveReason" class="opening-trainer-footer-status" role="status">Play or load a legal opening line to enable Save.</p>
           </footer>
         </section>
       </section>
@@ -246,6 +261,19 @@
           <div class="opening-trainer-dialog__actions">
             <button id="trainerContinueAnalysis" class="opening-trainer-button" value="continue">Continue Analysis</button>
             <button id="trainerConfirmPractice" class="opening-trainer-button opening-trainer-button--primary" value="practice">Start Practice</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="trainerNewStudyDialog" class="opening-trainer-dialog" aria-labelledby="trainerNewStudyTitle">
+        <form method="dialog">
+          <p class="opening-trainer-kicker">Unsaved study</p>
+          <h2 id="trainerNewStudyTitle">Start a new opening?</h2>
+          <p>Your current analysis contains unsaved changes. Save it, discard only this temporary workspace, or cancel.</p>
+          <div class="opening-trainer-dialog__actions">
+            <button class="opening-trainer-button" value="cancel">Cancel</button>
+            <button class="opening-trainer-button" value="discard">Discard</button>
+            <button class="opening-trainer-button opening-trainer-button--primary" value="save">Save</button>
           </div>
         </form>
       </dialog>
@@ -263,6 +291,6 @@
   <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
   <script src="/js/analyze-variation-tree.js?v=1.0.0"></script>
   <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
-  <script type="module" src="/js/opening-trainer/page.js?v=1.0.0"></script>
+  <script type="module" src="/js/opening-trainer/page.js?v=1.1.0"></script>
 </body>
 </html>
