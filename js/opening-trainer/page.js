@@ -197,7 +197,10 @@ function requestWiki({auto=false}={}){
   state.wikiTimer=setTimeout(async()=>{
     const controller=new AbortController();
     state.wikiAbort=controller;
-    if(state.tab==='wikibook')setBusyText('ot-wiki-status','Looking for opening theory…');
+    if(state.tab==='wikibook') {
+      $('ot-wiki-copy').replaceChildren();
+      setBusyText('ot-wiki-status','Looking for opening theory…');
+    }
     try {
       const article=await loadWikibook(history,{
         signal:controller.signal,allowAncestor:state.tab==='wikibook'
@@ -298,6 +301,7 @@ function startTraining(repertoire,side=repertoire.side){
     $('ot-practice-session').hidden=false;
     showPracticeStatus(state.training.done?'Line completed. Replay for another variation.':
       'Your turn with '+(side==='white'?'White':'Black')+'. Recall the next repertoire move.');
+    board.clearHighlights();
     renderBoard();notice('Training from memory — no engine suggestions.');
   }catch(error){notice('Could not start this saved line: '+error.message);}
 }
@@ -305,11 +309,13 @@ function stopTraining(){
   state.training=null;state.activeRepertoire=null;
   $('ot-practice-session').hidden=true;
   $('ot-practice-library').hidden=false;
+  board.clearHighlights();
   renderBoard();notice('Practice ended. The Analysis tree has been preserved.');
 }
 function handleTrainingMove(move) {
   const result=attemptTrainingMove(state.training,move);
   if(!result.ok){showPracticeStatus(result.reason,'wrong');return;}
+  board.clearHighlights();
   renderBoard();
   showPracticeStatus(result.done?'Line complete! Well done. Replay or train a different opening.':
     'Correct: '+result.san+'. Now remember the next move.', 'good');
@@ -481,7 +487,9 @@ function syncPanelHeight(){
   const h=Math.ceil(boardColumn.getBoundingClientRect().height);
   if(h>0)panel.style.setProperty('--ot-workspace-height',h+'px');
 }
-new ResizeObserver(syncPanelHeight).observe(boardColumn);
+if (typeof ResizeObserver === 'function') {
+  new ResizeObserver(syncPanelHeight).observe(boardColumn);
+}
 window.addEventListener('resize',syncPanelHeight,{passive:true});
 document.querySelectorAll('[data-ot-tab]').forEach((button,index,buttons)=>{
   button.addEventListener('click',()=>selectTab(button.dataset.otTab,{fromUser:true}));
