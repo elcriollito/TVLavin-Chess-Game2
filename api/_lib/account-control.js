@@ -14,6 +14,8 @@ const MAX_BODY_BYTES = 8 * 1024;
 const FRESH_MINUTES = 5;
 const STAGING_REF = 'aqizagaskicotorfpwfn';
 const PRODUCTION_REF = 'jczauvkfkweuvdpurpem';
+const DEFAULT_SESSION_TIMEOUT_MS = 2_500;
+const MISSING_SESSION_HTTP_STATUSES = new Set([400, 404, 410, 422]);
 const RATE_LIMITS = Object.freeze({
     summary: [60, 60],
     status: [30, 60],
@@ -46,10 +48,70 @@ export function freshReverification(auth) {
         && Number.isInteger(firstFactorAge) && firstFactorAge >= 0 && firstFactorAge <= FRESH_MINUTES);
 }
 
+export function createActiveClerkSessionVerifier(dependencies = {}) {
+    const env = dependencies.env || process.env;
+    const makeClerkClient = dependencies.createClerkClient || createClerkClient;
+    const timeoutMs = Number.isInteger(dependencies.timeoutMs) && dependencies.timeoutMs > 0
+        ? dependencies.timeoutMs : DEFAULT_SESSION_TIMEOUT_MS;
+    const log = dependencies.log;
+
+    return async function verifyActiveClerkSession(auth, environment) {
+        if (typeof auth?.sessionId !== 'string' || !auth.sessionId
+            || typeof auth?.userId !== 'string' || !auth.userId) {
+            return sessionFailure(401);
+        }
+        const secretKey = String(env.CLERK_SECRET_KEY || '').trim();
+        if (!clerkSecretKeyMatchesAuthority(secretKey, environment?.authority)) {
+            warn(log, 'account_control_session_configuration_unavailable');
+            return sessionFailure(503);
+        }
+
+        let session;
+        try {
+            session = await withTimeout(async () => {
+                if (dependencies.getClerkSession) {
+                    return dependencies.getClerkSession({
+                        sessionId: auth.sessionId,
+                        secretKey,
+                        authority: environment.authority
+                    });
+                }
+                const clerk = makeClerkClient({ secretKey });
+                if (typeof clerk?.sessions?.getSession !== 'function') {
+                    throw new TypeError('Clerk session client unavailable');
+                }
+                return clerk.sessions.getSession(auth.sessionId);
+            }, timeoutMs);
+        } catch (error) {
+            const status = Number(error?.status);
+            if (MISSING_SESSION_HTTP_STATUSES.has(status)) return sessionFailure(401);
+            warn(log, 'account_control_session_lookup_unavailable', safeProviderDiagnostic(error));
+            return sessionFailure(503);
+        }
+
+        if (!session || typeof session.id !== 'string' || typeof session.status !== 'string'
+            || typeof session.userId !== 'string') {
+            warn(log, 'account_control_session_response_invalid');
+            return sessionFailure(503);
+        }
+        if (session.id !== auth.sessionId || session.userId !== auth.userId || session.status !== 'active') {
+            return sessionFailure(401);
+        }
+        return Object.freeze({ authenticated: true, ok: true });
+    };
+}
+
 export function createAccountControlHandlers(dependencies = {}) {
     const authenticate = dependencies.verifyAuth || verifyAuth;
     const getDb = dependencies.getSupabase || getSupabase;
     const env = dependencies.env || process.env;
+    const verifyActiveSession = dependencies.verifyActiveClerkSession || createActiveClerkSessionVerifier({
+        env,
+        createClerkClient: dependencies.createClerkClient,
+        getClerkSession: dependencies.getClerkSession,
+        timeoutMs: dependencies.clerkSessionTimeoutMs,
+        log: dependencies.log
+    });
 
     async function context(req, res, { fresh = false, effect = false, rateLimit = 'summary' } = {}) {
         const environment = accountControlEnvironment(env);
@@ -74,15 +136,6 @@ export function createAccountControlHandlers(dependencies = {}) {
             res.status(403).json({ code: 'IDENTITY_AUTHORITY_REJECTED', error: 'This identity authority is not permitted.' });
             return null;
         }
-        if (fresh && !freshReverification(auth)) {
-            res.status(403).json({
-                code: 'REVERIFICATION_REQUIRED',
-                error: 'Verify your identity again before performing this sensitive action.',
-                level: 'first_factor',
-                maxAgeMinutes: FRESH_MINUTES
-            });
-            return null;
-        }
         const db = getDb();
         const rateSecret = String(env.SUPABASE_SERVICE_ROLE_KEY || env.CLERK_SECRET_KEY || '');
         if (!rateSecret) {
@@ -102,6 +155,20 @@ export function createAccountControlHandlers(dependencies = {}) {
             });
         if (allowed !== true) {
             res.status(429).json({ code: 'RATE_LIMITED', error: 'Too many requests. Try again later.' });
+            return null;
+        }
+        const activeSession = await verifyActiveSession(auth, environment);
+        if (!activeSession?.authenticated) {
+            respondAuthFailure(res, activeSession);
+            return null;
+        }
+        if (fresh && !freshReverification(auth)) {
+            res.status(403).json({
+                code: 'REVERIFICATION_REQUIRED',
+                error: 'Verify your identity again before performing this sensitive action.',
+                level: 'first_factor',
+                maxAgeMinutes: FRESH_MINUTES
+            });
             return null;
         }
         const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({ db, auth, env });
@@ -413,6 +480,49 @@ function mapError(error) {
     if (value.includes('OPERATION_IN_PROGRESS')) return response(409, 'OPERATION_IN_PROGRESS', 'Another account operation is already in progress.');
     if (value.includes('INVALID_STATE')) return response(409, 'OPERATION_STATE_CONFLICT', 'The account operation is no longer available.');
     return response(503, 'ACCOUNT_CONTROL_UNAVAILABLE', 'Account controls are temporarily unavailable.');
+}
+
+function clerkSecretKeyMatchesAuthority(secretKey, authority) {
+    if (authority === 'production') return secretKey.startsWith('sk_live_');
+    if (authority === 'legacy_development') return secretKey.startsWith('sk_test_');
+    return false;
+}
+
+function sessionFailure(status) {
+    return Object.freeze({
+        authenticated: false,
+        ok: false,
+        status,
+        code: status === 503 ? 'AUTH_SERVICE_UNAVAILABLE' : 'AUTH_REQUIRED',
+        error: status === 503 ? 'Authentication service unavailable.' : 'Authentication required.'
+    });
+}
+
+async function withTimeout(task, timeoutMs) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            const error = new Error('Clerk session lookup timed out');
+            error.code = 'SESSION_LOOKUP_TIMEOUT';
+            reject(error);
+        }, timeoutMs);
+    });
+    try {
+        return await Promise.race([Promise.resolve().then(task), timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+function safeProviderDiagnostic(error) {
+    const name = typeof error?.name === 'string' && /^[A-Za-z][A-Za-z0-9]*$/u.test(error.name)
+        ? error.name : 'Error';
+    const status = Number.isInteger(Number(error?.status)) ? `:${Number(error.status)}` : '';
+    return `${name}${status}`;
+}
+
+function warn(log, event, diagnostic) {
+    if (typeof log?.warn === 'function') log.warn(event, diagnostic);
 }
 
 function response(status, code, message) { return { status, code, message }; }

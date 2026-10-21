@@ -5,12 +5,12 @@
  */
 
 import { verifyToken } from '@clerk/backend';
-import { TokenVerificationError } from '@clerk/backend/errors';
 
 const INVALID_TOKEN_REASONS = new Set([
     'token-expired', 'token-invalid', 'token-invalid-algorithm',
     'token-invalid-authorized-parties', 'token-invalid-signature',
-    'token-not-active-yet', 'token-iat-in-the-future', 'token-verification-failed'
+    'token-not-active-yet', 'token-iat-in-the-future', 'token-verification-failed',
+    'jwk-kid-mismatch'
 ]);
 
 const failure = (status, code) => ({
@@ -87,7 +87,7 @@ export function createAuthenticateRequest(dependencies = {}) {
                 : null
         };
     } catch (err) {
-        if (err instanceof TokenVerificationError && INVALID_TOKEN_REASONS.has(err.reason)) {
+        if (INVALID_TOKEN_REASONS.has(err?.reason) || malformedCompactJwt(token)) {
             return failure(401, 'INVALID_TOKEN');
         }
         const diagnostic = [err?.name, err?.reason || err?.code].filter(Boolean).join(':') || 'unknown';
@@ -95,6 +95,26 @@ export function createAuthenticateRequest(dependencies = {}) {
         return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
     }
   };
+}
+
+function malformedCompactJwt(token) {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3 || parts.some(part => !/^[A-Za-z0-9_-]+$/u.test(part))) return true;
+    try {
+        const [headerPart, payloadPart, signaturePart] = parts;
+        const decode = part => {
+            const bytes = Buffer.from(part, 'base64url');
+            if (!bytes.length || bytes.toString('base64url') !== part) throw new SyntaxError('Non-canonical JWT segment');
+            return bytes;
+        };
+        const header = JSON.parse(decode(headerPart).toString('utf8'));
+        const payload = JSON.parse(decode(payloadPart).toString('utf8'));
+        decode(signaturePart);
+        return !header || typeof header !== 'object' || Array.isArray(header)
+            || !payload || typeof payload !== 'object' || Array.isArray(payload);
+    } catch {
+        return true;
+    }
 }
 
 function clerkAuthority(env) {

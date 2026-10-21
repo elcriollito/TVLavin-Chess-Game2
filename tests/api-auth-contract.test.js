@@ -60,7 +60,7 @@ test('missing and malformed authorization fail with stable 401 responses', async
 });
 
 test('invalid and expired Clerk tokens are controlled 401 without leaking verifier errors', async () => {
-  for (const reason of ['token-invalid', 'token-expired', 'token-invalid-signature']) {
+  for (const reason of ['token-invalid', 'token-expired', 'token-invalid-signature', 'jwk-kid-mismatch']) {
     const authenticate = createAuthenticateRequest({
       env: { CLERK_SECRET_KEY: 'test' },
       verifyToken: async () => { throw new TokenVerificationError({ reason, message: 'sensitive verifier detail' }); }
@@ -72,16 +72,66 @@ test('invalid and expired Clerk tokens are controlled 401 without leaking verifi
   }
 });
 
+test('invalid-token reasons remain 401 across SDK bundle or realm boundaries', async () => {
+  const foreignError = new Error('sensitive foreign verifier detail');
+  foreignError.reason = 'token-invalid-signature';
+  const authenticate = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'test' },
+    verifyToken: async () => { throw foreignError; },
+    log() {}
+  });
+  const result = await authenticate(request('GET', `Bearer ${signedToken()}`));
+  assert.equal(result.status, 401);
+  assert.equal(result.code, 'INVALID_TOKEN');
+  assert.doesNotMatch(JSON.stringify(result), /sensitive|foreign/);
+});
+
+test('real Clerk verification classifies malformed compact JWT input as sanitized 401', async () => {
+  const authenticate = localVerifier();
+  const valid = signedToken();
+  const [header, payload, signature] = valid.split('.');
+  const malformed = [
+    'synthetic', 'a.b.c', '..',
+    `!.${payload}.${signature}`,
+    `${header}.!.${signature}`,
+    `${header}.${payload}.!`,
+    `${Buffer.from('[]').toString('base64url')}.${payload}.${signature}`
+  ];
+  for (const [index, token] of malformed.entries()) {
+    const result = await authenticate(request('GET', `Bearer ${token}`));
+    assert.equal(result.status, 401, `malformed token case ${index}`);
+    assert.equal(result.code, 'INVALID_TOKEN');
+    assert.doesNotMatch(JSON.stringify(result), /SyntaxError|Unexpected|padding|JSON/iu);
+  }
+});
+
 test('configuration and unexpected verifier failures are controlled 503', async () => {
   const missingConfig = createAuthenticateRequest({ env: {}, log() {} });
   assert.equal((await missingConfig(request('GET', 'Bearer synthetic'))).status, 503);
   const unavailable = createAuthenticateRequest({
     env: { CLERK_SECRET_KEY: 'test' }, verifyToken: async () => { throw new Error('network detail'); }, log() {}
   });
-  const result = await unavailable(request('GET', 'Bearer synthetic'));
+  const result = await unavailable(request('GET', `Bearer ${signedToken()}`));
   assert.equal(result.status, 503);
   assert.equal(result.code, 'AUTH_SERVICE_UNAVAILABLE');
   assert.doesNotMatch(JSON.stringify(result), /network detail/);
+});
+
+test('configuration and JWKS verifier reasons remain sanitized 503', async () => {
+  const reasons = [
+    'secret-key-invalid', 'jwk-local-missing', 'jwk-remote-failed-to-load',
+    'jwk-remote-invalid', 'jwk-remote-missing', 'jwk-failed-to-resolve'
+  ];
+  for (const reason of reasons) {
+    const error = new TokenVerificationError({ reason, message: 'sensitive infrastructure detail' });
+    const authenticate = createAuthenticateRequest({
+      env: { CLERK_SECRET_KEY: 'test' }, verifyToken: async () => { throw error; }, log() {}
+    });
+    const result = await authenticate(request('GET', `Bearer ${signedToken()}`));
+    assert.equal(result.status, 503, reason);
+    assert.equal(result.code, 'AUTH_SERVICE_UNAVAILABLE');
+    assert.doesNotMatch(JSON.stringify(result), /sensitive|infrastructure/);
+  }
 });
 
 test('successful verification preserves the authenticated identity contract', async () => {

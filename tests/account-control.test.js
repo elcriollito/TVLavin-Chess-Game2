@@ -18,6 +18,7 @@ function environment(overrides = {}) {
         CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced',
         CAISSA_CLERK_AUTHORITY: 'legacy_development',
         SUPABASE_URL: 'https://aqizagaskicotorfpwfn.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: 'service_role_fixture',
         CLERK_SECRET_KEY: 'sk_test_fixture',
         ...overrides
     };
@@ -67,8 +68,21 @@ function response() {
     };
 }
 
-function fixture({ authResult = auth(), rpcImpl, createClerkClient, rateAllowed = true, streamAccountExport } = {}) {
+function fixture({
+    authResult = auth(),
+    rpcImpl,
+    createClerkClient,
+    rateAllowed = true,
+    streamAccountExport,
+    getClerkSession,
+    clerkSessionTimeoutMs,
+    envOverrides
+} = {}) {
     const calls = [];
+    const sessionCalls = [];
+    let dbAccesses = 0;
+    let rateLimitCalls = 0;
+    let ownershipCalls = 0;
     const db = {
         rpc: async (name, args) => {
             calls.push({ name, args });
@@ -89,15 +103,40 @@ function fixture({ authResult = auth(), rpcImpl, createClerkClient, rateAllowed 
             if (name === 'mark_caissa_auth_deletion_failed') return { data: null, error: null };
             if (name === 'mark_caissa_data_deletion_failed') return { data: null, error: null };
             throw new Error(`Unexpected RPC ${name}`);
-        }
+        },
+        from: name => ({
+            select: () => ({
+                eq: () => ({
+                    order: () => ({
+                        limit: async () => {
+                            calls.push({ name: `select:${name}` });
+                            return { data: [], error: null };
+                        }
+                    })
+                })
+            })
+        })
     };
+    const loadSession = getClerkSession || (async ({ sessionId }) => ({
+        id: sessionId,
+        status: 'active',
+        userId: authResult.userId
+    }));
     const handlers = createAccountControlHandlers({
-        env: environment(),
+        env: environment(envOverrides),
         verifyAuth: async () => authResult,
-        getSupabase: () => db,
-        resolveIdentityOwnership: async () => ({ ok: true, userId: owner, bindingId: binding }),
-        consumeAccountRateLimit: async () => rateAllowed,
+        getSupabase: () => { dbAccesses += 1; return db; },
+        resolveIdentityOwnership: async () => {
+            ownershipCalls += 1;
+            return { ok: true, userId: owner, bindingId: binding };
+        },
+        consumeAccountRateLimit: async () => { rateLimitCalls += 1; return rateAllowed; },
         createClerkClient,
+        getClerkSession: async input => {
+            sessionCalls.push(input);
+            return loadSession(input);
+        },
+        clerkSessionTimeoutMs,
         streamAccountExport: streamAccountExport || (async ({ res }) => {
             res.status(200);
             res.write('{"schemaVersion":"caissa.account-export.v1"}');
@@ -105,7 +144,12 @@ function fixture({ authResult = auth(), rpcImpl, createClerkClient, rateAllowed 
         }),
         log: { warn() {} }
     });
-    return { handlers, calls };
+    return {
+        handlers,
+        calls,
+        sessionCalls,
+        metrics: () => ({ dbAccesses, rateLimitCalls, ownershipCalls })
+    };
 }
 
 test('environment gate binds mode, Clerk authority, ownership mode and exact Supabase project', () => {
@@ -131,6 +175,115 @@ test('fresh reverification uses signed Clerk fva and rejects token age or missin
     assert.equal(freshReverification(auth({ tokenId: null })), false);
 });
 
+test('Account Control requires a current active Clerk session bound to the signed sid and sub', async () => {
+    const active = fixture();
+    const activeResponse = response();
+    await active.handlers.summary(request(), activeResponse);
+    assert.equal(activeResponse.statusCode, 200);
+    assert.deepEqual(active.sessionCalls.map(call => call.sessionId), ['sess_synthetic_a']);
+
+    for (const status of ['ended', 'revoked', 'expired', 'removed', 'deleted', 'replaced', 'abandoned', 'pending']) {
+        const denied = fixture({ getClerkSession: async ({ sessionId }) => ({
+            id: sessionId, status, userId: 'synthetic_subject_a'
+        }) });
+        const res = response();
+        await denied.handlers.summary(request(), res);
+        assert.equal(res.statusCode, 401, status);
+        assert.deepEqual(res.body, { code: 'AUTH_REQUIRED', error: 'Authentication required.' });
+        assert.deepEqual(denied.metrics(), { dbAccesses: 1, rateLimitCalls: 1, ownershipCalls: 0 });
+    }
+});
+
+test('Deletion Status permits an active matching session and reads only the verified owner scope', async () => {
+    const current = fixture();
+    const res = response();
+    await current.handlers.status(request('GET'), res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, { operations: [] });
+    assert.deepEqual(current.calls, [{ name: 'select:caissa_account_control_operations' }]);
+    assert.equal(current.sessionCalls.length, 1);
+    assert.deepEqual(current.metrics(), { dbAccesses: 1, rateLimitCalls: 1, ownershipCalls: 1 });
+});
+
+test('Account Control rejects missing or crossed signed session identity before account-data access', async () => {
+    const cases = [
+        { authResult: auth({ sessionId: null }) },
+        { getClerkSession: async () => ({ id: 'sess_other', status: 'active', userId: 'synthetic_subject_a' }) },
+        { getClerkSession: async ({ sessionId }) => ({ id: sessionId, status: 'active', userId: 'synthetic_subject_b' }) }
+    ];
+    for (const options of cases) {
+        const denied = fixture(options);
+        const res = response();
+        await denied.handlers.summary(request(), res);
+        assert.equal(res.statusCode, 401);
+        assert.deepEqual(denied.metrics(), { dbAccesses: 1, rateLimitCalls: 1, ownershipCalls: 0 });
+    }
+});
+
+test('missing sessions are 401 while Clerk configuration, outages, timeouts and malformed responses are 503', async () => {
+    const missing = new Error('synthetic not found');
+    missing.status = 404;
+    const missingFixture = fixture({ getClerkSession: async () => { throw missing; } });
+    const missingResponse = response();
+    await missingFixture.handlers.summary(request(), missingResponse);
+    assert.equal(missingResponse.statusCode, 401);
+
+    for (const options of [
+        { envOverrides: { CLERK_SECRET_KEY: '' } },
+        { envOverrides: { CLERK_SECRET_KEY: 'sk_live_wrong_authority' } },
+        { getClerkSession: async () => { const error = new Error('synthetic credential failure'); error.status = 401; throw error; } },
+        { getClerkSession: async () => { const error = new Error('synthetic rate limit'); error.status = 429; throw error; } },
+        { getClerkSession: async () => { const error = new Error('synthetic provider outage'); error.status = 503; throw error; } },
+        { getClerkSession: async () => ({ status: 'active' }) },
+        { getClerkSession: async () => new Promise(() => {}), clerkSessionTimeoutMs: 5 }
+    ]) {
+        const unavailable = fixture(options);
+        const res = response();
+        await unavailable.handlers.summary(request(), res);
+        assert.equal(res.statusCode, 503);
+        assert.deepEqual(res.body, {
+            code: 'AUTH_SERVICE_UNAVAILABLE', error: 'Authentication service unavailable.'
+        });
+        assert.deepEqual(unavailable.metrics(), { dbAccesses: 1, rateLimitCalls: 1, ownershipCalls: 0 });
+    }
+});
+
+test('the active-session boundary guards all seven Account Control operations', async () => {
+    const denied = fixture({ getClerkSession: async ({ sessionId }) => ({
+        id: sessionId, status: 'ended', userId: 'synthetic_subject_a'
+    }) });
+    const operations = [
+        ['summary', request('GET')],
+        ['exportData', request('POST', {})],
+        ['prepareReset', request('POST', { confirmation: 'RESET' })],
+        ['confirmReset', request('POST', { operationId: operation, confirmationToken: 'x'.repeat(43) })],
+        ['prepareDeletion', request('POST', { confirmation: 'DELETE' })],
+        ['confirmDeletion', request('POST', { operationId: operation, confirmationToken: 'x'.repeat(43) })],
+        ['status', request('GET')]
+    ];
+    for (const [name, req] of operations) {
+        const res = response();
+        await denied.handlers[name](req, res);
+        assert.equal(res.statusCode, 401, name);
+    }
+    assert.equal(denied.sessionCalls.length, 7);
+    assert.deepEqual(denied.metrics(), { dbAccesses: 7, rateLimitCalls: 7, ownershipCalls: 0 });
+    assert.deepEqual(denied.calls, []);
+});
+
+test('prepare and confirm independently re-check the live Clerk session', async () => {
+    const current = fixture();
+    const prepared = response();
+    await current.handlers.prepareReset(request('POST', { confirmation: 'RESET' }), prepared);
+    const confirmed = response();
+    await current.handlers.confirmReset(request('POST', {
+        operationId: operation,
+        confirmationToken: prepared.body.confirmationToken
+    }), confirmed);
+    assert.equal(confirmed.statusCode, 200);
+    assert.equal(current.sessionCalls.length, 2);
+});
+
 test('summary is scoped to the ownership UUID and exposes no client-selected target', async () => {
     const { handlers, calls } = fixture();
     const res = response();
@@ -147,6 +300,8 @@ test('summary is scoped to the ownership UUID and exposes no client-selected tar
 test('stale reverification, crossed authority, CSRF origin and owner fields fail before effects', async () => {
     for (const [authResult, req, expected] of [
         [auth({ factorVerificationAge: [7, -1] }), request('POST', {}), 'REVERIFICATION_REQUIRED'],
+        [auth({ tokenId: null }), request('POST', {}), 'REVERIFICATION_REQUIRED'],
+        [auth({ factorVerificationAge: null }), request('POST', {}), 'REVERIFICATION_REQUIRED'],
         [auth({ authority: 'production' }), request('POST', {}), 'IDENTITY_AUTHORITY_REJECTED'],
         [auth(), request('POST', {}, { origin: 'https://attacker.example' }), null]
     ]) {
@@ -252,12 +407,13 @@ test('Clerk failure is fail-closed and records review instead of continuing eras
 });
 
 test('persistent throttling fails closed before ownership or account effects', async () => {
-    const { handlers, calls } = fixture({ rateAllowed: false });
+    const { handlers, calls, sessionCalls } = fixture({ rateAllowed: false });
     const res = response();
     await handlers.summary(request(), res);
     assert.equal(res.statusCode, 429);
     assert.equal(res.body.code, 'RATE_LIMITED');
     assert.deepEqual(calls, []);
+    assert.deepEqual(sessionCalls, []);
 });
 
 test('data erasure failure quarantines the request before Clerk deletion', async () => {
