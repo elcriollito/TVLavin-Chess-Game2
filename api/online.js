@@ -13,6 +13,7 @@ import {
 } from '../js/online/online-protocol.js';
 import { applyAuthoritativeMove } from './_lib/online-game-engine.js';
 import { sendOnlineGameBroadcast } from './_lib/online-realtime-broadcast.js';
+import { getSupabasePublishableKey, getSupabaseUrl } from './_lib/supabase.js';
 
 const ROLLOUTS = new Set(['off', 'internal', 'preview', 'production']);
 
@@ -274,9 +275,8 @@ async function handleCommand(req, res, auth, service, dependencies) {
 
 function publicConfig(rollout, env) {
     const enabled = rollout !== 'off';
-    const realtimeUrl = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
-    const publishableKey = env.SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-        || env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const realtimeUrl = getSupabaseUrl(env);
+    const publishableKey = getSupabasePublishableKey(env);
     return {
         protocolVersion: ONLINE_PROTOCOL_VERSION,
         rollout,
