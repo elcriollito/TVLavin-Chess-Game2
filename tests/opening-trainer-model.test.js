@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import {
   OpeningStudy, REPERTOIRE_KEY, sanTokens, wikibookTitle, buildRepertoire,
   isRepertoire, readRepertoires, storeRepertoire,
@@ -43,7 +42,7 @@ test('single analysis session preserves exact legal FEN and 2 branches',()=>{
   const study=createStudy(['e4','c5','Nf3']);
   const fenBefore=study.fen;
   const original=study.cursor;
-  assert.equal(study.move('e5').ok,false,'illegal black pawn move when White to move');
+  assert.equal(study.move('a4').ok,false,'illegal White pawn move when Black to move');
   assert.equal(study.fen,fenBefore);
   assert.equal(study.navigate('previous'),true);
   const node=study.cursor;
@@ -108,7 +107,7 @@ test('Saved training never trusts injected FEN and rejects illegal stored UCI',(
   const rep=buildRepertoire(createStudy(['e4']),{name:'test',side:'white'});
   rep.paths[0][0].fen='fake malicious FEN';
   const training=newTrainingSession(rep);
-  assert.equal(training.path[0].fen,new Chess().move('e4')&&createStudy(['e4']).fen);
+  assert.equal(training.path[0].fen,createStudy(['e4']).fen);
   rep.paths[0][0].uci='e2e5'; // UCI shape valid but chess legality invalid
   assert.throws(()=>newTrainingSession(rep),/illegal continuation/);
 });
