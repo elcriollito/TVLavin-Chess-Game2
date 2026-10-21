@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Opening Trainer | CAISSA</title>
+  <meta name="description" content="Build, save and practice a personal chess opening repertoire with Stockfish, CAISSA Explorer and synchronized Wikibooks theory.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="/styles.css?v=2.0.10">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/opening-trainer.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
+</head>
+<body data-clarity-mask>
+  <a class="opening-trainer-skip" href="#openingTrainerWorkspace">Skip to opening workspace</a>
+  <div class="caissa-standalone-layout opening-trainer-app">
+    <div data-caissa-standalone-sidebar data-active="opening-trainer"></div>
+
+    <main class="opening-trainer-page caissa-standalone-content" data-opening-trainer>
+      <header class="opening-trainer-heading">
+        <div>
+          <p class="opening-trainer-eyebrow">Build · understand · remember</p>
+          <h1>CAISSA Chess Opening Trainer</h1>
+        </div>
+        <div class="opening-trainer-heading__status" id="trainerOpeningIdentity" aria-live="polite">
+          <span class="opening-trainer-chip">Starting position</span>
+        </div>
+      </header>
+
+      <section class="opening-trainer-shell" aria-label="Opening trainer board and workspace">
+        <section class="opening-trainer-board-column" aria-label="Analysis board">
+          <div class="opening-trainer-board-wrap">
+            <aside class="opening-trainer-eval-rail" aria-label="Engine evaluation">
+              <span id="trainerEvalRailFill"></span>
+              <strong id="trainerEvalRailScore">0.00</strong>
+            </aside>
+            <div class="opening-trainer-board-frame">
+              <div id="openingTrainerBoard" aria-label="Interactive opening analysis chessboard"></div>
+            </div>
+          </div>
+          <div class="opening-trainer-board-caption">
+            <span id="trainerBoardMode"><i class="fas fa-diagram-project" aria-hidden="true"></i> Analysis board</span>
+            <span id="trainerBoardTurn">White to move</span>
+          </div>
+        </section>
+
+        <section id="openingTrainerWorkspace" class="opening-trainer-workspace" aria-label="Opening trainer workspace">
+          <header class="opening-trainer-workspace__head">
+            <div class="opening-trainer-tabs" role="tablist" aria-label="Opening trainer tools">
+              <button id="trainerTabAnalysis" class="opening-trainer-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="trainerPanelAnalysis" data-trainer-tab="analysis">Analysis</button>
+              <button id="trainerTabPractice" class="opening-trainer-tab" type="button" role="tab" aria-selected="false" aria-controls="trainerPanelPractice" data-trainer-tab="practice">Practice</button>
+              <button id="trainerTabGames" class="opening-trainer-tab" type="button" role="tab" aria-selected="false" aria-controls="trainerPanelGames" data-trainer-tab="games">Games</button>
+              <button id="trainerTabOpening" class="opening-trainer-tab" type="button" role="tab" aria-selected="false" aria-controls="trainerPanelOpening" data-trainer-tab="opening">Opening</button>
+              <button id="trainerTabWikibook" class="opening-trainer-tab" type="button" role="tab" aria-selected="false" aria-controls="trainerPanelWikibook" data-trainer-tab="wikibook">WikiBook</button>
+            </div>
+
+            <div class="opening-trainer-engine-strip" id="trainerEngineStrip" data-engine-state="loading" aria-live="polite">
+              <button id="trainerEngineStripToggle" type="button" aria-label="Toggle Stockfish analysis" aria-pressed="true">
+                <span class="opening-trainer-engine-dot" aria-hidden="true"></span>
+                <strong>Stockfish</strong>
+              </button>
+              <span id="trainerEngineEval">0.00</span>
+              <span class="opening-trainer-engine-separator" aria-hidden="true">·</span>
+              <span id="trainerEngineDepth">Depth 0</span>
+              <span class="opening-trainer-engine-separator" aria-hidden="true">·</span>
+              <span id="trainerEnginePv" class="opening-trainer-engine-pv">Starting engine…</span>
+            </div>
+          </header>
+
+          <div class="opening-trainer-workspace__body">
+            <section id="trainerPanelAnalysis" class="opening-trainer-panel" role="tabpanel" aria-labelledby="trainerTabAnalysis" data-trainer-panel="analysis">
+              <div class="opening-trainer-panel-heading">
+                <div>
+                  <p class="opening-trainer-kicker">Analysis tree</p>
+                  <h2 id="trainerAnalysisTitle">New repertoire line</h2>
+                </div>
+                <span class="opening-trainer-counter" id="trainerTreeCount">0 moves</span>
+              </div>
+
+              <div class="opening-trainer-savebar">
+                <label>
+                  Train as
+                  <select id="trainerRepertoireColor">
+                    <option value="white">White</option>
+                    <option value="black">Black</option>
+                  </select>
+                </label>
+                <button id="trainerSaveButton" class="opening-trainer-button" type="button"><i class="fas fa-bookmark" aria-hidden="true"></i> Save</button>
+                <button id="trainerSaveTrainButton" class="opening-trainer-button opening-trainer-button--primary" type="button"><i class="fas fa-bolt" aria-hidden="true"></i> Save &amp; Train</button>
+              </div>
+
+              <p class="opening-trainer-help">Move freely on the board. Mark any terminal variation you want to include, then save it to your personal repertoire.</p>
+              <div id="trainerVariationTree" class="opening-trainer-tree" role="tree" aria-label="Opening variations"></div>
+              <div id="trainerAnalysisEmpty" class="opening-trainer-empty">
+                <i class="fas fa-code-branch" aria-hidden="true"></i>
+                <p>Play a move on the board to begin the variation tree.</p>
+              </div>
+              <div class="opening-trainer-engine-lines" aria-label="Stockfish principal variations">
+                <h3>Engine lines</h3>
+                <ol id="trainerEngineLines"><li>Waiting for Stockfish…</li></ol>
+              </div>
+            </section>
+
+            <section id="trainerPanelPractice" class="opening-trainer-panel" role="tabpanel" aria-labelledby="trainerTabPractice" data-trainer-panel="practice" hidden>
+              <div class="opening-trainer-panel-heading">
+                <div>
+                  <p class="opening-trainer-kicker">Recall training</p>
+                  <h2>Practice your repertoire</h2>
+                </div>
+                <span id="trainerSessionLock" class="opening-trainer-lock" hidden><i class="fas fa-lock" aria-hidden="true"></i> Session protected</span>
+              </div>
+
+              <div class="opening-trainer-practice-setup">
+                <label for="trainerRepertoireSelect">Saved repertoire</label>
+                <select id="trainerRepertoireSelect"><option value="">No saved repertoires</option></select>
+                <label for="trainerLineSelect">Variation</label>
+                <select id="trainerLineSelect"><option value="0">Line 1</option></select>
+                <button id="trainerStartPractice" class="opening-trainer-button opening-trainer-button--primary" type="button">Start practice</button>
+              </div>
+
+              <div id="trainerPracticeCard" class="opening-trainer-practice-card" hidden>
+                <div class="opening-trainer-practice-meta">
+                  <strong id="trainerPracticePrompt">Your move</strong>
+                  <span id="trainerPracticeProgress">0 / 0</span>
+                </div>
+                <div class="opening-trainer-progress" aria-label="Practice progress"><span id="trainerPracticeProgressBar"></span></div>
+                <p id="trainerPracticeFeedback" class="opening-trainer-feedback" aria-live="assertive">CAISSA is ready.</p>
+                <dl class="opening-trainer-score-grid">
+                  <div><dt>Accuracy</dt><dd id="trainerPracticeAccuracy">100%</dd></div>
+                  <div><dt>Errors</dt><dd id="trainerPracticeErrors">0</dd></div>
+                  <div><dt>Hints</dt><dd id="trainerPracticeHints">0</dd></div>
+                  <div><dt>Reveals</dt><dd id="trainerPracticeReveals">0</dd></div>
+                </dl>
+                <div class="opening-trainer-practice-actions">
+                  <button id="trainerRetryPractice" class="opening-trainer-button" type="button"><i class="fas fa-rotate-right" aria-hidden="true"></i> Retry</button>
+                  <button id="trainerHintButton" class="opening-trainer-button" type="button"><i class="fas fa-lightbulb" aria-hidden="true"></i> Hint</button>
+                  <button id="trainerRevealButton" class="opening-trainer-button" type="button"><i class="fas fa-eye" aria-hidden="true"></i> Reveal</button>
+                  <button id="trainerNextLine" class="opening-trainer-button" type="button"><i class="fas fa-forward" aria-hidden="true"></i> Next</button>
+                </div>
+              </div>
+              <div id="trainerPracticeEmpty" class="opening-trainer-empty">
+                <i class="fas fa-dumbbell" aria-hidden="true"></i>
+                <p>Save an analysis line, choose a repertoire and start a protected session.</p>
+              </div>
+            </section>
+
+            <section id="trainerPanelGames" class="opening-trainer-panel" role="tabpanel" aria-labelledby="trainerTabGames" data-trainer-panel="games" hidden>
+              <div class="opening-trainer-panel-heading">
+                <div>
+                  <p class="opening-trainer-kicker">Opening games</p>
+                  <h2>Games from this line</h2>
+                </div>
+                <button id="trainerSearchGames" class="opening-trainer-button" type="button"><i class="fas fa-magnifying-glass" aria-hidden="true"></i> Search</button>
+              </div>
+              <div class="opening-trainer-subtabs" role="tablist" aria-label="Games views">
+                <button class="is-active" type="button" role="tab" aria-selected="true" data-games-view="games">Games</button>
+                <button type="button" role="tab" aria-selected="false" data-games-view="notation">Notation</button>
+              </div>
+              <div data-games-panel="games">
+                <p id="trainerGamesStatus" class="opening-trainer-help" aria-live="polite">Play opening moves, then search the CAISSA games index.</p>
+                <div id="trainerGamesList" class="opening-trainer-games-list"></div>
+              </div>
+              <div data-games-panel="notation" hidden>
+                <article class="opening-trainer-notation-card">
+                  <h3 id="trainerGameNotationTitle">Current opening line</h3>
+                  <p id="trainerGameNotationStatus" class="opening-trainer-help">The current analysis line is legal and navigable.</p>
+                  <pre id="trainerGameNotation">No moves yet.</pre>
+                </article>
+              </div>
+            </section>
+
+            <section id="trainerPanelOpening" class="opening-trainer-panel" role="tabpanel" aria-labelledby="trainerTabOpening" data-trainer-panel="opening" hidden>
+              <div class="opening-trainer-panel-heading">
+                <div>
+                  <p class="opening-trainer-kicker">Existing CAISSA data</p>
+                  <h2>Opening reference</h2>
+                </div>
+              </div>
+              <div class="opening-trainer-subtabs" role="tablist" aria-label="Opening reference views">
+                <button class="is-active" type="button" role="tab" aria-selected="true" data-opening-view="eco">ECO Codes</button>
+                <button type="button" role="tab" aria-selected="false" data-opening-view="explorer">CAISSA Explorer</button>
+              </div>
+              <div data-opening-panel="eco">
+                <label class="opening-trainer-search">
+                  <span class="sr-only">Search opening or ECO code</span>
+                  <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                  <input id="trainerEcoSearch" type="search" placeholder="Search opening or ECO…" autocomplete="off">
+                </label>
+                <div id="trainerEcoResults" class="opening-trainer-eco-results"></div>
+                <a class="opening-trainer-text-link" href="/eco">Open the full Chess ECO Codes Database <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+              </div>
+              <div data-opening-panel="explorer" hidden>
+                <p id="trainerExplorerStatus" class="opening-trainer-help">Loading continuations for the board position…</p>
+                <div id="trainerExplorerMoves" class="opening-trainer-explorer"></div>
+                <a class="opening-trainer-text-link" href="/opening-database">Open the full CAISSA Opening Database <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+              </div>
+            </section>
+
+            <section id="trainerPanelWikibook" class="opening-trainer-panel" role="tabpanel" aria-labelledby="trainerTabWikibook" data-trainer-panel="wikibook" hidden>
+              <div class="opening-trainer-panel-heading opening-trainer-panel-heading--wikibook">
+                <div>
+                  <p class="opening-trainer-kicker">Auto WikiBook</p>
+                  <h2 id="trainerWikiTitle">Chess Opening Theory</h2>
+                </div>
+                <button id="trainerWikiLock" class="opening-trainer-icon-button" type="button" aria-pressed="false" aria-label="Lock the current WikiBook article" title="Lock the current article"><i class="fas fa-lock-open" aria-hidden="true"></i></button>
+              </div>
+              <label class="opening-trainer-switch">
+                <input id="trainerWikiAuto" type="checkbox" checked>
+                <span>Automatically follow the analyzed position</span>
+              </label>
+              <button id="trainerWikiReturn" class="opening-trainer-button" type="button"><i class="fas fa-arrow-left" aria-hidden="true"></i> Return to Analysis</button>
+              <p id="trainerWikiMatch" class="opening-trainer-help">Theory follows legal move sequences and verified transpositions.</p>
+              <article id="trainerWikiContent" class="opening-trainer-wiki-content" aria-live="polite">
+                <p>Play opening moves to load synchronized theory from Wikibooks Chess Opening Theory.</p>
+              </article>
+              <footer id="trainerWikiAttribution" class="opening-trainer-attribution" hidden>
+                <span>Text from Wikibooks contributors; adapted for display.</span>
+                <a id="trainerWikiSource" href="https://en.wikibooks.org/wiki/Chess_Opening_Theory" target="_blank" rel="noopener noreferrer">Source &amp; contributors</a>
+                <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
+              </footer>
+            </section>
+          </div>
+
+          <footer class="opening-trainer-workspace__foot">
+            <div class="opening-trainer-foot-actions">
+              <button id="trainerFlipBoard" type="button"><i class="fas fa-arrows-rotate" aria-hidden="true"></i> Flip</button>
+              <button id="trainerEngineToggle" type="button" aria-pressed="true"><i class="fas fa-microchip" aria-hidden="true"></i> Engine</button>
+            </div>
+            <nav class="opening-trainer-move-nav" aria-label="Move navigation">
+              <button id="trainerFirstMove" type="button" aria-label="First position"><i class="fas fa-backward-fast" aria-hidden="true"></i></button>
+              <button id="trainerPreviousMove" type="button" aria-label="Previous move"><i class="fas fa-backward-step" aria-hidden="true"></i></button>
+              <button id="trainerNextMove" type="button" aria-label="Next move"><i class="fas fa-forward-step" aria-hidden="true"></i></button>
+              <button id="trainerLastMove" type="button" aria-label="Last position"><i class="fas fa-forward-fast" aria-hidden="true"></i></button>
+            </nav>
+          </footer>
+        </section>
+      </section>
+
+      <dialog id="trainerSaveTrainDialog" class="opening-trainer-dialog" aria-labelledby="trainerSaveTrainTitle">
+        <form method="dialog">
+          <p class="opening-trainer-kicker">Repertoire saved</p>
+          <h2 id="trainerSaveTrainTitle">Would you like to train this opening?</h2>
+          <p id="trainerSaveTrainSummary">Your selected variations are ready.</p>
+          <div class="opening-trainer-dialog__actions">
+            <button id="trainerContinueAnalysis" class="opening-trainer-button" value="continue">Continue Analysis</button>
+            <button id="trainerConfirmPractice" class="opening-trainer-button opening-trainer-button--primary" value="practice">Start Practice</button>
+          </div>
+        </form>
+      </dialog>
+
+      <div id="trainerToast" class="opening-trainer-toast" role="status" aria-live="polite" hidden></div>
+    </main>
+  </div>
+
+  <script src="/js/caissa-i18n.js?v=1.0.0"></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.20.0"></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.1.0" data-caissa-auth-runtime="external"></script>
+  <script src="/js/auth-config.js?v=1.0.3" defer></script>
+  <script src="/js/caissa-auth.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-access.js?v=1.0.2" defer></script>
+  <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
+  <script src="/js/analyze-variation-tree.js?v=1.0.0"></script>
+  <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
+  <script type="module" src="/js/opening-trainer/page.js?v=1.0.0"></script>
+</body>
+</html>

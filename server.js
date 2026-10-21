@@ -692,6 +692,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/chess-gym' || pathname === '/chess-gym/') {
     filePath = './chess-gym.html';
   }
+  if (pathname === '/opening-trainer' || pathname === '/opening-trainer/') {
+    filePath = './opening-trainer.html';
+  }
   if (pathname === '/endgame-library' || pathname === '/endgame-library/') {
     filePath = './endgame-library.html';
   }
