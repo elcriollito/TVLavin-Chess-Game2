@@ -165,6 +165,28 @@
           </footer>
         </aside>
       </div>
+    
+      <dialog id="ot-save-dialog" class="ot-save-dialog" aria-labelledby="ot-save-title">
+        <form method="dialog" id="ot-save-form">
+          <p class="ot-eyebrow">MY OPENING REPERTOIRE</p>
+          <h2 id="ot-save-title">Save this opening</h2>
+          <p class="ot-hint">Keep what you explored and decide which side you want to memorize.</p>
+          <label for="ot-save-name">Opening name</label>
+          <input type="text" id="ot-save-name" maxlength="100" required>
+          <label for="ot-save-side">Which side will you train?</label>
+          <select id="ot-save-side"><option value="white">White</option><option value="black">Black</option></select>
+          <label for="ot-save-scope">Save</label>
+          <select id="ot-save-scope"><option value="line">Current line</option><option value="branches">Current line and explored variations</option></select>
+          <p class="ot-hint">Saved locally on this browser in the development pilot.</p>
+          <div class="ot-inline-actions">
+            <button type="button" id="ot-confirm-save" class="ot-secondary">Save</button>
+            <button type="button" id="ot-confirm-save-train" class="ot-primary">Save &amp; Train</button>
+            <button type="button" id="ot-save-cancel" class="ot-quiet">Cancel</button>
+          </div>
+          <p id="ot-save-error" class="ot-save-error" role="alert" hidden></p>
+        </form>
+      </dialog>
+
     </main>
   </div>
 </body>
