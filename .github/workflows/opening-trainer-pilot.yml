@@ -49,6 +49,6 @@ jobs:
       - name: Install reviewed lockfile dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - name: Browser integration and responsive geometry
-        run: npx playwright test tests/browser/opening-trainer.spec.js --project=chromium
+        run: npx playwright test tests/browser/opening-trainer.spec.js --project=chromium --project=webkit
