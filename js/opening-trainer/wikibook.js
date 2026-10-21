@@ -4,7 +4,7 @@ const API='https://en.wikibooks.org/w/api.php';
 export const WIKIBOOK_LICENSE_URL='https://creativecommons.org/licenses/by-sa/4.0/';
 const cache=new Map();
 const MAX_CACHE=40;
-const MAX_HTML=240000;
+const MAX_HTML=1200000;
 
 function pageUrl(title) {
   return 'https://en.wikibooks.org/wiki/' + title.split('/').map(encodeURIComponent).join('/');
@@ -34,6 +34,8 @@ async function exactLookup(history,{signal}={}) {
   const qs=new URLSearchParams({action:'parse',format:'json',formatversion:'2',prop:'text',page:title,origin:'*',disableeditsection:'1'});
   const response=await fetch(API+'?'+qs,{mode:'cors',credentials:'omit',signal,headers:{Accept:'application/json'}});
   if (!response.ok) throw new Error('WikiBook is not reachable right now.');
+  const declaredLength=Number(response.headers.get('content-length')||0);
+  if (declaredLength>MAX_HTML) throw new Error('This WikiBook article is too large to display.');
   const content=await response.text();
   if (content.length>MAX_HTML) throw new Error('This WikiBook article is too large to display.');
   const json=JSON.parse(content);
