@@ -121,3 +121,31 @@ for(const viewport of [{width:885,height:611},{width:390,height:844}]){
     await expect(page.locator('#ot-analysis-notation')).toContainText('e4');
   });
 }
+
+
+test('Auto WikiBook follows exact theory only when not tab-locked',async ({page})=>{
+  await openPilot(page);
+  await page.locator('#ot-auto-wiki').check();
+  await page.locator('#ot-lock-tab').check();
+  await tapMove(page,'e2','e4');
+  await expect(page.getByRole('tab',{name:'Analysis'})).toHaveAttribute('aria-selected','true');
+  await page.locator('#ot-lock-tab').uncheck();
+  await tapMove(page,'e7','e5');
+  await expect(page.getByRole('tab',{name:'WikiBook'})).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#ot-wiki-copy')).toContainText(/opening ideas/);
+});
+
+test('1600×1000 desktop board stays dominant; tabs cannot dislodge fixed footer',async ({page})=>{
+  await page.setViewportSize({width:1600,height:1000});
+  await openPilot(page);
+  const board=await page.locator('#ot-board').boundingBox();
+  const panel=await page.locator('.ot-panel').boundingBox();
+  const foot=await page.locator('.ot-panel-foot-wrap').boundingBox();
+  expect(board.width).toBeGreaterThan(450);
+  expect(panel.x).toBeGreaterThan(board.x+board.width);
+  await page.getByRole('tab',{name:'Practice'}).click();
+  await page.getByRole('tab',{name:'Games'}).click();
+  await page.getByRole('tab',{name:'WikiBook'}).click();
+  const moved=await page.locator('.ot-panel-foot-wrap').boundingBox();
+  expect(Math.abs(moved.y-foot.y)).toBeLessThan(3);
+});
