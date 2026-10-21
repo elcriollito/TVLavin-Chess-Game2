@@ -627,6 +627,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/pgn-replayer' || pathname === '/pgn-replayer/') {
     filePath = './pgn-replayer.html';
   }
+  if (pathname === '/opening-trainer' || pathname === '/opening-trainer/') {
+    filePath = './opening-trainer.html';
+  }
   if (pathname === '/store' || pathname === '/store/') {
     filePath = './credit-store.html';
   }

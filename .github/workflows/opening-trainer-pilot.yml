@@ -1,0 +1,44 @@
+name: CAISSA Opening Trainer Pilot
+on:
+  pull_request:
+    paths:
+      - opening-trainer.html
+      - css/opening-trainer.css
+      - js/opening-trainer/**
+      - tests/opening-trainer-model.test.js
+      - vercel.json
+      - .github/workflows/opening-trainer-pilot.yml
+permissions:
+  contents: read
+jobs:
+  opening-trainer-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node runtime
+        run: node --version
+      - name: Validate pilot module syntax
+        run: |
+          node --check js/opening-trainer/model.js
+          node --check js/opening-trainer/wikibook.js
+          node --check js/opening-trainer/page.js
+          node --check tests/opening-trainer-model.test.js
+      - name: Legal move, repertoire and workspace contracts
+        run: node --test tests/opening-trainer-model.test.js
+
+  opening-trainer-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install reviewed lockfile dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium webkit
+      - name: Browser integration and responsive geometry
+        run: npx playwright test tests/browser/opening-trainer.spec.js --project=chromium --project=webkit

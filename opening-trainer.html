@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b111b">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="CAISSA Opening Trainer: explore, understand, save and memorize your chess openings.">
+  <title>CAISSA Chess Opening Trainer — Preview</title>
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/styles.css?v=2.0.16">
+  <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.3.0">
+  <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/opening-trainer.css?v=0.1.0">
+  <script src="/js/auth-config.js?v=1.0.5" defer></script>
+  <script src="/js/caissa-auth.js?v=1.0.4" defer></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.19.0" defer></script>
+  <script src="/js/caissa-standalone-sidebar.js?v=1.2.0" defer></script>
+  <script src="/js/eco-opening-resolver.js?v=1.0.0" defer></script>
+  <script type="module" src="/js/opening-trainer/page.js?v=0.1.0"></script>
+</head>
+<body class="opening-trainer-page">
+  <a class="ot-skip" href="#ot-board">Skip to opening board</a>
+  <div class="caissa-standalone-layout">
+    <div data-caissa-standalone-sidebar data-active="opening-trainer">
+      <nav aria-label="CAISSA Chess fallback"><a href="/">CAISSA Chess</a></nav>
+    </div>
+    <main class="caissa-standalone-content ot-main" data-opening-trainer>
+      <header class="ot-heading">
+        <div>
+          <p class="ot-eyebrow">CAISSA CHESS · LEARN &amp; IMPROVE</p>
+          <h1>Opening Trainer <span class="ot-preview">Development preview</span></h1>
+        </div>
+        <p class="ot-subtitle">Analyze → Understand → Save → Practice</p>
+      </header>
+
+      <div class="ot-workspace">
+        <section class="ot-board-column" aria-label="Chessboard">
+          <div class="ot-board-head">
+            <strong id="ot-opening-name">Starting position</strong>
+            <span id="ot-opening-eco" class="ot-eco-pill">ECO —</span>
+          </div>
+          <div id="ot-board" class="ot-board-frame" aria-label="Interactive chessboard"></div>
+          <div class="ot-board-foot">
+            <span id="ot-turn">White to move</span>
+            <span id="ot-ply">Move 1</span>
+          </div>
+          <p class="ot-board-notice" id="ot-notice" role="status" aria-live="polite">Explore an opening by moving a piece or choosing an ECO line.</p>
+        </section>
+
+        <aside class="ot-panel" aria-label="Opening study workspace">
+          <div class="ot-panel-head">
+            <div class="ot-tabs" role="tablist" aria-label="Opening Trainer views">
+              <button type="button" role="tab" data-ot-tab="analysis" id="ot-tab-analysis" aria-selected="true" tabindex="0" aria-controls="ot-panel-analysis">Analysis</button>
+              <button type="button" role="tab" data-ot-tab="practice" id="ot-tab-practice" aria-selected="false" tabindex="-1" aria-controls="ot-panel-practice">Practice</button>
+              <button type="button" role="tab" data-ot-tab="games" id="ot-tab-games" aria-selected="false" tabindex="-1" aria-controls="ot-panel-games">Games</button>
+              <button type="button" role="tab" data-ot-tab="opening" id="ot-tab-opening" aria-selected="false" tabindex="-1" aria-controls="ot-panel-opening">Opening</button>
+              <button type="button" role="tab" data-ot-tab="wikibook" id="ot-tab-wikibook" aria-selected="false" tabindex="-1" aria-controls="ot-panel-wikibook">WikiBook</button>
+            </div>
+            <div class="ot-engine-strip" aria-live="polite">
+              <span id="ot-engine-score" class="ot-eval-score">Engine off</span>
+              <span id="ot-engine-line" class="ot-engine-pv">Turn on Analysis for Stockfish evaluations.</span>
+            </div>
+          </div>
+
+          <div class="ot-panel-body" id="ot-panel-scroll">
+            <section role="tabpanel" id="ot-panel-analysis" aria-labelledby="ot-tab-analysis" data-ot-panel="analysis">
+              <div class="ot-section-title"><div><small>STUDY THE LINE</small><h2>Analysis</h2></div><button type="button" id="ot-reset" class="ot-quiet">New study</button></div>
+              <p class="ot-hint">Move freely to explore. Go back and play a different move to create a variation.</p>
+              <div class="ot-notation" id="ot-analysis-notation" aria-label="Analysis notation">No moves yet.</div>
+              <div class="ot-inline-actions">
+                <button type="button" id="ot-save" class="ot-secondary">Save</button>
+                <button type="button" id="ot-save-train" class="ot-primary">Save &amp; Train</button>
+              </div>
+              <div class="ot-options">
+                <label><input type="checkbox" id="ot-auto-wiki" checked> Auto-open WikiBook when exact theory is available</label>
+                <label><input type="checkbox" id="ot-lock-tab"> Lock current tab</label>
+              </div>
+              <p class="ot-hint">Stockfish arrows are suggestions, not mandatory repertoire moves.</p>
+            </section>
+
+            <section role="tabpanel" id="ot-panel-practice" aria-labelledby="ot-tab-practice" data-ot-panel="practice" hidden>
+              <div class="ot-section-title"><div><small>LEARN BY RECALL</small><h2>Practice</h2></div></div>
+              <div id="ot-practice-library">
+                <p class="ot-hint">Choose a saved repertoire. CAISSA plays the opposite side; you reproduce your opening from memory.</p>
+                <div id="ot-repertoire-list" class="ot-list"></div>
+                <p class="ot-hint">Pilot saves are stored only in this browser. They are not synced with your CAISSA account.</p>
+              </div>
+              <div id="ot-practice-session" hidden>
+                <div class="ot-practice-status" id="ot-practice-status" role="status"></div>
+                <div class="ot-inline-actions">
+                  <button type="button" id="ot-practice-hint" class="ot-secondary">Hint</button>
+                  <button type="button" id="ot-practice-replay" class="ot-secondary">Replay</button>
+                  <button type="button" id="ot-practice-stop" class="ot-quiet">Back to saved openings</button>
+                </div>
+                <p class="ot-hint" id="ot-practice-score"></p>
+              </div>
+            </section>
+
+            <section role="tabpanel" id="ot-panel-games" aria-labelledby="ot-tab-games" data-ot-panel="games" hidden>
+              <div class="ot-section-title"><div><small>HISTORICAL PGN</small><h2>Games</h2></div></div>
+              <label class="ot-search-label" for="ot-game-search">Search opening collections</label>
+              <input id="ot-game-search" class="ot-search" type="search" placeholder="Sicilian, Alekhine, Caro-Kann..." autocomplete="off">
+              <div class="ot-subtabs" role="group" aria-label="Games view">
+                <button type="button" id="ot-games-list-tab" aria-pressed="true">Games</button>
+                <button type="button" id="ot-games-notation-tab" aria-pressed="false">Notation</button>
+              </div>
+              <div id="ot-games-list">
+                <p class="ot-hint" id="ot-games-message">Select an opening collection to load up to ten preview games.</p>
+                <div id="ot-game-categories" class="ot-list"></div>
+                <div id="ot-game-results" class="ot-list"></div>
+              </div>
+              <div id="ot-games-notation" hidden>
+                <div id="ot-game-title" class="ot-game-title">Select a game first.</div>
+                <div id="ot-game-moves" class="ot-notation"></div>
+                <button type="button" id="ot-back-games" class="ot-secondary">Back to games</button>
+              </div>
+              <p class="ot-hint">Source: CAISSA PGN Opening Library (PGN Mentor collections). Results are an up-to-ten preview from the selected page.</p>
+            </section>
+
+            <section role="tabpanel" id="ot-panel-opening" aria-labelledby="ot-tab-opening" data-ot-panel="opening" hidden>
+              <div class="ot-subtabs" role="group" aria-label="Opening explorer mode">
+                <button type="button" id="ot-eco-mode" aria-pressed="true">Chess ECO Codes Database</button>
+                <button type="button" id="ot-explorer-mode" aria-pressed="false">CAISSA Explorer</button>
+              </div>
+              <div id="ot-eco-content">
+                <div class="ot-section-title"><div><small>CANONICAL ECO CATALOG</small><h2>Choose an opening</h2></div></div>
+                <label class="ot-search-label" for="ot-eco-search">Search name or ECO code</label>
+                <input id="ot-eco-search" class="ot-search" type="search" autocomplete="off" placeholder="Ruy Lopez, Sicilian, C60...">
+                <p class="ot-hint" id="ot-eco-count">Loading ECO codes...</p>
+                <div id="ot-eco-results" class="ot-list"></div>
+              </div>
+              <div id="ot-explorer-content" hidden>
+                <div class="ot-section-title"><div><small>POSITION-AWARE</small><h2>CAISSA Explorer</h2></div></div>
+                <p class="ot-hint">Explore candidate continuations found in CAISSA's ECO catalog, starting from the exact played sequence.</p>
+                <div id="ot-continuations" class="ot-list"></div>
+                <a class="ot-text-link" href="/opening-database">Open full Opening Database for millions-of-games statistics ↗</a>
+              </div>
+            </section>
+
+            <section role="tabpanel" id="ot-panel-wikibook" aria-labelledby="ot-tab-wikibook" data-ot-panel="wikibook" hidden>
+              <div class="ot-section-title"><div><small>CHESS OPENING THEORY</small><h2>WikiBook</h2></div></div>
+              <p id="ot-wiki-status" class="ot-hint" role="status">Move along an opening to read its theory.</p>
+              <div id="ot-wiki-copy" class="ot-wiki-copy"></div>
+              <div class="ot-wiki-attribution">
+                <a id="ot-wiki-source" href="https://en.wikibooks.org/wiki/Chess_Opening_Theory" target="_blank" rel="noopener noreferrer">Read original article on Wikibooks ↗</a>
+                <span>Adapted text excerpts from Wikibooks contributors (formatting and omissions) · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA</a> · content may change upstream.</span>
+              </div>
+            </section>
+          </div>
+
+          <footer class="ot-panel-foot-wrap" aria-label="Persistent board controls">
+            <div class="ot-panel-foot">
+              <div class="ot-foot-left">
+                <button type="button" id="ot-flip" title="Flip board" aria-label="Flip board">⇅ <span>Flip</span></button>
+                <button type="button" id="ot-engine-toggle" title="Toggle engine" aria-pressed="false">⚙ <span>Engine</span></button>
+              </div>
+              <div class="ot-foot-right" role="group" aria-label="Navigate moves">
+                <button type="button" id="ot-first" title="First position" aria-label="First position">|◀</button>
+                <button type="button" id="ot-prev" title="Previous move" aria-label="Previous move">◀</button>
+                <button type="button" id="ot-next" title="Next move" aria-label="Next move">▶</button>
+                <button type="button" id="ot-last" title="Last position" aria-label="Last position">▶|</button>
+              </div>
+            </div>
+          </footer>
+        </aside>
+      </div>
+    
+      <dialog id="ot-save-dialog" class="ot-save-dialog" aria-labelledby="ot-save-title">
+        <form method="dialog" id="ot-save-form">
+          <p class="ot-eyebrow">MY OPENING REPERTOIRE</p>
+          <h2 id="ot-save-title">Save this opening</h2>
+          <p class="ot-hint">Keep what you explored and decide which side you want to memorize.</p>
+          <label for="ot-save-name">Opening name</label>
+          <input type="text" id="ot-save-name" maxlength="100" required>
+          <label for="ot-save-side">Which side will you train?</label>
+          <select id="ot-save-side"><option value="white">White</option><option value="black">Black</option></select>
+          <label for="ot-save-scope">Save</label>
+          <select id="ot-save-scope"><option value="line">Current line</option><option value="branches">Current line and explored variations</option></select>
+          <p class="ot-hint">Saved locally on this browser in the development pilot.</p>
+          <div class="ot-inline-actions">
+            <button type="button" id="ot-confirm-save" class="ot-secondary">Save</button>
+            <button type="button" id="ot-confirm-save-train" class="ot-primary">Save &amp; Train</button>
+            <button type="button" id="ot-save-cancel" class="ot-quiet">Cancel</button>
+          </div>
+          <p id="ot-save-error" class="ot-save-error" role="alert" hidden></p>
+        </form>
+      </dialog>
+
+    </main>
+  </div>
+</body>
+</html>

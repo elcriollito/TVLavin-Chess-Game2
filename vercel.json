@@ -55,6 +55,14 @@
     { "source": "/watch/lichess-broadcasts/", "destination": "/watch/live-tournaments", "permanent": true }
   ],
   "rewrites": [
+    {
+      "source": "/opening-trainer",
+      "destination": "/opening-trainer.html"
+    },
+    {
+      "source": "/opening-trainer/",
+      "destination": "/opening-trainer.html"
+    },
     { "source": "/", "destination": "/home.html" },
     { "source": "/mentor", "destination": "/mentor.html" },
     { "source": "/mentor/", "destination": "/mentor.html" },
