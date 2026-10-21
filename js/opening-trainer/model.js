@@ -171,7 +171,9 @@ export function newTrainingSession(repertoire, pathIndex=0) {
   const canonical=[];
   for (const step of path) {
     const uci=step.uci;
-    const move=game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});
+    let move=null;
+    try {move=game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});}
+    catch (_) {move=null;}
     if (!move) throw new Error('Saved moves contain an illegal continuation.');
     canonical.push({san:move.san,uci,fen:game.fen(),color:move.color});
   }
