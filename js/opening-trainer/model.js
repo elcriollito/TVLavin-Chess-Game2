@@ -196,7 +196,6 @@ export function attemptTrainingMove(session, attempt) {
   if (!session || session.done) return {ok:false,reason:'Training finished.'};
   const expected=session.path[session.ply];
   if (!expected || expected.color !== (session.side==='white'?'w':'b')) return {ok:false,reason:'CAISSA is to move.'};
-  const before=session.game.fen();
   let move=null;
   try {move=session.game.move({
     from:attempt.from,to:attempt.to,promotion:String(attempt.promotion||'q').toLowerCase()
@@ -204,7 +203,7 @@ export function attemptTrainingMove(session, attempt) {
   if (!move) return {ok:false,reason:'Illegal move — try again.'};
   const uci=move.from+move.to+(move.promotion||'');
   if (uci!==expected.uci) {
-    session.game.load(before);
+    session.game.undo();
     session.misses+=1;
     return {ok:false,reason:'Legal move, but not part of the saved line. Try again or ask for a hint.'};
   }
