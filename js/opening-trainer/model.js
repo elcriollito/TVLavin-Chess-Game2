@@ -139,22 +139,24 @@ export function isRepertoire(value) {
         && typeof move?.san==='string' && move.san.length<20));
 }
 
-export function readRepertoires(storage = globalThis.localStorage) {
+export function readRepertoires(storage) {
   try {
-    const text=storage?.getItem(REPERTOIRE_KEY);
+    const safeStorage=storage ?? globalThis.localStorage;
+    const text=safeStorage?.getItem(REPERTOIRE_KEY);
     if (!text || text.length>500000) return [];
     const parsed=JSON.parse(text);
     return Array.isArray(parsed) ? parsed.filter(isRepertoire).slice(0,STORAGE_LIMIT) : [];
   } catch (_) {return [];}
 }
 
-export function storeRepertoire(repertoire, storage = globalThis.localStorage) {
+export function storeRepertoire(repertoire, storage) {
   if (!isRepertoire(repertoire)) return {ok:false,reason:'Invalid repertoire.'};
-  const previous=readRepertoires(storage);
-  const updated=[repertoire,...previous.filter(x=>x.id!==repertoire.id)].slice(0,STORAGE_LIMIT);
   try {
-    if (!storage) return {ok:false,reason:'Browser storage is not available.'};
-    storage.setItem(REPERTOIRE_KEY,JSON.stringify(updated));
+    const safeStorage=storage ?? globalThis.localStorage;
+    if (!safeStorage) return {ok:false,reason:'Browser storage is not available.'};
+    const previous=readRepertoires(safeStorage);
+    const updated=[repertoire,...previous.filter(x=>x.id!==repertoire.id)].slice(0,STORAGE_LIMIT);
+    safeStorage.setItem(REPERTOIRE_KEY,JSON.stringify(updated));
     return {ok:true,items:updated};
   } catch (_) {
     return {ok:false,reason:'This browser could not save the repertoire.'};
