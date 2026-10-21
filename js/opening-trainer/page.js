@@ -421,6 +421,7 @@ function selectTab(tab,{focus=false,fromUser=false}={}){
   if(!['analysis','practice','games','opening','wikibook'].includes(tab))return;
   const previous=state.tab;
   state.tab=tab;
+  if(tab==='practice'&&state.training&&state.engineOn)disableEngine();
   document.querySelectorAll('[data-ot-tab]').forEach(button=>{
     const isActive=button.dataset.otTab===tab;
     button.setAttribute('aria-selected',String(isActive));
