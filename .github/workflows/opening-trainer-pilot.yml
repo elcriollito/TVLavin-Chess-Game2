@@ -1,16 +1,5 @@
 name: CAISSA Opening Trainer Pilot
 on:
-  push:
-    branches:
-      - season/caissa-opening-trainer-v1
-    paths:
-      - opening-trainer.html
-      - css/opening-trainer.css
-      - js/opening-trainer/**
-      - tests/opening-trainer-model.test.js
-      - tests/browser/opening-trainer.spec.js
-      - vercel.json
-      - .github/workflows/opening-trainer-pilot.yml
   pull_request:
     paths:
       - opening-trainer.html
@@ -18,6 +7,7 @@ on:
       - js/opening-trainer/**
       - tests/opening-trainer-model.test.js
       - vercel.json
+      - .github/workflows/opening-trainer-pilot.yml
 permissions:
   contents: read
 jobs:
