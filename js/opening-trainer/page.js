@@ -10,7 +10,7 @@ import { loadWikibook } from './wikibook.js';
 const $=id=>document.getElementById(id);
 const study=new OpeningStudy();
 const state={
-  tab:'analysis',orientation:'white',training:null,activeRepertoire:null,
+  tab:'analysis',orientation:'white',prePracticeOrientation:null,training:null,activeRepertoire:null,
   ecoRows:[],gameCollections:[],games:[],selectedCollection:null,selectedGame:null,
   gameSubtab:'games',openingSubtab:'eco',repertoires:readRepertoires(),
   opening:{name:'Starting position',eco:''},engine:null,engineOn:false,engineLines:[],
@@ -93,6 +93,7 @@ function renderFooter(){
   $('ot-next').disabled=trainingActive||!node.preferred;
   $('ot-last').disabled=trainingActive||!node.preferred;
   $('ot-engine-toggle').setAttribute('aria-pressed',String(state.engineOn));
+  $('ot-engine-toggle').disabled=trainingActive;
   board.setInteractive(state.tab!=='games'&&(state.tab!=='practice'||trainingActive));
 }
 function renderBoard(){
@@ -143,6 +144,7 @@ function disableEngine(){
   renderFooter();
 }
 async function enableEngine(){
+  if(state.tab==='practice'&&state.training){notice('Engine hints are disabled during memory recall. Return to Analysis to evaluate moves.');return;}
   if(state.engineOn)return;
   state.engineOn=true;
   if(!state.engine)state.engine=new PgnAnalysisEngine({
@@ -292,9 +294,13 @@ function startTraining(repertoire,side=repertoire.side){
   try{
     const source={...repertoire,side};
     const pathIndex=Math.floor(Math.random()*source.paths.length);
-    state.training=newTrainingSession(source,pathIndex);
+    const nextTraining=newTrainingSession(source,pathIndex);
+    advanceOpponent(nextTraining);
+    if(!state.training)state.prePracticeOrientation=state.orientation;
+    state.training=nextTraining;
     state.activeRepertoire=source;
-    advanceOpponent(state.training);
+    state.orientation=side;
+    board.setOrientation(side);
     disableEngine(); // no hints from Stockfish while memorizing
     selectTab('practice');
     $('ot-practice-library').hidden=true;
@@ -307,6 +313,11 @@ function startTraining(repertoire,side=repertoire.side){
 }
 function stopTraining(){
   state.training=null;state.activeRepertoire=null;
+  if(state.prePracticeOrientation){
+    state.orientation=state.prePracticeOrientation;
+    board.setOrientation(state.orientation);
+    state.prePracticeOrientation=null;
+  }
   $('ot-practice-session').hidden=true;
   $('ot-practice-library').hidden=false;
   board.clearHighlights();
