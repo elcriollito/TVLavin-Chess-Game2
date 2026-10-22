@@ -6,14 +6,14 @@ import { TrainingSession } from './training-session.js';
 import { buildOpeningIndex, parseCatalogMoves } from './opening-index.js';
 import { WikiBookClient } from './wikibook-client.js';
 import { OpeningGamesClient } from './games-client.js';
-import { RepertoireCloudSync } from './repertoire-cloud-sync.js';
+import { AnalysisDraftStore } from './analysis-draft-store.js';
 import { buildPairedTreeRows } from './analysis-tree-rows.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const TREE_API = window.CaissaAnalyzeVariationTree;
 if (!TREE_API?.create) throw new Error('CAISSA Analysis Tree is unavailable.');
 const readEnginePreference = () => {
-    try { return localStorage.getItem('caissa.opening-trainer.engine-enabled') !== 'false'; }
+    try { return sessionStorage.getItem('caissa.opening-trainer.engine-enabled') !== 'false'; }
     catch { return true; }
 };
 
@@ -100,9 +100,9 @@ const els = {
 };
 
 const repertoireStore = new SavedRepertoireStore();
+const analysisDraftStore = new AnalysisDraftStore();
 const wikiClient = new WikiBookClient();
 const gamesClient = new OpeningGamesClient();
-const cloudSync = new RepertoireCloudSync();
 const explorerClient = createExplorerClient({
     fetchFn: async (url, options) => {
         const response = await fetch(url, options);
@@ -145,11 +145,8 @@ let toastTimer = null;
 let workspaceGeneration = 0;
 let lastSavedStudyFingerprint = '';
 let repertoireIdentity = null;
-let repertoireIdentityGeneration = 0;
-let repertoireSyncAbort = null;
 let unsubscribeAuth = null;
 let runtimeInitialized = false;
-const analysisDraftsByIdentity = new Map();
 
 function toast(message) {
     els.toast.textContent = message;
@@ -365,10 +362,10 @@ function updateSaveControls() {
     els.save.disabled = !enabled;
     els.saveTrain.disabled = !enabled;
     const reason = !repertoireStore.isReady
-        ? 'Loading your private repertoire workspace…'
+        ? 'Loading your session workspace…'
         : enabled
-        ? `${lines.length} selected ${lines.length === 1 ? 'variation' : 'variations'} ready · ${els.repertoireColor.value === 'black' ? 'Black' : 'White'}.`
-        : 'Play or load a legal opening line to enable Save.';
+        ? `Saved for this session · ${lines.length} selected ${lines.length === 1 ? 'variation' : 'variations'} ready · ${els.repertoireColor.value === 'black' ? 'Black' : 'White'}.`
+        : 'Saved for this session only · Play or load a legal opening line to enable Save.';
     els.saveReason.textContent = reason;
     els.save.title = enabled ? 'Save the selected analysis variations' : reason;
     els.saveTrain.title = enabled ? 'Save the selected variations and open Practice' : reason;
@@ -387,10 +384,10 @@ function saveRepertoire({ train = false } = {}) {
             lines
         });
         lastSavedStudyFingerprint = studyFingerprint();
+        captureAnalysisDraft(repertoireIdentity);
         updateSaveControls();
         renderRepertoireOptions(saved.id);
-        pushCurrentRepertoire(saved);
-        toast(`Saved ${saved.lines.length} ${saved.lines.length === 1 ? 'line' : 'lines'} to ${saved.name}.`);
+        toast(`Saved for this session: ${saved.lines.length} ${saved.lines.length === 1 ? 'line' : 'lines'} in ${saved.name}.`);
         if (train) {
             pendingPracticeRepertoireId = saved.id;
             els.saveTrainSummary.textContent = `${saved.name} contains ${saved.lines.length} ${saved.lines.length === 1 ? 'variation' : 'variations'}.`;
@@ -489,6 +486,7 @@ function renderTree() {
         checkbox.addEventListener('change', () => {
             if (checkbox.checked) selectedLineNodes.add(paired.selectionNodeId);
             else selectedLineNodes.delete(paired.selectionNodeId);
+            captureAnalysisDraft(repertoireIdentity);
             updateSaveControls();
         });
         include.append(checkbox);
@@ -550,13 +548,13 @@ function renderRepertoireOptions(preferredId = '') {
     const previous = preferredId || els.repertoireSelect.value;
     els.repertoireSelect.replaceChildren();
     if (!repertoireStore.isReady) {
-        els.repertoireSelect.add(new Option('Loading private repertoires…', ''));
+        els.repertoireSelect.add(new Option('Loading session repertoires…', ''));
         els.startPractice.disabled = true;
         renderLineOptions();
         return;
     }
     if (!repertoires.length) {
-        els.repertoireSelect.add(new Option('No saved repertoires', ''));
+        els.repertoireSelect.add(new Option('No session repertoires', ''));
         els.startPractice.disabled = true;
         if (!trainingSession) setPracticeColor('white');
         renderLineOptions();
@@ -629,8 +627,7 @@ function renderPractice(message = '') {
     els.reveal.disabled = state.completed;
     els.nextLine.disabled = !trainingSession.snapshot.lines.length;
     if (state.completed && !trainingRecorded) {
-        const updated = repertoireStore.recordSession(state.repertoireId, trainingSession.result());
-        if (updated) pushCurrentRepertoire(updated);
+        repertoireStore.recordSession(state.repertoireId, trainingSession.result());
         trainingRecorded = true;
         renderRepertoireOptions(state.repertoireId);
     }
@@ -813,7 +810,7 @@ function analyzeCurrentPosition() {
 
 function toggleEngine() {
     engineEnabled = !engineEnabled;
-    try { localStorage.setItem('caissa.opening-trainer.engine-enabled', String(engineEnabled)); } catch { /* preference remains session-only */ }
+    try { sessionStorage.setItem('caissa.opening-trainer.engine-enabled', String(engineEnabled)); } catch { /* preference remains in memory */ }
     els.engineToggle.setAttribute('aria-pressed', String(engineEnabled));
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
@@ -1177,14 +1174,13 @@ function analysisDraftKey(identity) {
 }
 
 function captureAnalysisDraft(identity) {
-    const key = analysisDraftKey(identity);
-    if (!key) return;
+    if (!analysisDraftKey(identity)) return;
     const snapshot = tree.inspect();
     if (snapshot.nodes.length <= 1) {
-        analysisDraftsByIdentity.delete(key);
+        analysisDraftStore.remove(identity);
         return;
     }
-    analysisDraftsByIdentity.set(key, Object.freeze({
+    analysisDraftStore.set(identity, Object.freeze({
         schemaVersion: 'CaissaOpeningTrainerDraft@1.0.0',
         nodes: Object.freeze(snapshot.nodes
             .filter(node => node.id !== 'root')
@@ -1198,8 +1194,7 @@ function captureAnalysisDraft(identity) {
 }
 
 function analysisDraftFor(identity) {
-    const key = analysisDraftKey(identity);
-    return key ? analysisDraftsByIdentity.get(key) || null : null;
+    return analysisDraftKey(identity) ? analysisDraftStore.get(identity) : null;
 }
 
 function buildAnalysisDraftState(draft, { fallbackOrientation, fallbackColor }) {
@@ -1282,8 +1277,7 @@ function resetWorkspace({
     // cancel Quiet Drag's captured pointer.
     board?.setInteractive(false);
     if (!identityBoundary) {
-        const key = analysisDraftKey(repertoireIdentity);
-        if (key) analysisDraftsByIdentity.delete(key);
+        analysisDraftStore.remove(repertoireIdentity);
     }
     workspaceGeneration += 1;
     wikiAbort?.abort();
@@ -1365,7 +1359,7 @@ function resetWorkspace({
     if (focusOpening && targetTab === 'opening') els.ecoSearch.focus({ preventScroll: true });
     if (els.wikiAuto.checked) syncWiki();
     if (engineEnabled && runtimeInitialized) initEngine();
-    if (notify) toast('New opening workspace ready. Saved repertoires were preserved.');
+    if (notify) toast('New opening workspace ready. Session repertoires were preserved.');
 }
 
 function requestNewStudy() {
@@ -1445,6 +1439,7 @@ function afterAnalysisPositionChanged({ keepWikiArticle = false } = {}) {
     if (!keepWikiArticle) syncWiki({ autoOpen: true });
     if (document.querySelector('[data-opening-panel="explorer"]')?.hidden === false) refreshExplorer();
     analyzeCurrentPosition();
+    captureAnalysisDraft(repertoireIdentity);
 }
 
 function navigateTree(action) {
@@ -1500,7 +1495,10 @@ function bindEvents() {
     els.newStudy.addEventListener('click', requestNewStudy);
     els.save.addEventListener('click', () => saveRepertoire());
     els.saveTrain.addEventListener('click', () => saveRepertoire({ train: true }));
-    els.repertoireColor.addEventListener('change', updateSaveControls);
+    els.repertoireColor.addEventListener('change', () => {
+        updateSaveControls();
+        captureAnalysisDraft(repertoireIdentity);
+    });
     els.repertoireSelect.addEventListener('change', renderLineOptions);
     els.startPractice.addEventListener('click', () => startPractice());
     [els.practicePlayWhite, els.practicePlayBlack].forEach(input => {
@@ -1538,7 +1536,10 @@ function bindEvents() {
     els.flip.addEventListener('click', () => {
         const next = board.getOrientation() === 'white' ? 'black' : 'white';
         board.setOrientation(next);
-        if (activeTab !== 'practice') analysisOrientation = next;
+        if (activeTab !== 'practice') {
+            analysisOrientation = next;
+            captureAnalysisDraft(repertoireIdentity);
+        }
     });
     els.engineToggle.addEventListener('click', toggleEngine);
     els.engineStripToggle.addEventListener('click', toggleEngine);
@@ -1564,7 +1565,7 @@ function bindEvents() {
     els.next.addEventListener('click', () => navigateTree('next'));
     els.last.addEventListener('click', () => navigateTree('last'));
     window.addEventListener('beforeunload', () => {
-        repertoireSyncAbort?.abort();
+        captureAnalysisDraft(repertoireIdentity);
         unsubscribeAuth?.();
         engine?.terminate();
         explorerClient.cancel();
@@ -1604,40 +1605,6 @@ function clearVisibleRepertoireState({ analysisDraft = null } = {}) {
     if (els.saveTrainDialog.open) els.saveTrainDialog.close('identity-change');
 }
 
-function identityMatches(userId, generation) {
-    return repertoireIdentity?.kind === 'user'
-        && repertoireIdentity.id === userId
-        && repertoireIdentityGeneration === generation;
-}
-
-function pushCurrentRepertoire(repertoire) {
-    if (repertoireIdentity?.kind !== 'user') return;
-    const userId = repertoireIdentity.id;
-    const generation = repertoireIdentityGeneration;
-    const signal = repertoireSyncAbort?.signal;
-    void cloudSync.push(repertoire, { userId, signal }).then(result => {
-        if (!identityMatches(userId, generation) || result.userId !== userId) return;
-        if (!result.ok && !['offline', 'identity-changed'].includes(result.status)) {
-            console.warn('[opening-trainer] repertoire sync was rejected', result.status);
-        }
-    });
-}
-
-async function syncCloudRepertoires({ userId, generation, signal }) {
-    try {
-        const result = await cloudSync.pull({ userId, signal });
-        if (!result.ok || result.userId !== userId || !identityMatches(userId, generation)) return;
-        repertoireStore.mergeRemote(result.repertoires);
-        if (!identityMatches(userId, generation)) return;
-        renderRepertoireOptions();
-        await Promise.allSettled(repertoireStore.list().map(repertoire => (
-            cloudSync.push(repertoire, { userId, signal })
-        )));
-    } catch {
-        // Local persistence remains authoritative when authentication or cloud sync is unavailable.
-    }
-}
-
 function applyRepertoireIdentity(auth) {
     if (!auth?.isLoaded) return;
     const next = auth.isSignedIn && auth.userId
@@ -1646,10 +1613,6 @@ function applyRepertoireIdentity(auth) {
     if (repertoireIdentity?.kind === next.kind && repertoireIdentity?.id === next.id) return;
 
     captureAnalysisDraft(repertoireIdentity);
-    repertoireSyncAbort?.abort();
-    repertoireSyncAbort = new AbortController();
-    repertoireIdentityGeneration += 1;
-    const generation = repertoireIdentityGeneration;
     repertoireStore.clearIdentity();
     repertoireIdentity = null;
     renderRepertoireOptions();
@@ -1658,7 +1621,6 @@ function applyRepertoireIdentity(auth) {
     try {
         repertoireIdentity = repertoireStore.setIdentity(next);
     } catch {
-        repertoireSyncAbort.abort();
         clearVisibleRepertoireState();
         renderRepertoireOptions();
         return;
@@ -1666,24 +1628,22 @@ function applyRepertoireIdentity(auth) {
     clearVisibleRepertoireState({ analysisDraft: analysisDraftFor(repertoireIdentity) });
     renderRepertoireOptions();
     updateSaveControls();
-    if (repertoireIdentity.kind === 'user') {
-        void syncCloudRepertoires({
-            userId: repertoireIdentity.id,
-            generation,
-            signal: repertoireSyncAbort.signal
-        });
-    }
 }
 
 function bindRepertoireIdentity() {
     const auth = window.CAISSA_AUTH;
-    if (!auth) return;
+    if (!auth) {
+        applyRepertoireIdentity({ isLoaded: true, isSignedIn: false, userId: null });
+        return;
+    }
     if (typeof auth.onAuthStateChange === 'function') {
         unsubscribeAuth = auth.onAuthStateChange(next => applyRepertoireIdentity(next));
     }
     if (auth.isLoaded) applyRepertoireIdentity(auth);
     else if (typeof auth.whenReady === 'function') {
-        void auth.whenReady().then(next => applyRepertoireIdentity(next));
+        void auth.whenReady()
+            .then(next => applyRepertoireIdentity(next))
+            .catch(() => applyRepertoireIdentity({ isLoaded: true, isSignedIn: false, userId: null }));
     }
 }
 
@@ -1726,7 +1686,7 @@ function exposeQaApi() {
         requestNewStudy,
         resetWorkspace,
         destroy: () => {
-            repertoireSyncAbort?.abort();
+            captureAnalysisDraft(repertoireIdentity);
             unsubscribeAuth?.();
             engine?.terminate();
             explorerClient.cancel();

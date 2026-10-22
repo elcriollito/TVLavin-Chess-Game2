@@ -11,6 +11,11 @@ const STAGING_PROJECT_REF = 'aqizagaskicotorfpwfn';
 const PRODUCTION_PROJECT_REF = 'jczauvkfkweuvdpurpem';
 const integer = value => Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : 0;
 
+export function isOpeningTrainerCloudEnabled(env = process.env) {
+    return env.CAISSA_OPENING_TRAINER_STORAGE_MODE === 'cloud-v2'
+        && env.CAISSA_OPENING_TRAINER_CLOUD_V2_ENABLED === 'true';
+}
+
 function projectRefFromUrl(value) {
     try {
         const host = new URL(String(value || '')).hostname;
@@ -146,6 +151,12 @@ async function resolveUserId(supabase, clerkId) {
 export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['GET', 'PUT', 'DELETE'])) return;
     res.setHeader('Cache-Control', 'private, no-store');
+    const cloudEnabled = dependencies.isCloudEnabled
+        ? dependencies.isCloudEnabled()
+        : isOpeningTrainerCloudEnabled();
+    if (!cloudEnabled) {
+        return res.status(404).json({ code: 'OPENING_TRAINER_CLOUD_DISABLED', error: 'Not found' });
+    }
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (!['GET', 'PUT', 'DELETE'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
     const auth = await (dependencies.verifyAuth || verifyAuth)(req);

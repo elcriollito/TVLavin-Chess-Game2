@@ -6,8 +6,7 @@ const ROUTE = '/opening-trainer';
 async function openTrainer(page, { mobile = false, engineEnabled = false, wikiRoute = null } = {}) {
     await page.addInitScript(({ enabled }) => {
         localStorage.setItem('caissa_onboarding_completed', 'true');
-        localStorage.setItem('caissa.opening-trainer.engine-enabled', String(enabled));
-        localStorage.removeItem('caissa.opening-trainer.repertoires.v1');
+        sessionStorage.setItem('caissa.opening-trainer.engine-enabled', String(enabled));
     }, { enabled: engineEnabled });
     await page.route('**/w/api.php**', wikiRoute || (route => route.fulfill({
         status: 200,
@@ -269,7 +268,68 @@ test('Save & Train creates a protected memory session with retry, hint, reveal a
     expect(state.training.userColor).toBe('w');
 });
 
-test('persistent Save and Save & Train work from every primary tab without losing the selected line', async ({ page }) => {
+test('guest Save & Train is session-only across reload and absent from an independent browser session', async ({ page, browser }) => {
+    await page.route('**/js/caissa-auth.js*', route => route.fulfill({
+        status: 200,
+        contentType: 'text/javascript',
+        body: 'delete window.CAISSA_AUTH;'
+    }));
+    let repertoireApiRequests = 0;
+    await page.route('**/api/opening-trainer/repertoires**', route => {
+        repertoireApiRequests += 1;
+        return route.fulfill({ status: 500, body: 'must not be called' });
+    });
+    await page.addInitScript(() => {
+        localStorage.setItem('caissa.opening-trainer.repertoires.v1', '[{"id":"persistent-v1"}]');
+        localStorage.setItem('caissa.opening-trainer.repertoires.v2:guest', '[{"id":"persistent-v2"}]');
+    });
+    await openTrainer(page);
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.kind)).toBe('guest');
+    const localBefore = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+    await page.evaluate(() => {
+        document.querySelector('#trainerWikiAuto').checked = false;
+        window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'c5', 'Nf3']);
+    });
+    await page.locator('#trainerRepertoireColor').selectOption('black');
+    await page.locator('#trainerSaveTrainButton').click();
+    await expect(page.locator('#trainerSaveTrainDialog')).toBeVisible();
+    await expect(page.locator('#trainerSaveReason')).toContainText('Saved for this session');
+    await page.locator('#trainerContinueAnalysis').click();
+    expect(repertoireApiRequests).toBe(0);
+    const savedId = await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires[0].id);
+    const sessionKeysBeforeReload = await page.evaluate(() => Object.keys(sessionStorage)
+        .filter(key => key.startsWith('caissa.opening-trainer.session.')).sort());
+    expect(sessionKeysBeforeReload).toEqual([
+        'caissa.opening-trainer.session.analysis-draft.v1:guest',
+        'caissa.opening-trainer.session.repertoires.v1:guest'
+    ]);
+    expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(localBefore);
+
+    await page.reload();
+    await page.waitForFunction(() => Boolean(window.CaissaOpeningTrainer));
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.kind)).toBe('guest');
+    const reloaded = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(reloaded.repertoires.map(item => item.id)).toEqual([savedId]);
+    expect(reloaded.repertoires[0].color).toBe('black');
+    expect(reloaded.analysis.nodes.map(node => node.san).filter(Boolean)).toEqual(['e4', 'c5', 'Nf3']);
+    await expect(page.locator('.opening-trainer-tree-line-choice input:checked')).toHaveCount(1);
+    expect(repertoireApiRequests).toBe(0);
+
+    const independentContext = await browser.newContext();
+    const independentPage = await independentContext.newPage();
+    await independentPage.route('**/js/caissa-auth.js*', route => route.fulfill({
+        status: 200,
+        contentType: 'text/javascript',
+        body: 'delete window.CAISSA_AUTH;'
+    }));
+    await openTrainer(independentPage);
+    await expect.poll(() => independentPage.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.kind)).toBe('guest');
+    expect(await independentPage.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires)).toEqual([]);
+    expect((await independentPage.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.nodes))).toHaveLength(1);
+    await independentContext.close();
+});
+
+test('session Save and Save & Train work from every primary tab without losing the selected line', async ({ page }) => {
     await openTrainer(page);
     await tapMove(page, 'e2', 'e4');
     await page.locator('#trainerWikiReturn').click();
@@ -387,9 +447,7 @@ test('NEW invalidates a late PGN proxy response from the previous workspace gene
 
 test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale async work', async ({ page }) => {
     await installSyntheticAuth(page);
-    const apiCalls = [];
-    let releaseAccountA;
-    const accountAGate = new Promise(resolve => { releaseAccountA = resolve; });
+    let repertoireApiRequests = 0;
     let releaseWiki;
     const wikiGate = new Promise(resolve => { releaseWiki = resolve; });
     let markWikiStarted;
@@ -400,7 +458,6 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
     let markGamesStarted;
     const gamesStarted = new Promise(resolve => { markGamesStarted = resolve; });
     let holdGames = false;
-    let firstAccountAGet = true;
     await page.route('**/js/engine/stockfish-client.js*', route => route.fulfill({
         status: 200,
         contentType: 'text/javascript',
@@ -436,33 +493,9 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
         }
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(proxyCatalog()) });
     });
-    await page.route('**/api/opening-trainer/repertoires', async route => {
-        const request = route.request();
-        const authorization = request.headers().authorization || '';
-        const method = request.method();
-        const body = method === 'PUT' ? JSON.parse(request.postData() || '{}') : null;
-        apiCalls.push({ method, authorization, body });
-        if (method === 'GET') {
-            if (authorization === 'Bearer token-user_A' && firstAccountAGet) {
-                firstAccountAGet = false;
-                await accountAGate;
-                try {
-                    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repertoires: [{
-                        schemaVersion: 'CaissaOpeningRepertoire@1.0.0',
-                        id: 'stale-account-a', name: 'Stale Account A', color: 'white', eco: 'B00', opening: 'King Pawn',
-                        initialFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-                        lines: [[{ uci: 'e2e4', san: 'e4', color: 'w' }]],
-                        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', progress: {}
-                    }] }) });
-                } catch {
-                    // The identity switch is expected to abort this request.
-                }
-                return;
-            }
-            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repertoires: [] }) });
-            return;
-        }
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repertoire: body }) });
+    await page.route('**/api/opening-trainer/repertoires**', route => {
+        repertoireApiRequests += 1;
+        return route.fulfill({ status: 500, body: 'v1 must not call this endpoint' });
     });
     await openTrainer(page, {
         engineEnabled: true,
@@ -502,7 +535,7 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
     });
     await page.locator('#trainerSaveButton').click();
     const accountAId = await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires[0].id);
-    await expect.poll(() => apiCalls.filter(call => call.method === 'PUT' && call.authorization === 'Bearer token-user_A').length).toBe(1);
+    expect(repertoireApiRequests).toBe(0);
 
     await tapMove(page, 'e7', 'e5');
     await tapMove(page, 'g1', 'f3');
@@ -540,7 +573,6 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
     await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_B');
     await expect(page.locator('#openingTrainerBoard .caissa-board')).not.toHaveAttribute('data-quiet-drag-active', 'true');
     await page.mouse.up();
-    releaseAccountA();
     releaseWiki();
     releaseGames();
     await page.evaluate(() => window.__openingTrainerEngines[0].emit({
@@ -552,7 +584,7 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
     expect(accountBEmpty.analysis.nodes).toHaveLength(1);
     expect(accountBEmpty.unsavedStudy).toBe(false);
     expect(await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires)).toEqual([]);
-    await expect(page.locator('#trainerRepertoireSelect')).toContainText('No saved repertoires');
+    await expect(page.locator('#trainerRepertoireSelect')).toContainText('No session repertoires');
     await expect(page.locator('#trainerSaveButton')).toBeDisabled();
     await expect(page.locator('#trainerWikiContent')).not.toContainText('STALE ACCOUNT A');
     await expect(page.locator('#trainerGamesList')).not.toContainText('Stale Account A');
@@ -568,10 +600,12 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
     await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.kind)).toBe('guest');
     expect(await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires)).toEqual([]);
     await expect(page.locator('#trainerSaveButton')).toBeDisabled();
-    const cloudCallsBeforeGuestStudy = apiCalls.length;
     await tapMove(page, 'c2', 'c4');
-    await page.waitForTimeout(100);
-    expect(apiCalls.length).toBe(cloudCallsBeforeGuestStudy);
+    await page.locator('#trainerSaveButton').click();
+    const guestId = await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires[0].id);
+    expect(guestId).not.toBe(accountAId);
+    expect(guestId).not.toBe(accountBId);
+    expect(repertoireApiRequests).toBe(0);
 
     await page.evaluate(() => window.CAISSA_AUTH.__switch('user_A'));
     await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_A');
@@ -581,13 +615,27 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
     expect(restoredAccountA.analysis.nodes.some(node => node.san === 'c4')).toBe(false);
     expect(restoredAccountA.unsavedStudy).toBe(true);
     await expect(page.locator('#trainerSaveButton')).toBeEnabled();
-    const storageKeys = await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('caissa.opening-trainer.repertoires.v2')).sort());
+    const storageKeys = await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('caissa.opening-trainer.session.')).sort());
     expect(storageKeys).toEqual([
-        'caissa.opening-trainer.repertoires.v2:clerk:user_A',
-        'caissa.opening-trainer.repertoires.v2:clerk:user_B'
+        'caissa.opening-trainer.session.analysis-draft.v1:clerk:user_A',
+        'caissa.opening-trainer.session.analysis-draft.v1:clerk:user_B',
+        'caissa.opening-trainer.session.analysis-draft.v1:guest',
+        'caissa.opening-trainer.session.repertoires.v1:clerk:user_A',
+        'caissa.opening-trainer.session.repertoires.v1:clerk:user_B',
+        'caissa.opening-trainer.session.repertoires.v1:guest'
     ]);
-    expect(apiCalls.filter(call => call.method === 'PUT').every(call => !('user_id' in call.body))).toBe(true);
-    expect(apiCalls.every(call => !call.authorization.includes('guest'))).toBe(true);
+    expect(await page.evaluate(() => Object.keys(localStorage)
+        .filter(key => key.startsWith('caissa.opening-trainer.repertoires')))).toEqual([]);
+    expect(repertoireApiRequests).toBe(0);
+
+    await page.reload();
+    await page.waitForFunction(() => Boolean(window.CaissaOpeningTrainer));
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_A');
+    const sameTabReload = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(sameTabReload.repertoires.map(item => item.id)).toEqual([accountAId]);
+    expect(sameTabReload.analysis.nodes.map(node => node.san).filter(Boolean).sort()).toEqual(['Nf3', 'c5', 'e4', 'e5']);
+    await expect(page.locator('.opening-trainer-tree-line-choice input:checked')).toHaveCount(2);
+    expect(repertoireApiRequests).toBe(0);
 });
 
 test('Quiet Drag remains single-piece and responsive layout has no serious accessibility violations', async ({ page, browserName }) => {
@@ -638,7 +686,7 @@ test('real Stockfish publishes evaluation, principal variation and a best-move a
     test.skip(browserName !== 'chromium', 'One real WASM engine smoke is sufficient; cross-browser flows use deterministic UI coverage.');
     await page.addInitScript(() => {
         localStorage.setItem('caissa_onboarding_completed', 'true');
-        localStorage.setItem('caissa.opening-trainer.engine-enabled', 'true');
+        sessionStorage.setItem('caissa.opening-trainer.engine-enabled', 'true');
     });
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(ROUTE);

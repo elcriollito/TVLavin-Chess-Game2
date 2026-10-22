@@ -1,15 +1,18 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
 const SCHEMA_VERSION = 'CaissaOpeningRepertoire@1.0.0';
-// v1 did not encode an owner. Keep it quarantined until the person explicitly
-// chooses to import it into the guest workspace; it must never be claimed by a
-// signed-in account automatically.
+// Retained v2 migration constants. The v1 page never reads these persistent
+// namespaces and never imports them automatically.
 export const REPERTOIRE_STORAGE_KEY = 'caissa.opening-trainer.repertoires.v1';
 export const REPERTOIRE_STORAGE_PREFIX = 'caissa.opening-trainer.repertoires.v2';
+export const REPERTOIRE_SESSION_STORAGE_PREFIX = 'caissa.opening-trainer.session.repertoires.v1';
 const CLERK_USER_ID = /^user_[A-Za-z0-9]{1,128}$/;
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const isUci = value => /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(String(value || ''));
+const sessionStorageCapability = () => {
+    try { return globalThis.sessionStorage || null; } catch { return null; }
+};
 
 function normalizeMove(move, index) {
     const uci = String(move?.uci || `${move?.from || ''}${move?.to || ''}${move?.promotion || ''}`).toLowerCase();
@@ -83,9 +86,18 @@ export class SavedRepertoireStore {
     #identity = null;
     #memory = new Map();
     #volatileKeys = new Set();
+    #storagePrefix;
+    #legacyStorageKey;
 
-    constructor({ storage = globalThis.localStorage, identity = null } = {}) {
+    constructor({
+        storage = sessionStorageCapability(),
+        identity = null,
+        storagePrefix = REPERTOIRE_SESSION_STORAGE_PREFIX,
+        legacyStorageKey = null
+    } = {}) {
         this.#storage = storage || null;
+        this.#storagePrefix = String(storagePrefix || REPERTOIRE_SESSION_STORAGE_PREFIX);
+        this.#legacyStorageKey = legacyStorageKey ? String(legacyStorageKey) : null;
         if (identity) this.setIdentity(identity);
     }
 
@@ -100,8 +112,8 @@ export class SavedRepertoireStore {
     get storageKey() {
         if (!this.#identity) return null;
         return this.#identity.kind === 'guest'
-            ? `${REPERTOIRE_STORAGE_PREFIX}:guest`
-            : `${REPERTOIRE_STORAGE_PREFIX}:clerk:${this.#identity.id}`;
+            ? `${this.#storagePrefix}:guest`
+            : `${this.#storagePrefix}:clerk:${this.#identity.id}`;
     }
 
     setIdentity(identity) {
@@ -152,8 +164,9 @@ export class SavedRepertoireStore {
     }
 
     hasLegacyData() {
+        if (!this.#legacyStorageKey) return false;
         try {
-            const parsed = JSON.parse(this.#storage?.getItem?.(REPERTOIRE_STORAGE_KEY) || 'null');
+            const parsed = JSON.parse(this.#storage?.getItem?.(this.#legacyStorageKey) || 'null');
             return Array.isArray(parsed) && parsed.some(item => item?.schemaVersion === SCHEMA_VERSION);
         } catch {
             return false;
@@ -162,11 +175,12 @@ export class SavedRepertoireStore {
 
     importLegacyToGuest({ consent = false } = {}) {
         this.#assertReady();
+        if (!this.#legacyStorageKey) throw new Error('Legacy repertoire import is not enabled for this session store.');
         if (this.#identity.kind !== 'guest') throw new Error('Legacy data can only be imported into the guest workspace.');
         if (consent !== true) throw new Error('Explicit consent is required to import legacy repertoire data.');
         let legacy = [];
         try {
-            const parsed = JSON.parse(this.#storage?.getItem?.(REPERTOIRE_STORAGE_KEY) || '[]');
+            const parsed = JSON.parse(this.#storage?.getItem?.(this.#legacyStorageKey) || '[]');
             legacy = Array.isArray(parsed) ? parsed : [];
         } catch {
             legacy = [];

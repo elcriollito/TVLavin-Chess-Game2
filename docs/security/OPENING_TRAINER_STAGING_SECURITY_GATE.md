@@ -2,75 +2,42 @@
 
 Date: 2026-10-21
 Branch: `feature/opening-trainer-v1`
-Scope: Preview and read-only staging inspection. Production is out of scope.
+Scope: session-only v1 Preview and preservation of review-only v2 artifacts. Production is out of scope.
 
 ## Gate decision
 
-The application-side identity remediation is ready for review. The database gate remains closed: no DDL was applied and no staging row was created, changed, or deleted. Cloud repertoire operations fail closed in Preview until a human approves the migration and the exact branch-scoped boundary variables are configured.
+Opening Trainer v1 no longer depends on Supabase. User-created analysis, saved repertoires, selected variations, training color and completed-session progress stay in identity-scoped browser `sessionStorage`, with in-memory fallback. The browser runtime makes no request to `/api/opening-trainer/repertoires`.
 
-## Read-only environment evidence
+The retained cloud endpoint is feature-disabled by default and returns `404 OPENING_TRAINER_CLOUD_DISABLED` before authentication or database construction. The migration and rollback remain available for a possible v2, but neither is applied or executed by this release.
 
-- Supabase staging is `CAISSA-READER-STAGING`, ref `aqizagaskicotorfpwfn`, PostgreSQL 17.6, status `ACTIVE_HEALTHY`.
-- The production denylisted ref is `jczauvkfkweuvdpurpem`; it was listed for boundary verification only and was not queried or modified.
-- `public.opening_repertoires` is absent from staging. Migration `20261021214528_opening_trainer_repertoires` is not in the staging migration ledger.
-- Staging `public.users.id` is a non-null UUID primary key and `public.users.clerk_id` is a non-null unique text identifier. The proposed foreign key is type-compatible.
-- Clerk application `CAISSA Chess` has distinct development and production instances. The inspected development instance uses a test publishable key and a 60-second session lifetime. No Clerk configuration was changed and no test user was created.
-- Vercel project `elcriollitos-projects/caissa-chess` was inspected by variable name and scope only. There are no Preview variables scoped to `feature/opening-trainer-v1`, including no `CAISSA_OPENING_TRAINER_SUPABASE_REF`. Existing variables are scoped to Production or other feature branches and must not be assumed to apply here.
-- No environment value was decrypted, pulled, printed, copied, regenerated, or edited.
+## Verified environment boundary
 
-## Preview service credential confirmation
+- Supabase Staging expected project: `CAISSA-READER-STAGING`, ref `aqizagaskicotorfpwfn`.
+- Production denylisted ref: `jczauvkfkweuvdpurpem`.
+- The last read-only inspection found no Preview variables applicable to `feature/opening-trainer-v1`, including no opening-trainer staging-ref variable. No environment value was decrypted, pulled, printed, copied, regenerated or edited.
+- Consequently, there is no service credential configured for this branch whose binding can be positively certified. This remains a safe negative result because v1 neither initializes cloud sync nor reaches Supabase.
+- No migration, rollback, cleanup, row mutation or account creation is part of this gate.
 
-The Vercel metadata check was repeated separately for project `caissa-chess`, Preview environment, and Git branch `feature/opening-trainer-v1`. It returned no applicable environment variables. The only Preview `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` entries belong to other named feature branches.
+## Session identity boundary
 
-Therefore there is currently no service credential configured for this branch whose project binding can be positively certified. This is a safe negative result: the Opening Trainer API remains fail-closed because the branch also lacks the explicit staging ref variable. After a human configures the branch-scoped values, the credential-to-project check must be repeated against `https://aqizagaskicotorfpwfn.supabase.co` before authenticated A/B CRUD is authorized. No secret value was requested or exposed during this check.
+- Guest and each validated Clerk subject have independent repertoire and Analysis-draft session keys. Email-shaped or otherwise invalid user identifiers are rejected.
+- The v1 runtime does not read or import retained localStorage v1/v2 repertoire namespaces and does not delete them.
+- An identity switch captures the outgoing session draft, advances the workspace generation, terminates Stockfish, aborts WikiBook and Games/PGN work, cancels Explorer and active Quiet Drag, clears Practice, and restores only the incoming identity's legal session draft and saved repertoires.
+- A new browser session receives no previous studies. Reloading the same tab restores that tab's current identity data.
+- External WikiBook, ECO, Explorer and PGN integrations do not receive saved repertoire contents or training progress.
 
-## Identity and data boundary
+## Retained v2 controls
 
-- Local persistence uses separate v2 namespaces for each validated Clerk subject and for the guest workspace. Email addresses are rejected as identity keys.
-- The UI displays no private repertoire while Clerk identity is unresolved.
-- Login, logout, and account switches abort active sync, advance an identity generation, clear the visible practice state, and then load only the new namespace. Persisted data belonging to the previous namespace is retained but not displayed.
-- Ownerless v1 data remains in its original key. It is not shown or assigned to a user or guest automatically. Import is allowed only into the guest workspace through an explicit-consent API and guest data is never uploaded.
-- Cloud requests require an explicit expected Clerk subject, obtain a fresh token per operation, and reject a response if the subject changes before or after the request. The request body cannot select `user_id`.
-- Each resolved identity owns a separate in-memory Analysis draft. An identity transition captures the outgoing legal tree, clears the visible tree synchronously, cancels workspace async work and any active board gesture, and restores only the incoming identity's draft. Guest and authenticated drafts use different keys; unresolved identity owns no draft. These temporary drafts intentionally do not survive a full page reload and never enter repertoire persistence or cloud sync.
-- The server verifies the Clerk token, maps `sub` to `public.users.clerk_id`, and applies the resulting internal UUID to every read, upsert, and delete.
-- Authenticated burst limits are 120 GETs or 60 mutations per subject and method per minute. This is only the repository's process-local serverless limiter and is not certified or represented as a distributed control. A platform-level distributed limiter remains required if cross-instance abuse protection becomes a release requirement.
+- `repertoire-cloud-sync.js`, the server API, sanitizer, Clerk-to-internal-user mapping, ownership scoping, database boundary check, migration and rollback remain tracked.
+- API activation requires both `CAISSA_OPENING_TRAINER_STORAGE_MODE=cloud-v2` and `CAISSA_OPENING_TRAINER_CLOUD_V2_ENABLED=true`; neither flag is modified here.
+- Preview database access would still require the exact staging ref, matching Supabase URL host and a server-only service credential. Non-production rejects the production ref.
+- The retained endpoint uses a process-local serverless limiter. It is documented only as a bounded single-process safeguard and is not certified or represented as a distributed control.
+- Full v2 prerequisites are documented in `docs/opening-trainer/SESSION_ONLY_STORAGE.md`.
 
-## Preview fail-closed rule
+## Migration status
 
-When `VERCEL_ENV=preview`, the API requires all of the following before constructing a Supabase client:
-
-1. `CAISSA_OPENING_TRAINER_SUPABASE_REF=aqizagaskicotorfpwfn`
-2. the configured Supabase URL host resolves to ref `aqizagaskicotorfpwfn`
-3. a server-only `SUPABASE_SERVICE_ROLE_KEY` is present
-
-Any mismatch returns the generic sync-unavailable response. A non-production process also rejects the production ref explicitly. The service credential remains server-only; browser roles receive no table grant.
-
-## Migration audit
-
-The proposed migration creates one new table and does not alter existing tables or data.
-
-| Control | Result |
-| --- | --- |
-| Owner key | `user_id uuid not null references public.users(id) on delete cascade` |
-| Account-local identity | `unique (user_id, local_id)` |
-| Query index | `(user_id, local_updated_at desc)` |
-| RLS | enabled, with no browser policy |
-| Browser privileges | all revoked from `public`, `anon`, and `authenticated` |
-| Server privileges | only `select`, `insert`, `update`, and `delete` granted to `service_role` |
-| Payload constraints | bounded identifiers/text plus JSON type checks; API enforces legal chess moves, 50 lines, 80 plies per line, and 350 kB serialized input |
-| Existing objects | no existing table is altered |
-| Rollback | `supabase/rollback/20261021214528_opening_trainer_repertoires.rollback.sql` drops only the new table |
-
-The rollback is destructive by definition and is a review artifact only. It was not executed.
-
-## Required human approval before any staging write
-
-1. Approve the migration and rollback as a pair.
-2. Apply migration `20261021214528_opening_trainer_repertoires` only to ref `aqizagaskicotorfpwfn`.
-3. Configure only the `feature/opening-trainer-v1` Preview scope with the staging Supabase URL, its server-only credential, the explicit staging ref variable, and Clerk development credentials.
-4. Re-run the authenticated A/B save, reload, update, and delete matrix against staging with disposable development identities.
-5. Keep production migration, variables, deployment promotion, and merge to `main` behind separate explicit approvals.
+The proposed migration is additive and review-only. It creates `public.opening_repertoires`, enables RLS, revokes browser roles, and grants bounded operations only to `service_role`. Staging keeps its original state; the migration ledger and table set are untouched. The rollback is destructive by definition and was not run.
 
 ## Current status
 
-`SECURITY REMEDIATION COMPLETE — STAGING MIGRATION APPROVAL PENDING`
+`V1 SESSION-ONLY ISOLATION READY — HUMAN TEST REQUIRED`

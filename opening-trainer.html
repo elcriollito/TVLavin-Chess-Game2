@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chess Opening Trainer | CAISSA</title>
-  <meta name="description" content="Build, save and practice a personal chess opening repertoire with Stockfish, CAISSA Explorer and synchronized Wikibooks theory.">
+  <meta name="description" content="Build, save for this browser session and practice a chess opening repertoire with Stockfish, CAISSA Explorer and synchronized Wikibooks theory.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
@@ -87,10 +87,10 @@
                     <option value="black">Black</option>
                   </select>
                 </label>
-                <span class="opening-trainer-help-inline">Save actions remain available in the persistent footer.</span>
+                <span class="opening-trainer-help-inline">Saved for this session. Temporary studies stay in this browser tab.</span>
               </div>
 
-              <p class="opening-trainer-help">Move freely on the board. Mark any terminal variation you want to include, then save it to your personal repertoire.</p>
+              <p class="opening-trainer-help">Move freely on the board. Mark any terminal variation you want to include, then save it to a temporary session repertoire.</p>
               <div id="trainerVariationTree" class="opening-trainer-tree" role="treegrid" aria-label="Opening variations" aria-colcount="4"></div>
               <div id="trainerAnalysisEmpty" class="opening-trainer-empty">
                 <i class="fas fa-code-branch" aria-hidden="true"></i>
@@ -112,8 +112,8 @@
               </div>
 
               <div class="opening-trainer-practice-setup">
-                <label for="trainerRepertoireSelect">Saved repertoire</label>
-                <select id="trainerRepertoireSelect"><option value="">No saved repertoires</option></select>
+                <label for="trainerRepertoireSelect">Session repertoire</label>
+                <select id="trainerRepertoireSelect"><option value="">No session repertoires</option></select>
                 <label for="trainerLineSelect">Variation</label>
                 <select id="trainerLineSelect"><option value="0">Line 1</option></select>
                 <fieldset class="opening-trainer-play-as" id="trainerPracticePlayAs">
@@ -253,7 +253,7 @@
               <button id="trainerNextMove" type="button" aria-label="Next move"><i class="fas fa-forward-step" aria-hidden="true"></i></button>
               <button id="trainerLastMove" type="button" aria-label="Last position"><i class="fas fa-forward-fast" aria-hidden="true"></i></button>
             </nav>
-            <p id="trainerSaveReason" class="opening-trainer-footer-status" role="status">Play or load a legal opening line to enable Save.</p>
+            <p id="trainerSaveReason" class="opening-trainer-footer-status" role="status">Saved for this session only · Play or load a legal opening line to enable Save.</p>
           </footer>
         </section>
       </section>
@@ -301,6 +301,6 @@
   <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
   <script src="/js/analyze-variation-tree.js?v=1.0.0"></script>
   <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
-  <script type="module" src="/js/opening-trainer/page.js?v=1.4.0"></script>
+  <script type="module" src="/js/opening-trainer/page.js?v=1.5.0"></script>
 </body>
 </html>

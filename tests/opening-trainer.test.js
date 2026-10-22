@@ -7,8 +7,10 @@ import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
 import {
     REPERTOIRE_STORAGE_KEY,
     REPERTOIRE_STORAGE_PREFIX,
+    REPERTOIRE_SESSION_STORAGE_PREFIX,
     SavedRepertoireStore
 } from '../js/opening-trainer/repertoire-store.js';
+import { ANALYSIS_DRAFT_SESSION_PREFIX, AnalysisDraftStore } from '../js/opening-trainer/analysis-draft-store.js';
 import { TrainingSession } from '../js/opening-trainer/training-session.js';
 import { buildOpeningIndex } from '../js/opening-trainer/opening-index.js';
 import { OpeningGamesClient, rankOpeningCollections, splitPgnGames } from '../js/opening-trainer/games-client.js';
@@ -18,6 +20,7 @@ import { RepertoireCloudSync } from '../js/opening-trainer/repertoire-cloud-sync
 import { buildPairedTreeRows } from '../js/opening-trainer/analysis-tree-rows.js';
 import repertoireHandler, {
     assertOpeningTrainerDatabaseBoundary,
+    isOpeningTrainerCloudEnabled,
     sanitizeRepertoire
 } from '../api/opening-trainer/repertoires.js';
 
@@ -116,6 +119,7 @@ test('route shell exposes exactly the five required tabs and fixed footer action
     assert.match(html, /trainerNextLine/);
     assert.match(html, /trainerSaveTrainDialog/);
     assert.match(html, /trainerWikiReturn/);
+    assert.match(html, /Saved for this session/);
     assert.match(read('server.js'), /pathname === '\/opening-trainer'/);
     const vercel = JSON.parse(read('vercel.json'));
     assert.ok(vercel.rewrites.some(rule => rule.source === '/opening-trainer' && rule.destination === '/opening-trainer.html'));
@@ -134,7 +138,7 @@ test('global navigation publishes Opening Trainer once in Learn & Improve', () =
     assert.ok(navigation.indexOf("id: 'opening-trainer'") < navigation.indexOf("id: 'academy'"));
 });
 
-test('saved repertoire validates complete legal lines and keeps a durable copy', () => {
+test('saved repertoire validates complete legal lines and keeps a session copy', () => {
     const store = new SavedRepertoireStore({ storage: new MemoryStorage(), identity: { kind: 'user', id: 'user_A' } });
     const saved = store.save(repertoire());
     assert.equal(store.get(saved.id).lines[0][3].san, 'Nc6');
@@ -166,14 +170,69 @@ test('local repertoires are isolated by Clerk subject with a separate guest work
     store.setIdentity({ kind: 'user', id: 'user_B' });
     assert.deepEqual(store.list().map(item => item.name), ['Account B']);
     assert.notEqual(keyA, keyB);
-    assert.match(keyA, new RegExp(`^${REPERTOIRE_STORAGE_PREFIX.replaceAll('.', '\\.')}:clerk:user_A$`));
+    assert.match(keyA, new RegExp(`^${REPERTOIRE_SESSION_STORAGE_PREFIX.replaceAll('.', '\\.')}:clerk:user_A$`));
     assert.throws(() => store.setIdentity({ kind: 'user', id: 'person@example.test' }), /valid Clerk/i);
+});
+
+test('session repertoire data survives reload storage but not an independent browser session', () => {
+    const browserTabSession = new MemoryStorage();
+    const firstLoad = new SavedRepertoireStore({ storage: browserTabSession, identity: { kind: 'guest' } });
+    firstLoad.save(repertoire({ id: 'same-tab', name: 'Same tab' }));
+
+    const sameTabReload = new SavedRepertoireStore({ storage: browserTabSession, identity: { kind: 'guest' } });
+    assert.deepEqual(sameTabReload.list().map(item => item.id), ['same-tab']);
+
+    const independentSession = new SavedRepertoireStore({ storage: new MemoryStorage(), identity: { kind: 'guest' } });
+    assert.deepEqual(independentSession.list(), []);
+    assert.equal(browserTabSession.values.has(`${REPERTOIRE_SESSION_STORAGE_PREFIX}:guest`), true);
+});
+
+test('session-only store never reads persistent v1 or v2 repertoire namespaces', () => {
+    const persistent = new MemoryStorage();
+    persistent.setItem(REPERTOIRE_STORAGE_KEY, JSON.stringify([repertoire({ id: 'persistent-v1' })]));
+    persistent.setItem(`${REPERTOIRE_STORAGE_PREFIX}:guest`, JSON.stringify([repertoire({ id: 'persistent-v2' })]));
+    const session = new MemoryStorage();
+    const store = new SavedRepertoireStore({ storage: session, identity: { kind: 'guest' } });
+    assert.deepEqual(store.list(), []);
+    assert.equal(store.hasLegacyData(), false);
+    store.save(repertoire({ id: 'session-only' }));
+    assert.equal(persistent.values.size, 2, 'existing persistent data remains untouched');
+    assert.deepEqual([...session.values.keys()], [`${REPERTOIRE_SESSION_STORAGE_PREFIX}:guest`]);
+});
+
+test('analysis drafts persist per session identity with an in-memory storage fallback', () => {
+    const storage = new MemoryStorage();
+    const drafts = new AnalysisDraftStore({ storage });
+    const accountA = { kind: 'user', id: 'user_A' };
+    const accountB = { kind: 'user', id: 'user_B' };
+    const guest = { kind: 'guest' };
+    const draft = { schemaVersion: 'CaissaOpeningTrainerDraft@1.0.0', nodes: [{ id: 'a', parentId: 'root', uci: 'e2e4' }] };
+    drafts.set(accountA, draft);
+    drafts.set(accountB, { ...draft, nodes: [{ id: 'b', parentId: 'root', uci: 'd2d4' }] });
+    drafts.set(guest, { ...draft, nodes: [{ id: 'g', parentId: 'root', uci: 'c2c4' }] });
+    assert.equal(new AnalysisDraftStore({ storage }).get(accountA).nodes[0].uci, 'e2e4');
+    assert.equal(drafts.get(accountB).nodes[0].uci, 'd2d4');
+    assert.equal(drafts.get(guest).nodes[0].uci, 'c2c4');
+    assert.deepEqual([...storage.values.keys()].sort(), [
+        `${ANALYSIS_DRAFT_SESSION_PREFIX}:clerk:user_A`,
+        `${ANALYSIS_DRAFT_SESSION_PREFIX}:clerk:user_B`,
+        `${ANALYSIS_DRAFT_SESSION_PREFIX}:guest`
+    ]);
+
+    const unavailable = new AnalysisDraftStore({ storage: { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); }, removeItem() {} } });
+    unavailable.set(accountA, draft);
+    assert.equal(unavailable.get(accountA).nodes[0].uci, 'e2e4');
 });
 
 test('legacy ownerless data stays quarantined until explicit guest import consent', () => {
     const storage = new MemoryStorage();
     storage.setItem(REPERTOIRE_STORAGE_KEY, JSON.stringify([repertoire({ id: 'legacy-rep', name: 'Legacy' })]));
-    const store = new SavedRepertoireStore({ storage, identity: { kind: 'user', id: 'user_A' } });
+    const store = new SavedRepertoireStore({
+        storage,
+        identity: { kind: 'user', id: 'user_A' },
+        storagePrefix: REPERTOIRE_STORAGE_PREFIX,
+        legacyStorageKey: REPERTOIRE_STORAGE_KEY
+    });
     assert.equal(store.hasLegacyData(), true);
     assert.deepEqual(store.list(), [], 'legacy data must not be assigned to a signed-in account');
     assert.throws(() => store.importLegacyToGuest({ consent: true }), /guest workspace/i);
@@ -198,6 +257,25 @@ test('private-browsing memory fallback remains isolated after storage write fail
     store.save(repertoire({ id: 'memory-b', name: 'Memory B' }));
     store.setIdentity({ kind: 'user', id: 'user_A' });
     assert.deepEqual(store.list().map(item => item.id), ['memory-a']);
+});
+
+test('default stores fall back to memory when sessionStorage capability access is denied', () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+    Object.defineProperty(globalThis, 'sessionStorage', {
+        configurable: true,
+        get() { throw new Error('denied'); }
+    });
+    try {
+        const repertoireStore = new SavedRepertoireStore({ identity: { kind: 'guest' } });
+        repertoireStore.save(repertoire({ id: 'memory-default' }));
+        assert.equal(repertoireStore.get('memory-default').id, 'memory-default');
+        const draftStore = new AnalysisDraftStore();
+        draftStore.set({ kind: 'guest' }, { schemaVersion: 'CaissaOpeningTrainerDraft@1.0.0', nodes: [] });
+        assert.equal(draftStore.get({ kind: 'guest' }).schemaVersion, 'CaissaOpeningTrainerDraft@1.0.0');
+    } finally {
+        if (previous) Object.defineProperty(globalThis, 'sessionStorage', previous);
+        else delete globalThis.sessionStorage;
+    }
 });
 
 test('training session separates illegal moves, legal deviations, correct moves and reveal', () => {
@@ -403,6 +481,35 @@ test('cloud sync rejects stale responses across account switches and refreshes t
     assert.deepEqual(calls.slice(-2), ['Bearer token-2', 'Bearer token-3']);
 });
 
+test('v1 page cannot initialize cloud sync or call the repertoire API', () => {
+    const page = read('js/opening-trainer/page.js');
+    assert.doesNotMatch(page, /RepertoireCloudSync|repertoire-cloud-sync|opening-trainer\/repertoires/);
+    assert.doesNotMatch(page, /localStorage/, 'v1 page must not create durable browser entries');
+    assert.match(page, /new SavedRepertoireStore\(\)/);
+    assert.match(read('js/opening-trainer/repertoire-cloud-sync.js'), /\/api\/opening-trainer\/repertoires/,
+        'v2 implementation is retained outside the v1 runtime');
+});
+
+test('v2 repertoire API is feature-disabled by default before auth or database access', async () => {
+    let authAccessed = false;
+    let databaseAccessed = false;
+    const res = response();
+    await repertoireHandler({ method: 'PUT', headers: {}, query: {}, body: repertoire() }, res, {
+        verifyAuth: async () => { authAccessed = true; return { authenticated: true, userId: 'user_A' }; },
+        getSupabase: () => { databaseAccessed = true; throw new Error('must not run'); }
+    });
+    assert.equal(res.statusCode, 404);
+    assert.deepEqual(res.body, { code: 'OPENING_TRAINER_CLOUD_DISABLED', error: 'Not found' });
+    assert.equal(authAccessed, false);
+    assert.equal(databaseAccessed, false);
+    assert.equal(isOpeningTrainerCloudEnabled({}), false);
+    assert.equal(isOpeningTrainerCloudEnabled({ CAISSA_OPENING_TRAINER_STORAGE_MODE: 'cloud-v2' }), false);
+    assert.equal(isOpeningTrainerCloudEnabled({
+        CAISSA_OPENING_TRAINER_STORAGE_MODE: 'cloud-v2',
+        CAISSA_OPENING_TRAINER_CLOUD_V2_ENABLED: 'true'
+    }), true);
+});
+
 test('server-side repertoire sanitizer rejects illegal or oversized payloads', () => {
     const clean = sanitizeRepertoire(repertoire(), new Date('2026-10-21T00:00:00Z'));
     assert.equal(clean.lines[0][0].san, 'e4');
@@ -415,6 +522,7 @@ test('repertoire API denies guests before database access', async () => {
     let databaseAccessed = false;
     const res = response();
     await repertoireHandler({ method: 'GET', headers: {}, query: {} }, res, {
+        isCloudEnabled: () => true,
         verifyAuth: async () => ({ authenticated: false, status: 401 }),
         getSupabase: () => { databaseAccessed = true; throw new Error('must not run'); }
     });
@@ -427,6 +535,7 @@ test('repertoire API rate limits a verified identity before database access', as
     let databaseAccessed = false;
     const res = response();
     await repertoireHandler({ method: 'PUT', headers: {}, query: {}, body: repertoire() }, res, {
+        isCloudEnabled: () => true,
         verifyAuth: async () => ({ authenticated: true, userId: 'user_A' }),
         checkRateLimit: () => ({ allowed: false, remaining: 0, retryAfter: 17 }),
         getSupabase: () => { databaseAccessed = true; throw new Error('must not run'); }
@@ -458,6 +567,7 @@ test('repertoire API resolves Clerk identity and scopes every read to the intern
     };
     const res = response();
     await repertoireHandler({ method: 'GET', headers: {}, query: {} }, res, {
+        isCloudEnabled: () => true,
         verifyAuth: async () => ({ authenticated: true, userId: 'clerk-sub-a' }),
         getSupabase: () => db
     });
@@ -488,6 +598,7 @@ test('repertoire API upsert derives ownership on the server and never trusts a c
     await repertoireHandler({
         method: 'PUT', headers: {}, query: {}, body: { ...repertoire(), user_id: 'user-attacker' }
     }, res, {
+        isCloudEnabled: () => true,
         verifyAuth: async () => ({ authenticated: true, userId: 'clerk-sub-a' }),
         getSupabase: () => db
     });
@@ -519,6 +630,7 @@ test('repertoire API delete is constrained by both verified owner and local id',
     };
     const res = response();
     await repertoireHandler({ method: 'DELETE', headers: {}, query: { id: 'rep-a' } }, res, {
+        isCloudEnabled: () => true,
         verifyAuth: async () => ({ authenticated: true, userId: 'user_B' }),
         getSupabase: () => db
     });
