@@ -16,7 +16,9 @@ const STAGING_REF = 'aqizagaskicotorfpwfn';
 const PRODUCTION_REF = 'jczauvkfkweuvdpurpem';
 const DEFAULT_SESSION_TIMEOUT_MS = 2_500;
 const MISSING_SESSION_HTTP_STATUSES = new Set([400, 404, 410, 422]);
+const SESSION_LOOKUP_BUCKET = 'session_lookup';
 const RATE_LIMITS = Object.freeze({
+    sessionLookup: [60, 60],
     summary: [60, 60],
     status: [30, 60],
     export: [3, 3600],
@@ -142,18 +144,18 @@ export function createAccountControlHandlers(dependencies = {}) {
             res.status(503).json({ code: 'ACCOUNT_CONTROL_UNAVAILABLE', error: 'Account controls are not enabled.' });
             return null;
         }
-        const [maxAttempts, windowSeconds] = RATE_LIMITS[rateLimit] || RATE_LIMITS.summary;
-        const scopeHash = crypto.createHmac('sha256', rateSecret)
-            .update(`account-control:${auth.userId}`, 'utf8').digest('hex');
-        const allowed = dependencies.consumeAccountRateLimit
-            ? await dependencies.consumeAccountRateLimit({ db, scopeHash, bucket: rateLimit, maxAttempts, windowSeconds })
-            : await rpc(db, 'consume_caissa_account_control_rate_limit', {
-                p_scope_hash: scopeHash,
-                p_bucket: rateLimit,
-                p_max_attempts: maxAttempts,
-                p_window_seconds: windowSeconds
-            });
-        if (allowed !== true) {
+        const [sessionMaxAttempts, sessionWindowSeconds] = RATE_LIMITS.sessionLookup;
+        const sessionScopeHash = crypto.createHmac('sha256', rateSecret)
+            .update(`account-control-session:${auth.userId}:${auth.sessionId || 'missing'}:${auth.tokenId || 'missing'}`, 'utf8')
+            .digest('hex');
+        const sessionAllowed = await consumeRateLimit({
+            db,
+            scopeHash: sessionScopeHash,
+            bucket: SESSION_LOOKUP_BUCKET,
+            maxAttempts: sessionMaxAttempts,
+            windowSeconds: sessionWindowSeconds
+        });
+        if (sessionAllowed !== true) {
             res.status(429).json({ code: 'RATE_LIMITED', error: 'Too many requests. Try again later.' });
             return null;
         }
@@ -171,12 +173,32 @@ export function createAccountControlHandlers(dependencies = {}) {
             });
             return null;
         }
+        const [maxAttempts, windowSeconds] = RATE_LIMITS[rateLimit] || RATE_LIMITS.summary;
+        const scopeHash = crypto.createHmac('sha256', rateSecret)
+            .update(`account-control:${auth.userId}`, 'utf8').digest('hex');
+        const allowed = await consumeRateLimit({ db, scopeHash, bucket: rateLimit, maxAttempts, windowSeconds });
+        if (allowed !== true) {
+            res.status(429).json({ code: 'RATE_LIMITED', error: 'Too many requests. Try again later.' });
+            return null;
+        }
         const ownership = await (dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership)({ db, auth, env });
         if (!ownership.ok) {
             respondIdentityOwnershipFailure(res, ownership);
             return null;
         }
         return { auth, db, ownership, environment };
+    }
+
+    async function consumeRateLimit({ db, scopeHash, bucket, maxAttempts, windowSeconds }) {
+        if (dependencies.consumeAccountRateLimit) {
+            return dependencies.consumeAccountRateLimit({ db, scopeHash, bucket, maxAttempts, windowSeconds });
+        }
+        return rpc(db, 'consume_caissa_account_control_rate_limit', {
+            p_scope_hash: scopeHash,
+            p_bucket: bucket,
+            p_max_attempts: maxAttempts,
+            p_window_seconds: windowSeconds
+        });
     }
 
     return Object.freeze({

@@ -80,6 +80,7 @@ function fixture({
 } = {}) {
     const calls = [];
     const sessionCalls = [];
+    const rateLimitInputs = [];
     let dbAccesses = 0;
     let rateLimitCalls = 0;
     let ownershipCalls = 0;
@@ -130,7 +131,11 @@ function fixture({
             ownershipCalls += 1;
             return { ok: true, userId: owner, bindingId: binding };
         },
-        consumeAccountRateLimit: async () => { rateLimitCalls += 1; return rateAllowed; },
+        consumeAccountRateLimit: async input => {
+            rateLimitCalls += 1;
+            rateLimitInputs.push(input);
+            return typeof rateAllowed === 'function' ? rateAllowed(input) : rateAllowed;
+        },
         createClerkClient,
         getClerkSession: async input => {
             sessionCalls.push(input);
@@ -148,6 +153,7 @@ function fixture({
         handlers,
         calls,
         sessionCalls,
+        rateLimitInputs,
         metrics: () => ({ dbAccesses, rateLimitCalls, ownershipCalls })
     };
 }
@@ -202,7 +208,44 @@ test('Deletion Status permits an active matching session and reads only the veri
     assert.deepEqual(res.body, { operations: [] });
     assert.deepEqual(current.calls, [{ name: 'select:caissa_account_control_operations' }]);
     assert.equal(current.sessionCalls.length, 1);
-    assert.deepEqual(current.metrics(), { dbAccesses: 1, rateLimitCalls: 1, ownershipCalls: 1 });
+    assert.deepEqual(current.metrics(), { dbAccesses: 1, rateLimitCalls: 2, ownershipCalls: 1 });
+});
+
+test('inactive sessions cannot consume a replacement session\'s per-user action quota', async () => {
+    const revoked = fixture({
+        authResult: auth({ sessionId: 'sess_revoked' }),
+        getClerkSession: async ({ sessionId }) => ({
+            id: sessionId, status: 'revoked', userId: 'synthetic_subject_a'
+        })
+    });
+    const revokedResponse = response();
+    await revoked.handlers.summary(request(), revokedResponse);
+    assert.equal(revokedResponse.statusCode, 401);
+    assert.deepEqual(revoked.rateLimitInputs.map(input => input.bucket), ['session_lookup']);
+    assert.match(revoked.rateLimitInputs[0].bucket, /^[a-z][a-z0-9_]{1,39}$/u);
+
+    const replacement = fixture({ authResult: auth({ sessionId: 'sess_replacement' }) });
+    const replacementResponse = response();
+    await replacement.handlers.summary(request(), replacementResponse);
+    assert.equal(replacementResponse.statusCode, 200);
+    assert.deepEqual(replacement.rateLimitInputs.map(input => input.bucket), ['session_lookup', 'summary']);
+    assert.notEqual(revoked.rateLimitInputs[0].scopeHash, replacement.rateLimitInputs[0].scopeHash);
+});
+
+test('stale active sessions cannot consume a freshly reverified session action quota', async () => {
+    const stale = fixture({ authResult: auth({ factorVerificationAge: [7, -1], tokenId: 'jwt_stale' }) });
+    const staleResponse = response();
+    await stale.handlers.exportData(request('POST', {}), staleResponse);
+    assert.equal(staleResponse.statusCode, 403);
+    assert.equal(staleResponse.body.code, 'REVERIFICATION_REQUIRED');
+    assert.deepEqual(stale.rateLimitInputs.map(input => input.bucket), ['session_lookup']);
+
+    const fresh = fixture({ authResult: auth({ factorVerificationAge: [0, -1], tokenId: 'jwt_fresh' }) });
+    const freshResponse = response();
+    await fresh.handlers.exportData(request('POST', {}), freshResponse);
+    assert.equal(freshResponse.statusCode, 200);
+    assert.deepEqual(fresh.rateLimitInputs.map(input => input.bucket), ['session_lookup', 'export']);
+    assert.notEqual(stale.rateLimitInputs[0].scopeHash, fresh.rateLimitInputs[0].scopeHash);
 });
 
 test('Account Control rejects missing or crossed signed session identity before account-data access', async () => {
@@ -407,13 +450,14 @@ test('Clerk failure is fail-closed and records review instead of continuing eras
 });
 
 test('persistent throttling fails closed before ownership or account effects', async () => {
-    const { handlers, calls, sessionCalls } = fixture({ rateAllowed: false });
+    const { handlers, calls, sessionCalls, rateLimitInputs } = fixture({ rateAllowed: false });
     const res = response();
     await handlers.summary(request(), res);
     assert.equal(res.statusCode, 429);
     assert.equal(res.body.code, 'RATE_LIMITED');
     assert.deepEqual(calls, []);
     assert.deepEqual(sessionCalls, []);
+    assert.deepEqual(rateLimitInputs.map(input => input.bucket), ['session_lookup']);
 });
 
 test('data erasure failure quarantines the request before Clerk deletion', async () => {
