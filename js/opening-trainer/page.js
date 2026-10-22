@@ -18,8 +18,12 @@ const constrainedEngineDevice = () => {
         || (cores > 0 && cores <= 4)
         || window.matchMedia?.('(max-width: 700px), (pointer: coarse)')?.matches === true;
 };
-const ENGINE_TARGET_DEPTH = constrainedEngineDevice() ? 18 : 20;
-const ENGINE_MULTIPV = constrainedEngineDevice() ? 2 : 3;
+const ENGINE_CONSTRAINED_DEVICE = constrainedEngineDevice();
+const ENGINE_TARGET_DEPTH = ENGINE_CONSTRAINED_DEVICE ? 18 : 20;
+const ENGINE_MULTIPV = ENGINE_CONSTRAINED_DEVICE ? 2 : 3;
+const ENGINE_MOBILE_ACTIVITY_LIMIT_MS = ENGINE_CONSTRAINED_DEVICE ? 30000 : 0;
+const ENGINE_STALL_TIMEOUT_MS = 120000;
+const ENGINE_MAX_RECOVERY_ATTEMPTS = 2;
 const TREE_API = window.CaissaAnalyzeVariationTree;
 if (!TREE_API?.create) throw new Error('CAISSA Analysis Tree is unavailable.');
 const readEnginePreference = () => {
@@ -143,6 +147,11 @@ let engineLines = new Map();
 let lastEngineInfo = null;
 let engineIdentity = null;
 let activeEngineFen = '';
+let engineRecoveryTimer = null;
+let engineRecoveryStableTimer = null;
+let engineRecoveryAttempts = 0;
+let engineRecoveryTotal = 0;
+let engineErrorLog = [];
 let wikiAbort = null;
 let wikiLocked = false;
 let gamesAbort = null;
@@ -790,6 +799,45 @@ function renderEngineInfo(info) {
     });
 }
 
+function recordEngineError(error) {
+    engineErrorLog.push(Object.freeze({
+        at: Date.now(),
+        code: String(error?.code || 'ENGINE_ERROR'),
+        message: String(error?.message || 'Engine unavailable')
+    }));
+    if (engineErrorLog.length > 20) engineErrorLog.shift();
+}
+
+function clearEngineRecoveryTimers() {
+    clearTimeout(engineRecoveryTimer);
+    clearTimeout(engineRecoveryStableTimer);
+    engineRecoveryTimer = null;
+    engineRecoveryStableTimer = null;
+}
+
+function scheduleEngineRecovery(error, generation) {
+    const recoverable = new Set([
+        'ENGINE_WORKER_ERROR',
+        'ENGINE_MESSAGE_ERROR',
+        'ENGINE_HANDSHAKE_TIMEOUT',
+        'ENGINE_CONSTRUCTION_FAILED',
+        'ENGINE_RUNTIME_ERROR',
+        'ENGINE_ANALYSIS_STALLED'
+    ]);
+    if (!recoverable.has(String(error?.code || ''))
+        || !engineEnabled || activeTab === 'practice' || generation !== workspaceGeneration
+        || engineRecoveryAttempts >= ENGINE_MAX_RECOVERY_ATTEMPTS || engineRecoveryTimer !== null) return;
+    const delay = engineRecoveryAttempts === 0 ? 750 : 2000;
+    engineRecoveryAttempts += 1;
+    engineRecoveryTotal += 1;
+    els.enginePv.textContent = `Engine recovery ${engineRecoveryAttempts}/${ENGINE_MAX_RECOVERY_ATTEMPTS}\u2026`;
+    engineRecoveryTimer = setTimeout(() => {
+        engineRecoveryTimer = null;
+        if (!engineEnabled || activeTab === 'practice' || generation !== workspaceGeneration) return;
+        void initEngine({ recovery: true });
+    }, delay);
+}
+
 function resetEnginePresentation({ practice = false, off = false } = {}) {
     engineLines.clear();
     lastEngineInfo = null;
@@ -805,8 +853,10 @@ function resetEnginePresentation({ practice = false, off = false } = {}) {
     else if (off) els.engineStrip.dataset.engineState = 'off';
 }
 
-async function initEngine() {
+async function initEngine({ recovery = false } = {}) {
     const generation = workspaceGeneration;
+    clearTimeout(engineRecoveryTimer);
+    engineRecoveryTimer = null;
     els.engineToggle.setAttribute('aria-pressed', String(engineEnabled));
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
@@ -818,6 +868,11 @@ async function initEngine() {
         els.enginePv.textContent = 'Engine unavailable';
         return;
     }
+    if (engine) {
+        engine.terminate();
+        engine = null;
+        engineReady = false;
+    }
     const candidate = new window.OpeningTrainerStockfishClient();
     engine = candidate;
     candidate.onInfo(info => {
@@ -825,10 +880,14 @@ async function initEngine() {
     });
     candidate.onError(error => {
         if (generation !== workspaceGeneration || engine !== candidate) return;
+        recordEngineError(error);
         engineReady = false;
         resetEnginePresentation();
         els.engineStrip.dataset.engineState = 'error';
         els.enginePv.textContent = error.message || 'Engine unavailable';
+        candidate.terminate();
+        engine = null;
+        scheduleEngineRecovery(error, generation);
     });
     try {
         await candidate.init();
@@ -839,21 +898,35 @@ async function initEngine() {
         engineReady = true;
         engineIdentity = candidate.getIdentity?.() || null;
         candidate.setOptions({ multiPV: ENGINE_MULTIPV });
+        clearTimeout(engineRecoveryStableTimer);
+        engineRecoveryStableTimer = setTimeout(() => {
+            if (generation === workspaceGeneration && engine === candidate && engineReady) engineRecoveryAttempts = 0;
+        }, 30000);
         els.engineStrip.dataset.engineState = 'ready';
         if (engineEnabled) analyzeCurrentPosition();
         else {
             els.engineStrip.dataset.engineState = 'off';
             els.enginePv.textContent = 'Engine off';
         }
-    } catch {
+    } catch (error) {
         if (engine === candidate) engineReady = false;
+        if (recovery && generation === workspaceGeneration && engine === candidate) {
+            recordEngineError(error);
+            candidate.terminate();
+            engine = null;
+            scheduleEngineRecovery(error, generation);
+        }
     }
 }
 
 function analyzeCurrentPosition() {
     engineLines.clear();
+    if (runtimeInitialized && engineEnabled && activeTab !== 'practice' && !engine) {
+        void initEngine({ recovery: true });
+        return;
+    }
     if (!engineEnabled || !engineReady || activeTab === 'practice') {
-        engine?.stop();
+        engine?.stop(activeTab === 'practice' ? 'practice' : 'inactive');
         if (activeTab === 'practice') {
             resetEnginePresentation({ practice: true });
         }
@@ -861,12 +934,17 @@ function analyzeCurrentPosition() {
     }
     const fen = enginePositionFen();
     engineWorkspaceGeneration = workspaceGeneration;
-    engine.stop();
+    engine.stop('position-change');
     activeEngineFen = fen;
     lastEngineInfo = null;
     engine.setOptions({ multiPV: ENGINE_MULTIPV });
     engine.setPositionFEN(fen);
-    engine.goDepth(ENGINE_TARGET_DEPTH);
+    engine.startInfiniteAnalysis({
+        targetDepth: ENGINE_TARGET_DEPTH,
+        stopAtTarget: ENGINE_CONSTRAINED_DEVICE,
+        maxActivityMs: ENGINE_MOBILE_ACTIVITY_LIMIT_MS,
+        stallTimeoutMs: ENGINE_STALL_TIMEOUT_MS
+    });
     els.engineStrip.dataset.engineState = 'ready';
     els.enginePv.textContent = 'Calculating…';
     els.engineDepth.textContent = `Depth 0 / ${ENGINE_TARGET_DEPTH}`;
@@ -879,10 +957,12 @@ function toggleEngine() {
     els.engineToggle.setAttribute('aria-pressed', String(engineEnabled));
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
-        engine?.stop();
+        clearEngineRecoveryTimers();
+        engine?.stop('engine-disabled');
         resetEnginePresentation({ off: true });
     } else {
-        if (!engine) {
+        engineRecoveryAttempts = 0;
+        if (!engine || !engineReady) {
             initEngine();
             return;
         }
@@ -1343,6 +1423,8 @@ function resetWorkspace({
         analysisDraftStore.remove(repertoireIdentity);
     }
     workspaceGeneration += 1;
+    clearEngineRecoveryTimers();
+    engineRecoveryAttempts = 0;
     wikiAbort?.abort();
     gamesAbort?.abort();
     gameLoadAbort?.abort();
@@ -1632,6 +1714,7 @@ function bindEvents() {
     window.addEventListener('beforeunload', () => {
         captureAnalysisDraft(repertoireIdentity);
         unsubscribeAuth?.();
+        clearEngineRecoveryTimers();
         engine?.terminate();
         explorerClient.cancel();
         wikiAbort?.abort();
@@ -1750,7 +1833,17 @@ function exposeQaApi() {
                 fen: activeEngineFen,
                 depth: lastEngineInfo?.depth || 0,
                 score: lastEngineInfo ? formatScore(lastEngineInfo, lastEngineInfo.fen || activeEngineFen).text : null,
-                requestId: lastEngineInfo?.requestId || null
+                requestId: lastEngineInfo?.requestId || null,
+                searchMode: engine?.getDebugSnapshot?.().searchMode || '',
+                debug: Object.freeze({
+                    ...(engine?.getDebugSnapshot?.() || {}),
+                    errors: Object.freeze([
+                        ...engineErrorLog,
+                        ...(engine?.getDebugSnapshot?.().errors || [])
+                    ]),
+                    recoveryAttempts: engineRecoveryAttempts,
+                    recoveryTotal: engineRecoveryTotal
+                })
             }),
             unsavedStudy: hasUnsavedStudyChanges(),
             workspaceGeneration
@@ -1764,6 +1857,7 @@ function exposeQaApi() {
         destroy: () => {
             captureAnalysisDraft(repertoireIdentity);
             unsubscribeAuth?.();
+            clearEngineRecoveryTimers();
             engine?.terminate();
             explorerClient.cancel();
             board.destroy();

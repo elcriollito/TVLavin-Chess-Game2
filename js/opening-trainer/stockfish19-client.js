@@ -4,6 +4,7 @@
   const DISPLAY_NAME = 'Stockfish 19 Lite';
   const UCI_NAME_PATTERN = '^Stockfish\\s+19(?:\\.\\d+){0,2}\\s+Lite\\s+WASM(?:\\s.*)?$';
   const UCI_AUTHOR_PATTERN = '^the Stockfish developers \\(see AUTHORS file\\)(?:\\s.*)?$';
+  const workerLifecycle = { created: 0, terminated: 0, active: 0, peakActive: 0 };
 
   function boundedInteger(value, fallback, minimum, maximum) {
     const parsed = Number(value);
@@ -66,6 +67,10 @@
       this.multiPV = 1;
       this.requestGeneration = 0;
       this.activeRequestId = '';
+      this.searchActivityTimer = null;
+      this.searchStallTimer = null;
+      this.ownsWorker = false;
+      this.supportedOptions = new Map();
       this.onInfoHandler = null;
       this.onBestMoveHandler = null;
       this.onLineHandler = null;
@@ -87,8 +92,54 @@
         lastUciOkAt: 0,
         lastReadyOkAt: 0,
         activeFen: '',
-        activeRequestId: ''
+        activeRequestId: '',
+        searchMode: '',
+        configuredOptions: [],
+        targetDepth: 0,
+        activityLimitMs: 0,
+        lastStopReason: ''
       };
+    }
+
+    claimWorker() {
+      if (this.ownsWorker) return;
+      this.ownsWorker = true;
+      workerLifecycle.created += 1;
+      workerLifecycle.active += 1;
+      workerLifecycle.peakActive = Math.max(workerLifecycle.peakActive, workerLifecycle.active);
+    }
+
+    releaseWorker() {
+      if (!this.ownsWorker) return;
+      this.ownsWorker = false;
+      workerLifecycle.active = Math.max(0, workerLifecycle.active - 1);
+      workerLifecycle.terminated += 1;
+    }
+
+    clearSearchTimers() {
+      clearTimeout(this.searchActivityTimer);
+      clearTimeout(this.searchStallTimer);
+      this.searchActivityTimer = null;
+      this.searchStallTimer = null;
+    }
+
+    supportsOption(name) {
+      return this.supportedOptions.has(String(name || '').toLowerCase());
+    }
+
+    configureSupportedOptions() {
+      if (!this.adapter) return;
+      const requested = [
+        ['Hash', 16],
+        ['Threads', 1],
+        ['UCI_ShowWDL', true],
+        ['UCI_AnalyseMode', true],
+        ['Ponder', false]
+      ];
+      this.adapter.defaultOptions = Object.fromEntries(requested
+        .filter(([name]) => this.supportsOption(name))
+        .map(([name, value]) => [this.supportedOptions.get(name.toLowerCase()), value]));
+      this.debug.configuredOptions = Object.freeze(Object.keys(this.adapter.defaultOptions));
     }
 
     setState(next) {
@@ -112,7 +163,12 @@
     getDebugSnapshot() {
       return Object.freeze({
         ...this.debug,
-        errors: this.debug.errors.map(item => Object.freeze({ ...item }))
+        supportedOptions: Object.freeze([...this.supportedOptions.values()]),
+        analyzing: this.adapter?.isAnalyzing?.() === true,
+        runtime: this.adapter?.getRuntimeIdentity?.() || null,
+        attribution: this.adapter?.inspectAttribution?.() || null,
+        workerLifecycle: Object.freeze({ ...workerLifecycle }),
+        errors: Object.freeze(this.debug.errors.map(item => Object.freeze({ ...item })))
       });
     }
 
@@ -139,8 +195,11 @@
       this.debug.lastLine = value;
       if (value.startsWith('id name ')) this.debug.engineId = value.slice('id name '.length).trim();
       if (value.startsWith('id author ')) this.debug.engineAuthor = value.slice('id author '.length).trim();
+      const option = value.match(/^option name (.+?) type\s/i);
+      if (option) this.supportedOptions.set(option[1].toLowerCase(), option[1]);
       if (/^uciok$/i.test(value.trim())) {
         this.debug.lastUciOkAt = Date.now();
+        this.configureSupportedOptions();
         this.setHandshakeState('uciok');
       }
       if (/^readyok$/i.test(value.trim())) {
@@ -187,7 +246,7 @@
             workerPath: WORKER_PATH,
             wasmPath: WASM_PATH,
             defaultDepth: 20,
-            defaultOptions: { MultiPV: 1, Hash: 16, Threads: 1, UCI_ShowWDL: true },
+            defaultOptions: {},
             runtimeIdentityExpectation: {
               family: 'Stockfish',
               namePattern: UCI_NAME_PATTERN,
@@ -206,10 +265,17 @@
           };
           candidate.onError = error => {
             if (this.adapter !== candidate) return;
+            if (error && !error.code) error.code = 'ENGINE_RUNTIME_ERROR';
+            this.clearSearchTimers();
+            this.requestGeneration += 1;
+            this.activeRequestId = '';
+            this.debug.activeRequestId = '';
             this.ready = false;
+            this.releaseWorker();
             this.setState('error');
             this.addError(error);
           };
+          this.claimWorker();
           await candidate.start();
           if (this.adapter !== candidate) {
             candidate.terminate('opening-trainer-superseded');
@@ -225,6 +291,8 @@
           return true;
         } catch (error) {
           this.ready = false;
+          this.clearSearchTimers();
+          this.releaseWorker();
           this.setState('error');
           this.addError(error);
           this.adapter?.terminate('opening-trainer-init-failed');
@@ -245,36 +313,83 @@
       this.positionFen = String(fen || '').trim();
     }
 
-    goDepth(depth) {
+    armStallRecovery(localGeneration, stallTimeoutMs) {
+      clearTimeout(this.searchStallTimer);
+      if (!stallTimeoutMs) return;
+      this.searchStallTimer = setTimeout(() => {
+        if (!this.ready || localGeneration !== this.requestGeneration) return;
+        const error = new Error('Stockfish analysis stopped responding.');
+        error.code = 'ENGINE_ANALYSIS_STALLED';
+        this.clearSearchTimers();
+        this.requestGeneration += 1;
+        this.activeRequestId = '';
+        this.debug.activeRequestId = '';
+        this.ready = false;
+        const candidate = this.adapter;
+        this.adapter = null;
+        candidate?.terminate('opening-trainer-analysis-stalled');
+        this.releaseWorker();
+        this.setState('error');
+        this.addError(error);
+      }, stallTimeoutMs);
+    }
+
+    startInfiniteAnalysis({ targetDepth = 20, stopAtTarget = false, maxActivityMs = 0, stallTimeoutMs = 120000 } = {}) {
       if (!this.ready || !this.adapter || !this.positionFen) return null;
-      const targetDepth = boundedInteger(depth, 20, 1, 30);
+      const boundedDepth = boundedInteger(targetDepth, 20, 1, 30);
+      const boundedActivityMs = maxActivityMs > 0 ? boundedInteger(maxActivityMs, 30000, 1000, 120000) : 0;
+      const boundedStallMs = stallTimeoutMs > 0 ? boundedInteger(stallTimeoutMs, 120000, 1000, 300000) : 0;
       const fen = this.positionFen;
       const localGeneration = ++this.requestGeneration;
       this.activeRequestId = `opening-trainer:${localGeneration}`;
       this.debug.activeFen = fen;
       this.debug.activeRequestId = this.activeRequestId;
-      const adapterRequestId = this.adapter.startAnalysisAttributed(fen, (info, attributedRequestId) => {
+      this.debug.searchMode = 'infinite-attributed';
+      this.debug.targetDepth = boundedDepth;
+      this.debug.activityLimitMs = boundedActivityMs;
+      this.debug.lastStopReason = '';
+      this.clearSearchTimers();
+      const adapterRequestId = this.adapter.startInfiniteAnalysisAttributed(fen, (info, attributedRequestId) => {
         if (!this.ready || localGeneration !== this.requestGeneration || fen !== this.positionFen) return;
         this.debug.lastInfoAt = Date.now();
+        this.armStallRecovery(localGeneration, boundedStallMs);
         this.onInfoHandler?.(normalizeInfo(info, fen, attributedRequestId || this.activeRequestId));
-      }, targetDepth);
+        if (stopAtTarget && (Number(info?.multipv) || 1) === 1 && Number(info?.depth) >= boundedDepth) {
+          this.stop('target-depth');
+        }
+      }, { multiPv: this.multiPV });
+      if (!adapterRequestId) return null;
+      this.activeRequestId = adapterRequestId;
+      this.debug.activeRequestId = adapterRequestId;
+      this.setState('analyzing');
+      this.armStallRecovery(localGeneration, boundedStallMs);
+      if (boundedActivityMs) {
+        this.searchActivityTimer = setTimeout(() => {
+          if (localGeneration === this.requestGeneration) this.stop('activity-limit');
+        }, boundedActivityMs);
+      }
       return adapterRequestId || this.activeRequestId;
     }
 
-    stop() {
+    stop(reason = 'requested') {
+      this.clearSearchTimers();
       this.requestGeneration += 1;
       this.activeRequestId = '';
       this.debug.activeRequestId = '';
+      this.debug.lastStopReason = String(reason || 'requested');
       this.adapter?.cancelAttributedSearch();
+      if (this.ready) this.setState('ready');
     }
 
     terminate() {
+      this.clearSearchTimers();
       this.requestGeneration += 1;
       this.activeRequestId = '';
       this.ready = false;
       const candidate = this.adapter;
       this.adapter = null;
       candidate?.terminate('opening-trainer-owner-exit');
+      this.releaseWorker();
       this.initPromise = null;
       this.positionFen = '';
       this.setState('terminated');

@@ -24,6 +24,67 @@ async function waitForPrincipal(page, fen, minimumDepth = 18) {
     return page.evaluate(() => window.CaissaOpeningTrainer.getState().engine);
 }
 
+async function installRecoveringWorker(page) {
+    await page.addInitScript(() => {
+        const NativeWorker = window.Worker;
+        const fixture = { created: 0, terminated: 0 };
+        window.__openingTrainerRecoveryFixture = fixture;
+        class RecoveryWorker {
+            constructor(url) {
+                this.url = String(url);
+                this.instance = ++fixture.created;
+                this.onmessage = null;
+                this.onerror = null;
+                this.timer = null;
+                this.terminated = false;
+            }
+            emit(data) { queueMicrotask(() => this.onmessage?.({ data })); }
+            postMessage(message) {
+                if (message === 'uci') {
+                    this.emit('id name Stockfish 19 Lite WASM');
+                    this.emit('id author the Stockfish developers (see AUTHORS file)');
+                    this.emit('option name MultiPV type spin default 1 min 1 max 256');
+                    this.emit('option name Hash type spin default 16 min 1 max 33554432');
+                    this.emit('option name Threads type spin default 1 min 1 max 1024');
+                    this.emit('option name UCI_ShowWDL type check default false');
+                    this.emit('option name UCI_AnalyseMode type check default false');
+                    this.emit('option name Ponder type check default false');
+                    this.emit('uciok');
+                } else if (message === 'isready') {
+                    this.emit('readyok');
+                } else if (message === 'go infinite') {
+                    if (this.instance === 1) {
+                        this.emit('info depth 6 multipv 1 score cp 15 pv e2e4 e7e5');
+                        setTimeout(() => this.onerror?.({ message: 'injected worker failure' }), 30);
+                        setTimeout(() => this.emit('info depth 99 multipv 1 score cp 999 pv h2h4'), 1200);
+                    } else {
+                        let depth = 8;
+                        this.timer = setInterval(() => {
+                            this.emit(`info depth ${depth++} multipv 1 score cp 22 pv e2e4 e7e5`);
+                        }, 50);
+                    }
+                } else if (message === 'stop') {
+                    clearInterval(this.timer);
+                    this.emit('bestmove e2e4');
+                } else if (message === 'quit') {
+                    clearInterval(this.timer);
+                }
+            }
+            terminate() {
+                if (this.terminated) return;
+                this.terminated = true;
+                fixture.terminated += 1;
+                clearInterval(this.timer);
+            }
+        }
+        window.Worker = function Worker(url, options) {
+            return String(url).includes('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js')
+                ? new RecoveryWorker(url)
+                : new NativeWorker(url, options);
+        };
+    });
+}
+
 test('Opening Trainer evaluates 1.e4 e5 with Stockfish 19 and keeps score independent of board orientation', async ({ page }) => {
     await enableEngine(page);
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -43,6 +104,16 @@ test('Opening Trainer evaluates 1.e4 e5 with Stockfish 19 and keeps score indepe
     });
     expect(result.targetDepth).toBe(20);
     expect(result.multiPV).toBe(3);
+    expect(result.searchMode).toBe('infinite-attributed');
+    expect(result.debug.analyzing).toBe(true);
+    expect(result.debug.supportedOptions).toEqual(expect.arrayContaining([
+        'MultiPV', 'Hash', 'Threads', 'UCI_ShowWDL', 'Ponder'
+    ]));
+    expect(result.debug.configuredOptions).toEqual(expect.arrayContaining([
+        'Hash', 'Threads', 'UCI_ShowWDL', 'Ponder'
+    ]));
+    expect(result.debug.configuredOptions.includes('UCI_AnalyseMode'))
+        .toBe(result.debug.supportedOptions.includes('UCI_AnalyseMode'));
     expect(result.score).toMatch(/^(?:[+\-]\d+\.\d{2}|.?M-?\d+)$/);
     await expect(page.locator('#trainerEngineLines li')).toHaveCount(3);
     await expect(page.locator('#openingTrainerBoard .caissa-board__arrow-line')).toHaveCount(1);
@@ -218,8 +289,40 @@ test('mobile policy uses bounded depth and MultiPV without changing the board ge
     expect(engine).toMatchObject({ targetDepth: 18, multiPV: 2 });
     await page.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'e5']));
     await waitForPrincipal(page, E4_E5_FEN, 18);
+    await expect.poll(async () => (await page.evaluate(() => window.CaissaOpeningTrainer.getState().engine)).debug)
+        .toMatchObject({ analyzing: false, lastStopReason: 'target-depth' });
     const after = await page.locator('#openingTrainerBoard .caissa-board').boundingBox();
     expect(Math.abs(before.width - after.width)).toBeLessThan(1);
     expect(Math.abs(before.height - after.height)).toBeLessThan(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test('real worker failure recovers once without overlap and rejects stale callbacks', async ({ page }) => {
+    await enableEngine(page);
+    await installRecoveringWorker(page);
+    await page.goto(ROUTE);
+    await page.waitForFunction(() => Boolean(window.CaissaOpeningTrainer));
+
+    await expect.poll(async () => page.evaluate(() => window.CaissaOpeningTrainer.getState().engine), {
+        timeout: 10_000
+    }).toMatchObject({
+        ready: true,
+        score: '+0.22',
+        debug: {
+            recoveryTotal: 1,
+            workerLifecycle: { created: 2, terminated: 1, active: 1, peakActive: 1 }
+        }
+    });
+    const recovered = await page.evaluate(() => window.CaissaOpeningTrainer.getState().engine);
+    expect(recovered.debug.errors.some(error => error.code === 'ENGINE_WORKER_ERROR')).toBe(true);
+    expect(recovered.score).not.toBe('+9.99');
+    expect(await page.evaluate(() => window.__openingTrainerRecoveryFixture)).toEqual({ created: 2, terminated: 1 });
+
+    await page.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'e5']));
+    await expect.poll(async () => page.evaluate(() => window.CaissaOpeningTrainer.getState().engine.fen), {
+        timeout: 10_000
+    }).toBe(E4_E5_FEN);
+    await expect.poll(async () => page.evaluate(() => window.CaissaOpeningTrainer.getState().engine.score), {
+        timeout: 10_000
+    }).toBe('+0.22');
 });
