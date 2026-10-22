@@ -6,7 +6,7 @@ Route: `/opening-trainer`
 
 The candidate adds a board-first opening workspace with exactly five primary tabs: Analysis, Practice, Games, Opening, and WikiBook. It reuses the CAISSA persistent board/Quiet Drag foundation, variation tree, Stockfish client, ECO data, CAISSA Explorer, the PGN Reader opening proxy, shared navigation, and Clerk identity when available. Save and Save & Train also work for guests without Clerk or Supabase.
 
-The route remains `noindex, nofollow` during review. Production deployment, merge to `main`, and database migration application are intentionally outside this candidate.
+The route remains `noindex, nofollow` during review. No merge or Production deployment has been authorized. This v1 candidate itself did not execute any database migration; however, the previously approved **separate Staging gate** did apply the retained DDL (see the reconciliation below and `docs/opening-trainer/FINAL_RELEASE_GATE.md`).
 
 ## Architecture boundaries
 
@@ -46,7 +46,7 @@ The route remains `noindex, nofollow` during review. Production deployment, merg
 
 Session repertoires use `caissa.opening-trainer.session.repertoires.v1:{identity}` and Analysis drafts use `caissa.opening-trainer.session.analysis-draft.v1:{identity}`. They survive a same-tab reload and do not cross into a new browser session. Existing localStorage v1/v2 data is neither imported nor deleted.
 
-The cloud client, API, migration and rollback remain isolated for a possible v2. The API is `404`-disabled before auth/database work unless two explicit v2 server flags are set, and the v1 page has no code path that calls it. Do not apply or roll back the migration. See `docs/opening-trainer/SESSION_ONLY_STORAGE.md`.
+The cloud client, API, migration and rollback remain inactive for v1 and retained for possible v2. The API is `404`-disabled before auth/database work unless both explicit v2 server flags are enabled, and the v1 page has no code path that calls it. Separately, on **2026-10-22**, the previously approved migration SQL was applied to **Supabase Staging** (`aqizagaskicotorfpwfn`) and was recorded under remote version **`20261022034441`** (not the Git filename version `20261021214528`). The table exists and had **0 rows** at the final gate read; RLS is enabled and browser roles have no direct SELECT. Neither reapply nor roll back this migration for v1, and do not change the remote ledger to conceal the version difference. See `docs/opening-trainer/SESSION_ONLY_STORAGE.md` and `docs/opening-trainer/FINAL_RELEASE_GATE.md`.
 
 ## Data and licensing
 
@@ -84,6 +84,14 @@ Latest candidate results:
 - PGN Reader browser: 33/33 pass across Chromium, Firefox, and WebKit.
 - PGN Reader unit: 146/147 pass; the only failure is the pre-existing contract that expects the already tracked Capablanca PGN to be absent.
 - A fresh Codex Security diff review is required for the final immutable candidate and is recorded in the Draft PR evidence rather than hard-coded here.
+
+## Human acceptance and final release boundary
+
+- Owner-approved functional Human Test: **6/6 PASS** (Analysis/Stockfish, WikiBook, Save & Train, Games/Notation, NEW, footer/mobile).
+- Owner-approved paired-notation and Black-side Practice Human Test: **5/5 PASS**.
+- Owner-approved v1 session-only storage Human Test: **4/4 PASS**.
+- These approvals authorize preparation of the release gate **only**, not a merge, `noindex` removal, migration execution, or a Production deployment.
+- Final release evidence, outstanding migration-file safety guard, and immutable-commit checks: `docs/opening-trainer/FINAL_RELEASE_GATE.md`.
 
 ## Known review points
 

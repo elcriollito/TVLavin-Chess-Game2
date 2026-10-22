@@ -51,13 +51,17 @@ Those flags are not configured by this change and do not by themselves reactivat
 Cloud storage must not be enabled by a variable-only change. A future v2 release requires all of the following:
 
 1. Product and privacy approval for durable account storage, retention, deletion and migration behavior.
-2. Review and explicit application of the retained migration to the intended non-production project first; the rollback remains review-only unless separately authorized.
+2. The retained migration has **already** been applied separately under human authorization to Supabase Staging `aqizagaskicotorfpwfn`, with remote version `20261022034441` and zero rows at the last verification. Do not reapply it, run the destructive rollback, or rewrite migration history to match the Git filename. Production migration would require a separate v2 approval.
 3. Branch-scoped staging Supabase URL, service credential and explicit staging project ref verification, without exposing the credential to the browser.
 4. Deliberate client wiring of `RepertoireCloudSync` plus an explicit persistent-store adapter. The v1 session store and old ownerless data must not be silently promoted.
 5. Authenticated A/B/Guest isolation, CRUD, retry, deletion and failure-mode QA against disposable staging identities.
 6. A distributed abuse-control decision. The retained endpoint's current limiter is process-local serverless state and is not a distributed rate-limit control.
 7. Separate approval for Production variables, migration, indexing, merge and publication.
 
-## Database status
+## Database status — reconciled 2026-10-22
 
-No migration or rollback is executed by this v1 change. The Supabase Staging table state and migration ledger remain untouched. No study, training record, synthetic account, or validation row is written to Supabase.
+This **v1 code commit** did not execute a database migration, rollback, or data write. But a **different, previously approved Staging operation** applied the contents of `supabase/migrations/20261021214528_opening_trainer_repertoires.sql` to **CAISSA-READER-STAGING** (`aqizagaskicotorfpwfn`). The Supabase migration service registered the operation as **`20261022034441_opening_trainer_repertoires`**. The source filename's timestamp (`20261021214528`) is not the same as the remote migration-ledger version; this discrepancy is recorded, not silently repaired.
+
+Read-only verification on 2026-10-22 found: table `public.opening_repertoires` exists with **0 rows**, its RLS is enabled, `anon` and `authenticated` lack direct SELECT, and the existing user count is **13**. The Staging table remains unused by v1. No Production migration was authorized or applied through this work.
+
+**Release-preparation safeguard:** The retained v2 SQL is currently located in the active `supabase/migrations/` directory. A future `supabase db push` would inspect pending local migrations and could execute this deferred-v2 SQL against whichever database is linked. Before merging/releasing v1, explicitly verify that no production migration automation runs and/or quarantine the v2 SQL outside the active migration path (while preserving its source and updating tests). Do not run `supabase migration repair` or any SQL to force version parity under this v1 gate. See `docs/opening-trainer/FINAL_RELEASE_GATE.md`.
