@@ -10,6 +10,20 @@ import { AnalysisDraftStore } from './analysis-draft-store.js';
 import { buildPairedTreeRows } from './analysis-tree-rows.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const ENGINE_DISPLAY_NAME = 'Stockfish 19 Lite';
+const constrainedEngineDevice = () => {
+    const memory = Number(navigator.deviceMemory) || 0;
+    const cores = Number(navigator.hardwareConcurrency) || 0;
+    return (memory > 0 && memory <= 4)
+        || (cores > 0 && cores <= 4)
+        || window.matchMedia?.('(max-width: 700px), (pointer: coarse)')?.matches === true;
+};
+const ENGINE_CONSTRAINED_DEVICE = constrainedEngineDevice();
+const ENGINE_TARGET_DEPTH = ENGINE_CONSTRAINED_DEVICE ? 18 : 20;
+const ENGINE_MULTIPV = ENGINE_CONSTRAINED_DEVICE ? 2 : 3;
+const ENGINE_MOBILE_ACTIVITY_LIMIT_MS = ENGINE_CONSTRAINED_DEVICE ? 30000 : 0;
+const ENGINE_STALL_TIMEOUT_MS = 120000;
+const ENGINE_MAX_RECOVERY_ATTEMPTS = 2;
 const TREE_API = window.CaissaAnalyzeVariationTree;
 if (!TREE_API?.create) throw new Error('CAISSA Analysis Tree is unavailable.');
 const readEnginePreference = () => {
@@ -131,6 +145,13 @@ let engineReady = false;
 let engineWorkspaceGeneration = -1;
 let engineLines = new Map();
 let lastEngineInfo = null;
+let engineIdentity = null;
+let activeEngineFen = '';
+let engineRecoveryTimer = null;
+let engineRecoveryStableTimer = null;
+let engineRecoveryAttempts = 0;
+let engineRecoveryTotal = 0;
+let engineErrorLog = [];
 let wikiAbort = null;
 let wikiLocked = false;
 let gamesAbort = null;
@@ -184,6 +205,27 @@ function boardPosition() {
     if (activeTab === 'practice' && trainingSession) return trainingSession.fen;
     if (activeTab === 'games' && selectedGame) return selectedGameFen();
     return tree.getCurrentNode().fen || START_FEN;
+}
+
+function enginePositionFen() {
+    const fen = boardPosition();
+    let lastMove = null;
+    if (activeTab === 'games' && selectedGame && selectedGamePly > 0) {
+        lastMove = selectedGame.moves[selectedGamePly - 1];
+    } else if (activeTab !== 'practice') {
+        lastMove = tree.getCurrentNode()?.move || null;
+    }
+    const from = String(lastMove?.from || '');
+    const to = String(lastMove?.to || '');
+    let isPawn = false;
+    try { isPawn = new Chess(lastMove?.fenBefore || START_FEN).get(from)?.type === 'p'; } catch { isPawn = false; }
+    const isWhiteDoublePush = isPawn && from[1] === '2' && to[1] === '4' && from[0] === to[0];
+    const isBlackDoublePush = isPawn && from[1] === '7' && to[1] === '5' && from[0] === to[0];
+    if (!isWhiteDoublePush && !isBlackDoublePush) return fen;
+    const parts = fen.split(/\s+/);
+    if (parts.length < 6) return fen;
+    parts[3] = `${from[0]}${isWhiteDoublePush ? '3' : '6'}`;
+    return parts.join(' ');
 }
 
 function setBoardPosition(fen, { lastMove = null } = {}) {
@@ -695,7 +737,16 @@ function startNextPracticeLine() {
 }
 
 function formatScore(info, fen = boardPosition()) {
-    if (!info || info.score == null) return { text: '0.00', pawns: 0 };
+    if (!info) return { text: '—', pawns: 0 };
+    const bound = info.scoreBound === 'lower' ? '≥' : (info.scoreBound === 'upper' ? '≤' : '');
+    if (Number.isFinite(info.whiteMate)) {
+        return { text: `${bound}M${info.whiteMate}`, pawns: info.whiteMate > 0 ? 12 : -12 };
+    }
+    if (Number.isFinite(info.whiteScorePawns)) {
+        const pawns = info.whiteScorePawns;
+        return { text: `${bound}${pawns >= 0 ? '+' : ''}${pawns.toFixed(2)}`, pawns };
+    }
+    if (info.score == null) return { text: '—', pawns: 0 };
     const turn = String(fen).split(/\s+/)[1] || 'w';
     const perspective = turn === 'w' ? 1 : -1;
     if (info.scoreType === 'mate') {
@@ -720,12 +771,16 @@ function pvToSan(pv, fen) {
 
 function renderEngineInfo(info) {
     if (!info || !engineEnabled || activeTab === 'practice' || engineWorkspaceGeneration !== workspaceGeneration) return;
-    lastEngineInfo = info;
-    engineLines.set(info.multipv || 1, info);
-    const activeFen = boardPosition();
+    const activeFen = activeEngineFen || enginePositionFen();
+    if (info.fen && info.fen !== activeEngineFen) return;
+    const variation = info.multipv || 1;
+    const previous = engineLines.get(variation);
+    if (previous && previous.depth > info.depth) return;
+    engineLines.set(variation, info);
     const score = formatScore(info, activeFen);
     const pvSan = pvToSan(info.pv || [], activeFen);
-    if ((info.multipv || 1) === 1) {
+    if (variation === 1) {
+        lastEngineInfo = info;
         els.engineEval.textContent = score.text;
         els.engineDepth.textContent = `Depth ${info.depth || 0}`;
         els.enginePv.textContent = pvSan || 'Calculating…';
@@ -744,29 +799,95 @@ function renderEngineInfo(info) {
     });
 }
 
-async function initEngine() {
+function recordEngineError(error) {
+    engineErrorLog.push(Object.freeze({
+        at: Date.now(),
+        code: String(error?.code || 'ENGINE_ERROR'),
+        message: String(error?.message || 'Engine unavailable')
+    }));
+    if (engineErrorLog.length > 20) engineErrorLog.shift();
+}
+
+function clearEngineRecoveryTimers() {
+    clearTimeout(engineRecoveryTimer);
+    clearTimeout(engineRecoveryStableTimer);
+    engineRecoveryTimer = null;
+    engineRecoveryStableTimer = null;
+}
+
+function scheduleEngineRecovery(error, generation) {
+    const recoverable = new Set([
+        'ENGINE_WORKER_ERROR',
+        'ENGINE_MESSAGE_ERROR',
+        'ENGINE_HANDSHAKE_TIMEOUT',
+        'ENGINE_CONSTRUCTION_FAILED',
+        'ENGINE_RUNTIME_ERROR',
+        'ENGINE_ANALYSIS_STALLED'
+    ]);
+    if (!recoverable.has(String(error?.code || ''))
+        || !engineEnabled || activeTab === 'practice' || generation !== workspaceGeneration
+        || engineRecoveryAttempts >= ENGINE_MAX_RECOVERY_ATTEMPTS || engineRecoveryTimer !== null) return;
+    const delay = engineRecoveryAttempts === 0 ? 750 : 2000;
+    engineRecoveryAttempts += 1;
+    engineRecoveryTotal += 1;
+    els.enginePv.textContent = `Engine recovery ${engineRecoveryAttempts}/${ENGINE_MAX_RECOVERY_ATTEMPTS}\u2026`;
+    engineRecoveryTimer = setTimeout(() => {
+        engineRecoveryTimer = null;
+        if (!engineEnabled || activeTab === 'practice' || generation !== workspaceGeneration) return;
+        void initEngine({ recovery: true });
+    }, delay);
+}
+
+function resetEnginePresentation({ practice = false, off = false } = {}) {
+    engineLines.clear();
+    lastEngineInfo = null;
+    activeEngineFen = '';
+    board?.clearArrows();
+    els.engineEval.textContent = '—';
+    els.engineDepth.textContent = practice ? 'Paused' : (off ? 'Off' : 'Depth 0');
+    els.enginePv.textContent = practice ? 'Paused during protected practice' : (off ? 'Engine off' : 'Waiting for analysis…');
+    els.engineLines.innerHTML = `<li>${practice ? 'Analysis is hidden during protected practice.' : (off ? 'Engine off.' : 'Waiting for Stockfish 19 Lite…')}</li>`;
+    els.evalRailFill.style.height = '50%';
+    els.evalRailScore.textContent = '—';
+    if (practice) els.engineStrip.dataset.engineState = 'paused';
+    else if (off) els.engineStrip.dataset.engineState = 'off';
+}
+
+async function initEngine({ recovery = false } = {}) {
     const generation = workspaceGeneration;
+    clearTimeout(engineRecoveryTimer);
+    engineRecoveryTimer = null;
     els.engineToggle.setAttribute('aria-pressed', String(engineEnabled));
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
-        els.engineStrip.dataset.engineState = 'off';
-        els.enginePv.textContent = 'Engine off';
+        resetEnginePresentation({ off: true });
         return;
     }
-    if (!window.StockfishClient) {
+    if (!window.OpeningTrainerStockfishClient) {
         els.engineStrip.dataset.engineState = 'error';
         els.enginePv.textContent = 'Engine unavailable';
         return;
     }
-    const candidate = new window.StockfishClient({ workerUrl: new URL('/engine/stockfish.worker.js', location.origin).toString() });
+    if (engine) {
+        engine.terminate();
+        engine = null;
+        engineReady = false;
+    }
+    const candidate = new window.OpeningTrainerStockfishClient();
     engine = candidate;
     candidate.onInfo(info => {
         if (generation === workspaceGeneration && engine === candidate) renderEngineInfo(info);
     });
     candidate.onError(error => {
         if (generation !== workspaceGeneration || engine !== candidate) return;
+        recordEngineError(error);
+        engineReady = false;
+        resetEnginePresentation();
         els.engineStrip.dataset.engineState = 'error';
         els.enginePv.textContent = error.message || 'Engine unavailable';
+        candidate.terminate();
+        engine = null;
+        scheduleEngineRecovery(error, generation);
     });
     try {
         await candidate.init();
@@ -775,37 +896,59 @@ async function initEngine() {
             return;
         }
         engineReady = true;
-        candidate.setOptions({ multiPV: 3 });
+        engineIdentity = candidate.getIdentity?.() || null;
+        candidate.setOptions({ multiPV: ENGINE_MULTIPV });
+        clearTimeout(engineRecoveryStableTimer);
+        engineRecoveryStableTimer = setTimeout(() => {
+            if (generation === workspaceGeneration && engine === candidate && engineReady) engineRecoveryAttempts = 0;
+        }, 30000);
         els.engineStrip.dataset.engineState = 'ready';
         if (engineEnabled) analyzeCurrentPosition();
         else {
             els.engineStrip.dataset.engineState = 'off';
             els.enginePv.textContent = 'Engine off';
         }
-    } catch {
+    } catch (error) {
         if (engine === candidate) engineReady = false;
+        if (recovery && generation === workspaceGeneration && engine === candidate) {
+            recordEngineError(error);
+            candidate.terminate();
+            engine = null;
+            scheduleEngineRecovery(error, generation);
+        }
     }
 }
 
 function analyzeCurrentPosition() {
     engineLines.clear();
+    if (runtimeInitialized && engineEnabled && activeTab !== 'practice' && !engine) {
+        void initEngine({ recovery: true });
+        return;
+    }
     if (!engineEnabled || !engineReady || activeTab === 'practice') {
-        engine?.stop();
+        engine?.stop(activeTab === 'practice' ? 'practice' : 'inactive');
         if (activeTab === 'practice') {
-            els.enginePv.textContent = 'Paused during protected practice';
-            board.clearArrows();
+            resetEnginePresentation({ practice: true });
         }
         return;
     }
-    const fen = boardPosition();
+    const fen = enginePositionFen();
     engineWorkspaceGeneration = workspaceGeneration;
-    engine.stop();
-    engine.setOptions({ multiPV: 3 });
+    engine.stop('position-change');
+    activeEngineFen = fen;
+    lastEngineInfo = null;
+    engine.setOptions({ multiPV: ENGINE_MULTIPV });
     engine.setPositionFEN(fen);
-    engine.goDepth(16);
+    engine.startInfiniteAnalysis({
+        targetDepth: ENGINE_TARGET_DEPTH,
+        stopAtTarget: ENGINE_CONSTRAINED_DEVICE,
+        maxActivityMs: ENGINE_MOBILE_ACTIVITY_LIMIT_MS,
+        stallTimeoutMs: ENGINE_STALL_TIMEOUT_MS
+    });
     els.engineStrip.dataset.engineState = 'ready';
     els.enginePv.textContent = 'Calculating…';
-    els.engineLines.innerHTML = '<li>Calculating principal variations…</li>';
+    els.engineDepth.textContent = `Depth 0 / ${ENGINE_TARGET_DEPTH}`;
+    els.engineLines.innerHTML = `<li>Calculating up to ${ENGINE_MULTIPV} principal variations…</li>`;
 }
 
 function toggleEngine() {
@@ -814,12 +957,12 @@ function toggleEngine() {
     els.engineToggle.setAttribute('aria-pressed', String(engineEnabled));
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
-        engine?.stop();
-        board.clearArrows();
-        els.engineStrip.dataset.engineState = 'off';
-        els.enginePv.textContent = 'Engine off';
+        clearEngineRecoveryTimers();
+        engine?.stop('engine-disabled');
+        resetEnginePresentation({ off: true });
     } else {
-        if (!engine) {
+        engineRecoveryAttempts = 0;
+        if (!engine || !engineReady) {
             initEngine();
             return;
         }
@@ -1280,6 +1423,8 @@ function resetWorkspace({
         analysisDraftStore.remove(repertoireIdentity);
     }
     workspaceGeneration += 1;
+    clearEngineRecoveryTimers();
+    engineRecoveryAttempts = 0;
     wikiAbort?.abort();
     gamesAbort?.abort();
     gameLoadAbort?.abort();
@@ -1293,6 +1438,8 @@ function resetWorkspace({
     engineWorkspaceGeneration = -1;
     engineLines.clear();
     lastEngineInfo = null;
+    engineIdentity = null;
+    activeEngineFen = '';
 
     const restored = buildAnalysisDraftState(draft, {
         fallbackOrientation: identityBoundary ? 'white' : analysisOrientation,
@@ -1340,10 +1487,10 @@ function resetWorkspace({
     els.wikiAttribution.hidden = true;
     els.ecoSearch.value = '';
     els.evalRailFill.style.height = '50%';
-    els.evalRailScore.textContent = '0.00';
-    els.engineEval.textContent = '0.00';
+    els.evalRailScore.textContent = '—';
+    els.engineEval.textContent = '—';
     els.engineDepth.textContent = 'Depth 0';
-    els.engineLines.innerHTML = '<li>Waiting for Stockfish…</li>';
+    els.engineLines.innerHTML = '<li>Waiting for Stockfish 19 Lite…</li>';
     els.enginePv.textContent = engineEnabled ? 'Starting engine…' : 'Engine off';
     els.engineStrip.dataset.engineState = engineEnabled ? 'loading' : 'off';
 
@@ -1567,6 +1714,7 @@ function bindEvents() {
     window.addEventListener('beforeunload', () => {
         captureAnalysisDraft(repertoireIdentity);
         unsubscribeAuth?.();
+        clearEngineRecoveryTimers();
         engine?.terminate();
         explorerClient.cancel();
         wikiAbort?.abort();
@@ -1676,6 +1824,27 @@ function exposeQaApi() {
             boardMetrics: board.getMetrics(),
             opening: activeOpening,
             engineEnabled,
+            engine: Object.freeze({
+                displayName: ENGINE_DISPLAY_NAME,
+                ready: engineReady,
+                identity: engineIdentity ? { ...engineIdentity } : null,
+                targetDepth: ENGINE_TARGET_DEPTH,
+                multiPV: ENGINE_MULTIPV,
+                fen: activeEngineFen,
+                depth: lastEngineInfo?.depth || 0,
+                score: lastEngineInfo ? formatScore(lastEngineInfo, lastEngineInfo.fen || activeEngineFen).text : null,
+                requestId: lastEngineInfo?.requestId || null,
+                searchMode: engine?.getDebugSnapshot?.().searchMode || '',
+                debug: Object.freeze({
+                    ...(engine?.getDebugSnapshot?.() || {}),
+                    errors: Object.freeze([
+                        ...engineErrorLog,
+                        ...(engine?.getDebugSnapshot?.().errors || [])
+                    ]),
+                    recoveryAttempts: engineRecoveryAttempts,
+                    recoveryTotal: engineRecoveryTotal
+                })
+            }),
             unsavedStudy: hasUnsavedStudyChanges(),
             workspaceGeneration
         }),
@@ -1688,6 +1857,7 @@ function exposeQaApi() {
         destroy: () => {
             captureAnalysisDraft(repertoireIdentity);
             unsubscribeAuth?.();
+            clearEngineRecoveryTimers();
             engine?.terminate();
             explorerClient.cancel();
             board.destroy();

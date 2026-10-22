@@ -35,7 +35,7 @@
           <div class="opening-trainer-board-wrap">
             <aside class="opening-trainer-eval-rail" aria-label="Engine evaluation">
               <span id="trainerEvalRailFill"></span>
-              <strong id="trainerEvalRailScore">0.00</strong>
+              <strong id="trainerEvalRailScore">—</strong>
             </aside>
             <div class="opening-trainer-board-frame">
               <div id="openingTrainerBoard" aria-label="Interactive opening analysis chessboard"></div>
@@ -60,9 +60,9 @@
             <div class="opening-trainer-engine-strip" id="trainerEngineStrip" data-engine-state="loading" aria-live="polite">
               <button id="trainerEngineStripToggle" type="button" aria-label="Toggle Stockfish analysis" aria-pressed="true">
                 <span class="opening-trainer-engine-dot" aria-hidden="true"></span>
-                <strong>Stockfish</strong>
+                <strong>Stockfish 19 Lite</strong>
               </button>
-              <span id="trainerEngineEval">0.00</span>
+              <span id="trainerEngineEval">—</span>
               <span class="opening-trainer-engine-separator" aria-hidden="true">·</span>
               <span id="trainerEngineDepth">Depth 0</span>
               <span class="opening-trainer-engine-separator" aria-hidden="true">·</span>
@@ -301,7 +301,8 @@
   <script src="/js/caissa-access.js?v=1.0.2" defer></script>
   <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
   <script src="/js/analyze-variation-tree.js?v=1.0.0"></script>
-  <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
-  <script type="module" src="/js/opening-trainer/page.js?v=1.5.0"></script>
+  <script src="/js/engine-adapter.js?v=2.1.0"></script>
+  <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.1"></script>
+  <script type="module" src="/js/opening-trainer/page.js?v=1.6.1"></script>
 </body>
 </html>
