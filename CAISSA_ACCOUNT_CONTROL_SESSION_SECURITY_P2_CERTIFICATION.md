@@ -1,6 +1,7 @@
 # CAISSA Account Control — Session Security P2 Certification
 
-Fecha: 2026-10-21  
+Fecha: 2026-10-21
+
 Estado: `CAISSA_ACCOUNT_CONTROL_V1 — SESSION_SECURITY_P2_LOCAL_CERTIFIED / HOSTED_APPROVAL_PENDING`
 
 ## Alcance y cadena certificada
