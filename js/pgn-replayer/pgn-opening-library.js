@@ -1,10 +1,9 @@
+import { PgnOpeningProxyClient, isSafeOpeningFile } from './pgn-opening-proxy-client.js';
+
 (function () {
     'use strict';
 
-    const CATALOG_URL = '/api/pgn/opening';
-    const PAGE_URL = '/api/pgn/opening?file=';
-    const MAX_PAGE_BYTES = 10 * 1024 * 1024;
-    const SAFE_FILE = /^[A-Za-z0-9][A-Za-z0-9._()\-]{0,119}\.zip$/;
+    const proxyClient = new PgnOpeningProxyClient();
 
     const root = document.querySelector('[data-pgn-app]');
     const albumRoot = document.querySelector('[data-pgn-albums]');
@@ -43,8 +42,7 @@
         return item
             && typeof item.id === 'string'
             && typeof item.title === 'string'
-            && SAFE_FILE.test(item.file)
-            && !/[\\/]|\.\./.test(item.file);
+            && isSafeOpeningFile(item.file);
     }
 
     function openingCard(opening) {
@@ -124,26 +122,15 @@
         nextButton.disabled = true;
         showMessage(`Opening ${opening.title} · page ${page}…`);
         try {
-            const response = await fetch(`${PAGE_URL}${encodeURIComponent(opening.file)}&page=${page}`, {
-                credentials: 'same-origin',
-                cache: 'force-cache',
-                headers: { Accept: 'application/x-chess-pgn, text/plain;q=0.9' }
-            });
-            if (!response.ok) throw new Error('This opening page is temporarily unavailable.');
-            const bytes = await response.arrayBuffer();
-            if (bytes.byteLength > MAX_PAGE_BYTES) throw new Error('This opening page exceeds the replayer safety limit.');
-            const text = new TextDecoder().decode(bytes);
-            if (!text.includes('[Event ') || !text.includes('[White ') || !text.includes('[Black ')) {
-                throw new Error('The opening source returned an invalid PGN page.');
-            }
-            state.page = Number(response.headers.get('X-CAISSA-Opening-Page') || page);
-            state.pages = Number(response.headers.get('X-CAISSA-Opening-Pages') || 1);
-            state.totalGames = Number(response.headers.get('X-CAISSA-Opening-Games') || 0);
-            const pageGames = Number(response.headers.get('X-CAISSA-Opening-Page-Games') || 0);
+            const result = await proxyClient.loadPage(opening.file, page);
+            state.page = result.page;
+            state.pages = result.pages;
+            state.totalGames = result.totalGames;
+            const pageGames = result.pageGames;
             updatePager(pageGames);
             root.dispatchEvent(new CustomEvent('caissa:pgn-load-text', {
                 detail: {
-                    text,
+                    text: result.text,
                     sourceLabel: `${opening.title} · page ${state.page} of ${state.pages}`,
                     albumId: `${opening.id}-page-${state.page}`,
                     openingPage: true
@@ -202,14 +189,7 @@
     fileInput?.addEventListener('change', resetPager);
     new MutationObserver(queueCatalogRender).observe(albumRoot, { childList: true });
 
-    fetch(CATALOG_URL, {
-        credentials: 'same-origin',
-        cache: 'force-cache',
-        headers: { Accept: 'application/json' }
-    }).then(response => {
-        if (!response.ok) throw new Error('catalog-unavailable');
-        return response.json();
-    }).then(catalog => {
+    proxyClient.loadCatalog().then(catalog => {
         if (catalog?.access !== 'free' || catalog?.pageSize !== 100 || !Array.isArray(catalog.openings)
             || catalog.openings.length !== 233 || !catalog.openings.every(validItem)) {
             throw new Error('catalog-invalid');

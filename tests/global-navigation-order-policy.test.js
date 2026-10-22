@@ -13,9 +13,9 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.19.0 owns the primary, More, and social destinations', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.20.0 owns the primary, More, and social destinations', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.19.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.20.0');
   assert.deepEqual(
     Array.from(navigation.inventory.more, (item) => item.label),
     ['Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback']
@@ -25,7 +25,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.19.0 owns the primary, More, and socia
   ]);
   assert.deepEqual(Array.from(navigation.inventory.primary, item => item.label), [
     'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-    'Puzzles', 'Chess Gym', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
+    'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
     'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
     'World Champions', 'History', 'DOS Chess', 'Vault'
@@ -44,7 +44,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.19.0 owns the primary, More, and socia
     'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), [
-    'Puzzles', 'Chess Gym', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
+    'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
   ]);
   const social = load(navigation.renderSocialFooter());
   assert.equal(social('.nav-social-link').length, 3);

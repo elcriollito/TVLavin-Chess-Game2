@@ -95,6 +95,8 @@
     { "source": "/puzzles/", "destination": "/puzzles.html" },
     { "source": "/chess-gym", "destination": "/chess-gym.html" },
     { "source": "/chess-gym/", "destination": "/chess-gym.html" },
+    { "source": "/opening-trainer", "destination": "/opening-trainer.html" },
+    { "source": "/opening-trainer/", "destination": "/opening-trainer.html" },
     { "source": "/watch/lichess-tv", "destination": "/lichess-tv.html" },
     { "source": "/watch/live-blitz", "destination": "/live-blitz.html" },
     { "source": "/watch/live-tournaments", "destination": "/live-tournaments.html" },
@@ -186,6 +188,20 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-site" }
+      ]
+    },
+    {
+      "source": "/opening-trainer",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: https://img.clerk.com https://images.clerk.dev; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; connect-src 'self' https://en.wikibooks.org https://downloads.caissa-chess.org https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://api.clerk.com https://clerk-telemetry.com; worker-src 'self' blob:; frame-src 'self' https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests" },
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" }
+      ]
+    },
+    {
+      "source": "/opening-trainer/",
+      "headers": [
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: https://img.clerk.com https://images.clerk.dev; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; connect-src 'self' https://en.wikibooks.org https://downloads.caissa-chess.org https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://api.clerk.com https://clerk-telemetry.com; worker-src 'self' blob:; frame-src 'self' https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests" },
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" }
       ]
     },
     {

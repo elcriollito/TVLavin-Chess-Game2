@@ -4,7 +4,7 @@ const routes = [
   ['/play', 'Play'], ['/yahoo-classic', 'CAISSA Classic'], ['/fics', 'FICS'],
   ['/play-online/playchess', 'Playchess'],
   ['/play-online/fritz', 'Fritz'],
-  ['/puzzles', 'Puzzles'], ['/chess-gym', 'Chess Gym'],
+  ['/puzzles', 'Puzzles'], ['/chess-gym', 'Chess Gym'], ['/opening-trainer', 'Opening Trainer'],
   ['/academy', 'Academy'], ['/mentor', 'CAISSA Mentor'], ['/endgame-trainer', 'Endgame Trainer'], ['/insights', 'Insights'],
   ['/analyze', 'Analyze'], ['/spectator-tv', 'Chess TV'], ['/watch/lichess-tv', 'Lichess TV'], ['/watch/live-blitz', 'Live Blitz'], ['/watch/live-tournaments', 'Live Tournaments'], ['/arena', 'Engine Arena'],
   ['/game-library/champions', 'World Champions'], ['/gif-maker', 'GIF Studio'], ['/blog', 'Blog']
@@ -12,14 +12,14 @@ const routes = [
 
 const canonicalOrder = [
   'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
-  'Puzzles', 'Chess Gym', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
+  'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
   'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
   'World Champions', 'History', 'DOS Chess', 'Vault',
   'Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.19.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.20.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.getByRole('navigation', { name: 'CAISSA main navigation' });

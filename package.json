@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "test:opening-trainer": "node --test tests/opening-trainer.test.js tests/navigation-integrity.test.js tests/global-navigation-order-policy.test.js tests/public-route-inventory.test.js",
+    "test:opening-trainer:browser": "playwright test tests/browser/opening-trainer.spec.js --project=chromium --project=firefox --project=webkit",
+    "lint:opening-trainer": "node --check js/opening-trainer/analysis-tree-rows.js && node --check js/opening-trainer/analysis-draft-store.js && node --check js/opening-trainer/repertoire-store.js && node --check js/opening-trainer/training-session.js && node --check js/opening-trainer/opening-index.js && node --check js/opening-trainer/wikibook-client.js && node --check js/pgn-replayer/pgn-opening-proxy-client.js && node --check js/pgn-replayer/pgn-opening-library.js && node --check js/opening-trainer/games-client.js && node --check js/opening-trainer/repertoire-cloud-sync.js && node --check js/opening-trainer/page.js && node --check api/opening-trainer/repertoires.js && node --check tests/opening-trainer.test.js && node --check tests/browser/opening-trainer.spec.js",
+    "capture:opening-trainer": "node scripts/capture-opening-trainer.mjs",
+    "verify:opening-trainer": "npm run lint:opening-trainer && npm run test:opening-trainer && npm run test:opening-trainer:browser",
     "test:online": "node --test tests/online/*.test.js",
     "test:public-identity": "node --test tests/public-identity-policy.test.js tests/public-identity-api.test.js tests/public-identity-migration.test.js tests/online/public-identity-projection.test.js",
     "test:sec005": "node --test tests/identity-remapping-foundation.test.js tests/clerk-migration-cutover-tooling.test.js tests/identity-migration-default-off.test.js tests/sec005-cutover-compatibility.test.js tests/identity-owner-handoff.test.js tests/auth-complete-recovery.test.js tests/identity-recovery-client.test.js tests/identity-recovery-return.test.js",
