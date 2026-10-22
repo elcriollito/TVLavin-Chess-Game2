@@ -18,6 +18,12 @@ The application-side identity remediation is ready for review. The database gate
 - Vercel project `elcriollitos-projects/caissa-chess` was inspected by variable name and scope only. There are no Preview variables scoped to `feature/opening-trainer-v1`, including no `CAISSA_OPENING_TRAINER_SUPABASE_REF`. Existing variables are scoped to Production or other feature branches and must not be assumed to apply here.
 - No environment value was decrypted, pulled, printed, copied, regenerated, or edited.
 
+## Preview service credential confirmation
+
+The Vercel metadata check was repeated separately for project `caissa-chess`, Preview environment, and Git branch `feature/opening-trainer-v1`. It returned no applicable environment variables. The only Preview `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` entries belong to other named feature branches.
+
+Therefore there is currently no service credential configured for this branch whose project binding can be positively certified. This is a safe negative result: the Opening Trainer API remains fail-closed because the branch also lacks the explicit staging ref variable. After a human configures the branch-scoped values, the credential-to-project check must be repeated against `https://aqizagaskicotorfpwfn.supabase.co` before authenticated A/B CRUD is authorized. No secret value was requested or exposed during this check.
+
 ## Identity and data boundary
 
 - Local persistence uses separate v2 namespaces for each validated Clerk subject and for the guest workspace. Email addresses are rejected as identity keys.
@@ -25,8 +31,9 @@ The application-side identity remediation is ready for review. The database gate
 - Login, logout, and account switches abort active sync, advance an identity generation, clear the visible practice state, and then load only the new namespace. Persisted data belonging to the previous namespace is retained but not displayed.
 - Ownerless v1 data remains in its original key. It is not shown or assigned to a user or guest automatically. Import is allowed only into the guest workspace through an explicit-consent API and guest data is never uploaded.
 - Cloud requests require an explicit expected Clerk subject, obtain a fresh token per operation, and reject a response if the subject changes before or after the request. The request body cannot select `user_id`.
+- Each resolved identity owns a separate in-memory Analysis draft. An identity transition captures the outgoing legal tree, clears the visible tree synchronously, cancels workspace async work and any active board gesture, and restores only the incoming identity's draft. Guest and authenticated drafts use different keys; unresolved identity owns no draft. These temporary drafts intentionally do not survive a full page reload and never enter repertoire persistence or cloud sync.
 - The server verifies the Clerk token, maps `sub` to `public.users.clerk_id`, and applies the resulting internal UUID to every read, upsert, and delete.
-- Authenticated burst limits are 120 GETs or 60 mutations per subject and method per minute. This is the repository's process-local serverless limiter; a distributed platform limiter remains a production-hardening option if abuse volume requires cross-instance enforcement.
+- Authenticated burst limits are 120 GETs or 60 mutations per subject and method per minute. This is only the repository's process-local serverless limiter and is not certified or represented as a distributed control. A platform-level distributed limiter remains required if cross-instance abuse protection becomes a release requirement.
 
 ## Preview fail-closed rule
 

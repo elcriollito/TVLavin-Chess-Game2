@@ -148,6 +148,8 @@ let repertoireIdentity = null;
 let repertoireIdentityGeneration = 0;
 let repertoireSyncAbort = null;
 let unsubscribeAuth = null;
+let runtimeInitialized = false;
+const analysisDraftsByIdentity = new Map();
 
 function toast(message) {
     els.toast.textContent = message;
@@ -1168,11 +1170,128 @@ function updateNotation() {
         : 'No moves yet.';
 }
 
-function resetWorkspace() {
+function analysisDraftKey(identity) {
+    if (identity?.kind === 'guest') return 'guest';
+    if (identity?.kind === 'user' && identity.id) return `clerk:${identity.id}`;
+    return null;
+}
+
+function captureAnalysisDraft(identity) {
+    const key = analysisDraftKey(identity);
+    if (!key) return;
+    const snapshot = tree.inspect();
+    if (snapshot.nodes.length <= 1) {
+        analysisDraftsByIdentity.delete(key);
+        return;
+    }
+    analysisDraftsByIdentity.set(key, Object.freeze({
+        schemaVersion: 'CaissaOpeningTrainerDraft@1.0.0',
+        nodes: Object.freeze(snapshot.nodes
+            .filter(node => node.id !== 'root')
+            .map(node => Object.freeze({ id: node.id, parentId: node.parentId, uci: node.uci }))),
+        currentNodeId: snapshot.currentNodeId,
+        selectedLineNodes: Object.freeze([...selectedLineNodes]),
+        orientation: analysisOrientation === 'black' ? 'black' : 'white',
+        repertoireColor: els.repertoireColor.value === 'black' ? 'black' : 'white',
+        unsaved: hasUnsavedStudyChanges()
+    }));
+}
+
+function analysisDraftFor(identity) {
+    const key = analysisDraftKey(identity);
+    return key ? analysisDraftsByIdentity.get(key) || null : null;
+}
+
+function buildAnalysisDraftState(draft, { fallbackOrientation, fallbackColor }) {
+    const nextTree = TREE_API.create({ initialFen: START_FEN, selectedPly: 0 });
+    const idMap = new Map([['root', 'root']]);
+    const selected = new Set();
+    if (!draft || draft.schemaVersion !== 'CaissaOpeningTrainerDraft@1.0.0') {
+        return {
+            tree: nextTree,
+            selected,
+            orientation: fallbackOrientation,
+            repertoireColor: fallbackColor,
+            unsaved: false
+        };
+    }
+    try {
+        if (!Array.isArray(draft.nodes) || draft.nodes.length > 1000) throw new Error('Invalid analysis draft.');
+        for (const raw of draft.nodes) {
+            const parentId = idMap.get(raw.parentId);
+            if (!parentId || !nextTree.selectNode(parentId, { preferMainContinuation: false }).ok) {
+                throw new Error('Invalid analysis draft parent.');
+            }
+            const parent = nextTree.getCurrentNode();
+            const game = new Chess(parent.fen || START_FEN);
+            const uci = String(raw.uci || '').toLowerCase();
+            let move = null;
+            try {
+                move = game.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || 'q' });
+            } catch {
+                move = null;
+            }
+            if (!move) throw new Error('Invalid analysis draft move.');
+            const inserted = nextTree.insertOrSelectMove({
+                from: move.from,
+                to: move.to,
+                promotion: move.promotion,
+                san: move.san,
+                uci: `${move.from}${move.to}${move.promotion || ''}`,
+                color: move.color,
+                fenBefore: parent.fen || START_FEN,
+                fen: game.fen()
+            });
+            if (!inserted.ok) throw new Error('Analysis draft could not be restored.');
+            idMap.set(raw.id, inserted.node.id);
+        }
+        const currentNodeId = idMap.get(draft.currentNodeId) || 'root';
+        nextTree.selectNode(currentNodeId, { preferMainContinuation: false });
+        for (const nodeId of draft.selectedLineNodes || []) {
+            const restoredId = idMap.get(nodeId);
+            if (restoredId && restoredId !== 'root') selected.add(restoredId);
+        }
+        return {
+            tree: nextTree,
+            selected,
+            orientation: draft.orientation === 'black' ? 'black' : 'white',
+            repertoireColor: draft.repertoireColor === 'black' ? 'black' : 'white',
+            unsaved: Boolean(draft.unsaved)
+        };
+    } catch {
+        nextTree.dispose();
+        return {
+            tree: TREE_API.create({ initialFen: START_FEN, selectedPly: 0 }),
+            selected,
+            orientation: fallbackOrientation,
+            repertoireColor: fallbackColor,
+            unsaved: false
+        };
+    }
+}
+
+function resetWorkspace({
+    draft = null,
+    identityBoundary = false,
+    targetTab = 'opening',
+    focusOpening = true,
+    notify = true
+} = {}) {
+    // End any gesture that began in the previous workspace before replacing
+    // the identity-bound tree. An identical-FEN render does not otherwise
+    // cancel Quiet Drag's captured pointer.
+    board?.setInteractive(false);
+    if (!identityBoundary) {
+        const key = analysisDraftKey(repertoireIdentity);
+        if (key) analysisDraftsByIdentity.delete(key);
+    }
     workspaceGeneration += 1;
     wikiAbort?.abort();
     gamesAbort?.abort();
     gameLoadAbort?.abort();
+    wikiAbort = null;
+    gamesAbort = null;
+    gameLoadAbort = null;
     explorerClient.cancel();
     engine?.terminate();
     engine = null;
@@ -1181,10 +1300,14 @@ function resetWorkspace() {
     engineLines.clear();
     lastEngineInfo = null;
 
+    const restored = buildAnalysisDraftState(draft, {
+        fallbackOrientation: identityBoundary ? 'white' : analysisOrientation,
+        fallbackColor: identityBoundary ? 'white' : els.repertoireColor.value
+    });
     tree.dispose();
-    tree = TREE_API.create({ initialFen: START_FEN, selectedPly: 0 });
-    analysisGame = new Chess();
-    selectedLineNodes = new Set();
+    tree = restored.tree;
+    analysisGame = new Chess(tree.getCurrentNode().fen || START_FEN);
+    selectedLineNodes = restored.selected;
     selectedSquare = null;
     trainingSession = null;
     trainingRecorded = false;
@@ -1198,13 +1321,18 @@ function resetWorkspace() {
     activeOpening = null;
     wikiLocked = false;
     lastSavedStudyFingerprint = '';
+    analysisOrientation = restored.orientation;
+    els.repertoireColor.value = restored.repertoireColor;
 
     if (els.saveTrainDialog.open) els.saveTrainDialog.close('reset');
     els.gamesQuery.value = '';
     els.gamesList.replaceChildren();
+    els.searchGames.disabled = false;
     els.gamesStatus.textContent = 'Search the same allowlisted opening collections used by CAISSA PGN Reader.';
     renderGamesPagination();
     setSubtab('games', 'games');
+    els.explorerMoves.replaceChildren();
+    els.explorerStatus.textContent = 'Select CAISSA Explorer to load continuations for the current position.';
     els.practiceCard.hidden = true;
     els.practiceEmpty.hidden = false;
     els.sessionLock.hidden = true;
@@ -1225,17 +1353,19 @@ function resetWorkspace() {
     els.enginePv.textContent = engineEnabled ? 'Starting engine…' : 'Engine off';
     els.engineStrip.dataset.engineState = engineEnabled ? 'loading' : 'off';
 
-    setBoardPosition(START_FEN);
+    setBoardPosition(analysisGame.fen());
     resolveOpening();
     updateNotation();
     renderTree();
+    if (!restored.unsaved) lastSavedStudyFingerprint = studyFingerprint();
     renderRepertoireOptions();
     renderEcoRows();
-    setTab('opening');
-    els.ecoSearch.focus({ preventScroll: true });
+    setTab(targetTab);
+    board?.setInteractive(true);
+    if (focusOpening && targetTab === 'opening') els.ecoSearch.focus({ preventScroll: true });
     if (els.wikiAuto.checked) syncWiki();
-    if (engineEnabled) initEngine();
-    toast('New opening workspace ready. Saved repertoires were preserved.');
+    if (engineEnabled && runtimeInitialized) initEngine();
+    if (notify) toast('New opening workspace ready. Saved repertoires were preserved.');
 }
 
 function requestNewStudy() {
@@ -1463,20 +1593,15 @@ async function loadCatalogs() {
     }
 }
 
-function clearVisibleRepertoireState() {
-    trainingSession = null;
-    trainingRecorded = false;
-    trainingLineIndex = 0;
-    pendingPracticeRepertoireId = '';
+function clearVisibleRepertoireState({ analysisDraft = null } = {}) {
+    resetWorkspace({
+        draft: analysisDraft,
+        identityBoundary: true,
+        targetTab: 'analysis',
+        focusOpening: false,
+        notify: false
+    });
     if (els.saveTrainDialog.open) els.saveTrainDialog.close('identity-change');
-    els.practiceCard.hidden = true;
-    els.practiceEmpty.hidden = false;
-    els.sessionLock.hidden = true;
-    els.practiceFeedback.textContent = 'CAISSA is ready.';
-    if (activeTab === 'practice' && board) {
-        board.setOrientation(analysisOrientation);
-        setBoardPosition(tree.getCurrentNode()?.fen || START_FEN);
-    }
 }
 
 function identityMatches(userId, generation) {
@@ -1520,11 +1645,11 @@ function applyRepertoireIdentity(auth) {
         : { kind: 'guest', id: null };
     if (repertoireIdentity?.kind === next.kind && repertoireIdentity?.id === next.id) return;
 
+    captureAnalysisDraft(repertoireIdentity);
     repertoireSyncAbort?.abort();
     repertoireSyncAbort = new AbortController();
     repertoireIdentityGeneration += 1;
     const generation = repertoireIdentityGeneration;
-    clearVisibleRepertoireState();
     repertoireStore.clearIdentity();
     repertoireIdentity = null;
     renderRepertoireOptions();
@@ -1534,9 +1659,11 @@ function applyRepertoireIdentity(auth) {
         repertoireIdentity = repertoireStore.setIdentity(next);
     } catch {
         repertoireSyncAbort.abort();
+        clearVisibleRepertoireState();
         renderRepertoireOptions();
         return;
     }
+    clearVisibleRepertoireState({ analysisDraft: analysisDraftFor(repertoireIdentity) });
     renderRepertoireOptions();
     updateSaveControls();
     if (repertoireIdentity.kind === 'user') {
@@ -1617,6 +1744,7 @@ async function init() {
     setTab('analysis');
     exposeQaApi();
     bindRepertoireIdentity();
+    runtimeInitialized = true;
     await Promise.allSettled([loadCatalogs(), initEngine()]);
 }
 

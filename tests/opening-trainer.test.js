@@ -550,6 +550,7 @@ test('preview database boundary fails closed unless the URL and explicit ref are
 test('review-only repertoire migration enables RLS and keeps browser roles closed', () => {
     const migration = read('supabase/migrations/20261021214528_opening_trainer_repertoires.sql');
     const rollback = read('supabase/rollback/20261021214528_opening_trainer_repertoires.rollback.sql');
+    const gate = read('docs/security/OPENING_TRAINER_STAGING_SECURITY_GATE.md');
     assert.match(migration, /user_id uuid not null references public\.users\(id\) on delete cascade/i);
     assert.match(migration, /unique \(user_id, local_id\)/i);
     assert.match(migration, /opening_repertoires_user_updated_idx/i);
@@ -559,4 +560,7 @@ test('review-only repertoire migration enables RLS and keeps browser roles close
     assert.doesNotMatch(migration, /grant all/i);
     assert.doesNotMatch(migration, /create policy/i, 'server-mediated table must not gain direct browser policies');
     assert.match(rollback, /drop table if exists public\.opening_repertoires/i);
+    assert.match(gate, /process-local serverless limiter/i);
+    assert.match(gate, /not certified or represented as a distributed control/i);
+    assert.match(gate, /no service credential configured for this branch/i);
 });

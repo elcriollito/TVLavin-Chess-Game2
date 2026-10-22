@@ -3,13 +3,13 @@ import AxeBuilder from '@axe-core/playwright';
 
 const ROUTE = '/opening-trainer';
 
-async function openTrainer(page, { mobile = false } = {}) {
-    await page.addInitScript(() => {
+async function openTrainer(page, { mobile = false, engineEnabled = false, wikiRoute = null } = {}) {
+    await page.addInitScript(({ enabled }) => {
         localStorage.setItem('caissa_onboarding_completed', 'true');
-        localStorage.setItem('caissa.opening-trainer.engine-enabled', 'false');
+        localStorage.setItem('caissa.opening-trainer.engine-enabled', String(enabled));
         localStorage.removeItem('caissa.opening-trainer.repertoires.v1');
-    });
-    await page.route('**/w/api.php**', route => route.fulfill({
+    }, { enabled: engineEnabled });
+    await page.route('**/w/api.php**', wikiRoute || (route => route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ query: { pages: { 1: {
@@ -18,7 +18,7 @@ async function openTrainer(page, { mobile = false } = {}) {
             fullurl: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory/1._e4',
             extract: 'Control the center and prepare rapid development.\n\nKeep the king safe before beginning operations.'
         } } } })
-    }));
+    })));
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     else await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(ROUTE);
@@ -385,12 +385,57 @@ test('NEW invalidates a late PGN proxy response from the previous workspace gene
     await expect(page.locator('#trainerGamesStatus')).toContainText('PGN Reader');
 });
 
-test('Clerk account switches isolate localStorage, visible practice data and cloud ownership', async ({ page }) => {
+test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale async work', async ({ page }) => {
     await installSyntheticAuth(page);
     const apiCalls = [];
     let releaseAccountA;
     const accountAGate = new Promise(resolve => { releaseAccountA = resolve; });
+    let releaseWiki;
+    const wikiGate = new Promise(resolve => { releaseWiki = resolve; });
+    let markWikiStarted;
+    const wikiStarted = new Promise(resolve => { markWikiStarted = resolve; });
+    let holdWiki = false;
+    let releaseGames;
+    const gamesGate = new Promise(resolve => { releaseGames = resolve; });
+    let markGamesStarted;
+    const gamesStarted = new Promise(resolve => { markGamesStarted = resolve; });
+    let holdGames = false;
     let firstAccountAGet = true;
+    await page.route('**/js/engine/stockfish-client.js*', route => route.fulfill({
+        status: 200,
+        contentType: 'text/javascript',
+        body: `(() => {
+            window.__openingTrainerEngines = [];
+            window.StockfishClient = class {
+                constructor() { this.terminated = false; window.__openingTrainerEngines.push(this); }
+                onInfo(callback) { this.infoCallback = callback; }
+                onError(callback) { this.errorCallback = callback; }
+                async init() {}
+                setOptions() {}
+                setPositionFEN(fen) { this.fen = fen; }
+                goDepth() {}
+                stop() {}
+                terminate() { this.terminated = true; }
+                emit(info) { this.infoCallback?.(info); }
+            };
+        })();`
+    }));
+    await page.route('**/api/pgn/opening', async route => {
+        if (holdGames) {
+            holdGames = false;
+            markGamesStarted();
+            await gamesGate;
+            try {
+                await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(proxyCatalog({
+                    id: 'stale-account-a-games', title: 'Stale Account A Games', file: 'Stale.zip'
+                })) });
+            } catch {
+                // Identity rotation is expected to abort this request.
+            }
+            return;
+        }
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(proxyCatalog()) });
+    });
     await page.route('**/api/opening-trainer/repertoires', async route => {
         const request = route.request();
         const authorization = request.headers().authorization || '';
@@ -419,7 +464,37 @@ test('Clerk account switches isolate localStorage, visible practice data and clo
         }
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repertoire: body }) });
     });
-    await openTrainer(page);
+    await openTrainer(page, {
+        engineEnabled: true,
+        wikiRoute: async route => {
+            if (holdWiki) {
+                holdWiki = false;
+                markWikiStarted();
+                await wikiGate;
+                try {
+                    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+                        query: { pages: { 1: {
+                            pageid: 1,
+                            title: 'Chess Opening Theory/Stale Account A',
+                            fullurl: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory/Stale_Account_A',
+                            extract: 'STALE ACCOUNT A THEORY MUST NOT RENDER'
+                        } } }
+                    }) });
+                } catch {
+                    // Identity rotation is expected to abort this request.
+                }
+                return;
+            }
+            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+                query: { pages: { 1: {
+                    pageid: 1,
+                    title: 'Chess Opening Theory/Current identity',
+                    fullurl: 'https://en.wikibooks.org/wiki/Chess_Opening_Theory/Current_identity',
+                    extract: 'Current identity theory.'
+                } } }
+            }) });
+        }
+    });
     await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_A');
     await page.evaluate(() => {
         document.querySelector('#trainerWikiAuto').checked = false;
@@ -429,12 +504,62 @@ test('Clerk account switches isolate localStorage, visible practice data and clo
     const accountAId = await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires[0].id);
     await expect.poll(() => apiCalls.filter(call => call.method === 'PUT' && call.authorization === 'Bearer token-user_A').length).toBe(1);
 
+    await tapMove(page, 'e7', 'e5');
+    await tapMove(page, 'g1', 'f3');
+    await page.locator('.opening-trainer-tree-move', { hasText: 'e4' }).first().click();
+    await tapMove(page, 'c7', 'c5');
+    const accountADraft = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(accountADraft.analysis.nodes.map(node => node.san).filter(Boolean).sort()).toEqual(['Nf3', 'c5', 'e4', 'e5']);
+    expect(accountADraft.unsavedStudy).toBe(true);
+    await page.locator('#trainerFirstMove').click();
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.currentNodeId)).toBe('root');
+
+    holdWiki = true;
+    await page.evaluate(() => {
+        const toggle = document.querySelector('#trainerWikiAuto');
+        toggle.checked = true;
+        toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await wikiStarted;
+    holdGames = true;
+    await page.locator('#trainerTabGames').click();
+    if (!(await Promise.race([gamesStarted.then(() => true), page.waitForTimeout(150).then(() => false)]))) {
+        await page.locator('#trainerGamesQuery').fill('Sicilian');
+        await page.locator('#trainerSearchGames').click();
+    }
+    await gamesStarted;
+    const dragSource = await page.locator('.caissa-board__square[data-square="e2"]').boundingBox();
+    const dragTarget = await page.locator('.caissa-board__square[data-square="e4"]').boundingBox();
+    await page.mouse.move(dragSource.x + dragSource.width / 2, dragSource.y + dragSource.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(dragTarget.x + dragTarget.width / 2, dragTarget.y + dragTarget.height / 2, { steps: 3 });
+    await expect(page.locator('#openingTrainerBoard .caissa-board')).toHaveAttribute('data-quiet-drag-active', 'true');
+    const accountAWorkspaceGeneration = await page.evaluate(() => window.CaissaOpeningTrainer.getState().workspaceGeneration);
+
     await page.evaluate(() => window.CAISSA_AUTH.__switch('user_B'));
     await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_B');
+    await expect(page.locator('#openingTrainerBoard .caissa-board')).not.toHaveAttribute('data-quiet-drag-active', 'true');
+    await page.mouse.up();
     releaseAccountA();
-    await page.waitForTimeout(100);
+    releaseWiki();
+    releaseGames();
+    await page.evaluate(() => window.__openingTrainerEngines[0].emit({
+        score: 999, scoreType: 'cp', depth: 99, multipv: 1, pv: ['e2e4']
+    }));
+    await page.waitForTimeout(150);
+    const accountBEmpty = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(accountBEmpty.workspaceGeneration).toBeGreaterThan(accountAWorkspaceGeneration);
+    expect(accountBEmpty.analysis.nodes).toHaveLength(1);
+    expect(accountBEmpty.unsavedStudy).toBe(false);
     expect(await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires)).toEqual([]);
     await expect(page.locator('#trainerRepertoireSelect')).toContainText('No saved repertoires');
+    await expect(page.locator('#trainerSaveButton')).toBeDisabled();
+    await expect(page.locator('#trainerWikiContent')).not.toContainText('STALE ACCOUNT A');
+    await expect(page.locator('#trainerGamesList')).not.toContainText('Stale Account A');
+    await expect(page.locator('#trainerEngineEval')).not.toHaveText('+9.99');
+    expect(await page.evaluate(() => window.__openingTrainerEngines[0].terminated)).toBe(true);
+
+    await tapMove(page, 'd2', 'd4');
     await page.locator('#trainerSaveButton').click();
     const accountBId = await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires[0].id);
     expect(accountBId).not.toBe(accountAId);
@@ -442,19 +567,24 @@ test('Clerk account switches isolate localStorage, visible practice data and clo
     await page.evaluate(() => window.CAISSA_AUTH.__switch(null));
     await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.kind)).toBe('guest');
     expect(await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires)).toEqual([]);
-    const cloudCallsBeforeGuestSave = apiCalls.length;
-    await page.locator('#trainerSaveButton').click();
+    await expect(page.locator('#trainerSaveButton')).toBeDisabled();
+    const cloudCallsBeforeGuestStudy = apiCalls.length;
+    await tapMove(page, 'c2', 'c4');
     await page.waitForTimeout(100);
-    expect(apiCalls.length).toBe(cloudCallsBeforeGuestSave);
+    expect(apiCalls.length).toBe(cloudCallsBeforeGuestStudy);
 
     await page.evaluate(() => window.CAISSA_AUTH.__switch('user_A'));
     await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_A');
-    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires.map(item => item.id)))).toEqual([accountAId]);
+    const restoredAccountA = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(restoredAccountA.repertoires.map(item => item.id)).toEqual([accountAId]);
+    expect(restoredAccountA.analysis.nodes.map(node => node.san).filter(Boolean).sort()).toEqual(['Nf3', 'c5', 'e4', 'e5']);
+    expect(restoredAccountA.analysis.nodes.some(node => node.san === 'c4')).toBe(false);
+    expect(restoredAccountA.unsavedStudy).toBe(true);
+    await expect(page.locator('#trainerSaveButton')).toBeEnabled();
     const storageKeys = await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('caissa.opening-trainer.repertoires.v2')).sort());
     expect(storageKeys).toEqual([
         'caissa.opening-trainer.repertoires.v2:clerk:user_A',
-        'caissa.opening-trainer.repertoires.v2:clerk:user_B',
-        'caissa.opening-trainer.repertoires.v2:guest'
+        'caissa.opening-trainer.repertoires.v2:clerk:user_B'
     ]);
     expect(apiCalls.filter(call => call.method === 'PUT').every(call => !('user_id' in call.body))).toBe(true);
     expect(apiCalls.every(call => !call.authorization.includes('guest'))).toBe(true);
