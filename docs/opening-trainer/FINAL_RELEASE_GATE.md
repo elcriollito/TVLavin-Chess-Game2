@@ -1,10 +1,10 @@
-# CAISSA Opening Trainer v1.0 — Final Release Gate (pre-authorization)
+# CAISSA Opening Trainer v1.0 — Final Release Gate
 
-**Audit date:** 2026-10-22  
-**Scope:** Read-only GitHub/Supabase verification, documentation reconciliation, and release planning; **NO MERGE, NO PRODUCTION PUBLICATION, NO DATABASE WRITES**.  
-**Repository:** `elcriollito/TVLavin-Chess-Game2` · **PR:** #95 (Draft) · **Branch:** `feature/opening-trainer-v1`  
-**Reviewed functional HEAD:** `35d4ca1001e8294b7c41c5529971670462ffe134`  
-**Route:** `/opening-trainer` (protected Preview; `noindex,nofollow` remains enabled).
+**Audit date:** 2026-10-22
+**Scope:** final code, infrastructure and publication gate; **no database writes or environment-variable changes**.
+**Repository:** `elcriollito/TVLavin-Chess-Game2` · **PR:** #95 · **Branch:** `feature/opening-trainer-v1`
+**Reviewed functional HEAD:** `35d4ca1001e8294b7c41c5529971670462ffe134`
+**Route:** `/opening-trainer` (public release candidate with canonical URL and `index,follow`).
 
 ## Human acceptance
 
@@ -14,7 +14,7 @@
 | Paired Analysis notation, nested variations, Black Practice, color restart, mobile | 5/5 PASS | Accepted |
 | Session-only Save/reload, independent session, NEW, no repertoire cloud API | 4/4 PASS | Accepted |
 
-These approvals establish functional acceptance of the current v1 experience. They do **not** authorize `main` merge, Vercel Production, migration execution, indexability changes, or changes to account credentials.
+These approvals establish functional acceptance of the current v1 experience. A subsequent explicit owner authorization permits the PR merge, Git-integrated Vercel Production publication and indexability activation, while continuing to prohibit database execution and credential changes.
 
 ## Version 1 runtime boundaries
 
@@ -48,7 +48,7 @@ The version **difference is real**: source filename `20261021214528` versus the 
 
 The SQL explicitly grants CRUD to `service_role`; live effective role privileges include broader rights (for example, `TRUNCATE`) due to existing platform ACL behavior. This is not a claim of least-privilege effective CRUD access; `service_role` bypasses RLS, and v2 must separately prove API owner scoping.
 
-**Important:** the preserved v2 migration remains under the active `supabase/migrations/` directory. `supabase db push` operates on pending local migration files against a linked database. Do not run it for v1. Before an authorized v1 merge/release, certify that no migration automation would run, **or** move the deferred-v2 SQL to a non-active, clearly labeled archive/season location, updating references/tests without losing the artifact. This is a release guard, not approval to modify any database.
+**Migration automation audit:** the preserved v2 migration remains under the active `supabase/migrations/` directory, but the release preflight inspected `package.json`, `vercel.json`, repository scripts and every GitHub Actions workflow and found no Vercel build step or CI workflow that invokes `supabase db push`, `supabase migration`, or equivalent schema deployment. Merging and the Git-integrated Vercel deployment do not apply this SQL automatically. A future manual `supabase db push` would still inspect pending local files, so this artifact remains reserved for a separately approved v2 database gate. Do not run it, repair migration history, or execute Production SQL for v1.
 
 ## Candidate QA and known limitations
 
@@ -64,20 +64,20 @@ The PR reports (for reviewed functional HEAD):
 
 Known non-blocking v1 constraints: no exact in-progress Practice recovery after reload; `sessionStorage` readable by same-origin scripts; external WikiBook/PGN/Explorer dependencies; inactive-v2 process-local limiter is not a distributed platform guard.
 
-## Final no-release gate
+## Release authorization and remaining gate
 
-**Current designation: `HUMAN_ACCEPTED / RELEASE_PREPARED / MERGE_AND_PRODUCTION_NOT_AUTHORIZED`.**
+**Current designation: `HUMAN_ACCEPTED / RELEASE_AUTHORIZED / FINAL_AUTOMATED_GATE_IN_PROGRESS`.**
 
-Before any future release authorization:
+Before merging the exact release candidate:
 
 1. Resolve or explicitly certify the v2 migration-file deployment guard. Do not assume a GitHub/Vercel push automatically applies migration; check the actual pipeline and disallow any `supabase db push` for the v1 release unless separately authorized.
 2. Confirm both v2 feature flags remain **disabled** in target Production and the repertoire API remains fail-closed. Do not add Supabase service credentials for Opening Trainer v1.
 3. Validate the exact immutable candidate HEAD, mandatory checks, `sessionStorage` reload/session isolation, no repertoire API traffic, Quiet Drag/mobile geometry, wiki licensing, PGN proxy and partner availability.
 4. Record the known PGN Capablanca test issue and the inconclusive `npm audit` evidence accurately, with risk acceptance or a separately scoped fix where required.
-5. Obtain the owner's **new, explicit approval** for any merge and Production release. Retaining or removing `noindex,nofollow` is a distinct, explicit publication/SEO decision.
+5. Record the owner's explicit authorization for merge, Production publication and removal of `noindex,nofollow`; this authorization was supplied on 2026-10-22.
 6. Only after authorized deployment: smoke-test `/opening-trainer` on the intended production origin, verify no cloud repertoire data writes, and prepare code/deployment rollback without deleting the empty Staging table.
 
-**Forbidden under this gate:** Merge, Vercel Production promotion, new migration execution, changing migration history, rollback, v2 cloud enablement, creating synthetic/real accounts, editing Production secrets, removing `noindex`, or any production data mutation.
+**Forbidden under this gate:** new migration execution, changing migration history, database rollback, v2 cloud enablement, creating synthetic/real accounts, editing Production secrets, or any production data mutation.
 
 ## Evidence and links
 

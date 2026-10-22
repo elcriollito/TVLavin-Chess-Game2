@@ -104,6 +104,7 @@ function response() {
 
 test('route shell exposes exactly the five required tabs and fixed footer actions', () => {
     const html = read('opening-trainer.html');
+    const sitemap = read('public/sitemap.xml');
     const tabs = [...html.matchAll(/data-trainer-tab="([^"]+)"/g)].map(match => match[1]);
     assert.deepEqual(tabs, ['analysis', 'practice', 'games', 'opening', 'wikibook']);
     for (const id of ['trainerNewStudy', 'trainerFlipBoard', 'trainerEngineToggle', 'trainerSaveButton', 'trainerSaveTrainButton', 'trainerFirstMove', 'trainerPreviousMove', 'trainerNextMove', 'trainerLastMove']) {
@@ -120,6 +121,10 @@ test('route shell exposes exactly the five required tabs and fixed footer action
     assert.match(html, /trainerSaveTrainDialog/);
     assert.match(html, /trainerWikiReturn/);
     assert.match(html, /Saved for this session/);
+    assert.match(html, /<meta name="robots" content="index,follow">/);
+    assert.match(html, /<link rel="canonical" href="https:\/\/www\.caissa-chess\.org\/opening-trainer">/);
+    assert.doesNotMatch(html, /noindex|nofollow/);
+    assert.match(sitemap, /<loc>https:\/\/www\.caissa-chess\.org\/opening-trainer<\/loc>/);
     assert.match(read('server.js'), /pathname === '\/opening-trainer'/);
     const vercel = JSON.parse(read('vercel.json'));
     assert.ok(vercel.rewrites.some(rule => rule.source === '/opening-trainer' && rule.destination === '/opening-trainer.html'));
@@ -127,7 +132,9 @@ test('route shell exposes exactly the five required tabs and fixed footer action
     const csp = routeHeaders.find(header => header.key === 'Content-Security-Policy')?.value || '';
     assert.match(csp, /connect-src[^;]*https:\/\/en\.wikibooks\.org/);
     assert.match(csp, /connect-src[^;]*https:\/\/downloads\.caissa-chess\.org/);
-    assert.equal(routeHeaders.find(header => header.key === 'X-Robots-Tag')?.value, 'noindex, nofollow, noarchive');
+    assert.equal(routeHeaders.find(header => header.key === 'X-Robots-Tag'), undefined);
+    const slashRouteHeaders = vercel.headers.find(rule => rule.source === '/opening-trainer/')?.headers || [];
+    assert.equal(slashRouteHeaders.find(header => header.key === 'X-Robots-Tag'), undefined);
 });
 
 test('global navigation publishes Opening Trainer once in Learn & Improve', () => {
