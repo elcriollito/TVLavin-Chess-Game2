@@ -1,7 +1,9 @@
 # CAISSA Online — Staging Credential Recovery Report
 
-**Fecha:** 2026-10-22  
-**Estado:** `CAISSA_ONLINE — STAGING_KEY_RECOVERY_READY / HOSTED_APPROVAL_PENDING`  
+**Fecha:** 2026-10-22
+
+**Estado:** `CAISSA_ONLINE — STAGING_KEY_RECOVERY_READY / HOSTED_APPROVAL_PENDING`
+
 **Alcance:** diagnóstico y compatibilidad local; no se desplegó ni se modificó configuración remota.
 
 ## Resultado
