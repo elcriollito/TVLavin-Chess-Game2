@@ -1,6 +1,6 @@
 # CAISSA Online — Guest Security P2 Report
 
-**Fecha:** 2026-10-21
+**Fecha:** 2026-10-22
 **Estado:** `CAISSA_ONLINE_GUEST_SECURITY — LOCAL_CERTIFIED / RELEASE_APPROVAL_PENDING`
 **Alcance:** correcciones locales, pruebas y revisión de seguridad; Guests permaneció desactivado y no hubo escrituras remotas.
 
@@ -57,22 +57,23 @@ También se corrigieron dos rutas hermanas detectadas durante el análisis: los 
 | Superficie | Resultado |
 |---|---:|
 | Tests focalizados de Guest/API/source | 40/40 PASS |
-| Suite completa Online Node | 97/97 PASS |
-| Online Browser — Chromium/Firefox/WebKit | 96/96 PASS |
-| CAISSA Board Node | 26/26 PASS |
-| CAISSA Board Browser | 19 PASS, 1 skip intencional |
-| Quiet Drag | PASS; 0 geometry reads durante drag, 0 long tasks |
-| Auth + registration sync + Guest + negative access | 43/43 PASS |
-| Revisión independiente focalizada | 54/54 PASS y 0 hallazgos confirmados |
-| `npm run lint:online` y `node --check` | PASS |
-| Supply-chain policy | PASS; 490 runtime files y 177 entradas lock revisadas |
+| Suite completa Online Node, revalidación fresca | 97/97 PASS |
+| Online Browser — Chromium/Firefox/WebKit, revalidación fresca | 96/96 PASS |
+| CAISSA Board Node, evidencia histórica del mismo patch | 26/26 PASS |
+| CAISSA Board Browser, evidencia histórica del mismo patch | 19 PASS, 1 skip intencional |
+| Quiet Drag, evidencia histórica del mismo patch | PASS; 0 geometry reads durante drag, 0 long tasks |
+| Auth + registration sync + Guest + negative access, evidencia histórica | 43/43 PASS |
+| Revisión independiente focalizada, evidencia histórica | 54/54 PASS y 0 hallazgos confirmados |
+| `npm run lint:online` y `node --check`, revalidación fresca | PASS |
+| Supply-chain policy, revalidación fresca | PASS; 490 runtime files y 177 entradas lock revisadas |
 | `npm audit --audit-level=high` | 0 vulnerabilidades |
+| Public release audit | PASS; 1,811 archivos, 23 rutas y 24 contratos |
 
 No se ejecutó el flujo alojado de dos jugadores, no se creó ningún fixture remoto y no se cambió ninguna variable.
 
 ## Scanner y revisión independiente
 
-El Codex Security diff scan `fdb5d10f-546f-4d29-91ce-f8b0934d057f` revisó el rango `585d070e3226dcd10e0fa6c50355dec554f66977..9e0d848e8aa8e16a030637196dcfed0cb7e92129` y terminó con **0 findings confirmados**. Cubrió seis superficies: separación de claves, autorización de rollout, origen confiable, orden de límites, validación/provisión y supply chain.
+El Codex Security diff scan fresco `49fa6d15-6df6-48ff-b9d1-6591a21af464` revisó el rango exacto de Guest `d5ed2b2d6ab5f3aafa102e7cc6ef4bc3ad83fb12..9e0d848e8aa8e16a030637196dcfed0cb7e92129` y terminó con cobertura completa y **0 hallazgos**. Cubrió autorización de rollout, origen confiable, jerarquía de cuotas, orden de validación/escritura y regresión de miembros/privacidad. Daybreak no estaba concedido, limitación registrada separadamente.
 
 La cobertura alojada queda parcial por diseño: esta misión no autorizó desplegar ni probar el ingress real. La revisión independiente tampoco encontró una vulnerabilidad residual en el código y confirmó con un harness read-only que denegaciones, respuestas malformadas y excepciones en cada cuota impiden escrituras durables.
 
@@ -103,6 +104,8 @@ Antes de un deploy no existe rollback remoto: los cambios son commits locales ai
 ## Gate humano
 
 Las próximas operaciones remotas requieren autorización nueva: publicar la rama integrada, instalar variables modernas limitadas a esa rama, crear la Preview protegida y ejecutar smoke alojado. La creación de dos identidades sintéticas y el retest de dos jugadores requieren además una autorización separada. Guests debe permanecer OFF.
+
+La rama no se publicó durante este cierre: un push Online crearía una nueva Preview automática, operación expresamente reservada para el gate humano de recuperación de credenciales. El candidato local queda limpio y listo para una publicación coordinada posterior, sin mezclarlo con la PR de Account Control.
 
 ## Referencias de release
 
