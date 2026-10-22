@@ -10,6 +10,16 @@ import { AnalysisDraftStore } from './analysis-draft-store.js';
 import { buildPairedTreeRows } from './analysis-tree-rows.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const ENGINE_DISPLAY_NAME = 'Stockfish 19 Lite';
+const constrainedEngineDevice = () => {
+    const memory = Number(navigator.deviceMemory) || 0;
+    const cores = Number(navigator.hardwareConcurrency) || 0;
+    return (memory > 0 && memory <= 4)
+        || (cores > 0 && cores <= 4)
+        || window.matchMedia?.('(max-width: 700px), (pointer: coarse)')?.matches === true;
+};
+const ENGINE_TARGET_DEPTH = constrainedEngineDevice() ? 18 : 20;
+const ENGINE_MULTIPV = constrainedEngineDevice() ? 2 : 3;
 const TREE_API = window.CaissaAnalyzeVariationTree;
 if (!TREE_API?.create) throw new Error('CAISSA Analysis Tree is unavailable.');
 const readEnginePreference = () => {
@@ -131,6 +141,8 @@ let engineReady = false;
 let engineWorkspaceGeneration = -1;
 let engineLines = new Map();
 let lastEngineInfo = null;
+let engineIdentity = null;
+let activeEngineFen = '';
 let wikiAbort = null;
 let wikiLocked = false;
 let gamesAbort = null;
@@ -184,6 +196,27 @@ function boardPosition() {
     if (activeTab === 'practice' && trainingSession) return trainingSession.fen;
     if (activeTab === 'games' && selectedGame) return selectedGameFen();
     return tree.getCurrentNode().fen || START_FEN;
+}
+
+function enginePositionFen() {
+    const fen = boardPosition();
+    let lastMove = null;
+    if (activeTab === 'games' && selectedGame && selectedGamePly > 0) {
+        lastMove = selectedGame.moves[selectedGamePly - 1];
+    } else if (activeTab !== 'practice') {
+        lastMove = tree.getCurrentNode()?.move || null;
+    }
+    const from = String(lastMove?.from || '');
+    const to = String(lastMove?.to || '');
+    let isPawn = false;
+    try { isPawn = new Chess(lastMove?.fenBefore || START_FEN).get(from)?.type === 'p'; } catch { isPawn = false; }
+    const isWhiteDoublePush = isPawn && from[1] === '2' && to[1] === '4' && from[0] === to[0];
+    const isBlackDoublePush = isPawn && from[1] === '7' && to[1] === '5' && from[0] === to[0];
+    if (!isWhiteDoublePush && !isBlackDoublePush) return fen;
+    const parts = fen.split(/\s+/);
+    if (parts.length < 6) return fen;
+    parts[3] = `${from[0]}${isWhiteDoublePush ? '3' : '6'}`;
+    return parts.join(' ');
 }
 
 function setBoardPosition(fen, { lastMove = null } = {}) {
@@ -695,7 +728,16 @@ function startNextPracticeLine() {
 }
 
 function formatScore(info, fen = boardPosition()) {
-    if (!info || info.score == null) return { text: '0.00', pawns: 0 };
+    if (!info) return { text: '—', pawns: 0 };
+    const bound = info.scoreBound === 'lower' ? '≥' : (info.scoreBound === 'upper' ? '≤' : '');
+    if (Number.isFinite(info.whiteMate)) {
+        return { text: `${bound}M${info.whiteMate}`, pawns: info.whiteMate > 0 ? 12 : -12 };
+    }
+    if (Number.isFinite(info.whiteScorePawns)) {
+        const pawns = info.whiteScorePawns;
+        return { text: `${bound}${pawns >= 0 ? '+' : ''}${pawns.toFixed(2)}`, pawns };
+    }
+    if (info.score == null) return { text: '—', pawns: 0 };
     const turn = String(fen).split(/\s+/)[1] || 'w';
     const perspective = turn === 'w' ? 1 : -1;
     if (info.scoreType === 'mate') {
@@ -720,12 +762,16 @@ function pvToSan(pv, fen) {
 
 function renderEngineInfo(info) {
     if (!info || !engineEnabled || activeTab === 'practice' || engineWorkspaceGeneration !== workspaceGeneration) return;
-    lastEngineInfo = info;
-    engineLines.set(info.multipv || 1, info);
-    const activeFen = boardPosition();
+    const activeFen = activeEngineFen || enginePositionFen();
+    if (info.fen && info.fen !== activeEngineFen) return;
+    const variation = info.multipv || 1;
+    const previous = engineLines.get(variation);
+    if (previous && previous.depth > info.depth) return;
+    engineLines.set(variation, info);
     const score = formatScore(info, activeFen);
     const pvSan = pvToSan(info.pv || [], activeFen);
-    if ((info.multipv || 1) === 1) {
+    if (variation === 1) {
+        lastEngineInfo = info;
         els.engineEval.textContent = score.text;
         els.engineDepth.textContent = `Depth ${info.depth || 0}`;
         els.enginePv.textContent = pvSan || 'Calculating…';
@@ -744,27 +790,43 @@ function renderEngineInfo(info) {
     });
 }
 
+function resetEnginePresentation({ practice = false, off = false } = {}) {
+    engineLines.clear();
+    lastEngineInfo = null;
+    activeEngineFen = '';
+    board?.clearArrows();
+    els.engineEval.textContent = '—';
+    els.engineDepth.textContent = practice ? 'Paused' : (off ? 'Off' : 'Depth 0');
+    els.enginePv.textContent = practice ? 'Paused during protected practice' : (off ? 'Engine off' : 'Waiting for analysis…');
+    els.engineLines.innerHTML = `<li>${practice ? 'Analysis is hidden during protected practice.' : (off ? 'Engine off.' : 'Waiting for Stockfish 19 Lite…')}</li>`;
+    els.evalRailFill.style.height = '50%';
+    els.evalRailScore.textContent = '—';
+    if (practice) els.engineStrip.dataset.engineState = 'paused';
+    else if (off) els.engineStrip.dataset.engineState = 'off';
+}
+
 async function initEngine() {
     const generation = workspaceGeneration;
     els.engineToggle.setAttribute('aria-pressed', String(engineEnabled));
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
-        els.engineStrip.dataset.engineState = 'off';
-        els.enginePv.textContent = 'Engine off';
+        resetEnginePresentation({ off: true });
         return;
     }
-    if (!window.StockfishClient) {
+    if (!window.OpeningTrainerStockfishClient) {
         els.engineStrip.dataset.engineState = 'error';
         els.enginePv.textContent = 'Engine unavailable';
         return;
     }
-    const candidate = new window.StockfishClient({ workerUrl: new URL('/engine/stockfish.worker.js', location.origin).toString() });
+    const candidate = new window.OpeningTrainerStockfishClient();
     engine = candidate;
     candidate.onInfo(info => {
         if (generation === workspaceGeneration && engine === candidate) renderEngineInfo(info);
     });
     candidate.onError(error => {
         if (generation !== workspaceGeneration || engine !== candidate) return;
+        engineReady = false;
+        resetEnginePresentation();
         els.engineStrip.dataset.engineState = 'error';
         els.enginePv.textContent = error.message || 'Engine unavailable';
     });
@@ -775,7 +837,8 @@ async function initEngine() {
             return;
         }
         engineReady = true;
-        candidate.setOptions({ multiPV: 3 });
+        engineIdentity = candidate.getIdentity?.() || null;
+        candidate.setOptions({ multiPV: ENGINE_MULTIPV });
         els.engineStrip.dataset.engineState = 'ready';
         if (engineEnabled) analyzeCurrentPosition();
         else {
@@ -792,20 +855,22 @@ function analyzeCurrentPosition() {
     if (!engineEnabled || !engineReady || activeTab === 'practice') {
         engine?.stop();
         if (activeTab === 'practice') {
-            els.enginePv.textContent = 'Paused during protected practice';
-            board.clearArrows();
+            resetEnginePresentation({ practice: true });
         }
         return;
     }
-    const fen = boardPosition();
+    const fen = enginePositionFen();
     engineWorkspaceGeneration = workspaceGeneration;
     engine.stop();
-    engine.setOptions({ multiPV: 3 });
+    activeEngineFen = fen;
+    lastEngineInfo = null;
+    engine.setOptions({ multiPV: ENGINE_MULTIPV });
     engine.setPositionFEN(fen);
-    engine.goDepth(16);
+    engine.goDepth(ENGINE_TARGET_DEPTH);
     els.engineStrip.dataset.engineState = 'ready';
     els.enginePv.textContent = 'Calculating…';
-    els.engineLines.innerHTML = '<li>Calculating principal variations…</li>';
+    els.engineDepth.textContent = `Depth 0 / ${ENGINE_TARGET_DEPTH}`;
+    els.engineLines.innerHTML = `<li>Calculating up to ${ENGINE_MULTIPV} principal variations…</li>`;
 }
 
 function toggleEngine() {
@@ -815,9 +880,7 @@ function toggleEngine() {
     els.engineStripToggle.setAttribute('aria-pressed', String(engineEnabled));
     if (!engineEnabled) {
         engine?.stop();
-        board.clearArrows();
-        els.engineStrip.dataset.engineState = 'off';
-        els.enginePv.textContent = 'Engine off';
+        resetEnginePresentation({ off: true });
     } else {
         if (!engine) {
             initEngine();
@@ -1293,6 +1356,8 @@ function resetWorkspace({
     engineWorkspaceGeneration = -1;
     engineLines.clear();
     lastEngineInfo = null;
+    engineIdentity = null;
+    activeEngineFen = '';
 
     const restored = buildAnalysisDraftState(draft, {
         fallbackOrientation: identityBoundary ? 'white' : analysisOrientation,
@@ -1340,10 +1405,10 @@ function resetWorkspace({
     els.wikiAttribution.hidden = true;
     els.ecoSearch.value = '';
     els.evalRailFill.style.height = '50%';
-    els.evalRailScore.textContent = '0.00';
-    els.engineEval.textContent = '0.00';
+    els.evalRailScore.textContent = '—';
+    els.engineEval.textContent = '—';
     els.engineDepth.textContent = 'Depth 0';
-    els.engineLines.innerHTML = '<li>Waiting for Stockfish…</li>';
+    els.engineLines.innerHTML = '<li>Waiting for Stockfish 19 Lite…</li>';
     els.enginePv.textContent = engineEnabled ? 'Starting engine…' : 'Engine off';
     els.engineStrip.dataset.engineState = engineEnabled ? 'loading' : 'off';
 
@@ -1676,6 +1741,17 @@ function exposeQaApi() {
             boardMetrics: board.getMetrics(),
             opening: activeOpening,
             engineEnabled,
+            engine: Object.freeze({
+                displayName: ENGINE_DISPLAY_NAME,
+                ready: engineReady,
+                identity: engineIdentity ? { ...engineIdentity } : null,
+                targetDepth: ENGINE_TARGET_DEPTH,
+                multiPV: ENGINE_MULTIPV,
+                fen: activeEngineFen,
+                depth: lastEngineInfo?.depth || 0,
+                score: lastEngineInfo ? formatScore(lastEngineInfo, lastEngineInfo.fen || activeEngineFen).text : null,
+                requestId: lastEngineInfo?.requestId || null
+            }),
             unsavedStudy: hasUnsavedStudyChanges(),
             workspaceGeneration
         }),

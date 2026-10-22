@@ -458,12 +458,12 @@ test('Clerk A to B to Guest to A isolates unsaved analysis drafts and stale asyn
     let markGamesStarted;
     const gamesStarted = new Promise(resolve => { markGamesStarted = resolve; });
     let holdGames = false;
-    await page.route('**/js/engine/stockfish-client.js*', route => route.fulfill({
+    await page.route('**/js/opening-trainer/stockfish19-client.js*', route => route.fulfill({
         status: 200,
         contentType: 'text/javascript',
         body: `(() => {
             window.__openingTrainerEngines = [];
-            window.StockfishClient = class {
+            window.OpeningTrainerStockfishClient = class {
                 constructor() { this.terminated = false; window.__openingTrainerEngines.push(this); }
                 onInfo(callback) { this.infoCallback = callback; }
                 onError(callback) { this.errorCallback = callback; }
