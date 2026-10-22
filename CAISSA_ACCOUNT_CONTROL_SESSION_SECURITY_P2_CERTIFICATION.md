@@ -1,6 +1,6 @@
 # CAISSA Account Control — Session Security P2 Certification
 
-Fecha: 2026-10-21
+Fecha: 2026-10-22
 
 Estado: `CAISSA_ACCOUNT_CONTROL_V1 — SESSION_SECURITY_P2_LOCAL_CERTIFIED / HOSTED_APPROVAL_PENDING`
 
@@ -9,8 +9,9 @@ Estado: `CAISSA_ACCOUNT_CONTROL_V1 — SESSION_SECURITY_P2_LOCAL_CERTIFIED / HOS
 - Repositorio: `TVLavin-Chess-Game2`.
 - Rama aislada: `fix/account-control-session-security-p2-20261021`.
 - Base inmutable: `e4a341eef1dcd74fa03af335d8547cd846de4510` (HEAD verificado de PR #93; PR #92 permanece como dependencia anterior).
-- Commit de implementación certificado: `fe4f87f52154ab7333b403cca36fae95e9b1af2f`.
-- Tree de implementación certificado: `74e950a70ef1f3126b1babd45ed16f8475424ea3`.
+- Commit de implementación base: `fe4f87f52154ab7333b403cca36fae95e9b1af2f`.
+- Commit de remediación final certificado: `032f89ca3205007f9d0b26334f47c2b7c6988496`.
+- Tree de implementación final certificado: `7e28fcd3308d9145363512740f47fd960eca51fc`.
 - Archivos de implementación: `api/_lib/auth.js`, `api/_lib/account-control.js`.
 - Regresiones nuevas: `tests/api-auth-contract.test.js`, `tests/account-control.test.js`.
 - No se modificaron migraciones, configuración de Clerk, Supabase, Vercel, GitHub ni datos alojados.
@@ -24,8 +25,9 @@ P2-A y P2-B quedan cerrados en código y pruebas locales.
 1. Los siete endpoints de Account Control consultan el estado actual de la sesión después de verificar el JWT y antes de resolver ownership o tocar datos privados.
 2. Sólo continúa una sesión con `id === verifiedJWT.sid`, `userId === verifiedJWT.sub` y `status === 'active'`.
 3. JWT malformados o inválidos reciben `401`; fallos de configuración, JWKS o proveedor conservan `503`.
-4. El rate limit persistente se ejecuta antes de la consulta remota para evitar convertir Account Control en un amplificador hacia Clerk.
-5. El escáner de seguridad del diff concluyó con cobertura completa, cero candidatos y cero hallazgos reportables.
+4. Un límite persistente previo a Clerk usa un HMAC de `sub + sid + jti`; una sesión revocada o un token stale no comparten ese cupo con el token revalidado.
+5. El cupo operativo por usuario se consume sólo después de validar sesión activa y, para acciones sensibles, `fva` reciente.
+6. El primer escaneo detectó un P3 de disponibilidad; fue corregido y el escaneo final concluyó con cobertura completa, cero candidatos y cero hallazgos reportables.
 
 ## Causa raíz P2-A
 
@@ -54,13 +56,14 @@ Orden efectivo para Account Control:
 2. Aplicar origin/JSON a operaciones con efecto.
 3. Verificar criptográficamente el JWT, issuer y authorized parties.
 4. Exigir que la authority del JWT coincida con la del entorno.
-5. Consumir el rate limit persistente usando un HMAC del `sub` verificado.
+5. Consumir el bucket persistente `session_lookup` usando un HMAC del `sub`, `sid` y `jti` verificados.
 6. Obtener `sid` exclusivamente del resultado verificado; nunca del body o de un identificador libre del navegador.
 7. Validar la familia del `CLERK_SECRET_KEY` (`sk_test_` para Development, `sk_live_` para Production).
 8. Ejecutar una consulta no cacheada `sessions.getSession(sid)` con espera máxima predeterminada de 2500 ms.
 9. Exigir respuesta bien formada, ID exacto, usuario exacto y `status === 'active'`.
 10. Aplicar `jti`/`fva[0] <= 5` cuando la operación exige reautenticación reciente.
-11. Resolver ownership VERIFIED/ACTIVE y continuar con el RPC o stream owner-scoped.
+11. Consumir el cupo operativo por usuario (`summary`, `status`, `export`, `prepare` o `confirm`).
+12. Resolver ownership VERIFIED/ACTIVE y continuar con el RPC o stream owner-scoped.
 
 Cada solicitud vuelve a consultar el estado. Prepare y Confirm no comparten una autorización cacheada.
 
@@ -79,7 +82,8 @@ Cada solicitud vuelve a consultar el estado. Prepare y Confirm no comparten una 
 | JWKS ausente, inválido, no disponible o no resoluble | `503 AUTH_SERVICE_UNAVAILABLE` |
 | Red, rate limit del proveedor, credencial del proveedor o 5xx | `503 AUTH_SERVICE_UNAVAILABLE` |
 | Timeout o respuesta Clerk malformada | `503 AUTH_SERVICE_UNAVAILABLE` |
-| Rate limit persistente de CAISSA denegado | `429 RATE_LIMITED`, antes de consultar Clerk |
+| Bucket `session_lookup` denegado | `429 RATE_LIMITED`, antes de consultar Clerk |
+| Cupo operativo por usuario denegado | `429 RATE_LIMITED`, después de sesión activa y freshness cuando aplica |
 
 Las respuestas no incluyen mensajes del SDK, tokens, session IDs, claves ni datos de proveedor. Los diagnósticos del lookup registran sólo evento, nombre de error saneado y status numérico opcional.
 
@@ -120,33 +124,33 @@ La consulta remota de sesión se limita a `api/_lib/account-control.js`; no se a
 
 Prerequisito de despliegue: Account Control ahora requiere `CLERK_SECRET_KEY` aun cuando la verificación JWT use `CLERK_JWT_KEY`, porque el estado vivo y la eliminación de usuario son operaciones del Backend API.
 
-Coste esperado: una lectura Clerk Sessions API por solicitud Account Control que supere el rate limit de CAISSA. No existe caché de estado `active`.
+Coste esperado: una lectura Clerk Sessions API por solicitud Account Control que supere el bucket `session_lookup`. No existe caché de estado `active`.
 
 ## QA local
 
 | Área | Comando/evidencia | Resultado |
 |---|---|---|
 | Instalación reproducible | `npm ci` | PASS; 152 paquetes, 0 vulnerabilidades |
-| Account Control | `npm run test:account-control` | PASS 36/36 |
+| Account Control | `npm run test:account-control` | PASS 38/38 |
 | Identity Organization | `npm run test:identity-organization` | PASS 53/53 |
 | Public Identity | `npm run test:public-identity` | PASS 23/23 |
-| SEC-005 | `npm run test:sec005` | PASS 90/90 |
+| SEC-005 | `npm run test:sec005` | PASS 90/90 final; una ejecución inicial tuvo un fallo transitorio y pasó aislada y en la repetición completa |
 | Account Control browsers | Chromium + Firefox + WebKit | PASS 18/18 |
 | Public Identity browsers | Chromium + Firefox + WebKit | PASS 12/12 |
 | Mobile | 390×844 Account Control y 390/340 px Public Identity en los tres motores | PASS |
 | Lint Account Control | `npm run lint:account-control` | PASS |
 | Lint Public Identity | `npm run lint:public-identity` | PASS |
 | Build genérico | `npm run build --if-present` | N/A: `package.json` no define script `build` |
-| Build/audit público | `npm run release:public:audit` | PASS; 1812 archivos, 23 paths, 24 contratos Chess TV |
+| Build/audit público | `npm run release:public:audit` | PASS; 1813 archivos, 23 paths, 24 contratos Chess TV |
 | Supply-chain | `npm run security:dependencies` | PASS; 482 runtime files, 177 lock entries, `npm audit` 0 vulnerabilidades |
 | Diff hygiene | `git diff --check` | PASS |
-| Codex Security diff scan | Scan `a0048ab9-7624-4a55-8dfd-07b07d616009` | PASS; cobertura completa, 2/2 fuentes, 0 hallazgos |
+| Codex Security diff scan final | Scan `a11b4d4d-ee06-421b-b44c-632e815c301d` | PASS; cobertura completa, 2/2 fuentes, 0 hallazgos |
 
 El script genérico de build no se declaró PASS: no existe. La auditoría pública del repositorio fue la comprobación de build disponible y sí pasó.
 
 Informe generado del escáner:
 
-`C:\Users\ALEXANDER\.codex\state\plugins\codex-security\scans\account-control-session-security-p2-20261021\e4a341eef1dcd74fa03af335d8547cd846de4510_20261021T205741Z_arorew9j\report.md`
+`C:\Users\ALEXANDER\.codex\state\plugins\codex-security\scans\account-control-session-security-p2-20261021\032f89ca3205007f9d0b26334f47c2b7c6988496_20261022T233534Z_wieox1g2\report.md`
 
 ## Revisión independiente
 
@@ -155,14 +159,17 @@ La primera revisión independiente confirmó dos problemas del candidato inicial
 1. El lookup Clerk estaba antes del rate limit persistente y podía amplificar tráfico hacia el proveedor.
 2. `jwk-kid-mismatch` seguía en `503`, por lo que un token de otra instancia podía incumplir el contrato de wrong issuer/invalid token.
 
-Ambos se corrigieron antes de la QA final. El diff estabilizado pasó después por Codex Security con cero hallazgos reportables.
+Ambos se corrigieron antes de la QA inicial. La revalidación fresca del 22 de octubre detectó después un P3: una credencial de sesión inactiva podía consumir el cupo persistente por usuario antes del lookup y bloquear temporalmente una sesión de reemplazo.
+
+La remediación separó el bucket previo al proveedor, ligado a `sub + sid + jti`, del cupo operativo por usuario. La revisión independiente posterior interceptó además dos regresiones antes del commit: el nombre con guion no cumplía el contrato SQL y el chequeo de freshness seguía detrás del cupo sensible. El commit final usa `session_lookup`, comprueba sesión activa y freshness antes del cupo operativo, y pasó un nuevo escaneo completo con cero hallazgos.
 
 ## Riesgos residuales
 
 - La validación es point-in-time. Una sesión puede terminar inmediatamente después de comprobar `active`; la operación ya admitida no se cancela de forma atómica.
 - `Promise.race` limita la espera de la respuesta, pero `@clerk/backend` no expone un `AbortSignal` en `getSession()` y la solicitud subyacente puede finalizar después.
 - La rapidez con que Clerk refleja `session.end()` es una propiedad alojada que todavía debe medirse; no se afirma revocación instantánea hasta completar la certificación hosted.
-- El rate limit de CAISSA tiene precedencia. Una solicitud con JWT criptográficamente válido puede recibir `429` sin consultar el estado de sesión cuando ya agotó su bucket; nunca se autoriza la operación.
+- El bucket `session_lookup` tiene precedencia y puede devolver `429` antes de consultar Clerk, pero queda aislado por token firmado (`sub + sid + jti`). No consume los cupos operativos de un token revalidado.
+- El límite previo es por token firmado, no un límite global/IP de borde; Vercel/Clerk siguen siendo responsables de sus propios controles agregados.
 - La nueva lectura remota añade latencia y dependencia del Backend API a Account Control, no al resto de CAISSA.
 
 ## PR de reparación preparada
@@ -184,11 +191,12 @@ Body propuesto:
 - bind the live session id/user to the verified JWT sid/sub
 - bound the uncached Clerk lookup and fail closed with sanitized 401/503 responses
 - classify malformed JWTs and cross-bundle Clerk invalid-token reasons as 401
-- preserve provider/JWKS/configuration failures as 503 and rate-limit before the provider lookup
+- preserve provider/JWKS/configuration failures as 503
+- isolate the pre-provider quota by signed sub/sid/jti and consume user action quotas only after live-session/freshness checks
 
 ## Validation
 
-- Account Control 36/36
+- Account Control 38/38
 - Identity Organization 53/53
 - Public Identity 23/23
 - SEC-005 90/90
@@ -196,7 +204,7 @@ Body propuesto:
 - Chromium/Firefox/WebKit Public Identity 12/12
 - mobile coverage in all three engines
 - lint, public release audit, supply-chain and npm audit pass
-- Codex Security diff scan: complete coverage, zero findings
+- Codex Security final diff scan `a11b4d4d-ee06-421b-b44c-632e815c301d`: complete coverage, zero findings
 
 ## Release gate
 
