@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/opening-trainer.css?v=1.1.0">
+  <link rel="stylesheet" href="/css/opening-trainer.css?v=1.2.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
 </head>
 <body data-clarity-mask>
@@ -91,7 +91,7 @@
               </div>
 
               <p class="opening-trainer-help">Move freely on the board. Mark any terminal variation you want to include, then save it to your personal repertoire.</p>
-              <div id="trainerVariationTree" class="opening-trainer-tree" role="tree" aria-label="Opening variations"></div>
+              <div id="trainerVariationTree" class="opening-trainer-tree" role="treegrid" aria-label="Opening variations" aria-colcount="4"></div>
               <div id="trainerAnalysisEmpty" class="opening-trainer-empty">
                 <i class="fas fa-code-branch" aria-hidden="true"></i>
                 <p>Play a move on the board to begin the variation tree.</p>
@@ -116,6 +116,11 @@
                 <select id="trainerRepertoireSelect"><option value="">No saved repertoires</option></select>
                 <label for="trainerLineSelect">Variation</label>
                 <select id="trainerLineSelect"><option value="0">Line 1</option></select>
+                <fieldset class="opening-trainer-play-as" id="trainerPracticePlayAs">
+                  <legend>Play as:</legend>
+                  <label><input id="trainerPracticePlayWhite" type="radio" name="trainerPracticeColor" value="white" checked> White</label>
+                  <label><input id="trainerPracticePlayBlack" type="radio" name="trainerPracticeColor" value="black"> Black</label>
+                </fieldset>
                 <button id="trainerStartPractice" class="opening-trainer-button opening-trainer-button--primary" type="button">Start practice</button>
               </div>
 
@@ -258,6 +263,11 @@
           <p class="opening-trainer-kicker">Repertoire saved</p>
           <h2 id="trainerSaveTrainTitle">Would you like to train this opening?</h2>
           <p id="trainerSaveTrainSummary">Your selected variations are ready.</p>
+          <fieldset class="opening-trainer-play-as opening-trainer-play-as--dialog">
+            <legend>Play as:</legend>
+            <label><input id="trainerDialogPlayWhite" type="radio" name="trainerDialogPracticeColor" value="white" checked> White</label>
+            <label><input id="trainerDialogPlayBlack" type="radio" name="trainerDialogPracticeColor" value="black"> Black</label>
+          </fieldset>
           <div class="opening-trainer-dialog__actions">
             <button id="trainerContinueAnalysis" class="opening-trainer-button" value="continue">Continue Analysis</button>
             <button id="trainerConfirmPractice" class="opening-trainer-button opening-trainer-button--primary" value="practice">Start Practice</button>
@@ -291,6 +301,6 @@
   <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
   <script src="/js/analyze-variation-tree.js?v=1.0.0"></script>
   <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
-  <script type="module" src="/js/opening-trainer/page.js?v=1.1.0"></script>
+  <script type="module" src="/js/opening-trainer/page.js?v=1.2.0"></script>
 </body>
 </html>

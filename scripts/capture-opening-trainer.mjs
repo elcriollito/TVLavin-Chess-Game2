@@ -19,15 +19,37 @@ async function prepare(page) {
     await page.waitForFunction(() => Boolean(window.CaissaOpeningTrainer));
 }
 
+async function tapMove(page, from, to) {
+    await page.locator(`.caissa-board__square[data-square="${from}"]`).click();
+    await page.locator(`.caissa-board__square[data-square="${to}"]`).click();
+}
+
 const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 await prepare(desktop);
 await desktop.locator('#trainerTabWikibook').click();
 await desktop.locator('#trainerWikiAuto').uncheck();
 await desktop.locator('#trainerWikiReturn').click();
-await desktop.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'e5', 'Nf3', 'Nc6', 'Bb5']));
+await desktop.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'c6', 'd4', 'd5', 'Nc3', 'dxe4']));
+const branchNodes = await desktop.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.nodes
+    .filter(node => ['d5', 'Nc3'].includes(node.san))
+    .map(node => ({ id: node.id, san: node.san })));
+await desktop.locator(`[data-node-id="${branchNodes.find(node => node.san === 'd5').id}"]`).click();
+await tapMove(desktop, 'e4', 'e5');
+await tapMove(desktop, 'g8', 'f6');
+await tapMove(desktop, 'g1', 'f3');
+await desktop.locator(`[data-node-id="${branchNodes.find(node => node.san === 'Nc3').id}"]`).click();
+await tapMove(desktop, 'g7', 'g6');
 await desktop.locator('#trainerEngineDepth').filter({ hasText: 'Depth' }).waitFor({ timeout: 30_000 });
 await desktop.locator('#trainerToast').waitFor({ state: 'hidden', timeout: 10_000 });
 await desktop.screenshot({ path: path.join(output, 'analysis-desktop.png'), fullPage: false });
+
+await desktop.locator('#trainerRepertoireColor').selectOption('white');
+await desktop.locator('#trainerSaveButton').click();
+await desktop.locator('#trainerTabPractice').click();
+await desktop.locator('#trainerPracticePlayBlack').check();
+await desktop.locator('#trainerStartPractice').click();
+await desktop.locator('#trainerToast').waitFor({ state: 'hidden', timeout: 10_000 });
+await desktop.screenshot({ path: path.join(output, 'practice-black-desktop.png'), fullPage: false });
 
 const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
 await prepare(mobile);

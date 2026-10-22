@@ -388,6 +388,11 @@ body:has(.opening-trainer-app) {
   color: #10151d;
   background: linear-gradient(135deg, #ffd178, #eda13a);
 }
+.opening-trainer-button--primary:hover {
+  border-color: #ffd178;
+  color: #10151d;
+  background: linear-gradient(135deg, #ffe2a3, #f3b34e);
+}
 
 .opening-trainer-button:disabled,
 .opening-trainer-workspace__foot button:disabled {
@@ -404,27 +409,61 @@ body:has(.opening-trainer-app) {
 
 .opening-trainer-tree {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   margin-top: 14px;
 }
 
+.opening-trainer-tree-head,
 .opening-trainer-tree-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 54px repeat(2, minmax(0, 1fr)) 42px;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+}
+
+.opening-trainer-tree-head {
+  padding: 0 7px 4px;
+  color: #8fa6c0;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.opening-trainer-tree-head span:last-child { text-align: center; }
+
+.opening-trainer-tree-row {
   min-height: 38px;
-  padding: 5px 8px;
+  padding: 4px 7px;
   border: 1px solid transparent;
   border-radius: 8px;
   color: #d6e2ef;
   background: rgba(25, 44, 70, 0.55);
 }
 
-.opening-trainer-tree-row.is-current { border-color: var(--trainer-accent-strong); background: #243b5a; }
-.opening-trainer-tree-row button { border: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
-.opening-trainer-tree-row small { color: var(--trainer-muted); }
-.opening-trainer-tree-branch { color: #7990a9; }
+.opening-trainer-tree-row.is-variation { border-left-color: #56789b; background: rgba(20, 38, 61, 0.78); }
+.opening-trainer-tree-row.has-current { border-color: #5b7899; background: #203654; }
+.opening-trainer-tree-number { color: #91a8c1; font-variant-numeric: tabular-nums; font-size: 0.74rem; font-weight: 800; }
+.opening-trainer-tree-branch { display: inline-block; width: 16px; color: #83a4c6; }
+.opening-trainer-tree-move {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 7px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.opening-trainer-tree-move:hover { border-color: #58799d; background: #294767; }
+.opening-trainer-tree-move:focus-visible { outline: 2px solid #9dcbff; outline-offset: 1px; }
+.opening-trainer-tree-move.is-current { border-color: var(--trainer-accent-strong); color: #17202c; background: #ffd178; }
+.opening-trainer-tree-empty-move { min-height: 30px; }
+.opening-trainer-tree-line-choice { display: grid; place-items: center; min-height: 30px; cursor: pointer; }
+.opening-trainer-tree-line-choice input { width: 17px; height: 17px; margin: 0; accent-color: var(--trainer-accent-strong); }
 
 .opening-trainer-empty {
   display: grid;
@@ -452,6 +491,21 @@ body:has(.opening-trainer-app) {
 
 .opening-trainer-practice-setup { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .opening-trainer-practice-setup label { color: var(--trainer-muted); font-size: 0.78rem; font-weight: 700; }
+.opening-trainer-play-as {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  border: 1px solid var(--trainer-line-soft);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: #14243a;
+}
+.opening-trainer-play-as legend { padding: 0 5px; color: var(--trainer-muted); font-size: 0.76rem; font-weight: 800; }
+.opening-trainer-play-as label { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 2px 8px; border-radius: 999px; color: #e5eef8; cursor: pointer; }
+.opening-trainer-play-as label:has(input:checked) { color: #17202c; background: #ffd178; }
+.opening-trainer-play-as input { margin: 0; accent-color: #315f90; }
+.opening-trainer-play-as--dialog { margin-top: 16px; }
 
 .opening-trainer-practice-card {
   margin-top: 16px;

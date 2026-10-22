@@ -11,6 +11,7 @@ import { OpeningGamesClient, rankOpeningCollections, splitPgnGames } from '../js
 import { PgnOpeningProxyClient, validateOpeningCatalog } from '../js/pgn-replayer/pgn-opening-proxy-client.js';
 import { wikibookTitleForMoves } from '../js/opening-trainer/wikibook-client.js';
 import { RepertoireCloudSync } from '../js/opening-trainer/repertoire-cloud-sync.js';
+import { buildPairedTreeRows } from '../js/opening-trainer/analysis-tree-rows.js';
 import repertoireHandler, { sanitizeRepertoire } from '../api/opening-trainer/repertoires.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -52,6 +53,30 @@ function repertoire(overrides = {}) {
         progress: { sessions: 0, completed: 0, attempts: 0, correct: 0, hints: 0, reveals: 0 },
         ...overrides
     };
+}
+
+function linearTreeSnapshot(tokens) {
+    const chess = new Chess();
+    const nodes = [{ id: 'root', parentId: null, color: null, moveNumber: 0, childrenIds: [], mainChildId: null }];
+    let parent = nodes[0];
+    tokens.forEach((san, index) => {
+        const move = chess.move(san);
+        const node = {
+            id: `node-${index + 1}`,
+            parentId: parent.id,
+            san: move.san,
+            color: move.color,
+            moveNumber: Math.floor(index / 2) + 1,
+            childrenIds: [],
+            mainChildId: null,
+            fen: chess.fen()
+        };
+        parent.childrenIds.push(node.id);
+        parent.mainChildId = node.id;
+        nodes.push(node);
+        parent = node;
+    });
+    return { nodes, currentNodeId: parent.id };
 }
 
 function response() {
@@ -121,6 +146,66 @@ test('training session separates illegal moves, legal deviations, correct moves 
     assert.equal(session.reveal().san, 'Nc6');
     assert.equal(session.state().stats.reveals, 1);
     assert.equal(session.completed, true);
+});
+
+test('paired tree rows group complete and incomplete move pairs without changing node identity', () => {
+    const six = linearTreeSnapshot(['e4', 'c6', 'd4', 'd5', 'Nc3', 'dxe4']);
+    const completeRows = buildPairedTreeRows(six);
+    assert.equal(completeRows.length, 3);
+    assert.deepEqual(completeRows.map(row => [row.whiteId, row.blackId]), [
+        ['node-1', 'node-2'], ['node-3', 'node-4'], ['node-5', 'node-6']
+    ]);
+
+    const five = linearTreeSnapshot(['e4', 'c6', 'd4', 'd5', 'Nc3']);
+    const incompleteRows = buildPairedTreeRows(five);
+    assert.equal(incompleteRows.length, 3);
+    assert.deepEqual([incompleteRows[2].whiteId, incompleteRows[2].blackId], ['node-5', null]);
+    assert.deepEqual(five.nodes.map(node => node.id), ['root', 'node-1', 'node-2', 'node-3', 'node-4', 'node-5']);
+});
+
+test('paired tree rows indent white and black alternatives from their exact branch point', () => {
+    const snapshot = linearTreeSnapshot(['e4', 'c6', 'd4', 'd5', 'Nc3', 'dxe4']);
+    const byId = new Map(snapshot.nodes.map(node => [node.id, node]));
+    byId.get('node-4').childrenIds.push('white-variation');
+    snapshot.nodes.push({
+        id: 'white-variation', parentId: 'node-4', san: 'e5', color: 'w', moveNumber: 3,
+        childrenIds: ['white-variation-reply'], mainChildId: 'white-variation-reply'
+    }, {
+        id: 'white-variation-reply', parentId: 'white-variation', san: 'c5', color: 'b', moveNumber: 3,
+        childrenIds: [], mainChildId: null
+    });
+    byId.get('node-5').childrenIds.push('black-variation');
+    snapshot.nodes.push({
+        id: 'black-variation', parentId: 'node-5', san: 'Nf6', color: 'b', moveNumber: 3,
+        childrenIds: [], mainChildId: null
+    });
+
+    const rows = buildPairedTreeRows(snapshot);
+    const whiteVariation = rows.find(row => row.whiteId === 'white-variation');
+    const blackVariation = rows.find(row => row.blackId === 'black-variation');
+    assert.equal(whiteVariation.depth, 1);
+    assert.equal(whiteVariation.variation, true);
+    assert.equal(blackVariation.depth, 1);
+    assert.equal(blackVariation.whiteId, null);
+    assert.equal(blackVariation.moveNumber, 3);
+});
+
+test('training color is a validated session override and never mutates the saved repertoire', () => {
+    const savedWhite = repertoire({ color: 'white' });
+    const blackSession = new TrainingSession(savedWhite, { userColor: 'black' });
+    assert.equal(blackSession.userColor, 'b');
+    assert.equal(blackSession.snapshot.color, 'white');
+    assert.equal(blackSession.advanceCaissa()[0].san, 'e4');
+    assert.equal(blackSession.attempt('e7e5').status, 'correct');
+    assert.equal(blackSession.advanceCaissa()[0].san, 'Nf3');
+    assert.equal(blackSession.attempt('b8c6').status, 'complete');
+    assert.equal(blackSession.result().userColor, 'b');
+
+    const whiteSession = new TrainingSession(repertoire({ color: 'black' }), { userColor: 'white' });
+    assert.equal(whiteSession.userColor, 'w');
+    assert.equal(whiteSession.snapshot.color, 'black');
+    assert.equal(new TrainingSession(repertoire()).userColor, 'b', 'legacy repertoires retain their saved default');
+    assert.throws(() => new TrainingSession(repertoire(), { userColor: 'green' }), /white or black/i);
 });
 
 test('opening resolver recognizes exact sequences and position-verified transpositions', () => {

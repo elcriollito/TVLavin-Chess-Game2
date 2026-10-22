@@ -13,6 +13,8 @@ The route remains `noindex, nofollow` during review. Production deployment, merg
 - Analysis Tree is transient exploratory state owned by the variation-tree adapter.
 - Saved Repertoire is validated, versioned, and persisted locally; signed-in sync uses the private repertoire API.
 - Training Session receives an immutable repertoire snapshot and cannot modify Analysis Tree state.
+- Paired notation is a presentation-only projection over the canonical half-move nodes; node IDs, FENs, branches, and saved-line selection remain unchanged.
+- Practice owns an explicit White/Black session choice. The saved repertoire color supplies only the default and is never rewritten by a session override.
 - Game review owns an independent cursor and cannot modify Analysis Tree state.
 - NEW advances an atomic workspace generation before cancelling Stockfish, WikiBook, Explorer, and PGN requests; late results from the old generation cannot repopulate the new study.
 - The board renderer is constructed once. Legal quiet moves preserve piece-node identity; position changes do not reconstruct the board.
@@ -20,16 +22,20 @@ The route remains `noindex, nofollow` during review. Production deployment, merg
 ## Functional review
 
 1. Open `/opening-trainer` and verify the five tabs appear once, in the required order.
-2. In Analysis, play `1. e4 e5 2. Nf3 Nc6 3. Bb5`. Verify SAN, the tree, Ruy Lopez identification, Stockfish evaluation/PVs, and a best-move arrow.
-3. Add a branch by navigating backward and playing a different legal move. Select the desired terminal rows, choose White or Black, then use the persistent footer Save from each primary tab.
-4. Use footer Save & Train from each primary tab. Confirm the decision dialog, start Practice, and verify Retry, Hint, Reveal, error/deviation feedback, progress, and CAISSA replies.
-5. Return to Analysis and confirm its tree and current position were not modified by Practice.
-6. Open Games. Search by opening name, variation, or ECO. Confirm the PGN Reader proxy label, at most ten results per page, result pagination, game loading, Notation, and anchored footer navigation without changing Analysis.
-7. Open Opening. Search by ECO/name/moves, load a line, then open CAISSA Explorer and play an indexed continuation.
-8. Enable Auto WikiBook, play a known opening move, and verify automatic navigation, source attribution, CC BY-SA link, Return to Analysis, and article locking.
-9. Toggle Engine and Flip. Confirm `NEW | Flip | Engine | Save | Save & Train | First | Previous | Next | Last` stays anchored while only the content body scrolls.
-10. With unsaved moves, press NEW and test Cancel, Save, and Discard. Confirm Cancel is lossless; a confirmed reset returns to Opening, keeps orientation/engine preferences and saved repertoires, and clears only transient analysis/game/theory state.
-11. Repeat key paths at 390×844, tablet width, and desktop width. Confirm all five tabs remain visible, the board stays square, the footer prioritizes NEW/Save & Train/navigation, and no horizontal page scroll appears.
+2. In Analysis, load or play `1. e4 c6 2. d4 d5 3. Nc3 dxe4`. Verify that it renders as three paired rows, each White/Black move remains individually selectable, and each selection restores that node's exact FEN.
+3. Return to `2...d5` and create a legal alternative such as `3.e5 Nf6 4.Nf3`. Return to `3.Nc3` and create a black alternative such as `3...g6`. Verify moderate indentation, branch markers, `3...` numbering for the black-only row, and no duplicated prefix.
+4. Select the desired terminal rows, choose White or Black, then use the persistent footer Save from each primary tab. Confirm the row checkbox represents the complete line ending at that row rather than an individual half-move.
+5. Use Save & Train with Black selected and confirm that the dialog exposes the same choice. Verify Black orientation and CAISSA's automatic first White move.
+6. Save a White-default Caro-Kann repertoire, open Practice, choose Black, and complete `1.e4 c6 2.d4 d5 3.Nc3 dxe4`. Exercise an error, Retry, Hint, and Reveal. Then change to White, accept the restart confirmation, and verify the stored repertoire still says White.
+7. While a session is active, change color again and cancel the confirmation. Verify the current position, session color, and statistics do not change.
+8. Verify Retry, Next, progress and CAISSA replies for both sides; during CAISSA's turn, confirm its pieces cannot be moved and Stockfish shows no solution arrow.
+9. Return to Analysis and confirm its tree and current position were not modified by Practice.
+10. Open Games. Search by opening name, variation, or ECO. Confirm the PGN Reader proxy label, at most ten results per page, result pagination, game loading, Notation, and anchored footer navigation without changing Analysis.
+11. Open Opening. Search by ECO/name/moves, load a line, then open CAISSA Explorer and play an indexed continuation.
+12. Enable Auto WikiBook, play a known opening move, and verify automatic navigation, source attribution, CC BY-SA link, Return to Analysis, and article locking.
+13. Toggle Engine and Flip. Confirm `NEW | Flip | Engine | Save | Save & Train | First | Previous | Next | Last` stays anchored while only the content body scrolls.
+14. With unsaved moves, press NEW and test Cancel, Save, and Discard. Confirm Cancel is lossless; a confirmed reset returns to Opening, keeps orientation/engine preferences and saved repertoires, and clears only transient analysis/game/theory state.
+15. Repeat key paths at 390×844, tablet width, and desktop width. Confirm all five tabs remain visible, the board stays square, the footer prioritizes NEW/Save & Train/navigation, and no horizontal page scroll appears.
 
 ## Persistence and migration
 
@@ -62,9 +68,21 @@ node scripts/capture-opening-trainer.mjs
 
 The capture script checks mobile horizontal geometry before writing:
 
-- `docs/opening-trainer/screenshots/analysis-desktop.png`
+- `docs/opening-trainer/screenshots/analysis-desktop.png` — paired main line plus White and Black branches.
+- `docs/opening-trainer/screenshots/practice-black-desktop.png` — Black selected, Black orientation, and CAISSA's automatic `1.e4`.
 - `docs/opening-trainer/screenshots/wikibook-mobile.png`
 - `docs/opening-trainer/screenshots/games-mobile.png`
+
+Latest candidate results:
+
+- Opening Trainer lint: pass.
+- Opening Trainer unit/integration/navigation: 31/31 pass.
+- Opening Trainer browser: 28 pass, 2 deliberate Stockfish WASM skips outside Chromium.
+- CAISSA Board/Quiet Drag unit: 26/26 pass.
+- CAISSA Board browser: 19 pass, 1 expected visual-evidence skip.
+- PGN Reader browser: 33/33 pass across Chromium, Firefox, and WebKit.
+- PGN Reader unit: 146/147 pass; the only failure is the pre-existing contract that expects the already tracked Capablanca PGN to be absent.
+- Codex Security diff review: 7/7 authoritative source files reviewed, 0 findings, complete coverage (scan `4b6c2953-8309-4adb-ad37-a6ed7674506a`).
 
 ## Known review points
 

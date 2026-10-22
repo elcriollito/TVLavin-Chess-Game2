@@ -7,6 +7,7 @@ import { buildOpeningIndex, parseCatalogMoves } from './opening-index.js';
 import { WikiBookClient } from './wikibook-client.js';
 import { OpeningGamesClient } from './games-client.js';
 import { RepertoireCloudSync } from './repertoire-cloud-sync.js';
+import { buildPairedTreeRows } from './analysis-tree-rows.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const TREE_API = window.CaissaAnalyzeVariationTree;
@@ -31,6 +32,8 @@ const els = {
     saveTrain: byId('trainerSaveTrainButton'),
     repertoireSelect: byId('trainerRepertoireSelect'),
     lineSelect: byId('trainerLineSelect'),
+    practicePlayWhite: byId('trainerPracticePlayWhite'),
+    practicePlayBlack: byId('trainerPracticePlayBlack'),
     startPractice: byId('trainerStartPractice'),
     retryPractice: byId('trainerRetryPractice'),
     hint: byId('trainerHintButton'),
@@ -89,6 +92,8 @@ const els = {
     toast: byId('trainerToast'),
     saveTrainDialog: byId('trainerSaveTrainDialog'),
     saveTrainSummary: byId('trainerSaveTrainSummary'),
+    dialogPlayWhite: byId('trainerDialogPlayWhite'),
+    dialogPlayBlack: byId('trainerDialogPlayBlack'),
     confirmPractice: byId('trainerConfirmPractice'),
     newStudyDialog: byId('trainerNewStudyDialog'),
     saveReason: byId('trainerSaveReason')
@@ -219,6 +224,8 @@ function selectBoardSquare(square) {
     }
     const game = currentVisibleGame();
     const piece = game.get(square);
+    if (activeTab === 'practice' && trainingSession
+        && (trainingSession.completed || game.turn() !== trainingSession.userColor)) return;
     if (!selectedSquare) {
         if (!piece || piece.color !== game.turn()) return;
         selectedSquare = square;
@@ -251,6 +258,11 @@ function canDrag(square) {
     if (activeTab === 'games' && selectedGame) return false;
     const game = currentVisibleGame();
     const piece = game.get(square);
+    if (activeTab === 'practice' && trainingSession) {
+        return Boolean(!trainingSession.completed
+            && game.turn() === trainingSession.userColor
+            && piece?.color === trainingSession.userColor);
+    }
     return Boolean(piece && piece.color === game.turn());
 }
 
@@ -373,10 +385,12 @@ function saveRepertoire({ train = false } = {}) {
         if (train) {
             pendingPracticeRepertoireId = saved.id;
             els.saveTrainSummary.textContent = `${saved.name} contains ${saved.lines.length} ${saved.lines.length === 1 ? 'variation' : 'variations'}.`;
+            setDialogPracticeColor(saved.color);
             if (typeof els.saveTrainDialog.showModal === 'function') els.saveTrainDialog.showModal();
             else {
+                setPracticeColor(saved.color);
                 setTab('practice');
-                startPractice(saved.id, 0);
+                startPractice(saved.id, 0, { userColor: saved.color });
             }
         }
         return saved;
@@ -389,54 +403,92 @@ function saveRepertoire({ train = false } = {}) {
 function renderTree() {
     const snapshot = tree.inspect();
     const nodes = new Map(snapshot.nodes.map(node => [node.id, node]));
+    const pairedRows = buildPairedTreeRows(snapshot);
     els.variationTree.replaceChildren();
-    const renderBranch = (nodeId, depth, branchIndex = 0) => {
-        const node = nodes.get(nodeId);
-        if (!node) return;
-        const row = document.createElement('div');
-        row.className = `opening-trainer-tree-row${node.id === snapshot.currentNodeId ? ' is-current' : ''}`;
-        row.setAttribute('role', 'treeitem');
-        row.setAttribute('aria-selected', String(node.id === snapshot.currentNodeId));
-        row.style.marginLeft = `${Math.min(depth, 7) * 16}px`;
 
-        const marker = document.createElement('span');
-        marker.className = 'opening-trainer-tree-branch';
-        marker.textContent = branchIndex ? '↳' : '•';
-        row.append(marker);
+    const header = document.createElement('div');
+    header.className = 'opening-trainer-tree-head';
+    header.setAttribute('role', 'row');
+    ['Move', 'White', 'Black', 'Line'].forEach(label => {
+        const cell = document.createElement('span');
+        cell.setAttribute('role', 'columnheader');
+        cell.textContent = label;
+        header.append(cell);
+    });
+    els.variationTree.append(header);
 
+    const selectNode = node => {
+        tree.selectNode(node.id, { preferMainContinuation: false });
+        analysisGame = new Chess(node.fen || START_FEN);
+        if (activeTab !== 'practice') setBoardPosition(node.fen || START_FEN);
+        afterAnalysisPositionChanged({ keepWikiArticle: wikiLocked });
+    };
+
+    const moveCell = (nodeId, side) => {
+        const cell = document.createElement('div');
+        cell.setAttribute('role', 'gridcell');
+        const node = nodeId ? nodes.get(nodeId) : null;
+        if (!node) {
+            const empty = document.createElement('span');
+            empty.className = 'opening-trainer-tree-empty-move';
+            empty.setAttribute('aria-hidden', 'true');
+            cell.append(empty);
+            return cell;
+        }
         const button = document.createElement('button');
         button.type = 'button';
-        const prefix = node.color === 'w' ? `${node.moveNumber}.` : `${node.moveNumber}…`;
-        button.textContent = `${prefix} ${node.san}`;
-        button.addEventListener('click', () => {
-            tree.selectNode(node.id, { preferMainContinuation: false });
-            analysisGame = new Chess(node.fen || START_FEN);
-            if (activeTab !== 'practice') setBoardPosition(node.fen || START_FEN);
-            afterAnalysisPositionChanged({ keepWikiArticle: wikiLocked });
-        });
-        row.append(button);
+        button.className = `opening-trainer-tree-move${node.id === snapshot.currentNodeId ? ' is-current' : ''}`;
+        button.dataset.nodeId = node.id;
+        button.textContent = node.san;
+        button.setAttribute('aria-label', `${side} move ${node.moveNumber}: ${node.san}`);
+        if (node.id === snapshot.currentNodeId) button.setAttribute('aria-current', 'step');
+        button.addEventListener('click', () => selectNode(node));
+        cell.append(button);
+        return cell;
+    };
 
+    pairedRows.forEach(paired => {
+        const white = paired.whiteId ? nodes.get(paired.whiteId) : null;
+        const endpoint = nodes.get(paired.selectionNodeId);
+        const containsCurrent = paired.whiteId === snapshot.currentNodeId || paired.blackId === snapshot.currentNodeId;
+        const row = document.createElement('div');
+        row.className = `opening-trainer-tree-row${paired.variation ? ' is-variation' : ''}${containsCurrent ? ' has-current' : ''}`;
+        row.setAttribute('role', 'row');
+        row.setAttribute('aria-level', String(paired.depth + 1));
+        row.dataset.rowId = paired.id;
+        row.style.marginLeft = `${Math.min(paired.depth, 6) * 12}px`;
+
+        const number = document.createElement('span');
+        number.className = 'opening-trainer-tree-number';
+        number.setAttribute('role', 'rowheader');
+        const marker = document.createElement('span');
+        marker.className = 'opening-trainer-tree-branch';
+        marker.textContent = paired.variation ? '↳' : '';
+        marker.setAttribute('aria-hidden', 'true');
+        number.append(marker, document.createTextNode(`${paired.moveNumber}${white ? '.' : '…'}`));
+        row.append(number, moveCell(paired.whiteId, 'White'), moveCell(paired.blackId, 'Black'));
+
+        const lineCell = document.createElement('div');
+        lineCell.setAttribute('role', 'gridcell');
         const include = document.createElement('label');
-        include.title = 'Include this line when saving';
+        include.className = 'opening-trainer-tree-line-choice';
+        include.title = `Include the complete line ending after ${endpoint?.san || 'this move'}`;
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = selectedLineNodes.has(node.id);
-        checkbox.setAttribute('aria-label', `Include line through ${node.san}`);
+        checkbox.checked = selectedLineNodes.has(paired.selectionNodeId);
+        checkbox.setAttribute('aria-label', `Include complete line through ${endpoint?.san || 'this move'}`);
         checkbox.addEventListener('change', () => {
-            if (checkbox.checked) selectedLineNodes.add(node.id);
-            else selectedLineNodes.delete(node.id);
+            if (checkbox.checked) selectedLineNodes.add(paired.selectionNodeId);
+            else selectedLineNodes.delete(paired.selectionNodeId);
             updateSaveControls();
         });
         include.append(checkbox);
-        row.append(include);
+        lineCell.append(include);
+        row.append(lineCell);
         els.variationTree.append(row);
-
-        node.childrenIds.forEach((childId, index) => renderBranch(childId, depth + 1, index));
-    };
-    const root = nodes.get('root');
-    root?.childrenIds.forEach((id, index) => renderBranch(id, 0, index));
+    });
     const moveCount = snapshot.nodes.length - 1;
-    els.treeCount.textContent = `${moveCount} ${moveCount === 1 ? 'move' : 'moves'}`;
+    els.treeCount.textContent = `${moveCount} ${moveCount === 1 ? 'ply' : 'plies'} · ${pairedRows.length} ${pairedRows.length === 1 ? 'row' : 'rows'}`;
     els.analysisEmpty.hidden = moveCount > 0;
     els.variationTree.hidden = moveCount === 0;
     updateNavigationControls();
@@ -464,6 +516,26 @@ function updateNavigationControls() {
     els.last.disabled = snapshot.currentNodeId === 'root';
 }
 
+function practiceColor() {
+    return els.practicePlayBlack.checked ? 'black' : 'white';
+}
+
+function dialogPracticeColor() {
+    return els.dialogPlayBlack.checked ? 'black' : 'white';
+}
+
+function setPracticeColor(color) {
+    const black = color === 'black' || color === 'b';
+    els.practicePlayWhite.checked = !black;
+    els.practicePlayBlack.checked = black;
+}
+
+function setDialogPracticeColor(color) {
+    const black = color === 'black' || color === 'b';
+    els.dialogPlayWhite.checked = !black;
+    els.dialogPlayBlack.checked = black;
+}
+
 function renderRepertoireOptions(preferredId = '') {
     const repertoires = repertoireStore.list();
     const previous = preferredId || els.repertoireSelect.value;
@@ -471,6 +543,7 @@ function renderRepertoireOptions(preferredId = '') {
     if (!repertoires.length) {
         els.repertoireSelect.add(new Option('No saved repertoires', ''));
         els.startPractice.disabled = true;
+        if (!trainingSession) setPracticeColor('white');
         renderLineOptions();
         return;
     }
@@ -493,20 +566,24 @@ function renderLineOptions() {
         const plies = repertoire?.lines?.[index]?.length || 0;
         els.lineSelect.add(new Option(`Line ${index + 1}${plies ? ` · ${plies} plies` : ''}`, String(index)));
     }
+    if (!trainingSession || trainingSession.snapshot.id !== repertoire?.id) {
+        setPracticeColor(repertoire?.color || 'white');
+    }
 }
 
-function startPractice(repertoireId = els.repertoireSelect.value, lineIndex = Number(els.lineSelect.value) || 0) {
+function startPractice(repertoireId = els.repertoireSelect.value, lineIndex = Number(els.lineSelect.value) || 0, { userColor = practiceColor() } = {}) {
     const repertoire = repertoireStore.get(repertoireId);
     if (!repertoire) {
         toast('Choose a saved repertoire first.');
         return;
     }
-    trainingSession = new TrainingSession(repertoire, { lineIndex });
+    trainingSession = new TrainingSession(repertoire, { lineIndex, userColor });
     trainingLineIndex = Math.max(0, Math.min(lineIndex, repertoire.lines.length - 1));
     trainingRecorded = false;
     els.repertoireSelect.value = repertoire.id;
     renderLineOptions();
     els.lineSelect.value = String(trainingLineIndex);
+    setPracticeColor(trainingSession.userColor);
     els.practiceCard.hidden = false;
     els.practiceEmpty.hidden = true;
     els.sessionLock.hidden = false;
@@ -599,7 +676,7 @@ function startNextPracticeLine() {
     const repertoire = repertoireStore.get(trainingSession?.snapshot.id || els.repertoireSelect.value);
     if (!repertoire?.lines?.length) return;
     const nextIndex = (trainingLineIndex + 1) % repertoire.lines.length;
-    startPractice(repertoire.id, nextIndex);
+    startPractice(repertoire.id, nextIndex, { userColor: trainingSession?.userColor || practiceColor() });
     renderPractice(repertoire.lines.length > 1
         ? `Variation ${nextIndex + 1} of ${repertoire.lines.length}.`
         : 'Repeating this line for reinforcement.');
@@ -1246,6 +1323,20 @@ function navigateTree(action) {
     afterAnalysisPositionChanged({ keepWikiArticle: wikiLocked });
 }
 
+function changePracticeColor(nextColor) {
+    if (!trainingSession) return;
+    const currentColor = trainingSession.userColor === 'b' ? 'black' : 'white';
+    if (nextColor === currentColor) return;
+    const confirmed = window.confirm(`Restart this practice session and play as ${nextColor === 'black' ? 'Black' : 'White'}?`);
+    if (!confirmed) {
+        setPracticeColor(currentColor);
+        return;
+    }
+    const repertoireId = trainingSession.snapshot.id;
+    startPractice(repertoireId, trainingLineIndex, { userColor: nextColor });
+    renderPractice(`Session restarted. You are playing as ${nextColor === 'black' ? 'Black' : 'White'}.`);
+}
+
 function bindEvents() {
     document.querySelectorAll('[data-trainer-tab]').forEach((button, index, buttons) => {
         button.addEventListener('click', () => setTab(button.dataset.trainerTab));
@@ -1269,7 +1360,16 @@ function bindEvents() {
     els.repertoireColor.addEventListener('change', updateSaveControls);
     els.repertoireSelect.addEventListener('change', renderLineOptions);
     els.startPractice.addEventListener('click', () => startPractice());
-    els.retryPractice.addEventListener('click', () => startPractice(trainingSession?.snapshot.id || els.repertoireSelect.value, trainingLineIndex));
+    [els.practicePlayWhite, els.practicePlayBlack].forEach(input => {
+        input.addEventListener('change', () => {
+            if (input.checked) changePracticeColor(input.value);
+        });
+    });
+    els.retryPractice.addEventListener('click', () => startPractice(
+        trainingSession?.snapshot.id || els.repertoireSelect.value,
+        trainingLineIndex,
+        { userColor: trainingSession?.userColor || practiceColor() }
+    ));
     els.hint.addEventListener('click', requestHint);
     els.reveal.addEventListener('click', revealPracticeMove);
     els.nextLine.addEventListener('click', startNextPracticeLine);
@@ -1303,8 +1403,10 @@ function bindEvents() {
         const repertoireId = pendingPracticeRepertoireId;
         pendingPracticeRepertoireId = '';
         if (!repertoireId) return;
+        const userColor = dialogPracticeColor();
+        setPracticeColor(userColor);
         setTab('practice');
-        startPractice(repertoireId, 0);
+        startPractice(repertoireId, 0, { userColor });
     });
     els.saveTrainDialog.addEventListener('close', () => { pendingPracticeRepertoireId = ''; });
     els.newStudyDialog.addEventListener('close', () => {

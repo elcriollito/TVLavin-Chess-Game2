@@ -104,6 +104,110 @@ test('five-tab workspace keeps board geometry stable and Auto WikiBook returns t
     expect(Math.abs(footerAfterScroll.y - footerBeforeScroll.y)).toBeLessThan(1);
 });
 
+test('Analysis groups paired moves, keeps each ply selectable and nests white and black variations', async ({ page }) => {
+    await openTrainer(page);
+    await page.evaluate(() => { document.querySelector('#trainerWikiAuto').checked = false; });
+    await page.evaluate(() => window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'c6', 'd4', 'd5', 'Nc3', 'dxe4']));
+
+    const rows = page.locator('.opening-trainer-tree-row');
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText('e4');
+    await expect(rows.nth(0)).toContainText('c6');
+    await expect(rows.nth(2)).toContainText('Nc3');
+    await expect(rows.nth(2)).toContainText('dxe4');
+
+    const nodeState = await page.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.nodes
+        .filter(node => ['Nc3', 'dxe4'].includes(node.san))
+        .map(node => ({ id: node.id, san: node.san, fen: node.fen })));
+    const whiteNode = nodeState.find(node => node.san === 'Nc3');
+    const blackNode = nodeState.find(node => node.san === 'dxe4');
+    const whiteButton = page.locator(`[data-node-id="${whiteNode.id}"]`);
+    await whiteButton.focus();
+    await whiteButton.press('Enter');
+    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.currentFen))).toBe(whiteNode.fen);
+    await page.locator(`[data-node-id="${blackNode.id}"]`).click();
+    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.currentFen))).toBe(blackNode.fen);
+
+    const d5Id = await page.evaluate(() => window.CaissaOpeningTrainer.getState().analysis.nodes.find(node => node.san === 'd5').id);
+    await page.locator(`[data-node-id="${d5Id}"]`).click();
+    await tapMove(page, 'e4', 'e5');
+    await tapMove(page, 'g8', 'f6');
+    await tapMove(page, 'g1', 'f3');
+
+    await page.locator(`[data-node-id="${whiteNode.id}"]`).click();
+    await tapMove(page, 'g7', 'g6');
+    await expect(page.locator('.opening-trainer-tree-row')).toHaveCount(6);
+    const whiteVariation = page.locator('.opening-trainer-tree-row.is-variation').filter({ hasText: 'e5' });
+    await expect(whiteVariation).toContainText('Nf6');
+    const blackVariation = page.locator('.opening-trainer-tree-row.is-variation').filter({ hasText: 'g6' });
+    await expect(blackVariation).toContainText('3…');
+    await expect(blackVariation.locator('.opening-trainer-tree-empty-move')).toHaveCount(1);
+
+    const footer = page.locator('.opening-trainer-workspace__foot');
+    const footerBefore = await footer.boundingBox();
+    await page.evaluate(() => { document.querySelector('.opening-trainer-workspace__body').scrollTop = 9999; });
+    const footerAfter = await footer.boundingBox();
+    expect(Math.abs(footerAfter.y - footerBefore.y)).toBeLessThan(1);
+
+    await page.locator('#trainerRepertoireColor').selectOption('black');
+    await page.locator('#trainerSaveTrainButton').click();
+    await expect(page.locator('#trainerSaveTrainSummary')).toContainText('3 variations');
+    await expect(page.locator('#trainerDialogPlayBlack')).toBeChecked();
+    await page.locator('#trainerConfirmPractice').click();
+    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState().training.userColor))).toBe('b');
+});
+
+test('Practice can train a White-default repertoire as Black through a complete protected session', async ({ page }) => {
+    await openTrainer(page);
+    await page.evaluate(() => {
+        document.querySelector('#trainerWikiAuto').checked = false;
+        window.CaissaOpeningTrainer.loadOpeningLine(['e4', 'c6', 'd4', 'd5', 'Nc3', 'dxe4']);
+    });
+    await page.locator('#trainerRepertoireColor').selectOption('white');
+    await page.locator('#trainerSaveButton').click();
+    await page.locator('#trainerTabPractice').click();
+    await page.locator('#trainerPracticePlayBlack').check();
+    await page.locator('#trainerStartPractice').click();
+
+    await expect(page.locator('#trainerPracticePlayBlack')).toBeChecked();
+    await expect(page.locator('#openingTrainerBoard .caissa-board')).toHaveAttribute('data-orientation', 'black');
+    await expect(page.locator('.caissa-board__piece[data-square="e4"]')).toHaveCount(1);
+    let state = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(state.training).toMatchObject({ userColor: 'b', cursor: 1, completed: false });
+    expect(state.repertoires[0].color).toBe('white');
+
+    await tapMove(page, 'c7', 'c5');
+    await expect(page.locator('#trainerPracticeFeedback')).toContainText('Repertoire deviation');
+    await expect(page.locator('#trainerPracticeErrors')).toHaveText('1');
+    await page.locator('#trainerHintButton').click();
+    await expect(page.locator('#trainerPracticeFeedback')).toContainText('c6');
+    await page.locator('#trainerRevealButton').click();
+    await expect.poll(async () => (await page.evaluate(() => window.CaissaOpeningTrainer.getState().training.cursor))).toBe(3);
+
+    await page.locator('#trainerRetryPractice').click();
+    await tapMove(page, 'c7', 'c6');
+    await expect.poll(async () => (await page.evaluate(() => window.CaissaOpeningTrainer.getState().training.cursor))).toBe(3);
+    await tapMove(page, 'd7', 'd5');
+    await expect.poll(async () => (await page.evaluate(() => window.CaissaOpeningTrainer.getState().training.cursor))).toBe(5);
+    await tapMove(page, 'd5', 'e4');
+    await expect(page.locator('#trainerPracticePrompt')).toHaveText('Line complete');
+    state = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(state.training).toMatchObject({ userColor: 'b', cursor: 6, completed: true });
+    expect(state.training.stats).toMatchObject({ attempts: 3, correct: 3, errors: 0 });
+
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('#trainerPracticePlayWhite').check();
+    await expect(page.locator('#openingTrainerBoard .caissa-board')).toHaveAttribute('data-orientation', 'white');
+    state = await page.evaluate(() => window.CaissaOpeningTrainer.getState());
+    expect(state.training).toMatchObject({ userColor: 'w', cursor: 0, completed: false });
+    expect(state.repertoires[0].color).toBe('white');
+
+    page.once('dialog', dialog => dialog.dismiss());
+    await page.locator('#trainerPracticePlayBlack').click();
+    await expect(page.locator('#trainerPracticePlayWhite')).toBeChecked();
+    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState().training.userColor))).toBe('w');
+});
+
 test('Save & Train creates a protected memory session with retry, hint, reveal and next', async ({ page }) => {
     await openTrainer(page);
     await tapMove(page, 'e2', 'e4');

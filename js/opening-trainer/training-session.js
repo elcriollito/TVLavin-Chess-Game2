@@ -3,6 +3,13 @@ import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const clone = value => JSON.parse(JSON.stringify(value));
 
+function normalizeUserColor(value, fallback) {
+    const candidate = value ?? fallback;
+    if (candidate === 'white' || candidate === 'w') return 'w';
+    if (candidate === 'black' || candidate === 'b') return 'b';
+    throw new TypeError('Training color must be white or black.');
+}
+
 function applyUci(chess, uci) {
     if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(String(uci || ''))) return null;
     try {
@@ -16,24 +23,26 @@ export class TrainingSession {
     #snapshot;
     #line;
     #game;
+    #userColor;
     #cursor = 0;
     #stats = { attempts: 0, correct: 0, errors: 0, hints: 0, reveals: 0 };
     #completed = false;
 
-    constructor(repertoire, { lineIndex = 0 } = {}) {
+    constructor(repertoire, { lineIndex = 0, userColor } = {}) {
         if (!repertoire || !Array.isArray(repertoire.lines) || !repertoire.lines.length) {
             throw new TypeError('A saved repertoire is required for training.');
         }
         this.#snapshot = Object.freeze(clone(repertoire));
         this.#line = Object.freeze(clone(repertoire.lines[Math.max(0, Math.min(lineIndex, repertoire.lines.length - 1))]));
         this.#game = new Chess(repertoire.initialFen || START_FEN);
+        this.#userColor = normalizeUserColor(userColor, repertoire.color || 'white');
     }
 
     get snapshot() { return this.#snapshot; }
     get fen() { return this.#game.fen(); }
     get cursor() { return this.#cursor; }
     get completed() { return this.#completed; }
-    get userColor() { return this.#snapshot.color === 'black' ? 'b' : 'w'; }
+    get userColor() { return this.#userColor; }
     get expected() { return this.#line[this.#cursor] || null; }
 
     state() {
@@ -137,7 +146,7 @@ export class TrainingSession {
     }
 
     result() {
-        return Object.freeze({ ...this.#stats, completed: this.#completed });
+        return Object.freeze({ ...this.#stats, completed: this.#completed, userColor: this.userColor });
     }
 }
 
