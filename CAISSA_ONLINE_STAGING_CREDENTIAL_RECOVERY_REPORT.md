@@ -1,7 +1,7 @@
 # CAISSA Online — Staging Credential Recovery Report
 
-**Fecha:** 2026-10-21  
-**Estado:** `LOCAL_RECOVERED / REMOTE_CONFIGURATION_PENDING`  
+**Fecha:** 2026-10-22  
+**Estado:** `CAISSA_ONLINE — STAGING_KEY_RECOVERY_READY / HOSTED_APPROVAL_PENDING`  
 **Alcance:** diagnóstico y compatibilidad local; no se desplegó ni se modificó configuración remota.
 
 ## Resultado
@@ -32,13 +32,15 @@ La selección de credenciales se centralizó en `api/_lib/supabase.js`. Una clav
 
 ## Verificación local
 
-`node --test tests/online/*.test.js` terminó con **90/90 PASS**. La prueba dirigida de claves/Auth/API/Broadcast terminó con **29/29 PASS**. `git diff --check` no produjo errores.
+La revalidación fresca terminó con **90/90 PASS** en Online Node y **96/96 PASS** en Chromium, Firefox y WebKit. `npm run lint:online`, `npm run security:dependencies`, `npm run release:public:audit` y `git diff --check` también pasaron; el audit de dependencias reportó 0 vulnerabilidades.
+
+El Codex Security diff scan `7fd409fe-e6bb-4db7-a96a-04d2bc6b6041` cubrió el rango `585d070e3226dcd10e0fa6c50355dec554f66977..d5e151cf170896e1b2309990ff0b19a368bd5b51` y terminó con cobertura completa y **0 hallazgos**. Daybreak no estaba concedido, limitación registrada separadamente.
 
 No se realizó una llamada real con la clave secreta moderna, no se instaló ningún valor en Vercel, no se rotó ni reactivó una clave, y no se ejecutó el flujo de dos jugadores.
 
 ## Estado de datos y recursos
 
-La reconciliación read-only de Supabase Staging volvió a coincidir exactamente con el baseline: users 13, public identities 9, bindings 8, profiles 9, presence 8/0 live, tickets 21/0 live, challenges 28/0 live, games 32/0 active/32 completed, events 260, ratings 10, rating sum 15,000, rating games sum 10, identity/account-control/audit/credit rows 0 y entitlements 3. Los seis conteos de fixtures de la ejecución siguen en cero.
+La reconciliación read-only de Supabase Staging del 22 de octubre volvió a coincidir exactamente con el baseline: users 13, public identities 9, bindings 8, profiles 9, presence 8/0 live, tickets 21/0 live, challenges 28/0 live, games 32/0 active/32 completed, events 260, ratings 10, rating sum 15,000, rating games sum 10, product entitlements 3, y filas de identity migration, Account Control, audit y credit events en 0. Los seis conteos de fixtures de la ejecución siguen en cero.
 
 Clerk Development devolvió cero coincidencias tanto para los dos user IDs exactos como para sus dos external IDs. Las variables Vercel de la rama de certificación siguen en cero. Production, Account Control, Supabase y Clerk no fueron modificados.
 
@@ -48,7 +50,10 @@ Clerk Development devolvió cero coincidencias tanto para los dos user IDs exact
 - Rama: `fix/online-modern-supabase-keys-20261021`.
 - Commit de implementación: `d5e151cf170896e1b2309990ff0b19a368bd5b51`.
 - Árbol de implementación: `3d272860d5995e6f966d8858f70c11238da98ff6`.
+- HEAD documental previo al cierre: `d5ed2b2d6ab5f3aafa102e7cc6ef4bc3ad83fb12`.
 - Worktree: `.caissa-cloud-gate/online-key-recovery-20261021`.
+
+La rama no se publicó: el propio gate de Online prohíbe crear una nueva Preview antes de la autorización humana para instalar variables branch-scoped. El plan mantiene `CAISSA_ONLINE_GUESTS=0`; habilitar Guests requiere un gate independiente posterior.
 
 ## Operaciones remotas pendientes de aprobación
 

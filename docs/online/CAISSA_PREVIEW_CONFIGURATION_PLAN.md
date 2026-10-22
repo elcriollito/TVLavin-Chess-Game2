@@ -23,7 +23,7 @@ Este plan no fue ejecutado. No contiene valores secretos.
 - `SUPABASE_PUBLISHABLE_KEY`: clave moderna `sb_publishable_…` de Staging. El navegador combina esta API key pública con el JWT real de la sesión del usuario; ninguna clave secreta puede entrar en la configuración pública.
 - `CAISSA_ONLINE_ROLLOUT=internal`.
 - `CAISSA_ONLINE_INTERNAL_USERS`: solo IDs sintéticos Development autorizados.
-- `CAISSA_ONLINE_GUESTS=1`.
+- `CAISSA_ONLINE_GUESTS=0`; Guest permanece desactivado durante la recuperación de credenciales y sólo podrá cambiar en una autorización independiente posterior.
 - `CAISSA_ONLINE_RATED=0` durante el gate.
 - `CAISSA_ONLINE_TOURNAMENTS=0`.
 - `CAISSA_ONLINE_SPECTATORS=0`.
