@@ -144,6 +144,10 @@ let pendingPracticeRepertoireId = '';
 let toastTimer = null;
 let workspaceGeneration = 0;
 let lastSavedStudyFingerprint = '';
+let repertoireIdentity = null;
+let repertoireIdentityGeneration = 0;
+let repertoireSyncAbort = null;
+let unsubscribeAuth = null;
 
 function toast(message) {
     els.toast.textContent = message;
@@ -355,10 +359,12 @@ function hasUnsavedStudyChanges() {
 
 function updateSaveControls() {
     const lines = collectSelectedLines();
-    const enabled = lines.length > 0;
+    const enabled = repertoireStore.isReady && lines.length > 0;
     els.save.disabled = !enabled;
     els.saveTrain.disabled = !enabled;
-    const reason = enabled
+    const reason = !repertoireStore.isReady
+        ? 'Loading your private repertoire workspace…'
+        : enabled
         ? `${lines.length} selected ${lines.length === 1 ? 'variation' : 'variations'} ready · ${els.repertoireColor.value === 'black' ? 'Black' : 'White'}.`
         : 'Play or load a legal opening line to enable Save.';
     els.saveReason.textContent = reason;
@@ -368,6 +374,7 @@ function updateSaveControls() {
 
 function saveRepertoire({ train = false } = {}) {
     try {
+        if (!repertoireStore.isReady) throw new Error('Your repertoire workspace is still loading.');
         const lines = collectSelectedLines();
         const saved = repertoireStore.save({
             name: `${activeOpening?.name || 'Custom opening'} · ${els.repertoireColor.value === 'black' ? 'Black' : 'White'}`,
@@ -380,7 +387,7 @@ function saveRepertoire({ train = false } = {}) {
         lastSavedStudyFingerprint = studyFingerprint();
         updateSaveControls();
         renderRepertoireOptions(saved.id);
-        cloudSync.push(saved);
+        pushCurrentRepertoire(saved);
         toast(`Saved ${saved.lines.length} ${saved.lines.length === 1 ? 'line' : 'lines'} to ${saved.name}.`);
         if (train) {
             pendingPracticeRepertoireId = saved.id;
@@ -540,6 +547,12 @@ function renderRepertoireOptions(preferredId = '') {
     const repertoires = repertoireStore.list();
     const previous = preferredId || els.repertoireSelect.value;
     els.repertoireSelect.replaceChildren();
+    if (!repertoireStore.isReady) {
+        els.repertoireSelect.add(new Option('Loading private repertoires…', ''));
+        els.startPractice.disabled = true;
+        renderLineOptions();
+        return;
+    }
     if (!repertoires.length) {
         els.repertoireSelect.add(new Option('No saved repertoires', ''));
         els.startPractice.disabled = true;
@@ -615,7 +628,7 @@ function renderPractice(message = '') {
     els.nextLine.disabled = !trainingSession.snapshot.lines.length;
     if (state.completed && !trainingRecorded) {
         const updated = repertoireStore.recordSession(state.repertoireId, trainingSession.result());
-        if (updated) cloudSync.push(updated);
+        if (updated) pushCurrentRepertoire(updated);
         trainingRecorded = true;
         renderRepertoireOptions(state.repertoireId);
     }
@@ -1421,6 +1434,8 @@ function bindEvents() {
     els.next.addEventListener('click', () => navigateTree('next'));
     els.last.addEventListener('click', () => navigateTree('last'));
     window.addEventListener('beforeunload', () => {
+        repertoireSyncAbort?.abort();
+        unsubscribeAuth?.();
         engine?.terminate();
         explorerClient.cancel();
         wikiAbort?.abort();
@@ -1448,21 +1463,100 @@ async function loadCatalogs() {
     }
 }
 
-async function syncCloudRepertoires() {
-    const auth = window.CAISSA_AUTH;
-    if (!auth?.whenReady) return;
+function clearVisibleRepertoireState() {
+    trainingSession = null;
+    trainingRecorded = false;
+    trainingLineIndex = 0;
+    pendingPracticeRepertoireId = '';
+    if (els.saveTrainDialog.open) els.saveTrainDialog.close('identity-change');
+    els.practiceCard.hidden = true;
+    els.practiceEmpty.hidden = false;
+    els.sessionLock.hidden = true;
+    els.practiceFeedback.textContent = 'CAISSA is ready.';
+    if (activeTab === 'practice' && board) {
+        board.setOrientation(analysisOrientation);
+        setBoardPosition(tree.getCurrentNode()?.fen || START_FEN);
+    }
+}
+
+function identityMatches(userId, generation) {
+    return repertoireIdentity?.kind === 'user'
+        && repertoireIdentity.id === userId
+        && repertoireIdentityGeneration === generation;
+}
+
+function pushCurrentRepertoire(repertoire) {
+    if (repertoireIdentity?.kind !== 'user') return;
+    const userId = repertoireIdentity.id;
+    const generation = repertoireIdentityGeneration;
+    const signal = repertoireSyncAbort?.signal;
+    void cloudSync.push(repertoire, { userId, signal }).then(result => {
+        if (!identityMatches(userId, generation) || result.userId !== userId) return;
+        if (!result.ok && !['offline', 'identity-changed'].includes(result.status)) {
+            console.warn('[opening-trainer] repertoire sync was rejected', result.status);
+        }
+    });
+}
+
+async function syncCloudRepertoires({ userId, generation, signal }) {
     try {
-        await Promise.race([
-            auth.whenReady(),
-            new Promise(resolve => window.setTimeout(resolve, 8000))
-        ]);
-        const result = await cloudSync.pull();
-        if (!result.ok) return;
+        const result = await cloudSync.pull({ userId, signal });
+        if (!result.ok || result.userId !== userId || !identityMatches(userId, generation)) return;
         repertoireStore.mergeRemote(result.repertoires);
+        if (!identityMatches(userId, generation)) return;
         renderRepertoireOptions();
-        await Promise.allSettled(repertoireStore.list().map(repertoire => cloudSync.push(repertoire)));
+        await Promise.allSettled(repertoireStore.list().map(repertoire => (
+            cloudSync.push(repertoire, { userId, signal })
+        )));
     } catch {
         // Local persistence remains authoritative when authentication or cloud sync is unavailable.
+    }
+}
+
+function applyRepertoireIdentity(auth) {
+    if (!auth?.isLoaded) return;
+    const next = auth.isSignedIn && auth.userId
+        ? { kind: 'user', id: String(auth.userId) }
+        : { kind: 'guest', id: null };
+    if (repertoireIdentity?.kind === next.kind && repertoireIdentity?.id === next.id) return;
+
+    repertoireSyncAbort?.abort();
+    repertoireSyncAbort = new AbortController();
+    repertoireIdentityGeneration += 1;
+    const generation = repertoireIdentityGeneration;
+    clearVisibleRepertoireState();
+    repertoireStore.clearIdentity();
+    repertoireIdentity = null;
+    renderRepertoireOptions();
+    updateSaveControls();
+
+    try {
+        repertoireIdentity = repertoireStore.setIdentity(next);
+    } catch {
+        repertoireSyncAbort.abort();
+        renderRepertoireOptions();
+        return;
+    }
+    renderRepertoireOptions();
+    updateSaveControls();
+    if (repertoireIdentity.kind === 'user') {
+        void syncCloudRepertoires({
+            userId: repertoireIdentity.id,
+            generation,
+            signal: repertoireSyncAbort.signal
+        });
+    }
+}
+
+function bindRepertoireIdentity() {
+    const auth = window.CAISSA_AUTH;
+    if (!auth) return;
+    if (typeof auth.onAuthStateChange === 'function') {
+        unsubscribeAuth = auth.onAuthStateChange(next => applyRepertoireIdentity(next));
+    }
+    if (auth.isLoaded) applyRepertoireIdentity(auth);
+    else if (typeof auth.whenReady === 'function') {
+        void auth.whenReady().then(next => applyRepertoireIdentity(next));
     }
 }
 
@@ -1490,6 +1584,7 @@ function exposeQaApi() {
             analysis: tree.inspect(),
             training: trainingSession?.state() || null,
             repertoires: repertoireStore.list(),
+            repertoireIdentity: repertoireIdentity ? { ...repertoireIdentity } : null,
             selectedGame: selectedGame ? Object.freeze({ gameId: selectedGame.gameId, ply: selectedGamePly, totalPlies: selectedGame.moves.length }) : null,
             boardMetrics: board.getMetrics(),
             opening: activeOpening,
@@ -1504,6 +1599,8 @@ function exposeQaApi() {
         requestNewStudy,
         resetWorkspace,
         destroy: () => {
+            repertoireSyncAbort?.abort();
+            unsubscribeAuth?.();
             engine?.terminate();
             explorerClient.cancel();
             board.destroy();
@@ -1519,7 +1616,7 @@ async function init() {
     updateNotation();
     setTab('analysis');
     exposeQaApi();
-    syncCloudRepertoires();
+    bindRepertoireIdentity();
     await Promise.allSettled([loadCatalogs(), initEngine()]);
 }
 

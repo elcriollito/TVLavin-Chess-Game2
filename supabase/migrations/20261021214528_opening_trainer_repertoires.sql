@@ -22,8 +22,8 @@ create index if not exists opening_repertoires_user_updated_idx
   on public.opening_repertoires (user_id, local_updated_at desc);
 
 alter table public.opening_repertoires enable row level security;
-revoke all on table public.opening_repertoires from anon, authenticated;
-grant all on table public.opening_repertoires to service_role;
+revoke all on table public.opening_repertoires from public, anon, authenticated;
+grant select, insert, update, delete on table public.opening_repertoires to service_role;
 
 comment on table public.opening_repertoires is
   'Private opening repertoires accessed only by CAISSA Clerk-authenticated server routes.';

@@ -1,7 +1,12 @@
 import { Chess } from '../../assets/vendor/chess.js/chess-1.4.0.esm.js';
 
 const SCHEMA_VERSION = 'CaissaOpeningRepertoire@1.0.0';
+// v1 did not encode an owner. Keep it quarantined until the person explicitly
+// chooses to import it into the guest workspace; it must never be claimed by a
+// signed-in account automatically.
 export const REPERTOIRE_STORAGE_KEY = 'caissa.opening-trainer.repertoires.v1';
+export const REPERTOIRE_STORAGE_PREFIX = 'caissa.opening-trainer.repertoires.v2';
+const CLERK_USER_ID = /^user_[A-Za-z0-9]{1,128}$/;
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const isUci = value => /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(String(value || ''));
@@ -75,31 +80,114 @@ function normalizeRepertoire(input, existing = null) {
 
 export class SavedRepertoireStore {
     #storage;
-    #key;
-    #memory = [];
+    #identity = null;
+    #memory = new Map();
+    #volatileKeys = new Set();
 
-    constructor({ storage = globalThis.localStorage, key = REPERTOIRE_STORAGE_KEY } = {}) {
+    constructor({ storage = globalThis.localStorage, identity = null } = {}) {
         this.#storage = storage || null;
-        this.#key = key;
+        if (identity) this.setIdentity(identity);
+    }
+
+    get isReady() {
+        return Boolean(this.#identity);
+    }
+
+    get identity() {
+        return this.#identity ? Object.freeze({ ...this.#identity }) : null;
+    }
+
+    get storageKey() {
+        if (!this.#identity) return null;
+        return this.#identity.kind === 'guest'
+            ? `${REPERTOIRE_STORAGE_PREFIX}:guest`
+            : `${REPERTOIRE_STORAGE_PREFIX}:clerk:${this.#identity.id}`;
+    }
+
+    setIdentity(identity) {
+        if (identity?.kind === 'guest') {
+            this.#identity = Object.freeze({ kind: 'guest', id: null });
+            return this.identity;
+        }
+        const id = String(identity?.id || '');
+        if (identity?.kind !== 'user' || !CLERK_USER_ID.test(id)) {
+            throw new TypeError('A valid Clerk user identity is required.');
+        }
+        this.#identity = Object.freeze({ kind: 'user', id });
+        return this.identity;
+    }
+
+    clearIdentity() {
+        this.#identity = null;
+    }
+
+    #assertReady() {
+        if (!this.#identity) throw new Error('Repertoire identity is still loading.');
     }
 
     #read() {
+        if (!this.#identity) return [];
+        const key = this.storageKey;
+        if (this.#volatileKeys.has(key)) return this.#memory.get(key) || [];
         try {
-            const raw = this.#storage?.getItem?.(this.#key);
-            const parsed = raw ? JSON.parse(raw) : this.#memory;
+            const raw = this.#storage?.getItem?.(key);
+            const parsed = raw ? JSON.parse(raw) : (this.#memory.get(key) || []);
             return Array.isArray(parsed) ? parsed : [];
         } catch {
-            return this.#memory;
+            return this.#memory.get(key) || [];
         }
     }
 
     #write(items) {
-        this.#memory = clone(items);
+        this.#assertReady();
+        const key = this.storageKey;
+        this.#memory.set(key, clone(items));
         try {
-            this.#storage?.setItem?.(this.#key, JSON.stringify(items));
+            this.#storage?.setItem?.(key, JSON.stringify(items));
+            this.#volatileKeys.delete(key);
         } catch {
             // Private browsing and quota failures keep an in-memory session copy.
+            this.#volatileKeys.add(key);
         }
+    }
+
+    hasLegacyData() {
+        try {
+            const parsed = JSON.parse(this.#storage?.getItem?.(REPERTOIRE_STORAGE_KEY) || 'null');
+            return Array.isArray(parsed) && parsed.some(item => item?.schemaVersion === SCHEMA_VERSION);
+        } catch {
+            return false;
+        }
+    }
+
+    importLegacyToGuest({ consent = false } = {}) {
+        this.#assertReady();
+        if (this.#identity.kind !== 'guest') throw new Error('Legacy data can only be imported into the guest workspace.');
+        if (consent !== true) throw new Error('Explicit consent is required to import legacy repertoire data.');
+        let legacy = [];
+        try {
+            const parsed = JSON.parse(this.#storage?.getItem?.(REPERTOIRE_STORAGE_KEY) || '[]');
+            legacy = Array.isArray(parsed) ? parsed : [];
+        } catch {
+            legacy = [];
+        }
+        const current = this.#read();
+        const byId = new Map(current.map(item => [item?.id, item]));
+        for (const item of legacy) {
+            if (item?.schemaVersion !== SCHEMA_VERSION || byId.has(item?.id)) continue;
+            try {
+                const normalized = normalizeRepertoire(item, null);
+                byId.set(normalized.id, Object.freeze({
+                    ...normalized,
+                    createdAt: item.createdAt || normalized.createdAt,
+                    updatedAt: item.updatedAt || normalized.updatedAt
+                }));
+            } catch {
+                // Malformed legacy entries stay quarantined in the untouched v1 key.
+            }
+        }
+        this.#write([...byId.values()]);
+        return this.list();
     }
 
     list() {
@@ -115,6 +203,7 @@ export class SavedRepertoireStore {
     }
 
     save(input) {
+        this.#assertReady();
         const items = this.#read();
         const existingIndex = items.findIndex(item => item?.id === input?.id);
         const existing = existingIndex >= 0 ? items[existingIndex] : null;
@@ -126,6 +215,8 @@ export class SavedRepertoireStore {
     }
 
     mergeRemote(remoteItems = []) {
+        this.#assertReady();
+        if (this.#identity.kind !== 'user') throw new Error('Cloud repertoire data requires a signed-in identity.');
         const items = this.#read();
         const byId = new Map(items.map(item => [item?.id, item]));
         for (const input of Array.isArray(remoteItems) ? remoteItems : []) {
@@ -148,6 +239,7 @@ export class SavedRepertoireStore {
     }
 
     recordSession(id, result = {}) {
+        this.#assertReady();
         const items = this.#read();
         const index = items.findIndex(item => item?.id === id);
         if (index < 0) return null;
@@ -167,6 +259,7 @@ export class SavedRepertoireStore {
     }
 
     remove(id) {
+        this.#assertReady();
         const items = this.#read();
         const next = items.filter(item => item?.id !== id);
         if (next.length === items.length) return false;

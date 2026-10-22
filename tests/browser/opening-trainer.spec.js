@@ -60,6 +60,37 @@ function proxyPgn(count = 12) {
     ].join('\n')).join('\n\n');
 }
 
+async function installSyntheticAuth(page) {
+    await page.route('**/js/caissa-auth.js*', route => route.fulfill({
+        status: 200,
+        contentType: 'text/javascript',
+        body: `(() => {
+            const listeners = new Set();
+            const auth = {
+                isLoaded: true,
+                isSignedIn: true,
+                userId: 'user_A',
+                status: 'authenticated',
+                getToken: async () => auth.isSignedIn ? 'token-' + auth.userId : null,
+                whenReady: async () => auth,
+                onAuthStateChange(callback) {
+                    listeners.add(callback);
+                    queueMicrotask(() => callback(auth));
+                    return () => listeners.delete(callback);
+                },
+                __switch(userId) {
+                    auth.isSignedIn = Boolean(userId);
+                    auth.userId = userId || null;
+                    auth.status = userId ? 'authenticated' : 'anonymous';
+                    for (const callback of listeners) callback(auth);
+                    window.dispatchEvent(new CustomEvent('caissa-auth-change', { detail: { ...auth } }));
+                }
+            };
+            window.CAISSA_AUTH = auth;
+        })();`
+    }));
+}
+
 test('five-tab workspace keeps board geometry stable and Auto WikiBook returns to analysis', async ({ page }) => {
     await openTrainer(page);
     const tabs = page.locator('[data-trainer-tab]');
@@ -352,6 +383,81 @@ test('NEW invalidates a late PGN proxy response from the previous workspace gene
     expect(state.selectedGame).toBeNull();
     await expect(page.locator('#trainerGamesList')).toBeEmpty();
     await expect(page.locator('#trainerGamesStatus')).toContainText('PGN Reader');
+});
+
+test('Clerk account switches isolate localStorage, visible practice data and cloud ownership', async ({ page }) => {
+    await installSyntheticAuth(page);
+    const apiCalls = [];
+    let releaseAccountA;
+    const accountAGate = new Promise(resolve => { releaseAccountA = resolve; });
+    let firstAccountAGet = true;
+    await page.route('**/api/opening-trainer/repertoires', async route => {
+        const request = route.request();
+        const authorization = request.headers().authorization || '';
+        const method = request.method();
+        const body = method === 'PUT' ? JSON.parse(request.postData() || '{}') : null;
+        apiCalls.push({ method, authorization, body });
+        if (method === 'GET') {
+            if (authorization === 'Bearer token-user_A' && firstAccountAGet) {
+                firstAccountAGet = false;
+                await accountAGate;
+                try {
+                    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repertoires: [{
+                        schemaVersion: 'CaissaOpeningRepertoire@1.0.0',
+                        id: 'stale-account-a', name: 'Stale Account A', color: 'white', eco: 'B00', opening: 'King Pawn',
+                        initialFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+                        lines: [[{ uci: 'e2e4', san: 'e4', color: 'w' }]],
+                        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', progress: {}
+                    }] }) });
+                } catch {
+                    // The identity switch is expected to abort this request.
+                }
+                return;
+            }
+            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repertoires: [] }) });
+            return;
+        }
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ repertoire: body }) });
+    });
+    await openTrainer(page);
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_A');
+    await page.evaluate(() => {
+        document.querySelector('#trainerWikiAuto').checked = false;
+        window.CaissaOpeningTrainer.loadOpeningLine(['e4']);
+    });
+    await page.locator('#trainerSaveButton').click();
+    const accountAId = await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires[0].id);
+    await expect.poll(() => apiCalls.filter(call => call.method === 'PUT' && call.authorization === 'Bearer token-user_A').length).toBe(1);
+
+    await page.evaluate(() => window.CAISSA_AUTH.__switch('user_B'));
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_B');
+    releaseAccountA();
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires)).toEqual([]);
+    await expect(page.locator('#trainerRepertoireSelect')).toContainText('No saved repertoires');
+    await page.locator('#trainerSaveButton').click();
+    const accountBId = await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires[0].id);
+    expect(accountBId).not.toBe(accountAId);
+
+    await page.evaluate(() => window.CAISSA_AUTH.__switch(null));
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.kind)).toBe('guest');
+    expect(await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires)).toEqual([]);
+    const cloudCallsBeforeGuestSave = apiCalls.length;
+    await page.locator('#trainerSaveButton').click();
+    await page.waitForTimeout(100);
+    expect(apiCalls.length).toBe(cloudCallsBeforeGuestSave);
+
+    await page.evaluate(() => window.CAISSA_AUTH.__switch('user_A'));
+    await expect.poll(() => page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoireIdentity?.id)).toBe('user_A');
+    expect((await page.evaluate(() => window.CaissaOpeningTrainer.getState().repertoires.map(item => item.id)))).toEqual([accountAId]);
+    const storageKeys = await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('caissa.opening-trainer.repertoires.v2')).sort());
+    expect(storageKeys).toEqual([
+        'caissa.opening-trainer.repertoires.v2:clerk:user_A',
+        'caissa.opening-trainer.repertoires.v2:clerk:user_B',
+        'caissa.opening-trainer.repertoires.v2:guest'
+    ]);
+    expect(apiCalls.filter(call => call.method === 'PUT').every(call => !('user_id' in call.body))).toBe(true);
+    expect(apiCalls.every(call => !call.authorization.includes('guest'))).toBe(true);
 });
 
 test('Quiet Drag remains single-piece and responsive layout has no serious accessibility violations', async ({ page, browserName }) => {

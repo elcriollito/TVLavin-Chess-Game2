@@ -4,7 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Chess } from '../assets/vendor/chess.js/chess-1.4.0.esm.js';
-import { SavedRepertoireStore } from '../js/opening-trainer/repertoire-store.js';
+import {
+    REPERTOIRE_STORAGE_KEY,
+    REPERTOIRE_STORAGE_PREFIX,
+    SavedRepertoireStore
+} from '../js/opening-trainer/repertoire-store.js';
 import { TrainingSession } from '../js/opening-trainer/training-session.js';
 import { buildOpeningIndex } from '../js/opening-trainer/opening-index.js';
 import { OpeningGamesClient, rankOpeningCollections, splitPgnGames } from '../js/opening-trainer/games-client.js';
@@ -12,15 +16,19 @@ import { PgnOpeningProxyClient, validateOpeningCatalog } from '../js/pgn-replaye
 import { wikibookTitleForMoves } from '../js/opening-trainer/wikibook-client.js';
 import { RepertoireCloudSync } from '../js/opening-trainer/repertoire-cloud-sync.js';
 import { buildPairedTreeRows } from '../js/opening-trainer/analysis-tree-rows.js';
-import repertoireHandler, { sanitizeRepertoire } from '../api/opening-trainer/repertoires.js';
+import repertoireHandler, {
+    assertOpeningTrainerDatabaseBoundary,
+    sanitizeRepertoire
+} from '../api/opening-trainer/repertoires.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 class MemoryStorage {
-    value = null;
-    getItem() { return this.value; }
-    setItem(_key, value) { this.value = value; }
+    values = new Map();
+    getItem(key) { return this.values.has(key) ? this.values.get(key) : null; }
+    setItem(key, value) { this.values.set(key, String(value)); }
+    removeItem(key) { this.values.delete(key); }
 }
 
 function lineFromSan(tokens) {
@@ -127,12 +135,69 @@ test('global navigation publishes Opening Trainer once in Learn & Improve', () =
 });
 
 test('saved repertoire validates complete legal lines and keeps a durable copy', () => {
-    const store = new SavedRepertoireStore({ storage: new MemoryStorage() });
+    const store = new SavedRepertoireStore({ storage: new MemoryStorage(), identity: { kind: 'user', id: 'user_A' } });
     const saved = store.save(repertoire());
     assert.equal(store.get(saved.id).lines[0][3].san, 'Nc6');
     assert.throws(() => store.save(repertoire({ id: 'bad', lines: [[{ uci: 'e2e5', color: 'w' }]] })), /illegal move/i);
     const merged = store.mergeRemote([{ ...saved, name: 'Cloud copy', updatedAt: '2027-01-01T00:00:00.000Z' }]);
     assert.equal(merged[0].name, 'Cloud copy');
+});
+
+test('local repertoires are isolated by Clerk subject with a separate guest workspace', () => {
+    const storage = new MemoryStorage();
+    const store = new SavedRepertoireStore({ storage });
+    assert.equal(store.isReady, false);
+    assert.deepEqual(store.list(), []);
+    assert.throws(() => store.save(repertoire()), /still loading/i);
+
+    store.setIdentity({ kind: 'user', id: 'user_A' });
+    store.save(repertoire({ id: 'rep-a', name: 'Account A' }));
+    const keyA = store.storageKey;
+    store.setIdentity({ kind: 'user', id: 'user_B' });
+    assert.deepEqual(store.list(), []);
+    store.save(repertoire({ id: 'rep-b', name: 'Account B' }));
+    const keyB = store.storageKey;
+    store.setIdentity({ kind: 'guest' });
+    assert.deepEqual(store.list(), []);
+    store.save(repertoire({ id: 'rep-guest', name: 'Guest' }));
+
+    store.setIdentity({ kind: 'user', id: 'user_A' });
+    assert.deepEqual(store.list().map(item => item.name), ['Account A']);
+    store.setIdentity({ kind: 'user', id: 'user_B' });
+    assert.deepEqual(store.list().map(item => item.name), ['Account B']);
+    assert.notEqual(keyA, keyB);
+    assert.match(keyA, new RegExp(`^${REPERTOIRE_STORAGE_PREFIX.replaceAll('.', '\\.')}:clerk:user_A$`));
+    assert.throws(() => store.setIdentity({ kind: 'user', id: 'person@example.test' }), /valid Clerk/i);
+});
+
+test('legacy ownerless data stays quarantined until explicit guest import consent', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(REPERTOIRE_STORAGE_KEY, JSON.stringify([repertoire({ id: 'legacy-rep', name: 'Legacy' })]));
+    const store = new SavedRepertoireStore({ storage, identity: { kind: 'user', id: 'user_A' } });
+    assert.equal(store.hasLegacyData(), true);
+    assert.deepEqual(store.list(), [], 'legacy data must not be assigned to a signed-in account');
+    assert.throws(() => store.importLegacyToGuest({ consent: true }), /guest workspace/i);
+    store.setIdentity({ kind: 'guest' });
+    assert.deepEqual(store.list(), [], 'legacy data must not appear to a guest without consent');
+    assert.throws(() => store.importLegacyToGuest(), /explicit consent/i);
+    assert.deepEqual(store.importLegacyToGuest({ consent: true }).map(item => item.name), ['Legacy']);
+    assert.ok(storage.getItem(REPERTOIRE_STORAGE_KEY), 'the source is retained for recovery');
+});
+
+test('private-browsing memory fallback remains isolated after storage write failures', () => {
+    const values = new Map();
+    const storage = {
+        getItem: key => values.get(key) || null,
+        setItem: () => { throw new Error('quota'); }
+    };
+    const store = new SavedRepertoireStore({ storage, identity: { kind: 'user', id: 'user_A' } });
+    store.save(repertoire({ id: 'memory-a', name: 'Memory A' }));
+    assert.deepEqual(store.list().map(item => item.id), ['memory-a']);
+    store.setIdentity({ kind: 'user', id: 'user_B' });
+    assert.deepEqual(store.list(), []);
+    store.save(repertoire({ id: 'memory-b', name: 'Memory B' }));
+    store.setIdentity({ kind: 'user', id: 'user_A' });
+    assert.deepEqual(store.list().map(item => item.id), ['memory-a']);
 });
 
 test('training session separates illegal moves, legal deviations, correct moves and reveal', () => {
@@ -285,18 +350,57 @@ test('PGN Reader and Opening Trainer share one bounded same-origin opening proxy
 
 test('cloud sync is authenticated, bearer-scoped and falls back cleanly for guests', async () => {
     const calls = [];
+    const auth = { isLoaded: true, isSignedIn: true, userId: 'user_A', getToken: async () => 'test-token' };
     const cloud = new RepertoireCloudSync({
-        auth: () => ({ isSignedIn: true, getToken: async () => 'test-token' }),
+        auth: () => auth,
         fetchFn: async (url, options) => {
             calls.push({ url, options });
             return new Response(JSON.stringify({ repertoires: [repertoire()] }), { status: 200 });
         }
     });
-    const result = await cloud.pull();
+    const result = await cloud.pull({ userId: 'user_A' });
     assert.equal(result.ok, true);
+    assert.equal(result.userId, 'user_A');
     assert.equal(calls[0].options.headers.Authorization, 'Bearer test-token');
-    const guest = new RepertoireCloudSync({ auth: () => ({ isSignedIn: false }) });
-    assert.equal((await guest.pull()).status, 'guest');
+    const guest = new RepertoireCloudSync({ auth: () => ({ isLoaded: true, isSignedIn: false }) });
+    assert.equal((await guest.pull({ userId: 'user_A' })).status, 'identity-changed');
+});
+
+test('cloud sync rejects stale responses across account switches and refreshes tokens per operation', async () => {
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    let tokenCount = 0;
+    const auth = {
+        isLoaded: true,
+        isSignedIn: true,
+        userId: 'user_A',
+        getToken: async () => `token-${++tokenCount}`
+    };
+    const calls = [];
+    const cloud = new RepertoireCloudSync({
+        auth: () => auth,
+        fetchFn: async (_url, options) => {
+            calls.push(options.headers.Authorization);
+            await gate;
+            return new Response(JSON.stringify({ repertoires: [repertoire({ name: 'Wrong account' })] }), { status: 200 });
+        }
+    });
+    const pending = cloud.pull({ userId: 'user_A' });
+    await Promise.resolve();
+    auth.userId = 'user_B';
+    release();
+    assert.equal((await pending).status, 'identity-changed');
+    auth.userId = 'user_A';
+    const immediate = new RepertoireCloudSync({
+        auth: () => auth,
+        fetchFn: async (_url, options) => {
+            calls.push(options.headers.Authorization);
+            return new Response(JSON.stringify({ repertoires: [] }), { status: 200 });
+        }
+    });
+    await immediate.pull({ userId: 'user_A' });
+    await immediate.pull({ userId: 'user_A' });
+    assert.deepEqual(calls.slice(-2), ['Bearer token-2', 'Bearer token-3']);
 });
 
 test('server-side repertoire sanitizer rejects illegal or oversized payloads', () => {
@@ -317,6 +421,20 @@ test('repertoire API denies guests before database access', async () => {
     assert.equal(res.statusCode, 401);
     assert.equal(databaseAccessed, false);
     assert.deepEqual(res.body, { code: 'AUTH_REQUIRED', error: 'Authentication required.' });
+});
+
+test('repertoire API rate limits a verified identity before database access', async () => {
+    let databaseAccessed = false;
+    const res = response();
+    await repertoireHandler({ method: 'PUT', headers: {}, query: {}, body: repertoire() }, res, {
+        verifyAuth: async () => ({ authenticated: true, userId: 'user_A' }),
+        checkRateLimit: () => ({ allowed: false, remaining: 0, retryAfter: 17 }),
+        getSupabase: () => { databaseAccessed = true; throw new Error('must not run'); }
+    });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.headers['Retry-After'], '17');
+    assert.equal(res.headers['X-RateLimit-Remaining'], '0');
+    assert.equal(databaseAccessed, false);
 });
 
 test('repertoire API resolves Clerk identity and scopes every read to the internal user id', async () => {
@@ -379,10 +497,66 @@ test('repertoire API upsert derives ownership on the server and never trusts a c
     assert.deepEqual(inserted.options, { onConflict: 'user_id,local_id' });
 });
 
+test('repertoire API delete is constrained by both verified owner and local id', async () => {
+    const scopes = [];
+    const db = {
+        from(name) {
+            if (name === 'users') return {
+                select: () => ({ eq: () => ({ single: async () => ({ data: { id: 'internal-b' }, error: null }) }) })
+            };
+            return {
+                delete: () => ({
+                    eq(column, value) {
+                        scopes.push([column, value]);
+                        return { eq: async (nextColumn, nextValue) => {
+                            scopes.push([nextColumn, nextValue]);
+                            return { error: null };
+                        } };
+                    }
+                })
+            };
+        }
+    };
+    const res = response();
+    await repertoireHandler({ method: 'DELETE', headers: {}, query: { id: 'rep-a' } }, res, {
+        verifyAuth: async () => ({ authenticated: true, userId: 'user_B' }),
+        getSupabase: () => db
+    });
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(scopes, [['user_id', 'internal-b'], ['local_id', 'rep-a']]);
+});
+
+test('preview database boundary fails closed unless the URL and explicit ref are staging-only', () => {
+    const base = {
+        VERCEL_ENV: 'preview',
+        SUPABASE_SERVICE_ROLE_KEY: 'synthetic-secret',
+        CAISSA_OPENING_TRAINER_SUPABASE_REF: 'aqizagaskicotorfpwfn'
+    };
+    assert.equal(assertOpeningTrainerDatabaseBoundary({
+        ...base,
+        SUPABASE_URL: 'https://aqizagaskicotorfpwfn.supabase.co'
+    }), 'aqizagaskicotorfpwfn');
+    assert.throws(() => assertOpeningTrainerDatabaseBoundary({
+        ...base,
+        SUPABASE_URL: 'https://jczauvkfkweuvdpurpem.supabase.co'
+    }), /not confirmed/i);
+    assert.throws(() => assertOpeningTrainerDatabaseBoundary({
+        ...base,
+        CAISSA_OPENING_TRAINER_SUPABASE_REF: '',
+        SUPABASE_URL: 'https://aqizagaskicotorfpwfn.supabase.co'
+    }), /not confirmed/i);
+});
+
 test('review-only repertoire migration enables RLS and keeps browser roles closed', () => {
     const migration = read('supabase/migrations/20261021214528_opening_trainer_repertoires.sql');
+    const rollback = read('supabase/rollback/20261021214528_opening_trainer_repertoires.rollback.sql');
+    assert.match(migration, /user_id uuid not null references public\.users\(id\) on delete cascade/i);
+    assert.match(migration, /unique \(user_id, local_id\)/i);
+    assert.match(migration, /opening_repertoires_user_updated_idx/i);
     assert.match(migration, /enable row level security/i);
-    assert.match(migration, /revoke all on table public\.opening_repertoires from anon, authenticated/i);
-    assert.match(migration, /grant all on table public\.opening_repertoires to service_role/i);
+    assert.match(migration, /revoke all on table public\.opening_repertoires from public, anon, authenticated/i);
+    assert.match(migration, /grant select, insert, update, delete on table public\.opening_repertoires to service_role/i);
+    assert.doesNotMatch(migration, /grant all/i);
     assert.doesNotMatch(migration, /create policy/i, 'server-mediated table must not gain direct browser policies');
+    assert.match(rollback, /drop table if exists public\.opening_repertoires/i);
 });

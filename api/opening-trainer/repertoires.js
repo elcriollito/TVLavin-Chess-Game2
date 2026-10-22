@@ -1,12 +1,38 @@
 import { Chess } from 'chess.js';
 import { verifyAuth, respondAuthFailure, setCorsHeaders } from '../_lib/auth.js';
 import { getSupabase } from '../_lib/supabase.js';
+import { checkRateLimit } from '../_lib/rate-limit.js';
 
 const SCHEMA_VERSION = 'CaissaOpeningRepertoire@1.0.0';
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const UCI = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
 const LOCAL_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
+const STAGING_PROJECT_REF = 'aqizagaskicotorfpwfn';
+const PRODUCTION_PROJECT_REF = 'jczauvkfkweuvdpurpem';
 const integer = value => Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : 0;
+
+function projectRefFromUrl(value) {
+    try {
+        const host = new URL(String(value || '')).hostname;
+        return host.match(/^([a-z0-9]{20})\.supabase\.co$/)?.[1] || '';
+    } catch {
+        return '';
+    }
+}
+
+export function assertOpeningTrainerDatabaseBoundary(env = process.env) {
+    const projectRef = projectRefFromUrl(env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL);
+    if (env.VERCEL_ENV === 'preview') {
+        if (env.CAISSA_OPENING_TRAINER_SUPABASE_REF !== STAGING_PROJECT_REF || projectRef !== STAGING_PROJECT_REF) {
+            throw new Error('Opening Trainer preview database boundary is not confirmed.');
+        }
+        if (!env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('Opening Trainer preview database credentials are unavailable.');
+    }
+    if (env.VERCEL_ENV !== 'production' && projectRef === PRODUCTION_PROJECT_REF) {
+        throw new Error('Opening Trainer non-production access to the production database is denied.');
+    }
+    return projectRef;
+}
 
 function iso(value, fallback = null) {
     const parsed = new Date(value || '');
@@ -125,7 +151,21 @@ export default async function handler(req, res, dependencies = {}) {
     const auth = await (dependencies.verifyAuth || verifyAuth)(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
 
+    const rateLimit = (dependencies.checkRateLimit || checkRateLimit)(auth.userId, {
+        windowMs: 60_000,
+        max: req.method === 'GET' ? 120 : 60,
+        prefix: `opening-trainer-repertoires:${req.method}`
+    });
+    res.setHeader('X-RateLimit-Remaining', String(rateLimit.remaining));
+    if (!rateLimit.allowed) {
+        res.setHeader('Retry-After', String(rateLimit.retryAfter || 60));
+        return res.status(429).json({ error: 'Too many repertoire requests' });
+    }
+
     try {
+        if (!dependencies.getSupabase) {
+            (dependencies.assertDatabaseBoundary || assertOpeningTrainerDatabaseBoundary)();
+        }
         const supabase = (dependencies.getSupabase || getSupabase)();
         const userId = await resolveUserId(supabase, auth.userId);
         if (!userId) return res.status(404).json({ error: 'User not found' });
