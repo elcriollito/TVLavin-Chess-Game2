@@ -1,6 +1,7 @@
 # CAISSA Account Control — Security Hold Closure
 
-Date: 2026-10-23  
+Date: 2026-10-23
+
 Mission: `CAISSA_ACCOUNT_CONTROL_REAUTH_OWNERSHIP_CLOSURE_20261023`
 
 ## Final local state
@@ -69,4 +70,3 @@ Normal branch publication was reviewed before execution. Its automatic effects a
 ## Final human gate
 
 The next authorized decision must name the exact deployment SHA and approve the bounded Custom Staging run, Supabase Staging contract installation/teardown, and two exact Clerk Development fixtures. Execution must follow `CAISSA_ACCOUNT_CONTROL_FINAL_HOSTED_RETEST_PLAN.md` and stop on any mismatch or unexpected resource.
-

@@ -1,7 +1,9 @@
 # CAISSA Account Control — Clerk Client Fix Certification
 
-Result: `REAUTH_CLIENT — CORRECTED / REAL_SDK_CONTRACT_VERIFIED`  
-Implementation: `b440a6ce9049eec52070e3c33420812a6078feb6`  
+Result: `REAUTH_CLIENT — CORRECTED / REAL_SDK_CONTRACT_VERIFIED`
+
+Implementation: `b440a6ce9049eec52070e3c33420812a6078feb6`
+
 Exact browser SDK: `@clerk/clerk-js@6.28.1`
 
 ## Certified SDK contract
@@ -48,4 +50,3 @@ Clerk requests are not browser-abortable. Cancellation therefore invalidates the
 ## Boundary of this certification
 
 This is a local contract and regression certification. It is not evidence of a successful hosted Clerk step-up. The real hosted session flow remains behind the final human-authorized Custom Staging gate.
-

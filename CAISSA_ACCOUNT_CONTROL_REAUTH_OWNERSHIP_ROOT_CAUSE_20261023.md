@@ -1,8 +1,11 @@
 # CAISSA Account Control — Reauthentication & Ownership Root Cause
 
-Date: 2026-10-23  
-Mission: `CAISSA_ACCOUNT_CONTROL_REAUTH_OWNERSHIP_CLOSURE_20261023`  
-Base: `db1728fa12d573613a03250d06d98234a12a8e33` (tree `edce75d11b41b251ba9070f4c8979dd555408245`)  
+Date: 2026-10-23
+
+Mission: `CAISSA_ACCOUNT_CONTROL_REAUTH_OWNERSHIP_CLOSURE_20261023`
+
+Base: `db1728fa12d573613a03250d06d98234a12a8e33` (tree `edce75d11b41b251ba9070f4c8979dd555408245`)
+
 Implementation commits: `b440a6ce9049eec52070e3c33420812a6078feb6`, `efcf9b2dd0fc51da402a658275c837e998a14e70`
 
 ## Root-cause matrix
@@ -33,4 +36,3 @@ The browser reauthentication defect and the later ownership 409 are independent 
 - `tests/run-staging-synthetic-identity-postgres.mjs`
 
 No hosted Clerk user, Supabase object, Vercel deployment environment, credential, or Production resource was changed during root-cause confirmation or local certification. The historical cleaned-run ledger was not modified.
-

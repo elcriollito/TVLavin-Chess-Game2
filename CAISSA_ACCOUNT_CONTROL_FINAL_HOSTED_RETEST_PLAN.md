@@ -1,6 +1,7 @@
 # CAISSA Account Control — Final Hosted Retest Plan
 
-Status: `HOSTED_RETEST_APPROVAL_PENDING`  
+Status: `HOSTED_RETEST_APPROVAL_PENDING`
+
 Stacked PR: [#101](https://github.com/elcriollito/TVLavin-Chess-Game2/pull/101), based on #97.
 
 This is an execution plan, not authorization to deploy, apply SQL, create users, or mutate hosted state.
@@ -65,4 +66,3 @@ Stop immediately on a project/cluster/hash/SHA mismatch; unexpected user or obje
 Only after all hosted evidence and cleanup are complete may a separate certification declare Hosted PASS. Until then the state remains:
 
 `CAISSA_ACCOUNT_CONTROL_V1 — REAUTH_AND_IDENTITY_LOCAL_CERTIFIED / HOSTED_RETEST_APPROVAL_PENDING`
-

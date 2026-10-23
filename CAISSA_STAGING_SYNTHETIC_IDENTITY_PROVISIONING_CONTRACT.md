@@ -1,6 +1,7 @@
 # CAISSA Staging Synthetic Identity Provisioning Contract
 
-Result: `IDENTITY_RESOLUTION — STAGING_FIXTURE_PROVISIONING_CONTRACT_READY`  
+Result: `IDENTITY_RESOLUTION — STAGING_FIXTURE_PROVISIONING_CONTRACT_READY`
+
 Implementation commits: `b440a6ce9049eec52070e3c33420812a6078feb6`, `efcf9b2dd0fc51da402a658275c837e998a14e70`
 
 ## Purpose and boundary
@@ -77,4 +78,3 @@ PostgreSQL 17 tests proved:
 ## Authorization required for hosted use
 
 This document does not authorize remote SQL execution, Custom Staging deployment, fixture creation, or Clerk mutation. Those actions require the final human gate and action-time revalidation of the project, cluster, artifact hashes, approved A/B manifest, and cleanup plan.
-
