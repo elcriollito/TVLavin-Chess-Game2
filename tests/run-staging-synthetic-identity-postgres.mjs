@@ -125,8 +125,8 @@ try {
     const renderForLocalCluster = source => source
         .replaceAll('7678069749886157684', localSystemIdentifier)
         .replaceAll(
-            "pg_catalog.current_database() <> 'postgres'",
-            `pg_catalog.current_database() <> '${testDatabase}'`
+            "pg_catalog.current_database() is distinct from 'postgres'",
+            `pg_catalog.current_database() is distinct from '${testDatabase}'`
         );
     const renderedArtifactPath = path.join(temporaryDirectory, 'staging-artifact.local.sql');
     const renderedTeardownPath = path.join(temporaryDirectory, 'staging-teardown.local.sql');

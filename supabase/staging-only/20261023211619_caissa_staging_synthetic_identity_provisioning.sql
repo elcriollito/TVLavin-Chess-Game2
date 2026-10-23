@@ -18,8 +18,8 @@ begin
   select s.system_identifier::text into v_system_identifier
   from pg_catalog.pg_control_system() s;
 
-  if pg_catalog.current_database() <> 'postgres'
-     or v_system_identifier <> '7678069749886157684' then
+  if pg_catalog.current_database() is distinct from 'postgres'
+     or v_system_identifier is distinct from '7678069749886157684' then
     raise exception using
       errcode = '42501',
       message = 'CAISSA_STAGING_PROJECT_MISMATCH',
@@ -63,8 +63,8 @@ begin
   select s.system_identifier::text into v_system_identifier
   from pg_catalog.pg_control_system() s;
 
-  if pg_catalog.current_database() <> 'postgres'
-     or v_system_identifier <> '7678069749886157684'
+  if pg_catalog.current_database() is distinct from 'postgres'
+     or v_system_identifier is distinct from '7678069749886157684'
      or not exists (
        select 1
        from caissa_staging_private.installation_guard g
@@ -193,8 +193,11 @@ begin
      or p_user_id is null
      or p_external_subject is null
      or p_external_subject !~ '^user_[A-Za-z0-9]{20,250}$'
+     or p_authorization_reference_hash is null
      or p_authorization_reference_hash !~ '^[0-9a-f]{64}$'
+     or p_reason is null
      or pg_catalog.length(v_reason) not between 20 and 500
+     or p_expires_at is null
      or p_expires_at <= pg_catalog.clock_timestamp()
      or p_expires_at > pg_catalog.clock_timestamp() + interval '24 hours' then
     return query select false, 'INVALID_FIXTURE_AUTHORIZATION'::text;
@@ -204,10 +207,12 @@ begin
   if p_manifest_subject_a is null
      or p_manifest_subject_a !~ '^user_[A-Za-z0-9]{20,250}$'
      or p_manifest_user_id_a is null
+     or p_manifest_authorization_reference_hash_a is null
      or p_manifest_authorization_reference_hash_a !~ '^[0-9a-f]{64}$'
      or p_manifest_subject_b is null
      or p_manifest_subject_b !~ '^user_[A-Za-z0-9]{20,250}$'
      or p_manifest_user_id_b is null
+     or p_manifest_authorization_reference_hash_b is null
      or p_manifest_authorization_reference_hash_b !~ '^[0-9a-f]{64}$'
      or p_manifest_subject_a = p_manifest_subject_b
      or p_manifest_user_id_a = p_manifest_user_id_b then
@@ -326,6 +331,7 @@ begin
      or p_user_id is null
      or p_external_subject is null
      or p_external_subject !~ '^user_[A-Za-z0-9]{20,250}$'
+     or p_authorization_reference_hash is null
      or p_authorization_reference_hash !~ '^[0-9a-f]{64}$'
      or (v_email is not null and pg_catalog.length(v_email) not between 3 and 320) then
     return query select false, 'INVALID_FIXTURE_PROVISION_REQUEST'::text, null::uuid, null::uuid;
@@ -338,8 +344,8 @@ begin
   for update;
 
   if v_authorization.run_id is null
-     or v_authorization.user_id <> p_user_id
-     or v_authorization.authorization_reference_hash <> p_authorization_reference_hash then
+     or v_authorization.user_id is distinct from p_user_id
+     or v_authorization.authorization_reference_hash is distinct from p_authorization_reference_hash then
     return query select false, 'FIXTURE_NOT_AUTHORIZED'::text, null::uuid, null::uuid;
     return;
   end if;
@@ -395,8 +401,11 @@ begin
     return;
   end if;
 
-  insert into public.users(id, clerk_id, email)
-  values (p_user_id, p_external_subject, v_email);
+  insert into public.users(id, clerk_id, email, created_at, updated_at)
+  values (
+    p_user_id, p_external_subject, v_email,
+    pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp()
+  );
 
   insert into public.identity_bindings(
     user_id, provider, environment, external_subject, status,
@@ -452,8 +461,17 @@ declare
 begin
   perform caissa_staging_private.assert_staging_project();
 
-  if p_confirmation <> 'CLEAN STAGING SYNTHETIC FIXTURE' then
+  if p_confirmation is distinct from 'CLEAN STAGING SYNTHETIC FIXTURE' then
     return query select false, 'FIXTURE_CLEANUP_CONFIRMATION_REQUIRED'::text;
+    return;
+  end if;
+
+  if p_run_id is null
+     or p_external_subject is null
+     or p_user_id is null
+     or p_authorization_reference_hash is null
+     or p_authorization_reference_hash !~ '^[0-9a-f]{64}$' then
+    return query select false, 'FIXTURE_NOT_AUTHORIZED'::text;
     return;
   end if;
 
@@ -463,8 +481,8 @@ begin
   for update;
 
   if v_authorization.run_id is null
-     or v_authorization.user_id <> p_user_id
-     or v_authorization.authorization_reference_hash <> p_authorization_reference_hash then
+     or v_authorization.user_id is distinct from p_user_id
+     or v_authorization.authorization_reference_hash is distinct from p_authorization_reference_hash then
     return query select false, 'FIXTURE_NOT_AUTHORIZED'::text;
     return;
   end if;
@@ -499,26 +517,28 @@ begin
   for update;
 
   if v_user.id is null
-     or v_user.clerk_id <> p_external_subject
+     or v_user.clerk_id is distinct from p_external_subject
+     or v_user.created_at is null
      or v_user.created_at < v_authorization.authorized_at
      or v_user.is_premium is true
      or v_user.stripe_customer_id is not null
+     or v_user.role is null
      or v_user.role not in ('member', 'user')
      or v_binding.id is null
-     or v_binding.user_id <> p_user_id
-     or v_binding.provider <> 'clerk'
-     or v_binding.environment <> 'legacy_development'
-     or v_binding.external_subject <> p_external_subject
-     or v_binding.status <> 'ACTIVE'
-     or v_binding.proof_method <> 'NEW_ACCOUNT'
-     or not (v_binding.metadata @> pg_catalog.jsonb_build_object(
+     or v_binding.user_id is distinct from p_user_id
+     or v_binding.provider is distinct from 'clerk'
+     or v_binding.environment is distinct from 'legacy_development'
+     or v_binding.external_subject is distinct from p_external_subject
+     or v_binding.status is distinct from 'ACTIVE'
+     or v_binding.proof_method is distinct from 'NEW_ACCOUNT'
+     or (v_binding.metadata @> pg_catalog.jsonb_build_object(
        'staging_synthetic', true, 'run_id', p_run_id,
        'fixture_slot', v_authorization.fixture_slot
-     ))
+     )) is not true
      or v_review.id is null
-     or v_review.status <> 'VERIFIED'
-     or v_review.reason_code <> 'NEW_ACCOUNT'
-     or v_review.case_reference_hash <> p_authorization_reference_hash
+     or v_review.status is distinct from 'VERIFIED'
+     or v_review.reason_code is distinct from 'NEW_ACCOUNT'
+     or v_review.case_reference_hash is distinct from p_authorization_reference_hash
      or exists (
        select 1 from public.identity_bindings other
        where other.id <> v_binding.id
@@ -562,8 +582,18 @@ declare
 begin
   perform caissa_staging_private.assert_staging_project();
 
-  if p_external_receipt_hash !~ '^[0-9a-f]{64}$' then
+  if p_external_receipt_hash is null
+     or p_external_receipt_hash !~ '^[0-9a-f]{64}$' then
     return query select false, 'FIXTURE_RECEIPT_REQUIRED'::text;
+    return;
+  end if;
+
+  if p_run_id is null
+     or p_external_subject is null
+     or p_user_id is null
+     or p_authorization_reference_hash is null
+     or p_authorization_reference_hash !~ '^[0-9a-f]{64}$' then
+    return query select false, 'FIXTURE_CLEANUP_NOT_FINALIZABLE'::text;
     return;
   end if;
 
@@ -573,9 +603,9 @@ begin
   for update;
 
   if v_authorization.run_id is null
-     or v_authorization.user_id <> p_user_id
-     or v_authorization.authorization_reference_hash <> p_authorization_reference_hash
-     or v_authorization.status <> 'CLEANED' then
+     or v_authorization.user_id is distinct from p_user_id
+     or v_authorization.authorization_reference_hash is distinct from p_authorization_reference_hash
+     or v_authorization.status is distinct from 'CLEANED' then
     return query select false, 'FIXTURE_CLEANUP_NOT_FINALIZABLE'::text;
     return;
   end if;

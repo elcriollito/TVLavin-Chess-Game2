@@ -15,8 +15,8 @@ create table public.users (
   is_premium boolean not null default false,
   credits integer not null default 5,
   stripe_customer_id text,
-  created_at timestamptz not null default pg_catalog.clock_timestamp(),
-  updated_at timestamptz not null default pg_catalog.clock_timestamp()
+  created_at timestamptz not null default pg_catalog.now(),
+  updated_at timestamptz not null default pg_catalog.now()
 );
 
 \ir ../supabase/migrations/20260811_clerk_identity_remapping_foundation.sql
@@ -106,6 +106,20 @@ select pg_temp.assert_true(
    ) f
    where a.external_subject = 'user_3TestSyntheticAlpha000000001'),
   'exact authorization replay was not idempotent'
+);
+
+select pg_temp.assert_true(
+  (select not success and code = 'INVALID_FIXTURE_PROVISION_REQUEST'
+   from caissa_staging_private.provision_synthetic_identity(
+     '904ca814-04c6-8a0f-ae01-008de74af1cd',
+     'user_3TestSyntheticAlpha000000001',
+     'a2000000-0000-4000-8000-000000000001',
+     null,
+     'alpha@example.test'
+   ))
+  and (select count(*) = 0 from public.users
+       where id = 'a2000000-0000-4000-8000-000000000001'),
+  'a null authorization hash bypassed provisioning authorization'
 );
 
 select pg_temp.assert_true(
@@ -296,6 +310,33 @@ insert into public.synthetic_protected_fixture_data(user_id, marker) values
   ('b2000000-0000-4000-8000-000000000001', 'simulated protected dependency');
 
 select pg_temp.assert_true(
+  (select not success and code = 'FIXTURE_CLEANUP_CONFIRMATION_REQUIRED'
+   from caissa_staging_private.cleanup_synthetic_identity(
+     '904ca814-04c6-8a0f-ae01-008de74af1cd',
+     'user_3TestSyntheticAlpha000000001',
+     'a2000000-0000-4000-8000-000000000001',
+     repeat('a', 64),
+     null
+   ))
+  and (select count(*) = 1 from public.users
+       where id = 'a2000000-0000-4000-8000-000000000001'),
+  'a null cleanup confirmation bypassed the destructive guard'
+);
+select pg_temp.assert_true(
+  (select not success and code = 'FIXTURE_NOT_AUTHORIZED'
+   from caissa_staging_private.cleanup_synthetic_identity(
+     '904ca814-04c6-8a0f-ae01-008de74af1cd',
+     'user_3TestSyntheticAlpha000000001',
+     'a2000000-0000-4000-8000-000000000001',
+     null,
+     'CLEAN STAGING SYNTHETIC FIXTURE'
+   ))
+  and (select count(*) = 1 from public.users
+       where id = 'a2000000-0000-4000-8000-000000000001'),
+  'a null authorization hash bypassed exact cleanup authorization'
+);
+
+select pg_temp.assert_true(
   (select success and code = 'FIXTURE_CLEANED'
    from caissa_staging_private.cleanup_synthetic_identity(
      '904ca814-04c6-8a0f-ae01-008de74af1cd',
@@ -344,6 +385,33 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
+  (select not success and code = 'FIXTURE_RECEIPT_REQUIRED'
+   from caissa_staging_private.finalize_synthetic_identity_cleanup(
+     '904ca814-04c6-8a0f-ae01-008de74af1cd',
+     'user_3TestSyntheticAlpha000000001',
+     'a2000000-0000-4000-8000-000000000001',
+     repeat('a', 64), null
+   ))
+  and (select count(*) = 1
+       from caissa_staging_private.synthetic_identity_authorizations
+       where external_subject = 'user_3TestSyntheticAlpha000000001'),
+  'a null external receipt bypassed finalization'
+);
+select pg_temp.assert_true(
+  (select not success and code = 'FIXTURE_CLEANUP_NOT_FINALIZABLE'
+   from caissa_staging_private.finalize_synthetic_identity_cleanup(
+     '904ca814-04c6-8a0f-ae01-008de74af1cd',
+     'user_3TestSyntheticAlpha000000001',
+     'a2000000-0000-4000-8000-000000000001',
+     null, repeat('1', 64)
+   ))
+  and (select count(*) = 1
+       from caissa_staging_private.synthetic_identity_authorizations
+       where external_subject = 'user_3TestSyntheticAlpha000000001'),
+  'a null authorization hash bypassed exact finalization authorization'
+);
+
+select pg_temp.assert_true(
   (select success from caissa_staging_private.finalize_synthetic_identity_cleanup(
     '904ca814-04c6-8a0f-ae01-008de74af1cd',
     'user_3TestSyntheticAlpha000000001',
@@ -378,6 +446,79 @@ select pg_temp.assert_true(
    )),
   'a finalized run could be rebound to a third subject or UUID'
 );
+
+do $$
+declare
+  v_run_id uuid;
+  v_success boolean;
+  v_code text;
+begin
+  v_run_id := caissa_staging_private.expected_synthetic_run_id(
+    'user_3TxnSyntheticAlpha000000001',
+    'c3000000-0000-4000-8000-000000000001',
+    repeat('c', 64),
+    'user_3TxnSyntheticBravo000000001',
+    'd3000000-0000-4000-8000-000000000001',
+    repeat('d', 64)
+  );
+
+  select f.success, f.code into v_success, v_code
+  from caissa_staging_private.authorize_synthetic_identity(
+    v_run_id,
+    'A',
+    'user_3TxnSyntheticAlpha000000001',
+    'c3000000-0000-4000-8000-000000000001',
+    repeat('c', 64),
+    'Approved same-transaction fixture for timestamp compatibility certification.',
+    pg_catalog.clock_timestamp() + interval '30 minutes',
+    'user_3TxnSyntheticAlpha000000001',
+    'c3000000-0000-4000-8000-000000000001',
+    repeat('c', 64),
+    'user_3TxnSyntheticBravo000000001',
+    'd3000000-0000-4000-8000-000000000001',
+    repeat('d', 64)
+  ) f;
+  if v_success is not true or v_code is distinct from 'FIXTURE_AUTHORIZED' then
+    raise exception 'SAME_TRANSACTION_AUTHORIZATION_FAILED: %', v_code;
+  end if;
+
+  select f.success, f.code into v_success, v_code
+  from caissa_staging_private.provision_synthetic_identity(
+    v_run_id,
+    'user_3TxnSyntheticAlpha000000001',
+    'c3000000-0000-4000-8000-000000000001',
+    repeat('c', 64),
+    'transaction@example.test'
+  ) f;
+  if v_success is not true or v_code is distinct from 'FIXTURE_PROVISIONED' then
+    raise exception 'SAME_TRANSACTION_PROVISIONING_FAILED: %', v_code;
+  end if;
+
+  select f.success, f.code into v_success, v_code
+  from caissa_staging_private.cleanup_synthetic_identity(
+    v_run_id,
+    'user_3TxnSyntheticAlpha000000001',
+    'c3000000-0000-4000-8000-000000000001',
+    repeat('c', 64),
+    'CLEAN STAGING SYNTHETIC FIXTURE'
+  ) f;
+  if v_success is not true or v_code is distinct from 'FIXTURE_CLEANED' then
+    raise exception 'SAME_TRANSACTION_CLEANUP_FAILED: %', v_code;
+  end if;
+
+  select f.success, f.code into v_success, v_code
+  from caissa_staging_private.finalize_synthetic_identity_cleanup(
+    v_run_id,
+    'user_3TxnSyntheticAlpha000000001',
+    'c3000000-0000-4000-8000-000000000001',
+    repeat('c', 64),
+    repeat('3', 64)
+  ) f;
+  if v_success is not true or v_code is distinct from 'FIXTURE_CLEANUP_FINALIZED' then
+    raise exception 'SAME_TRANSACTION_FINALIZATION_FAILED: %', v_code;
+  end if;
+end;
+$$;
 
 select pg_temp.assert_true(
   (select count(*) = 0 from public.users)

@@ -15,8 +15,8 @@ begin
   select s.system_identifier::text into v_system_identifier
   from pg_catalog.pg_control_system() s;
 
-  if pg_catalog.current_database() <> 'postgres'
-     or v_system_identifier <> '7678069749886157684' then
+  if pg_catalog.current_database() is distinct from 'postgres'
+     or v_system_identifier is distinct from '7678069749886157684' then
     raise exception using
       errcode = '42501',
       message = 'CAISSA_STAGING_PROJECT_MISMATCH';

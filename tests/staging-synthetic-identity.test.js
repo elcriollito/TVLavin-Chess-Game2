@@ -27,6 +27,8 @@ test('the contract is fail-closed to the exact hosted Staging database', () => {
     assert.match(sql, /project reference aqizagaskicotorfpwfn/i);
     assert.match(sql, /7678069749886157684/);
     assert.match(sql, /pg_catalog\.pg_control_system\(\)/i);
+    assert.match(sql, /current_database\(\) is distinct from 'postgres'/i);
+    assert.match(sql, /v_system_identifier is distinct from '7678069749886157684'/i);
     assert.match(sql, /CAISSA_STAGING_PROJECT_MISMATCH/i);
     assert.match(sql, /assert_staging_project\(\)/i);
     assert.match(sql, /perform caissa_staging_private\.assert_staging_project\(\)/i);
@@ -52,7 +54,8 @@ test('the contract binds two bounded A/B slots to exact subjects and UUIDs witho
 });
 
 test('provisioning creates a new Development binding plus an explicit verified ownership decision', () => {
-    assert.match(sql, /insert into public\.users\(id, clerk_id, email\)/i);
+    assert.match(sql, /insert into public\.users\(id, clerk_id, email, created_at, updated_at\)/i);
+    assert.match(sql, /pg_catalog\.clock_timestamp\(\), pg_catalog\.clock_timestamp\(\)/i);
     assert.match(sql, /'clerk', 'legacy_development', p_external_subject, 'ACTIVE'/i);
     assert.match(sql, /'NEW_ACCOUNT'/i);
     assert.match(sql, /'staging_synthetic', true/i);
@@ -63,7 +66,9 @@ test('provisioning creates a new Development binding plus an explicit verified o
 });
 
 test('cleanup is exact, protected-dependency aware, and can restore the pre-run data baseline', () => {
-    assert.match(sql, /CLEAN STAGING SYNTHETIC FIXTURE/i);
+    assert.match(sql, /p_confirmation is distinct from 'CLEAN STAGING SYNTHETIC FIXTURE'/i);
+    assert.match(sql, /p_external_receipt_hash is null/i);
+    assert.match(sql, /authorization_reference_hash is distinct from p_authorization_reference_hash/i);
     assert.match(sql, /v_user\.created_at < v_authorization\.authorized_at/i);
     assert.match(sql, /v_user\.is_premium is true/i);
     assert.match(sql, /v_user\.stripe_customer_id is not null/i);
