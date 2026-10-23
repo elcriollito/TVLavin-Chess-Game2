@@ -45,4 +45,6 @@ Cualquier ref/key de Production, Clerk Production, `CAISSA_ONLINE_ROLLOUT=produc
 
 Rollback de Preview: volver el alias autorizado al deployment anterior o retirar la Preview; no tocar Production ni hacer rollback SQL automático.
 
+Antes de habilitar `CAISSA_ONLINE_GUESTS=1`, Supabase Auth debe tener límites de alta anónima y protección anti-bot/CAPTCHA verificados, y debe existir limpieza operativa de identidades y estado guest vencidos. El modo `internal` no anuncia alta guest pública: cualquier prueba interna de un invitado exige que su UUID ya esté explícitamente en `CAISSA_ONLINE_INTERNAL_USERS`. El API requiere el origen derivado por Vercel y aplica cuotas compartidas globales, por origen pseudonimizado y por sujeto antes de crear estado durable.
+
 Gate: `PREVIEW_CONFIGURATION_PLAN_READY`.
