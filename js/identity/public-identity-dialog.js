@@ -1,5 +1,7 @@
 import { createPublicIdentityApi } from './public-identity-api.js';
+import { createAccountControlApi } from './account-control-api.js';
 import { publicIdentityDisplay, validatePublicNickname } from './public-nickname-policy.js';
+import { createRecentReauthenticationFlow } from './recent-reauthentication.js';
 
 let controller = null;
 
@@ -50,25 +52,98 @@ function createDialogController() {
               </div>
             </form>
           </section>
+          <section class="data-privacy-section" aria-labelledby="data-privacy-title">
+            <div class="identity-section-copy"><p>DATA &amp; PRIVACY</p><h3 id="data-privacy-title">Control your CAISSA account</h3></div>
+            <p class="identity-privacy-note">Private actions always use your verified session. CAISSA never accepts an email, nickname or user ID as the target.</p>
+            <div class="account-control-summary" data-account-summary hidden>
+              <span><strong data-account-games>0</strong> shared games retained</span>
+              <span><strong data-account-training>0</strong> training records</span>
+              <span><strong data-account-entitlements>0</strong> active entitlements</span>
+            </div>
+            <p class="account-control-status" data-account-control-status role="status">Checking availability...</p>
+            <div class="account-control-reauth" data-account-reauth hidden>
+              <p>For your protection, verify your identity again before exporting, resetting or deleting data.</p>
+              <button type="button" data-account-reverify>Verify identity</button>
+              <form data-account-reverify-form hidden novalidate>
+                <p data-account-reverify-instructions></p>
+                <label><span data-account-reverify-label>Verification code</span>
+                  <input data-account-reverify-input required maxlength="64" autocomplete="one-time-code" inputmode="numeric">
+                </label>
+                <div class="account-control-reauth-actions">
+                  <button type="button" data-account-reverify-cancel>Cancel</button>
+                  <button type="submit" data-account-reverify-submit>Continue</button>
+                </div>
+              </form>
+            </div>
+            <div class="account-control-grid" data-account-controls hidden>
+              <article class="account-control-card">
+                <h4>Download my data</h4>
+                <p>Download a private JSON copy of your verified CAISSA records. Shared-player details are excluded.</p>
+                <button type="button" data-account-export>Download my data</button>
+              </article>
+              <article class="account-control-card">
+                <h4>Reset my chess progress</h4>
+                <p>Reset selected training metrics. Login, nickname, credits, entitlements and Online rating stay unchanged.</p>
+                <button type="button" data-account-reset-start>Reset my chess progress</button>
+                <form class="account-control-confirm" data-account-reset-confirm hidden>
+                  <label>Type <strong>RESET</strong> to confirm
+                    <input name="confirmation" autocomplete="off" spellcheck="false" maxlength="5">
+                  </label>
+                  <div><button type="button" data-account-cancel>Cancel</button><button type="submit" class="account-control-danger">Confirm reset</button></div>
+                </form>
+              </article>
+              <article class="account-control-card account-control-card-danger">
+                <h4>Delete my CAISSA account</h4>
+                <p>Delete your login and removable profile data. Shared games and required economic evidence are retained safely.</p>
+                <button type="button" data-account-delete-start>Delete my CAISSA account</button>
+                <p class="account-control-review" data-account-delete-review hidden>Deletion needs secure manual review because this account has an ownership hold or active entitlement.</p>
+                <form class="account-control-confirm" data-account-delete-confirm hidden>
+                  <label>Type <strong>DELETE</strong> to confirm
+                    <input name="confirmation" autocomplete="off" spellcheck="false" maxlength="6">
+                  </label>
+                  <div><button type="button" data-account-cancel>Cancel</button><button type="submit" class="account-control-danger">Delete account</button></div>
+                </form>
+              </article>
+            </div>
+            <p class="identity-history-note">Encrypted backups and legally required billing evidence follow their own retention schedules. Re-registering later creates a new Clerk subject and a new CAISSA UUID; old progress is never restored by email or nickname.</p>
+          </section>
         </div>
         <footer class="public-identity-foot"><span data-unsaved hidden>Unsaved changes</span><span>Private by default · Public by choice</span></footer>
       </div>`;
     document.body.appendChild(dialog);
 
     const api = createPublicIdentityApi();
+    const accountApi = createAccountControlApi();
+    const reauthentication = createRecentReauthenticationFlow({
+        authProvider: () => globalThis.CAISSA_AUTH,
+        certifyToken: token => accountApi.certifyRecentSession(token)
+    });
     const input = dialog.querySelector('#public-nickname-input');
     const form = dialog.querySelector('form');
-    const status = dialog.querySelector('[role=status]');
+    const status = dialog.querySelector('#public-nickname-status');
     const save = dialog.querySelector('.public-identity-save');
     const check = dialog.querySelector('[data-check-nickname]');
     const fallbackButton = dialog.querySelector('[data-use-fallback]');
     const unsaved = dialog.querySelector('[data-unsaved]');
+    const accountStatus = dialog.querySelector('[data-account-control-status]');
+    const accountControls = dialog.querySelector('[data-account-controls]');
+    const accountReauth = dialog.querySelector('[data-account-reauth]');
+    const reverifyButton = dialog.querySelector('[data-account-reverify]');
+    const reverifyForm = dialog.querySelector('[data-account-reverify-form]');
+    const reverifyInput = dialog.querySelector('[data-account-reverify-input]');
+    const reverifyLabel = dialog.querySelector('[data-account-reverify-label]');
+    const reverifyInstructions = dialog.querySelector('[data-account-reverify-instructions]');
+    const resetConfirm = dialog.querySelector('[data-account-reset-confirm]');
+    const deleteConfirm = dialog.querySelector('[data-account-delete-confirm]');
     let identity = null;
     let opener = null;
     let requestEpoch = 0;
     let validationEpoch = 0;
     let operationEpoch = 0;
     let owner = null;
+    let accountSummary = null;
+    let accountEpoch = 0;
+    let accountBusy = false;
 
     dialog.querySelector('.public-identity-close').addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
@@ -76,6 +151,10 @@ function createDialogController() {
         requestEpoch += 1;
         validationEpoch += 1;
         operationEpoch += 1;
+        accountEpoch += 1;
+        reauthentication.cancel();
+        accountApi.clearRecentSession();
+        resetReverification();
         opener?.focus?.();
     });
     input.addEventListener('input', () => {
@@ -95,12 +174,30 @@ function createDialogController() {
         event.preventDefault();
         void saveIdentity();
     });
+    dialog.querySelector('[data-account-export]').addEventListener('click', () => void exportAccount());
+    dialog.querySelector('[data-account-reset-start]').addEventListener('click', () => openConfirmation(resetConfirm));
+    dialog.querySelector('[data-account-delete-start]').addEventListener('click', () => openConfirmation(deleteConfirm));
+    dialog.querySelectorAll('[data-account-cancel]').forEach(button => button.addEventListener('click', () => closeConfirmations()));
+    resetConfirm.addEventListener('submit', event => { event.preventDefault(); void resetProgress(); });
+    deleteConfirm.addEventListener('submit', event => { event.preventDefault(); void deleteAccount(); });
+    reverifyButton.addEventListener('click', () => void beginReverification());
+    reverifyForm.addEventListener('submit', event => { event.preventDefault(); void completeReverification(); });
+    dialog.querySelector('[data-account-reverify-cancel]').addEventListener('click', () => {
+        reauthentication.cancel();
+        resetReverification();
+        accountStatus.textContent = 'Recent verification is still required.';
+        accountStatus.dataset.state = 'warning';
+        reverifyButton.focus();
+    });
     window.addEventListener('caissa-auth-change', event => {
         const next = event.detail;
         if (!next?.isSignedIn || (owner && next.userId && next.userId !== owner)) {
             requestEpoch += 1;
             validationEpoch += 1;
             operationEpoch += 1;
+            accountEpoch += 1;
+            reauthentication.cancel();
+            accountApi.clearRecentSession();
             if (globalThis.CAISSA_AUTH) globalThis.CAISSA_AUTH.publicIdentity = null;
             if (dialog.open) dialog.close();
         }
@@ -110,6 +207,7 @@ function createDialogController() {
         if (!auth?.isSignedIn) return;
         opener = source;
         owner = auth.userId || null;
+        accountEpoch += 1;
         operationEpoch += 1;
         dialog.querySelector('[data-private-full-name]').textContent = auth.fullName || 'Not provided';
         dialog.querySelector('[data-private-email]').textContent = auth.email || 'Not provided';
@@ -122,6 +220,8 @@ function createDialogController() {
         unsaved.hidden = true;
         setStatus('Loading public identity…', 'loading');
         if (!dialog.open) dialog.showModal();
+        resetAccountControls();
+        void loadAccountControls(accountEpoch);
         const epoch = ++requestEpoch;
         try {
             const payload = await api.load();
@@ -143,6 +243,231 @@ function createDialogController() {
                 input.focus();
             }
         }
+    }
+
+    async function loadAccountControls(epoch) {
+        try {
+            const payload = await accountApi.summary();
+            if (epoch !== accountEpoch || !dialog.open) return;
+            applyAccountSummary(payload);
+        } catch (error) {
+            if (epoch !== accountEpoch || !dialog.open) return;
+            accountControls.hidden = true;
+            accountReauth.hidden = true;
+            accountStatus.textContent = error.message || 'Account controls are temporarily unavailable.';
+            accountStatus.dataset.state = 'error';
+        }
+    }
+
+    function applyAccountSummary(payload) {
+        accountSummary = payload;
+        const counts = payload.summary?.counts || {};
+        dialog.querySelector('[data-account-games]').textContent = String(counts.onlineGames || 0);
+        dialog.querySelector('[data-account-training]').textContent = String((counts.puzzleProgress || 0) + (counts.puzzleAttempts || 0));
+        dialog.querySelector('[data-account-entitlements]').textContent = String(counts.activeEntitlements || 0);
+        dialog.querySelector('[data-account-summary]').hidden = false;
+        if (!payload.backendReady) throw new Error('Account controls are not ready.');
+        accountReauth.hidden = !payload.requiresReauthentication;
+        accountControls.hidden = payload.requiresReauthentication;
+        const caps = payload.summary?.capabilities || {};
+        dialog.querySelector('[data-account-export]').disabled = !caps.export;
+        dialog.querySelector('[data-account-reset-start]').disabled = !caps.progressReset;
+        dialog.querySelector('[data-account-delete-start]').disabled = !caps.accountDeletion;
+        dialog.querySelector('[data-account-delete-review]').hidden = !payload.summary?.manualReviewRequired;
+        if (!payload.requiresReauthentication) resetReverification();
+        accountStatus.textContent = payload.requiresReauthentication
+            ? 'Recent identity verification required.'
+            : payload.summary?.manualReviewRequired
+                ? 'Some actions require secure manual review.'
+                : 'Account controls are ready.';
+        accountStatus.dataset.state = payload.requiresReauthentication || payload.summary?.manualReviewRequired
+            ? 'warning'
+            : 'ready';
+    }
+
+    async function beginReverification() {
+        if (accountBusy) return;
+        setReverificationBusy(true, 'Starting secure verification...');
+        try {
+            const next = await reauthentication.begin();
+            if (!dialog.open) return;
+            if (next.status === 'complete') return finishReverification(next.summary);
+            const password = next.status === 'needs_password';
+            reverifyInput.type = password ? 'password' : 'text';
+            reverifyInput.autocomplete = password ? 'current-password' : 'one-time-code';
+            reverifyInput.inputMode = password ? 'text' : 'numeric';
+            reverifyInput.maxLength = password ? 1024 : 64;
+            reverifyLabel.textContent = password ? 'Current password' : 'Verification code';
+            reverifyInstructions.textContent = password
+                ? 'Enter your current password. It is sent only to Clerk for verification.'
+                : next.destination
+                    ? `Enter the one-time code sent to ${next.destination}.`
+                    : 'Enter the one-time code sent by Clerk.';
+            reverifyForm.hidden = false;
+            reverifyButton.hidden = true;
+            accountStatus.textContent = password ? 'Password verification required.' : 'Verification code sent.';
+            accountStatus.dataset.state = 'warning';
+            reverifyInput.focus();
+        } catch (error) {
+            setAccountError(error?.message || 'Verification could not be started.');
+            reverifyButton.focus();
+        } finally {
+            setReverificationBusy(false);
+        }
+    }
+
+    async function completeReverification() {
+        if (accountBusy) return;
+        const value = reverifyInput.value;
+        setReverificationBusy(true, 'Confirming recent verification with CAISSA...');
+        try {
+            const result = await reauthentication.complete(value);
+            reverifyInput.value = '';
+            finishReverification(result.summary);
+        } catch (error) {
+            reverifyInput.value = '';
+            if (error?.restartRequired || ['REVERIFICATION_NOT_CONFIRMED', 'REVERIFICATION_NOT_STARTED',
+                'REVERIFICATION_SESSION_UNAVAILABLE', 'REVERIFICATION_IDENTITY_CHANGED'].includes(error?.code)) {
+                reauthentication.cancel();
+                resetReverification();
+            }
+            setAccountError(error?.message || 'Verification could not be completed.');
+            if (!reverifyForm.hidden) reverifyInput.focus();
+        } finally {
+            setReverificationBusy(false);
+        }
+    }
+
+    function finishReverification(summary) {
+        applyAccountSummary(summary);
+        accountStatus.textContent = 'Identity verified. Account controls are ready.';
+        accountStatus.dataset.state = 'ready';
+        dialog.querySelector('[data-account-export]').focus();
+    }
+
+    function setReverificationBusy(isBusy, message) {
+        accountBusy = isBusy;
+        reverifyButton.disabled = isBusy;
+        reverifyInput.disabled = isBusy;
+        dialog.querySelector('[data-account-reverify-cancel]').disabled = isBusy;
+        dialog.querySelector('[data-account-reverify-submit]').disabled = isBusy;
+        accountReauth.setAttribute('aria-busy', String(isBusy));
+        if (message) {
+            accountStatus.textContent = message;
+            accountStatus.dataset.state = 'loading';
+        }
+    }
+
+    function resetReverification() {
+        reverifyForm.hidden = true;
+        reverifyButton.hidden = false;
+        reverifyButton.disabled = false;
+        reverifyInput.disabled = false;
+        reverifyInput.value = '';
+        reverifyInstructions.textContent = '';
+        accountReauth.setAttribute('aria-busy', 'false');
+    }
+
+    async function exportAccount() {
+        if (accountBusy) return;
+        setAccountBusy(true, 'Preparing your private download...');
+        try {
+            await accountApi.exportData();
+            accountStatus.textContent = 'Your private download is ready.';
+            accountStatus.dataset.state = 'ready';
+        } catch (error) { handleAccountError(error); }
+        finally { setAccountBusy(false); }
+    }
+
+    async function resetProgress() {
+        if (accountBusy) return;
+        const input = resetConfirm.elements.confirmation;
+        if (input.value !== 'RESET') return setAccountError('Type RESET exactly to continue.');
+        setAccountBusy(true, 'Resetting selected training progress...');
+        try {
+            const prepared = await accountApi.prepareReset('RESET');
+            const completed = await accountApi.confirmReset(prepared);
+            const removed = completed.result?.puzzleAttemptsDeleted || 0;
+            closeConfirmations();
+            await loadAccountControls(accountEpoch);
+            accountStatus.textContent = `Training progress reset. ${removed} attempts removed.`;
+            accountStatus.dataset.state = 'ready';
+        } catch (error) { handleAccountError(error); }
+        finally { setAccountBusy(false); }
+    }
+
+    async function deleteAccount() {
+        if (accountBusy) return;
+        const input = deleteConfirm.elements.confirmation;
+        if (input.value !== 'DELETE') return setAccountError('Type DELETE exactly to continue.');
+        setAccountBusy(true, 'Deleting your CAISSA account...');
+        try {
+            const prepared = await accountApi.prepareDeletion('DELETE');
+            await accountApi.confirmDeletion(prepared);
+            accountStatus.textContent = 'Your CAISSA account has been deleted.';
+            accountStatus.dataset.state = 'ready';
+            closeConfirmations();
+            await globalThis.CAISSA_AUTH?.signOut?.();
+            setTimeout(() => { location.href = '/'; }, 250);
+        } catch (error) { handleAccountError(error); }
+        finally { setAccountBusy(false); }
+    }
+
+    function openConfirmation(target) {
+        if (accountBusy) return;
+        closeConfirmations();
+        target.hidden = false;
+        target.elements.confirmation.value = '';
+        target.elements.confirmation.focus();
+    }
+
+    function closeConfirmations() {
+        resetConfirm.hidden = true;
+        deleteConfirm.hidden = true;
+        resetConfirm.elements.confirmation.value = '';
+        deleteConfirm.elements.confirmation.value = '';
+    }
+
+    function resetAccountControls() {
+        accountSummary = null;
+        accountBusy = false;
+        accountControls.hidden = true;
+        accountReauth.hidden = true;
+        reauthentication.cancel();
+        accountApi.clearRecentSession();
+        resetReverification();
+        dialog.querySelector('[data-account-summary]').hidden = true;
+        closeConfirmations();
+        accountStatus.textContent = 'Checking availability...';
+        accountStatus.dataset.state = 'loading';
+    }
+
+    function setAccountBusy(busy, message) {
+        accountBusy = busy;
+        dialog.querySelectorAll('[data-account-controls] button, [data-account-controls] input').forEach(control => { control.disabled = busy; });
+        if (message) {
+            accountStatus.textContent = message;
+            accountStatus.dataset.state = 'loading';
+        }
+        if (!busy && accountSummary) {
+            const caps = accountSummary.summary?.capabilities || {};
+            dialog.querySelector('[data-account-export]').disabled = !caps.export;
+            dialog.querySelector('[data-account-reset-start]').disabled = !caps.progressReset;
+            dialog.querySelector('[data-account-delete-start]').disabled = !caps.accountDeletion;
+        }
+    }
+
+    function handleAccountError(error) {
+        if (error?.code === 'REVERIFICATION_REQUIRED') {
+            accountControls.hidden = true;
+            accountReauth.hidden = false;
+        }
+        setAccountError(error?.message || 'Account controls are temporarily unavailable.');
+    }
+
+    function setAccountError(message) {
+        accountStatus.textContent = message;
+        accountStatus.dataset.state = 'error';
     }
 
     async function checkAvailability() {
@@ -213,7 +538,7 @@ function ensureStylesheet() {
     if (document.querySelector('link[data-caissa-public-identity]')) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/css/public-identity.css?v=1.0.0';
+    link.href = '/css/public-identity.css?v=1.0.1';
     link.dataset.caissaPublicIdentity = 'true';
     document.head.appendChild(link);
 }

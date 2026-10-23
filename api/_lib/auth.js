@@ -5,12 +5,12 @@
  */
 
 import { verifyToken } from '@clerk/backend';
-import { TokenVerificationError } from '@clerk/backend/errors';
 
 const INVALID_TOKEN_REASONS = new Set([
     'token-expired', 'token-invalid', 'token-invalid-algorithm',
     'token-invalid-authorized-parties', 'token-invalid-signature',
-    'token-not-active-yet', 'token-iat-in-the-future', 'token-verification-failed'
+    'token-not-active-yet', 'token-iat-in-the-future', 'token-verification-failed',
+    'jwk-kid-mismatch'
 ]);
 
 const failure = (status, code) => ({
@@ -31,6 +31,9 @@ export function createAuthenticateRequest(dependencies = {}) {
   const env = dependencies.env || process.env;
   const log = dependencies.log || (message => console.warn(message));
   const authorizedParties = clerkAuthorizedParties(env);
+  const expectedIssuer = clerkExpectedIssuer(env);
+  const authority = clerkAuthority(env);
+  const requiresBoundAuthority = env.CAISSA_IDENTITY_OWNERSHIP_MODE === 'enforced';
 
   const allowSessionCookie = dependencies.allowSessionCookie === true;
 
@@ -52,6 +55,10 @@ export function createAuthenticateRequest(dependencies = {}) {
         log('auth_configuration_unavailable');
         return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
     }
+    if (requiresBoundAuthority && (!authority || !expectedIssuer)) {
+        log('auth_authority_configuration_unavailable');
+        return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
+    }
 
     try {
         const payload = await verify(token, {
@@ -61,14 +68,26 @@ export function createAuthenticateRequest(dependencies = {}) {
             authorizedParties
         });
 
+        if (!payload?.sub || (expectedIssuer && normalizeIssuer(payload.iss) !== expectedIssuer)) {
+            return failure(401, 'INVALID_TOKEN');
+        }
+
         return {
             authenticated: true,
             ok: true,
             userId: payload.sub,
-            email: payload.email || null
+            email: payload.email || null,
+            authority,
+            issuer: payload.iss || null,
+            sessionId: payload.sid || null,
+            issuedAt: Number.isFinite(payload.iat) ? payload.iat : null,
+            tokenId: typeof payload.jti === 'string' ? payload.jti : null,
+            factorVerificationAge: Array.isArray(payload.fva)
+                ? payload.fva.slice(0, 2).map(value => Number.isFinite(value) ? value : null)
+                : null
         };
     } catch (err) {
-        if (err instanceof TokenVerificationError && INVALID_TOKEN_REASONS.has(err.reason)) {
+        if (INVALID_TOKEN_REASONS.has(err?.reason) || malformedCompactJwt(token)) {
             return failure(401, 'INVALID_TOKEN');
         }
         const diagnostic = [err?.name, err?.reason || err?.code].filter(Boolean).join(':') || 'unknown';
@@ -76,6 +95,65 @@ export function createAuthenticateRequest(dependencies = {}) {
         return failure(503, 'AUTH_SERVICE_UNAVAILABLE');
     }
   };
+}
+
+function malformedCompactJwt(token) {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3 || parts.some(part => !/^[A-Za-z0-9_-]+$/u.test(part))) return true;
+    try {
+        const [headerPart, payloadPart, signaturePart] = parts;
+        const decode = part => {
+            const bytes = Buffer.from(part, 'base64url');
+            if (!bytes.length || bytes.toString('base64url') !== part) throw new SyntaxError('Non-canonical JWT segment');
+            return bytes;
+        };
+        const header = JSON.parse(decode(headerPart).toString('utf8'));
+        const payload = JSON.parse(decode(payloadPart).toString('utf8'));
+        decode(signaturePart);
+        return !header || typeof header !== 'object' || Array.isArray(header)
+            || !payload || typeof payload !== 'object' || Array.isArray(payload);
+    } catch {
+        return true;
+    }
+}
+
+function clerkAuthority(env) {
+    const configured = String(env.CAISSA_CLERK_AUTHORITY || '').trim();
+    const publishable = String(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || env.CLERK_PUBLISHABLE_KEY || '').trim();
+    const secret = String(env.CLERK_SECRET_KEY || '').trim();
+    const inferred = [
+        publishable.startsWith('pk_live_') ? 'production'
+            : publishable.startsWith('pk_test_') ? 'legacy_development' : null,
+        secret.startsWith('sk_live_') ? 'production'
+            : secret.startsWith('sk_test_') ? 'legacy_development' : null
+    ].filter(Boolean);
+    if (new Set(inferred).size > 1) return null;
+    const keyAuthority = inferred[0] || null;
+    if (configured) {
+        if (!['legacy_development', 'production'].includes(configured)) return null;
+        if (keyAuthority && configured !== keyAuthority) return null;
+        return configured;
+    }
+    return keyAuthority;
+}
+
+function clerkExpectedIssuer(env) {
+    const configured = String(env.CAISSA_CLERK_ISSUER || '').trim();
+    if (configured) {
+        try { return normalizeIssuer(new URL(configured).origin); } catch { return null; }
+    }
+    const key = String(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || env.CLERK_PUBLISHABLE_KEY || '').trim();
+    const encoded = key.replace(/^pk_(?:test|live)_/, '');
+    if (!encoded || encoded === key) return null;
+    try {
+        const host = Buffer.from(encoded, 'base64url').toString('utf8').replace(/\$$/, '');
+        if (!/^[A-Za-z0-9.-]+$/.test(host)) return null;
+        return normalizeIssuer(`https://${host}`);
+    } catch { return null; }
+}
+
+function normalizeIssuer(value) {
+    try { return new URL(String(value || '')).origin; } catch { return ''; }
 }
 
 function clerkAuthorizedParties(env) {
