@@ -523,3 +523,4 @@ revoke all on function public.export_caissa_account_data_page(uuid,uuid,text,int
 revoke all on function public.erase_caissa_account_data(uuid,uuid,uuid,text) from public,anon,authenticated;
 grant execute on function public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz) to service_role;
 grant execute on function public.erase_caissa_account_data(uuid,uuid,uuid,text) to service_role;
+
