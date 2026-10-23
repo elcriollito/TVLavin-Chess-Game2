@@ -1,9 +1,9 @@
 # CAISSA Account Control v1.0 — Data, Privacy & Self-Service Deletion
 
-**Fecha:** 2026-10-18  
-**Estado:** DESIGN / SAFETY SPEC — AÚN NO IMPLEMENTADO  
-**Track:** My Account · Data & Privacy  
-**Base:** `js/identity/public-identity-dialog.js`, `api/user/public-identity.js`, Clerk Production y Supabase Production.  
+**Fecha:** 2026-10-18
+**Estado:** DESIGN / SAFETY SPEC — AÚN NO IMPLEMENTADO
+**Track:** My Account · Data & Privacy
+**Base:** `js/identity/public-identity-dialog.js`, `api/user/public-identity.js`, Clerk Production y Supabase Production.
 **Precondición:** [Límites de identidad](../security/CAISSA_IDENTITY_ENVIRONMENT_BOUNDARIES.md).
 
 ## 1. Qué verá el jugador

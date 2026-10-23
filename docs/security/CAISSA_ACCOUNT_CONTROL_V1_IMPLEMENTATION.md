@@ -1,7 +1,7 @@
 # CAISSA Account Control v1.0 — implementation and release contract
 
-**Track:** Issue #81, stacked on Identity Organization Issue #80  
-**Environment authorized for this release:** protected Vercel Preview, Clerk Development, Supabase Staging  
+**Track:** Issue #81, stacked on Identity Organization Issue #80
+**Environment authorized for this release:** protected Vercel Preview, Clerk Development, Supabase Staging
 **Production state:** not enabled and not modified
 
 ## Authority boundary
@@ -89,4 +89,3 @@ used to recover the deleted UUID, credits, ratings, bindings, or progress.
   restore path before any Production migration or real-user operation.
 - Production enablement, account deletion, registration reopening and changing
   Clerk Invite-only each require separate owner authorization.
-

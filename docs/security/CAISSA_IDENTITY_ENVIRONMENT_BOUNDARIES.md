@@ -1,8 +1,8 @@
 # CAISSA Identity Organization — Production, Development y acceso interno
 
-**Fecha:** 2026-10-18  
-**Estado:** SPEC / NO DESPLEGADO  
-**Track:** CAISSA Identity Organization  
+**Fecha:** 2026-10-18
+**Estado:** SPEC / NO DESPLEGADO
+**Track:** CAISSA Identity Organization
 **Alcance:** diagnóstico, segregación, controles de acceso e inventario; **sin eliminación ni migración de cuentas**.
 
 ## 1. Regla canónica

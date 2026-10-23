@@ -166,7 +166,6 @@ test('environment gate binds mode, Clerk authority, ownership mode and exact Sup
     assert.equal(accountControlEnvironment(environment({ SUPABASE_URL: 'https://jczauvkfkweuvdpurpem.supabase.co' })), null);
     assert.equal(accountControlEnvironment(environment({ CAISSA_ACCOUNT_CONTROL_MODE: 'production' })), null);
 });
-
 test('fresh reverification uses signed Clerk fva and rejects token age or missing session metadata', () => {
     assert.equal(freshReverification(auth()), true);
     assert.equal(freshReverification(auth({ factorVerificationAge: [0, -1] })), true);

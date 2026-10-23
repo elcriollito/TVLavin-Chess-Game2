@@ -548,4 +548,3 @@ function warn(log, event, diagnostic) {
 }
 
 function response(status, code, message) { return { status, code, message }; }
-
