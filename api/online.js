@@ -13,6 +13,8 @@ import {
 } from '../js/online/online-protocol.js';
 import { applyAuthoritativeMove } from './_lib/online-game-engine.js';
 import { sendOnlineGameBroadcast } from './_lib/online-realtime-broadcast.js';
+import { trustedOnlineSourceKey } from './_lib/online-request-source.js';
+import { getSupabasePublishableKey, getSupabaseUrl } from './_lib/supabase.js';
 
 const ROLLOUTS = new Set(['off', 'internal', 'preview', 'production']);
 
@@ -36,8 +38,21 @@ export default async function handler(req, res, dependencies = {}) {
     const authenticate = dependencies.authenticate || createOnlineAuthenticator({ env });
     const auth = await authenticate(req);
     if (!auth.authenticated) return respondAuthFailure(res, auth);
-    if (rollout === 'internal' && !auth.guest && !internalUsers(env).has(auth.userId)) {
+    if (rollout === 'internal' && !internalUsers(env).has(auth.userId)) {
         return res.status(403).json({ code: 'ONLINE_INTERNAL_ONLY' });
+    }
+
+    let commandEvent = null;
+    if (req.method === 'GET') {
+        if (String(req.query?.action || 'state') !== 'state') {
+            return res.status(404).json({ code: 'UNKNOWN_ACTION' });
+        }
+    } else if (req.method === 'POST') {
+        const checked = validateEnvelope(req.body);
+        if (!checked.ok) return res.status(400).json({ code: checked.code });
+        commandEvent = checked.value;
+    } else {
+        return res.status(405).json({ code: 'METHOD_NOT_ALLOWED' });
     }
 
     const rate = (dependencies.rateLimit || checkRateLimit)(auth.userId, {
@@ -52,25 +67,42 @@ export default async function handler(req, res, dependencies = {}) {
 
     const service = dependencies.service || createOnlineService();
     try {
-        const sharedPolicy = distributedRatePolicy(req);
+        if (auth.guest) {
+            if (typeof service.checkRateLimit !== 'function') {
+                return res.status(503).json({ code: 'GUEST_OUTER_RATE_LIMIT_UNAVAILABLE' });
+            }
+            const sourceKey = (dependencies.trustedSourceKey || trustedOnlineSourceKey)(req, env);
+            if (!sourceKey) return res.status(503).json({ code: 'TRUSTED_SOURCE_UNAVAILABLE' });
+            const outerPolicies = [
+                { clerkId: 'online-global', bucket: 'guest-outer', limit: 1000, windowSeconds: 60 },
+                { clerkId: sourceKey, bucket: 'guest-outer', limit: 300, windowSeconds: 60 }
+            ];
+            if (requiresGuestProvision(commandEvent)) {
+                outerPolicies.push({
+                    clerkId: sourceKey, bucket: 'guest-provision', limit: 30, windowSeconds: 60
+                });
+            }
+            for (const policy of outerPolicies) {
+                const outerRate = await service.checkRateLimit(policy);
+                if (!outerRate?.allowed) return rateLimited(res, outerRate);
+            }
+        }
+
+        const sharedPolicy = distributedRatePolicy(req, commandEvent);
         if (typeof service.checkRateLimit === 'function') {
             const sharedRate = await service.checkRateLimit({ clerkId: auth.userId, ...sharedPolicy });
-            if (!sharedRate?.allowed) {
-                res.setHeader('Retry-After', String(Math.max(1, Number(sharedRate?.retryAfter || 60))));
-                return res.status(429).json({ code: 'RATE_LIMITED' });
-            }
+            if (!sharedRate?.allowed) return rateLimited(res, sharedRate);
         } else if (rollout === 'production') {
             return res.status(503).json({ code: 'SHARED_RATE_LIMIT_UNAVAILABLE' });
         }
-        if (auth.guest && requiresGuestProvision(req)) {
+        if (auth.guest && requiresGuestProvision(commandEvent)) {
             if (typeof service.ensureGuestIdentity !== 'function') {
                 return res.status(503).json({ code: 'GUEST_IDENTITY_UNAVAILABLE' });
             }
             await service.ensureGuestIdentity(auth.userId);
         }
         if (req.method === 'GET') return handleRead(req, res, auth, service);
-        if (req.method === 'POST') return handleCommand(req, res, auth, service, dependencies);
-        return res.status(405).json({ code: 'METHOD_NOT_ALLOWED' });
+        return handleCommand(req, res, auth, service, dependencies, commandEvent);
     } catch (error) {
         const mapped = mapError(error?.code || error?.message);
         console.warn('caissa_online_request_failed', {
@@ -92,10 +124,7 @@ async function handleRead(req, res, auth, service) {
     }));
 }
 
-async function handleCommand(req, res, auth, service, dependencies) {
-    const checked = validateEnvelope(req.body);
-    if (!checked.ok) return res.status(400).json({ code: checked.code });
-    const event = checked.value;
+async function handleCommand(req, res, auth, service, dependencies, event) {
     if (event.eventType === 'presence.join') {
         const displayName = await resolveOnlineDisplayName(auth, service);
         const state = await service.heartbeat(auth.userId, displayName);
@@ -274,16 +303,16 @@ async function handleCommand(req, res, auth, service, dependencies) {
 
 function publicConfig(rollout, env) {
     const enabled = rollout !== 'off';
-    const realtimeUrl = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
-    const publishableKey = env.SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-        || env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const realtimeUrl = getSupabaseUrl(env);
+    const publishableKey = getSupabasePublishableKey(env);
     return {
         protocolVersion: ONLINE_PROTOCOL_VERSION,
         rollout,
         enabled,
         capabilities: {
             matchmaking: enabled,
-            guestPlay: !!(enabled && env.CAISSA_ONLINE_GUESTS === '1' && realtimeUrl && publishableKey),
+            guestPlay: !!(enabled && rollout !== 'internal'
+                && env.CAISSA_ONLINE_GUESTS === '1' && realtimeUrl && publishableKey),
             rated: enabled && env.CAISSA_ONLINE_RATED === '1',
             chat: false,
             tournaments: enabled && env.CAISSA_ONLINE_TOURNAMENTS === '1',
@@ -371,15 +400,19 @@ function serializedBodyBytes(body) {
     catch (_) { return Number.POSITIVE_INFINITY; }
 }
 
-function distributedRatePolicy(req) {
+function distributedRatePolicy(req, event) {
     if (req.method === 'GET') return { bucket: 'read', limit: 120, windowSeconds: 60 };
-    if (req.body?.eventType === 'challenge.create') {
+    if (event?.eventType === 'challenge.create' || event?.eventType === 'game.rematch') {
         return { bucket: 'challenge-create', limit: 20, windowSeconds: 60 };
     }
     return { bucket: 'write', limit: 90, windowSeconds: 60 };
 }
 
-function requiresGuestProvision(req) {
-    if (req.method !== 'POST') return false;
-    return new Set(['presence.join', 'queue.join', 'challenge.create']).has(req.body?.eventType);
+function requiresGuestProvision(event) {
+    return new Set(['presence.join', 'queue.join', 'challenge.create']).has(event?.eventType);
+}
+
+function rateLimited(res, rate) {
+    res.setHeader('Retry-After', String(Math.max(1, Number(rate?.retryAfter || 60))));
+    return res.status(429).json({ code: 'RATE_LIMITED' });
 }
