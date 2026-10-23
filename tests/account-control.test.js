@@ -543,4 +543,3 @@ test('migration is service-role only, keeps economic/shared history, and tombsto
     assert.match(sql, /caissa_account_control_one_pending_kind_idx/u);
     assert.match(sql, /external_subject='deleted_'/u);
 });
-
