@@ -76,6 +76,10 @@ begin
       errcode = '42501',
       message = 'CAISSA_STAGING_PROJECT_MISMATCH';
   end if;
+
+  -- Serialize every fixture lifecycle operation with guarded teardown. The
+  -- lock is transaction-scoped, so it is released on either commit or error.
+  perform pg_catalog.pg_advisory_xact_lock(767806974988615768);
 end;
 $$;
 

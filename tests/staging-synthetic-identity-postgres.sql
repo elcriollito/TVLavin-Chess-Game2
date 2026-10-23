@@ -390,4 +390,11 @@ select pg_temp.assert_true(
   'fixture cleanup did not restore the exact empty data baseline'
 );
 
+\ir ../supabase/staging-only/20261023211620_caissa_staging_synthetic_identity_teardown.sql
+
+select pg_temp.assert_true(
+  pg_catalog.to_regnamespace('caissa_staging_private') is null,
+  'the private fixture mechanism was not removed from the schema baseline'
+);
+
 \echo CAISSA_STAGING_SYNTHETIC_IDENTITY_POSTGRES_PASS
