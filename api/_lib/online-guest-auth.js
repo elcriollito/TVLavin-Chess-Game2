@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { authenticateRequest } from './auth.js';
+import { getSupabasePublishableKey, getSupabaseUrl } from './supabase.js';
 
 const UUID_SUBJECT = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -29,8 +30,8 @@ export function createOnlineAuthenticator(options = {}) {
 
 export function createSupabaseGuestAuthenticator(options = {}) {
     const env = options.env || process.env;
-    const url = supabaseUrl(env);
-    const key = supabasePublishableKey(env);
+    const url = getSupabaseUrl(env);
+    const key = getSupabasePublishableKey(env);
     const client = options.client || (url && key ? createClient(url, key, {
         auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
     }) : null);
@@ -90,16 +91,7 @@ function guestPlayEnabled(env) {
     return env.CAISSA_ONLINE_GUESTS === '1';
 }
 
-function supabaseUrl(env) {
-    return String(env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
-}
-
-function supabasePublishableKey(env) {
-    return env.SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-        || env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-}
-
 function supabaseIssuer(env) {
-    const url = supabaseUrl(env);
+    const url = getSupabaseUrl(env);
     return url ? `${url}/auth/v1` : '';
 }
