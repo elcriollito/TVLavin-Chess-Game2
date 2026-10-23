@@ -33,14 +33,20 @@ export function createRecentReauthenticationFlow(options = {}) {
             const factor = selectFirstFactor(verification?.supportedFirstFactors);
             if (!factor) throw safeError('REVERIFICATION_METHOD_UNAVAILABLE');
             const strategy = factor.strategy;
+            if (typeof context.session.attemptFirstFactorVerification !== 'function') {
+                throw safeError('REVERIFICATION_METHOD_UNAVAILABLE');
+            }
 
             if (strategy === 'email_code' || strategy === 'phone_code') {
+                if (typeof context.session.prepareFirstFactorVerification !== 'function') {
+                    throw safeError('REVERIFICATION_METHOD_UNAVAILABLE');
+                }
                 const identifierKey = strategy === 'email_code' ? 'emailAddressId' : 'phoneNumberId';
                 const identifier = factor[identifierKey];
                 if (typeof identifier !== 'string' || !identifier) {
                     throw safeError('REVERIFICATION_METHOD_UNAVAILABLE');
                 }
-                const prepared = await verification.prepareFirstFactorVerification({
+                const prepared = await context.session.prepareFirstFactorVerification({
                     strategy,
                     [identifierKey]: identifier
                 });
@@ -77,7 +83,10 @@ export function createRecentReauthenticationFlow(options = {}) {
         let factorCompleted = false;
         try {
             assertCurrent(active.operation, active.context);
-            const result = await active.verification.attemptFirstFactorVerification(
+            if (typeof active.context.session.attemptFirstFactorVerification !== 'function') {
+                throw safeError('REVERIFICATION_METHOD_UNAVAILABLE');
+            }
+            const result = await active.context.session.attemptFirstFactorVerification(
                 strategy === 'password'
                     ? { strategy, password: secret }
                     : { strategy, code: secret }
