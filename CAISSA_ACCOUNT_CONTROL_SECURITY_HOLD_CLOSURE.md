@@ -25,11 +25,15 @@ This is not a Hosted PASS and not a Production Ready declaration.
 - Client/contract tree: `c13a57ff683655f657cd543ca2f51e8e51690250`.
 - Race-safe teardown commit: `efcf9b2dd0fc51da402a658275c837e998a14e70`.
 - Race-safe implementation tree: `725132647f11d79e0df6e5523267e8d341e01357`.
+- P2 review closure commit: `7dbd889b16197e9e8b522c82fd2a1e8abee21046`.
+- P2 review closure tree: `30201915ed7bb20dcc6fe6fc0c360f09de479b01`.
 - Stacked PR: [#101](https://github.com/elcriollito/TVLavin-Chess-Game2/pull/101), open against the #97 branch; no merge performed.
 - Parent PR [#97](https://github.com/elcriollito/TVLavin-Chess-Game2/pull/97): open, head `db1728fa12d573613a03250d06d98234a12a8e33`, merge state CLEAN at final review, three Vercel checks successful, no submitted GitHub review.
 - PR [#93](https://github.com/elcriollito/TVLavin-Chess-Game2/pull/93): open and CLEAN at final review.
 
 Normal branch publication was reviewed before execution. Its automatic effects are Vercel Preview builds for `account-control-release-readiness`, `caissa-chess`, and `tv-lavin-chess-game2`; it does not promote Production or Custom Staging.
+
+GitHub review raised two P2 findings on `efcf9b2d`: SQL three-valued logic could allow `NULL` to bypass destructive/authorization checks, and transaction-stable `now()` defaults could make same-transaction cleanup reject newly created fixtures. Both remain visible in the PR audit trail and are resolved by `7dbd889b`, with explicit negative and full same-transaction PostgreSQL tests.
 
 ## Verification record
 
@@ -41,6 +45,7 @@ Normal branch publication was reviewed before execution. Its automatic effects a
 | SEC-005 | 90/90 passed |
 | Account Control browsers | 18/18 passed on Chromium, Firefox, WebKit, including 390×844 mobile |
 | PostgreSQL 17 fixture lifecycle | Passed |
+| PostgreSQL 17 NULL/same-transaction regressions | Passed |
 | PostgreSQL 17 exact cleanup/schema teardown | Passed |
 | PostgreSQL 17 real teardown/write race | Passed: wait, exact residue rejection, preservation, clean retry |
 | Account Control lint | Passed |
@@ -48,7 +53,7 @@ Normal branch publication was reviewed before execution. Its automatic effects a
 | `git diff --check` | Passed |
 | Secret scan | Zero findings in the final implementation review |
 | Independent bypass/TOCTOU review | GO, no blocker |
-| Final Codex Security scan | `378fa6b2-477e-40b9-8aa6-1f9a0c74e6ef`, complete coverage, zero findings |
+| Final Codex Security scan | `7bd2d40b-27ed-4098-81f8-5fff5ed45429`, exact range through `7dbd889b`, complete coverage, zero findings |
 
 ## Residual and non-blocking risks
 

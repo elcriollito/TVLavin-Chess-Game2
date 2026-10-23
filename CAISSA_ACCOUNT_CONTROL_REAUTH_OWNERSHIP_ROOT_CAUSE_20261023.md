@@ -6,7 +6,7 @@ Mission: `CAISSA_ACCOUNT_CONTROL_REAUTH_OWNERSHIP_CLOSURE_20261023`
 
 Base: `db1728fa12d573613a03250d06d98234a12a8e33` (tree `edce75d11b41b251ba9070f4c8979dd555408245`)
 
-Implementation commits: `b440a6ce9049eec52070e3c33420812a6078feb6`, `efcf9b2dd0fc51da402a658275c837e998a14e70`
+Implementation commits: `b440a6ce9049eec52070e3c33420812a6078feb6`, `efcf9b2dd0fc51da402a658275c837e998a14e70`, `7dbd889b16197e9e8b522c82fd2a1e8abee21046`
 
 ## Root-cause matrix
 
@@ -36,3 +36,5 @@ The browser reauthentication defect and the later ownership 409 are independent 
 - `tests/run-staging-synthetic-identity-postgres.mjs`
 
 No hosted Clerk user, Supabase object, Vercel deployment environment, credential, or Production resource was changed during root-cause confirmation or local certification. The historical cleaned-run ledger was not modified.
+
+The final review identified and closed two additional P2 implementation gaps before hosted use: SQL `NULL` values could bypass ordinary inequality checks, and transaction-stable `now()` defaults could predate an authorization created with `clock_timestamp()` in the same transaction. Commit `7dbd889b16197e9e8b522c82fd2a1e8abee21046` makes target, hash, confirmation, receipt, row, metadata, and review checks fail closed and writes fixture timestamps with `clock_timestamp()` explicitly.

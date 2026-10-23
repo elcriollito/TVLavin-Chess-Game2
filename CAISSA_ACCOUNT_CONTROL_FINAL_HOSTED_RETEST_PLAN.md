@@ -10,7 +10,7 @@ This is an execution plan, not authorization to deploy, apply SQL, create users,
 
 Before any hosted action, obtain explicit approval for the exact:
 
-- PR head/deployment SHA containing implementation commits `b440a6ce` and `efcf9b2d`.
+- PR head/deployment SHA containing implementation commits `b440a6ce`, `efcf9b2d`, and P2 closure `7dbd889b`.
 - Custom Staging deployment and preview-to-Staging promotion mechanism.
 - Supabase Staging SQL application and subsequent teardown.
 - Clerk Development A/B fixture creation and deletion.
@@ -26,8 +26,8 @@ No approval is implied for Production, main merge, historical users, Reset, or D
 4. Confirm Clerk Dashboard and keys are Development.
 5. Confirm Supabase project ref is exactly `aqizagaskicotorfpwfn` and the live `system_identifier` is exactly `7678069749886157684`.
 6. Recompute the SQL artifact hashes and require:
-   - Provisioning: `5bb1f13d17f4cf2a858431ca55b3e056c3c726898603244bdc51cc23e4b0a1f1`.
-   - Teardown: `245fc92bcdeda305258f00541bc7876ffaa1e58e6683acb7cb4e9632e703fd20`.
+   - Provisioning: `4f2ea1cea3066c8097a8407b2cb5b2b8edbab3edbbcfb0ab87ac517fc5397353`.
+   - Teardown: `15be03dad01b209c82fa3af5528435c9aad897c78babc5fd4a9f5ad3446eff15`.
 7. Record the exact empty data/schema baseline, fixture inventory, and absence of the private fixture namespace.
 8. Create/approve exactly two new A/B Development fixtures; stop on any pre-existing subject, UUID, binding, review, entitlement, Stripe state, or unexpected resource.
 

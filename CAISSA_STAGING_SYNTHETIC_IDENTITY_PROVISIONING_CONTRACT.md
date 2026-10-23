@@ -2,7 +2,7 @@
 
 Result: `IDENTITY_RESOLUTION — STAGING_FIXTURE_PROVISIONING_CONTRACT_READY`
 
-Implementation commits: `b440a6ce9049eec52070e3c33420812a6078feb6`, `efcf9b2dd0fc51da402a658275c837e998a14e70`
+Implementation commits: `b440a6ce9049eec52070e3c33420812a6078feb6`, `efcf9b2dd0fc51da402a658275c837e998a14e70`, `7dbd889b16197e9e8b522c82fd2a1e8abee21046`
 
 ## Purpose and boundary
 
@@ -16,8 +16,8 @@ The contract is intentionally outside `supabase/migrations` and has no public HT
 - PostgreSQL database: `postgres`.
 - Intrinsic cluster `system_identifier`: `7678069749886157684`.
 - Authority: `legacy_development` only.
-- Provisioning artifact SHA-256: `5bb1f13d17f4cf2a858431ca55b3e056c3c726898603244bdc51cc23e4b0a1f1`.
-- Teardown artifact SHA-256: `245fc92bcdeda305258f00541bc7876ffaa1e58e6683acb7cb4e9632e703fd20`.
+- Provisioning artifact SHA-256: `4f2ea1cea3066c8097a8407b2cb5b2b8edbab3edbbcfb0ab87ac517fc5397353`.
+- Teardown artifact SHA-256: `15be03dad01b209c82fa3af5528435c9aad897c78babc5fd4a9f5ad3446eff15`.
 
 Every lifecycle operation checks the cluster and installation guard, then takes advisory transaction lock `767806974988615768`. Teardown takes the same lock before examining residue or dropping anything. A mismatch raises `CAISSA_STAGING_PROJECT_MISMATCH` before effects.
 
@@ -67,6 +67,8 @@ PostgreSQL 17 tests proved:
 - Wrong-cluster rejection.
 - RLS/FORCE RLS and role denial.
 - Exact A/B bounding and manifest validation.
+- Fail-closed `NULL` handling for target, authorization, confirmation, receipt, row, metadata, and review checks.
+- Authorize, provision, cleanup, and finalize in one transaction with real `now()` table defaults, proving the explicit `clock_timestamp()` row timestamps remain cleanup-compatible.
 - Idempotent authorization/provisioning/cleanup.
 - Duplicate/concurrent provisioning convergence.
 - Historical/cross-binding rejection.

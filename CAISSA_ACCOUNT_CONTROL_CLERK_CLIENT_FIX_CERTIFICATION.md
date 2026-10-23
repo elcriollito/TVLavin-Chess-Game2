@@ -45,7 +45,7 @@ Clerk requests are not browser-abortable. Cancellation therefore invalidates the
 - Account Control browser suite: 18/18 passed on Chromium, Firefox, and WebKit, including the 390×844 mobile case.
 - `npm run lint:account-control`: passed.
 - Independent security review: GO, no blocker.
-- Final Codex Security diff scan `378fa6b2-477e-40b9-8aa6-1f9a0c74e6ef`: complete, zero findings.
+- Final Codex Security diff scan `7bd2d40b-27ed-4098-81f8-5fff5ed45429`: complete, zero findings on the exact implementation range through `7dbd889b16197e9e8b522c82fd2a1e8abee21046`.
 
 ## Boundary of this certification
 
