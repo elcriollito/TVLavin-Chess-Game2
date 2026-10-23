@@ -22,10 +22,10 @@ async function installFixture(context, {
           getToken:async(options)=>{window.__accountReauthCalls.push(['token',options||null]);return options?.skipCache?${dropFreshToken ? 'null' : "'fresh-fixture-token'"}:'fixture-token'},
           startVerification:async(options)=>{window.__accountReauthCalls.push(['start',options]);return {
             status:'needs_first_factor',
-            supportedFirstFactors:[{strategy:'email_code',emailAddressId:'email_fixture',safeIdentifier:'p***@example.test',primary:true}],
-            prepareFirstFactorVerification:async function(options){window.__accountReauthCalls.push(['prepare',options]);return this},
-            attemptFirstFactorVerification:async function(options){window.__accountReauthCalls.push(['attempt',options]);return {status:'complete'}}
-          }}
+             supportedFirstFactors:[{strategy:'email_code',emailAddressId:'email_fixture',safeIdentifier:'p***@example.test',primary:true}]
+           }},
+           prepareFirstFactorVerification:async(options)=>{window.__accountReauthCalls.push(['prepare',options]);return {status:'needs_first_factor',supportedFirstFactors:[{strategy:'email_code',emailAddressId:'email_fixture',safeIdentifier:'p***@example.test',primary:true}]}},
+           attemptFirstFactorVerification:async(options)=>{window.__accountReauthCalls.push(['attempt',options]);return {status:'complete'}}
         },load:async()=>{},addListener:()=>{},signOut:async()=>{}};`
     }));
     for (const path of ['**/api/user/sync', '**/api/wallet']) {
