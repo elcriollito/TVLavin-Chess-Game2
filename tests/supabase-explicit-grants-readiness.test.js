@@ -13,6 +13,10 @@ const runtime = fs.readFileSync(
 
 test('pending migration handoff has the narrow explicit table grant required by PostgREST', () => {
     assert.match(runtime, /\.from\('identity_migration_challenges'\)[\s\S]*\.select\(/);
+    assert.match(
+        migration,
+        /revoke all on table public\.identity_migration_challenges\s+from public, anon, authenticated, service_role;/i
+    );
     assert.match(migration, /grant select on table public\.identity_migration_challenges\s+to service_role;/i);
     assert.doesNotMatch(
         migration,
@@ -23,7 +27,7 @@ test('pending migration handoff has the narrow explicit table grant required by 
 test('browser roles and PUBLIC retain no direct challenge-table authority', () => {
     assert.match(
         migration,
-        /revoke all on table public\.identity_migration_challenges\s+from public, anon, authenticated;/i
+        /revoke all on table public\.identity_migration_challenges\s+from public, anon, authenticated, service_role;/i
     );
     assert.doesNotMatch(migration, /grant[^;]*identity_migration_challenges[^;]*to\s+(?:public|anon|authenticated)/i);
 });
