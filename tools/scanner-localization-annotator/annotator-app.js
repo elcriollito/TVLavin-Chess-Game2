@@ -1,6 +1,7 @@
 import {
   CORNER_KEYS,
   CORNER_LABELS,
+  FIELD_HARD_STARTER_FILE,
   OUTPUT_FILE,
   V03_STARTER_FILE,
   annotateSample,
@@ -31,6 +32,9 @@ const elements = {
   imageStage: document.querySelector('#image-stage'),
   image: document.querySelector('#source-image'),
   overlay: document.querySelector('#corner-overlay'),
+  zoomOut: document.querySelector('#zoom-out'),
+  zoomReset: document.querySelector('#zoom-reset'),
+  zoomIn: document.querySelector('#zoom-in'),
   reset: document.querySelector('#reset'),
   undo: document.querySelector('#undo'),
   confirm: document.querySelector('#confirm'),
@@ -52,7 +56,10 @@ const state = {
   imageWidth: 0,
   imageHeight: 0,
   imageUrl: null,
-  loadGeneration: 0
+  loadGeneration: 0,
+  zoom: 1,
+  dragIndex: null,
+  repositionIndex: null
 };
 
 function setMessage(text, kind = '') {
@@ -168,6 +175,9 @@ function renderMetadata(sample) {
   addMetadata('Provenance', sample.provenance);
   addMetadata('Use', sample.permissionUseCategory);
   addMetadata('Split', sample.split ?? 'unassigned');
+  addMetadata('Governance', sample.governanceStatus ?? 'not specified');
+  addMetadata('Duplicate group', sample.duplicateGroup ?? 'none');
+  addMetadata('Development role', sample.developmentRole ?? 'not specified');
   addMetadata('Reference', sample.referenceSystem ? `${sample.referenceSystem}: ${sample.referenceOutcome}` : 'none');
   addMetadata('Difficulty', (sample.difficultyTags || []).join(', '));
   addMetadata('Saved status', sample.annotation?.sampleStatus || 'incomplete');
@@ -209,7 +219,12 @@ function renderOverlay() {
   }
   points.forEach((point, index) => {
     elements.overlay.append(svgElement('circle', {
-      class: 'corner-point', cx: point.x, cy: point.y, r: Math.max(5, Math.min(state.imageWidth, state.imageHeight) * .008)
+      class: 'corner-point', cx: point.x, cy: point.y,
+      r: Math.max(8, Math.min(state.imageWidth, state.imageHeight) * .01),
+      'data-corner-index': index,
+      tabindex: 0,
+      role: 'button',
+      'aria-label': `Reposition ${['top-left', 'top-right', 'bottom-right', 'bottom-left'][index]} corner`
     }));
     const label = svgElement('text', {
       class: 'corner-label', x: point.x + 10, y: point.y - 10
@@ -218,6 +233,27 @@ function renderOverlay() {
     elements.overlay.append(label);
   });
   renderInstruction();
+}
+
+function applyZoom() {
+  state.zoom = Math.max(.5, Math.min(4, state.zoom));
+  elements.imageStage.style.width = `${state.zoom * 100}%`;
+  elements.zoomReset.textContent = `${Math.round(state.zoom * 100)}%`;
+  elements.zoomOut.disabled = state.zoom <= .5;
+  elements.zoomIn.disabled = state.zoom >= 4;
+}
+
+function pointFromPointer(event) {
+  const rect = elements.image.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right
+      || event.clientY < rect.top || event.clientY > rect.bottom) return null;
+  return mapDisplayPoint({
+    clientX: event.clientX,
+    clientY: event.clientY,
+    rect,
+    imageWidth: state.imageWidth,
+    imageHeight: state.imageHeight
+  });
 }
 
 function updateControls() {
@@ -242,6 +278,10 @@ async function loadCurrentSample() {
   state.imageWidth = 0;
   state.imageHeight = 0;
   state.points = createAnnotationState();
+  state.zoom = 1;
+  state.dragIndex = null;
+  state.repositionIndex = null;
+  applyZoom();
   elements.image.removeAttribute('src');
   elements.overlay.replaceChildren();
 
@@ -305,7 +345,8 @@ async function openCorpus() {
   }
   try {
     const directory = await window.showDirectoryPicker({ mode: 'readwrite' });
-    const sourceResult = (await readTextFile(directory, V03_STARTER_FILE, false))
+    const sourceResult = (await readTextFile(directory, FIELD_HARD_STARTER_FILE, false))
+      || (await readTextFile(directory, V03_STARTER_FILE, false))
       || (await readTextFile(directory, 'manifest-starter.json'));
     const sourceManifest = JSON.parse(sourceResult.text);
     if (!sourceManifest.corpus || !Array.isArray(sourceManifest.samples) || sourceManifest.samples.length === 0) {
@@ -389,20 +430,45 @@ async function move(delta) {
 
 elements.openCorpus.addEventListener('click', openCorpus);
 elements.imageStage.addEventListener('click', (event) => {
-  if (!state.checksumOk || selectedStatus() !== 'board-present' || state.points.points.length >= 4) return;
-  const rect = elements.image.getBoundingClientRect();
-  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return;
-  const point = mapDisplayPoint({
-    clientX: event.clientX,
-    clientY: event.clientY,
-    rect,
-    imageWidth: state.imageWidth,
-    imageHeight: state.imageHeight
-  });
-  state.points = reduceAnnotationState(state.points, { type: 'add', point });
+  if (!state.checksumOk || selectedStatus() !== 'board-present') return;
+  if (event.target?.dataset?.cornerIndex !== undefined) {
+    state.repositionIndex = Number(event.target.dataset.cornerIndex);
+    setMessage(`Corner ${state.repositionIndex + 1} selected. Click its corrected position.`, 'success');
+    return;
+  }
+  const point = pointFromPointer(event);
+  if (!point) return;
+  if (state.repositionIndex !== null) {
+    state.points = reduceAnnotationState(state.points, { type: 'move', index: state.repositionIndex, point });
+    state.repositionIndex = null;
+  } else {
+    if (state.points.points.length >= 4) return;
+    state.points = reduceAnnotationState(state.points, { type: 'add', point });
+  }
   renderOverlay();
   updateControls();
 });
+elements.overlay.addEventListener('pointerdown', (event) => {
+  const index = Number(event.target?.dataset?.cornerIndex);
+  if (!Number.isSafeInteger(index) || !state.checksumOk || selectedStatus() !== 'board-present') return;
+  state.dragIndex = index;
+  event.target.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+});
+window.addEventListener('pointermove', (event) => {
+  if (state.dragIndex === null) return;
+  const point = pointFromPointer(event);
+  if (!point) return;
+  state.points = reduceAnnotationState(state.points, { type: 'move', index: state.dragIndex, point });
+  renderOverlay();
+  updateControls();
+});
+const finishDrag = () => { state.dragIndex = null; };
+window.addEventListener('pointerup', finishDrag);
+window.addEventListener('pointercancel', finishDrag);
+elements.zoomOut.addEventListener('click', () => { state.zoom -= .25; applyZoom(); });
+elements.zoomReset.addEventListener('click', () => { state.zoom = 1; applyZoom(); });
+elements.zoomIn.addEventListener('click', () => { state.zoom += .25; applyZoom(); });
 elements.reset.addEventListener('click', () => {
   state.points = reduceAnnotationState(state.points, { type: 'reset' });
   renderOverlay();

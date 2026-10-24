@@ -3,6 +3,9 @@ import test from 'node:test';
 import {
   ANNOTATION_SCHEMA,
   CORNER_KEYS,
+  FIELD_HARD_CORPUS,
+  FIELD_HARD_OUTPUT_FILE,
+  FIELD_HARD_STARTER_FILE,
   annotateSample,
   cornersFromGroundTruth,
   createAnnotationState,
@@ -18,6 +21,10 @@ import {
   validateQuadrilateral,
   verifyChecksum
 } from '../tools/scanner-localization-annotator/annotator-core.js';
+import {
+  buildStarterSample,
+  duplicateGroupFor
+} from '../tools/scanner-localization-field-hard/prepare-annotation-batch.mjs';
 
 const SAMPLE = Object.freeze({
   sampleId: 'real-001',
@@ -79,6 +86,8 @@ test('quadrilateral validation blocks duplicate, crossed, non-convex, and out-of
   assert.ok(validateQuadrilateral([QUAD[0], QUAD[2], QUAD[1], QUAD[3]], 200, 200).reasons.includes('self-intersection'));
   assert.ok(validateQuadrilateral([{ x: 10, y: 10 }, { x: 190, y: 10 }, { x: 80, y: 80 }, { x: 10, y: 190 }], 200, 200).reasons.includes('non-convex'));
   assert.ok(validateQuadrilateral([{ x: -1, y: 0 }, ...QUAD.slice(1)], 200, 200).reasons.includes('corner-out-of-bounds'));
+  assert.ok(validateQuadrilateral([...QUAD].reverse(), 200, 200).reasons.includes('incorrect-winding'));
+  assert.ok(validateQuadrilateral([QUAD[1], QUAD[2], QUAD[3], QUAD[0]], 200, 200).reasons.includes('corner-order-invalid'));
 });
 
 test('checksum verification reports mismatches without mutating bytes', async () => {
@@ -120,10 +129,45 @@ test('undo and reset state are deterministic and bounded to four points', () => 
   let state = createAnnotationState();
   for (const point of [...QUAD, { x: 50, y: 50 }]) state = reduceAnnotationState(state, { type: 'add', point });
   assert.equal(state.points.length, 4);
+  state = reduceAnnotationState(state, { type: 'move', index: 2, point: { x: 170, y: 175 } });
+  assert.deepEqual(state.points[2], { x: 170, y: 175 });
   state = reduceAnnotationState(state, { type: 'undo' });
   assert.equal(state.points.length, 3);
   state = reduceAnnotationState(state, { type: 'reset' });
   assert.deepEqual(state.points, []);
+});
+
+test('field-hard annotation contract preserves governance while adding canonical human truth fields', () => {
+  const sourceHash = 'A'.repeat(64);
+  const sample = buildStarterSample({
+    source: { sampleId: 'field-hard-v0.1-007', imageSha256: sourceHash },
+    audited: {
+      sampleId: 'field-hard-v0.1-007', imageSha256: sourceHash,
+      governanceStatus: 'review-required', split: 'held-pending-dedup-review'
+    },
+    filename: 'field-hard-v0.1-007.jpg', width: 4032, height: 3024
+  });
+  assert.equal(sample.duplicateGroup, 'held-lichess-white-session-001');
+  assert.equal(sample.developmentRole, 'held-duplicate-review');
+  assert.equal(sample.humanVerified, false);
+  assert.equal(sample.corners, null);
+  const verified = annotateSample(sample, {
+    status: 'board-present', points: QUAD, imageWidth: 4032, imageHeight: 3024
+  });
+  assert.equal(verified.sourceHash, sourceHash);
+  assert.deepEqual(verified.sourceDimensions, { width: 4032, height: 3024 });
+  assert.deepEqual(Object.keys(verified.corners), ['TL', 'TR', 'BR', 'BL']);
+  assert.equal(verified.humanVerified, true);
+  assert.equal(verified.duplicateGroup, sample.duplicateGroup);
+  assert.equal(verified.developmentRole, 'held-duplicate-review');
+});
+
+test('field-hard corpus uses its canonical external starter and truth filenames', () => {
+  assert.deepEqual(manifestFilesForCorpus({ corpus: FIELD_HARD_CORPUS }), {
+    starter: FIELD_HARD_STARTER_FILE,
+    output: FIELD_HARD_OUTPUT_FILE
+  });
+  assert.equal(duplicateGroupFor('field-hard-v0.1-010'), null);
 });
 
 test('manifest merge preserves audited metadata, source order, and unset split', () => {

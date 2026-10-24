@@ -2,6 +2,9 @@ export const ANNOTATION_SCHEMA = 'caissa-scanner-localization-annotations/1';
 export const OUTPUT_FILE = 'localization-hard-v0.1.annotated.json';
 export const V03_STARTER_FILE = 'manifest-starter-v0.3.json';
 export const V03_OUTPUT_FILE = 'localization-hard-v0.3.annotated.json';
+export const FIELD_HARD_CORPUS = 'caissa-scanner-localization-field-hard-v0.1';
+export const FIELD_HARD_STARTER_FILE = 'manifest-starter-field-hard-v0.1.json';
+export const FIELD_HARD_OUTPUT_FILE = 'caissa-scanner-localization-field-hard-v0.1.annotations.json';
 export const CORNER_KEYS = Object.freeze(['topLeft', 'topRight', 'bottomRight', 'bottomLeft']);
 export const CORNER_LABELS = Object.freeze(['TOP-LEFT', 'TOP-RIGHT', 'BOTTOM-RIGHT', 'BOTTOM-LEFT']);
 export const SAMPLE_STATUSES = Object.freeze([
@@ -106,6 +109,16 @@ export function validateQuadrilateral(points, imageWidth, imageHeight) {
   }, 0);
   const area = Math.abs(signedTwiceArea) / 2;
   if (area < 1e-6) reasons.push('zero-area');
+  if (signedTwiceArea < 0) reasons.push('incorrect-winding');
+  if (points.length === 4) {
+    const topMidpointY = (points[0].y + points[1].y) / 2;
+    const bottomMidpointY = (points[2].y + points[3].y) / 2;
+    const leftMidpointX = (points[0].x + points[3].x) / 2;
+    const rightMidpointX = (points[1].x + points[2].x) / 2;
+    if (topMidpointY >= bottomMidpointY || leftMidpointX >= rightMidpointX) {
+      reasons.push('corner-order-invalid');
+    }
+  }
 
   return Object.freeze({
     valid: reasons.length === 0,
@@ -130,6 +143,11 @@ export function reduceAnnotationState(state, action) {
       return createAnnotationState(points);
     case 'reset':
       return createAnnotationState();
+    case 'move':
+      if (!Number.isSafeInteger(action.index) || action.index < 0 || action.index >= points.length
+          || !finitePoint(action.point)) return createAnnotationState(points);
+      points[action.index] = { x: action.point.x, y: action.point.y };
+      return createAnnotationState(points);
     case 'load':
       return createAnnotationState(Array.isArray(action.points) ? action.points.slice(0, 4) : []);
     default:
@@ -176,8 +194,12 @@ export function annotateSample(sourceSample, { status, points = [], imageWidth, 
   result.sourceSha256 = sourceSample.originalSha256;
   result.sourceWidth = imageWidth;
   result.sourceHeight = imageHeight;
+  result.sourceHash = sourceSample.originalSha256;
+  result.sourceDimensions = { width: imageWidth, height: imageHeight };
 
   if (status === 'skip-for-now') {
+    result.humanVerified = false;
+    result.corners = null;
     result.annotationStatus = 'skip-for-now';
     delete result.groundTruth;
     result.annotation = {
@@ -201,12 +223,20 @@ export function annotateSample(sourceSample, { status, points = [], imageWidth, 
     });
     result.boardPresent = true;
     result.groundTruth = { playableBoardCorners };
+    result.corners = Object.freeze({
+      TL: { x: round(points[0].x, 3), y: round(points[0].y, 3) },
+      TR: { x: round(points[1].x, 3), y: round(points[1].y, 3) },
+      BR: { x: round(points[2].x, 3), y: round(points[2].y, 3) },
+      BL: { x: round(points[3].x, 3), y: round(points[3].y, 3) }
+    });
   } else {
     result.boardPresent = status !== 'board-not-present';
     result.groundTruth = status === 'unsupported-partial-board'
       ? { expectedLocalizationResult: 'unsupported-partial-board' }
       : { expectedLocalizationResult: 'board-not-found' };
+    result.corners = null;
   }
+  result.humanVerified = true;
 
   result.annotation = {
     humanVerifiedBy: 'Alexander',
@@ -220,6 +250,9 @@ export function annotateSample(sourceSample, { status, points = [], imageWidth, 
 }
 
 export function manifestFilesForCorpus(sourceManifest) {
+  if (sourceManifest?.corpusVersion === FIELD_HARD_CORPUS || sourceManifest?.corpus === FIELD_HARD_CORPUS) {
+    return { starter: FIELD_HARD_STARTER_FILE, output: FIELD_HARD_OUTPUT_FILE };
+  }
   return sourceManifest?.corpusVersion === 'scanner-localization-hard-v0.3'
     ? { starter: V03_STARTER_FILE, output: V03_OUTPUT_FILE }
     : { starter: 'manifest-starter.json', output: OUTPUT_FILE };

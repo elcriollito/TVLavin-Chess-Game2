@@ -39,23 +39,30 @@ test('dev-only annotator verifies a local image, maps four clicks, and writes on
       const digest = await crypto.subtle.digest('SHA-256', await imageFile.arrayBuffer());
       const checksum = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('').toUpperCase();
       const manifest = {
-        corpus: 'caissa-scanner-real-localization-corpus-v0.1',
+        corpus: 'caissa-scanner-localization-field-hard-v0.1',
+        corpusVersion: 'caissa-scanner-localization-field-hard-v0.1',
         status: 'annotation-pending',
         samples: [{
-          sampleId: 'browser-real-001',
+          sampleId: 'field-hard-v0.1-001',
           originalFile: 'originals/sample.svg',
           originalSha256: checksum,
+          sourceHash: checksum,
+          sourceDimensions: { width: 200, height: 200 },
           provenance: 'Browser test fixture',
           permissionUseCategory: 'test-only',
           boardPresent: true,
-          referenceSystem: 'Chessvision',
-          referenceOutcome: 'success',
-          difficultyTags: ['digital-screen-clean'],
-          split: null
+          governanceStatus: 'admitted',
+          duplicateGroup: null,
+          developmentRole: 'development',
+          humanVerified: false,
+          corners: null,
+          notes: 'Human truth only',
+          split: 'development'
         }]
       };
-      const manifestFile = new File([`${JSON.stringify(manifest, null, 2)}\n`], 'manifest-starter.json', { type: 'application/json' });
-      const outputHandle = new FakeFileHandle('localization-hard-v0.1.annotated.json', () => new File([], 'localization-hard-v0.1.annotated.json'), true);
+      const manifestFile = new File([`${JSON.stringify(manifest, null, 2)}\n`], 'manifest-starter-field-hard-v0.1.json', { type: 'application/json' });
+      const outputName = 'caissa-scanner-localization-field-hard-v0.1.annotations.json';
+      const outputHandle = new FakeFileHandle(outputName, () => new File([], outputName), true);
       const originals = {
         kind: 'directory',
         name: 'originals',
@@ -72,8 +79,8 @@ test('dev-only annotator verifies a local image, maps four clicks, and writes on
           return originals;
         },
         getFileHandle: async (name, options = {}) => {
-          if (name === 'manifest-starter.json') return new FakeFileHandle(name, () => manifestFile);
-          if (name === 'localization-hard-v0.1.annotated.json' && options.create) return outputHandle;
+          if (name === 'manifest-starter-field-hard-v0.1.json') return new FakeFileHandle(name, () => manifestFile);
+          if (name === outputName && options.create) return outputHandle;
           throw new DOMException('Missing', 'NotFoundError');
         }
       };
@@ -85,27 +92,40 @@ test('dev-only annotator verifies a local image, maps four clicks, and writes on
   await expect(page.locator('#checksum')).toContainText('SHA-256 verified');
   const image = page.locator('#source-image');
   await expect(image).toBeVisible();
-  const box = await image.boundingBox();
+  const initialStageWidth = await page.locator('#image-stage').evaluate((node) => node.getBoundingClientRect().width);
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(page.getByRole('button', { name: 'Reset zoom' })).toHaveText('125%');
+  expect(await page.locator('#image-stage').evaluate((node) => node.getBoundingClientRect().width)).toBeGreaterThan(initialStageWidth);
+  await page.getByRole('button', { name: 'Reset zoom' }).click();
+  const canvas = page.locator('#corner-overlay');
+  const box = await canvas.boundingBox();
   expect(box).toBeTruthy();
-  const click = (x, y) => image.click({ position: { x: box.width * x, y: box.height * y } });
+  const click = (x, y) => canvas.click({ position: { x: box.width * x, y: box.height * y } });
   await click(.1, .1);
   await click(.9, .1);
   await click(.9, .9);
   await click(.1, .9);
   await expect(page.locator('.corner-point')).toHaveCount(4);
+  const firstPoint = page.locator('.corner-point').first();
+  const beforeCx = Number(await firstPoint.getAttribute('cx'));
+  await firstPoint.click();
+  await canvas.click({ position: { x: box.width * .2, y: box.height * .2 } });
+  expect(Number(await page.locator('.corner-point').first().getAttribute('cx'))).toBeGreaterThan(beforeCx);
   await expect(page.getByText('Review the quadrilateral, then Confirm')).toBeVisible();
   await page.getByRole('button', { name: /Confirm/ }).click();
   await expect(page.locator('#message')).toContainText('Saved locally');
 
   const writes = await page.evaluate(() => window.__annotationWrites);
-  expect(Object.keys(writes)).toEqual(['localization-hard-v0.1.annotated.json']);
-  const output = JSON.parse(writes['localization-hard-v0.1.annotated.json']);
+  expect(Object.keys(writes)).toEqual(['caissa-scanner-localization-field-hard-v0.1.annotations.json']);
+  const output = JSON.parse(writes['caissa-scanner-localization-field-hard-v0.1.annotations.json']);
   expect(output.status).toBe('annotation-complete');
   expect(output.samples[0].annotation.cornerOrder).toBe('tl-tr-br-bl');
   expect(Object.keys(output.samples[0].groundTruth.playableBoardCorners)).toEqual([
     'topLeft', 'topRight', 'bottomRight', 'bottomLeft'
   ]);
-  expect(output.samples[0].split).toBeNull();
+  expect(output.samples[0].humanVerified).toBe(true);
+  expect(Object.keys(output.samples[0].corners)).toEqual(['TL', 'TR', 'BR', 'BL']);
+  expect(output.samples[0].split).toBe('development');
 });
 
 test('v0.3 folder opens with negatives complete and incomplete filter limited to pending positives', async ({ page }) => {
@@ -158,10 +178,10 @@ test('v0.3 folder opens with negatives complete and incomplete filter limited to
   await page.locator('#incomplete-only').check();
   await expect(page.locator('#sample-select option')).toHaveCount(1);
   await expect(page.locator('#sample-select')).toHaveValue('real-v03-positive-001');
-  const image = page.locator('#source-image');
-  const box = await image.boundingBox();
+  const canvas = page.locator('#corner-overlay');
+  const box = await canvas.boundingBox();
   for (const [x, y] of [[.1, .1], [.9, .1], [.9, .9], [.1, .9]]) {
-    await image.click({ position: { x: box.width * x, y: box.height * y } });
+    await canvas.click({ position: { x: box.width * x, y: box.height * y } });
   }
   await page.getByRole('button', { name: /Confirm/ }).click();
   await expect(page.locator('#progress')).toContainText('2 / 2 completed');
