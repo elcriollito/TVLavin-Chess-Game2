@@ -1,0 +1,3519 @@
+{
+  "schemaVersion": "caissa-scanner-localization-field-hard-candidate-analysis/1",
+  "matchingCriteria": "selected quad IoU >= 0.80 and mean corner error / human board diagonal <= 0.05",
+  "candidateGenerationRecall": 0.666667,
+  "rankingAccuracy": 1,
+  "multipleBoardCases": [
+    {
+      "sampleId": "field-hard-v0.1-006",
+      "currentResult": "CORRECT BOARD",
+      "acceptedScoreMargin": 0.093066,
+      "policyMargin": 0.08,
+      "currentPolicyWouldAbstain": false,
+      "acceptedCandidates": [
+        {
+          "rank": 1,
+          "score": 0.952949,
+          "humanMatch": true,
+          "quadIou": 0.957042
+        },
+        {
+          "rank": 2,
+          "score": 0.859883,
+          "humanMatch": false,
+          "quadIou": 0.474974
+        }
+      ]
+    }
+  ],
+  "scoreComponentFindings": {
+    "rankingFailureComparisons": [],
+    "componentOnlyCorrectTopCounts": {
+      "geometry": 8,
+      "grid": 8,
+      "checker": 8,
+      "gridPhase": 8
+    },
+    "conclusion": "No sample contained a human-matching candidate that lost production ranking."
+  },
+  "samples": [
+    {
+      "sampleId": "field-hard-v0.1-001",
+      "candidateCount": 12,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.976627,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.95682,
+      "selectedScore": 0.976627,
+      "rawRunnerUpScore": 0.791916,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.976627,
+          "components": {
+            "geometry": 0.989506,
+            "grid": 0.947436,
+            "checker": 0.969666,
+            "gridPhase": 0.957873,
+            "edge": 0.963192,
+            "playableField": 0.956579
+          },
+          "predictedCorners": [
+            [
+              123,
+              1198.3
+            ],
+            [
+              1104,
+              1177.9
+            ],
+            [
+              1083,
+              2161.1
+            ],
+            [
+              133,
+              2140.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            20,
+            15.3,
+            3.59,
+            33.766
+          ],
+          "meanCornerErrorPx": 18.223436,
+          "medianCornerErrorPx": 17.770685,
+          "maxCornerErrorPx": 33.766265,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.013158,
+          "meanSourceNormalizedCornerError": 0.006314,
+          "predictedAreaPx2": 929860.254105,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0.95682,
+          "centroidDistancePx": 14.344878,
+          "scaleRatio": 0.9847,
+          "topEdgeRotationDifferenceDegrees": 0.495279,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "grid-periodicity-search",
+          "accepted": false,
+          "score": 0.791916,
+          "components": {
+            "geometry": 1,
+            "grid": 0.570153,
+            "checker": 0.849458,
+            "gridPhase": 0.904717,
+            "edge": 0.781582,
+            "playableField": 0.776568
+          },
+          "predictedCorners": [
+            [
+              102,
+              819.4
+            ],
+            [
+              1083,
+              819.4
+            ],
+            [
+              1083,
+              1802.6
+            ],
+            [
+              102,
+              1802.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            371,
+            359.1,
+            356.87,
+            360.757
+          ],
+          "meanCornerErrorPx": 361.940797,
+          "medianCornerErrorPx": 359.909668,
+          "maxCornerErrorPx": 371.071506,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.261344,
+          "meanSourceNormalizedCornerError": 0.12541,
+          "predictedAreaPx2": 964718.237288,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0.458397,
+          "centroidDistancePx": 361.937404,
+          "scaleRatio": 1.002987,
+          "topEdgeRotationDifferenceDegrees": 0.700761,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-strong-1",
+          "accepted": false,
+          "score": 0.286385,
+          "components": {
+            "geometry": 0.939649,
+            "grid": 0.341584,
+            "checker": 0.072898,
+            "gridPhase": 0.566705,
+            "edge": 0.467442,
+            "playableField": 0.389151
+          },
+          "predictedCorners": [
+            [
+              46,
+              763
+            ],
+            [
+              1160,
+              763
+            ],
+            [
+              1160,
+              2545.2
+            ],
+            [
+              36,
+              2514.5
+            ]
+          ],
+          "cornerErrorsPx": [
+            431,
+            421.5,
+            392.63,
+            358.449
+          ],
+          "meanCornerErrorPx": 400.968746,
+          "medianCornerErrorPx": 407.05202,
+          "maxCornerErrorPx": 431.321955,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.289525,
+          "meanSourceNormalizedCornerError": 0.138933,
+          "predictedAreaPx2": 1977326.946968,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0.484989,
+          "centroidDistancePx": 26.742171,
+          "scaleRatio": 1.435933,
+          "topEdgeRotationDifferenceDegrees": 0.700761,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-strong-10",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.839882,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              761,
+              650.4
+            ],
+            [
+              986,
+              640.1
+            ],
+            [
+              996,
+              691.3
+            ],
+            [
+              761,
+              732.3
+            ]
+          ],
+          "cornerErrorsPx": [
+            851,
+            547.9,
+            1470.9,
+            1573.188
+          ],
+          "meanCornerErrorPx": 1110.686293,
+          "medianCornerErrorPx": 1160.836231,
+          "maxCornerErrorPx": 1573.188397,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.801985,
+          "meanSourceNormalizedCornerError": 0.384846,
+          "predictedAreaPx2": 15440.097656,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 1032.947453,
+          "scaleRatio": 0.126888,
+          "topEdgeRotationDifferenceDegrees": 1.907357,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 5,
+          "source": "edge-component-strong-11",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.776703,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              506,
+              2473.5
+            ],
+            [
+              690,
+              2483.7
+            ],
+            [
+              659,
+              2524.7
+            ],
+            [
+              506,
+              2524.7
+            ]
+          ],
+          "cornerErrorsPx": [
+            1345,
+            1364.8,
+            562.14,
+            537.591
+          ],
+          "meanCornerErrorPx": 952.270321,
+          "medianCornerErrorPx": 953.327745,
+          "maxCornerErrorPx": 1364.834881,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.687599,
+          "meanSourceNormalizedCornerError": 0.329956,
+          "predictedAreaPx2": 7850.897113,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 828.764148,
+          "scaleRatio": 0.09048,
+          "topEdgeRotationDifferenceDegrees": 3.887375,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 6,
+          "source": "edge-component-strong-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.740438,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              118,
+              619.7
+            ],
+            [
+              1109,
+              701.6
+            ],
+            [
+              1058,
+              793.8
+            ],
+            [
+              97,
+              845
+            ]
+          ],
+          "cornerErrorsPx": [
+            571,
+            477.2,
+            1366.02,
+            1318.401
+          ],
+          "meanCornerErrorPx": 933.153627,
+          "medianCornerErrorPx": 944.675013,
+          "maxCornerErrorPx": 1366.016066,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.673795,
+          "meanSourceNormalizedCornerError": 0.323332,
+          "predictedAreaPx2": 155500.102158,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 932.91876,
+          "scaleRatio": 0.40268,
+          "topEdgeRotationDifferenceDegrees": 5.425549,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 7,
+          "source": "edge-component-strong-3",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.886,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              342,
+              35.8
+            ],
+            [
+              853,
+              35.8
+            ],
+            [
+              853,
+              158.8
+            ],
+            [
+              342,
+              158.8
+            ]
+          ],
+          "cornerErrorsPx": [
+            1179,
+            1166.5,
+            2014.27,
+            2018.252
+          ],
+          "meanCornerErrorPx": 1594.486991,
+          "medianCornerErrorPx": 1596.604263,
+          "maxCornerErrorPx": 2018.252195,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 1.151319,
+          "meanSourceNormalizedCornerError": 0.55248,
+          "predictedAreaPx2": 62807.176907,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 1575.615389,
+          "scaleRatio": 0.255917,
+          "topEdgeRotationDifferenceDegrees": 0.700761,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 8,
+          "source": "edge-component-strong-4",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.836431,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              445,
+              199.7
+            ],
+            [
+              802,
+              210
+            ],
+            [
+              772,
+              312.4
+            ],
+            [
+              445,
+              322.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            1048,
+            1009.8,
+            1873.75,
+            1871.249
+          ],
+          "meanCornerErrorPx": 1450.613235,
+          "medianCornerErrorPx": 1459.432932,
+          "maxCornerErrorPx": 1873.750126,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 1.047434,
+          "meanSourceNormalizedCornerError": 0.502628,
+          "predictedAreaPx2": 38574.074484,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 1411.868313,
+          "scaleRatio": 0.200559,
+          "topEdgeRotationDifferenceDegrees": 2.340835,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 9,
+          "source": "edge-component-strong-5",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.869565,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              618,
+              476.3
+            ],
+            [
+              1088,
+              476.3
+            ],
+            [
+              1088,
+              537.7
+            ],
+            [
+              618,
+              537.7
+            ]
+          ],
+          "cornerErrorsPx": [
+            880,
+            702.1,
+            1621.77,
+            1703.879
+          ],
+          "meanCornerErrorPx": 1226.96899,
+          "medianCornerErrorPx": 1250.929079,
+          "maxCornerErrorPx": 1703.87852,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.885948,
+          "meanSourceNormalizedCornerError": 0.425137,
+          "predictedAreaPx2": 28891.301377,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 1193.84295,
+          "scaleRatio": 0.173572,
+          "topEdgeRotationDifferenceDegrees": 0.700761,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 10,
+          "source": "edge-component-strong-6",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.81701,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              271,
+              947.4
+            ],
+            [
+              823,
+              947.4
+            ],
+            [
+              823,
+              988.4
+            ],
+            [
+              281,
+              988.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            295,
+            352.1,
+            1200.46,
+            1187.659
+          ],
+          "meanCornerErrorPx": 758.75089,
+          "medianCornerErrorPx": 769.883986,
+          "maxCornerErrorPx": 1200.459666,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.547866,
+          "meanSourceNormalizedCornerError": 0.262902,
+          "predictedAreaPx2": 22401.22643,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 706.620316,
+          "scaleRatio": 0.152838,
+          "topEdgeRotationDifferenceDegrees": 0.700761,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 11,
+          "source": "edge-component-strong-7",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.763777,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              465,
+              650.4
+            ],
+            [
+              669,
+              640.1
+            ],
+            [
+              608,
+              742.6
+            ],
+            [
+              434,
+              742.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            650,
+            682.2,
+            1495.52,
+            1457.807
+          ],
+          "meanCornerErrorPx": 1071.270859,
+          "medianCornerErrorPx": 1069.979233,
+          "maxCornerErrorPx": 1495.52171,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 0.773525,
+          "meanSourceNormalizedCornerError": 0.371189,
+          "predictedAreaPx2": 18161.741989,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 980.414517,
+          "scaleRatio": 0.137618,
+          "topEdgeRotationDifferenceDegrees": 2.167753,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 12,
+          "source": "edge-component-strong-8",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.913158,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              77,
+              210
+            ],
+            [
+              271,
+              210
+            ],
+            [
+              271,
+              291.9
+            ],
+            [
+              77,
+              291.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            981,
+            1267.4,
+            2037.95,
+            1871.695
+          ],
+          "meanCornerErrorPx": 1539.487312,
+          "medianCornerErrorPx": 1569.568524,
+          "maxCornerErrorPx": 2037.952835,
+          "truthBoardDiagonalPx": 1384.921439,
+          "sourceDiagonalPx": 2886.056133,
+          "meanNormalizedCornerError": 1.111606,
+          "meanSourceNormalizedCornerError": 0.533423,
+          "predictedAreaPx2": 15911.151483,
+          "truthAreaPx2": 958980.977971,
+          "quadIou": 0,
+          "centroidDistancePx": 1483.562038,
+          "scaleRatio": 0.128809,
+          "topEdgeRotationDifferenceDegrees": 0.700761,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-002",
+      "candidateCount": 9,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.886752,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.944857,
+      "selectedScore": 0.886752,
+      "rawRunnerUpScore": 0.528654,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "edge-component-strong-1",
+          "accepted": true,
+          "score": 0.886752,
+          "components": {
+            "geometry": 0.979706,
+            "grid": 0.802099,
+            "checker": 0.94327,
+            "gridPhase": 0.823528,
+            "edge": 0.772152,
+            "playableField": 0.839976
+          },
+          "predictedCorners": [
+            [
+              21,
+              95.7
+            ],
+            [
+              1169,
+              129
+            ],
+            [
+              1177,
+              1318.8
+            ],
+            [
+              12,
+              1352.1
+            ]
+          ],
+          "cornerErrorsPx": [
+            33,
+            35.6,
+            23.22,
+            33.364
+          ],
+          "meanCornerErrorPx": 31.30677,
+          "medianCornerErrorPx": 33.206638,
+          "maxCornerErrorPx": 35.595728,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.01845,
+          "meanSourceNormalizedCornerError": 0.01279,
+          "predictedAreaPx2": 1414005.434806,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0.944857,
+          "centroidDistancePx": 7.601418,
+          "scaleRatio": 0.991048,
+          "topEdgeRotationDifferenceDegrees": 1.913859,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "grid-periodicity-search",
+          "accepted": false,
+          "score": 0.528654,
+          "components": {
+            "geometry": 0.991342,
+            "grid": 0.556745,
+            "checker": 0.432094,
+            "gridPhase": 0.462715,
+            "edge": 0.800302,
+            "playableField": 0.489501
+          },
+          "predictedCorners": [
+            [
+              241,
+              673.9
+            ],
+            [
+              649,
+              673.9
+            ],
+            [
+              649,
+              1073.3
+            ],
+            [
+              258,
+              1073.3
+            ]
+          ],
+          "cornerErrorsPx": [
+            600,
+            784.7,
+            604.88,
+            355.265
+          ],
+          "meanCornerErrorPx": 586.296187,
+          "medianCornerErrorPx": 602.606908,
+          "maxCornerErrorPx": 784.706232,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.345518,
+          "meanSourceNormalizedCornerError": 0.239527,
+          "predictedAreaPx2": 159441.517241,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0.110749,
+          "centroidDistancePx": 215.812722,
+          "scaleRatio": 0.33279,
+          "topEdgeRotationDifferenceDegrees": 0.252963,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "grid-periodicity-search",
+          "accepted": false,
+          "score": 0.52253,
+          "components": {
+            "geometry": 0.979423,
+            "grid": 0.577871,
+            "checker": 0.427186,
+            "gridPhase": 0.469971,
+            "edge": 0.753627,
+            "playableField": 0.499179
+          },
+          "predictedCorners": [
+            [
+              258,
+              832
+            ],
+            [
+              632,
+              832
+            ],
+            [
+              657,
+              1231.4
+            ],
+            [
+              250,
+              1231.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            753,
+            913.9,
+            550.33,
+            262.592
+          ],
+          "meanCornerErrorPx": 620.089363,
+          "medianCornerErrorPx": 651.916201,
+          "maxCornerErrorPx": 913.932651,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.365433,
+          "meanSourceNormalizedCornerError": 0.253333,
+          "predictedAreaPx2": 156119.818966,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0.108442,
+          "centroidDistancePx": 346.142024,
+          "scaleRatio": 0.329305,
+          "topEdgeRotationDifferenceDegrees": 0.252963,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-strong-2",
+          "accepted": false,
+          "score": 0.343429,
+          "components": {
+            "geometry": 0.647313,
+            "grid": 0.526123,
+            "checker": 0.137877,
+            "gridPhase": 0.480547,
+            "edge": 0.462584,
+            "playableField": 0.427965
+          },
+          "predictedCorners": [
+            [
+              29,
+              1418.6
+            ],
+            [
+              1144,
+              1418.6
+            ],
+            [
+              828,
+              1576.7
+            ],
+            [
+              29,
+              1576.7
+            ]
+          ],
+          "cornerErrorsPx": [
+            1296,
+            1302.1,
+            450.48,
+            257.844
+          ],
+          "meanCornerErrorPx": 826.5389,
+          "medianCornerErrorPx": 873.110437,
+          "maxCornerErrorPx": 1302.091131,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.487098,
+          "meanSourceNormalizedCornerError": 0.337677,
+          "predictedAreaPx2": 151206.473599,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0,
+          "centroidDistancePx": 782.338278,
+          "scaleRatio": 0.324082,
+          "topEdgeRotationDifferenceDegrees": 0.252963,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 5,
+          "source": "edge-component-strong-3",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.682354,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              312,
+              2051
+            ],
+            [
+              495,
+              2059.3
+            ],
+            [
+              478,
+              2092.6
+            ],
+            [
+              345,
+              2100.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            1952,
+            2066.3,
+            1054.96,
+            852.571
+          ],
+          "meanCornerErrorPx": 1481.589405,
+          "medianCornerErrorPx": 1503.72876,
+          "maxCornerErrorPx": 2066.32946,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.873135,
+          "meanSourceNormalizedCornerError": 0.605294,
+          "predictedAreaPx2": 6574.194504,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0,
+          "centroidDistancePx": 1368.73132,
+          "scaleRatio": 0.067576,
+          "topEdgeRotationDifferenceDegrees": 2.856485,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 6,
+          "source": "edge-component-strong-4",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.758692,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              54,
+              2051
+            ],
+            [
+              187,
+              2059.3
+            ],
+            [
+              204,
+              2084.2
+            ],
+            [
+              54,
+              2092.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            1929,
+            2190.9,
+            1253.63,
+            774.042
+          ],
+          "meanCornerErrorPx": 1536.760103,
+          "medianCornerErrorPx": 1591.068143,
+          "maxCornerErrorPx": 2190.862094,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.905648,
+          "meanSourceNormalizedCornerError": 0.627833,
+          "predictedAreaPx2": 4705.739224,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0,
+          "centroidDistancePx": 1432.468753,
+          "scaleRatio": 0.057172,
+          "topEdgeRotationDifferenceDegrees": 3.830615,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 7,
+          "source": "edge-component-strong-5",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.87366,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              803,
+              2051
+            ],
+            [
+              936,
+              2059.3
+            ],
+            [
+              936,
+              2092.6
+            ],
+            [
+              803,
+              2092.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            2087,
+            1959.7,
+            813.7,
+            1112.116
+          ],
+          "meanCornerErrorPx": 1493.192298,
+          "medianCornerErrorPx": 1535.888653,
+          "maxCornerErrorPx": 2087.290308,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.879973,
+          "meanSourceNormalizedCornerError": 0.610034,
+          "predictedAreaPx2": 4982.547414,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0,
+          "centroidDistancePx": 1378.983105,
+          "scaleRatio": 0.058829,
+          "topEdgeRotationDifferenceDegrees": 3.830615,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 8,
+          "source": "edge-component-strong-6",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.849137,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              1044,
+              2059.3
+            ],
+            [
+              1152,
+              2051
+            ],
+            [
+              1152,
+              2092.6
+            ],
+            [
+              1044,
+              2084.2
+            ]
+          ],
+          "cornerErrorsPx": [
+            2198,
+            1933.8,
+            771.15,
+            1291.594
+          ],
+          "meanCornerErrorPx": 1548.737153,
+          "medianCornerErrorPx": 1612.680368,
+          "maxCornerErrorPx": 2198.437339,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.912707,
+          "meanSourceNormalizedCornerError": 0.632726,
+          "predictedAreaPx2": 3598.506466,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0,
+          "centroidDistancePx": 1438.963014,
+          "scaleRatio": 0.049995,
+          "topEdgeRotationDifferenceDegrees": 4.14736,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 9,
+          "source": "edge-component-strong-7",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.851979,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              611,
+              2051
+            ],
+            [
+              703,
+              2059.3
+            ],
+            [
+              686,
+              2100.9
+            ],
+            [
+              611,
+              2092.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            2022,
+            2004.7,
+            932.21,
+            983.485
+          ],
+          "meanCornerErrorPx": 1485.514817,
+          "medianCornerErrorPx": 1494.080591,
+          "maxCornerErrorPx": 2021.687904,
+          "truthBoardDiagonalPx": 1696.861971,
+          "sourceDiagonalPx": 2447.720572,
+          "meanNormalizedCornerError": 0.875448,
+          "meanSourceNormalizedCornerError": 0.606897,
+          "predictedAreaPx2": 3529.304418,
+          "truthAreaPx2": 1439665.609102,
+          "quadIou": 0,
+          "centroidDistancePx": 1355.851557,
+          "scaleRatio": 0.049512,
+          "topEdgeRotationDifferenceDegrees": 5.4493,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-003",
+      "candidateCount": 3,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": null,
+      "bestHumanMatchingCandidateScore": null,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.806449,
+      "selectedScore": 0.890327,
+      "rawRunnerUpScore": 0.307453,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.890327,
+          "components": {
+            "geometry": 0.981146,
+            "grid": 0.894643,
+            "checker": 0.877833,
+            "gridPhase": 0.81785,
+            "edge": 0.787376,
+            "playableField": 0.856724
+          },
+          "predictedCorners": [
+            [
+              520,
+              740.3
+            ],
+            [
+              2599,
+              724.5
+            ],
+            [
+              2646,
+              2803.5
+            ],
+            [
+              425,
+              2819.3
+            ]
+          ],
+          "cornerErrorsPx": [
+            188,
+            180.5,
+            235.98,
+            249.366
+          ],
+          "meanCornerErrorPx": 213.558147,
+          "medianCornerErrorPx": 212.168929,
+          "maxCornerErrorPx": 249.3656,
+          "truthBoardDiagonalPx": 3003.410441,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.071105,
+          "meanSourceNormalizedCornerError": 0.042373,
+          "predictedAreaPx2": 4469218.03125,
+          "truthAreaPx2": 4510119.686637,
+          "quadIou": 0.806449,
+          "centroidDistancePx": 202.325001,
+          "scaleRatio": 0.995455,
+          "topEdgeRotationDifferenceDegrees": 0.084699,
+          "humanMatch": false,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "edge-component-soft-1",
+          "accepted": false,
+          "score": 0.307453,
+          "components": {
+            "geometry": 0.95852,
+            "grid": 0.402756,
+            "checker": 0.079893,
+            "gridPhase": 0.583168,
+            "edge": 0.466238,
+            "playableField": 0.419369
+          },
+          "predictedCorners": [
+            [
+              24,
+              23.6
+            ],
+            [
+              3000,
+              23.6
+            ],
+            [
+              3000,
+              3756.4
+            ],
+            [
+              24,
+              3535.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            989,
+            953.7,
+            843.22,
+            693.952
+          ],
+          "meanCornerErrorPx": 870.005912,
+          "medianCornerErrorPx": 898.46594,
+          "maxCornerErrorPx": 989.139345,
+          "truthBoardDiagonalPx": 3003.410441,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.289673,
+          "meanSourceNormalizedCornerError": 0.17262,
+          "predictedAreaPx2": 10783276.875,
+          "truthAreaPx2": 4510119.686637,
+          "quadIou": 0.418251,
+          "centroidDistancePx": 142.852416,
+          "scaleRatio": 1.546256,
+          "topEdgeRotationDifferenceDegrees": 0.349351,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-strong-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.701651,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              24,
+              23.6
+            ],
+            [
+              512,
+              23.6
+            ],
+            [
+              496,
+              39.4
+            ],
+            [
+              24,
+              55.1
+            ]
+          ],
+          "cornerErrorsPx": [
+            989,
+            2292.9,
+            3640.79,
+            3035.815
+          ],
+          "meanCornerErrorPx": 2489.656963,
+          "medianCornerErrorPx": 2664.351394,
+          "maxCornerErrorPx": 3640.785718,
+          "truthBoardDiagonalPx": 3003.410441,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.828943,
+          "meanSourceNormalizedCornerError": 0.49398,
+          "predictedAreaPx2": 11286.84375,
+          "truthAreaPx2": 4510119.686637,
+          "quadIou": 0,
+          "centroidDistancePx": 2323.097387,
+          "scaleRatio": 0.050026,
+          "topEdgeRotationDifferenceDegrees": 0.349351,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-004",
+      "candidateCount": 6,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.941447,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.934193,
+      "selectedScore": 0.941447,
+      "rawRunnerUpScore": 0.285329,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.941447,
+          "components": {
+            "geometry": 0.974633,
+            "grid": 0.96871,
+            "checker": 0.926408,
+            "gridPhase": 0.868902,
+            "edge": 0.829717,
+            "playableField": 0.915336
+          },
+          "predictedCorners": [
+            [
+              394,
+              1055.3
+            ],
+            [
+              2410,
+              1008
+            ],
+            [
+              2300,
+              2945.3
+            ],
+            [
+              473,
+              2882.3
+            ]
+          ],
+          "cornerErrorsPx": [
+            38,
+            84.3,
+            30.16,
+            84.226
+          ],
+          "meanCornerErrorPx": 59.08859,
+          "medianCornerErrorPx": 60.93323,
+          "maxCornerErrorPx": 84.323933,
+          "truthBoardDiagonalPx": 2718.86981,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.021733,
+          "meanSourceNormalizedCornerError": 0.011724,
+          "predictedAreaPx2": 3616627.21875,
+          "truthAreaPx2": 3695763.184025,
+          "quadIou": 0.934193,
+          "centroidDistancePx": 39.783238,
+          "scaleRatio": 0.989236,
+          "topEdgeRotationDifferenceDegrees": 1.931243,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "edge-component-soft-1",
+          "accepted": false,
+          "score": 0.285329,
+          "components": {
+            "geometry": 0.956256,
+            "grid": 0.363407,
+            "checker": 0.060761,
+            "gridPhase": 0.529178,
+            "edge": 0.534241,
+            "playableField": 0.377475
+          },
+          "predictedCorners": [
+            [
+              24,
+              23.6
+            ],
+            [
+              3000,
+              23.6
+            ],
+            [
+              3000,
+              3709.1
+            ],
+            [
+              24,
+              3409.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            1060,
+            1215.1,
+            1013.14,
+            608.506
+          ],
+          "meanCornerErrorPx": 974.159553,
+          "medianCornerErrorPx": 1036.507267,
+          "maxCornerErrorPx": 1215.117734,
+          "truthBoardDiagonalPx": 2718.86981,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.358296,
+          "meanSourceNormalizedCornerError": 0.193286,
+          "predictedAreaPx2": 10525415.90625,
+          "truthAreaPx2": 3695763.184025,
+          "quadIou": 0.351128,
+          "centroidDistancePx": 253.082154,
+          "scaleRatio": 1.687592,
+          "topEdgeRotationDifferenceDegrees": 0.588619,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-soft-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.452811,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2166,
+              3898.1
+            ],
+            [
+              2229,
+              3882.4
+            ],
+            [
+              2654,
+              3850.9
+            ],
+            [
+              2701,
+              3882.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            3383,
+            2846.6,
+            943.68,
+            2467.689
+          ],
+          "meanCornerErrorPx": 2410.259501,
+          "medianCornerErrorPx": 2657.141291,
+          "maxCornerErrorPx": 3383.074308,
+          "truthBoardDiagonalPx": 2718.86981,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.886493,
+          "meanSourceNormalizedCornerError": 0.478226,
+          "predictedAreaPx2": 11162.8125,
+          "truthAreaPx2": 3695763.184025,
+          "quadIou": 0,
+          "centroidDistancePx": 2170.218579,
+          "scaleRatio": 0.054958,
+          "topEdgeRotationDifferenceDegrees": 14.624863,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-soft-3",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.60119,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              890,
+              3614.6
+            ],
+            [
+              1126,
+              3614.6
+            ],
+            [
+              1079,
+              3646.1
+            ],
+            [
+              906,
+              3646.1
+            ]
+          ],
+          "cornerErrorsPx": [
+            2644,
+            2844.7,
+            1394.83,
+            853.006
+          ],
+          "meanCornerErrorPx": 1934.220881,
+          "medianCornerErrorPx": 2019.598068,
+          "maxCornerErrorPx": 2844.681427,
+          "truthBoardDiagonalPx": 2718.86981,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.711406,
+          "meanSourceNormalizedCornerError": 0.383774,
+          "predictedAreaPx2": 6449.625,
+          "truthAreaPx2": 3695763.184025,
+          "quadIou": 0,
+          "centroidDistancePx": 1675.336688,
+          "scaleRatio": 0.041775,
+          "topEdgeRotationDifferenceDegrees": 0.588619,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 5,
+          "source": "edge-component-strong-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.741349,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              24,
+              23.6
+            ],
+            [
+              717,
+              23.6
+            ],
+            [
+              433,
+              259.9
+            ],
+            [
+              24,
+              259.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            1060,
+            1906.2,
+            3296.31,
+            2715.238
+          ],
+          "meanCornerErrorPx": 2244.415253,
+          "medianCornerErrorPx": 2310.736351,
+          "maxCornerErrorPx": 3296.31173,
+          "truthBoardDiagonalPx": 2718.86981,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.825496,
+          "meanSourceNormalizedCornerError": 0.44532,
+          "predictedAreaPx2": 130232.8125,
+          "truthAreaPx2": 3695763.184025,
+          "quadIou": 0,
+          "centroidDistancePx": 2134.911995,
+          "scaleRatio": 0.187719,
+          "topEdgeRotationDifferenceDegrees": 0.588619,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 6,
+          "source": "edge-component-strong-3",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.788095,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2055,
+              3520.1
+            ],
+            [
+              2260,
+              3504.4
+            ],
+            [
+              2292,
+              3583.1
+            ],
+            [
+              2055,
+              3567.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            3005,
+            2467.8,
+            607.89,
+            1751.331
+          ],
+          "meanCornerErrorPx": 1958.053344,
+          "medianCornerErrorPx": 2109.551274,
+          "maxCornerErrorPx": 3005.225413,
+          "truthBoardDiagonalPx": 2718.86981,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.720172,
+          "meanSourceNormalizedCornerError": 0.388503,
+          "predictedAreaPx2": 13891.5,
+          "truthAreaPx2": 3695763.184025,
+          "quadIou": 0,
+          "centroidDistancePx": 1746.22417,
+          "scaleRatio": 0.061309,
+          "topEdgeRotationDifferenceDegrees": 4.987325,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-005",
+      "candidateCount": 3,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.949476,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.949248,
+      "selectedScore": 0.949476,
+      "rawRunnerUpScore": 0.733719,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.949476,
+          "components": {
+            "geometry": 0.983728,
+            "grid": 0.970517,
+            "checker": 0.929069,
+            "gridPhase": 0.926491,
+            "edge": 0.837171,
+            "playableField": 0.942416
+          },
+          "predictedCorners": [
+            [
+              457,
+              1149.8
+            ],
+            [
+              2788,
+              1149.8
+            ],
+            [
+              2709,
+              3449.3
+            ],
+            [
+              520,
+              3354.8
+            ]
+          ],
+          "cornerErrorsPx": [
+            14,
+            51,
+            21.41,
+            91.416
+          ],
+          "meanCornerErrorPx": 44.469054,
+          "medianCornerErrorPx": 36.184857,
+          "maxCornerErrorPx": 91.415939,
+          "truthBoardDiagonalPx": 3202.904206,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.013884,
+          "meanSourceNormalizedCornerError": 0.008823,
+          "predictedAreaPx2": 5090738.625,
+          "truthAreaPx2": 5129053.520535,
+          "quadIou": 0.949248,
+          "centroidDistancePx": 42.699669,
+          "scaleRatio": 0.996258,
+          "topEdgeRotationDifferenceDegrees": 0.660448,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "grid-periodicity-search",
+          "accepted": false,
+          "score": 0.733719,
+          "components": {
+            "geometry": 0.976284,
+            "grid": 0.665799,
+            "checker": 0.725337,
+            "gridPhase": 0.823126,
+            "edge": 0.659583,
+            "playableField": 0.748504
+          },
+          "predictedCorners": [
+            [
+              189,
+              771.8
+            ],
+            [
+              2441,
+              661.5
+            ],
+            [
+              2489,
+              2866.5
+            ],
+            [
+              173,
+              2835
+            ]
+          ],
+          "cornerErrorsPx": [
+            462,
+            605.8,
+            610.98,
+            628.23
+          ],
+          "meanCornerErrorPx": 576.718338,
+          "medianCornerErrorPx": 608.38443,
+          "maxCornerErrorPx": 628.230204,
+          "truthBoardDiagonalPx": 3202.904206,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.180061,
+          "meanSourceNormalizedCornerError": 0.114428,
+          "predictedAreaPx2": 4874428.125,
+          "truthAreaPx2": 5129053.520535,
+          "quadIou": 0.518044,
+          "centroidDistancePx": 574.152545,
+          "scaleRatio": 0.974862,
+          "topEdgeRotationDifferenceDegrees": 3.4629,
+          "humanMatch": false,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-strong-1",
+          "accepted": false,
+          "score": 0.265657,
+          "components": {
+            "geometry": 0.954505,
+            "grid": 0.399151,
+            "checker": 0.027589,
+            "gridPhase": 0.426656,
+            "edge": 0.543872,
+            "playableField": 0.337216
+          },
+          "predictedCorners": [
+            [
+              39,
+              23.6
+            ],
+            [
+              3000,
+              118.1
+            ],
+            [
+              3000,
+              4008.4
+            ],
+            [
+              24,
+              3929.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            1203,
+            1094.2,
+            645.01,
+            672.714
+          ],
+          "meanCornerErrorPx": 903.780695,
+          "medianCornerErrorPx": 883.467638,
+          "maxCornerErrorPx": 1203.175451,
+          "truthBoardDiagonalPx": 3202.904206,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.282175,
+          "meanSourceNormalizedCornerError": 0.179322,
+          "predictedAreaPx2": 11573728.03125,
+          "truthAreaPx2": 5129053.520535,
+          "quadIou": 0.443163,
+          "centroidDistancePx": 284.220668,
+          "scaleRatio": 1.502166,
+          "topEdgeRotationDifferenceDegrees": 1.16752,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-006",
+      "candidateCount": 4,
+      "acceptedCandidateCount": 2,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.952949,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.957042,
+      "selectedScore": 0.952949,
+      "rawRunnerUpScore": 0.859883,
+      "acceptedRunnerUpScore": 0.859883,
+      "acceptedScoreMargin": 0.093066,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.952949,
+          "components": {
+            "geometry": 0.987179,
+            "grid": 0.971297,
+            "checker": 0.928068,
+            "gridPhase": 0.914844,
+            "edge": 0.859616,
+            "playableField": 0.937247
+          },
+          "predictedCorners": [
+            [
+              520,
+              1086.8
+            ],
+            [
+              2615,
+              1086.8
+            ],
+            [
+              2662,
+              3244.5
+            ],
+            [
+              441,
+              3260.3
+            ]
+          ],
+          "cornerErrorsPx": [
+            53,
+            38.4,
+            33.89,
+            72.431
+          ],
+          "meanCornerErrorPx": 49.355435,
+          "medianCornerErrorPx": 45.549412,
+          "maxCornerErrorPx": 72.431255,
+          "truthBoardDiagonalPx": 3054.439255,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.016159,
+          "meanSourceNormalizedCornerError": 0.009793,
+          "predictedAreaPx2": 4672753.3125,
+          "truthAreaPx2": 4664415.286944,
+          "quadIou": 0.957042,
+          "centroidDistancePx": 28.763877,
+          "scaleRatio": 1.000893,
+          "topEdgeRotationDifferenceDegrees": 0,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.859883,
+          "components": {
+            "geometry": 0.980714,
+            "grid": 0.823836,
+            "checker": 0.845436,
+            "gridPhase": 0.844225,
+            "edge": 0.804648,
+            "playableField": 0.837331
+          },
+          "predictedCorners": [
+            [
+              520,
+              362.3
+            ],
+            [
+              2615,
+              393.8
+            ],
+            [
+              2662,
+              2425.5
+            ],
+            [
+              457,
+              2394
+            ]
+          ],
+          "cornerErrorsPx": [
+            694,
+            661.7,
+            821.04,
+            813.89
+          ],
+          "meanCornerErrorPx": 747.7066,
+          "medianCornerErrorPx": 754.023131,
+          "maxCornerErrorPx": 821.042701,
+          "truthBoardDiagonalPx": 3054.439255,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.244793,
+          "meanSourceNormalizedCornerError": 0.148354,
+          "predictedAreaPx2": 4368256.59375,
+          "truthAreaPx2": 4664415.286944,
+          "quadIou": 0.474974,
+          "centroidDistancePx": 746.966723,
+          "scaleRatio": 0.967733,
+          "topEdgeRotationDifferenceDegrees": 0.861526,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-soft-1",
+          "accepted": false,
+          "score": 0.31003,
+          "components": {
+            "geometry": 0.953015,
+            "grid": 0.412889,
+            "checker": 0.090797,
+            "gridPhase": 0.507706,
+            "edge": 0.459229,
+            "playableField": 0.391138
+          },
+          "predictedCorners": [
+            [
+              55,
+              39.4
+            ],
+            [
+              3000,
+              118.1
+            ],
+            [
+              2937,
+              3945.4
+            ],
+            [
+              24,
+              3740.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            1100,
+            1005.2,
+            764.94,
+            708.761
+          ],
+          "meanCornerErrorPx": 894.762897,
+          "medianCornerErrorPx": 885.085267,
+          "maxCornerErrorPx": 1100.120126,
+          "truthBoardDiagonalPx": 3054.439255,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.292939,
+          "meanSourceNormalizedCornerError": 0.177532,
+          "predictedAreaPx2": 11034068.0625,
+          "truthAreaPx2": 4664415.286944,
+          "quadIou": 0.422729,
+          "centroidDistancePx": 187.852829,
+          "scaleRatio": 1.538046,
+          "topEdgeRotationDifferenceDegrees": 1.531608,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-soft-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.845289,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              1614,
+              3882.4
+            ],
+            [
+              1662,
+              3866.6
+            ],
+            [
+              1693,
+              3961.1
+            ],
+            [
+              1599,
+              3961.1
+            ]
+          ],
+          "cornerErrorsPx": [
+            3047,
+            2975.7,
+            1177.03,
+            1340.433
+          ],
+          "meanCornerErrorPx": 2135.08624,
+          "medianCornerErrorPx": 2158.049503,
+          "maxCornerErrorPx": 3047.21445,
+          "truthBoardDiagonalPx": 3054.439255,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.699011,
+          "meanSourceNormalizedCornerError": 0.423628,
+          "predictedAreaPx2": 6201.5625,
+          "truthAreaPx2": 4664415.286944,
+          "quadIou": 0,
+          "centroidDistancePx": 1778.967842,
+          "scaleRatio": 0.036463,
+          "topEdgeRotationDifferenceDegrees": 18.434949,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-007",
+      "candidateCount": 7,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": null,
+      "bestHumanMatchingCandidateScore": null,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.769616,
+      "selectedScore": 0.934742,
+      "rawRunnerUpScore": 0.888246,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.934742,
+          "components": {
+            "geometry": 0.99149,
+            "grid": 0.962197,
+            "checker": 0.91688,
+            "gridPhase": 0.879979,
+            "edge": 0.834396,
+            "playableField": 0.916136
+          },
+          "predictedCorners": [
+            [
+              488,
+              677.3
+            ],
+            [
+              2552,
+              693
+            ],
+            [
+              2567,
+              2835
+            ],
+            [
+              473,
+              2803.5
+            ]
+          ],
+          "cornerErrorsPx": [
+            275,
+            260.3,
+            244.23,
+            271.291
+          ],
+          "meanCornerErrorPx": 262.590604,
+          "medianCornerErrorPx": 265.807053,
+          "maxCornerErrorPx": 274.52038,
+          "truthBoardDiagonalPx": 3005.276189,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.087377,
+          "meanSourceNormalizedCornerError": 0.052101,
+          "predictedAreaPx2": 4436845.875,
+          "truthAreaPx2": 4515803.894065,
+          "quadIou": 0.769616,
+          "centroidDistancePx": 259.95298,
+          "scaleRatio": 0.991219,
+          "topEdgeRotationDifferenceDegrees": 0.485283,
+          "humanMatch": false,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "grid-periodicity-search",
+          "accepted": false,
+          "score": 0.888246,
+          "components": {
+            "geometry": 0.970592,
+            "grid": 0.914478,
+            "checker": 0.901642,
+            "gridPhase": 0.83554,
+            "edge": 0.805269,
+            "playableField": 0.876389
+          },
+          "predictedCorners": [
+            [
+              709,
+              1496.3
+            ],
+            [
+              2930,
+              1480.5
+            ],
+            [
+              2741,
+              3496.5
+            ],
+            [
+              756,
+              3528
+            ]
+          ],
+          "cornerErrorsPx": [
+            608,
+            621.8,
+            453.62,
+            526.947
+          ],
+          "meanCornerErrorPx": 552.706781,
+          "medianCornerErrorPx": 567.68362,
+          "maxCornerErrorPx": 621.835631,
+          "truthBoardDiagonalPx": 3005.276189,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.183912,
+          "meanSourceNormalizedCornerError": 0.109664,
+          "predictedAreaPx2": 4253775.75,
+          "truthAreaPx2": 4515803.894065,
+          "quadIou": 0.505021,
+          "centroidDistancePx": 551.854773,
+          "scaleRatio": 0.970554,
+          "topEdgeRotationDifferenceDegrees": 0.358427,
+          "humanMatch": false,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-strong-1",
+          "accepted": false,
+          "score": 0.36607,
+          "components": {
+            "geometry": 0.974432,
+            "grid": 0.562955,
+            "checker": 0.114183,
+            "gridPhase": 0.577396,
+            "edge": 0.515613,
+            "playableField": 0.479699
+          },
+          "predictedCorners": [
+            [
+              24,
+              259.9
+            ],
+            [
+              3000,
+              212.6
+            ],
+            [
+              3000,
+              3693.4
+            ],
+            [
+              24,
+              3661.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            807,
+            830.7,
+            754.2,
+            748.819
+          ],
+          "meanCornerErrorPx": 785.136685,
+          "medianCornerErrorPx": 780.499399,
+          "maxCornerErrorPx": 830.728641,
+          "truthBoardDiagonalPx": 3005.276189,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.261253,
+          "meanSourceNormalizedCornerError": 0.155781,
+          "predictedAreaPx2": 10244113.03125,
+          "truthAreaPx2": 4515803.894065,
+          "quadIou": 0.440819,
+          "centroidDistancePx": 56.992058,
+          "scaleRatio": 1.506155,
+          "topEdgeRotationDifferenceDegrees": 0.861461,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-soft-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.514,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2355,
+              3913.9
+            ],
+            [
+              3000,
+              3913.9
+            ],
+            [
+              3000,
+              3945.4
+            ],
+            [
+              2544,
+              3992.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            3528,
+            2992.9,
+            970.5,
+            2251.496
+          ],
+          "meanCornerErrorPx": 2435.613355,
+          "medianCornerErrorPx": 2622.187064,
+          "maxCornerErrorPx": 3527.579467,
+          "truthBoardDiagonalPx": 3005.276189,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.810446,
+          "meanSourceNormalizedCornerError": 0.483257,
+          "predictedAreaPx2": 32620.21875,
+          "truthAreaPx2": 4515803.894065,
+          "quadIou": 0,
+          "centroidDistancePx": 2271.196654,
+          "scaleRatio": 0.084992,
+          "topEdgeRotationDifferenceDegrees": 0.047919,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 5,
+          "source": "edge-component-strong-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.37666,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              795,
+              23.6
+            ],
+            [
+              1693,
+              55.1
+            ],
+            [
+              1662,
+              86.6
+            ],
+            [
+              1016,
+              86.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            989,
+            1279.4,
+            3125.27,
+            3034.021
+          ],
+          "meanCornerErrorPx": 2106.922001,
+          "medianCornerErrorPx": 2156.715818,
+          "maxCornerErrorPx": 3125.267868,
+          "truthBoardDiagonalPx": 3005.276189,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.701074,
+          "meanSourceNormalizedCornerError": 0.41804,
+          "predictedAreaPx2": 34976.8125,
+          "truthAreaPx2": 4515803.894065,
+          "quadIou": 0,
+          "centroidDistancePx": 1963.171288,
+          "scaleRatio": 0.088008,
+          "topEdgeRotationDifferenceDegrees": 2.057473,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 6,
+          "source": "edge-component-strong-3",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.646696,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              24,
+              23.6
+            ],
+            [
+              591,
+              23.6
+            ],
+            [
+              433,
+              102.4
+            ],
+            [
+              24,
+              102.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            1016,
+            2221.1,
+            3660.1,
+            3008.024
+          ],
+          "meanCornerErrorPx": 2476.282379,
+          "medianCornerErrorPx": 2614.575864,
+          "maxCornerErrorPx": 3660.104362,
+          "truthBoardDiagonalPx": 3005.276189,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.823978,
+          "meanSourceNormalizedCornerError": 0.491326,
+          "predictedAreaPx2": 38449.6875,
+          "truthAreaPx2": 4515803.894065,
+          "quadIou": 0,
+          "centroidDistancePx": 2320.183546,
+          "scaleRatio": 0.092274,
+          "topEdgeRotationDifferenceDegrees": 0.047919,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 7,
+          "source": "edge-component-strong-4",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.634084,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2544,
+              70.9
+            ],
+            [
+              3000,
+              55.1
+            ],
+            [
+              3000,
+              118.1
+            ],
+            [
+              2575,
+              86.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            2275,
+            972.7,
+            2993.24,
+            3644.591
+          ],
+          "meanCornerErrorPx": 2471.416512,
+          "medianCornerErrorPx": 2634.207786,
+          "maxCornerErrorPx": 3644.590667,
+          "truthBoardDiagonalPx": 3005.276189,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.822359,
+          "meanSourceNormalizedCornerError": 0.49036,
+          "predictedAreaPx2": 17240.34375,
+          "truthAreaPx2": 4515803.894065,
+          "quadIou": 0,
+          "centroidDistancePx": 2300.746122,
+          "scaleRatio": 0.061788,
+          "topEdgeRotationDifferenceDegrees": 1.927015,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-008",
+      "candidateCount": 5,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": null,
+      "bestHumanMatchingCandidateScore": null,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.775169,
+      "selectedScore": 0.928994,
+      "rawRunnerUpScore": 0.891541,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.928994,
+          "components": {
+            "geometry": 0.994836,
+            "grid": 0.954488,
+            "checker": 0.919233,
+            "gridPhase": 0.847428,
+            "edge": 0.788363,
+            "playableField": 0.89926
+          },
+          "predictedCorners": [
+            [
+              756,
+              929.3
+            ],
+            [
+              2741,
+              945
+            ],
+            [
+              2741,
+              2898
+            ],
+            [
+              772,
+              2929.5
+            ]
+          ],
+          "cornerErrorsPx": [
+            213,
+            231.7,
+            272.12,
+            211.918
+          ],
+          "meanCornerErrorPx": 232.307138,
+          "medianCornerErrorPx": 222.592848,
+          "maxCornerErrorPx": 272.124396,
+          "truthBoardDiagonalPx": 2738.246154,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.084838,
+          "meanSourceNormalizedCornerError": 0.046093,
+          "predictedAreaPx2": 3907108.40625,
+          "truthAreaPx2": 3748991.626901,
+          "quadIou": 0.775169,
+          "centroidDistancePx": 230.689564,
+          "scaleRatio": 1.02087,
+          "topEdgeRotationDifferenceDegrees": 0.208307,
+          "humanMatch": false,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "grid-periodicity-search",
+          "accepted": false,
+          "score": 0.891541,
+          "components": {
+            "geometry": 0.97955,
+            "grid": 0.908627,
+            "checker": 0.895314,
+            "gridPhase": 0.877025,
+            "edge": 0.826046,
+            "playableField": 0.891744
+          },
+          "predictedCorners": [
+            [
+              268,
+              1417.5
+            ],
+            [
+              2284,
+              1480.5
+            ],
+            [
+              2237,
+              3354.8
+            ],
+            [
+              347,
+              3307.5
+            ]
+          ],
+          "cornerErrorsPx": [
+            539,
+            564.3,
+            505.8,
+            472.728
+          ],
+          "meanCornerErrorPx": 520.416557,
+          "medianCornerErrorPx": 522.321683,
+          "maxCornerErrorPx": 564.294508,
+          "truthBoardDiagonalPx": 2738.246154,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.190055,
+          "meanSourceNormalizedCornerError": 0.103257,
+          "predictedAreaPx2": 3674921.90625,
+          "truthAreaPx2": 3748991.626901,
+          "quadIou": 0.497227,
+          "centroidDistancePx": 519.862094,
+          "scaleRatio": 0.990072,
+          "topEdgeRotationDifferenceDegrees": 1.543498,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-strong-1",
+          "accepted": false,
+          "score": 0.35245,
+          "components": {
+            "geometry": 0.969249,
+            "grid": 0.506856,
+            "checker": 0.121834,
+            "gridPhase": 0.561312,
+            "edge": 0.486461,
+            "playableField": 0.454357
+          },
+          "predictedCorners": [
+            [
+              24,
+              55.1
+            ],
+            [
+              3000,
+              307.1
+            ],
+            [
+              3000,
+              3457.1
+            ],
+            [
+              24,
+              3457.1
+            ]
+          ],
+          "cornerErrorsPx": [
+            1039,
+            819.5,
+            766.45,
+            784.953
+          ],
+          "meanCornerErrorPx": 852.580872,
+          "medianCornerErrorPx": 802.21693,
+          "maxCornerErrorPx": 1039.435038,
+          "truthBoardDiagonalPx": 2738.246154,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.31136,
+          "meanSourceNormalizedCornerError": 0.169163,
+          "predictedAreaPx2": 9751833,
+          "truthAreaPx2": 3748991.626901,
+          "quadIou": 0.38444,
+          "centroidDistancePx": 109.111252,
+          "scaleRatio": 1.61282,
+          "topEdgeRotationDifferenceDegrees": 4.592486,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-soft-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.6022,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2701,
+              3677.6
+            ],
+            [
+              2764,
+              3630.4
+            ],
+            [
+              3000,
+              3661.9
+            ],
+            [
+              2827,
+              3724.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            3474,
+            2679.2,
+            924.85,
+            2413
+          ],
+          "meanCornerErrorPx": 2372.664455,
+          "medianCornerErrorPx": 2546.077309,
+          "maxCornerErrorPx": 3473.648764,
+          "truthBoardDiagonalPx": 2738.246154,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.866491,
+          "meanSourceNormalizedCornerError": 0.470767,
+          "predictedAreaPx2": 14635.6875,
+          "truthAreaPx2": 3748991.626901,
+          "quadIou": 0,
+          "centroidDistancePx": 2177.708314,
+          "scaleRatio": 0.062481,
+          "topEdgeRotationDifferenceDegrees": 37.11631,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 5,
+          "source": "edge-component-strong-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.645955,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2355,
+              212.6
+            ],
+            [
+              2465,
+              165.4
+            ],
+            [
+              3000,
+              102.4
+            ],
+            [
+              3000,
+              212.6
+            ]
+          ],
+          "cornerErrorsPx": [
+            1957,
+            799.2,
+            2852.93,
+            3618.344
+          ],
+          "meanCornerErrorPx": 2306.82608,
+          "medianCornerErrorPx": 2404.87148,
+          "maxCornerErrorPx": 3618.343702,
+          "truthBoardDiagonalPx": 2738.246154,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.842447,
+          "meanSourceNormalizedCornerError": 0.457704,
+          "predictedAreaPx2": 44775.28125,
+          "truthAreaPx2": 3748991.626901,
+          "quadIou": 0,
+          "centroidDistancePx": 2116.439303,
+          "scaleRatio": 0.109285,
+          "topEdgeRotationDifferenceDegrees": 23.445003,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-009",
+      "candidateCount": 4,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.941651,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.939377,
+      "selectedScore": 0.941651,
+      "rawRunnerUpScore": 0.335097,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.941651,
+          "components": {
+            "geometry": 0.984551,
+            "grid": 0.956445,
+            "checker": 0.932659,
+            "gridPhase": 0.850195,
+            "edge": 0.822396,
+            "playableField": 0.903875
+          },
+          "predictedCorners": [
+            [
+              520,
+              1023.8
+            ],
+            [
+              2520,
+              1102.5
+            ],
+            [
+              2567,
+              3071.3
+            ],
+            [
+              488,
+              3087
+            ]
+          ],
+          "cornerErrorsPx": [
+            39,
+            131.2,
+            15.71,
+            60.208
+          ],
+          "meanCornerErrorPx": 61.474245,
+          "medianCornerErrorPx": 49.505587,
+          "maxCornerErrorPx": 131.171062,
+          "truthBoardDiagonalPx": 2923.938224,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.021024,
+          "meanSourceNormalizedCornerError": 0.012197,
+          "predictedAreaPx2": 4111635.9375,
+          "truthAreaPx2": 4274648.1838,
+          "quadIou": 0.939377,
+          "centroidDistancePx": 38.903344,
+          "scaleRatio": 0.980747,
+          "topEdgeRotationDifferenceDegrees": 2.483346,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "edge-component-strong-1",
+          "accepted": false,
+          "score": 0.335097,
+          "components": {
+            "geometry": 0.956195,
+            "grid": 0.53342,
+            "checker": 0.076039,
+            "gridPhase": 0.554413,
+            "edge": 0.50335,
+            "playableField": 0.451391
+          },
+          "predictedCorners": [
+            [
+              24,
+              354.4
+            ],
+            [
+              3000,
+              23.6
+            ],
+            [
+              3000,
+              3646.1
+            ],
+            [
+              24,
+              3630.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            800,
+            1054.4,
+            718.8,
+            766.349
+          ],
+          "meanCornerErrorPx": 834.798262,
+          "medianCornerErrorPx": 783.00587,
+          "maxCornerErrorPx": 1054.384412,
+          "truthBoardDiagonalPx": 2923.938224,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.285505,
+          "meanSourceNormalizedCornerError": 0.165635,
+          "predictedAreaPx2": 10267554.9375,
+          "truthAreaPx2": 4274648.1838,
+          "quadIou": 0.416326,
+          "centroidDistancePx": 130.750734,
+          "scaleRatio": 1.549827,
+          "topEdgeRotationDifferenceDegrees": 6.11142,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-soft-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.871247,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              24,
+              23.6
+            ],
+            [
+              591,
+              23.6
+            ],
+            [
+              622,
+              244.1
+            ],
+            [
+              24,
+              228.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            1087,
+            2235,
+            3433.5,
+            2888.747
+          ],
+          "meanCornerErrorPx": 2411.031767,
+          "medianCornerErrorPx": 2561.888092,
+          "maxCornerErrorPx": 3433.498692,
+          "truthBoardDiagonalPx": 2923.938224,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.824584,
+          "meanSourceNormalizedCornerError": 0.478379,
+          "predictedAreaPx2": 123783.1875,
+          "truthAreaPx2": 4274648.1838,
+          "quadIou": 0,
+          "centroidDistancePx": 2272.500283,
+          "scaleRatio": 0.170169,
+          "topEdgeRotationDifferenceDegrees": 0.228772,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-soft-3",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.769699,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2591,
+              3866.6
+            ],
+            [
+              2969,
+              3835.1
+            ],
+            [
+              2953,
+              3929.6
+            ],
+            [
+              2591,
+              3898.1
+            ]
+          ],
+          "cornerErrorsPx": [
+            3551,
+            2859.3,
+            936.65,
+            2206.5
+          ],
+          "meanCornerErrorPx": 2388.346476,
+          "medianCornerErrorPx": 2532.886711,
+          "maxCornerErrorPx": 3550.963301,
+          "truthBoardDiagonalPx": 2923.938224,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.816825,
+          "meanSourceNormalizedCornerError": 0.473878,
+          "predictedAreaPx2": 23317.875,
+          "truthAreaPx2": 4274648.1838,
+          "quadIou": 0,
+          "centroidDistancePx": 2215.060669,
+          "scaleRatio": 0.073857,
+          "topEdgeRotationDifferenceDegrees": 4.53487,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-010",
+      "candidateCount": 4,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.955732,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.973681,
+      "selectedScore": 0.955732,
+      "rawRunnerUpScore": 0.301351,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.955732,
+          "components": {
+            "geometry": 0.996325,
+            "grid": 0.979996,
+            "checker": 0.94136,
+            "gridPhase": 0.886124,
+            "edge": 0.816994,
+            "playableField": 0.930027
+          },
+          "predictedCorners": [
+            [
+              425,
+              1149.8
+            ],
+            [
+              2504,
+              1071
+            ],
+            [
+              2552,
+              3150
+            ],
+            [
+              504,
+              3197.3
+            ]
+          ],
+          "cornerErrorsPx": [
+            25,
+            64.9,
+            36.51,
+            11.263
+          ],
+          "meanCornerErrorPx": 34.422306,
+          "medianCornerErrorPx": 30.780691,
+          "maxCornerErrorPx": 64.864787,
+          "truthBoardDiagonalPx": 2909.923775,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.011829,
+          "meanSourceNormalizedCornerError": 0.00683,
+          "predictedAreaPx2": 4260969.5625,
+          "truthAreaPx2": 4233775.457847,
+          "quadIou": 0.973681,
+          "centroidDistancePx": 13.33575,
+          "scaleRatio": 1.003206,
+          "topEdgeRotationDifferenceDegrees": 1.872562,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "edge-component-soft-1",
+          "accepted": false,
+          "score": 0.301351,
+          "components": {
+            "geometry": 0.965106,
+            "grid": 0.411774,
+            "checker": 0.041781,
+            "gridPhase": 0.612241,
+            "edge": 0.591456,
+            "playableField": 0.427986
+          },
+          "predictedCorners": [
+            [
+              71,
+              23.6
+            ],
+            [
+              3000,
+              23.6
+            ],
+            [
+              3000,
+              3787.9
+            ],
+            [
+              24,
+              3772.1
+            ]
+          ],
+          "cornerErrorsPx": [
+            1171,
+            1190.4,
+            780.89,
+            748.907
+          ],
+          "meanCornerErrorPx": 972.83258,
+          "medianCornerErrorPx": 976.030242,
+          "maxCornerErrorPx": 1190.363319,
+          "truthBoardDiagonalPx": 2909.923775,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.334315,
+          "meanSourceNormalizedCornerError": 0.193022,
+          "predictedAreaPx2": 11093230.96875,
+          "truthAreaPx2": 4233775.457847,
+          "quadIou": 0.381654,
+          "centroidDistancePx": 253.614296,
+          "scaleRatio": 1.618695,
+          "topEdgeRotationDifferenceDegrees": 0.296696,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-soft-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.783785,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              2764,
+              3976.9
+            ],
+            [
+              3000,
+              3976.9
+            ],
+            [
+              3000,
+              4008.4
+            ],
+            [
+              2748,
+              4008.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            3669,
+            2890.5,
+            964.61,
+            2397.147
+          ],
+          "meanCornerErrorPx": 2480.428125,
+          "medianCornerErrorPx": 2643.812267,
+          "maxCornerErrorPx": 3669.481097,
+          "truthBoardDiagonalPx": 2909.923775,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.852403,
+          "meanSourceNormalizedCornerError": 0.492148,
+          "predictedAreaPx2": 7689.9375,
+          "truthAreaPx2": 4233775.457847,
+          "quadIou": 0,
+          "centroidDistancePx": 2296.880955,
+          "scaleRatio": 0.042618,
+          "topEdgeRotationDifferenceDegrees": 0.296696,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 4,
+          "source": "edge-component-soft-3",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.893513,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              1677,
+              3866.6
+            ],
+            [
+              1756,
+              3850.9
+            ],
+            [
+              1803,
+              3929.6
+            ],
+            [
+              1709,
+              3945.4
+            ]
+          ],
+          "cornerErrorsPx": [
+            2998,
+            2839.4,
+            1044.71,
+            1429.439
+          ],
+          "meanCornerErrorPx": 2077.955026,
+          "medianCornerErrorPx": 2134.433006,
+          "maxCornerErrorPx": 2998.242669,
+          "truthBoardDiagonalPx": 2909.923775,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.714093,
+          "meanSourceNormalizedCornerError": 0.412293,
+          "predictedAreaPx2": 7441.875,
+          "truthAreaPx2": 4233775.457847,
+          "quadIou": 0,
+          "centroidDistancePx": 1759.519686,
+          "scaleRatio": 0.041925,
+          "topEdgeRotationDifferenceDegrees": 11.013237,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-011",
+      "candidateCount": 3,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": null,
+      "bestHumanMatchingCandidateScore": null,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.753917,
+      "selectedScore": 0.93977,
+      "rawRunnerUpScore": 0.284286,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.93977,
+          "components": {
+            "geometry": 0.985267,
+            "grid": 0.956591,
+            "checker": 0.927829,
+            "gridPhase": 0.92038,
+            "edge": 0.839559,
+            "playableField": 0.934544
+          },
+          "predictedCorners": [
+            [
+              362,
+              834.8
+            ],
+            [
+              2615,
+              866.3
+            ],
+            [
+              2662,
+              3008.3
+            ],
+            [
+              394,
+              3024
+            ]
+          ],
+          "cornerErrorsPx": [
+            280,
+            221.5,
+            351.42,
+            300.104
+          ],
+          "meanCornerErrorPx": 288.23328,
+          "medianCornerErrorPx": 290.011928,
+          "maxCornerErrorPx": 351.416011,
+          "truthBoardDiagonalPx": 3149.673856,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.091512,
+          "meanSourceNormalizedCornerError": 0.057189,
+          "predictedAreaPx2": 4894273.125,
+          "truthAreaPx2": 4959578.367368,
+          "quadIou": 0.753917,
+          "centroidDistancePx": 286.754338,
+          "scaleRatio": 0.993394,
+          "topEdgeRotationDifferenceDegrees": 1.32213,
+          "humanMatch": false,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "full-frame-grid-hypothesis",
+          "accepted": false,
+          "score": 0.284286,
+          "components": {
+            "geometry": 0.9625,
+            "grid": 0.460599,
+            "checker": 0.011964,
+            "gridPhase": 0.543233,
+            "edge": 0.478845,
+            "playableField": 0.408057
+          },
+          "predictedCorners": [
+            [
+              0,
+              0
+            ],
+            [
+              3024,
+              0
+            ],
+            [
+              3024,
+              4032
+            ],
+            [
+              0,
+              4032
+            ]
+          ],
+          "cornerErrorsPx": [
+            1186,
+            1161.6,
+            770.98,
+            822.855
+          ],
+          "meanCornerErrorPx": 985.41078,
+          "medianCornerErrorPx": 992.22349,
+          "maxCornerErrorPx": 1186.21621,
+          "truthBoardDiagonalPx": 3149.673856,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.312861,
+          "meanSourceNormalizedCornerError": 0.195518,
+          "predictedAreaPx2": 12192768,
+          "truthAreaPx2": 4959578.367368,
+          "quadIou": 0.406764,
+          "centroidDistancePx": 203.989428,
+          "scaleRatio": 1.567938,
+          "topEdgeRotationDifferenceDegrees": 0.520843,
+          "humanMatch": false,
+          "overlappingBoard": false
+        },
+        {
+          "rank": 3,
+          "source": "edge-component-strong-2",
+          "accepted": false,
+          "score": 0,
+          "components": {
+            "geometry": 0.833017,
+            "grid": 0,
+            "checker": 0,
+            "gridPhase": 0,
+            "edge": 0,
+            "playableField": null
+          },
+          "predictedCorners": [
+            [
+              24,
+              2669.6
+            ],
+            [
+              71,
+              2653.9
+            ],
+            [
+              165,
+              2811.4
+            ],
+            [
+              71,
+              2842.9
+            ]
+          ],
+          "cornerErrorsPx": [
+            1613,
+            2988.7,
+            2541.61,
+            592.489
+          ],
+          "meanCornerErrorPx": 1933.855634,
+          "medianCornerErrorPx": 2077.097834,
+          "maxCornerErrorPx": 2988.737713,
+          "truthBoardDiagonalPx": 3149.673856,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.613986,
+          "meanSourceNormalizedCornerError": 0.383702,
+          "predictedAreaPx2": 13395.375,
+          "truthAreaPx2": 4959578.367368,
+          "quadIou": 0,
+          "centroidDistancePx": 1536.280609,
+          "scaleRatio": 0.05197,
+          "topEdgeRotationDifferenceDegrees": 17.914106,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    },
+    {
+      "sampleId": "field-hard-v0.1-012",
+      "candidateCount": 2,
+      "acceptedCandidateCount": 1,
+      "selectedCandidateRank": 1,
+      "bestHumanMatchingCandidateRank": 1,
+      "bestHumanMatchingCandidateScore": 0.935413,
+      "bestOverlapCandidateRank": 1,
+      "bestOverlapQuadIou": 0.921912,
+      "selectedScore": 0.935413,
+      "rawRunnerUpScore": 0.301883,
+      "acceptedRunnerUpScore": null,
+      "acceptedScoreMargin": null,
+      "candidates": [
+        {
+          "rank": 1,
+          "source": "grid-periodicity-search",
+          "accepted": true,
+          "score": 0.935413,
+          "components": {
+            "geometry": 0.967155,
+            "grid": 0.957898,
+            "checker": 0.933224,
+            "gridPhase": 0.802029,
+            "edge": 0.812633,
+            "playableField": 0.882822
+          },
+          "predictedCorners": [
+            [
+              362,
+              1149.8
+            ],
+            [
+              2662,
+              1197
+            ],
+            [
+              2520,
+              3244.5
+            ],
+            [
+              457,
+              3386.3
+            ]
+          ],
+          "cornerErrorsPx": [
+            83,
+            39.3,
+            189.99,
+            5.092
+          ],
+          "meanCornerErrorPx": 79.219709,
+          "medianCornerErrorPx": 60.897448,
+          "maxCornerErrorPx": 189.992061,
+          "truthBoardDiagonalPx": 3102.082149,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.025538,
+          "meanSourceNormalizedCornerError": 0.015718,
+          "predictedAreaPx2": 4671388.96875,
+          "truthAreaPx2": 4811305.731478,
+          "quadIou": 0.921912,
+          "centroidDistancePx": 58.759229,
+          "scaleRatio": 0.985352,
+          "topEdgeRotationDifferenceDegrees": 1.303399,
+          "humanMatch": true,
+          "overlappingBoard": true
+        },
+        {
+          "rank": 2,
+          "source": "full-frame-grid-hypothesis",
+          "accepted": false,
+          "score": 0.301883,
+          "components": {
+            "geometry": 0.9625,
+            "grid": 0.447747,
+            "checker": 0.03093,
+            "gridPhase": 0.608927,
+            "edge": 0.548936,
+            "playableField": 0.436914
+          },
+          "predictedCorners": [
+            [
+              0,
+              0
+            ],
+            [
+              3024,
+              0
+            ],
+            [
+              3024,
+              4032
+            ],
+            [
+              0,
+              4032
+            ]
+          ],
+          "cornerErrorsPx": [
+            1271,
+            1256.1,
+            751.51,
+            788.293
+          ],
+          "meanCornerErrorPx": 1016.624318,
+          "medianCornerErrorPx": 1022.194908,
+          "maxCornerErrorPx": 1270.599382,
+          "truthBoardDiagonalPx": 3102.082149,
+          "sourceDiagonalPx": 5040,
+          "meanNormalizedCornerError": 0.327723,
+          "meanSourceNormalizedCornerError": 0.201711,
+          "predictedAreaPx2": 12192768,
+          "truthAreaPx2": 4811305.731478,
+          "quadIou": 0.394603,
+          "centroidDistancePx": 272.466132,
+          "scaleRatio": 1.591914,
+          "topEdgeRotationDifferenceDegrees": 0.126254,
+          "humanMatch": false,
+          "overlappingBoard": false
+        }
+      ]
+    }
+  ]
+}

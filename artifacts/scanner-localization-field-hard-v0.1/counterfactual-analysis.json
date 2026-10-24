@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "caissa-scanner-localization-field-hard-counterfactual/1",
+  "baselineAlreadyFrozen": true,
+  "productionThresholdsChanged": false,
+  "ambiguityMargins": [
+    {
+      "margin": 0.04,
+      "correctBoardSelectionRate": 0.666667,
+      "wrongBoardSelectionRate": 0,
+      "abstentionRate": 0,
+      "newlyAbstainedSamples": []
+    },
+    {
+      "margin": 0.08,
+      "correctBoardSelectionRate": 0.666667,
+      "wrongBoardSelectionRate": 0,
+      "abstentionRate": 0,
+      "newlyAbstainedSamples": []
+    },
+    {
+      "margin": 0.1,
+      "correctBoardSelectionRate": 0.583333,
+      "wrongBoardSelectionRate": 0,
+      "abstentionRate": 0.083333,
+      "newlyAbstainedSamples": [
+        "field-hard-v0.1-006"
+      ]
+    },
+    {
+      "margin": 0.12,
+      "correctBoardSelectionRate": 0.583333,
+      "wrongBoardSelectionRate": 0,
+      "abstentionRate": 0.083333,
+      "newlyAbstainedSamples": [
+        "field-hard-v0.1-006"
+      ]
+    }
+  ],
+  "ranking": {
+    "rankingFailureComparisons": [],
+    "componentOnlyCorrectTopCounts": {
+      "geometry": 8,
+      "grid": 8,
+      "checker": 8,
+      "gridPhase": 8
+    },
+    "conclusion": "No sample contained a human-matching candidate that lost production ranking."
+  },
+  "recommendation": "MORE HUMAN LOCALIZATION DATA REQUIRED",
+  "rationale": "The only independent miss is a corner-estimation failure; three related held samples repeat the pattern, but no strict human-matching candidate lost ranking and the only multiple-accepted-candidate case selected correctly."
+}

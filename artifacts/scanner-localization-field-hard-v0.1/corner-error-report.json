@@ -1,0 +1,514 @@
+{
+  "schemaVersion": "caissa-scanner-localization-field-hard-corner-error/1",
+  "normalization": {
+    "primary": "Euclidean corner error divided by the mean of the two human-truth board diagonals.",
+    "secondary": "Euclidean corner error divided by the source-image diagonal."
+  },
+  "metrics": {
+    "independentAdmitted": {
+      "sampleCount": 7,
+      "correctBoardCount": 6,
+      "wrongBoardCount": 0,
+      "ambiguousUnusableCount": 1,
+      "abstentionCount": 0,
+      "correctBoardSelectionRate": 0.857143,
+      "wrongBoardSelectionRate": 0,
+      "abstentionRate": 0,
+      "candidateGenerationRecall": 0.857143,
+      "rankingAccuracy": 1,
+      "meanCornerErrorPx": 64.342571,
+      "medianCornerErrorPx": 36.055,
+      "maximumCornerErrorPx": 249.366,
+      "meanNormalizedCornerError": 0.02376,
+      "medianNormalizedCornerError": 0.016159,
+      "meanQuadIou": 0.931756,
+      "minimumQuadIou": 0.806449
+    },
+    "all12Diagnostics": {
+      "sampleCount": 12,
+      "correctBoardCount": 8,
+      "wrongBoardCount": 0,
+      "ambiguousUnusableCount": 4,
+      "abstentionCount": 0,
+      "correctBoardSelectionRate": 0.666667,
+      "wrongBoardSelectionRate": 0,
+      "abstentionRate": 0,
+      "candidateGenerationRecall": 0.666667,
+      "rankingAccuracy": 1,
+      "meanCornerErrorPx": 114.534896,
+      "medianCornerErrorPx": 62.554,
+      "maximumCornerErrorPx": 351.42,
+      "meanNormalizedCornerError": 0.039717,
+      "medianNormalizedCornerError": 0.021379,
+      "meanQuadIou": 0.89019,
+      "minimumQuadIou": 0.753917
+    }
+  },
+  "homographyDefinitions": {
+    "canonicalCornerAlignment": "Human corners transformed by the selected predicted-quad homography and compared with [0,0],[512,0],[512,512],[0,512].",
+    "edgeDrift": "Per-corner maximum absolute x/y displacement from its canonical target.",
+    "squareGridConsistency": "Boundary-only proxy: each mapped human edge divided by eight; CV and deviation from 64 px are reported."
+  },
+  "samples": [
+    {
+      "sampleId": "field-hard-v0.1-001",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        20,
+        15.3,
+        3.59,
+        33.766
+      ],
+      "meanCornerErrorPx": 18.223436,
+      "maxCornerErrorPx": 33.766265,
+      "meanNormalizedCornerError": 0.013158,
+      "meanSourceNormalizedCornerError": 0.006314,
+      "predictedAreaPx2": 929860.254105,
+      "truthAreaPx2": 958980.977971,
+      "quadIou": 0.95682,
+      "centroidDistancePx": 14.344878,
+      "scaleRatio": 0.9847,
+      "topEdgeRotationDifferenceDegrees": 0.495279,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            -10,
+            -4.3
+          ],
+          [
+            504,
+            0.1
+          ],
+          [
+            514,
+            511.1
+          ],
+          [
+            -14,
+            525.1
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 10.083407,
+        "maxCanonicalCornerErrorPx": 19.363588,
+        "meanEdgeDriftPx": 8.538497,
+        "maxEdgeDriftPx": 14.280113,
+        "meanImpliedSquareSizePx": 65.105242,
+        "impliedSquareSizeCv": 0.015597,
+        "maxImpliedSquareSizeDeviationFrom64Px": 2.180063
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-002",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        33,
+        35.6,
+        23.22,
+        33.364
+      ],
+      "meanCornerErrorPx": 31.30677,
+      "maxCornerErrorPx": 35.595728,
+      "meanNormalizedCornerError": 0.01845,
+      "meanSourceNormalizedCornerError": 0.01279,
+      "predictedAreaPx2": 1414005.434806,
+      "truthAreaPx2": 1439665.609102,
+      "quadIou": 0.944857,
+      "centroidDistancePx": 7.601418,
+      "scaleRatio": 0.991048,
+      "topEdgeRotationDifferenceDegrees": 1.913859,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            -8,
+            11.6
+          ],
+          [
+            528,
+            -5.3
+          ],
+          [
+            523,
+            514
+          ],
+          [
+            -4,
+            499.1
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 13.71288,
+        "maxCanonicalCornerErrorPx": 16.650637,
+        "meanEdgeDriftPx": 12.699937,
+        "maxEdgeDriftPx": 15.784351,
+        "meanImpliedSquareSizePx": 64.673548,
+        "impliedSquareSizeCv": 0.03515,
+        "maxImpliedSquareSizeDeviationFrom64Px": 3.05603
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-003",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cornerErrorsPx": [
+        188,
+        180.5,
+        235.98,
+        249.366
+      ],
+      "meanCornerErrorPx": 213.558147,
+      "maxCornerErrorPx": 249.3656,
+      "meanNormalizedCornerError": 0.071105,
+      "meanSourceNormalizedCornerError": 0.042373,
+      "predictedAreaPx2": 4469218.03125,
+      "truthAreaPx2": 4510119.686637,
+      "quadIou": 0.806449,
+      "centroidDistancePx": 202.325001,
+      "scaleRatio": 0.995455,
+      "topEdgeRotationDifferenceDegrees": 0.084699,
+      "homographyAccuracy": null
+    },
+    {
+      "sampleId": "field-hard-v0.1-004",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        38,
+        84.3,
+        30.16,
+        84.226
+      ],
+      "meanCornerErrorPx": 59.08859,
+      "maxCornerErrorPx": 84.323933,
+      "meanNormalizedCornerError": 0.021733,
+      "meanSourceNormalizedCornerError": 0.011724,
+      "predictedAreaPx2": 3616627.21875,
+      "truthAreaPx2": 3695763.184025,
+      "quadIou": 0.934193,
+      "centroidDistancePx": 39.783238,
+      "scaleRatio": 0.989236,
+      "topEdgeRotationDifferenceDegrees": 1.931243,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            0,
+            -9.6
+          ],
+          [
+            493,
+            6.7
+          ],
+          [
+            513,
+            520.8
+          ],
+          [
+            -17,
+            532.5
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 16.232185,
+        "maxCanonicalCornerErrorPx": 26.791966,
+        "meanEdgeDriftPx": 14.347713,
+        "maxEdgeDriftPx": 20.466373,
+        "meanImpliedSquareSizePx": 65.033816,
+        "impliedSquareSizeCv": 0.034822,
+        "maxImpliedSquareSizeDeviationFrom64Px": 3.788116
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-005",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        14,
+        51,
+        21.41,
+        91.416
+      ],
+      "meanCornerErrorPx": 44.469054,
+      "maxCornerErrorPx": 91.415939,
+      "meanNormalizedCornerError": 0.013884,
+      "meanSourceNormalizedCornerError": 0.008823,
+      "predictedAreaPx2": 5090738.625,
+      "truthAreaPx2": 5129053.520535,
+      "quadIou": 0.949248,
+      "centroidDistancePx": 42.699669,
+      "scaleRatio": 0.996258,
+      "topEdgeRotationDifferenceDegrees": 0.660448,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            -3,
+            1.5
+          ],
+          [
+            504,
+            7
+          ],
+          [
+            507,
+            510.9
+          ],
+          [
+            -19,
+            524.7
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 10.471599,
+        "maxCanonicalCornerErrorPx": 23.248094,
+        "meanEdgeDriftPx": 8.743302,
+        "maxEdgeDriftPx": 19.442053,
+        "meanImpliedSquareSizePx": 64.421496,
+        "impliedSquareSizeCv": 0.019391,
+        "maxImpliedSquareSizeDeviationFrom64Px": 1.867178
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-006",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        53,
+        38.4,
+        33.89,
+        72.431
+      ],
+      "meanCornerErrorPx": 49.355435,
+      "maxCornerErrorPx": 72.431255,
+      "meanNormalizedCornerError": 0.016159,
+      "meanSourceNormalizedCornerError": 0.009793,
+      "predictedAreaPx2": 4672753.3125,
+      "truthAreaPx2": 4664415.286944,
+      "quadIou": 0.957042,
+      "centroidDistancePx": 28.763877,
+      "scaleRatio": 1.000893,
+      "topEdgeRotationDifferenceDegrees": 0,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            -11,
+            -7.9
+          ],
+          [
+            517,
+            -8
+          ],
+          [
+            504,
+            512.2
+          ],
+          [
+            11,
+            500.3
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 11.694089,
+        "maxCanonicalCornerErrorPx": 15.995286,
+        "meanEdgeDriftPx": 9.552711,
+        "maxEdgeDriftPx": 11.740609,
+        "meanImpliedSquareSizePx": 64.074109,
+        "impliedSquareSizeCv": 0.025508,
+        "maxImpliedSquareSizeDeviationFrom64Px": 2.330491
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-007",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cornerErrorsPx": [
+        275,
+        260.3,
+        244.23,
+        271.291
+      ],
+      "meanCornerErrorPx": 262.590604,
+      "maxCornerErrorPx": 274.52038,
+      "meanNormalizedCornerError": 0.087377,
+      "meanSourceNormalizedCornerError": 0.052101,
+      "predictedAreaPx2": 4436845.875,
+      "truthAreaPx2": 4515803.894065,
+      "quadIou": 0.769616,
+      "centroidDistancePx": 259.95298,
+      "scaleRatio": 0.991219,
+      "topEdgeRotationDifferenceDegrees": 0.485283,
+      "homographyAccuracy": null
+    },
+    {
+      "sampleId": "field-hard-v0.1-008",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cornerErrorsPx": [
+        213,
+        231.7,
+        272.12,
+        211.918
+      ],
+      "meanCornerErrorPx": 232.307138,
+      "maxCornerErrorPx": 272.124396,
+      "meanNormalizedCornerError": 0.084838,
+      "meanSourceNormalizedCornerError": 0.046093,
+      "predictedAreaPx2": 3907108.40625,
+      "truthAreaPx2": 3748991.626901,
+      "quadIou": 0.775169,
+      "centroidDistancePx": 230.689564,
+      "scaleRatio": 1.02087,
+      "topEdgeRotationDifferenceDegrees": 0.208307,
+      "homographyAccuracy": null
+    },
+    {
+      "sampleId": "field-hard-v0.1-009",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        39,
+        131.2,
+        15.71,
+        60.208
+      ],
+      "meanCornerErrorPx": 61.474245,
+      "maxCornerErrorPx": 131.171062,
+      "meanNormalizedCornerError": 0.021024,
+      "meanSourceNormalizedCornerError": 0.012197,
+      "predictedAreaPx2": 4111635.9375,
+      "truthAreaPx2": 4274648.1838,
+      "quadIou": 0.939377,
+      "centroidDistancePx": 38.903344,
+      "scaleRatio": 0.980747,
+      "topEdgeRotationDifferenceDegrees": 2.483346,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            -9,
+            -3.7
+          ],
+          [
+            535,
+            -28.8
+          ],
+          [
+            509,
+            514.6
+          ],
+          [
+            14,
+            507.9
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 16.063582,
+        "maxCanonicalCornerErrorPx": 36.60681,
+        "meanEdgeDriftPx": 13.545799,
+        "maxEdgeDriftPx": 28.812494,
+        "meanImpliedSquareSizePx": 65.483969,
+        "impliedSquareSizeCv": 0.039955,
+        "maxImpliedSquareSizeDeviationFrom64Px": 3.996494
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-010",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        25,
+        64.9,
+        36.51,
+        11.263
+      ],
+      "meanCornerErrorPx": 34.422306,
+      "maxCornerErrorPx": 64.864787,
+      "meanNormalizedCornerError": 0.011829,
+      "meanSourceNormalizedCornerError": 0.00683,
+      "predictedAreaPx2": 4260969.5625,
+      "truthAreaPx2": 4233775.457847,
+      "quadIou": 0.973681,
+      "centroidDistancePx": 13.33575,
+      "scaleRatio": 1.003206,
+      "topEdgeRotationDifferenceDegrees": 1.872562,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            5,
+            -3.8
+          ],
+          [
+            521,
+            12.9
+          ],
+          [
+            504,
+            517.1
+          ],
+          [
+            -2,
+            510.2
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 8.53397,
+        "maxCanonicalCornerErrorPx": 15.874489,
+        "meanEdgeDriftPx": 6.921032,
+        "maxEdgeDriftPx": 12.901016,
+        "meanImpliedSquareSizePx": 63.800015,
+        "impliedSquareSizeCv": 0.009806,
+        "maxImpliedSquareSizeDeviationFrom64Px": 0.943843
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-011",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cornerErrorsPx": [
+        280,
+        221.5,
+        351.42,
+        300.104
+      ],
+      "meanCornerErrorPx": 288.23328,
+      "maxCornerErrorPx": 351.416011,
+      "meanNormalizedCornerError": 0.091512,
+      "meanSourceNormalizedCornerError": 0.057189,
+      "predictedAreaPx2": 4894273.125,
+      "truthAreaPx2": 4959578.367368,
+      "quadIou": 0.753917,
+      "centroidDistancePx": 286.754338,
+      "scaleRatio": 0.993394,
+      "topEdgeRotationDifferenceDegrees": 1.32213,
+      "homographyAccuracy": null
+    },
+    {
+      "sampleId": "field-hard-v0.1-012",
+      "selection": "CORRECT BOARD",
+      "cornerErrorsPx": [
+        83,
+        39.3,
+        189.99,
+        5.092
+      ],
+      "meanCornerErrorPx": 79.219709,
+      "maxCornerErrorPx": 189.992061,
+      "meanNormalizedCornerError": 0.025538,
+      "meanSourceNormalizedCornerError": 0.015718,
+      "predictedAreaPx2": 4671388.96875,
+      "truthAreaPx2": 4811305.731478,
+      "quadIou": 0.921912,
+      "centroidDistancePx": 58.759229,
+      "scaleRatio": 0.985352,
+      "topEdgeRotationDifferenceDegrees": 1.303399,
+      "homographyAccuracy": {
+        "mappedHumanCornersPx": [
+          [
+            14,
+            9
+          ],
+          [
+            502,
+            -1.3
+          ],
+          [
+            552,
+            552
+          ],
+          [
+            -1,
+            511.8
+          ]
+        ],
+        "meanCanonicalCornerErrorPx": 21.007132,
+        "maxCanonicalCornerErrorPx": 56.714095,
+        "meanEdgeDriftPx": 16.186013,
+        "maxEdgeDriftPx": 40.245485,
+        "meanImpliedSquareSizePx": 65.694799,
+        "impliedSquareSizeCv": 0.057216,
+        "maxImpliedSquareSizeDeviationFrom64Px": 5.438394
+      }
+    }
+  ]
+}
