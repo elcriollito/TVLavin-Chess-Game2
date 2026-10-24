@@ -34,7 +34,10 @@ function prediction(fen = FEN) {
 
 async function mockBeta(page, { feedbackFailures = 0, recognitionFailure = false,
   recognitionFailures = 0, recognitionNetworkFailures = 0, recognitionResponses = [], statusDelayMs = 0 } = {}) {
-  const captured = { scans: [], feedback: [], failures: [], recognition: [], feedbackAttempts: 0, recognitionAttempts: 0 };
+  const captured = {
+    scans: [], feedback: [], failures: [], recognition: [], uploads: [],
+    feedbackAttempts: 0, recognitionAttempts: 0
+  };
   await page.route('**/api/scanner/beta/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/status')) {
@@ -66,6 +69,12 @@ async function mockBeta(page, { feedbackFailures = 0, recognitionFailure = false
     if (path.endsWith('/failure')) {
       captured.failures.push(route.request().postDataJSON());
       return route.fulfill({ status: 200, json: { accepted: true } });
+    }
+    if (path.endsWith('/image')) {
+      captured.uploads.push({
+        hash: route.request().headers()['x-caissa-image-sha256'],
+        contentType: route.request().headers()['content-type']
+      });
     }
     return route.fulfill({ status: 200, json: { accepted: true, imageStorageReference: 'test://image' } });
   });
@@ -358,12 +367,35 @@ test.describe('Scanner internal mobile beta feedback', () => {
     });
     await expect(page.locator('#syncStatus')).toContainText('Could not read this image');
     await page.locator('#galleryInput').setInputFiles(scannerPlainImage);
-    await expect(page.locator('#syncStatus')).toContainText('Board could not be detected', { timeout: 20_000 });
+    await expect(page.locator('#syncStatus')).toContainText('Board detection is uncertain', { timeout: 20_000 });
     expect(captured.recognitionAttempts).toBe(0);
     expect(captured.failures.map(({ failure }) => [failure.failureStage, failure.errorCode])).toEqual([
       ['decode', 'DECODE_FAILURE'],
-      ['localization', 'LOCALIZATION_FAILURE']
+      ['localization', 'LOW_LOCALIZATION_CONFIDENCE']
     ]);
+  });
+
+  test('consented source is retained before localization can fail', async ({ page }) => {
+    const captured = await mockBeta(page);
+    await page.goto('/scanner/beta');
+    await page.locator('#shareImage').check();
+    await page.locator('#galleryInput').setInputFiles(scannerPlainImage);
+    await expect(page.locator('#syncStatus')).toContainText('Board detection is uncertain', { timeout: 20_000 });
+    expect(captured.uploads).toHaveLength(1);
+    expect(captured.failures).toHaveLength(1);
+    expect(captured.failures[0].failure).toMatchObject({
+      failureStage: 'localization',
+      errorCode: 'LOW_LOCALIZATION_CONFIDENCE',
+      clientMetadata: {
+        imageStorageReference: 'test://image',
+        localizationDiagnostics: {
+          schemaVersion: 'caissa-scanner-localization-diagnostics/1',
+          candidateCount: expect.any(Number),
+          acceptedCandidateCount: 0
+        }
+      }
+    });
+    expect(captured.recognitionAttempts).toBe(0);
   });
 
   test('typed endpoint and transport failures show distinct messages with one request each', async ({ page }) => {
