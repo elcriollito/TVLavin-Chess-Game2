@@ -88,6 +88,49 @@ select pg_temp.assert_true(not exists(
 ),'writer-first row survived the deletion sweep');
 delete from public.caissa_account_control_operations where id='30000000-0000-4000-8000-0000000000b0';
 
+-- A game insert that wins the participant lock before deletion must commit
+-- first; deletion then observes the active game and fails closed to review.
+update public.caissa_account_states set state='ACTIVE',operation_id=null,reason_code=null
+where user_id in ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002');
+insert into public.caissa_account_control_operations(
+  id,user_id,binding_id,kind,status,idempotency_key_hash,confirmation_hash,reverification_hash,expires_at
+)
+select '30000000-0000-4000-8000-0000000000c3',u.id,b.id,'ACCOUNT_DELETION','PREPARED',
+  repeat('4',64),repeat('5',64),repeat('6',64),clock_timestamp()+interval '5 minutes'
+from public.users u join public.identity_bindings b on b.user_id=u.id
+where u.id='10000000-0000-4000-8000-000000000001';
+select dblink_send_query('account_writer',$remote$
+  do $body$ begin
+    insert into public.caissa_online_games(id,white_user_id,black_user_id)
+    values(
+      '80000000-0000-4000-8000-0000000000c3',
+      '10000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000002');
+    perform pg_sleep(0.35);
+  end $body$;
+$remote$);
+select pg_sleep(0.08);
+do $$ declare v_result jsonb; begin
+  set local lock_timeout='3s';
+  v_result := public.lock_caissa_account_deletion(
+    '30000000-0000-4000-8000-0000000000c3',
+    '10000000-0000-4000-8000-000000000001',
+    (select id from public.identity_bindings
+      where user_id='10000000-0000-4000-8000-000000000001' and status='ACTIVE'),
+    repeat('5',64),repeat('6',64),repeat('4',64),
+    encode(sha256(convert_to('synthetic_dev_a','UTF8')),'hex'));
+  perform pg_temp.assert_true(v_result->>'status'='REVIEW_REQUIRED',
+    'writer-first active game did not stop deletion after the advisory-lock wait');
+end $$;
+select * from dblink_get_result('account_writer') as t(status text);
+select * from dblink_get_result('account_writer') as t(status text);
+select pg_temp.assert_true(exists(
+  select 1 from public.caissa_online_games
+  where id='80000000-0000-4000-8000-0000000000c3' and status='active'
+),'deletion mutated the writer-first active game');
+update public.caissa_online_games set status='completed'
+where id='80000000-0000-4000-8000-0000000000c3';
+
 -- Two real erasure sweeps touching two reverse-color shared games must
 -- serialize before their per-user locks and complete without a cycle.
 insert into public.caissa_account_control_operations(
@@ -108,9 +151,9 @@ where u.id='10000000-0000-4000-8000-000000000002'
 on conflict(id) do update set status='LOCKED';
 update public.caissa_account_states set state='ACTIVE',operation_id=null,reason_code=null
 where user_id in ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002');
-insert into public.caissa_online_games(id,white_user_id,black_user_id) values
-  ('80000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002'),
-  ('80000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001');
+insert into public.caissa_online_games(id,white_user_id,black_user_id,status) values
+  ('80000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002','completed'),
+  ('80000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','completed');
 update public.caissa_account_states set state='DELETION_PENDING'
 where user_id in ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002');
 

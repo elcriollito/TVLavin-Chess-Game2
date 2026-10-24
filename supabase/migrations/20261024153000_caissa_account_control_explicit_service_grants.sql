@@ -16,6 +16,7 @@ begin
     ('public.caissa_account_control_operations'),
     ('public.caissa_account_control_audit'),
     ('public.caissa_account_control_rate_limits'),
+    ('public.caissa_online_games'),
     ('public.caissa_account_control_audit_id_seq')
   ) as required(object_name)
   where pg_catalog.to_regclass(required.object_name) is null;
@@ -58,6 +59,33 @@ begin
         || pg_catalog.array_to_string(v_missing_functions, ', ');
   end if;
 end
+$$;
+
+-- A live shared game is a deletion blocker. This definition is repeated here
+-- so databases that applied an earlier Account Control package receive the
+-- guard before the terminal privilege normalization below.
+create or replace function public.caissa_account_has_active_economic_work(p_user_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare v_found boolean:=false;
+begin
+  if pg_catalog.to_regclass('public.credit_reservations') is not null then
+    execute 'select exists(select 1 from public.credit_reservations where user_id=$1 and state=''RESERVED'')'
+      into v_found using p_user_id;
+  end if;
+
+  if not v_found then
+    select exists(
+      select 1 from public.caissa_online_games
+      where status='active' and (white_user_id=p_user_id or black_user_id=p_user_id)
+    ) into v_found;
+  end if;
+  return v_found;
+end;
 $$;
 
 revoke all on table

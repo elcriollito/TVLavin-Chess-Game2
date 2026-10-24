@@ -548,6 +548,7 @@ test('migration is service-role only, keeps economic/shared history, and tombsto
     assert.match(grantsSql, /grant select, insert, update on table[\s\S]*caissa_account_states[\s\S]*to service_role/iu);
     assert.match(grantsSql, /grant select, insert on table public\.caissa_account_control_audit to service_role/iu);
     assert.match(grantsSql, /grant usage, select on sequence public\.caissa_account_control_audit_id_seq to service_role/iu);
+    assert.match(grantsSql, /create or replace function public\.caissa_account_has_active_economic_work\(p_user_id uuid\)[\s\S]*caissa_online_games[\s\S]*status='active'/iu);
     assert.match(grantsSql, /revoke all on function[\s\S]*caissa_account_assert_writable\(uuid\)[\s\S]*from public, anon, authenticated, service_role/iu);
     assert.doesNotMatch(grantsSql, /grant execute on function[\s\S]*caissa_account_assert_writable\(uuid\)/iu);
     assert.match(grantsSql, /grant execute on function[\s\S]*prepare_caissa_account_control\(uuid,uuid,text,text,text,text,timestamptz\)[\s\S]*to service_role/iu);

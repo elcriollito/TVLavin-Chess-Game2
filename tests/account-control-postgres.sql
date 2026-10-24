@@ -386,6 +386,60 @@ select pg_temp.assert_true(
   'selective reset changed a preserved data class'
 );
 
+-- A participant in an active shared game cannot begin automatic deletion.
+-- Completing the game releases the hold while preserving the historical row.
+do $$
+declare v_binding uuid; v_summary jsonb;
+begin
+  select id into v_binding from public.identity_bindings where external_subject='synthetic_dev_d';
+  v_summary := public.caissa_account_control_summary(
+    '10000000-0000-4000-8000-000000000004',v_binding);
+  perform pg_temp.assert_true(
+    not (v_summary->'capabilities'->>'accountDeletion')::boolean,
+    'active Online game allowed automatic account deletion');
+  begin
+    perform * from public.prepare_caissa_account_control(
+      '10000000-0000-4000-8000-000000000004',v_binding,'ACCOUNT_DELETION',
+      repeat('7',64),repeat('8',64),repeat('9',64),pg_catalog.clock_timestamp()+interval '5 minutes');
+    raise exception 'active Online game deletion prepare unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like '%CAISSA_ACCOUNT_REVIEW_REQUIRED%' then raise; end if;
+  end;
+  update public.caissa_online_games set status='completed'
+  where white_user_id='10000000-0000-4000-8000-000000000004'
+    and black_user_id='10000000-0000-4000-8000-000000000002';
+end;
+$$;
+
+-- Re-check under the deletion advisory lock: a game that becomes active after
+-- prepare must send the operation to review instead of stranding its opponent.
+do $$
+declare v_binding uuid; v_operation uuid; v_result jsonb; v_game uuid;
+begin
+  select id into v_binding from public.identity_bindings where external_subject='synthetic_dev_c';
+  select operation_id into v_operation from public.prepare_caissa_account_control(
+    '10000000-0000-4000-8000-000000000003',v_binding,'ACCOUNT_DELETION',
+    repeat('4',64),repeat('5',64),repeat('6',64),pg_catalog.clock_timestamp()+interval '5 minutes');
+  insert into public.caissa_online_games(white_user_id,black_user_id)
+  values('10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000002')
+  returning id into v_game;
+  v_result := public.lock_caissa_account_deletion(v_operation,
+    '10000000-0000-4000-8000-000000000003',v_binding,
+    repeat('5',64),repeat('6',64),repeat('4',64),
+    pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to('synthetic_dev_c','UTF8')),'hex'));
+  perform pg_temp.assert_true(v_result->>'status'='REVIEW_REQUIRED',
+    'concurrent active Online game did not stop deletion lock');
+  perform pg_temp.assert_true(
+    (select status='active' from public.caissa_online_games where id=v_game),
+    'deletion hold mutated the active Online game');
+  perform pg_temp.assert_true(
+    not exists(select 1 from public.caissa_account_states
+      where user_id='10000000-0000-4000-8000-000000000003' and state='DELETION_PENDING'),
+    'active Online game left the participant deletion-locked');
+  update public.caissa_online_games set status='completed' where id=v_game;
+end;
+$$;
+
 -- Cross-owner confirmation must not locate another account's operation.
 do $$
 declare v_operation uuid; v_binding_a uuid; v_binding_b uuid;
