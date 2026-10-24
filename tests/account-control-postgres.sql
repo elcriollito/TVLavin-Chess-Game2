@@ -5,6 +5,12 @@ do $$ begin if not exists(select 1 from pg_catalog.pg_roles where rolname='authe
 do $$ begin if not exists(select 1 from pg_catalog.pg_roles where rolname='service_role') then create role service_role nologin; end if; end $$;
 create extension if not exists pgcrypto;
 
+\if :{?caissa_production_default_acl}
+alter default privileges for role postgres in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges for role postgres in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges for role postgres in schema public grant execute on functions to anon, authenticated, service_role;
+\endif
+
 create table public.users (
   id uuid primary key default gen_random_uuid(),
   clerk_id text not null unique,
@@ -235,6 +241,10 @@ create table public.scanner_beta_scan_failures (
 \ir ../supabase/migrations/20261018174754_caissa_account_control_v1.sql
 \ir ../supabase/migrations/20261018174844_caissa_account_control_v1_fk_indexes.sql
 \ir ../supabase/migrations/20261018181749_caissa_account_control_v1_security_followup.sql
+\ir ../supabase/migrations/20261022235500_identity_migration_challenge_service_read.sql
+\ir ../supabase/migrations/20261023203000_caissa_online_guest_rate_limit_principals.sql
+\ir ../supabase/migrations/20261024153000_caissa_account_control_explicit_service_grants.sql
+\ir ../supabase/migrations/20261024153000_caissa_account_control_explicit_service_grants.sql
 
 create or replace function pg_temp.assert_true(p_condition boolean, p_message text)
 returns void language plpgsql as $$
@@ -590,6 +600,155 @@ select pg_temp.assert_true(
   and not pg_catalog.has_function_privilege('authenticated','public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
   and not pg_catalog.has_function_privilege('authenticated','public.caissa_account_control_summary(uuid,uuid)','EXECUTE'),
   'account control privilege boundary is incorrect'
+);
+
+select pg_temp.assert_true(
+  not pg_catalog.has_table_privilege('service_role','public.caissa_identity_ownership_reviews','SELECT')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_identity_ownership_reviews','INSERT')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_identity_ownership_reviews','UPDATE')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_identity_ownership_reviews','DELETE')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_states','SELECT')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_states','INSERT')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_states','UPDATE')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_states','DELETE')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_states','TRUNCATE')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_states','REFERENCES')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_states','TRIGGER')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_operations','SELECT')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_operations','INSERT')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_operations','UPDATE')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_control_operations','DELETE')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_audit','SELECT')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_audit','INSERT')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_control_audit','UPDATE')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_control_audit','DELETE')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_rate_limits','SELECT')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_rate_limits','INSERT')
+  and pg_catalog.has_table_privilege('service_role','public.caissa_account_control_rate_limits','UPDATE')
+  and not pg_catalog.has_table_privilege('service_role','public.caissa_account_control_rate_limits','DELETE'),
+  'service role table privileges were not normalized exactly'
+);
+
+do $$
+declare
+  v_relation text;
+  v_role text;
+  v_privilege text;
+  v_allowed text[];
+  v_expected boolean;
+  v_actual boolean;
+begin
+  foreach v_relation in array array[
+    'public.caissa_identity_ownership_reviews',
+    'public.caissa_account_states',
+    'public.caissa_account_control_operations',
+    'public.caissa_account_control_audit',
+    'public.caissa_account_control_rate_limits'
+  ] loop
+    v_allowed := case v_relation
+      when 'public.caissa_account_states' then array['SELECT','INSERT','UPDATE']
+      when 'public.caissa_account_control_operations' then array['SELECT','INSERT','UPDATE']
+      when 'public.caissa_account_control_audit' then array['SELECT','INSERT']
+      when 'public.caissa_account_control_rate_limits' then array['SELECT','INSERT','UPDATE']
+      else array[]::text[]
+    end;
+
+    foreach v_privilege in array array[
+      'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+    ] loop
+      v_expected := v_privilege = any(v_allowed);
+      v_actual := pg_catalog.has_table_privilege('service_role',v_relation,v_privilege);
+      if v_actual is distinct from v_expected then
+        raise exception 'service_role privilege mismatch: relation %, privilege %, expected %, actual %',
+          v_relation, v_privilege, v_expected, v_actual;
+      end if;
+    end loop;
+
+    foreach v_role in array array['anon','authenticated'] loop
+      foreach v_privilege in array array[
+        'SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'
+      ] loop
+        if pg_catalog.has_table_privilege(v_role,v_relation,v_privilege) then
+          raise exception '% unexpectedly has % on %', v_role, v_privilege, v_relation;
+        end if;
+      end loop;
+    end loop;
+  end loop;
+end
+$$;
+
+select pg_temp.assert_true(
+  pg_catalog.has_sequence_privilege('service_role','public.caissa_account_control_audit_id_seq','USAGE')
+  and pg_catalog.has_sequence_privilege('service_role','public.caissa_account_control_audit_id_seq','SELECT')
+  and not pg_catalog.has_sequence_privilege('service_role','public.caissa_account_control_audit_id_seq','UPDATE')
+  and not pg_catalog.has_sequence_privilege('anon','public.caissa_account_control_audit_id_seq','USAGE')
+  and not pg_catalog.has_sequence_privilege('authenticated','public.caissa_account_control_audit_id_seq','USAGE'),
+  'service role sequence privileges were not normalized exactly'
+);
+
+select pg_temp.assert_true(
+  not pg_catalog.has_function_privilege('service_role','public.caissa_account_assert_writable(uuid)','EXECUTE')
+  and not pg_catalog.has_function_privilege('service_role','public.caissa_account_write_barrier()','EXECUTE')
+  and not pg_catalog.has_function_privilege('service_role','public.caissa_account_rate_limit_write_barrier()','EXECUTE')
+  and pg_catalog.has_function_privilege('service_role','public.prepare_caissa_account_control(uuid,uuid,text,text,text,text,timestamptz)','EXECUTE')
+  and pg_catalog.has_function_privilege('service_role','public.resolve_caissa_identity_ownership(text,text)','EXECUTE'),
+  'service role function privileges were not normalized exactly'
+);
+
+do $$
+declare
+  v_signature text;
+  v_role text;
+  v_allowed text[] := array[
+    'public.consume_caissa_account_control_rate_limit(text,text,integer,integer)',
+    'public.caissa_account_active_entitlement_count(uuid)',
+    'public.caissa_account_has_blocking_state(uuid)',
+    'public.caissa_account_storage_reference_count(uuid)',
+    'public.caissa_account_has_active_economic_work(uuid)',
+    'public.caissa_account_control_summary(uuid,uuid)',
+    'public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz)',
+    'public.prepare_caissa_account_control(uuid,uuid,text,text,text,text,timestamptz)',
+    'public.confirm_caissa_progress_reset(uuid,uuid,uuid,text,text,text,text)',
+    'public.lock_caissa_account_deletion(uuid,uuid,uuid,text,text,text,text)',
+    'public.mark_caissa_data_deletion_failed(uuid,uuid)',
+    'public.erase_caissa_account_data(uuid,uuid,uuid,text)',
+    'public.mark_caissa_auth_deletion_failed(uuid,uuid)',
+    'public.complete_caissa_account_deletion(uuid,uuid,uuid)',
+    'public.resolve_caissa_identity_ownership(text,text)'
+  ];
+  v_all text[] := v_allowed || array[
+    'public.caissa_account_assert_writable(uuid)',
+    'public.caissa_account_write_barrier()',
+    'public.caissa_account_rate_limit_write_barrier()'
+  ];
+  v_expected boolean;
+  v_actual boolean;
+begin
+  foreach v_signature in array v_all loop
+    v_expected := v_signature = any(v_allowed);
+    v_actual := pg_catalog.has_function_privilege('service_role',v_signature,'EXECUTE');
+    if v_actual is distinct from v_expected then
+      raise exception 'service_role function privilege mismatch: function %, expected %, actual %',
+        v_signature, v_expected, v_actual;
+    end if;
+
+    foreach v_role in array array['anon','authenticated'] loop
+      if pg_catalog.has_function_privilege(v_role,v_signature,'EXECUTE') then
+        raise exception '% unexpectedly has EXECUTE on %', v_role, v_signature;
+      end if;
+    end loop;
+  end loop;
+end
+$$;
+
+select pg_temp.assert_true(
+  pg_catalog.has_table_privilege('service_role','public.identity_migration_challenges','SELECT')
+  and not pg_catalog.has_table_privilege('service_role','public.identity_migration_challenges','INSERT')
+  and not pg_catalog.has_table_privilege('service_role','public.identity_migration_challenges','UPDATE')
+  and not pg_catalog.has_table_privilege('service_role','public.identity_migration_challenges','DELETE')
+  and not pg_catalog.has_table_privilege('anon','public.identity_migration_challenges','SELECT')
+  and not pg_catalog.has_table_privilege('authenticated','public.identity_migration_challenges','SELECT'),
+  'identity migration challenge grants are not SELECT-only for service role'
 );
 
 do $$ declare v_binding uuid; begin

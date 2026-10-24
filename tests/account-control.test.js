@@ -518,6 +518,7 @@ test('a concurrent ownership or entitlement hold stops before Clerk deletion', a
 
 test('migration is service-role only, keeps economic/shared history, and tombstones instead of deleting users', () => {
     const sql = fs.readFileSync('supabase/migrations/20261018174754_caissa_account_control_v1.sql', 'utf8');
+    const grantsSql = fs.readFileSync('supabase/migrations/20261024153000_caissa_account_control_explicit_service_grants.sql', 'utf8');
     assert.match(sql, /enable row level security/iu);
     assert.match(sql, /revoke all on table public\.caissa_account_control_operations from public, anon, authenticated/iu);
     assert.match(sql, /grant execute on function public\.complete_caissa_account_deletion\(uuid,uuid,uuid\) to service_role/iu);
@@ -542,4 +543,13 @@ test('migration is service-role only, keeps economic/shared history, and tombsto
     assert.match(sql, /identity_manual_recovery_previews set status='REVOKED'/u);
     assert.match(sql, /caissa_account_control_one_pending_kind_idx/u);
     assert.match(sql, /external_subject='deleted_'/u);
+    assert.match(grantsSql, /begin;/iu);
+    assert.match(grantsSql, /revoke all on table[\s\S]*caissa_identity_ownership_reviews[\s\S]*from public, anon, authenticated, service_role/iu);
+    assert.match(grantsSql, /grant select, insert, update on table[\s\S]*caissa_account_states[\s\S]*to service_role/iu);
+    assert.match(grantsSql, /grant select, insert on table public\.caissa_account_control_audit to service_role/iu);
+    assert.match(grantsSql, /grant usage, select on sequence public\.caissa_account_control_audit_id_seq to service_role/iu);
+    assert.match(grantsSql, /revoke all on function[\s\S]*caissa_account_assert_writable\(uuid\)[\s\S]*from public, anon, authenticated, service_role/iu);
+    assert.doesNotMatch(grantsSql, /grant execute on function[\s\S]*caissa_account_assert_writable\(uuid\)/iu);
+    assert.match(grantsSql, /grant execute on function[\s\S]*prepare_caissa_account_control\(uuid,uuid,text,text,text,text,timestamptz\)[\s\S]*to service_role/iu);
+    assert.match(grantsSql, /commit;/iu);
 });
