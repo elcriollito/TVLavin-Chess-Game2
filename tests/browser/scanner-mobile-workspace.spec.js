@@ -485,11 +485,17 @@ for (const profile of [
   { name: 'iPhone portrait large', width: 430, height: 932 },
   { name: 'iPhone landscape', width: 844, height: 390 },
   { name: 'iPhone landscape large', width: 932, height: 430 },
-  { name: 'desktop', width: 1280, height: 900 }
+  { name: 'desktop', width: 1280, height: 900, landing: true }
 ]) {
   test(`${profile.name} has no horizontal overflow or clipped board`, async ({ page }) => {
     await page.setViewportSize({ width: profile.width, height: profile.height });
     await page.goto('/scanner/index.html');
+    if (profile.landing) {
+      await expect(page.locator('#scannerDesktopLanding')).toBeVisible();
+      await expect(page.locator('#scannerApp')).toBeHidden();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+      return;
+    }
     await expectOnlyView(page, 'capture');
     const captureTarget = await page.locator('#homeScanBtn').evaluate((button) => {
       const rect = button.getBoundingClientRect();

@@ -6,7 +6,6 @@
   const viewState = window.CaissaScannerViewState;
   const VIEW_STATES = viewState.STATES;
   const fenTools = window.CaissaScannerFen;
-  const MOCK_FEN = 'r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R w KQkq - 4 10';
   const MIN_READING_DURATION_MS = 320;
   const EDIT_ENTRY = Object.freeze({ RECOGNITION_REVIEW: 'recognition-review', MANUAL_EDIT: 'manual-edit' });
   const PIECE_NAMES = Object.freeze({ K: 'White King', Q: 'White Queen', R: 'White Rook', B: 'White Bishop', N: 'White Knight', P: 'White Pawn', k: 'Black King', q: 'Black Queen', r: 'Black Rook', b: 'Black Bishop', n: 'Black Knight', p: 'Black Pawn' });
@@ -21,6 +20,8 @@
     app: $('scannerApp'),
     homeBtn: $('homeBtn'),
     homeScan: $('homeScanBtn'),
+    reportFailure: $('reportScanFailureBtn'),
+    publicServiceStatus: $('publicServiceStatus'),
     camera: $('cameraInput'),
     gallery: $('galleryInput'),
     drop: $('dropZone'),
@@ -53,6 +54,12 @@
     editFooter: $('editBoardFooter'),
     editToolStatus: $('editToolStatus'),
     editValidation: $('editValidation'),
+    structuralWarning: $('publicStructuralWarning'),
+    structuralTitle: $('publicStructuralTitle'),
+    structuralMessage: $('publicStructuralMessage'),
+    structuralAcknowledgeRow: $('publicStructuralAcknowledgeRow'),
+    structuralAcknowledge: $('publicStructuralAcknowledge'),
+    localizationWrong: $('publicLocalizationWrongBtn'),
     blackPalette: $('blackPiecePalette'),
     whitePalette: $('whitePiecePalette'),
     clearSquare: $('clearSquareBtn'),
@@ -86,10 +93,18 @@
     exportFen: $('exportFenBtn'),
     newScan: $('newScanBtn'),
     newScanSheet: $('newScanSheet'),
+    feedbackSheet: $('feedbackSheet'),
     sheetBackdrop: $('sheetBackdrop'),
     cancelNewScan: $('cancelNewScanBtn'),
     takePhoto: $('takePhotoBtn'),
     choosePhoto: $('choosePhotoBtn'),
+    helpImprove: $('helpImproveBtn'),
+    cancelFeedback: $('cancelFeedbackBtn'),
+    shareCorrection: $('shareCorrectionConsent'),
+    shareImage: $('shareImageConsent'),
+    submitFeedback: $('submitFeedbackBtn'),
+    feedbackDescription: $('feedbackSheetDescription'),
+    feedbackStatus: $('feedbackStatus'),
     workspaceSaveDiagram: $('workspaceSaveDiagramBtn'),
     workspaceShare: $('workspaceShareBtn'),
     handoff: $('handoffCard'),
@@ -121,6 +136,20 @@
   let activeSheet = null;
   let viewFocusSequence = 0;
   let recognitionRuntime = null;
+  let publicClient = null;
+  let publicRecognition = null;
+  let publicFailureContext = null;
+  let publicFailureError = null;
+  let selectedSourceFile = null;
+  let selectedCaptureType = null;
+  let pendingFeedbackType = null;
+  let structuralAcknowledged = false;
+  let publicRecognitionController = null;
+
+  async function loadPublicClient() {
+    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=0.1.0');
+    return publicClient;
+  }
 
   function createRecognitionRuntime() {
     return window.CaissaScannerRecognitionRuntime?.create({
@@ -242,6 +271,7 @@
     const trigger = activeSheet?.trigger;
     els.exportSheet.hidden = true;
     els.newScanSheet.hidden = true;
+    els.feedbackSheet.hidden = true;
     els.sheetBackdrop.hidden = true;
     activeSheet = null;
     document.body.classList.remove('sheet-open');
@@ -331,6 +361,30 @@
     els.editValidation.className = 'edit-validation' + (type ? ' ' + type : '');
   }
 
+  function renderPublicStructuralGuardrail(fen) {
+    if (!publicClient || !fen) {
+      els.structuralWarning.hidden = true;
+      return { status: 'NORMAL', warnings: [] };
+    }
+    const result = publicClient.analyzeStructuralPosition(fen);
+    els.structuralWarning.dataset.status = result.status;
+    if (result.status === 'NORMAL') {
+      els.structuralWarning.hidden = true;
+      els.structuralAcknowledgeRow.hidden = true;
+      els.structuralAcknowledge.checked = false;
+      structuralAcknowledged = false;
+      return result;
+    }
+    const required = result.status === 'REVIEW_REQUIRED';
+    els.structuralWarning.hidden = false;
+    els.structuralTitle.textContent = required ? 'Review required' : 'Review recommended';
+    els.structuralMessage.textContent = result.warnings.map(item => item.message || item.code).join(' ')
+      || 'This position has unusual material. Check it carefully before continuing.';
+    els.structuralAcknowledgeRow.hidden = !required;
+    els.structuralAcknowledge.checked = required && structuralAcknowledged;
+    return result;
+  }
+
   function syncEditFields(fen) {
     const result = fenTools.validateDraft(fen);
     if (!result.ok) return;
@@ -364,9 +418,11 @@
     if (!nextFen) return;
     els.fen.value = nextFen;
     selectedSquare = { row, col };
+    structuralAcknowledged = false;
     const action = activeEditTool === 'clear' ? 'Cleared ' : 'Placed ' + PIECE_NAMES[activeEditTool] + ' on ';
     validateCurrent(false);
     const result = fenTools.validate(nextFen);
+    renderPublicStructuralGuardrail(nextFen);
     setEditFeedback(action + fenTools.squareName(row, col) + (result.ok ? '. Ready to apply.' : '. ' + result.error), result.ok ? 'ok' : 'error');
   }
 
@@ -419,6 +475,65 @@
     input.click();
   }
 
+  function openFeedback(type = 'AUTO', trigger = document.activeElement) {
+    if (type === 'SCAN_FAILURE' ? !publicFailureContext : !publicRecognition?.snapshot) {
+      toast('There is no scan available to share.');
+      return;
+    }
+    pendingFeedbackType = type;
+    els.shareCorrection.checked = false;
+    els.shareImage.checked = false;
+    els.submitFeedback.disabled = true;
+    els.feedbackStatus.textContent = '';
+    els.feedbackDescription.textContent = type === 'LOCALIZATION_FAILURE'
+      ? 'Tell CAISSA the board was detected incorrectly. This routes only to localization review.'
+      : type === 'SCAN_FAILURE'
+        ? 'Share this failed attempt for private owner review. The image remains optional.'
+        : 'Your correction will enter a private, unverified review vault. It will not train the model automatically.';
+    openSheet(els.feedbackSheet, trigger);
+  }
+
+  async function sendPublicFeedback() {
+    if (!els.shareCorrection.checked || !pendingFeedbackType) return;
+    els.submitFeedback.disabled = true;
+    els.feedbackStatus.textContent = 'Sending securelyâ€¦';
+    try {
+      const client = await loadPublicClient();
+      if (pendingFeedbackType === 'SCAN_FAILURE') {
+        await client.submitPublicFailure({
+          context: publicFailureContext,
+          error: publicFailureError,
+          file: selectedSourceFile,
+          shareCorrectionForImprovement: true,
+          shareImageForImprovement: els.shareImage.checked
+        });
+      } else {
+        const correctedFen = currentFen() || els.fen.value;
+        const predictedPlacement = publicRecognition.snapshot.predictedFEN.split(/\s+/)[0];
+        const correctedPlacement = correctedFen.split(/\s+/)[0];
+        const feedbackType = pendingFeedbackType === 'LOCALIZATION_FAILURE'
+          ? 'LOCALIZATION_FAILURE'
+          : predictedPlacement === correctedPlacement ? 'CONFIRMED_CORRECT' : 'PIECE_CORRECTION';
+        await client.submitPublicFeedback({
+          snapshot: publicRecognition.snapshot,
+          correctedFEN: correctedFen,
+          feedbackType,
+          captureType: selectedCaptureType,
+          file: selectedSourceFile,
+          shareCorrectionForImprovement: true,
+          shareImageForImprovement: els.shareImage.checked
+        });
+      }
+      const returnsHome = pendingFeedbackType !== 'AUTO';
+      closeSheets(false);
+      if (returnsHome) resetAll(true);
+      toast('Feedback saved as raw-unverified for owner review.');
+    } catch (error) {
+      els.feedbackStatus.textContent = (await loadPublicClient()).publicErrorMessage(error);
+      els.submitFeedback.disabled = !els.shareCorrection.checked;
+    }
+  }
+
   function routeRecognitionResult() {
     // Phase 3 replaces this deterministic decision with confidence and warning policy.
     openEdit(EDIT_ENTRY.RECOGNITION_REVIEW);
@@ -438,19 +553,37 @@
     return remaining > 0 ? new Promise((resolve) => setTimeout(resolve, remaining)) : Promise.resolve();
   }
 
-  async function selectFile(file) {
-    if (!file || !file.type.startsWith('image/')) {
+  async function selectFile(file, source = 'gallery') {
+    if (!file || (file.type && !file.type.startsWith('image/'))) {
       if (file) toast('Choose a supported image file.');
       return;
     }
-    if (!recognitionRuntime?.supportsMimeType(file.type)) {
+    let client;
+    let selected;
+    try {
+      client = await loadPublicClient();
+      selected = client.resolvePublicImage(file);
+    } catch (error) {
+      toast(publicClient?.publicErrorMessage(error) || 'Choose a JPEG, PNG, or WebP image.');
+      return;
+    }
+    if (!recognitionRuntime?.supportsMimeType(selected.sourceImageType)) {
       toast('Choose a JPEG, PNG, or WebP image.');
       return;
     }
     closeSheets(false);
     analysis?.clear();
     els.engineToggle.checked = false;
+    publicRecognitionController?.abort();
+    publicRecognitionController = new AbortController();
     const snapshot = state.beginSource();
+    selectedSourceFile = file;
+    selectedCaptureType = source;
+    publicRecognition = null;
+    publicFailureContext = null;
+    publicFailureError = null;
+    els.reportFailure.hidden = true;
+    els.publicServiceStatus.textContent = '';
     releaseSourcePreview();
     objectUrl = URL.createObjectURL(file);
     els.preview.src = objectUrl;
@@ -470,17 +603,27 @@
     setBoardEmpty(true);
     const expectedGeneration = snapshot.generation;
     try {
-      const prepared = await recognitionRuntime.processImage(file, expectedGeneration);
+      const prepared = await recognitionRuntime.processImage(selected.blob, expectedGeneration);
+      const recognized = await client.recognizePublicPosition({
+        file,
+        prepared,
+        captureType: source,
+        orientation: 'white-at-bottom',
+        signal: publicRecognitionController.signal
+      });
       await preserveReadingDuration(readingStartedAt);
       if (state.snapshot().generation !== expectedGeneration) return;
+      publicRecognition = recognized;
+      const confidences = recognized.snapshot.squarePredictions.map(item => item.confidence);
+      const confidenceBySquare = Object.fromEntries(recognized.snapshot.squarePredictions.map(item => [item.square, item.confidence]));
       const accepted = state.setCandidate(expectedGeneration, {
-        fen: MOCK_FEN,
-        boardConfidence: null,
-        pieceConfidenceBySquare: {},
-        lowConfidenceSquares: [],
-        orientation: 'unknown',
-        recognitionStage: 'geometry-only',
-        pieceRecognition: 'not-implemented',
+        fen: recognized.snapshot.predictedFEN,
+        boardConfidence: confidences.reduce((sum, value) => sum + value, 0) / confidences.length,
+        pieceConfidenceBySquare: confidenceBySquare,
+        lowConfidenceSquares: recognized.snapshot.squarePredictions.filter(item => item.confidence < 0.8).map(item => item.square),
+        orientation: recognized.snapshot.orientation,
+        recognitionStage: 'production-v05',
+        pieceRecognition: recognized.snapshot.modelVersion,
         localization: prepared.board ? {
           status: prepared.status,
           corners: prepared.board.corners,
@@ -495,22 +638,36 @@
       });
       if (!accepted) return;
       releaseSourcePreview();
-      els.fen.value = MOCK_FEN;
+      els.fen.value = recognized.snapshot.predictedFEN;
       els.candidateStatus.textContent = 'Ready to review';
       els.workspaceTitle.textContent = 'Review position';
       routeRecognitionResult();
     } catch (error) {
-      if (error?.code === 'canceled' || error?.code === 'stale-generation') return;
+      if (error?.name === 'AbortError' || error?.code === 'canceled' || error?.code === 'stale-generation') return;
       if (state.snapshot().generation !== expectedGeneration) return;
       state.fail(expectedGeneration, error?.code || 'worker-processing-failed');
+      let failureContext = error.publicFailureContext || null;
+      if (!failureContext) {
+        try { failureContext = await client.createPublicFailureContext(file, source); }
+        catch (_) { /* Unreadable files cannot form a governed failure record. */ }
+      }
       resetAll(true);
-      toast('Could not read that image. Choose another image to try again.');
+      selectedSourceFile = file;
+      selectedCaptureType = source;
+      publicFailureContext = failureContext;
+      publicFailureError = error;
+      els.reportFailure.hidden = !failureContext;
+      const message = client.publicErrorMessage(error);
+      els.publicServiceStatus.textContent = message;
+      toast(message);
     }
   }
 
   function resetAll(goHome = true) {
     analysis?.clear();
     recognitionRuntime?.cancelActive('scanner-reset');
+    publicRecognitionController?.abort();
+    publicRecognitionController = null;
     state.reset();
     releaseSourcePreview();
     els.camera.value = '';
@@ -534,6 +691,17 @@
     editOriginalFlipped = false;
     editEntryMode = null;
     activeEditTool = null;
+    publicRecognition = null;
+    publicFailureContext = null;
+    publicFailureError = null;
+    selectedSourceFile = null;
+    selectedCaptureType = null;
+    pendingFeedbackType = null;
+    structuralAcknowledged = false;
+    els.reportFailure.hidden = true;
+    els.publicServiceStatus.textContent = '';
+    els.structuralWarning.hidden = true;
+    els.structuralAcknowledge.checked = false;
     els.editSheet.hidden = true;
     els.editFooter.hidden = true;
     els.reviewEdit.classList.remove('edit-mode');
@@ -646,6 +814,8 @@
     selectEditTool(null);
     syncEditFields(fen);
     validateCurrent(false);
+    structuralAcknowledged = false;
+    renderPublicStructuralGuardrail(fen);
     setEditFeedback('Select a piece or Clear Square, then tap the board.');
     els.workspaceTitle.textContent = 'Edit position';
     els.candidateStatus.textContent = 'Editing';
@@ -675,6 +845,11 @@
       const result = validateCurrent();
       if (!result.ok) {
         toast(result.error);
+        return;
+      }
+      const structural = renderPublicStructuralGuardrail(result.fen);
+      if (structural.status === 'REVIEW_REQUIRED' && !structuralAcknowledged) {
+        toast('Review and acknowledge the structural warning before continuing.');
         return;
       }
       state.revise(result.fen);
@@ -932,8 +1107,8 @@
     items[target].focus();
   }
 
-  els.camera.addEventListener('change', (event) => selectFile(event.target.files?.[0]));
-  els.gallery.addEventListener('change', (event) => selectFile(event.target.files?.[0]));
+  els.camera.addEventListener('change', (event) => selectFile(event.target.files?.[0], 'camera'));
+  els.gallery.addEventListener('change', (event) => selectFile(event.target.files?.[0], 'gallery'));
   ['dragenter', 'dragover'].forEach((name) => els.drop.addEventListener(name, (event) => {
     event.preventDefault();
     els.drop.classList.add('dragging');
@@ -942,7 +1117,7 @@
     event.preventDefault();
     els.drop.classList.remove('dragging');
   }));
-  els.drop.addEventListener('drop', (event) => selectFile(event.dataTransfer?.files?.[0]));
+  els.drop.addEventListener('drop', (event) => selectFile(event.dataTransfer?.files?.[0], 'gallery'));
   [els.blackPalette, els.whitePalette].forEach((palette) => palette.addEventListener('click', (event) => {
     const button = event.target.closest('[data-piece]');
     if (!button) return;
@@ -958,6 +1133,11 @@
     els.editCastling.setAttribute('aria-expanded', String(open));
   });
   els.castlingInputs.forEach((input) => input.addEventListener('change', updateCastling));
+  els.structuralAcknowledge.addEventListener('change', () => {
+    structuralAcknowledged = els.structuralAcknowledge.checked;
+    renderPublicStructuralGuardrail(els.fen.value);
+  });
+  els.localizationWrong.addEventListener('click', () => openFeedback('LOCALIZATION_FAILURE', els.localizationWrong));
   els.validate.addEventListener('click', () => validateCurrent());
   els.fen.addEventListener('input', () => {
     selectedSquare = null;
@@ -991,6 +1171,13 @@
   els.cancelNewScan.addEventListener('click', () => closeSheets(true));
   els.takePhoto.addEventListener('click', () => openPicker(els.camera));
   els.choosePhoto.addEventListener('click', () => openPicker(els.gallery));
+  els.helpImprove.addEventListener('click', () => openFeedback('AUTO', els.helpImprove));
+  els.reportFailure.addEventListener('click', () => openFeedback('SCAN_FAILURE', els.reportFailure));
+  els.cancelFeedback.addEventListener('click', () => closeSheets(true));
+  els.shareCorrection.addEventListener('change', () => {
+    els.submitFeedback.disabled = !els.shareCorrection.checked;
+  });
+  els.submitFeedback.addEventListener('click', sendPublicFeedback);
   els.workspaceSaveDiagram.addEventListener('click', showDiagramLibraryPlaceholder);
   els.workspaceShare.addEventListener('click', () => openExport(els.workspaceShare));
   els.analyze.addEventListener('click', () => {
@@ -1045,4 +1232,20 @@
 
   updateAuthMenu();
   resetAll(true);
+  $('copyScannerUrlBtn')?.addEventListener('click', async () => {
+    const value = $('scannerCanonicalUrl').value;
+    try {
+      await navigator.clipboard.writeText(value);
+      $('copyScannerUrlBtn').textContent = 'Copied';
+    } catch (_) {
+      $('scannerCanonicalUrl').select();
+      document.execCommand?.('copy');
+      $('copyScannerUrlBtn').textContent = 'Copied';
+    }
+  });
+  loadPublicClient().then(client => client.publicStatus()).then(status => {
+    if (!status.known || status.available) return;
+    els.homeScan.disabled = true;
+    els.publicServiceStatus.textContent = 'Scanner is temporarily paused. The mobile guide remains available while service is restored.';
+  }).catch(() => { /* A static/offline shell remains usable in test and local preview environments. */ });
 })();

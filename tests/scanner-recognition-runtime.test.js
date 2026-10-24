@@ -407,7 +407,8 @@ test('Scanner app connects decode and worker behind the existing frozen route se
   const [html, app] = await Promise.all([read('scanner/index.html'), read('scanner/scanner-app.js')]);
   assert.match(html, /scanner-image-decode\.js/);
   assert.match(html, /scanner-recognition-runtime\.js/);
-  assert.match(app, /recognitionRuntime\.processImage\(file, expectedGeneration\)/);
+  assert.match(app, /recognitionRuntime\.processImage\(selected\.blob, expectedGeneration\)/);
+  assert.match(app, /client\.recognizePublicPosition/);
   assert.match(app, /state\.setCandidate\(expectedGeneration/);
   assert.match(app, /routeRecognitionResult\(\)/);
   assert.match(app, /recognitionRuntime\?\.cancelActive\('scanner-reset'\)/);

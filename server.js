@@ -16,6 +16,7 @@ import {
 import { createScannerBetaHttpAdapter } from './tools/scanner-beta-feedback/http-adapter.mjs';
 import { createBetaProgramService } from './api/_lib/beta-program-service.js';
 import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-document.js';
+import { MODEL, expandPlacement, squareAt } from './scanner/beta/scanner-beta-contract.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +45,45 @@ const betaProgram = createBetaProgramService({
   ...(testBetaBypass ? { store: localBetaStore, authenticate: async () => ({ authenticated: true, ok: true, userId: 'test-clerk' }) } : {})
 });
 const scannerBeta = createScannerBetaHttpAdapter({ env: process.env, authorizeExperiment: betaProgram.authorizeExperiment });
+
+const scannerPublicTestFen = 'r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R w KQkq - 4 10';
+function scannerPublicTestPrediction() {
+  const labels = expandPlacement(scannerPublicTestFen);
+  return {
+    schemaVersion: 'caissa-scanner-beta-recognition-response/1',
+    modelVersion: MODEL.version,
+    modelChecksum: MODEL.checksum,
+    occupancyThreshold: MODEL.occupancyThreshold,
+    predictedFEN: scannerPublicTestFen,
+    squarePredictions: labels.map((predictedClass, index) => ({
+      square: squareAt(index), predictedClass, confidence: 0.999,
+      occupancyProbability: predictedClass === 'empty' ? 0.001 : 0.999,
+      colorProbabilities: predictedClass === 'empty' || predictedClass === predictedClass.toUpperCase() ? [0.999, 0.001] : [0.001, 0.999],
+      pieceTypeProbabilities: [0.999, 0.0002, 0.0002, 0.0002, 0.0002, 0.0002],
+      kingAuxiliaryProbability: /[Kk]/.test(predictedClass) ? 0.999 : 0.001
+    }))
+  };
+}
+
+async function handleScannerPublicTestApi(req, res, pathname) {
+  if (!testBetaBypass || !pathname.startsWith('/api/scanner/public/')) return false;
+  if (pathname === '/api/scanner/public/status' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ available: true, stage: 'public-beta' }));
+    return true;
+  }
+  if (!['POST', 'PUT'].includes(req.method)) return false;
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const route = pathname.split('/').pop();
+  const response = route === 'recognize' ? scannerPublicTestPrediction()
+    : route === 'scan' ? { accepted: true, duplicate: false }
+      : route === 'image' ? { accepted: true, imageStorageReference: 'supabase://scanner-public-feedback-images/test-user/AA/' + 'A'.repeat(64) }
+        : { accepted: true, duplicate: false, certificationStatus: 'raw-unverified' };
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(response));
+  return true;
+}
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -382,6 +422,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (await scannerBeta.handle(req, res, pathname)) return;
+  if (await handleScannerPublicTestApi(req, res, pathname)) return;
 
   if (pathname === '/api/beta/access') {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -536,6 +577,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/blog') {
     filePath = './blog/index.html';
+  }
+  if (pathname === '/scanner' || pathname === '/scanner/') {
+    filePath = './scanner/index.html';
   }
   if (pathname === '/scanner/beta' || pathname === '/scanner/beta/' || pathname === '/scanner/beta/index.html') {
     filePath = './api/_private/scanner-beta-index.html';

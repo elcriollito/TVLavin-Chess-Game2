@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { scannerBoardImage as imageFixture } from './fixtures/scanner-board-image.js';
 
 async function openScanner(page) {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/scanner/index.html');
   await expect.poll(() => page.evaluate(() => Boolean(
     window.CaissaScannerImageDecode && window.CaissaScannerRecognitionRuntime
@@ -235,7 +236,7 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
     expect(result.malformed).toMatchObject({ type: 'recognition-error', code: 'malformed-payload' });
   });
 
-  test('existing Scanner flow replaces local sources, releases URLs, and reaches the unchanged mock review seam', async ({ page }) => {
+  test('public Scanner replaces local sources, releases URLs, and reaches the production review seam', async ({ page }) => {
     await page.addInitScript(() => {
       const create = URL.createObjectURL.bind(URL);
       const revoke = URL.revokeObjectURL.bind(URL);
@@ -281,9 +282,9 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
       backend: 'rgba-arraybuffer-worker'
     });
     expect(result.state.candidate.timingsMs.totalPreprocessMs).toBeGreaterThanOrEqual(0);
-    expect(result.state.candidate.recognitionStage).toBe('geometry-only');
-    expect(result.state.candidate.pieceRecognition).toBe('not-implemented');
-    expect(result.state.candidate.orientation).toBe('unknown');
+    expect(result.state.candidate.recognitionStage).toBe('production-v05');
+    expect(result.state.candidate.pieceRecognition).toBe('caissa-piece-classifier-v0.5-occupancy-recovery');
+    expect(result.state.candidate.orientation).toBe('white-at-bottom');
     expect(result.state.candidate.localization).toMatchObject({
       status: 'board-localized',
       boardSize: 512
@@ -291,6 +292,7 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
     expect(result.urlLifecycle.created).toBeGreaterThan(0);
     expect(result.urlLifecycle.revoked).toBe(result.urlLifecycle.created);
     expect(result.previewSource).toBe(null);
-    expect(nonGetRequests).toEqual([]);
+    expect(nonGetRequests.filter(request => new URL(request.url).pathname.endsWith('/recognize')).length).toBeGreaterThanOrEqual(1);
+    expect(nonGetRequests.filter(request => new URL(request.url).pathname.endsWith('/scan')).length).toBeGreaterThanOrEqual(1);
   });
 });
