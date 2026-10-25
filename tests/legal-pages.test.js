@@ -54,3 +54,26 @@ test('legal pages publish only the official privacy contact', () => {
     assert.doesNotMatch(source, /@gmail\.com/i);
   }
 });
+
+test('privacy draft matches current analytics, Google identity, and payment activation state', () => {
+  const source = read('privacy.html');
+  assert.match(source, /Microsoft Clarity is not loaded by the current production pages/);
+  assert.doesNotMatch(source, /enable optional Clarity analytics/);
+  assert.match(source, /https:\/\/www\.googleapis\.com\/auth\/userinfo\.email/);
+  assert.match(source, /https:\/\/www\.googleapis\.com\/auth\/userinfo\.profile/);
+  assert.match(source, /no production Stripe configuration or enabled credit-store flag/i);
+});
+
+test('legal decision register preserves every unresolved publication decision', () => {
+  const source = read('docs/AUTH-004B-LEGAL-DECISION-REGISTER.md');
+  for (const item of [
+    'Individual operator identification', 'Privacy contact and legal notices',
+    'Data retention and deletion', 'Minimum age and parental consent',
+    'International data transfers', 'Payment, subscription and refund terms',
+    'Suspension and appeal procedure', 'Liability provisions',
+    'Governing law and disputes', 'Material policy updates'
+  ]) assert.match(source, new RegExp(item));
+  for (const classification of [
+    'FACTUALLY VERIFIED', 'LEGAL REVIEW REQUIRED', 'HUMAN DECISION REQUIRED'
+  ]) assert.match(source, new RegExp(classification));
+});
