@@ -253,14 +253,33 @@ test('review actions append history and reject classifier/localization cross-con
   assert.equal(blocked.statusCode, 400); assert.equal(blocked.body.error, 'TRAINING_ELIGIBILITY_HISTORY_BLOCKED');
 });
 
+test('review case-open audit is privileged, same-origin, and explicitly bounded', async () => {
+  let event = null;
+  const service = createScannerFeedbackReviewService({
+    authorize: async () => ({ ok: true, user: { authenticated: true, id: UUIDS[0], role: 'owner', entitlements: [] } }),
+    store: { async recordReviewEvent(value) { event = value; return value; } }
+  });
+  const accepted = response();
+  await service.audit({ method: 'POST', headers: { host: 'caissa.test', origin: 'https://caissa.test' },
+    body: { feedbackId: UUIDS[1], eventType: 'CASE_OPENED' } }, accepted);
+  assert.equal(accepted.statusCode, 201);
+  assert.deepEqual(event, { feedbackId: UUIDS[1], reviewerId: UUIDS[0], eventType: 'CASE_OPENED' });
+  const rejected = response();
+  await service.audit({ method: 'POST', headers: { host: 'caissa.test', origin: 'https://evil.test' },
+    body: { feedbackId: UUIDS[1], eventType: 'CASE_OPENED' } }, rejected);
+  assert.equal(rejected.statusCode, 403);
+});
+
 test('migration makes raw evidence and certification history append-only with private storage and explicit grants', async () => {
   const sql = await read('supabase/migrations/20261024230355_scanner_public_feedback_v01.sql');
-  for (const table of ['scanner_public_scans', 'scanner_public_feedback_raw', 'scanner_feedback_certifications']) {
+  for (const table of ['scanner_public_scans', 'scanner_public_feedback_raw', 'scanner_feedback_certifications', 'scanner_feedback_review_audit']) {
     assert.match(sql, new RegExp(`alter table public\\.${table} force row level security`));
   }
   assert.match(sql, /SCANNER_PUBLIC_EVIDENCE_APPEND_ONLY/);
   assert.match(sql, /before update or delete on public\.scanner_public_feedback_raw/);
   assert.match(sql, /before update or delete on public\.scanner_feedback_certifications/);
+  assert.match(sql, /before update or delete on public\.scanner_feedback_review_audit/);
+  assert.match(sql, /'CASE_OPENED','CERTIFIED','HELD','EXCLUDED','DUPLICATE','TRAINING_ELIGIBILITY_GRANTED'/);
   assert.match(sql, /revoke all on public\.scanner_public_scans, public\.scanner_public_feedback_raw,[\s\S]*from public, anon, authenticated/);
   assert.match(sql, /'scanner-public-feedback-images',[\s\S]*false/);
   assert.match(sql, /split_part\(p_image_storage_reference,'\/',6\) <> p_feedback->>'imageHash'/);

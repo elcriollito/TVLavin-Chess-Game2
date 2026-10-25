@@ -110,6 +110,13 @@ export function createScannerPublicSupabaseStore(client = getSupabase()) {
       }), 'SCANNER_PUBLIC_CERTIFICATION_WRITE');
       return row ? mapCertification(row) : null;
     },
+    async recordReviewEvent({ feedbackId, reviewerId, eventType }) {
+      return checked(await client.rpc('record_scanner_feedback_review_event', {
+        p_feedback_id: feedbackId,
+        p_reviewer_id: reviewerId,
+        p_event_type: eventType
+      }), 'SCANNER_PUBLIC_REVIEW_AUDIT');
+    },
     async signedImage(reference, expiresIn = 60) {
       const match = String(reference || '').match(/^supabase:\/\/scanner-public-feedback-images\/(.+)$/);
       if (!match) throw new Error('IMAGE_REFERENCE_INVALID');

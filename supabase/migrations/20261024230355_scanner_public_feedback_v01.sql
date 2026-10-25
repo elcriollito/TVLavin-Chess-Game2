@@ -70,6 +70,16 @@ create table public.scanner_feedback_certifications (
   check ((action = 'DUPLICATE') = (duplicate_of is not null))
 );
 
+create table public.scanner_feedback_review_audit (
+  id bigint generated always as identity primary key,
+  feedback_id uuid not null references public.scanner_public_feedback_raw(feedback_id) on delete restrict,
+  reviewer_id uuid not null references public.users(id) on delete restrict,
+  event_type text not null check (event_type in (
+    'CASE_OPENED','CERTIFIED','HELD','EXCLUDED','DUPLICATE','TRAINING_ELIGIBILITY_GRANTED'
+  )),
+  recorded_at timestamptz not null default now()
+);
+
 create index scanner_public_feedback_review_idx
   on public.scanner_public_feedback_raw(submitted_at desc);
 create index scanner_public_feedback_type_idx
@@ -81,20 +91,26 @@ create index scanner_feedback_certifications_history_idx
 create index scanner_feedback_training_candidates_idx
   on public.scanner_feedback_certifications(target_corpus, certified_at desc)
   where training_eligible;
+create index scanner_feedback_review_audit_idx
+  on public.scanner_feedback_review_audit(feedback_id, recorded_at desc, id desc);
 
 alter table public.scanner_public_scans enable row level security;
 alter table public.scanner_public_feedback_raw enable row level security;
 alter table public.scanner_feedback_certifications enable row level security;
+alter table public.scanner_feedback_review_audit enable row level security;
 alter table public.scanner_public_scans force row level security;
 alter table public.scanner_public_feedback_raw force row level security;
 alter table public.scanner_feedback_certifications force row level security;
+alter table public.scanner_feedback_review_audit force row level security;
 
 revoke all on public.scanner_public_scans, public.scanner_public_feedback_raw,
-  public.scanner_feedback_certifications from public, anon, authenticated;
-revoke all on sequence public.scanner_feedback_certifications_id_seq from public, anon, authenticated;
+  public.scanner_feedback_certifications, public.scanner_feedback_review_audit from public, anon, authenticated;
+revoke all on sequence public.scanner_feedback_certifications_id_seq,
+  public.scanner_feedback_review_audit_id_seq from public, anon, authenticated;
 grant select, insert on public.scanner_public_scans, public.scanner_public_feedback_raw,
-  public.scanner_feedback_certifications to service_role;
-grant usage, select on sequence public.scanner_feedback_certifications_id_seq to service_role;
+  public.scanner_feedback_certifications, public.scanner_feedback_review_audit to service_role;
+grant usage, select on sequence public.scanner_feedback_certifications_id_seq,
+  public.scanner_feedback_review_audit_id_seq to service_role;
 
 create or replace function private.scanner_public_append_only()
 returns trigger language plpgsql security invoker set search_path = pg_catalog as $$
@@ -110,6 +126,9 @@ before update or delete on public.scanner_public_feedback_raw
 for each row execute function private.scanner_public_append_only();
 create trigger scanner_feedback_certifications_append_only
 before update or delete on public.scanner_feedback_certifications
+for each row execute function private.scanner_public_append_only();
+create trigger scanner_feedback_review_audit_append_only
+before update or delete on public.scanner_feedback_review_audit
 for each row execute function private.scanner_public_append_only();
 
 create or replace function public.submit_scanner_public_scan(
@@ -245,6 +264,37 @@ begin
     coalesce(array(select jsonb_array_elements_text(coalesce(p_decision->'reasonCodes','[]'::jsonb))),array[]::text[]),
     nullif(p_decision->>'duplicateOf','')::uuid
   ) returning * into v_row;
+  if v_row.action like 'CERTIFY%' then
+    insert into public.scanner_feedback_review_audit(feedback_id,reviewer_id,event_type)
+      values (v_row.feedback_id,v_row.certified_by,'CERTIFIED');
+  elsif v_row.action = 'HOLD' then
+    insert into public.scanner_feedback_review_audit(feedback_id,reviewer_id,event_type)
+      values (v_row.feedback_id,v_row.certified_by,'HELD');
+  elsif v_row.action = 'EXCLUDE' then
+    insert into public.scanner_feedback_review_audit(feedback_id,reviewer_id,event_type)
+      values (v_row.feedback_id,v_row.certified_by,'EXCLUDED');
+  elsif v_row.action = 'DUPLICATE' then
+    insert into public.scanner_feedback_review_audit(feedback_id,reviewer_id,event_type)
+      values (v_row.feedback_id,v_row.certified_by,'DUPLICATE');
+  end if;
+  if v_row.training_eligible then
+    insert into public.scanner_feedback_review_audit(feedback_id,reviewer_id,event_type)
+      values (v_row.feedback_id,v_row.certified_by,'TRAINING_ELIGIBILITY_GRANTED');
+  end if;
+  return v_row;
+end $$;
+
+create or replace function public.record_scanner_feedback_review_event(
+  p_feedback_id uuid,
+  p_reviewer_id uuid,
+  p_event_type text
+) returns public.scanner_feedback_review_audit
+language plpgsql security definer set search_path = pg_catalog as $$
+declare v_row public.scanner_feedback_review_audit;
+begin
+  if p_event_type <> 'CASE_OPENED' then raise exception 'REVIEW_AUDIT_EVENT_INVALID'; end if;
+  insert into public.scanner_feedback_review_audit(feedback_id,reviewer_id,event_type)
+    values (p_feedback_id,p_reviewer_id,p_event_type) returning * into v_row;
   return v_row;
 end $$;
 
@@ -264,8 +314,10 @@ revoke all on function private.scanner_public_append_only() from public, anon, a
 revoke all on function public.submit_scanner_public_scan(uuid,jsonb,text,jsonb) from public, anon, authenticated;
 revoke all on function public.submit_scanner_public_feedback(uuid,jsonb,text,text,text) from public, anon, authenticated;
 revoke all on function public.record_scanner_feedback_certification(jsonb) from public, anon, authenticated;
+revoke all on function public.record_scanner_feedback_review_event(uuid,uuid,text) from public, anon, authenticated;
 grant execute on function public.submit_scanner_public_scan(uuid,jsonb,text,jsonb),
   public.submit_scanner_public_feedback(uuid,jsonb,text,text,text),
-  public.record_scanner_feedback_certification(jsonb) to service_role;
+  public.record_scanner_feedback_certification(jsonb),
+  public.record_scanner_feedback_review_event(uuid,uuid,text) to service_role;
 
 commit;

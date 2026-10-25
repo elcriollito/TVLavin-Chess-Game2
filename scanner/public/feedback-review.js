@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 const filterControls = [...document.querySelectorAll("[data-filter]")];
 let records = [];
 let selectedId = null;
+const openedCaseIds = new Set();
 const pieceAssets = Object.freeze({
   K: "wK",
   Q: "wQ",
@@ -357,7 +358,18 @@ function selectCase(id) {
   selectedId = id;
   renderList();
   const record = records.find((item) => item.feedbackId === id);
-  if (record) renderDetail(record);
+  if (record) {
+    renderDetail(record);
+    if (!openedCaseIds.has(id)) {
+      openedCaseIds.add(id);
+      void fetch('/api/scanner/feedback-review/audit', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedbackId: id, eventType: 'CASE_OPENED' })
+      }).catch(() => { /* review remains available if noncritical audit transport fails */ });
+    }
+  }
 }
 
 async function submitAction(action) {

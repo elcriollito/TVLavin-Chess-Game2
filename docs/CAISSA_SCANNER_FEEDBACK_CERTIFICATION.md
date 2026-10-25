@@ -24,6 +24,8 @@ The lifecycle is deliberately separated:
 
 `scanner_feedback_certifications` is a separate append-only decision history. A later decision adds a row; it never edits a raw submission or erases an earlier decision. Each record includes the reviewer, timestamp, certification version, notes, target corpus, training-eligibility flag, reason codes, and duplicate reference where applicable.
 
+`scanner_feedback_review_audit` is a separate append-only operational audit. It records a bounded case-open event once per reviewer page session and records certified, held, excluded, duplicate, and training-eligibility-granted events alongside the authoritative certification history. It contains no source pixels or free-form public metadata.
+
 The private storage bucket is `scanner-public-feedback-images`. There are no anon or authenticated grants on the evidence tables and no public storage policy. Browser access is mediated by the server.
 
 ## Reviewer authorization

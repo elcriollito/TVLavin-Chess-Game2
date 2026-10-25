@@ -135,6 +135,27 @@ export function createScannerFeedbackReviewService({ store = null, authorize = n
         return reply(res, code.includes('NOT_FOUND') ? 404 : 400, { error: code });
       }
     },
+    async audit(req, res) {
+      if (req.method !== 'POST') return reply(res, 405, { error: 'METHOD_NOT_ALLOWED' });
+      if (!sameOrigin(req)) return reply(res, 403, { error: 'ORIGIN_REJECTED' });
+      const access = await guard(req);
+      if (!access.ok) return reply(res, access.status || 403, { error: access.code || 'REVIEWER_ACCESS_DENIED' });
+      try {
+        const body = bodyOf(req);
+        if (body.eventType !== 'CASE_OPENED' || !/^[0-9a-f-]{36}$/i.test(body.feedbackId || '')) {
+          throw new Error('REVIEW_AUDIT_INVALID');
+        }
+        await data().recordReviewEvent({
+          feedbackId: body.feedbackId,
+          reviewerId: access.user.id,
+          eventType: body.eventType
+        });
+        return reply(res, 201, { accepted: true });
+      } catch (error) {
+        const code = String(error?.message || 'REVIEW_AUDIT_INVALID');
+        return reply(res, code.includes('NOT_FOUND') ? 404 : 400, { error: code });
+      }
+    },
     async image(req, res) {
       if (req.method !== 'GET') return reply(res, 405, { error: 'METHOD_NOT_ALLOWED' });
       const access = await guard(req);
