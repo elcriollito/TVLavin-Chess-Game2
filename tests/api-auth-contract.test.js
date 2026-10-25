@@ -57,6 +57,28 @@ test('invalid-token reasons remain 401 across SDK bundle boundaries', async () =
   assert.doesNotMatch(JSON.stringify(result), /sensitive|foreign/);
 });
 
+test('a stale key rejection does not poison a later request after JWKS refresh', async () => {
+  let attempts = 0;
+  const stale = new Error('stale cached key detail');
+  stale.reason = 'jwk-kid-mismatch';
+  const authenticate = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'test' },
+    verifyToken: async () => {
+      attempts += 1;
+      if (attempts === 1) throw stale;
+      return { sub: 'synthetic-user', email: null };
+    },
+    log() {}
+  });
+  const first = await authenticate(request('GET', 'Bearer rotated-token'));
+  const refreshed = await authenticate(request('GET', 'Bearer rotated-token'));
+  assert.equal(first.status, 401);
+  assert.equal(first.code, 'INVALID_TOKEN');
+  assert.equal(refreshed.authenticated, true);
+  assert.equal(refreshed.userId, 'synthetic-user');
+  assert.equal(attempts, 2);
+});
+
 test('configuration and unexpected verifier failures are controlled 503', async () => {
   const missingConfig = createAuthenticateRequest({ env: {}, log() {} });
   assert.equal((await missingConfig(request('GET', 'Bearer synthetic'))).status, 503);
