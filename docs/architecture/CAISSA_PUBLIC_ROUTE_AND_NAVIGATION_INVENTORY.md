@@ -1,6 +1,6 @@
 # CAISSA Public Route and Navigation Inventory
 
-Contract: `CaissaPublicRouteInventory@1.3.0`
+Contract: `CaissaPublicRouteInventory@1.4.0`
 
 This document and [the machine-readable inventory](../../config/caissa-public-route-inventory.json) are generated deterministically from the routing and navigation owners. Do not edit either output manually.
 
@@ -16,13 +16,13 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 ## Calculated summary
 
-- Primary navigation entries: 39
-- Internal primary pages: 35
+- Primary navigation entries: 40
+- Internal primary pages: 36
 - Public canonical routes not in primary navigation: 16
 - External destinations: 4
 - Redirects: 15
 - Protected route families: 5
-- Total inventoried records: 75
+- Total inventoried records: 76
 
 ## Primary navigation
 
@@ -50,23 +50,24 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 20 | analyze-and-watch | Live Blitz | /watch/live-blitz | internal-page | CaissaPrimaryNavigation |
 | 21 | analyze-and-watch | Live Tournaments | /watch/live-tournaments | internal-page | CaissaPrimaryNavigation |
 | 22 | analyze-and-watch | Engine Arena | /arena | internal-page | CaissaPrimaryNavigation |
-| 23 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
-| 24 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
-| 25 | tools | GIF Studio | /gif-maker | internal-page | CaissaPrimaryNavigation |
-| 26 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
-| 27 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
-| 28 | tools | World Champions | /game-library/champions | internal-page | CaissaPrimaryNavigation |
-| 29 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
-| 30 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
-| 31 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
-| 32 | more | Blog | /blog | internal-page | CaissaPrimaryNavigation |
-| 33 | more | Support CAISSA | /support | internal-page | CaissaPrimaryNavigation |
-| 34 | more | Help | /help | internal-page | CaissaPrimaryNavigation |
-| 35 | more | About | /about | internal-page | CaissaPrimaryNavigation |
-| 36 | more | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
-| 37 | social-footer | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
-| 38 | social-footer | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
-| 39 | social-footer | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
+| 23 | tools | Scanner | /scanner | internal-page | CaissaPrimaryNavigation |
+| 24 | tools | Cheater Insight | /cheater-insight | internal-page | CaissaPrimaryNavigation |
+| 25 | tools | Polyglot Tool | /tools/polyglot | internal-page | CaissaPrimaryNavigation |
+| 26 | tools | GIF Studio | /gif-maker | internal-page | CaissaPrimaryNavigation |
+| 27 | tools | Opening Database | /opening-database | internal-page | CaissaPrimaryNavigation |
+| 28 | tools | ECO Codes | /eco | internal-page | CaissaPrimaryNavigation |
+| 29 | tools | World Champions | /game-library/champions | internal-page | CaissaPrimaryNavigation |
+| 30 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
+| 31 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
+| 32 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
+| 33 | more | Blog | /blog | internal-page | CaissaPrimaryNavigation |
+| 34 | more | Support CAISSA | /support | internal-page | CaissaPrimaryNavigation |
+| 35 | more | Help | /help | internal-page | CaissaPrimaryNavigation |
+| 36 | more | About | /about | internal-page | CaissaPrimaryNavigation |
+| 37 | more | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
+| 38 | social-footer | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
+| 39 | social-footer | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
+| 40 | social-footer | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
 
 ## Public canonical routes outside primary navigation
 

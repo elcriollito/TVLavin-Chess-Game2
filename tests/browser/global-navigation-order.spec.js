@@ -14,12 +14,12 @@ const canonicalOrder = [
   'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
   'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
-  'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
+  'Scanner', 'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
   'World Champions', 'History', 'DOS Chess', 'Vault',
   'Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.20.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.21.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.getByRole('navigation', { name: 'CAISSA main navigation' });

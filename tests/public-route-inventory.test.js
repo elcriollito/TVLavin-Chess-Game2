@@ -6,7 +6,7 @@ import test from 'node:test';
 const read = file => fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const inventory = JSON.parse(read('config/caissa-public-route-inventory.json'));
 
-test('CaissaPublicRouteInventory@1.3.0 is complete, unique, and ordered', () => {
+test('CaissaPublicRouteInventory@1.4.0 is complete, unique, and ordered', () => {
   const vercel = JSON.parse(read('vercel.json'));
   const sitemap = read('public/sitemap.xml');
   const routeIsOwned = canonicalPath => vercel.rewrites.some(rule => {
@@ -15,7 +15,7 @@ test('CaissaPublicRouteInventory@1.3.0 is complete, unique, and ordered', () => 
       .replace(/:[^/]+/g, '[^/]+');
     return new RegExp(`^${pattern}$`).test(canonicalPath);
   });
-  assert.equal(inventory.contractId, 'CaissaPublicRouteInventory@1.3.0');
+  assert.equal(inventory.contractId, 'CaissaPublicRouteInventory@1.4.0');
   assert.equal(inventory.publicCanonicalRoutes.find(item => item.id === 'home')?.canonicalPath, '/');
   assert.equal(inventory.redirectsAndAliases.some(item => item.redirectFrom === '/'), false);
   assert.deepEqual(inventory.primaryNavigation.slice(0, 6).map(item => item.label), ['Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz']);
@@ -31,10 +31,13 @@ test('CaissaPublicRouteInventory@1.3.0 is complete, unique, and ordered', () => 
   assert.equal(inventory.primaryNavigation[19].label, 'Live Blitz');
   assert.equal(inventory.primaryNavigation[20].label, 'Live Tournaments');
   assert.equal(inventory.primaryNavigation[21].label, 'Engine Arena');
+  assert.equal(inventory.primaryNavigation[22].label, 'Scanner');
+  assert.equal(inventory.primaryNavigation[22].canonicalPath, '/scanner');
+  assert.equal(inventory.primaryNavigation[22].group, 'tools');
   assert.equal(inventory.primaryNavigation.find(item => item.id === 'gif-studio')?.canonicalPath, '/gif-maker');
   assert.equal(inventory.primaryNavigation.find(item => item.id === 'gif-studio')?.group, 'tools');
-  assert.equal(inventory.primaryNavigation[31].group, 'more');
-  assert.equal(inventory.primaryNavigation[36].group, 'social-footer');
+  assert.equal(inventory.primaryNavigation[32].group, 'more');
+  assert.equal(inventory.primaryNavigation[37].group, 'social-footer');
   assert.equal(inventory.primaryNavigation.some(item => item.id === 'library'), false);
   assert.equal(inventory.primaryNavigation.find(item => item.id === 'world-champions')?.canonicalPath, '/game-library/champions');
   assert.equal(inventory.publicCanonicalRoutes.find(item => item.id === 'game-library-legacy')?.canonicalPath, '/game-library');

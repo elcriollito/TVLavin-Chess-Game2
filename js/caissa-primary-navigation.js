@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.20.0';
+    const contractId = 'CaissaGlobalNavigationOrderPolicy@1.21.0';
     const i18n = global.CaissaI18n || Object.freeze({
         enabledLocales: Object.freeze(['en']),
         supportedLocales: Object.freeze({ en: Object.freeze({ code: 'en', name: 'English', enabled: true }) }),
@@ -47,6 +47,7 @@
             { id: 'arena', label: 'Engine Arena', icon: 'fas fa-robot', section: 'arena', route: '/arena', canonicalNavigation: true }
         ]),
         Object.freeze([
+            { id: 'scanner', label: 'Scanner', allToolsLabel: 'CAISSA Scanner', icon: 'fas fa-camera', route: '/scanner', statusLabel: 'Public Beta', description: 'Scan chess positions from screenshots, websites, broadcasts, and photos of 2D boards.' },
             { id: 'cheater-insight', label: 'Cheater Insight', icon: 'fas fa-user-shield', section: 'cheater-insight', route: '/cheater-insight', canonicalNavigation: true },
             { id: 'polyglot', label: 'Polyglot Tool', icon: 'fas fa-book-open', route: '/tools/polyglot', externalIndicator: true },
             { id: 'gif-studio', label: 'GIF Studio', icon: 'fas fa-film', route: '/gif-maker' },

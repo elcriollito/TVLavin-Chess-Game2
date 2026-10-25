@@ -69,12 +69,23 @@ test('desktop Home renders approved identity, route discovery and clean console'
   await expect(onlineCallout.getByText('Play against other people', { exact: true })).toBeVisible();
   await expect(onlineCallout.getByRole('link', { name: 'Play online', exact: true })).toBeVisible();
   await expect(page.locator('#all-tools-groups a[href="/online"]')).toHaveCount(1);
+  await expect(page.locator('.sidebar').getByRole('link', { name: 'Scanner', exact: true })).toBeVisible();
+  const scannerCard = page.locator('.scanner-home-card');
+  await expect(scannerCard.getByText('CAISSA Scanner', { exact: true })).toBeVisible();
+  await expect(scannerCard.getByText('Public Beta', { exact: true })).toBeVisible();
+  await expect(scannerCard.getByText('Scan a chess position from your phone.', { exact: true })).toBeVisible();
+  await expect(scannerCard.getByText('Open Scanner', { exact: false })).toBeVisible();
+  const scannerAllTools = page.locator('#all-tools-groups a[href="/scanner"]');
+  await expect(scannerAllTools).toHaveCount(1);
+  await expect(scannerAllTools.getByText('CAISSA Scanner', { exact: true })).toBeVisible();
+  await expect(scannerAllTools.getByText('Public Beta', { exact: true })).toBeVisible();
+  await expect(scannerAllTools).toContainText('Scan chess positions from screenshots, websites, broadcasts, and photos of 2D boards.');
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeVisible();
   await expect(page.getByText('Coming next')).toBeVisible();
-  await expect(page.getByText('Make it your own.')).toBeVisible();
+  await expect(page.getByText('New accounts are temporarily paused.')).toBeVisible();
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
   await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute(
     'href', '/signin?redirect_url=%2F%3Futm_source%3Dhome-certification'
@@ -108,11 +119,12 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
   await page.goto('/');
   await expect(page.locator('.mobile-nav')).toBeVisible();
   await expect(page.locator('.mobile-nav').getByRole('link', { name: 'Online', exact: true })).toBeVisible();
+  await expect(page.locator('.mobile-nav').getByRole('link', { name: 'Scanner', exact: true })).toBeVisible();
   await expect(page.locator('.online-callout').getByRole('link', { name: 'Play online', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeHidden();
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
   await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 
@@ -126,7 +138,7 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
   }
 });
 
-test('auth check failure keeps Sign in, Register and Settings available without overflow', async ({ page }) => {
+test('auth check failure keeps Sign in and Settings available while registration is paused', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installAuthMock(page, {
     isLoaded: true,
@@ -140,14 +152,14 @@ test('auth check failure keeps Sign in, Register and Settings available without 
   await expect(page.getByText('Account status unavailable.')).toBeVisible();
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
   await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/signin?redirect_url=%2F');
-  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveAttribute('href', '/signup?redirect_url=%2F');
 
   const journey = page.locator('#account-content');
   await expect(journey.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(journey.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(journey).toContainText('new registration is temporarily paused.');
+  await expect(journey.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
 });
@@ -189,7 +201,7 @@ test('loading auth keeps entry points available and Settings persists the real l
 
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
+  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
   const settings = topbar.getByRole('button', { name: 'Settings', exact: true });
   await settings.click();
   await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
@@ -274,7 +286,7 @@ test('Home loads progress after sign-in and keeps API errors account-scoped', as
   });
 
   await page.goto('/');
-  await expect(page.getByText('Make it your own.')).toBeVisible();
+  await expect(page.getByText('New accounts are temporarily paused.')).toBeVisible();
   await page.evaluate(() => window.CAISSA_AUTH.__setAuthForTest({
     isSignedIn: true,
     userId: 'user_alexander',
@@ -344,7 +356,7 @@ test('Home refreshes restored progress and rejects stale account responses', asy
 
   await page.getByRole('button', { name: 'Account menu for Second Player', exact: true }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page.getByText('Make it your own.')).toBeVisible();
+  await expect(page.getByText('New accounts are temporarily paused.')).toBeVisible();
   await expect(page.locator('#account-content')).not.toContainText('1,847');
   await expect(page.locator('#topbar-account').getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
 });
@@ -356,7 +368,7 @@ test('tool routes remain reachable and their existing brand returns to Home', as
     '/insights', '/analyze', '/pgn-replayer', '/spectator-tv', '/watch/lichess-tv',
     '/watch/live-blitz', '/watch/live-tournaments', '/arena', '/cheater-insight',
     '/tools/polyglot', '/opening-database', '/eco', '/game-library/champions', '/game-library', '/history',
-    '/dos-chess', '/vault', '/about', '/help', '/support', '/blog'
+    '/dos-chess', '/vault', '/scanner', '/about', '/help', '/support', '/blog'
   ];
   for (const route of routes) {
     const response = await request.get(route, { maxRedirects: 0 });

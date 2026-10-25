@@ -55,3 +55,15 @@ body{overflow-x:hidden}.shell,.topbar,main,.dashboard,.main-column,.right-column
 }
 @media(max-width:390px){.all-tools-links{grid-template-columns:1fr}.account-identity .account-name{display:none}.topbar{padding-inline:12px}.account-links>a:first-child{display:inline-flex}.account-links{gap:7px}.account-links .button.topbar-control{padding-inline:8px}.home-settings-actions{align-items:stretch;flex-direction:column}.home-settings-actions .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.account-spinner{animation:none}}
+
+[data-tool="scanner"]{--tool-color:var(--home-purple)}
+.scanner-home-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px;margin:-10px 0 28px;padding:20px 22px;border:1px solid #493968;border-radius:12px;background:radial-gradient(circle at 8% 50%,#302044 0,transparent 38%),#11151e;transition:border-color .15s,background .15s}
+.scanner-home-card:hover{border-color:#a98ae0;background:radial-gradient(circle at 8% 50%,#382450 0,transparent 42%),#151924}
+.scanner-home-icon{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:#2b2040;color:#cfb2ff;font-size:22px}
+.scanner-home-copy{display:flex;min-width:0;flex-direction:column}
+.scanner-home-heading{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.scanner-home-heading strong{font-size:18px;color:#fff}
+.scanner-home-badge,.all-tools-card-status{display:inline-flex;align-items:center;width:max-content;border:1px solid #735da0;border-radius:999px;padding:3px 8px;color:#dfccff;background:#2b2140;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.scanner-home-description{margin-top:3px;color:#d8d1e3;font-size:14px}.scanner-home-copy small{margin-top:2px;color:var(--home-muted);font-size:12px}
+.scanner-home-action{display:flex;align-items:center;gap:8px;color:#dcc7ff;font-size:13px;font-weight:700;white-space:nowrap}
+.all-tools-link.all-tools-card.has-status{min-height:92px}.all-tools-card.has-status i{grid-row:1/4}.all-tools-card-status{grid-column:2}.all-tools-card.has-status .all-tools-card-description{grid-row:auto}
+@media(max-width:720px){.scanner-home-card{grid-template-columns:auto minmax(0,1fr);gap:14px;margin-top:-6px;padding:17px}.scanner-home-icon{width:46px;height:46px}.scanner-home-action{grid-column:1/-1;justify-content:center;min-height:40px;border-radius:7px;background:#242a39}.scanner-home-description{font-size:13px}.scanner-home-copy small{font-size:11px}}
