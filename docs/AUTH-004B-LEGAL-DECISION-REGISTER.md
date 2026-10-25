@@ -1,7 +1,9 @@
 # AUTH-004B legal decision register
 
-Audit date: October 25, 2026  
-Release candidate: `release/auth-004b-legal-publication`  
+Audit date: October 25, 2026
+
+Release candidate: `release/auth-004b-legal-publication`
+
 Public contact: `privacy@caissa-chess.org`
 
 This register separates verified implementation facts from proposed language and decisions that require Alexander or qualified legal counsel. It is not legal advice and does not approve publication.
