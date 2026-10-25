@@ -64,6 +64,31 @@ test('privacy draft matches current analytics, Google identity, and payment acti
   assert.match(source, /no production Stripe configuration or enabled credit-store flag/i);
 });
 
+test('legal drafts state the approved 13-plus account policy without claiming enforcement exists', () => {
+  const privacy = read('privacy.html');
+  const terms = read('terms.html');
+  for (const source of [privacy, terms]) {
+    assert.match(source, /at least 13 years old to create a CAISSA account/i);
+    assert.match(source, /CAISSA Junior/i);
+    assert.match(source, /verifiable parental consent/i);
+    assert.match(source, /account-free chess content and tools may remain publicly accessible/i);
+    assert.match(source, /has not yet implemented or certified an age-screening control/i);
+    assert.match(source, /registration remains paused/i);
+  }
+  assert.doesNotMatch(privacy, /age verification is (?:implemented|active|certified)/i);
+  assert.doesNotMatch(terms, /age verification is (?:implemented|active|certified)/i);
+});
+
+test('age-policy audit preserves a data-minimizing, fail-closed implementation boundary', () => {
+  const source = read('docs/AUTH-004B-AGE-POLICY-AND-CLERK-AUDIT.md');
+  assert.match(source, /before any Clerk request/i);
+  assert.match(source, /do not retain the entered birth month or year/i);
+  assert.match(source, /Do not store a birth date/i);
+  assert.match(source, /must stop before Clerk/i);
+  assert.match(source, /unsafeMetadata.*not authoritative/i);
+  assert.match(source, /does not replace the neutral age screen/i);
+});
+
 test('legal decision register preserves every unresolved publication decision', () => {
   const source = read('docs/AUTH-004B-LEGAL-DECISION-REGISTER.md');
   for (const item of [
@@ -74,6 +99,9 @@ test('legal decision register preserves every unresolved publication decision', 
     'Governing law and disputes', 'Material policy updates'
   ]) assert.match(source, new RegExp(item));
   for (const classification of [
-    'FACTUALLY VERIFIED', 'LEGAL REVIEW REQUIRED', 'HUMAN DECISION REQUIRED'
+    'FACTUALLY VERIFIED', 'LEGAL REVIEW REQUIRED', 'HUMAN DECISION REQUIRED',
+    'HUMAN DECISION APPROVED / IMPLEMENTATION PENDING'
   ]) assert.match(source, new RegExp(classification));
+  assert.match(source, /provisional minimum age of 13/i);
+  assert.doesNotMatch(source, /D\. Minimum age and parental consent \| HUMAN DECISION REQUIRED/);
 });
