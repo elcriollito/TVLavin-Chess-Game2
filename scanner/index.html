@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="robots" content="noindex,nofollow">
+  <meta name="robots" content="index,follow">
+  <meta name="description" content="Scan a 2D chess position from your phone, review it, and continue analysis in CAISSA.">
+  <link rel="canonical" href="https://www.caissa-chess.org/scanner">
   <meta name="theme-color" content="#071521">
   <title>CAISSA Scanner</title>
   <link rel="icon" href="/favicon.ico?v=4">
@@ -11,7 +13,8 @@
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
   <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.3.0">
-  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.4.0">
+  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.5.0">
+  <link rel="stylesheet" href="/scanner/public/scanner-public.css?v=0.1.0">
 </head>
 <body>
   <header class="scanner-topbar app-topbar">
@@ -20,8 +23,42 @@
       <span class="caissa-wordmark"><strong>CAISSA</strong><small>CHESS</small></span>
       <span class="brand-divider" aria-hidden="true"></span>
       <span class="scanner-name">Scanner</span>
+      <span class="public-beta-badge">Public Beta</span>
     </button>
   </header>
+
+  <main class="scanner-desktop-landing" id="scannerDesktopLanding" aria-labelledby="desktopScannerTitle">
+    <section class="desktop-scanner-hero">
+      <div class="desktop-hero-copy">
+        <span class="desktop-beta-pill">Public Beta</span>
+        <h1 id="desktopScannerTitle">Scan a chess position from your phone.</h1>
+        <p>Turn screenshots, chess websites, broadcasts, and photos of 2D chessboards into editable positions in seconds.</p>
+        <div class="desktop-hero-actions"><a class="desktop-primary-cta" id="scannerMobileCta" href="#mobile-handoff" aria-disabled="true">Use CAISSA Scanner on your phone</a><span>Review the position before continuing.</span></div>
+      </div>
+      <div class="desktop-handoff-card" id="mobile-handoff">
+        <img id="scannerHandoffQr" width="208" height="208" alt="Preparing the CAISSA Scanner QR code">
+        <div><strong>Open on your phone</strong><span>Scan this code with your phone camera.</span></div>
+        <label for="scannerCanonicalUrl">Scanner URL</label>
+        <div class="copy-url-row"><input id="scannerCanonicalUrl" value="" readonly><button id="copyScannerUrlBtn" type="button" disabled>Copy</button></div>
+      </div>
+    </section>
+    <section class="desktop-how" aria-labelledby="howScannerWorks">
+      <h2 id="howScannerWorks">How Scanner works</h2>
+      <div><span>1</span><strong>Capture</strong><p>Take a photo or choose a JPEG, PNG, or WebP image.</p></div>
+      <div><span>2</span><strong>Review</strong><p>CAISSA finds the board and asks you to check every recognized piece.</p></div>
+      <div><span>3</span><strong>Continue</strong><p>Edit if needed, then analyze the confirmed position with Stockfish 18.</p></div>
+    </section>
+    <section class="desktop-benefits" aria-label="Scanner benefits and guidance">
+      <article><i class="fas fa-bolt" aria-hidden="true"></i><h2>Less manual setup</h2><p>Capture positions from popular chess sites, apps, screenshots, broadcasts, and photos of screens.</p></article>
+      <article><i class="fas fa-pen" aria-hidden="true"></i><h2>Always editable</h2><p>Recognition can make mistakes. Review/Edit remains the required safety step before a position is accepted.</p></article>
+      <article><i class="fas fa-shield-halved" aria-hidden="true"></i><h2>Privacy by choice</h2><p>Scanning does not silently share your image. Optional feedback separates correction consent from image consent.</p></article>
+    </section>
+    <section class="desktop-boundary">
+      <div><h2>Best inputs</h2><p>Digital 2D boards, screenshots, website or app boards, broadcast boards, photos of screens, and clear printed diagrams.</p></div>
+      <div><h2>Current limits</h2><p>Physical 3D boards, heavy occlusion, severe perspective, and HEIC/HEIF files are not supported in this beta.</p></div>
+      <div><h2>Help improve Scanner</h2><p>Optional corrections enter an unverified private vault. They never train the model automatically and require owner certification.</p></div>
+    </section>
+  </main>
 
   <main class="scanner-page app-shell" id="scannerApp" data-scanner-view="capture">
     <section class="scanner-home" id="homeView" data-principal-view="capture" aria-labelledby="captureTitle">
@@ -35,6 +72,8 @@
         <strong>New Scan</strong>
         <span>Take a photo or choose one from your library</span>
       </div>
+      <button class="report-scan-failure" id="reportScanFailureBtn" type="button" hidden>Help improve Scanner with this failed scan</button>
+      <p class="public-service-status" id="publicServiceStatus" role="status" aria-live="polite"></p>
       <div class="home-foot"><i class="fas fa-microchip"></i><span>Analysis powered by Stockfish 18</span></div>
     </section>
 
@@ -84,6 +123,7 @@
           <button id="nextMoveBtn" type="button" aria-label="Next position" disabled><i class="fas fa-chevron-right"></i></button>
           <button id="lastMoveBtn" type="button" aria-label="Latest position" disabled><i class="fas fa-forward-step"></i></button>
           <button id="flipBtn" type="button" aria-label="Flip board"><i class="fas fa-rotate"></i></button>
+          <button class="coordinate-visibility-control" id="coordinatesVisibilityBtn" type="button" aria-label="Hide coordinates" aria-pressed="true" title="Hide coordinates"><i class="fas fa-eye" aria-hidden="true"></i><span>Coords</span></button>
           <button id="boardActionsBtn" type="button" aria-label="Open analysis menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scannerAnalysisMenu"><i class="fas fa-bars"></i></button>
         </nav>
 
@@ -112,6 +152,7 @@
         <button class="new-scan-button" id="newScanBtn" type="button" aria-label="Start a new scan"><i class="fas fa-camera"></i></button>
         <span>New Scan</span>
       </div>
+      <button class="help-improve-action" id="helpImproveBtn" type="button"><i class="fas fa-comment-medical" aria-hidden="true"></i> Help improve Scanner</button>
       <code id="confirmedFen" hidden></code>
     </section>
 
@@ -140,6 +181,8 @@
             <button id="clearBoardBtn" type="button"><i class="fas fa-trash-can" aria-hidden="true"></i><span>Clear Board</span></button>
             <button class="clear-square-tool" id="clearSquareBtn" type="button" data-tool="clear" aria-pressed="false"><i class="fas fa-eraser" aria-hidden="true"></i><span>Clear Square</span></button>
             <button id="editFlipBtn" type="button"><i class="fas fa-rotate" aria-hidden="true"></i><span>Flip</span></button>
+            <button id="editCoordinatesVisibilityBtn" type="button" aria-label="Hide coordinates" aria-pressed="true"><i class="fas fa-eye" aria-hidden="true"></i><span>Coords</span></button>
+            <button id="correctOrientationBtn" type="button" aria-label="Correct Orientation" aria-pressed="false" title="Use this if the scanned board was mapped from the wrong side."><i class="fas fa-arrows-rotate" aria-hidden="true"></i><span>Correct</span></button>
           </div>
 
           <div class="castling-panel" id="editCastlingPanel" hidden aria-label="Castling rights">
@@ -151,6 +194,23 @@
           </div>
 
           <div class="edit-tool-status" id="editToolStatus" role="status" aria-live="polite"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Select a piece or Clear Square</span></div>
+          <section class="orientation-review" id="orientationReview" hidden aria-live="polite">
+            <div>
+              <strong id="orientationReviewTitle">Check board orientation</strong>
+              <span id="orientationReviewMessage">Choose which side was physically at the bottom.</span>
+              <small id="orientationReviewScores"></small>
+            </div>
+            <div class="orientation-review-actions" role="group" aria-label="Choose board orientation">
+              <button id="whiteBottomBtn" type="button" aria-pressed="false">White at bottom</button>
+              <button id="blackBottomBtn" type="button" aria-pressed="false">Black at bottom</button>
+            </div>
+          </section>
+          <section class="public-structural-warning" id="publicStructuralWarning" hidden aria-live="polite">
+            <strong id="publicStructuralTitle">Review recommended</strong>
+            <span id="publicStructuralMessage"></span>
+            <label id="publicStructuralAcknowledgeRow" hidden><input id="publicStructuralAcknowledge" type="checkbox"> I reviewed this unusual position.</label>
+          </section>
+          <button class="localization-wrong-action" id="publicLocalizationWrongBtn" type="button">Board Detection Wrong</button>
           <div class="edit-palette black-palette" id="blackPiecePalette" role="group" aria-label="Black pieces">
             <button type="button" data-piece="k" aria-label="Select black king" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bK.png" alt=""></button>
             <button type="button" data-piece="q" aria-label="Select black queen" aria-pressed="false"><img src="/img/chesspieces/wikipedia/bQ.png" alt=""></button>
@@ -213,14 +273,24 @@
       <button class="scan-choice" id="choosePhotoBtn" type="button"><i class="fas fa-image"></i><span>Choose Photo</span></button>
     </section>
 
+    <section class="feedback-sheet" id="feedbackSheet" hidden aria-label="Help improve Scanner" role="dialog" aria-modal="true">
+      <div class="sheet-head"><button id="cancelFeedbackBtn" type="button">Cancel</button><strong>Help improve Scanner</strong><span></span></div>
+      <p id="feedbackSheetDescription">Your correction will enter a private, unverified review vault. It will not train the model automatically.</p>
+      <label class="feedback-consent-row"><input id="shareCorrectionConsent" type="checkbox"> <span><strong>Share my correction</strong><small>Send the confirmed board and recognition details for owner review.</small></span></label>
+      <label class="feedback-consent-row"><input id="shareImageConsent" type="checkbox"> <span><strong>Share this image</strong><small>Optional. Store the source privately so the owner can review it.</small></span></label>
+      <p class="feedback-privacy"><i class="fas fa-lock" aria-hidden="true"></i> Images are private and never receive public object URLs.</p>
+      <button class="feedback-submit" id="submitFeedbackBtn" type="button" disabled>Send optional feedback</button>
+      <p class="feedback-status" id="feedbackStatus" role="status" aria-live="polite"></p>
+    </section>
+
     <div hidden aria-hidden="true"><figure id="sourcePreviewWrap" hidden><img id="sourcePreview" alt=""><figcaption>Original source image</figcaption></figure></div>
     <textarea id="fenInput" hidden aria-hidden="true"></textarea>
     <button id="validateBtn" type="button" hidden>Validate</button>
     <div id="validationBox" role="status" aria-live="polite" hidden>Choose an image to begin.</div>
     <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
     <span id="sourceStatus" hidden>No image</span><span id="reviewStatus" hidden>Required</span><span id="statePill" hidden>Idle</span>
-    <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
-    <input id="galleryInput" type="file" accept="image/*" hidden>
+    <input id="cameraInput" type="file" accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" hidden>
+    <input id="galleryInput" type="file" accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif" hidden>
   </main>
 
   <script src="/assets/vendor/chess.js/chess-0.10.3.min.js"></script>
@@ -237,7 +307,8 @@
   <script src="/scanner/scanner-analysis.js?v=0.3.0"></script>
   <script src="/scanner/recognition/scanner-image-decode.js?v=0.1.0"></script>
   <script src="/scanner/recognition/scanner-recognition-runtime.js?v=0.2.0"></script>
-  <script src="/scanner/scanner-app.js?v=0.7.0"></script>
+  <script src="/scanner/public/scanner-handoff.js?v=0.1.0"></script>
+  <script src="/scanner/scanner-app.js?v=0.8.0"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>

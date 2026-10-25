@@ -115,6 +115,18 @@
     return parts.join(' ');
   }
 
+  function rotatePosition180(fen) {
+    const result = validateDraft(fen);
+    if (!result.ok) return null;
+    const parts = result.fen.split(' ');
+    parts[0] = boardToPart([...result.board].reverse().map((row) => [...row].reverse()));
+    // Scanner recognition establishes piece placement, not historical move rights.
+    // A canonical rotation invalidates any square-specific castling or en-passant claim.
+    parts[2] = '-';
+    parts[3] = '-';
+    return parts.join(' ');
+  }
+
   function squareName(row, col) {
     return String.fromCharCode(97 + col) + (8 - row);
   }
@@ -237,6 +249,7 @@
     renderEmpty,
     mutateSquare,
     clearBoard,
+    rotatePosition180,
     setSideToMove,
     setCastling,
     squareName,

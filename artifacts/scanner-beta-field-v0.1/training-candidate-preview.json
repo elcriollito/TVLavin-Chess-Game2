@@ -1,0 +1,20 @@
+{
+  "corpusVersion": "caissa-scanner-beta-field-v0.1",
+  "corpusSha256": "B5104B8445F3DC932A0B9BDE8A69CDCBD31A2259A8154F46C51AEAD43656B267",
+  "mode": "dry-run recommendation only",
+  "technicalCandidates": 78,
+  "criteria": [
+    "human-confirmed",
+    "localization-valid",
+    "image-consent",
+    "correction-consent",
+    "nonduplicate-image"
+  ],
+  "classifierBoardsReviewed": 79,
+  "duplicateClassifierImagesExcluded": 1,
+  "requireGovernanceReview": 78,
+  "automaticallyAdmitted": 0,
+  "exportedToTraining": 0,
+  "currentEligibleForTrainingStatus": 0,
+  "sourceImagesIncluded": false
+}

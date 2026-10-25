@@ -1,0 +1,1868 @@
+{
+  "schemaVersion": "caissa-scanner-beta-field-manifest/2",
+  "corpusVersion": "caissa-scanner-beta-field-v0.1",
+  "cutoff": "2026-09-26T22:35:59.429Z",
+  "accountScopeRule": "single production account whose canonical activity totals match the Alexander-owned beta milestone; QA, test, automated, anonymous, and unowned rows excluded",
+  "sourceTables": [
+    "scanner_beta_scans",
+    "scanner_beta_square_predictions",
+    "scanner_beta_feedback",
+    "scanner_beta_square_corrections",
+    "scanner_beta_scan_failures"
+  ],
+  "sourceImagesIncluded": false,
+  "sourceImageReferencesIncluded": false,
+  "canonicalRecordCount": 207,
+  "logicalAttemptCount": 115,
+  "records": [
+    {
+      "recordType": "feedback",
+      "recordKey": "01CD595E638B2A8A",
+      "scanKey": "CFABD62D679724F2",
+      "submittedAt": "2026-09-20T02:37:46.293Z",
+      "payloadHash": "D4033FD9012A03A2869D239F57D25FB0EAFE5D8C7FA7A544D2C45FC0A446BF2A",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "055FA03F4A47F789",
+      "scanKey": "821E4D5B599A6DC5",
+      "submittedAt": "2026-09-26T21:40:49.938Z",
+      "payloadHash": "615DCED5F2E256F1E3EF9074EEA9468779C0EDEB2C86216EBF0ED220F9028271",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "078F6EFD6AD4A316",
+      "scanKey": "73A0D9A174DE8FD8",
+      "submittedAt": "2026-09-22T00:51:48.236Z",
+      "payloadHash": "268A6A02319E8C28A475E23776AE70DBAC795665DCAE7064159D99EAF87DC38C",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "08C77FD75634E1E8",
+      "scanKey": "3F2D60748D3994D3",
+      "submittedAt": "2026-09-26T21:42:53.610Z",
+      "payloadHash": "34122AB23E9D82A456D7B202F0A88FA1907F1C03C3B153CD553364ECD9964743",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "0A0B2336C304D53B",
+      "scanKey": "78581B6E3201B2F3",
+      "submittedAt": "2026-09-21T23:01:02.571Z",
+      "payloadHash": "64B6E6E3D5D08FF690ED312545B2274B6E8559BBD724CBE9D90D38440F747513",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "0BCC38FD024848B8",
+      "scanKey": "0CC23D480019B15D",
+      "submittedAt": "2026-09-22T00:52:57.362Z",
+      "payloadHash": "3F29B8D1336C7C85E5D66CB74F8B4F99F0E2CA167A5FE38EBB92DFE0CC74B6E6",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "0C3B0220779474B4",
+      "scanKey": "E6694A8AF0860060",
+      "submittedAt": "2026-09-22T01:07:11.370Z",
+      "payloadHash": "70AD0D783F3FD63B4A5DA6BF020C2ABB5545D08E347AB7B475E5EC913AF23645",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "0E3FB95045FAFC05",
+      "scanKey": "2279C68BC2E64095",
+      "submittedAt": "2026-09-22T01:13:03.277Z",
+      "payloadHash": "906F1E62736CAC79BFD7F1BB2224B26E377AE3FC43EA336BC5A47AE93CF0AC6D",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "0E63DD66A43D9530",
+      "scanKey": "D9A971FC62E8381E",
+      "submittedAt": "2026-09-22T00:40:38.361Z",
+      "payloadHash": "8DC56B52A721BF24E47409831F30CACABC4F95281D4E70997068B554305D7AF3",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1792AF91D8CBCD78",
+      "scanKey": "CD4750B18AF1B724",
+      "submittedAt": "2026-09-22T00:49:06.456Z",
+      "payloadHash": "8FA69D839D6017518A74B3B47F5986214C7330BEA5A181522DFD9025D5BD774B",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1856880F72B60640",
+      "scanKey": "89FF6A2FB653F197",
+      "submittedAt": "2026-09-26T21:33:45.172Z",
+      "payloadHash": "B62E99CBFA3F0E36102F7DEB9AB8B61E2280C8F94E01CFA30D577B7F94AE38C2",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1994190254E4291F",
+      "scanKey": "DFB618BFD37F4EB1",
+      "submittedAt": "2026-09-26T21:37:42.165Z",
+      "payloadHash": "0D41EF1196B9A2E4E105C67160BA450D4CC1961E4669057729B2B4CEA48541D3",
+      "disposition": "PIECE_CORRECTION"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1B3C2F0B58BAF634",
+      "scanKey": "4A189E03299DCABF",
+      "submittedAt": "2026-09-22T00:41:42.351Z",
+      "payloadHash": "A544A509B8246CEB72011263E9642AD4D6C7074AF2CD4BDCCF051BF275E692AD",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1CAFF89E355C57BC",
+      "scanKey": "337EE3234C845C86",
+      "submittedAt": "2026-09-20T02:42:09.849Z",
+      "payloadHash": "E5644CD4C06BC2298D919D648B64DCD30F47FF10987478EB225CDE02CBC07E56",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1D9A95F628C966DD",
+      "scanKey": "771C5FC78F57D2D8",
+      "submittedAt": "2026-09-22T00:44:20.029Z",
+      "payloadHash": "D46452C2737CE66BD6DEE592F47C0E08C3FBFD9BF8093A1B7E4930343ECE339D",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1E9258F132B25581",
+      "scanKey": "9FC4AFF666C9BC00",
+      "submittedAt": "2026-09-22T00:50:34.636Z",
+      "payloadHash": "2685D9066AC8A9A0AE882353238D82C05463EC304B2EE49AFF186E64D08CC07C",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1EBAA79FE3F2051B",
+      "scanKey": "7974FD6B57C9186D",
+      "submittedAt": "2026-09-20T15:10:35.322Z",
+      "payloadHash": "C42C8F522B2EEE26EB1725B66D3DEECB19B1E8AEA77B02F770A681205F82DF1B",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1F8CAD6F4E67814F",
+      "scanKey": "30DBD2C0AD37428F",
+      "submittedAt": "2026-09-22T01:11:04.507Z",
+      "payloadHash": "7BE87F4FB50807D57DA23CCC1D91CAFA6B04407CDCDA687E1EE402416FBD7413",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "1FDF79E4B784FB49",
+      "scanKey": "72ADCA287EFDD173",
+      "submittedAt": "2026-09-20T15:09:24.532Z",
+      "payloadHash": "642F0C4E51F189A3A8AFC426EF905D6F7B61DEAEC3F7F43D5FBF182A41DDD2BC",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "21703A2A9D4119E1",
+      "scanKey": "53180315B6AC1989",
+      "submittedAt": "2026-09-22T00:37:08.969Z",
+      "payloadHash": "C5BD4D68C8B1AF5D9CB6B46BF8A65C5FF7BCEAB4924EB67FC67AF082B7E715C5",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "235965C055E04498",
+      "scanKey": "49EC397669F40978",
+      "submittedAt": "2026-09-22T01:09:05.059Z",
+      "payloadHash": "CD9DA07AB402EA2289092538F87E87F9B3A3B9481E9E2C75E799DDB290237C4D",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "24D2BA320BE09795",
+      "scanKey": "A7E2665C831A8B91",
+      "submittedAt": "2026-09-22T00:39:40.219Z",
+      "payloadHash": "4FFA4E5895B9211AD3D25D265F170CD23347E26B2B3DE036FABC81D1A1F89738",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "265005E76C077E85",
+      "scanKey": "D1A4AA80A303A4BF",
+      "submittedAt": "2026-09-22T00:44:36.080Z",
+      "payloadHash": "150035C7B20D2F2BA0833E0F3E5E29221A33ABE0EE4FFD3C5F33998FA8A939D8",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "2688CB3226A5C65D",
+      "scanKey": "E7A9956AF1222064",
+      "submittedAt": "2026-09-22T01:06:24.739Z",
+      "payloadHash": "BEA49395D9CC6D0283C35F8CD1847F6E73D5D7157D30D8035DE53909A2883621",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "2867F4FC8F8E905C",
+      "scanKey": "855F96A94D68A72F",
+      "submittedAt": "2026-09-22T00:46:06.594Z",
+      "payloadHash": "FDEEBFE8677BA1512DEE49CE9B63D26A882446788509D14297E25BF523C41AF7",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "2CCA5E535D113236",
+      "scanKey": "09A82478AD4AFA1C",
+      "submittedAt": "2026-09-22T00:54:33.244Z",
+      "payloadHash": "6EF93CC51F56B5313EDB1B06FCEE1ADB663A3F6CB75C80E75823354C10CC9419",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "30BC6C9FE2DB9C05",
+      "scanKey": "433BE7927A0F4AC7",
+      "submittedAt": "2026-09-22T00:55:23.149Z",
+      "payloadHash": "2EBB34E2BCB420FFCC1E6C2908BE4AABE99BF113F435EC4B10C7C4100A44BEB3",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "3204FC4B29451E43",
+      "scanKey": "7A5A6E624DDDDDA3",
+      "submittedAt": "2026-09-22T01:13:50.262Z",
+      "payloadHash": "D020C1FFA5BEF03B2EBA1816800F65A3A84E46EBCB8B8A76CF139FCB7D1A0810",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "3CD462BD6D3780CF",
+      "scanKey": "72722DB22688F0F1",
+      "submittedAt": "2026-09-26T21:46:48.895Z",
+      "payloadHash": "B372C54157037D09E08DD15405EA33B930FD0E86C08F264EEC435FF121614674",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "4179082F5DCAF889",
+      "scanKey": "CCEA7294F1985171",
+      "submittedAt": "2026-09-26T21:39:57.122Z",
+      "payloadHash": "0DE7C5D983CCAE5D294FEC75F9AE222A0BB81FC9097FB69AB0A1D9863CBD4B93",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "44AE2FA4BC972D50",
+      "scanKey": "8B988A4FDA9294D1",
+      "submittedAt": "2026-09-22T00:53:21.186Z",
+      "payloadHash": "DEC2CE6A546B8F68E2D69951C6D1862C2D8221A683193FC0D5984D2365FC088A",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "489E2E65AC920910",
+      "scanKey": "A906DD5ECCA0920F",
+      "submittedAt": "2026-09-22T00:43:10.353Z",
+      "payloadHash": "80264DF0FC5CDE6B9422CFA1E6A9682AC9F4E86A14DCDBDA55F0955D5DC9673F",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "48F3D037F34A58D1",
+      "scanKey": "5899888B9AB4C689",
+      "submittedAt": "2026-09-22T00:54:08.286Z",
+      "payloadHash": "27FE5F546735AE2E52632F8694503DC50CD37BF499AE1B5B5A84D7439CE90C71",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "494743739B0E9C9A",
+      "scanKey": "0C620E823658254A",
+      "submittedAt": "2026-09-20T01:49:07.601Z",
+      "payloadHash": "0BAE3803C6B7DDC84152A79B7D24779EFABF2BE5B69F72B3987C64FB5FA3AA4F",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "4978F5676256260F",
+      "scanKey": "A51313A27CE1396B",
+      "submittedAt": "2026-09-26T21:45:06.487Z",
+      "payloadHash": "73658736689D841F8A1639143019A9C13A53797342B97B629EA0AE2FEAC2B225",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "4C1CB6A9B4D62A8F",
+      "scanKey": "0BF9AC304086663D",
+      "submittedAt": "2026-09-26T21:35:21.816Z",
+      "payloadHash": "25E765C4B74D60AAAE54F7DEDE6C80487C0B542F957EE8F393D0AC9B0E6DB2DD",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "4D715918279971E4",
+      "scanKey": "1949E482FD8C7AC1",
+      "submittedAt": "2026-09-22T01:11:18.322Z",
+      "payloadHash": "DC913A6212C5FA35AEC83D35A11BD95192FB14390B0AE99EC9CEE5FE5C5FD2D7",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "4E0962BDE1097089",
+      "scanKey": "E5CD6DF15581B58D",
+      "submittedAt": "2026-09-22T00:41:22.337Z",
+      "payloadHash": "E9BE6362620A45054E8998A08FC324AD754711C56D02E76E0DD419D57EAE2982",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "54240E48150D6C2F",
+      "scanKey": "4006B3897CBC98B5",
+      "submittedAt": "2026-09-22T00:43:34.862Z",
+      "payloadHash": "B487CB4D3D0A58ABA1BBDC735C1785E4491D2081C59750EA6959B0476B44EA58",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "58F1236D7F3E1E39",
+      "scanKey": "407B9ED079096886",
+      "submittedAt": "2026-09-22T01:07:47.392Z",
+      "payloadHash": "92039D3EC3D782093A227F8A2F651688CA01C7105A9E3F2BB2C575A4E41A5E41",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "5BC56B8EE2DA40D8",
+      "scanKey": "CB69399A1775D776",
+      "submittedAt": "2026-09-26T21:37:19.483Z",
+      "payloadHash": "E79174F2564F604FFD7B855B44EC7322618C775551E214E6130430B065237C13",
+      "disposition": "PIECE_CORRECTION"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "5CB4A41DAD7D17A4",
+      "scanKey": "332718F9FD3952C3",
+      "submittedAt": "2026-09-22T01:08:32.517Z",
+      "payloadHash": "6FF32A62CD6D16BA33778F314FBF429C77615B032A719E42908E04A6D17CF68F",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "5DB211FA3A513D6A",
+      "scanKey": "40D437D76B7C0FFD",
+      "submittedAt": "2026-09-26T21:38:44.091Z",
+      "payloadHash": "C1DA15FE21962B72DFF59F3DE8BB3E6D3B6DDD1D070D65252D21AE2E5915C87E",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "5FB244B79BCE8611",
+      "scanKey": "623A8A11BD4D83A6",
+      "submittedAt": "2026-09-22T01:15:26.913Z",
+      "payloadHash": "8BA382495BC526E09CBEBB5C0BCC4A3AAB8E0287AA98D968E8EB3CD693ADA0BA",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "6314582861A81917",
+      "scanKey": "CFE0B410F4FB57D1",
+      "submittedAt": "2026-09-22T01:06:02.632Z",
+      "payloadHash": "86A4B2FBAB53EC95B7E1D14F660AE4C8811BC6C82566274CEEFD69F7CA2A0AFE",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "66E2A97954F1DCA7",
+      "scanKey": "BA0A2BDE8118C986",
+      "submittedAt": "2026-09-20T02:44:56.994Z",
+      "payloadHash": "86664B9DA7386E6B45BECBC50C3102A3DAF349B678415E5992FA323A78C96BD2",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "6B72BE0EE1BEF77D",
+      "scanKey": "080977D3D2C77C8E",
+      "submittedAt": "2026-09-22T01:11:36.480Z",
+      "payloadHash": "81000E34FBDA1A9A0603721FE6509CABEBA01372BA1C38718B9156206DAE7153",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "6C5D82804A38232B",
+      "scanKey": "1CC751BAB6D169E9",
+      "submittedAt": "2026-09-22T00:56:04.248Z",
+      "payloadHash": "C93F22AB4A31261BD9E336E376C15EBF71A05F2FD0DDAF1FC7D6946B2B2B3A88",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "72469C0FACA5321E",
+      "scanKey": "9BB85457B36CDF05",
+      "submittedAt": "2026-09-20T22:08:11.361Z",
+      "payloadHash": "F56FA2A12C090838F189BBFBA464E17AF326A550D0399C25BC854D759B66E163",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "724F41949869324F",
+      "scanKey": "681192BEE4932005",
+      "submittedAt": "2026-09-20T01:00:25.214Z",
+      "payloadHash": "33F73B370F0E900EA9DF8DCCF3BC2448ED8720843E4E44C5A027BF2BC8ABE956",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "72FBA5277D912960",
+      "scanKey": "B923054052742648",
+      "submittedAt": "2026-09-22T00:47:31.349Z",
+      "payloadHash": "A442F2DC23C8382F432755AD83C243EA328802ACA46111D40FB2ADFD88055686",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "736EFBCF70C43A2F",
+      "scanKey": "42529CC851B784FE",
+      "submittedAt": "2026-09-22T00:46:28.613Z",
+      "payloadHash": "E6F8B1414F6588994AAE346DF68AA78E3FD01378B1B2EA04D8856F9FC510EF05",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "7B7EF221FC872B77",
+      "scanKey": "8DB7DBA2748EB8EE",
+      "submittedAt": "2026-09-26T21:33:53.962Z",
+      "payloadHash": "D57E9AC13217FEF9DD6E4C64E6C924C1D27B2084A1562EC22457A1A4C62414DC",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "7C8B9EEC6036FD25",
+      "scanKey": "3EA15AA5D38562E3",
+      "submittedAt": "2026-09-26T21:34:21.353Z",
+      "payloadHash": "1979CF27ADF40FDE5790B62FBCB8514F84A03F477FFC495E17B78617EF9EBAAE",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "7F5D9AC9D65B607D",
+      "scanKey": "90E1EFE2243D2FBF",
+      "submittedAt": "2026-09-20T15:10:49.821Z",
+      "payloadHash": "7A4645A62B7E7486048BB04D05F3417C49D735B190361110C7AF9531B0AF956E",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "7F85471ADCE7A377",
+      "scanKey": "75AD8963FC74AA51",
+      "submittedAt": "2026-09-22T00:47:58.379Z",
+      "payloadHash": "1820CD89C3CA3A0F45CBAEBCB1121FF7798F70793FA35AB94812BF95F98A4179",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "8041579BFF4C24FA",
+      "scanKey": "6A785F0BD7BE4F28",
+      "submittedAt": "2026-09-22T00:45:51.364Z",
+      "payloadHash": "3E870FBCBF0DEE80A8D8F4527784C59C75B0E42BECC5186A8038790E7EECDD13",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "82FFFC4F7A0C7B1F",
+      "scanKey": "23CD66CD8404294B",
+      "submittedAt": "2026-09-22T00:45:02.353Z",
+      "payloadHash": "7AC9A5C5038AAC864AFBBDD6C98BD7A441D95E278EEECC850BF88CCE88EE94BD",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "8E5B74D13F3D6C10",
+      "scanKey": "D28200686B5D1641",
+      "submittedAt": "2026-09-22T00:42:52.252Z",
+      "payloadHash": "E0F9689A4D334FC11BB844263A609E15B26A4F8D9EE47E23A2EEDE797F454465",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "900F8F0095C78924",
+      "scanKey": "5AEAD85F5833D0FD",
+      "submittedAt": "2026-09-26T21:49:50.138Z",
+      "payloadHash": "460BC4E5162FBA60CE8C62647E191FB474EEC9BB6B1A89BBEA90EEE9A0921AD6",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "999E4F423E073773",
+      "scanKey": "53B08BE8D127D31F",
+      "submittedAt": "2026-09-22T00:47:15.287Z",
+      "payloadHash": "6C055BDD6978F0A9169C2CF3D1429E9B044CA7AD548A854E00BFBD5A56B68273",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "A25F10685CD857DE",
+      "scanKey": "E34A896E88178B20",
+      "submittedAt": "2026-09-26T21:46:15.415Z",
+      "payloadHash": "5CB4B6C299D15D4467F86E23531FD0BF90367D85F9871C0B572EF6FDAB19E5CD",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "A3AF1AD829C10C4C",
+      "scanKey": "C096531D7BB79083",
+      "submittedAt": "2026-09-20T02:43:39.821Z",
+      "payloadHash": "C1F195E8FCEB764110D0E1961AD7E69B3ED13657763890BAFB7F7F3C83A9FE84",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "A579765D49D8EE59",
+      "scanKey": "5F1FB11C7ADD32F5",
+      "submittedAt": "2026-09-22T00:42:04.321Z",
+      "payloadHash": "AEEE4CFA1994B7EE50731F5F4AEB2C313363F198D0F1814171ACA34352EEF7C2",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "B562171F36E4F7C2",
+      "scanKey": "416F4E06EFB3EFCF",
+      "submittedAt": "2026-09-22T01:05:50.985Z",
+      "payloadHash": "9C9C6D97BACED46C3C6AA6B31C33BCE3E85606C1A7B070C5462845C9B8AEA9BB",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "B9EFADEE16653AEB",
+      "scanKey": "01C07F0EE8BBBEBA",
+      "submittedAt": "2026-09-22T01:18:41.730Z",
+      "payloadHash": "1DDCBC7ED4EDA318DED2A255FB79034FB7BCAF437AD5D2667E8B12EB4E5AA3D9",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "C0C1806E7851AA9C",
+      "scanKey": "4BD9EFF4CA0D5A2B",
+      "submittedAt": "2026-09-22T00:57:12.672Z",
+      "payloadHash": "ABD8FE9C7A28E94E07C4CDAC4AACDA236097CD46D9D4358477392BAF9A54AAAD",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "C0DB46768CA51DA6",
+      "scanKey": "74200A7A19935C25",
+      "submittedAt": "2026-09-20T02:34:39.455Z",
+      "payloadHash": "D5656F3E97F537D9A789EB1B690D95B8FE32F6BD3266FD7AC394D63B1FACAC51",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "C22B79933C31F70C",
+      "scanKey": "67D0CFC647AAED5A",
+      "submittedAt": "2026-09-26T21:43:47.836Z",
+      "payloadHash": "595399470AA0AE6B28EA89275C2B0975C4DA8EF03B8CE64B4BDCD5D39FDA7CC8",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "C2A94DFE68469F1B",
+      "scanKey": "7EA41D5B45AFDAA8",
+      "submittedAt": "2026-09-20T02:35:13.870Z",
+      "payloadHash": "0CBADCEC06C2656D4763D1256397DC2EFFD13B07029A36448AFB12B7128BD4B3",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "C48AF1F9D077947A",
+      "scanKey": "8986530AC189AA14",
+      "submittedAt": "2026-09-22T00:52:37.381Z",
+      "payloadHash": "304024B209AB8ABFC0E1EDB31E09EEFB7F99271DB894857E0494377CEC5A3AF6",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "C66B6C9FEEF2A3D3",
+      "scanKey": "07D6534D0B2D8474",
+      "submittedAt": "2026-09-26T21:32:49.198Z",
+      "payloadHash": "D3B3991B6528301063506CE122337FD25564CDB21D96C73065819E46E4E4EAF5",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "C735027FDB714209",
+      "scanKey": "3ABA4648793AFD86",
+      "submittedAt": "2026-09-26T21:46:03.165Z",
+      "payloadHash": "DC32584E7D1AA5CC1C0134FAE2BAFE49F123EEB068575EF853B4334AF4480B1D",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "CA738347651D13FD",
+      "scanKey": "0471837EFF97873F",
+      "submittedAt": "2026-09-22T01:10:05.962Z",
+      "payloadHash": "4D2A87F73E163F6DE2AE9AAC0280C86406391E6767C28460F00AD41DD7EABFEA",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "CE9384F922FDF385",
+      "scanKey": "76314742D654AC1D",
+      "submittedAt": "2026-09-26T21:39:11.464Z",
+      "payloadHash": "AD83E1AD90623D077F66BA50569E0AB5661051257D17D40316E0411195B7B85E",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "D6F4C9D3A48A87E1",
+      "scanKey": "2F7E9AFE65B58D42",
+      "submittedAt": "2026-09-22T01:06:41.868Z",
+      "payloadHash": "8F7639220EFF40341549B959BC5ED4DAEBE8E2B6BEE46B55C3A656AA5B14C484",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "D98C0F2854B2DEC2",
+      "scanKey": "D2261C951AFCDA2F",
+      "submittedAt": "2026-09-22T00:38:59.071Z",
+      "payloadHash": "34C31DF25D6D589BB0B63D565FADC5807C382F046E20CC3FA062FA06C6D71B09",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "DB468B23FB06BFD5",
+      "scanKey": "78F7633D52DE4B3A",
+      "submittedAt": "2026-09-22T00:30:35.041Z",
+      "payloadHash": "7B04B158B803DF40F9B0D62EC80343074BCC09FBF18EAC5BA2ABD717AE8F1CDB",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "DD5382C37A052C67",
+      "scanKey": "8587B099DC4F30F8",
+      "submittedAt": "2026-09-26T21:35:09.954Z",
+      "payloadHash": "BD563F384A45B2D9C0C619CADB5FC86D5BFF7B6C667861597B410B03D5EDFBD1",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "DD7A2C2F76B26BD7",
+      "scanKey": "7ACE5E197914C761",
+      "submittedAt": "2026-09-22T00:39:20.765Z",
+      "payloadHash": "77EA653B9052DD1BAE376335613B8E06B23244FF5067917C0FBCD5E16DB874B1",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "DEDDE01ADD6C7D80",
+      "scanKey": "D18C7DB2782577AF",
+      "submittedAt": "2026-09-22T01:04:41.330Z",
+      "payloadHash": "4EE531FD466A7D905B305B38767E2F17B514CDF4509E0F9F59E0AE3993675833",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "E270508A999E67E2",
+      "scanKey": "AB65F61C1BD19BDF",
+      "submittedAt": "2026-09-22T00:50:09.091Z",
+      "payloadHash": "0995392405FBF1662276D42E9D493A70C8F10F184008A257DDEB7EB3DAF22C2A",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "ED8DAA0E769AB3C7",
+      "scanKey": "275CA8893A8D118E",
+      "submittedAt": "2026-09-22T01:09:42.361Z",
+      "payloadHash": "D07ABDE4FA894983C73B60AB41659B4056B8D566A49685330DC1B337B357399F",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F183779FDD6D15D0",
+      "scanKey": "98AB71873A250476",
+      "submittedAt": "2026-09-20T02:45:42.711Z",
+      "payloadHash": "E2F8A7074F647B46ED6304A39D85C15525B29E333235D50E7D1BE31BC0960B1E",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F1DE534C44837F04",
+      "scanKey": "7848D5CFFD4DA485",
+      "submittedAt": "2026-09-22T01:14:14.888Z",
+      "payloadHash": "D29395648E6FD376FB9E9A79616680DE2B140A9641D13555B97F8B3950F5F9E8",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F2F0FDFFD71F7A1C",
+      "scanKey": "92F0F1CF79172D62",
+      "submittedAt": "2026-09-26T21:47:52.585Z",
+      "payloadHash": "A3189CF0C4744C640B35C40FE604C09A80A57929FC1FD2BDAA08FB1AB459CB05",
+      "disposition": "PIECE_CORRECTION"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F2FC46CCC1AB3680",
+      "scanKey": "5A285B7130AFB27D",
+      "submittedAt": "2026-09-22T00:48:44.838Z",
+      "payloadHash": "0DAF183AF9B7552BF5ECA33504DD609795296ED4764184E87F0A06AA85496832",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F4C2DC0C46C596B5",
+      "scanKey": "5C59955072A36D71",
+      "submittedAt": "2026-09-22T01:05:10.334Z",
+      "payloadHash": "1503FA3481C574A93A0F844F9AAD656D7087BE91C6D037AC16BDAD8E55E7062F",
+      "disposition": "LOCALIZATION_FAILURE"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F622E2C2B5B75513",
+      "scanKey": "B5ABA876BDDC3EA9",
+      "submittedAt": "2026-09-20T02:34:15.381Z",
+      "payloadHash": "A9119AEF8F87DA9A606A97EFB841FD1B66F6AC2ADDDB181607E0D7DD83B6907A",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F94197D8A7495742",
+      "scanKey": "CECB932574AB6617",
+      "submittedAt": "2026-09-22T00:29:10.625Z",
+      "payloadHash": "6DE20E0013465ED2A24A10E6FDFB6CF575BC419487899F583B9486DB4F85AE92",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F9B9A032BD9DFF64",
+      "scanKey": "7D758CF0CE9A519E",
+      "submittedAt": "2026-09-22T01:07:27.545Z",
+      "payloadHash": "7DB314EF7CC9C76D64D46164F6ED3C085C94F84967DFC2589127C1D65F2063B4",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "feedback",
+      "recordKey": "F9ED50111A370301",
+      "scanKey": "394FC3D1E570DDDB",
+      "submittedAt": "2026-09-20T22:36:23.256Z",
+      "payloadHash": "130186473D384C2137E0778DACB4A54D7BFCB3540CFFEB87FC40BC46BE569BA6",
+      "disposition": "CONFIRMED_CORRECT"
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "01C07F0EE8BBBEBA",
+      "submittedAt": "2026-09-22T01:18:32.371Z",
+      "snapshotHash": "218B6356FC1BCCD746D17FE275A66B3B4B8196B746E1E4222C2034DCEAD9B935",
+      "imageHash": "FF27E72932BB0B4216F1D1B8FEA1BCCE56CD842DD89ABAE3C89AD763208C166E",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "0471837EFF97873F",
+      "submittedAt": "2026-09-22T01:09:58.532Z",
+      "snapshotHash": "44D65415D0B6639BF77E427790027D7FC1DE6C5AF6B24BEC4A08C57E646A919D",
+      "imageHash": "21D751EA85FB4E45C8FCDA6E646FD87EC208EC62856FFB5AAD539DC439581BD0",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "07D6534D0B2D8474",
+      "submittedAt": "2026-09-26T21:32:41.638Z",
+      "snapshotHash": "3DB215C2E0132FCBDD12E4E35C4B46A4DA7368D90D5D9BA3EC8EDD3401282F4F",
+      "imageHash": "31E9383C04F04EE9CDCE8B46B7D0EC41D97DE78E6D0333EDC0F70CEF42539E44",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "080977D3D2C77C8E",
+      "submittedAt": "2026-09-22T01:11:31.309Z",
+      "snapshotHash": "574918DF58B316716C9E2672B206D7C77195E5A4FE114E110C06DF19C5C9DB26",
+      "imageHash": "E0F55C1DAE72BF33465EB73274DDD4601DC46150DE39CACD2D5E13DDF0F30BD7",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "09A82478AD4AFA1C",
+      "submittedAt": "2026-09-22T00:54:25.268Z",
+      "snapshotHash": "6ABD1B4110FD94CB504ECE206FAE3D5906ACEC95CCA368F3A6B09F80C52741BD",
+      "imageHash": "190848F549E0FC9F2FC62BF32CB21DE934D03F2DACE30A1CCB49090EF9EF2CE1",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "0BF9AC304086663D",
+      "submittedAt": "2026-09-26T21:35:16.609Z",
+      "snapshotHash": "1FC9F1EA45F50EE7219BAA0044F63D492D90F9B63C0178DA7935EE3D409242A7",
+      "imageHash": "6B7CCC32BDCA31242B0D6028A5E19629005B33D6BF18EC7CB2878ECFDA62F24D",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "0C620E823658254A",
+      "submittedAt": "2026-09-20T01:48:50.083Z",
+      "snapshotHash": "559BA498DE879769DCE04A59D76AA43C5D0F85CFDDCA3E2281FC7CA47FF88E18",
+      "imageHash": "CFF824897C3DBEBF3CEFEA2DC81E88786892AA378ED9972634BFB5C4866CDCB0",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "0CC23D480019B15D",
+      "submittedAt": "2026-09-22T00:52:48.586Z",
+      "snapshotHash": "CDA2E8D23E13D290F6333B4FA4093AF9DFB3A6671A21C5E3E80EAE8F785BA3C3",
+      "imageHash": "63E9EBFCF7820DAEA6075B04CDC9BE1DB3265806C61DBE1BED67B06227001456",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "1949E482FD8C7AC1",
+      "submittedAt": "2026-09-22T01:11:11.917Z",
+      "snapshotHash": "2D0934F1718E74B5B6FB81339AB0CF80C446B80023523CD6A4D93335BF7393ED",
+      "imageHash": "00DEE85ACD5D7FFFD3B1FFC1F299136FC1988E81E43439095A07D79DE9F44354",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "1CC751BAB6D169E9",
+      "submittedAt": "2026-09-22T00:55:45.438Z",
+      "snapshotHash": "BA55721A54BCAEE00DA185DF24AA415AC6E92E90869C46930F7E16FE2CBDA136",
+      "imageHash": "811575369D1F7E4200434232B17552CF460DD0093F72342D53519A4F2CC23829",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "2279C68BC2E64095",
+      "submittedAt": "2026-09-22T01:12:34.463Z",
+      "snapshotHash": "4FE53D3E8A181F42B113F4A0B42C2ED05C8482FF9CC177AD927BD9CC140A496D",
+      "imageHash": "7A795EC9F10672B24807937B6D462215B5C964D40B116220F649205B579BEFAE",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "23CD66CD8404294B",
+      "submittedAt": "2026-09-22T00:44:57.088Z",
+      "snapshotHash": "745FBEB7B258A1CDDD1FEFDB907EAA626759E9C22A93E149A3D4157327A5CA5D",
+      "imageHash": "A9AFC7B3E9F7ECB157FBEC4B924FE494E71A803E9B8C1127739BB8C2492D7F4A",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "275CA8893A8D118E",
+      "submittedAt": "2026-09-22T01:09:36.542Z",
+      "snapshotHash": "3C255CD6D0C5ED2B32FD61353C6AFC52641A12A0705DC13C384DFE21954B36BF",
+      "imageHash": "E96FA722113986045581D92A73676EF6CC33DDC60A8FBCA533E9C6B7BB8371C8",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "2F7E9AFE65B58D42",
+      "submittedAt": "2026-09-22T01:06:35.730Z",
+      "snapshotHash": "F2B772991F8BCA8BD4D81D0B060E9FAF08353BDA179FD51A7F287C160A21CF74",
+      "imageHash": "5FFA43B60A23BB06FF8C5C5384A9C0AFDF40DFC06D215221470C00DCF310188E",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "30DBD2C0AD37428F",
+      "submittedAt": "2026-09-22T01:10:25.388Z",
+      "snapshotHash": "A32FA759AAA4F48CD648DFF7D3A943A5A62B755E9B8D067AA5B503158C6486BD",
+      "imageHash": "C4C21C6D781C44EE7512D2487F8BBB0DD38A35648BF668DEF79C005653DC0671",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "332718F9FD3952C3",
+      "submittedAt": "2026-09-22T01:08:27.177Z",
+      "snapshotHash": "E6173EF5F673EEB5EB7F3D55F615C162A7B6456223F7FF4446567FBA0FDD8BA5",
+      "imageHash": "672CA511EF7A6568F6DABB93980516B18090623EFA22ABD6E972B96E67242F91",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "337EE3234C845C86",
+      "submittedAt": "2026-09-20T02:41:56.434Z",
+      "snapshotHash": "FAF0CE299052577E754411CD83779019D43F5E7B2FD809184DA34A59F6D49993",
+      "imageHash": "BEB48F3C4EB50EEF7CECF1E32376EC49D5C478D672E1B03840E1FEF655D9FBB6",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "394FC3D1E570DDDB",
+      "submittedAt": "2026-09-20T22:36:14.602Z",
+      "snapshotHash": "4AA2FE0C44B033F0B224030D3D1CAFA25662DA4C465F9E55DABDBD5F98136FE9",
+      "imageHash": "1E1770BECAF878C902BF8C4F28C49F98F570FC2BEEE03820A16B700CBE9617E4",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "3ABA4648793AFD86",
+      "submittedAt": "2026-09-26T21:45:38.005Z",
+      "snapshotHash": "80AB484392127B04DE202F1188D2F81804526EAFC2A860C46B71B65EED33A93D",
+      "imageHash": "92059BC8415B4D29DCCDDD49776ACE238E6D606E362BAFAB1C8A0B7BC8C32AB0",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "3EA15AA5D38562E3",
+      "submittedAt": "2026-09-26T21:34:17.357Z",
+      "snapshotHash": "EFF12148E8C49A8FFD8D0D1090BE2BFB39393D5D511CCF900BCB26E45B72322B",
+      "imageHash": "2352D78CB742A13EA95AF7F04DC002150C1AE949123EE6A28D4870276FBAC088",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "3F2D60748D3994D3",
+      "submittedAt": "2026-09-26T21:42:48.019Z",
+      "snapshotHash": "E81A8B244AF6108EE3F703873067520B13D8CB8146A8B5641CF3E6A14EB682A5",
+      "imageHash": "B129F7A5B84D7ADA0E85983CCC5D5725DD4900C5B87066613FB55F9F199B82C5",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "4006B3897CBC98B5",
+      "submittedAt": "2026-09-22T00:43:31.736Z",
+      "snapshotHash": "385A0225D7DD8F6E06F2F58818A368B1B9EC218B7A980968B952CFC7E1358567",
+      "imageHash": "545D3889C2AD7FDE81F181849B760C37C13737883A2AA17EA46EA338E001772F",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "407B9ED079096886",
+      "submittedAt": "2026-09-22T01:07:42.473Z",
+      "snapshotHash": "C41526E6B868BEAE2A478746819CA522C81A2D46F070EBF4F943C9160445CE00",
+      "imageHash": "098D1E1CDF26B0840ADFF12BAD9402B01A9EB27C12424C96184D0CA30ED51660",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "40D437D76B7C0FFD",
+      "submittedAt": "2026-09-26T21:38:37.156Z",
+      "snapshotHash": "1A0BE4A93A56F0D849D2E01546C98646A1E3F7FDDDAF24E0C4884D7D25649714",
+      "imageHash": "7F95DB36FF34CA33CA68F154E2CA42183BF844558B1F4473A5A281FB02CAF3CD",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "416F4E06EFB3EFCF",
+      "submittedAt": "2026-09-22T01:05:50.677Z",
+      "snapshotHash": "9F704FAE5E7A55346E41AAB9BC92E37CB19C5C114916B53B6A8B1DD56599052D",
+      "imageHash": "21B3B27C0BE72F5C2301118F76B3A105E24D97B39780B2C978D467636B36E24E",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "42529CC851B784FE",
+      "submittedAt": "2026-09-22T00:46:23.985Z",
+      "snapshotHash": "64658033827C3781323B17190A8C8CE2D6A92A1EF7AA414EE5163E4CC3D65C51",
+      "imageHash": "9E494D529FB0C44E7A60030FA1436C61AA20EDB3884569F1B0D1A170934B57FF",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "433BE7927A0F4AC7",
+      "submittedAt": "2026-09-22T00:55:15.226Z",
+      "snapshotHash": "BF1D3CF9BEE0F1F599969265CB705F4F8AF0CEB7F0B662D81119E773071FDBDD",
+      "imageHash": "29F30DD7AD0967A00300B97873336337B1D3E94D83E15EEE9BE485766F475CE8",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "49EC397669F40978",
+      "submittedAt": "2026-09-22T01:08:59.260Z",
+      "snapshotHash": "D889744B153EBF8DF6B5A18E9296586505590D875C766647439482E03EB12D2F",
+      "imageHash": "B5A76D68C4D7930D845CA54F21929C8686040298213650E6EB1D8C9569A69894",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "4A189E03299DCABF",
+      "submittedAt": "2026-09-22T00:41:38.223Z",
+      "snapshotHash": "4226466D94AC16D1577257B2A1AEFD482531D3433CDF3F55627BBF8352E3AC7F",
+      "imageHash": "479B50B2C382820F6B052A0C3D4B6C1843B3DBE21756B8821852C494F2A3ED34",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "4BD9EFF4CA0D5A2B",
+      "submittedAt": "2026-09-22T00:56:35.738Z",
+      "snapshotHash": "E6CE3FD075E7357F0338FFC2BAB15F22818EAFC06E0A3910C06FC8A6A37146A9",
+      "imageHash": "827F172E5805146E77AE96150F058A80EAB8E64B6894DCFB05B170882A859A1B",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "53180315B6AC1989",
+      "submittedAt": "2026-09-22T00:37:02.984Z",
+      "snapshotHash": "DF41C11CF271618F0CE20E1CA572A657F986D6E6E962067622FDD919124F1A3E",
+      "imageHash": "6BE8C1A957F91DFC4494E082C7D3EAB5D441FAC482CEB2B5388C5176A69C28E2",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "53B08BE8D127D31F",
+      "submittedAt": "2026-09-22T00:46:48.867Z",
+      "snapshotHash": "7FC189C5F94500D74481880904080B28458719A6410E3D7AC8427575887E0ED0",
+      "imageHash": "7FD79C14A6A2C0A72A171997420F8A67C6BD5FBA77C969F1D1345C7461730B16",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "5899888B9AB4C689",
+      "submittedAt": "2026-09-22T00:53:58.835Z",
+      "snapshotHash": "9F12ED4F2D8F9CA52CE1473603BF7A3B5A532094EB2E2D129680CC8E7BDE6351",
+      "imageHash": "2864DFCC279F7A53175FE662458C4DF4E7783D2BFC0CE9294A96EA5AF3425F22",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "5A285B7130AFB27D",
+      "submittedAt": "2026-09-22T00:48:33.531Z",
+      "snapshotHash": "019BCE904A34D7F2605DB1DF495E1771426ADBEA51E5D51ABD403AC30182B064",
+      "imageHash": "CF2A1353D7CCA3DE0936533FDD12F5045E580320ECD796B6E7BFCC664FCFDBF5",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "5AEAD85F5833D0FD",
+      "submittedAt": "2026-09-26T21:49:39.611Z",
+      "snapshotHash": "32DC88271CFC4F6EBFB701CA3246395550E8103E53A6BE19975CA4ABB89AA1CF",
+      "imageHash": "A883152FCA756585E7C0C5E364CC3898038E2E0D30C7EC72F58511725741776F",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "5C59955072A36D71",
+      "submittedAt": "2026-09-22T01:04:56.374Z",
+      "snapshotHash": "65368FB86DFD548932CE7AE88197446A54077EDD47456A6559778190195E73D1",
+      "imageHash": "D0B77B6A93CB5DFC4837D7789DFA9D673B944588AB1691731A467D8157CFF7E7",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "5F1FB11C7ADD32F5",
+      "submittedAt": "2026-09-22T00:41:58.820Z",
+      "snapshotHash": "8FDBB5ADE89E8710DB18D28EAF6C83E9CD7D02EEBC9FCBD1E510E78B951525F8",
+      "imageHash": "1FB6F7A40F92A0D4FDAA9A2DA66A398A6E9BEF15310B9880332E070D1A83920A",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "623A8A11BD4D83A6",
+      "submittedAt": "2026-09-22T01:15:15.530Z",
+      "snapshotHash": "8844C4E7A2F03C9386133187F952585DCDD2620DAF1CD98AF335F6906FD8BB2C",
+      "imageHash": "FE56E6B26833558AC354536790E7D5D087CD97841D68D0A9AD5694B732F587F5",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "67D0CFC647AAED5A",
+      "submittedAt": "2026-09-26T21:43:41.552Z",
+      "snapshotHash": "6375A6150BF4DDB98E6D667DDCC618E73A23A1348AA2CFC23F8C701137AAEBC9",
+      "imageHash": "6E539C56A1532249C2C0A4C3E3C267E901BE28979BF060EA40C6AD047ADD9197",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "681192BEE4932005",
+      "submittedAt": "2026-09-20T00:59:55.473Z",
+      "snapshotHash": "ECEBA9D6D54A6CB56A43D023611324B517A3FBC70806D53E0EEBC545C6867937",
+      "imageHash": "4245E910E4C645EEC7CA9942171F24842E1F4AD18C93DFD59FC7C5DFE0326E42",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "6A785F0BD7BE4F28",
+      "submittedAt": "2026-09-22T00:45:51.101Z",
+      "snapshotHash": "C283650C051D33F14B261DD4A71BAA88BBE84327D82EC5D956ED40BE365C20F6",
+      "imageHash": "1B07472187FBB4B25EECA27BDF31A51D2735E12F3450D8176257D6D1DFE31C2D",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "7161A242799AAC0A",
+      "submittedAt": "2026-09-26T21:40:04.110Z",
+      "snapshotHash": "E8A1BF42B3861E50979BBEAF6FA73199F167A894FDE5AE4B9B047CB78D82A588",
+      "imageHash": "73B40E37149E661301E8C1FF9236DE8133B558C6B114D94798744E4B9B6740C1",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "72722DB22688F0F1",
+      "submittedAt": "2026-09-26T21:46:44.278Z",
+      "snapshotHash": "49DA1A80339C31715B8E8D2DACFC537631047CA21B9D9974C7997217842DA9A4",
+      "imageHash": "A2AD0BB6C067F2F92D2A2000C66C01022ECD9327AFE7797D607A8680D2166679",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "72ADCA287EFDD173",
+      "submittedAt": "2026-09-20T15:09:18.552Z",
+      "snapshotHash": "7B3C2C66BFA730EBACBB3ADBC6C29C1319FC5577395BF46503EA83495BBA0C09",
+      "imageHash": "5E1872DB349D03673466189F1D444475BAC2354FCC0E758619F6F5EB99D20FC3",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "73A0D9A174DE8FD8",
+      "submittedAt": "2026-09-22T00:51:18.561Z",
+      "snapshotHash": "4ACB222BABEE066A2B9E4F4BD22B01508EE638FE9A8648B461A65FD946F0CACC",
+      "imageHash": "659B92A3772E5A9105E83A4D7623FDFDA400631D26E40F2FB02D12ADC805AAEC",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "74200A7A19935C25",
+      "submittedAt": "2026-09-20T02:34:33.403Z",
+      "snapshotHash": "2B560726E4AC764C631E6A1F5B9F8E0C5554DC39238CF651629711C218B4D343",
+      "imageHash": "A84DA74FE817797D758CD7C80E5C355700DEFC0060F7B0007C9D4AD2FFA3296C",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "75AD8963FC74AA51",
+      "submittedAt": "2026-09-22T00:47:47.726Z",
+      "snapshotHash": "2195B955B3387F1C710BB1146B9C94B9665B1B9139E2D8BD1083D51519CA04C2",
+      "imageHash": "2FEB38128D210B84BA94378F284C3C5AC4F3A62036EE2D574B69119E7C158556",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "76314742D654AC1D",
+      "submittedAt": "2026-09-26T21:39:05.623Z",
+      "snapshotHash": "0832396210F3DDAC583E0CDD457E8518F71D40A61444CF5225ED256A0F3DEE67",
+      "imageHash": "1437F5C24B5FE4ED28C5775CDE171AA3E80B478B5DAE0E1643BA81C803E603D0",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "771C5FC78F57D2D8",
+      "submittedAt": "2026-09-22T00:43:49.537Z",
+      "snapshotHash": "802ED26B6EA1E6D38C902B39E94F11B3B70A59FB5AE5EA7538C68B7364FC0E4F",
+      "imageHash": "BB3F6A57601F9BC327BFB71607FB07E2D86374855262FA4E4A631F06FF224767",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "7848D5CFFD4DA485",
+      "submittedAt": "2026-09-22T01:14:10.037Z",
+      "snapshotHash": "A6FDAD644F0CC297110F6622A598EE7BF8A7957050B2715DA2890B7DA527598A",
+      "imageHash": "DAAA64A3D5EEB01916393848B580BF8C0B0877F32CB5E889B22A0CABF762DABA",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "78581B6E3201B2F3",
+      "submittedAt": "2026-09-21T23:00:52.406Z",
+      "snapshotHash": "91E5AAFE125C4EADC858B5794C9E4B7F42994C8ECF61F40957667F805E4CAD29",
+      "imageHash": "6AC8DC3327EB52222F919271F294654A48D508394CE4AD503FCD929CC2E3B43C",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "78F7633D52DE4B3A",
+      "submittedAt": "2026-09-22T00:30:28.868Z",
+      "snapshotHash": "98C672B50DBD13A3150892FEAD07CCA3683B2ECC332963E256A106706990AB39",
+      "imageHash": "19DB160C742FD4599D3DD87086419C466EF9C3A35DF7AAA336E8DB9EEA89BABD",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "7974FD6B57C9186D",
+      "submittedAt": "2026-09-20T15:10:34.723Z",
+      "snapshotHash": "3B431C7204A7B01403437228CD5D360DC1CFB2D73AF8B44DB294172BF845C7FD",
+      "imageHash": "EE007167EF73C853E2FA69975C45EA2B5D5BFD4FF0C95394938DF0D159379644",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "7A5A6E624DDDDDA3",
+      "submittedAt": "2026-09-22T01:13:44.708Z",
+      "snapshotHash": "EA0ADC031C70395E22DA0A662FC1FD53A79B33D69A6CACEFD1E97C82499FD13A",
+      "imageHash": "8F085A4A5CBECBA4E9F69FCE6938F736F46D7A42A694D1F730A39D4BDC42CA50",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "7ACE5E197914C761",
+      "submittedAt": "2026-09-22T00:39:14.827Z",
+      "snapshotHash": "E07663CC427AA61D19F82698D4ED0F1A9F872D245D271239C4BE885AEF10BF3D",
+      "imageHash": "B970A975429691B8D43CEB0DA391EA9AF7C5B4C958528F57AB9015FFA6DCFFE8",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "7D758CF0CE9A519E",
+      "submittedAt": "2026-09-22T01:07:23.420Z",
+      "snapshotHash": "CFA95276061B0BDCA05BFF9CA9766AF86383E3D72AF914032D15E901481BCD1A",
+      "imageHash": "056C22469E5B8916B5C89564A96D467CB270629CE2AA06D14BB36F16F85BEDE2",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "7EA41D5B45AFDAA8",
+      "submittedAt": "2026-09-20T02:35:06.895Z",
+      "snapshotHash": "52D0D427E607925E62B3F4FEB3F677980CE1E17B4174B2714E67411F9FA58F71",
+      "imageHash": "E9082C0377A1DC0E8A5F69E05850B84B8E4A318E77131F263AD2CABB016FCEE4",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "821E4D5B599A6DC5",
+      "submittedAt": "2026-09-26T21:40:41.853Z",
+      "snapshotHash": "03ABEEBDA81CA4D8B7AD426A1EA0F9256939489F288578D99BCE897C5D8F9A68",
+      "imageHash": "5D64B75E9374FF6AE012BE28F30C5E1DCD2195752E7B6F146174C64421DF27AB",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "855F96A94D68A72F",
+      "submittedAt": "2026-09-22T00:46:01.276Z",
+      "snapshotHash": "B87F324B83E7319641AA50A99C0BCE29FE11BF258BE798A409C948EB570647CB",
+      "imageHash": "69275A57FBFC0746ACF6DFD80AEDAEAAB9F3B669E67C549C7661FD945054FDF0",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "8587B099DC4F30F8",
+      "submittedAt": "2026-09-26T21:34:36.945Z",
+      "snapshotHash": "8E0FAEC9CF8A0C4D7ADEA1358D0FAB2A52E7CA0563419ABBC25BC089B8046FE4",
+      "imageHash": "A2193DB867EB11CC921E206B1201FD198B961D46F29FE0163F4C802415CC8E5D",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "8986530AC189AA14",
+      "submittedAt": "2026-09-22T00:52:01.583Z",
+      "snapshotHash": "D074943EA84C8D3C46D88958C09AFDEC3ABCE177C14458B1D34B82C57CCB33B7",
+      "imageHash": "1D36B7FE38268E619475512774F8AAE58ED6DADD744171B790D32B772AD34E66",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "89FF6A2FB653F197",
+      "submittedAt": "2026-09-26T21:33:06.909Z",
+      "snapshotHash": "2B25E767BE5FBF837375235531D9A3B8B41D5EA1DFCC456215CFA1C71F13FDF0",
+      "imageHash": "954B87DA309F7D4F4221C43A95ED152089B1B0852FF2B32C1FCBA52765EEE0D0",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "8B988A4FDA9294D1",
+      "submittedAt": "2026-09-22T00:53:14.721Z",
+      "snapshotHash": "6D5B2B2D7E799DD225E5DE21EC419A96A0AA1F5C735C07C5570139ACAEE45521",
+      "imageHash": "EDEE3310C85139A93FDF11207F83F7F121E5B4DFF442156619A5CE223DA686B3",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "8DB7DBA2748EB8EE",
+      "submittedAt": "2026-09-26T21:33:48.863Z",
+      "snapshotHash": "D8912778E062B4D346E269F7E665B92601D653D6AD48934828E8DE620A33EFCF",
+      "imageHash": "07302F09C8B1B0F9112C330F1F317239E0EC87314DCB7D6FC633F6D1C1319199",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "90E1EFE2243D2FBF",
+      "submittedAt": "2026-09-20T15:10:43.556Z",
+      "snapshotHash": "335650C8EC6F720FD7EF00F3C23160BAC7D6DB8ABDD5B02EEDBDD4B16F65062F",
+      "imageHash": "9ECEE144F5BCA9AE561F30F25816F280E9EC1960CF45E9E4F7E1DB77D6EF5DC2",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "92F0F1CF79172D62",
+      "submittedAt": "2026-09-26T21:47:35.096Z",
+      "snapshotHash": "51801DDC3662FB64EBA75121AF26C2D2B9D8C58F6A57C2D6ABA6E264B53D64CF",
+      "imageHash": "BDB8829D8D71B5EA5A19721EC56845F5708022C0B9E4B398A1B6ACB79B9318EA",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "98AB71873A250476",
+      "submittedAt": "2026-09-20T02:45:12.087Z",
+      "snapshotHash": "B2A328308516B05542D9D96DDE4205A70942A3EF478766B2082E4060616784F2",
+      "imageHash": "06222B007261C387C89A6799A239C5423A7F6792DAE3D3A1F7B07F55AB00C22E",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "9BB85457B36CDF05",
+      "submittedAt": "2026-09-20T22:08:05.731Z",
+      "snapshotHash": "20DC4E48328347227852DF55834C2FEE150D634EFA73B8A4ECE0D17B5C0320C7",
+      "imageHash": "6E36DF9280279F688B1987520213B68768AFF7812671B57629B45C613BBF3A35",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "9C01FEE91DA4A758",
+      "submittedAt": "2026-09-26T21:42:07.846Z",
+      "snapshotHash": "0D70B05B90E05F7BF7AB4276F0C1D176B33F6C5C06F54F58753F7BDF6912842F",
+      "imageHash": "CDF02479184BB6C37E1F6892A6BC6ABD65DEB73D4D937EE590A9F085165836DF",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "9FC4AFF666C9BC00",
+      "submittedAt": "2026-09-22T00:50:25.023Z",
+      "snapshotHash": "F03E4BA10D316EF4639DE73C9C0493FF8CE84252CEE2AAE1466D3E97CA61401F",
+      "imageHash": "4745C7D281BD62707A37C0489E63D2D689C3D246E1E96C0EC361EA821CB19545",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "A51313A27CE1396B",
+      "submittedAt": "2026-09-26T21:44:51.618Z",
+      "snapshotHash": "9B116E7769CDC13588ADC4DFDF68BC5A881597E44592198337CADDB0D427F02A",
+      "imageHash": "6111D84F1955E527D9F186A144EAFACFA0B49AF556761B8E479B4BACE4FFDB08",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "A7E2665C831A8B91",
+      "submittedAt": "2026-09-22T00:39:36.874Z",
+      "snapshotHash": "B65D511134B63241A794E41A4AF9B4A59F350CC36D442479887B59A3A7BF992E",
+      "imageHash": "742CB8DBB3141AE5DF1F4378019F7A5FF168D81A49A3A67AC80EFB0E1E62D3A2",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "A906DD5ECCA0920F",
+      "submittedAt": "2026-09-22T00:43:03.197Z",
+      "snapshotHash": "91E560A58747600A39A56EE4FA119D365CCC30EE2F3AE410851235D03A192DCF",
+      "imageHash": "E215D7DA87299165ECB1A4FB25E7CF2B5B53D2B1B6D7E56B685CB3BF66BE9933",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "AB65F61C1BD19BDF",
+      "submittedAt": "2026-09-22T00:50:01.733Z",
+      "snapshotHash": "C3FC5838283203C7824D9741DE2EBA964F994F45EC57E146A63C0B4B18BBC88B",
+      "imageHash": "4D1138BC886DB7538FE53D09B1E5B9F67881E4CDD0AD0EA086583215954B6D6E",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "B5ABA876BDDC3EA9",
+      "submittedAt": "2026-09-20T01:49:33.522Z",
+      "snapshotHash": "9B76803F19AFE17D195E871B5CF6CBB2E5D9ECB52DEE882D550F071DEC960B6D",
+      "imageHash": "9ED4E1481DBA8384B1A5438430B176FD99BAB63965C69CDAD5013D798115E8C5",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "B923054052742648",
+      "submittedAt": "2026-09-22T00:47:25.513Z",
+      "snapshotHash": "BBE403AA4EE912B60BD7EC60BF35D1400AF9AF219FE16E406D4EB846E79F53FB",
+      "imageHash": "AC8CBD273228E4C1D5B96B0A426073D1FB36AD4C42691446351E05B61A4E3569",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "BA0A2BDE8118C986",
+      "submittedAt": "2026-09-20T02:44:51.431Z",
+      "snapshotHash": "81C308816ED630A9A89985014CC8F1AE8FE4EB52D9DA1B15575CE69DA9189768",
+      "imageHash": "4245E910E4C645EEC7CA9942171F24842E1F4AD18C93DFD59FC7C5DFE0326E42",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "C096531D7BB79083",
+      "submittedAt": "2026-09-20T02:43:23.823Z",
+      "snapshotHash": "1824906CDC9F9085B90D53266054E7228E3091A90E48BB5E9EDCA1536685C3D5",
+      "imageHash": "5776130DA6586D78411B20DDAD226EB36B46F855DE8A6746A55148850CF83716",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "C351BB29835E8540",
+      "submittedAt": "2026-09-26T21:49:26.182Z",
+      "snapshotHash": "D30FD41718E61FBBF065A43E178F32818C2579650E6EC83C1CC95D124F806AF3",
+      "imageHash": "66C333E3A18B4DE468F242744753FAF6468F7F3996DE51553EB92C876C44A3B5",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "CB69399A1775D776",
+      "submittedAt": "2026-09-26T21:35:56.380Z",
+      "snapshotHash": "A9EC81C9D837A253AC9C2B0E7CD54C076C66BAC0DA2A73423178ADB0D1368B4E",
+      "imageHash": "7F09B15F8CFD7BC0B3AB9A6FA20EC9C423EE730C53606902013F5F0D19D4F42F",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "CCEA7294F1985171",
+      "submittedAt": "2026-09-26T21:39:27.069Z",
+      "snapshotHash": "1AA85588BBBF0DFDCD140BA68CD3AD11443AE8B95649AD5DCD1DE81C4480E942",
+      "imageHash": "6AA9B2117F48878A84C4E976C9FA632E7F9331AB853DDA7195C3342776FF9495",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "CD4750B18AF1B724",
+      "submittedAt": "2026-09-22T00:49:02.236Z",
+      "snapshotHash": "05786442CA683530C516A9ADBF1B7290FF37F738419FE64E4A51F51B627EFAA4",
+      "imageHash": "E0C2987289BA726F74E8E15E9C86777A9F5F7F8FD1E95CC385456030B66DA588",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "CECB932574AB6617",
+      "submittedAt": "2026-09-22T00:29:01.840Z",
+      "snapshotHash": "C157A71134F4F80C8A7DF3F7788736850A441D0DD75EB4A3E96B9CDD5D5F7615",
+      "imageHash": "C05015889236EF5CF9BFC81C693E53A09DB2C8D106FA442AB860B5CDEA8E3AD9",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "CFABD62D679724F2",
+      "submittedAt": "2026-09-20T02:37:35.481Z",
+      "snapshotHash": "927F2EE55043E302A3DACCB1A01B23BD93DEEB76C2600D50918BA9D558FE9CB7",
+      "imageHash": "11DF1B2AC518CA22EDAC68903F20B24512EA8CAEF2F04D32DC832972663DBAB8",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "CFE0B410F4FB57D1",
+      "submittedAt": "2026-09-22T01:05:54.603Z",
+      "snapshotHash": "62318DB0D02EA41056F66E87CA7A343C38CA0E6085C9382991FF27789E64A905",
+      "imageHash": "6F0D0407A5380F3A669A1E03ABBD12F4A79651B14DB8BE6718403BEAB44AC5AC",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "D18C7DB2782577AF",
+      "submittedAt": "2026-09-22T01:04:37.898Z",
+      "snapshotHash": "07C86D564F94468794D8EDBB8FD6CBCB66BC18A8A7716CE245C91CD57C58BB82",
+      "imageHash": "6C91BFEACDB50FE1A89365D47FF292DFA77F593A973DE8D3738C4750EC8CD134",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "D1A4AA80A303A4BF",
+      "submittedAt": "2026-09-22T00:44:31.715Z",
+      "snapshotHash": "B8514436D3765BFA3FFAAA3F84E16254649D56FCF4060EBBC363B99F1040465A",
+      "imageHash": "868DC4F67413C2F4316953965FFDB3B529F4855915E8F6EE3BED71B839C49037",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "D2261C951AFCDA2F",
+      "submittedAt": "2026-09-22T00:38:52.842Z",
+      "snapshotHash": "42D25CE485659E3A7007949F117FF814B893224E96EA670F09F40D61E532C9CE",
+      "imageHash": "FAAD0142B7D2EE9D8C279DD3C716F7B4E9B0D93FA39EE29723139E721D2AF6A8",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "D28200686B5D1641",
+      "submittedAt": "2026-09-22T00:42:51.923Z",
+      "snapshotHash": "FBFAD29B5DB045D00589ABA586BDDE741085367AA8CCEC558D57DEA92809DAD1",
+      "imageHash": "288C3061A5C9CC1ED5DEFE7408F8FEFBA55EBC08B09EE9ABC5B3AF07AFA9CEC5",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "D9A971FC62E8381E",
+      "submittedAt": "2026-09-22T00:40:31.825Z",
+      "snapshotHash": "663CBDEE331B7711A8312D100C4D8B034CF25B452B9A7AE02DBD5582EE9C9DF5",
+      "imageHash": "0B3AC7E4CC43E417263FA4FC6F5AF0485672808FD4CDF0D009736EF09C59FDE1",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "DFB618BFD37F4EB1",
+      "submittedAt": "2026-09-26T21:37:24.819Z",
+      "snapshotHash": "9079D9064F34F7136961939573C6DB0CA626B00A720F30B81A347736C6C09BE7",
+      "imageHash": "88F716BD0868ABC47D838DE97B3FB2BA720B2FEE3920A4EF4761782AEADC8E91",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "E34A896E88178B20",
+      "submittedAt": "2026-09-26T21:46:08.605Z",
+      "snapshotHash": "D484D21AD03CEBA32C05759F04E934FA567081BB0C1C4E0326D3FA30D0229CE1",
+      "imageHash": "9F318DF17C5ACA07EE12253F260D4C52C087224A3CDB05AF78C2246254858DFA",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "E5CD6DF15581B58D",
+      "submittedAt": "2026-09-22T00:41:09.844Z",
+      "snapshotHash": "C2C984EBB15CE5868421E29AC3FBAF445AE40A023B33DB820DC3854C71AC39E7",
+      "imageHash": "F2CFDC565DB1A480A76C98FB7AFE1BEDAE45E19F63D9C1EE588478BDA19DA67E",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "E6694A8AF0860060",
+      "submittedAt": "2026-09-22T01:07:07.680Z",
+      "snapshotHash": "50F5D6294B7F831DD7B1ACCE7C9FFAF74CC1730CC30FB1C8FD2F4D590D17564E",
+      "imageHash": "A077E8F3F63628B162415FF837CA8E7B94919D420BA3EA24596306A95116F5C6",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "E7A9956AF1222064",
+      "submittedAt": "2026-09-22T01:06:15.600Z",
+      "snapshotHash": "2DD0BD07339929846B2C9AE3CF184E02C71F2339114AFC9D01AA353A842567D2",
+      "imageHash": "E926F44C5FD06777A1672E05B35C1D2D3C16FBED38B596749973CEAAC21CACF3",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan",
+      "recordKey": "E86245A6B570ED6D",
+      "submittedAt": "2026-09-19T20:34:43.690Z",
+      "snapshotHash": "F3000EFB88C7530AD402B520EA37F4C81E96F8BFD1E60FF146916F41F4C945AD",
+      "imageHash": "0D4C6A29EF85668CEC1A92F5F3D3B784FA5E57224B0E1B9517A83094A3BD88AE",
+      "modelVersion": "caissa-piece-classifier-v0.5-occupancy-recovery",
+      "modelChecksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+      "occupancyThreshold": 0.99
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "07D0309082EFFE33",
+      "scanKey": "B83942E4A6FB9633",
+      "submittedAt": "2026-09-22T01:17:59.189Z",
+      "payloadHash": "116ED8A387C41CE2CED3E4AB92D2F950C846569DCDC7308C8A14A30DB6313DD0",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "0D57507732CD0961",
+      "scanKey": "6839159B641F1248",
+      "submittedAt": "2026-09-20T02:44:05.836Z",
+      "payloadHash": "C2DE2E8E7E862FB6A8AB7D9C6486E6A5836C521CE4E17A809CE3AE0439B28FF7",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "1886D569A6A22AEA",
+      "scanKey": "7FFE962E37D2AB7A",
+      "submittedAt": "2026-09-22T01:13:11.646Z",
+      "payloadHash": "C6325246A95B53A603C12B5134D8C102E0DA02E29416BB76D1E1243601D6E65F",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "27165CA63532D10F",
+      "scanKey": "BE3AB948311357BB",
+      "submittedAt": "2026-09-26T21:35:38.272Z",
+      "payloadHash": "5F4146A9BDEE1FDE39A5030DC1C3741958AF6620534E5AF2AF4FF16627136C3A",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "291737EB9FD5D3BE",
+      "scanKey": "29EFDF8ECF75C215",
+      "submittedAt": "2026-09-20T00:59:29.597Z",
+      "payloadHash": "598D186B51B482E5960C159748DBE9451BB6D180BED1A64EF68F1E0B2F70E999",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "43BC9227AAA1C4DC",
+      "scanKey": "F11F0B579DD29A7A",
+      "submittedAt": "2026-09-26T21:43:31.708Z",
+      "payloadHash": "DFAD3FC3969757286FABD6B0E9E8F89EF287DE59C0132CD85F7CD14D5C2EEBE4",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "4B3244AD76B86E98",
+      "scanKey": "D6314C4665DB8410",
+      "submittedAt": "2026-09-26T21:47:23.930Z",
+      "payloadHash": "764C2CAABC83C99862D52E4467078DCA17749756E04D666A1FAD08706AAFF311",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "5122F1D1926E0EB1",
+      "scanKey": "5EDBDCBDC9FD8CA4",
+      "submittedAt": "2026-09-20T02:34:15.890Z",
+      "payloadHash": "F234592701920A7E4C0B51B52DE759FCAC17610BB9C9EA514D206C26C3482B06",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "642B308A0001691D",
+      "scanKey": "9ACBAACBF591FE44",
+      "submittedAt": "2026-09-26T21:45:15.323Z",
+      "payloadHash": "1137CDF320BE45907FB86D1F0F30B72D4C97CACE302A78A4EC5510E36CAED3A1",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "66CD7723E166F9C7",
+      "scanKey": "7938F59EA6602A12",
+      "submittedAt": "2026-09-22T01:18:10.352Z",
+      "payloadHash": "1C455D9827AEDAE0974ABE44055873F4F3319B55C8AD05DFDC97E6D26CC90BE7",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "7142599053636431",
+      "scanKey": "45E3E12E9822228A",
+      "submittedAt": "2026-09-22T00:40:18.550Z",
+      "payloadHash": "5147AB720D040EA2E5894EE63ED98C75DA80D4F403F4189BB0AB6021DC5342D3",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "78BC642FA8DD3850",
+      "scanKey": "4AAB708276D934D4",
+      "submittedAt": "2026-09-20T00:59:29.029Z",
+      "payloadHash": "1BE133ABD36F96FF21D37EDDDF007F1E55AE0C9013483965F5FE7B76A8C8D99E",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "986CE75B1B800421",
+      "scanKey": "C9C733F4B19E4ED7",
+      "submittedAt": "2026-09-20T02:34:16.610Z",
+      "payloadHash": "A3DDD8761B2F63779F4DC7E5282423C3EE223FB556BE9886707DA9699FAD2454",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "C046A2E324F98EFB",
+      "scanKey": "4406F21B35E2ED66",
+      "submittedAt": "2026-09-20T00:59:30.080Z",
+      "payloadHash": "15EED042F08552C2260B36720012238871A3035E545C476C48E0D4EF8BA9B01B",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "C673E7B2EAC89A76",
+      "scanKey": "335D5DD508E207C4",
+      "submittedAt": "2026-09-26T21:35:10.186Z",
+      "payloadHash": "2F26281DF4C76DAAD4E72C0184999B6CFCD9C7EBF6B91B24CBC8FDC26AF50C02",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "C76245A11827158D",
+      "scanKey": "FEAE30673C79597C",
+      "submittedAt": "2026-09-26T21:42:31.976Z",
+      "payloadHash": "6FDC5294281F0181143196D758A55F09CDC7E6FC1D42ACA6A5F12A776E4724A6",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "D425AA867BCE1CD3",
+      "scanKey": "FE9730F7D1523560",
+      "submittedAt": "2026-09-26T21:37:57.809Z",
+      "payloadHash": "B0859FE6AF53280CC302D9CC91C98AA024C4CEAAAB5ABB7F21AAB3B384B5D06A",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "DDF097705A37A398",
+      "scanKey": "6CB304CE71A924CA",
+      "submittedAt": "2026-09-22T01:11:04.847Z",
+      "payloadHash": "AA7B834E6FA347170B7BD12ECCD324737FED2F68EA1D33C11F34EACF76A5185A",
+      "disposition": "SCAN_FAILURE"
+    },
+    {
+      "recordType": "scan-failure",
+      "recordKey": "F9FBE2B0F30CEDC3",
+      "scanKey": "1A729C0583646539",
+      "submittedAt": "2026-09-20T02:34:16.155Z",
+      "payloadHash": "F8DA8DCC5397558E6D4DDA2A52BA95D9A8A70669394BFA768E43BE6F694B137A",
+      "disposition": "SCAN_FAILURE"
+    }
+  ],
+  "corpusSha256": "B5104B8445F3DC932A0B9BDE8A69CDCBD31A2259A8154F46C51AEAD43656B267"
+}

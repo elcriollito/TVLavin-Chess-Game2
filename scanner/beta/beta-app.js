@@ -3,6 +3,7 @@ import {
 } from './scanner-beta-contract.js';
 import { randomUuid, sha256Hex } from './scanner-beta-crypto.js';
 import { enqueueSubmission, flushSubmissions, pendingCount } from './scanner-beta-queue.js';
+import { localizationDiagnostics, stableLocalizationFailure } from './scanner-localization-diagnostics.js';
 
 const $ = (id) => document.getElementById(id);
 const views = ['captureView', 'readingView', 'reviewView', 'workspaceView'];
@@ -24,12 +25,13 @@ const HEIC_TYPES = new Set(['image/heic', 'image/heif', 'image/x-heic', 'image/x
 
 function show(id) { views.forEach((view) => { $(view).hidden = view !== id; }); }
 function consent() { return { shareImageForImprovement: $('shareImage').checked, shareCorrectionForImprovement: $('shareCorrection').checked }; }
-function clientMetadata() {
+function clientMetadata(extra = null) {
   return {
     viewport: { width: innerWidth, height: innerHeight },
     screenOrientation: screen.orientation?.type || null,
     browser: navigator.userAgent.slice(0, 180),
-    selectedImage: selectedFileMetadata ? { ...selectedFileMetadata } : null
+    selectedImage: selectedFileMetadata ? { ...selectedFileMetadata } : null,
+    ...(extra && typeof extra === 'object' ? extra : {})
   };
 }
 function status(message, target = 'submitStatus') { $(target).textContent = message; }
@@ -152,7 +154,8 @@ function failureCode(value) {
 function normalizedFailure(error) {
   const raw = String(error?.code || error?.message || 'DECODE_FAILURE');
   if (/UNSUPPORTED|HEIC|HEIF/i.test(raw)) return { code: 'UNSUPPORTED_IMAGE', stage: 'unsupported-input' };
-  if (/BOARD|CORNER|HOMOGRAPHY|LOCALIZATION|AMBIGUOUS/i.test(raw)) return { code: 'LOCALIZATION_FAILURE', stage: 'localization' };
+  const localization = stableLocalizationFailure(error);
+  if (localization) return { ...localization, stage: 'localization' };
   if (/RATE_LIMIT/i.test(raw)) return { code: 'RATE_LIMIT', stage: 'rate-limit' };
   if (/AUTH_REQUIRED|ACCESS_DENIED/i.test(raw)) return { code: raw.toUpperCase(), stage: 'authorization' };
   if (/NETWORK/i.test(raw)) return { code: 'NETWORK_FAILURE', stage: 'network' };
@@ -166,6 +169,12 @@ function userMessage(code) {
     UNSUPPORTED_IMAGE: 'Unsupported photo format. Choose a JPEG, PNG, or WebP image.',
     DECODE_FAILURE: 'Could not read this image. Choose another photo.',
     LOCALIZATION_FAILURE: 'Board could not be detected. Try another image.',
+    NO_BOARD_FOUND: 'No chessboard was found. Try a clearer photo with the full board visible.',
+    AMBIGUOUS_BOARD: 'More than one possible board was found. Crop the image or try another photo.',
+    LOW_LOCALIZATION_CONFIDENCE: 'Board detection is uncertain. Try a clearer, straighter photo.',
+    INVALID_QUAD: 'The playable board corners could not be verified. Try another photo.',
+    HOMOGRAPHY_FAILURE: 'The board could not be straightened safely. Try another photo.',
+    MULTIPLE_BOARD_CANDIDATES: 'More than one possible board was found. Crop the image or try another photo.',
     INFERENCE_FAILURE: 'Recognition service temporarily unavailable. Try again in a moment.',
     RATE_LIMIT: 'Too many scan attempts. Wait a moment and try again.',
     NETWORK_FAILURE: 'Could not reach the recognition service. Check your connection and try again.',
@@ -179,12 +188,18 @@ function userMessage(code) {
   return messages[code] || 'Could not read this image. Choose another photo.';
 }
 
-async function recordScanFailure({ scanId, hash, stage, code, source = captureType }) {
+async function recordScanFailure({ scanId, hash, stage, code, source = captureType, diagnostics = null, imageStorageReference = null }) {
   const failure = createScanFailureRecord({
     feedbackId: randomUuid(), scanId, timestamp: new Date().toISOString(), imageHash: hash,
     modelVersion: MODEL.version, modelChecksum: MODEL.checksum, occupancyThreshold: MODEL.occupancyThreshold,
     orientation: $('orientation').value, consent: consent(), platform: $('platform').value || null,
-    captureType: source, clientMetadata: clientMetadata(), failureStage: stage, errorCode: failureCode(code)
+    captureType: source,
+    clientMetadata: clientMetadata({
+      localizationDiagnostics: diagnostics,
+      imageStorageReference
+    }),
+    failureStage: stage,
+    errorCode: failureCode(code)
   });
   return submitOrQueue(`failure:${failure.feedbackId}`, '/api/scanner/beta/failure', { failure });
 }
@@ -270,12 +285,22 @@ function buildPalette() {
 
 function showDiagnostics(prepared) {
   const structural = snapshot.structuralGuardrails;
+  const localization = localizationDiagnostics(prepared);
+  const metric = (value) => Number.isFinite(value) ? value.toFixed(3) : 'n/a';
   const values = {
     'Model': MODEL.version,
     'Threshold': String(MODEL.occupancyThreshold),
     'Image hash': snapshot.imageHash,
     'Scan ID': snapshot.scanId,
     'Localization': prepared.status,
+    'Board candidates': String(localization.candidateCount),
+    'Accepted candidates': String(localization.acceptedCandidateCount),
+    'Selected score': metric(localization.selectedCandidateScore),
+    'Runner-up score': metric(localization.runnerUpCandidateScore),
+    'Score margin': metric(localization.scoreMargin),
+    'Geometry score': metric(localization.geometryScore),
+    'Grid score': metric(localization.gridScore),
+    'Checker score': metric(localization.checkerScore),
     'Structural review': structural.status,
     'Structural warnings': structural.warningCodes.join(', ') || 'None'
   };
@@ -293,6 +318,7 @@ async function selectFile(file, source) {
   selectedFileMetadata = null;
   const scanId = randomUuid();
   let hash = null;
+  let imageStorageReference = null;
   const recognitionController = new AbortController();
   activeRecognitionController = recognitionController;
   try {
@@ -301,11 +327,10 @@ async function selectFile(file, source) {
     show('readingView');
     hash = await imageHash(file);
     if (generation !== activeGeneration) return;
-    const prepared = await runtime.processImage(selected.blob, activeGeneration);
-    if (generation !== activeGeneration) return;
-    let imageStorageReference = null;
     try { imageStorageReference = await uploadImage(selected.blob, hash); }
     catch (_) { status('Image sharing is pending; correction collection can continue.', 'syncStatus'); }
+    if (generation !== activeGeneration) return;
+    const prepared = await runtime.processImage(selected.blob, activeGeneration);
     if (generation !== activeGeneration) return;
     const prediction = await recognizeBoard({
       schemaVersion: 'caissa-scanner-beta-recognition-request/1',
@@ -340,7 +365,17 @@ async function selectFile(file, source) {
       try { hash = await imageHash(file); } catch (_) { /* Empty or unreadable files cannot be recorded. */ }
     }
     if (hash) {
-      try { await recordScanFailure({ scanId, hash, stage: failure.stage, code: failure.code, source }); }
+      try {
+        await recordScanFailure({
+          scanId,
+          hash,
+          stage: failure.stage,
+          code: failure.code,
+          source,
+          diagnostics: failure.diagnostics || null,
+          imageStorageReference
+        });
+      }
       catch (_) { /* The visible error remains authoritative. */ }
     }
     if (generation !== activeGeneration) return;

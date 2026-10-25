@@ -5,6 +5,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import QRCode from 'qrcode';
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
 import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
 import { resolvePlayV2PhysicalPromotionQA } from './js/play/play-v2-physical-promotion-qa-gate.js';
@@ -21,6 +22,8 @@ import tablebaseHandler from './api/tablebase/standard.js';
 import onlineHandler from './api/online.js';
 import { worldChampionshipPgnCatalog } from './js/game-library/world-championship-pgn-catalog.js';
 import pgnOpeningHandler from './api/pgn/opening.js';
+import { MODEL, expandPlacement, squareAt } from './scanner/beta/scanner-beta-contract.js';
+import { createScannerHandoff, scannerHandoffHeaders } from './api/_lib/scanner-handoff.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +58,58 @@ const betaProgram = createBetaProgramService({
   ...(testBetaBypass ? { store: localBetaStore, authenticate: async () => ({ authenticated: true, ok: true, userId: 'test-clerk' }) } : {})
 });
 const scannerBeta = createScannerBetaHttpAdapter({ env: process.env, authorizeExperiment: betaProgram.authorizeExperiment });
+
+const scannerPublicTestFen = 'r3k2r/pppq1ppp/2npbn2/3Np3/2B1P3/2N2Q2/PPP2PPP/R3K2R w KQkq - 4 10';
+function scannerPublicTestPrediction() {
+  const labels = expandPlacement(scannerPublicTestFen);
+  return {
+    schemaVersion: 'caissa-scanner-beta-recognition-response/1',
+    modelVersion: MODEL.version,
+    modelChecksum: MODEL.checksum,
+    occupancyThreshold: MODEL.occupancyThreshold,
+    predictedFEN: scannerPublicTestFen,
+    squarePredictions: labels.map((predictedClass, index) => ({
+      square: squareAt(index), predictedClass, confidence: 0.999,
+      occupancyProbability: predictedClass === 'empty' ? 0.001 : 0.999,
+      colorProbabilities: predictedClass === 'empty' || predictedClass === predictedClass.toUpperCase() ? [0.999, 0.001] : [0.001, 0.999],
+      pieceTypeProbabilities: [0.999, 0.0002, 0.0002, 0.0002, 0.0002, 0.0002],
+      kingAuxiliaryProbability: /[Kk]/.test(predictedClass) ? 0.999 : 0.001
+    }))
+  };
+}
+
+async function handleScannerPublicTestApi(req, res, pathname) {
+  if (!testBetaBypass || !pathname.startsWith('/api/scanner/public/')) return false;
+  if (pathname === '/api/scanner/public/handoff' && req.method === 'GET') {
+    const handoff = createScannerHandoff(process.env);
+    res.writeHead(200, { ...scannerHandoffHeaders(handoff), 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(handoff));
+    return true;
+  }
+  if (pathname === '/api/scanner/public/handoff-qr' && req.method === 'GET') {
+    const handoff = createScannerHandoff(process.env);
+    const png = await QRCode.toBuffer(handoff.url, { type: 'png', width: 208, margin: 2, errorCorrectionLevel: 'M' });
+    res.writeHead(200, { ...scannerHandoffHeaders(handoff), 'Content-Type': 'image/png', 'Content-Length': String(png.length) });
+    res.end(png);
+    return true;
+  }
+  if (pathname === '/api/scanner/public/status' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ available: true, stage: 'public-beta' }));
+    return true;
+  }
+  if (!['POST', 'PUT'].includes(req.method)) return false;
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const route = pathname.split('/').pop();
+  const response = route === 'recognize' ? scannerPublicTestPrediction()
+    : route === 'scan' ? { accepted: true, duplicate: false }
+      : route === 'image' ? { accepted: true, imageStorageReference: 'supabase://scanner-public-feedback-images/test-user/AA/' + 'A'.repeat(64) }
+        : { accepted: true, duplicate: false, certificationStatus: 'raw-unverified' };
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(response));
+  return true;
+}
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -427,6 +482,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (await scannerBeta.handle(req, res, pathname)) return;
+  if (await handleScannerPublicTestApi(req, res, pathname)) return;
 
   if (pathname === '/api/beta/access') {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -599,6 +655,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/blog') {
     filePath = './blog/index.html';
+  }
+  if (pathname === '/scanner' || pathname === '/scanner/') {
+    filePath = './scanner/index.html';
   }
   if (pathname === '/scanner/beta' || pathname === '/scanner/beta/' || pathname === '/scanner/beta/index.html') {
     filePath = './api/_private/scanner-beta-index.html';

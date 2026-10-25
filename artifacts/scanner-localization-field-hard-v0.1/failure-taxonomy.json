@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "caissa-scanner-localization-field-hard-failure-taxonomy/1",
+  "taxonomy": {
+    "GENERATION_FAILURE": [],
+    "RANKING_FAILURE": [],
+    "CORNER_ESTIMATION_FAILURE": [
+      "field-hard-v0.1-003",
+      "field-hard-v0.1-007",
+      "field-hard-v0.1-008",
+      "field-hard-v0.1-011"
+    ],
+    "AMBIGUITY_POLICY_FAILURE": [],
+    "HOMOGRAPHY_FAILURE": [],
+    "OTHER / UNKNOWN": []
+  },
+  "samples": [
+    {
+      "sampleId": "field-hard-v0.1-003",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cause": "CORNER_ESTIMATION_FAILURE",
+      "evidence": {
+        "bestOverlapQuadIou": 0.806449,
+        "humanMatchingCandidateRank": null,
+        "selectedCandidateRank": 1,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-007",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cause": "CORNER_ESTIMATION_FAILURE",
+      "evidence": {
+        "bestOverlapQuadIou": 0.769616,
+        "humanMatchingCandidateRank": null,
+        "selectedCandidateRank": 1,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-008",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cause": "CORNER_ESTIMATION_FAILURE",
+      "evidence": {
+        "bestOverlapQuadIou": 0.775169,
+        "humanMatchingCandidateRank": null,
+        "selectedCandidateRank": 1,
+        "errorCode": null
+      }
+    },
+    {
+      "sampleId": "field-hard-v0.1-011",
+      "selection": "AMBIGUOUS / UNUSABLE",
+      "cause": "CORNER_ESTIMATION_FAILURE",
+      "evidence": {
+        "bestOverlapQuadIou": 0.753917,
+        "humanMatchingCandidateRank": null,
+        "selectedCandidateRank": 1,
+        "errorCode": null
+      }
+    }
+  ]
+}

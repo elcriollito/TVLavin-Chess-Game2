@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { Chess } from 'chess.js';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
@@ -48,7 +49,7 @@ test('position toolbar and board navigation match the mobile contract', async ()
   const html = await read('scanner/index.html');
   assert.match(html, /class="position-toolbar"/);
   assert.match(html, /id="sideToMove"/);
-  for (const id of ['editBtn', 'workspaceSaveDiagramBtn', 'workspaceShareBtn', 'moreBtn', 'firstMoveBtn', 'previousMoveBtn', 'nextMoveBtn', 'lastMoveBtn', 'flipBtn', 'boardActionsBtn']) {
+  for (const id of ['editBtn', 'workspaceSaveDiagramBtn', 'workspaceShareBtn', 'moreBtn', 'firstMoveBtn', 'previousMoveBtn', 'nextMoveBtn', 'lastMoveBtn', 'flipBtn', 'coordinatesVisibilityBtn', 'boardActionsBtn']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(html, /class="position-actions"[\s\S]*id="editBtn"[\s\S]*id="workspaceSaveDiagramBtn"[\s\S]*id="workspaceShareBtn"[\s\S]*id="moreBtn"/);
@@ -85,7 +86,7 @@ test('top and lower hamburgers expose separate product and analysis menus', asyn
 
 test('Edit mode exposes tool-first palettes and compact position controls', async () => {
   const html = await read('scanner/index.html');
-  for (const id of ['editSheet', 'applyEditBtn', 'cancelEditBtn', 'editWhiteTurnBtn', 'editBlackTurnBtn', 'editCastlingBtn', 'clearBoardBtn', 'clearSquareBtn', 'editFlipBtn', 'editLibraryBtn', 'editExportBtn', 'editMenuBtn']) {
+  for (const id of ['editSheet', 'applyEditBtn', 'cancelEditBtn', 'editWhiteTurnBtn', 'editBlackTurnBtn', 'editCastlingBtn', 'clearBoardBtn', 'clearSquareBtn', 'editFlipBtn', 'editCoordinatesVisibilityBtn', 'correctOrientationBtn', 'editLibraryBtn', 'editExportBtn', 'editMenuBtn']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.equal((html.match(/data-piece="[kqrbnpKQRBNP]"/g) || []).length, 12);
@@ -112,6 +113,25 @@ test('Scanner keeps Stockfish 18, MultiPV 3, and attributed stale-result guards'
   assert.match(analysis, /startAnalysisAttributed/);
   assert.match(analysis, /generation !== activeGeneration/);
   assert.match(analysis, /stopAnalysis/);
+});
+
+test('coordinates derive only from canonical squares and orientation correction mutates FEN', async () => {
+  const [app, fen, analysis] = await Promise.all([
+    read('scanner/scanner-app.js'),
+    read('scanner/scanner-fen.js'),
+    read('scanner/scanner-analysis.js')
+  ]);
+  assert.match(app, /let flipped = false;[\s\S]*let coordinatesVisible = true;[\s\S]*let orientationCorrectionApplied = false;/);
+  assert.doesNotMatch(app, /coordinateFlipped|coordinateOrientationUserOverride|function flipCoordinates/);
+  assert.match(app, /function toggleCoordinates\(\)[\s\S]*coordinatesVisible = !coordinatesVisible;/);
+  assert.match(app, /function correctOrientation\(\)[\s\S]*rotatePosition180/);
+  assert.match(app, /orientationInference\s*=\s*recognized\.orientationInference/);
+  assert.match(app, /const canonicalFen = orientationInference\.canonicalFens\[initialOrientation\]/);
+  assert.match(fen, /function syncCoordinates\(square, displayRow, displayCol, row, col\)/);
+  assert.match(fen, /const row = flipped \? 7 - displayRow : displayRow;/);
+  assert.match(fen, /syncCoordinates\(square, displayRow, displayCol, row, col\)/);
+  assert.match(fen, /function rotatePosition180\(fen\)/);
+  assert.doesNotMatch(analysis, /coordinateFlipped|setCoordinateFlipped|setOrientations/);
 });
 
 test('new scan only advances generation after a valid image selection', async () => {
@@ -182,6 +202,94 @@ test('FEN draft helpers preserve fields while supporting incomplete edit boards'
   const repeated = tools.mutateSquare(tools.mutateSquare(fen, 3, 7, 'p'), 2, 6, 'p');
   assert.equal(tools.validateDraft(repeated).board[3][7], 'p');
   assert.equal(tools.validateDraft(repeated).board[2][6], 'p');
+});
+
+test('Correct Orientation is an exact color-preserving 180-degree bijection', async () => {
+  const source = await read('scanner/scanner-fen.js');
+  const window = {};
+  vm.runInNewContext(source, { window });
+  const tools = window.CaissaScannerFen;
+  const original = 'r3k2r/1P6/2n5/3Q4/4b3/5N2/6p1/R3K2R b KQkq e3 17 42';
+  const rotated = tools.rotatePosition180(original);
+
+  assert.equal(rotated, 'R2K3R/1p6/2N5/3b4/4Q3/5n2/6P1/r2k3r b - - 17 42');
+  assert.equal(rotated.split(' ')[1], 'b');
+  assert.equal(rotated.split(' ')[2], '-');
+  assert.equal(rotated.split(' ')[3], '-');
+  assert.deepEqual(
+    [...tools.validateDraft(rotated).board.flat()].filter(Boolean).sort(),
+    [...tools.validateDraft(original).board.flat()].filter(Boolean).sort()
+  );
+
+  const twice = tools.rotatePosition180(rotated);
+  assert.equal(twice.split(' ')[0], original.split(' ')[0]);
+  assert.equal(twice, `${original.split(' ')[0]} b - - 17 42`);
+});
+
+test('promotion direction and SAN stay canonical before and after orientation correction', async () => {
+  const source = await read('scanner/scanner-fen.js');
+  const window = {};
+  vm.runInNewContext(source, { window });
+  const tools = window.CaissaScannerFen;
+  const whiteToMove = '7k/P7/8/8/8/8/7p/K7 w - - 0 1';
+  const blackToMove = '7k/P7/8/8/8/8/7p/K7 b - - 0 1';
+
+  const whitePromotions = new Chess(whiteToMove).moves({ verbose: true })
+    .filter(move => move.from === 'a7' && move.to === 'a8');
+  assert.deepEqual(whitePromotions.map(move => move.promotion).sort(), ['b', 'n', 'q', 'r']);
+  assert.ok(whitePromotions.every(move => move.san.startsWith('a8=')));
+
+  const blackPromotions = new Chess(blackToMove).moves({ verbose: true })
+    .filter(move => move.from === 'h2' && move.to === 'h1');
+  assert.deepEqual(blackPromotions.map(move => move.promotion).sort(), ['b', 'n', 'q', 'r']);
+  assert.ok(blackPromotions.every(move => move.san.startsWith('h1=')));
+
+  const rotatedWhite = tools.rotatePosition180(whiteToMove);
+  assert.equal(rotatedWhite, '7K/p7/8/8/8/8/7P/k7 w - - 0 1');
+  const whiteMovesAfter = new Chess(rotatedWhite).moves({ square: 'h2', verbose: true });
+  assert.deepEqual(whiteMovesAfter.map(move => move.to).sort(), ['h3', 'h4']);
+  assert.equal(whiteMovesAfter.some(move => move.to === 'h1'), false);
+
+  const rotatedBlack = tools.rotatePosition180(blackToMove);
+  const blackMovesAfter = new Chess(rotatedBlack).moves({ square: 'a7', verbose: true });
+  assert.deepEqual(blackMovesAfter.map(move => move.to).sort(), ['a5', 'a6']);
+  assert.equal(blackMovesAfter.some(move => move.to === 'a8'), false);
+});
+
+test('Stockfish UCI promotion squares convert to the same canonical SAN after Flip View', async () => {
+  const source = await read('scanner/scanner-analysis.js');
+  let update = null;
+  const engine = {
+    ready: true,
+    start: async () => true,
+    setMultiPV() {},
+    startAnalysisAttributed(_fen, callback) { update = callback; return 7; },
+    stopAnalysis() {}
+  };
+  const window = {
+    Chess,
+    EngineRegistry: { createAnalyzeEngine: () => engine }
+  };
+  vm.runInNewContext(source, { window });
+  const lines = Array.from({ length: 3 }, () => ({ score: {}, depth: {}, pv: {} }));
+  const board = { classList: { toggle() {}, remove() {} } };
+  const analysis = window.CaissaScannerAnalysis.create({
+    board,
+    fenTools: { render() {}, squareName: (row, col) => String.fromCharCode(97 + col) + (8 - row) },
+    panel: {}, status: {}, fenOutput: {}, moveHint: {}, lineEls: lines
+  });
+  const fen = '7k/P7/8/8/8/8/7p/K7 w - - 0 1';
+
+  await analysis.start(fen);
+  update({ multipv: 1, depth: 18, score: 3.2, pv: ['a7a8q'] }, 7);
+  const whiteViewSan = lines[0].pv.textContent;
+  assert.match(whiteViewSan, /^a8=Q/);
+  assert.equal(analysis.currentFen(), fen);
+
+  analysis.setFlipped(true);
+  update({ multipv: 1, depth: 18, score: 3.2, pv: ['a7a8q'] }, 7);
+  assert.equal(lines[0].pv.textContent, whiteViewSan);
+  assert.equal(analysis.currentFen(), fen);
 });
 
 test('analysis handoffs preserve exact FEN and use canonical CAISSA transport', async () => {

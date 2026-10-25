@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="theme-color" content="#071521" />
+    <title>CAISSA Scanner Feedback Review</title>
+    <link rel="stylesheet" href="/scanner/public/feedback-review.css?v=0.1.0" />
+  </head>
+  <body>
+    <header class="review-head">
+      <div>
+        <span>CAISSA Scanner</span>
+        <h1>Feedback certification</h1>
+      </div>
+      <strong>Owner review</strong>
+    </header>
+    <main class="review-shell">
+      <section
+        class="counter-grid"
+        id="reviewCounters"
+        aria-label="Review counters"
+      ></section>
+      <section class="filter-bar" aria-label="Review filters">
+        <label
+          >Status<select data-filter="status">
+            <option value="">All</option>
+            <option>RAW_UNVERIFIED</option>
+            <option>NEEDS_FIX</option>
+            <option>HOLD</option>
+            <option>EXCLUDE</option>
+            <option>CERTIFY</option>
+            <option>CERTIFY_CLASSIFIER_CORRECTION</option>
+            <option>CERTIFY_LOCALIZATION_FAILURE</option>
+          </select></label
+        >
+        <label
+          >Feedback<select data-filter="feedbackType">
+            <option value="">All</option>
+            <option>CONFIRMED_CORRECT</option>
+            <option>PIECE_CORRECTION</option>
+            <option>LOCALIZATION_FAILURE</option>
+            <option>SCAN_FAILURE</option>
+          </select></label
+        >
+        <label
+          >Capture<select data-filter="captureType">
+            <option value="">All</option>
+            <option>camera</option>
+            <option>gallery</option>
+            <option>screenshot</option>
+            <option>photo-of-screen</option>
+          </select></label
+        >
+        <label
+          >Priority<select id="priorityFilter">
+            <option value="">All</option>
+            <option>high</option>
+            <option>medium</option>
+            <option>low</option>
+          </select></label
+        >
+        <label
+          >Image consent<select data-filter="imageConsent">
+            <option value="">All</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select></label
+        >
+        <label>From<input type="date" data-filter="dateFrom" /></label>
+        <label>To<input type="date" data-filter="dateTo" /></label>
+        <label
+          >Min corrections<input
+            type="number"
+            min="0"
+            max="64"
+            data-filter="minCorrections"
+            inputmode="numeric"
+        /></label>
+        <label
+          >High-confidence error<select data-filter="highConfidenceError">
+            <option value="">All</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select></label
+        >
+        <button id="refreshReview" type="button">Refresh</button>
+      </section>
+      <p class="review-notice">
+        Priority controls review order only. It never establishes truth.
+        Certification is always one case at a time.
+      </p>
+      <div class="review-layout">
+        <section class="case-list" aria-label="Feedback inbox">
+          <div id="caseList"></div>
+          <p id="listStatus" role="status"></p>
+        </section>
+        <section class="case-detail" id="caseDetail" aria-live="polite">
+          <div class="empty-detail">
+            <h2>Select a case</h2>
+            <p>
+              Raw public feedback remains unverified until an authorized
+              reviewer records a separate decision.
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script
+      type="module"
+      src="/scanner/public/feedback-review.js?v=0.2.0"
+    ></script>
+  </body>
+</html>

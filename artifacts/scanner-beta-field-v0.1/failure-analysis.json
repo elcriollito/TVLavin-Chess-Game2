@@ -1,0 +1,279 @@
+{
+  "corpusVersion": "caissa-scanner-beta-field-v0.1",
+  "corpusSha256": "B5104B8445F3DC932A0B9BDE8A69CDCBD31A2259A8154F46C51AEAD43656B267",
+  "productFailureCount": 32,
+  "finalLocalizationFailureDispositions": 13,
+  "standaloneScanFailureStages": {
+    "classifier": 5,
+    "localization": 14
+  },
+  "standaloneScanFailureCodes": {
+    "CLASSIFIER_UNAVAILABLE": 5,
+    "LOCALIZATION_FAILURE": 13,
+    "MULTIPLE-BOARD-CANDIDATES": 1
+  },
+  "combinedStageBreakdown": {
+    "localization": 27,
+    "unsupportedInput": 0,
+    "decode": 0,
+    "classifier": 5,
+    "feedback": 0
+  },
+  "clusters": [
+    {
+      "name": "board detection / localization",
+      "count": 27,
+      "evidence": "explicit final disposition or failure_stage=localization"
+    },
+    {
+      "name": "classifier unavailable",
+      "count": 5,
+      "evidence": "explicit error_code"
+    },
+    {
+      "name": "multiple board candidates",
+      "count": 1,
+      "evidence": "explicit error_code"
+    }
+  ],
+  "unsupportedCauseClaims": [
+    "screen glare",
+    "photo perspective",
+    "unusual piece set",
+    "network/session",
+    "rate limit"
+  ],
+  "catastrophicCases": [
+    {
+      "caseId": "C096531D7BB79083",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "BLACK_PAWN_ON_BACK_RANK"
+      ]
+    },
+    {
+      "caseId": "98AB71873A250476",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "MULTIPLE_WHITE_KINGS",
+        "MISSING_BLACK_KING",
+        "UNUSUAL_WHITE_KNIGHT_COUNT",
+        "UNUSUAL_WHITE_PIECE_COUNT"
+      ]
+    },
+    {
+      "caseId": "73A0D9A174DE8FD8",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "MULTIPLE_WHITE_KINGS",
+        "MISSING_BLACK_KING",
+        "INVALID_TOTAL_KINGS",
+        "BLACK_PAWN_ON_BACK_RANK",
+        "UNUSUAL_WHITE_ROOK_COUNT",
+        "UNUSUAL_WHITE_PIECE_COUNT"
+      ]
+    },
+    {
+      "caseId": "1CC751BAB6D169E9",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "MULTIPLE_BLACK_KINGS",
+        "INVALID_TOTAL_KINGS"
+      ]
+    },
+    {
+      "caseId": "4BD9EFF4CA0D5A2B",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "MULTIPLE_BLACK_KINGS",
+        "INVALID_TOTAL_KINGS"
+      ]
+    },
+    {
+      "caseId": "5C59955072A36D71",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "MISSING_WHITE_KING",
+        "INVALID_TOTAL_KINGS",
+        "WHITE_PAWN_ON_BACK_RANK"
+      ]
+    },
+    {
+      "caseId": "2F7E9AFE65B58D42",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "MISSING_WHITE_KING",
+        "INVALID_TOTAL_KINGS",
+        "WHITE_PAWN_ON_BACK_RANK"
+      ]
+    },
+    {
+      "caseId": "CB69399A1775D776",
+      "reason": "severe structural warning",
+      "disposition": "PIECE_CORRECTION",
+      "warningCodes": [
+        "MISSING_WHITE_KING",
+        "MULTIPLE_BLACK_KINGS",
+        "UNUSUAL_BLACK_ROOK_COUNT",
+        "UNUSUAL_BLACK_BISHOP_COUNT",
+        "UNUSUAL_BLACK_PIECE_COUNT"
+      ]
+    },
+    {
+      "caseId": "A51313A27CE1396B",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "BLACK_PAWN_ON_BACK_RANK",
+        "UNUSUAL_WHITE_QUEEN_COUNT"
+      ]
+    },
+    {
+      "caseId": "3ABA4648793AFD86",
+      "reason": "severe structural warning",
+      "disposition": "LOCALIZATION_FAILURE",
+      "warningCodes": [
+        "MISSING_BLACK_KING",
+        "INVALID_TOTAL_KINGS"
+      ]
+    }
+  ],
+  "catastrophicCorrectionCount": 0,
+  "severeGuardrailCaseCount": 10,
+  "guardrailReviewRequired": 10,
+  "eras": {
+    "preCaptureLifecycle": {
+      "logicalAttempts": 1,
+      "completedSubmissions": 0,
+      "pending": 1,
+      "confirmedCorrect": 0,
+      "corrected": 0,
+      "localizationFailures": 0,
+      "scanFailures": 0,
+      "completionRate": 0,
+      "canonicalScanPersistenceRate": 1,
+      "successfulLocalizedBoardRate": 0,
+      "localizationSuccessRate": 0,
+      "scanFailureRate": 0,
+      "localizationFailureRate": 0,
+      "confirmedCorrectRate": 0,
+      "exactBoardRate": 0,
+      "usableWithinTwoRate": 0,
+      "exactBoardCount": 0,
+      "usableWithinTwoCount": 0,
+      "eligibleClassifierBoards": 0
+    },
+    "postCaptureLifecycle": {
+      "logicalAttempts": 114,
+      "completedSubmissions": 111,
+      "pending": 3,
+      "confirmedCorrect": 76,
+      "corrected": 3,
+      "localizationFailures": 13,
+      "scanFailures": 19,
+      "completionRate": 0.9736842105263158,
+      "canonicalScanPersistenceRate": 0.8333333333333334,
+      "successfulLocalizedBoardRate": 0.7117117117117117,
+      "localizationSuccessRate": 0.7567567567567568,
+      "scanFailureRate": 0.17117117117117117,
+      "localizationFailureRate": 0.24324324324324326,
+      "confirmedCorrectRate": 0.6846846846846847,
+      "exactBoardRate": 0.9620253164556962,
+      "usableWithinTwoRate": 0.9873417721518988,
+      "exactBoardCount": 76,
+      "usableWithinTwoCount": 78,
+      "eligibleClassifierBoards": 79
+    },
+    "preGalleryHotfix": {
+      "logicalAttempts": 6,
+      "completedSubmissions": 5,
+      "pending": 1,
+      "confirmedCorrect": 2,
+      "corrected": 0,
+      "localizationFailures": 0,
+      "scanFailures": 3,
+      "completionRate": 0.8333333333333334,
+      "canonicalScanPersistenceRate": 0.5,
+      "successfulLocalizedBoardRate": 0.4,
+      "localizationSuccessRate": 1,
+      "scanFailureRate": 0.6,
+      "localizationFailureRate": 0,
+      "confirmedCorrectRate": 0.4,
+      "exactBoardRate": 1,
+      "usableWithinTwoRate": 1,
+      "exactBoardCount": 2,
+      "usableWithinTwoCount": 2,
+      "eligibleClassifierBoards": 2
+    },
+    "postGalleryHotfix": {
+      "logicalAttempts": 109,
+      "completedSubmissions": 106,
+      "pending": 3,
+      "confirmedCorrect": 74,
+      "corrected": 3,
+      "localizationFailures": 13,
+      "scanFailures": 16,
+      "completionRate": 0.9724770642201835,
+      "canonicalScanPersistenceRate": 0.8532110091743119,
+      "successfulLocalizedBoardRate": 0.7264150943396226,
+      "localizationSuccessRate": 0.7452830188679245,
+      "scanFailureRate": 0.1509433962264151,
+      "localizationFailureRate": 0.25471698113207547,
+      "confirmedCorrectRate": 0.6981132075471698,
+      "exactBoardRate": 0.961038961038961,
+      "usableWithinTwoRate": 0.987012987012987,
+      "exactBoardCount": 74,
+      "usableWithinTwoCount": 76,
+      "eligibleClassifierBoards": 77
+    },
+    "preStructuralGuardrail": {
+      "logicalAttempts": 18,
+      "completedSubmissions": 17,
+      "pending": 1,
+      "confirmedCorrect": 8,
+      "corrected": 0,
+      "localizationFailures": 2,
+      "scanFailures": 7,
+      "completionRate": 0.9444444444444444,
+      "canonicalScanPersistenceRate": 0.6111111111111112,
+      "successfulLocalizedBoardRate": 0.47058823529411764,
+      "localizationSuccessRate": 0.7647058823529411,
+      "scanFailureRate": 0.4117647058823529,
+      "localizationFailureRate": 0.23529411764705882,
+      "confirmedCorrectRate": 0.47058823529411764,
+      "exactBoardRate": 1,
+      "usableWithinTwoRate": 1,
+      "exactBoardCount": 8,
+      "usableWithinTwoCount": 8,
+      "eligibleClassifierBoards": 8
+    },
+    "currentRuntime": {
+      "logicalAttempts": 97,
+      "completedSubmissions": 94,
+      "pending": 3,
+      "confirmedCorrect": 68,
+      "corrected": 3,
+      "localizationFailures": 11,
+      "scanFailures": 12,
+      "completionRate": 0.9690721649484536,
+      "canonicalScanPersistenceRate": 0.8762886597938144,
+      "successfulLocalizedBoardRate": 0.7553191489361702,
+      "localizationSuccessRate": 0.7553191489361702,
+      "scanFailureRate": 0.1276595744680851,
+      "localizationFailureRate": 0.24468085106382978,
+      "confirmedCorrectRate": 0.723404255319149,
+      "exactBoardRate": 0.9577464788732394,
+      "usableWithinTwoRate": 0.9859154929577465,
+      "exactBoardCount": 68,
+      "usableWithinTwoCount": 70,
+      "eligibleClassifierBoards": 71
+    }
+  }
+}

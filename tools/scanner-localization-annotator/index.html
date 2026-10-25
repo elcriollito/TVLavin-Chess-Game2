@@ -43,6 +43,13 @@
         <label><input type="radio" name="sample-status" value="skip-for-now"> Skip for now</label>
       </fieldset>
 
+      <div class="zoom-controls" aria-label="Image zoom">
+        <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+        <button id="zoom-reset" type="button" aria-label="Reset zoom">100%</button>
+        <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+        <span>Drag a numbered corner, or select it and click its corrected position.</span>
+      </div>
+
       <div id="image-scroller" class="image-scroller">
         <div id="image-stage" class="image-stage">
           <img id="source-image" alt="Corpus sample awaiting annotation" draggable="false">
@@ -66,8 +73,8 @@
 
   <section id="welcome" class="welcome">
     <h2>Select the extracted corpus folder</h2>
-    <p>Choose the folder containing <code>manifest-starter.json</code> and <code>originals/</code>.</p>
-    <p>The annotator writes only <code>localization-hard-v0.1.annotated.json</code>.</p>
+    <p>Choose the prepared folder containing a supported starter manifest and <code>originals/</code>.</p>
+    <p>The annotator writes only the matching external annotation JSON file.</p>
   </section>
 
   <script type="module" src="./annotator-app.js"></script>

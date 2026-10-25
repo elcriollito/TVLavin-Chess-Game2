@@ -29,6 +29,13 @@
     "api/scanner/beta/recognize.js": {
       "maxDuration": 30,
       "includeFiles": "{api/_private/scanner-beta-model/**,node_modules/onnxruntime-node/{package.json,dist/**,bin/napi-v6/linux/x64/**},node_modules/onnxruntime-common/{package.json,dist/cjs/**}}"
+    },
+    "api/scanner/public/recognize.js": {
+      "maxDuration": 30,
+      "includeFiles": "{api/_private/scanner-beta-model/**,node_modules/onnxruntime-node/{package.json,dist/**,bin/napi-v6/linux/x64/**},node_modules/onnxruntime-common/{package.json,dist/cjs/**}}"
+    },
+    "api/scanner/feedback-review/page.js": {
+      "includeFiles": "api/_private/scanner-feedback-review-index.html"
     }
   },
   "crons": [
@@ -67,6 +74,10 @@
     { "source": "/scanner/beta", "destination": "/api/beta/scanner" },
     { "source": "/scanner/beta/", "destination": "/api/beta/scanner" },
     { "source": "/scanner/beta/index.html", "destination": "/api/beta/scanner" },
+    { "source": "/scanner/feedback-review", "destination": "/api/scanner/feedback-review/page" },
+    { "source": "/scanner/feedback-review/", "destination": "/api/scanner/feedback-review/page" },
+    { "source": "/scanner", "destination": "/scanner/index.html" },
+    { "source": "/scanner/", "destination": "/scanner/index.html" },
     { "source": "/blog", "destination": "/blog/index.html" },
     { "source": "/endgame-trainer", "destination": "/endgame-trainer.html" },
     { "source": "/endgame-trainer/", "destination": "/endgame-trainer.html" },
@@ -172,6 +183,13 @@
     },
     {
       "source": "/scanner/beta/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/scanner/feedback-review/:path*",
       "headers": [
         { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }

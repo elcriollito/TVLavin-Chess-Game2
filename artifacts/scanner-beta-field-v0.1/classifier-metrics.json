@@ -1,0 +1,373 @@
+{
+  "corpusVersion": "caissa-scanner-beta-field-v0.1",
+  "corpusSha256": "B5104B8445F3DC932A0B9BDE8A69CDCBD31A2259A8154F46C51AEAD43656B267",
+  "model": {
+    "version": "caissa-piece-classifier-v0.5-occupancy-recovery",
+    "checksum": "90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E",
+    "occupancyThreshold": 0.99,
+    "classOrder": [
+      "empty",
+      "P",
+      "N",
+      "B",
+      "R",
+      "Q",
+      "K",
+      "p",
+      "n",
+      "b",
+      "r",
+      "q",
+      "k"
+    ],
+    "preprocessing": "RGB64 uint8 / 255"
+  },
+  "eligibleBoards": 79,
+  "evaluatedSquares": 5056,
+  "accuracy13Class": 0.9984177215189873,
+  "occupancy": {
+    "precision": 1,
+    "recall": 1,
+    "f1": 1,
+    "emptyToOccupied": 0,
+    "occupiedToEmpty": 0,
+    "falseOccupancyPerBoard": 0,
+    "highConfidenceFalseOccupancy": 0
+  },
+  "pieceTypeAccuracy": 1,
+  "colorAccuracy": 0.9961722488038277,
+  "whiteExactAccuracy": 0.9923518164435946,
+  "blackExactAccuracy": 1,
+  "occupiedMacroF1": 0.9939186332546134,
+  "perOccupiedClass": {
+    "P": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "support": 517
+    },
+    "N": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "support": 136
+    },
+    "B": {
+      "precision": 1,
+      "recall": 0.98,
+      "f1": 0.98989898989899,
+      "support": 100
+    },
+    "R": {
+      "precision": 1,
+      "recall": 0.972027972027972,
+      "f1": 0.9858156028368793,
+      "support": 143
+    },
+    "Q": {
+      "precision": 1,
+      "recall": 0.9859154929577465,
+      "f1": 0.9929078014184397,
+      "support": 71
+    },
+    "K": {
+      "precision": 1,
+      "recall": 0.9873417721518988,
+      "f1": 0.9936305732484078,
+      "support": 79
+    },
+    "p": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "support": 507
+    },
+    "n": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "support": 124
+    },
+    "b": {
+      "precision": 0.9829059829059829,
+      "recall": 1,
+      "f1": 0.9913793103448275,
+      "support": 115
+    },
+    "r": {
+      "precision": 0.9735099337748344,
+      "recall": 1,
+      "f1": 0.9865771812080537,
+      "support": 147
+    },
+    "q": {
+      "precision": 0.9863013698630136,
+      "recall": 1,
+      "f1": 0.993103448275862,
+      "support": 72
+    },
+    "k": {
+      "precision": 0.9875,
+      "recall": 1,
+      "f1": 0.9937106918238994,
+      "support": 79
+    }
+  },
+  "confusionMatrix": {
+    "empty": {
+      "empty": 2966,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 0,
+      "k": 0
+    },
+    "P": {
+      "empty": 0,
+      "P": 517,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 0,
+      "k": 0
+    },
+    "N": {
+      "empty": 0,
+      "P": 0,
+      "N": 136,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 0,
+      "k": 0
+    },
+    "B": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 98,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 2,
+      "r": 0,
+      "q": 0,
+      "k": 0
+    },
+    "R": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 139,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 4,
+      "q": 0,
+      "k": 0
+    },
+    "Q": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 70,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 1,
+      "k": 0
+    },
+    "K": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 78,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 0,
+      "k": 1
+    },
+    "p": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 507,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 0,
+      "k": 0
+    },
+    "n": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 124,
+      "b": 0,
+      "r": 0,
+      "q": 0,
+      "k": 0
+    },
+    "b": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 115,
+      "r": 0,
+      "q": 0,
+      "k": 0
+    },
+    "r": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 147,
+      "q": 0,
+      "k": 0
+    },
+    "q": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 72,
+      "k": 0
+    },
+    "k": {
+      "empty": 0,
+      "P": 0,
+      "N": 0,
+      "B": 0,
+      "R": 0,
+      "Q": 0,
+      "K": 0,
+      "p": 0,
+      "n": 0,
+      "b": 0,
+      "r": 0,
+      "q": 0,
+      "k": 79
+    }
+  },
+  "confusionHighlights": [
+    {
+      "truth": "R",
+      "predicted": "r",
+      "count": 4
+    },
+    {
+      "truth": "B",
+      "predicted": "b",
+      "count": 2
+    },
+    {
+      "truth": "K",
+      "predicted": "k",
+      "count": 1
+    },
+    {
+      "truth": "Q",
+      "predicted": "q",
+      "count": 1
+    }
+  ],
+  "kings": {
+    "trueK": 79,
+    "predictedK": 78,
+    "trueBlackK": 79,
+    "predictedBlackK": 80,
+    "falseK": 0,
+    "falseBlackK": 1,
+    "emptyToK": 0,
+    "emptyToBlackK": 0,
+    "otherToK": 0,
+    "otherToBlackK": 1
+  },
+  "colorSwaps": {
+    "byType": {
+      "P<->p": 0,
+      "N<->n": 0,
+      "B<->b": 2,
+      "R<->r": 4,
+      "Q<->q": 1,
+      "K<->k": 1
+    },
+    "total": 8
+  },
+  "confidence": {
+    "meanWrong": 0.8033910222348388,
+    "medianWrong": 0.8115739189105433,
+    "wrongAtLeast090": 3,
+    "wrongAtLeast095": 2,
+    "meanCorrect": 0.9952531898297965,
+    "medianCorrect": 0.999970467162534
+  },
+  "definitions": {
+    "pieceTypeAccuracy": "correct piece family among all truth-occupied squares; occupancy misses count incorrect",
+    "colorAccuracy": "correct side among all truth-occupied squares; occupancy misses count incorrect",
+    "whiteExactAccuracy": "exact 13-class correctness restricted to truth-white occupied squares",
+    "blackExactAccuracy": "exact 13-class correctness restricted to truth-black occupied squares",
+    "occupiedMacroF1": "unweighted one-vs-rest F1 mean across P,N,B,R,Q,K,p,n,b,r,q,k over all evaluated squares"
+  }
+}

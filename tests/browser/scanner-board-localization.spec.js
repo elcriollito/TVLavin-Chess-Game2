@@ -6,6 +6,7 @@ import {
 } from './fixtures/scanner-board-image.js';
 
 async function openScanner(page) {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/scanner/index.html');
   await expect.poll(() => page.evaluate(() => Boolean(window.CaissaScannerRecognitionRuntime))).toBe(true);
 }
@@ -86,36 +87,36 @@ test.describe('CAISSA Scanner board localization and homography Worker', () => {
     expect(result.candidateCount).toBeGreaterThanOrEqual(2);
   });
 
-  test('frozen Scanner flow still reaches Review/Edit only after geometry succeeds', async ({ page }) => {
+  test('public Scanner reaches mandatory Review/Edit only after production recognition succeeds', async ({ page }) => {
     const nonGetRequests = [];
     page.on('request', (request) => {
       if (request.method() !== 'GET') nonGetRequests.push({ method: request.method(), url: request.url() });
     });
     await openScanner(page);
     await page.locator('#galleryInput').setInputFiles(scannerPerspectiveBoardImage);
-    await expect(page.locator('#readingView')).toBeVisible();
     await expect(page.locator('#reviewEditView')).toBeVisible();
     const candidate = await page.evaluate(() => window.CaissaScannerState.snapshot().candidate);
     expect(candidate).toMatchObject({
-      recognitionStage: 'geometry-only',
-      pieceRecognition: 'not-implemented',
-      orientation: 'unknown',
+      recognitionStage: 'production-v05',
+      pieceRecognition: 'caissa-piece-classifier-v0.5-occupancy-recovery',
+      orientation: 'white-at-bottom',
       localization: {
         status: 'board-localized',
         boardSize: 512
       }
     });
     expect(candidate.localization.corners).toHaveLength(4);
-    expect(nonGetRequests).toEqual([]);
+    expect(nonGetRequests.map(request => new URL(request.url).pathname)).toEqual([
+      '/api/scanner/public/recognize', '/api/scanner/public/scan'
+    ]);
   });
 
   test('no-board failure returns through the existing safe Capture flow', async ({ page }) => {
     await openScanner(page);
     await page.locator('#galleryInput').setInputFiles(scannerPlainImage);
-    await expect(page.locator('#readingView')).toBeVisible();
     await expect(page.locator('#homeView')).toBeVisible();
     await expect(page.locator('#reviewEditView')).toBeHidden();
-    await expect(page.locator('#appToast')).toHaveText('Could not read that image. Choose another image to try again.');
+    await expect(page.locator('#appToast')).toContainText('board could not be detected reliably');
     expect((await page.evaluate(() => window.CaissaScannerState.snapshot())).state).toBe('idle');
   });
 });
