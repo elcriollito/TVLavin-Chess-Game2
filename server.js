@@ -5,6 +5,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import QRCode from 'qrcode';
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
 import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
 import { resolvePlayV2PhysicalPromotionQA } from './js/play/play-v2-physical-promotion-qa-gate.js';
@@ -17,6 +18,7 @@ import { createScannerBetaHttpAdapter } from './tools/scanner-beta-feedback/http
 import { createBetaProgramService } from './api/_lib/beta-program-service.js';
 import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-document.js';
 import { MODEL, expandPlacement, squareAt } from './scanner/beta/scanner-beta-contract.js';
+import { createScannerHandoff, scannerHandoffHeaders } from './api/_lib/scanner-handoff.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,6 +69,19 @@ function scannerPublicTestPrediction() {
 
 async function handleScannerPublicTestApi(req, res, pathname) {
   if (!testBetaBypass || !pathname.startsWith('/api/scanner/public/')) return false;
+  if (pathname === '/api/scanner/public/handoff' && req.method === 'GET') {
+    const handoff = createScannerHandoff(process.env);
+    res.writeHead(200, { ...scannerHandoffHeaders(handoff), 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(handoff));
+    return true;
+  }
+  if (pathname === '/api/scanner/public/handoff-qr' && req.method === 'GET') {
+    const handoff = createScannerHandoff(process.env);
+    const png = await QRCode.toBuffer(handoff.url, { type: 'png', width: 208, margin: 2, errorCorrectionLevel: 'M' });
+    res.writeHead(200, { ...scannerHandoffHeaders(handoff), 'Content-Type': 'image/png', 'Content-Length': String(png.length) });
+    res.end(png);
+    return true;
+  }
   if (pathname === '/api/scanner/public/status' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ available: true, stage: 'public-beta' }));

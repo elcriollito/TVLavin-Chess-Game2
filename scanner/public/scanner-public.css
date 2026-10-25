@@ -263,6 +263,10 @@
     font-weight: 850;
     box-shadow: 0 12px 28px rgba(242, 163, 64, 0.18);
   }
+  .desktop-primary-cta[aria-disabled="true"] {
+    pointer-events: none;
+    opacity: .58;
+  }
   .desktop-hero-actions span {
     color: #93a7b7;
     font-size: 13px;

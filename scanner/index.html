@@ -33,13 +33,13 @@
         <span class="desktop-beta-pill">Public Beta</span>
         <h1 id="desktopScannerTitle">Scan a chess position from your phone.</h1>
         <p>Turn screenshots, chess websites, broadcasts, and photos of 2D chessboards into editable positions in seconds.</p>
-        <div class="desktop-hero-actions"><a class="desktop-primary-cta" href="#mobile-handoff">Use CAISSA Scanner on your phone</a><span>Review the position before continuing.</span></div>
+        <div class="desktop-hero-actions"><a class="desktop-primary-cta" id="scannerMobileCta" href="#mobile-handoff" aria-disabled="true">Use CAISSA Scanner on your phone</a><span>Review the position before continuing.</span></div>
       </div>
       <div class="desktop-handoff-card" id="mobile-handoff">
-        <img src="/scanner/public/scanner-qr.svg" width="208" height="208" alt="QR code for the canonical CAISSA Scanner mobile URL">
+        <img id="scannerHandoffQr" width="208" height="208" alt="Preparing the CAISSA Scanner QR code">
         <div><strong>Open on your phone</strong><span>Scan this code with your phone camera.</span></div>
         <label for="scannerCanonicalUrl">Scanner URL</label>
-        <div class="copy-url-row"><input id="scannerCanonicalUrl" value="https://www.caissa-chess.org/scanner" readonly><button id="copyScannerUrlBtn" type="button">Copy</button></div>
+        <div class="copy-url-row"><input id="scannerCanonicalUrl" value="" readonly><button id="copyScannerUrlBtn" type="button" disabled>Copy</button></div>
       </div>
     </section>
     <section class="desktop-how" aria-labelledby="howScannerWorks">
@@ -293,6 +293,7 @@
   <script src="/scanner/scanner-analysis.js?v=0.3.0"></script>
   <script src="/scanner/recognition/scanner-image-decode.js?v=0.1.0"></script>
   <script src="/scanner/recognition/scanner-recognition-runtime.js?v=0.2.0"></script>
+  <script src="/scanner/public/scanner-handoff.js?v=0.1.0"></script>
   <script src="/scanner/scanner-app.js?v=0.7.0"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>

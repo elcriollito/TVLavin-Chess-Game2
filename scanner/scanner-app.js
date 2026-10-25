@@ -1234,6 +1234,7 @@
   resetAll(true);
   $('copyScannerUrlBtn')?.addEventListener('click', async () => {
     const value = $('scannerCanonicalUrl').value;
+    if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
       $('copyScannerUrlBtn').textContent = 'Copied';

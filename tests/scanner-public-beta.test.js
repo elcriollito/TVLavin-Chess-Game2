@@ -287,12 +287,13 @@ test('migration makes raw evidence and certification history append-only with pr
   assert.doesNotMatch(sql, /to anon|to authenticated/);
 });
 
-test('public route is responsive, canonical, QR-based, and preserves the private beta route', async () => {
+test('public route is responsive, canonical, environment-aware, QR-based, and preserves the private beta route', async () => {
   const [html, css, vercel, privateBeta] = await Promise.all([
     read('scanner/index.html'), read('scanner/public/scanner-public.css'), read('vercel.json'), read('api/_private/scanner-beta-index.html')
   ]);
-  assert.match(html, /Public Beta/); assert.match(html, /https:\/\/www\.caissa-chess\.org\/scanner/);
-  assert.match(html, /scanner-qr\.svg/); assert.match(html, /JPEG, PNG, or WebP/); assert.match(html, /HEIC\/HEIF/);
+  assert.match(html, /Public Beta/); assert.match(html, /id="scannerMobileCta"/);
+  assert.match(html, /scanner-handoff\.js/); assert.match(html, /JPEG, PNG, or WebP/); assert.match(html, /HEIC\/HEIF/);
+  assert.doesNotMatch(html, /id="scannerCanonicalUrl"[^>]+www\.caissa-chess\.org/);
   assert.match(html, /Review\/Edit remains the required safety step/);
   assert.match(css, /@media\s*\(min-width:\s*1024px\)\s*and\s*\(pointer:\s*fine\)/);
   assert.match(css, /\.app-shell\s*\{[\s\S]*?display:\s*none\s*!important/);

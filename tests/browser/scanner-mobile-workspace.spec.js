@@ -113,6 +113,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
   test('valid image uses Reading, rejects stale generations, and review Cancel returns to Capture', async ({ page }) => {
     await page.goto('/scanner/index.html');
     await page.locator('#galleryInput').setInputFiles(imageFixture);
+    await expect(page.locator('#readingView')).toBeVisible();
     await expectOnlyView(page, 'reading');
     await expect(page.locator('#readingTitle')).toBeFocused();
     const firstGeneration = await page.evaluate(() => window.CaissaScannerState.snapshot().generation);

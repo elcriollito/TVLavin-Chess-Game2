@@ -8,10 +8,40 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#scannerDesktopLanding')).toBeVisible();
     await expect(page.locator('#scannerApp')).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Scan a chess position from your phone.' })).toBeVisible();
-    await expect(page.locator('img[src="/scanner/public/scanner-qr.svg"]')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-scanner-handoff-ready', 'true');
+    await expect(page.locator('#scannerHandoffQr')).toHaveAttribute('src', '/api/scanner/public/handoff-qr');
     await expect(page.locator('#scannerCanonicalUrl')).toHaveValue('https://www.caissa-chess.org/scanner');
+    await expect(page.locator('#scannerMobileCta')).toHaveAttribute('href', 'https://www.caissa-chess.org/scanner');
     await expect(page.getByText('Physical 3D boards', { exact: false })).toBeVisible();
     await expect(page.getByText('Privacy by choice')).toBeVisible();
+  });
+
+  test('protected preview uses one exact handoff URL for QR, CTA, copy, and hidden build identity', async ({ page }) => {
+    const previewUrl = 'https://tv-lavin-chess-game2-env-staging-elcriollitos-projects.vercel.app/scanner?_vercel_share=PreviewToken_1234567890';
+    const sourceSha = '0123456789abcdef0123456789abcdef01234567';
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async (value) => { window.__copiedScannerUrl = value; } }
+      });
+    });
+    await page.route('**/api/scanner/public/handoff', route => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        schemaVersion: 'caissa-scanner-handoff/1', environment: 'preview', url: previewUrl,
+        buildIdentity: { sourceSha, publicStage: 'public-beta', targetEnvironment: 'staging' }
+      })
+    }));
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await page.goto('/scanner');
+    await expect(page.locator('html')).toHaveAttribute('data-scanner-handoff-ready', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-scanner-build-sha', sourceSha);
+    await expect(page.locator('html')).toHaveAttribute('data-scanner-public-stage', 'public-beta');
+    await expect(page.locator('#scannerMobileCta')).toHaveAttribute('href', previewUrl);
+    await expect(page.locator('#scannerCanonicalUrl')).toHaveValue(previewUrl);
+    await expect(page.locator('#scannerHandoffQr')).toHaveAttribute('src', '/api/scanner/public/handoff-qr');
+    await page.locator('#copyScannerUrlBtn').click();
+    await expect.poll(() => page.evaluate(() => window.__copiedScannerUrl)).toBe(previewUrl);
   });
 
   test('mobile remains the functional certified Scanner with mandatory review', async ({ page }) => {
@@ -29,6 +59,21 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#workspaceView')).toBeVisible();
     await expect(page.locator('#helpImproveBtn')).toBeVisible();
   });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
+    test(`mobile preview opens Capture/New Scan without a legacy demo at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/scanner');
+      await expect(page.locator('#homeView')).toBeVisible();
+      await expect(page.locator('#workspaceView')).toBeHidden();
+      await expect(page.locator('#scannerBoard .piece-img:not([hidden])')).toHaveCount(0);
+      await expect(page.locator('#homeView').getByText('New Scan', { exact: true })).toBeVisible();
+      await page.locator('#homeScanBtn').click();
+      await expect(page.getByRole('button', { name: 'Take Photo' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Choose Photo' })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+  }
 
   test('tablet-width layout keeps the functional Scanner rather than user-agent sniffing', async ({ page }) => {
     await page.setViewportSize({ width: 820, height: 1024 });
