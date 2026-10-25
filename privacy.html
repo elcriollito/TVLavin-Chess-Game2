@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy | CAISSA Chess</title>
+  <meta name="description" content="Learn how CAISSA Chess processes account, gameplay, Scanner, feedback, payment, analytics and browser-storage information.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#080a0e">
+  <link rel="canonical" href="https://www.caissa-chess.org/privacy">
+  <link rel="icon" href="/favicon.ico?v=4">
+  <link rel="stylesheet" href="/css/legal.css?v=1.0.0">
+  <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#legal-content">Skip to policy</a>
+  <header class="legal-header">
+    <div class="legal-header-inner">
+      <a class="legal-brand" href="/" aria-label="CAISSA Chess home"><img src="/favicon-32.png?v=4" alt=""><span>CAISSA CHESS</span></a>
+      <nav aria-label="Legal navigation"><a href="/privacy" aria-current="page">Privacy</a><a href="/terms">Terms</a><a href="/about">About</a></nav>
+    </div>
+  </header>
+  <main class="legal-layout" id="legal-content">
+    <aside class="legal-toc" aria-label="Privacy Policy sections">
+      <strong>On this page</strong>
+      <nav>
+        <a href="#scope">Scope</a><a href="#information">Information we process</a><a href="#accounts">Accounts</a>
+        <a href="#chess">Chess activity</a><a href="#scanner">Scanner</a><a href="#purposes">Why we process it</a>
+        <a href="#providers">Service providers</a><a href="#storage">Browser storage</a><a href="#retention">Retention</a>
+        <a href="#choices">Your choices</a><a href="#security">Security</a><a href="#international">International users</a>
+        <a href="#children">Children</a><a href="#updates">Updates</a><a href="#contact">Contact</a>
+      </nav>
+    </aside>
+    <article class="legal-document">
+      <header class="legal-hero">
+        <p class="legal-eyebrow">CAISSA Chess legal draft</p>
+        <h1>Privacy Policy</h1>
+        <p class="legal-summary">This policy describes the information CAISSA Chess processes when you use its chess tools, accounts, online play, Scanner, feedback and related services.</p>
+        <p class="legal-updated">Last updated: October 25, 2026</p>
+      </header>
+      <p class="legal-notice"><strong>Review status:</strong> This is a pre-publication legal draft based on a technical audit. It is not yet approved for production publication.</p>
+
+      <section class="legal-section" id="scope"><h2>1. Scope and who operates the service</h2>
+        <p>CAISSA Chess is the name of the chess website and services available at <a href="https://www.caissa-chess.org">www.caissa-chess.org</a>. This draft does not name a separate legal entity because one has not been confirmed for publication.</p>
+        <p>Questions or privacy requests may be sent to <a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Privacy">tvlavin1978@gmail.com</a>. Please do not include passwords, access tokens, payment card details or other secrets.</p>
+      </section>
+
+      <section class="legal-section" id="information"><h2>2. Information we process</h2>
+        <p>The information depends on the features you choose. It can include:</p>
+        <ul>
+          <li>account identifiers, email address, optional first and last name, profile image and authentication/session information;</li>
+          <li>a public chess nickname or system-generated player alias;</li>
+          <li>games, moves, positions, FEN or PGN data, ratings, puzzle attempts, saved library items and feature progress;</li>
+          <li>Scanner images submitted for recognition, image hashes, extracted positions, confidence data, corrections, capture type and limited client metadata;</li>
+          <li>feedback text and the consent choices attached to feedback;</li>
+          <li>credit balances, entitlement records and payment-provider customer or event identifiers when a paid feature is available and used;</li>
+          <li>technical request information normally processed by hosting and security services, such as IP address, browser or device information, timestamps and request logs; and</li>
+          <li>preferences and temporary working data stored in your browser.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="accounts"><h2>3. Accounts and authentication</h2>
+        <p>CAISSA uses Clerk for account registration, sign-in, session management and account security. Clerk may process your email address, account identifiers, optional profile fields, profile image, authentication factors, device/session information and security events. CAISSA stores a Clerk subject identifier and may store your email address in its application database to connect your account to saved features and entitlements.</p>
+        <h3>Google Sign-In</h3>
+        <p>Google Sign-In is being prepared but was not active in CAISSA production at the date of this draft. If it is activated, CAISSA will request only the basic OpenID Connect identity scopes <strong>openid</strong>, <strong>email</strong> and <strong>profile</strong>. Google and Clerk will process the sign-in flow. CAISSA will not receive your Google password.</p>
+      </section>
+
+      <section class="legal-section" id="chess"><h2>4. Chess games, identity and activity</h2>
+        <p>When you use account-connected features, CAISSA may store saved positions and collections, puzzle outcomes and rating progress, account credits and entitlements, and feature-specific activity needed to provide the service.</p>
+        <p>CAISSA Online records a public nickname or fallback alias, ratings and rating history, matchmaking or challenge state, games, moves, clocks, results and game events. Some public identity and chess information may be shown to other players. Email addresses and private account names are not intended to be copied into the public chess identity record.</p>
+      </section>
+
+      <section class="legal-section" id="scanner"><h2>5. CAISSA Scanner</h2>
+        <p>When you choose a photograph or screenshot for Scanner recognition, the image is sent to CAISSA's recognition endpoint so the service can locate the board, classify squares and return a proposed chess position. The result may include a FEN position, confidence information and recognition metadata. You must review and edit the proposed position before relying on it.</p>
+        <h3>Optional feedback and private image evidence</h3>
+        <p>Submitting Scanner feedback is optional and requires an account. A feedback record can include the original and corrected positions, changed squares, model and localization versions, image hash, capture context and your separate consent choices. The underlying image is uploaded to a private Supabase Storage bucket only when you expressly choose to share it for improvement. The application checks that image evidence belongs to the submitting account and keeps the storage reference private.</p>
+        <p class="legal-callout"><strong>No automatic training:</strong> public Scanner feedback enters the system as <em>raw-unverified</em>. It is not automatically certified and is not automatically used to retrain or update the model. Training eligibility requires separate human review, the required consents and additional safeguards.</p>
+      </section>
+
+      <section class="legal-section" id="purposes"><h2>6. Why we process information</h2>
+        <ul>
+          <li>to authenticate users and protect accounts;</li>
+          <li>to provide chess tools, saved content, online games, ratings and progress;</li>
+          <li>to process Scanner images and return recognition results;</li>
+          <li>to receive optional feedback and conduct controlled, human-reviewed product improvement;</li>
+          <li>to provide entitlements, credits and payment-related features when available;</li>
+          <li>to prevent abuse, enforce rate limits, investigate failures and keep services secure; and</li>
+          <li>to understand aggregate site usage and maintain performance.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section" id="providers"><h2>7. Service providers and external services</h2>
+        <p>Verified service providers and integrations include:</p>
+        <ul>
+          <li><strong>Clerk</strong> for authentication and sessions;</li>
+          <li><strong>Supabase</strong> for application database, realtime features and private Scanner feedback storage;</li>
+          <li><strong>Vercel</strong> for website and serverless hosting, request processing and aggregate Web Analytics;</li>
+          <li><strong>Cloudflare</strong> for authoritative DNS and selected gateway, download, puzzle or security services;</li>
+          <li><strong>Microsoft Clarity</strong> for optional analytics when you grant analytics consent;</li>
+          <li><strong>Chess.com, Lichess, FICS, ChessBase and other chess services</strong> when you use a feature that requests or embeds their content; and</li>
+          <li><strong>Together AI or a provider you select</strong> when you choose optional AI assistance. Relevant prompts and chess context are sent to that provider. User-supplied AI keys are held in page memory and are not designed to be persisted by CAISSA.</li>
+        </ul>
+        <p>Stripe-backed checkout code exists, but production Stripe activation was not established in this audit. If CAISSA makes checkout available, Stripe will process payment details and CAISSA will receive transaction, customer and entitlement identifiers rather than full payment-card details.</p>
+      </section>
+
+      <section class="legal-section" id="storage"><h2>8. Cookies, analytics and browser storage</h2>
+        <p>Clerk uses cookies or comparable browser mechanisms to maintain authentication sessions and protect sign-in flows. Vercel Web Analytics is configured on CAISSA production hosts to measure aggregate page visits; CAISSA removes query parameters and URL fragments before those analytics events are sent and blocks known credential-bearing contexts.</p>
+        <p>Microsoft Clarity is configured as optional analytics. It is denied by default, loads only on CAISSA production hosts after the site's eligibility checks, and stores your consent choice locally. If you allow it, Clarity may use cookies or similar technologies under Microsoft's service terms.</p>
+        <p>CAISSA also uses localStorage and sessionStorage for interface language, onboarding state, navigation state, chess-engine and feature preferences, local profiles or wallet state in legacy experiences, puzzle synchronization queues, and temporary analysis or PGN handoffs. These items remain on your device until the application expires or replaces them, or you clear browser data.</p>
+      </section>
+
+      <section class="legal-section" id="retention"><h2>9. Data retention</h2>
+        <p>CAISSA keeps information for as long as it is needed to provide the relevant feature, protect the service, maintain transaction or audit integrity, or address a valid request. Some temporary sessions and challenges have code-defined expirations. Browser storage remains until it is cleared or replaced.</p>
+        <p>CAISSA has not yet approved one public retention schedule covering all account, game, payment and public Scanner records. Public Scanner evidence and certification records are currently designed as append-only audit records, and uploaded feedback images have no confirmed public deletion schedule in this draft. These points require legal and product approval before publication.</p>
+      </section>
+
+      <section class="legal-section" id="choices"><h2>10. Your choices and requests</h2>
+        <p>You can choose whether to create an account, submit Scanner feedback, share a Scanner image for improvement, share a correction for improvement, enable optional Clarity analytics, use external integrations or use optional AI assistance. You can clear CAISSA browser data through your browser settings.</p>
+        <p>You may ask to access, correct or delete information associated with you by contacting the address above. CAISSA will need to verify the request and will evaluate it subject to applicable law, security needs, technical constraints and records that must be preserved for integrity. This draft does not promise an automated deletion feature or a fixed response period.</p>
+      </section>
+
+      <section class="legal-section" id="security"><h2>11. Security practices</h2>
+        <p>CAISSA uses authenticated server endpoints, same-origin checks, rate limits, private storage, access controls, row-level security, restricted service credentials, content-security policies and human review gates for sensitive Scanner feedback. No system is perfectly secure, and CAISSA cannot guarantee that information will never be lost, misused or accessed without authorization.</p>
+      </section>
+
+      <section class="legal-section" id="international"><h2>12. International users</h2>
+        <p>CAISSA and its service providers may process information in countries other than the one where you live. The exact contracting entity, primary processing region and international-transfer framework have not yet been approved for this notice and are listed for human legal review.</p>
+      </section>
+
+      <section class="legal-section" id="children"><h2>13. Children's privacy</h2>
+        <p>CAISSA is a general chess service and is not designed specifically for children. A minimum account age and parental-consent policy have not yet been approved. If you are not legally able to consent to the service and this policy where you live, do not create an account or submit personal information without authorization from a parent or guardian. A parent or guardian may contact CAISSA about a child's information.</p>
+      </section>
+
+      <section class="legal-section" id="updates"><h2>14. Changes to this policy</h2>
+        <p>CAISSA may update this policy as its services and decisions change. The page will show a revised "Last updated" date. Material notice and consent procedures still require legal approval.</p>
+      </section>
+
+      <section class="legal-section" id="contact"><h2>15. Contact</h2>
+        <p>For privacy questions or requests, email <a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Privacy">tvlavin1978@gmail.com</a>. The legal operator name, postal address and any dedicated privacy representative remain unresolved for final publication.</p>
+      </section>
+    </article>
+  </main>
+  <footer class="legal-footer"><div class="legal-footer-inner"><span>&copy; 2026 CAISSA Chess</span><nav class="legal-footer-links" aria-label="Footer"><a href="/">Home</a><a href="/privacy" aria-current="page">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/about">About</a></nav></div></footer>
+</body>
+</html>
