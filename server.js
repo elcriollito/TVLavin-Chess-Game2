@@ -665,6 +665,18 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/about' || pathname === '/about/') {
     filePath = './about.html';
   }
+  if (pathname === '/privacy' || pathname === '/privacy/') {
+    filePath = './privacy.html';
+  }
+  if (pathname === '/terms' || pathname === '/terms/') {
+    filePath = './terms.html';
+  }
+  if (pathname === '/signin' || pathname === '/signin/') {
+    filePath = './signin.html';
+  }
+  if (pathname === '/signup' || pathname === '/signup/') {
+    filePath = './signup.html';
+  }
   if (pathname === '/help' || pathname === '/help/') {
     filePath = './help.html';
   }
