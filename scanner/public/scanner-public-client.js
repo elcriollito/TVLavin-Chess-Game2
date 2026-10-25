@@ -184,6 +184,7 @@ export async function submitPublicFeedback({
   feedbackType,
   captureType,
   file,
+  orientationCorrectionApplied = false,
   shareCorrectionForImprovement,
   shareImageForImprovement
 }) {
@@ -198,7 +199,14 @@ export async function submitPublicFeedback({
     consent,
     platform: null,
     captureType,
-    clientMetadata: { viewport: { width: innerWidth, height: innerHeight }, localizationVersion: LOCALIZATION_VERSION }
+    clientMetadata: {
+      viewport: { width: innerWidth, height: innerHeight },
+      localizationVersion: LOCALIZATION_VERSION,
+      orientationCorrectionApplied: orientationCorrectionApplied === true,
+      orientationDiagnostic: orientationCorrectionApplied === true ? 'CANONICAL_180_ROTATION' : null,
+      orientationReviewRequired: orientationCorrectionApplied === true,
+      trainingTruthPolicy: orientationCorrectionApplied === true ? 'ORIENTATION_REVIEW_ONLY' : 'STANDARD'
+    }
   });
   const imageStorageReference = shareImageForImprovement
     ? await uploadConsentedImage(file, snapshot.imageHash)

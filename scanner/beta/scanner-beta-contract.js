@@ -176,7 +176,8 @@ function createFeedbackRecord({ feedbackId, snapshot, feedbackType, correctedFEN
     confirmed = null;
     if (feedbackType === 'LOCALIZATION_FAILURE') localizationValid = false;
   }
-  const structural = original.structuralGuardrails || analyzeStructuralPosition(original.predictedFEN);
+  const originalStructural = original.structuralGuardrails || analyzeStructuralPosition(original.predictedFEN);
+  const structural = confirmed ? analyzeStructuralPosition(confirmed) : originalStructural;
   const structuralWarnings = clone(structural.warnings);
   const warningCodes = [...structural.warningCodes];
   return deepFreeze({
@@ -203,6 +204,8 @@ function createFeedbackRecord({ feedbackId, snapshot, feedbackType, correctedFEN
     captureType,
     clientMetadata: {
       ...(clientMetadata ? clone(clientMetadata) : {}),
+      originalStructuralStatus: originalStructural.status,
+      originalWarningCodes: [...originalStructural.warningCodes],
       structuralStatus: structural.status,
       structuralWarnings: clone(structuralWarnings),
       warningCodes: [...warningCodes],

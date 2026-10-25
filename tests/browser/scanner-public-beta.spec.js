@@ -5,8 +5,9 @@ async function boardPresentation(page) {
   return page.locator('#scannerBoard').evaluate((board) => ({
     state: {
       boardOrientation: board.dataset.boardOrientation,
-      coordinateOrientation: board.dataset.coordinateOrientation,
-      coordinateOrientationUserOverride: board.dataset.coordinateOrientationUserOverride
+      coordinateContract: board.dataset.coordinateContract,
+      coordinatesVisible: board.dataset.coordinatesVisible,
+      orientationCorrectionApplied: board.dataset.orientationCorrectionApplied
     },
     files: [...board.children].filter(square => square.dataset.file).map(square => square.dataset.file),
     ranks: [...board.children].filter(square => square.dataset.rank).map(square => square.dataset.rank),
@@ -79,7 +80,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#helpImproveBtn')).toBeVisible();
   });
 
-  test('board and coordinate orientations support all four independent presentation states', async ({ page }, testInfo) => {
+  test('Flip View keeps coordinates canonical and Correct Orientation changes canonical FEN', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/scanner');
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
@@ -87,46 +88,41 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await page.locator('#applyEditBtn').click();
     const fen = await page.locator('#confirmedFen').textContent();
 
-    const whiteWhite = await boardPresentation(page);
-    expect(whiteWhite.state).toEqual({
-      boardOrientation: 'white-bottom', coordinateOrientation: 'white-bottom',
-      coordinateOrientationUserOverride: 'false'
+    const whiteView = await boardPresentation(page);
+    expect(whiteView.state).toEqual({
+      boardOrientation: 'white-bottom', coordinateContract: 'canonical-square',
+      coordinatesVisible: 'true', orientationCorrectionApplied: 'false'
     });
-    expectCoordinates(whiteWhite, 'abcdefgh', '87654321');
-    await testInfo.attach('white-board-white-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
+    expectCoordinates(whiteView, 'abcdefgh', '87654321');
+    await testInfo.attach('white-view-canonical-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
 
-    await page.locator('#flipCoordinatesBtn').click();
-    const whiteBlack = await boardPresentation(page);
-    expect(whiteBlack.state).toEqual({
-      boardOrientation: 'white-bottom', coordinateOrientation: 'black-bottom',
-      coordinateOrientationUserOverride: 'true'
-    });
-    expectCoordinates(whiteBlack, 'hgfedcba', '12345678');
-    expect(whiteBlack.mapping).toEqual(whiteWhite.mapping);
-    expect(whiteBlack.pieces).toEqual(whiteWhite.pieces);
-    await testInfo.attach('white-board-black-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
+    await page.locator('#coordinatesVisibilityBtn').click();
+    const hidden = await boardPresentation(page);
+    expect(hidden.mapping).toEqual(whiteView.mapping);
+    expect(hidden.pieces).toEqual(whiteView.pieces);
+    expectCoordinates(hidden, 'abcdefgh', '87654321');
+    await expect(page.locator('#confirmedFen')).toHaveText(fen);
 
     await page.locator('#flipBtn').click();
-    const blackBlack = await boardPresentation(page);
-    expect(blackBlack.state).toEqual({
-      boardOrientation: 'black-bottom', coordinateOrientation: 'black-bottom',
-      coordinateOrientationUserOverride: 'true'
+    const blackView = await boardPresentation(page);
+    expect(blackView.state).toEqual({
+      boardOrientation: 'black-bottom', coordinateContract: 'canonical-square',
+      coordinatesVisible: 'false', orientationCorrectionApplied: 'false'
     });
-    expectCoordinates(blackBlack, 'hgfedcba', '12345678');
-    expect([...blackBlack.mapping].sort()).toEqual([...whiteWhite.mapping].sort());
-    await testInfo.attach('black-board-black-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
-
-    await page.locator('#flipCoordinatesBtn').click();
-    const blackWhite = await boardPresentation(page);
-    expect(blackWhite.state).toEqual({
-      boardOrientation: 'black-bottom', coordinateOrientation: 'white-bottom',
-      coordinateOrientationUserOverride: 'true'
-    });
-    expectCoordinates(blackWhite, 'abcdefgh', '87654321');
-    expect(blackWhite.mapping).toEqual(blackBlack.mapping);
-    expect(blackWhite.pieces).toEqual(blackBlack.pieces);
+    expectCoordinates(blackView, 'hgfedcba', '12345678');
+    expect([...blackView.mapping].sort()).toEqual([...whiteView.mapping].sort());
+    await page.locator('#coordinatesVisibilityBtn').click();
+    await testInfo.attach('black-view-canonical-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
     await expect(page.locator('#confirmedFen')).toHaveText(fen);
-    await testInfo.attach('black-board-white-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
+
+    await page.locator('#editBtn').click();
+    const expectedRotated = await page.evaluate(value => window.CaissaScannerFen.rotatePosition180(value), fen);
+    await page.locator('#correctOrientationBtn').click();
+    await expect(page.locator('#fenInput')).toHaveValue(expectedRotated);
+    await page.locator('#applyEditBtn').click();
+    await expect(page.locator('#confirmedFen')).toHaveText(expectedRotated);
+    expect((await boardPresentation(page)).state.orientationCorrectionApplied).toBe('true');
+    await testInfo.attach('corrected-canonical-position', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
   });
 
   for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
@@ -164,7 +160,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     await page.locator('#applyEditBtn').click();
     const confirmedFen = await page.locator('#confirmedFen').textContent();
-    await page.locator('#flipCoordinatesBtn').click();
+    await page.locator('#flipBtn').click();
     await page.locator('#helpImproveBtn').click();
     await expect(page.locator('#feedbackSheet')).toBeVisible();
     await expect(page.locator('#shareCorrectionConsent')).not.toBeChecked();
@@ -179,6 +175,35 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     expect(submitted.feedbackType).toBe('CONFIRMED_CORRECT');
     expect(submitted.correctedFEN).toBe(confirmedFen);
     expect(submitted.changedSquareCount).toBe(0);
+  });
+
+  test('Correct Orientation feedback records canonical truth and routes away from classifier training', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    let submitted = null;
+    page.on('request', request => {
+      if (request.url().endsWith('/api/scanner/public/feedback')) submitted = request.postDataJSON()?.feedback || null;
+    });
+    await page.goto('/scanner');
+    await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
+    await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
+    const originalFen = await page.locator('#fenInput').inputValue();
+    const correctedFen = await page.evaluate(value => window.CaissaScannerFen.rotatePosition180(value), originalFen);
+    await page.locator('#correctOrientationBtn').click();
+    await page.locator('#applyEditBtn').click();
+    await page.locator('#helpImproveBtn').click();
+    await page.locator('#shareCorrectionConsent').check();
+    await page.locator('#submitFeedbackBtn').click();
+    await expect(page.locator('#appToast')).toContainText('raw-unverified');
+    expect(submitted.feedbackType).toBe('PIECE_CORRECTION');
+    expect(submitted.originalFEN).toBe(originalFen);
+    expect(submitted.correctedFEN).toBe(correctedFen);
+    expect(submitted.changedSquareCount).toBeGreaterThan(0);
+    expect(submitted.clientMetadata).toMatchObject({
+      orientationCorrectionApplied: true,
+      orientationDiagnostic: 'CANONICAL_180_ROTATION',
+      orientationReviewRequired: true,
+      trainingTruthPolicy: 'ORIENTATION_REVIEW_ONLY'
+    });
   });
 
   test('HEIC and HEIF fail explicitly without calling recognition', async ({ page }) => {

@@ -182,6 +182,31 @@ test('snapshot and feedback preserve deterministic structural metadata in review
   assert.equal(feedback.localizationValid, true);
 });
 
+test('orientation-corrected feedback recomputes canonical guardrails and preserves original diagnostics', () => {
+  const originalFen = '8/8/8/8/8/8/4k3/4K3 w - - 0 1';
+  const correctedFen = '8/8/8/8/8/8/4k3/K3K3 w - - 0 1';
+  const snapshot = createPredictionSnapshot(prediction(originalFen));
+  assert.equal(snapshot.structuralGuardrails.status, 'NORMAL');
+
+  const feedback = createFeedbackRecord({
+    feedbackId: FEEDBACK_ID,
+    snapshot,
+    feedbackType: 'PIECE_CORRECTION',
+    correctedFEN: correctedFen,
+    finalPositionConfirmed: true,
+    localizationValid: true,
+    consent: CONSENT,
+    clientMetadata: { orientationCorrectionApplied: true }
+  });
+
+  assert.equal(feedback.clientMetadata.orientationCorrectionApplied, true);
+  assert.equal(feedback.clientMetadata.originalStructuralStatus, 'NORMAL');
+  assert.deepEqual(feedback.clientMetadata.originalWarningCodes, []);
+  assert.equal(feedback.structuralStatus, 'REVIEW_REQUIRED');
+  assert.ok(feedback.warningCodes.includes('MULTIPLE_WHITE_KINGS'));
+  assert.deepEqual(feedback.clientMetadata.warningCodes, feedback.warningCodes);
+});
+
 test('feedback service recomputes structural metadata instead of trusting the client', async () => {
   const snapshot = createPredictionSnapshot(prediction(SEVERE_FEN));
   let stored = null;

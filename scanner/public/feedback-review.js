@@ -253,6 +253,8 @@ function renderDetail(record) {
   dataRow(list, "Platform", record.platform);
   dataRow(list, "Model", record.modelVersion);
   dataRow(list, "Localization", record.localizationVersion);
+  dataRow(list, "Orientation correction", record.payload?.clientMetadata?.orientationCorrectionApplied === true ? "Canonical 180Â° rotation â€” review required" : "None");
+  dataRow(list, "Training truth policy", record.payload?.clientMetadata?.trainingTruthPolicy || "STANDARD");
   dataRow(list, "Structural state", record.payload?.structuralStatus);
   dataRow(list, "Warnings", (record.payload?.warningCodes || []).join(", "));
   dataRow(

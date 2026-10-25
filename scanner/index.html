@@ -123,7 +123,7 @@
           <button id="nextMoveBtn" type="button" aria-label="Next position" disabled><i class="fas fa-chevron-right"></i></button>
           <button id="lastMoveBtn" type="button" aria-label="Latest position" disabled><i class="fas fa-forward-step"></i></button>
           <button id="flipBtn" type="button" aria-label="Flip board"><i class="fas fa-rotate"></i></button>
-          <button class="coordinate-flip-control" id="flipCoordinatesBtn" type="button" aria-label="Flip coordinates" aria-pressed="false" title="Flip Coordinates"><i class="fas fa-arrow-right-arrow-left" aria-hidden="true"></i><span>Coords</span></button>
+          <button class="coordinate-visibility-control" id="coordinatesVisibilityBtn" type="button" aria-label="Hide coordinates" aria-pressed="true" title="Hide coordinates"><i class="fas fa-eye" aria-hidden="true"></i><span>Coords</span></button>
           <button id="boardActionsBtn" type="button" aria-label="Open analysis menu" aria-haspopup="menu" aria-expanded="false" aria-controls="scannerAnalysisMenu"><i class="fas fa-bars"></i></button>
         </nav>
 
@@ -181,7 +181,8 @@
             <button id="clearBoardBtn" type="button"><i class="fas fa-trash-can" aria-hidden="true"></i><span>Clear Board</span></button>
             <button class="clear-square-tool" id="clearSquareBtn" type="button" data-tool="clear" aria-pressed="false"><i class="fas fa-eraser" aria-hidden="true"></i><span>Clear Square</span></button>
             <button id="editFlipBtn" type="button"><i class="fas fa-rotate" aria-hidden="true"></i><span>Flip</span></button>
-            <button id="editFlipCoordinatesBtn" type="button" aria-label="Flip coordinates" aria-pressed="false"><i class="fas fa-arrow-right-arrow-left" aria-hidden="true"></i><span>Coords</span></button>
+            <button id="editCoordinatesVisibilityBtn" type="button" aria-label="Hide coordinates" aria-pressed="true"><i class="fas fa-eye" aria-hidden="true"></i><span>Coords</span></button>
+            <button id="correctOrientationBtn" type="button" aria-label="Correct Orientation" aria-pressed="false" title="Use this if the scanned board was mapped from the wrong side."><i class="fas fa-arrows-rotate" aria-hidden="true"></i><span>Correct</span></button>
           </div>
 
           <div class="castling-panel" id="editCastlingPanel" hidden aria-label="Castling rights">

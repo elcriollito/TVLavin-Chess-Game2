@@ -76,6 +76,10 @@ function matches(record, filters) {
 
 function assertDecisionMatchesEvidence(decision, record) {
   const payload = record.payload || {};
+  const orientationCorrection = payload.clientMetadata?.orientationCorrectionApplied === true;
+  if (orientationCorrection && (decision.action === 'CERTIFY_CLASSIFIER_CORRECTION' || decision.trainingEligible)) {
+    throw new Error('ORIENTATION_REVIEW_REQUIRED');
+  }
   if (decision.action === 'CERTIFY_CLASSIFIER_CORRECTION'
     && (payload.feedbackType !== 'PIECE_CORRECTION' || payload.localizationValid !== true)) {
     throw new Error('CLASSIFIER_ROUTING_INVALID');

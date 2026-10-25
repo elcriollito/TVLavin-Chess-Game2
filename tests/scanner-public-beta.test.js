@@ -117,6 +117,35 @@ test('governed export requires every certification, consent, image, routing, and
   assert.equal(exported.eligible.length, 1);
 });
 
+test('orientation corrections are high-priority localization review and never classifier-training truth', () => {
+  const raw = feedback({
+    feedbackType: 'PIECE_CORRECTION',
+    correctedFEN: '3K4/8/8/8/8/8/8/3k4 w - - 0 1',
+    clientMetadata: {
+      orientationCorrectionApplied: true,
+      orientationDiagnostic: 'CANONICAL_180_ROTATION',
+      orientationReviewRequired: true,
+      trainingTruthPolicy: 'ORIENTATION_REVIEW_ONLY'
+    }
+  });
+  const record = {
+    ...raw,
+    payload: raw,
+    feedbackId: raw.feedbackId,
+    imageStorageReference: `supabase://scanner-public-feedback-images/${UUIDS[0]}/AA/${HASH}`,
+    evidenceFingerprint: HASH,
+    duplicateSuspected: false
+  };
+  const history = [{
+    action: 'CERTIFY_CLASSIFIER_CORRECTION', trainingEligible: true,
+    targetCorpus: TARGET_CORPORA[0], certifiedBy: UUIDS[0],
+    certifiedAt: '2026-10-24T13:00:00Z', certificationVersion: PUBLIC_FEEDBACK.certificationVersion
+  }];
+  assert.equal(feedbackPriority(record), 'high');
+  assert.equal(eligiblePublicExport(record, history), false);
+  assert.equal(buildPublicFeedbackExport([{ record, certifications: history }]).eligible.length, 0);
+});
+
 test('public recognition is kill-switched, same-origin, and separately rate limited for guests', async () => {
   let attempts = 0;
   const service = createScannerPublicRecognitionService({
@@ -251,6 +280,18 @@ test('review actions append history and reject classifier/localization cross-con
     duplicateSuspected: false, certifications: [{ action: 'DUPLICATE' }] });
   const blocked = response(); await service.action(req, blocked);
   assert.equal(blocked.statusCode, 400); assert.equal(blocked.body.error, 'TRAINING_ELIGIBILITY_HISTORY_BLOCKED');
+
+  const orientationRaw = feedback({
+    feedbackType: 'PIECE_CORRECTION',
+    correctedFEN: '3K4/8/8/8/8/8/8/3k4 w - - 0 1',
+    clientMetadata: { orientationCorrectionApplied: true }
+  });
+  store.getFeedback = async () => ({ feedbackId: UUIDS[1], payload: orientationRaw,
+    imageStorageReference: 'private', duplicateSuspected: false, certifications: [] });
+  const orientationBlocked = response();
+  await service.action(req, orientationBlocked);
+  assert.equal(orientationBlocked.statusCode, 400);
+  assert.equal(orientationBlocked.body.error, 'ORIENTATION_REVIEW_REQUIRED');
 });
 
 test('review case-open audit is privileged, same-origin, and explicitly bounded', async () => {
