@@ -41,7 +41,7 @@
       <p class="legal-notice"><strong>Review status:</strong> This is a pre-publication legal draft based on a technical audit. It is not yet approved for production publication.</p>
 
       <section class="legal-section" id="scope"><h2>1. Scope and who operates the service</h2>
-        <p>CAISSA Chess is the name of the chess website and services available at <a href="https://www.caissa-chess.org">www.caissa-chess.org</a>. This draft does not name a separate legal entity because one has not been confirmed for publication.</p>
+        <p>CAISSA Chess is the public-facing name of the chess website and services available at <a href="https://www.caissa-chess.org">www.caissa-chess.org</a>. The service is currently operated by an individual and is not represented as a corporation or limited liability company. The operator's legal identification and notice address remain subject to legal review before publication.</p>
         <p>Questions or privacy requests may be sent to <a href="mailto:privacy@caissa-chess.org?subject=CAISSA%20Privacy">privacy@caissa-chess.org</a>. Please do not include passwords, access tokens, payment card details or other secrets.</p>
       </section>
 
@@ -62,7 +62,7 @@
       <section class="legal-section" id="accounts"><h2>3. Accounts and authentication</h2>
         <p>CAISSA uses Clerk for account registration, sign-in, session management and account security. Clerk may process your email address, account identifiers, optional profile fields, profile image, authentication factors, device/session information and security events. CAISSA stores a Clerk subject identifier and may store your email address in its application database to connect your account to saved features and entitlements.</p>
         <h3>Google Sign-In</h3>
-        <p>Google Sign-In is being prepared but was not active in CAISSA production at the date of this draft. If it is activated, CAISSA will request only the basic OpenID Connect identity scopes <strong>openid</strong>, <strong>email</strong> and <strong>profile</strong>. Google and Clerk will process the sign-in flow. CAISSA will not receive your Google password.</p>
+        <p>Google Sign-In is being prepared but was not active in CAISSA production at the date of this draft. If it is activated, CAISSA will request only the basic OpenID Connect identity scopes <code>openid</code>, <code>https://www.googleapis.com/auth/userinfo.email</code> and <code>https://www.googleapis.com/auth/userinfo.profile</code>. Google and Clerk will process the sign-in flow. CAISSA may receive the Google account subject identifier, email address and basic profile information made available by those scopes, use them to create or connect your CAISSA account and session, and share them with Clerk for that purpose. CAISSA will not receive your Google password, request Gmail, Drive or Calendar access, or use Google identity data for advertising.</p>
       </section>
 
       <section class="legal-section" id="chess"><h2>4. Chess games, identity and activity</h2>
@@ -96,16 +96,16 @@
           <li><strong>Supabase</strong> for application database, realtime features and private Scanner feedback storage;</li>
           <li><strong>Vercel</strong> for website and serverless hosting, request processing and aggregate Web Analytics;</li>
           <li><strong>Cloudflare</strong> for authoritative DNS and selected gateway, download, puzzle or security services;</li>
-          <li><strong>Microsoft Clarity</strong> for optional analytics when you grant analytics consent;</li>
           <li><strong>Chess.com, Lichess, FICS, ChessBase and other chess services</strong> when you use a feature that requests or embeds their content; and</li>
           <li><strong>Together AI or a provider you select</strong> when you choose optional AI assistance. Relevant prompts and chess context are sent to that provider. User-supplied AI keys are held in page memory and are not designed to be persisted by CAISSA.</li>
         </ul>
-        <p>Stripe-backed checkout code exists, but production Stripe activation was not established in this audit. If CAISSA makes checkout available, Stripe will process payment details and CAISSA will receive transaction, customer and entitlement identifiers rather than full payment-card details.</p>
+        <p>Microsoft Clarity integration code remains in the repository, but it is retired from current production documents and is not allowed by the active production content-security policy. It is not part of the current production data flow. This policy and the applicable consent controls must be updated before Clarity is reactivated.</p>
+        <p>Stripe-backed checkout code exists, but no production Stripe configuration or enabled credit-store flag was present in the October 25, 2026 environment audit. Paid checkout is therefore not described as an active production feature. Before checkout is activated, CAISSA must publish the applicable payment, subscription, cancellation and refund terms and update this policy.</p>
       </section>
 
       <section class="legal-section" id="storage"><h2>8. Cookies, analytics and browser storage</h2>
         <p>Clerk uses cookies or comparable browser mechanisms to maintain authentication sessions and protect sign-in flows. Vercel Web Analytics is configured on CAISSA production hosts to measure aggregate page visits; CAISSA removes query parameters and URL fragments before those analytics events are sent and blocks known credential-bearing contexts.</p>
-        <p>Microsoft Clarity is configured as optional analytics. It is denied by default, loads only on CAISSA production hosts after the site's eligibility checks, and stores your consent choice locally. If you allow it, Clarity may use cookies or similar technologies under Microsoft's service terms.</p>
+        <p>Microsoft Clarity is not loaded by the current production pages. A historical local analytics-consent value may remain in a browser that previously interacted with an earlier build, but the current site does not read that value to load Clarity.</p>
         <p>CAISSA also uses localStorage and sessionStorage for interface language, onboarding state, navigation state, chess-engine and feature preferences, local profiles or wallet state in legacy experiences, puzzle synchronization queues, and temporary analysis or PGN handoffs. These items remain on your device until the application expires or replaces them, or you clear browser data.</p>
       </section>
 
@@ -115,12 +115,12 @@
       </section>
 
       <section class="legal-section" id="choices"><h2>10. Your choices and requests</h2>
-        <p>You can choose whether to create an account, submit Scanner feedback, share a Scanner image for improvement, share a correction for improvement, enable optional Clarity analytics, use external integrations or use optional AI assistance. You can clear CAISSA browser data through your browser settings.</p>
+        <p>You can choose whether to create an account, submit Scanner feedback, share a Scanner image for improvement, share a correction for improvement, use external integrations or use optional AI assistance. You can clear CAISSA browser data through your browser settings.</p>
         <p>You may ask to access, correct or delete information associated with you by contacting the address above. CAISSA will need to verify the request and will evaluate it subject to applicable law, security needs, technical constraints and records that must be preserved for integrity. This draft does not promise an automated deletion feature or a fixed response period.</p>
       </section>
 
       <section class="legal-section" id="security"><h2>11. Security practices</h2>
-        <p>CAISSA uses authenticated server endpoints, same-origin checks, rate limits, private storage, access controls, row-level security, restricted service credentials, content-security policies and human review gates for sensitive Scanner feedback. No system is perfectly secure, and CAISSA cannot guarantee that information will never be lost, misused or accessed without authorization.</p>
+        <p>For routes that require an account or elevated role, CAISSA uses authenticated server endpoints and access controls. Selected routes also use same-origin checks, rate limits, private storage, row-level security, restricted service credentials, content-security policies and human review gates for sensitive Scanner feedback. No system is perfectly secure, and CAISSA cannot guarantee that information will never be lost, misused or accessed without authorization.</p>
       </section>
 
       <section class="legal-section" id="international"><h2>12. International users</h2>

@@ -52,6 +52,7 @@ h1 { margin: 0; font-size: clamp(2.25rem, 6vw, 4rem); line-height: 1.04; letter-
 .legal-section h3 { margin: 22px 0 7px; color: #fff; font-size: 1.04rem; }
 .legal-section p, .legal-section li { color: var(--legal-copy); }
 .legal-section p { margin: 10px 0; }
+.legal-section code { overflow-wrap: anywhere; word-break: break-word; }
 .legal-section ul { margin: 10px 0; padding-left: 1.35rem; }
 .legal-section li + li { margin-top: 8px; }
 .legal-section strong { color: #fff; }
