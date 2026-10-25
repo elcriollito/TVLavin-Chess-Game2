@@ -125,7 +125,8 @@ test('coordinates derive only from canonical squares and orientation correction 
   assert.doesNotMatch(app, /coordinateFlipped|coordinateOrientationUserOverride|function flipCoordinates/);
   assert.match(app, /function toggleCoordinates\(\)[\s\S]*coordinatesVisible = !coordinatesVisible;/);
   assert.match(app, /function correctOrientation\(\)[\s\S]*rotatePosition180/);
-  assert.match(app, /initializeOrientation\(recognized\.snapshot\.orientation\)/);
+  assert.match(app, /orientationInference\s*=\s*recognized\.orientationInference/);
+  assert.match(app, /const canonicalFen = orientationInference\.canonicalFens\[initialOrientation\]/);
   assert.match(fen, /function syncCoordinates\(square, displayRow, displayCol, row, col\)/);
   assert.match(fen, /const row = flipped \? 7 - displayRow : displayRow;/);
   assert.match(fen, /syncCoordinates\(square, displayRow, displayCol, row, col\)/);

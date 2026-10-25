@@ -407,7 +407,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await page.locator('#editCastlingBtn').click();
     await page.locator('[data-castling="K"]').uncheck();
     await page.locator('#clearBoardBtn').click();
-    await expect(page.locator('#fenInput')).toHaveValue(/^8\/8\/8\/8\/8\/8\/8\/8 w Qkq - 4 10$/);
+    await expect(page.locator('#fenInput')).toHaveValue(/^8\/8\/8\/8\/8\/8\/8\/8 w - - 4 10$/);
     await expect(page.locator('#editValidation')).toContainText('exactly one white king');
     await page.locator('#editFlipBtn').click();
     await page.locator('#cancelEditBtn').click();
@@ -439,7 +439,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await expect(page.locator('#editSheet')).toBeHidden();
     const appliedFen = await page.locator('#confirmedFen').textContent();
     expect(appliedFen.split(' ')[1]).toBe('b');
-    expect(appliedFen.split(' ')[2]).toBe('Qkq');
+    expect(appliedFen.split(' ')[2]).toBe('-');
     await expect(page.locator('#analysisFen')).toHaveText(appliedFen);
     await expect(page.locator('#analysisPanel')).toBeVisible();
     await expect(page.locator('#scannerBoard .sq')).toHaveCount(64);

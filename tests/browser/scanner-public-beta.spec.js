@@ -1,5 +1,27 @@
 import { test, expect } from '@playwright/test';
 import { scannerBoardImage, scannerPerspectiveBoardImage } from './fixtures/scanner-board-image.js';
+import { canonicalFenForOrientation } from '../../scanner/orientation/scanner-orientation-inference.js';
+
+const orientationPrediction = (fen) => {
+  const labels = fen.split(/\s+/)[0].split('/').flatMap(rank => [...rank].flatMap(token => (
+    /^[1-8]$/.test(token) ? Array(Number(token)).fill('empty') : [token]
+  )));
+  return {
+    modelVersion: 'caissa-piece-classifier-v0.5-occupancy-recovery',
+    modelChecksum: '90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E',
+    occupancyThreshold: .99,
+    predictedFEN: fen,
+    squarePredictions: labels.map((predictedClass, index) => ({
+      square: String.fromCharCode(97 + index % 8) + String(8 - Math.floor(index / 8)),
+      predictedClass,
+      confidence: .999,
+      occupancyProbability: predictedClass === 'empty' ? .001 : .999,
+      colorProbabilities: [.5, .5],
+      pieceTypeProbabilities: [0, 0, 0, 0, 0, 1],
+      kingAuxiliaryProbability: /[Kk]/.test(predictedClass) ? .999 : .001
+    }))
+  };
+};
 
 async function boardPresentation(page) {
   return page.locator('#scannerBoard').evaluate((board) => ({
@@ -78,6 +100,54 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await page.locator('#applyEditBtn').click();
     await expect(page.locator('#workspaceView')).toBeVisible();
     await expect(page.locator('#helpImproveBtn')).toBeVisible();
+  });
+
+  test('high-confidence black-bottom scan auto-selects canonical h8 at physical bottom-left', async ({ page }) => {
+    const canonical = '4k2r/ppp2ppp/2np4/4p3/3PP3/2N5/PPP2PPP/R3K3 w - - 0 12';
+    const physical = canonicalFenForOrientation(canonical, 'black-bottom');
+    let submitted = null;
+    page.on('request', request => {
+      if (request.url().endsWith('/api/scanner/public/feedback')) submitted = request.postDataJSON()?.feedback || null;
+    });
+    await page.route('**/api/scanner/public/recognize', route => route.fulfill({ json: orientationPrediction(physical) }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/scanner');
+    await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
+    await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('#orientationReview')).toBeHidden();
+    await expect(page.locator('#scannerBoard')).toHaveAttribute('data-board-orientation', 'black-bottom');
+    await expect(page.locator('#scannerBoard .sq').nth(56)).toHaveAttribute('aria-label', /^h8\b/);
+    await page.locator('#applyEditBtn').click();
+    await expect(page.locator('#confirmedFen')).toHaveText(canonical);
+    await page.locator('#helpImproveBtn').click();
+    await page.locator('#shareCorrectionConsent').check();
+    await page.locator('#submitFeedbackBtn').click();
+    await expect(page.locator('#appToast')).toContainText('raw-unverified');
+    expect(submitted.originalFEN).toBe(canonical);
+    expect(submitted.clientMetadata).toMatchObject({
+      rawRecognitionFEN: physical,
+      recommendedOrientation: 'black-bottom',
+      orientationConfidence: 'HIGH',
+      finalCanonicalOrientation: 'black-bottom',
+      userOrientationOverride: false,
+      trainingTruthPolicy: 'STANDARD'
+    });
+  });
+
+  test('ambiguous sparse scan blocks Apply until a human chooses orientation', async ({ page }) => {
+    const sparse = '8/8/3k4/8/8/4K3/8/8 w - - 0 70';
+    await page.route('**/api/scanner/public/recognize', route => route.fulfill({ json: orientationPrediction(sparse) }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/scanner');
+    await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
+    await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('#orientationReview')).toBeVisible();
+    await expect(page.locator('#orientationReviewMessage')).toContainText('ambiguous');
+    await expect(page.locator('#applyEditBtn')).toBeDisabled();
+    await page.locator('#blackBottomBtn').click();
+    await expect(page.locator('#blackBottomBtn')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#applyEditBtn')).toBeEnabled();
+    await expect(page.locator('#scannerBoard .sq').nth(56)).toHaveAttribute('aria-label', /^h8\b/);
   });
 
   test('Flip View keeps coordinates canonical and Correct Orientation changes canonical FEN', async ({ page }, testInfo) => {

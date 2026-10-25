@@ -144,6 +144,19 @@ test('orientation corrections are high-priority localization review and never cl
   assert.equal(feedbackPriority(record), 'high');
   assert.equal(eligiblePublicExport(record, history), false);
   assert.equal(buildPublicFeedbackExport([{ record, certifications: history }]).eligible.length, 0);
+
+  const ambiguous = { ...record, payload: { ...raw, clientMetadata: {
+    orientationInferenceVersion: 'caissa-scanner-orientation-inference/1',
+    orientationConfidence: 'LOW_AMBIGUOUS',
+    userOrientationOverride: false,
+    whiteBottomScore: 0.51,
+    blackBottomScore: 0.49,
+    recommendedOrientation: 'white-bottom',
+    orientationEvidence: ['ORIENTATION_EVIDENCE_AMBIGUOUS'],
+    finalCanonicalOrientation: 'black-bottom'
+  } } };
+  assert.equal(feedbackPriority(ambiguous), 'high');
+  assert.equal(eligiblePublicExport(ambiguous, history), false);
 });
 
 test('public recognition is kill-switched, same-origin, and separately rate limited for guests', async () => {
@@ -292,6 +305,18 @@ test('review actions append history and reject classifier/localization cross-con
   await service.action(req, orientationBlocked);
   assert.equal(orientationBlocked.statusCode, 400);
   assert.equal(orientationBlocked.body.error, 'ORIENTATION_REVIEW_REQUIRED');
+
+  const ambiguousRaw = feedback({
+    feedbackType: 'PIECE_CORRECTION',
+    correctedFEN: '3K4/8/8/8/8/8/8/3k4 w - - 0 1',
+    clientMetadata: { orientationConfidence: 'LOW_AMBIGUOUS', userOrientationOverride: false }
+  });
+  store.getFeedback = async () => ({ feedbackId: UUIDS[1], payload: ambiguousRaw,
+    imageStorageReference: 'private', duplicateSuspected: false, certifications: [] });
+  const ambiguousBlocked = response();
+  await service.action(req, ambiguousBlocked);
+  assert.equal(ambiguousBlocked.statusCode, 400);
+  assert.equal(ambiguousBlocked.body.error, 'ORIENTATION_REVIEW_REQUIRED');
 });
 
 test('review case-open audit is privileged, same-origin, and explicitly bounded', async () => {
@@ -340,6 +365,15 @@ test('public route is responsive, canonical, environment-aware, QR-based, and pr
   assert.match(css, /\.app-shell\s*\{[\s\S]*?display:\s*none\s*!important/);
   const config = JSON.parse(vercel); assert.equal(config.rewrites.some(item => item.source === '/scanner/feedback-review'), true);
   assert.match(privateBeta, /INTERNAL BETA/); assert.match(privateBeta, /scanner\/beta\/beta-app\.js/);
+});
+
+test('owner review console exposes full orientation diagnostics without public certification controls', async () => {
+  const review = await read('scanner/public/feedback-review.js');
+  for (const label of ['Original detected orientation', 'Auto orientation', 'Orientation confidence',
+    'Orientation score A/B', 'Orientation evidence', 'Human override applied', 'Final canonical orientation']) {
+    assert.match(review, new RegExp(label));
+  }
+  assert.doesNotMatch(review, /public user[^\n]*(?:certif|training)/i);
 });
 
 test('public implementation has no automatic learning or online weight update path', async () => {

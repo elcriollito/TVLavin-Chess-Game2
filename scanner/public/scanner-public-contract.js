@@ -107,11 +107,13 @@ export function validateCertificationDecision(input, reviewer) {
 export function feedbackPriority(record) {
   const feedback = record?.payload || record || {};
   const orientationCorrection = feedback.clientMetadata?.orientationCorrectionApplied === true;
+  const orientationReview = feedback.clientMetadata?.orientationConfidence === 'LOW_AMBIGUOUS'
+    || feedback.clientMetadata?.userOrientationOverride === true;
   const warnings = feedback.warningCodes || feedback.clientMetadata?.warningCodes || [];
   const changes = feedback.changedSquares || [];
   const highConfidenceCorrection = changes.some(change => Number(change.originalConfidence) >= 0.9);
   const hardWarning = feedback.structuralStatus === 'REVIEW_REQUIRED' || warnings.some(code => /MISSING|MULTIPLE|BACK_RANK/.test(code));
-  if (orientationCorrection || ['LOCALIZATION_FAILURE', 'SCAN_FAILURE'].includes(feedback.feedbackType)
+  if (orientationCorrection || orientationReview || ['LOCALIZATION_FAILURE', 'SCAN_FAILURE'].includes(feedback.feedbackType)
     || highConfidenceCorrection || hardWarning || Number(feedback.changedSquareCount || 0) >= 6
     || feedback.clientMetadata?.rarePieceStyle === true || feedback.clientMetadata?.newPlatform === true) return 'high';
   if (feedback.feedbackType === 'PIECE_CORRECTION' || Number(feedback.changedSquareCount || 0) > 0) return 'medium';
@@ -127,6 +129,8 @@ export function eligiblePublicExport(record, history) {
   const decision = latestCertification(history);
   const feedback = record?.payload || record || {};
   if (feedback.clientMetadata?.orientationCorrectionApplied === true) return false;
+  if (feedback.clientMetadata?.userOrientationOverride === true
+    || feedback.clientMetadata?.orientationConfidence === 'LOW_AMBIGUOUS') return false;
   if ((history || []).some(item => ['DUPLICATE', 'EXCLUDE'].includes(item.action || item.status))) return false;
   if (!decision || !String(decision.action || decision.status || '').startsWith('CERTIFY')) return false;
   if (decision.trainingEligible !== true && decision.training_eligible !== true) return false;

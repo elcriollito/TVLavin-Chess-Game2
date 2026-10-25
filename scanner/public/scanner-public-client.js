@@ -6,6 +6,7 @@ import {
   createPublicScanFailureRecord
 } from './scanner-public-contract.js';
 import { randomUuid, sha256Hex } from '../beta/scanner-beta-crypto.js';
+import { inferOrientation } from '../orientation/scanner-orientation-inference.js';
 
 const RECOGNITION_TIMEOUT_MS = 25_000;
 const LOCALIZATION_VERSION = 'caissa-scanner-board-localizer/4';
@@ -126,6 +127,11 @@ export async function recognizePublicPosition({ file, prepared, captureType, ori
       modelChecksum: prediction.modelChecksum,
       occupancyThreshold: prediction.occupancyThreshold
     });
+    // The prediction snapshot remains the immutable raw white-mapped evidence.
+    // Orientation inference produces separate canonical hypotheses and never mutates it.
+    const orientationStartedAt = performance.now();
+    const orientationInference = inferOrientation(snapshot.predictedFEN);
+    const orientationElapsedMs = Number((performance.now() - orientationStartedAt).toFixed(4));
     await jsonRequest('/api/scanner/public/scan', { body: {
       snapshot,
       metadata: {
@@ -135,6 +141,15 @@ export async function recognizePublicPosition({ file, prepared, captureType, ori
         clientMetadata: {
           viewport: { width: innerWidth, height: innerHeight },
           selectedImage: selected.metadata,
+          orientationInference: {
+            orientationInferenceVersion: orientationInference.orientationInferenceVersion,
+            whiteBottomScore: orientationInference.whiteBottomScore,
+            blackBottomScore: orientationInference.blackBottomScore,
+            recommendedOrientation: orientationInference.recommendedOrientation,
+            orientationConfidence: orientationInference.orientationConfidence,
+            orientationEvidence: orientationInference.orientationEvidence,
+            elapsedMs: orientationElapsedMs
+          },
           localization: {
             status: prepared.status,
             diagnostics: prepared.diagnostics,
@@ -147,7 +162,7 @@ export async function recognizePublicPosition({ file, prepared, captureType, ori
         }
       }
     }, signal });
-    return Object.freeze({ snapshot, imageHash, sourceImageType: selected.sourceImageType, selected });
+    return Object.freeze({ snapshot, orientationInference, imageHash, sourceImageType: selected.sourceImageType, selected });
   } catch (error) {
     error.publicFailureContext = Object.freeze({ scanId, imageHash, captureType, orientation, selected });
     throw error;
@@ -178,6 +193,26 @@ async function uploadConsentedImage(file, imageHash) {
   return value.imageStorageReference;
 }
 
+function rotateSquare180(square) {
+  if (!/^[a-h][1-8]$/.test(square || '')) return square;
+  return String.fromCharCode(104 - (square.charCodeAt(0) - 97)) + (9 - Number(square[1]));
+}
+
+function canonicalFeedbackSnapshot(snapshot, orientationInference) {
+  if (!orientationInference) return snapshot;
+  const orientation = orientationInference.recommendedOrientation;
+  const rotated = orientation === 'black-bottom';
+  return {
+    ...snapshot,
+    orientation: rotated ? 'black-at-bottom' : 'white-at-bottom',
+    predictedFEN: orientationInference.canonicalFens[orientation],
+    squarePredictions: (rotated ? [...snapshot.squarePredictions].reverse() : snapshot.squarePredictions).map((prediction) => ({
+      ...prediction,
+      square: rotated ? rotateSquare180(prediction.square) : prediction.square
+    }))
+  };
+}
+
 export async function submitPublicFeedback({
   snapshot,
   correctedFEN,
@@ -185,13 +220,17 @@ export async function submitPublicFeedback({
   captureType,
   file,
   orientationCorrectionApplied = false,
+  orientationInference = null,
+  userOrientationOverride = false,
+  finalCanonicalOrientation = null,
   shareCorrectionForImprovement,
   shareImageForImprovement
 }) {
   const consent = { shareCorrectionForImprovement, shareImageForImprovement };
+  const feedbackSnapshot = canonicalFeedbackSnapshot(snapshot, orientationInference);
   const record = createPublicFeedbackRecord({
     feedbackId: randomUuid(),
-    snapshot,
+    snapshot: feedbackSnapshot,
     feedbackType,
     correctedFEN: feedbackType === 'LOCALIZATION_FAILURE' ? null : correctedFEN,
     finalPositionConfirmed: !['LOCALIZATION_FAILURE', 'SCAN_FAILURE'].includes(feedbackType),
@@ -204,8 +243,23 @@ export async function submitPublicFeedback({
       localizationVersion: LOCALIZATION_VERSION,
       orientationCorrectionApplied: orientationCorrectionApplied === true,
       orientationDiagnostic: orientationCorrectionApplied === true ? 'CANONICAL_180_ROTATION' : null,
-      orientationReviewRequired: orientationCorrectionApplied === true,
-      trainingTruthPolicy: orientationCorrectionApplied === true ? 'ORIENTATION_REVIEW_ONLY' : 'STANDARD'
+      orientationReviewRequired: orientationCorrectionApplied === true
+        || orientationInference?.orientationConfidence === 'LOW_AMBIGUOUS'
+        || userOrientationOverride === true,
+      orientationInferenceVersion: orientationInference?.orientationInferenceVersion || null,
+      whiteBottomScore: orientationInference?.whiteBottomScore ?? null,
+      blackBottomScore: orientationInference?.blackBottomScore ?? null,
+      recommendedOrientation: orientationInference?.recommendedOrientation || null,
+      orientationConfidence: orientationInference?.orientationConfidence || null,
+      orientationEvidence: orientationInference?.orientationEvidence || [],
+      originalDetectedOrientation: snapshot.orientation,
+      userOrientationOverride: userOrientationOverride === true,
+      finalCanonicalOrientation,
+      rawRecognitionFEN: snapshot.predictedFEN,
+      rawRecognitionOrientation: snapshot.orientation,
+      trainingTruthPolicy: orientationCorrectionApplied === true
+        || orientationInference?.orientationConfidence === 'LOW_AMBIGUOUS'
+        || userOrientationOverride === true ? 'ORIENTATION_REVIEW_ONLY' : 'STANDARD'
     }
   });
   const imageStorageReference = shareImageForImprovement

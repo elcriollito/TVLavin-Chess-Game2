@@ -254,6 +254,15 @@ function renderDetail(record) {
   dataRow(list, "Model", record.modelVersion);
   dataRow(list, "Localization", record.localizationVersion);
   dataRow(list, "Orientation correction", record.payload?.clientMetadata?.orientationCorrectionApplied === true ? "Canonical 180Â° rotation â€” review required" : "None");
+  dataRow(list, "Original detected orientation", record.payload?.clientMetadata?.originalDetectedOrientation || "Unavailable");
+  dataRow(list, "Auto orientation", record.payload?.clientMetadata?.recommendedOrientation || "Unavailable");
+  dataRow(list, "Orientation confidence", record.payload?.clientMetadata?.orientationConfidence || "Unavailable");
+  dataRow(list, "Orientation score A/B", record.payload?.clientMetadata?.whiteBottomScore == null
+    ? "Unavailable"
+    : `${record.payload.clientMetadata.whiteBottomScore} / ${record.payload.clientMetadata.blackBottomScore}`);
+  dataRow(list, "Orientation evidence", (record.payload?.clientMetadata?.orientationEvidence || []).join(", ") || "None");
+  dataRow(list, "Human override applied", record.payload?.clientMetadata?.userOrientationOverride === true ? "YES" : "NO");
+  dataRow(list, "Final canonical orientation", record.payload?.clientMetadata?.finalCanonicalOrientation || "Unavailable");
   dataRow(list, "Training truth policy", record.payload?.clientMetadata?.trainingTruthPolicy || "STANDARD");
   dataRow(list, "Structural state", record.payload?.structuralStatus);
   dataRow(list, "Warnings", (record.payload?.warningCodes || []).join(", "));

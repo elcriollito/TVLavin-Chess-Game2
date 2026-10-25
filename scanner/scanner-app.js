@@ -60,6 +60,12 @@
     structuralMessage: $('publicStructuralMessage'),
     structuralAcknowledgeRow: $('publicStructuralAcknowledgeRow'),
     structuralAcknowledge: $('publicStructuralAcknowledge'),
+    orientationReview: $('orientationReview'),
+    orientationReviewTitle: $('orientationReviewTitle'),
+    orientationReviewMessage: $('orientationReviewMessage'),
+    orientationReviewScores: $('orientationReviewScores'),
+    whiteBottom: $('whiteBottomBtn'),
+    blackBottom: $('blackBottomBtn'),
     localizationWrong: $('publicLocalizationWrongBtn'),
     blackPalette: $('blackPiecePalette'),
     whitePalette: $('whitePiecePalette'),
@@ -129,6 +135,10 @@
   let flipped = false;
   let coordinatesVisible = true;
   let orientationCorrectionApplied = false;
+  let orientationInference = null;
+  let selectedCanonicalOrientation = 'white-bottom';
+  let userOrientationOverride = false;
+  let orientationResolved = true;
   let selectedSquare = null;
   let toastTimer = null;
   let editWasConfirmed = false;
@@ -136,6 +146,8 @@
   let editOriginalFen = '';
   let editOriginalFlipped = false;
   let editOriginalOrientationCorrectionApplied = false;
+  let editOriginalCanonicalOrientation = 'white-bottom';
+  let editOriginalUserOrientationOverride = false;
   let editEntryMode = null;
   let activeEditTool = null;
   let activeMenu = null;
@@ -153,7 +165,7 @@
   let publicRecognitionController = null;
 
   async function loadPublicClient() {
-    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=0.1.0');
+    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=0.2.0');
     return publicClient;
   }
 
@@ -218,11 +230,55 @@
   }
 
   function initializeOrientation(orientation = 'white-at-bottom') {
-    flipped = orientation === 'black-at-bottom';
+    flipped = ['black-at-bottom', 'black-bottom'].includes(orientation);
+    selectedCanonicalOrientation = flipped ? 'black-bottom' : 'white-bottom';
     coordinatesVisible = true;
     orientationCorrectionApplied = false;
+    userOrientationOverride = false;
+    orientationResolved = true;
     analysis?.setFlipped(flipped);
     syncOrientationPresentation();
+  }
+
+  function renderOrientationReview() {
+    const confidence = orientationInference?.orientationConfidence;
+    const show = confidence === 'MEDIUM' || confidence === 'LOW_AMBIGUOUS';
+    els.orientationReview.hidden = !show;
+    if (!show) {
+      els.applyEdit.disabled = false;
+      return;
+    }
+    const unresolved = confidence === 'LOW_AMBIGUOUS' && !orientationResolved;
+    els.orientationReviewTitle.textContent = 'Check board orientation';
+    els.orientationReviewMessage.textContent = unresolved
+      ? 'The scan is ambiguous. Choose which side was physically at the bottom before applying.'
+      : 'CAISSA has a recommendation, but please verify which side was physically at the bottom.';
+    els.orientationReviewScores.textContent = `White ${orientationInference.whiteBottomScore.toFixed(2)} · Black ${orientationInference.blackBottomScore.toFixed(2)} · ${confidence.replace('_', ' / ')}`;
+    els.whiteBottom.setAttribute('aria-pressed', String(orientationResolved && selectedCanonicalOrientation === 'white-bottom'));
+    els.blackBottom.setAttribute('aria-pressed', String(orientationResolved && selectedCanonicalOrientation === 'black-bottom'));
+    els.applyEdit.disabled = unresolved;
+  }
+
+  function chooseCanonicalOrientation(orientation, { human = true } = {}) {
+    if (!orientationInference?.canonicalFens?.[orientation]) return false;
+    const previous = selectedCanonicalOrientation;
+    selectedCanonicalOrientation = orientation;
+    orientationResolved = true;
+    flipped = orientation === 'black-bottom';
+    els.fen.value = orientationInference.canonicalFens[orientation];
+    if (human) {
+      userOrientationOverride = orientation !== orientationInference.recommendedOrientation;
+      orientationCorrectionApplied = userOrientationOverride;
+    }
+    selectedSquare = null;
+    structuralAcknowledged = false;
+    analysis?.setFlipped(flipped);
+    syncOrientationPresentation();
+    validateCurrent(false);
+    renderPublicStructuralGuardrail(els.fen.value);
+    renderOrientationReview();
+    if (human) setEditFeedback(`${orientation === 'black-bottom' ? 'Black' : 'White'} at bottom selected. Verify the pieces and side to move.`, 'ok');
+    return previous !== orientation;
   }
 
   window.CaissaScannerPresentationState = Object.freeze({
@@ -553,7 +609,8 @@
         });
       } else {
         const correctedFen = currentFen() || els.fen.value;
-        const predictedPlacement = publicRecognition.snapshot.predictedFEN.split(/\s+/)[0];
+        const predictedPlacement = (orientationInference?.canonicalFens?.[orientationInference?.recommendedOrientation]
+          || publicRecognition.snapshot.predictedFEN).split(/\s+/)[0];
         const correctedPlacement = correctedFen.split(/\s+/)[0];
         const feedbackType = pendingFeedbackType === 'LOCALIZATION_FAILURE'
           ? 'LOCALIZATION_FAILURE'
@@ -565,6 +622,9 @@
           captureType: selectedCaptureType,
           file: selectedSourceFile,
           orientationCorrectionApplied,
+          orientationInference,
+          userOrientationOverride,
+          finalCanonicalOrientation: selectedCanonicalOrientation,
           shareCorrectionForImprovement: true,
           shareImageForImprovement: els.shareImage.checked
         });
@@ -660,14 +720,26 @@
       await preserveReadingDuration(readingStartedAt);
       if (state.snapshot().generation !== expectedGeneration) return;
       publicRecognition = recognized;
+      orientationInference = recognized.orientationInference;
+      orientationResolved = orientationInference.orientationConfidence !== 'LOW_AMBIGUOUS';
+      selectedCanonicalOrientation = orientationResolved ? orientationInference.recommendedOrientation : null;
+      const initialOrientation = selectedCanonicalOrientation || 'white-bottom';
+      const canonicalFen = orientationInference.canonicalFens[initialOrientation];
       const confidences = recognized.snapshot.squarePredictions.map(item => item.confidence);
       const confidenceBySquare = Object.fromEntries(recognized.snapshot.squarePredictions.map(item => [item.square, item.confidence]));
       const accepted = state.setCandidate(expectedGeneration, {
-        fen: recognized.snapshot.predictedFEN,
+        fen: canonicalFen,
         boardConfidence: confidences.reduce((sum, value) => sum + value, 0) / confidences.length,
         pieceConfidenceBySquare: confidenceBySquare,
         lowConfidenceSquares: recognized.snapshot.squarePredictions.filter(item => item.confidence < 0.8).map(item => item.square),
-        orientation: recognized.snapshot.orientation,
+        orientation: initialOrientation === 'black-bottom' ? 'black-at-bottom' : 'white-at-bottom',
+        orientationInference: {
+          version: orientationInference.orientationInferenceVersion,
+          confidence: orientationInference.orientationConfidence,
+          whiteBottomScore: orientationInference.whiteBottomScore,
+          blackBottomScore: orientationInference.blackBottomScore,
+          recommendedOrientation: orientationInference.recommendedOrientation
+        },
         recognitionStage: 'production-v05',
         pieceRecognition: recognized.snapshot.modelVersion,
         localization: prepared.board ? {
@@ -683,10 +755,16 @@
         timingsMs: prepared.timing
       });
       if (!accepted) return;
-      initializeOrientation(recognized.snapshot.orientation);
+      flipped = initialOrientation === 'black-bottom';
+      coordinatesVisible = true;
+      orientationCorrectionApplied = false;
+      userOrientationOverride = false;
+      analysis?.setFlipped(flipped);
+      syncOrientationPresentation();
       releaseSourcePreview();
-      els.fen.value = recognized.snapshot.predictedFEN;
-      els.candidateStatus.textContent = 'Ready to review';
+      els.fen.value = canonicalFen;
+      els.candidateStatus.textContent = orientationInference.orientationConfidence === 'HIGH'
+        && initialOrientation === 'black-bottom' ? 'Black side detected' : 'Ready to review';
       els.workspaceTitle.textContent = 'Review position';
       routeRecognitionResult();
     } catch (error) {
@@ -740,6 +818,10 @@
     editEntryMode = null;
     activeEditTool = null;
     publicRecognition = null;
+    orientationInference = null;
+    selectedCanonicalOrientation = 'white-bottom';
+    userOrientationOverride = false;
+    orientationResolved = true;
     publicFailureContext = null;
     publicFailureError = null;
     selectedSourceFile = null;
@@ -749,6 +831,7 @@
     els.reportFailure.hidden = true;
     els.publicServiceStatus.textContent = '';
     els.structuralWarning.hidden = true;
+    els.orientationReview.hidden = true;
     els.structuralAcknowledge.checked = false;
     els.editSheet.hidden = true;
     els.editFooter.hidden = true;
@@ -843,6 +926,8 @@
     editOriginalFen = fen;
     editOriginalFlipped = flipped;
     editOriginalOrientationCorrectionApplied = orientationCorrectionApplied;
+    editOriginalCanonicalOrientation = selectedCanonicalOrientation;
+    editOriginalUserOrientationOverride = userOrientationOverride;
     if (editWasConfirmed) {
       analysis?.stop();
       els.analysisPanel.hidden = true;
@@ -866,6 +951,7 @@
     validateCurrent(false);
     structuralAcknowledged = false;
     renderPublicStructuralGuardrail(fen);
+    renderOrientationReview();
     setEditFeedback('Select a piece or Clear Square, then tap the board.');
     els.workspaceTitle.textContent = 'Edit position';
     els.candidateStatus.textContent = 'Editing';
@@ -887,6 +973,8 @@
     editOriginalFen = '';
     editOriginalFlipped = false;
     editOriginalOrientationCorrectionApplied = false;
+    editOriginalCanonicalOrientation = 'white-bottom';
+    editOriginalUserOrientationOverride = false;
     editEntryMode = null;
   }
 
@@ -894,6 +982,10 @@
     const recognitionReview = editEntryMode === EDIT_ENTRY.RECOGNITION_REVIEW;
     if (apply) {
       const result = validateCurrent();
+      if (!orientationResolved) {
+        toast('Choose White at bottom or Black at bottom before applying.');
+        return;
+      }
       if (!result.ok) {
         toast(result.error);
         return;
@@ -928,6 +1020,9 @@
       }
       flipped = editOriginalFlipped;
       orientationCorrectionApplied = editOriginalOrientationCorrectionApplied;
+      selectedCanonicalOrientation = editOriginalCanonicalOrientation;
+      userOrientationOverride = editOriginalUserOrientationOverride;
+      orientationResolved = true;
       syncOrientationPresentation();
       if (editOriginalFen) {
         els.fen.value = editOriginalFen;
@@ -1078,12 +1173,17 @@
       return;
     }
     els.fen.value = nextFen;
+    flipped = !flipped;
+    selectedCanonicalOrientation = flipped ? 'black-bottom' : 'white-bottom';
     selectedSquare = null;
-    orientationCorrectionApplied = !orientationCorrectionApplied;
+    orientationCorrectionApplied = true;
+    userOrientationOverride = true;
+    orientationResolved = true;
     structuralAcknowledged = false;
     syncOrientationPresentation();
     validateCurrent(false);
     renderPublicStructuralGuardrail(nextFen);
+    renderOrientationReview();
     setEditFeedback('Recognized orientation corrected. Verify the pieces and side to move before applying.', 'ok');
   }
 
@@ -1213,6 +1313,8 @@
     structuralAcknowledged = els.structuralAcknowledge.checked;
     renderPublicStructuralGuardrail(els.fen.value);
   });
+  els.whiteBottom.addEventListener('click', () => chooseCanonicalOrientation('white-bottom'));
+  els.blackBottom.addEventListener('click', () => chooseCanonicalOrientation('black-bottom'));
   els.localizationWrong.addEventListener('click', () => openFeedback('LOCALIZATION_FAILURE', els.localizationWrong));
   els.validate.addEventListener('click', () => validateCurrent());
   els.fen.addEventListener('input', () => {

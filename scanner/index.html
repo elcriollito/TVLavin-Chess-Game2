@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
   <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.3.0">
-  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.4.0">
+  <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.5.0">
   <link rel="stylesheet" href="/scanner/public/scanner-public.css?v=0.1.0">
 </head>
 <body>
@@ -194,6 +194,17 @@
           </div>
 
           <div class="edit-tool-status" id="editToolStatus" role="status" aria-live="polite"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Select a piece or Clear Square</span></div>
+          <section class="orientation-review" id="orientationReview" hidden aria-live="polite">
+            <div>
+              <strong id="orientationReviewTitle">Check board orientation</strong>
+              <span id="orientationReviewMessage">Choose which side was physically at the bottom.</span>
+              <small id="orientationReviewScores"></small>
+            </div>
+            <div class="orientation-review-actions" role="group" aria-label="Choose board orientation">
+              <button id="whiteBottomBtn" type="button" aria-pressed="false">White at bottom</button>
+              <button id="blackBottomBtn" type="button" aria-pressed="false">Black at bottom</button>
+            </div>
+          </section>
           <section class="public-structural-warning" id="publicStructuralWarning" hidden aria-live="polite">
             <strong id="publicStructuralTitle">Review recommended</strong>
             <span id="publicStructuralMessage"></span>
@@ -297,7 +308,7 @@
   <script src="/scanner/recognition/scanner-image-decode.js?v=0.1.0"></script>
   <script src="/scanner/recognition/scanner-recognition-runtime.js?v=0.2.0"></script>
   <script src="/scanner/public/scanner-handoff.js?v=0.1.0"></script>
-  <script src="/scanner/scanner-app.js?v=0.7.0"></script>
+  <script src="/scanner/scanner-app.js?v=0.8.0"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>
