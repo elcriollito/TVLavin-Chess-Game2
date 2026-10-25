@@ -165,10 +165,10 @@
     }
   }
 
-  function syncCoordinates(square, displayRow, displayCol, row, col) {
-    if (displayRow === 7) square.dataset.file = String.fromCharCode(97 + col);
+  function syncCoordinates(square, displayRow, displayCol, coordinateFlipped = false) {
+    if (displayRow === 7) square.dataset.file = String.fromCharCode((coordinateFlipped ? 104 : 97) + (coordinateFlipped ? -displayCol : displayCol));
     else delete square.dataset.file;
-    if (displayCol === 7) square.dataset.rank = String(8 - row);
+    if (displayCol === 7) square.dataset.rank = String(coordinateFlipped ? displayRow + 1 : 8 - displayRow);
     else delete square.dataset.rank;
   }
 
@@ -183,13 +183,13 @@
       square.setAttribute('aria-label', squareName(row, col) + ' empty');
       square.onclick = null;
       square.tabIndex = -1;
-      syncCoordinates(square, row, col, row, col);
+      syncCoordinates(square, row, col, false);
       syncPiece(square, '');
     });
     return true;
   }
 
-  function renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, validator) {
+  function renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, coordinateFlipped, validator) {
     const result = validator(fen);
     if (!result.ok) return result;
     const squares = ensureSquares(boardElement);
@@ -203,7 +203,7 @@
       square.dataset.row = String(row);
       square.dataset.col = String(col);
       square.setAttribute('aria-label', squareName(row, col) + (piece ? ' ' + PIECE_CODES[piece] : ' empty'));
-      syncCoordinates(square, displayRow, displayCol, row, col);
+      syncCoordinates(square, displayRow, displayCol, coordinateFlipped);
       if (selected && selected.row === row && selected.col === col) square.classList.add('selected');
       if (typeof extraClassForSquare === 'function') {
         const extra = extraClassForSquare(row, col, piece);
@@ -221,12 +221,12 @@
     return result;
   }
 
-  function render(boardElement, fen, flipped = false, onSquareClick = null, selected = null, extraClassForSquare = null) {
-    return renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, validate);
+  function render(boardElement, fen, flipped = false, onSquareClick = null, selected = null, extraClassForSquare = null, coordinateFlipped = flipped) {
+    return renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, coordinateFlipped, validate);
   }
 
-  function renderDraft(boardElement, fen, flipped = false, onSquareClick = null, selected = null, extraClassForSquare = null) {
-    return renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, validateDraft);
+  function renderDraft(boardElement, fen, flipped = false, onSquareClick = null, selected = null, extraClassForSquare = null, coordinateFlipped = flipped) {
+    return renderPosition(boardElement, fen, flipped, onSquareClick, selected, extraClassForSquare, coordinateFlipped, validateDraft);
   }
 
   global.CaissaScannerFen = Object.freeze({

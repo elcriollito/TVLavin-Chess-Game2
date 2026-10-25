@@ -44,6 +44,7 @@
     let game = null;
     let active = false;
     let flipped = false;
+    let coordinateFlipped = false;
     let selected = null;
     let activeGeneration = null;
     let startSequence = 0;
@@ -81,7 +82,7 @@
 
     function render() {
       if (!game) return;
-      fenTools.render(board, game.fen(), flipped, active ? handleSquare : null, null, squareClass);
+      fenTools.render(board, game.fen(), flipped, active ? handleSquare : null, null, squareClass, coordinateFlipped);
       board.classList.toggle('analysis-active', active);
       if (fenOutput) fenOutput.textContent = game.fen();
       options.onPositionChange?.(game.fen());
@@ -233,12 +234,25 @@
       if (game) render();
     }
 
+    function setCoordinateFlipped(value) {
+      coordinateFlipped = Boolean(value);
+      if (game) render();
+    }
+
+    function setOrientations(boardFlipped, coordinatesFlipped) {
+      flipped = Boolean(boardFlipped);
+      coordinateFlipped = Boolean(coordinatesFlipped);
+      if (game) render();
+    }
+
     return Object.freeze({
       start,
       stop,
       clear,
       setPosition,
       setFlipped,
+      setCoordinateFlipped,
+      setOrientations,
       isActive: () => active,
       currentFen: () => game?.fen?.() || null,
       first: () => navigate(0),

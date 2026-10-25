@@ -62,6 +62,19 @@ async function toolbarGeometry(page) {
   });
 }
 
+async function orientationSnapshot(page) {
+  return page.evaluate(() => window.CaissaScannerPresentationState.snapshot());
+}
+
+async function boardIdentity(page) {
+  return page.locator('#scannerBoard').evaluate((board) => ({
+    mapping: [...board.children].map(square => `${square.dataset.row},${square.dataset.col}`),
+    pieces: [...board.children].map((square, index) => ({ index, piece: square.querySelector('.piece-img')?.dataset.piece || '' })),
+    files: [...board.children].filter(square => square.dataset.file).map(square => square.dataset.file),
+    ranks: [...board.children].filter(square => square.dataset.rank).map(square => square.dataset.rank)
+  }));
+}
+
 test.describe('CAISSA Scanner approved mobile workspace', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -295,6 +308,87 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     expect(flippedTarget).toBe('Q');
   });
 
+  test('Alexander coordinate correction changes labels only and persists from Review to Ready', async ({ page }) => {
+    await page.goto('/scanner/index.html');
+    await page.locator('#galleryInput').setInputFiles(imageFixture);
+    await expect(page.locator('#reviewEditView')).toBeVisible();
+    const originalFen = await page.locator('#fenInput').inputValue();
+    const originalBoard = await boardIdentity(page);
+    const originalGuardrail = await page.locator('#publicStructuralWarning').evaluate(element => ({
+      status: element.dataset.status || '', hidden: element.hidden, text: element.textContent
+    }));
+
+    await page.locator('#editFlipCoordinatesBtn').click();
+    expect(await orientationSnapshot(page)).toEqual({
+      boardOrientation: 'white-bottom', coordinateOrientation: 'black-bottom',
+      coordinateOrientationUserOverride: true
+    });
+    const blackLabels = await boardIdentity(page);
+    expect(blackLabels.files).toEqual('hgfedcba'.split(''));
+    expect(blackLabels.ranks).toEqual('12345678'.split(''));
+    expect(blackLabels.mapping).toEqual(originalBoard.mapping);
+    expect(blackLabels.pieces).toEqual(originalBoard.pieces);
+    await expect(page.locator('#fenInput')).toHaveValue(originalFen);
+    expect(await page.locator('#publicStructuralWarning').evaluate(element => ({
+      status: element.dataset.status || '', hidden: element.hidden, text: element.textContent
+    }))).toEqual(originalGuardrail);
+
+    await page.locator('#editFlipCoordinatesBtn').click();
+    expect(await orientationSnapshot(page)).toEqual({
+      boardOrientation: 'white-bottom', coordinateOrientation: 'white-bottom',
+      coordinateOrientationUserOverride: true
+    });
+    await page.locator('#editFlipBtn').click();
+    expect(await orientationSnapshot(page)).toEqual({
+      boardOrientation: 'black-bottom', coordinateOrientation: 'white-bottom',
+      coordinateOrientationUserOverride: true
+    });
+    await page.locator('#applyEditBtn').click();
+    await expectOnlyView(page, 'workspace');
+    expect(await orientationSnapshot(page)).toEqual({
+      boardOrientation: 'black-bottom', coordinateOrientation: 'white-bottom',
+      coordinateOrientationUserOverride: true
+    });
+    await expect(page.locator('#confirmedFen')).toHaveText(originalFen);
+  });
+
+  test('coordinate orientation never changes canonical edit tap mapping', async ({ page }) => {
+    await selectAndConfirm(page);
+    await page.locator('#editBtn').click();
+    const beforeFen = await page.locator('#fenInput').inputValue();
+    const firstSquareBefore = await page.locator('#scannerBoard .sq').first().evaluate(square => ({
+      row: square.dataset.row, col: square.dataset.col, label: square.getAttribute('aria-label')
+    }));
+    await page.locator('#editFlipCoordinatesBtn').click();
+    await expect(page.locator('#fenInput')).toHaveValue(beforeFen);
+    const firstSquareAfter = await page.locator('#scannerBoard .sq').first().evaluate(square => ({
+      row: square.dataset.row, col: square.dataset.col, label: square.getAttribute('aria-label')
+    }));
+    expect(firstSquareAfter).toEqual(firstSquareBefore);
+    await page.locator('#clearSquareBtn').click();
+    await page.locator('#scannerBoard .sq').first().click();
+    const changedFen = await page.locator('#fenInput').inputValue();
+    expect(changedFen).not.toBe(beforeFen);
+    expect(await page.locator('#scannerBoard .sq').first().getAttribute('aria-label')).toBe('a8 empty');
+    expect(await orientationSnapshot(page)).toEqual({
+      boardOrientation: 'white-bottom', coordinateOrientation: 'black-bottom',
+      coordinateOrientationUserOverride: true
+    });
+  });
+
+  test('a valid New Scan resets coordinate override to the recognized orientation', async ({ page }) => {
+    await selectAndConfirm(page);
+    await page.locator('#flipCoordinatesBtn').click();
+    expect((await orientationSnapshot(page)).coordinateOrientationUserOverride).toBe(true);
+    await page.locator('#newScanBtn').click();
+    await page.locator('#galleryInput').setInputFiles(imageFixture);
+    await expect(page.locator('#reviewEditView')).toBeVisible();
+    expect(await orientationSnapshot(page)).toEqual({
+      boardOrientation: 'white-bottom', coordinateOrientation: 'white-bottom',
+      coordinateOrientationUserOverride: false
+    });
+  });
+
   test('Clear Board and every editable FEN field are isolated until Apply', async ({ page }) => {
     await selectAndConfirm(page);
     const originalFen = await page.locator('#confirmedFen').textContent();
@@ -460,6 +554,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
   test('Stockfish MultiPV updates do not resize the board', async ({ page }) => {
     await selectAndConfirm(page);
     const before = await boardGeometry(page);
+    await page.locator('#flipCoordinatesBtn').click();
     await page.locator('#analyzeBtn').click();
     await expect(page.locator('#analysisPanel')).toBeVisible();
     await expect(page.locator('#analysisStatus')).toContainText(/Analyzing|Starting/);
@@ -471,6 +566,13 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     expect(after.squareWidths).toEqual(before.squareWidths);
     expect(after.squareHeights).toEqual(before.squareHeights);
     await page.locator('#scannerBoard .sq[aria-label="d5 wN"]').click();
+    await expect(page.locator('#scannerBoard .sq[aria-label="d5 wN"]')).toHaveClass(/analysis-selected/);
+    await page.locator('#flipBtn').click();
+    expect(await orientationSnapshot(page)).toEqual({
+      boardOrientation: 'black-bottom', coordinateOrientation: 'black-bottom',
+      coordinateOrientationUserOverride: true
+    });
+    await expect(page.locator('#scannerBoard .sq[aria-label="d5 wN"]')).toHaveClass(/analysis-selected/);
     await page.locator('#scannerBoard .sq[aria-label="f6 bN"]').click();
     await expect(page.locator('#previousMoveBtn')).toBeEnabled();
     await page.locator('#previousMoveBtn').click();
@@ -478,6 +580,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     await expect(page.locator('#nextMoveBtn')).toBeEnabled();
     await page.locator('#engineToggle').uncheck({ force: true });
     await expect(page.locator('#analysisPanel')).toBeHidden();
+    expect((await orientationSnapshot(page)).coordinateOrientation).toBe('black-bottom');
   });
 });
 
@@ -512,6 +615,14 @@ for (const profile of [
     expect(geometry.width).toBe(geometry.height);
     expect(geometry.width % 8).toBe(0);
     expect(geometry.overflow).toBeLessThanOrEqual(0);
+    if (profile.width <= 430 && profile.height > profile.width) {
+      const coordinateTarget = await page.locator('#flipCoordinatesBtn').evaluate((button) => {
+        const rect = button.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      });
+      expect(coordinateTarget.width).toBeGreaterThanOrEqual(44);
+      expect(coordinateTarget.height).toBeGreaterThanOrEqual(44);
+    }
     expect(await toolbarGeometry(page)).toEqual({ flexWrap: 'nowrap', rows: 1, clipped: false, overflow: 0 });
     await page.locator('#boardActionsBtn').click();
     const menuRect = await page.locator('#scannerAnalysisMenu').evaluate((menu) => {

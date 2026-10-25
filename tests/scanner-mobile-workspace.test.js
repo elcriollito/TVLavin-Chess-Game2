@@ -48,7 +48,7 @@ test('position toolbar and board navigation match the mobile contract', async ()
   const html = await read('scanner/index.html');
   assert.match(html, /class="position-toolbar"/);
   assert.match(html, /id="sideToMove"/);
-  for (const id of ['editBtn', 'workspaceSaveDiagramBtn', 'workspaceShareBtn', 'moreBtn', 'firstMoveBtn', 'previousMoveBtn', 'nextMoveBtn', 'lastMoveBtn', 'flipBtn', 'boardActionsBtn']) {
+  for (const id of ['editBtn', 'workspaceSaveDiagramBtn', 'workspaceShareBtn', 'moreBtn', 'firstMoveBtn', 'previousMoveBtn', 'nextMoveBtn', 'lastMoveBtn', 'flipBtn', 'flipCoordinatesBtn', 'boardActionsBtn']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(html, /class="position-actions"[\s\S]*id="editBtn"[\s\S]*id="workspaceSaveDiagramBtn"[\s\S]*id="workspaceShareBtn"[\s\S]*id="moreBtn"/);
@@ -85,7 +85,7 @@ test('top and lower hamburgers expose separate product and analysis menus', asyn
 
 test('Edit mode exposes tool-first palettes and compact position controls', async () => {
   const html = await read('scanner/index.html');
-  for (const id of ['editSheet', 'applyEditBtn', 'cancelEditBtn', 'editWhiteTurnBtn', 'editBlackTurnBtn', 'editCastlingBtn', 'clearBoardBtn', 'clearSquareBtn', 'editFlipBtn', 'editLibraryBtn', 'editExportBtn', 'editMenuBtn']) {
+  for (const id of ['editSheet', 'applyEditBtn', 'cancelEditBtn', 'editWhiteTurnBtn', 'editBlackTurnBtn', 'editCastlingBtn', 'clearBoardBtn', 'clearSquareBtn', 'editFlipBtn', 'editFlipCoordinatesBtn', 'editLibraryBtn', 'editExportBtn', 'editMenuBtn']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.equal((html.match(/data-piece="[kqrbnpKQRBNP]"/g) || []).length, 12);
@@ -112,6 +112,23 @@ test('Scanner keeps Stockfish 18, MultiPV 3, and attributed stale-result guards'
   assert.match(analysis, /startAnalysisAttributed/);
   assert.match(analysis, /generation !== activeGeneration/);
   assert.match(analysis, /stopAnalysis/);
+});
+
+test('board and coordinate orientation are independent presentation states', async () => {
+  const [app, fen, analysis] = await Promise.all([
+    read('scanner/scanner-app.js'),
+    read('scanner/scanner-fen.js'),
+    read('scanner/scanner-analysis.js')
+  ]);
+  assert.match(app, /let flipped = false;[\s\S]*let coordinateFlipped = false;[\s\S]*let coordinateOrientationUserOverride = false;/);
+  assert.match(app, /function flipCoordinates\(\)[\s\S]*coordinateFlipped = !coordinateFlipped;[\s\S]*coordinateOrientationUserOverride = true;/);
+  assert.match(app, /function flipBoard\(\)[\s\S]*if \(!coordinateOrientationUserOverride\) coordinateFlipped = flipped;/);
+  assert.match(app, /initializeOrientations\(recognized\.snapshot\.orientation\)/);
+  assert.match(app, /initializeOrientations\('white-at-bottom'\)/);
+  assert.match(fen, /function syncCoordinates\(square, displayRow, displayCol, coordinateFlipped = false\)/);
+  assert.match(fen, /const row = flipped \? 7 - displayRow : displayRow;/);
+  assert.match(fen, /syncCoordinates\(square, displayRow, displayCol, coordinateFlipped\)/);
+  assert.match(analysis, /fenTools\.render\(board, game\.fen\(\), flipped,[\s\S]*coordinateFlipped\)/);
 });
 
 test('new scan only advances generation after a valid image selection', async () => {

@@ -93,7 +93,7 @@ test('Review/Edit controls, palette placement, and current-position behavior rem
   const [html, app] = await Promise.all([read('scanner/index.html'), read('scanner/scanner-app.js')]);
   const required = [
     'applyEditBtn', 'cancelEditBtn', 'editWhiteTurnBtn', 'editBlackTurnBtn',
-    'editCastlingBtn', 'clearBoardBtn', 'clearSquareBtn', 'editFlipBtn',
+    'editCastlingBtn', 'clearBoardBtn', 'clearSquareBtn', 'editFlipBtn', 'editFlipCoordinatesBtn',
     'editLibraryBtn', 'editExportBtn', 'editMenuBtn', 'editToolStatus'
   ];
   required.forEach((id) => contract(hasId(html, id), `Certified Edit control ${id} is missing.`));

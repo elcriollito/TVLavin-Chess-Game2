@@ -43,6 +43,7 @@
     fen: $('fenInput'),
     validate: $('validateBtn'),
     flip: $('flipBtn'),
+    flipCoordinates: $('flipCoordinatesBtn'),
     validation: $('validationBox'),
     sidePiece: document.querySelector('#sideToMove .side-piece'),
     sideIcon: $('sideToMovePiece'),
@@ -70,6 +71,7 @@
     editCastlingPanel: $('editCastlingPanel'),
     castlingInputs: [...document.querySelectorAll('#editCastlingPanel [data-castling]')],
     editFlip: $('editFlipBtn'),
+    editFlipCoordinates: $('editFlipCoordinatesBtn'),
     editLibrary: $('editLibraryBtn'),
     editExport: $('editExportBtn'),
     editMenu: $('editMenuBtn'),
@@ -124,6 +126,8 @@
 
   let objectUrl = null;
   let flipped = false;
+  let coordinateFlipped = false;
+  let coordinateOrientationUserOverride = false;
   let selectedSquare = null;
   let toastTimer = null;
   let editWasConfirmed = false;
@@ -189,6 +193,36 @@
       els.engineToggle.checked = active;
     }
   }) || null;
+
+  function orientationValue(value) {
+    return value ? 'black-bottom' : 'white-bottom';
+  }
+
+  function syncOrientationPresentation() {
+    els.board.dataset.boardOrientation = orientationValue(flipped);
+    els.board.dataset.coordinateOrientation = orientationValue(coordinateFlipped);
+    els.board.dataset.coordinateOrientationUserOverride = String(coordinateOrientationUserOverride);
+    [els.flipCoordinates, els.editFlipCoordinates].forEach((button) => {
+      button.setAttribute('aria-pressed', String(coordinateFlipped));
+      button.title = 'Coordinates: ' + (coordinateFlipped ? 'black bottom' : 'white bottom');
+    });
+  }
+
+  function initializeOrientations(orientation = 'white-at-bottom') {
+    flipped = orientation === 'black-at-bottom';
+    coordinateFlipped = flipped;
+    coordinateOrientationUserOverride = false;
+    analysis?.setOrientations(flipped, coordinateFlipped);
+    syncOrientationPresentation();
+  }
+
+  window.CaissaScannerPresentationState = Object.freeze({
+    snapshot: () => Object.freeze({
+      boardOrientation: orientationValue(flipped),
+      coordinateOrientation: orientationValue(coordinateFlipped),
+      coordinateOrientationUserOverride
+    })
+  });
 
   function toast(text) {
     clearTimeout(toastTimer);
@@ -432,7 +466,7 @@
       const draft = fenTools.validateDraft(els.fen.value);
       if (draft.ok) {
         setBoardEmpty(false);
-        fenTools.renderDraft(els.board, draft.fen, flipped, chooseSquare, selectedSquare);
+        fenTools.renderDraft(els.board, draft.fen, flipped, chooseSquare, selectedSquare, null, coordinateFlipped);
         updateSideToMove(draft.fen);
         syncEditFields(draft.fen);
       }
@@ -443,7 +477,7 @@
     if (result.ok) {
       setBoardEmpty(false);
       const click = els.editSheet.hidden ? null : chooseSquare;
-      fenTools.render(els.board, result.fen, flipped, click, selectedSquare);
+      fenTools.render(els.board, result.fen, flipped, click, selectedSquare, null, coordinateFlipped);
       updateSideToMove(result.fen);
       if (updateMessage) setValidation('Position is valid.', 'ok');
     } else if (updateMessage) setValidation(result.error, 'error');
@@ -573,6 +607,7 @@
     }
     closeSheets(false);
     analysis?.clear();
+    initializeOrientations('white-at-bottom');
     els.engineToggle.checked = false;
     publicRecognitionController?.abort();
     publicRecognitionController = new AbortController();
@@ -637,6 +672,7 @@
         timingsMs: prepared.timing
       });
       if (!accepted) return;
+      initializeOrientations(recognized.snapshot.orientation);
       releaseSourcePreview();
       els.fen.value = recognized.snapshot.predictedFEN;
       els.candidateStatus.textContent = 'Ready to review';
@@ -684,7 +720,7 @@
     els.analysisPanel.hidden = true;
     els.engineToggle.checked = false;
     selectedSquare = null;
-    flipped = false;
+    initializeOrientations('white-at-bottom');
     editWasConfirmed = false;
     editResumeAnalysis = false;
     editOriginalFen = '';
@@ -729,9 +765,10 @@
     els.recognitionSummary.hidden = true;
     els.workspaceTitle.textContent = 'Position ready';
     els.candidateStatus.textContent = 'Confirmed';
+    analysis?.setOrientations(flipped, coordinateFlipped);
     analysis?.setPosition(result.fen);
     showWorkspace({ reason: 'position-confirmed' });
-    fenTools.render(els.board, result.fen, flipped, null, null);
+    fenTools.render(els.board, result.fen, flipped, null, null, null, coordinateFlipped);
     toast('Position confirmed.');
   }
 
@@ -747,7 +784,7 @@
         els.analyze.innerHTML = '<i class="fas fa-chart-line"></i><span>Analyze</span>';
         return false;
       }
-      analysis.setFlipped(flipped);
+      analysis.setOrientations(flipped, coordinateFlipped);
       els.workspaceTitle.textContent = 'Analyze position';
       els.candidateStatus.textContent = 'Stockfish 18';
       els.analyze.disabled = false;
@@ -859,11 +896,11 @@
       els.handoff.hidden = false;
       els.confirmBar.hidden = true;
       els.recognitionSummary.hidden = true;
-      analysis?.setFlipped(flipped);
+      analysis?.setOrientations(flipped, coordinateFlipped);
       analysis?.setPosition(result.fen);
       leaveEditMode();
       showWorkspace({ reason: recognitionReview ? 'recognition-approved' : 'manual-edit-applied' });
-      fenTools.render(els.board, result.fen, flipped, null, null);
+      fenTools.render(els.board, result.fen, flipped, null, null, null, coordinateFlipped);
       els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
       els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
       if (editResumeAnalysis) await startAnalysis(result.fen, true);
@@ -876,17 +913,19 @@
         return;
       }
       flipped = editOriginalFlipped;
+      if (!coordinateOrientationUserOverride) coordinateFlipped = flipped;
+      syncOrientationPresentation();
       if (editOriginalFen) {
         els.fen.value = editOriginalFen;
         els.confirmed.textContent = editOriginalFen;
         els.handoff.hidden = false;
         els.confirmBar.hidden = true;
         els.recognitionSummary.hidden = true;
-        analysis?.setFlipped(flipped);
+        analysis?.setOrientations(flipped, coordinateFlipped);
         analysis?.setPosition(editOriginalFen);
         leaveEditMode();
         showWorkspace({ reason: 'manual-edit-cancelled' });
-        fenTools.render(els.board, editOriginalFen, flipped, null, null);
+        fenTools.render(els.board, editOriginalFen, flipped, null, null, null, coordinateFlipped);
         els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
         els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
         if (editResumeAnalysis) await startAnalysis(editOriginalFen, true);
@@ -1006,8 +1045,19 @@
 
   function flipBoard() {
     flipped = !flipped;
+    if (!coordinateOrientationUserOverride) coordinateFlipped = flipped;
+    syncOrientationPresentation();
     if (isEditing()) validateCurrent(false);
-    else if (analysis?.currentFen()) analysis.setFlipped(flipped);
+    else if (analysis?.currentFen()) analysis.setOrientations(flipped, coordinateFlipped);
+    else validateCurrent(false);
+  }
+
+  function flipCoordinates() {
+    coordinateFlipped = !coordinateFlipped;
+    coordinateOrientationUserOverride = true;
+    syncOrientationPresentation();
+    if (isEditing()) validateCurrent(false);
+    else if (analysis?.currentFen()) analysis.setOrientations(flipped, coordinateFlipped);
     else validateCurrent(false);
   }
 
@@ -1144,11 +1194,13 @@
     if (state.snapshot().state === state.STATES.REVIEW) validateCurrent();
   });
   els.flip.addEventListener('click', flipBoard);
+  els.flipCoordinates.addEventListener('click', flipCoordinates);
   els.confirm.addEventListener('click', confirm);
   els.editBtn.addEventListener('click', () => openEdit(EDIT_ENTRY.MANUAL_EDIT));
   els.cancelEdit.addEventListener('click', () => closeEdit(false));
   els.applyEdit.addEventListener('click', () => closeEdit(true));
   els.editFlip.addEventListener('click', flipBoard);
+  els.editFlipCoordinates.addEventListener('click', flipCoordinates);
   els.editLibrary.addEventListener('click', showDiagramLibraryPlaceholder);
   els.editExport.addEventListener('click', () => openExport(els.editExport));
   els.editMenu.addEventListener('click', () => toggleMenu(els.productMenu, els.editMenu));

@@ -1,6 +1,25 @@
 import { test, expect } from '@playwright/test';
 import { scannerBoardImage, scannerPerspectiveBoardImage } from './fixtures/scanner-board-image.js';
 
+async function boardPresentation(page) {
+  return page.locator('#scannerBoard').evaluate((board) => ({
+    state: {
+      boardOrientation: board.dataset.boardOrientation,
+      coordinateOrientation: board.dataset.coordinateOrientation,
+      coordinateOrientationUserOverride: board.dataset.coordinateOrientationUserOverride
+    },
+    files: [...board.children].filter(square => square.dataset.file).map(square => square.dataset.file),
+    ranks: [...board.children].filter(square => square.dataset.rank).map(square => square.dataset.rank),
+    mapping: [...board.children].map(square => `${square.dataset.row},${square.dataset.col}`),
+    pieces: [...board.children].map((square, index) => ({ index, piece: square.querySelector('.piece-img')?.dataset.piece || '' }))
+  }));
+}
+
+function expectCoordinates(presentation, files, ranks) {
+  expect(presentation.files).toEqual(files.split(''));
+  expect(presentation.ranks).toEqual(ranks.split(''));
+}
+
 test.describe('CAISSA Scanner controlled public beta', () => {
   test('desktop is an intentional information and mobile handoff experience', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 900 });
@@ -60,6 +79,56 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#helpImproveBtn')).toBeVisible();
   });
 
+  test('board and coordinate orientations support all four independent presentation states', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/scanner');
+    await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
+    await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
+    await page.locator('#applyEditBtn').click();
+    const fen = await page.locator('#confirmedFen').textContent();
+
+    const whiteWhite = await boardPresentation(page);
+    expect(whiteWhite.state).toEqual({
+      boardOrientation: 'white-bottom', coordinateOrientation: 'white-bottom',
+      coordinateOrientationUserOverride: 'false'
+    });
+    expectCoordinates(whiteWhite, 'abcdefgh', '87654321');
+    await testInfo.attach('white-board-white-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
+
+    await page.locator('#flipCoordinatesBtn').click();
+    const whiteBlack = await boardPresentation(page);
+    expect(whiteBlack.state).toEqual({
+      boardOrientation: 'white-bottom', coordinateOrientation: 'black-bottom',
+      coordinateOrientationUserOverride: 'true'
+    });
+    expectCoordinates(whiteBlack, 'hgfedcba', '12345678');
+    expect(whiteBlack.mapping).toEqual(whiteWhite.mapping);
+    expect(whiteBlack.pieces).toEqual(whiteWhite.pieces);
+    await testInfo.attach('white-board-black-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
+
+    await page.locator('#flipBtn').click();
+    const blackBlack = await boardPresentation(page);
+    expect(blackBlack.state).toEqual({
+      boardOrientation: 'black-bottom', coordinateOrientation: 'black-bottom',
+      coordinateOrientationUserOverride: 'true'
+    });
+    expectCoordinates(blackBlack, 'hgfedcba', '12345678');
+    expect([...blackBlack.mapping].sort()).toEqual([...whiteWhite.mapping].sort());
+    await testInfo.attach('black-board-black-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
+
+    await page.locator('#flipCoordinatesBtn').click();
+    const blackWhite = await boardPresentation(page);
+    expect(blackWhite.state).toEqual({
+      boardOrientation: 'black-bottom', coordinateOrientation: 'white-bottom',
+      coordinateOrientationUserOverride: 'true'
+    });
+    expectCoordinates(blackWhite, 'abcdefgh', '87654321');
+    expect(blackWhite.mapping).toEqual(blackBlack.mapping);
+    expect(blackWhite.pieces).toEqual(blackBlack.pieces);
+    await expect(page.locator('#confirmedFen')).toHaveText(fen);
+    await testInfo.attach('black-board-white-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
+  });
+
   for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
     test(`mobile preview opens Capture/New Scan without a legacy demo at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
@@ -85,11 +154,17 @@ test.describe('CAISSA Scanner controlled public beta', () => {
   test('feedback is optional, separates both consents, and is raw-unverified', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const requests = [];
-    page.on('request', request => { if (request.url().includes('/api/scanner/public/')) requests.push({ url: request.url(), method: request.method() }); });
+    page.on('request', request => {
+      if (request.url().includes('/api/scanner/public/')) {
+        requests.push({ url: request.url(), method: request.method(), body: request.postDataJSON?.() || null });
+      }
+    });
     await page.goto('/scanner');
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     await page.locator('#applyEditBtn').click();
+    const confirmedFen = await page.locator('#confirmedFen').textContent();
+    await page.locator('#flipCoordinatesBtn').click();
     await page.locator('#helpImproveBtn').click();
     await expect(page.locator('#feedbackSheet')).toBeVisible();
     await expect(page.locator('#shareCorrectionConsent')).not.toBeChecked();
@@ -100,6 +175,10 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#appToast')).toContainText('raw-unverified');
     expect(requests.some(item => item.url.endsWith('/feedback') && item.method === 'POST')).toBe(true);
     expect(requests.some(item => item.url.endsWith('/image'))).toBe(false);
+    const submitted = requests.find(item => item.url.endsWith('/feedback')).body.feedback;
+    expect(submitted.feedbackType).toBe('CONFIRMED_CORRECT');
+    expect(submitted.correctedFEN).toBe(confirmedFen);
+    expect(submitted.changedSquareCount).toBe(0);
   });
 
   test('HEIC and HEIF fail explicitly without calling recognition', async ({ page }) => {
