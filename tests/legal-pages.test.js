@@ -47,3 +47,10 @@ test('Scanner disclosure preserves consent and human-certification truth', () =>
     assert.match(source, /human review/i);
   }
 });
+
+test('legal pages publish only the official privacy contact', () => {
+  for (const source of [read('privacy.html'), read('terms.html')]) {
+    assert.match(source, /mailto:privacy@caissa-chess\.org/);
+    assert.doesNotMatch(source, /@gmail\.com/i);
+  }
+});
