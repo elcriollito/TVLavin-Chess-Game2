@@ -57,6 +57,18 @@ test('invalid-token reasons remain 401 across SDK bundle boundaries', async () =
   assert.doesNotMatch(JSON.stringify(result), /sensitive|foreign/);
 });
 
+test('malformed compact JWT parse failures remain controlled 401', async () => {
+  const authenticate = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'test' },
+    verifyToken: async () => { throw new SyntaxError('sensitive JWT parse detail'); },
+    log() {}
+  });
+  const result = await authenticate(request('GET', 'Bearer malformed.jwt.value'));
+  assert.equal(result.status, 401);
+  assert.equal(result.code, 'INVALID_TOKEN');
+  assert.doesNotMatch(JSON.stringify(result), /sensitive|parse/);
+});
+
 test('a stale key rejection does not poison a later request after JWKS refresh', async () => {
   let attempts = 0;
   const stale = new Error('stale cached key detail');

@@ -68,7 +68,7 @@ export function createAuthenticateRequest(dependencies = {}) {
             email: payload.email || null
         };
     } catch (err) {
-        if (INVALID_TOKEN_REASONS.has(err?.reason)) {
+        if (err?.name === 'SyntaxError' || INVALID_TOKEN_REASONS.has(err?.reason)) {
             return failure(401, 'INVALID_TOKEN');
         }
         const diagnostic = [err?.name, err?.reason || err?.code].filter(Boolean).join(':') || 'unknown';
