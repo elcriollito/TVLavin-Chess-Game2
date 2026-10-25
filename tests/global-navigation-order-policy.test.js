@@ -13,9 +13,9 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.20.0 owns the primary, More, and social destinations', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.21.0 owns the primary, More, and social destinations', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.20.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.21.0');
   assert.deepEqual(
     Array.from(navigation.inventory.more, (item) => item.label),
     ['Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback']
@@ -27,7 +27,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.20.0 owns the primary, More, and socia
     'Play', 'CAISSA Online', 'CAISSA Classic', 'FICS', 'Playchess', 'Fritz',
     'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
-    'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
+    'Scanner', 'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
     'World Champions', 'History', 'DOS Chess', 'Vault'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.social, item => item.label), [
@@ -46,6 +46,15 @@ test('CaissaGlobalNavigationOrderPolicy@1.20.0 owns the primary, More, and socia
   assert.deepEqual(Array.from(navigation.inventory.groups[1], item => item.label), [
     'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase'
   ]);
+  assert.deepEqual(Array.from(navigation.inventory.groups[3], item => item.label), [
+    'Scanner', 'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
+    'World Champions', 'History', 'DOS Chess', 'Vault'
+  ]);
+  const scanner = navigation.inventory.primary.find(item => item.id === 'scanner');
+  assert.deepEqual(
+    { label: scanner.label, allToolsLabel: scanner.allToolsLabel, route: scanner.route, statusLabel: scanner.statusLabel },
+    { label: 'Scanner', allToolsLabel: 'CAISSA Scanner', route: '/scanner', statusLabel: 'Public Beta' }
+  );
   const social = load(navigation.renderSocialFooter());
   assert.equal(social('.nav-social-link').length, 3);
   assert.equal(social('.nav-label').length, 0);

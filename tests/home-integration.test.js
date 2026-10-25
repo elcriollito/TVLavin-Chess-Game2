@@ -71,6 +71,14 @@ test('Home owns canonical metadata and preserves the approved product boundaries
   assert.equal($('.online-callout').text().includes('CAISSA Online'), true);
   assert.equal($('.online-callout').text().includes('Play against other people'), true);
   assert.equal($('.online-callout a[href="/online"]').text().trim(), 'Play online');
+  assert.equal($('.sidebar a[href="/scanner"]').text().trim(), 'Scanner');
+  assert.equal($('.mobile-nav a[href="/scanner"]').text().trim(), 'Scanner');
+  assert.equal($('.scanner-home-card[href="/scanner"]').length, 1);
+  assert.equal($('.scanner-home-card .scanner-home-heading strong').text().trim(), 'CAISSA Scanner');
+  assert.equal($('.scanner-home-card .scanner-home-badge').text().trim(), 'Public Beta');
+  assert.equal($('.scanner-home-card .scanner-home-description').text().trim(), 'Scan a chess position from your phone.');
+  assert.equal($('.scanner-home-card .scanner-home-action').text().trim(), 'Open Scanner');
+  assert.equal($('script[src*="scanner"],link[href*="scanner"]').length, 0, 'Home must not preload Scanner assets');
   assert.equal($('[data-tool]').toArray().every(node => ($(node).attr('href') || '').startsWith('/')), true);
   assert.equal($('a[href^="https://www.caissa-chess.org"]').length, 0);
   assert.equal($('html').attr('data-caissa-clerk-ui'), '');
@@ -83,8 +91,13 @@ test('All tools is sourced from the existing primary navigation contract', () =>
   const owned = new Set(vercel.rewrites.map(rule => rule.source));
   const shellRoutes = new Set(['/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight', '/history', '/dos-chess', '/academy']);
 
-  assert.equal(internal.length, 28);
+  assert.equal(internal.length, 32);
   assert.equal(navigation.inventory.primary.filter(item => item.route === '/online').length, 1);
+  assert.equal(navigation.inventory.primary.filter(item => item.route === '/scanner').length, 1);
+  const scanner = navigation.inventory.primary.find(item => item.id === 'scanner');
+  assert.equal(scanner.allToolsLabel, 'CAISSA Scanner');
+  assert.equal(scanner.statusLabel, 'Public Beta');
+  assert.equal(scanner.description, 'Scan chess positions from screenshots, websites, broadcasts, and photos of 2D boards.');
   for (const item of internal) {
     assert.ok(owned.has(item.route) || shellRoutes.has(item.route) || item.route === '/play', `${item.label} has no route owner`);
   }

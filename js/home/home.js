@@ -8,6 +8,7 @@
     analyze: Object.freeze(['Analyze', '/analyze']),
     openings: Object.freeze(['Openings', '/opening-database']),
     endgames: Object.freeze(['Endgames', '/endgame-tablebase']),
+    scanner: Object.freeze(['CAISSA Scanner', '/scanner']),
     arena: Object.freeze(['Engine Arena', '/arena']),
     tv: Object.freeze(['Chess TV', '/spectator-tv'])
   });
@@ -346,19 +347,24 @@
       section.append(element('h3', '', navigation.groupLabels[index] || 'CAISSA tools'));
       const links = element('div', 'all-tools-links');
       group.forEach(item => {
+        const displayLabel = item.allToolsLabel || item.label;
         const link = appendLink(links, {
           href: item.route,
           className: 'all-tools-link',
-          text: item.label,
+          text: displayLabel,
           icon: item.icon,
-          label: item.label
+          label: displayLabel
         });
         link.dataset.toolId = item.id;
         if (item.description) {
           link.classList.add('all-tools-card');
           link.querySelector('span')?.classList.add('all-tools-card-title');
+          if (item.statusLabel) {
+            link.classList.add('has-status');
+            link.append(element('span', 'all-tools-card-status', item.statusLabel));
+          }
           link.append(element('small', 'all-tools-card-description', item.description));
-          link.setAttribute('aria-label', `${item.label}. ${item.description}`);
+          link.setAttribute('aria-label', [displayLabel, item.statusLabel, item.description].filter(Boolean).join('. '));
         }
         if (item.id === 'yahooClassic') link.classList.add('desktop-only');
       });
