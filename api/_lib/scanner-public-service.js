@@ -1,4 +1,4 @@
-import { authenticateBrowserRequest } from './auth.js';
+import { authenticateRequest } from './auth.js';
 import { createBetaProgramStore } from './beta-program-store.js';
 import { checkRateLimit } from './rate-limit.js';
 import { sha256, stableJson } from './scanner-beta-policy.js';
@@ -87,7 +87,7 @@ function evidenceFingerprint(record) {
 export function createScannerPublicService({
   store = null,
   userStore = null,
-  authenticate = authenticateBrowserRequest,
+  authenticate = authenticateRequest,
   rateLimit = checkRateLimit,
   env = process.env
 } = {}) {
@@ -97,7 +97,7 @@ export function createScannerPublicService({
   async function identity(req, required) {
     const auth = await authenticate(req);
     if (!auth.authenticated) {
-      const credentialPresented = Boolean(req.headers?.authorization || req.headers?.cookie?.includes('__session='));
+      const credentialPresented = Boolean(req.headers?.authorization || req.headers?.Authorization);
       if (credentialPresented) throw new Error('AUTH_REQUIRED');
       if (required) throw new Error(auth.code === 'INVALID_TOKEN' ? 'AUTH_REQUIRED' : (auth.code || 'AUTH_REQUIRED'));
       return null;

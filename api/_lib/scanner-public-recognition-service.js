@@ -1,4 +1,4 @@
-import { authenticateBrowserRequest } from './auth.js';
+import { authenticateRequest } from './auth.js';
 import { checkRateLimit } from './rate-limit.js';
 import { inferFrozenV05Onnx } from './scanner-beta-inference.js';
 import { SCANNER_BETA } from './scanner-beta-policy.js';
@@ -35,12 +35,12 @@ async function withTimeout(promise, milliseconds) {
 }
 
 function hasCredential(req) {
-  return Boolean(req.headers?.authorization || /(?:^|;\s*)__session=/.test(String(req.headers?.cookie || '')));
+  return Boolean(req.headers?.authorization || req.headers?.Authorization);
 }
 
 export function createScannerPublicRecognitionService({
   env = process.env,
-  authenticate = authenticateBrowserRequest,
+  authenticate = authenticateRequest,
   infer = inferFrozenV05Onnx,
   rateLimit = checkRateLimit,
   clock = () => performance.now(),

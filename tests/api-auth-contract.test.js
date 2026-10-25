@@ -32,8 +32,8 @@ test('missing and malformed authorization fail with stable 401 responses', async
   }
 });
 
-test('invalid and expired Clerk tokens are controlled 401 without leaking verifier errors', async () => {
-  for (const reason of ['token-invalid', 'token-expired', 'token-invalid-signature']) {
+test('invalid, expired, and stale-key Clerk tokens are controlled 401 without leaking verifier errors', async () => {
+  for (const reason of ['token-invalid', 'token-expired', 'token-invalid-signature', 'jwk-kid-mismatch']) {
     const authenticate = createAuthenticateRequest({
       env: { CLERK_SECRET_KEY: 'test' },
       verifyToken: async () => { throw new TokenVerificationError({ reason, message: 'sensitive verifier detail' }); }
@@ -43,6 +43,18 @@ test('invalid and expired Clerk tokens are controlled 401 without leaking verifi
     assert.equal(result.code, 'INVALID_TOKEN');
     assert.doesNotMatch(JSON.stringify(result), /sensitive|synthetic/);
   }
+});
+
+test('invalid-token reasons remain 401 across SDK bundle boundaries', async () => {
+  const error = new Error('sensitive foreign verifier detail');
+  error.reason = 'jwk-kid-mismatch';
+  const authenticate = createAuthenticateRequest({
+    env: { CLERK_SECRET_KEY: 'test' }, verifyToken: async () => { throw error; }, log() {}
+  });
+  const result = await authenticate(request('GET', 'Bearer synthetic.invalid.token'));
+  assert.equal(result.status, 401);
+  assert.equal(result.code, 'INVALID_TOKEN');
+  assert.doesNotMatch(JSON.stringify(result), /sensitive|foreign/);
 });
 
 test('configuration and unexpected verifier failures are controlled 503', async () => {
@@ -55,6 +67,20 @@ test('configuration and unexpected verifier failures are controlled 503', async 
   assert.equal(result.status, 503);
   assert.equal(result.code, 'AUTH_SERVICE_UNAVAILABLE');
   assert.doesNotMatch(JSON.stringify(result), /network detail/);
+});
+
+test('JWKS availability failures remain sanitized 503', async () => {
+  for (const reason of ['jwk-remote-failed-to-load', 'jwk-remote-invalid', 'jwk-failed-to-resolve']) {
+    const authenticate = createAuthenticateRequest({
+      env: { CLERK_SECRET_KEY: 'test' },
+      verifyToken: async () => { throw new TokenVerificationError({ reason, message: 'sensitive infrastructure detail' }); },
+      log() {}
+    });
+    const result = await authenticate(request('GET', 'Bearer synthetic.invalid.token'));
+    assert.equal(result.status, 503, reason);
+    assert.equal(result.code, 'AUTH_SERVICE_UNAVAILABLE');
+    assert.doesNotMatch(JSON.stringify(result), /sensitive|infrastructure/);
+  }
 });
 
 test('successful verification preserves the authenticated identity contract', async () => {
