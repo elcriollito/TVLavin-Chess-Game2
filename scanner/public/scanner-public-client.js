@@ -53,6 +53,14 @@ async function responseBody(response) {
   catch (_) { return {}; }
 }
 
+export async function scannerAuthorizationHeaders(auth = globalThis.CAISSA_AUTH) {
+  if (!auth?.isLoaded || !auth?.isSignedIn) return {};
+  if (typeof auth.getToken !== 'function') throw typedError('AUTH_REQUIRED');
+  const token = await auth.getToken();
+  if (typeof token !== 'string' || !token.trim()) throw typedError('AUTH_REQUIRED');
+  return { Authorization: `Bearer ${token.trim()}` };
+}
+
 function responseError(response, body) {
   const server = String(body?.error || '').toUpperCase();
   if (response.status === 401) return typedError('AUTH_REQUIRED');
@@ -66,12 +74,13 @@ function responseError(response, body) {
 }
 
 async function jsonRequest(endpoint, { method = 'POST', body, signal } = {}) {
+  const authorization = await scannerAuthorizationHeaders();
   let response;
   try {
     response = await fetch(endpoint, {
       method,
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json', ...authorization },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal
     });
@@ -182,10 +191,11 @@ export async function createPublicFailureContext(file, captureType, orientation 
 
 async function uploadConsentedImage(file, imageHash) {
   const selected = resolvePublicImage(file);
+  const authorization = await scannerAuthorizationHeaders();
   const response = await fetch('/api/scanner/public/image', {
     method: 'PUT',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': selected.sourceImageType, 'X-Caissa-Image-Sha256': imageHash },
+    credentials: 'omit',
+    headers: { 'Content-Type': selected.sourceImageType, 'X-Caissa-Image-Sha256': imageHash, ...authorization },
     body: selected.blob
   });
   const value = await responseBody(response);
@@ -318,7 +328,7 @@ export function publicErrorMessage(error) {
 
 export async function publicStatus() {
   try {
-    const response = await fetch('/api/scanner/public/status', { credentials: 'same-origin' });
+    const response = await fetch('/api/scanner/public/status', { credentials: 'omit' });
     return response.ok ? { known: true, ...(await response.json()) } : { known: false };
   } catch (_) { return { known: false }; }
 }
