@@ -45,4 +45,3 @@ test('targeted routes have no serious or critical Axe findings', async ({ page }
     expect(blocking, `${path}: ${blocking.map(item => item.id).join(', ')}`).toEqual([]);
   }
 });
-

@@ -63,4 +63,3 @@ test('Scanner names the visible brand, discloses input limits, and describes fee
   assert.match(source, /event\.key === 'Tab'/);
   assert.match(source, /activeSheet\.sheet\.contains\(event\.target\)/);
 });
-
