@@ -621,11 +621,48 @@ async function handleGameSearchLine(url, env, origin) {
   });
 }
 
-function getTier(url, request) {
-  const fromQuery = String(url.searchParams.get('tier') || '').toLowerCase();
-  const fromHeader = String(request.headers.get('x-caissa-tier') || '').toLowerCase();
-  if (fromQuery === 'premium' || fromHeader === 'premium') return 'premium';
-  return 'free';
+const FREE_DOWNLOAD_ACCESS = Object.freeze({ tier: 'free', gameLimit: 10, byteLimit: 15 * 1024 * 1024 });
+const DOWNLOAD_CAPABILITY_AUDIENCE = 'caissa-downloads';
+const DOWNLOAD_CAPABILITY_SCOPE = 'openingdb:games:download';
+
+function decodeBase64Url(value) {
+  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  const padding = normalized.length % 4 ? '='.repeat(4 - (normalized.length % 4)) : '';
+  const binary = atob(normalized + padding);
+  return Uint8Array.from(binary, char => char.charCodeAt(0));
+}
+
+export async function verifyDownloadCapability(token, secret, nowSeconds = Math.floor(Date.now() / 1000)) {
+  if (!secret || typeof crypto?.subtle?.verify !== 'function') return null;
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3 || parts[0] !== 'v1') return null;
+  try {
+    const payloadBytes = decodeBase64Url(parts[1]);
+    const signature = decodeBase64Url(parts[2]);
+    const key = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+    );
+    const valid = await crypto.subtle.verify(
+      'HMAC', key, signature, new TextEncoder().encode(`v1.${parts[1]}`)
+    );
+    if (!valid) return null;
+    const claims = JSON.parse(new TextDecoder().decode(payloadBytes));
+    if (claims?.aud !== DOWNLOAD_CAPABILITY_AUDIENCE || claims?.scope !== DOWNLOAD_CAPABILITY_SCOPE) return null;
+    if (!Number.isSafeInteger(claims.exp) || claims.exp <= nowSeconds || claims.exp > nowSeconds + 900) return null;
+    if (!Number.isSafeInteger(claims.maxGames) || claims.maxGames < 1 || claims.maxGames > 200) return null;
+    if (!Number.isSafeInteger(claims.maxBytes) || claims.maxBytes < 1 || claims.maxBytes > 80 * 1024 * 1024) return null;
+    return Object.freeze({ tier: 'premium', gameLimit: claims.maxGames, byteLimit: claims.maxBytes });
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function getDownloadAccess(request, env) {
+  const verified = await verifyDownloadCapability(
+    request.headers.get('x-caissa-download-capability'),
+    env.DOWNLOAD_CAPABILITY_SECRET
+  );
+  return verified || FREE_DOWNLOAD_ACCESS;
 }
 
 async function getOpeningDbGamesObject(env, key) {
@@ -948,9 +985,10 @@ async function handleOpeningDbGamesDownloadZip(request, path, url, env, origin) 
     });
   }
 
-  const tier = getTier(url, request);
-  const cap = tier === 'premium' ? 200 : 10;
-  const sizeCapBytes = tier === 'premium' ? 80 * 1024 * 1024 : 15 * 1024 * 1024;
+  const access = await getDownloadAccess(request, env);
+  const tier = access.tier;
+  const cap = access.gameLimit;
+  const sizeCapBytes = access.byteLimit;
   const asked = Number.parseInt(String(body.limit || cap), 10);
   const finalLimit = Number.isFinite(asked) && asked > 0 ? Math.min(asked, cap) : cap;
   const filters = parseDownloadFilters(body.filters);
@@ -1087,8 +1125,9 @@ async function handleOpeningDbGamesDownload(request, path, url, env, origin) {
     });
   }
 
-  const tier = getTier(url, request);
-  const maxByTier = tier === 'premium' ? 200 : 10;
+  const access = await getDownloadAccess(request, env);
+  const tier = access.tier;
+  const maxByTier = access.gameLimit;
   const asked = Number.parseInt(String(body.limit || maxByTier), 10);
   const limit = Number.isFinite(asked) && asked > 0 ? Math.min(asked, maxByTier) : maxByTier;
 

@@ -27,6 +27,14 @@ const RATE_LIMIT_WINDOW = 60000; // 1 minute in milliseconds
 // In-memory rate limiting (resets on Worker restart)
 const rateLimitMap = new Map();
 
+export function parseBoundedInteger(value, { defaultValue, minimum = 1, maximum }) {
+  const raw = value == null || value === '' ? String(defaultValue) : String(value);
+  if (!/^\d+$/.test(raw)) return null;
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) return null;
+  return parsed;
+}
+
 // ============================================================================
 // CORS HELPER
 // ============================================================================
@@ -160,7 +168,7 @@ const POLYGLOT_RANDOM64 = [
   0x947AE053EE56E63Cn, 0xC8C93882F9475F5Fn, 0x3A9BF55BA91F81CAn, 0xD9A11FBB3D9808E4n,
   0x0FD22063EDC29FCAn, 0xB3F256D8ACA0B0B9n, 0xB03031A8B4516E84n, 0x35DD37D5871448AFn,
   0xE9F6082B05542E4En, 0xEBFAFA33D7254B59n, 0x9255ABB50D532280n, 0xB9AB4CE57F2D34F3n,
-  0x693501D628297551n, 0xC62C58F97DD949BFn, 0xCD454F8F19C5126An, 0xBBE83F4ECC2BDECB n,
+  0x693501D628297551n, 0xC62C58F97DD949BFn, 0xCD454F8F19C5126An, 0xBBE83F4ECC2BDECBn,
   0xDC842B7E2819E230n, 0xBA89142E007503B8n, 0xA3BC941D0A5061CBn, 0xE9F6760E32CD8021n,
   0x09C7E552BC76492Fn, 0x852F54934DA55CC9n, 0x8107FCCF064FCF56n, 0x098954D51FFF6580n,
   0x23B70EDB1955C4BFn, 0xC330DE426430F69Dn, 0x4715ED43E8A45C0An, 0xA8D7E4DAB780A08Dn,
@@ -185,17 +193,17 @@ const POLYGLOT_RANDOM64 = [
   0xA9119B60369FFEBDn, 0x1FFF7AC80904BF45n, 0xAC12FB171817EEE7n, 0xAF08DA9177DDA93Dn,
   0x1B0CAB936E65C744n, 0xB559EB1D04E5E932n, 0xC37B45B3F8D6F2BAn, 0xC3A9DC228CAAC9E9n,
   0xF3B8B6675A6507FFn, 0x9FC477DE4ED681DAn, 0x67378D8ECCEF96CBn, 0x6DD856D94D259236n,
-  0xA319CE15B0B4DB31n, 0x073973751F12DD5En, 0x8A8E849063F91D4Fn, 0x2A5FA5C1C1F6DDCF n,
+  0xA319CE15B0B4DB31n, 0x073973751F12DD5En, 0x8A8E849063F91D4Fn, 0x2A5FA5C1C1F6DDCFn,
   0x0748B45FF67A7191n, 0xD3A94CF1C3C23A6An, 0x6C1F95DCB1C719DBn, 0xE929BE7E7C509024n,
-  0x5BCD3EDFBD70E9F9n, 0x4B7B6CB01D6CADB7n, 0x4CA82D04C5B12CEDN, 0xFD5E7B05FF823D18n,
+  0x5BCD3EDFBD70E9F9n, 0x4B7B6CB01D6CADB7n, 0x4CA82D04C5B12CEDn, 0xFD5E7B05FF823D18n,
   0xB31DAB86FF6E2D37n, 0xA76E6E1A6D4C039Dn, 0xE1B5EBE1D3715B2An, 0x5F8F5B90CD4A7E03n,
   0x90149AB87B7D5F43n, 0xD7E83FF93C23F9EEn, 0x2F76B83B5D33441Cn, 0x8C99C4940F63D5D4n,
   0x6A2D4C8FAF14C4E0n, 0x36E4A164A0A5F02An, 0x4A3AFBCBC6FC19D4n, 0x8F39A1F1B7A42F5Fn,
   0xC6A2DCF1A0E21E07n, 0x3F96AB04B7BF46ACn, 0xB3B1FA9F287FB878n, 0x47CF8C0FCB18D3C0n,
   0x1910D26D4677F6ECn, 0x8A3DBD6FD318D8D6n, 0x0C42B8B7ED80D6F0n, 0x5D8E0FA08D0CECCBn,
-  0xD8BA2A2C6E6C7C5An, 0x68A5B9D03653F171n, 0x31DCC03E69E8BDFD n, 0x9AF60E51F8E3BF8Fn,
+  0xD8BA2A2C6E6C7C5An, 0x68A5B9D03653F171n, 0x31DCC03E69E8BDFDn, 0x9AF60E51F8E3BF8Fn,
   0xC82EFF65F4F9F84Fn, 0xD909E19EC8ED0109n, 0x55BF18DE2E9BF3B4n, 0xDB2EDF916C59FCFAn,
-  0xE54CAA6B26FC40C6n, 0x25CB7AB5B2DBEBEF n, 0x4BF4F0E71FEB5EDFF, 0x57F0FDCAFFABBBEAn,
+  0xE54CAA6B26FC40C6n, 0x25CB7AB5B2DBEBEFn, 0x4BF4F0E71FEB5EDFFn, 0x57F0FDCAFFABBBEAn,
   0x07E33EBCB3D87DADn, 0x3A4DA1BC0A8B0D82n, 0xE1A82AABF52EB9BBn, 0x2BE35BFD0F4D3F56n,
   0x0CF7EB8D9C067EAEn, 0x72DF1A5D4087AC02n, 0x53FE9F37A7E81FE4n, 0xBEBE3AC4F82DA993n,
   0xA9E1486F9D45BB6An, 0xD1C15C72ADA93017n, 0x967DB4AE3D5E4FD2n, 0x63B8F9BB6FB37E70n,
@@ -545,10 +553,16 @@ function uciToSAN(uci, fen) {
 async function handleBookQuery(request, env) {
   const url = new URL(request.url);
   const fen = url.searchParams.get('fen');
-  const maxMoves = parseInt(url.searchParams.get('max') || '12');
+  const maxMoves = parseBoundedInteger(url.searchParams.get('max'), {
+    defaultValue: 12,
+    maximum: 50
+  });
 
   if (!fen) {
     return { error: 'Missing FEN parameter', usage: '/api/book?fen=<FEN>&max=12' };
+  }
+  if (maxMoves === null) {
+    return { error: 'Invalid max parameter', message: 'max must be an integer from 1 to 50', status: 400 };
   }
 
   try {
@@ -910,7 +924,10 @@ async function handleRequest(request, env) {
     // Parse query parameters
     const platform = url.searchParams.get('platform') || 'chesscom';
     const username = url.searchParams.get('username');
-    const maxGames = Math.min(parseInt(url.searchParams.get('max') || '20'), MAX_GAMES_LIMIT);
+    const maxGames = parseBoundedInteger(url.searchParams.get('max'), {
+      defaultValue: 20,
+      maximum: MAX_GAMES_LIMIT
+    });
     const timeControl = url.searchParams.get('tc') || 'all';
 
     // Validate parameters
@@ -918,6 +935,13 @@ async function handleRequest(request, env) {
       return corsResponse({
         error: 'Missing parameter',
         message: 'Username is required',
+      }, 400, origin);
+    }
+
+    if (maxGames === null) {
+      return corsResponse({
+        error: 'Invalid parameter',
+        message: `max must be an integer from 1 to ${MAX_GAMES_LIMIT}`,
       }, 400, origin);
     }
 
@@ -1044,7 +1068,8 @@ async function handleRequest(request, env) {
     }
 
     const bookResult = await handleBookQuery(request, env);
-    return corsResponse(bookResult, bookResult.error ? 500 : 200, origin);
+    const { status, ...payload } = bookResult;
+    return corsResponse(payload, status || (bookResult.error ? 500 : 200), origin);
   }
 
   // 404 for unknown routes

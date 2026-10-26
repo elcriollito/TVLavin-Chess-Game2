@@ -2,6 +2,14 @@ import { Chess } from 'chess.js';
 import { Polyglot } from 'chess-openings';
 
 const MAX_WEIGHT = 65535;
+export const BUILD_LIMITS = Object.freeze({
+    games: 10_000,
+    gameCharacters: 500_000,
+    totalMoves: 1_000_000,
+    aggregatedEntries: 500_000,
+    outputEntries: 500_000,
+    maxPly: 256
+});
 const PROMOTION_MAP = { n: 1, b: 2, r: 3, q: 4 };
 const ALLOWED_PGN_MIME = new Set([
     'application/x-chess-pgn',
@@ -55,7 +63,7 @@ export function normalizeBuildOptions(rawOptions = {}) {
     const sideInput = String(rawOptions.side || DEFAULT_OPTIONS.side).toLowerCase();
 
     return {
-        maxPly: Number.isFinite(maxPlyInput) ? Math.max(1, Math.min(1024, maxPlyInput)) : DEFAULT_OPTIONS.maxPly,
+        maxPly: Number.isFinite(maxPlyInput) ? Math.max(1, Math.min(BUILD_LIMITS.maxPly, maxPlyInput)) : DEFAULT_OPTIONS.maxPly,
         minCount: Number.isFinite(minCountInput) ? Math.max(1, Math.min(1000, minCountInput)) : DEFAULT_OPTIONS.minCount,
         normalize: normalizeInput === 'none' ? 'none' : 'cap',
         side: ['both', 'white', 'black'].includes(sideInput) ? sideInput : DEFAULT_OPTIONS.side
@@ -71,6 +79,7 @@ export function buildPolyglotBookFromPgn(pgnText, rawOptions = {}, timeoutMs = 9
     if (games.length === 0) {
         throw new Error('No PGN games were found in the uploaded file');
     }
+    if (games.length > BUILD_LIMITS.games) throw new Error(`PGN game limit exceeded (${BUILD_LIMITS.games})`);
 
     const aggregated = new Map();
     let parsedGames = 0;
@@ -79,12 +88,18 @@ export function buildPolyglotBookFromPgn(pgnText, rawOptions = {}, timeoutMs = 9
 
     for (const gameText of games) {
         enforceDeadline(deadline);
+        if (gameText.length > BUILD_LIMITS.gameCharacters) {
+            throw new Error(`PGN game size limit exceeded (${BUILD_LIMITS.gameCharacters} characters)`);
+        }
 
         const moves = parseGameMoves(gameText);
         if (!moves || moves.length === 0) continue;
 
         parsedGames += 1;
         totalMovesSeen += moves.length;
+        if (totalMovesSeen > BUILD_LIMITS.totalMoves) {
+            throw new Error(`PGN move limit exceeded (${BUILD_LIMITS.totalMoves})`);
+        }
 
         const replay = new Chess();
         const halfMoveLimit = Math.min(options.maxPly, moves.length);
@@ -104,6 +119,9 @@ export function buildPolyglotBookFromPgn(pgnText, rawOptions = {}, timeoutMs = 9
                 if (record) {
                     record.count += 1;
                 } else {
+                    if (aggregated.size >= BUILD_LIMITS.aggregatedEntries) {
+                        throw new Error(`Polyglot entry limit exceeded (${BUILD_LIMITS.aggregatedEntries})`);
+                    }
                     aggregated.set(mapKey, {
                         key,
                         move: encodedMove,
@@ -138,6 +156,9 @@ export function buildPolyglotBookFromPgn(pgnText, rawOptions = {}, timeoutMs = 9
 
     if (filtered.length === 0) {
         throw new Error('No opening moves matched the current filters');
+    }
+    if (filtered.length > BUILD_LIMITS.outputEntries) {
+        throw new Error(`Polyglot output entry limit exceeded (${BUILD_LIMITS.outputEntries})`);
     }
 
     filtered.sort((a, b) => {

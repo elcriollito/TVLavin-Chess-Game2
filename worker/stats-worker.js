@@ -12,7 +12,36 @@
  */
 
 const SHARD_CACHE_TTL_MS = 5 * 60 * 1000;
+const SHARD_CACHE_MAX_ENTRIES = 8;
+const SHARD_CACHE_MAX_BYTES = 32 * 1024 * 1024;
+const SHARD_MAX_BYTES = 8 * 1024 * 1024;
 const shardCache = new Map();
+
+function evictShardCache(now = Date.now()) {
+  for (const [key, value] of shardCache) {
+    if ((now - value.at) >= SHARD_CACHE_TTL_MS) shardCache.delete(key);
+  }
+  const totalBytes = () => Array.from(shardCache.values()).reduce((sum, item) => sum + item.bytes, 0);
+  while (shardCache.size > SHARD_CACHE_MAX_ENTRIES || totalBytes() > SHARD_CACHE_MAX_BYTES) {
+    const oldest = Array.from(shardCache.entries()).sort((a, b) => a[1].lastUsed - b[1].lastUsed)[0];
+    if (!oldest) break;
+    shardCache.delete(oldest[0]);
+  }
+}
+
+function cacheShard(shardId, data, bytes, now) {
+  shardCache.delete(shardId);
+  shardCache.set(shardId, { at: now, lastUsed: now, bytes, data });
+  evictShardCache(now);
+}
+
+export function clearShardCacheForTest() {
+  shardCache.clear();
+}
+
+export function shardCacheSnapshotForTest() {
+  return Array.from(shardCache.entries()).map(([id, value]) => ({ id, bytes: value.bytes }));
+}
 
 function corsHeaders(origin) {
   return {
@@ -41,21 +70,30 @@ function normalizeKey(input) {
 
 async function loadShard(env, shardId) {
   const now = Date.now();
+  evictShardCache(now);
   const cached = shardCache.get(shardId);
   if (cached && (now - cached.at) < SHARD_CACHE_TTL_MS) {
+    cached.lastUsed = now;
     return cached.data;
   }
 
   const key = `stats/shards/pos_stats_${shardId}.json`;
   const object = await env.POS_STATS_BUCKET.get(key);
   if (!object) {
-    shardCache.set(shardId, { at: now, data: { entries: {} } });
+    cacheShard(shardId, { entries: {} }, 2, now);
     return { entries: {} };
   }
 
-  const parsed = await object.json();
-  shardCache.set(shardId, { at: now, data: parsed || { entries: {} } });
-  return parsed || { entries: {} };
+  if (Number.isFinite(object.size) && object.size > SHARD_MAX_BYTES) throw new Error('SHARD_TOO_LARGE');
+  const bytes = new Uint8Array(await object.arrayBuffer());
+  if (bytes.byteLength > SHARD_MAX_BYTES) throw new Error('SHARD_TOO_LARGE');
+  const candidate = JSON.parse(new TextDecoder().decode(bytes));
+  const parsed = candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+    && candidate.entries && typeof candidate.entries === 'object' && !Array.isArray(candidate.entries)
+    ? candidate
+    : { entries: {} };
+  cacheShard(shardId, parsed, bytes.byteLength, now);
+  return parsed;
 }
 
 function etagForKey(key) {
@@ -102,7 +140,14 @@ export default {
     }
 
     const shardId = key.slice(0, 2);
-    const shard = await loadShard(env, shardId);
+    let shard;
+    try {
+      shard = await loadShard(env, shardId);
+    } catch (error) {
+      return json({ error: error?.message === 'SHARD_TOO_LARGE' ? 'Position shard exceeds service limit' : 'Position shard unavailable' }, 503, origin, {
+        'Cache-Control': 'no-store'
+      });
+    }
     const record = (shard?.entries && shard.entries[key]) || null;
 
     if (!record) {

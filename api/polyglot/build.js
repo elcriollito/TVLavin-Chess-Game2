@@ -9,6 +9,19 @@ import {
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const BUILD_TIMEOUT_MS = 90000;
+const MAX_CONCURRENT_BUILDS = 1;
+let activeBuilds = 0;
+
+function acquireBuildSlot() {
+    if (activeBuilds >= MAX_CONCURRENT_BUILDS) return null;
+    activeBuilds += 1;
+    let released = false;
+    return () => {
+        if (released) return;
+        released = true;
+        activeBuilds = Math.max(0, activeBuilds - 1);
+    };
+}
 
 export default async function handler(req, res) {
     if (!setCorsHeaders(req, res, ['POST'])) return;
@@ -26,6 +39,12 @@ export default async function handler(req, res) {
     if (!rate.allowed) {
         res.setHeader('Retry-After', String(rate.retryAfter || 60));
         return res.status(429).json({ error: 'Rate limit exceeded. Please try again shortly.' });
+    }
+
+    const releaseBuildSlot = acquireBuildSlot();
+    if (!releaseBuildSlot) {
+        res.setHeader('Retry-After', '2');
+        return res.status(503).json({ error: 'A book build is already in progress. Try again shortly.' });
     }
 
     try {
@@ -58,6 +77,7 @@ export default async function handler(req, res) {
         res.setHeader('X-CAISSA-ENTRIES', String(summary.entriesWritten));
         res.setHeader('X-CAISSA-GAMES', String(summary.gamesParsed));
         res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
 
         logAction('polyglot_build', {
             detail: {
@@ -78,7 +98,7 @@ export default async function handler(req, res) {
         if (lowerMessage.includes('timed out')) {
             return res.status(408).json({ error: 'Build timed out. Try a smaller PGN.' });
         }
-        if (lowerMessage.includes('too large')) {
+        if (lowerMessage.includes('too large') || lowerMessage.includes('limit exceeded')) {
             return res.status(413).json({ error: 'Request payload too large' });
         }
         if (lowerMessage.includes('json')) {
@@ -86,6 +106,8 @@ export default async function handler(req, res) {
         }
 
         return res.status(400).json({ error: message || 'Failed to build Polyglot book' });
+    } finally {
+        releaseBuildSlot();
     }
 }
 
