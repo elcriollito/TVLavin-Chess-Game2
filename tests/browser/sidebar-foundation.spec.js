@@ -86,7 +86,8 @@ test('desktop sidebar keeps HEAD and social FOOT fixed while only BODY scrolls',
   const more = nav.getByRole('button', { name: 'More', exact: true });
   await more.click();
   await expect(more).toHaveAttribute('aria-expanded', 'true');
-  await expect(nav.getByRole('link', { name: 'Support CAISSA' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Help' })).toBeVisible();
+  await expect(nav.locator('[data-nav-key="support"]')).toHaveCount(0);
   await more.click();
   await expect(more).toHaveAttribute('aria-expanded', 'false');
 

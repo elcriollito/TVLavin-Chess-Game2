@@ -368,7 +368,7 @@ test('tool routes remain reachable and their existing brand returns to Home', as
     '/insights', '/analyze', '/pgn-replayer', '/spectator-tv', '/watch/lichess-tv',
     '/watch/live-blitz', '/watch/live-tournaments', '/arena', '/cheater-insight',
     '/tools/polyglot', '/opening-database', '/eco', '/game-library/champions', '/game-library', '/history',
-    '/dos-chess', '/vault', '/scanner', '/about', '/help', '/support', '/blog'
+    '/dos-chess', '/vault', '/scanner', '/about', '/help', '/blog'
   ];
   for (const route of routes) {
     const response = await request.get(route, { maxRedirects: 0 });

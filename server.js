@@ -33,7 +33,9 @@ const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
 const RETIRED_PAGE_REDIRECTS = new Map([
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
-  ['/watch/lichess-broadcasts', '/watch/live-tournaments']
+  ['/watch/lichess-broadcasts', '/watch/live-tournaments'],
+  ['/support', '/help'],
+  ['/support.html', '/help']
 ]);
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'";
@@ -710,9 +712,6 @@ const server = http.createServer(async (req, res) => {
   }
   if (pathname === '/store' || pathname === '/store/') {
     filePath = './credit-store.html';
-  }
-  if (pathname === '/support' || pathname === '/support/') {
-    filePath = './support.html';
   }
   if (pathname === '/game-library/champions/replay' || pathname === '/game-library/champions/replay/') {
     filePath = './championship-replay.html';

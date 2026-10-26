@@ -8,7 +8,6 @@ const productionOrigin = 'https://clerk.caissa-chess.org';
 const clerkRoutes = [
   '/(.*)',
   '/pgn-replayer',
-  '/support',
   '/online/:path*',
   '/online',
   '/play',

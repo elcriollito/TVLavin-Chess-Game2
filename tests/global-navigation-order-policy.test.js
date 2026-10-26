@@ -13,12 +13,12 @@ function loadNavigation() {
   return window.CaissaPrimaryNavigation;
 }
 
-test('CaissaGlobalNavigationOrderPolicy@1.21.0 owns the primary, More, and social destinations', () => {
+test('CaissaGlobalNavigationOrderPolicy@1.22.0 owns the primary, More, and social destinations', () => {
   const navigation = loadNavigation();
-  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.21.0');
+  assert.equal(navigation.contractId, 'CaissaGlobalNavigationOrderPolicy@1.22.0');
   assert.deepEqual(
     Array.from(navigation.inventory.more, (item) => item.label),
-    ['Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback']
+    ['Blog', 'Help', 'About', 'Share an Idea / Contact & Feedback']
   );
   assert.deepEqual(Array.from(navigation.groupLabels), [
     'Play & Compete', 'Learn & Improve', 'Analyze & Watch', 'Tools'

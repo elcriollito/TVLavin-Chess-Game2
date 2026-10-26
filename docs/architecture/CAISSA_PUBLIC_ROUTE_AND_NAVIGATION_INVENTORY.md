@@ -16,13 +16,13 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 
 ## Calculated summary
 
-- Primary navigation entries: 40
-- Internal primary pages: 36
+- Primary navigation entries: 39
+- Internal primary pages: 35
 - Public canonical routes not in primary navigation: 16
 - External destinations: 4
-- Redirects: 15
+- Redirects: 18
 - Protected route families: 5
-- Total inventoried records: 76
+- Total inventoried records: 78
 
 ## Primary navigation
 
@@ -61,13 +61,12 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 31 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
 | 32 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
 | 33 | more | Blog | /blog | internal-page | CaissaPrimaryNavigation |
-| 34 | more | Support CAISSA | /support | internal-page | CaissaPrimaryNavigation |
-| 35 | more | Help | /help | internal-page | CaissaPrimaryNavigation |
-| 36 | more | About | /about | internal-page | CaissaPrimaryNavigation |
-| 37 | more | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
-| 38 | social-footer | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
-| 39 | social-footer | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
-| 40 | social-footer | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
+| 34 | more | Help | /help | internal-page | CaissaPrimaryNavigation |
+| 35 | more | About | /about | internal-page | CaissaPrimaryNavigation |
+| 36 | more | Share an Idea / Contact & Feedback | mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A | external-destination | CaissaPrimaryNavigation |
+| 37 | social-footer | Facebook | https://www.facebook.com/CaissaChessOrg/ | external-destination | CaissaPrimaryNavigation |
+| 38 | social-footer | CAISSA Chess YouTube | https://www.youtube.com/@CaissaChessOrg | external-destination | CaissaPrimaryNavigation |
+| 39 | social-footer | CAISSA Discord | https://discord.gg/TM7GJPUVfr | external-destination | CaissaPrimaryNavigation |
 
 ## Public canonical routes outside primary navigation
 
@@ -109,6 +108,9 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | /endgame-practice/ | /endgame-trainer | 308 | vercel.json and server.js |
 | /watch/lichess-broadcasts | /watch/live-tournaments | 308 | vercel.json and server.js |
 | /watch/lichess-broadcasts/ | /watch/live-tournaments | 308 | vercel.json and server.js |
+| /support | /help | 308 | vercel.json and middleware |
+| /support/ | /help | 308 | vercel.json and middleware |
+| /support.html | /help | 308 | vercel.json and middleware |
 
 ## Protected and fail-closed routes
 

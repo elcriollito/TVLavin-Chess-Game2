@@ -28,7 +28,7 @@ test('canonical primary navigation inventory is unique and stable', () => {
     ]
   );
   assert.equal(inventory.primary.length, 32);
-  assert.deepEqual(Array.from(inventory.more, ({ id }) => id), ['blog', 'support', 'help', 'about', 'feedback']);
+  assert.deepEqual(Array.from(inventory.more, ({ id }) => id), ['blog', 'help', 'about', 'feedback']);
   assert.deepEqual(Array.from(inventory.social, ({ id }) => id), ['facebook', 'youtube', 'discord']);
   for (const label of ['CAISSA Online', 'Puzzles', 'Chess Gym', 'Endgame Library', 'Endgame Tablebase', 'Analyze', 'Scanner', 'Help', 'About']) {
     assert.ok(labels.includes(label), `${label} is missing`);

@@ -19,18 +19,18 @@ function inventory() {
 }
 
 const expected = [
-    ['play', '/play'], ['yahooClassic', '/yahoo-classic'], ['fics', '/fics'],
+    ['play', '/play'], ['online', '/online'], ['yahooClassic', '/yahoo-classic'], ['fics', '/fics'],
     ['playchess', '/play-online/playchess'], ['fritz', '/play-online/fritz'],
-    ['puzzles', '/puzzles'],
+    ['puzzles', '/puzzles'], ['chess-gym', '/chess-gym'], ['opening-trainer', '/opening-trainer'],
     ['academy', '/academy'], ['mentor', '/mentor'], ['endgame-trainer', '/endgame-trainer'],
     ['endgame-library', '/endgame-library'], ['endgame-tablebase', '/endgame-tablebase'],
     ['insights', '/insights'], ['analyze', '/analyze'], ['pgn-replayer', '/pgn-replayer'],
     ['spectator', '/spectator-tv'], ['lichess-tv', '/watch/lichess-tv'],
     ['live-blitz', '/watch/live-blitz'], ['live-tournaments', '/watch/live-tournaments'],
-    ['arena', '/arena'], ['cheater-insight', '/cheater-insight'],
-    ['polyglot', '/tools/polyglot'], ['opening-database', '/opening-database'], ['eco', '/eco'],
+    ['arena', '/arena'], ['scanner', '/scanner'], ['cheater-insight', '/cheater-insight'],
+    ['polyglot', '/tools/polyglot'], ['gif-studio', '/gif-maker'], ['opening-database', '/opening-database'], ['eco', '/eco'],
     ['world-champions', '/game-library/champions'], ['history', '/history'], ['dosChess', '/dos-chess'],
-    ['vault', '/vault'], ['blog', '/blog'], ['support', '/support'], ['help', '/help'], ['about', '/about'],
+    ['vault', '/vault'], ['blog', '/blog'], ['help', '/help'], ['about', '/about'],
     ['feedback', 'mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%0A%5B%20%5D%20Feature%20Request%0A%0A%5B%20%5D%20Improvement%20Suggestion%0A%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A'],
     ['facebook', 'https://www.facebook.com/CaissaChessOrg/'],
     ['youtube', 'https://www.youtube.com/@CaissaChessOrg'],

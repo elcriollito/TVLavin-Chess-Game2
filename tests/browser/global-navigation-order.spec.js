@@ -16,10 +16,10 @@ const canonicalOrder = [
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
   'Scanner', 'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
   'World Champions', 'History', 'DOS Chess', 'Vault',
-  'Blog', 'Support CAISSA', 'Help', 'About', 'Share an Idea / Contact & Feedback'
+  'Blog', 'Help', 'About', 'Share an Idea / Contact & Feedback'
 ];
 
-const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.21.0';
+const navigationContract = 'CaissaGlobalNavigationOrderPolicy@1.22.0';
 
 async function assertOrderAndIdentity(page, activeLabel) {
   const nav = page.getByRole('navigation', { name: 'CAISSA main navigation' });

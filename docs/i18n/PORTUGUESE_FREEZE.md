@@ -76,6 +76,17 @@ key”). The Portuguese copy uses natural Brazilian-oriented international
 Portuguese, preserves CAISSA, PayPal, and Premium, and changes no previously
 approved Portuguese key or terminology decision.
 
+### PAYPAL-REMOVAL-001 — retired contribution surface
+
+The owner decision to discontinue voluntary PayPal contributions retires the
+14 `support.*` and `nav.item.support` keys that SUP-002 introduced. EN, ES, and
+PT therefore move from 624 to 610 active keys with exact parity. The historical
+SUP-002 record above is retained as evidence of what the product previously
+shipped; it does not describe an active route or current solicitation.
+
+This is an authorized product-removal change. No remaining Portuguese value or
+terminology decision was changed.
+
 ## Automated QA
 
 - Exact key and placeholder parity
