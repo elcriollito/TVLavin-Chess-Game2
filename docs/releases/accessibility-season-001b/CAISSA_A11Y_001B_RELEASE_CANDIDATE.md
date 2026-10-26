@@ -30,17 +30,18 @@ The original checkout remains on `feature/arena-redesign` at `61c2fab70c8eb7d4b4
 
 - Worktree: `C:\Users\ALEXANDER\Alexander Projects\TVLavin-Chess-Game2-a11y-001b-release`
 - Local branch: `release/accessibility-001b-certified-20261026`
-- Runtime checkpoint: `f8252d2bb43ffc0b95a2e6ba98561b4d6f6d95de`
-- Runtime tree: `04f4c0016305d60778b210eb3c869c1e59f4b32c`
+- Certified code checkpoint: `d8958b9b0fafd2c4e51ed45348643077c347b648`
+- Certified code tree: `33a9b2ed1c31c02dcf18fb0b07dcab74949284d0`
 - Runtime commits above production:
   - `e0d03d1924a144fb0737f34bbe9a791efb561bf5` — accessibility-only extraction of upstream implementation `5a7a680618d4a9df19b0245c595abfe6c6740b98`
   - `f8252d2bb43ffc0b95a2e6ba98561b4d6f6d95de` — WebKit bypass, Scanner modal focus containment, generated fallbacks, and release-only tests
+  - `d8958b9b0fafd2c4e51ed45348643077c347b648` — atomically synchronizes the generated Play fallback module with navigation fallback regeneration
 
 The final local documentation commit and branch tree are reported in the owner handoff because a commit cannot embed its own SHA.
 
 ## Scope result
 
-The runtime checkpoint changes 28 files. It changes no package manifest or lockfile, database or migration, Supabase artifact, Worker, authentication provider, Stripe or PayPal integration, `vercel.json`, `server.js`, sitemap, privacy backend, security override, AUTH-004 document, or provider configuration.
+The certified code checkpoint changes 29 files. It changes no package manifest or lockfile, database or migration, Supabase artifact, Worker, authentication provider, Stripe or PayPal integration, `vercel.json`, `server.js`, sitemap, privacy backend, security override, AUTH-004 document, or provider configuration.
 
 `PLAY_V2_UNAVAILABLE_DOCUMENT` remains exported and the Play unavailable gate remains fail-closed. `/support`, `/support/`, and `/support.html` remain 308 redirects to `/help`. No PayPal text, SDK, Hosted Button, CSP permission, or donation navigation was added.
 

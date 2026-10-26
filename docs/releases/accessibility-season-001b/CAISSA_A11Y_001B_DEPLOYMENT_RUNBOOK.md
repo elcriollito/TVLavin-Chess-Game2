@@ -5,8 +5,8 @@ This is a future procedure only. It is not authorization to push, merge, create 
 ## Immutable gates
 
 - Required production base: `26e9d25bf4ffbd13fb8b4d253e3bdb03169dcf7b`
-- Required runtime checkpoint: `f8252d2bb43ffc0b95a2e6ba98561b4d6f6d95de`
-- Required runtime tree: `04f4c0016305d60778b210eb3c869c1e59f4b32c`
+- Required certified code checkpoint: `d8958b9b0fafd2c4e51ed45348643077c347b648`
+- Required certified code tree: `33a9b2ed1c31c02dcf18fb0b07dcab74949284d0`
 - Required production-before-release deployment: `dpl_2uyihaZJjvg2wFS915qWDvhVY9Dm`
 - Required Human Test record: existing full pass plus the bounded retest in `CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md`
 - Required package head/tree: the exact values in the final owner handoff
