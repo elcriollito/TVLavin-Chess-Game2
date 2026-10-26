@@ -187,7 +187,7 @@
         const suggestionName = suggestion ? i18n.supportedLocales[suggestion].name : '';
         const suggestionLabel = i18n.t('language.suggestion', 'Use CAISSA in {language}', { language: suggestionName });
         const suggestionButton = suggestion ? `<button type="button" class="nav-language-suggestion" data-caissa-locale-suggestion="${escapeAttribute(suggestion)}" aria-label="${escapeAttribute(suggestionLabel)}"><span aria-hidden="true">🌐</span> ${suggestionName}</button>` : '';
-        return `<div class="nav-language-control" role="listitem">
+        return `<div class="nav-language-control">
             <label class="nav-language-field">
                 <span class="nav-language-label nav-label"><span class="nav-language-icon" aria-hidden="true">🌐</span><span data-caissa-i18n="language.title">${i18n.t('language.title', 'Language')}</span></span>
                 <select data-caissa-locale-select data-caissa-i18n-aria-label="language.selectorLabel" aria-label="${escapeAttribute(i18n.t('language.selectorLabel', 'Interface language'))}">${options}</select>
@@ -412,6 +412,14 @@ ${suggestionButton ? `            ${suggestionButton}\n` : ''}
         markAdoptedShell(host);
     });
     setupMoreControllers(document);
+    document.querySelectorAll('.caissa-global-skip-link[href^="#"]').forEach((link) => {
+        link.addEventListener('click', (event) => {
+            const target = document.querySelector(link.getAttribute('href'));
+            if (!target) return;
+            event.preventDefault();
+            target.focus();
+        });
+    });
     const shellTextBindings = [
         ['#sidebarSignIn .nav-label', 'shell.signIn'],
         ['#sidebarAccountBtn span', 'shell.account'],
@@ -424,7 +432,7 @@ ${suggestionButton ? `            ${suggestionButton}\n` : ''}
     });
     const shellAriaBindings = [
         ['#sidebarUserInfo', 'shell.accountMenu'],
-        ['.nav-premium-btn', 'shell.upgradePremium']
+        ['.nav-premium-btn', 'shell.premiumAccessible']
     ];
     shellAriaBindings.forEach(([selector, key]) => {
         document.querySelectorAll(selector).forEach(element => { element.dataset.caissaI18nAriaLabel = key; });

@@ -128,6 +128,7 @@
     <link rel="stylesheet" href="css/insights-account.css?v=2.0.0">
 </head>
 <body data-clarity-mask>
+    <a class="caissa-global-skip-link" href="#mainContent" data-caissa-i18n="accessibility.skipMain">Skip to main content</a>
     <!-- Main Container -->
     <div id="app" class="app-container caissa-application-sidebar-host">
 
@@ -235,7 +236,7 @@
                 <i class="fas fa-chevron-down nav-more-chevron" aria-hidden="true"></i>
             </button>
             <div class="nav-more-panel" id="caissa-nav-more-primary" role="list" hidden><div class="nav-list-item" role="listitem"><a href="/blog" class="nav-item" data-nav-key="blog" aria-label="Blog" data-caissa-i18n-aria-label="nav.item.blog"><i class="fas fa-rss" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.blog">Blog</span></a></div><div class="nav-list-item" role="listitem"><a href="/help" class="nav-item" data-nav-key="help" aria-label="Help" data-caissa-i18n-aria-label="nav.item.help"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.help">Help</span></a></div><div class="nav-list-item" role="listitem"><a href="/about" class="nav-item" data-nav-key="about" aria-label="About" data-caissa-i18n-aria-label="nav.item.about"><i class="fas fa-info-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.about">About</span></a></div><div class="nav-list-item" role="listitem"><a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&amp;body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A" class="nav-item" data-nav-key="feedback" aria-label="Share an Idea / Contact &amp; Feedback" data-caissa-i18n-aria-label="nav.item.feedback"><i class="fas fa-comment-dots" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.feedback">Share an Idea / Contact & Feedback</span></a></div></div>
-        </section><div class="nav-language-control" role="listitem">
+        </section><div class="nav-language-control">
             <label class="nav-language-field">
                 <span class="nav-language-label nav-label"><span class="nav-language-icon" aria-hidden="true">🌐</span><span data-caissa-i18n="language.title">Language</span></span>
                 <select data-caissa-locale-select data-caissa-i18n-aria-label="language.selectorLabel" aria-label="Interface language"><option value="en" selected>English</option></select>
@@ -250,7 +251,7 @@
         <div class="caissa-application-backdrop" aria-hidden="true"></div>
 
         <!-- Content Area (replaces main-content) -->
-        <main id="mainContent" class="content-area">
+        <main id="mainContent" class="content-area" tabindex="-1">
 
             <!-- SECTION: PLAY (wraps existing content) -->
             <section id="playSection" class="content-section">
@@ -3751,24 +3752,27 @@
                                         </button>
                                     </div>
                                     <strong id="spectatorGameStatus">No live game selected</strong>
+                                    <span id="spectatorTurnStatus" class="spectator-turn-status" role="status" aria-live="polite" aria-atomic="true">No side to move</span>
                                 </div>
 
                                 <div id="spectatorTopPlayer" class="spectator-player-bar black" role="group" aria-label="Top player">
-                                    <span class="spectator-turn-led" aria-label="Black waiting"></span>
+                                    <span class="spectator-turn-led" aria-hidden="true"></span>
+                                    <span class="spectator-turn-text">Waiting</span>
                                     <span class="spectator-color-dot" aria-hidden="true"></span>
                                     <span class="spectator-player-name">Black</span>
                                     <span class="spectator-player-rating">FICS</span>
-                                    <strong class="spectator-player-clock">--:--</strong>
+                                    <strong class="spectator-player-clock" aria-label="Black clock, unavailable">--:--</strong>
                                 </div>
                                 <div class="spectator-board-frame">
                                     <div id="spectatorBoard" class="spectator-board"></div>
                                 </div>
                                 <div id="spectatorBottomPlayer" class="spectator-player-bar white" role="group" aria-label="Bottom player">
-                                    <span class="spectator-turn-led" aria-label="White waiting"></span>
+                                    <span class="spectator-turn-led" aria-hidden="true"></span>
+                                    <span class="spectator-turn-text">Waiting</span>
                                     <span class="spectator-color-dot" aria-hidden="true"></span>
                                     <span class="spectator-player-name">White</span>
                                     <span class="spectator-player-rating">FICS</span>
-                                    <strong class="spectator-player-clock">--:--</strong>
+                                    <strong class="spectator-player-clock" aria-label="White clock, unavailable">--:--</strong>
                                 </div>
                             </div>
 
@@ -3862,7 +3866,7 @@
                                     </div>
                                     <div class="spectator-detail-section">
                                         <h4>Game details</h4>
-                                        <div id="spectatorLiveContext" class="spectator-live-context" aria-live="polite">
+                                        <div id="spectatorLiveContext" class="spectator-live-context">
                                             <div class="spectator-context-row spectator-context-row--opening">
                                                 <div class="spectator-context-cell" data-spectator-detail="opening"><span>Opening</span><strong title="—">—</strong></div>
                                                 <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>—</strong></div>

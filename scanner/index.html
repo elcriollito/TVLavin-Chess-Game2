@@ -18,7 +18,7 @@
 </head>
 <body>
   <header class="scanner-topbar app-topbar">
-    <button class="brand-lockup" id="homeBtn" type="button" aria-label="Scanner home">
+    <button class="brand-lockup" id="homeBtn" type="button">
       <i class="fas fa-crown" aria-hidden="true"></i>
       <span class="caissa-wordmark"><strong>CAISSA</strong><small>CHESS</small></span>
       <span class="brand-divider" aria-hidden="true"></span>
@@ -68,9 +68,10 @@
         <p>Capture a board, review the position, and explore it with Stockfish 18.</p>
       </div>
       <div class="home-actions" id="dropZone">
-        <button class="home-scan-launch" id="homeScanBtn" type="button" aria-label="Start a new scan"><i class="fas fa-camera"></i></button>
+        <button class="home-scan-launch" id="homeScanBtn" type="button" aria-label="Start a new scan" aria-describedby="scannerImageRequirements"><i class="fas fa-camera" aria-hidden="true"></i></button>
         <strong>New Scan</strong>
         <span>Take a photo or choose one from your library</span>
+        <span id="scannerImageRequirements">Use a JPEG, PNG, or WebP image no larger than 12 MB. HEIC and HEIF are not supported.</span>
       </div>
       <button class="report-scan-failure" id="reportScanFailureBtn" type="button" hidden>Help improve Scanner with this failed scan</button>
       <p class="public-service-status" id="publicServiceStatus" role="status" aria-live="polite"></p>
@@ -273,7 +274,7 @@
       <button class="scan-choice" id="choosePhotoBtn" type="button"><i class="fas fa-image"></i><span>Choose Photo</span></button>
     </section>
 
-    <section class="feedback-sheet" id="feedbackSheet" hidden aria-label="Help improve Scanner" role="dialog" aria-modal="true">
+    <section class="feedback-sheet" id="feedbackSheet" hidden aria-label="Help improve Scanner" aria-describedby="feedbackSheetDescription" role="dialog" aria-modal="true">
       <div class="sheet-head"><button id="cancelFeedbackBtn" type="button">Cancel</button><strong>Help improve Scanner</strong><span></span></div>
       <p id="feedbackSheetDescription">Your correction will enter a private, unverified review vault. It will not train the model automatically.</p>
       <label class="feedback-consent-row"><input id="shareCorrectionConsent" type="checkbox"> <span><strong>Share my correction</strong><small>Send the confirmed board and recognition details for owner review.</small></span></label>
@@ -289,8 +290,8 @@
     <div id="validationBox" role="status" aria-live="polite" hidden>Choose an image to begin.</div>
     <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
     <span id="sourceStatus" hidden>No image</span><span id="reviewStatus" hidden>Required</span><span id="statePill" hidden>Idle</span>
-    <input id="cameraInput" type="file" accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment" hidden>
-    <input id="galleryInput" type="file" accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif" hidden>
+    <input id="cameraInput" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" capture="environment" aria-describedby="scannerImageRequirements" hidden>
+    <input id="galleryInput" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" aria-describedby="scannerImageRequirements" hidden>
   </main>
 
   <script src="/assets/vendor/chess.js/chess-0.10.3.min.js"></script>

@@ -4,6 +4,27 @@
     min-height: 100vh;
 }
 
+.caissa-standalone-skip-link {
+    position: fixed;
+    top: -6rem;
+    left: 1rem;
+    z-index: 30000;
+    padding: 0.75rem 1rem;
+    border: 2px solid #111827;
+    border-radius: 0.375rem;
+    background: #fff;
+    color: #111827;
+    font: 700 1rem/1.25 system-ui, sans-serif;
+    text-decoration: none;
+}
+
+.caissa-standalone-skip-link:focus,
+.caissa-standalone-skip-link:focus-visible {
+    top: 1rem;
+    outline: 3px solid #f5c451;
+    outline-offset: 3px;
+}
+
 .caissa-standalone-sidebar-host {
     flex: 0 0 var(--standalone-nav-width, 240px);
     width: var(--standalone-nav-width, 240px);
@@ -21,8 +42,8 @@
     overflow: hidden;
 }
 
-.caissa-standalone-sidebar-host .nav-logo {
-    color: inherit;
+:is(.caissa-standalone-sidebar-host, .caissa-application-sidebar-host, .caissa-trainer-sidebar-host) .nav-logo {
+    color: #f3f5f8;
     text-decoration: none;
 }
 

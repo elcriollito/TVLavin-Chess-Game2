@@ -20,6 +20,7 @@
         catalogLoadCompleted: false,
         unsubscribeFics: null,
         contextSnapshot: '',
+        lastAnnouncedTurn: '',
         selectedGame: null,
         selectionGeneration: 0,
         ecoCatalog: [],
@@ -70,6 +71,7 @@
                 topPlayer: document.getElementById('spectatorTopPlayer'),
                 bottomPlayer: document.getElementById('spectatorBottomPlayer'),
                 gameStatus: document.getElementById('spectatorGameStatus'),
+                turnStatus: document.getElementById('spectatorTurnStatus'),
                 moveList: document.getElementById('spectatorMoveList'),
                 liveContext: document.getElementById('spectatorLiveContext'),
                 channelList: document.getElementById('spectatorChannelList'),
@@ -791,6 +793,15 @@
             const table = selected?.gameId
                 ? window.CaissaFICSClient?.getActiveTableForGame?.(selected.gameId)
                 : null;
+            const announcedTurn = current?.sideToMove === 'b'
+                ? 'Black to move'
+                : current?.sideToMove === 'w'
+                    ? 'White to move'
+                    : 'No side to move';
+            if (this.elements.turnStatus && this.lastAnnouncedTurn !== announcedTurn) {
+                this.elements.turnStatus.textContent = announcedTurn;
+                this.lastAnnouncedTurn = announcedTurn;
+            }
             this.renderPlayerBar(this.elements.topPlayer, {
                 color: 'black',
                 name: current?.blackName || selected?.blackPlayer || 'Black',
@@ -816,13 +827,17 @@
                 ? '<span class="fics-computer-marker" title="Computer / engine account" aria-label="Computer / engine account">(C)</span>'
                 : '';
             const titleName = ficsClient?.formatComputerPlayerName?.(player.name) || player.name;
+            const turnText = player.active ? 'To move' : 'Waiting';
+            const clockLabel = player.clock === '--:--' ? 'unavailable' : player.clock;
             element.className = `spectator-player-bar ${player.color}${player.active ? ' turn-active' : ''}`;
+            element.setAttribute('aria-label', `${player.color} player ${displayName}, rating ${player.rating || 'unavailable'}, clock ${clockLabel}, ${turnText.toLowerCase()}`);
             element.innerHTML = `
-                <span class="spectator-turn-led${player.active ? ' active' : ''}" aria-label="${player.active ? `${player.color} to move` : `${player.color} waiting`}"></span>
+                <span class="spectator-turn-led${player.active ? ' active' : ''}" aria-hidden="true"></span>
+                <span class="spectator-turn-text">${turnText}</span>
                 <span class="spectator-color-dot" aria-hidden="true"></span>
                 <span class="spectator-player-name" title="${this.escapeHtml(titleName)}">${this.escapeHtml(displayName)}${computerMarker}</span>
                 <span class="spectator-player-rating">${this.escapeHtml(player.rating || '')}</span>
-                <strong class="spectator-player-clock">${this.escapeHtml(player.clock)}</strong>
+                <strong class="spectator-player-clock" aria-label="${this.escapeHtml(`${player.color} clock, ${clockLabel}`)}">${this.escapeHtml(player.clock)}</strong>
             `;
         },
 

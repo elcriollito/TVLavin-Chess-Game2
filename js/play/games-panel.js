@@ -119,7 +119,7 @@
             const disclosure = node('details', 'caissa-games-panel__disclosure', { 'data-games-setup-disclosure': '' });
             disclosure.open = true;
             const disclosureSummary = node('summary', 'caissa-games-panel__disclosure-summary', {
-                'data-games-setup-summary': '', 'aria-label': 'Game setup selection'
+                'data-games-setup-summary': ''
             });
             const summaryValue = node('span', 'caissa-games-panel__summary-value', { 'data-games-summary-value': '' });
             const summaryHint = node('span', 'caissa-games-panel__summary-hint');
@@ -627,8 +627,6 @@
             const disclosure = this.#root.querySelector('[data-games-setup-disclosure]');
             if (disclosure) {
                 disclosure.setAttribute('data-expanded', String(disclosure.open));
-                disclosure.querySelector('[data-games-setup-summary]')?.setAttribute('aria-label',
-                    `Game setup: ${summaryText}. ${disclosure.open ? 'Collapse' : 'Expand'} options.`);
             }
             const action = this.#root.querySelector('[data-games-primary]');
             const readiness = this.#readiness?.getSnapshot?.();

@@ -2,11 +2,30 @@
     'use strict';
     const ownsAuthRuntime = document.currentScript?.dataset.caissaAuthRuntime === 'external';
 
+    function ensureMainBypass(i18n) {
+        if (document.querySelector('.skip-link, .caissa-global-skip-link, .caissa-standalone-skip-link')) return;
+        const main = document.querySelector('main');
+        if (!main) return;
+        if (!main.id) main.id = 'caissaStandaloneMain';
+        if (!main.hasAttribute('tabindex')) main.tabIndex = -1;
+        const link = document.createElement('a');
+        link.className = 'caissa-standalone-skip-link';
+        link.href = `#${main.id}`;
+        link.dataset.caissaI18n = 'accessibility.skipMain';
+        link.textContent = i18n.t('accessibility.skipMain', 'Skip to main content');
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            main.focus();
+        });
+        document.body.prepend(link);
+    }
+
     function renderSidebar(host) {
         const navigation = window.CaissaPrimaryNavigation;
         if (!navigation) throw new Error('CAISSA primary navigation inventory is unavailable.');
         const adapter = navigation.adapters.modernStandalone;
         const i18n = navigation.i18n;
+        ensureMainBypass(i18n);
         const activeKey = host.dataset.active || '';
         const renderOptions = { activeKey };
         const items = adapter.renderBody(renderOptions);
@@ -46,7 +65,7 @@
                     </div>
                 </div>
                 <div class="nav-premium-cta">
-                    <a href="/premium" class="nav-premium-btn" data-caissa-i18n-aria-label="shell.upgradePremium" aria-label="${i18n.t('shell.upgradePremium', 'Upgrade to Premium')}">
+                    <a href="/premium" class="nav-premium-btn" data-caissa-i18n-aria-label="shell.premiumAccessible" aria-label="${i18n.t('shell.premiumAccessible', 'Premium Upgrade: Upgrade to Premium')}">
                         <i class="fas fa-crown" aria-hidden="true"></i>
                         <span class="nav-label" data-caissa-i18n="shell.premium">${i18n.t('shell.premium', 'Premium')}</span>
                         <span class="nav-premium-badge" data-caissa-i18n="shell.upgrade">${i18n.t('shell.upgrade', 'Upgrade')}</span>

@@ -2408,10 +2408,12 @@
     if (els.tabMoves) {
       els.tabMoves.classList.toggle('active', !isGames);
       els.tabMoves.setAttribute('aria-selected', isGames ? 'false' : 'true');
+      els.tabMoves.tabIndex = isGames ? -1 : 0;
     }
     if (els.tabGames) {
       els.tabGames.classList.toggle('active', isGames);
       els.tabGames.setAttribute('aria-selected', isGames ? 'true' : 'false');
+      els.tabGames.tabIndex = isGames ? 0 : -1;
     }
     if (els.movesPanel) els.movesPanel.hidden = isGames;
     if (els.gamesPanel) els.gamesPanel.hidden = !isGames;
@@ -2578,6 +2580,7 @@
     }
     const loadingButtons = [els.searchGamesBtn, els.transitionSearchGamesBtn].filter(Boolean);
     loadingButtons.forEach((button) => window.CaissaUI?.setButtonLoading(button, true, { label: 'Searching...' }));
+    if (els.gamesPanel) els.gamesPanel.setAttribute('aria-busy', 'true');
     try {
       const manifest = await ensureGameSearchManifest();
       if (!manifest) {
@@ -2644,6 +2647,7 @@
       }
     } finally {
       loadingButtons.forEach((button) => window.CaissaUI?.setButtonLoading(button, false));
+      if (els.gamesPanel) els.gamesPanel.setAttribute('aria-busy', 'false');
     }
   }
 
@@ -3255,6 +3259,21 @@
   }
 
   function bindEvents() {
+    const explorerTabs = [els.tabMoves, els.tabGames].filter(Boolean);
+    explorerTabs.forEach((tab, index) => {
+      tab.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? explorerTabs.length - 1
+            : (index + (event.key === 'ArrowRight' ? 1 : explorerTabs.length - 1)) % explorerTabs.length;
+        const next = explorerTabs[nextIndex];
+        setActiveTab(next === els.tabGames ? 'games' : 'moves');
+        next.focus();
+      });
+    });
     if (els.tabMoves) {
       els.tabMoves.addEventListener('click', () => setActiveTab('moves'));
     }

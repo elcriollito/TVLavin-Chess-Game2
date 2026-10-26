@@ -534,7 +534,9 @@ function switchPrimaryTab(name) {
 function switchTrainingMode(name) {
   state.trainingMode = name;
   $('mode-train').setAttribute('aria-selected', String(name === 'train'));
+  $('mode-train').tabIndex = name === 'train' ? 0 : -1;
   $('mode-learn').setAttribute('aria-selected', String(name === 'learn'));
+  $('mode-learn').tabIndex = name === 'learn' ? 0 : -1;
   $('training-train').hidden = name !== 'train';
   $('training-learn').hidden = name !== 'learn';
 }
@@ -542,7 +544,9 @@ function switchTrainingMode(name) {
 function switchProgressMode(name) {
   state.progressMode = name;
   $('progress-caissa').setAttribute('aria-selected', String(name === 'caissa'));
+  $('progress-caissa').tabIndex = name === 'caissa' ? 0 : -1;
   $('progress-mentor').setAttribute('aria-selected', String(name === 'mentor'));
+  $('progress-mentor').tabIndex = name === 'mentor' ? 0 : -1;
   $('progress-caissa-panel').hidden = name !== 'caissa';
   $('progress-mentor-panel').hidden = name !== 'mentor';
 }
@@ -576,23 +580,36 @@ $('flip-board').addEventListener('click', () => {
   board.setOrientation(state.orientation);
 });
 
+function bindTabKeyboard(ids, activate) {
+  for (const id of ids) {
+    $(id).addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const current = ids.indexOf(id);
+      const nextIndex = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? ids.length - 1
+          : (current + (event.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length;
+      const nextId = ids[nextIndex];
+      activate(nextId);
+      $(nextId).focus();
+    });
+  }
+}
+
 for (const name of ['training', 'moves', 'progress']) {
   $('tab-' + name).addEventListener('click', () => switchPrimaryTab(name));
-  $('tab-' + name).addEventListener('keydown', event => {
-    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-    event.preventDefault();
-    const tabs = ['training', 'moves', 'progress'];
-    const delta = event.key === 'ArrowRight' ? 1 : tabs.length - 1;
-    const next = tabs[(tabs.indexOf(name) + delta) % tabs.length];
-    switchPrimaryTab(next);
-    $('tab-' + next).focus();
-  });
 }
+
+bindTabKeyboard(['tab-training', 'tab-moves', 'tab-progress'], id => switchPrimaryTab(id.replace('tab-', '')));
 
 $('mode-train').addEventListener('click', () => switchTrainingMode('train'));
 $('mode-learn').addEventListener('click', () => switchTrainingMode('learn'));
 $('progress-caissa').addEventListener('click', () => switchProgressMode('caissa'));
 $('progress-mentor').addEventListener('click', () => switchProgressMode('mentor'));
+bindTabKeyboard(['mode-train', 'mode-learn'], id => switchTrainingMode(id.replace('mode-', '')));
+bindTabKeyboard(['progress-caissa', 'progress-mentor'], id => switchProgressMode(id.replace('progress-', '')));
 
 $('start-daily').addEventListener('click', () => {
   state.dailyMode = true;

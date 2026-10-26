@@ -174,7 +174,7 @@
 
 .spectator-v2 .spectator-player-bar {
     box-sizing: border-box;
-    grid-template-columns: 10px 12px minmax(0, 1fr) auto auto;
+    grid-template-columns: 10px auto 12px minmax(0, 1fr) auto auto;
     min-width: 0;
     max-width: 100%;
     min-height: 42px;
@@ -182,6 +182,18 @@
     border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 8px;
     background: rgba(8, 12, 21, 0.72);
+}
+
+.spectator-v2 .spectator-turn-text,
+.spectator-v2 .spectator-turn-status {
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.spectator-v2 .spectator-player-bar.turn-active .spectator-turn-text {
+    color: #86efac;
 }
 
 .spectator-v2 .spectator-player-bar.turn-active {

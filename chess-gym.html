@@ -76,11 +76,11 @@
             <div class="chess-gym-panel-body">
               <section id="panel-training" role="tabpanel" aria-labelledby="tab-training">
                 <div class="chess-gym-subtabs" role="tablist" aria-label="Training mode">
-                  <button type="button" id="mode-train" aria-selected="true">Train</button>
-                  <button type="button" id="mode-learn" aria-selected="false">Learn</button>
+                  <button type="button" role="tab" id="mode-train" aria-controls="training-train" aria-selected="true" tabindex="0">Train</button>
+                  <button type="button" role="tab" id="mode-learn" aria-controls="training-learn" aria-selected="false" tabindex="-1">Learn</button>
                 </div>
 
-                <div id="training-train">
+                <div id="training-train" role="tabpanel" aria-labelledby="mode-train">
                   <article class="chess-gym-daily">
                     <div>
                       <span class="chess-gym-card-kicker">Today</span>
@@ -113,7 +113,7 @@
                   </article>
                 </div>
 
-                <div id="training-learn" hidden>
+                <div id="training-learn" role="tabpanel" aria-labelledby="mode-learn" hidden>
                   <div class="chess-gym-section-heading">
                     <div>
                       <span class="chess-gym-card-kicker">Learn</span>
@@ -162,11 +162,11 @@
                 </div>
 
                 <div class="chess-gym-subtabs chess-gym-progress-tabs" role="tablist" aria-label="Progress assistance">
-                  <button type="button" id="progress-caissa" aria-selected="true">CAISSA</button>
-                  <button type="button" id="progress-mentor" aria-selected="false">Mentor ✦</button>
+                  <button type="button" role="tab" id="progress-caissa" aria-controls="progress-caissa-panel" aria-selected="true" tabindex="0">CAISSA</button>
+                  <button type="button" role="tab" id="progress-mentor" aria-controls="progress-mentor-panel" aria-selected="false" tabindex="-1">Mentor ✦</button>
                 </div>
 
-                <div id="progress-caissa-panel">
+                <div id="progress-caissa-panel" role="tabpanel" aria-labelledby="progress-caissa">
                   <article class="chess-gym-guidance">
                     <span class="chess-gym-card-kicker">Free guidance</span>
                     <h2>CAISSA</h2>
@@ -178,7 +178,7 @@
                   </article>
                 </div>
 
-                <div id="progress-mentor-panel" hidden>
+                <div id="progress-mentor-panel" role="tabpanel" aria-labelledby="progress-mentor" hidden>
                   <article class="chess-gym-mentor-card">
                     <div class="chess-gym-mentor-icon"><i class="fas fa-chess-queen" aria-hidden="true"></i></div>
                     <span class="chess-gym-card-kicker">Premium adaptive coaching</span>

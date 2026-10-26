@@ -267,7 +267,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #9fb1c7;
+  color: #b7c6d8;
   font-weight: 750;
 }
 
@@ -410,7 +410,13 @@
 }
 
 .chess-gym-skill-button[data-ready="false"] {
-  opacity: .7;
+  border-color: #465b72;
+  color: #b7c6d8;
+  cursor: not-allowed;
+}
+
+.chess-gym-skill-button[data-ready="false"] small {
+  color: #b7c6d8;
 }
 
 .chess-gym-current {

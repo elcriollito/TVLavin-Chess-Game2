@@ -7,7 +7,7 @@
     <script src="js/play/mobile-initial-paint.js?v=1.0.0"></script>
     <meta name="caissa-production-release" content="caissa-production-2026-09-05">
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://clerk.caissa-chess.org; object-src 'none'; base-uri 'self'; ">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self';">
 
     <!-- Primary Meta Tags -->
     <title>Play Chess Online | CAISSA Chess</title>
@@ -67,7 +67,7 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="./assets/css/chessboard-1.0.0.min.css">
-    <link rel="stylesheet" href="css/caissa-legacy-quiet-drag.css?v=1.0.0">
+    <link rel="stylesheet" href="css/caissa-legacy-quiet-drag.css?v=1.1.0">
     <link rel="stylesheet" href="/css/caissa-board.css?v=1.0.0">
     <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=2.0.23">
@@ -87,6 +87,7 @@
     <link rel="stylesheet" href="css/opening-book.css?v=1.0.0">
     <link rel="stylesheet" href="css/caissa-mobile-foundation.css?v=1.0.6">
     <link rel="stylesheet" href="css/caissa-primary-navigation-transition.css?v=1.0.0">
+    <link rel="stylesheet" href="css/insights-account.css?v=2.0.0">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -107,6 +108,7 @@
     <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body data-caissa-play-v2-entry="official" data-clarity-mask>
+    <a class="caissa-global-skip-link" href="#mainContent" data-caissa-i18n="accessibility.skipMain">Skip to main content</a>
     <!-- Main Container -->
     <div id="app" class="app-container caissa-application-sidebar-host">
 
@@ -197,7 +199,7 @@
 
             <div class="nav-items" data-caissa-sidebar-body data-caissa-primary-groups data-caissa-sidebar-adapter="application" data-navigation-mode="routes"><div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/" class="nav-item" data-nav-key="home" aria-label="Home" data-caissa-i18n-aria-label="nav.item.home"><i class="fas fa-home" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.home">Home</span></a></div></div><section class="nav-group" aria-labelledby="caissa-nav-group-0">
                 <h2 class="nav-group-heading nav-label" id="caissa-nav-group-0" data-caissa-i18n="nav.group.playAndCompete">Play & Compete</h2>
-                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/play" class="nav-item active" data-nav-key="play" aria-label="Play" data-caissa-i18n-aria-label="nav.item.play" aria-current="page"><i class="fas fa-play-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.play">Play</span></a></div><div class="nav-list-item" role="listitem"><a href="/online" class="nav-item" data-nav-key="online" aria-label="CAISSA Online" data-caissa-i18n-aria-label="nav.item.online"><i class="fas fa-users" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.online">CAISSA Online</span></a></div><div class="nav-list-item" role="listitem"><a href="/yahoo-classic" class="nav-item" data-nav-key="yahooClassic" aria-label="CAISSA Classic" data-caissa-i18n-aria-label="nav.item.yahooClassic"><i class="fas fa-window-restore" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.yahooClassic">CAISSA Classic</span></a></div><div class="nav-list-item" role="listitem"><a href="/fics" class="nav-item" data-nav-key="fics" aria-label="FICS" data-caissa-i18n-aria-label="nav.item.fics"><i class="fas fa-globe" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fics">FICS</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/playchess" class="nav-item" data-nav-key="playchess" aria-label="Playchess" data-caissa-i18n-aria-label="nav.item.playchess"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.playchess">Playchess</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/fritz" class="nav-item" data-nav-key="fritz" aria-label="Fritz" data-caissa-i18n-aria-label="nav.item.fritz"><i class="fas fa-chess-knight" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fritz">Fritz</span></a></div></div>
+                <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/play" class="nav-item" data-nav-key="play" aria-label="Play" data-caissa-i18n-aria-label="nav.item.play"><i class="fas fa-play-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.play">Play</span></a></div><div class="nav-list-item" role="listitem"><a href="/online" class="nav-item" data-nav-key="online" aria-label="CAISSA Online" data-caissa-i18n-aria-label="nav.item.online"><i class="fas fa-users" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.online">CAISSA Online</span></a></div><div class="nav-list-item" role="listitem"><a href="/yahoo-classic" class="nav-item" data-nav-key="yahooClassic" aria-label="CAISSA Classic" data-caissa-i18n-aria-label="nav.item.yahooClassic"><i class="fas fa-window-restore" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.yahooClassic">CAISSA Classic</span></a></div><div class="nav-list-item" role="listitem"><a href="/fics" class="nav-item" data-nav-key="fics" aria-label="FICS" data-caissa-i18n-aria-label="nav.item.fics"><i class="fas fa-globe" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fics">FICS</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/playchess" class="nav-item" data-nav-key="playchess" aria-label="Playchess" data-caissa-i18n-aria-label="nav.item.playchess"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.playchess">Playchess</span></a></div><div class="nav-list-item" role="listitem"><a href="/play-online/fritz" class="nav-item" data-nav-key="fritz" aria-label="Fritz" data-caissa-i18n-aria-label="nav.item.fritz"><i class="fas fa-chess-knight" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.fritz">Fritz</span></a></div></div>
             </section><div class="nav-divider" aria-hidden="true"></div><section class="nav-group" aria-labelledby="caissa-nav-group-1">
                 <h2 class="nav-group-heading nav-label" id="caissa-nav-group-1" data-caissa-i18n="nav.group.learnAndImprove">Learn & Improve</h2>
                 <div class="nav-destination-list" role="list"><div class="nav-list-item" role="listitem"><a href="/puzzles" class="nav-item" data-nav-key="puzzles" aria-label="Puzzles" data-caissa-i18n-aria-label="nav.item.puzzles"><i class="fas fa-puzzle-piece" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.puzzles">Puzzles</span></a></div><div class="nav-list-item" role="listitem"><a href="/chess-gym" class="nav-item" data-nav-key="chess-gym" aria-label="Chess Gym" data-caissa-i18n-aria-label="nav.item.chess-gym"><i class="fas fa-dumbbell" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.chess-gym">Chess Gym</span></a></div><div class="nav-list-item" role="listitem"><a href="/opening-trainer" class="nav-item" data-nav-key="opening-trainer" aria-label="Opening Trainer" data-caissa-i18n-aria-label="nav.item.opening-trainer"><i class="fas fa-book-open-reader" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.opening-trainer">Opening Trainer</span></a></div><div class="nav-list-item" role="listitem"><a href="/academy" class="nav-item" data-nav-key="academy" aria-label="Academy" data-caissa-i18n-aria-label="nav.item.academy"><i class="fas fa-graduation-cap" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.academy">Academy</span></a></div><div class="nav-list-item" role="listitem"><a href="/mentor" class="nav-item" data-nav-key="mentor" aria-label="CAISSA Mentor" data-caissa-i18n-aria-label="nav.item.mentor"><i class="fas fa-chess-queen" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.mentor">CAISSA Mentor</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-trainer" class="nav-item" data-nav-key="endgame-trainer" aria-label="Endgame Trainer" data-caissa-i18n-aria-label="nav.item.endgame-trainer"><i class="fas fa-chess-pawn" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.endgame-trainer">Endgame Trainer</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-library" class="nav-item" data-nav-key="endgame-library" aria-label="Endgame Library" data-caissa-i18n-aria-label="nav.item.endgame-library"><i class="fas fa-book-reader" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.endgame-library">Endgame Library</span></a></div><div class="nav-list-item" role="listitem"><a href="/endgame-tablebase" class="nav-item" data-nav-key="endgame-tablebase" aria-label="Endgame Tablebase" data-caissa-i18n-aria-label="nav.item.endgame-tablebase"><i class="fas fa-chess-board" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.endgame-tablebase">Endgame Tablebase</span></a></div></div>
@@ -214,7 +216,7 @@
                 <i class="fas fa-chevron-down nav-more-chevron" aria-hidden="true"></i>
             </button>
             <div class="nav-more-panel" id="caissa-nav-more-primary" role="list" hidden><div class="nav-list-item" role="listitem"><a href="/blog" class="nav-item" data-nav-key="blog" aria-label="Blog" data-caissa-i18n-aria-label="nav.item.blog"><i class="fas fa-rss" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.blog">Blog</span></a></div><div class="nav-list-item" role="listitem"><a href="/help" class="nav-item" data-nav-key="help" aria-label="Help" data-caissa-i18n-aria-label="nav.item.help"><i class="fas fa-question-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.help">Help</span></a></div><div class="nav-list-item" role="listitem"><a href="/about" class="nav-item" data-nav-key="about" aria-label="About" data-caissa-i18n-aria-label="nav.item.about"><i class="fas fa-info-circle" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.about">About</span></a></div><div class="nav-list-item" role="listitem"><a href="mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&amp;body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%5B%20%5D%20Feature%20Request%0A%5B%20%5D%20Improvement%20Suggestion%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A" class="nav-item" data-nav-key="feedback" aria-label="Share an Idea / Contact &amp; Feedback" data-caissa-i18n-aria-label="nav.item.feedback"><i class="fas fa-comment-dots" aria-hidden="true"></i><span class="nav-label" data-caissa-i18n="nav.item.feedback">Share an Idea / Contact & Feedback</span></a></div></div>
-        </section><div class="nav-language-control" role="listitem">
+        </section><div class="nav-language-control">
             <label class="nav-language-field">
                 <span class="nav-language-label nav-label"><span class="nav-language-icon" aria-hidden="true">🌐</span><span data-caissa-i18n="language.title">Language</span></span>
                 <select data-caissa-locale-select data-caissa-i18n-aria-label="language.selectorLabel" aria-label="Interface language"><option value="en" selected>English</option></select>
@@ -229,7 +231,7 @@
         <div class="caissa-application-backdrop" aria-hidden="true"></div>
 
         <!-- Content Area (replaces main-content) -->
-        <main id="mainContent" class="content-area">
+        <main id="mainContent" class="content-area" tabindex="-1">
 
             <!-- SECTION: PLAY (wraps existing content) -->
             <section id="playSection" class="content-section">
@@ -1976,17 +1978,19 @@
                                 <div id="ycMoveList" class="yc-classic-move-list" aria-live="polite">
                                     <div class="yc-move-empty">Moves will appear when the table updates.</div>
                                 </div>
-                                <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
-                                    <span class="yc-turn-led" aria-hidden="true"></span>
-                                    <span class="yc-player-name">White</span>
-                                    <span class="yc-player-rating">FICS</span>
-                                    <span class="yc-player-state">Waiting</span>
-                                    <strong class="yc-player-clock">--:--</strong>
-                                </div>
-                                <div class="yc-panel yc-game-system-panel" aria-label="Classic table system messages">
-                                    <div class="yc-panel-title">Table Log</div>
-                                    <div id="ycGameSystemLog" class="yc-game-system-log" aria-live="polite">
-                                        <p>Open a table to receive system messages.</p>
+                                <div class="yc-move-panel-footer">
+                                    <div id="ycWhitePlayerBar" class="yc-game-player white" role="group" aria-label="White player">
+                                        <span class="yc-turn-led" aria-hidden="true"></span>
+                                        <span class="yc-player-name">White</span>
+                                        <span class="yc-player-rating">FICS</span>
+                                        <span class="yc-player-state">Waiting</span>
+                                        <strong class="yc-player-clock">--:--</strong>
+                                    </div>
+                                    <div class="yc-panel yc-game-system-panel" aria-label="Classic table system messages">
+                                        <div class="yc-panel-title">Table Log</div>
+                                        <div id="ycGameSystemLog" class="yc-game-system-log" aria-live="polite">
+                                            <p>Open a table to receive system messages.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </aside>
@@ -2049,24 +2053,27 @@
                                         </button>
                                     </div>
                                     <strong id="spectatorGameStatus">No live game selected</strong>
+                                    <span id="spectatorTurnStatus" class="spectator-turn-status" role="status" aria-live="polite" aria-atomic="true">No side to move</span>
                                 </div>
 
                                 <div id="spectatorTopPlayer" class="spectator-player-bar black" role="group" aria-label="Top player">
-                                    <span class="spectator-turn-led" aria-label="Black waiting"></span>
+                                    <span class="spectator-turn-led" aria-hidden="true"></span>
+                                    <span class="spectator-turn-text">Waiting</span>
                                     <span class="spectator-color-dot" aria-hidden="true"></span>
                                     <span class="spectator-player-name">Black</span>
                                     <span class="spectator-player-rating">FICS</span>
-                                    <strong class="spectator-player-clock">--:--</strong>
+                                    <strong class="spectator-player-clock" aria-label="Black clock, unavailable">--:--</strong>
                                 </div>
                                 <div class="spectator-board-frame">
                                     <div id="spectatorBoard" class="spectator-board"></div>
                                 </div>
                                 <div id="spectatorBottomPlayer" class="spectator-player-bar white" role="group" aria-label="Bottom player">
-                                    <span class="spectator-turn-led" aria-label="White waiting"></span>
+                                    <span class="spectator-turn-led" aria-hidden="true"></span>
+                                    <span class="spectator-turn-text">Waiting</span>
                                     <span class="spectator-color-dot" aria-hidden="true"></span>
                                     <span class="spectator-player-name">White</span>
                                     <span class="spectator-player-rating">FICS</span>
-                                    <strong class="spectator-player-clock">--:--</strong>
+                                    <strong class="spectator-player-clock" aria-label="White clock, unavailable">--:--</strong>
                                 </div>
                             </div>
 
@@ -2160,7 +2167,7 @@
                                     </div>
                                     <div class="spectator-detail-section">
                                         <h4>Game details</h4>
-                                        <div id="spectatorLiveContext" class="spectator-live-context" aria-live="polite">
+                                        <div id="spectatorLiveContext" class="spectator-live-context">
                                             <div class="spectator-context-row spectator-context-row--opening">
                                                 <div class="spectator-context-cell" data-spectator-detail="opening"><span>Opening</span><strong title="—">—</strong></div>
                                                 <div class="spectator-context-cell" data-spectator-detail="eco"><span>ECO</span><strong>—</strong></div>
@@ -2749,11 +2756,13 @@
                 <div class="insight-intro">
                     <p class="insight-description">
                         <i class="fas fa-magic"></i>
-                        Discover your playing profile by analyzing your games.
-                        Caissa will reveal your strengths, weaknesses, and paths for improvement.
+                        Review results for a selected player and inspect engine estimates with visible coverage.
+                        Save private Coach Reports to your account for later review.
                     </p>
                 </div>
 
+                <button id="insightRecoverLegacyBtn" class="btn btn-secondary" hidden>Recover old PGN from this browser</button>
+                <button id="insightHistoryOpenBtn" class="btn btn-secondary">Saved reports</button>
                 <!-- Import PGN Section -->
                 <div class="insight-section" id="insightImportSection">
                     <h3><i class="fas fa-file-import"></i> Import Games</h3>
@@ -2789,10 +2798,10 @@
                             <div class="form-group">
                                 <label for="importGameCount">Games to Import:</label>
                                 <select id="importGameCount" class="form-control" aria-label="Select number of games">
-                                    <option value="10">Last 10 games</option>
-                                    <option value="20" selected>Last 20 games</option>
-                                    <option value="30">Last 30 games</option>
-                                    <option value="50">Last 50 games</option>
+                                    <option value="10" selected>Up to 10 games</option>
+                                    <option value="20">Up to 20 games</option>
+                                    <option value="30">Up to 30 games</option>
+                                    <option value="50">Up to 50 games</option>
                                 </select>
                             </div>
 
@@ -2875,6 +2884,11 @@
                             <span id="insightFileName" class="file-name-display"></span>
                         </div>
 
+                        <div class="form-group">
+                            <label for="insightTargetPlayer">Player to analyze (exact PGN name):</label>
+                            <input id="insightTargetPlayer" class="form-control" type="text" maxlength="200" placeholder="Name in the White or Black header" />
+                            <p>Results follow this player's color. Importing public games does not verify ownership of an external account.</p>
+                        </div>
                         <div class="insight-actions">
                             <button id="insightAnalyzeBtn" class="btn btn-primary btn-block">
                                 <i class="fas fa-brain"></i> Analyze Profile
@@ -2892,10 +2906,7 @@
                         </div>
                     </div>
 
-                    <div class="insight-radar-container">
-                        <h3><i class="fas fa-radar"></i> Your Playing Profile</h3>
-                        <canvas id="insightRadarChart" width="400" height="400"></canvas>
-                    </div>
+                    <p id="insightSaveStatus" role="status" aria-live="polite"></p>
 
                     <div class="insight-narrative">
                         <h3><i class="fas fa-scroll"></i> Caissa's Analysis <span id="insightSourceBadge" class="source-badge"></span></h3>
@@ -2958,6 +2969,7 @@
                         </div>
                     </div>
 
+                    <p>The engine reviews the selected player’s moves. Progress shows games and positions as they finish. You can cancel at any time. Continuing a partial report reuses its completed positions and reviews the gaps. Large reports may take several minutes.</p>
                     <div class="insight-actions">
                         <button id="coachGenerateBtn" class="btn btn-primary btn-block">
                             <i class="fas fa-brain"></i> Generate Coach Report
@@ -2969,15 +2981,18 @@
                 <div class="insight-section" id="coachProgressSection" style="display: none;">
                     <h3><i class="fas fa-spinner fa-spin"></i> Analyzing Games...</h3>
                     <div class="coach-progress">
-                        <div class="progress-bar-container">
+                        <div class="progress-bar-container" role="progressbar" aria-label="Positions processed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="coachProgressMeter">
                             <div id="coachProgressBar" class="progress-bar"></div>
                         </div>
                         <p id="coachProgressText" class="progress-text">Preparing analysis...</p>
+                        <button id="coachCancelBtn" class="btn btn-secondary">Cancel analysis</button>
                     </div>
                 </div>
 
                 <!-- Report Section -->
                 <div class="insight-section" id="coachReportSection" style="display: none;">
+                    <p id="coachSaveStatus" role="status" aria-live="polite"></p>
+                    <button id="coachRetrySaveBtn" class="btn btn-secondary" hidden>Retry saving</button>
                     <!-- Summary Header -->
                     <div class="coach-summary">
                         <h3><i class="fas fa-chart-line"></i> Analysis Summary</h3>
@@ -2988,7 +3003,7 @@
 
                     <!-- What's Working -->
                     <div class="coach-section coach-working">
-                        <h3><i class="fas fa-check-circle"></i> What's Working</h3>
+                        <h3><i class="fas fa-check-circle"></i> Game Results</h3>
                         <div id="coachWorkingContent" class="narrative-content">
                             <!-- Will be populated by JS -->
                         </div>
@@ -2996,7 +3011,7 @@
 
                     <!-- What's Not Working -->
                     <div class="coach-section coach-not-working">
-                        <h3><i class="fas fa-exclamation-triangle"></i> What's Not Working</h3>
+                        <h3><i class="fas fa-exclamation-triangle"></i> Analysis Coverage</h3>
                         <div id="coachNotWorkingContent" class="narrative-content">
                             <!-- Will be populated by JS -->
                         </div>
@@ -3004,7 +3019,7 @@
 
                     <!-- Recurring Patterns -->
                     <div class="coach-section coach-patterns">
-                        <h3><i class="fas fa-th-list"></i> Recurring Error Patterns</h3>
+                        <h3><i class="fas fa-th-list"></i> Candidate Moments</h3>
                         <div id="coachPatternsContent" class="coach-patterns-grid">
                             <!-- Will be populated by JS -->
                         </div>
@@ -3020,7 +3035,7 @@
 
                     <!-- 7-Day Training Plan -->
                     <div class="coach-section coach-plan">
-                        <h3><i class="fas fa-calendar-alt"></i> Your 7-Day Training Plan</h3>
+                        <h3><i class="fas fa-calendar-alt"></i> Next Review Steps</h3>
                         <div id="coachPlanContent" class="coach-training-plan">
                             <!-- Will be populated by JS -->
                         </div>
@@ -3063,7 +3078,7 @@
                         <div class="option-content">
                             <h3>Start Fresh (Keep History)</h3>
                             <p><strong>Clears:</strong> Current Insight results, Coach Report, aggregated stats</p>
-                            <p><strong>Preserves:</strong> Historical Insight sessions, imported games history</p>
+                            <p><strong>Preserves:</strong> Coach Reports saved to your account</p>
                         </div>
                     </button>
 
@@ -3072,9 +3087,8 @@
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="option-content">
-                            <h3>Start Fresh (Delete History)</h3>
-                            <p><strong>Clears:</strong> Current Insight + Coach Report, all stored sessions, all imported game datasets</p>
-                            <p><strong>Leaves:</strong> App settings, UI preferences, engine configuration untouched</p>
+                            <h3>Manage Saved Reports</h3>
+                            <p>Open your account history and delete individual reports explicitly.</p>
                         </div>
                     </button>
 
@@ -3424,18 +3438,23 @@
     <script src="js/arena-match-pgn.js?v=1.0.0"></script>
     <script src="js/pgn-replayer/pgn-handoff.js?v=1.0.0"></script>
     <script src="js/arena-tournament-scheduler.js?v=1.0.0"></script>
-    <script src="js/caissa-arena.js?v=1.11.0"></script>
+    <script src="js/caissa-arena.js?v=1.12.0"></script>
     <script type="module" src="js/arena-match-lab-ui.js?v=1.1.0"></script>
     <!-- Section Modules (Phase 2) -->
     <script src="js/arena-section.js?v=1.0.0"></script>
-    <script src="js/insights-section.js?v=1.0.0"></script>
+    <script src="js/insights-section.js?v=2.0.0"></script>
     <script src="js/history-section.js?v=1.0.0"></script>
     <script src="js/play/fair-play-policy.js?v=1.0.0"></script>
     <script src="js/play/engine-request-isolation.js?v=1.0.0"></script>
     <script src="js/play/clock-service.js?v=1.0.0"></script>
     <script type="module" src="js/play/play-board-projection.js?v=2.0.0"></script>
     <script src="js/play/evaluation-rail.js?v=1.0.0"></script>
-    <script src="app.js?v=2.0.30"></script>
+    <script src="js/insights/core.js?v=1.1.0"></script>
+    <script src="js/insights/engine-analysis.js?v=1.1.0"></script>
+    <script src="js/insights/account-client.js?v=1.0.0"></script>
+    <script src="js/insights/report-model.js?v=1.0.0"></script>
+    <script src="js/insights/report-view.js?v=1.0.0"></script>
+    <script src="app.js?v=2.0.32"></script>
     <script src="js/play/opponent-strength.js?v=1.0.0"></script>
     <script src="js/play/legacy-play-compatibility.js?v=1.4.0"></script>
     <script src="js/play/play-v2-identity-policy.js?v=1.0.0"></script>
@@ -3471,7 +3490,7 @@
     <script src="js/play/performance/play-performance-budget.js?v=1.0.0"></script>
     <script src="js/play/performance/play-performance-probe.js?v=1.0.0"></script>
     <script src="js/play/performance/play-lazy-load-contracts.js?v=1.0.0"></script>
-    <script src="js/play/performance/play-load-registry.js?v=1.1.37"></script>
+    <script src="js/play/performance/play-load-registry.js?v=1.1.38"></script>
     <script src="js/play/performance/play-prefetch-policy.js?v=1.0.0"></script>
     <script src="js/play/performance/play-lazy-loader.js?v=1.0.3"></script>
     <script src="js/play/analytics/play-mode-selection-analytics.js?v=1.0.0"></script>
