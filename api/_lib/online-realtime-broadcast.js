@@ -1,10 +1,12 @@
+import { getSupabaseServerKey, getSupabaseUrl } from './supabase.js';
+
 const BROADCAST_TIMEOUT_MS = 5_000;
 
 export async function sendOnlineGameBroadcast(options = {}) {
     const env = options.env || process.env;
-    const baseUrl = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!baseUrl || !serviceKey) return { delivered: false, reason: 'not-configured' };
+    const baseUrl = getSupabaseUrl(env);
+    const serverKey = getSupabaseServerKey(env);
+    if (!baseUrl || !serverKey) return { delivered: false, reason: 'not-configured' };
 
     const gameId = String(options.gameId || '');
     const version = Number(options.version);
@@ -20,8 +22,7 @@ export async function sendOnlineGameBroadcast(options = {}) {
             {
                 method: 'POST',
                 headers: {
-                    apikey: serviceKey,
-                    Authorization: `Bearer ${serviceKey}`,
+                    apikey: serverKey,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({

@@ -46,15 +46,31 @@ test('public config advertises guest play only when the Staging prerequisites ar
             ...env,
             CAISSA_ONLINE_GUESTS: '1',
             SUPABASE_URL: 'https://staging.example.supabase.co',
-            SUPABASE_PUBLISHABLE_KEY: 'publishable-browser-key'
+            SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_browser_key'
         }
     });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.capabilities.guestPlay, true);
     assert.deepEqual(res.body.realtime, {
         url: 'https://staging.example.supabase.co',
-        publishableKey: 'publishable-browser-key'
+        publishableKey: 'sb_publishable_test_browser_key'
     });
+});
+
+test('public config never exposes a secret mistakenly placed in the publishable slot', async () => {
+    const res = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, res, {
+        env: {
+            ...env,
+            CAISSA_ONLINE_GUESTS: '1',
+            SUPABASE_URL: 'https://staging.example.supabase.co',
+            SUPABASE_PUBLISHABLE_KEY: 'sb_secret_wrong_class'
+        }
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.capabilities.guestPlay, false);
+    assert.equal(res.body.realtime, null);
+    assert.equal(JSON.stringify(res.body).includes('sb_secret_'), false);
 });
 
 test('guest matchmaking provisions a temporary identity and is server-forced unrated', async () => {
