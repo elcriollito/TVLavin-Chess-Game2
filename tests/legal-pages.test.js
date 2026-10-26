@@ -55,13 +55,38 @@ test('legal pages publish only the official privacy contact', () => {
   }
 });
 
-test('privacy draft matches current analytics, Google identity, and payment activation state', () => {
+test('privacy draft matches current analytics, Google identity, and free-project status', () => {
   const source = read('privacy.html');
   assert.match(source, /Microsoft Clarity is not loaded by the current production pages/);
   assert.doesNotMatch(source, /enable optional Clarity analytics/);
   assert.match(source, /https:\/\/www\.googleapis\.com\/auth\/userinfo\.email/);
   assert.match(source, /https:\/\/www\.googleapis\.com\/auth\/userinfo\.profile/);
-  assert.match(source, /no production Stripe configuration or enabled credit-store flag/i);
+  assert.match(source, /free personal project/i);
+  assert.match(source, /does not currently charge for services/i);
+  assert.match(source, /No payment processor, paid subscription, renewal or refund program is active/i);
+  assert.doesNotMatch(source, /Stripe-backed checkout code exists/i);
+});
+
+test('legal drafts accurately describe the individual operator and noncommercial status', () => {
+  const privacy = read('privacy.html');
+  const terms = read('terms.html');
+  for (const source of [privacy, terms]) {
+    assert.match(source, /operated by one individual/i);
+    assert.match(source, /No company, limited liability company or corporation/i);
+    assert.match(source, /does not (?:currently )?(?:charge users|charge for services)/i);
+    assert.match(source, /commercial subscriptions/i);
+    assert.match(source, /commercial revenue/i);
+  }
+  assert.match(terms, /internal feature controls/i);
+  assert.match(terms, /Before any commercial feature is activated/i);
+});
+
+test('privacy draft states verified transfer facts without promising single-country storage', () => {
+  const source = read('privacy.html');
+  assert.match(source, /East US \(North Virginia\)/i);
+  assert.match(source, /Standard Contractual Clauses/i);
+  assert.match(source, /has not completed a jurisdiction-by-jurisdiction transfer assessment/i);
+  assert.doesNotMatch(source, /information (?:always|only) remains in the United States/i);
 });
 
 test('legal drafts state the approved 13-plus account policy without claiming enforcement exists', () => {
@@ -89,12 +114,24 @@ test('age-policy audit preserves a data-minimizing, fail-closed implementation b
   assert.match(source, /does not replace the neutral age screen/i);
 });
 
-test('legal decision register preserves every unresolved publication decision', () => {
+test('retention, transfer and Florida audit records only aggregate, verified evidence', () => {
+  const source = read('docs/AUTH-004B-RETENTION-TRANSFER-FLORIDA-AUDIT.md');
+  assert.match(source, /97 Scanner beta scan rows/i);
+  assert.match(source, /92 Scanner beta feedback rows/i);
+  assert.match(source, /96 objects/i);
+  assert.match(source, /no Storage lifecycle rule/i);
+  assert.match(source, /us-east-1/i);
+  assert.match(source, /zero Stripe event rows/i);
+  assert.match(source, /cannot conclude that the project is exempt/i);
+  assert.match(source, /No rows or objects were opened, changed or deleted/i);
+});
+
+test('legal decision register preserves every tracked material decision', () => {
   const source = read('docs/AUTH-004B-LEGAL-DECISION-REGISTER.md');
   for (const item of [
-    'Individual operator identification', 'Privacy contact and legal notices',
+    'Individual operator and Florida status', 'Privacy contact and legal notices',
     'Data retention and deletion', 'Minimum age and parental consent',
-    'International data transfers', 'Payment, subscription and refund terms',
+    'International data transfers', 'Current and future commercial status',
     'Suspension and appeal procedure', 'Liability provisions',
     'Governing law and disputes', 'Material policy updates'
   ]) assert.match(source, new RegExp(item));
