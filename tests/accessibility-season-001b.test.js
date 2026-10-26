@@ -12,6 +12,7 @@ test('shared navigation foundation is reconciled without restoring Support CAISS
   assert.doesNotMatch(navigation, /class="nav-language-control" role="listitem"/);
   assert.match(navigation, /shell\.premiumAccessible/);
   assert.match(sidebar, /ensureMainBypass/);
+  assert.match(sidebar, /link\.tabIndex = 0/);
   assert.match(index, /class="caissa-global-skip-link"[^>]+href="#mainContent"/);
   assert.doesNotMatch(index, /data-nav-key="support"/);
 });
@@ -53,10 +54,13 @@ test('Chess TV communicates turn state in text and uses one restrained live regi
 
 test('Scanner names the visible brand, discloses input limits, and describes feedback dialog', () => {
   const html = read('scanner/index.html');
+  const source = read('scanner/scanner-app.js');
   assert.match(html, /id="homeBtn" type="button">/);
   assert.doesNotMatch(html, /id="homeBtn"[^>]+aria-label=/);
   assert.match(html, /id="scannerImageRequirements"/);
   assert.match(html, /id="feedbackSheet"[^>]+aria-describedby="feedbackSheetDescription"/);
   assert.doesNotMatch(html, /accept="[^"]*heic/i);
+  assert.match(source, /event\.key === 'Tab'/);
+  assert.match(source, /activeSheet\.sheet\.contains\(event\.target\)/);
 });
 

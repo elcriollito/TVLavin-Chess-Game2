@@ -1259,10 +1259,33 @@
   }
 
   function handleMenuKeys(event) {
-    if (event.key === 'Escape' && activeSheet) {
-      event.preventDefault();
-      closeSheets(true);
-      return;
+    if (activeSheet) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSheets(true);
+        return;
+      }
+      if (event.key === 'Tab') {
+        const focusable = [...activeSheet.sheet.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )].filter((element) => !element.hidden && element.getClientRects().length > 0);
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (!first || !last) {
+          event.preventDefault();
+          return;
+        }
+        if (event.shiftKey && (event.target === first || !activeSheet.sheet.contains(event.target))) {
+          event.preventDefault();
+          last.focus({ preventScroll: true });
+          return;
+        }
+        if (!event.shiftKey && (event.target === last || !activeSheet.sheet.contains(event.target))) {
+          event.preventDefault();
+          first.focus({ preventScroll: true });
+          return;
+        }
+      }
     }
     if (!activeMenu) return;
     if (event.key === 'Escape') {

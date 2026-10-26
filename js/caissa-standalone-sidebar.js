@@ -11,6 +11,7 @@
         const link = document.createElement('a');
         link.className = 'caissa-standalone-skip-link';
         link.href = `#${main.id}`;
+        link.tabIndex = 0;
         link.dataset.caissaI18n = 'accessibility.skipMain';
         link.textContent = i18n.t('accessibility.skipMain', 'Skip to main content');
         link.addEventListener('click', (event) => {
