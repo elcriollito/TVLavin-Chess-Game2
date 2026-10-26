@@ -111,6 +111,7 @@
     cancelFeedback: $('cancelFeedbackBtn'),
     shareCorrection: $('shareCorrectionConsent'),
     shareImage: $('shareImageConsent'),
+    sourceImageRights: $('sourceImageRightsConsent'),
     submitFeedback: $('submitFeedbackBtn'),
     feedbackDescription: $('feedbackSheetDescription'),
     feedbackStatus: $('feedbackStatus'),
@@ -583,6 +584,8 @@
     pendingFeedbackType = type;
     els.shareCorrection.checked = false;
     els.shareImage.checked = false;
+    els.sourceImageRights.checked = false;
+    els.sourceImageRights.disabled = true;
     els.submitFeedback.disabled = true;
     els.feedbackStatus.textContent = '';
     els.feedbackDescription.textContent = type === 'LOCALIZATION_FAILURE'
@@ -605,7 +608,8 @@
           error: publicFailureError,
           file: selectedSourceFile,
           shareCorrectionForImprovement: true,
-          shareImageForImprovement: els.shareImage.checked
+          shareImageForImprovement: els.shareImage.checked,
+          sourceImageRightsConfirmed: els.sourceImageRights.checked
         });
       } else {
         const correctedFen = currentFen() || els.fen.value;
@@ -626,7 +630,8 @@
           userOrientationOverride,
           finalCanonicalOrientation: selectedCanonicalOrientation,
           shareCorrectionForImprovement: true,
-          shareImageForImprovement: els.shareImage.checked
+          shareImageForImprovement: els.shareImage.checked,
+          sourceImageRightsConfirmed: els.sourceImageRights.checked
         });
       }
       const returnsHome = pendingFeedbackType !== 'AUTO';
@@ -635,7 +640,8 @@
       toast('Feedback saved as raw-unverified for owner review.');
     } catch (error) {
       els.feedbackStatus.textContent = (await loadPublicClient()).publicErrorMessage(error);
-      els.submitFeedback.disabled = !els.shareCorrection.checked;
+      els.submitFeedback.disabled = !els.shareCorrection.checked
+        || (els.shareImage.checked && !els.sourceImageRights.checked);
     }
   }
 
@@ -1378,9 +1384,15 @@
   els.helpImprove.addEventListener('click', () => openFeedback('AUTO', els.helpImprove));
   els.reportFailure.addEventListener('click', () => openFeedback('SCAN_FAILURE', els.reportFailure));
   els.cancelFeedback.addEventListener('click', () => closeSheets(true));
-  els.shareCorrection.addEventListener('change', () => {
-    els.submitFeedback.disabled = !els.shareCorrection.checked;
-  });
+  function updateFeedbackEligibility() {
+    els.sourceImageRights.disabled = !els.shareImage.checked;
+    if (!els.shareImage.checked) els.sourceImageRights.checked = false;
+    els.submitFeedback.disabled = !els.shareCorrection.checked
+      || (els.shareImage.checked && !els.sourceImageRights.checked);
+  }
+  els.shareCorrection.addEventListener('change', updateFeedbackEligibility);
+  els.shareImage.addEventListener('change', updateFeedbackEligibility);
+  els.sourceImageRights.addEventListener('change', updateFeedbackEligibility);
   els.submitFeedback.addEventListener('click', sendPublicFeedback);
   els.workspaceSaveDiagram.addEventListener('click', showDiagramLibraryPlaceholder);
   els.workspaceShare.addEventListener('click', () => openExport(els.workspaceShare));

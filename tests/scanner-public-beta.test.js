@@ -227,7 +227,8 @@ test('public submission rejects invalid credentials and cross-account scan attri
 test('public mutation endpoints are throttled before accepting evidence', async () => {
   const service = createScannerPublicService({
     env: { CAISSA_SCANNER_PUBLIC_STAGE: 'public-beta' },
-    authenticate: async () => ({ authenticated: false, status: 401, code: 'AUTH_REQUIRED' }),
+    authenticate: async () => ({ authenticated: true, userId: 'clerk-1' }),
+    userStore: { async getUserByClerkId() { return { id: UUIDS[0] }; } },
     rateLimit: () => ({ allowed: false, remaining: 0, retryAfter: 27 })
   });
   const limited = response();
@@ -252,7 +253,7 @@ test('feedback images must match both their declared format and source scan hash
   const invalidImage = response();
   await imageService.image({ method: 'PUT', headers: {
     host: 'caissa.test', origin: 'https://caissa.test', 'content-type': 'image/png',
-    'x-caissa-image-sha256': HASH
+    'x-caissa-image-sha256': HASH, 'x-caissa-upload-id': UUIDS[1]
   }, body: Buffer.from([0xff, 0xd8, 0xff, 0x00]) }, invalidImage);
   assert.equal(invalidImage.statusCode, 409);
   assert.equal(invalidImage.body.error, 'IMAGE_TYPE_MISMATCH');
@@ -269,8 +270,8 @@ test('feedback images must match both their declared format and source scan hash
     feedback: feedback(),
     imageStorageReference: `supabase://scanner-public-feedback-images/${UUIDS[0]}/BB/${'B'.repeat(64)}`
   } }, mismatched);
-  assert.equal(mismatched.statusCode, 409);
-  assert.equal(mismatched.body.error, 'IMAGE_EVIDENCE_HASH_MISMATCH');
+  assert.equal(mismatched.statusCode, 400);
+  assert.equal(mismatched.body.error, 'IMAGE_UPLOAD_GRANT_REQUIRED');
 });
 
 test('review actions append history and reject classifier/localization cross-contamination', async () => {

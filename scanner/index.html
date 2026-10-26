@@ -278,7 +278,8 @@
       <div class="sheet-head"><button id="cancelFeedbackBtn" type="button">Cancel</button><strong>Help improve Scanner</strong><span></span></div>
       <p id="feedbackSheetDescription">Your correction will enter a private, unverified review vault. It will not train the model automatically.</p>
       <label class="feedback-consent-row"><input id="shareCorrectionConsent" type="checkbox"> <span><strong>Share my correction</strong><small>Send the confirmed board and recognition details for owner review.</small></span></label>
-      <label class="feedback-consent-row"><input id="shareImageConsent" type="checkbox"> <span><strong>Share this image</strong><small>Optional. Store the source privately so the owner can review it.</small></span></label>
+      <label class="feedback-consent-row"><input id="shareImageConsent" type="checkbox"> <span><strong>Share this image for private review</strong><small>Optional. This permission covers private improvement review only, not model training.</small></span></label>
+      <label class="feedback-consent-row"><input id="sourceImageRightsConsent" type="checkbox" disabled> <span><strong>I have the right to share this image</strong><small>I own the image or have permission to provide it to CAISSA for private review.</small></span></label>
       <p class="feedback-privacy"><i class="fas fa-lock" aria-hidden="true"></i> Images are private and never receive public object URLs.</p>
       <button class="feedback-submit" id="submitFeedbackBtn" type="button" disabled>Send optional feedback</button>
       <p class="feedback-status" id="feedbackStatus" role="status" aria-live="polite"></p>
