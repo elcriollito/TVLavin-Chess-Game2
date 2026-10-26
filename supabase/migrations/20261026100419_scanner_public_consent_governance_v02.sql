@@ -115,9 +115,9 @@ begin
     return;
   end if;
 
-  update public.scanner_public_image_upload_grants
+  update public.scanner_public_image_upload_grants as grant_row
     set status = 'expired'
-    where status in ('reserved','uploading') and expires_at <= now();
+    where grant_row.status in ('reserved','uploading') and grant_row.expires_at <= now();
 
   select count(*), coalesce(sum(byte_size), 0) into v_user_count, v_user_bytes
     from public.scanner_public_image_upload_grants
