@@ -17,8 +17,8 @@ create table public.scanner_public_image_upload_grants (
   status text not null default 'reserved' check (status in (
     'reserved','uploading','uploaded','bound','failed','revoked','expired'
   )),
-  object_key text not null unique,
-  storage_reference text unique,
+  object_key text not null,
+  storage_reference text,
   uploaded_at timestamptz,
   bound_at timestamptz,
   failure_code text,
@@ -130,7 +130,10 @@ begin
   if v_project_bytes + p_byte_size > p_project_max_bytes then raise exception 'IMAGE_PROJECT_BYTES_QUOTA_EXCEEDED'; end if;
 
   v_expires := now() + pg_catalog.make_interval(secs => p_ttl_seconds);
-  v_object_key := p_user_id::text || '/' || left(p_image_hash, 2) || '/' || p_feedback_id::text || '/' || p_upload_id::text;
+  -- Keep the private object address compatible with the existing feedback
+  -- binding contract: <user>/<hash-prefix>/<full-image-hash>. Multiple grants
+  -- may intentionally reference the same immutable source image.
+  v_object_key := p_user_id::text || '/' || left(p_image_hash, 2) || '/' || p_image_hash;
   insert into public.scanner_public_image_upload_grants(
     upload_id, feedback_id, submitted_by, expires_at, purpose, consent_version,
     rights_attestation, image_hash, byte_size, content_type, object_key

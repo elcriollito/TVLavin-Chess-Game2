@@ -106,6 +106,8 @@ test('client and migration bind upload grants instead of accepting raw storage r
   assert.match(sql, /for update/);
   assert.match(sql, /pg_advisory_xact_lock/);
   assert.match(sql, /update public\.scanner_public_image_upload_grants as grant_row[\s\S]+grant_row\.expires_at <= now\(\)/);
+  assert.match(sql, /v_object_key := p_user_id::text \|\| '\/' \|\| left\(p_image_hash, 2\) \|\| '\/' \|\| p_image_hash/);
+  assert.doesNotMatch(sql, /object_key text not null unique|storage_reference text unique/);
   assert.match(sql, /submit_scanner_public_feedback_v02/);
   assert.match(sql, /SEPARATE_TRAINING_PERMISSION_REQUIRED/);
   assert.doesNotMatch(sql, /to anon|to authenticated/);
