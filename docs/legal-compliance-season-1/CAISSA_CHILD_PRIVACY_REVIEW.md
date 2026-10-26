@@ -5,7 +5,7 @@
 
 ## Decision
 
-The supplied provisional 13+ account rule is not ready for production. Clerk's current Standard Terms prohibit sending or storing personal information of users under 16 without evidence of verifiable parental consent. CAISSA has no production age screen, no stored age band, no parental-consent evidence system, and no account-wide deletion workflow.
+The supplied provisional 13+ account rule is not ready for production. Clerk's Standard Terms, current as reviewed on 2026-10-25, prohibit sending or storing personal information of users under 16 without evidence of verifiable parental consent. CAISSA has no production age screen, no stored age band, no parental-consent evidence system, and no account-wide deletion workflow.
 
 Use **16+ for account registration** unless Clerk supplies written clarification/approval and a compliant process is implemented. Anonymous use of low-risk, non-account chess tools can remain available without inviting age disclosure, subject to data minimization and audience monitoring. Do not enable under-13 registration.
 
@@ -26,21 +26,31 @@ Use **16+ for account registration** unless Clerk supplies written clarification
 
 ## Legal and contractual analysis
 
+| Source | Classification | Current audit consequence |
+|---|---|---|
+| COPPA and amended COPPA Rule | Federal law/regulation | Under-13 child-directed/actual-knowledge analysis; parental notice/consent, minimization, security, retention/deletion and parent rights if applicable |
+| Florida §501.1735 | State law | Applicability to an online game depends on the child-audience predicate; presently unknown, not assumed |
+| Florida §501.1736 | State law | Narrower social-media definition is not established on current CAISSA facts |
+| Clerk Standard Terms | Provider contract | Immediate under-16 data gate absent evidence of VPC; this is not a statutory age-16 rule |
+| Google OAuth policies | Provider product/policy requirements | Accurate branding/privacy disclosure, minimal scopes and child-directed restrictions; not an independent CAISSA age-16 law |
+| CAISSA 16+ registration rule | Conservative product policy | Provisional control selected to satisfy the current Clerk dependency while registration is paused |
+| Neutral age bands and child-safe defaults | Audit recommendation | Data-minimizing implementation approach; counsel/product approval still required |
+
 ### COPPA
 
 COPPA applies to an online service directed to children under 13, or a general-audience service with actual knowledge that it is collecting personal information from a child under 13. The audit did not establish that CAISSA is child-directed. Chess appeal alone is not dispositive; marketing, imagery, language, audience composition, store placement and actual knowledge matter.
 
 If CAISSA learns an account user is under 13, do not simply preserve the account under a checkbox. Disable collection/account access as appropriate, minimize preservation, contact a verified parent only through an approved flow, and delete unless valid consent and an under-13 program exist.
 
-A future under-13 program needs direct parental notice, verifiable parental consent, parental access/deletion, limited collection, reasonable security, retention limits and vendor capability. [FTC COPPA guidance](https://www.ftc.gov/business-guidance/privacy-security/childrens-privacy) and the [COPPA Rule](https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312) are controlling federal sources.
+A future under-13 program needs direct parental notice, verifiable parental consent, parental access/deletion, limited collection, reasonable security, retention limits and vendor capability. The FTC's 2025 amendments add stronger retention/deletion-program requirements and separate parental consent for certain third-party disclosures; the April 22, 2026 general full-compliance deadline has passed as of this audit date. The FTC's [February 2026 age-verification policy statement](https://www.ftc.gov/legal-library/browse/enforcement-policy-statement-promoting-adoption-age-verification-technology) is narrow enforcement discretion for age-assurance collection under stated conditions, not a general exemption or a CAISSA implementation approval. [FTC COPPA guidance](https://www.ftc.gov/business-guidance/privacy-security/childrens-privacy), the [amended-rule announcement](https://www.ftc.gov/news-events/news/press-releases/2025/01/ftc-finalizes-changes-childrens-privacy-rule-limiting-companies-ability-monetize-kids-data) and the [COPPA Rule](https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312) are the controlling starting points.
 
 ### Clerk contract
 
-Clerk's [Standard Terms](https://clerk.com/legal/terms) impose an under-16 personal-information restriction absent evidence of verifiable parental consent. This is more restrictive than the proposed 13+ rule and functions as the immediate launch gate even though COPPA's child threshold is under 13.
+Clerk's [Standard Terms](https://clerk.com/legal/standard-terms) impose an under-16 personal-information restriction absent evidence of verifiable parental consent. That is a provider-contract requirement, not a statutory declaration that every user under 16 is a COPPA child. It is more restrictive than the proposed 13+ rule and functions as the immediate launch gate even though COPPA's child threshold is under 13.
 
 ### Florida
 
-[Florida Statutes §501.1735](https://www.flsenate.gov/Laws/Statutes/2026/501.1735) covers a social-media platform, online game or online gaming platform providing a service, game or feature likely to be predominantly accessed by children (under 18). It restricts unnecessary collection/retention, harmful or incompatible use, profiling, precise geolocation and dark patterns. Current applicability is **UNKNOWN**, because audience composition and “predominantly accessed” facts were not established.
+[Florida Statutes §501.1735](https://www.flsenate.gov/Laws/Statutes/2026/501.1735) covers a social-media platform, online game or online gaming platform providing a service, game or feature likely to be predominantly accessed by children (under 18). It restricts unnecessary collection/retention, harmful or incompatible use, profiling, precise geolocation and dark patterns. Current applicability is **UNKNOWN**, because audience composition and “predominantly accessed” facts were not established. Treating it as a design benchmark is a recommendation, not a finding that the statute applies.
 
 Record audience evidence rather than declaring the statute inapplicable. Do not add engagement dark patterns, unnecessary notifications, precise location, targeted advertising or profiling for minors.
 

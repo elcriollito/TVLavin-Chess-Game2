@@ -5,7 +5,7 @@
 
 ## Decision
 
-The project contains substantial open-source provenance and several good component-level notices, but it is not distribution-ready as a single governed product. The repository declares `MIT` in `package.json` without a root `LICENSE`; Fairy-Stockfish distribution lacks exact-version/corresponding-source evidence; js-dos CDN and lockfile versions differ; and third-party notices are not consolidated. No paid PGN collection is rights-certified.
+The project contains substantial open-source provenance and several good component-level notices, but it is not distribution-ready as a single governed product. The repository declares `MIT` in `package.json` without a root `LICENSE`; publicly conveyed Fairy-Stockfish lacks exact-build/corresponding-source evidence; js-dos CDN and lockfile versions differ; and third-party notices are not consolidated. No paid PGN collection is rights-certified.
 
 ## npm inventory
 
@@ -33,10 +33,10 @@ Development-only MPL and LGPL dependencies still require notices when their cove
 
 | Component | Observed posture | Finding | Required action |
 |---|---|---|---|
-| Stockfish 18/19 | Local GPLv3 license/provenance and hashes | Generally strong provenance; distribution still needs corresponding source and notices for exact binary | Keep source offer/link exact, durable and version-matched; preserve modification/build information |
+| Stockfish 18/19 | Public WASM artifacts plus local GPLv3 license/provenance/hashes | Stockfish 19 has strong exact-commit/package/hash provenance; Stockfish 18 is weaker; public corresponding-source delivery was not verified for either | Keep source offer/link exact, durable and version-matched; preserve modification/build information |
 | Legacy Stockfish package | Exact package/version/upstream notice | Stronger than generic attribution | Retain in consolidated notice |
 | LC0 | GPL license and exact corresponding-source evidence | Strong | Verify every shipped binary/hash remains paired with source |
-| Fairy-Stockfish | Local binary, version recorded as unknown, generic upstream/source link | **Gap:** exact binary/version/build and exact corresponding source are not established | Do not redistribute further until mapped to exact source and build; preserve GPL text |
+| Fairy-Stockfish | Public WASM artifact returned 200; package manifest says 1.1.11 while the runtime registry records version `unknown`; registry marks it disabled | **Actionable gap:** disabling selection does not stop public conveyance; exact binary/build/commit and corresponding source are not established | Map hash/package to exact source/build and publish durable source/license notices, or remove the public artifact in an authorized release |
 | GNU Chess / DOS game | GPLv3 binary/game with local license | Source/content bundle needs exact-version and source confirmation | Verify executable, game assets and source correspondence |
 | Arasan, Rodent, Texel | Placeholder directories; binaries disabled/absent | No current binary-distribution issue established | Re-audit before enabling or adding binaries |
 
@@ -59,7 +59,7 @@ GPL obligations are distribution obligations, not a ban on use or commercial use
 
 ## Scanner piece-set catalog
 
-The catalog contained 13 sets: 11 marked training-eligible/allowed and 2 reference-only. Recorded licenses included Apache-2.0, CC BY 4.0, CC0, MIT, public-domain material and CAISSA-authored work. Two unverified sets were appropriately reference-only. Checksums and notices are good controls; eligibility must remain fail-closed when source, license or attribution is incomplete.
+The catalog contained 13 sets: 11 marked training-eligible/allowed and 2 reference-only. The two excluded entries are `caissa-current-wikipedia-unverified` and `historical-replit-geometric-reference`; the Wikipedia-derived pieces still lack exact author/source/per-file license attribution. Recorded licenses included Apache-2.0, CC BY 4.0, CC0, MIT, public-domain material and CAISSA-authored work. Checksums and notices are good controls; eligibility must remain fail-closed when source, license or attribution is incomplete.
 
 ## Trademark and brand
 
@@ -73,8 +73,8 @@ The catalog contained 13 sets: 11 marked training-eligible/allowed and 2 referen
 
 1. Decide and document the license for original CAISSA source. If MIT is intended, add the complete root license with the correct copyright holder/year; otherwise remove the unsupported package declaration and document the actual rights posture.
 2. Create `THIRD_PARTY_NOTICES` with exact component, version, license, copyright, source URL and corresponding-source location.
-3. Resolve Fairy-Stockfish version/hash/build/source before further distribution.
-4. Reconcile js-dos 8.3.20 CDN delivery with 8.5.3 lockfile and satisfy the distributed version's GPL obligations.
+3. Resolve Fairy-Stockfish version/hash/build/source for `public/engines/fairy-stockfish/stockfish.wasm`; `enabled: false` is not a source-compliance control while the binary remains publicly downloadable.
+4. Reconcile js-dos 8.3.20 CDN delivery in `js/caissa-dos-chess.js` with 8.5.3 in the lockfile and satisfy the actually conveyed version's GPL obligations.
 5. Make license/notice/source links available with downloadable engine/software artifacts.
 6. Keep paid PGN delivery, paid books and commercial dataset reuse disabled until collection-level certification is complete.
 7. Create a takedown channel. Decide whether to register a DMCA agent after reviewing the identity/address consequences and repeat-infringer process.
@@ -89,5 +89,15 @@ The catalog contained 13 sets: 11 marked training-eligible/allowed and 2 referen
 
 ## Security-adjacent dependency status
 
-`npm run security:dependencies` passed the repository supply-chain policy inventory but reported six npm audit advisories: one moderate and five high, principally through `undici`/`cheerio` and `zod`/Vercel OIDC dependency chains. This audit did not update packages because it was documentation-only. Dependency vulnerabilities are not license violations, but they affect release governance.
+`npm run security:dependencies` passed the repository supply-chain policy inventory (503 runtime files and 186 locked entries) but reported six npm audit advisories: one moderate and five high, principally through `undici`/`cheerio` and `zod`/Vercel OIDC dependency chains. They remain actionable for reachable-path triage and version upgrades with regression tests; this audit neither proved exploitability nor updated packages because it was documentation-only. Dependency vulnerabilities are not license violations, but they affect release governance.
+
+## Affected-artifact summary
+
+- Root-source license gap: `package.json` and missing repository-root `LICENSE`.
+- Fairy-Stockfish: `public/engines/fairy-stockfish/stockfish.wasm`, engine registry/package metadata and generic source notices.
+- Stockfish: public 18/19 WASM files and their provenance/license records; 19 is stronger, 18 needs exact-source reinforcement.
+- js-dos: `js/caissa-dos-chess.js`, `package.json`/lockfile, and the CDN-delivered runtime.
+- Artwork: Scanner piece-set catalog and `docs/legal/CAISSA_BOARD_RENDERER_THIRD_PARTY_NOTICES.md`.
+- PGN collections: 82 albums, none certified for paid commercial delivery.
+- Dependency advisories: locked `undici`/`cheerio` and `zod`/Vercel OIDC chains reported by the repository audit command.
 

@@ -13,15 +13,15 @@
 
 ### P0.2 Truthful Privacy Policy and Terms
 
-**Dependency:** operator/counsel identity decision, age decision, PayPal wording, retention statements.  
+**Dependency:** operator/counsel identity decision, age decision, transition-accurate PayPal wording, retention statements.
 **Action:** revise drafts against the data inventory and product matrix; add permanent legal links and version/effective dates.  
 **Acceptance:** every material production processor and feature is described; no promised deletion/retention feature is fictitious; counsel approves governing law/liability/operator wording.
 
-### P0.3 Current PayPal support
+### P0.3 PayPal retirement
 
-**Dependency:** confirm hosted-button configuration.  
-**Action:** disclose personal project, non-charitable/non-tax-deductible, voluntary, no-benefit and PayPal processing; confirm one-time only; retain transaction/fee/refund records.  
-**Acceptance:** page and policy language agree; no premium, priority, membership or tournament benefit; tax/Florida classification referred to a professional.
+**Current fact:** production `/support` still presents a PayPal Hosted Button. The owner has decided to discontinue it, but this documentation audit does not implement or verify retirement. No private transaction history was inspected, and no conclusion is made about whether any payment occurred, revenue, charitable status or tax deductibility.
+**Action in a separately authorized release:** remove the support-page button/controller and PayPal-specific copy, navigation and route-specific CSP allowances; then deactivate the hosted button/payment link in the PayPal dashboard. Preserve any records required for accounting, refunds, disputes, tax or legal hold.
+**Acceptance:** production contains no CAISSA PayPal button, iframe, script, redirect or stale contribution claim; the direct hosted-button/payment-link state is verified inactive in PayPal; policies describe the resulting state without claiming PayPal was never used.
 
 ### P0.4 Scanner evidence freeze and inventory
 
@@ -56,7 +56,7 @@
 - Replace client-declared download tier with a verified entitlement or signed capability and stream or asynchronously build archives.
 - Add durable account/IP/concurrency controls to Polyglot and Scanner inference; implement true inference cancellation/isolation.
 - Add durable row/byte retention budgets to anonymous Scanner evidence and per-user/project quotas plus feedback binding to Scanner image upload.
-- Reject nonnumeric game-fetch limits, cap response bytes, and add a byte/count-bounded LRU or indexed design for position-stat shards.
+- Treat the game-fetch nonnumeric-limit issue and position-stat all-shard cache as activation gates until deployment/use is proved; if activated, reject nonnumeric limits, cap response bytes, and use a byte/count-bounded cache or indexed design.
 - Triage six dependency advisories and upgrade with regression tests.
 - Document secrets rotation, backups, restore testing, log access/retention and provider incident contacts.
 
@@ -93,7 +93,7 @@ Separate counsel opinion for entry fees/prizes/skill contests, payment-provider 
 
 ### AI and international season
 
-Provider/DPA choices, prompt privacy, evaluations, AI disclosure, incident reporting, EU AI Act role/territory analysis, AI literacy, DSA/GDPR/UK targeting and representative decisions.
+Keep external generative Mentor activation behind verified environment flags, provider/model approval, provider retention/training review, prompt/context disclosure, data minimization, evaluation, cost/abuse controls and an incident/kill-switch path. Maintain Scanner dataset/model cards and exact artifact provenance before retraining. Local chess engines remain distinct from external generative AI. Then assess EU AI Act role/territory, AI literacy, DSA/GDPR/UK targeting and representative decisions.
 
 ### Native distribution season
 
@@ -115,7 +115,7 @@ Desktop/mobile app-store rules, signing, update security, crash/telemetry privac
 Counsel, not automation, should decide:
 
 - sufficient public operator/contracting identity while preserving personal privacy;
-- Florida fictitious-name and charitable-solicitation posture after considering PayPal support;
+- Florida fictitious-name and any historical charitable-solicitation posture after considering the actual PayPal appeal and any real transaction facts;
 - governing law, venue/arbitration, warranty and liability language;
 - 16+ versus a provider-approved 13–15 parental-consent program;
 - privacy-law territorial scope and Florida §501.1735 audience applicability;
@@ -131,7 +131,7 @@ Counsel, not automation, should decide:
 |---|---|---|---|
 | Florida identity/DBA | Fla. Stat. §865.09; Florida DOS | 2026-10-25 | Compensation/business facts and exceptions need counsel |
 | Privacy/security | FTC Act §5; FTC guidance; Fla. Stat. §501.171 | 2026-10-25 | FTC commerce and Florida entity coverage are fact-specific |
-| Children | COPPA Rule/FTC; Clerk Terms; Fla. Stat. §§501.1735–.1736 | 2026-10-25 | Audience composition and provider interpretation unresolved |
+| Children | Amended COPPA Rule/FTC; Clerk Terms; Fla. Stat. §§501.1735–.1736 | 2026-10-25 | Audience composition, actual knowledge and provider interpretation unresolved |
 | OAuth | Google API Services User Data Policy and OAuth verification guidance | 2026-10-25 | Actual Google console configuration requires separate readback |
 | Providers | Clerk/Supabase/Vercel/Cloudflare terms and DPAs | 2026-10-25 | Account-specific settings and negotiated terms not assumed |
 | Contributions | PayPal User Agreement/AUP; Fla. Stat. Ch. 496; IRS guidance | 2026-10-25 | Tax/charitable classification is fact-specific |
@@ -149,5 +149,5 @@ Counsel, not automation, should decide:
 
 ## Completion criteria for Season 1 follow-through
 
-Season 1 documentation is complete when these files are reviewed. Operational remediation is complete only when P0 owners sign evidence, policies are counsel-approved, production changes pass a separate authorized release process, and each unresolved legal decision is recorded rather than implied.
+The twelve-document Season 1 audit package is complete at the local audit commit. Operational remediation is not complete: it requires P0 owners to sign evidence, counsel to approve policies, and production changes to pass a separate authorized release process. PayPal retirement, AUTH-004 publication, provider-console changes, database work and security fixes remain outside this documentation-only audit.
 

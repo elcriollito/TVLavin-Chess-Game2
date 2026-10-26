@@ -12,11 +12,11 @@ This document is a pre-launch checklist, not a statement that future-feature law
 | Under-13 accounts | Not authorized | Full COPPA program, direct notice, FTC-compliant VPC, parent controls, vendor support, deletion/security, child-directed design review | Child-privacy counsel |
 | Public Scanner image intake | Technically implemented, empty public dataset | Consent-before-upload; orphan cleanup; rights representation; retention/deletion; age rule; reviewer operations | Privacy/data owner |
 | Train Scanner model on community evidence | Not performed | Certified immutable dataset; rights/consent; revocation cut; benchmark isolation; model/data card; license/security review | Data owner + counsel |
-| Shared generative Mentor | Code exists; live state unproven | AI disclosure; provider/DPA/retention review; prompt privacy; safety/accuracy limits; cost controls; incident path | Product/privacy owner |
+| Shared generative Mentor | Public UI exists; server path exists; production generative activation/provider state unproven | Verify flags, key and allowlisted model; AI disclosure; provider DPA/retention/training review; prompt/context minimization; safety/accuracy evaluation; cost/abuse controls; incident/kill switch | Product/privacy owner |
 | Human-like conversational Mentor | Planned at most | Above plus EU AI Act Article 50 analysis, Colorado 2027 conversational-AI review, minor safety and no companionship/dependence marketing | AI/privacy counsel |
 | Premium subscriptions | Dormant | Business/tax identity; Stripe approval/KYC; price/renewal/cancellation/refund terms; privacy; receipts; support; accessibility | Counsel + tax professional |
 | Credit packages | Dormant | Define non-cash/non-transferable value; expiry/refund; minors; accounting/tax; insolvency/closure; wallet security | Counsel + accounting |
-| Recurring PayPal support | Not established | Authorization, amount/frequency/duration disclosure, simple online cancellation, ROSCA and Florida auto-renewal review | Consumer counsel |
+| Reactivate PayPal support | Owner decided to retire the presently live Hosted Button; retirement not yet deployed or dashboard-verified | Fresh purpose/business/tax review; PayPal account approval; accurate contribution or sale classification; pricing/frequency/refund disclosure; privacy and records; no charitable/tax-deductibility claim without authority | Product owner + consumer/tax counsel |
 | Paid-entry/prize tournament | Planned | Gambling/contest opinion; provider approval; official rules; geography/age; tax/prize/refund/fair-play/dispute controls | Gaming counsel |
 | Public forums/chat | Planned | Code, reporting/block/mute, moderation, DMCA/CSAM, minor safety, retention, appeals, DSA review if targeted to EU | Trust & safety owner + counsel |
 | Direct/private messages | Planned | Communications-law review; truthful access/scanning notice; grooming/spam/report controls; retention/legal process | Privacy/T&S counsel |
@@ -25,14 +25,16 @@ This document is a pre-launch checklist, not a statement that future-feature law
 | Paid PGN/books/vault | Commerce off | Collection-level rights certification; consumer license; download entitlement; tax/refund; DRM/privacy | Content owner + counsel |
 | Advertising/targeted personalization | Not found | Consent/opt-out, state-law thresholds, minor bans, vendor contracts, profiling impact, cookie controls | Privacy counsel |
 | Deliberate EU/UK offering | Not established | Territorial analysis; controller identity; lawful bases/rights; processors/transfers; representative if needed; DSA/AI/accessibility classification | EU/UK counsel |
+| Game-fetch worker | Source exists; configured `workers.dev` host did not resolve and no active custom route was found | Confirm deploy need; reject nonnumeric/cost-amplifying limits; cap count/bytes; authentication/rate limiting; bounded caches; production security review | Security/release owner |
+| Position-stat worker | Source exists; no production route or frontend consumer was found | Confirm deployment/data size; replace all-shard memory cache with bounded/indexed design; abuse controls; load test in an authorized environment | Security/release owner |
 
-## Current PayPal support gate
+## PayPal retirement and future reactivation gate
 
-The live support flow is not a future-only item. Until reviewed, use wording materially equivalent to:
+The live support flow is not a future-only item: on 2026-10-25 production `/support` still presented the Hosted Button. The owner has decided to discontinue it. This audit changed documentation only; it did not remove code, change PayPal, or inspect transactions.
 
-> Support CAISSA Chess. CAISSA Chess is a personal project, not a charity or tax-exempt organization. Contributions are voluntary, are not tax-deductible as charitable contributions, and do not purchase features, services, membership or preferential treatment. Payments are processed by PayPal, whose terms and privacy practices apply.
+Retirement requires a separately authorized release that removes the button/controller and related public copy/CSP allowances, followed by a human PayPal-dashboard deactivation of the hosted button or payment link. Preserve any records legally required for refunds, disputes, accounting, tax or legal hold. Acceptance requires both production verification and direct-link/dashboard verification; removing only the website embed is insufficient.
 
-Use “one-time voluntary contribution” only after confirming recurring payments are disabled. Do not issue charitable receipts or connect contributions to premium access, ratings, tournament entry or support priority. Florida charitable-solicitation classification deserves counsel review if any appeal suggests an educational, philanthropic or charitable purpose. See [Fla. Stat. Ch. 496](https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0400-0499/0496/0496.html), [PayPal User Agreement](https://www.paypal.com/US/legalhub/paypal/useragreement-full?locale.x=en_US) and [PayPal AUP](https://www.paypal.com/us/legalhub/acceptableuse-full).
+Do not claim that no payment ever occurred, that money was or was not revenue, or that a contribution was charitable or tax-deductible without transaction and professional review. If PayPal is ever reactivated, conduct a fresh gate using the matrix above. See [Fla. Stat. Ch. 496](https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0400-0499/0496/0496.html), [PayPal User Agreement](https://www.paypal.com/US/legalhub/paypal/useragreement-full?locale.x=en_US) and [PayPal AUP](https://www.paypal.com/us/legalhub/acceptableuse-full).
 
 ## Subscription and auto-renewal requirements
 

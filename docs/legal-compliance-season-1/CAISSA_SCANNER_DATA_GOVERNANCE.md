@@ -28,7 +28,7 @@
 
 ### Public beta
 
-- Public scan recognition was live.
+- Public scan recognition was live: production status returned `available: true`, `/scanner` returned 200, and safe GETs to the deployed recognize/scan/image handlers returned 405 rather than 404. No inference load testing was performed.
 - Public feedback, review, certification and public feedback-image records were all zero at the review time.
 - The public feedback image bucket was private, with 12 MB and JPEG/PNG/WebP restrictions.
 
@@ -52,12 +52,17 @@
 4. **Rights proof is thin for part of the existing real-image corpus:** platform screenshots are labelled “user-provided internal research,” with redistribution false, but ownership/consent/platform-term evidence is not consistently durable.
 5. **Revocation semantics are incomplete:** future training cannot promise physical “untraining” from an already released model. The policy must explain prospective exclusion, dataset/version lineage and when retraining is feasible.
 6. **Benchmark protection needs governance:** protected validation/test data must not migrate into training through feedback or deduplication.
-7. **Security cost control:** anonymous inference relies on an instance-local limiter; a timeout does not cancel the underlying inference.
+7. **Anonymous evidence persistence:** public scan/diagnostic JSON can be inserted without an account-bound lifecycle or durable row/byte budget. Empty public tables do not remove this deployed abuse and retention risk.
+8. **Upload quota and binding:** the image endpoint has validation but no demonstrated durable per-account/project storage quota or atomic binding to accepted feedback. Object-path scoping alone does not prevent storage exhaustion or orphan growth.
+9. **Security cost control:** anonymous inference relies on an instance-local limiter; a timeout does not cancel the underlying inference.
+
+The exact affected implementation is `api/scanner/public/image.js`, `api/_lib/scanner-public-service.js`, `api/_lib/scanner-public-store.js`, `api/_lib/scanner-public-policy.js`, the Scanner public migration, and the public recognition/inference/rate-limit helpers. External Vercel WAF, concurrency and spend-cap settings were not inspected, so they must not be assumed to cure the code-level findings.
 
 ## Consent and rights design
 
 Correction and image purposes must remain separate:
 
+- **Ordinary recognition:** sends a transient inference representation to the hosted recognition endpoint; it is not feedback, image storage or training permission.
 - **Correction consent:** permits storing board/FEN corrections and related technical evidence for quality review.
 - **Image consent:** permits storing the source image for the specifically stated review/training purposes.
 - **Rights representation:** contributor confirms they created/own the image or have authority to license it and that it does not contain prohibited third-party or personal material.
