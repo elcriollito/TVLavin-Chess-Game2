@@ -41,7 +41,7 @@ The final local documentation commit and branch tree are reported in the owner h
 
 ## Scope result
 
-The certified code checkpoint changes 29 files. It changes no package manifest or lockfile, database or migration, Supabase artifact, Worker, authentication provider, Stripe or PayPal integration, `vercel.json`, `server.js`, sitemap, privacy backend, security override, AUTH-004 document, or provider configuration.
+The implementation allowlist at the certified code checkpoint contains 29 runtime, build, and test paths. The final release range contains 52 paths after adding seven certification documents and sixteen public-safe evidence captures. It changes no package manifest or lockfile, database or migration, Supabase artifact, Worker, authentication provider, Stripe or PayPal integration, `vercel.json`, `server.js`, sitemap, privacy backend, security override, AUTH-004 document, or provider configuration.
 
 `PLAY_V2_UNAVAILABLE_DOCUMENT` remains exported and the Play unavailable gate remains fail-closed. `/support`, `/support/`, and `/support.html` remain 308 redirects to `/help`. No PayPal text, SDK, Hosted Button, CSP permission, or donation navigation was added.
 

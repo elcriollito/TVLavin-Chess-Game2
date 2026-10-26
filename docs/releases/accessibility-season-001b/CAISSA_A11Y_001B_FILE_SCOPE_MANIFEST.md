@@ -42,7 +42,7 @@ Abbreviations: AF = `accessibility-foundation`; A1B = `accessibility-season-001b
 
 ## Positive allowlist conclusion
 
-All 29 certified-code paths map to Foundation 001, Season 001B, a direct accessibility hardening, an accessibility test, or deterministic shared navigation output/tooling. No deletion occurs.
+All 29 implementation allowlist paths map to Foundation 001, Season 001B, a direct accessibility hardening, an accessibility test, or deterministic shared navigation output/tooling. The other 23 paths in the final release range are the seven certification documents and sixteen public-safe evidence captures. No deletion occurs.
 
 ## Negative restricted-path conclusion
 
