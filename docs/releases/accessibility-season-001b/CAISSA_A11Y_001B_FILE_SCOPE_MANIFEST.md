@@ -40,6 +40,36 @@ Abbreviations: AF = `accessibility-foundation`; A1B = `accessibility-season-001b
 | `tests/browser/accessibility-season-001b.spec.js` | A | 5a7a | Product keyboard semantics and Axe | Chromium/Firefox/WebKit | Test-only |
 | `yahoo-classic.html` | M | 5a7a | Generated semantic navigation fallback | fallback check, navigation Node | Shared; identical to combined |
 
+## Certification package inventory
+
+The following 23 added paths are release evidence only and have no runtime effect:
+
+| Path | Purpose |
+|---|---|
+| `docs/releases/accessibility-season-001b/CAISSA_A11Y_001B_BASELINE_COMPARISON.md` | Production-base failure differential |
+| `docs/releases/accessibility-season-001b/CAISSA_A11Y_001B_DEPLOYMENT_RUNBOOK.md` | Future owner-authorized release procedure |
+| `docs/releases/accessibility-season-001b/CAISSA_A11Y_001B_FILE_SCOPE_MANIFEST.md` | Exact implementation and evidence inventory |
+| `docs/releases/accessibility-season-001b/CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md` | Combined-build parity and bounded retest |
+| `docs/releases/accessibility-season-001b/CAISSA_A11Y_001B_RECOVERY_PLAN.md` | Revert and forward-fix strategy |
+| `docs/releases/accessibility-season-001b/CAISSA_A11Y_001B_RELEASE_CANDIDATE.md` | Executive certification record |
+| `docs/releases/accessibility-season-001b/CAISSA_A11Y_001B_TEST_RESULTS.md` | Commands, counts, failures, and limits |
+| `docs/releases/accessibility-season-001b/evidence/candidate/chess-gym-desktop.png` | Candidate Chess Gym visual |
+| `docs/releases/accessibility-season-001b/evidence/candidate/chess-tv-desktop.png` | Candidate Chess TV visual |
+| `docs/releases/accessibility-season-001b/evidence/candidate/navigation-desktop.png` | Candidate desktop navigation visual |
+| `docs/releases/accessibility-season-001b/evidence/candidate/navigation-mobile.png` | Candidate mobile navigation visual |
+| `docs/releases/accessibility-season-001b/evidence/candidate/opening-database-desktop.png` | Candidate Opening Database visual |
+| `docs/releases/accessibility-season-001b/evidence/candidate/scanner-desktop.png` | Candidate Scanner desktop visual |
+| `docs/releases/accessibility-season-001b/evidence/candidate/scanner-feedback-consent-mobile.png` | Candidate Scanner consent visual |
+| `docs/releases/accessibility-season-001b/evidence/candidate/scanner-mobile.png` | Candidate Scanner mobile visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/chess-gym-desktop.png` | Owner-tested combined Chess Gym visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/chess-tv-desktop.png` | Owner-tested combined Chess TV visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/navigation-desktop.png` | Owner-tested combined desktop navigation visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/navigation-mobile.png` | Owner-tested combined mobile navigation visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/opening-database-desktop.png` | Owner-tested combined Opening Database visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/scanner-desktop.png` | Owner-tested combined Scanner desktop visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/scanner-feedback-consent-mobile.png` | Owner-tested combined Scanner consent visual |
+| `docs/releases/accessibility-season-001b/evidence/combined/scanner-mobile.png` | Owner-tested combined Scanner mobile visual |
+
 ## Positive allowlist conclusion
 
 All 29 implementation allowlist paths map to Foundation 001, Season 001B, a direct accessibility hardening, an accessibility test, or deterministic shared navigation output/tooling. The other 23 paths in the final release range are the seven certification documents and sixteen public-safe evidence captures. No deletion occurs.
