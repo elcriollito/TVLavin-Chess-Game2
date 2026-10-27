@@ -2,7 +2,9 @@
 
 Owner record: `HUMAN TEST PASS — CAISSA ACCESSIBILITY SEASON 001B` on combined build `69ef0401b606bc6f537d9b884b87dfc7f1898598`.
 
-Parity result: **TARGETED HUMAN RETEST REQUIRED**.
+Targeted owner record: `TARGETED HUMAN RETEST PASS — CAISSA ACCESSIBILITY 001B` on isolated candidate `23cc63fe807b9703224539004dd69b8155069ebd`, tree `124a9a5220bfb0550c1d9e2a79eed1fad987d7ff`.
+
+Parity result: **APPROVED**.
 
 ## Equivalent approved surfaces
 
@@ -51,16 +53,16 @@ Candidate captures:
 
 Matching combined-build captures are in `evidence/combined/` with the same filenames.
 
-## Targeted owner test
+## Targeted owner test — completed
 
-Use the exact isolated server/candidate, not the combined server:
+The owner used the exact isolated release candidate and approved:
 
 1. At `/analyze`, press Tab once in Safari/WebKit or the owner's target browser. Confirm the bypass becomes visible; press Enter and confirm main content receives focus.
 2. At mobile `/scanner`, activate New Scan. Confirm initial focus on Cancel, Shift+Tab reaches Choose Photo, Tab wraps to Cancel, and Escape returns focus to Start a new scan.
 3. After a safe synthetic failed scan, open Help improve Scanner. Confirm the candidate's two consent controls and wording are acceptable for the accessibility-only release. Do not submit feedback or private imagery.
 
-Expected duration: approximately 3–5 minutes. No repeat of unchanged Chess Gym, Opening Database, Chess TV, or broader navigation flows is needed.
+The mobile Scanner check was completed on a physical device through a private local-network connection. No feedback or private image submission was required. No repeat is needed unless a source change invalidates the tested behavior.
 
 ## Gate
 
-Until the owner records this bounded retest against the exact candidate, the correct classification is `CONDITIONAL GO`, not `GO FOR OWNER PRODUCTION APPROVAL`.
+Human acceptance is complete. It is acceptance of the tested user experience, not legal approval of Scanner data processing or certification of complete WCAG conformance. The separate final-QA WebKit Opening Database initialization race remains a release blocker and is documented in `CAISSA_A11Y_001B_TEST_RESULTS.md`.

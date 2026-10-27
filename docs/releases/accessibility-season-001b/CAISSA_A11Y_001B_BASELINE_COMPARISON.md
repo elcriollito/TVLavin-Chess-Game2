@@ -36,6 +36,10 @@ These paths were not modified by the candidate in a way that caused or worsened 
 
 Chess Gym, Opening Database, and Chess TV accessibility runtime files are byte-identical to the owner-tested combined build. The isolated candidate differs in shared bypass hardening, deterministic Play fallback active markers, Scanner modal keyboard containment, and Scanner consent text/control composition. The last three visible/behavioral differences define the targeted retest boundary; see [CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md](CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md).
 
+## Post-acceptance final-gate observation
+
+The final-gate WebKit rerun exposed an intermittent Opening Database keyboard initialization race: the focused command produced 32/33, and an isolated repeat of the affected assertion produced 3/5 passes. `opening-database.html` and `js/opening-database.js` are byte-identical between this candidate and the owner-tested combined build, so the result is not accessibility-only extraction drift. It is also not one of the production-base failures above because production does not contain the new tab-keyboard contract. The issue remains candidate-applicable and blocks final production-readiness certification until resolved and re-verified.
+
 ## Conclusion
 
-No new material regression is evidenced. Baseline failures remain real and disclosed, but they do not expand in count or signature in the accessibility candidate.
+The broader baseline failures remain unchanged and disclosed. Separately, the post-acceptance focused WebKit initialization race is newly evidenced and must be resolved before the release can move from `CONDITIONAL GO` to `GO FOR OWNER PRODUCTION APPROVAL`.

@@ -2,7 +2,7 @@
 
 Mission: `CAISSA-A11Y-001B-RELEASE-CERT-20261026`
 
-Decision: **CONDITIONAL GO**. The accessibility-only code is isolated, locally verified, and has no migration or provider dependency. A short targeted Human Test is required because the isolated Scanner consent surface intentionally excludes the privacy lane and the release hardening adds keyboard behavior not present in the owner-tested combined build.
+Decision: **CONDITIONAL GO**. Both owner Human Tests are approved and the accessibility-only scope remains isolated with no migration or provider dependency. The 2026-10-26 final-gate rerun exposed a nondeterministic WebKit Opening Database initialization race, so the candidate is not yet `GO FOR OWNER PRODUCTION APPROVAL`.
 
 Production remains unchanged. No push, pull request, remote merge, Vercel Preview, Vercel Production deployment, database change, provider configuration change, AUTH-004 change, PayPal restoration, or privacy/security release was performed.
 
@@ -10,7 +10,9 @@ Production remains unchanged. No push, pull request, remote merge, Vercel Previe
 
 `HUMAN TEST PASS — CAISSA ACCESSIBILITY SEASON 001B`
 
-The approval applies to the combined Season 2.0 build at `69ef0401b606bc6f537d9b884b87dfc7f1898598`. It is not deployment authorization and is transferred only where behavioral parity is demonstrated.
+`TARGETED HUMAN RETEST PASS — CAISSA ACCESSIBILITY 001B`
+
+The original approval applies to the combined Season 2.0 build at `69ef0401b606bc6f537d9b884b87dfc7f1898598`. The targeted approval applies to the isolated release candidate at `23cc63fe807b9703224539004dd69b8155069ebd`, tree `124a9a5220bfb0550c1d9e2a79eed1fad987d7ff`. These approvals are not deployment authorization, legal approval of Scanner processing, or whole-site WCAG certification.
 
 ## Authoritative baseline
 
@@ -70,24 +72,30 @@ See [CAISSA_A11Y_001B_FILE_SCOPE_MANIFEST.md](CAISSA_A11Y_001B_FILE_SCOPE_MANIFE
 | Public route inventory | PASS — 78 records |
 | Public release audit | PASS — 1,874 committed files, 23 required paths, 24 Chess TV contracts |
 | Focused Node | PASS — 7/7 |
-| Focused browser | PASS — 33/33, Chromium/Firefox/WebKit |
+| Focused browser, prior certification | PASS — 33/33, Chromium/Firefox/WebKit |
+| Focused browser, final-gate rerun | BLOCKED — 32/33; WebKit Opening Database immediate `End`-key focus failed |
+| Focused WebKit repeat | BLOCKED — 3/5 passed; 2/5 reproduced the same focus failure |
 | Canonical board browser | PASS — 19 passed, 1 intentional project skip |
-| Baseline differential | PASS — candidate introduced no failure signature |
+| Broader baseline differential | PASS — previously compared failure counts/signatures remain unchanged; focused WebKit race is separate |
 | Supply-chain policy | PASS — 501 runtime files, 186 locked entries |
 | Dependency audit | BASELINE OPEN — 6 advisories (1 moderate, 5 high), no dependency change |
-| Human Test parity | TARGETED RETEST REQUIRED |
+| Human Test parity | PASS — original and targeted owner tests approved |
 | Production authorization | NOT GRANTED |
 
-## Bounded release condition
+## Human acceptance completion
 
-Before any production approval, the owner should test only these deltas on the exact isolated candidate:
+The owner completed and approved these deltas on exact candidate `23cc63fe807b9703224539004dd69b8155069ebd`:
 
 1. WebKit/Safari-style first Tab reaches the global bypass; Enter transfers focus to main content.
 2. Scanner New Scan dialog cycles with Tab and Shift+Tab; Escape closes and restores focus.
 3. Scanner optional feedback displays the accessibility-only consent wording shown in the candidate screenshot, not the combined privacy-lane rights checkbox.
 
-No complete repeat of Chess Gym, Opening Database, Chess TV, or unchanged navigation behavior is requested.
+No repeat of these accepted checks is requested unless source changes invalidate the approval.
+
+## Remaining release condition
+
+The focused browser gate must be made deterministic without changing unrelated functionality. Source inspection shows `bindEvents()` is called only after asynchronous `initBoard()` completes in `js/opening-database.js`; the test can focus the already-rendered tab and press `End` before the keyboard handler is attached. The official final-gate command produced 32/33, and an isolated WebKit repeat produced 3/5 passes. Because correcting source would change the owner-tested candidate, no fix was made in this gate. A revised candidate must be re-assessed and the affected Opening Database keyboard behavior re-approved before production authorization.
 
 ## Status
 
-`CONDITIONAL GO — TARGETED HUMAN RETEST REQUIRED — PRODUCTION AUTHORIZATION NOT GRANTED`
+`CONDITIONAL GO — BOTH HUMAN TESTS PASS — WEBKIT OPENING DATABASE INITIALIZATION RACE REQUIRES RESOLUTION — PRODUCTION AUTHORIZATION NOT GRANTED`

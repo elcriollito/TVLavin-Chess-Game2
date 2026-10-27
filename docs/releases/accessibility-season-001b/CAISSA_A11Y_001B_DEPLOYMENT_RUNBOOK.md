@@ -8,7 +8,8 @@ This is a future procedure only. It is not authorization to push, merge, create 
 - Required certified code checkpoint: `d8958b9b0fafd2c4e51ed45348643077c347b648`
 - Required certified code tree: `33a9b2ed1c31c02dcf18fb0b07dcab74949284d0`
 - Required production-before-release deployment: `dpl_2uyihaZJjvg2wFS915qWDvhVY9Dm`
-- Required Human Test record: existing full pass plus the bounded retest in `CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md`
+- Required Human Test record: original and targeted passes in `CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md`
+- Required automated gate: stable 33/33 focused browser result after resolving the documented WebKit Opening Database initialization race
 - Required package head/tree: the exact values in the final owner handoff
 
 If remote `main`, the production deployment, runtime tree, or package tree differs, stop and re-audit the delta. Do not blindly rebase or merge.
@@ -54,7 +55,7 @@ npx playwright test tests/browser/caissa-board-persistent-renderer.spec.js --con
 
 ## Authorized release sequence
 
-Only after explicit owner production authorization:
+Only after the WebKit Opening Database gate is resolved, the affected keyboard behavior is re-approved, and explicit owner production authorization is provided:
 
 1. Freeze the exact reviewed package HEAD and tree from the handoff.
 2. Recheck remote/production drift and rerun the final local verification.
@@ -77,5 +78,6 @@ Stop before production if any of the following occurs:
 - migration/provider setup becomes necessary;
 - a restricted path appears;
 - focused tests regress;
+- the WebKit Opening Database focus test is nondeterministic or fails;
 - PayPal or Support contribution functionality reappears;
 - Vercel reports a different Git SHA or non-READY state.

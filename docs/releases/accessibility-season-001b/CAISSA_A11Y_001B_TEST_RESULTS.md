@@ -17,6 +17,25 @@ npx playwright test tests/browser/accessibility-foundation.spec.js tests/browser
 
 Result: **PASS — 33/33** (11 per browser project). Coverage includes mouse activation, keyboard-only operation, Tab/Shift+Tab, Arrow/Home/End, skip-link focus and transfer, accessible naming, dialog focus containment/restoration, 200% zoom, computed 4.5:1 text contrast, EN/ES/PT, and serious/critical Axe findings.
 
+## Final-gate rerun — 2026-10-26
+
+The exact focused browser command was repeated after the owner's targeted acceptance against unchanged candidate `23cc63fe807b9703224539004dd69b8155069ebd`.
+
+Result: **BLOCKED — 32 passed / 1 failed**. WebKit did not move focus from the Opening Database `Moves` tab to `Search Games` when `End` was pressed immediately after navigation.
+
+The failing assertion was then isolated:
+
+```powershell
+$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:8187'
+npx playwright test tests/browser/accessibility-season-001b.spec.js --project=webkit --grep "Opening Database exposes operable tabs" --repeat-each=5
+```
+
+Result: **3 passed / 2 failed** with the same focus signature. A separate read-only WebKit diagnostic completed the immediate focus/`End` sequence 10/10 times, confirming nondeterministic timing rather than a permanently absent handler, but it does not erase the official-suite failures.
+
+Source inspection identifies the timing boundary: `runInit()` awaits `initBoard()` before calling `bindEvents()` in `js/opening-database.js`. The tabs are already rendered and focusable during that interval. The candidate and owner-tested combined build contain byte-identical Opening Database HTML/controller blobs, so this is not an extraction drift; it is a newly evidenced initialization race in the tested implementation.
+
+No source fix was made because the owner approved the exact candidate and the final gate forbids silently changing it. A revised candidate should attach the tab keyboard contract independently of asynchronous board initialization, rerun the focused three-browser suite, and receive bounded Opening Database keyboard re-approval.
+
 ## Canonical board behavior
 
 ```powershell
