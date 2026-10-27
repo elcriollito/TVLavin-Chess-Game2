@@ -293,6 +293,8 @@ test.describe('CAISSA Scanner local recognition runtime', () => {
     expect(result.urlLifecycle.revoked).toBe(result.urlLifecycle.created);
     expect(result.previewSource).toBe(null);
     expect(nonGetRequests.filter(request => new URL(request.url).pathname.endsWith('/recognize')).length).toBeGreaterThanOrEqual(1);
-    expect(nonGetRequests.filter(request => new URL(request.url).pathname.endsWith('/scan')).length).toBeGreaterThanOrEqual(1);
+    // Reaching Review/Edit is transient processing only. Durable scan creation
+    // is deferred until the user explicitly submits optional feedback.
+    expect(nonGetRequests.filter(request => new URL(request.url).pathname.endsWith('/scan')).length).toBe(0);
   });
 });
