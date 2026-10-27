@@ -38,7 +38,9 @@ test('registration retains the single server-authoritative provisioning path', (
   assert.match(signup, /\/api\/auth\/registration\/invitation/);
   assert.match(gate, /createInvitation/);
   assert.match(gate, /store\.consume/);
-  assert.doesNotMatch(signup, /mountSignUp|Clerk\.load/);
+  assert.match(signup, /getAll\('__clerk_ticket'\)/);
+  assert.match(signup, /mountSignUp/);
+  assert.match(signup, /REGISTRATION_CANDIDATE\?\.enabled !== true/);
 });
 
 test('every standalone sidebar obtains the same auth runtime from its shared renderer', () => {

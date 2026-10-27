@@ -179,5 +179,7 @@ test('static guards require central validation before auth redirect sinks', () =
         assert.match(source, /sanitizeInternalRedirect/);
     }
     assert.doesNotMatch(fs.readFileSync('js/signin-page.js', 'utf8'), /return params\.get\(['"]redirect_url/);
-    assert.doesNotMatch(fs.readFileSync('js/signup-page.js', 'utf8'), /redirect_url|location\.href|mountSignUp|Clerk\.load/);
+    const signup = fs.readFileSync('js/signup-page.js', 'utf8');
+    assert.match(signup, /sanitizeInternalRedirect/);
+    assert.doesNotMatch(signup, /return params\.get\(['"]redirect_url/);
 });

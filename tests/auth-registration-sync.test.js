@@ -58,7 +58,9 @@ test('auth completion remains bounded while new registration uses the eligibilit
   assert.match(completion,/retry\.focus\(\)/);
   assert.match(signup,/\/api\/auth\/registration\/eligibility/);
   assert.match(signup,/\/api\/auth\/registration\/invitation/);
-  assert.doesNotMatch(signup,/Clerk\.load|mountSignUp|redirect_url/);
+  assert.match(signup,/getAll\('__clerk_ticket'\)/);
+  assert.match(signup,/if \(ticket\)[\s\S]*startInvitationFlow\(ticket\)/);
+  assert.match(signup,/sanitizeInternalRedirect/);
   assert.match(signin,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
   assert.match(signin,/signInForceRedirectUrl: getCompletionUrl\(\)/);
   assert.doesNotMatch(`${signup}\n${signin}`,/afterSign(?:In|Up)Url/);

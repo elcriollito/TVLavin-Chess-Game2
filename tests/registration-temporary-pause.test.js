@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('signup defaults to the bilingual pause page and cannot mount Clerk signup', () => {
+test('signup defaults to the bilingual pause page and keeps invitation handling release-gated', () => {
   const html = read('signup.html');
   assert.match(html, /id="registration-paused-title"/);
   assert.match(html, /lang="es"/);
@@ -12,7 +12,7 @@ test('signup defaults to the bilingual pause page and cannot mount Clerk signup'
   assert.match(html, /registrations are temporarily paused/i);
   assert.match(html, /id="registrationCandidate"[^>]*hidden/);
   assert.match(html, /signup-page\.js/);
-  assert.doesNotMatch(html + read('js/signup-page.js'), /id="clerk-sign-up"|mountSignUp|Clerk\.load/i);
+  assert.match(html + read('js/signup-page.js'), /id="clerk-sign-up"|mountSignUp|Clerk\.load/i);
   assert.match(html, /href="\/signin"/);
 });
 

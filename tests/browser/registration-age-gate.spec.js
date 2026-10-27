@@ -5,7 +5,7 @@ async function enableCandidate(page) {
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({
-      clerkPublishableKey: '', registrationTracking: false, identityOwnerHandoff: null,
+      clerkPublishableKey: 'pk_test_YXV0aC5sb2NhbC50ZXN0JA', registrationTracking: false, identityOwnerHandoff: null,
       registrationCandidate: {
         enabled: true,
         policyVersion: 'caissa-account-16-plus-v1',
@@ -75,4 +75,46 @@ test('eligible candidate separates age and email requests and fits Mobile Safari
   ]);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test('Clerk invitation ticket bypasses duplicate age and invitation requests and is preserved for SignUp', async ({ page }) => {
+  await enableCandidate(page);
+  const registrationRequests = [];
+  page.on('request', request => {
+    if (/\/api\/auth\/registration\/(?:eligibility|invitation)$/.test(new URL(request.url()).pathname)) {
+      registrationRequests.push(request.url());
+    }
+  });
+  await page.addInitScript(() => {
+    window.__mountedInvitation = null;
+    window.__internal_ClerkUICtor = function ClerkUI() {};
+    window.Clerk = {
+      user: null,
+      load: async () => {},
+      mountSignUp: (container, props) => {
+        window.__mountedInvitation = { href: window.location.href, props };
+        container.textContent = 'Secure invitation accepted by Clerk';
+      }
+    };
+  });
+  const ticket = 'ticket.synthetic_1234567890';
+  await page.goto(`/signup?__clerk_ticket=${ticket}&redirect_url=%2Fscanner`);
+  await expect(page.getByRole('heading', { name: 'Finish creating your account' })).toBeVisible();
+  await expect(page.locator('#clerk-sign-up')).toHaveText('Secure invitation accepted by Clerk');
+  await expect(page.locator('#registrationCandidate')).toBeHidden();
+  expect(registrationRequests).toEqual([]);
+  const mounted = await page.evaluate(() => window.__mountedInvitation);
+  expect(mounted.href).toContain(`__clerk_ticket=${ticket}`);
+  expect(mounted.props.forceRedirectUrl).toBe('/auth/complete?redirect_url=%2Fscanner');
+});
+
+test('malformed or repeated invitation tickets do not open Clerk and remain on the age gate', async ({ page }) => {
+  await enableCandidate(page);
+  await page.addInitScript(() => {
+    window.__clerkMounted = false;
+    window.Clerk = { load: async () => {}, mountSignUp: () => { window.__clerkMounted = true; } };
+  });
+  await page.goto('/signup?__clerk_ticket=short&__clerk_ticket=second_ticket_123456789');
+  await expect(page.getByRole('heading', { name: 'Check account availability' })).toBeVisible();
+  expect(await page.evaluate(() => window.__clerkMounted)).toBe(false);
 });

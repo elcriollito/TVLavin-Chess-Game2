@@ -26,7 +26,7 @@ function clerkMetaPolicies() {
 
 test('every Clerk-enabled HTML meta CSP allows the exact Production custom domain', () => {
   const policies = clerkMetaPolicies();
-  assert.equal(policies.length, 15, 'unexpected directly-served Clerk HTML meta CSP inventory');
+  assert.equal(policies.length, 16, 'unexpected directly-served Clerk HTML meta CSP inventory');
 
   for (const { file, policy } of policies) {
     assert.doesNotMatch(policy, /https:\/\/\*\.caissa-chess\.org/, `${file} grants an unnecessary wildcard`);
@@ -42,14 +42,19 @@ test('every Clerk-enabled HTML meta CSP allows the exact Production custom domai
   }
 });
 
-test('sign-in permits Clerk while sign-up is isolated from Clerk network origins', () => {
+test('sign-in and the invitation-only sign-up handoff permit exact Clerk origins', () => {
   const policies = new Map(clerkMetaPolicies().map(item => [item.file, directives(item.policy)]));
 
   const signin = policies.get('signin.html');
   assert.ok(signin, 'signin.html Clerk meta CSP missing');
   assert.ok(signin.get('script-src')?.includes(productionOrigin));
   assert.ok(signin.get('connect-src')?.includes(productionOrigin));
-  const signup = fs.readFileSync(new URL('signup.html', projectRoot), 'utf8');
-  assert.doesNotMatch(signup, /clerk\.accounts\.dev|clerk\.caissa-chess\.org|api\.clerk\.com|clerk-telemetry\.com/);
-  assert.match(signup, /frame-src 'none'/);
+  const signup = policies.get('signup.html');
+  assert.ok(signup, 'signup.html Clerk meta CSP missing');
+  assert.ok(signup.get('script-src')?.includes(productionOrigin));
+  assert.ok(signup.get('connect-src')?.includes(productionOrigin));
+  assert.ok(signup.get('frame-src')?.includes('https://challenges.cloudflare.com'));
+  const source = fs.readFileSync(new URL('js/signup-page.js', projectRoot), 'utf8');
+  assert.match(source, /getAll\('__clerk_ticket'\)/);
+  assert.match(source, /REGISTRATION_CANDIDATE\?\.enabled !== true/);
 });

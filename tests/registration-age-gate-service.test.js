@@ -151,11 +151,15 @@ test('durable source and recipient limits fail closed before Clerk and retain no
   assert.deepEqual(failed.body, { code: 'REGISTRATION_UNAVAILABLE' });
 });
 
-test('static boundaries remove direct Clerk sign-up and preserve existing-user sign-in', () => {
+test('static boundaries permit Clerk only for a recipient-bound invitation and preserve existing-user sign-in', () => {
   const signup = fs.readFileSync('js/signup-page.js', 'utf8');
   const signin = fs.readFileSync('js/signin-page.js', 'utf8');
   const html = fs.readFileSync('signup.html', 'utf8');
-  assert.doesNotMatch(signup + html, /mountSignUp|Clerk\.load|clerk-sign-up/);
+  assert.match(signup, /getAll\('__clerk_ticket'\)/);
+  assert.match(signup, /if \(ticket\)[\s\S]*startInvitationFlow\(ticket\)/);
+  assert.match(signup + html, /mountSignUp|clerk-sign-up/);
+  assert.match(html, /<meta name="referrer" content="no-referrer">/);
+  assert.doesNotMatch(html, /caissa-vercel-analytics/);
   assert.match(signup, /\/api\/auth\/registration\/eligibility/);
   assert.match(signup, /\/api\/auth\/registration\/invitation/);
   assert.doesNotMatch(signup, /localStorage|sessionStorage|indexedDB|analytics|console\./i);
