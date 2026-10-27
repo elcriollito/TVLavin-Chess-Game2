@@ -2,7 +2,7 @@
 
 Mission: `CAISSA-A11Y-001B-RELEASE-CERT-20261026`
 
-Decision: **CONDITIONAL GO**. Both owner Human Tests are approved and the accessibility-only scope remains isolated with no migration or provider dependency. The 2026-10-26 final-gate rerun exposed a nondeterministic WebKit Opening Database initialization race, so the candidate is not yet `GO FOR OWNER PRODUCTION APPROVAL`.
+Decision: **READY FOR TARGETED HUMAN RETEST**. Both prior owner Human Tests remain approved. Hotfix `4c7c3292cd181e96b67500326576c408efe41120` resolves the WebKit Opening Database initialization race without migration or provider dependencies and passes the deterministic, repeated WebKit, multibrowser, board, and release-integrity gates. Only the revised Opening Database keyboard behavior requires owner retesting.
 
 Production remains unchanged. No push, pull request, remote merge, Vercel Preview, Vercel Production deployment, database change, provider configuration change, AUTH-004 change, PayPal restoration, or privacy/security release was performed.
 
@@ -34,16 +34,19 @@ The original checkout remains on `feature/arena-redesign` at `61c2fab70c8eb7d4b4
 - Local branch: `release/accessibility-001b-certified-20261026`
 - Certified code checkpoint: `d8958b9b0fafd2c4e51ed45348643077c347b648`
 - Certified code tree: `33a9b2ed1c31c02dcf18fb0b07dcab74949284d0`
+- WebKit race hotfix checkpoint: `4c7c3292cd181e96b67500326576c408efe41120`
+- WebKit race hotfix tree: `82f842f41d3e5ff56495217f3f4ddea9847c7f5b`
 - Runtime commits above production:
   - `e0d03d1924a144fb0737f34bbe9a791efb561bf5` — accessibility-only extraction of upstream implementation `5a7a680618d4a9df19b0245c595abfe6c6740b98`
   - `f8252d2bb43ffc0b95a2e6ba98561b4d6f6d95de` — WebKit bypass, Scanner modal focus containment, generated fallbacks, and release-only tests
   - `d8958b9b0fafd2c4e51ed45348643077c347b648` — atomically synchronizes the generated Play fallback module with navigation fallback regeneration
+  - `4c7c3292cd181e96b67500326576c408efe41120` — binds Opening Database tab interactions before asynchronous board initialization and adds deterministic race coverage
 
 The final local documentation commit and branch tree are reported in the owner handoff because a commit cannot embed its own SHA.
 
 ## Scope result
 
-The implementation allowlist at the certified code checkpoint contains 29 runtime, build, and test paths. The final release range contains 52 paths after adding seven certification documents and sixteen public-safe evidence captures. It changes no package manifest or lockfile, database or migration, Supabase artifact, Worker, authentication provider, Stripe or PayPal integration, `vercel.json`, `server.js`, sitemap, privacy backend, security override, AUTH-004 document, or provider configuration.
+The implementation allowlist at the hotfix checkpoint contains 30 runtime, build, and test paths. The final release range contains 53 paths after adding seven certification documents and sixteen public-safe evidence captures. It changes no package manifest or lockfile, database or migration, Supabase artifact, Worker, authentication provider, Stripe or PayPal integration, `vercel.json`, `server.js`, sitemap, privacy backend, security override, AUTH-004 document, or provider configuration.
 
 `PLAY_V2_UNAVAILABLE_DOCUMENT` remains exported and the Play unavailable gate remains fail-closed. `/support`, `/support/`, and `/support.html` remain 308 redirects to `/help`. No PayPal text, SDK, Hosted Button, CSP permission, or donation navigation was added.
 
@@ -73,8 +76,10 @@ See [CAISSA_A11Y_001B_FILE_SCOPE_MANIFEST.md](CAISSA_A11Y_001B_FILE_SCOPE_MANIFE
 | Public release audit | PASS — 1,874 committed files, 23 required paths, 24 Chess TV contracts |
 | Focused Node | PASS — 7/7 |
 | Focused browser, prior certification | PASS — 33/33, Chromium/Firefox/WebKit |
-| Focused browser, final-gate rerun | BLOCKED — 32/33; WebKit Opening Database immediate `End`-key focus failed |
-| Focused WebKit repeat | BLOCKED — 3/5 passed; 2/5 reproduced the same focus failure |
+| Original failing WebKit scenario after hotfix | PASS — 30/30 consecutive, no retries |
+| Deterministic delayed-init WebKit scenario | PASS — 30/30 consecutive, no retries |
+| Expanded focused browser suite | PASS — 45/45, Chromium/Firefox/WebKit |
+| Repeated broader WebKit selection | PASS — 45/45 across three consecutive runs |
 | Canonical board browser | PASS — 19 passed, 1 intentional project skip |
 | Broader baseline differential | PASS — previously compared failure counts/signatures remain unchanged; focused WebKit race is separate |
 | Supply-chain policy | PASS — 501 runtime files, 186 locked entries |
@@ -92,10 +97,14 @@ The owner completed and approved these deltas on exact candidate `23cc63fe807b97
 
 No repeat of these accepted checks is requested unless source changes invalidate the approval.
 
+## WebKit race correction
+
+The root cause was `bindEvents()` running only after asynchronous `initBoard()` completed. The hotfix extracts an idempotent tab-only binding helper, invokes it synchronously before the board boundary, initializes default tab semantics before awaiting, and removes the late `setActiveTab('moves')` override. Board-dependent controls remain bound after board initialization. Early user selection survives success or failure of board setup.
+
 ## Remaining release condition
 
-The focused browser gate must be made deterministic without changing unrelated functionality. Source inspection shows `bindEvents()` is called only after asynchronous `initBoard()` completes in `js/opening-database.js`; the test can focus the already-rendered tab and press `End` before the keyboard handler is attached. The official final-gate command produced 32/33, and an isolated WebKit repeat produced 3/5 passes. Because correcting source would change the owner-tested candidate, no fix was made in this gate. A revised candidate must be re-assessed and the affected Opening Database keyboard behavior re-approved before production authorization.
+The owner should perform only the bounded Opening Database keyboard retest in `CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md`. No previously approved Scanner, Analyze, Gym, Chess TV, or navigation test needs repeating because those source paths did not change.
 
 ## Status
 
-`CONDITIONAL GO — BOTH HUMAN TESTS PASS — WEBKIT OPENING DATABASE INITIALIZATION RACE REQUIRES RESOLUTION — PRODUCTION AUTHORIZATION NOT GRANTED`
+`READY FOR TARGETED HUMAN RETEST — WEBKIT RACE FIXED — PRODUCTION AUTHORIZATION NOT GRANTED`

@@ -1,6 +1,6 @@
 # CAISSA Accessibility Season 001B — Test Results
 
-All candidate commands ran from `C:\Users\ALEXANDER\Alexander Projects\TVLavin-Chess-Game2-a11y-001b-release`. Candidate browser tests used the loopback-only server `http://127.0.0.1:8187`. Baseline differential browser tests used detached production commit `26e9d25…` at `http://127.0.0.1:8188`.
+Original candidate commands ran from `C:\Users\ALEXANDER\Alexander Projects\TVLavin-Chess-Game2-a11y-001b-release`. Hotfix commands ran from `C:\Users\ALEXANDER\Alexander Projects\TVLavin-Chess-Game2-a11y-001b-webkit-hotfix`. Candidate and hotfix browser tests used the loopback-only server `http://127.0.0.1:8187` at their respective checkpoints. Baseline differential browser tests used detached production commit `26e9d25…` at `http://127.0.0.1:8188`.
 
 ## Focused accessibility gates
 
@@ -17,7 +17,7 @@ npx playwright test tests/browser/accessibility-foundation.spec.js tests/browser
 
 Result: **PASS — 33/33** (11 per browser project). Coverage includes mouse activation, keyboard-only operation, Tab/Shift+Tab, Arrow/Home/End, skip-link focus and transfer, accessible naming, dialog focus containment/restoration, 200% zoom, computed 4.5:1 text contrast, EN/ES/PT, and serious/critical Axe findings.
 
-## Final-gate rerun — 2026-10-26
+## Pre-hotfix final-gate rerun — 2026-10-26
 
 The exact focused browser command was repeated after the owner's targeted acceptance against unchanged candidate `23cc63fe807b9703224539004dd69b8155069ebd`.
 
@@ -34,7 +34,34 @@ Result: **3 passed / 2 failed** with the same focus signature. A separate read-o
 
 Source inspection identifies the timing boundary: `runInit()` awaits `initBoard()` before calling `bindEvents()` in `js/opening-database.js`. The tabs are already rendered and focusable during that interval. The candidate and owner-tested combined build contain byte-identical Opening Database HTML/controller blobs, so this is not an extraction drift; it is a newly evidenced initialization race in the tested implementation.
 
-No source fix was made because the owner approved the exact candidate and the final gate forbids silently changing it. A revised candidate should attach the tab keyboard contract independently of asynchronous board initialization, rerun the focused three-browser suite, and receive bounded Opening Database keyboard re-approval.
+At that checkpoint, no source fix was made because the owner had approved the exact candidate and the final gate forbade silently changing it. The separately authorized hotfix below implements the required binding change and supplies the requested automated evidence. Bounded Opening Database keyboard re-approval remains the only human gate.
+
+## WebKit initialization race hotfix certification
+
+Hotfix checkpoint: `4c7c3292cd181e96b67500326576c408efe41120`
+Implementation tree: `82f842f41d3e5ff56495217f3f4ddea9847c7f5b`
+
+The hotfix extracts idempotent tab interaction binding from the board-dependent event bundle. It binds and initializes tab semantics before `await initBoard()`, and it removes the late default-tab reset so an early user selection is preserved.
+
+| Verification | Result |
+|---|---|
+| Deterministic delayed/fast/idempotent/failure WebKit spec | PASS — 4/4 |
+| Previously failing WebKit assertion, `--repeat-each=30 --retries=0` | PASS — 30/30 |
+| Deterministic delayed-init scenario, `--repeat-each=30 --retries=0` | PASS — 30/30 |
+| Expanded Chromium/Firefox/WebKit accessibility suite | PASS — 45/45 |
+| Broader WebKit selection repeated three times | PASS — 45/45 |
+| Focused/static/Open Database Node selection | PASS — 15/15 |
+| Final focused accessibility Node | PASS — 7/7 |
+| Generator/Play contracts | PASS — 14/14 |
+| Opening Database source contracts | PASS — 8/8 |
+| Canonical board Chromium/WebKit | PASS — 19 passed, 1 intentional skip |
+| Opening Database Quiet Drag Chromium/WebKit | PASS — 14/14 |
+| Public release audit | PASS — 1,874 files, 23 required paths, 24 Chess TV contracts |
+| Route inventory | PASS — 78 records |
+| Supply-chain policy | PASS — 501 runtime files, 186 locked entries |
+| Restricted path / secret / PayPal additions | PASS — 0 / 0 / 0 |
+
+No retry, skip, expected-failure marker, arbitrary sleep, dependency change, or production-only debug hook was used to hide the race. The deterministic browser test holds the Quiet Drag module request pending, exercises the complete tab contract, releases initialization, and proves the early Games selection/focus survives.
 
 ## Canonical board behavior
 

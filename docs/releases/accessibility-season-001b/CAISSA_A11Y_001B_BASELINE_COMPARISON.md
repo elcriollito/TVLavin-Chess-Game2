@@ -38,8 +38,8 @@ Chess Gym, Opening Database, and Chess TV accessibility runtime files are byte-i
 
 ## Post-acceptance final-gate observation
 
-The final-gate WebKit rerun exposed an intermittent Opening Database keyboard initialization race: the focused command produced 32/33, and an isolated repeat of the affected assertion produced 3/5 passes. `opening-database.html` and `js/opening-database.js` are byte-identical between this candidate and the owner-tested combined build, so the result is not accessibility-only extraction drift. It is also not one of the production-base failures above because production does not contain the new tab-keyboard contract. The issue remains candidate-applicable and blocks final production-readiness certification until resolved and re-verified.
+The final-gate WebKit rerun exposed an intermittent Opening Database keyboard initialization race: the focused command produced 32/33, and an isolated repeat of the affected assertion produced 3/5 passes. `opening-database.html` and the pre-hotfix `js/opening-database.js` were byte-identical between the candidate and owner-tested combined build, so the result was not accessibility-only extraction drift. Hotfix `4c7c3292cd181e96b67500326576c408efe41120` corrects that candidate-applicable race. Both the formerly failing assertion and deterministic delayed-init scenario then passed 30/30 WebKit runs without retries; the expanded multibrowser and repeated broader WebKit selections passed 45/45 each.
 
 ## Conclusion
 
-The broader baseline failures remain unchanged and disclosed. Separately, the post-acceptance focused WebKit initialization race is newly evidenced and must be resolved before the release can move from `CONDITIONAL GO` to `GO FOR OWNER PRODUCTION APPROVAL`.
+The broader baseline failures remain unchanged and disclosed. The post-acceptance WebKit initialization race is corrected and automated certification is complete. The release is ready for the bounded Opening Database Human Retest, not production publication.

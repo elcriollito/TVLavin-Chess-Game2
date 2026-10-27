@@ -7,9 +7,12 @@ This is a future procedure only. It is not authorization to push, merge, create 
 - Required production base: `26e9d25bf4ffbd13fb8b4d253e3bdb03169dcf7b`
 - Required certified code checkpoint: `d8958b9b0fafd2c4e51ed45348643077c347b648`
 - Required certified code tree: `33a9b2ed1c31c02dcf18fb0b07dcab74949284d0`
+- Required WebKit race hotfix checkpoint: `4c7c3292cd181e96b67500326576c408efe41120`
+- Required WebKit race hotfix tree: `82f842f41d3e5ff56495217f3f4ddea9847c7f5b`
 - Required production-before-release deployment: `dpl_2uyihaZJjvg2wFS915qWDvhVY9Dm`
 - Required Human Test record: original and targeted passes in `CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md`
-- Required automated gate: stable 33/33 focused browser result after resolving the documented WebKit Opening Database initialization race
+- Required automated gate: recorded 30/30 original-scenario WebKit stability, 30/30 deterministic delayed-init stability, 45/45 multibrowser, and 45/45 repeated broader WebKit results
+- Required revised Human Test: bounded Opening Database immediate-loading keyboard check in `CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md`
 - Required package head/tree: the exact values in the final owner handoff
 
 If remote `main`, the production deployment, runtime tree, or package tree differs, stop and re-audit the delta. Do not blindly rebase or merge.
@@ -55,7 +58,7 @@ npx playwright test tests/browser/caissa-board-persistent-renderer.spec.js --con
 
 ## Authorized release sequence
 
-Only after the WebKit Opening Database gate is resolved, the affected keyboard behavior is re-approved, and explicit owner production authorization is provided:
+Only after the affected Opening Database keyboard behavior is re-approved and explicit owner production authorization is provided:
 
 1. Freeze the exact reviewed package HEAD and tree from the handoff.
 2. Recheck remote/production drift and rerun the final local verification.
@@ -78,6 +81,6 @@ Stop before production if any of the following occurs:
 - migration/provider setup becomes necessary;
 - a restricted path appears;
 - focused tests regress;
-- the WebKit Opening Database focus test is nondeterministic or fails;
+- the recorded WebKit stability or deterministic race tests fail when repeated;
 - PayPal or Support contribution functionality reappears;
 - Vercel reports a different Git SHA or non-READY state.

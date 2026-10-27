@@ -65,4 +65,15 @@ The mobile Scanner check was completed on a physical device through a private lo
 
 ## Gate
 
-Human acceptance is complete. It is acceptance of the tested user experience, not legal approval of Scanner data processing or certification of complete WCAG conformance. The separate final-QA WebKit Opening Database initialization race remains a release blocker and is documented in `CAISSA_A11Y_001B_TEST_RESULTS.md`.
+The previous Human Test approvals remain valid for unchanged behavior. They are acceptance of the tested user experience, not legal approval of Scanner data processing or certification of complete WCAG conformance.
+
+Hotfix `4c7c3292cd181e96b67500326576c408efe41120` changes only Opening Database keyboard initialization and its tests. The owner should perform this bounded retest against the revised local server:
+
+1. Open `/opening-database` and reload the page.
+2. Immediately focus the `Moves` tab and press `End`.
+3. Confirm `Search Games` receives focus and becomes selected.
+4. Press `Home` and confirm focus/selection returns to `Moves`.
+5. Repeat after the chessboard finishes loading.
+6. Confirm tab clicks and normal Opening Database use still work.
+
+No repeat of Chess Gym, Chess TV, Analyze bypass, Scanner mobile dialog, Scanner consent controls, or general navigation is required. Production approval remains separate.
