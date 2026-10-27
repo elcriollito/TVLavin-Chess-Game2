@@ -37,6 +37,7 @@
     },
     moveListMode: 'popular',
     activeTab: 'moves',
+    tabInteractionsBound: false,
     gamesTier: 'free',
     gamesVersion: 'v1',
     gamesBaseRoot: '/openingdb/games',
@@ -2433,6 +2434,35 @@
     }
   }
 
+  function bindOpeningDbTabInteractions() {
+    if (state.tabInteractionsBound) return false;
+    const explorerTabs = [els.tabMoves, els.tabGames].filter(Boolean);
+    if (explorerTabs.length === 0) return false;
+    state.tabInteractionsBound = true;
+
+    explorerTabs.forEach((tab, index) => {
+      tab.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? explorerTabs.length - 1
+            : (index + (event.key === 'ArrowRight' ? 1 : explorerTabs.length - 1)) % explorerTabs.length;
+        const next = explorerTabs[nextIndex];
+        setActiveTab(next === els.tabGames ? 'games' : 'moves');
+        next.focus();
+      });
+    });
+    if (els.tabMoves) {
+      els.tabMoves.addEventListener('click', () => setActiveTab('moves'));
+    }
+    if (els.tabGames) {
+      els.tabGames.addEventListener('click', () => setActiveTab('games'));
+    }
+    return true;
+  }
+
   function passesGamesFilters(meta) {
     const yearMin = Number.parseInt(String(els.gamesYearMin?.value || ''), 10);
     const yearMax = Number.parseInt(String(els.gamesYearMax?.value || ''), 10);
@@ -3259,27 +3289,6 @@
   }
 
   function bindEvents() {
-    const explorerTabs = [els.tabMoves, els.tabGames].filter(Boolean);
-    explorerTabs.forEach((tab, index) => {
-      tab.addEventListener('keydown', (event) => {
-        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-        event.preventDefault();
-        const nextIndex = event.key === 'Home'
-          ? 0
-          : event.key === 'End'
-            ? explorerTabs.length - 1
-            : (index + (event.key === 'ArrowRight' ? 1 : explorerTabs.length - 1)) % explorerTabs.length;
-        const next = explorerTabs[nextIndex];
-        setActiveTab(next === els.tabGames ? 'games' : 'moves');
-        next.focus();
-      });
-    });
-    if (els.tabMoves) {
-      els.tabMoves.addEventListener('click', () => setActiveTab('moves'));
-    }
-    if (els.tabGames) {
-      els.tabGames.addEventListener('click', () => setActiveTab('games'));
-    }
     if (els.movesPopularBtn) {
       els.movesPopularBtn.addEventListener('click', () => setMovesListMode('popular'));
     }
@@ -3808,6 +3817,8 @@
   }
 
   async function runInit() {
+    bindOpeningDbTabInteractions();
+    setActiveTab(state.activeTab);
     debugLog('[OpeningDB] init start');
     debugLog('[OpeningDB] Chessboard typeof:', typeof window.Chessboard);
     debugLog('[OpeningDB] Chess typeof:', typeof window.Chess);
@@ -3855,7 +3866,6 @@
       renderEnginePanel();
       await initBoard();
       bindEvents();
-      setActiveTab('moves');
       updateDownloadButtonLabel();
       setGamesStatus('Ready to search.');
       renderGamesSummary([], 0);

@@ -40,6 +40,18 @@ test('Opening Database tabs, results, loading, and errors have deterministic sem
   assert.match(html, /id="odbFenError"[^>]+role="alert"/);
   assert.match(source, /gamesPanel\.setAttribute\('aria-busy', 'true'\)/);
   assert.match(source, /\['ArrowLeft', 'ArrowRight', 'Home', 'End'\]/);
+  assert.match(source, /function bindOpeningDbTabInteractions\(\)/);
+  assert.match(source, /if \(state\.tabInteractionsBound\) return false/);
+  const runInit = source.slice(source.indexOf('async function runInit()'));
+  assert.ok(
+    runInit.indexOf('bindOpeningDbTabInteractions();') < runInit.indexOf('await initBoard();'),
+    'Opening Database tab interactions must bind before asynchronous board initialization'
+  );
+  assert.doesNotMatch(
+    runInit.slice(runInit.indexOf('await initBoard();')),
+    /setActiveTab\('moves'\)/,
+    'board initialization must not overwrite an early user tab selection'
+  );
 });
 
 test('Chess TV communicates turn state in text and uses one restrained live region', () => {
