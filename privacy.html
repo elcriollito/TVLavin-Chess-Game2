@@ -36,7 +36,7 @@
         <p class="legal-eyebrow">CAISSA Chess legal draft</p>
         <h1>Privacy Policy</h1>
         <p class="legal-summary">This policy describes the information CAISSA Chess processes when you use its chess tools, accounts, online play, Scanner, feedback and related services.</p>
-        <p class="legal-updated">Last updated: October 25, 2026</p>
+        <p class="legal-updated">Last updated: October 27, 2026</p>
       </header>
       <p class="legal-notice"><strong>Review status:</strong> This is a pre-publication legal draft based on a technical audit. It is not yet approved for production publication.</p>
 
@@ -61,6 +61,7 @@
 
       <section class="legal-section" id="accounts"><h2>3. Accounts and authentication</h2>
         <p>CAISSA uses Clerk for account registration, sign-in, session management and account security. Clerk may process your email address, account identifiers, optional profile fields, profile image, authentication factors, device/session information and security events. CAISSA stores a Clerk subject identifier and may store your email address in its application database to connect your account to saved features and entitlements.</p>
+        <p>The registration candidate uses short-lived abuse-control windows keyed by server-generated HMAC digests of request source and invitation recipient. It does not store the raw source address or email in those limiter records, and it does not combine those records with the submitted birth month or year.</p>
         <h3>Google Sign-In</h3>
         <p>Google Sign-In is being prepared but was not active in CAISSA production at the date of this draft. If it is activated, CAISSA will request only the basic OpenID Connect identity scopes <code>openid</code>, <code>https://www.googleapis.com/auth/userinfo.email</code> and <code>https://www.googleapis.com/auth/userinfo.profile</code>. Google and Clerk will process the sign-in flow. CAISSA may receive the Google account subject identifier, email address and basic profile information made available by those scopes, use them to create or connect your CAISSA account and session, and share them with Clerk for that purpose. CAISSA will not receive your Google password, request Gmail, Drive or Calendar access, or use Google identity data for advertising.</p>
       </section>
@@ -129,9 +130,9 @@
       </section>
 
       <section class="legal-section" id="children"><h2>13. Children's privacy</h2>
-        <p>CAISSA is a general-audience chess service and is not designed specifically for children. You must be at least 13 years old to create a CAISSA account. If the law where you live requires a higher minimum age or additional permission to use an online service, that requirement also applies.</p>
-        <p>Accounts for children under 13 are not currently offered. A future CAISSA Junior initiative may support those accounts only with verifiable parental consent and the additional privacy safeguards required by applicable law.</p>
-        <p>Some account-free chess content and tools may remain publicly accessible where appropriate. Public access does not authorize a child to create an account or submit personal information. CAISSA has not yet implemented or certified an age-screening control; new account registration remains paused while the account system is being prepared. A parent or guardian may contact CAISSA about a child's information.</p>
+        <p>CAISSA is a general-audience chess service and is not designed specifically for children. You must be at least 16 years old to create a new CAISSA account. If the law where you live requires a higher minimum age or additional permission to use an online service, that requirement also applies.</p>
+        <p>New accounts for people under 16 are not currently offered. A future CAISSA Junior initiative may support younger users only after a separate legal and product review, verifiable parental consent where required, and the privacy and social safeguards required by applicable law.</p>
+        <p>Some account-free chess content and tools may remain publicly accessible where appropriate. Public access does not authorize a child to create an account or submit personal information. A data-minimizing technical candidate asks only for birth month and year, evaluates them transiently before email or OAuth, and does not retain those values. It is not active in production; new account registration remains paused pending the Human Release Gate. A parent or guardian may contact CAISSA about a child's information.</p>
       </section>
 
       <section class="legal-section" id="updates"><h2>14. Changes to this policy</h2>

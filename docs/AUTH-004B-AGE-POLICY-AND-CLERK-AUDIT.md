@@ -1,51 +1,64 @@
-# AUTH-004B age policy and Clerk registration audit
+# AUTH-004 age policy and Clerk registration certification
 
-Audit date: October 25, 2026
+Audit date: October 27, 2026
 
-Status: policy approved; enforcement not implemented or certified
+Status: 16+ policy approved; technical candidate implemented and tested; production activation blocked by the Human Release Gate
 
-This document records implementation facts and a proposed minimum-data design. It is not legal advice and does not authorize production publication, account changes or reopening registration.
+This record is not legal advice and does not authorize production publication, account changes, a database migration, Clerk configuration changes, or reopening registration.
 
 ## Approved policy
 
-- A user must be at least 13 years old to create a CAISSA Chess account, subject to any higher age or additional permission required by applicable law.
-- Accounts for children under 13 are deferred to a future CAISSA Junior initiative with verifiable parental consent and appropriate privacy safeguards.
-- Appropriate account-free public access may remain available, but public access does not authorize account creation or submission of personal information by a child.
-- Existing accounts are not modified by this decision.
+- A person must be at least 16 years old to create a new CAISSA Chess account, subject to any higher age or additional permission required by applicable law. This replaces the former provisional 13+ position.
+- New accounts for people under 16 are deferred. Existing accounts are not modified, classified, suspended, or deleted by this change.
+- Appropriate account-free public chess tools may remain available. Public access does not authorize account creation or submission of personal information by a child.
+- CAISSA Junior is a future, separately gated initiative and is not implemented by this candidate.
 
-## Verified current production flow
+## Read-only Clerk production verification
 
-- `https://www.caissa-chess.org/signup` returns the registration-paused page. It does not load the historical `js/signup-page.js` file or mount Clerk's SignUp component.
-- The sign-in page mounts Clerk SignIn with `withSignUp: false` and `transferable: false`, so the CAISSA UI does not intentionally transfer an unknown sign-in identity into a new account.
-- Clerk production has `sign_up_mode: restricted`.
-- Clerk production requires and verifies an email at sign-up; phone and username are not required. First and last name are enabled but optional.
-- Clerk production legal consent is disabled and its Privacy Policy and Terms of Service URLs are unset.
-- Clerk production configuration exposes no native date-of-birth, age, or minimum-age rule. Clerk legal consent can require acceptance of legal documents, including after an OAuth return, but it is not an age-verification mechanism.
-- The legacy `js/signup-page.js` mounts Clerk's prebuilt SignUp component without an age step. It must not be restored unchanged.
+The connected Clerk production instance was read on October 27, 2026 without mutation.
 
-No users, accounts or Clerk settings were changed during this audit.
+- Application: `app_38rhCJXZbKJZGln3mL8wFm7Iaxr`
+- Production instance: `ins_3KCrtSZ0xYIWxGejoyQf5JvUsjH`
+- `sign_up_mode` remains `restricted`.
+- Email is required and verified at sign-up; phone and username are not required.
+- Google is marked enabled but has no configured client ID or secret, so it is not a ready production sign-up path.
+- Clerk legal consent remains disabled and its Privacy Policy and Terms URLs remain unset.
+- No Clerk setting, user, invitation, or account was changed.
 
-## Minimum-data implementation design
+## Technical candidate
 
-Keep production registration paused and Clerk sign-up restricted until all of the following are implemented and certified:
+The candidate uses an invitation-first architecture so a visual or route change cannot by itself create an account.
 
-1. Place a neutral age screen before any Clerk request, email entry, OAuth redirect or other collection of personal information. Do not use only an “I am 13 or older” checkbox and do not reveal which answer unlocks registration.
-2. Collect only what is needed to make the decision. A neutral month-and-year-of-birth input is the current FTC example. Evaluate it transiently, do not place it in URLs or logs, and do not retain the entered birth month or year.
-3. Retain at most the allowed user's age-band result (`13-or-older`), policy version, decision timestamp and enforcement method. Do not store a birth date. An under-13 response must stop before Clerk or another service receives an email, name, OAuth identifier or account record.
-4. Use a non-identifying, time-bounded browser control to prevent immediate back-button retries after an under-13 response, subject to counsel approval and the published storage notice.
-5. Enforce the gate for every creation path: email/password, email code, Google or other OAuth, invitations, account linking and any direct/custom Clerk flow. Existing-user sign-in must remain distinct from new-user creation.
-6. Clerk `unsafeMetadata` is not authoritative because it is writable from the frontend. If an attestation record or one-time eligibility token is used, validate and bind it server-side and fail closed before granting account-backed access.
-7. After the legal pages are approved and published, enable Clerk legal consent with the canonical Privacy and Terms URLs as a separate control. It records agreement to the documents; it does not replace the neutral age screen.
-8. Add automated bypass tests, OAuth return tests, blocked-under-13 tests with no personal-data transmission, existing-user sign-in tests, and manual mobile/desktop accessibility tests before reopening registration.
+1. The `/signup` document shows the existing pause page unless the server confirms every release prerequisite. Query strings or DOM changes cannot enable the server gate.
+2. When a future authorized release enables the gate, the first step asks neutrally for birth month and year before email or OAuth and before any Clerk request. It does not ask for a full date of birth, email, name, OAuth identity, or Clerk identifier.
+3. The server evaluates month/year transiently. Someone who may turn 16 during the current month is conservatively held until the next month because CAISSA does not collect a birth day.
+4. CAISSA does not retain those values: the response and application logs contain no submitted month or year, and the values are not placed in URLs, browser storage, Clerk metadata, or the database.
+5. An eligible decision produces a short-lived, host-only, Secure, HttpOnly, SameSite=Strict signed cookie. An ineligible decision produces a longer, non-identifying blocked cookie to reduce immediate back-button retries.
+6. Only the invitation endpoint accepts email, and only after it validates the eligible cookie. A fail-closed, atomic Supabase limiter bounds eligibility by request source and invitations by source and recipient; it stores only HMAC digests and short window counters, never raw IP addresses or email addresses.
+7. The invitation endpoint atomically consumes a one-way nonce digest before requesting a one-day Clerk invitation.
+8. The invitation carries only policy version, screening method, and screening timestamp. These are an attestation of the completed self-declaration flow, not proof of age.
+9. Direct email, API, invitation and OAuth account creation remain blocked by Clerk restricted mode. OAuth may be offered only after a valid restricted invitation. The sign-in UI continues with `withSignUp: false` and `transferable: false`, so an unknown OAuth identity is not transferred into sign-up.
+10. The old prebuilt `Clerk.mountSignUp` client was removed. No public CAISSA API exposes Clerk `users.createUser`.
+11. Every release dependency fails closed. Missing flags, limiter confirmation, database credentials, secret, Clerk server key, migration, same-origin request, exact JSON shape, valid cookie, capacity claim, or atomic nonce consumption prevents invitation issuance.
 
-## Legal and product questions still requiring resolution
+## Release prerequisites not activated
 
-- Qualified counsel must confirm whether CAISSA is properly classified as a general-audience service in each launch jurisdiction and approve the neutral-screen design.
-- Counsel must define the response, deletion and preservation procedure if CAISSA later obtains actual knowledge that an existing account belongs to a child under 13.
-- CAISSA Junior requires a separate parental-notice, verifiable-consent, data-minimization, retention and parent-rights design before any implementation.
+- Obtain final qualified legal review of the general-audience classification, jurisdictions, disclosure, and actual-knowledge response.
+- Publish approved Privacy Policy and Terms, then configure Clerk legal consent separately. Legal consent does not replace the age screen.
+- Apply `20261027120000_registration_age_gate.sql` to protected staging first and rehearse rollback. Production migration is not authorized.
+- Re-audit Clerk immediately before release and confirm restricted invitation-only sign-up, no alternative provider path, and correct legal URLs.
+- Configure a dedicated 32+ byte registration-gate secret and explicitly set the release, restricted-invitation and durable-limiter confirmations only after human approval.
+- Rehearse the migration's durable source/recipient limiter under concurrency and verify bounded cleanup/retention before public activation.
+- Run a real invitation acceptance test in protected staging for email and Google, including new-user denial without an invitation and existing-user sign-in.
 
-## Sources
+## Applicable source constraints
 
-- Clerk legal compliance: https://clerk.com/docs/guides/secure/legal-compliance
-- Clerk user metadata security model: https://clerk.com/docs/guides/users/extending
-- FTC COPPA FAQ: https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions
+- Clerk Standard Terms, updated October 1, 2026, state that customers must not send or store personal information of an end user under 16 without evidence of legally compliant verifiable parental consent.
+- Clerk's Privacy Policy says its services are not intended for children under 16, while clarifying that customer data is governed by the customer and the customer contract.
+- FTC COPPA guidance recommends a neutral age screen at the point personal information or a user ID would otherwise be collected; month/year entry is an example, while a checkbox announcing the threshold is not neutral.
+
+Sources:
+
+- https://clerk.com/legal/standard-terms
+- https://clerk.com/legal/privacy
+- https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions

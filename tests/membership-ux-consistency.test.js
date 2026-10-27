@@ -33,11 +33,12 @@ test('Pricing inventory is honest about Free, credits, and future tiers', () => 
 
 test('registration retains the single server-authoritative provisioning path', () => {
   const signup = read('js/signup-page.js');
-  const completion = read('js/auth-complete.js');
-  const sync = read('api/user/sync.js');
-  assert.match(signup, /signUpForceRedirectUrl: getCompletionUrl\(\)/);
-  assert.match(completion, /fetch\('\/api\/user\/sync'/);
-  assert.match(sync, /onConflict: 'clerk_id'/);
+  const gate = read('api/_lib/registration-age-gate-service.js');
+  assert.match(signup, /\/api\/auth\/registration\/eligibility/);
+  assert.match(signup, /\/api\/auth\/registration\/invitation/);
+  assert.match(gate, /createInvitation/);
+  assert.match(gate, /store\.consume/);
+  assert.doesNotMatch(signup, /mountSignUp|Clerk\.load/);
 });
 
 test('every standalone sidebar obtains the same auth runtime from its shared renderer', () => {

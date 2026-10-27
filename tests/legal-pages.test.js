@@ -89,29 +89,29 @@ test('privacy draft states verified transfer facts without promising single-coun
   assert.doesNotMatch(source, /information (?:always|only) remains in the United States/i);
 });
 
-test('legal drafts state the approved 13-plus account policy without claiming enforcement exists', () => {
+test('legal drafts state the approved 16-plus policy and accurately describe candidate activation', () => {
   const privacy = read('privacy.html');
   const terms = read('terms.html');
   for (const source of [privacy, terms]) {
-    assert.match(source, /at least 13 years old to create a CAISSA account/i);
+    assert.match(source, /at least 16 years old to create a new CAISSA account/i);
     assert.match(source, /CAISSA Junior/i);
     assert.match(source, /verifiable parental consent/i);
     assert.match(source, /account-free chess content and tools may remain publicly accessible/i);
-    assert.match(source, /has not yet implemented or certified an age-screening control/i);
     assert.match(source, /registration remains paused/i);
   }
-  assert.doesNotMatch(privacy, /age verification is (?:implemented|active|certified)/i);
-  assert.doesNotMatch(terms, /age verification is (?:implemented|active|certified)/i);
+  assert.match(privacy, /technical candidate asks only for birth month and year/i);
+  assert.match(terms, /prepared and tested a data-minimizing age-screening candidate/i);
+  assert.match(privacy + terms, /not active in production/i);
 });
 
 test('age-policy audit preserves a data-minimizing, fail-closed implementation boundary', () => {
   const source = read('docs/AUTH-004B-AGE-POLICY-AND-CLERK-AUDIT.md');
   assert.match(source, /before any Clerk request/i);
-  assert.match(source, /do not retain the entered birth month or year/i);
-  assert.match(source, /Do not store a birth date/i);
-  assert.match(source, /must stop before Clerk/i);
-  assert.match(source, /unsafeMetadata.*not authoritative/i);
-  assert.match(source, /does not replace the neutral age screen/i);
+  assert.match(source, /birth month and year/i);
+  assert.match(source, /does not retain those values/i);
+  assert.match(source, /before email or OAuth/i);
+  assert.match(source, /Direct email, API, invitation and OAuth account creation remain blocked/i);
+  assert.match(source, /Human Release Gate/i);
 });
 
 test('retention, transfer and Florida audit records only aggregate, verified evidence', () => {
@@ -137,8 +137,8 @@ test('legal decision register preserves every tracked material decision', () => 
   ]) assert.match(source, new RegExp(item));
   for (const classification of [
     'FACTUALLY VERIFIED', 'LEGAL REVIEW REQUIRED', 'HUMAN DECISION REQUIRED',
-    'HUMAN DECISION APPROVED / IMPLEMENTATION PENDING'
+    'HUMAN DECISION APPROVED / TECHNICAL CANDIDATE TESTED'
   ]) assert.match(source, new RegExp(classification));
-  assert.match(source, /provisional minimum age of 13/i);
+  assert.match(source, /provisional minimum age of 16/i);
   assert.doesNotMatch(source, /D\. Minimum age and parental consent \| HUMAN DECISION REQUIRED/);
 });

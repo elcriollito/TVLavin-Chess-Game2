@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com blob:; script-src-elem 'self' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' https://chessboardjs.com https://cdn.jsdelivr.net https://img.clerk.com https: data:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; worker-src 'self' blob:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://api.chess.com https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk.caissa-chess.org https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://challenges.cloudflare.com; ">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; ">
 
     <!-- Primary Meta Tags -->
     <title>Registration Temporarily Paused – CAISSA Chess</title>
@@ -39,7 +39,7 @@
         </a>
 
         <!-- Emergency registration pause: the Clerk SignUp component is deliberately not loaded. -->
-        <section class="auth-page-card caissa-registration-paused-card" role="status" aria-labelledby="registration-paused-title">
+        <section class="auth-page-card caissa-registration-paused-card" id="registrationPaused" role="status" aria-labelledby="registration-paused-title">
             <p class="caissa-registration-eyebrow">CAISSA CHESS · ACCOUNT UPDATE</p>
             <h1 class="auth-page-title" id="registration-paused-title">New registrations are temporarily paused</h1>
             <p class="caissa-registration-paragraph" lang="es">Lo sentimos. Estamos renovando nuestro sistema de cuentas para ofrecer un registro más sencillo y seguro. Por ahora no es posible crear cuentas nuevas. Vuelve pronto.</p>
@@ -52,8 +52,31 @@
                 <nav class="auth-legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><span aria-hidden="true">|</span><a href="/terms">Terms of Service</a></nav>
             </div>
         </section>
+
+        <section class="auth-page-card caissa-registration-paused-card caissa-registration-candidate" id="registrationCandidate" aria-labelledby="registration-candidate-title" hidden>
+            <p class="caissa-registration-eyebrow">CAISSA CHESS · ACCOUNT ELIGIBILITY</p>
+            <h1 class="auth-page-title" id="registration-candidate-title">Check account availability</h1>
+            <p class="caissa-registration-paragraph">Enter your birth month and year. CAISSA uses them only to make this eligibility decision and does not retain them or send them to Clerk.</p>
+            <form id="registrationEligibilityForm" novalidate>
+                <div class="caissa-age-fields">
+                    <label for="registrationBirthMonth">Birth month<select id="registrationBirthMonth" name="birthMonth" autocomplete="bday-month" required><option value="">Select month</option></select></label>
+                    <label for="registrationBirthYear">Birth year<select id="registrationBirthYear" name="birthYear" autocomplete="bday-year" required><option value="">Select year</option></select></label>
+                </div>
+                <button class="caissa-registration-submit" type="submit">Continue</button>
+            </form>
+            <form id="registrationInvitationForm" hidden novalidate>
+                <label for="registrationEmail">Email address<input id="registrationEmail" name="emailAddress" type="email" inputmode="email" autocomplete="email" maxlength="254" required></label>
+                <p class="caissa-registration-footnote">A time-limited invitation is required for email or Google account creation. Existing members should use Sign In.</p>
+                <button class="caissa-registration-submit" type="submit">Request invitation</button>
+            </form>
+            <div id="registrationCandidateComplete" hidden><p>No account has been created yet. Follow the secure invitation in your email to continue.</p></div>
+            <p class="caissa-registration-status" id="registrationCandidateStatus" role="status" aria-live="polite"></p>
+            <div class="auth-page-footer"><p><a href="/signin">Existing member? Sign in</a></p><nav class="auth-legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><span aria-hidden="true">|</span><a href="/terms">Terms of Service</a></nav></div>
+        </section>
     </div>
 
-    <!-- Scripts -->
+    <!-- The candidate remains hidden unless the server-side human release gate is enabled. -->
+    <script src="/js/auth-config.js?v=1.0.7" defer></script>
+    <script src="/js/signup-page.js?v=2.0.0" defer></script>
 </body>
 </html>

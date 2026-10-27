@@ -49,23 +49,25 @@ test('database failure is recoverable and does not leak details', async()=>{
   const res=await invoke(db); assert.equal(res.statusCode,503); assert.equal(res.body.recoverable,true); assert.doesNotMatch(JSON.stringify(res.body),/secret/);
 });
 
-test('auth completion is bounded, retryable, and registration redirects through it',()=>{
+test('auth completion remains bounded while new registration uses the eligibility invitation gate',()=>{
   const completion=fs.readFileSync('js/auth-complete.js','utf8');
   const signup=fs.readFileSync('js/signup-page.js','utf8');
   const signin=fs.readFileSync('js/signin-page.js','utf8');
   assert.match(completion,/MAX_ATTEMPTS = 3/);
   assert.match(completion,/authenticatedPost\('\/api\/user\/sync', \{\}\)/);
   assert.match(completion,/retry\.focus\(\)/);
-  assert.match(signup,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
-  assert.match(signup,/signInForceRedirectUrl: getCompletionUrl\(\)/);
+  assert.match(signup,/\/api\/auth\/registration\/eligibility/);
+  assert.match(signup,/\/api\/auth\/registration\/invitation/);
+  assert.doesNotMatch(signup,/Clerk\.load|mountSignUp|redirect_url/);
   assert.match(signin,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
   assert.match(signin,/signInForceRedirectUrl: getCompletionUrl\(\)/);
   assert.doesNotMatch(`${signup}\n${signin}`,/afterSign(?:In|Up)Url/);
 });
 
-test('Clerk verification appearance covers visible, focus, error, disabled and responsive states',()=>{
-  const signup=fs.readFileSync('js/signup-page.js','utf8');
+test('sign-in verification and candidate forms cover focus, disabled and responsive states',()=>{
+  const signin=fs.readFileSync('js/signin-page.js','utf8');
   const css=fs.readFileSync('css/caissa-auth.css','utf8');
-  for(const token of ['otpCodeFieldInput','focus-visible','aria-invalid','disabled','formResendCodeLink','formFieldErrorText']) assert.match(signup,new RegExp(token));
+  for(const token of ['otpCodeFieldInput','focus-visible','aria-invalid','disabled','formResendCodeLink','formFieldErrorText']) assert.match(signin,new RegExp(token));
+  assert.match(fs.readFileSync('css/registration-paused.css','utf8'),/focus-visible/);
   assert.match(css,/@media \(max-width: 480px\)/);
 });

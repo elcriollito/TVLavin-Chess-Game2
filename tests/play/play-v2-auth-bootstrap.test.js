@@ -43,7 +43,10 @@ test('public auth endpoint exposes only its allowlisted public fields', () => {
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
         CAISSA_IDENTITY_MIGRATION_MODE: process.env.CAISSA_IDENTITY_MIGRATION_MODE,
         CAISSA_APP_ORIGIN: process.env.CAISSA_APP_ORIGIN,
-        CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: process.env.CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN
+        CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: process.env.CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN,
+        CAISSA_REGISTRATION_RELEASE: process.env.CAISSA_REGISTRATION_RELEASE,
+        CAISSA_CLERK_RESTRICTED_INVITATIONS: process.env.CAISSA_CLERK_RESTRICTED_INVITATIONS,
+        CAISSA_REGISTRATION_GATE_SECRET: process.env.CAISSA_REGISTRATION_GATE_SECRET
     };
     Object.assign(process.env, {
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_live_public_identifier',
@@ -60,12 +63,18 @@ test('public auth endpoint exposes only its allowlisted public fields', () => {
     try {
         handler({ method: 'GET' }, response);
         assert.equal(status, 200);
-        assert.deepEqual(Object.keys(payload).sort(), ['clerkPublishableKey', 'identityOwnerHandoff', 'registrationTracking']);
+        assert.deepEqual(Object.keys(payload).sort(), ['clerkPublishableKey', 'identityOwnerHandoff', 'registrationCandidate', 'registrationTracking']);
         assert.equal(payload.clerkPublishableKey, 'pk_live_public_identifier');
         assert.equal(payload.registrationTracking, true);
         assert.deepEqual(payload.identityOwnerHandoff, {
             productionOrigin: 'https://www.caissa-chess.org',
             legacyOrigin: 'https://validation.example.test'
+        });
+        assert.deepEqual(payload.registrationCandidate, {
+            enabled: false,
+            policyVersion: 'caissa-account-16-plus-v1',
+            input: 'birth_month_year',
+            providerMode: 'restricted_invitations'
         });
         assert.doesNotMatch(JSON.stringify(payload), /secret-must-not-escape|service-role-must-not-escape|private-service/);
     } finally {

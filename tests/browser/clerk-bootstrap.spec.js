@@ -1,7 +1,34 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
 
 for (const route of ['/premium', '/about', '/library', '/roadmap']) {
   test(`${route} owns one configured Clerk bootstrap`, async ({ page }) => {
+    await page.route(`**${route}`, request => request.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: fs.readFileSync(`${route.slice(1)}.html`, 'utf8')
+    }));
+    await page.addInitScript(() => {
+      Object.defineProperty(HTMLScriptElement.prototype, 'integrity', {
+        configurable: true, get: () => '', set: () => {}
+      });
+      window.__internal_ClerkUICtor = function ClerkUI() {};
+    });
+    await page.route('**/api/public-auth-config', request => request.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        clerkPublishableKey: 'pk_test_c3ludGhldGljLmNsZXJrLmFjY291bnRzLmRldiQ',
+        registrationTracking: false,
+        identityOwnerHandoff: null,
+        registrationCandidate: { enabled: false }
+      })
+    }));
+    await page.route('https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js', request => request.fulfill({
+      status: 200,
+      contentType: 'text/javascript',
+      body: 'window.Clerk={user:null,session:null,load:async()=>{},addListener:()=>{},signOut:async()=>{}};'
+    }));
     const consoleErrors = [];
     const clerkScripts = [];
     page.on('console', message => {

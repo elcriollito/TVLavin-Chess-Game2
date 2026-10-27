@@ -15,7 +15,7 @@ function directives(policy) {
 
 function clerkMetaPolicies() {
   return fs.readdirSync(projectRoot, { withFileTypes: true })
-    .filter(entry => entry.isFile() && entry.name.endsWith('.html'))
+    .filter(entry => entry.isFile() && entry.name.endsWith('.html') && !/^play-v2(?:-|\.)/.test(entry.name))
     .flatMap(entry => {
       const html = fs.readFileSync(new URL(entry.name, projectRoot), 'utf8');
       const match = html.match(/<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]+)"/);
@@ -26,7 +26,7 @@ function clerkMetaPolicies() {
 
 test('every Clerk-enabled HTML meta CSP allows the exact Production custom domain', () => {
   const policies = clerkMetaPolicies();
-  assert.equal(policies.length, 20, 'unexpected Clerk-enabled HTML meta CSP inventory');
+  assert.equal(policies.length, 15, 'unexpected directly-served Clerk HTML meta CSP inventory');
 
   for (const { file, policy } of policies) {
     assert.doesNotMatch(policy, /https:\/\/\*\.caissa-chess\.org/, `${file} grants an unnecessary wildcard`);
@@ -42,15 +42,14 @@ test('every Clerk-enabled HTML meta CSP allows the exact Production custom domai
   }
 });
 
-test('sign-in and sign-up meta policies permit the Production Clerk UI module', () => {
+test('sign-in permits Clerk while sign-up is isolated from Clerk network origins', () => {
   const policies = new Map(clerkMetaPolicies().map(item => [item.file, directives(item.policy)]));
 
-  for (const file of ['signin.html', 'signup.html']) {
-    const policy = policies.get(file);
-    assert.ok(policy, `${file} Clerk meta CSP missing`);
-    assert.ok(policy.get('script-src')?.includes(productionOrigin), `${file} script-src blocks Clerk Production`);
-    assert.ok(policy.get('script-src-elem')?.includes(productionOrigin), `${file} script-src-elem blocks Clerk Production`);
-    assert.ok(policy.get('connect-src')?.includes(productionOrigin), `${file} connect-src blocks Clerk Production`);
-    assert.ok(policy.get('frame-src')?.includes(productionOrigin), `${file} frame-src blocks Clerk Production`);
-  }
+  const signin = policies.get('signin.html');
+  assert.ok(signin, 'signin.html Clerk meta CSP missing');
+  assert.ok(signin.get('script-src')?.includes(productionOrigin));
+  assert.ok(signin.get('connect-src')?.includes(productionOrigin));
+  const signup = fs.readFileSync(new URL('signup.html', projectRoot), 'utf8');
+  assert.doesNotMatch(signup, /clerk\.accounts\.dev|clerk\.caissa-chess\.org|api\.clerk\.com|clerk-telemetry\.com/);
+  assert.match(signup, /frame-src 'none'/);
 });

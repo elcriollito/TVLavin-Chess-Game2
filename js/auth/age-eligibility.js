@@ -1,57 +1,23 @@
 /**
- * Data-minimizing registration eligibility candidate.
- *
- * This module deliberately accepts only an age band. It must run before any
- * Clerk sign-up request and its result must not be treated as proof of age.
- * Production registration remains paused until the owner approves a policy
- * and the server/provider boundary is certified.
+ * Browser-side preview of the neutral age calculation.
+ * The server repeats the decision and is always authoritative.
  */
 
-export const AGE_BANDS = Object.freeze({
-  UNDER_13: 'under_13',
-  AGE_13_TO_15: '13_to_15',
-  AGE_16_PLUS: '16_plus',
-  UNDISCLOSED: 'undisclosed'
-});
+export const AGE_POLICY_VERSION = 'caissa-account-16-plus-v1';
+export const MINIMUM_ACCOUNT_AGE = 16;
 
-export const AGE_ELIGIBILITY_REASONS = Object.freeze({
-  ELIGIBLE: 'eligible',
-  BELOW_CANDIDATE_MINIMUM: 'below_candidate_minimum',
-  ANSWER_REQUIRED: 'answer_required',
-  REGISTRATION_PAUSED: 'registration_paused'
-});
+export function evaluateRegistrationEligibility({ birthMonth, birthYear, now = new Date() } = {}) {
+  const month = typeof birthMonth === 'string' && /^\d{1,2}$/.test(birthMonth) ? Number(birthMonth) : birthMonth;
+  const year = typeof birthYear === 'string' && /^\d{4}$/.test(birthYear) ? Number(birthYear) : birthYear;
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
 
-const KNOWN_BANDS = new Set(Object.values(AGE_BANDS));
-
-export function evaluateRegistrationEligibility({
-  ageBand,
-  registrationEnabled = false
-} = {}) {
-  const normalizedBand = KNOWN_BANDS.has(ageBand) ? ageBand : AGE_BANDS.UNDISCLOSED;
-
-  if (!registrationEnabled) {
-    return Object.freeze({
-      eligible: false,
-      reason: AGE_ELIGIBILITY_REASONS.REGISTRATION_PAUSED
-    });
+  if (!Number.isInteger(month) || month < 1 || month > 12
+      || !Number.isInteger(year) || year < currentYear - 120 || year > currentYear) {
+    return Object.freeze({ eligible: false, reason: 'answer_required' });
   }
 
-  if (normalizedBand === AGE_BANDS.UNDISCLOSED) {
-    return Object.freeze({
-      eligible: false,
-      reason: AGE_ELIGIBILITY_REASONS.ANSWER_REQUIRED
-    });
-  }
-
-  if (normalizedBand !== AGE_BANDS.AGE_16_PLUS) {
-    return Object.freeze({
-      eligible: false,
-      reason: AGE_ELIGIBILITY_REASONS.BELOW_CANDIDATE_MINIMUM
-    });
-  }
-
-  return Object.freeze({
-    eligible: true,
-    reason: AGE_ELIGIBILITY_REASONS.ELIGIBLE
-  });
+  const thresholdYear = currentYear - MINIMUM_ACCOUNT_AGE;
+  const eligible = year < thresholdYear || (year === thresholdYear && month < currentMonth);
+  return Object.freeze({ eligible, reason: eligible ? 'eligible' : 'registration_unavailable' });
 }

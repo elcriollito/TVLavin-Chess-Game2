@@ -14,5 +14,15 @@
 .caissa-registration-footnote{font-size:12px!important;color:#aeb4bf!important;margin-top:13px!important}
 .caissa-registration-paused-card .auth-page-footer{margin-top:24px}
 .caissa-registration-paused-card .auth-page-footer p{margin:8px 0}
+.caissa-registration-candidate[hidden],.caissa-registration-candidate form[hidden],.caissa-registration-candidate div[hidden]{display:none!important}
+.caissa-age-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.caissa-registration-candidate label{display:flex;flex-direction:column;gap:7px;color:#e8edf4;font-size:14px;font-weight:700}
+.caissa-registration-candidate select,.caissa-registration-candidate input{box-sizing:border-box;width:100%;min-height:48px;border:1px solid #718096;border-radius:8px;background:#202838;color:#f8fafc;padding:10px 12px;font:inherit}
+.caissa-registration-candidate select:focus-visible,.caissa-registration-candidate input:focus-visible,.caissa-registration-submit:focus-visible{outline:3px solid #4ecdc4;outline-offset:2px}
+.caissa-registration-submit{width:100%;min-height:48px;border:0;border-radius:8px;background:#4ecdc4;color:#0b0f1a;font-weight:800;font-size:15px;cursor:pointer}
+.caissa-registration-submit:disabled{cursor:wait;opacity:.65}
+.caissa-registration-status{min-height:24px;margin:16px 0 0!important;font-size:14px}
+.caissa-registration-status[data-kind="error"]{color:#ffaaa3!important}.caissa-registration-status[data-kind="success"]{color:#8be0bb!important}
 @media(max-width:720px){.caissa-registration-notice{padding:16px;margin-bottom:19px}.caissa-registration-notice h2{font-size:16px}.caissa-registration-paused-card{padding:22px 19px}}
+@media(max-width:420px){.caissa-age-fields{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.caissa-registration-notice,.caissa-registration-paused-card{transition:none}}

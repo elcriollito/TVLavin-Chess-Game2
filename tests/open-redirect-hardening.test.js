@@ -71,12 +71,6 @@ test('sign-in preserves a valid internal return', async () => {
 test('sign-in rejects an external return before Clerk', async () => {
     assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example')).mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2F');
 });
-test('signup preserves a valid premium return', async () => {
-    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2Fpremium')).mounted.signUpForceRedirectUrl, '/auth/complete?redirect_url=%2Fpremium');
-});
-test('signup rejects a malicious return before Clerk', async () => {
-    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2F%2Fevil.example')).mounted.signUpForceRedirectUrl, '/auth/complete?redirect_url=%2F');
-});
 test('already authenticated navigation uses the sanitized destination', async () => {
     assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example', true)).href, '/auth/complete?redirect_url=%2F');
 });
@@ -180,10 +174,10 @@ test('checkout rejects malformed or credential-bearing configured origins', () =
 });
 
 test('static guards require central validation before auth redirect sinks', () => {
-    for (const file of ['js/signin-page.js', 'js/signup-page.js', 'js/caissa-auth.js']) {
+    for (const file of ['js/signin-page.js', 'js/caissa-auth.js']) {
         const source = fs.readFileSync(file, 'utf8');
         assert.match(source, /sanitizeInternalRedirect/);
     }
     assert.doesNotMatch(fs.readFileSync('js/signin-page.js', 'utf8'), /return params\.get\(['"]redirect_url/);
-    assert.doesNotMatch(fs.readFileSync('js/signup-page.js', 'utf8'), /return params\.get\(['"]redirect_url/);
+    assert.doesNotMatch(fs.readFileSync('js/signup-page.js', 'utf8'), /redirect_url|location\.href|mountSignUp|Clerk\.load/);
 });
