@@ -82,6 +82,7 @@ test('eligible month/year is discarded before a single-use restricted invitation
   assert.equal(invitations[0].emailAddress, 'adult@example.test');
   assert.equal(invitations[0].notify, true);
   assert.equal(invitations[0].expiresInDays, 1);
+  assert.equal(invitations[0].redirectUrl, 'https://preview.example.test/signup');
   assert.deepEqual(Object.keys(invitations[0].publicMetadata.caissaRegistrationEligibility).sort(), ['method', 'policyVersion', 'screenedAt']);
   assert.doesNotMatch(JSON.stringify(invitations[0]), /birthMonth|birthYear|2010|\"age\"/i);
   assert.match(invitation.headers['Set-Cookie'], /Max-Age=0/);

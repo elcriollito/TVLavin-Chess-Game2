@@ -162,7 +162,7 @@ export function createRegistrationAgeGateService(dependencies = {}) {
           expiresInDays: 1,
           ignoreExisting: false,
           notify: true,
-          redirectUrl: 'https://www.caissa-chess.org/signup',
+          redirectUrl: new URL('/signup', String(req.headers.origin)).toString(),
           publicMetadata: {
             caissaRegistrationEligibility: {
               policyVersion: REGISTRATION_AGE_POLICY.version,
