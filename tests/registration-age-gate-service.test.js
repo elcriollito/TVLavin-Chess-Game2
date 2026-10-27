@@ -157,7 +157,9 @@ test('static boundaries permit Clerk only for a recipient-bound invitation and p
   const html = fs.readFileSync('signup.html', 'utf8');
   assert.match(signup, /getAll\('__clerk_ticket'\)/);
   assert.match(signup, /if \(ticket\)[\s\S]*startInvitationFlow\(ticket\)/);
-  assert.match(signup + html, /mountSignUp|clerk-sign-up/);
+  assert.match(signup, /mountSignIn/);
+  assert.doesNotMatch(signup, /mountSignUp/);
+  assert.match(html, /clerk-sign-up/);
   assert.match(html, /<meta name="referrer" content="no-referrer">/);
   assert.doesNotMatch(html, /caissa-vercel-analytics/);
   assert.match(signup, /\/api\/auth\/registration\/eligibility/);

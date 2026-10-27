@@ -39,7 +39,8 @@ test('registration retains the single server-authoritative provisioning path', (
   assert.match(gate, /createInvitation/);
   assert.match(gate, /store\.consume/);
   assert.match(signup, /getAll\('__clerk_ticket'\)/);
-  assert.match(signup, /mountSignUp/);
+  assert.match(signup, /mountSignIn/);
+  assert.doesNotMatch(signup, /mountSignUp/);
   assert.match(signup, /REGISTRATION_CANDIDATE\?\.enabled !== true/);
 });
 

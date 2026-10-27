@@ -5,7 +5,7 @@
  * endpoint. Only after a successful server decision can it send an email to
  * start the restricted Clerk account flow. When Clerk returns an already
  * screened recipient with an application-invitation ticket, this page mounts
- * Clerk's prebuilt SignUp component so Clerk can validate and consume that
+ * Clerk's prebuilt SignIn component so Clerk can validate and consume that
  * recipient-bound ticket. Production remains on the pause screen unless the
  * server release gate is explicitly enabled.
  */
@@ -95,10 +95,10 @@
                 return true;
             }
             status.textContent = '';
-            Clerk.mountSignUp(container, {
+            Clerk.mountSignIn(container, {
                 forceRedirectUrl: completionUrl(),
-                signInForceRedirectUrl: completionUrl(),
-                signInUrl: '/signin',
+                signUpForceRedirectUrl: completionUrl(),
+                signUpUrl: '/signup',
                 appearance: {
                     variables: {
                         colorPrimary: '#4ecdc4', colorPrimaryForeground: '#0b0f1a',

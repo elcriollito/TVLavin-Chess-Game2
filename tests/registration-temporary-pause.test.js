@@ -12,7 +12,7 @@ test('signup defaults to the bilingual pause page and keeps invitation handling 
   assert.match(html, /registrations are temporarily paused/i);
   assert.match(html, /id="registrationCandidate"[^>]*hidden/);
   assert.match(html, /signup-page\.js/);
-  assert.match(html + read('js/signup-page.js'), /id="clerk-sign-up"|mountSignUp|Clerk\.load/i);
+  assert.match(html + read('js/signup-page.js'), /id="clerk-sign-up"|mountSignIn|Clerk\.load/i);
   assert.match(html, /href="\/signin"/);
 });
 

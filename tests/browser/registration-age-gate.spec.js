@@ -77,7 +77,7 @@ test('eligible candidate separates age and email requests and fits Mobile Safari
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test('Clerk invitation ticket bypasses duplicate age and invitation requests and is preserved for SignUp', async ({ page }) => {
+test('Clerk invitation ticket bypasses duplicate age and invitation requests and is preserved for SignIn', async ({ page }) => {
   await enableCandidate(page);
   const registrationRequests = [];
   page.on('request', request => {
@@ -91,7 +91,7 @@ test('Clerk invitation ticket bypasses duplicate age and invitation requests and
     window.Clerk = {
       user: null,
       load: async () => {},
-      mountSignUp: (container, props) => {
+      mountSignIn: (container, props) => {
         window.__mountedInvitation = { href: window.location.href, props };
         container.textContent = 'Secure invitation accepted by Clerk';
       }
@@ -106,13 +106,15 @@ test('Clerk invitation ticket bypasses duplicate age and invitation requests and
   const mounted = await page.evaluate(() => window.__mountedInvitation);
   expect(mounted.href).toContain(`__clerk_ticket=${ticket}`);
   expect(mounted.props.forceRedirectUrl).toBe('/auth/complete?redirect_url=%2Fscanner');
+  expect(mounted.props.signUpForceRedirectUrl).toBe('/auth/complete?redirect_url=%2Fscanner');
+  expect(mounted.props.signUpUrl).toBe('/signup');
 });
 
 test('malformed or repeated invitation tickets do not open Clerk and remain on the age gate', async ({ page }) => {
   await enableCandidate(page);
   await page.addInitScript(() => {
     window.__clerkMounted = false;
-    window.Clerk = { load: async () => {}, mountSignUp: () => { window.__clerkMounted = true; } };
+    window.Clerk = { load: async () => {}, mountSignIn: () => { window.__clerkMounted = true; } };
   });
   await page.goto('/signup?__clerk_ticket=short&__clerk_ticket=second_ticket_123456789');
   await expect(page.getByRole('heading', { name: 'Check account availability' })).toBeVisible();
