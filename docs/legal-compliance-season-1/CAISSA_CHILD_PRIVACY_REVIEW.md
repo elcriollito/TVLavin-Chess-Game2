@@ -1,94 +1,63 @@
 # CAISSA Child Privacy Review
 
-**Verified:** 2026-10-25  
-**Current product position:** general-audience chess service; new registration paused; under-13 accounts are not authorized.
+**Verified:** 2026-10-26
+**Owner policy:** accounts are provisionally 13+; under-13 accounts are reserved for a future CAISSA Junior program.
+**Current fact:** registration is paused; no certified age gate exists.
 
-## Decision
+## Findings
 
-The supplied provisional 13+ account rule is not ready for production. Clerk's Standard Terms, current as reviewed on 2026-10-25, prohibit sending or storing personal information of users under 16 without evidence of verifiable parental consent. CAISSA has no production age screen, no stored age band, no parental-consent evidence system, and no account-wide deletion workflow.
+### AUTH-001 - Clerk under-16 contract conflict (material)
 
-Use **16+ for account registration** unless Clerk supplies written clarification/approval and a compliant process is implemented. Anonymous use of low-risk, non-account chess tools can remain available without inviting age disclosure, subject to data minimization and audience monitoring. Do not enable under-13 registration.
+Clerk's terms updated October 1, 2026 prohibit sending or storing personal information of an end user under 16 without evidence of verifiable parental consent compliant with applicable law. The owner's 13+ policy therefore cannot be implemented for ages 13-15 through the current Clerk production instance unless CAISSA obtains a written provider resolution or runs a valid parental-consent program accepted by Clerk. This is a provider-contract gate distinct from COPPA's under-13 threshold.
 
-## Current controls and gaps
+### CHILD-001 - No production age control
 
-| Surface | Current evidence | Assessment |
+No production neutral age screen or certified age-verification mechanism was found. Clerk legal consent is disabled; sign-up is restricted/paused. Policies must not claim age verification exists. Before registration reopens, define an eligibility decision and enforce it both before account creation and in server-side account provisioning.
+
+### CHILD-002 - CAISSA Junior is future only
+
+COPPA governs child-directed services and general-audience services with actual knowledge that personal information is collected from a child under 13. A checkbox alone is not a complete program. CAISSA Junior requires verifiable parental consent, direct parent notice, parent review/deletion controls, collection minimization, security, retention schedules, processor contracts and a child-safety design before activation.
+
+### CHILD-003 - Florida users under 18
+
+Florida section 501.1735 applies to an online platform, including an online game, likely to be predominantly accessed by children. It regulates unnecessary collection/retention, profiling, precise geolocation, dark patterns and reuse. Whether CAISSA meets the "predominantly accessed" condition is unknown. Counsel should review audience facts before registration expansion, community features or targeted youth marketing.
+
+## Current account release options
+
+| Option | Consequence | Recommendation |
 |---|---|---|
-| Clerk sign-up | Production `sign_up_mode` is restricted; `/signup` explains registration is paused | Strong temporary mitigation for new accounts |
-| Existing accounts | 14 production account rows; no verified age attribute | Ages unknown; do not infer all are adults |
-| Age screen | None in production; draft candidate proposes neutral age band | Missing. A neutral screen avoids encouraging circumvention, but it is not parental consent |
-| Legal consent | Clerk legal-consent feature disabled; privacy/terms URLs unset | Missing policy acceptance/version evidence |
-| Google OAuth | Enabled for sign-in | OAuth must not bypass the age rule; provider birthdate should not be requested unless necessary and approved |
-| Anonymous play/tools | Many features work without account | Lower collection risk; hosting/security logs still exist |
-| Online identity | Display names, ratings, presence and match records exist | Minor-safety rules and profile minimization needed before youth access/growth |
-| Messaging/chat | Broad public community and DMs not active; some Classic/FICS interaction surfaces exist | Future gate; FICS is a third-party community context |
-| Scanner feedback/images | Authenticated feedback and image upload paths exist | Child image contribution should remain unavailable unless age/consent/rights controls are resolved |
-| Analytics/cookies | No broad advertising profile was established; Clerk/session and local state exist | Publish an accurate cookie/storage inventory; avoid targeted advertising to minors |
+| 16+ registered accounts; public anonymous tools remain available where appropriate | Aligns with current Clerk contract; excludes 13-15 accounts | Lowest-complexity interim path; counsel/owner approval |
+| 13+ with a different architecture/provider that contractually permits it | Requires provider migration and privacy/security review | Consider only as separate project |
+| 13-15 with verifiable parental consent and Clerk written acceptance | Significant identity, consent, deletion and support burden | Do not implement casually; counsel required |
+| Maintain registration pause | Preserves existing accounts; no new signup | Safe temporary posture while AUTH-004 is resolved |
 
-## Legal and contractual analysis
+Do not silently change or delete existing accounts. Existing users' ages are unknown; establish a privacy-preserving remediation protocol rather than requesting dates of birth from everyone without need.
 
-| Source | Classification | Current audit consequence |
-|---|---|---|
-| COPPA and amended COPPA Rule | Federal law/regulation | Under-13 child-directed/actual-knowledge analysis; parental notice/consent, minimization, security, retention/deletion and parent rights if applicable |
-| Florida §501.1735 | State law | Applicability to an online game depends on the child-audience predicate; presently unknown, not assumed |
-| Florida §501.1736 | State law | Narrower social-media definition is not established on current CAISSA facts |
-| Clerk Standard Terms | Provider contract | Immediate under-16 data gate absent evidence of VPC; this is not a statutory age-16 rule |
-| Google OAuth policies | Provider product/policy requirements | Accurate branding/privacy disclosure, minimal scopes and child-directed restrictions; not an independent CAISSA age-16 law |
-| CAISSA 16+ registration rule | Conservative product policy | Provisional control selected to satisfy the current Clerk dependency while registration is paused |
-| Neutral age bands and child-safe defaults | Audit recommendation | Data-minimizing implementation approach; counsel/product approval still required |
+## Neutral screening design
 
-### COPPA
+If approved, ask only the minimum information needed, preferably an age band rather than date of birth. Do not bias the prompt toward an eligible answer. Separate the result from a public profile, restrict access, define retention, and ensure a failed eligibility result does not create a Clerk account or persist unnecessary information. Age estimation/verification technology requires separate privacy, security, accuracy and vendor review.
 
-COPPA applies to an online service directed to children under 13, or a general-audience service with actual knowledge that it is collecting personal information from a child under 13. The audit did not establish that CAISSA is child-directed. Chess appeal alone is not dispositive; marketing, imagery, language, audience composition, store placement and actual knowledge matter.
+## Actual-knowledge response
 
-If CAISSA learns an account user is under 13, do not simply preserve the account under a checkbox. Disable collection/account access as appropriate, minimize preservation, contact a verified parent only through an approved flow, and delete unless valid consent and an under-13 program exist.
+When credible information establishes a user is under the permitted age: restrict further collection and public interaction; preserve only narrowly necessary security evidence; notify the designated operator; verify parent/user requests safely; delete or isolate information through Clerk, Supabase, Storage and processors according to counsel-approved rules; document the decision without storing excessive child data.
 
-A future under-13 program needs direct parental notice, verifiable parental consent, parental access/deletion, limited collection, reasonable security, retention limits and vendor capability. The FTC's 2025 amendments add stronger retention/deletion-program requirements and separate parental consent for certain third-party disclosures; the April 22, 2026 general full-compliance deadline has passed as of this audit date. The FTC's [February 2026 age-verification policy statement](https://www.ftc.gov/legal-library/browse/enforcement-policy-statement-promoting-adoption-age-verification-technology) is narrow enforcement discretion for age-assurance collection under stated conditions, not a general exemption or a CAISSA implementation approval. [FTC COPPA guidance](https://www.ftc.gov/business-guidance/privacy-security/childrens-privacy), the [amended-rule announcement](https://www.ftc.gov/news-events/news/press-releases/2025/01/ftc-finalizes-changes-childrens-privacy-rule-limiting-companies-ability-monetize-kids-data) and the [COPPA Rule](https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312) are the controlling starting points.
+## CAISSA Junior mandatory checklist
 
-### Clerk contract
+- Written child-directed scope and age bands; qualified counsel approval.
+- COPPA-compliant notice and verifiable parental consent before collection.
+- Parent relationship, access, correction, deletion and consent-revocation workflows.
+- No public profiles, messaging, image upload, community feedback, behavioral analytics or external AI by default.
+- Data minimization, short retention and automatic deletion; no indefinite child records.
+- Child-appropriate reporting, blocking, moderation and emergency escalation.
+- Processor review: Clerk/provider acceptance, DPAs, child-data restrictions and subprocessor map.
+- Security threat model, abuse testing, access logging and incident playbook.
+- No advertising/marketing profiling or dark patterns.
+- Accessibility and age-appropriate language review.
 
-Clerk's [Standard Terms](https://clerk.com/legal/standard-terms) impose an under-16 personal-information restriction absent evidence of verifiable parental consent. That is a provider-contract requirement, not a statutory declaration that every user under 16 is a COPPA child. It is more restrictive than the proposed 13+ rule and functions as the immediate launch gate even though COPPA's child threshold is under 13.
+## Primary sources
 
-### Florida
-
-[Florida Statutes §501.1735](https://www.flsenate.gov/Laws/Statutes/2026/501.1735) covers a social-media platform, online game or online gaming platform providing a service, game or feature likely to be predominantly accessed by children (under 18). It restricts unnecessary collection/retention, harmful or incompatible use, profiling, precise geolocation and dark patterns. Current applicability is **UNKNOWN**, because audience composition and “predominantly accessed” facts were not established. Treating it as a design benchmark is a recommendation, not a finding that the statute applies.
-
-Record audience evidence rather than declaring the statute inapplicable. Do not add engagement dark patterns, unnecessary notifications, precise location, targeted advertising or profiling for minors.
-
-Florida §501.1736 has a narrower composite “social media platform” definition involving substantial under-16 use, algorithmic selection and listed engagement features. Current CAISSA facts do not show those predicates. Reassess if recommendation feeds, reactions, push notifications, autoplay or livestreaming launch.
-
-### International
-
-If GDPR applies, Article 8 sets 16 as the default age for a child's own consent to information-society services, while Member States may lower it to 13. The UK age is 13. These rules concern consent as a legal basis and do not override provider terms, child-directed design duties or the need for another lawful basis. Do not use a single global checkbox as a substitute for country-specific analysis.
-
-## Recommended age flow
-
-1. Before OAuth or account creation, present a neutral age-band screen: “Under 13,” “13–15,” and “16 or older.” Do not collect full date of birth unless a documented need outweighs the privacy cost.
-2. Under current provider terms, only “16 or older” may continue.
-3. “13–15” receives a clear unavailable message pending a verified consent program; do not create a Clerk user or store the attempted age with an identity unless counsel approves a minimal fraud-prevention record.
-4. “Under 13” receives an unavailable message with no invitation to misstate age and no child email collection.
-5. Store the minimum durable proof: age band, policy version, timestamp and method. Never expose it publicly.
-6. Apply the same gate to password and Google OAuth paths.
-7. Provide an operator procedure for incorrect age, suspected underage accounts and deletion.
-
-## Future parental-consent gate
-
-Before supporting anyone under 16:
-
-- obtain Clerk's written confirmation that the proposed evidence and flow meet its contract;
-- select an FTC-recognized VPC method appropriate to the processing risk;
-- authenticate the parent separately and retain consent evidence without excessive identity data;
-- provide parent notice, review, revocation and deletion controls;
-- disable Scanner image contribution, generative AI, public profile discovery, chat and marketing by default unless separately justified;
-- define school/teacher scenarios separately; a teacher's authority is not universal parental consent;
-- complete a child-data impact assessment, vendor assessment and abuse-response plan;
-- test that OAuth, invite, API and guest paths cannot bypass the age decision.
-
-## Acceptance criteria
-
-- New registration remains paused until a reviewed public policy set and age rule exist.
-- Production has one enforced minimum age across Clerk, Google OAuth, server sync and user messaging.
-- No full birthdate is collected without approved necessity and retention.
-- No under-13 personal information is intentionally accepted.
-- Existing accounts receive a proportionate age-confirmation/migration plan without public exposure.
-- Policy text distinguishes current general-audience operation, actual knowledge and future child-directed features.
+- [FTC COPPA compliance guidance](https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions)
+- [FTC 2025 COPPA Rule amendments](https://www.ftc.gov/legal-library/browse/federal-register-notices/16-cfr-part-312-coppa-final-rule-amendments)
+- [Clerk Standard Terms](https://clerk.com/legal/standard-terms)
+- [Florida section 501.1735](https://www.flsenate.gov/Laws/Statutes/2026/501.1735)
 

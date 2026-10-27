@@ -1,79 +1,55 @@
 # CAISSA Product Compliance Matrix
 
-**Verified:** 2026-10-25 against repository `d7c48e52465b8764d102313c03cf639c38b3db6f` and the production routes noted below.
+**Verified:** 2026-10-26 against `main` `6e912be5c314080be8944efde261b8dc133452a6` and safe production observations.
+Status describes reachability/maturity, not a compliance certification.
 
-Status means the product posture observed in source and production; it is not a quality or compliance certification.
-
-## Core products
-
-| Product / route family | Status | Data / external services | Current legal posture | Gate or action |
+| Product / route | Status | Data and processors | Principal issue / gate | Evidence |
 |---|---|---|---|---|
-| Home, About, Help, Blog, Roadmap | PUBLIC | Static content; ordinary hosting logs | No live legal-footer links | Add Privacy, Terms, contact and policy-effective-date links |
-| Accounts (`/signin`, `/signup`) | PUBLIC / REGISTRATION PAUSED | Clerk; Supabase account row; Google OAuth | Existing sign-in live; no age gate or legal consent; Clerk under-16 restriction applies | 16+ rule or Clerk-approved VPC; truthful policies; OAuth review |
-| Play, Bots, Coach, game replay | PUBLIC | Browser/local game state; optional account data | Ordinary free chess play is not gambling | Keep competition claims accurate; accessibility testing |
-| CAISSA Online | PUBLIC / EARLY USE | Public identity, ratings, games, events, presence; Clerk/Supabase | One production profile/ratings/presence record and no completed game population observed | Rules, reporting, retention, fair-play review and appeals before growth |
-| CAISSA Classic | PUBLIC | Browser game state; FICS/room surfaces | Some community-facing room/chat UI is inert | Do not advertise unavailable moderation/community features |
-| FICS gateway | PUBLIC | Browser WebSocket to Cloudflare and plaintext TCP to FICS | External network terms/privacy and message handling require notice | Document provider role, retention and acceptable-use expectations |
-| Puzzles / progress | PUBLIC | Puzzle attempts/progress; Lichess CC0 puzzle data | CC0 provenance is strong; account progress is personal data | Preserve attribution/provenance; include deletion/export runbook |
-| Opening Trainer / Explorer / Database / ECO | PUBLIC | Repertoires, FEN/PGN, external/static data | User-created repertoire privacy; data provenance varies | Maintain source/license register and owner-bound access |
-| Endgame Trainer / Library / Tablebase | PUBLIC / MIXED | Positions, tablebase calls, local/static assets | Library is described as under construction | Avoid completeness claims; confirm tablebase data/license provenance |
-| Analyze / Engine Arena | PUBLIC | Local engine inputs/outputs; optional account state | Chess engines are not generative AI; GPL distribution obligations apply | Corresponding source/notices; label engine limitations |
-| PGN Reader / Player collections / Vault | PUBLIC / MIXED | PGNs, catalogs, R2 downloads | 82 player albums; none certified for paid commercial delivery | Keep commerce off; rights review per collection |
-| Polyglot book builder | PUBLIC / DEPLOYED | User PGN submitted to server function | Safe HEAD reached deployed route (405); high-cost anonymous parsing uses instance-local limit | Account/capability or distributed limiter; game/move/entry/output budgets |
-| Scanner public beta | PUBLIC BETA / DEPLOYED | Board pixels for hosted ONNX inference; anonymous scan JSON; authenticated feedback/images optional | Status returned `available:true`; recognition/scan/image routes deployed; public feedback dataset empty at data review | Keep raw/unverified label; durable quotas; gate image intake/training governance |
-| Scanner private beta | PRIVATE BETA / HISTORICAL DATA | Private images, predictions, feedback, corrections | 96 objects and associated historical records remain | Retention/deletion owner runbook; rights proof; no new training use |
-| Beta Tester Program | PRIVATE / FEATURE-GATED | Account role/entitlement | Database-backed authorization exists | Publish beta terms/confidentiality and deletion expectations before reopening |
-| Insights / reports | PUBLIC / ACCOUNT FEATURE | Uploaded/derived analysis reports | Report-specific deletion exists; no account-wide export/deletion | Privacy notice; account lifecycle workflow |
-| Mentor / Academy | PUBLIC UI / MIXED CAPABILITIES | Local lessons/Stockfish plus optional shared or BYO prompts/results | `/mentor` is public; local functions do not transmit to an AI provider; production generative flags/provider state not proven | Just-in-time external-AI disclosure, provider/retention review, prompt rules and activation approval |
-| Chess TV, Lichess TV, live blitz/tournaments | PUBLIC AGGREGATION | External streams/links | Third-party service terms and trademarks apply | Accurate source labels; no implied affiliation; captions review |
-| Cheater Insight / fair-play tooling | PUBLIC TOOL / NOT AN ENFORCEMENT SYSTEM | User-supplied chess data, analytical output | Defamation and due-process risk if used for public accusations | No public accusation; human review, private evidence, appeal policy |
-| GIF maker / visualization tools | PUBLIC | User PGN/FEN; generated media | User warrants input rights; output ownership should be explained | Terms and copyright/takedown process |
-| DOS Chess | PUBLIC WEB EMULATION | js-dos runtime; bundled game/assets | GPL/source/notice and game-content rights need confirmation | Close js-dos version/notice/source gap and game-rights record |
-| Support | PUBLIC / ACTIVE PAYMENT FLOW PENDING RETIREMENT | PayPal Hosted Button, route-specific SDK/CSP and translations | Owner decided to discontinue; production still presented the button on 2026-10-25; transactions were not inspected | Separate authorized removal; preserve records; dashboard-deactivate Hosted Button/link; verify no PayPal network traffic |
-| Premium | PUBLIC MARKETING / COMING SOON | No active subscription observed | Legacy paid markup is replaced in current JS | Keep sales disabled until commercialization gate passes |
-| Credit store | DORMANT / AUTH-PROTECTED | Stripe code, credit ledger, offers | No Stripe events observed; activation can occur through env configuration | Explicit kill switch and launch review; consumer/tax/refund terms |
-| Community forums / broad chat / DMs | PLANNED | Future UGC, communications, moderation data | Not a current public product | Community, DMCA, CSAM, privacy and communications-law gates |
-| Desktop/mobile native application | NOT FOUND / PLANNED AT MOST | None verified | Web app and DOS emulation are not native distribution | App-store, code signing, update, telemetry and license review if built |
-| Market Reader | OUT OF SCOPE | Separate worktree/branch | Explicitly excluded | No changes made |
+| Home, About, Help, Blog, Roadmap | PUBLIC | Hosting/request logs | Privacy/Terms links cannot work while both routes return 404 | E-PROD-001 |
+| Sign-in / sign-up / accounts | PUBLIC; REGISTRATION PAUSED | Clerk, Google, Supabase | LEGAL-001, AUTH-001, AUTH-002 | E-CLERK-001..004 |
+| Play, Bots, Coach, replay | PUBLIC | Local game state; optional account data | Free chess is not gambling; maintain accessible controls and accurate capability claims | E-ROUTE-001 |
+| CAISSA Online | PUBLIC / EARLY DATA | Supabase profiles, ratings, presence, tickets | Community rules, reporting, retention, fair-play review and appeals before scale | E-SB-001 |
+| CAISSA Classic | PUBLIC | Local/browser state; linked community surfaces | Do not market inert chat/community controls as operational | E-ROUTE-001 |
+| FICS Gateway | PUBLIC | Third-party network service, handles/nicknames | Explain third-party terms, transport, visibility and moderation boundary | E-SRC-ONLINE-001 |
+| Puzzles | PUBLIC | Progress/attempts; Lichess CC0 dataset | Preserve provenance; include account deletion/export | E-SB-001, E-IP-004 |
+| Opening Trainer / Database / Explorer | PUBLIC | FEN, PGN, repertoires, R2/static datasets | Provenance and owner-bound access; SEC-001/002 affect public tools | E-ROUTE-001 |
+| Endgame / Syzygy | PUBLIC / MIXED | Positions and tablebase data/API | Confirm exact data source, API and redistribution terms | E-IP-005 |
+| Analyze / Engine Arena | PUBLIC | Browser engines and optional saved state | GPL notices and corresponding-source mapping | E-IP-001..003 |
+| PGN Reader / player collections / Vault | PUBLIC / MIXED | PGN files and R2 downloads | No collection certified for paid delivery; rights review before commercialization | IP-004 |
+| Polyglot Builder | PUBLIC | Server receives PGN and returns binary | SEC-002 resource amplification; Season 2 fix not deployed | E-SEC-002 |
+| Scanner Public Beta | PUBLIC BETA | Hosted ONNX, scan JSON, optional feedback/images | SCAN-001/002 and SEC-003..005 | E-PROD-002, E-SB-001 |
+| Scanner Private Beta | PRIVATE / HISTORICAL | 96 private images and related records | Retention, rights and deletion review; no automatic training | E-SB-001 |
+| Scanner review console | PRIVATE / PROTECTED | Feedback, signed image access, audit/certification | Preserve least privilege and raw-unverified boundary | E-SRC-SCAN-001 |
+| Beta Tester Program | PRIVATE / FEATURE-GATED | Roles, entitlements, audit | Beta terms, privacy and lifecycle before reopening | E-SB-001 |
+| Library / Insights | PUBLIC ACCOUNT FEATURES | Positions, reports and derived chess data | Per-item controls exist; account-wide lifecycle does not | DATA-001 |
+| Mentor / Academy | PUBLIC UI / MIXED | Local engine; optional external AI paths in source | External AI activation requires provider/privacy/cost gate | AI-001 |
+| Chess TV / external streams | PUBLIC AGGREGATION | Third-party streams/links | Attribution, trademark and caption/accessibility review | COMM-003 |
+| Fair-play / Cheater Insight | PUBLIC TOOL | Public game/account information, derived score | No public accusations; human review, evidence and appeal | COMM-002 |
+| GIF Studio | PUBLIC visualization capability | User PGN/FEN and generated files | Input rights, artwork/theme licenses, sharing/takedown terms | IP-004 |
+| DOS Chess | PUBLIC EMULATION | js-dos and bundled game/assets | Exact runtime version and GPL/source/notice reconciliation | IP-003 |
+| Support | PUBLIC `/help`; PAYPAL RETIRED | Email/help content | Do not describe donations or payments as active; do not restore PayPal | E-PROD-001 |
+| Premium | COMING SOON / NOT ACTIVE | No verified active billing | Full subscription/consumer/tax gate before activation | COM-001 |
+| Stripe / credits | DORMANT SOURCE / PROTECTED | Stripe and ledger code; zero events observed | Explicit launch approval, prices, refunds, cancellation, tax and webhook verification | COM-001, E-SB-001 |
+| Forum / chat / DMs | PLANNED | Future UGC and communications | Moderation, child safety, DMCA, privacy and incident gates | COMM-001 |
+| Native tournaments | PLANNED | Future entries, eligibility, prizes/payments | Separate free/no-prize from prizes/paid entry; counsel by jurisdiction | COM-002 |
+| CAISSA Junior | PLANNED | Future child accounts/data | COPPA/VPC and provider approval; do not activate | CHILD-002 |
+| Desktop/native apps | PLANNED / NOT FOUND | Future local files, updates, telemetry | Signing, secure updates, notices and telemetry disclosure | FUT-006 |
+| Vision Lab | PLANNED | Future learning/progress metrics | Avoid identifiable learning profile until purpose/retention/child review | FUT-004 |
+| Market Reader | OUT OF SCOPE / SEPARATE PRODUCT | Separate worktree and potentially shared infrastructure | Separate policy analysis; no inspection or modification of dirty worktree | E-GIT-001 |
 
-## Security service reachability
+## Service reachability and non-production work
 
-| Service | Current evidence | Finding status |
-|---|---|---|
-| Downloads Worker | `downloads.caissa-chess.org/openingdb/manifest.json` returned 200; custom-domain routes are in `downloads-worker/wrangler.toml` | Caller-declared premium ZIP finding affects a public deployed service |
-| Polyglot API | Safe HEAD to `/api/polyglot/build` returned 405; the public UI posts to it | High-cost local-limiter finding affects a public deployed service |
-| Scanner recognition/scan/image APIs | `/api/scanner/public/status` returned public-beta/available; GETs to POST routes returned 405 | Three Scanner resource-governance findings affect public deployed routes; image upload still requires an account |
-| Game-fetch Worker | Source has `workers_dev=true`, but custom route is commented and the configured `caissa-game-fetcher.elcriollito.workers.dev` hostname did not resolve | `max=NaN` remains actionable source/activation debt; current public exposure not established |
-| Position-stat Worker | Source has an R2 binding but no route; no frontend consumer reference was found | All-shard cache remains a medium-confidence activation finding; deployment and shard sizes unverified |
+- The Downloads Worker was reachable and its current `main` code trusts a caller-controlled premium tier for larger downloads (SEC-001).
+- Scanner recognition/status and Polyglot routes are deployed. Their current limits are process-local; Security Season 2 contains targeted controls but is not on production.
+- The game-fetch and position-stat workers have source-level activation risks (SEC-006/007); public deployment was not established, so they are not described as present public vulnerabilities.
+- Privacy branch `season/privacy-governance-remediation-20261026` and integration branch `integration/engineering-governance-s2-20261026` are development evidence only.
 
-## Supporting route inventory
+## Classification legend
 
-The repository route contract reports 76 destinations: 40 primary navigation entries, 36 internal primary pages, 16 additional public destinations, 4 external destinations, 15 redirects and 5 protected route families. Routes are not equivalent to independently complete products. “PUBLIC” means reachable, not mature, marketed, accessible, secure or legally approved.
-
-External destinations include feedback email, Facebook, YouTube and Discord. Review each link's current ownership and do not imply endorsement or affiliation.
-
-Protected families include player/beta routes and beta APIs. Protection is primarily server-side Clerk verification and database-backed role/experiment authorization.
-
-## Cross-product obligations
-
-| Control | Applies now | Future trigger |
-|---|---|---|
-| Accurate Privacy Policy and Terms | Accounts, uploads, Online, logs, current PayPal support and any activated external AI | Any new data, AI or payment feature |
-| Account age rule | Existing and future account access | Under-16/under-13 support |
-| Data subject/request runbook | All account and upload data | Self-service account center |
-| Open-source notices/source | Distributed engines, libraries and web assets | Desktop/native distribution, paid delivery |
-| Incident response | Clerk, Supabase, Vercel, Cloudflare, providers | Larger user base or regulated expansion |
-| Community rules/moderation | Public identity and Online fair play | Forums, chat, DMs, tournaments |
-| Consumer disclosures | Truthful PayPal retirement transition until removal is verified | Any reactivated contribution, Premium, subscription, credit or recurring support |
-| AI transparency | Any live generative Mentor interaction | EU offering, human-like companion functions |
-| Accessibility program | Public website | Government/education contracts, native apps, commercial scale |
-
-## Classification rules
-
-- **CURRENT REQUIRED:** supported present legal or provider-contract duty.
-- **CURRENT RISK / REVIEW:** plausible present duty or liability requiring factual/legal clarification.
-- **FUTURE ACTIVATION GATE:** must be completed before a planned feature launches.
-- **BEST PRACTICE:** risk-reducing control not established here as legally mandatory.
-- **NOT APPLICABLE:** reasoned exclusion on present facts.
-- **UNKNOWN:** evidence is insufficient; do not silently convert it into approval.
+- **CURRENT REQUIRED:** established current duty or binding provider/release requirement.
+- **CURRENT RISK / REVIEW:** present exposure needing facts or counsel.
+- **FUTURE ACTIVATION GATE:** must be resolved before the described feature launches.
+- **BEST PRACTICE:** proportionate risk reduction not established here as mandatory law.
+- **NOT APPLICABLE:** reasoned exclusion on current facts.
+- **UNKNOWN:** evidence is insufficient; not approval.
 

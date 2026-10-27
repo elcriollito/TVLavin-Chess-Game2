@@ -1,91 +1,70 @@
 # CAISSA Data Processing Inventory
 
-**Verified:** 2026-10-25  
-**Controller/operator description for this audit:** the individual operating the personal CAISSA Chess project; no company is asserted.  
+**Verified:** 2026-10-26
+**Controller description for this audit:** the individual operating the personal CAISSA Chess project; no company is asserted.
 **Contact:** `privacy@caissa-chess.org`
 
-“Legal basis” entries are issue-spotting positions if GDPR/UK GDPR applies; they are not a declaration that those regimes currently apply.
+Possible GDPR legal bases below are issue-spotting only; territorial applicability is unresolved.
 
-## Inventory
+| Data category | Purpose / source | Processor / storage | Access and sharing | Retention / rights status |
+|---|---|---|---|---|
+| Email, account and identity binding | Authentication and continuity | Clerk; Supabase | User, verified APIs, limited operator access | No coordinated account export/deletion (DATA-001) |
+| OAuth/session tokens and metadata | Session creation/security | Clerk, Google, browser cookies | Clerk/Google and CAISSA verification path | Clerk maximum session life observed as 7 days; revocation workflow not documented |
+| Public display name/profile/rating | Online identity and play | Supabase | Public/participants as designed | No published lifecycle schedule |
+| Roles, entitlements, credits | Authorization; dormant commerce | Supabase | Service-role APIs/operator | Account-linked; no full closure workflow |
+| Saved positions/repertoires/reports | User study and analysis | Browser/Supabase | Owner-bound APIs and operator service | Some item deletion/export; not account-wide |
+| Puzzle attempts/progress | Resume and performance | Supabase | Account APIs/operator | No published retention criteria |
+| Online tickets, presence, games/events | Matchmaking/integrity | Supabase/Realtime | Participants/server; limited public projection | Guest cleanup and archive criteria unresolved |
+| Ordinary Scanner recognition image | Requested board recognition | Vercel function/ONNX runtime | Request runtime | Source image not intentionally stored by ordinary scan; platform logs not fully inspected |
+| Scanner scan snapshot/FEN/diagnostics | Feedback linkage and quality | Supabase | Anonymous or account-bound service/operator | Public tables empty at inspection; no durable row/byte budget on current `main` |
+| Optional Scanner feedback/correction | Quality review | Supabase | Submitter and authorized reviewer | Raw-unverified; no automated retention/deletion workflow |
+| Optional Scanner image | Private review evidence | Private Supabase Storage | Submitter; authorized reviewer via signed URL | Public bucket empty; current upload precedes consent binding (SCAN-001) |
+| Historical private-beta images/predictions | Beta accuracy/research evidence | Private Storage/Supabase | Authorized operator/reviewer | 96 objects; rights/consent/retention reconciliation required |
+| Security/request logs and IP | Security, reliability and rate limiting | Vercel/Cloudflare/providers | Platform/operator | Provider retention/log-drain settings not fully evidenced; minimize and restrict |
+| Support/privacy correspondence | Requests and disputes | Email provider | Operator | Define support/incident/legal-hold criteria; do not publish forwarding destination |
+| Browser local storage/IndexedDB | Preferences/local chess state | User device | User and same-origin scripts | User-controlled unless synchronized; explain local vs cloud |
+| Local engine inputs/outputs | Chess analysis | Browser workers | User | Ephemeral unless saved; not external generative AI |
+| External AI prompts/results/API key | Optional future/feature-gated explanation | Vercel and selected provider | User, runtime, provider | Deployed activation and provider settings unverified; API keys must remain transient |
+| Stripe/billing metadata | Dormant future commerce | Stripe/Supabase | User, processor, server/operator | Zero Stripe events observed; no active commerce claimed |
+| Google OAuth basic profile/email | Future restored sign-in | Google/Clerk | User, Google, Clerk, CAISSA | Not production-ready; basic identity scopes only |
 
-| Data category | Collection point and purpose | Storage / processor | Access | Retention / deletion | Sharing / transfer and safeguards |
-|---|---|---|---|---|---|
-| Account identifiers and email | Clerk sign-in; account continuity and support | Clerk; Supabase `users`/identity bindings | User; server; limited operator roles | No complete account deletion workflow; Clerk and Supabase must be coordinated | Clerk/Vercel/Supabase; JWT verification, service-only data plane, RLS |
-| Public identity / display name | Online/profile surfaces; opponent identification | Supabase public identity/profile tables | Public or participants as designed; server/operator | No user-facing full lifecycle workflow | Supabase Realtime/API; participant policies |
-| Age/consent status | Not currently collected in production | None verified | None | Not applicable yet | Proposed release candidate would store an age band, not date of birth |
-| Roles, entitlements, premium, credits | Authorization and dormant commercial features | Supabase | Server/service role; operator | Linked to account; no account-wide erasure workflow | Vercel to Supabase; server resolves authority |
-| OAuth/session data | Authentication | Clerk, Google, browser cookies/local compatibility state | User, Clerk, verified CAISSA APIs | Clerk configuration governs session; one-week max observed | Google/Clerk; minimize scopes; provide revocation/support path |
-| Library positions and collections | Save/pull/delete chess study content | Supabase | Owner-bound API and operator service role | Item deletion exists; local export exists; no whole-account workflow | Vercel/Supabase |
-| Opening repertoires | Training and study | Supabase | Owner-bound API | Per-feature operations; whole-account lifecycle absent | Vercel/Supabase |
-| Puzzle attempts/progress | Resume and measure puzzle practice | Supabase | Account-bound APIs/operator | No published retention schedule | Vercel/Supabase; 121 attempts and 4 progress rows observed |
-| Insight reports | Chess analysis reports | Supabase | Owner-bound API/operator | Per-report deletion exists | Vercel/Supabase; five reports observed |
-| Online profile, rating, presence | Matchmaking and play | Supabase/Auth/Realtime | Public/participants/server according to projection and policies | Guest cleanup is documented as a prerequisite, not implemented | Supabase; one profile/ratings/presence row observed |
-| Online tickets, challenges, games, events | Matchmaking, authoritative game record, integrity | Supabase | Participants/server; limited public projection | No production schedule; tickets existed, no games/events observed | Vercel/Supabase Realtime; server-side legality and version checks |
-| Private-beta Scanner image and hash | Feedback, debugging and possible governed corpus work | Private Supabase Storage bucket and beta tables | Submitting beta user and authorized operator/reviewer | Provisional documents say review/delete at 90/180 days, but no automated job | Vercel/Supabase; private bucket, signed/opaque references; 96 objects observed |
-| Scanner prediction snapshot, FEN, correction and feedback | Accuracy review and certification | Supabase | Submitter/operator/reviewer | Raw evidence is append-oriented; no user erasure workflow | Vercel/Supabase; separate correction and image consent fields |
-| Public Scanner inference input | Recognize a board | Vercel function / ONNX runtime | Request runtime | Ordinary recognition does not intentionally store the source image in Scanner tables/Storage; request/platform logs were not inspected | Vercel runtime; canonical 512×512 RGBA inference input |
-| Public Scanner source image upload | Authenticated feedback evidence | Private Supabase Storage | Owner plus authorized reviewer via short signed URL | Public bucket had zero objects; upload can precede feedback consent and orphan cleanup is absent | Vercel/Supabase; type, magic, size and digest checks |
-| Scanner failures and diagnostics | Diagnose recognition failures | Supabase/logs | Operator/reviewer | No final schedule | Minimize client metadata; do not log raw image/body |
-| AI Mentor prompts, engine reports and output | Optional external chess explanation | Vercel proxy, selected AI provider; encrypted short-lived result store in economic mode | User; selected provider; runtime/operator metadata | Result TTL is configurable/bounded in code, but deployed values and provider retention/training settings are unverified | Together/OpenAI/Anthropic fixed endpoints depending mode; shared mode is code-gated, but production activation/provider/model is unverified |
-| User-supplied AI API key | BYO provider authentication | Request memory, sent to chosen provider | User, Vercel runtime, provider | Intended transient handling; not intentionally logged | Fixed provider destination; disclose direct provider relationship |
-| Stripe customer/event/checkout metadata | Dormant subscriptions/credits | Stripe and Supabase | User, Stripe, server/operator | No active Stripe events observed; launch schedule required | Signed webhook, server-selected prices, idempotent fulfillment |
-| PayPal support/payment details | Hosted Button still presented in production pending owner-directed retirement | PayPal; CAISSA account may receive transaction/account records | Contributor, PayPal, operator | Preserve any actual accounting/refund/dispute/tax records under an approved schedule; transactions were not inspected | PayPal terms/privacy apply; no finding that payments occurred, were revenue, were charitable, or were tax-deductible |
-| Support/privacy correspondence | Respond to requests and disputes | Mail provider outside repository | Operator and authorized support | Define ticket/incident retention | Do not use the legacy personal mailbox; publish privacy contact |
-| IP address and request metadata | Security, rate limiting, operations | Vercel/Cloudflare/Supabase/provider logs | Platform/operator | External drain/access/retention settings unresolved | Treat as personal/security data; use trusted proxy-derived IPs |
-| Security and audit records | Detect abuse, document actions | Supabase audit/event tables and platform logs | Limited operator roles | Incident and legal-hold schedule required | Avoid prompts, tokens, image bytes and full private game content |
-| Local browser data | Preferences, compatibility profile, local library/game state | User browser/localStorage/IndexedDB | User and same-origin scripts | User-controlled unless synced | Explain local versus cloud data; third-party script governance matters |
-| Local chess-engine input/output | Stockfish/Fairy-Stockfish analysis in the browser | User device/browser worker and publicly delivered engine assets | User; same-origin page code | Ephemeral unless the user separately saves/submits a position or report | Local engine computation is not external generative-AI transmission; downloadable GPL artifacts require source/notices |
+## Production database and storage snapshot
 
-## Production facts
+Read-only production inspection found 14 user rows, 15 identity bindings, 121 puzzle attempts, 5 insight reports, 97 private-beta scans, 6,208 square predictions, 92 feedback rows, 8 corrections, 20 failures and 96 objects in `scanner-beta-images`. Public Scanner scan/feedback/certification tables and its feedback-image bucket were empty at inspection time. Both Scanner buckets were private and limited to JPEG/PNG/WebP up to 12 MB.
 
-- Supabase production contained 14 user rows and 15 identity bindings.
-- All reviewed public-schema tables had RLS enabled. Linter notices reported “RLS enabled, no policy” on tables not granted to browser roles; those notices do not by themselves establish exposure.
-- Server APIs commonly use the Supabase service-role key. RLS is therefore not a substitute for API ownership predicates and service-only RPC checks.
-- Both Scanner buckets were private and limited to JPEG/PNG/WebP up to 12 MB when inspected.
-- Public Scanner evidence tables and the public feedback image bucket were empty. Historical private-beta data remained.
-- There was no account-wide export or deletion API and no automated Scanner retention job in the reviewed revision.
-- Production `/support`, `/scanner` and `/mentor` returned HTTP 200; Privacy and Terms URLs returned 404. The PayPal Hosted Button and public Scanner routes therefore require present-tense disclosure, while external Mentor activation remains unverified.
-- Supabase account/project settings, log drains, retention, TLS client compatibility and the upcoming Data API explicit-grant enforcement were not changed. The current Supabase changelog requires a separate operational review before its announced deadlines.
+All reviewed public-schema tables had RLS enabled and no browser-role policies. This is deny-by-default for browser roles, not proof of exposure. Server functions use Supabase service-role credentials and bypass RLS, so endpoint authorization, ownership predicates and service-only RPC design remain the actual trust boundary. Forty-eight public `SECURITY DEFINER` functions require maintained grant/search-path/body review; their existence alone is not a finding.
 
-## Purposes and possible legal bases
+## Purposes and possible legal basis if territorial law applies
 
-If GDPR/UK GDPR applies, likely bases require a final purpose-by-purpose assessment:
-
-| Purpose | Candidate basis | Limit |
+| Purpose | Candidate basis | Boundary |
 |---|---|---|
-| Provide requested chess/account service | Contract or steps requested by user | Do not stretch this to optional training or marketing |
-| Secure the service and prevent abuse | Legitimate interests | Document necessity/balancing; minimize IP/log retention |
-| Optional Scanner correction/image contribution | Consent plus license/rights representation | Consent must be granular, informed, revocable prospectively and separate from account access |
-| Legal claims, accounting and incidents | Legal obligation or legitimate interests | Apply narrow retention and legal hold |
-| Generative AI request | Contract/consent depending context | Give provider/transfer notice and avoid sensitive data |
+| Deliver requested chess/account service | Contract / steps requested | Does not extend to optional training or marketing |
+| Security and abuse prevention | Legitimate interests | Necessity/balancing, minimization and retention required |
+| Optional correction/image contribution | Specific consent plus rights representation | Separate, informed, revocable prospectively, not a condition of recognition |
+| Incidents, disputes and accounting | Legal obligation or legitimate interests | Narrow retention and documented legal hold |
+| External generative AI request | Contract/consent depending context | Provider, transfer, retention and training disclosure before transmission |
 
-## Missing lifecycle controls
+## Required lifecycle controls
 
-1. One intake path and identity-verification procedure for access, correction, deletion and objection requests.
-2. A system map that translates one request across Clerk, Supabase, Storage, Vercel/Cloudflare logs, AI providers and payment providers.
-3. An account closure operation with explicit exceptions for fraud, financial, security and legal-hold evidence.
-4. Scanner image/object deletion, abandoned-upload cleanup, certification-history handling and future-training withdrawal rules.
-5. Online guest/anonymous-user expiry and cleanup.
-6. Published retention periods or defensible criteria for each category.
-7. Processor/subprocessor register, DPA links, transfer mechanism analysis if territorial law applies, and breach-contact ownership.
+1. One verified request channel and operator runbook for access, correction, export and deletion.
+2. A deletion map across Clerk, Supabase rows, Storage objects, Vercel/Cloudflare logs and downstream processors.
+3. Category-specific retention criteria and an exception process for fraud, incidents and legal holds.
+4. Scanner orphan-object cleanup, certification-history handling and prospective training withdrawal.
+5. Processor/subprocessor register, DPA/region/transfer evidence and breach contacts.
+6. Proof that production logs avoid tokens, secrets, raw image bodies and excessive prompt content.
 
 ## Applicability
 
-- FTC deception/unfairness risk can attach to inaccurate privacy and security claims; commercial jurisdiction over a wholly free hobby project is fact-sensitive.
-- Florida §501.171 breach duties apply to covered commercial or governmental entities and require fact-specific review. Use its 30-day individual-notice and 500-person Attorney General thresholds as incident-plan triggers if coverage is confirmed.
-- Current facts do not show thresholds for CCPA/CPRA or the reviewed Colorado, Delaware and Maryland comprehensive laws.
-- GDPR/UK GDPR requires deliberate territorial analysis: accessibility alone is insufficient, while offering to or monitoring people in those territories may be enough. If applicable, controller identity, lawful bases, notices, rights, processors/transfers and breach response are required.
+- Florida Digital Bill of Rights: **NOT APPLICABLE on current verified facts** because CAISSA is not a qualifying controller (including the $1B global revenue and specified business-model elements in section 501.702).
+- Florida section 501.171: **UNKNOWN / COUNSEL REVIEW** because its covered-entity definition is commercial; use it as incident-planning guidance without claiming conclusive coverage.
+- GDPR/UK GDPR: **UNKNOWN** until offering/monitoring, residence, targeting and processor facts are established.
+- CCPA/CPRA and other state comprehensive laws: revenue/volume/activity thresholds were not shown; re-evaluate upon scale, sale/sharing, targeted advertising or monetization.
 
-## Authoritative references
+## Primary sources
 
-- [FTC, Start with Security](https://www.ftc.gov/business-guidance/resources/start-security-guide-business)
+- [Florida Digital Bill of Rights definitions](https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.702.html)
 - [Florida breach notification statute](https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.171.html)
-- [California Attorney General, CCPA](https://oag.ca.gov/privacy/ccpa)
 - [GDPR](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
-- [EDPB, territorial scope guidance](https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-32018-territorial-scope-gdpr-article-3-version_en)
-- [ICO, UK GDPR scope](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-protection-and-the-eu/data-protection-and-the-eu-in-detail/the-uk-gdpr/)
-- [Clerk DPA](https://clerk.com/legal/dpa)
-- [Supabase DPA](https://supabase.com/legal/dpa)
-- [Vercel DPA](https://vercel.com/legal/dpa)
-- [Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/)
+- [EDPB territorial-scope guidance](https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-32018-territorial-scope-gdpr-article-3-version_en)
+- [Clerk DPA](https://clerk.com/legal/dpa), [Supabase DPA](https://supabase.com/legal/dpa), [Vercel DPA](https://vercel.com/legal/dpa), [Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/)
 

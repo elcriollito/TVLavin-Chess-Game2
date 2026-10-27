@@ -1,88 +1,36 @@
-# CAISSA Future Feature Legal Gates
+# CAISSA Future Feature Legal Activation Matrix
 
-**Verified:** 2026-10-25  
-This document is a pre-launch checklist, not a statement that future-feature laws apply today.
+**Verified:** 2026-10-26. Planned features are not described as current.
 
-## Gate matrix
+| ID / feature | Current status; users/data | Principal legal/provider/IP issues | Required controls and documentation | Release blockers / human review |
+|---|---|---|---|---|
+| FUT-001 CAISSA Junior | PLANNED; under-13 accounts, parent/child identifiers, play/progress | COPPA, Florida child online-space law, Clerk/provider terms, child safety | Neutral screen; direct notice/VPC; parent access/deletion; minimization/retention; private defaults; no messaging/image/ads; child threat model | Counsel approval; provider acceptance; end-to-end parent tests; no activation in this season |
+| FUT-002 Community Forum | PLANNED; UGC, profiles, reports, moderator records | Harassment, privacy, copyright/DMCA, section 230 limits, minors | Rules; report/block/mute/appeal; moderation staffing; anti-spam; copyright workflow; retention; accessible UI | Account-age gate, moderator owner, incident/CSAM counsel review, evidence tests |
+| FUT-003 Native tournaments | PLANNED; eligibility, games, possibly prizes/payments | Contest rules, age/geography, prize/tax, fraud; skill-contest/gambling distinctions | Four separate modes: free/no prize, free/prize, paid entry, cash prize; official rules and payment controls | Counsel for any entry fee/prize; no automatic activation |
+| COM-001 Premium memberships | NOT ACTIVE; future billing/account data | Pricing, auto-renewal, cancellation, refunds, taxes, chargebacks, processor rules | Clear checkout consent, receipts, self-service cancellation, refund policy, price-change notice, tax/accounting, webhook/idempotency tests | Owner/counsel approval; active legal pages; support/rollback; no current commercial claim |
+| SCAN-002 Future Scanner training | NOT AUTHORIZED; images/corrections/model artifacts | Consent, rights, privacy, provenance, revocation, international transfers | Separate recognition/feedback/image/certification/export/training/deploy contracts; immutable dataset/model cards | Record-level eligibility, protected benchmark, human approval, reproducibility; no auto-training |
+| FUT-004 Vision Lab | PLANNED; learning progress/performance | Child privacy, behavioral analytics, retention, accessibility | Prefer local/aggregate data; purpose/retention map; no public score; age review | Identifiable learning profiles prohibited until approved |
+| FUT-005 GIF Studio expansion | PUBLIC basic capability; future sharing/import expansion | PGN/image/theme rights, platform brands, generated-file retention | Input warranty, asset license register, short temp retention, takedown/share controls | Rights and accessibility tests for every new import/export source |
+| FUT-006 Desktop apps | PLANNED / not verified | GPL bundling, secure updates, local permissions, telemetry, signing | SBOM/notices/source; signed installer/update; sandboxed files; crash/telemetry opt-in; privacy map | Platform security review and exact binary/source compliance |
+| AI-001 AI Coach/Mentor | MIXED UI/source; external activation unverified | Provider terms, prompt privacy/training, keys, output/error, child access, cost | Provider/model register; just-in-time disclosure; transient BYO keys; budgets; logging redaction; human oversight | Provider/DPA/region approved; abuse/security/accessibility tests; kill switch |
+| FUT-007 Market Reader | SEPARATE PRODUCT / out of scope | Shared auth, billing, operator/policy scope may create cross-product obligations | Separate inventory/policies unless purposes/operators truly align; shared processor map only | Do not merge dirty worktree or automatically fold into CAISSA policies |
+| FUT-008 Partnerships/APIs | FUTURE | API terms, rates, attribution, trademarks, redistribution, account linking/privacy | Written provider record, minimum scopes, revocation, cache/redistribution rules, audit logs | Provider approval/terms evidence for Chess.com, Lichess, FIDE, ChessBase, ICC, Playchess, AI or schools |
 
-| Feature | Present status | Activation gates | Approval |
-|---|---|---|---|
-| Reopen account registration | Paused | Public reviewed policies; enforced age rule; consent/version evidence; account deletion/export runbook; Google OAuth validation | Product owner + privacy counsel |
-| Accounts aged 13–15 | Not approved | Clerk written approval; VPC evidence if required by Clerk; youth impact assessment; parent/minor rights; data minimization | Clerk + child-privacy counsel |
-| Under-13 accounts | Not authorized | Full COPPA program, direct notice, FTC-compliant VPC, parent controls, vendor support, deletion/security, child-directed design review | Child-privacy counsel |
-| Public Scanner image intake | Technically implemented, empty public dataset | Consent-before-upload; orphan cleanup; rights representation; retention/deletion; age rule; reviewer operations | Privacy/data owner |
-| Train Scanner model on community evidence | Not performed | Certified immutable dataset; rights/consent; revocation cut; benchmark isolation; model/data card; license/security review | Data owner + counsel |
-| Shared generative Mentor | Public UI exists; server path exists; production generative activation/provider state unproven | Verify flags, key and allowlisted model; AI disclosure; provider DPA/retention/training review; prompt/context minimization; safety/accuracy evaluation; cost/abuse controls; incident/kill switch | Product/privacy owner |
-| Human-like conversational Mentor | Planned at most | Above plus EU AI Act Article 50 analysis, Colorado 2027 conversational-AI review, minor safety and no companionship/dependence marketing | AI/privacy counsel |
-| Premium subscriptions | Dormant | Business/tax identity; Stripe approval/KYC; price/renewal/cancellation/refund terms; privacy; receipts; support; accessibility | Counsel + tax professional |
-| Credit packages | Dormant | Define non-cash/non-transferable value; expiry/refund; minors; accounting/tax; insolvency/closure; wallet security | Counsel + accounting |
-| Reactivate PayPal support | Owner decided to retire the presently live Hosted Button; retirement not yet deployed or dashboard-verified | Fresh purpose/business/tax review; PayPal account approval; accurate contribution or sale classification; pricing/frequency/refund disclosure; privacy and records; no charitable/tax-deductibility claim without authority | Product owner + consumer/tax counsel |
-| Paid-entry/prize tournament | Planned | Gambling/contest opinion; provider approval; official rules; geography/age; tax/prize/refund/fair-play/dispute controls | Gaming counsel |
-| Public forums/chat | Planned | Code, reporting/block/mute, moderation, DMCA/CSAM, minor safety, retention, appeals, DSA review if targeted to EU | Trust & safety owner + counsel |
-| Direct/private messages | Planned | Communications-law review; truthful access/scanning notice; grooming/spam/report controls; retention/legal process | Privacy/T&S counsel |
-| User media/attachments | Limited Scanner storage today | Rights license; takedown; malware/content scanning; size/type controls; privacy/biometric/geolocation stripping | Security/privacy owner |
-| Native desktop/mobile app | Not found | App-store terms/privacy labels; code signing/updates; telemetry; GPL source/notices; platform age ratings | Release owner + license counsel |
-| Paid PGN/books/vault | Commerce off | Collection-level rights certification; consumer license; download entitlement; tax/refund; DRM/privacy | Content owner + counsel |
-| Advertising/targeted personalization | Not found | Consent/opt-out, state-law thresholds, minor bans, vendor contracts, profiling impact, cookie controls | Privacy counsel |
-| Deliberate EU/UK offering | Not established | Territorial analysis; controller identity; lawful bases/rights; processors/transfers; representative if needed; DSA/AI/accessibility classification | EU/UK counsel |
-| Game-fetch worker | Source exists; configured `workers.dev` host did not resolve and no active custom route was found | Confirm deploy need; reject nonnumeric/cost-amplifying limits; cap count/bytes; authentication/rate limiting; bounded caches; production security review | Security/release owner |
-| Position-stat worker | Source exists; no production route or frontend consumer was found | Confirm deployment/data size; replace all-shard memory cache with bounded/indexed design; abuse controls; load test in an authorized environment | Security/release owner |
+## Pre-monetization checklist
 
-## PayPal retirement and future reactivation gate
+- Confirm operator/entity/DBA/tax posture with qualified advisers.
+- Publish and obtain acceptance to accurate Terms/Privacy; identify seller and contact lawfully.
+- Approve prices, currency, taxes, trial, renewal, cancellation, refund and chargeback terms.
+- Use server-selected products/prices and verified signed webhooks; test idempotency and reconciliation.
+- Provide receipts, accessible checkout/cancellation and support response ownership.
+- Complete payment processor terms, data map, retention and deletion exceptions.
+- Keep PayPal retired unless separately reviewed and expressly authorized.
 
-The live support flow is not a future-only item: on 2026-10-25 production `/support` still presented the Hosted Button. The owner has decided to discontinue it. This audit changed documentation only; it did not remove code, change PayPal, or inspect transactions.
+## Child-safety gate
 
-Retirement requires a separately authorized release that removes the button/controller and related public copy/CSP allowances, followed by a human PayPal-dashboard deactivation of the hosted button or payment link. Preserve any records legally required for refunds, disputes, accounting, tax or legal hold. Acceptance requires both production verification and direct-link/dashboard verification; removing only the website embed is insufficient.
+All features with profiles, communication, uploads, analytics, prizes or AI must separately evaluate users under 18. CAISSA Junior may not inherit adult defaults. "13+" does not resolve provider restrictions for ages 13-15 or Florida rules that define children differently.
 
-Do not claim that no payment ever occurred, that money was or was not revenue, or that a contribution was charitable or tax-deductible without transaction and professional review. If PayPal is ever reactivated, conduct a fresh gate using the matrix above. See [Fla. Stat. Ch. 496](https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0400-0499/0496/0496.html), [PayPal User Agreement](https://www.paypal.com/US/legalhub/paypal/useragreement-full?locale.x=en_US) and [PayPal AUP](https://www.paypal.com/us/legalhub/acceptableuse-full).
+## Evidence required for every activation
 
-## Subscription and auto-renewal requirements
-
-Before recurring subscriptions:
-
-- clearly disclose price, frequency, term, material conditions, trial conversion, renewal and cancellation before consent;
-- obtain affirmative, unambiguous consent separately from unrelated terms;
-- send durable confirmation and receipt;
-- provide cancellation at least as easy as enrollment;
-- honor refund/chargeback and support obligations;
-- retain consent and cancellation evidence;
-- review federal ROSCA and [Florida's automatic-renewal statute, §501.165](https://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.165.html).
-
-The FTC's 2024 negative-option amendment was vacated, and the pre-amendment rule was restored in 2026. Do not cite the vacated “click-to-cancel” amendment as current law; easy cancellation remains the prudent product requirement and other statutes/contract rules still apply.
-
-## Tax and entity readiness
-
-No audit evidence establishes a current company or taxable-sales classification. Before commercialization:
-
-1. choose the operating/legal name and business form with Florida and tax professionals;
-2. determine whether a fictitious-name registration is required;
-3. obtain tax identifiers and provider KYC as necessary;
-4. classify digital subscriptions, downloads, credits, contributions and prizes under Florida and other applicable tax rules;
-5. configure nexus monitoring, receipts, refunds, books and 1099-K reconciliation;
-6. never assume that absence of a tax form makes receipts non-taxable.
-
-## Accessibility release gate
-
-Use WCAG 2.2 AA as the common engineering target:
-
-- complete keyboard-only and screen-reader journeys for sign-up/sign-in, chessboard moves, dialogs, purchases and cancellation;
-- provide focus visibility/order, status announcements, text alternatives, error identification and adequate contrast;
-- test mobile/touch targets and orientation;
-- caption owned video and provide equivalent text for essential visual instruction;
-- publish no conformance claim without a representative manual audit and defect plan.
-
-## Gate evidence template
-
-Every activation decision should record:
-
-- feature/version and owner;
-- jurisdictions intentionally served;
-- users, age bands and data categories;
-- provider approvals and contracts;
-- legal rule versus provider contract versus internal policy;
-- required public disclosures and consent evidence;
-- security/accessibility test results;
-- rollback/kill switch;
-- human approver and date;
-- unresolved limitation and next review date.
+Product owner, intended users/purpose, data-flow diagram, provider/terms dates, applicable-law analysis, rights/licenses, retention/deletion, threat model, accessibility tests, incident owner, rollback/kill switch, exact release SHA/deployment, and signed human approval. Unknowns remain blockers only when material to that feature.
 
