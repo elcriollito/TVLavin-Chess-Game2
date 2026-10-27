@@ -19,7 +19,7 @@ create or replace function public.consume_registration_age_gate(
 ) returns boolean
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 begin
   if p_nonce_hash !~ '^[0-9a-f]{64}$'
@@ -66,7 +66,7 @@ create or replace function public.claim_registration_age_gate_capacity(
 ) returns boolean
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_window_start timestamptz;

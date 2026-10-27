@@ -39,7 +39,7 @@ test('lockfile has registry provenance, integrity, and exact security overrides'
     const pkg = JSON.parse(read('package.json'));
     const lock = JSON.parse(read('package-lock.json'));
     assert.equal(lock.lockfileVersion, 3);
-    assert.deepEqual(pkg.overrides, { lodash: '4.18.1', nanoid: '3.3.18', qs: '6.16.0', undici: '7.29.1' });
+    assert.deepEqual(pkg.overrides, { lodash: '4.18.1', nanoid: '3.3.18', qs: '6.16.0', undici: '7.30.1', zod: '4.6.6' });
     for (const record of Object.values(lock.packages)) {
         if (!record.resolved) continue;
         assert.match(record.resolved, /^https:\/\/registry\.npmjs\.org\//);

@@ -157,6 +157,7 @@ test('static boundaries remove direct Clerk sign-up and preserve existing-user s
   assert.doesNotMatch(signup + html, /mountSignUp|Clerk\.load|clerk-sign-up/);
   assert.match(signup, /\/api\/auth\/registration\/eligibility/);
   assert.match(signup, /\/api\/auth\/registration\/invitation/);
+  assert.doesNotMatch(signup, /localStorage|sessionStorage|indexedDB|analytics|console\./i);
   assert.match(signin, /withSignUp:\s*false/);
   assert.match(signin, /transferable:\s*false/);
   const apiFiles = fs.readdirSync('api', { recursive: true }).filter(file => String(file).endsWith('.js'));
@@ -170,6 +171,8 @@ test('prepared migration stores only one-way nonce metadata and is not a user-da
   assert.match(sql, /grant execute .* to service_role/i);
   assert.match(sql, /claim_registration_age_gate_capacity/);
   assert.match(sql, /on conflict \(scope_hash, bucket, window_start\) do update/);
+  assert.equal((sql.match(/set search_path = ''/g) || []).length, 2);
+  assert.doesNotMatch(sql, /set search_path = public/i);
   assert.match(sql, /HMAC digests; contains no raw IP address, email, or birth data/i);
   const table = sql.slice(sql.indexOf('create table'), sql.indexOf(');', sql.indexOf('create table')) + 2);
   assert.doesNotMatch(table, /birth|email|clerk_id|user_id/i);
