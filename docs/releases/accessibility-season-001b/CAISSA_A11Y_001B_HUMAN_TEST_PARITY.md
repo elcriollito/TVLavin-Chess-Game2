@@ -4,12 +4,14 @@ Owner record: `HUMAN TEST PASS — CAISSA ACCESSIBILITY SEASON 001B` on combined
 
 Targeted owner record: `TARGETED HUMAN RETEST PASS — CAISSA ACCESSIBILITY 001B` on isolated candidate `23cc63fe807b9703224539004dd69b8155069ebd`, tree `124a9a5220bfb0550c1d9e2a79eed1fad987d7ff`.
 
+Final owner record: `FINAL WEBKIT HOTFIX RETEST PASS — CAISSA ACCESSIBILITY 001B` on hotfix implementation `4c7c3292cd181e96b67500326576c408efe41120`, tree `82f842f41d3e5ff56495217f3f4ddea9847c7f5b`.
+
 Parity result: **APPROVED**.
 
 ## Equivalent approved surfaces
 
 - Chess Gym HTML, CSS, and tab controller are byte-identical to the combined build.
-- Opening Database HTML and controller are byte-identical to the combined build.
+- Opening Database HTML and the pre-hotfix controller are byte-identical to the combined build. The isolated hotfix changes only initialization ordering for its existing tab handlers.
 - Chess TV CSS and controller are byte-identical to the combined build.
 - Shared i18n and primary navigation owner are byte-identical to the combined build.
 - Desktop/mobile screenshots show equivalent layout for these surfaces.
@@ -65,15 +67,8 @@ The mobile Scanner check was completed on a physical device through a private lo
 
 ## Gate
 
-The previous Human Test approvals remain valid for unchanged behavior. They are acceptance of the tested user experience, not legal approval of Scanner data processing or certification of complete WCAG conformance.
+All three required Human Test phases are complete. The final hotfix retest verified immediate keyboard access during initialization, `End` focus/selection of `Search Games`, `Home` return to `Moves`, persistence after board initialization, and normal mouse/tab operation.
 
-Hotfix `4c7c3292cd181e96b67500326576c408efe41120` changes only Opening Database keyboard initialization and its tests. The owner should perform this bounded retest against the revised local server:
+No repeat of Chess Gym, Chess TV, Analyze bypass, Scanner mobile dialog, Scanner consent controls, Opening Database, or general navigation is required unless a subsequent source change materially alters accepted behavior.
 
-1. Open `/opening-database` and reload the page.
-2. Immediately focus the `Moves` tab and press `End`.
-3. Confirm `Search Games` receives focus and becomes selected.
-4. Press `Home` and confirm focus/selection returns to `Moves`.
-5. Repeat after the chessboard finishes loading.
-6. Confirm tab clicks and normal Opening Database use still work.
-
-No repeat of Chess Gym, Chess TV, Analyze bypass, Scanner mobile dialog, Scanner consent controls, or general navigation is required. Production approval remains separate.
+These approvals are product acceptance. They are not legal approval of Scanner data processing, certification of complete WCAG conformance, or authorization to publish production.

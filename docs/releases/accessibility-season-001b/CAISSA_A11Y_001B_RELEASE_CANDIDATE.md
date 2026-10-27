@@ -2,7 +2,7 @@
 
 Mission: `CAISSA-A11Y-001B-RELEASE-CERT-20261026`
 
-Decision: **READY FOR TARGETED HUMAN RETEST**. Both prior owner Human Tests remain approved. Hotfix `4c7c3292cd181e96b67500326576c408efe41120` resolves the WebKit Opening Database initialization race without migration or provider dependencies and passes the deterministic, repeated WebKit, multibrowser, board, and release-integrity gates. Only the revised Opening Database keyboard behavior requires owner retesting.
+Decision: **GO FOR OWNER PRODUCTION APPROVAL**. All three owner Human Test phases pass. Hotfix `4c7c3292cd181e96b67500326576c408efe41120` resolves the WebKit Opening Database initialization race without migration or provider dependencies, and the immutable candidate passes the fresh deterministic, repeated WebKit, multibrowser, board, privacy-boundary, PayPal-retirement, and release-integrity gates.
 
 Production remains unchanged. No push, pull request, remote merge, Vercel Preview, Vercel Production deployment, database change, provider configuration change, AUTH-004 change, PayPal restoration, or privacy/security release was performed.
 
@@ -12,7 +12,9 @@ Production remains unchanged. No push, pull request, remote merge, Vercel Previe
 
 `TARGETED HUMAN RETEST PASS — CAISSA ACCESSIBILITY 001B`
 
-The original approval applies to the combined Season 2.0 build at `69ef0401b606bc6f537d9b884b87dfc7f1898598`. The targeted approval applies to the isolated release candidate at `23cc63fe807b9703224539004dd69b8155069ebd`, tree `124a9a5220bfb0550c1d9e2a79eed1fad987d7ff`. These approvals are not deployment authorization, legal approval of Scanner processing, or whole-site WCAG certification.
+`FINAL WEBKIT HOTFIX RETEST PASS — CAISSA ACCESSIBILITY 001B`
+
+The original approval applies to the combined Season 2.0 build at `69ef0401b606bc6f537d9b884b87dfc7f1898598`. The targeted approval applies to the isolated release candidate at `23cc63fe807b9703224539004dd69b8155069ebd`, tree `124a9a5220bfb0550c1d9e2a79eed1fad987d7ff`. The final Opening Database approval applies to hotfix `4c7c3292cd181e96b67500326576c408efe41120`, tree `82f842f41d3e5ff56495217f3f4ddea9847c7f5b`. These approvals are not deployment authorization, legal approval of Scanner processing, or whole-site WCAG certification.
 
 ## Authoritative baseline
 
@@ -22,7 +24,7 @@ The original approval applies to the combined Season 2.0 build at `69ef0401b606b
 - Production Git branch/SHA: `main` / `26e9d25bf4ffbd13fb8b4d253e3bdb03169dcf7b`
 - Public aliases observed: `www.caissa-chess.org`, `caissa-chess.org`
 
-Both remote `main` and the independently inspected production deployment matched before extraction.
+Remote `main`, the independently inspected deployment ID, and both production domains were reverified at the final authorization gate and still matched this baseline.
 
 ## Worktree preservation
 
@@ -30,8 +32,8 @@ The original checkout remains on `feature/arena-redesign` at `61c2fab70c8eb7d4b4
 
 ## Candidate identity
 
-- Worktree: `C:\Users\ALEXANDER\Alexander Projects\TVLavin-Chess-Game2-a11y-001b-release`
-- Local branch: `release/accessibility-001b-certified-20261026`
+- Worktree: `C:\Users\ALEXANDER\Alexander Projects\TVLavin-Chess-Game2-a11y-001b-webkit-hotfix`
+- Local branch: `hotfix/a11y-001b-openingdb-webkit-init-race`
 - Certified code checkpoint: `d8958b9b0fafd2c4e51ed45348643077c347b648`
 - Certified code tree: `33a9b2ed1c31c02dcf18fb0b07dcab74949284d0`
 - WebKit race hotfix checkpoint: `4c7c3292cd181e96b67500326576c408efe41120`
@@ -71,6 +73,7 @@ See [CAISSA_A11Y_001B_FILE_SCOPE_MANIFEST.md](CAISSA_A11Y_001B_FILE_SCOPE_MANIFE
 | Package/lock parity | PASS |
 | Secret-pattern scan | PASS — 0 findings |
 | PayPal-addition scan | PASS — 0 additions |
+| PayPal retirement contracts | PASS — 5/5 Node and 4/4 Chromium |
 | Navigation fallback check | PASS after deterministic regeneration |
 | Public route inventory | PASS — 78 records |
 | Public release audit | PASS — 1,874 committed files, 23 required paths, 24 Chess TV contracts |
@@ -81,10 +84,12 @@ See [CAISSA_A11Y_001B_FILE_SCOPE_MANIFEST.md](CAISSA_A11Y_001B_FILE_SCOPE_MANIFE
 | Expanded focused browser suite | PASS — 45/45, Chromium/Firefox/WebKit |
 | Repeated broader WebKit selection | PASS — 45/45 across three consecutive runs |
 | Canonical board browser | PASS — 19 passed, 1 intentional project skip |
+| Opening Database Quiet Drag | PASS — 14/14, Chromium/WebKit |
+| Scanner consent/backend governance | PASS — 31/31; no backend/model delta |
 | Broader baseline differential | PASS — previously compared failure counts/signatures remain unchanged; focused WebKit race is separate |
 | Supply-chain policy | PASS — 501 runtime files, 186 locked entries |
 | Dependency audit | BASELINE OPEN — 6 advisories (1 moderate, 5 high), no dependency change |
-| Human Test parity | PASS — original and targeted owner tests approved |
+| Human Test parity | PASS — original, targeted, and final WebKit owner tests approved |
 | Production authorization | NOT GRANTED |
 
 ## Human acceptance completion
@@ -97,14 +102,16 @@ The owner completed and approved these deltas on exact candidate `23cc63fe807b97
 
 No repeat of these accepted checks is requested unless source changes invalidate the approval.
 
+The owner also approved the final Opening Database hotfix behavior: immediate tab access during initialization, `End` to `Search Games`, `Home` to `Moves`, retained behavior after board readiness, and normal mouse/tab operation.
+
 ## WebKit race correction
 
 The root cause was `bindEvents()` running only after asynchronous `initBoard()` completed. The hotfix extracts an idempotent tab-only binding helper, invokes it synchronously before the board boundary, initializes default tab semantics before awaiting, and removes the late `setActiveTab('moves')` override. Board-dependent controls remain bound after board initialization. Early user selection survives success or failure of board setup.
 
 ## Remaining release condition
 
-The owner should perform only the bounded Opening Database keyboard retest in `CAISSA_A11Y_001B_HUMAN_TEST_PARITY.md`. No previously approved Scanner, Analyze, Gym, Chess TV, or navigation test needs repeating because those source paths did not change.
+All technical and Human Test gates are complete. Production publication still requires a new, explicit owner authorization for the exact final documentation HEAD/tree reported in the handoff, followed by the drift checks and Git-to-Vercel procedure in `CAISSA_A11Y_001B_DEPLOYMENT_RUNBOOK.md`.
 
 ## Status
 
-`READY FOR TARGETED HUMAN RETEST — WEBKIT RACE FIXED — PRODUCTION AUTHORIZATION NOT GRANTED`
+`GO FOR OWNER PRODUCTION APPROVAL — ALL HUMAN TESTS PASS — PRODUCTION AUTHORIZATION NOT GRANTED`

@@ -63,6 +63,33 @@ The hotfix extracts idempotent tab interaction binding from the board-dependent 
 
 No retry, skip, expected-failure marker, arbitrary sleep, dependency change, or production-only debug hook was used to hide the race. The deterministic browser test holds the Quiet Drag module request pending, exercises the complete tab contract, releases initialization, and proves the early Games selection/focus survives.
 
+## Final production-authorization gate — 2026-10-26
+
+The immutable final candidate was rerun after the owner reported all three Human Test phases as passed. Every Playwright command below used `--retries=0`.
+
+| Command or check | Final result |
+|---|---|
+| `node --test tests/accessibility-foundation.test.js tests/accessibility-season-001b.test.js` | PASS — 7/7 |
+| WebKit deterministic race spec | PASS — 4/4 |
+| Formerly failing WebKit assertion, `--repeat-each=30` | PASS — 30/30 |
+| Controlled delayed-init assertion, `--repeat-each=30` | PASS — 30/30 |
+| Four-spec Chromium/Firefox/WebKit accessibility selection | PASS — 45/45 |
+| Canonical board Chromium/WebKit | PASS — 19 passed, 1 intentional project skip |
+| Opening Database Quiet Drag Chromium/WebKit | PASS — 14/14 |
+| Navigation fallback / route inventory / public audit | PASS — current / 78 / 1,874 files |
+| Generator and Play fail-closed contracts | PASS — 14/14 |
+| Opening Database source contracts | PASS — 8/8 |
+| PayPal retirement Node / browser contracts | PASS — 5/5 and 4/4 |
+| Scanner feedback and public-governance contracts | PASS — 31/31 |
+| Changed JavaScript syntax | PASS — 16/16 |
+| Supply-chain policy | PASS — 501 runtime files, 186 locked entries |
+| Restricted path / added secret / package-lock delta | PASS — 0 / 0 / 0 |
+| `/support` | PASS — HTTP 308 to `/help` |
+
+The combined navigation/i18n Node selection produced 23/24 because `game-library-champions.html` lacks the test's expected i18n-before-navigation script order. The exact command reproduced 23/24 with the identical failure on detached production `26e9d25…`; both the HTML and failing test blobs are byte-identical across baseline and candidate. This is a pre-existing repository failure, not a candidate-attributable regression.
+
+Read-only Vercel inspection confirmed deployment `dpl_2uyihaZJjvg2wFS915qWDvhVY9Dm`, project `prj_SU3FQKbxjztMccLO5TYBSpU6XvDf`, state/target `READY` / `production`, and Git SHA `26e9d25…` for both public domains. No deployment was created or changed.
+
 ## Canonical board behavior
 
 ```powershell
