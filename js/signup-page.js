@@ -1,11 +1,11 @@
 /**
- * CAISSA invitation-first registration candidate.
+ * CAISSA eligibility-first registration candidate.
  *
  * This client never loads Clerk and cannot create an account. It first sends
  * only birth month/year to the same-origin eligibility endpoint. Only after a
- * successful server decision can it send an email to request a restricted
- * Clerk invitation. Production remains on the pause screen unless the server
- * release gate is explicitly enabled.
+ * successful server decision can it send an email to start the restricted
+ * Clerk account flow. Production remains on the pause screen unless the
+ * server release gate is explicitly enabled.
  */
 (function () {
     'use strict';
@@ -70,7 +70,7 @@
                 return;
             }
             form.hidden = true;
-            byId('registrationInvitationForm').hidden = false;
+            byId('registrationAccountForm').hidden = false;
             byId('registrationEmail').focus();
             showStatus('Continue with your email address.');
         } catch (_) {
@@ -82,27 +82,27 @@
         }
     }
 
-    async function submitInvitation(event) {
+    async function submitAccountSetup(event) {
         event.preventDefault();
         const form = event.currentTarget;
         const button = form.querySelector('button[type="submit"]');
         let emailAddress = byId('registrationEmail').value.trim();
         button.disabled = true;
-        showStatus('Preparing your secure invitation…');
+        showStatus('Preparing secure account setup…');
         try {
             const { response } = await postJson('/api/auth/registration/invitation', { emailAddress });
             emailAddress = '';
             form.reset();
             if (!response.ok) {
-                showStatus('The invitation could not be prepared. Start again later.', 'error');
+                showStatus('Account setup could not be prepared. Start again later.', 'error');
                 form.hidden = true;
                 return;
             }
             form.hidden = true;
             byId('registrationCandidateComplete').hidden = false;
-            showStatus('Check your email for the time-limited account invitation.', 'success');
+            showStatus('Check your email to verify your address and finish creating your account.', 'success');
         } catch (_) {
-            showStatus('The invitation could not be prepared. Start again later.', 'error');
+            showStatus('Account setup could not be prepared. Start again later.', 'error');
         } finally {
             emailAddress = '';
             button.disabled = false;
@@ -119,7 +119,7 @@
         pause.hidden = true;
         candidate.hidden = false;
         byId('registrationEligibilityForm')?.addEventListener('submit', submitEligibility);
-        byId('registrationInvitationForm')?.addEventListener('submit', submitInvitation);
+        byId('registrationAccountForm')?.addEventListener('submit', submitAccountSetup);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

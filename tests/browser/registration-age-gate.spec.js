@@ -42,7 +42,7 @@ test('neutral screen sends no email and an unavailable decision reveals no thres
   await expect(page.locator('#registrationCandidateStatus')).toHaveText('Account registration is unavailable.');
   expect(requestBody).toEqual({ birthMonth: '12', birthYear: '2012' });
   expect(JSON.stringify(requestBody)).not.toContain('email');
-  await expect(page.locator('#registrationInvitationForm')).toBeHidden();
+  await expect(page.locator('#registrationAccountForm')).toBeHidden();
   await expect(page.locator('#registrationCandidate')).not.toContainText(/(?:at least|over|under) 16|16\+/i);
 });
 
@@ -63,10 +63,11 @@ test('eligible candidate separates age and email requests and fits Mobile Safari
   await page.locator('#registrationBirthMonth').selectOption('1');
   await page.locator('#registrationBirthYear').selectOption('1990');
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.locator('#registrationInvitationForm')).toBeVisible();
+  await expect(page.locator('#registrationAccountForm')).toBeVisible();
   await page.locator('#registrationEmail').fill('adult@example.test');
-  await page.getByRole('button', { name: 'Request invitation' }).click();
+  await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.locator('#registrationCandidateStatus')).toContainText('Check your email');
+  await expect(page.locator('#registrationCandidate')).not.toContainText(/invitation/i);
   expect(calls).toEqual([
     { route: 'eligibility', body: { birthMonth: '1', birthYear: '1990' } },
     { route: 'invitation', body: { emailAddress: 'adult@example.test' } }
