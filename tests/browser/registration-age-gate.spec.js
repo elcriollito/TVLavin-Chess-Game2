@@ -22,6 +22,7 @@ test('paused registration remains the default and never contacts Clerk', async (
     if (/clerk/i.test(request.url())) clerkRequests.push(request.url());
   });
   await page.goto('/signup?registration=enabled');
+  await expect(page).toHaveTitle('Create Account – CAISSA Chess');
   await expect(page.getByRole('heading', { name: 'New registrations are temporarily paused' })).toBeVisible();
   await expect(page.locator('#registrationCandidate')).toBeHidden();
   expect(clerkRequests).toEqual([]);
