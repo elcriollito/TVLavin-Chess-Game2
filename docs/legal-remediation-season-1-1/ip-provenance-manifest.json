@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "caissa-ip-provenance/1",
+  "verifiedAt": "2026-10-27",
+  "repositoryBase": "6e912be5c314080be8944efde261b8dc133452a6",
+  "scope": "Evidence only; this manifest does not relicense CAISSA-authored or third-party work.",
+  "components": [
+    {
+      "id": "stockfish-18-lite-single",
+      "status": "verified-exact-package-artifacts",
+      "version": "18.0.0",
+      "license": "GPL-3.0",
+      "sourceRepository": "https://github.com/nmrugg/stockfish.js",
+      "packageUrl": "https://registry.npmjs.org/stockfish/-/stockfish-18.0.0.tgz",
+      "packageSha256": "9db3d26f3212c0f1e81ce4acfb04d9f7fce7997b7e396f645e9cb2fa675fa07d",
+      "files": [
+        { "path": "assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.js", "bytes": 20670, "sha256": "2278005057f381491f1c9bb3e44c9f5920b3a00bef9759e33cc6582769a1f1fe" },
+        { "path": "assets/vendor/stockfish/18.0.0/stockfish-18-lite-single.wasm", "bytes": 7295411, "sha256": "a8fbc05ec6920b56d7485826dcb02c5ffd2826bcbf751cf973046f237a9096f1" },
+        { "path": "assets/vendor/stockfish/18.0.0/Copying.txt", "bytes": 35147, "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903" }
+      ],
+      "note": "Runtime JS and WASM match the npm tarball. The separately retained GPL text remains GPLv3 text."
+    },
+    {
+      "id": "stockfish-19-lite-single",
+      "status": "verified-by-existing-provenance",
+      "version": "19.0.0",
+      "license": "GPL-3.0",
+      "provenance": "assets/vendor/stockfish/19.0.0/provenance.json"
+    },
+    {
+      "id": "fairy-stockfish-wasm",
+      "status": "verified-exact-package-artifacts",
+      "version": "1.1.11",
+      "license": "GPL-3.0",
+      "sourceRepository": "https://github.com/fairy-stockfish/fairy-stockfish.wasm",
+      "packageUrl": "https://registry.npmjs.org/fairy-stockfish-nnue.wasm/-/fairy-stockfish-nnue.wasm-1.1.11.tgz",
+      "packageSha256": "e2ab2650dca306dbf536abd45714a4176541ac9051586210aacb8fab0e3df8a9",
+      "files": [
+        { "path": "public/engines/fairy-stockfish/stockfish.js", "bytes": 64273, "sha256": "86f07a252c46e02760562d8bf6d32beb5f4fc5746c5f8233566a7ca3db6a8af4" },
+        { "path": "public/engines/fairy-stockfish/stockfish.wasm", "bytes": 1636483, "sha256": "91f78f226169ae0e08be3854e0b4de8f5461844d38f08eaae8e3f8ee0833831d" }
+      ],
+      "note": "Runtime JS and WASM match the npm package. Corresponding-source delivery instructions still require release-owner approval."
+    },
+    {
+      "id": "js-dos",
+      "status": "blocked-version-drift",
+      "license": "GPL-2.0",
+      "declaredRange": "^8.3.20",
+      "lockedVersion": "8.5.3",
+      "runtimeCdnVersion": "8.3.20",
+      "blocker": "Select one reviewed version and make package, runtime URL, notices and corresponding source agree before certifying distribution."
+    },
+    {
+      "id": "gnu-chess-dos",
+      "status": "placeholder-only",
+      "license": "GPL-3.0-reference-only",
+      "archive": { "path": "public/dos/games/gnuchess/gnuchess.zip", "bytes": 464, "sha256": "9d9aebe75cb38da6c0bf7b0f0e438eef317182b52eaa38b191dd827de1074d20" },
+      "contents": ["PLACEHOLDER.txt", "README.txt"],
+      "blocker": "No executable is distributed; do not claim a playable bundle."
+    },
+    {
+      "id": "syzygy",
+      "status": "authoring-only-not-distributed",
+      "license": "source-specific",
+      "evidence": "scripts/provision-syzygy.mjs and private authoring documentation",
+      "blocker": "No local Syzygy set is certified for public distribution."
+    },
+    {
+      "id": "lichess-puzzles",
+      "status": "verified-source-manifest",
+      "license": "CC0",
+      "provenance": "docs/product/lichess-puzzle-source-manifest.json"
+    },
+    {
+      "id": "pgn-media-collections",
+      "status": "collection-review-required",
+      "license": "mixed-or-unknown",
+      "blocker": "No blanket paid redistribution right is inferred from public availability."
+    }
+  ],
+  "ownerDecisions": [
+    "Choose the license and copyright-holder identity for original CAISSA code.",
+    "Approve the scope and publication of a root LICENSE and consolidated third-party notices.",
+    "Choose one js-dos delivery version and corresponding-source location."
+  ]
+}
