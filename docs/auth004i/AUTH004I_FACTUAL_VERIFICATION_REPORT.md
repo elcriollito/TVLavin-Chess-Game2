@@ -10,7 +10,7 @@ This is a factual and technical review, not legal advice or a legal-compliance c
 
 | Area | Verified current fact | Classification |
 |---|---|---|
-| Operator | CAISSA Chess is the service name of a free personal project operated by one individual; no LLC or corporation and no active commercial revenue were identified. | FACT VERIFIED |
+| Operator | CAISSA Chess is the service name of a free personal project individually operated by Alexander Lavin in Florida, United States; it is not a separate legal entity, LLC or corporation, and no active commercial revenue was identified. | FACT VERIFIED / OPERATOR APPROVED |
 | Authentication | Clerk Production is configured for restricted sign-up. Email verification, session controls and CAPTCHA protections are configured. Google exists as a provider entry but its production custom credentials are not configured. | FACT VERIFIED |
 | Google identity | The candidate requests only OpenID Connect identity scopes: `openid`, email and profile. Production activation remains a provider/configuration gate. | FACT VERIFIED / PROVIDER APPROVAL REQUIRED |
 | Application data | Supabase project `jczauvkfkweuvdpurpem` is active in `us-east-1`. Browser access is deny-by-default on audited private tables; server service-role use is a privileged trust boundary. | FACT VERIFIED |
@@ -31,7 +31,8 @@ This is a factual and technical review, not legal advice or a legal-compliance c
 
 ## External-source verification
 
-- Florida Statutes §865.09 defines a covered business by value/compensation and requires public registration details when it applies. The present free-project facts narrow but do not conclusively resolve the question.
+- Florida Statutes §865.09 defines a covered “business” by dealing in a thing of value or rendering services for compensation. If the statute applies to use of a fictitious name, registration calls for the business mailing address and each registrant's name and address. The present free, uncompensated-project facts narrow but do not conclusively resolve applicability; this draft does not claim an exemption or publish an invented address.
+- The approved legal operator identity and email contact satisfy the draft's factual identification goal. Whether another jurisdiction requires a postal notice address or a representative depends on applicability. For example, GDPR Article 13 requires the controller's identity and contact details when it applies, and Article 27 can require an EU representative when Article 3(2) applies unless an exception is met. CAISSA has not completed the jurisdiction-specific applicability analysis.
 - Florida Digital Bill of Rights controller thresholds in §501.702 are not met on the verified project facts, but that does not answer every Florida privacy or consumer-protection obligation.
 - Florida §501.1735 can apply to an online game likely to be predominantly accessed by children. Whether CAISSA meets that factual trigger is not established.
 - FTC COPPA guidance permits a neutral age screen for a general-audience service, while actual knowledge of an under-13 user can trigger additional duties.
@@ -40,6 +41,7 @@ This is a factual and technical review, not legal advice or a legal-compliance c
 Official sources:
 
 - https://leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0800-0899/0865/Sections/0865.09.html
+- https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679
 - https://wwwo.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.702.html
 - https://www.flsenate.gov/Laws/Statutes/2026/501.1735
 - https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions

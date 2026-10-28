@@ -118,14 +118,24 @@ test('legal drafts accurately describe the individual operator and noncommercial
   const privacy = read('privacy.html');
   const terms = read('terms.html');
   for (const source of [privacy, terms]) {
-    assert.match(source, /operated by one individual/i);
-    assert.match(source, /No company, limited liability company or corporation/i);
+    assert.match(source, /individually operated by Alexander Lavin in Florida, United States/i);
+    assert.match(source, /not a separate legal entity, company, limited liability company or corporation/i);
     assert.match(source, /does not (?:currently )?(?:charge users|charge for services)/i);
     assert.match(source, /commercial subscriptions/i);
     assert.match(source, /commercial revenue/i);
   }
   assert.match(terms, /internal feature controls/i);
   assert.match(terms, /Before any commercial feature is activated/i);
+});
+
+test('approved operator identity is public without inventing private contact details', () => {
+  for (const source of [read('privacy.html'), read('terms.html')]) {
+    assert.match(source, /legal operator is Alexander Lavin/i);
+    assert.match(source, /privacy@caissa-chess\.org/i);
+    assert.match(source, /postal notice address .* qualified legal review/is);
+    assert.doesNotMatch(source, /Alexander Lavin\s+(?:LLC|Inc\.?|Corporation)/i);
+    assert.doesNotMatch(source, /(?:telephone|phone):\s*\+?\d|date of birth|tax identification/i);
+  }
 });
 
 test('privacy draft states verified transfer facts without promising single-country storage', () => {

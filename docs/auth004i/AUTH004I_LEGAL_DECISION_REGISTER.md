@@ -4,7 +4,7 @@ Settled facts and ordinary editorial wording are not presented for reapproval.
 
 | Decision | Proposed option | Alternatives | Legal implications | Recommendation | Counsel | Blocks |
 |---|---|---|---|---|---|---|
-| Operator identification and notice address | Publish CAISSA Chess and `privacy@caissa-chess.org`; keep private legal name/residence unpublished unless law requires more. | Publish a service mailing address; publish legal name; register an entity/agent later. | Adequacy depends on applicable notice, consumer and fictitious-name rules. | Preserve privacy now; obtain Florida advice before legal-page publication. | QUALIFIED LEGAL REVIEW REQUIRED | Legal publication; potentially Google if policy identity is deemed insufficient. |
+| Operator identification and notice address | Publish CAISSA Chess, legal operator Alexander Lavin, Florida, United States, and `privacy@caissa-chess.org`; do not publish a residence, phone, date of birth, tax information or other private data. | Add a separate service mailing address or applicable representative only if later required and approved. | Legal identity is approved. Postal-address or representative duties still depend on applicable notice, fictitious-name and international rules. | Use the approved identity now; obtain qualified advice on any additional postal-address or representative requirement without inventing data. | OPERATOR DECISION APPROVED / QUALIFIED LEGAL REVIEW REQUIRED FOR ADDRESS | Identity no longer blocks; address remains a legal-publication review item. |
 | Florida fictitious-name status | Do not claim registration or exemption. Confirm whether uncompensated current operation is outside §865.09 and reassess before monetization. | Voluntary registration; operate under personal legal name. | Registration can publicly expose name/address and is not a trademark. | Florida counsel confirmation. | QUALIFIED LEGAL REVIEW REQUIRED | Legal publication if counsel finds registration/disclosure mandatory. |
 | Suspension and appeal | Urgent fail-closed restriction; general reason and email-based human review when safe; no guaranteed restoration. | No appeal; formal multi-stage appeal. | Must be applied consistently and respect mandatory consumer rights. | Approve the proportionate proposed process. | Legal review advised | Terms publication. |
 | Liability | Leave monetary cap, damages exclusions and jurisdiction-specific exceptions unset. | Tailored cap/exclusions; no limitation. | Enforceability and consumer exceptions are jurisdiction-dependent. | Counsel drafts final clause; do not improvise. | QUALIFIED LEGAL REVIEW REQUIRED | Terms publication. |
@@ -18,6 +18,7 @@ Settled facts and ordinary editorial wording are not presented for reapproval.
 ## Non-decisions already settled
 
 - The service is currently a free personal project operated by an individual, without active subscriptions or revenue.
+- The approved legal operator is Alexander Lavin, located in Florida, United States; CAISSA Chess is not a separate entity.
 - The minimum age for new account registration is 16.
 - CAISSA Junior is not active.
 - Scanner feedback is optional, separately consented, `raw-unverified` and never automatic training truth.

@@ -2,6 +2,13 @@
 
 Compared with AUTH-004H package `1a16a20b3677cba8c72578ad3409a43a845a9995`.
 
+## Approved operator identity
+
+1. Identified Alexander Lavin as the individual legal operator of CAISSA Chess in Florida, United States.
+2. Preserved CAISSA Chess as the service name and expressly stated that it is not a separate entity, LLC or corporation.
+3. Kept `privacy@caissa-chess.org` as the sole published contact and did not add a residence, phone, birth date, tax information or private forwarding destination.
+4. Narrowed the remaining legal question to whether applicable Florida, international or notice rules require a separate postal address or representative; no address or exemption was invented.
+
 ## Privacy Policy
 
 1. **Scanner recognition:** replaced the ambiguous image-processing paragraph with the verified distinction between transient source-image processing and the persistent derived scan snapshot.

@@ -20,7 +20,7 @@ These HTML files are the complete review candidates. Draft notices must remain u
 
 | Approval | Who | Why it remains material |
 |---|---|---|
-| Operator identity/address and Florida name posture | Operator + Florida counsel | Public disclosure and registration consequences cannot be inferred from code or free status. |
+| Postal notice address and Florida name posture | Florida counsel | Operator identity is approved. Any additional postal-address or fictitious-name obligation still depends on applicable law and actual operation. |
 | Liability, governing law, forum and disputes | Operator + qualified counsel | These provisions allocate remedies and legal risk and cannot be safely invented. |
 | Child-platform applicability | Qualified counsel using audience facts | Florida §501.1735 is triggered by factual audience/use, not solely by a 16+ label. |
 | Retention/request commitments | Operator + privacy counsel | Fixed periods and exceptions must match operational capacity and applicable law. |

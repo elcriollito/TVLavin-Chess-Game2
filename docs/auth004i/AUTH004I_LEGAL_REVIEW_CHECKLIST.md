@@ -3,7 +3,8 @@
 ## Operator and Florida counsel
 
 - [ ] Confirm whether the current uncompensated use of “CAISSA Chess” requires Florida fictitious-name registration under the actual facts.
-- [ ] Confirm the minimum legally sufficient public operator identity and notice address; do not insert a residence without explicit approval.
+- [x] Publish the approved legal operator identity: Alexander Lavin, individual operator, Florida, United States.
+- [ ] Confirm whether any applicable law requires a separate postal notice address or representative; do not insert a residence or other private data.
 - [ ] Assess whether CAISSA Online is an online game likely to be predominantly accessed by children for Florida §501.1735.
 - [ ] Review the proposed 16+ general-audience approach and actual-knowledge escalation process.
 

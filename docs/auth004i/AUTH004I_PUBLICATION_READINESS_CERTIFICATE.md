@@ -22,11 +22,11 @@ The Privacy Policy and Terms are technically review-ready and factually improved
 - Scanner transient processing, derived snapshot, optional feedback, image storage, human certification and historical quarantine separated.
 - No staging-only control is represented as production behavior.
 - Draft warnings remain present.
-- No private destination, secret, token, client credential, residential address or private legal identity added.
+- Approved operator identity added without a private destination, secret, token, client credential, residential address, phone, date of birth or tax information.
 
 ## Blocking legal gates
 
-1. Minimum legally sufficient individual-operator identification/address and Florida fictitious-name position.
+1. Any additional postal notice address, representative obligation and Florida fictitious-name position. The individual operator identity itself is approved and present.
 2. Liability clause or informed decision to omit one.
 3. Governing law, forum and dispute process.
 4. Applicability of child-directed online-platform duties to actual CAISSA audience/use.
