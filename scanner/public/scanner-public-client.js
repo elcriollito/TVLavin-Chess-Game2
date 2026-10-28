@@ -19,6 +19,7 @@ const IMAGE_PURPOSE = 'scanner-photo-improvement-review';
 const IMAGE_CONSENT_VERSION = 'caissa-scanner-image-review-consent/1';
 const IMAGE_RIGHTS_ATTESTATION = 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW';
 const CONSENT_SOURCE = 'scanner-review-consent-panel';
+const MAX_IMAGE_BYTES = 12_000_000;
 const feedbackIdsByScan = new Map();
 
 function feedbackIdForScan(scanId) {
@@ -39,6 +40,8 @@ function extensionOf(name) {
 
 export function resolvePublicImage(file) {
   if (!file) throw typedError('IMAGE_REQUIRED');
+  if (!Number.isSafeInteger(file.size) || file.size < 1) throw typedError('IMAGE_READ_FAILED');
+  if (file.size > MAX_IMAGE_BYTES) throw typedError('IMAGE_TOO_LARGE');
   const declaredType = String(file.type || '').trim().toLowerCase();
   const extension = extensionOf(file.name);
   if (HEIC.has(declaredType) || ['heic', 'heif'].includes(extension)) throw typedError('UNSUPPORTED_HEIC');
@@ -49,6 +52,16 @@ export function resolvePublicImage(file) {
     sourceImageType,
     metadata: Object.freeze({ declaredType: declaredType || null, extension: extension || null, size: file.size })
   });
+}
+
+async function readPublicImageBytes(file) {
+  try { return await file.arrayBuffer(); }
+  catch (_) { throw typedError('IMAGE_READ_FAILED'); }
+}
+
+export async function publicImageHash(file) {
+  resolvePublicImage(file);
+  return sha256Hex(await readPublicImageBytes(file));
 }
 
 function rgbaBase64(buffer) {
@@ -128,7 +141,7 @@ async function recognizeCanonicalBoard(request, parentSignal) {
 
 export async function recognizePublicPosition({ file, prepared, captureType, orientation = 'white-at-bottom', signal }) {
   const selected = resolvePublicImage(file);
-  const imageHash = await sha256Hex(await file.arrayBuffer());
+  const imageHash = await publicImageHash(file);
   const scanId = randomUuid();
   try {
     const prediction = await recognizeCanonicalBoard({
@@ -168,7 +181,7 @@ export async function createPublicFailureContext(file, captureType, orientation 
   const selected = resolvePublicImage(file);
   return Object.freeze({
     scanId: randomUuid(),
-    imageHash: await sha256Hex(await file.arrayBuffer()),
+    imageHash: await publicImageHash(file),
     captureType,
     orientation,
     selected
@@ -205,17 +218,22 @@ async function uploadConsentedImage(file, imageHash, scanId, feedbackId, sourceI
   }, authenticated: true });
   const grantedUploadId = grant.uploadId || uploadId;
   const token = await authenticatedToken();
-  const response = await fetch('/api/scanner/public/image', {
-    method: 'PUT',
-    credentials: 'same-origin',
-    headers: {
-      'Content-Type': selected.sourceImageType,
-      'X-Caissa-Image-Sha256': imageHash,
-      'X-Caissa-Upload-Id': grantedUploadId,
-      Authorization: 'Bearer ' + token
-    },
-    body: selected.blob
-  });
+  let response;
+  try {
+    response = await fetch('/api/scanner/public/image', {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': selected.sourceImageType,
+        'X-Caissa-Image-Sha256': imageHash,
+        'X-Caissa-Upload-Id': grantedUploadId,
+        Authorization: 'Bearer ' + token
+      },
+      body: selected.blob
+    });
+  } catch (_) {
+    throw typedError('NETWORK_FAILURE');
+  }
   const value = await responseBody(response);
   if (!response.ok) throw responseError(response, value);
   return Object.freeze({ uploadId: grantedUploadId, scanId, feedbackId });
@@ -320,10 +338,15 @@ export async function submitPublicFeedback({
   const imageUpload = shareImageForImprovement
     ? await uploadConsentedImage(file, snapshot.imageHash, snapshot.scanId, feedbackId, sourceImageRightsConfirmed)
     : null;
-  return jsonRequest('/api/scanner/public/feedback', {
-    body: { feedback: record, imageUploadId: imageUpload?.uploadId || null },
-    authenticated: true
-  });
+  try {
+    return await jsonRequest('/api/scanner/public/feedback', {
+      body: { feedback: record, imageUploadId: imageUpload?.uploadId || null },
+      authenticated: true
+    });
+  } catch (error) {
+    if (imageUpload) error.photoUploaded = true;
+    throw error;
+  }
 }
 
 export async function submitPublicFailure({ context, error, file, shareCorrectionForImprovement, shareImageForImprovement, sourceImageRightsConfirmed = false }) {
@@ -369,9 +392,15 @@ export function normalizeFailure(error) {
 export function publicErrorMessage(error) {
   const code = normalizeFailure(error).code;
   if (code === 'UNSUPPORTED_IMAGE') return 'This format is not supported. Choose a JPEG, PNG, or WebP image. HEIC and HEIF are not supported yet.';
+  if (code === 'IMAGE_TOO_LARGE' || code === 'PAYLOAD_TOO_LARGE' || code === 'IMAGE_SIZE_INVALID') return 'That image is too large. Choose a JPEG, PNG, or WebP image smaller than 12 MB.';
+  if (code === 'IMAGE_READ_FAILED' || code === 'IMAGE_REQUIRED') return 'Safari could not read the selected file. Reselect the original photo without restarting this scan.';
+  if (/IMAGE_TYPE|IMAGE_HASH|UNSUPPORTED/.test(code)) return 'The selected file is not a valid supported image. Choose the original JPEG, PNG, or WebP photo.';
   if (code === 'RATE_LIMITED') return 'Too many scan attempts. Wait a moment, then try again.';
   if (code === 'AUTH_REQUIRED') return 'Sign in to send optional Scanner feedback.';
   if (code === 'PUBLIC_BETA_DISABLED') return 'Scanner is temporarily paused. Please try again later.';
+  if (error?.photoUploaded === true) return 'The photo was stored privately, but the feedback record could not be completed. Keep this panel open and try again, or choose Not now to continue without sharing.';
+  if (/IMAGE_(UPLOAD|GOVERNANCE|CONSENT)|SCANNER_PUBLIC_IMAGE/.test(code)) return 'Private photo upload is unavailable right now. Keep this panel open and retry, or continue without sharing.';
+  if (/FEEDBACK|CONFIRMED_CORRECT_CHANGED|CORRECTION_DIFF|SCAN_NOT_FOUND/.test(code)) return 'Feedback could not be saved. Keep this panel open and try again, or choose Not now to continue without sharing.';
   if (/NO_BOARD|LOCALIZATION|AMBIGUOUS|GRID|QUAD|HOMOGRAPHY|BOARD/.test(code)) return 'The board could not be detected reliably. Try a clearer image with the full 2D board visible.';
   if (/INFERENCE|MODEL|SERVICE|TIMEOUT/.test(code)) return 'Recognition is temporarily unavailable. Please try again.';
   if (code === 'NETWORK_FAILURE') return 'Could not reach Scanner. Check your connection and try again.';

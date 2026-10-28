@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createScannerPublicService } from '../api/_lib/scanner-public-service.js';
+import { canonicalFeedbackSnapshot, createScannerPublicService } from '../api/_lib/scanner-public-service.js';
 import { planScannerImageLifecycle } from '../api/_lib/scanner-governance-lifecycle.js';
+import { MODEL, createPublicFeedbackRecord, createPublicPredictionSnapshot } from '../scanner/public/scanner-public-contract.js';
+import { expandPlacement, squareAt } from '../scanner/beta/scanner-beta-contract.js';
+import { publicErrorMessage, publicImageHash, resolvePublicImage } from '../scanner/public/scanner-public-client.js';
 
 const root = new URL('../', import.meta.url);
 const read = relative => fs.readFileSync(new URL(relative, root), 'utf8');
@@ -10,6 +13,8 @@ const USER_ID = '11111111-1111-4111-8111-111111111111';
 const UPLOAD_ID = '22222222-2222-4222-8222-222222222222';
 const SCAN_ID = '33333333-3333-4333-8333-333333333333';
 const HASH = 'A'.repeat(64);
+const RAW_BLACK_BOTTOM_FEN = '5r2/PP4P1/2K3P1/1r6/6p1/2n1p2R/1pp5/1k6 w - - 0 1';
+const CANONICAL_BLACK_BOTTOM_FEN = '6k1/5pp1/R2p1n2/1p6/6r1/1P3K2/1P4PP/2r5 w - - 0 1';
 const requestHeaders = { host: 'caissa.test', origin: 'https://caissa.test' };
 
 function response() {
@@ -30,6 +35,30 @@ function configuredEnvironment() {
     CAISSA_SCANNER_IMAGE_USER_MAX_BYTES: '24000000',
     CAISSA_SCANNER_IMAGE_PROJECT_MAX_BYTES: '240000000'
   };
+}
+
+function blackBottomPrediction() {
+  const labels = expandPlacement(RAW_BLACK_BOTTOM_FEN);
+  return createPublicPredictionSnapshot({
+    scanId: SCAN_ID,
+    timestamp: '2026-10-28T13:54:30.000Z',
+    imageHash: HASH,
+    orientation: 'white-at-bottom',
+    detectedCorners: [[0, 0], [512, 0], [512, 512], [0, 512]],
+    predictedFEN: RAW_BLACK_BOTTOM_FEN,
+    modelVersion: MODEL.version,
+    modelChecksum: MODEL.checksum,
+    occupancyThreshold: MODEL.occupancyThreshold,
+    squarePredictions: labels.map((predictedClass, index) => ({
+      square: squareAt(index),
+      predictedClass,
+      confidence: 0.99,
+      occupancyProbability: predictedClass === 'empty' ? 0.01 : 0.99,
+      colorProbabilities: [0.5, 0.5],
+      pieceTypeProbabilities: [1, 0, 0, 0, 0, 0],
+      kingAuxiliaryProbability: 0.1
+    }))
+  });
 }
 
 test('consent panel exposes two unchecked independent permissions and an accurate interim disclosure', () => {
@@ -144,4 +173,71 @@ test('authenticated feedback handoff is same-origin, explicit, and never stores 
   assert.match(app, /Confirm and share feedback/);
   assert.match(app, /sourceImageRights\.checked = false/);
   assert.match(app, /imageHash\.toLowerCase\(\) !== String\(publicRecognition/);
+});
+
+test('physical iPhone black-bottom feedback is revalidated against the canonical server snapshot', async () => {
+  const source = blackBottomPrediction();
+  const canonical = canonicalFeedbackSnapshot(source);
+  assert.equal(canonical.predictedFEN, CANONICAL_BLACK_BOTTOM_FEN);
+  assert.equal(canonical.orientation, 'black-at-bottom');
+
+  assert.throws(() => createPublicFeedbackRecord({
+    feedbackId: UPLOAD_ID,
+    snapshot: source,
+    feedbackType: 'CONFIRMED_CORRECT',
+    correctedFEN: CANONICAL_BLACK_BOTTOM_FEN,
+    finalPositionConfirmed: true,
+    localizationValid: true,
+    consent: { shareCorrectionForImprovement: true, shareImageForImprovement: true },
+    captureType: 'camera'
+  }), /CONFIRMED_CORRECT_CHANGED/);
+
+  const feedback = createPublicFeedbackRecord({
+    feedbackId: UPLOAD_ID,
+    snapshot: canonical,
+    feedbackType: 'CONFIRMED_CORRECT',
+    correctedFEN: CANONICAL_BLACK_BOTTOM_FEN,
+    finalPositionConfirmed: true,
+    localizationValid: true,
+    consent: { shareCorrectionForImprovement: true, shareImageForImprovement: true },
+    captureType: 'camera',
+    clientMetadata: { finalCanonicalOrientation: 'black-bottom' }
+  });
+  let persisted = null;
+  const service = createScannerPublicService({
+    env: configuredEnvironment(),
+    authenticate: async () => ({ authenticated: true, userId: 'clerk-1' }),
+    userStore: { async getUserByClerkId() { return { id: USER_ID }; } },
+    rateLimit: () => ({ allowed: true, remaining: 5 }),
+    store: {
+      async getScan() { return { submitted_by: USER_ID, snapshot: source }; },
+      async putFeedback(value) { persisted = value; return { duplicate: false, duplicate_suspected: false }; }
+    }
+  });
+  const res = response();
+  await service.feedback({
+    method: 'POST',
+    headers: requestHeaders,
+    body: { feedback, imageUploadId: UPLOAD_ID }
+  }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(persisted.feedback.originalFEN, CANONICAL_BLACK_BOTTOM_FEN);
+  assert.equal(persisted.feedback.certificationStatus, 'raw-unverified');
+});
+
+test('mobile image selection distinguishes supported, HEIC, size, read, upload, and feedback failures', async () => {
+  const image = (name, type, size = 128, arrayBuffer = async () => new Uint8Array(size).buffer) => ({
+    name, type, size, arrayBuffer,
+    slice(start, end, nextType) { return { size: end - start, type: nextType }; }
+  });
+  for (const [name, type] of [['camera.jpg', 'image/jpeg'], ['library.png', 'image/png'], ['share.webp', 'image/webp']]) {
+    assert.equal(resolvePublicImage(image(name, type)).sourceImageType, type);
+  }
+  assert.throws(() => resolvePublicImage(image('camera.heic', 'image/heic')), /UNSUPPORTED_HEIC/);
+  assert.throws(() => resolvePublicImage(image('large.jpg', 'image/jpeg', 12_000_001)), /IMAGE_TOO_LARGE/);
+  await assert.rejects(() => publicImageHash(image('stale.jpg', 'image/jpeg', 128, async () => { throw new Error('stale'); })), /IMAGE_READ_FAILED/);
+  assert.match(publicErrorMessage({ code: 'IMAGE_TOO_LARGE' }), /smaller than 12 MB/);
+  assert.match(publicErrorMessage({ code: 'NETWORK_FAILURE' }), /connection/);
+  assert.match(publicErrorMessage({ code: 'SCANNER_PUBLIC_IMAGE_ERROR' }), /Private photo upload/);
+  assert.match(publicErrorMessage({ code: 'CONFIRMED_CORRECT_CHANGED', photoUploaded: true }), /stored privately/);
 });

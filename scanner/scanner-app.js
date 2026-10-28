@@ -1643,9 +1643,7 @@
     try {
       const client = await loadPublicClient();
       client.resolvePublicImage(file);
-      if (file.size > 12 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE');
-      const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-      const imageHash = [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+      const imageHash = await client.publicImageHash(file);
       if (imageHash.toLowerCase() !== String(publicRecognition?.snapshot?.imageHash || '').toLowerCase()) {
         throw new Error('IMAGE_DOES_NOT_MATCH_SCAN');
       }
@@ -1656,7 +1654,7 @@
       selectedSourceFile = null;
       els.feedbackStatus.textContent = error?.message === 'IMAGE_DOES_NOT_MATCH_SCAN'
         ? 'That is not the original photo used for this scan. Choose the original photo, or turn off photo sharing.'
-        : 'Choose the original JPEG, PNG, or WebP image no larger than 12 MB.';
+        : (await loadPublicClient()).publicErrorMessage(error);
     }
     updateFeedbackEligibility();
   });

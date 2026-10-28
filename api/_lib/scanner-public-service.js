@@ -19,6 +19,7 @@ import {
   createPublicPredictionSnapshot,
   createPublicScanFailureRecord
 } from '../../scanner/public/scanner-public-contract.js';
+import { inferOrientation } from '../../scanner/orientation/scanner-orientation-inference.js';
 
 const LOCALIZATION_VERSION = 'caissa-scanner-board-localizer/4';
 const CAPTURE_TYPES = Object.freeze(['camera', 'gallery', 'screenshot', 'photo-of-screen']);
@@ -66,6 +67,28 @@ function requiredUuid(value, code = 'UUID_INVALID') {
   const normalized = String(value || '').toLowerCase();
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(normalized)) throw new Error(code);
   return normalized;
+}
+
+function rotateSquare180(square) {
+  if (!/^[a-h][1-8]$/.test(square || '')) return square;
+  return String.fromCharCode(104 - (square.charCodeAt(0) - 97)) + (9 - Number(square[1]));
+}
+
+export function canonicalFeedbackSnapshot(sourceSnapshot) {
+  const snapshot = createPublicPredictionSnapshot(sourceSnapshot);
+  const inference = inferOrientation(snapshot.predictedFEN);
+  const orientation = inference.recommendedOrientation;
+  const rotated = orientation === 'black-bottom';
+  return {
+    ...snapshot,
+    orientation: rotated ? 'black-at-bottom' : 'white-at-bottom',
+    predictedFEN: inference.canonicalFens[orientation],
+    squarePredictions: (rotated ? [...snapshot.squarePredictions].reverse() : snapshot.squarePredictions)
+      .map((prediction) => ({
+        ...prediction,
+        square: rotated ? rotateSquare180(prediction.square) : prediction.square
+      }))
+  };
 }
 
 function requiredHash(value) {
@@ -174,7 +197,7 @@ export function createScannerPublicService({
         if (source.submitted_by && source.submitted_by !== access.user.id) throw new Error('FEEDBACK_SCAN_OWNERSHIP_INVALID');
         const record = createPublicFeedbackRecord({
           ...body.feedback,
-          snapshot: source.snapshot,
+          snapshot: canonicalFeedbackSnapshot(source.snapshot),
           clientMetadata: {
             ...(body.feedback?.clientMetadata || {}),
             sourceTrust: PUBLIC_FEEDBACK.sourceTrust,
