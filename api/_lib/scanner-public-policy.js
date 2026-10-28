@@ -9,7 +9,13 @@ export const SCANNER_PUBLIC = Object.freeze({
   authenticatedRequestsPerMinute: 12,
   guestRequestsPerMinute: 4,
   authenticatedFeedbackRequestsPerMinute: 12,
-  authenticatedImageRequestsPerMinute: 6
+  authenticatedImageRequestsPerMinute: 6,
+  resultsPurpose: 'scanner-recognition-improvement-review',
+  resultsConsentVersion: 'caissa-scanner-results-consent/1',
+  imagePurpose: 'scanner-photo-improvement-review',
+  imageConsentVersion: 'caissa-scanner-image-review-consent/1',
+  imageRightsAttestation: 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW',
+  consentSource: 'scanner-review-consent-panel'
 });
 
 export function publicScannerEnabled(env = process.env) {
@@ -51,6 +57,10 @@ export function mutationRatePolicy(kind, identity, req, env = process.env) {
     image: {
       env: env.CAISSA_SCANNER_PUBLIC_IMAGE_RPM,
       fallback: SCANNER_PUBLIC.authenticatedImageRequestsPerMinute
+    },
+    imageConsent: {
+      env: env.CAISSA_SCANNER_PUBLIC_IMAGE_RPM,
+      fallback: SCANNER_PUBLIC.authenticatedImageRequestsPerMinute
     }
   }[kind];
   if (!settings) throw new Error('RATE_POLICY_INVALID');
@@ -59,6 +69,21 @@ export function mutationRatePolicy(kind, identity, req, env = process.env) {
     max: configuredLimit(settings.env, settings.fallback),
     prefix: `scanner-public-${kind}`
   });
+}
+
+function requiredPositiveInteger(value, maximum = Number.MAX_SAFE_INTEGER) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number > 0 && number <= maximum ? number : null;
+}
+
+export function imageGovernanceConfig(env = process.env) {
+  const config = {
+    ttlSeconds: requiredPositiveInteger(env.CAISSA_SCANNER_IMAGE_GRANT_TTL_SECONDS, 3600),
+    userMaxActiveUploads: requiredPositiveInteger(env.CAISSA_SCANNER_IMAGE_USER_MAX_ACTIVE_UPLOADS, 100),
+    userMaxBytes: requiredPositiveInteger(env.CAISSA_SCANNER_IMAGE_USER_MAX_BYTES),
+    projectMaxBytes: requiredPositiveInteger(env.CAISSA_SCANNER_IMAGE_PROJECT_MAX_BYTES)
+  };
+  return Object.values(config).every(value => value !== null) ? Object.freeze(config) : null;
 }
 
 export function publicHeaders(target) {

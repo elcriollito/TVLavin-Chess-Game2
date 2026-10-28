@@ -43,6 +43,26 @@ function expectCoordinates(presentation, files, ranks) {
   expect(presentation.ranks).toEqual(ranks.split(''));
 }
 
+async function declineConsent(page) {
+  await expect(page.locator('#feedbackSheet')).toBeVisible();
+  await page.locator('#cancelFeedbackBtn').click();
+  await expect(page.locator('#feedbackSheet')).toBeHidden();
+}
+
+async function useAuthenticatedScannerSession(page) {
+  await page.evaluate(() => {
+    Object.assign(window.CAISSA_AUTH, {
+      isLoaded: true,
+      isSignedIn: true,
+      userId: 'user_scanner_public_beta_test',
+      status: 'authenticated',
+      whenReady: async () => window.CAISSA_AUTH,
+      getToken: async () => 'scanner-public-beta-test-token'
+    });
+    window.dispatchEvent(new CustomEvent('caissa-auth-change', { detail: { ...window.CAISSA_AUTH } }));
+  });
+}
+
 test.describe('CAISSA Scanner controlled public beta', () => {
   test('desktop is an intentional information and mobile handoff experience', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 900 });
@@ -99,6 +119,9 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#scannerBoard .sq')).toHaveCount(64);
     await page.locator('#applyEditBtn').click();
     await expect(page.locator('#workspaceView')).toBeVisible();
+    await expect(page.locator('#shareCorrectionConsent')).not.toBeChecked();
+    await expect(page.locator('#shareImageConsent')).not.toBeChecked();
+    await declineConsent(page);
     await expect(page.locator('#helpImproveBtn')).toBeVisible();
   });
 
@@ -112,6 +135,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await page.route('**/api/scanner/public/recognize', route => route.fulfill({ json: orientationPrediction(physical) }));
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/scanner');
+    await useAuthenticatedScannerSession(page);
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('#orientationReview')).toBeHidden();
@@ -119,7 +143,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await expect(page.locator('#scannerBoard .sq').nth(56)).toHaveAttribute('aria-label', /^h8\b/);
     await page.locator('#applyEditBtn').click();
     await expect(page.locator('#confirmedFen')).toHaveText(canonical);
-    await page.locator('#helpImproveBtn').click();
+    await expect(page.locator('#feedbackSheet')).toBeVisible();
     await page.locator('#shareCorrectionConsent').check();
     await page.locator('#submitFeedbackBtn').click();
     await expect(page.locator('#appToast')).toContainText('raw-unverified');
@@ -156,6 +180,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     await page.locator('#applyEditBtn').click();
+    await declineConsent(page);
     const fen = await page.locator('#confirmedFen').textContent();
 
     const whiteView = await boardPresentation(page);
@@ -166,7 +191,8 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     expectCoordinates(whiteView, 'abcdefgh', '87654321');
     await testInfo.attach('white-view-canonical-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
 
-    await page.locator('#coordinatesVisibilityBtn').click();
+    await expect(page.locator('#coordinatesVisibilityBtn')).toBeHidden();
+    await page.locator('#coordinatesVisibilityBtn').evaluate((button) => button.click());
     const hidden = await boardPresentation(page);
     expect(hidden.mapping).toEqual(whiteView.mapping);
     expect(hidden.pieces).toEqual(whiteView.pieces);
@@ -181,7 +207,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     });
     expectCoordinates(blackView, 'hgfedcba', '12345678');
     expect([...blackView.mapping].sort()).toEqual([...whiteView.mapping].sort());
-    await page.locator('#coordinatesVisibilityBtn').click();
+    await page.locator('#coordinatesVisibilityBtn').evaluate((button) => button.click());
     await testInfo.attach('black-view-canonical-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
     await expect(page.locator('#confirmedFen')).toHaveText(fen);
 
@@ -226,16 +252,15 @@ test.describe('CAISSA Scanner controlled public beta', () => {
       }
     });
     await page.goto('/scanner');
+    await useAuthenticatedScannerSession(page);
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     await page.locator('#applyEditBtn').click();
     const confirmedFen = await page.locator('#confirmedFen').textContent();
-    await page.locator('#flipBtn').click();
-    await page.locator('#helpImproveBtn').click();
     await expect(page.locator('#feedbackSheet')).toBeVisible();
     await expect(page.locator('#shareCorrectionConsent')).not.toBeChecked();
     await expect(page.locator('#shareImageConsent')).not.toBeChecked();
-    await expect(page.locator('#submitFeedbackBtn')).toBeDisabled();
+    await expect(page.locator('#submitFeedbackBtn')).toBeEnabled();
     await page.locator('#shareCorrectionConsent').check();
     await page.locator('#submitFeedbackBtn').click();
     await expect(page.locator('#appToast')).toContainText('raw-unverified');
@@ -254,13 +279,14 @@ test.describe('CAISSA Scanner controlled public beta', () => {
       if (request.url().endsWith('/api/scanner/public/feedback')) submitted = request.postDataJSON()?.feedback || null;
     });
     await page.goto('/scanner');
+    await useAuthenticatedScannerSession(page);
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     const originalFen = await page.locator('#fenInput').inputValue();
     const correctedFen = await page.evaluate(value => window.CaissaScannerFen.rotatePosition180(value), originalFen);
     await page.locator('#correctOrientationBtn').click();
     await page.locator('#applyEditBtn').click();
-    await page.locator('#helpImproveBtn').click();
+    await expect(page.locator('#feedbackSheet')).toBeVisible();
     await page.locator('#shareCorrectionConsent').check();
     await page.locator('#submitFeedbackBtn').click();
     await expect(page.locator('#appToast')).toContainText('raw-unverified');

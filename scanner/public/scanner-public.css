@@ -102,6 +102,9 @@
   box-shadow: 0 -22px 60px rgba(0, 0, 0, 0.46);
   padding: 0 16px max(18px, env(safe-area-inset-bottom));
   color: #f5f8fb;
+  max-height: calc(94dvh - env(safe-area-inset-top));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .feedback-sheet[hidden] {
   display: none;
@@ -111,6 +114,9 @@
   color: #b8c8d4;
   font-size: 13px;
   line-height: 1.45;
+}
+.feedback-sheet .sheet-head button {
+  white-space: nowrap;
 }
 .feedback-consent-row {
   display: flex;
@@ -129,6 +135,35 @@
   margin: 1px 0 0;
   accent-color: #f2a340;
   flex: 0 0 auto;
+}
+.feedback-consent-row:has(input:checked) {
+  border-color: #d89539;
+  background: rgba(216, 149, 57, 0.1);
+}
+.feedback-consent-row:focus-within {
+  outline: 3px solid rgba(126, 201, 246, 0.88);
+  outline-offset: 2px;
+}
+.feedback-reselect {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(83, 180, 255, 0.7);
+  border-radius: 12px;
+  background: rgba(15, 73, 112, 0.55);
+  color: #eef8ff;
+  font: inherit;
+  font-weight: 700;
+}
+.feedback-reselect:focus-visible {
+  outline: 3px solid #43a9ff;
+  outline-offset: 2px;
+}
+.feedback-rights-row {
+  margin-left: 18px;
+  border-style: dashed;
+}
+.feedback-rights-row[hidden] {
+  display: none;
 }
 .feedback-consent-row span,
 .feedback-consent-row strong,
@@ -152,6 +187,26 @@
 .feedback-privacy i {
   color: #63d99d;
 }
+.feedback-privacy-details {
+  margin: 8px 4px 14px;
+  color: #aebfcb;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.feedback-privacy-details summary {
+  width: max-content;
+  color: #bfe4fa;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.feedback-privacy-details p {
+  margin: 8px 0 0;
+}
+.feedback-privacy-details a {
+  color: #d7efff;
+  overflow-wrap: anywhere;
+}
 .feedback-submit {
   width: 100%;
   min-height: 48px;
@@ -167,6 +222,12 @@
   opacity: 0.42;
   cursor: not-allowed;
 }
+.feedback-submit:focus-visible,
+.feedback-sheet .sheet-head button:focus-visible,
+.feedback-privacy-details summary:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
 .feedback-status {
   min-height: 18px;
   text-align: center;
@@ -179,6 +240,13 @@
   .feedback-sheet {
     padding-left: 12px;
     padding-right: 12px;
+    border-radius: 18px 18px 0 0;
+  }
+  .feedback-consent-row {
+    padding: 10px;
+  }
+  .feedback-rights-row {
+    margin-left: 10px;
   }
   .public-structural-warning {
     margin-left: 2px;

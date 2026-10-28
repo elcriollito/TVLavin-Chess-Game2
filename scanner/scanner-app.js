@@ -75,6 +75,8 @@
     editBlackTurn: $('editBlackTurnBtn'),
     editCastling: $('editCastlingBtn'),
     editCastlingPanel: $('editCastlingPanel'),
+    editMore: $('editMoreBtn'),
+    editMorePanel: $('editMorePanel'),
     castlingInputs: [...document.querySelectorAll('#editCastlingPanel [data-castling]')],
     editFlip: $('editFlipBtn'),
     editCoordinatesVisibility: $('editCoordinatesVisibilityBtn'),
@@ -111,6 +113,10 @@
     cancelFeedback: $('cancelFeedbackBtn'),
     shareCorrection: $('shareCorrectionConsent'),
     shareImage: $('shareImageConsent'),
+    sourceImageRightsRow: $('sourceImageRightsRow'),
+    sourceImageRights: $('sourceImageRightsConsent'),
+    feedbackImageReselect: $('feedbackImageReselectBtn'),
+    feedbackImageInput: $('feedbackImageInput'),
     submitFeedback: $('submitFeedbackBtn'),
     feedbackDescription: $('feedbackSheetDescription'),
     feedbackStatus: $('feedbackStatus'),
@@ -120,8 +126,15 @@
     confirmed: $('confirmedFen'),
     analyze: $('analyzeBtn'),
     engineToggle: $('engineToggle'),
+    arrowsToggle: $('arrowsToggle'),
+    bestMoveArrowOverlay: $('bestMoveArrowOverlay'),
+    bestMoveArrowLine: $('bestMoveArrowLine'),
     analysisPanel: $('analysisPanel'),
     analysisStatus: $('analysisStatus'),
+    primaryEvaluation: $('primaryEvaluation'),
+    primaryEvaluationDepth: $('primaryEvaluationDepth'),
+    primaryBestMove: $('primaryBestMove'),
+    primaryEvaluationState: $('primaryEvaluationState'),
     analysisFen: $('analysisFen'),
     analysisMoveHint: $('analysisMoveHint'),
     first: $('firstMoveBtn'),
@@ -161,11 +174,18 @@
   let selectedSourceFile = null;
   let selectedCaptureType = null;
   let pendingFeedbackType = null;
+  let pendingConsentContinuation = false;
+  let pendingFeedbackOwnerUserId = null;
+  let feedbackNeedsReauthentication = false;
+  let feedbackIdentityConflict = false;
+  let restoredFeedbackDraft = false;
+  let feedbackSubmissionPending = false;
+  let feedbackRetryAvailable = false;
   let structuralAcknowledged = false;
   let publicRecognitionController = null;
 
   async function loadPublicClient() {
-    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=0.2.0');
+    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=1.0.2');
     return publicClient;
   }
 
@@ -183,14 +203,27 @@
     pv: $('analysisPv' + number)
   }));
 
+  const bestMoveArrow = window.CaissaScannerBestMoveArrow?.create({
+    board: els.board,
+    overlay: els.bestMoveArrowOverlay,
+    line: els.bestMoveArrowLine,
+    fenTools,
+    enabled: els.arrowsToggle?.checked !== false
+  }) || null;
+
   const analysis = window.CaissaScannerAnalysis?.create({
     board: els.board,
     fenTools,
     panel: els.analysisPanel,
     status: els.analysisStatus,
+    primaryEvaluation: els.primaryEvaluation,
+    primaryEvaluationDepth: els.primaryEvaluationDepth,
+    primaryBestMove: els.primaryBestMove,
+    primaryEvaluationState: els.primaryEvaluationState,
     fenOutput: els.analysisFen,
     moveHint: els.analysisMoveHint,
     lineEls,
+    arrow: bestMoveArrow,
     onFenChange: (fen) => {
       els.confirmed.textContent = fen;
       els.candidateStatus.textContent = 'Analyzing';
@@ -566,6 +599,7 @@
   }
 
   function openNewScan(trigger = document.activeElement) {
+    clearFeedbackHandoff();
     openSheet(els.newScanSheet, trigger);
   }
 
@@ -575,37 +609,258 @@
     input.click();
   }
 
-  function openFeedback(type = 'AUTO', trigger = document.activeElement) {
+  function feedbackHandoff() {
+    return window.CaissaScannerFeedbackAuthHandoff;
+  }
+
+  function clearFeedbackHandoff() {
+    feedbackHandoff()?.clear(sessionStorage);
+    pendingFeedbackOwnerUserId = null;
+    feedbackNeedsReauthentication = false;
+    feedbackIdentityConflict = false;
+    restoredFeedbackDraft = false;
+    els.feedbackImageInput.value = '';
+    els.feedbackImageReselect.hidden = true;
+  }
+
+  function feedbackDraft() {
+    const snapshot = publicRecognition?.snapshot;
+    const reviewedFen = currentFen() || els.fen.value;
+    if (!snapshot || !reviewedFen || !pendingFeedbackType) return null;
+    return feedbackHandoff()?.createDraft({
+      reviewedFen,
+      feedbackType: pendingFeedbackType,
+      continueToAnalysis: pendingConsentContinuation,
+      shareResults: els.shareCorrection.checked,
+      shareImage: els.shareImage.checked,
+      captureType: selectedCaptureType,
+      snapshot,
+      orientationInference,
+      orientationCorrectionApplied,
+      userOrientationOverride,
+      selectedCanonicalOrientation,
+      ownerUserId: window.CAISSA_AUTH?.userId || pendingFeedbackOwnerUserId
+    }) || null;
+  }
+
+  function saveFeedbackHandoff() {
+    try {
+      const draft = feedbackDraft();
+      return Boolean(draft && feedbackHandoff()?.save(sessionStorage, draft));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function stripFeedbackReturnMarker() {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('feedback_return')) return;
+    url.searchParams.delete('feedback_return');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }
+
+  function updateFeedbackEligibility() {
+    const shareResults = els.shareCorrection.checked;
+    const shareImage = els.shareImage.checked;
+    const wantsContribution = shareResults || shareImage;
+    const missingReselectedImage = shareImage && !selectedSourceFile;
+    els.feedbackImageReselect.hidden = !missingReselectedImage || !restoredFeedbackDraft;
+    els.sourceImageRights.disabled = !shareImage || missingReselectedImage;
+    els.sourceImageRightsRow.hidden = !shareImage;
+    if (!shareImage || missingReselectedImage) els.sourceImageRights.checked = false;
+    const auth = window.CAISSA_AUTH;
+    const needsSignIn = wantsContribution && (feedbackNeedsReauthentication || auth?.isSignedIn !== true);
+    els.submitFeedback.textContent = needsSignIn
+      ? 'Sign in to share feedback'
+      : wantsContribution ? (feedbackRetryAvailable ? 'Retry sharing' : 'Confirm and share feedback') : 'Continue';
+    els.submitFeedback.disabled = feedbackSubmissionPending || feedbackIdentityConflict
+      || (shareImage && (missingReselectedImage || !els.sourceImageRights.checked));
+  }
+
+  function beginFeedbackSignIn() {
+    if (!saveFeedbackHandoff()) {
+      els.feedbackStatus.textContent = 'Your reviewed position could not be prepared for sign-in. You can retry or continue without sharing.';
+      return false;
+    }
+    feedbackNeedsReauthentication = true;
+    updateFeedbackEligibility();
+    const destination = feedbackHandoff()?.returnPath(window.CAISSA_REDIRECTS) || '/scanner';
+    const auth = window.CAISSA_AUTH;
+    if (typeof auth?.redirectToSignIn === 'function') auth.redirectToSignIn(destination);
+    else window.location.assign(feedbackHandoff()?.signInPath(window.CAISSA_REDIRECTS)
+      || '/signin?redirect_url=%2Fscanner');
+    return true;
+  }
+
+  function restoreFeedbackHandoff() {
+    const handoff = feedbackHandoff();
+    const draft = handoff?.load(sessionStorage);
+    stripFeedbackReturnMarker();
+    if (!draft) return false;
+    const validated = fenTools.validate(draft.reviewedFen);
+    if (!validated.ok || !draft.snapshot?.scanId || !draft.snapshot?.imageHash) {
+      handoff.clear(sessionStorage);
+      return false;
+    }
+    const auth = window.CAISSA_AUTH;
+    if (draft.ownerUserId && auth?.isSignedIn && auth.userId !== draft.ownerUserId) {
+      handoff.clear(sessionStorage);
+      toast('The saved feedback draft belongs to a different signed-in account and was discarded.');
+      return false;
+    }
+
+    publicRecognition = Object.freeze({ snapshot: draft.snapshot });
+    orientationInference = draft.orientationInference;
+    orientationCorrectionApplied = draft.orientationCorrectionApplied;
+    userOrientationOverride = draft.userOrientationOverride;
+    selectedCanonicalOrientation = draft.selectedCanonicalOrientation;
+    flipped = selectedCanonicalOrientation === 'black-bottom';
+    selectedCaptureType = draft.captureType;
+    selectedSourceFile = null;
+    pendingFeedbackOwnerUserId = auth?.isSignedIn ? auth.userId : draft.ownerUserId;
+    feedbackNeedsReauthentication = auth?.isSignedIn !== true;
+    restoredFeedbackDraft = true;
+
+    const started = state.beginSource();
+    state.setCandidate(started.generation, { fen: validated.fen, source: 'feedback-auth-handoff' });
+    state.confirm(validated.fen);
+    els.fen.value = validated.fen;
+    els.confirmed.textContent = validated.fen;
+    els.workspaceTitle.textContent = 'Position ready';
+    els.candidateStatus.textContent = 'Confirmed';
+    els.confirmBar.hidden = true;
+    els.recognitionSummary.hidden = true;
+    els.handoff.hidden = draft.continueToAnalysis;
+    analysis?.setFlipped(flipped);
+    analysis?.setPosition(validated.fen);
+    syncOrientationPresentation();
+    showReading();
+    showWorkspace({ reason: 'feedback-auth-return' });
+    fenTools.render(els.board, validated.fen, flipped);
+    updateSideToMove(validated.fen);
+    openFeedback(draft.feedbackType, els.editBtn, { continueToAnalysis: draft.continueToAnalysis });
+    restoredFeedbackDraft = true;
+    pendingFeedbackOwnerUserId = auth?.isSignedIn ? auth.userId : draft.ownerUserId;
+    feedbackNeedsReauthentication = auth?.isSignedIn !== true;
+    els.shareCorrection.checked = draft.shareResults;
+    els.shareImage.checked = draft.shareImage;
+    els.sourceImageRights.checked = false;
+    els.feedbackStatus.textContent = draft.shareImage
+      ? 'Your position and choices were restored. Reselect the original photo, review the choices, and confirm again.'
+      : auth?.isSignedIn
+        ? 'Your position and choices were restored. Review them and confirm again before anything is submitted.'
+        : 'Sign-in was not completed. Retry, or choose Not now to continue without sharing.';
+    updateFeedbackEligibility();
+    return true;
+  }
+
+  function completeConsentStep(message = '') {
+    if (pendingConsentContinuation) {
+      pendingConsentContinuation = false;
+      els.handoff.hidden = false;
+      requestAnimationFrame(() => els.engineToggle.focus({ preventScroll: true }));
+    }
+    if (message) toast(message);
+  }
+
+  function declineOptionalContribution() {
+    const continueToAnalysis = pendingConsentContinuation;
+    closeSheets(false);
+    pendingFeedbackType = null;
+    clearFeedbackHandoff();
+    if (continueToAnalysis) completeConsentStep('Position ready. Optional sharing was declined.');
+  }
+
+  function dismissActiveSheet() {
+    if (activeSheet?.sheet === els.feedbackSheet) declineOptionalContribution();
+    else closeSheets(true);
+  }
+
+  function openFeedback(type = 'AUTO', trigger = document.activeElement, { continueToAnalysis = false } = {}) {
     if (type === 'SCAN_FAILURE' ? !publicFailureContext : !publicRecognition?.snapshot) {
       toast('There is no scan available to share.');
       return;
     }
     pendingFeedbackType = type;
+    pendingConsentContinuation = continueToAnalysis;
     els.shareCorrection.checked = false;
     els.shareImage.checked = false;
-    els.submitFeedback.disabled = true;
+    els.sourceImageRights.checked = false;
+    els.sourceImageRights.disabled = true;
+    els.sourceImageRightsRow.hidden = true;
+    els.submitFeedback.disabled = false;
+    els.submitFeedback.textContent = 'Continue';
+    els.cancelFeedback.textContent = 'Not now';
+    feedbackSubmissionPending = false;
+    feedbackRetryAvailable = false;
+    els.feedbackImageReselect.hidden = true;
     els.feedbackStatus.textContent = '';
     els.feedbackDescription.textContent = type === 'LOCALIZATION_FAILURE'
       ? 'Tell CAISSA the board was detected incorrectly. This routes only to localization review.'
       : type === 'SCAN_FAILURE'
         ? 'Share this failed attempt for private owner review. The image remains optional.'
-        : 'Your correction will enter a private, unverified review vault. It will not train the model automatically.';
+        : 'Did we recognize your chess position correctly? You can optionally share the recognition results and any corrections to help us improve future scans. Sharing your original photo is a separate choice.';
     openSheet(els.feedbackSheet, trigger);
+    updateFeedbackEligibility();
   }
 
   async function sendPublicFeedback() {
-    if (!els.shareCorrection.checked || !pendingFeedbackType) return;
+    if (!pendingFeedbackType || feedbackSubmissionPending) return;
+    const shareResults = els.shareCorrection.checked;
+    const shareImage = els.shareImage.checked;
+    if (!shareResults && !shareImage) {
+      declineOptionalContribution();
+      return;
+    }
+    const auth = window.CAISSA_AUTH;
+    if (feedbackIdentityConflict) {
+      els.feedbackStatus.textContent = 'This feedback draft belongs to a different account. Choose Not now and start a new scan.';
+      return;
+    }
+    if (feedbackNeedsReauthentication || auth?.isSignedIn !== true) {
+      beginFeedbackSignIn();
+      return;
+    }
+    if (pendingFeedbackOwnerUserId && pendingFeedbackOwnerUserId !== auth.userId) {
+      clearFeedbackHandoff();
+      els.feedbackStatus.textContent = 'This feedback draft belongs to a different account. Start a new scan to share feedback.';
+      els.submitFeedback.disabled = true;
+      return;
+    }
+    pendingFeedbackOwnerUserId ||= auth.userId;
+    if (shareImage && !selectedSourceFile) {
+      els.feedbackStatus.textContent = 'Reselect the original photo before confirming photo sharing.';
+      els.feedbackImageReselect.hidden = false;
+      els.feedbackImageReselect.focus();
+      return;
+    }
+    if (shareImage && !els.sourceImageRights.checked) {
+      els.feedbackStatus.textContent = 'Confirm that you have the right to share this image, or turn off photo sharing.';
+      els.sourceImageRights.focus();
+      return;
+    }
+    feedbackSubmissionPending = true;
+    feedbackRetryAvailable = false;
     els.submitFeedback.disabled = true;
-    els.feedbackStatus.textContent = 'Sending securelyâ€¦';
+    els.cancelFeedback.textContent = 'Not now';
+    els.feedbackStatus.textContent = 'Saving your choices securely…';
     try {
       const client = await loadPublicClient();
-      if (pendingFeedbackType === 'SCAN_FAILURE') {
+      if (!shareResults && shareImage) {
+        await client.submitOriginalPhotoContribution({
+          snapshot: publicRecognition?.snapshot || null,
+          context: publicFailureContext,
+          file: selectedSourceFile,
+          sourceImageRightsConfirmed: true
+        });
+      } else if (pendingFeedbackType === 'SCAN_FAILURE') {
         await client.submitPublicFailure({
           context: publicFailureContext,
           error: publicFailureError,
           file: selectedSourceFile,
           shareCorrectionForImprovement: true,
-          shareImageForImprovement: els.shareImage.checked
+          shareImageForImprovement: shareImage,
+          sourceImageRightsConfirmed: els.sourceImageRights.checked
         });
       } else {
         const correctedFen = currentFen() || els.fen.value;
@@ -626,16 +881,41 @@
           userOrientationOverride,
           finalCanonicalOrientation: selectedCanonicalOrientation,
           shareCorrectionForImprovement: true,
-          shareImageForImprovement: els.shareImage.checked
+          shareImageForImprovement: shareImage,
+          sourceImageRightsConfirmed: els.sourceImageRights.checked
         });
       }
       const returnsHome = pendingFeedbackType !== 'AUTO';
+      const successMessage = shareResults
+        ? 'Results saved securely as raw-unverified. Returning to your board…'
+        : 'Photo saved privately. Returning to your board…';
+      els.feedbackStatus.textContent = successMessage;
+      els.cancelFeedback.disabled = true;
+      await new Promise((resolve) => setTimeout(resolve, 650));
       closeSheets(false);
+      els.cancelFeedback.disabled = false;
       if (returnsHome) resetAll(true);
-      toast('Feedback saved as raw-unverified for owner review.');
+      if (!returnsHome) completeConsentStep(shareResults
+        ? 'Results saved as raw-unverified for owner review.'
+        : 'Photo saved privately for authorized review.');
+      else toast(shareResults
+        ? 'Feedback saved as raw-unverified for owner review.'
+        : 'Photo saved privately for authorized review.');
+      pendingFeedbackType = null;
+      clearFeedbackHandoff();
+      feedbackSubmissionPending = false;
+      feedbackRetryAvailable = false;
     } catch (error) {
+      feedbackSubmissionPending = false;
+      feedbackRetryAvailable = true;
       els.feedbackStatus.textContent = (await loadPublicClient()).publicErrorMessage(error);
-      els.submitFeedback.disabled = !els.shareCorrection.checked;
+      if (error?.code === 'AUTH_REQUIRED') {
+        feedbackNeedsReauthentication = true;
+        saveFeedbackHandoff();
+        els.feedbackStatus.textContent = 'Your session expired. Sign in again to retry, or choose Not now to continue without sharing.';
+      }
+      els.cancelFeedback.textContent = 'Continue without sharing';
+      updateFeedbackEligibility();
     }
   }
 
@@ -827,6 +1107,11 @@
     selectedSourceFile = null;
     selectedCaptureType = null;
     pendingFeedbackType = null;
+    pendingConsentContinuation = false;
+    pendingFeedbackOwnerUserId = null;
+    feedbackNeedsReauthentication = false;
+    feedbackIdentityConflict = false;
+    restoredFeedbackDraft = false;
     structuralAcknowledged = false;
     els.reportFailure.hidden = true;
     els.publicServiceStatus.textContent = '';
@@ -835,6 +1120,10 @@
     els.structuralAcknowledge.checked = false;
     els.editSheet.hidden = true;
     els.editFooter.hidden = true;
+    els.editMorePanel.hidden = true;
+    els.editMore.setAttribute('aria-expanded', 'false');
+    els.feedbackImageInput.value = '';
+    els.feedbackImageReselect.hidden = true;
     els.reviewEdit.classList.remove('edit-mode');
     closeSheets(false);
     fenTools.renderEmpty(els.board);
@@ -855,7 +1144,8 @@
     if (!confirmed) return;
     selectedSquare = null;
     els.confirmed.textContent = confirmed.fen;
-    els.handoff.hidden = false;
+    const requiresConsentStep = Boolean(publicRecognition?.snapshot);
+    els.handoff.hidden = requiresConsentStep;
     els.confirmBar.hidden = true;
     els.recognitionSummary.hidden = true;
     els.workspaceTitle.textContent = 'Position ready';
@@ -864,7 +1154,8 @@
     analysis?.setPosition(result.fen);
     showWorkspace({ reason: 'position-confirmed' });
     fenTools.render(els.board, result.fen, flipped);
-    toast('Position confirmed.');
+    if (requiresConsentStep) openFeedback('AUTO', els.confirm, { continueToAnalysis: true });
+    else toast('Position confirmed.');
   }
 
   async function startAnalysis(fen, silent = false) {
@@ -895,6 +1186,7 @@
       els.analyze.disabled = false;
       els.analyze.innerHTML = '<i class="fas fa-rotate-right"></i><span>Retry</span>';
       els.engineToggle.checked = false;
+      els.primaryEvaluationState.textContent = 'Engine unavailable';
       return false;
     }
   }
@@ -905,6 +1197,18 @@
     els.engineToggle.checked = false;
     els.workspaceTitle.textContent = 'Position ready';
     els.candidateStatus.textContent = 'Confirmed';
+  }
+
+  function closeEditMore(restoreFocus = false) {
+    els.editMorePanel.hidden = true;
+    els.editMore.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) els.editMore.focus({ preventScroll: true });
+  }
+
+  function toggleEditMore() {
+    const open = els.editMorePanel.hidden;
+    els.editMorePanel.hidden = !open;
+    els.editMore.setAttribute('aria-expanded', String(open));
   }
 
   function openEdit(entryMode = EDIT_ENTRY.MANUAL_EDIT) {
@@ -941,6 +1245,9 @@
       els.handoff.hidden = true;
     }
     closeSheets(false);
+    closeEditMore();
+    els.editCastlingPanel.hidden = true;
+    els.editCastling.setAttribute('aria-expanded', 'false');
     els.editSheet.hidden = false;
     els.editFooter.hidden = false;
     els.reviewEdit.classList.add('edit-mode');
@@ -962,6 +1269,7 @@
     els.editFooter.hidden = true;
     els.editCastlingPanel.hidden = true;
     els.editCastling.setAttribute('aria-expanded', 'false');
+    closeEditMore();
     els.reviewEdit.classList.remove('edit-mode');
     selectedSquare = null;
     selectEditTool(null);
@@ -999,7 +1307,8 @@
       const confirmed = state.confirm(result.fen);
       if (!confirmed) return;
       els.confirmed.textContent = confirmed.fen;
-      els.handoff.hidden = false;
+      const requiresConsentStep = recognitionReview && Boolean(publicRecognition?.snapshot);
+      els.handoff.hidden = requiresConsentStep;
       els.confirmBar.hidden = true;
       els.recognitionSummary.hidden = true;
       analysis?.setFlipped(flipped);
@@ -1010,7 +1319,8 @@
       els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
       els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
       if (editResumeAnalysis) await startAnalysis(result.fen, true);
-      toast(recognitionReview ? 'Position ready.' : 'Position updated.');
+      if (requiresConsentStep) openFeedback('AUTO', els.applyEdit, { continueToAnalysis: true });
+      else toast(recognitionReview ? 'Position ready.' : 'Position updated.');
     } else {
       if (recognitionReview) {
         leaveEditMode();
@@ -1262,7 +1572,7 @@
     if (activeSheet) {
       if (event.key === 'Escape') {
         event.preventDefault();
-        closeSheets(true);
+        dismissActiveSheet();
         return;
       }
       if (event.key === 'Tab') {
@@ -1286,6 +1596,11 @@
           return;
         }
       }
+    }
+    if (event.key === 'Escape' && !els.editMorePanel.hidden) {
+      event.preventDefault();
+      closeEditMore(true);
+      return;
     }
     if (!activeMenu) return;
     if (event.key === 'Escape') {
@@ -1323,7 +1638,10 @@
     selectEditTool(button.dataset.piece);
   }));
   els.clearSquare.addEventListener('click', () => selectEditTool('clear'));
-  els.clearBoard.addEventListener('click', clearEditingBoard);
+  els.clearBoard.addEventListener('click', () => {
+    clearEditingBoard();
+    closeEditMore();
+  });
   els.editWhiteTurn.addEventListener('click', () => setEditTurn('w'));
   els.editBlackTurn.addEventListener('click', () => setEditTurn('b'));
   els.editCastling.addEventListener('click', () => {
@@ -1331,6 +1649,7 @@
     els.editCastlingPanel.hidden = !open;
     els.editCastling.setAttribute('aria-expanded', String(open));
   });
+  els.editMore.addEventListener('click', toggleEditMore);
   els.castlingInputs.forEach((input) => input.addEventListener('change', updateCastling));
   els.structuralAcknowledge.addEventListener('change', () => {
     structuralAcknowledged = els.structuralAcknowledge.checked;
@@ -1369,7 +1688,10 @@
   els.closeExport.addEventListener('click', () => closeSheets(true));
   els.exportDiagram.addEventListener('click', exportDiagram);
   els.exportFen.addEventListener('click', exportFen);
-  els.homeBtn.addEventListener('click', () => resetAll(true));
+  els.homeBtn.addEventListener('click', () => {
+    clearFeedbackHandoff();
+    resetAll(true);
+  });
   els.newScan.addEventListener('click', () => openNewScan(els.newScan));
   els.homeScan.addEventListener('click', () => openNewScan(els.homeScan));
   els.cancelNewScan.addEventListener('click', () => closeSheets(true));
@@ -1377,9 +1699,34 @@
   els.choosePhoto.addEventListener('click', () => openPicker(els.gallery));
   els.helpImprove.addEventListener('click', () => openFeedback('AUTO', els.helpImprove));
   els.reportFailure.addEventListener('click', () => openFeedback('SCAN_FAILURE', els.reportFailure));
-  els.cancelFeedback.addEventListener('click', () => closeSheets(true));
-  els.shareCorrection.addEventListener('change', () => {
-    els.submitFeedback.disabled = !els.shareCorrection.checked;
+  els.cancelFeedback.addEventListener('click', declineOptionalContribution);
+  els.shareCorrection.addEventListener('change', updateFeedbackEligibility);
+  els.shareImage.addEventListener('change', updateFeedbackEligibility);
+  els.sourceImageRights.addEventListener('change', updateFeedbackEligibility);
+  els.feedbackImageReselect.addEventListener('click', () => {
+    els.feedbackImageInput.value = '';
+    els.feedbackImageInput.click();
+  });
+  els.feedbackImageInput.addEventListener('change', async () => {
+    const file = els.feedbackImageInput.files?.[0];
+    if (!file) return;
+    try {
+      const client = await loadPublicClient();
+      client.resolvePublicImage(file);
+      const imageHash = await client.publicImageHash(file);
+      if (imageHash.toLowerCase() !== String(publicRecognition?.snapshot?.imageHash || '').toLowerCase()) {
+        throw new Error('IMAGE_DOES_NOT_MATCH_SCAN');
+      }
+      selectedSourceFile = file;
+      els.sourceImageRights.checked = false;
+      els.feedbackStatus.textContent = 'Photo reselected. Confirm your right to share it, review both choices, and confirm again.';
+    } catch (error) {
+      selectedSourceFile = null;
+      els.feedbackStatus.textContent = error?.message === 'IMAGE_DOES_NOT_MATCH_SCAN'
+        ? 'That is not the original photo used for this scan. Choose the original photo, or turn off photo sharing.'
+        : (await loadPublicClient()).publicErrorMessage(error);
+    }
+    updateFeedbackEligibility();
   });
   els.submitFeedback.addEventListener('click', sendPublicFeedback);
   els.workspaceSaveDiagram.addEventListener('click', showDiagramLibraryPlaceholder);
@@ -1405,12 +1752,20 @@
     }
     startAnalysis(fen);
   });
+  els.arrowsToggle.addEventListener('change', () => {
+    bestMoveArrow?.setEnabled(els.arrowsToggle.checked);
+  });
   els.first.addEventListener('click', () => analysis?.first());
   els.previous.addEventListener('click', () => analysis?.previous());
   els.next.addEventListener('click', () => analysis?.next());
   els.last.addEventListener('click', () => analysis?.last());
-  els.sheetBackdrop.addEventListener('click', () => closeSheets(true));
+  els.sheetBackdrop.addEventListener('click', dismissActiveSheet);
   document.addEventListener('pointerdown', (event) => {
+    if (!els.editMorePanel.hidden
+      && !els.editMorePanel.contains(event.target)
+      && !els.editMore.contains(event.target)) {
+      closeEditMore();
+    }
     if (!activeMenu) return;
     if (activeMenu.menu.contains(event.target) || activeMenu.trigger.contains(event.target)) return;
     closeMenus();
@@ -1419,7 +1774,22 @@
   window.addEventListener('resize', () => {
     if (activeMenu) positionMenu(activeMenu.menu, activeMenu.trigger);
   });
-  window.addEventListener('caissa-auth-change', (event) => updateAuthMenu(event.detail));
+  window.addEventListener('caissa-auth-change', (event) => {
+    const auth = event.detail;
+    updateAuthMenu(auth);
+    if (auth?.isSignedIn && restoredFeedbackDraft && !pendingFeedbackOwnerUserId) {
+      pendingFeedbackOwnerUserId = auth.userId;
+      feedbackNeedsReauthentication = false;
+      feedbackIdentityConflict = false;
+      els.feedbackStatus.textContent = 'Signed in. Review your restored choices and confirm again before anything is submitted.';
+    } else if (auth?.isSignedIn && pendingFeedbackOwnerUserId && pendingFeedbackOwnerUserId !== auth.userId) {
+      feedbackIdentityConflict = true;
+      feedbackNeedsReauthentication = false;
+      feedbackHandoff()?.clear(sessionStorage);
+      els.feedbackStatus.textContent = 'The saved feedback draft belongs to a different account and cannot be submitted.';
+    }
+    if (activeSheet?.sheet === els.feedbackSheet) updateFeedbackEligibility();
+  });
   window.addEventListener('pagehide', () => {
     recognitionRuntime?.dispose();
     recognitionRuntime = null;
@@ -1436,6 +1806,7 @@
 
   updateAuthMenu();
   resetAll(true);
+  restoreFeedbackHandoff();
   $('copyScannerUrlBtn')?.addEventListener('click', async () => {
     const value = $('scannerCanonicalUrl').value;
     if (!value) return;

@@ -13,6 +13,19 @@ const LOCALIZATION_VERSION = 'caissa-scanner-board-localizer/4';
 const SUPPORTED = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const EXTENSIONS = Object.freeze({ jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' });
 const HEIC = new Set(['image/heic', 'image/heif', 'image/x-heic', 'image/x-heif']);
+const RESULTS_PURPOSE = 'scanner-recognition-improvement-review';
+const RESULTS_CONSENT_VERSION = 'caissa-scanner-results-consent/1';
+const IMAGE_PURPOSE = 'scanner-photo-improvement-review';
+const IMAGE_CONSENT_VERSION = 'caissa-scanner-image-review-consent/1';
+const IMAGE_RIGHTS_ATTESTATION = 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW';
+const CONSENT_SOURCE = 'scanner-review-consent-panel';
+const MAX_IMAGE_BYTES = 12_000_000;
+const feedbackIdsByScan = new Map();
+
+function feedbackIdForScan(scanId) {
+  if (!feedbackIdsByScan.has(scanId)) feedbackIdsByScan.set(scanId, randomUuid());
+  return feedbackIdsByScan.get(scanId);
+}
 
 function typedError(code, details = {}) {
   const error = new Error(code);
@@ -27,6 +40,8 @@ function extensionOf(name) {
 
 export function resolvePublicImage(file) {
   if (!file) throw typedError('IMAGE_REQUIRED');
+  if (!Number.isSafeInteger(file.size) || file.size < 1) throw typedError('IMAGE_READ_FAILED');
+  if (file.size > MAX_IMAGE_BYTES) throw typedError('IMAGE_TOO_LARGE');
   const declaredType = String(file.type || '').trim().toLowerCase();
   const extension = extensionOf(file.name);
   if (HEIC.has(declaredType) || ['heic', 'heif'].includes(extension)) throw typedError('UNSUPPORTED_HEIC');
@@ -37,6 +52,16 @@ export function resolvePublicImage(file) {
     sourceImageType,
     metadata: Object.freeze({ declaredType: declaredType || null, extension: extension || null, size: file.size })
   });
+}
+
+async function readPublicImageBytes(file) {
+  try { return await file.arrayBuffer(); }
+  catch (_) { throw typedError('IMAGE_READ_FAILED'); }
+}
+
+export async function publicImageHash(file) {
+  resolvePublicImage(file);
+  return sha256Hex(await readPublicImageBytes(file));
 }
 
 function rgbaBase64(buffer) {
@@ -59,24 +84,39 @@ function responseError(response, body) {
   if (response.status === 403) return typedError(server || 'ACCESS_DENIED');
   if (response.status === 404) return typedError('PUBLIC_BETA_DISABLED');
   if (response.status === 413) return typedError('PAYLOAD_TOO_LARGE');
-  if (response.status === 429) return typedError('RATE_LIMITED', { retryAfter: response.headers.get('Retry-After') });
+  if (response.status === 429) return typedError(server.startsWith('IMAGE_') ? server : 'RATE_LIMITED', {
+    retryAfter: response.headers.get('Retry-After')
+  });
   if (response.status === 504) return typedError('TIMEOUT');
   if (server === 'MODEL_INTEGRITY_FAILURE' || server === 'INFERENCE_FAILURE') return typedError(server);
   return typedError(server || 'SERVICE_UNAVAILABLE');
 }
 
-async function jsonRequest(endpoint, { method = 'POST', body, signal } = {}) {
+async function authenticatedToken() {
+  const auth = globalThis.CAISSA_AUTH;
+  if (auth?.whenReady) await auth.whenReady();
+  const token = await auth?.getToken?.();
+  if (!token) throw typedError('AUTH_REQUIRED');
+  return token;
+}
+
+async function jsonRequest(endpoint, { method = 'POST', body, signal, authenticated = false } = {}) {
   let response;
   try {
+    const token = authenticated ? await authenticatedToken() : null;
     response = await fetch(endpoint, {
       method,
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: 'Bearer ' + token } : {})
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal
     });
   } catch (error) {
     if (error?.name === 'AbortError') throw error;
+    if (error?.code === 'AUTH_REQUIRED') throw error;
     throw typedError('NETWORK_FAILURE');
   }
   const value = await responseBody(response);
@@ -103,7 +143,7 @@ async function recognizeCanonicalBoard(request, parentSignal) {
 
 export async function recognizePublicPosition({ file, prepared, captureType, orientation = 'white-at-bottom', signal }) {
   const selected = resolvePublicImage(file);
-  const imageHash = await sha256Hex(await file.arrayBuffer());
+  const imageHash = await publicImageHash(file);
   const scanId = randomUuid();
   try {
     const prediction = await recognizeCanonicalBoard({
@@ -129,39 +169,9 @@ export async function recognizePublicPosition({ file, prepared, captureType, ori
     });
     // The prediction snapshot remains the immutable raw white-mapped evidence.
     // Orientation inference produces separate canonical hypotheses and never mutates it.
-    const orientationStartedAt = performance.now();
     const orientationInference = inferOrientation(snapshot.predictedFEN);
-    const orientationElapsedMs = Number((performance.now() - orientationStartedAt).toFixed(4));
-    await jsonRequest('/api/scanner/public/scan', { body: {
-      snapshot,
-      metadata: {
-        platform: null,
-        captureType,
-        localizationVersion: LOCALIZATION_VERSION,
-        clientMetadata: {
-          viewport: { width: innerWidth, height: innerHeight },
-          selectedImage: selected.metadata,
-          orientationInference: {
-            orientationInferenceVersion: orientationInference.orientationInferenceVersion,
-            whiteBottomScore: orientationInference.whiteBottomScore,
-            blackBottomScore: orientationInference.blackBottomScore,
-            recommendedOrientation: orientationInference.recommendedOrientation,
-            orientationConfidence: orientationInference.orientationConfidence,
-            orientationEvidence: orientationInference.orientationEvidence,
-            elapsedMs: orientationElapsedMs
-          },
-          localization: {
-            status: prepared.status,
-            diagnostics: prepared.diagnostics,
-            corners: prepared.board.corners,
-            candidateScore: prepared.board.candidateScore,
-            geometryScore: prepared.board.geometryScore,
-            gridEvidenceScore: prepared.board.gridEvidenceScore
-          },
-          timingsMs: prepared.timing
-        }
-      }
-    }, signal });
+    // Recognition stays ephemeral. A durable snapshot is created only if an
+    // authenticated user later submits optional feedback.
     return Object.freeze({ snapshot, orientationInference, imageHash, sourceImageType: selected.sourceImageType, selected });
   } catch (error) {
     error.publicFailureContext = Object.freeze({ scanId, imageHash, captureType, orientation, selected });
@@ -173,24 +183,83 @@ export async function createPublicFailureContext(file, captureType, orientation 
   const selected = resolvePublicImage(file);
   return Object.freeze({
     scanId: randomUuid(),
-    imageHash: await sha256Hex(await file.arrayBuffer()),
+    imageHash: await publicImageHash(file),
     captureType,
     orientation,
     selected
   });
 }
 
-async function uploadConsentedImage(file, imageHash) {
+async function persistFeedbackScan(snapshot, captureType) {
+  return jsonRequest('/api/scanner/public/scan', { body: {
+    snapshot,
+    metadata: {
+      platform: null,
+      captureType,
+      localizationVersion: LOCALIZATION_VERSION,
+      clientMetadata: { viewport: { width: innerWidth, height: innerHeight }, persistencePurpose: 'optional-feedback' }
+    }
+  }, authenticated: true });
+}
+
+async function uploadConsentedImage(file, imageHash, scanId, feedbackId, sourceImageRightsConfirmed) {
+  if (sourceImageRightsConfirmed !== true) throw typedError('IMAGE_RIGHTS_ATTESTATION_REQUIRED');
   const selected = resolvePublicImage(file);
-  const response = await fetch('/api/scanner/public/image', {
-    method: 'PUT',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': selected.sourceImageType, 'X-Caissa-Image-Sha256': imageHash },
-    body: selected.blob
-  });
+  const uploadId = randomUuid();
+  const grant = await jsonRequest('/api/scanner/public/image-consent', { body: {
+    uploadId,
+    scanId,
+    feedbackId,
+    imageHash,
+    byteSize: selected.blob.size,
+    contentType: selected.sourceImageType,
+    purpose: IMAGE_PURPOSE,
+    consentVersion: IMAGE_CONSENT_VERSION,
+    consentSource: CONSENT_SOURCE,
+    rightsAttestation: IMAGE_RIGHTS_ATTESTATION
+  }, authenticated: true });
+  const grantedUploadId = grant.uploadId || uploadId;
+  const token = await authenticatedToken();
+  let response;
+  try {
+    response = await fetch('/api/scanner/public/image', {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': selected.sourceImageType,
+        'X-Caissa-Image-Sha256': imageHash,
+        'X-Caissa-Upload-Id': grantedUploadId,
+        Authorization: 'Bearer ' + token
+      },
+      body: selected.blob
+    });
+  } catch (_) {
+    throw typedError('NETWORK_FAILURE');
+  }
   const value = await responseBody(response);
   if (!response.ok) throw responseError(response, value);
-  return value.imageStorageReference;
+  return Object.freeze({ uploadId: grantedUploadId, scanId, feedbackId });
+}
+
+export async function submitOriginalPhotoContribution({ snapshot, context, file, sourceImageRightsConfirmed = false }) {
+  const scanId = snapshot?.scanId || context?.scanId;
+  const imageHash = snapshot?.imageHash || context?.imageHash;
+  if (!scanId || !imageHash) throw typedError('SCAN_CONTEXT_REQUIRED');
+  const upload = await uploadConsentedImage(
+    file,
+    imageHash,
+    scanId,
+    null,
+    sourceImageRightsConfirmed
+  );
+  return Object.freeze({
+    accepted: true,
+    contribution: 'original-photo',
+    scanId,
+    uploadId: upload.uploadId,
+    certificationStatus: null,
+    trainingEligible: false
+  });
 }
 
 function rotateSquare180(square) {
@@ -224,12 +293,14 @@ export async function submitPublicFeedback({
   userOrientationOverride = false,
   finalCanonicalOrientation = null,
   shareCorrectionForImprovement,
-  shareImageForImprovement
+  shareImageForImprovement,
+  sourceImageRightsConfirmed = false
 }) {
   const consent = { shareCorrectionForImprovement, shareImageForImprovement };
   const feedbackSnapshot = canonicalFeedbackSnapshot(snapshot, orientationInference);
+  const feedbackId = feedbackIdForScan(snapshot.scanId);
   const record = createPublicFeedbackRecord({
-    feedbackId: randomUuid(),
+    feedbackId,
     snapshot: feedbackSnapshot,
     feedbackType,
     correctedFEN: feedbackType === 'LOCALIZATION_FAILURE' ? null : correctedFEN,
@@ -259,20 +330,33 @@ export async function submitPublicFeedback({
       rawRecognitionOrientation: snapshot.orientation,
       trainingTruthPolicy: orientationCorrectionApplied === true
         || orientationInference?.orientationConfidence === 'LOW_AMBIGUOUS'
-        || userOrientationOverride === true ? 'ORIENTATION_REVIEW_ONLY' : 'STANDARD'
+        || userOrientationOverride === true ? 'ORIENTATION_REVIEW_ONLY' : 'STANDARD',
+      consentPurpose: RESULTS_PURPOSE,
+      consentVersion: RESULTS_CONSENT_VERSION,
+      consentSource: CONSENT_SOURCE
     }
   });
-  const imageStorageReference = shareImageForImprovement
-    ? await uploadConsentedImage(file, snapshot.imageHash)
+  await persistFeedbackScan(snapshot, captureType);
+  const imageUpload = shareImageForImprovement
+    ? await uploadConsentedImage(file, snapshot.imageHash, snapshot.scanId, feedbackId, sourceImageRightsConfirmed)
     : null;
-  return jsonRequest('/api/scanner/public/feedback', { body: { feedback: record, imageStorageReference } });
+  try {
+    return await jsonRequest('/api/scanner/public/feedback', {
+      body: { feedback: record, imageUploadId: imageUpload?.uploadId || null },
+      authenticated: true
+    });
+  } catch (error) {
+    if (imageUpload) error.photoUploaded = true;
+    throw error;
+  }
 }
 
-export async function submitPublicFailure({ context, error, file, shareCorrectionForImprovement, shareImageForImprovement }) {
+export async function submitPublicFailure({ context, error, file, shareCorrectionForImprovement, shareImageForImprovement, sourceImageRightsConfirmed = false }) {
   const normalized = normalizeFailure(error);
   const consent = { shareCorrectionForImprovement, shareImageForImprovement };
+  const feedbackId = feedbackIdForScan(context.scanId);
   const record = createPublicScanFailureRecord({
-    feedbackId: randomUuid(),
+    feedbackId,
     scanId: context.scanId,
     createdAt: new Date().toISOString(),
     imageHash: context.imageHash,
@@ -287,10 +371,13 @@ export async function submitPublicFailure({ context, error, file, shareCorrectio
     failureStage: normalized.stage,
     errorCode: normalized.code
   });
-  const imageStorageReference = shareImageForImprovement
-    ? await uploadConsentedImage(file, context.imageHash)
+  const imageUpload = shareImageForImprovement
+    ? await uploadConsentedImage(file, context.imageHash, context.scanId, feedbackId, sourceImageRightsConfirmed)
     : null;
-  return jsonRequest('/api/scanner/public/failure', { body: { failure: record, imageStorageReference } });
+  return jsonRequest('/api/scanner/public/failure', {
+    body: { failure: record, imageUploadId: imageUpload?.uploadId || null },
+    authenticated: true
+  });
 }
 
 export function normalizeFailure(error) {
@@ -307,9 +394,17 @@ export function normalizeFailure(error) {
 export function publicErrorMessage(error) {
   const code = normalizeFailure(error).code;
   if (code === 'UNSUPPORTED_IMAGE') return 'This format is not supported. Choose a JPEG, PNG, or WebP image. HEIC and HEIF are not supported yet.';
+  if (code === 'IMAGE_TOO_LARGE' || code === 'PAYLOAD_TOO_LARGE' || code === 'IMAGE_SIZE_INVALID') return 'That image is too large. Choose a JPEG, PNG, or WebP image smaller than 12 MB.';
+  if (code === 'IMAGE_READ_FAILED' || code === 'IMAGE_REQUIRED') return 'Safari could not read the selected file. Reselect the original photo without restarting this scan.';
+  if (/IMAGE_TYPE|IMAGE_HASH|UNSUPPORTED/.test(code)) return 'The selected file is not a valid supported image. Choose the original JPEG, PNG, or WebP photo.';
   if (code === 'RATE_LIMITED') return 'Too many scan attempts. Wait a moment, then try again.';
+  if (code === 'IMAGE_USER_COUNT_QUOTA_EXCEEDED') return 'Another private photo upload is still in progress. Wait a moment, retry, or continue without sharing.';
+  if (code === 'IMAGE_USER_BYTES_QUOTA_EXCEEDED' || code === 'IMAGE_PROJECT_BYTES_QUOTA_EXCEEDED') return 'The private photo storage limit is currently reached. Continue without sharing or contact privacy@caissa-chess.org for help.';
   if (code === 'AUTH_REQUIRED') return 'Sign in to send optional Scanner feedback.';
   if (code === 'PUBLIC_BETA_DISABLED') return 'Scanner is temporarily paused. Please try again later.';
+  if (error?.photoUploaded === true) return 'The photo was stored privately, but the feedback record could not be completed. Keep this panel open and try again, or choose Not now to continue without sharing.';
+  if (/IMAGE_(UPLOAD|GOVERNANCE|CONSENT)|SCANNER_PUBLIC_IMAGE/.test(code)) return 'Private photo upload is unavailable right now. Keep this panel open and retry, or continue without sharing.';
+  if (/FEEDBACK|CONFIRMED_CORRECT_CHANGED|CORRECTION_DIFF|SCAN_NOT_FOUND/.test(code)) return 'Feedback could not be saved. Keep this panel open and try again, or choose Not now to continue without sharing.';
   if (/NO_BOARD|LOCALIZATION|AMBIGUOUS|GRID|QUAD|HOMOGRAPHY|BOARD/.test(code)) return 'The board could not be detected reliably. Try a clearer image with the full 2D board visible.';
   if (/INFERENCE|MODEL|SERVICE|TIMEOUT/.test(code)) return 'Recognition is temporarily unavailable. Please try again.';
   if (code === 'NETWORK_FAILURE') return 'Could not reach Scanner. Check your connection and try again.';

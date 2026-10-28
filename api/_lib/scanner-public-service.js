@@ -4,6 +4,7 @@ import { checkRateLimit } from './rate-limit.js';
 import { sha256, stableJson } from './scanner-beta-policy.js';
 import {
   SCANNER_PUBLIC,
+  imageGovernanceConfig,
   mutationRatePolicy,
   publicHeaders,
   publicScannerEnabled,
@@ -18,6 +19,7 @@ import {
   createPublicPredictionSnapshot,
   createPublicScanFailureRecord
 } from '../../scanner/public/scanner-public-contract.js';
+import { inferOrientation } from '../../scanner/orientation/scanner-orientation-inference.js';
 
 const LOCALIZATION_VERSION = 'caissa-scanner-board-localizer/4';
 const CAPTURE_TYPES = Object.freeze(['camera', 'gallery', 'screenshot', 'photo-of-screen']);
@@ -37,6 +39,9 @@ function jsonBody(req) {
 function failStatus(code) {
   if (code === 'PAYLOAD_TOO_LARGE') return 413;
   if (/AUTH_REQUIRED/.test(code)) return 401;
+  if (/GOVERNANCE_CONFIG|GOVERNANCE_DISABLED/.test(code)) return 503;
+  if (/QUOTA_EXCEEDED/.test(code)) return 429;
+  if (/EXPIRED/.test(code)) return 410;
   if (/MISMATCH|IMMUTABLE|CONFLICT/.test(code)) return 409;
   if (/NOT_FOUND/.test(code)) return 404;
   return 400;
@@ -58,11 +63,38 @@ function metadataOf(value) {
   };
 }
 
-function validImageReference(reference, userId) {
-  if (reference == null) return null;
-  const pattern = new RegExp(`^supabase://scanner-public-feedback-images/${String(userId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/[A-F0-9]{2}/[A-F0-9]{64}$`);
-  if (!pattern.test(reference)) throw new Error('IMAGE_STORAGE_REFERENCE_INVALID');
-  return Object.freeze({ reference, imageHash: reference.slice(-64) });
+function requiredUuid(value, code = 'UUID_INVALID') {
+  const normalized = String(value || '').toLowerCase();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(normalized)) throw new Error(code);
+  return normalized;
+}
+
+function rotateSquare180(square) {
+  if (!/^[a-h][1-8]$/.test(square || '')) return square;
+  return String.fromCharCode(104 - (square.charCodeAt(0) - 97)) + (9 - Number(square[1]));
+}
+
+export function canonicalFeedbackSnapshot(sourceSnapshot) {
+  const snapshot = createPublicPredictionSnapshot(sourceSnapshot);
+  const inference = inferOrientation(snapshot.predictedFEN);
+  const orientation = inference.recommendedOrientation;
+  const rotated = orientation === 'black-bottom';
+  return {
+    ...snapshot,
+    orientation: rotated ? 'black-at-bottom' : 'white-at-bottom',
+    predictedFEN: inference.canonicalFens[orientation],
+    squarePredictions: (rotated ? [...snapshot.squarePredictions].reverse() : snapshot.squarePredictions)
+      .map((prediction) => ({
+        ...prediction,
+        square: rotated ? rotateSquare180(prediction.square) : prediction.square
+      }))
+  };
+}
+
+function requiredHash(value) {
+  const normalized = String(value || '').toUpperCase();
+  if (!/^[A-F0-9]{64}$/.test(normalized)) throw new Error('IMAGE_HASH_INVALID');
+  return normalized;
 }
 
 function detectedImageType(bytes) {
@@ -138,11 +170,12 @@ export function createScannerPublicService({
         stage: 'public-beta',
         modelVersion: MODEL.version,
         localizationVersion: LOCALIZATION_VERSION,
-        supportedImageTypes: [...SCANNER_PUBLIC.imageTypes]
+        supportedImageTypes: [...SCANNER_PUBLIC.imageTypes],
+        imageSharingAvailable: Boolean(imageGovernanceConfig(env))
       });
     },
     async scan(req, res) {
-      const access = await guard(req, res, { rateKind: 'scan' }); if (!access) return;
+      const access = await guard(req, res, { auth: true, rateKind: 'scan' }); if (!access) return;
       try {
         const body = jsonBody(req);
         const snapshot = createPublicPredictionSnapshot(body.snapshot);
@@ -164,23 +197,25 @@ export function createScannerPublicService({
         if (source.submitted_by && source.submitted_by !== access.user.id) throw new Error('FEEDBACK_SCAN_OWNERSHIP_INVALID');
         const record = createPublicFeedbackRecord({
           ...body.feedback,
-          snapshot: source.snapshot,
+          snapshot: canonicalFeedbackSnapshot(source.snapshot),
           clientMetadata: {
             ...(body.feedback?.clientMetadata || {}),
             sourceTrust: PUBLIC_FEEDBACK.sourceTrust,
             localizationVersion: LOCALIZATION_VERSION
           }
         });
-        const imageReference = validImageReference(body.imageStorageReference, access.user.id);
-        if (imageReference && record.consent.shareImageForImprovement !== true) throw new Error('IMAGE_CONSENT_REQUIRED');
-        if (imageReference && imageReference.imageHash !== source.snapshot.imageHash) throw new Error('IMAGE_EVIDENCE_HASH_MISMATCH');
+        const imageUploadId = body.imageUploadId == null ? null : requiredUuid(body.imageUploadId, 'IMAGE_UPLOAD_ID_INVALID');
+        if (imageUploadId && record.consent.shareImageForImprovement !== true) throw new Error('IMAGE_CONSENT_REQUIRED');
+        if (!imageUploadId && record.consent.shareImageForImprovement === true) throw new Error('IMAGE_UPLOAD_GRANT_REQUIRED');
         const payloadHash = sha256(stableJson(record));
         const result = await data().putFeedback({
           userId: access.user.id,
           feedback: record,
           payloadHash,
-          imageStorageReference: imageReference?.reference || null,
-          evidenceFingerprint: evidenceFingerprint(record)
+          imageUploadId,
+          evidenceFingerprint: evidenceFingerprint(record),
+          resultsConsentVersion: SCANNER_PUBLIC.resultsConsentVersion,
+          consentSource: SCANNER_PUBLIC.consentSource
         });
         return reply(res, 200, {
           accepted: true,
@@ -207,16 +242,18 @@ export function createScannerPublicService({
             localizationVersion: LOCALIZATION_VERSION
           }
         });
-        const imageReference = validImageReference(body.imageStorageReference, access.user.id);
-        if (imageReference && record.consent.shareImageForImprovement !== true) throw new Error('IMAGE_CONSENT_REQUIRED');
-        if (imageReference && imageReference.imageHash !== record.imageHash) throw new Error('IMAGE_EVIDENCE_HASH_MISMATCH');
+        const imageUploadId = body.imageUploadId == null ? null : requiredUuid(body.imageUploadId, 'IMAGE_UPLOAD_ID_INVALID');
+        if (imageUploadId && record.consent.shareImageForImprovement !== true) throw new Error('IMAGE_CONSENT_REQUIRED');
+        if (!imageUploadId && record.consent.shareImageForImprovement === true) throw new Error('IMAGE_UPLOAD_GRANT_REQUIRED');
         const payloadHash = sha256(stableJson(record));
         const result = await data().putFeedback({
           userId: access.user.id,
           feedback: record,
           payloadHash,
-          imageStorageReference: imageReference?.reference || null,
-          evidenceFingerprint: evidenceFingerprint(record)
+          imageUploadId,
+          evidenceFingerprint: evidenceFingerprint(record),
+          resultsConsentVersion: SCANNER_PUBLIC.resultsConsentVersion,
+          consentSource: SCANNER_PUBLIC.consentSource
         });
         return reply(res, 200, {
           accepted: true,
@@ -230,20 +267,76 @@ export function createScannerPublicService({
         return reply(res, failStatus(code), { error: code });
       }
     },
+    async imageConsent(req, res) {
+      const access = await guard(req, res, { auth: true, rateKind: 'imageConsent' }); if (!access) return;
+      try {
+        const config = imageGovernanceConfig(env);
+        if (!config) throw new Error('IMAGE_GOVERNANCE_DISABLED');
+        const body = jsonBody(req);
+        const uploadId = requiredUuid(body.uploadId, 'IMAGE_UPLOAD_ID_INVALID');
+        const scanId = requiredUuid(body.scanId, 'SCAN_ID_INVALID');
+        const feedbackId = body.feedbackId == null ? null : requiredUuid(body.feedbackId, 'FEEDBACK_ID_INVALID');
+        const imageHash = requiredHash(body.imageHash);
+        const byteSize = Number(body.byteSize);
+        const contentType = String(body.contentType || '').toLowerCase();
+        if (!Number.isSafeInteger(byteSize) || byteSize < 1 || byteSize > SCANNER_PUBLIC.maxImageBytes) throw new Error('IMAGE_SIZE_INVALID');
+        if (!SCANNER_PUBLIC.imageTypes.includes(contentType)) throw new Error('IMAGE_TYPE_INVALID');
+        if (body.purpose !== SCANNER_PUBLIC.imagePurpose
+          || body.consentVersion !== SCANNER_PUBLIC.imageConsentVersion
+          || body.consentSource !== SCANNER_PUBLIC.consentSource
+          || body.rightsAttestation !== SCANNER_PUBLIC.imageRightsAttestation) {
+          throw new Error('IMAGE_CONSENT_CONTRACT_INVALID');
+        }
+        const result = await data().reserveImageUpload({
+          userId: access.user.id, uploadId, scanId, feedbackId, imageHash, byteSize, contentType,
+          purpose: SCANNER_PUBLIC.imagePurpose,
+          consentVersion: SCANNER_PUBLIC.imageConsentVersion,
+          consentSource: SCANNER_PUBLIC.consentSource,
+          rightsAttestation: SCANNER_PUBLIC.imageRightsAttestation,
+          ...config
+        });
+        return reply(res, 201, {
+          accepted: true,
+          duplicate: result?.duplicate === true,
+          uploadId: result?.upload_id || result?.uploadId || uploadId,
+          expiresAt: result?.expires_at || result?.expiresAt || null
+        });
+      } catch (error) {
+        const code = String(error?.message || 'IMAGE_CONSENT_INVALID');
+        return reply(res, failStatus(code), { error: code });
+      }
+    },
     async image(req, res) {
       const access = await guard(req, res, { methods: ['PUT'], auth: true, rateKind: 'image' }); if (!access) return;
+      let uploadId = null;
+      let claimed = false;
       try {
+        uploadId = requiredUuid(req.headers['x-caissa-upload-id'], 'IMAGE_UPLOAD_ID_INVALID');
         const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
         if (!SCANNER_PUBLIC.imageTypes.includes(contentType)) throw new Error('IMAGE_TYPE_INVALID');
         const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []);
         if (!bytes.length || bytes.length > SCANNER_PUBLIC.maxImageBytes) throw new Error('IMAGE_SIZE_INVALID');
         if (detectedImageType(bytes) !== contentType) throw new Error('IMAGE_TYPE_MISMATCH');
         const imageHash = sha256(bytes);
-        if (String(req.headers['x-caissa-image-sha256'] || '').toUpperCase() !== imageHash) throw new Error('IMAGE_HASH_MISMATCH');
-        const reference = await data().putImage({ userId: access.user.id, imageHash, bytes, contentType });
-        return reply(res, 200, { accepted: true, imageHash, imageStorageReference: reference });
+        if (requiredHash(req.headers['x-caissa-image-sha256']) !== imageHash) throw new Error('IMAGE_HASH_MISMATCH');
+        const claim = await data().claimImageUpload({
+          userId: access.user.id, uploadId, imageHash, byteSize: bytes.length, contentType
+        });
+        if (claim?.duplicate === true) {
+          return reply(res, 200, { accepted: true, duplicate: true, imageHash, uploadId });
+        }
+        claimed = true;
+        const objectKey = claim?.object_key || claim?.objectKey;
+        if (!objectKey) throw new Error('IMAGE_UPLOAD_OBJECT_KEY_MISSING');
+        const storageReference = await data().putImage({ objectKey, bytes, contentType });
+        await data().completeImageUpload({ userId: access.user.id, uploadId, storageReference });
+        return reply(res, 200, { accepted: true, duplicate: false, imageHash, uploadId });
       } catch (error) {
         const code = String(error?.message || 'INVALID_IMAGE');
+        if (claimed && uploadId) {
+          try { await data().failImageUpload({ userId: access.user.id, uploadId, failureCode: code }); }
+          catch (_) { /* preserve the primary upload failure */ }
+        }
         return reply(res, failStatus(code), { error: code });
       }
     }

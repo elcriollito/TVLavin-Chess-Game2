@@ -106,8 +106,11 @@ test.describe('CAISSA Scanner board localization and homography Worker', () => {
       }
     });
     expect(candidate.localization.corners).toHaveLength(4);
+    // Recognition is ephemeral. The durable scan endpoint is reserved for a
+    // later, explicit feedback submission so merely scanning never persists
+    // board or image-derived evidence.
     expect(nonGetRequests.map(request => new URL(request.url).pathname)).toEqual([
-      '/api/scanner/public/recognize', '/api/scanner/public/scan'
+      '/api/scanner/public/recognize'
     ]);
   });
 
