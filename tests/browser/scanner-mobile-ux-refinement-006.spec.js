@@ -54,7 +54,6 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await expect(page.locator('#editMoreBtn')).toBeFocused();
 
     await page.locator('#applyEditBtn').click();
-    await page.locator('#cancelFeedbackBtn').click();
     await expect(page.locator('#handoffCard')).toBeVisible();
     await expect(page.locator('#analyzeBtn')).toBeHidden();
     await expect(page.locator('#coordinatesVisibilityBtn')).toBeHidden();

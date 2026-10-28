@@ -6,8 +6,6 @@ async function selectAndConfirm(page) {
   await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
   await expect(page.locator('#reviewEditView')).toBeVisible();
   await page.locator('#applyEditBtn').click();
-  await expect(page.locator('#feedbackSheet')).toBeVisible();
-  await page.locator('#cancelFeedbackBtn').click();
   await expect(page.locator('#handoffCard')).toBeVisible();
 }
 
