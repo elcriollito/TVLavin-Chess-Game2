@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/assets/vendor/font-awesome/css/all-6.4.0.min.css">
   <link rel="stylesheet" href="/scanner/scanner.css?v=0.2.1">
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
-  <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.3.0">
+  <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.4.0">
   <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.5.0">
   <link rel="stylesheet" href="/scanner/public/scanner-public.css?v=1.0.1">
 </head>
@@ -106,6 +106,10 @@
         <div class="view-board-slot" id="workspaceBoardSlot">
           <div class="board-shell" id="scannerBoardShell">
             <div class="scanner-board is-empty" id="scannerBoard" aria-label="Chess position"></div>
+            <svg class="best-move-arrow-overlay" id="bestMoveArrowOverlay" hidden aria-hidden="true" focusable="false" preserveAspectRatio="none">
+              <defs><marker id="bestMoveArrowHead" markerWidth="4" markerHeight="4" refX="3.2" refY="2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L4,2 L0,4 Z"></path></marker></defs>
+              <line id="bestMoveArrowLine" marker-end="url(#bestMoveArrowHead)"></line>
+            </svg>
             <div class="board-empty" id="boardEmpty"><i class="fas fa-chess-board"></i><strong>Preparing board…</strong></div>
           </div>
         </div>
@@ -131,6 +135,7 @@
         <section class="analysis-workspace" id="handoffCard" hidden aria-label="Position analysis">
           <div class="analysis-controls">
             <button class="analyze-control" id="analyzeBtn" type="button"><i class="fas fa-chart-line"></i><span>Analyze</span></button>
+            <label class="engine-control arrows-control" for="arrowsToggle"><span>Arrows</span><input id="arrowsToggle" type="checkbox" role="switch" aria-label="Show best move arrow" checked><span class="toggle-track" aria-hidden="true"><span></span></span></label>
             <label class="engine-control" for="engineToggle"><span>Engine</span><input id="engineToggle" type="checkbox" role="switch" aria-label="Stockfish engine"><span class="toggle-track" aria-hidden="true"><span></span></span></label>
           </div>
         </section>
@@ -309,7 +314,8 @@
   <script src="/scanner/scanner-view-state.js?v=0.1.0"></script>
   <script src="/scanner/scanner-fen.js?v=0.2.4"></script>
   <script src="/scanner/scanner-adapters.js?v=0.3.0"></script>
-  <script src="/scanner/scanner-analysis.js?v=0.3.0"></script>
+  <script src="/scanner/scanner-best-move-arrow.js?v=1.0.0"></script>
+  <script src="/scanner/scanner-analysis.js?v=0.4.0"></script>
   <script src="/scanner/recognition/scanner-image-decode.js?v=0.1.0"></script>
   <script src="/scanner/recognition/scanner-recognition-runtime.js?v=0.2.0"></script>
   <script src="/scanner/public/scanner-handoff.js?v=0.1.0"></script>
