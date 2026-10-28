@@ -120,6 +120,9 @@
     confirmed: $('confirmedFen'),
     analyze: $('analyzeBtn'),
     engineToggle: $('engineToggle'),
+    arrowsToggle: $('arrowsToggle'),
+    bestMoveArrowOverlay: $('bestMoveArrowOverlay'),
+    bestMoveArrowLine: $('bestMoveArrowLine'),
     analysisPanel: $('analysisPanel'),
     analysisStatus: $('analysisStatus'),
     analysisFen: $('analysisFen'),
@@ -183,6 +186,14 @@
     pv: $('analysisPv' + number)
   }));
 
+  const bestMoveArrow = window.CaissaScannerBestMoveArrow?.create({
+    board: els.board,
+    overlay: els.bestMoveArrowOverlay,
+    line: els.bestMoveArrowLine,
+    fenTools,
+    enabled: els.arrowsToggle?.checked !== false
+  }) || null;
+
   const analysis = window.CaissaScannerAnalysis?.create({
     board: els.board,
     fenTools,
@@ -191,6 +202,7 @@
     fenOutput: els.analysisFen,
     moveHint: els.analysisMoveHint,
     lineEls,
+    arrow: bestMoveArrow,
     onFenChange: (fen) => {
       els.confirmed.textContent = fen;
       els.candidateStatus.textContent = 'Analyzing';
@@ -1404,6 +1416,9 @@
       return;
     }
     startAnalysis(fen);
+  });
+  els.arrowsToggle.addEventListener('change', () => {
+    bestMoveArrow?.setEnabled(els.arrowsToggle.checked);
   });
   els.first.addEventListener('click', () => analysis?.first());
   els.previous.addEventListener('click', () => analysis?.previous());

@@ -40,6 +40,7 @@
     const fenOutput = options.fenOutput;
     const moveHint = options.moveHint;
     const lineEls = options.lineEls || [];
+    const arrow = options.arrow || null;
     let engine = null;
     let game = null;
     let active = false;
@@ -85,6 +86,7 @@
       board.classList.toggle('analysis-active', active);
       if (fenOutput) fenOutput.textContent = game.fen();
       options.onPositionChange?.(game.fen());
+      arrow?.refresh();
     }
 
     function chooseNewSource(square) {
@@ -125,6 +127,7 @@
       history.push(game.fen());
       historyIndex = history.length - 1;
       reportHistory();
+      arrow?.setPosition(game.fen());
       if (moveHint) moveHint.textContent = (move.san || 'Move') + ' played. Stockfish is updating…';
       render();
       options.onFenChange?.(game.fen(), move);
@@ -139,12 +142,14 @@
       line.score.textContent = scoreText(info);
       line.depth.textContent = 'd' + (Number(info.depth) || '—');
       line.pv.textContent = uciToSan(game.fen(), info.pv || []);
+      if (index === 0) arrow?.showPrimaryVariation({ fen: game.fen(), pv: info.pv || [] });
       setStatus('Analyzing', 'running');
     }
 
     function runAnalysis() {
       if (!active || !engine?.ready || !game) return;
       resetLines();
+      arrow?.clear();
       setStatus('Analyzing', 'running');
       engine.setMultiPV(MULTIPV);
       activeGeneration = engine.startAnalysisAttributed(game.fen(), updateLine, DEPTH);
@@ -160,6 +165,7 @@
       }
       game = nextGame;
       selected = null;
+      arrow?.setPosition(game.fen());
       if (!preserveHistory) resetHistory(game.fen());
       render();
       return game.fen();
@@ -190,6 +196,7 @@
       }
       await engine.start();
       if (sequence !== startSequence || !active) return false;
+      arrow?.setEngineActive(true);
       engine.setMultiPV(MULTIPV);
       runAnalysis();
       options.onActiveChange?.(true);
@@ -201,6 +208,7 @@
       active = false;
       selected = null;
       activeGeneration = null;
+      arrow?.setEngineActive(false);
       engine?.stopAnalysis?.();
       board?.classList.remove('analysis-active');
       setStatus('Off');
@@ -211,6 +219,7 @@
     function clear() {
       stop();
       game = null;
+      arrow?.clear();
       resetHistory('');
       panel.hidden = true;
     }
