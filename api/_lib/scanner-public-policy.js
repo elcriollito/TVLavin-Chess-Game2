@@ -10,9 +10,12 @@ export const SCANNER_PUBLIC = Object.freeze({
   guestRequestsPerMinute: 4,
   authenticatedFeedbackRequestsPerMinute: 12,
   authenticatedImageRequestsPerMinute: 6,
-  imagePurpose: 'scanner-feedback-improvement-review',
+  resultsPurpose: 'scanner-recognition-improvement-review',
+  resultsConsentVersion: 'caissa-scanner-results-consent/1',
+  imagePurpose: 'scanner-photo-improvement-review',
   imageConsentVersion: 'caissa-scanner-image-review-consent/1',
-  imageRightsAttestation: 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW'
+  imageRightsAttestation: 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW',
+  consentSource: 'scanner-review-consent-panel'
 });
 
 export function publicScannerEnabled(env = process.env) {

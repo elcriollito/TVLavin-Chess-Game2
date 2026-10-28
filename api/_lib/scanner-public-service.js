@@ -190,7 +190,9 @@ export function createScannerPublicService({
           feedback: record,
           payloadHash,
           imageUploadId,
-          evidenceFingerprint: evidenceFingerprint(record)
+          evidenceFingerprint: evidenceFingerprint(record),
+          resultsConsentVersion: SCANNER_PUBLIC.resultsConsentVersion,
+          consentSource: SCANNER_PUBLIC.consentSource
         });
         return reply(res, 200, {
           accepted: true,
@@ -226,7 +228,9 @@ export function createScannerPublicService({
           feedback: record,
           payloadHash,
           imageUploadId,
-          evidenceFingerprint: evidenceFingerprint(record)
+          evidenceFingerprint: evidenceFingerprint(record),
+          resultsConsentVersion: SCANNER_PUBLIC.resultsConsentVersion,
+          consentSource: SCANNER_PUBLIC.consentSource
         });
         return reply(res, 200, {
           accepted: true,
@@ -247,7 +251,8 @@ export function createScannerPublicService({
         if (!config) throw new Error('IMAGE_GOVERNANCE_DISABLED');
         const body = jsonBody(req);
         const uploadId = requiredUuid(body.uploadId, 'IMAGE_UPLOAD_ID_INVALID');
-        const feedbackId = requiredUuid(body.feedbackId, 'FEEDBACK_ID_INVALID');
+        const scanId = requiredUuid(body.scanId, 'SCAN_ID_INVALID');
+        const feedbackId = body.feedbackId == null ? null : requiredUuid(body.feedbackId, 'FEEDBACK_ID_INVALID');
         const imageHash = requiredHash(body.imageHash);
         const byteSize = Number(body.byteSize);
         const contentType = String(body.contentType || '').toLowerCase();
@@ -255,20 +260,22 @@ export function createScannerPublicService({
         if (!SCANNER_PUBLIC.imageTypes.includes(contentType)) throw new Error('IMAGE_TYPE_INVALID');
         if (body.purpose !== SCANNER_PUBLIC.imagePurpose
           || body.consentVersion !== SCANNER_PUBLIC.imageConsentVersion
+          || body.consentSource !== SCANNER_PUBLIC.consentSource
           || body.rightsAttestation !== SCANNER_PUBLIC.imageRightsAttestation) {
           throw new Error('IMAGE_CONSENT_CONTRACT_INVALID');
         }
         const result = await data().reserveImageUpload({
-          userId: access.user.id, uploadId, feedbackId, imageHash, byteSize, contentType,
+          userId: access.user.id, uploadId, scanId, feedbackId, imageHash, byteSize, contentType,
           purpose: SCANNER_PUBLIC.imagePurpose,
           consentVersion: SCANNER_PUBLIC.imageConsentVersion,
+          consentSource: SCANNER_PUBLIC.consentSource,
           rightsAttestation: SCANNER_PUBLIC.imageRightsAttestation,
           ...config
         });
         return reply(res, 201, {
           accepted: true,
           duplicate: result?.duplicate === true,
-          uploadId,
+          uploadId: result?.upload_id || result?.uploadId || uploadId,
           expiresAt: result?.expires_at || result?.expiresAt || null
         });
       } catch (error) {

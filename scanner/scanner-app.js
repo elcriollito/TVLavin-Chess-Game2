@@ -111,6 +111,7 @@
     cancelFeedback: $('cancelFeedbackBtn'),
     shareCorrection: $('shareCorrectionConsent'),
     shareImage: $('shareImageConsent'),
+    sourceImageRightsRow: $('sourceImageRightsRow'),
     sourceImageRights: $('sourceImageRightsConsent'),
     submitFeedback: $('submitFeedbackBtn'),
     feedbackDescription: $('feedbackSheetDescription'),
@@ -162,11 +163,12 @@
   let selectedSourceFile = null;
   let selectedCaptureType = null;
   let pendingFeedbackType = null;
+  let pendingConsentContinuation = false;
   let structuralAcknowledged = false;
   let publicRecognitionController = null;
 
   async function loadPublicClient() {
-    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=0.2.0');
+    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=1.0.0');
     return publicClient;
   }
 
@@ -576,39 +578,81 @@
     input.click();
   }
 
-  function openFeedback(type = 'AUTO', trigger = document.activeElement) {
+  function completeConsentStep(message = '') {
+    if (pendingConsentContinuation) {
+      pendingConsentContinuation = false;
+      els.handoff.hidden = false;
+      requestAnimationFrame(() => els.analyze.focus({ preventScroll: true }));
+    }
+    if (message) toast(message);
+  }
+
+  function declineOptionalContribution() {
+    const continueToAnalysis = pendingConsentContinuation;
+    closeSheets(false);
+    pendingFeedbackType = null;
+    if (continueToAnalysis) completeConsentStep('Position ready. Optional sharing was declined.');
+  }
+
+  function dismissActiveSheet() {
+    if (activeSheet?.sheet === els.feedbackSheet) declineOptionalContribution();
+    else closeSheets(true);
+  }
+
+  function openFeedback(type = 'AUTO', trigger = document.activeElement, { continueToAnalysis = false } = {}) {
     if (type === 'SCAN_FAILURE' ? !publicFailureContext : !publicRecognition?.snapshot) {
       toast('There is no scan available to share.');
       return;
     }
     pendingFeedbackType = type;
+    pendingConsentContinuation = continueToAnalysis;
     els.shareCorrection.checked = false;
     els.shareImage.checked = false;
     els.sourceImageRights.checked = false;
     els.sourceImageRights.disabled = true;
-    els.submitFeedback.disabled = true;
+    els.sourceImageRightsRow.hidden = true;
+    els.submitFeedback.disabled = false;
+    els.submitFeedback.textContent = 'Continue';
     els.feedbackStatus.textContent = '';
     els.feedbackDescription.textContent = type === 'LOCALIZATION_FAILURE'
       ? 'Tell CAISSA the board was detected incorrectly. This routes only to localization review.'
       : type === 'SCAN_FAILURE'
         ? 'Share this failed attempt for private owner review. The image remains optional.'
-        : 'Your correction will enter a private, unverified review vault. It will not train the model automatically.';
+        : 'Did we recognize your chess position correctly? You can optionally share the recognition results and any corrections to help us improve future scans. Sharing your original photo is a separate choice.';
     openSheet(els.feedbackSheet, trigger);
   }
 
   async function sendPublicFeedback() {
-    if (!els.shareCorrection.checked || !pendingFeedbackType) return;
+    if (!pendingFeedbackType) return;
+    const shareResults = els.shareCorrection.checked;
+    const shareImage = els.shareImage.checked;
+    if (shareImage && !els.sourceImageRights.checked) {
+      els.feedbackStatus.textContent = 'Confirm that you have the right to share this image, or turn off photo sharing.';
+      els.sourceImageRights.focus();
+      return;
+    }
+    if (!shareResults && !shareImage) {
+      declineOptionalContribution();
+      return;
+    }
     els.submitFeedback.disabled = true;
-    els.feedbackStatus.textContent = 'Sending securelyâ€¦';
+    els.feedbackStatus.textContent = 'Saving your choices securely…';
     try {
       const client = await loadPublicClient();
-      if (pendingFeedbackType === 'SCAN_FAILURE') {
+      if (!shareResults && shareImage) {
+        await client.submitOriginalPhotoContribution({
+          snapshot: publicRecognition?.snapshot || null,
+          context: publicFailureContext,
+          file: selectedSourceFile,
+          sourceImageRightsConfirmed: true
+        });
+      } else if (pendingFeedbackType === 'SCAN_FAILURE') {
         await client.submitPublicFailure({
           context: publicFailureContext,
           error: publicFailureError,
           file: selectedSourceFile,
           shareCorrectionForImprovement: true,
-          shareImageForImprovement: els.shareImage.checked,
+          shareImageForImprovement: shareImage,
           sourceImageRightsConfirmed: els.sourceImageRights.checked
         });
       } else {
@@ -630,18 +674,23 @@
           userOrientationOverride,
           finalCanonicalOrientation: selectedCanonicalOrientation,
           shareCorrectionForImprovement: true,
-          shareImageForImprovement: els.shareImage.checked,
+          shareImageForImprovement: shareImage,
           sourceImageRightsConfirmed: els.sourceImageRights.checked
         });
       }
       const returnsHome = pendingFeedbackType !== 'AUTO';
       closeSheets(false);
       if (returnsHome) resetAll(true);
-      toast('Feedback saved as raw-unverified for owner review.');
+      if (!returnsHome) completeConsentStep(shareResults
+        ? 'Results saved as raw-unverified for owner review.'
+        : 'Photo saved privately for authorized review.');
+      else toast(shareResults
+        ? 'Feedback saved as raw-unverified for owner review.'
+        : 'Photo saved privately for authorized review.');
+      pendingFeedbackType = null;
     } catch (error) {
       els.feedbackStatus.textContent = (await loadPublicClient()).publicErrorMessage(error);
-      els.submitFeedback.disabled = !els.shareCorrection.checked
-        || (els.shareImage.checked && !els.sourceImageRights.checked);
+      els.submitFeedback.disabled = shareImage && !els.sourceImageRights.checked;
     }
   }
 
@@ -833,6 +882,7 @@
     selectedSourceFile = null;
     selectedCaptureType = null;
     pendingFeedbackType = null;
+    pendingConsentContinuation = false;
     structuralAcknowledged = false;
     els.reportFailure.hidden = true;
     els.publicServiceStatus.textContent = '';
@@ -861,7 +911,8 @@
     if (!confirmed) return;
     selectedSquare = null;
     els.confirmed.textContent = confirmed.fen;
-    els.handoff.hidden = false;
+    const requiresConsentStep = Boolean(publicRecognition?.snapshot);
+    els.handoff.hidden = requiresConsentStep;
     els.confirmBar.hidden = true;
     els.recognitionSummary.hidden = true;
     els.workspaceTitle.textContent = 'Position ready';
@@ -870,7 +921,8 @@
     analysis?.setPosition(result.fen);
     showWorkspace({ reason: 'position-confirmed' });
     fenTools.render(els.board, result.fen, flipped);
-    toast('Position confirmed.');
+    if (requiresConsentStep) openFeedback('AUTO', els.confirm, { continueToAnalysis: true });
+    else toast('Position confirmed.');
   }
 
   async function startAnalysis(fen, silent = false) {
@@ -1005,7 +1057,8 @@
       const confirmed = state.confirm(result.fen);
       if (!confirmed) return;
       els.confirmed.textContent = confirmed.fen;
-      els.handoff.hidden = false;
+      const requiresConsentStep = recognitionReview && Boolean(publicRecognition?.snapshot);
+      els.handoff.hidden = requiresConsentStep;
       els.confirmBar.hidden = true;
       els.recognitionSummary.hidden = true;
       analysis?.setFlipped(flipped);
@@ -1016,7 +1069,8 @@
       els.workspaceTitle.textContent = editResumeAnalysis ? 'Analyze position' : 'Position ready';
       els.candidateStatus.textContent = editResumeAnalysis ? 'Stockfish 18' : 'Confirmed';
       if (editResumeAnalysis) await startAnalysis(result.fen, true);
-      toast(recognitionReview ? 'Position ready.' : 'Position updated.');
+      if (requiresConsentStep) openFeedback('AUTO', els.applyEdit, { continueToAnalysis: true });
+      else toast(recognitionReview ? 'Position ready.' : 'Position updated.');
     } else {
       if (recognitionReview) {
         leaveEditMode();
@@ -1268,7 +1322,7 @@
     if (activeSheet) {
       if (event.key === 'Escape') {
         event.preventDefault();
-        closeSheets(true);
+        dismissActiveSheet();
         return;
       }
       if (event.key === 'Tab') {
@@ -1383,12 +1437,12 @@
   els.choosePhoto.addEventListener('click', () => openPicker(els.gallery));
   els.helpImprove.addEventListener('click', () => openFeedback('AUTO', els.helpImprove));
   els.reportFailure.addEventListener('click', () => openFeedback('SCAN_FAILURE', els.reportFailure));
-  els.cancelFeedback.addEventListener('click', () => closeSheets(true));
+  els.cancelFeedback.addEventListener('click', declineOptionalContribution);
   function updateFeedbackEligibility() {
     els.sourceImageRights.disabled = !els.shareImage.checked;
+    els.sourceImageRightsRow.hidden = !els.shareImage.checked;
     if (!els.shareImage.checked) els.sourceImageRights.checked = false;
-    els.submitFeedback.disabled = !els.shareCorrection.checked
-      || (els.shareImage.checked && !els.sourceImageRights.checked);
+    els.submitFeedback.disabled = els.shareImage.checked && !els.sourceImageRights.checked;
   }
   els.shareCorrection.addEventListener('change', updateFeedbackEligibility);
   els.shareImage.addEventListener('change', updateFeedbackEligibility);
@@ -1421,7 +1475,7 @@
   els.previous.addEventListener('click', () => analysis?.previous());
   els.next.addEventListener('click', () => analysis?.next());
   els.last.addEventListener('click', () => analysis?.last());
-  els.sheetBackdrop.addEventListener('click', () => closeSheets(true));
+  els.sheetBackdrop.addEventListener('click', dismissActiveSheet);
   document.addEventListener('pointerdown', (event) => {
     if (!activeMenu) return;
     if (activeMenu.menu.contains(event.target) || activeMenu.trigger.contains(event.target)) return;

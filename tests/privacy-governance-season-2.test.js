@@ -9,6 +9,7 @@ const read = relative => fs.readFileSync(new URL(relative, root), 'utf8');
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const UPLOAD_ID = '22222222-2222-4222-8222-222222222222';
 const FEEDBACK_ID = '33333333-3333-4333-8333-333333333333';
+const SCAN_ID = '44444444-4444-4444-8444-444444444444';
 const HASH = 'A'.repeat(64);
 
 function response() {
@@ -68,28 +69,34 @@ test('server records the complete purpose-bound image grant before accepting byt
   const res = response();
   await service.imageConsent({ method: 'POST', headers: requestHeaders, body: {
     uploadId: UPLOAD_ID,
+    scanId: SCAN_ID,
     feedbackId: FEEDBACK_ID,
     imageHash: HASH,
     byteSize: 1024,
     contentType: 'image/png',
-    purpose: 'scanner-feedback-improvement-review',
+    purpose: 'scanner-photo-improvement-review',
     consentVersion: 'caissa-scanner-image-review-consent/1',
+    consentSource: 'scanner-review-consent-panel',
     rightsAttestation: 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW'
   } }, res);
   assert.equal(res.statusCode, 201);
   assert.deepEqual({
     userId: reserved.userId,
     feedbackId: reserved.feedbackId,
+    scanId: reserved.scanId,
     purpose: reserved.purpose,
     consentVersion: reserved.consentVersion,
+    consentSource: reserved.consentSource,
     rightsAttestation: reserved.rightsAttestation,
     ttlSeconds: reserved.ttlSeconds,
     userMaxActiveUploads: reserved.userMaxActiveUploads
   }, {
     userId: USER_ID,
     feedbackId: FEEDBACK_ID,
-    purpose: 'scanner-feedback-improvement-review',
+    scanId: SCAN_ID,
+    purpose: 'scanner-photo-improvement-review',
     consentVersion: 'caissa-scanner-image-review-consent/1',
+    consentSource: 'scanner-review-consent-panel',
     rightsAttestation: 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW',
     ttlSeconds: 900,
     userMaxActiveUploads: 3
@@ -117,7 +124,7 @@ test('image-rights attestation is separate from image sharing and training remai
   const html = read('scanner/index.html');
   const app = read('scanner/scanner-app.js');
   assert.match(html, /id="sourceImageRightsConsent"/);
-  assert.match(html, /private improvement review only, not model training/);
+  assert.match(html, /Neither choice authorizes automatic training/);
   assert.match(app, /sourceImageRightsConfirmed: els\.sourceImageRights\.checked/);
 });
 

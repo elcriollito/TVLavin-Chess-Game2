@@ -35,8 +35,17 @@ export function planScannerImageLifecycle({
     .map(item => ({ action: 'delete-untracked-object', objectKey: String(item.key), reason: 'no-governance-grant' }));
 
   const expiredReservations = grants
-    .filter(item => ['reserved', 'uploading'].includes(item.status) && timestamp(item.expiresAt, 'GRANT_EXPIRES_AT') <= nowMs)
+    .filter(item => item.status === 'reserved' && timestamp(item.expiresAt, 'GRANT_EXPIRES_AT') <= nowMs)
     .map(item => ({ action: 'expire-reservation', uploadId: String(item.uploadId), reason: 'grant-expired' }));
+
+  const expiredUploads = grants
+    .filter(item => item.status === 'uploading' && timestamp(item.expiresAt, 'GRANT_EXPIRES_AT') <= nowMs)
+    .map(item => ({
+      action: 'delete-expired-upload',
+      uploadId: String(item.uploadId),
+      objectKey: String(item.objectKey),
+      reason: 'upload-completion-not-recorded'
+    }));
 
   const strandedUploads = grants
     .filter(item => item.status === 'uploaded'
@@ -49,7 +58,7 @@ export function planScannerImageLifecycle({
       reason: 'uploaded-image-not-bound-to-feedback'
     }));
 
-  const candidates = [...expiredReservations, ...orphanObjects, ...strandedUploads]
+  const candidates = [...expiredReservations, ...expiredUploads, ...orphanObjects, ...strandedUploads]
     .sort((a, b) => `${a.action}:${a.objectKey || a.uploadId}`.localeCompare(`${b.action}:${b.objectKey || b.uploadId}`))
     .slice(0, limit);
   return Object.freeze({

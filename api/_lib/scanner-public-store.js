@@ -57,22 +57,34 @@ export function createScannerPublicSupabaseStore(client = getSupabase()) {
         .select('scan_id,submitted_by,snapshot,snapshot_hash')
         .eq('scan_id', scanId).maybeSingle(), 'SCANNER_PUBLIC_SCAN_READ');
     },
-    async putFeedback({ userId, feedback, payloadHash, imageUploadId, evidenceFingerprint }) {
-      return checked(await client.rpc('submit_scanner_public_feedback_v02', {
+    async putFeedback({
+      userId,
+      feedback,
+      payloadHash,
+      imageUploadId,
+      evidenceFingerprint,
+      resultsConsentVersion,
+      consentSource
+    }) {
+      return checked(await client.rpc('submit_scanner_public_feedback_v03', {
         p_user_id: userId,
         p_feedback: feedback,
         p_payload_hash: payloadHash,
         p_image_upload_id: imageUploadId || null,
-        p_evidence_fingerprint: evidenceFingerprint
+        p_evidence_fingerprint: evidenceFingerprint,
+        p_results_consent_version: resultsConsentVersion,
+        p_consent_source: consentSource
       }), 'SCANNER_PUBLIC_FEEDBACK');
     },
     async reserveImageUpload(value) {
-      return checked(await client.rpc('reserve_scanner_public_image_upload', {
+      return checked(await client.rpc('reserve_scanner_public_image_upload_v03', {
         p_user_id: value.userId,
         p_upload_id: value.uploadId,
-        p_feedback_id: value.feedbackId,
+        p_scan_id: value.scanId,
+        p_feedback_id: value.feedbackId || null,
         p_purpose: value.purpose,
         p_consent_version: value.consentVersion,
+        p_consent_source: value.consentSource,
         p_rights_attestation: value.rightsAttestation,
         p_image_hash: value.imageHash,
         p_byte_size: value.byteSize,
@@ -104,7 +116,7 @@ export function createScannerPublicSupabaseStore(client = getSupabase()) {
       return `supabase://scanner-public-feedback-images/${objectKey}`;
     },
     async completeImageUpload({ userId, uploadId, storageReference }) {
-      return checked(await client.rpc('complete_scanner_public_image_upload', {
+      return checked(await client.rpc('complete_scanner_public_image_upload_v03', {
         p_user_id: userId,
         p_upload_id: uploadId,
         p_storage_reference: storageReference

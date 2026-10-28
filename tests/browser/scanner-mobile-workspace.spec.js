@@ -14,6 +14,8 @@ async function selectAndConfirm(page) {
   await page.locator('#applyEditBtn').click();
   await expect(page.locator('#homeView')).toBeHidden();
   await expect(page.locator('#workspaceView')).toBeVisible();
+  await expect(page.locator('#feedbackSheet')).toBeVisible();
+  await page.locator('#cancelFeedbackBtn').click();
   await expect(page.locator('#handoffCard')).toBeVisible();
 }
 
@@ -338,6 +340,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     expect(blackView.ranks).toEqual('12345678'.split(''));
     expect([...blackView.mapping].sort()).toEqual([...originalBoard.mapping].sort());
     await page.locator('#applyEditBtn').click();
+    await page.locator('#cancelFeedbackBtn').click();
     await expectOnlyView(page, 'workspace');
     expect(await orientationSnapshot(page)).toEqual({
       boardOrientation: 'black-bottom', coordinateContract: 'canonical-square',
@@ -383,6 +386,7 @@ test.describe('CAISSA Scanner approved mobile workspace', () => {
     expect(expected.split(' ')[2]).toBe('-');
     expect(expected.split(' ')[3]).toBe('-');
     await page.locator('#applyEditBtn').click();
+    await page.locator('#cancelFeedbackBtn').click();
     await expectOnlyView(page, 'workspace');
     await expect(page.locator('#confirmedFen')).toHaveText(expected);
     expect((await orientationSnapshot(page)).orientationCorrectionApplied).toBe(true);
