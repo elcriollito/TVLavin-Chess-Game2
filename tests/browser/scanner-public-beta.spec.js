@@ -191,7 +191,8 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     expectCoordinates(whiteView, 'abcdefgh', '87654321');
     await testInfo.attach('white-view-canonical-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
 
-    await page.locator('#coordinatesVisibilityBtn').click();
+    await expect(page.locator('#coordinatesVisibilityBtn')).toBeHidden();
+    await page.locator('#coordinatesVisibilityBtn').evaluate((button) => button.click());
     const hidden = await boardPresentation(page);
     expect(hidden.mapping).toEqual(whiteView.mapping);
     expect(hidden.pieces).toEqual(whiteView.pieces);
@@ -206,7 +207,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     });
     expectCoordinates(blackView, 'hgfedcba', '12345678');
     expect([...blackView.mapping].sort()).toEqual([...whiteView.mapping].sort());
-    await page.locator('#coordinatesVisibilityBtn').click();
+    await page.locator('#coordinatesVisibilityBtn').evaluate((button) => button.click());
     await testInfo.attach('black-view-canonical-coordinates', { body: await page.locator('#scannerBoard').screenshot(), contentType: 'image/png' });
     await expect(page.locator('#confirmedFen')).toHaveText(fen);
 

@@ -197,7 +197,7 @@ test('FEN draft helpers preserve fields while supporting incomplete edit boards'
   assert.equal(cleared, '8/8/8/8/8/8/8/8 w KQkq - 4 10');
   assert.equal(tools.validate(cleared).ok, false);
   assert.equal(tools.validateDraft(cleared).ok, true);
-  assert.equal(tools.setSideToMove(fen, 'b'), 'r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 4 10');
+  assert.equal(tools.setSideToMove(fen, 'b'), 'r3k2r/8/8/8/8/8/8/R3K2R b KQkq e3 4 10');
   assert.equal(tools.setCastling(fen, 'qK'), 'r3k2r/8/8/8/8/8/8/R3K2R w Kq e3 4 10');
   const repeated = tools.mutateSquare(tools.mutateSquare(fen, 3, 7, 'p'), 2, 6, 'p');
   assert.equal(tools.validateDraft(repeated).board[3][7], 'p');

@@ -75,6 +75,8 @@
     editBlackTurn: $('editBlackTurnBtn'),
     editCastling: $('editCastlingBtn'),
     editCastlingPanel: $('editCastlingPanel'),
+    editMore: $('editMoreBtn'),
+    editMorePanel: $('editMorePanel'),
     castlingInputs: [...document.querySelectorAll('#editCastlingPanel [data-castling]')],
     editFlip: $('editFlipBtn'),
     editCoordinatesVisibility: $('editCoordinatesVisibilityBtn'),
@@ -129,6 +131,10 @@
     bestMoveArrowLine: $('bestMoveArrowLine'),
     analysisPanel: $('analysisPanel'),
     analysisStatus: $('analysisStatus'),
+    primaryEvaluation: $('primaryEvaluation'),
+    primaryEvaluationDepth: $('primaryEvaluationDepth'),
+    primaryBestMove: $('primaryBestMove'),
+    primaryEvaluationState: $('primaryEvaluationState'),
     analysisFen: $('analysisFen'),
     analysisMoveHint: $('analysisMoveHint'),
     first: $('firstMoveBtn'),
@@ -210,6 +216,10 @@
     fenTools,
     panel: els.analysisPanel,
     status: els.analysisStatus,
+    primaryEvaluation: els.primaryEvaluation,
+    primaryEvaluationDepth: els.primaryEvaluationDepth,
+    primaryBestMove: els.primaryBestMove,
+    primaryEvaluationState: els.primaryEvaluationState,
     fenOutput: els.analysisFen,
     moveHint: els.analysisMoveHint,
     lineEls,
@@ -748,7 +758,7 @@
     if (pendingConsentContinuation) {
       pendingConsentContinuation = false;
       els.handoff.hidden = false;
-      requestAnimationFrame(() => els.analyze.focus({ preventScroll: true }));
+      requestAnimationFrame(() => els.engineToggle.focus({ preventScroll: true }));
     }
     if (message) toast(message);
   }
@@ -1110,6 +1120,8 @@
     els.structuralAcknowledge.checked = false;
     els.editSheet.hidden = true;
     els.editFooter.hidden = true;
+    els.editMorePanel.hidden = true;
+    els.editMore.setAttribute('aria-expanded', 'false');
     els.feedbackImageInput.value = '';
     els.feedbackImageReselect.hidden = true;
     els.reviewEdit.classList.remove('edit-mode');
@@ -1174,6 +1186,7 @@
       els.analyze.disabled = false;
       els.analyze.innerHTML = '<i class="fas fa-rotate-right"></i><span>Retry</span>';
       els.engineToggle.checked = false;
+      els.primaryEvaluationState.textContent = 'Engine unavailable';
       return false;
     }
   }
@@ -1184,6 +1197,18 @@
     els.engineToggle.checked = false;
     els.workspaceTitle.textContent = 'Position ready';
     els.candidateStatus.textContent = 'Confirmed';
+  }
+
+  function closeEditMore(restoreFocus = false) {
+    els.editMorePanel.hidden = true;
+    els.editMore.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) els.editMore.focus({ preventScroll: true });
+  }
+
+  function toggleEditMore() {
+    const open = els.editMorePanel.hidden;
+    els.editMorePanel.hidden = !open;
+    els.editMore.setAttribute('aria-expanded', String(open));
   }
 
   function openEdit(entryMode = EDIT_ENTRY.MANUAL_EDIT) {
@@ -1220,6 +1245,9 @@
       els.handoff.hidden = true;
     }
     closeSheets(false);
+    closeEditMore();
+    els.editCastlingPanel.hidden = true;
+    els.editCastling.setAttribute('aria-expanded', 'false');
     els.editSheet.hidden = false;
     els.editFooter.hidden = false;
     els.reviewEdit.classList.add('edit-mode');
@@ -1241,6 +1269,7 @@
     els.editFooter.hidden = true;
     els.editCastlingPanel.hidden = true;
     els.editCastling.setAttribute('aria-expanded', 'false');
+    closeEditMore();
     els.reviewEdit.classList.remove('edit-mode');
     selectedSquare = null;
     selectEditTool(null);
@@ -1568,6 +1597,11 @@
         }
       }
     }
+    if (event.key === 'Escape' && !els.editMorePanel.hidden) {
+      event.preventDefault();
+      closeEditMore(true);
+      return;
+    }
     if (!activeMenu) return;
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -1604,7 +1638,10 @@
     selectEditTool(button.dataset.piece);
   }));
   els.clearSquare.addEventListener('click', () => selectEditTool('clear'));
-  els.clearBoard.addEventListener('click', clearEditingBoard);
+  els.clearBoard.addEventListener('click', () => {
+    clearEditingBoard();
+    closeEditMore();
+  });
   els.editWhiteTurn.addEventListener('click', () => setEditTurn('w'));
   els.editBlackTurn.addEventListener('click', () => setEditTurn('b'));
   els.editCastling.addEventListener('click', () => {
@@ -1612,6 +1649,7 @@
     els.editCastlingPanel.hidden = !open;
     els.editCastling.setAttribute('aria-expanded', String(open));
   });
+  els.editMore.addEventListener('click', toggleEditMore);
   els.castlingInputs.forEach((input) => input.addEventListener('change', updateCastling));
   els.structuralAcknowledge.addEventListener('change', () => {
     structuralAcknowledged = els.structuralAcknowledge.checked;
@@ -1723,6 +1761,11 @@
   els.last.addEventListener('click', () => analysis?.last());
   els.sheetBackdrop.addEventListener('click', dismissActiveSheet);
   document.addEventListener('pointerdown', (event) => {
+    if (!els.editMorePanel.hidden
+      && !els.editMorePanel.contains(event.target)
+      && !els.editMore.contains(event.target)) {
+      closeEditMore();
+    }
     if (!activeMenu) return;
     if (activeMenu.menu.contains(event.target) || activeMenu.trigger.contains(event.target)) return;
     closeMenus();
