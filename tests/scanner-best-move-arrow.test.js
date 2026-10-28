@@ -19,8 +19,10 @@ test('best move arrow accepts the legal first UCI move and rejects invalid PV da
     uci: 'e2e4', from: 'e2', to: 'e4', promotion: null
   });
   assert.equal(api.resolvePrimaryMove(fen, ['e7e5']), null);
+  assert.equal(api.resolvePrimaryMove(fen, ['e2e4q']), null);
   assert.equal(api.resolvePrimaryMove(fen, ['not-uci']), null);
   assert.equal(api.resolvePrimaryMove(fen, []), null);
+  assert.equal(api.resolvePrimaryMove('7k/P7/8/8/8/8/8/K7 w - - 0 1', ['a7a8']), null);
 });
 
 test('best move arrow legality supports captures, castling, promotions, and checking moves', async () => {

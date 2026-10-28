@@ -10,9 +10,11 @@
     if (!match) return null;
     try {
       const game = new global.Chess(fen);
-      const move = game.move({ from: match[1], to: match[2], promotion: match[3] || 'q' });
+      const requestedPromotion = match[3] || null;
+      const move = game.move({ from: match[1], to: match[2], promotion: requestedPromotion || 'q' });
       if (!move) return null;
-      return Object.freeze({ uci, from: match[1], to: match[2], promotion: match[3] || null });
+      if (Boolean(move.promotion) !== Boolean(requestedPromotion)) return null;
+      return Object.freeze({ uci, from: match[1], to: match[2], promotion: requestedPromotion });
     } catch (_) {
       return null;
     }
