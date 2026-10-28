@@ -77,18 +77,31 @@ function responseError(response, body) {
   return typedError(server || 'SERVICE_UNAVAILABLE');
 }
 
-async function jsonRequest(endpoint, { method = 'POST', body, signal } = {}) {
+async function authenticatedToken() {
+  const auth = globalThis.CAISSA_AUTH;
+  if (auth?.whenReady) await auth.whenReady();
+  const token = await auth?.getToken?.();
+  if (!token) throw typedError('AUTH_REQUIRED');
+  return token;
+}
+
+async function jsonRequest(endpoint, { method = 'POST', body, signal, authenticated = false } = {}) {
   let response;
   try {
+    const token = authenticated ? await authenticatedToken() : null;
     response = await fetch(endpoint, {
       method,
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: 'Bearer ' + token } : {})
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal
     });
   } catch (error) {
     if (error?.name === 'AbortError') throw error;
+    if (error?.code === 'AUTH_REQUIRED') throw error;
     throw typedError('NETWORK_FAILURE');
   }
   const value = await responseBody(response);
@@ -171,7 +184,7 @@ async function persistFeedbackScan(snapshot, captureType) {
       localizationVersion: LOCALIZATION_VERSION,
       clientMetadata: { viewport: { width: innerWidth, height: innerHeight }, persistencePurpose: 'optional-feedback' }
     }
-  } });
+  }, authenticated: true });
 }
 
 async function uploadConsentedImage(file, imageHash, scanId, feedbackId, sourceImageRightsConfirmed) {
@@ -189,15 +202,17 @@ async function uploadConsentedImage(file, imageHash, scanId, feedbackId, sourceI
     consentVersion: IMAGE_CONSENT_VERSION,
     consentSource: CONSENT_SOURCE,
     rightsAttestation: IMAGE_RIGHTS_ATTESTATION
-  } });
+  }, authenticated: true });
   const grantedUploadId = grant.uploadId || uploadId;
+  const token = await authenticatedToken();
   const response = await fetch('/api/scanner/public/image', {
     method: 'PUT',
     credentials: 'same-origin',
     headers: {
       'Content-Type': selected.sourceImageType,
       'X-Caissa-Image-Sha256': imageHash,
-      'X-Caissa-Upload-Id': grantedUploadId
+      'X-Caissa-Upload-Id': grantedUploadId,
+      Authorization: 'Bearer ' + token
     },
     body: selected.blob
   });
@@ -305,7 +320,10 @@ export async function submitPublicFeedback({
   const imageUpload = shareImageForImprovement
     ? await uploadConsentedImage(file, snapshot.imageHash, snapshot.scanId, feedbackId, sourceImageRightsConfirmed)
     : null;
-  return jsonRequest('/api/scanner/public/feedback', { body: { feedback: record, imageUploadId: imageUpload?.uploadId || null } });
+  return jsonRequest('/api/scanner/public/feedback', {
+    body: { feedback: record, imageUploadId: imageUpload?.uploadId || null },
+    authenticated: true
+  });
 }
 
 export async function submitPublicFailure({ context, error, file, shareCorrectionForImprovement, shareImageForImprovement, sourceImageRightsConfirmed = false }) {
@@ -331,7 +349,10 @@ export async function submitPublicFailure({ context, error, file, shareCorrectio
   const imageUpload = shareImageForImprovement
     ? await uploadConsentedImage(file, context.imageHash, context.scanId, feedbackId, sourceImageRightsConfirmed)
     : null;
-  return jsonRequest('/api/scanner/public/failure', { body: { failure: record, imageUploadId: imageUpload?.uploadId || null } });
+  return jsonRequest('/api/scanner/public/failure', {
+    body: { failure: record, imageUploadId: imageUpload?.uploadId || null },
+    authenticated: true
+  });
 }
 
 export function normalizeFailure(error) {

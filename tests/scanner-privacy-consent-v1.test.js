@@ -39,6 +39,8 @@ test('consent panel exposes two unchecked independent permissions and an accurat
   assert.match(html, /id="shareImageConsent" type="checkbox"(?![^>]*checked)/);
   assert.match(html, />Continue</);
   assert.match(html, />Not now</);
+  assert.match(html, /id="feedbackImageReselectBtn"/);
+  assert.match(html, /id="feedbackImageInput"[^>]*type="file"/);
   assert.match(html, /privacy@caissa-chess\.org/);
   assert.doesNotMatch(html, /href="\/privacy"/);
   assert.match(html, /final Privacy Policy remains subject to its separate publication approval/);
@@ -130,4 +132,16 @@ test('client keeps four consent states distinct and never turns photo consent in
   assert.match(client, /RESULTS_CONSENT_VERSION = 'caissa-scanner-results-consent\/1'/);
   assert.match(client, /IMAGE_CONSENT_VERSION = 'caissa-scanner-image-review-consent\/1'/);
   assert.doesNotMatch(client, /trainingEligible:\s*true/);
+});
+
+test('authenticated feedback handoff is same-origin, explicit, and never stores the original photo', () => {
+  const handoff = read('scanner/public/scanner-feedback-auth-handoff.js');
+  const app = read('scanner/scanner-app.js');
+  assert.match(handoff, /RETURN_PATH = '\/scanner\?feedback_return=1'/);
+  assert.match(app, /sessionStorage/);
+  assert.doesNotMatch(handoff, /localStorage|sourceFile|photoBytes|accessToken/);
+  assert.match(app, /Sign in to share feedback/);
+  assert.match(app, /Confirm and share feedback/);
+  assert.match(app, /sourceImageRights\.checked = false/);
+  assert.match(app, /imageHash\.toLowerCase\(\) !== String\(publicRecognition/);
 });

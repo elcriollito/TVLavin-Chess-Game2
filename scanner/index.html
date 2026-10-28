@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="/scanner/scanner-geometry.css?v=0.2.2">
   <link rel="stylesheet" href="/scanner/scanner-analysis.css?v=0.3.0">
   <link rel="stylesheet" href="/scanner/scanner-experience.css?v=0.5.0">
-  <link rel="stylesheet" href="/scanner/public/scanner-public.css?v=1.0.0">
+  <link rel="stylesheet" href="/scanner/public/scanner-public.css?v=1.0.1">
 </head>
 <body>
   <header class="scanner-topbar app-topbar">
@@ -280,6 +280,8 @@
       <label class="feedback-consent-row"><input id="shareCorrectionConsent" type="checkbox"> <span><strong>Share recognition results and corrections.</strong><small>Allow CAISSA to save the detected position, piece matches, confidence information and corrections for human review and future improvement.</small></span></label>
       <label class="feedback-consent-row"><input id="shareImageConsent" type="checkbox"> <span><strong>Also share my original photo.</strong><small>Allow CAISSA to store this photo privately for authorized human review and possible future model improvement, subject to separate certification and applicable consent requirements.</small></span></label>
       <label class="feedback-consent-row feedback-rights-row" id="sourceImageRightsRow" hidden><input id="sourceImageRightsConsent" type="checkbox" disabled> <span><strong>I have the right to share this image.</strong><small>I own this image or have permission to provide it for the private improvement-review purpose described above.</small></span></label>
+      <button class="feedback-reselect" id="feedbackImageReselectBtn" type="button" hidden>Reselect photo to share</button>
+      <input id="feedbackImageInput" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden>
       <p class="feedback-privacy"><i class="fas fa-lock" aria-hidden="true"></i> Choices are independent. Nothing is selected by default. Declining does not block Stockfish analysis.</p>
       <details class="feedback-privacy-details"><summary>Privacy details</summary><p>Recognition is processed to provide Scanner. Optional results enter the private Raw Feedback Vault as raw-unverified. Optional photos use private storage. Neither choice authorizes automatic training. To withdraw optional consent or request deletion where available, contact <a href="mailto:privacy@caissa-chess.org">privacy@caissa-chess.org</a>. The final Privacy Policy remains subject to its separate publication approval.</p></details>
       <button class="feedback-submit" id="submitFeedbackBtn" type="button">Continue</button>
@@ -311,7 +313,8 @@
   <script src="/scanner/recognition/scanner-image-decode.js?v=0.1.0"></script>
   <script src="/scanner/recognition/scanner-recognition-runtime.js?v=0.2.0"></script>
   <script src="/scanner/public/scanner-handoff.js?v=0.1.0"></script>
-  <script src="/scanner/scanner-app.js?v=1.0.0"></script>
+  <script src="/scanner/public/scanner-feedback-auth-handoff.js?v=1.0.0"></script>
+  <script src="/scanner/scanner-app.js?v=1.0.1"></script>
   <script src="/scanner/scanner-geometry.js?v=0.2.2"></script>
 </body>
 </html>

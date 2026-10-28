@@ -144,6 +144,20 @@
   outline: 3px solid rgba(126, 201, 246, 0.88);
   outline-offset: 2px;
 }
+.feedback-reselect {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(83, 180, 255, 0.7);
+  border-radius: 12px;
+  background: rgba(15, 73, 112, 0.55);
+  color: #eef8ff;
+  font: inherit;
+  font-weight: 700;
+}
+.feedback-reselect:focus-visible {
+  outline: 3px solid #43a9ff;
+  outline-offset: 2px;
+}
 .feedback-rights-row {
   margin-left: 18px;
   border-style: dashed;

@@ -49,6 +49,20 @@ async function declineConsent(page) {
   await expect(page.locator('#feedbackSheet')).toBeHidden();
 }
 
+async function useAuthenticatedScannerSession(page) {
+  await page.evaluate(() => {
+    Object.assign(window.CAISSA_AUTH, {
+      isLoaded: true,
+      isSignedIn: true,
+      userId: 'user_scanner_public_beta_test',
+      status: 'authenticated',
+      whenReady: async () => window.CAISSA_AUTH,
+      getToken: async () => 'scanner-public-beta-test-token'
+    });
+    window.dispatchEvent(new CustomEvent('caissa-auth-change', { detail: { ...window.CAISSA_AUTH } }));
+  });
+}
+
 test.describe('CAISSA Scanner controlled public beta', () => {
   test('desktop is an intentional information and mobile handoff experience', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 900 });
@@ -121,6 +135,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
     await page.route('**/api/scanner/public/recognize', route => route.fulfill({ json: orientationPrediction(physical) }));
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/scanner');
+    await useAuthenticatedScannerSession(page);
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('#orientationReview')).toBeHidden();
@@ -236,6 +251,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
       }
     });
     await page.goto('/scanner');
+    await useAuthenticatedScannerSession(page);
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     await page.locator('#applyEditBtn').click();
@@ -262,6 +278,7 @@ test.describe('CAISSA Scanner controlled public beta', () => {
       if (request.url().endsWith('/api/scanner/public/feedback')) submitted = request.postDataJSON()?.feedback || null;
     });
     await page.goto('/scanner');
+    await useAuthenticatedScannerSession(page);
     await page.locator('#galleryInput').setInputFiles(scannerBoardImage);
     await expect(page.locator('#reviewEditView')).toBeVisible({ timeout: 30_000 });
     const originalFen = await page.locator('#fenInput').inputValue();
