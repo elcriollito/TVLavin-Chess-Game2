@@ -5,7 +5,7 @@
   const MULTIPV = 3;
 
   function scoreText(info) {
-    if (Number.isFinite(info?.mate)) return (info.mate > 0 ? '+' : '') + 'M' + info.mate;
+    if (Number.isFinite(info?.mate)) return (info.mate > 0 ? '+M' : '-M') + Math.abs(info.mate);
     if (Number.isFinite(info?.score)) return (info.score > 0 ? '+' : '') + info.score.toFixed(2);
     return '—';
   }
@@ -37,6 +37,10 @@
     const fenTools = options.fenTools;
     const panel = options.panel;
     const status = options.status;
+    const primaryEvaluation = options.primaryEvaluation;
+    const primaryEvaluationDepth = options.primaryEvaluationDepth;
+    const primaryBestMove = options.primaryBestMove;
+    const primaryEvaluationState = options.primaryEvaluationState;
     const fenOutput = options.fenOutput;
     const moveHint = options.moveHint;
     const lineEls = options.lineEls || [];
@@ -55,6 +59,13 @@
       if (!status) return;
       status.textContent = text;
       status.className = 'analysis-status' + (type ? ' ' + type : '');
+    }
+
+    function setPrimarySummary({ evaluation = '\u2014', depth = '\u2014', bestMove = '\u2014', state = 'Engine off' } = {}) {
+      if (primaryEvaluation) primaryEvaluation.textContent = evaluation;
+      if (primaryEvaluationDepth) primaryEvaluationDepth.textContent = depth;
+      if (primaryBestMove) primaryBestMove.textContent = bestMove;
+      if (primaryEvaluationState) primaryEvaluationState.textContent = state;
     }
 
     function resetLines(text = 'Calculating…') {
@@ -141,8 +152,17 @@
       if (!line) return;
       line.score.textContent = scoreText(info);
       line.depth.textContent = 'd' + (Number(info.depth) || '—');
-      line.pv.textContent = uciToSan(game.fen(), info.pv || []);
-      if (index === 0) arrow?.showPrimaryVariation({ fen: game.fen(), pv: info.pv || [] });
+      const sanLine = uciToSan(game.fen(), info.pv || []);
+      line.pv.textContent = sanLine;
+      if (index === 0) {
+        arrow?.showPrimaryVariation({ fen: game.fen(), pv: info.pv || [] });
+        setPrimarySummary({
+          evaluation: scoreText(info),
+          depth: Number(info.depth) > 0 ? String(Number(info.depth)) : '\u2014',
+          bestMove: sanLine.split(/\s+/)[0] || '\u2014',
+          state: 'Analyzing'
+        });
+      }
       setStatus('Analyzing', 'running');
     }
 
@@ -150,6 +170,7 @@
       if (!active || !engine?.ready || !game) return;
       resetLines();
       arrow?.clear();
+      setPrimarySummary({ state: 'Analyzing\u2026' });
       setStatus('Analyzing', 'running');
       engine.setMultiPV(MULTIPV);
       activeGeneration = engine.startAnalysisAttributed(game.fen(), updateLine, DEPTH);
@@ -178,6 +199,7 @@
       active = true;
       panel.hidden = false;
       resetLines();
+      setPrimarySummary({ state: 'Starting Stockfish\u2026' });
       setStatus('Starting…');
       render();
       if (!engine) {
@@ -191,6 +213,7 @@
           if (!active) return;
           stop();
           setStatus('Engine error', 'error');
+          setPrimarySummary({ state: 'Engine unavailable' });
           if (moveHint) moveHint.textContent = error?.message || 'Stockfish 18 stopped unexpectedly.';
         };
       }
@@ -210,6 +233,7 @@
       activeGeneration = null;
       arrow?.setEngineActive(false);
       engine?.stopAnalysis?.();
+      setPrimarySummary();
       board?.classList.remove('analysis-active');
       setStatus('Off');
       if (game) render();
@@ -220,6 +244,7 @@
       stop();
       game = null;
       arrow?.clear();
+      setPrimarySummary();
       resetHistory('');
       panel.hidden = true;
     }

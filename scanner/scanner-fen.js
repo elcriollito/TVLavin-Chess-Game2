@@ -101,7 +101,6 @@
     if (!result.ok || !/^[wb]$/.test(side || '')) return null;
     const parts = result.fen.split(' ');
     parts[1] = side;
-    parts[3] = '-';
     return parts.join(' ');
   }
 

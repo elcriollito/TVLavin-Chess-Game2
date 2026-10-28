@@ -107,7 +107,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await selectAndConfirm(page);
     await installEngine(page);
     await expect(page.locator('#arrowsToggle')).toBeChecked();
-    await page.locator('#analyzeBtn').click();
+    await page.locator('#engineToggle').check({ force: true });
     await expect.poll(() => page.evaluate(() => window.__arrowSearches.length)).toBe(1);
     const move = await emitFirstLegalMove(page, 0);
     await expect(page.locator('#bestMoveArrowOverlay')).toBeVisible();
@@ -141,7 +141,7 @@ test('PV changes, stale searches, and analysis navigation never show an old move
   await page.setViewportSize({ width: 390, height: 844 });
   await selectAndConfirm(page);
   await installEngine(page);
-  await page.locator('#analyzeBtn').click();
+  await page.locator('#engineToggle').check({ force: true });
   await expect.poll(() => page.evaluate(() => window.__arrowSearches.length)).toBe(1);
   const first = await emitFirstLegalMove(page, 0);
   await expect(page.locator('#bestMoveArrowOverlay')).toHaveAttribute('data-move', first.uci);
