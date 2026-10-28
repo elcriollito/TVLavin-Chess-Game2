@@ -15,6 +15,7 @@ import {
 } from '../scanner/public/scanner-public-contract.js';
 import { expandPlacement, squareAt } from '../scanner/beta/scanner-beta-contract.js';
 import { createScannerPublicRecognitionService } from '../api/_lib/scanner-public-recognition-service.js';
+import { scannerAuthorizationHeaders } from '../scanner/public/scanner-public-client.js';
 import { createScannerPublicService } from '../api/_lib/scanner-public-service.js';
 import { createScannerFeedbackReviewAuthorizer } from '../api/_lib/scanner-feedback-review-auth.js';
 import { createScannerFeedbackReviewService } from '../api/_lib/scanner-feedback-review-service.js';
@@ -184,6 +185,32 @@ test('public recognition is kill-switched, same-origin, and separately rate limi
   await invalidCredential.recognize({ ...req, headers: { ...req.headers, authorization: 'Bearer invalid' } }, rejected);
   assert.equal(rejected.statusCode, 401);
   assert.equal(rejected.body.error, 'AUTH_REQUIRED');
+
+  const staleAmbientCookie = createScannerPublicRecognitionService({
+    env: { CAISSA_SCANNER_PUBLIC_STAGE: 'public-beta' },
+    authenticate: async () => ({ authenticated: false, status: 401, code: 'INVALID_TOKEN' }),
+    infer: async () => ({ response: { predictedFEN: FEN }, metrics: { modelLoadMs: 1, inferenceMs: 2 } }),
+    rateLimit: () => ({ allowed: true, remaining: 1 }),
+    log: () => {}
+  });
+  const guestWithStaleCookie = response();
+  await staleAmbientCookie.recognize({ ...req, headers: { ...req.headers, cookie: '__session=stale' } }, guestWithStaleCookie);
+  assert.equal(guestWithStaleCookie.statusCode, 200);
+});
+
+test('Scanner public client omits ambient cookies and uses only an explicit current session token', async () => {
+  assert.deepEqual(await scannerAuthorizationHeaders(null), {});
+  assert.deepEqual(await scannerAuthorizationHeaders({ isLoaded: true, isSignedIn: false }), {});
+  assert.deepEqual(await scannerAuthorizationHeaders({
+    isLoaded: true, isSignedIn: true, getToken: async () => ' current-token '
+  }), { Authorization: 'Bearer current-token' });
+  await assert.rejects(() => scannerAuthorizationHeaders({
+    isLoaded: true, isSignedIn: true, getToken: async () => null
+  }), error => error.code === 'AUTH_REQUIRED');
+
+  const source = await readFile('scanner/public/scanner-public-client.js', 'utf8');
+  assert.match(source, /credentials:\s*'omit'/);
+  assert.doesNotMatch(source, /credentials:\s*'same-origin'/);
 });
 
 test('review authorizer fails closed and beta entitlement alone is denied', async () => {

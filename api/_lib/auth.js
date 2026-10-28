@@ -5,12 +5,11 @@
  */
 
 import { verifyToken } from '@clerk/backend';
-import { TokenVerificationError } from '@clerk/backend/errors';
-
 const INVALID_TOKEN_REASONS = new Set([
     'token-expired', 'token-invalid', 'token-invalid-algorithm',
     'token-invalid-authorized-parties', 'token-invalid-signature',
-    'token-not-active-yet', 'token-iat-in-the-future', 'token-verification-failed'
+    'token-not-active-yet', 'token-iat-in-the-future', 'token-verification-failed',
+    'jwk-kid-mismatch'
 ]);
 
 const failure = (status, code) => ({
@@ -68,7 +67,7 @@ export function createAuthenticateRequest(dependencies = {}) {
             email: payload.email || null
         };
     } catch (err) {
-        if (err instanceof TokenVerificationError && INVALID_TOKEN_REASONS.has(err.reason)) {
+        if (err?.name === 'SyntaxError' || INVALID_TOKEN_REASONS.has(err?.reason)) {
             return failure(401, 'INVALID_TOKEN');
         }
         const diagnostic = [err?.name, err?.reason || err?.code].filter(Boolean).join(':') || 'unknown';
