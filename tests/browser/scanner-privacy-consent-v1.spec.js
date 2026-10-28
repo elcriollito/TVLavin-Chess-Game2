@@ -218,8 +218,20 @@ test.describe('Scanner Privacy Consent v1.0', () => {
     await page.locator('#shareCorrectionConsent').check();
     await page.locator('#shareImageConsent').check();
     await page.locator('#sourceImageRightsConsent').check();
+    const before = await page.evaluate(() => ({
+      fen: document.querySelector('#confirmedFen')?.textContent,
+      board: document.querySelector('#scannerBoard')?.innerHTML,
+      orientation: document.querySelector('#scannerApp')?.dataset.orientation
+    }));
     await page.locator('#submitFeedbackBtn').click();
+    await expect(page.locator('#feedbackSheet')).toBeVisible();
+    await expect(page.locator('#feedbackStatus')).toContainText('saved securely');
     await expect(page.locator('#feedbackSheet')).toBeHidden();
+    expect(await page.evaluate(() => ({
+      fen: document.querySelector('#confirmedFen')?.textContent,
+      board: document.querySelector('#scannerBoard')?.innerHTML,
+      orientation: document.querySelector('#scannerApp')?.dataset.orientation
+    }))).toEqual(before);
     expect(endpointNames(requests)).toEqual(['scan', 'image-consent', 'image', 'feedback']);
     const imageConsent = requests.find((request) => request.endpoint === 'image-consent').body;
     const feedback = requests.find((request) => request.endpoint === 'feedback').body;
@@ -230,6 +242,41 @@ test.describe('Scanner Privacy Consent v1.0', () => {
       shareImageForImprovement: true
     });
     expectAuthenticated(requests);
+  });
+
+  test('expired unbound-upload quota failure stays open with precise retry and continue-without-sharing actions', async ({ page }) => {
+    let attempts = 0;
+    await page.route('**/api/scanner/public/scan', async (route) => {
+      await route.fulfill({ json: { accepted: true, duplicate: attempts > 0 } });
+    });
+    await page.route('**/api/scanner/public/image-consent', async (route) => {
+      attempts += 1;
+      if (attempts === 1) {
+        await route.fulfill({ status: 429, json: { error: 'IMAGE_USER_COUNT_QUOTA_EXCEEDED' } });
+      } else {
+        await route.fulfill({ status: 201, json: { accepted: true, duplicate: false, uploadId: route.request().postDataJSON().uploadId } });
+      }
+    });
+    await page.route('**/api/scanner/public/image', async (route) => {
+      await route.fulfill({ json: { accepted: true, duplicate: false } });
+    });
+
+    await reachConsent(page);
+    const confirmedFen = await page.locator('#confirmedFen').textContent();
+    await page.locator('#shareImageConsent').check();
+    await page.locator('#sourceImageRightsConsent').check();
+    await page.locator('#submitFeedbackBtn').click();
+    await expect(page.locator('#feedbackSheet')).toBeVisible();
+    await expect(page.locator('#feedbackStatus')).toContainText('upload is still in progress');
+    await expect(page.locator('#submitFeedbackBtn')).toHaveText('Retry sharing');
+    await expect(page.locator('#cancelFeedbackBtn')).toHaveText('Continue without sharing');
+    await expect(page.locator('#confirmedFen')).toHaveText(confirmedFen);
+
+    await page.locator('#submitFeedbackBtn').click();
+    await expect(page.locator('#feedbackStatus')).toContainText('Photo saved privately');
+    await expect(page.locator('#feedbackSheet')).toBeHidden();
+    await expect(page.locator('#confirmedFen')).toHaveText(confirmedFen);
+    expect(attempts).toBe(2);
   });
 
   test('photo upload failure preserves the reviewed board and safely retries the governed grant', async ({ page }) => {

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { canonicalFeedbackSnapshot, createScannerPublicService } from '../api/_lib/scanner-public-service.js';
+import { createScannerPublicSupabaseStore } from '../api/_lib/scanner-public-store.js';
 import { planScannerImageLifecycle } from '../api/_lib/scanner-governance-lifecycle.js';
 import { MODEL, createPublicFeedbackRecord, createPublicPredictionSnapshot } from '../scanner/public/scanner-public-contract.js';
 import { expandPlacement, squareAt } from '../scanner/beta/scanner-beta-contract.js';
@@ -131,6 +132,48 @@ test('v1 migration separates purposes, supports photo-only binding, and keeps tr
   assert.doesNotMatch(sql, /grant (select|insert|update|delete)[^;]+ to anon/);
   const v02 = read('supabase/migrations/20261026100419_scanner_public_consent_governance_v02.sql');
   assert.match(v02, /SEPARATE_TRAINING_PERMISSION_REQUIRED/);
+});
+
+test('hotfix 005 excludes stale unbound uploads from active count and preserves idempotent evidence retry', () => {
+  const sql = read('supabase/migrations/20261028152238_scanner_image_unbound_expiry_hotfix.sql');
+  assert.match(sql, /reserve_scanner_public_image_upload_v04/);
+  assert.match(sql, /status in \('reserved','uploading','uploaded'\)[\s\S]*expires_at > now\(\)/);
+  const activeCountFilters = [...sql.matchAll(/count\(\*\)\s+filter\s*\(where\s+\w+\.status in \(([^)]*)\)/g)];
+  assert.equal(activeCountFilters.length, 2);
+  assert.ok(activeCountFilters.every(match => !match[1].includes("'bound'")));
+  assert.match(sql, /status = 'uploaded' and v_existing\.storage_reference is not null[\s\S]*set expires_at = v_expires/);
+  assert.match(sql, /status = 'bound'[\s\S]*return query select true, true/);
+  assert.match(sql, /failure_code = coalesce\([^,]+, 'IMAGE_UPLOAD_GRANT_EXPIRED'\)/);
+  assert.match(sql, /revoke all on function public\.reserve_scanner_public_image_upload_v04/);
+  assert.match(sql, /grant execute on function public\.reserve_scanner_public_image_upload_v04[^;]+to service_role/);
+  assert.match(read('api/_lib/scanner-public-store.js'), /reserve_scanner_public_image_upload_v04/);
+});
+
+test('database quota codes remain sanitized and actionable instead of collapsing to P0001', async () => {
+  const client = {
+    async rpc() {
+      return { data: null, error: { code: 'P0001', message: 'IMAGE_USER_COUNT_QUOTA_EXCEEDED' } };
+    }
+  };
+  const store = createScannerPublicSupabaseStore(client);
+  await assert.rejects(() => store.reserveImageUpload({
+    userId: USER_ID,
+    uploadId: UPLOAD_ID,
+    scanId: SCAN_ID,
+    feedbackId: null,
+    purpose: 'scanner-photo-improvement-review',
+    consentVersion: 'caissa-scanner-image-review-consent/1',
+    consentSource: 'scanner-review-consent-panel',
+    rightsAttestation: 'I_HAVE_RIGHTS_TO_SHARE_FOR_PRIVATE_REVIEW',
+    imageHash: HASH,
+    byteSize: 2048,
+    contentType: 'image/png',
+    ttlSeconds: 900,
+    userMaxActiveUploads: 3,
+    userMaxBytes: 24000000,
+    projectMaxBytes: 240000000
+  }), /IMAGE_USER_COUNT_QUOTA_EXCEEDED/);
+  assert.match(publicErrorMessage({ code: 'IMAGE_USER_COUNT_QUOTA_EXCEEDED' }), /upload is still in progress/i);
 });
 
 test('expired in-flight uploads are cleanup candidates while completed photo-only evidence is retained', () => {

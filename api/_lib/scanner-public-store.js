@@ -1,7 +1,13 @@
 import { getSupabase } from './supabase.js';
 
+function sanitizedDatabaseError(error, fallback) {
+  const message = String(error?.message || '').toUpperCase();
+  const known = message.match(/\b(?:IMAGE|RESULTS|SCANNER_CONSENT)_[A-Z0-9_]{1,72}\b/)?.[0];
+  return known || `${fallback}_${error?.code || 'ERROR'}`;
+}
+
 function checked(result, code) {
-  if (result?.error) throw new Error(`${code}_${result.error.code || 'ERROR'}`);
+  if (result?.error) throw new Error(sanitizedDatabaseError(result.error, code));
   return Array.isArray(result?.data) ? result.data[0] : result?.data;
 }
 
@@ -77,7 +83,7 @@ export function createScannerPublicSupabaseStore(client = getSupabase()) {
       }), 'SCANNER_PUBLIC_FEEDBACK');
     },
     async reserveImageUpload(value) {
-      return checked(await client.rpc('reserve_scanner_public_image_upload_v03', {
+      return checked(await client.rpc('reserve_scanner_public_image_upload_v04', {
         p_user_id: value.userId,
         p_upload_id: value.uploadId,
         p_scan_id: value.scanId,

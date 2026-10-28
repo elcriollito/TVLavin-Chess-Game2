@@ -170,11 +170,13 @@
   let feedbackNeedsReauthentication = false;
   let feedbackIdentityConflict = false;
   let restoredFeedbackDraft = false;
+  let feedbackSubmissionPending = false;
+  let feedbackRetryAvailable = false;
   let structuralAcknowledged = false;
   let publicRecognitionController = null;
 
   async function loadPublicClient() {
-    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=1.0.1');
+    publicClient ||= await import('/scanner/public/scanner-public-client.js?v=1.0.2');
     return publicClient;
   }
 
@@ -648,8 +650,8 @@
     const needsSignIn = wantsContribution && (feedbackNeedsReauthentication || auth?.isSignedIn !== true);
     els.submitFeedback.textContent = needsSignIn
       ? 'Sign in to share feedback'
-      : wantsContribution ? 'Confirm and share feedback' : 'Continue';
-    els.submitFeedback.disabled = feedbackIdentityConflict
+      : wantsContribution ? (feedbackRetryAvailable ? 'Retry sharing' : 'Confirm and share feedback') : 'Continue';
+    els.submitFeedback.disabled = feedbackSubmissionPending || feedbackIdentityConflict
       || (shareImage && (missingReselectedImage || !els.sourceImageRights.checked));
   }
 
@@ -766,6 +768,9 @@
     els.sourceImageRightsRow.hidden = true;
     els.submitFeedback.disabled = false;
     els.submitFeedback.textContent = 'Continue';
+    els.cancelFeedback.textContent = 'Not now';
+    feedbackSubmissionPending = false;
+    feedbackRetryAvailable = false;
     els.feedbackImageReselect.hidden = true;
     els.feedbackStatus.textContent = '';
     els.feedbackDescription.textContent = type === 'LOCALIZATION_FAILURE'
@@ -778,7 +783,7 @@
   }
 
   async function sendPublicFeedback() {
-    if (!pendingFeedbackType) return;
+    if (!pendingFeedbackType || feedbackSubmissionPending) return;
     const shareResults = els.shareCorrection.checked;
     const shareImage = els.shareImage.checked;
     if (!shareResults && !shareImage) {
@@ -812,7 +817,10 @@
       els.sourceImageRights.focus();
       return;
     }
+    feedbackSubmissionPending = true;
+    feedbackRetryAvailable = false;
     els.submitFeedback.disabled = true;
+    els.cancelFeedback.textContent = 'Not now';
     els.feedbackStatus.textContent = 'Saving your choices securely…';
     try {
       const client = await loadPublicClient();
@@ -856,7 +864,14 @@
         });
       }
       const returnsHome = pendingFeedbackType !== 'AUTO';
+      const successMessage = shareResults
+        ? 'Results saved securely as raw-unverified. Returning to your board…'
+        : 'Photo saved privately. Returning to your board…';
+      els.feedbackStatus.textContent = successMessage;
+      els.cancelFeedback.disabled = true;
+      await new Promise((resolve) => setTimeout(resolve, 650));
       closeSheets(false);
+      els.cancelFeedback.disabled = false;
       if (returnsHome) resetAll(true);
       if (!returnsHome) completeConsentStep(shareResults
         ? 'Results saved as raw-unverified for owner review.'
@@ -866,13 +881,18 @@
         : 'Photo saved privately for authorized review.');
       pendingFeedbackType = null;
       clearFeedbackHandoff();
+      feedbackSubmissionPending = false;
+      feedbackRetryAvailable = false;
     } catch (error) {
+      feedbackSubmissionPending = false;
+      feedbackRetryAvailable = true;
       els.feedbackStatus.textContent = (await loadPublicClient()).publicErrorMessage(error);
       if (error?.code === 'AUTH_REQUIRED') {
         feedbackNeedsReauthentication = true;
         saveFeedbackHandoff();
         els.feedbackStatus.textContent = 'Your session expired. Sign in again to retry, or choose Not now to continue without sharing.';
       }
+      els.cancelFeedback.textContent = 'Continue without sharing';
       updateFeedbackEligibility();
     }
   }

@@ -84,7 +84,9 @@ function responseError(response, body) {
   if (response.status === 403) return typedError(server || 'ACCESS_DENIED');
   if (response.status === 404) return typedError('PUBLIC_BETA_DISABLED');
   if (response.status === 413) return typedError('PAYLOAD_TOO_LARGE');
-  if (response.status === 429) return typedError('RATE_LIMITED', { retryAfter: response.headers.get('Retry-After') });
+  if (response.status === 429) return typedError(server.startsWith('IMAGE_') ? server : 'RATE_LIMITED', {
+    retryAfter: response.headers.get('Retry-After')
+  });
   if (response.status === 504) return typedError('TIMEOUT');
   if (server === 'MODEL_INTEGRITY_FAILURE' || server === 'INFERENCE_FAILURE') return typedError(server);
   return typedError(server || 'SERVICE_UNAVAILABLE');
@@ -396,6 +398,8 @@ export function publicErrorMessage(error) {
   if (code === 'IMAGE_READ_FAILED' || code === 'IMAGE_REQUIRED') return 'Safari could not read the selected file. Reselect the original photo without restarting this scan.';
   if (/IMAGE_TYPE|IMAGE_HASH|UNSUPPORTED/.test(code)) return 'The selected file is not a valid supported image. Choose the original JPEG, PNG, or WebP photo.';
   if (code === 'RATE_LIMITED') return 'Too many scan attempts. Wait a moment, then try again.';
+  if (code === 'IMAGE_USER_COUNT_QUOTA_EXCEEDED') return 'Another private photo upload is still in progress. Wait a moment, retry, or continue without sharing.';
+  if (code === 'IMAGE_USER_BYTES_QUOTA_EXCEEDED' || code === 'IMAGE_PROJECT_BYTES_QUOTA_EXCEEDED') return 'The private photo storage limit is currently reached. Continue without sharing or contact privacy@caissa-chess.org for help.';
   if (code === 'AUTH_REQUIRED') return 'Sign in to send optional Scanner feedback.';
   if (code === 'PUBLIC_BETA_DISABLED') return 'Scanner is temporarily paused. Please try again later.';
   if (error?.photoUploaded === true) return 'The photo was stored privately, but the feedback record could not be completed. Keep this panel open and try again, or choose Not now to continue without sharing.';
