@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 for (const pageCase of [
   { route: '/privacy', heading: 'Privacy Policy' },
@@ -20,6 +21,12 @@ for (const pageCase of [
     expect(overflow).toBeLessThanOrEqual(1);
     const size = await page.locator('.legal-document').evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize));
     expect(size).toBeGreaterThanOrEqual(16);
+  });
+
+  test(`${pageCase.route} has no serious or critical automated accessibility violations`, async ({ page }) => {
+    await page.goto(pageCase.route);
+    const result = await new AxeBuilder({ page }).include('#legal-content').analyze();
+    expect(result.violations.filter(item => ['serious', 'critical'].includes(item.impact))).toEqual([]);
   });
 }
 

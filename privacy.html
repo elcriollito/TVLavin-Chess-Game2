@@ -72,9 +72,11 @@
       </section>
 
       <section class="legal-section" id="scanner"><h2>5. CAISSA Scanner</h2>
-        <p>When you choose a photograph or screenshot for Scanner recognition, the image is sent to CAISSA's recognition endpoint so the service can locate the board, classify squares and return a proposed chess position. The result may include a FEN position, confidence information and recognition metadata. You must review and edit the proposed position before relying on it.</p>
+        <p>When you choose a photograph or screenshot for Scanner recognition, the image is sent to CAISSA's recognition endpoint so the service can locate the board, classify squares and return a proposed chess position. CAISSA does not intentionally place the source image from an ordinary recognition request into its application database or Scanner evidence bucket. Hosting and security providers may still process the request and retain limited operational or security logs under their own schedules.</p>
+        <p>After recognition, CAISSA records a derived scan snapshot even if you do not submit feedback. That record can include an image hash, proposed FEN position, square predictions and confidence values, detected corners, board orientation, model and localization versions, capture type, viewport size and performance or diagnostic metadata. It is used to operate, secure and evaluate Scanner. You must review and edit the proposed position before relying on it.</p>
         <h3>Optional feedback and private image evidence</h3>
-        <p>Submitting Scanner feedback is optional and requires an account. A feedback record can include the original and corrected positions, changed squares, model and localization versions, image hash, capture context and your separate consent choices. The underlying image is uploaded to a private Supabase Storage bucket only when you expressly choose to share it for improvement. The application checks that image evidence belongs to the submitting account and keeps the storage reference private.</p>
+        <p>Submitting Scanner feedback is optional and requires an account. A feedback record can include the original and corrected positions, changed squares, model and localization versions, image hash, capture context and your separate consent choices. The underlying image is uploaded to a private Supabase Storage bucket only when you expressly choose to share it for improvement. The application checks account ownership and consent before accepting a reference to that image in feedback and keeps the storage reference private.</p>
+        <p>The current production upload and feedback-binding steps are not one atomic transaction. If the browser closes, the network fails or feedback submission is interrupted after an image upload, a private image object can remain without a completed feedback record. CAISSA has prepared stronger binding and cleanup controls, but they are not active in production. Historical private-beta Scanner images and records remain quarantined from training unless they separately satisfy the required consent and human-certification gates.</p>
         <p class="legal-callout"><strong>No automatic training:</strong> public Scanner feedback enters the system as <em>raw-unverified</em>. It is not automatically certified and is not automatically used to retrain or update the model. Training eligibility requires separate human review, the required consents and additional safeguards.</p>
       </section>
 
@@ -98,7 +100,7 @@
           <li><strong>Vercel</strong> for website and serverless hosting, request processing and aggregate Web Analytics;</li>
           <li><strong>Cloudflare</strong> for authoritative DNS and selected gateway, download, puzzle or security services;</li>
           <li><strong>Chess.com, Lichess, FICS, ChessBase and other chess services</strong> when you use a feature that requests or embeds their content; and</li>
-          <li><strong>Together AI or a provider you select</strong> when you choose optional AI assistance. Relevant prompts and chess context are sent to that provider. User-supplied AI keys are held in page memory and are not designed to be persisted by CAISSA.</li>
+          <li><strong>Together AI, OpenAI, Anthropic or Meta's Llama API</strong> when you choose optional AI assistance. Relevant prompts, message history, chess or engine context and request settings are sent through CAISSA's server to the selected provider. If a user-supplied provider key is used, CAISSA forwards it to that provider for the request and does not intentionally store it in the application database or browser storage. The selected provider may retain request information under its own terms and privacy practices.</li>
         </ul>
         <p>Microsoft Clarity integration code remains in the repository, but it is retired from current production documents and is not allowed by the active production content-security policy. It is not part of the current production data flow. This policy and the applicable consent controls must be updated before Clarity is reactivated.</p>
         <p>No payment processor, paid subscription, renewal or refund program is active for CAISSA. Any future commercial feature will require a separate review and an updated Privacy Policy and Terms of Service before activation.</p>
@@ -111,13 +113,13 @@
       </section>
 
       <section class="legal-section" id="retention"><h2>9. Data retention</h2>
-        <p>CAISSA keeps information for as long as it is needed to provide the relevant feature, protect the service, maintain transaction or audit integrity, or address a valid request. Some temporary sessions and challenges have code-defined expirations. Browser storage remains until it is cleared or replaced.</p>
-        <p>CAISSA has not yet approved one public retention schedule covering all account, game and Scanner records. Public Scanner evidence and certification records are currently designed as append-only audit records, and uploaded feedback images have no confirmed public deletion schedule in this draft. These points require legal and product approval before publication.</p>
+        <p>CAISSA keeps information for as long as it is reasonably needed to provide the relevant feature, protect the service, maintain transaction or audit integrity, comply with applicable obligations, or address a valid request. Some temporary sessions, invitations and challenges have code-defined expirations. Browser storage remains until the application replaces it or you clear it.</p>
+        <p>CAISSA does not currently operate one automated retention or deletion schedule covering every account, game and Scanner record. Account-linked chess data generally remains while the account or relevant feature remains active, subject to a verified request and records that must be preserved for security or integrity. Scanner audit and certification records are append-only by design, and uploaded feedback images do not yet have an automated expiration rule. Private historical Scanner evidence remains quarantined from training. Provider request logs, backups and deleted-data remnants may expire on provider-controlled schedules.</p>
       </section>
 
       <section class="legal-section" id="choices"><h2>10. Your choices and requests</h2>
         <p>You can choose whether to create an account, submit Scanner feedback, share a Scanner image for improvement, share a correction for improvement, use external integrations or use optional AI assistance. You can clear CAISSA browser data through your browser settings.</p>
-        <p>You may ask to access, correct or delete information associated with you by contacting the address above. CAISSA will need to verify the request and will evaluate it subject to applicable law, security needs, technical constraints and records that must be preserved for integrity. This draft does not promise an automated deletion feature or a fixed response period.</p>
+        <p>You may ask to access, correct or delete information associated with you by contacting the address above. CAISSA will need to verify the request and will evaluate it subject to applicable law, security needs, technical constraints, provider capabilities and records that must be preserved for integrity. CAISSA does not currently provide a universal automated export or deletion feature and does not promise a response period shorter than applicable law requires. Deleting a Clerk identity alone may not remove all application records unless the related CAISSA request is also completed.</p>
       </section>
 
       <section class="legal-section" id="security"><h2>11. Security practices</h2>
@@ -136,7 +138,7 @@
       </section>
 
       <section class="legal-section" id="updates"><h2>14. Changes to this policy</h2>
-        <p>CAISSA may update this policy as its services and decisions change. The page will show a revised "Last updated" date. Material notice and consent procedures still require legal approval.</p>
+        <p>CAISSA may update this policy as its services, providers and legal obligations change. The page will show a revised "Last updated" date. For a material change, CAISSA proposes to provide reasonable additional notice through the service or account email, and to request renewed consent where applicable law requires it. The current site does not yet automate that notice or re-consent process, so the final procedure requires operator and qualified legal approval before publication.</p>
       </section>
 
       <section class="legal-section" id="contact"><h2>15. Contact</h2>

@@ -39,6 +39,25 @@ test('routes, sitemap and entry-page footer links expose both legal documents', 
   }
 });
 
+test('legal-page internal and contact links resolve to approved destinations', () => {
+  const allowedRoutes = new Set(['/', '/privacy', '/terms', '/about']);
+  for (const file of ['privacy.html', 'terms.html']) {
+    const $ = load(read(file));
+    for (const element of $('a[href]').toArray()) {
+      const href = $(element).attr('href');
+      if (href.startsWith('#')) {
+        assert.equal($(`#${href.slice(1)}`).length, 1, `${file} missing ${href}`);
+      } else if (href.startsWith('mailto:')) {
+        assert.match(href, /^mailto:privacy@caissa-chess\.org(?:\?|$)/);
+      } else if (href.startsWith('https://')) {
+        assert.equal(new URL(href).hostname, 'www.caissa-chess.org');
+      } else {
+        assert.ok(allowedRoutes.has(href), `${file} has unapproved local link ${href}`);
+      }
+    }
+  }
+});
+
 test('Scanner disclosure preserves consent and human-certification truth', () => {
   for (const source of [read('privacy.html'), read('terms.html')]) {
     assert.match(source, /raw-unverified/);
@@ -46,6 +65,34 @@ test('Scanner disclosure preserves consent and human-certification truth', () =>
     assert.match(source, /not automatically used/i);
     assert.match(source, /human review/i);
   }
+});
+
+test('privacy draft accurately discloses Scanner snapshots, non-atomic image binding and quarantine', () => {
+  const source = read('privacy.html');
+  assert.match(source, /records a derived scan snapshot even if you do not submit feedback/i);
+  assert.match(source, /not one atomic transaction/i);
+  assert.match(source, /private image object can remain without a completed feedback record/i);
+  assert.match(source, /Historical private-beta Scanner images and records remain quarantined from training/i);
+  assert.doesNotMatch(source, /ordinary recognition images are never (?:stored|retained)/i);
+});
+
+test('privacy draft discloses supported AI providers and BYO-key handling', () => {
+  const source = read('privacy.html');
+  for (const provider of ['Together AI', 'OpenAI', 'Anthropic', "Meta's Llama API"]) {
+    assert.match(source, new RegExp(provider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.match(source, /forwards it to that provider for the request/i);
+  assert.match(source, /does not intentionally store it in the application database or browser storage/i);
+});
+
+test('legal drafts do not overpromise automated retention, deletion, notice or appeals', () => {
+  const privacy = read('privacy.html');
+  const terms = read('terms.html');
+  assert.match(privacy, /does not currently operate one automated retention or deletion schedule/i);
+  assert.match(privacy, /does not currently provide a universal automated export or deletion feature/i);
+  assert.match(privacy, /current site does not yet automate that notice or re-consent process/i);
+  assert.match(terms, /Restoration is not guaranteed/i);
+  assert.match(terms, /current site does not yet automate notice or re-acceptance/i);
 });
 
 test('legal pages publish only the official privacy contact', () => {
