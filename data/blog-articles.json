@@ -3,6 +3,148 @@
   "publisher": "CAISSA Chess Editorial",
   "articles": [
     {
+      "slug": "caissa-scanner-image-to-chess-analysis",
+      "title": "CAISSA Scanner: Convert a Chess Image into a Position for Analysis",
+      "seoTitle": "Scan a Chessboard Image for Analysis | CAISSA Scanner",
+      "description": "Use CAISSA Scanner to recognize a chess position from a clear image, correct the board, choose the side to move, and analyze it with Stockfish.",
+      "excerpt": "Take a photo or choose a compatible chessboard image, review the recognized position, correct it when needed, and continue with Stockfish analysis.",
+      "category": "CAISSA Tools",
+      "tags": ["CAISSA Scanner", "Chessboard Scanner", "Chess Position Recognition", "Stockfish Analysis", "Chess Tools"],
+      "author": "CAISSA Chess Editorial",
+      "publishedDate": "2026-10-28",
+      "modifiedDate": "2026-10-28",
+      "featuredImage": "/assets/blog/caissa-scanner-public-beta.jpg",
+      "featuredImageAlt": "CAISSA Scanner public beta showing an editable recognized chess position and Stockfish analysis controls",
+      "featuredImageWidth": 1440,
+      "featuredImageHeight": 960,
+      "introduction": [
+        "A useful chess position can appear almost anywhere: in a screenshot, on a website, during a broadcast, in a printed diagram, or on a board photographed with a phone. Rebuilding all 32 squares by hand interrupts the moment of discovery. [CAISSA Scanner](/scanner) shortens that path by turning a compatible image into an editable position that you can check and analyze.",
+        "Scanner is available as a public beta. It recognizes the visible board, but it does not pretend to know information that the image cannot provide. Before analysis, you remain in control of the pieces, orientation, side to move, and other position details. That review step makes the tool practical for study while keeping its limits clear."
+      ],
+      "body": [
+        {
+          "heading": "From an Image to an Editable Chess Position",
+          "subheading": "Recognition starts the setup; your review completes it",
+          "paragraphs": [
+            "Open Scanner on a phone to take a photo with the rear camera or choose an existing JPEG, PNG, or WebP image. On desktop, the page also provides a QR code and a direct mobile link, making it easy to move the capture step to the device already in your hand. The best inputs show one complete 2D board clearly, with all four edges visible and as little glare or perspective distortion as possible.",
+            "After recognition, Scanner presents the position on an interactive board. Because board styles, piece sets, shadows, reflections, and camera angles vary, recognition can require corrections. Treat the result as a prepared draft rather than an unquestionable transcription: compare every rank and file with the source before continuing. A quick review is especially important when a tactic depends on a single defender or an apparently empty square."
+          ]
+        },
+        {
+          "heading": "Correct the Pieces, Turn, and Orientation",
+          "paragraphs": [
+            "The editing workspace lets you add, replace, or remove pieces manually. You can choose White or Black to move, flip the board for a more comfortable view, and correct the canonical orientation when the source was shown from Black's side. Scanner may also ask which color was physically at the bottom when the orientation needs confirmation.",
+            "These controls matter because a still image does not contain a complete game record. Scanner cannot reconstruct earlier moves merely from the pixels, and details such as castling rights or an en passant opportunity may not be inferable from what is visible. Review the available position settings and use only information you actually know. When the board matches the source, apply and confirm the position."
+          ]
+        },
+        {
+          "heading": "Analyze the Confirmed Position with Stockfish",
+          "paragraphs": [
+            "Once the position is confirmed, you can switch on Stockfish 18 in the same workspace. The analysis view reports an evaluation, search depth, and three principal variations so you can compare candidate continuations. An optional arrow marks the engine's current best move on the board, while the listed lines show how that suggestion may develop.",
+            "Engine output is most useful as the beginning of a question, not the end of one. Compare the suggested move with your own idea, follow the variations, and ask what tactical or positional feature changes the evaluation. Because the position came from an image, the quality of that exploration still depends on the accuracy of your review. If something looks surprising, check the board and side to move before drawing a conclusion."
+          ]
+        },
+        {
+          "heading": "How to Use CAISSA Scanner",
+          "paragraphs": [
+            "The basic workflow is designed to stay short. You can use Scanner without signing in for the core capture, correction, and analysis flow. Account options remain available elsewhere in the product, but they are not required simply to turn a compatible image into a position and inspect it with the engine.",
+            "For the cleanest result, begin with a sharp image that contains the whole board. Avoid cropped corners, hands covering squares, extreme camera angles, or several boards in the same frame. If recognition is uncertain, choose another image or correct the position manually rather than assuming missing visual information has been recovered."
+          ],
+          "orderedList": [
+            "Open [CAISSA Scanner](/scanner).",
+            "Take or choose a clear image that shows the complete chessboard.",
+            "Review the pieces, board orientation, and side to move.",
+            "Correct anything necessary, then apply and confirm the position.",
+            "Switch on Stockfish to explore the evaluation and candidate continuations."
+          ]
+        },
+        {
+          "heading": "Useful Ways to Bring a Position Back to the Board",
+          "paragraphs": [
+            "Scanner is well suited to personal study. You can revisit a position saved in a screenshot, transfer a diagram from an article into an interactive board, or examine a tactical idea noticed in a broadcast after the game. It can also reduce setup time when you want to compare your calculation with an engine from a clearly photographed board.",
+            "Use analysis tools only where assistance is permitted. Scanner is intended for learning, review, and exploration, not for obtaining outside help during a game or event whose rules prohibit it. When the moment is appropriate, [open CAISSA Scanner](/scanner), check the recognized board carefully, and turn the position you found into a new study session."
+          ]
+        }
+      ],
+      "relatedArticleSlugs": ["what-is-a-polyglot-opening-book"],
+      "relatedCaissaRoute": "/scanner",
+      "ctaHeading": "Turn an Image into a Position",
+      "ctaText": "Open the public beta, review the recognized board, and explore the confirmed position with Stockfish 18.",
+      "ctaLabel": "Open CAISSA Scanner",
+      "status": "published"
+    },
+    {
+      "slug": "caissa-chess-online-community",
+      "title": "CAISSA Chess Online: A New Home for Playing Chess",
+      "seoTitle": "CAISSA Chess Online: Play and Build a Chess Community",
+      "description": "Preview CAISSA Chess Online, the native playing room for finding casual games, challenging players, and helping a new chess community take shape.",
+      "excerpt": "CAISSA Online brings the board, game search, direct challenges, and community lobby together in one native playing room, with more still to come.",
+      "category": "CAISSA News",
+      "tags": ["CAISSA Online", "Play Chess Online", "Online Chess Community", "Casual Chess", "Chess Lobby"],
+      "author": "CAISSA Chess Editorial",
+      "publishedDate": "2026-10-28",
+      "modifiedDate": "2026-10-28",
+      "featuredImage": "/assets/blog/caissa-online-playing-room.jpg",
+      "featuredImageAlt": "CAISSA Online native playing room showing the chessboard, time controls, and community lobby",
+      "featuredImageWidth": 1440,
+      "featuredImageHeight": 960,
+      "introduction": [
+        "Online chess is more memorable when the board belongs to a place: somewhere you can recognize other players, choose the kind of game you want, and return for another challenge. [CAISSA Chess Online](/online) is our native playing room for that experience, bringing human-versus-human chess and a growing community lobby into CAISSA itself.",
+        "The page is live, but this is still an early chapter. The current public release supports the core path to a casual game for signed-in players, while several visible community ideas remain marked for future seasons. This preview separates what you can use now from what we are working toward next."
+      ],
+      "body": [
+        {
+          "heading": "A Board-First Room for Human Chess",
+          "subheading": "Choose a clock, find an opponent, and stay close to the game",
+          "paragraphs": [
+            "CAISSA Online opens around a full playing board and a focused game setup. Signed-in players can choose common bullet, blitz, and rapid controls or create a custom clock, then enter the search for an opponent. The current service is configured for casual play; rated games are not enabled, and the page does not present these results as an official classification system.",
+            "The route is available at [caissa-chess.org/online](/online) and also appears under Play & Compete in the main navigation. A CAISSA account is currently required to play. Although the interface explains a future guest option, guest play is not enabled in the public configuration today, so visitors should sign in before trying to find an opponent or send a challenge."
+          ]
+        },
+        {
+          "heading": "Find a Game or Challenge Someone in the Lobby",
+          "paragraphs": [
+            "The main setup lets you search for a game using the selected time control. The Lobby adds a more social route: its Players area shows available community members, while Tables / Offers is designed for open game offers. Direct challenges let one player invite another instead of relying only on the general search queue.",
+            "That combination is central to the experience we want to build. Quick search helps when you simply want a game, while the lobby leaves room for recognizable names and intentional invitations. Presence and availability can change from moment to moment, so an empty list does not mean the page is a demonstration; it means the room is waiting for active players."
+          ]
+        },
+        {
+          "heading": "Controls During and After the Game",
+          "paragraphs": [
+            "During a game, CAISSA verifies legal moves, clocks, and results on the server. The playing room provides the essential controls to resign and offer or respond to a draw. If the connection is interrupted, the experience is designed to reconnect to the active game rather than treating every temporary interruption as a new board.",
+            "When the game ends, you can request a rematch or look for a new opponent. You can also download the PGN or continue to CAISSA's analysis area to review what happened. These tools keep the natural sequence together: play first, preserve the score, then study the decisions that mattered. Live spectating, chat, daily games, and multiboard views are not enabled in this release."
+          ]
+        },
+        {
+          "heading": "What Is Available Now",
+          "paragraphs": [
+            "The clearest way to approach the current release is as an active foundation. The page and lobby are publicly reachable, account-based matchmaking is enabled, time controls can be selected, and casual games and direct challenges are part of the verified product. The interface also labels unreleased areas instead of presenting them as finished services.",
+            "To try the available flow, sign in to CAISSA, open Online from Play & Compete, select a clock, and start the search. You can also visit the Lobby to see players and offers. Availability depends on other people being present, so inviting another CAISSA player is a practical way to explore a friendly game together."
+          ],
+          "orderedList": [
+            "Sign in to your CAISSA account.",
+            "Open [CAISSA Chess Online](/online) from Play & Compete.",
+            "Choose a preset or custom time control.",
+            "Start a game search or challenge an available player in the Lobby.",
+            "After the game, choose a rematch, download the PGN, or continue to analysis."
+          ]
+        },
+        {
+          "heading": "The Community We Want to Grow",
+          "paragraphs": [
+            "The Lobby includes a Tournaments area, but tournaments are not active yet. The visible tournament presentation is explicitly a visual demonstration with synthetic data, not an operating competition or registration page. We will not announce dates, entries, standings, or prizes until a real tournament service is enabled and ready for players.",
+            "Among our next goals is to organize tournaments every weekend so the community can meet, compete, and enjoy chess. That intention gives the project a direction without turning a future objective into a promise about today's product. For now, [visit CAISSA Chess Online](/online), sign in, and help the playing room grow one casual game and one familiar opponent at a time."
+          ]
+        }
+      ],
+      "relatedArticleSlugs": ["yahoo-chess-spirit-caissa-classic"],
+      "relatedCaissaRoute": "/online",
+      "ctaHeading": "Visit the CAISSA Online Playing Room",
+      "ctaText": "Sign in, choose a time control, and look for a casual game or a direct challenge in the community lobby.",
+      "ctaLabel": "Open CAISSA Online",
+      "status": "published"
+    },
+    {
       "slug": "yahoo-chess-spirit-caissa-classic",
       "title": "The Spirit of Yahoo Chess Lives Again in CAISSA Classic",
       "seoTitle": "Yahoo Chess Alternative: Rediscover Classic Chess Rooms",
