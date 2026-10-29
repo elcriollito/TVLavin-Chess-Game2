@@ -227,7 +227,7 @@ test('Yahoo Chess history article has approved metadata, disclaimer and structur
   assert.equal(image.height, 960);
 });
 
-test('Yahoo Chess article is uniquely featured, indexed and reciprocally linked', () => {
+test('Yahoo Chess article remains uniquely indexed and linked after newer publications', () => {
   const slug = 'yahoo-chess-spirit-caissa-classic';
   const canonical = `${production}/blog/${slug}`;
   assert.equal((sitemap.match(new RegExp(`<loc>${canonical}</loc>`, 'g')) || []).length, 1);
@@ -235,8 +235,8 @@ test('Yahoo Chess article is uniquely featured, indexed and reciprocally linked'
 
   const index = load(read('blog/index.html'));
   assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
-  assert.equal(index('.blog-card-featured a').attr('href'), `/blog/${slug}`);
-  assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 0);
+  assert.equal(index('.blog-card-featured a').attr('href'), '/blog/caissa-scanner-image-to-chess-analysis');
+  assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 1);
   assert.equal(index('a[href="/blog/what-is-a-polyglot-opening-book"]').length, 1);
   assert.equal(index('a[href="/blog/who-is-caissa-goddess-of-chess"]').length, 1);
 

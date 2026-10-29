@@ -9,6 +9,8 @@ const registry = JSON.parse(read('data/blog-articles.json'));
 const schema = JSON.parse(read('data/blog-article.schema.json'));
 const origin = 'https://www.caissa-chess.org';
 const published = registry.articles.filter(article => article.status === 'published');
+const drafts = registry.articles.filter(article => article.status === 'draft');
+const buildDraftPreviews = process.argv.includes('--drafts');
 const escape = value => String(value).replace(/[&<>"']/g, character => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[character]));
@@ -69,7 +71,7 @@ function renderIndex() {
   write('blog/index.html', html);
 }
 
-function renderArticle(article) {
+function renderArticle(article, { preview = false } = {}) {
   const canonical = `${origin}/blog/${article.slug}`;
   const related = article.relatedArticleSlugs.map(slug => published.find(candidate => candidate.slug === slug)).filter(Boolean);
   const introduction = (article.introduction || []).map(paragraph => `<p>${renderInline(paragraph)}</p>`).join('');
@@ -101,18 +103,20 @@ function renderArticle(article) {
     ? `<aside class="blog-cta"><h2>${escape(article.ctaHeading)}</h2><p>${renderInline(article.ctaText)}</p><a class="blog-cta-button" href="${escape(article.relatedCaissaRoute)}">${escape(article.ctaLabel)}</a></aside>`
     : `<aside class="blog-cta"><h2>Continue with CAISSA Chess</h2><p>Learn more <a href="${escape(article.relatedCaissaRoute)}">about CAISSA Chess</a>, or put your own ideas into practice over the board.</p><a class="blog-cta-button" href="${origin}/">Explore CAISSA Chess</a></aside>`;
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escape(article.seoTitle)}</title><meta name="description" content="${escape(article.description)}"><meta name="author" content="${escape(article.author)}"><meta name="robots" content="index, follow"><link rel="canonical" href="${canonical}">
+  <title>${preview ? '[DRAFT] ' : ''}${escape(article.seoTitle)}</title><meta name="description" content="${escape(article.description)}"><meta name="author" content="${escape(article.author)}"><meta name="robots" content="${preview ? 'noindex, nofollow, noarchive' : 'index, follow'}"><link rel="canonical" href="${canonical}">
   <meta property="og:type" content="article"><meta property="og:url" content="${canonical}"><meta property="og:title" content="${escape(article.title)}"><meta property="og:description" content="${escape(article.description)}"><meta property="og:image" content="${origin}${escape(article.featuredImage)}"><meta property="og:image:alt" content="${escape(article.featuredImageAlt)}">
   <meta property="article:published_time" content="${article.publishedDate}"><meta property="article:modified_time" content="${article.modifiedDate || article.publishedDate}"><meta property="article:section" content="${escape(article.category)}">${article.tags.map(tag => `<meta property="article:tag" content="${escape(tag)}">`).join('')}
   <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escape(article.title)}"><meta name="twitter:description" content="${escape(article.description)}"><meta name="twitter:image" content="${origin}${escape(article.featuredImage)}">
   <link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css?v=2.0.16"><link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.1"><link rel="stylesheet" href="/css/blog.css?v=1.0.0"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <script type="application/ld+json">${JSON.stringify(jsonLd)}</script><script type="application/ld+json">${JSON.stringify(breadcrumbs)}</script><script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script></head>
-  <body><div class="caissa-standalone-layout"><div data-caissa-standalone-sidebar data-active="blog"></div><main class="blog-shell blog-article-shell">
+  <body>${preview ? '<div style="position:sticky;top:0;z-index:1000;padding:.65rem 1rem;background:#8a4b08;color:#fff;text-align:center;font:700 .85rem/1.2 system-ui,sans-serif;letter-spacing:.08em">EDITORIAL DRAFT — NOT PUBLISHED</div>' : ''}<div class="caissa-standalone-layout"><div data-caissa-standalone-sidebar data-active="blog"></div><main class="blog-shell blog-article-shell">
   <nav class="blog-breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/">CAISSA Chess</a></li><li><a href="/blog">Blog</a></li><li aria-current="page">${escape(article.title)}</li></ol></nav>
   <article><header class="blog-article-header"><p class="blog-kicker">${escape(article.category)}</p><h1>${escape(article.title)}</h1><p class="blog-deck">${escape(article.excerpt)}</p><div class="blog-byline"><span>By ${escape(article.author)}</span><span>Published <time datetime="${article.publishedDate}">${displayDate(article.publishedDate)}</time></span>${modified}</div><img src="${escape(article.featuredImage)}" alt="${escape(article.featuredImageAlt)}" width="${article.featuredImageWidth}" height="${article.featuredImageHeight}" decoding="async"></header>
   <div class="blog-prose">${introduction}${sections}${cta}${relatedHtml}</div></article>
-  <footer class="blog-footer"><p>&copy; 2026 CAISSA Chess.</p><p><a href="/blog">Back to the blog</a></p></footer></main></div><script src="/js/caissa-i18n.js?v=1.0.0"></script><script src="/js/caissa-primary-navigation.js?v=1.0.2"></script><script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script></body></html>`;
-  const directory = path.join(root, 'blog', article.slug);
+  <footer class="blog-footer"><p>&copy; 2026 CAISSA Chess.</p><p><a href="/blog">Back to the blog</a></p></footer></main></div><script src="/js/caissa-i18n.js?v=1.0.0"></script><script src="/js/caissa-primary-navigation.js?v=1.22.0"></script><script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script></body></html>`;
+  const directory = preview
+    ? path.join(root, 'docs', 'editorial-previews', article.slug)
+    : path.join(root, 'blog', article.slug);
   fs.mkdirSync(directory, { recursive: true });
   fs.writeFileSync(path.join(directory, 'index.html'), html);
 }
@@ -125,7 +129,12 @@ function updateSitemap() {
 }
 
 validate();
-renderIndex();
-for (const article of published) renderArticle(article);
-updateSitemap();
-console.log(`Built CAISSA blog with ${published.length} published article(s).`);
+if (buildDraftPreviews) {
+  for (const article of drafts) renderArticle(article, { preview: true });
+  console.log(`Built ${drafts.length} CAISSA editorial draft preview(s).`);
+} else {
+  renderIndex();
+  for (const article of published) renderArticle(article);
+  updateSitemap();
+  console.log(`Built CAISSA blog with ${published.length} published article(s).`);
+}

@@ -59,7 +59,7 @@ body {
 .blog-article-header h1 { max-width: 850px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.3rem, 6vw, 4.5rem); line-height: 1.08; }
 .blog-deck { color: var(--blog-muted); font-family: Georgia, "Times New Roman", serif; font-size: 1.3rem; line-height: 1.6; }
 .blog-byline { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 24px 0; color: var(--blog-muted); font-size: .9rem; }
-.blog-article-header > img { width: 100%; max-height: 560px; border-radius: 12px; object-fit: cover; }
+.blog-article-header > img { width: 100%; height: auto; max-height: 560px; aspect-ratio: 3 / 2; border-radius: 12px; object-fit: cover; }
 .blog-prose { max-width: 720px; margin: 48px auto 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.12rem; line-height: 1.85; }
 .blog-prose h2 { margin-top: 2.4em; font-size: 2rem; line-height: 1.2; }
 .blog-prose h3 { margin-top: 1.7em; font-size: 1.35rem; }
