@@ -81,7 +81,7 @@ test('M2-003H hides the visual phone heading for approved Play, Bots, and Coach'
     assert.match(css, /\[data-mobile2-release="approved"\]\[data-layout\^="phone-"\][\s\S]*\.caissa-simplified-shell__preview[\s\S]*position:\s*absolute !important;[\s\S]*clip-path:\s*inset\(50%\)/);
     assert.doesNotMatch(css, /\.caissa-simplified-shell__purpose\s*\{[^}]*display:\s*none/s);
     assert.match(shell, /mobile2Release = isMobile2ReleaseMode\(mode\) \? 'approved' : 'hold'/);
-    assert.match(registry, /play-coach-review\.css\?v=1\.13\.0/);
+    assert.match(registry, /play-coach-review\.css\?v=1\.14\.0/);
     assert.match(registry, /coach-review-exploration\.js\?v=1\.2\.0/);
     assert.match(registry, /coach-review-presentation\.js\?v=1\.16\.2/);
     assert.match(registry, /native-coach\/coach-panel\.js\?v=2\.8\.2/);
