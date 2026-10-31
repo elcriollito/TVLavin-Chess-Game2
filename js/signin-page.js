@@ -7,6 +7,12 @@
 (function() {
     'use strict';
 
+    const CLERK_UI_VERSION = '1.30.1';
+    const CLERK_JS_VERSION = '6.28.1';
+    const CLERK_UI_CDN_URL = `https://cdn.jsdelivr.net/npm/@clerk/ui@${CLERK_UI_VERSION}/dist/ui.browser.js`;
+    const CLERK_JS_CDN_URL = `https://cdn.jsdelivr.net/npm/@clerk/clerk-js@${CLERK_JS_VERSION}/dist/clerk.browser.js`;
+    const CLERK_UI_INTEGRITY = 'sha384-BX9kdfAv6/55jYgfyaZcddR1/MJYO/idlamutUDyTEv0YUL56a9Wx7IHgfEnbL82';
+    const CLERK_JS_INTEGRITY = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
     let clerkLoadPromise = null;
 
     // Get redirect URL from query params
@@ -60,6 +66,20 @@
         });
     }
 
+    async function loadScriptWithFallback(sources, attributes = {}) {
+        let lastError;
+        for (const src of sources) {
+            try {
+                await loadScript(src, attributes);
+                return;
+            } catch (error) {
+                lastError = error;
+                console.warn(`Sign In: Clerk asset unavailable at ${new URL(src).origin}; trying the next approved source`);
+            }
+        }
+        throw lastError || new Error('No approved Clerk asset source is available');
+    }
+
     function loadClerkSdk(publishableKey) {
         if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
         if (clerkLoadPromise) return clerkLoadPromise;
@@ -70,10 +90,24 @@
             window.process.env.CLERK_TELEMETRY_DISABLED = '1';
 
             const clerkDomain = getClerkDomain(publishableKey);
-            await loadScript(`https://${clerkDomain}/npm/@clerk/ui@1.30.1/dist/ui.browser.js`);
-            await loadScript(`https://${clerkDomain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`, {
+            await loadScriptWithFallback([
+                CLERK_UI_CDN_URL,
+                `https://${clerkDomain}/npm/@clerk/ui@${CLERK_UI_VERSION}/dist/ui.browser.js`
+            ], { integrity: CLERK_UI_INTEGRITY });
+            if (typeof window.__internal_ClerkUICtor !== 'function') {
+                throw new Error('Clerk UI bundle did not expose its constructor');
+            }
+
+            await loadScriptWithFallback([
+                CLERK_JS_CDN_URL,
+                `https://${clerkDomain}/npm/@clerk/clerk-js@${CLERK_JS_VERSION}/dist/clerk.browser.js`
+            ], {
+                integrity: CLERK_JS_INTEGRITY,
                 'data-clerk-publishable-key': publishableKey
             });
+            if (!window.Clerk || typeof window.Clerk.load !== 'function') {
+                throw new Error('ClerkJS bundle did not expose a loadable SDK');
+            }
             return window.Clerk;
         })();
 
