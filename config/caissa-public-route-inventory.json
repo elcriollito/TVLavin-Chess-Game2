@@ -13,11 +13,11 @@
   "counts": {
     "primaryNavigationEntries": 39,
     "internalPrimaryPages": 35,
-    "publicCanonicalRoutesNotInPrimaryNavigation": 16,
+    "publicCanonicalRoutesNotInPrimaryNavigation": 18,
     "externalDestinations": 4,
     "redirects": 18,
     "protectedRouteFamilies": 5,
-    "totalInventoriedRecords": 78
+    "totalInventoriedRecords": 80
   },
   "primaryNavigation": [
     {
@@ -657,6 +657,36 @@
       "visibleInPrimaryNavigation": false,
       "activeIdentity": "home",
       "owner": "home.html, vercel.json and server.js",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
+      "id": "blog-caissa-chess-online-community",
+      "label": "Caissa Chess Online Community",
+      "canonicalPath": "/blog/caissa-chess-online-community",
+      "absoluteUrl": "https://www.caissa-chess.org/blog/caissa-chess-online-community",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "blog-caissa-chess-online-community",
+      "owner": "public/sitemap.xml",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
+      "id": "blog-caissa-scanner-image-to-chess-analysis",
+      "label": "Caissa Scanner Image To Chess Analysis",
+      "canonicalPath": "/blog/caissa-scanner-image-to-chess-analysis",
+      "absoluteUrl": "https://www.caissa-chess.org/blog/caissa-scanner-image-to-chess-analysis",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "blog-caissa-scanner-image-to-chess-analysis",
+      "owner": "public/sitemap.xml",
       "target": "_self",
       "rel": null,
       "status": "public"

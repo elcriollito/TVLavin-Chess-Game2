@@ -15,6 +15,7 @@ const allow = async () => ({ authenticated: true, userId: 'user_white', email: '
 const rateLimit = () => ({ allowed: true });
 const env = { CAISSA_ONLINE_ROLLOUT: 'preview', CAISSA_ONLINE_RATED: '1' };
 const gameId = '11111111-1111-4111-8111-111111111111';
+const guestHeaders = { 'x-vercel-forwarded-for': '198.51.100.20' };
 
 function command(eventType, overrides = {}) {
     const eventId = `${eventType.replaceAll('.', '-')}:123456789012`;
@@ -46,21 +47,50 @@ test('public config advertises guest play only when the Staging prerequisites ar
             ...env,
             CAISSA_ONLINE_GUESTS: '1',
             SUPABASE_URL: 'https://staging.example.supabase.co',
-            SUPABASE_PUBLISHABLE_KEY: 'publishable-browser-key'
+            SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_browser_key'
         }
     });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.capabilities.guestPlay, true);
     assert.deepEqual(res.body.realtime, {
         url: 'https://staging.example.supabase.co',
-        publishableKey: 'publishable-browser-key'
+        publishableKey: 'sb_publishable_test_browser_key'
     });
+
+    const internal = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, internal, {
+        env: {
+            ...env,
+            CAISSA_ONLINE_ROLLOUT: 'internal',
+            CAISSA_ONLINE_GUESTS: '1',
+            SUPABASE_URL: 'https://staging.example.supabase.co',
+            SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_browser_key'
+        }
+    });
+    assert.equal(internal.body.capabilities.guestPlay, false);
+});
+
+test('public config never exposes a secret mistakenly placed in the publishable slot', async () => {
+    const res = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, res, {
+        env: {
+            ...env,
+            CAISSA_ONLINE_GUESTS: '1',
+            SUPABASE_URL: 'https://staging.example.supabase.co',
+            SUPABASE_PUBLISHABLE_KEY: 'sb_secret_wrong_class'
+        }
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.capabilities.guestPlay, false);
+    assert.equal(res.body.realtime, null);
+    assert.equal(JSON.stringify(res.body).includes('sb_secret_'), false);
 });
 
 test('guest matchmaking provisions a temporary identity and is server-forced unrated', async () => {
     const guestId = '11111111-1111-4111-8111-111111111111';
     const calls = [];
     const service = {
+        async checkRateLimit(input) { calls.push(['limit', input]); return { allowed: true }; },
         async ensureGuestIdentity(subject) { calls.push(['ensure', subject]); },
         async joinQueue(input) { calls.push(['join', input]); return { ticket: { state: 'queued' } }; }
     };
@@ -68,33 +98,69 @@ test('guest matchmaking provisions a temporary identity and is server-forced unr
         displayName: 'Spoofed member name',
         payload: { timeControlId: 'blitz-3-2', rated: true }
     });
+    req.headers = guestHeaders;
     const res = response();
 
     await handler(req, res, {
-        env: { ...env, CAISSA_ONLINE_ROLLOUT: 'internal', CAISSA_ONLINE_GUESTS: '1' },
+        env: {
+            ...env,
+            VERCEL: '1',
+            CAISSA_ONLINE_ROLLOUT: 'internal',
+            CAISSA_ONLINE_GUESTS: '1',
+            CAISSA_ONLINE_INTERNAL_USERS: guestId
+        },
         authenticate: async () => ({ authenticated: true, userId: guestId, guest: true }),
         rateLimit,
         service
     });
 
     assert.equal(res.statusCode, 202);
-    assert.deepEqual(calls[0], ['ensure', guestId]);
-    assert.equal(calls[1][0], 'join');
-    assert.equal(calls[1][1].rated, false);
-    assert.equal(calls[1][1].displayName, 'Guest-111111');
+    assert.match(calls[0][1].clerkId, /^online-source:[0-9a-f]{64}$/);
+    assert.equal(calls[0][1].bucket, 'guest-outer');
+    assert.deepEqual(calls[1][1], {
+        clerkId: 'online-global', bucket: 'guest-outer', limit: 1000, windowSeconds: 60
+    });
+    assert.equal(calls[2][1].clerkId, guestId);
+    assert.equal(calls[3][1].bucket, 'guest-provision');
+    assert.deepEqual(calls[4], ['ensure', guestId]);
+    assert.equal(calls[5][0], 'join');
+    assert.equal(calls[5][1].rated, false);
+    assert.equal(calls[5][1].displayName, 'Guest-111111');
+});
+
+test('internal rollout applies the allowlist to members and guests before any limiter or service', async () => {
+    for (const guest of [false, true]) {
+        let rateCalls = 0;
+        let serviceCalls = 0;
+        const res = response();
+        await handler({ method: 'GET', query: { action: 'state' }, headers: guestHeaders }, res, {
+            env: { CAISSA_ONLINE_ROLLOUT: 'internal', CAISSA_ONLINE_GUESTS: '1', VERCEL: '1' },
+            authenticate: async () => ({ authenticated: true, userId: guest ? gameId : 'member_not_allowed', guest }),
+            rateLimit: () => { rateCalls += 1; return { allowed: true }; },
+            service: {
+                checkRateLimit: async () => { serviceCalls += 1; return { allowed: true }; },
+                getState: async () => assert.fail('state must remain unavailable')
+            }
+        });
+        assert.equal(res.statusCode, 403);
+        assert.equal(res.body.code, 'ONLINE_INTERNAL_ONLY');
+        assert.equal(rateCalls, 0);
+        assert.equal(serviceCalls, 0);
+    }
 });
 
 test('repeated guest state polling never provisions or updates identity', async () => {
     let provisions = 0;
     let reads = 0;
     const service = {
+        async checkRateLimit() { return { allowed: true }; },
         async ensureGuestIdentity() { provisions += 1; },
         async getState() { reads += 1; return { game: null, recentGames: [], players: [], challenges: [] }; }
     };
     for (let index = 0; index < 8; index += 1) {
         const res = response();
-        await handler({ method: 'GET', query: { action: 'state' }, headers: {} }, res, {
-            env,
+        await handler({ method: 'GET', query: { action: 'state' }, headers: guestHeaders }, res, {
+            env: { ...env, VERCEL: '1', CAISSA_ONLINE_GUESTS: '1' },
             authenticate: async () => ({ authenticated: true, userId: gameId, guest: true }),
             rateLimit,
             service
@@ -103,6 +169,162 @@ test('repeated guest state polling never provisions or updates identity', async 
     }
     assert.equal(reads, 8);
     assert.equal(provisions, 0);
+});
+
+test('rotating guest subjects share global and trusted-source budgets before subject limits', async () => {
+    const calls = [];
+    const service = {
+        async checkRateLimit(input) { calls.push(input); return { allowed: true }; },
+        async getState() { return { game: null, recentGames: [], players: [], challenges: [] }; }
+    };
+    const guests = [
+        '11111111-1111-4111-8111-111111111111',
+        '22222222-2222-4222-8222-222222222222'
+    ];
+    for (const userId of guests) {
+        const res = response();
+        await handler({ method: 'GET', query: { action: 'state' }, headers: guestHeaders }, res, {
+            env: { ...env, VERCEL: '1', CAISSA_ONLINE_GUESTS: '1' },
+            authenticate: async () => ({ authenticated: true, userId, guest: true }),
+            rateLimit,
+            service
+        });
+        assert.equal(res.statusCode, 200);
+    }
+    const globalKeys = calls.filter(call => call.clerkId === 'online-global');
+    const sourceKeys = calls.filter(call => call.bucket === 'guest-outer' && call.clerkId.startsWith('online-source:'));
+    const subjectKeys = calls.filter(call => guests.includes(call.clerkId));
+    assert.equal(globalKeys.length, 2);
+    assert.equal(sourceKeys.length, 2);
+    assert.equal(sourceKeys[0].clerkId, sourceKeys[1].clerkId);
+    assert.deepEqual(subjectKeys.map(call => call.clerkId), guests);
+});
+
+test('source guest denial does not consume the global, subject, or provisioning budgets', async () => {
+    const calls = [];
+    let provisions = 0;
+    const res = response();
+    const req = command('presence.join');
+    req.headers = guestHeaders;
+    await handler(req, res, {
+        env: { ...env, VERCEL: '1', CAISSA_ONLINE_GUESTS: '1' },
+        authenticate: async () => ({ authenticated: true, userId: gameId, guest: true }),
+        rateLimit,
+        service: {
+            async checkRateLimit(input) {
+                calls.push(input);
+                return input.clerkId.startsWith('online-source:')
+                    ? { allowed: false, retryAfter: 13 } : { allowed: true };
+            },
+            async ensureGuestIdentity() { provisions += 1; }
+        }
+    });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.headers['Retry-After'], '13');
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].clerkId, /^online-source:[0-9a-f]{64}$/);
+    assert.equal(calls.some(call => call.clerkId === 'online-global'), false);
+    assert.equal(calls.some(call => call.clerkId === gameId), false);
+    assert.equal(provisions, 0);
+});
+
+test('global guest denial stops after the bounded source charge and before subject work', async () => {
+    const calls = [];
+    let provisions = 0;
+    const res = response();
+    const req = command('presence.join');
+    req.headers = guestHeaders;
+    await handler(req, res, {
+        env: { ...env, VERCEL: '1', CAISSA_ONLINE_GUESTS: '1' },
+        authenticate: async () => ({ authenticated: true, userId: gameId, guest: true }),
+        rateLimit,
+        service: {
+            async checkRateLimit(input) {
+                calls.push(input);
+                return input.clerkId === 'online-global'
+                    ? { allowed: false, retryAfter: 11 } : { allowed: true };
+            },
+            async ensureGuestIdentity() { provisions += 1; }
+        }
+    });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.headers['Retry-After'], '11');
+    assert.equal(calls.length, 2);
+    assert.match(calls[0].clerkId, /^online-source:[0-9a-f]{64}$/);
+    assert.equal(calls[1].clerkId, 'online-global');
+    assert.equal(calls.some(call => call.clerkId === gameId), false);
+    assert.equal(provisions, 0);
+});
+
+test('guest requests fail closed without the exact Vercel-trusted source header', async () => {
+    const headerCases = [
+        {},
+        { 'x-forwarded-for': '198.51.100.20' },
+        { 'x-vercel-forwarded-for': '198.51.100.20, 203.0.113.4' },
+        { 'x-vercel-forwarded-for': ['198.51.100.20'] }
+    ];
+    for (const headers of headerCases) {
+        let sharedCalls = 0;
+        const res = response();
+        await handler({ method: 'GET', query: { action: 'state' }, headers }, res, {
+            env: { ...env, VERCEL: '1', CAISSA_ONLINE_GUESTS: '1' },
+            authenticate: async () => ({ authenticated: true, userId: gameId, guest: true }),
+            rateLimit,
+            service: {
+                async checkRateLimit() { sharedCalls += 1; return { allowed: true }; },
+                async getState() { assert.fail('state must remain unavailable'); }
+            }
+        });
+        assert.equal(res.statusCode, 503);
+        assert.equal(res.body.code, 'TRUSTED_SOURCE_UNAVAILABLE');
+        assert.equal(sharedCalls, 0);
+    }
+});
+
+test('malformed guest provisioning commands consume abuse budgets without provisioning or writes', async () => {
+    let localLimits = 0;
+    let sharedLimits = 0;
+    let provisions = 0;
+    const res = response();
+    await handler({
+        method: 'POST', query: {}, headers: guestHeaders, body: { eventType: 'presence.join' }
+    }, res, {
+        env: { ...env, VERCEL: '1', CAISSA_ONLINE_GUESTS: '1' },
+        authenticate: async () => ({ authenticated: true, userId: gameId, guest: true }),
+        rateLimit: () => { localLimits += 1; return { allowed: true }; },
+        service: {
+            async checkRateLimit() { sharedLimits += 1; return { allowed: true }; },
+            async ensureGuestIdentity() { provisions += 1; }
+        }
+    });
+    assert.equal(res.statusCode, 400);
+    assert.equal(localLimits, 1);
+    assert.equal(sharedLimits, 3);
+    assert.equal(provisions, 0);
+});
+
+test('invalid authenticated member actions consume local and distributed request budgets', async () => {
+    let localLimits = 0;
+    let sharedLimits = 0;
+    const res = response();
+    await handler({ method: 'GET', query: { action: 'unknown' }, headers: {} }, res, {
+        env,
+        authenticate: allow,
+        rateLimit: () => { localLimits += 1; return { allowed: true }; },
+        service: {
+            async checkRateLimit(input) {
+                sharedLimits += 1;
+                assert.deepEqual(input, {
+                    clerkId: 'user_white', bucket: 'read', limit: 120, windowSeconds: 60
+                });
+                return { allowed: true };
+            }
+        }
+    });
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.body.code, 'UNKNOWN_ACTION');
+    assert.equal(localLimits, 1);
+    assert.equal(sharedLimits, 1);
 });
 
 test('member matchmaking ignores client displayName and snapshots the server-owned public identity', async () => {
@@ -345,12 +567,14 @@ test('resignation and draw acceptance delegate only canonical termination reason
 
 test('rematch derives the opponent and original control from a completed participant game', async () => {
     let challenge;
+    let sharedPolicy;
     const completed = {
         id: gameId, status: 'completed', version: 9,
         white_clerk_id: 'user_white', black_clerk_id: 'user_black',
         pool: 'blitz', base_ms: 180_000, increment_ms: 2_000, rated: true
     };
     const service = {
+        checkRateLimit: async input => { sharedPolicy = input; return { allowed: true }; },
         getGame: async () => completed,
         createChallenge: async input => { challenge = input; return { challenges: [{ id: 'challenge-1' }] }; }
     };
@@ -361,6 +585,9 @@ test('rematch derives the opponent and original control from a completed partici
     assert.deepEqual(challenge, {
         clerkId: 'user_white', targetClerkId: 'user_black',
         control: { pool: 'blitz', baseMs: 180_000, incrementMs: 2_000 }, rated: true
+    });
+    assert.deepEqual(sharedPolicy, {
+        clerkId: 'user_white', bucket: 'challenge-create', limit: 20, windowSeconds: 60
     });
 });
 

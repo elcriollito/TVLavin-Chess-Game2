@@ -130,8 +130,7 @@ export default async function handler(req, res) {
 /**
  * Get or create a Stripe customer linked to this Clerk user.
  */
-async function _getOrCreateCustomer(stripe, auth) {
-    const supabase = getSupabase();
+export async function _getOrCreateCustomer(stripe, auth, { supabase = getSupabase() } = {}) {
 
     // Check if user already has a Stripe customer ID
     const { data: user, error: userError } = await supabase
@@ -150,12 +149,18 @@ async function _getOrCreateCustomer(stripe, auth) {
     });
 
     // Store customer ID in Supabase
-    const { error: updateError } = await supabase
+    const { data: linkedUser, error: updateError } = await supabase
         .from('users')
         .update({ stripe_customer_id: customer.id })
-        .eq('clerk_id', auth.userId);
+        .eq('id', user.id)
+        .eq('clerk_id', auth.userId)
+        .is('stripe_customer_id', null)
+        .select('id, stripe_customer_id')
+        .maybeSingle();
 
-    if (updateError) throw new Error('Stripe customer linkage failed');
+    if (updateError || linkedUser?.id !== user.id || linkedUser?.stripe_customer_id !== customer.id) {
+        throw new Error('Stripe customer linkage failed');
+    }
 
     return { customerId: customer.id, userId: user.id };
 }
