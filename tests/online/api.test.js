@@ -120,8 +120,8 @@ test('guest matchmaking provisions a temporary identity and is server-forced unr
     });
     assert.match(calls[1][1].clerkId, /^online-source:[0-9a-f]{64}$/);
     assert.equal(calls[1][1].bucket, 'guest-outer');
-    assert.equal(calls[2][1].bucket, 'guest-provision');
-    assert.equal(calls[3][1].clerkId, guestId);
+    assert.equal(calls[2][1].clerkId, guestId);
+    assert.equal(calls[3][1].bucket, 'guest-provision');
     assert.deepEqual(calls[4], ['ensure', guestId]);
     assert.equal(calls[5][0], 'join');
     assert.equal(calls[5][1].rated, false);
@@ -251,7 +251,7 @@ test('guest requests fail closed without the exact Vercel-trusted source header'
     }
 });
 
-test('malformed guest provisioning commands are rejected before limits or writes', async () => {
+test('malformed guest provisioning commands consume abuse budgets without provisioning or writes', async () => {
     let localLimits = 0;
     let sharedLimits = 0;
     let provisions = 0;
@@ -268,9 +268,33 @@ test('malformed guest provisioning commands are rejected before limits or writes
         }
     });
     assert.equal(res.statusCode, 400);
-    assert.equal(localLimits, 0);
-    assert.equal(sharedLimits, 0);
+    assert.equal(localLimits, 1);
+    assert.equal(sharedLimits, 3);
     assert.equal(provisions, 0);
+});
+
+test('invalid authenticated member actions consume local and distributed request budgets', async () => {
+    let localLimits = 0;
+    let sharedLimits = 0;
+    const res = response();
+    await handler({ method: 'GET', query: { action: 'unknown' }, headers: {} }, res, {
+        env,
+        authenticate: allow,
+        rateLimit: () => { localLimits += 1; return { allowed: true }; },
+        service: {
+            async checkRateLimit(input) {
+                sharedLimits += 1;
+                assert.deepEqual(input, {
+                    clerkId: 'user_white', bucket: 'read', limit: 120, windowSeconds: 60
+                });
+                return { allowed: true };
+            }
+        }
+    });
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.body.code, 'UNKNOWN_ACTION');
+    assert.equal(localLimits, 1);
+    assert.equal(sharedLimits, 1);
 });
 
 test('member matchmaking ignores client displayName and snapshots the server-owned public identity', async () => {

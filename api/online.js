@@ -42,19 +42,6 @@ export default async function handler(req, res, dependencies = {}) {
         return res.status(403).json({ code: 'ONLINE_INTERNAL_ONLY' });
     }
 
-    let commandEvent = null;
-    if (req.method === 'GET') {
-        if (String(req.query?.action || 'state') !== 'state') {
-            return res.status(404).json({ code: 'UNKNOWN_ACTION' });
-        }
-    } else if (req.method === 'POST') {
-        const checked = validateEnvelope(req.body);
-        if (!checked.ok) return res.status(400).json({ code: checked.code });
-        commandEvent = checked.value;
-    } else {
-        return res.status(405).json({ code: 'METHOD_NOT_ALLOWED' });
-    }
-
     const rate = (dependencies.rateLimit || checkRateLimit)(auth.userId, {
         windowMs: 60_000,
         max: req.method === 'POST' ? 90 : 120,
@@ -67,25 +54,35 @@ export default async function handler(req, res, dependencies = {}) {
 
     const service = dependencies.service || createOnlineService();
     try {
+        let sourceKey = null;
         if (auth.guest) {
             if (typeof service.checkRateLimit !== 'function') {
                 return res.status(503).json({ code: 'GUEST_OUTER_RATE_LIMIT_UNAVAILABLE' });
             }
-            const sourceKey = (dependencies.trustedSourceKey || trustedOnlineSourceKey)(req, env);
+            sourceKey = (dependencies.trustedSourceKey || trustedOnlineSourceKey)(req, env);
             if (!sourceKey) return res.status(503).json({ code: 'TRUSTED_SOURCE_UNAVAILABLE' });
             const outerPolicies = [
                 { clerkId: 'online-global', bucket: 'guest-outer', limit: 1000, windowSeconds: 60 },
                 { clerkId: sourceKey, bucket: 'guest-outer', limit: 300, windowSeconds: 60 }
             ];
-            if (requiresGuestProvision(commandEvent)) {
-                outerPolicies.push({
-                    clerkId: sourceKey, bucket: 'guest-provision', limit: 30, windowSeconds: 60
-                });
-            }
             for (const policy of outerPolicies) {
                 const outerRate = await service.checkRateLimit(policy);
                 if (!outerRate?.allowed) return rateLimited(res, outerRate);
             }
+        }
+
+        let commandEvent = null;
+        let validationFailure = null;
+        if (req.method === 'GET') {
+            if (String(req.query?.action || 'state') !== 'state') {
+                validationFailure = { status: 404, code: 'UNKNOWN_ACTION' };
+            }
+        } else if (req.method === 'POST') {
+            const checked = validateEnvelope(req.body);
+            if (!checked.ok) validationFailure = { status: 400, code: checked.code };
+            else commandEvent = checked.value;
+        } else {
+            validationFailure = { status: 405, code: 'METHOD_NOT_ALLOWED' };
         }
 
         const sharedPolicy = distributedRatePolicy(req, commandEvent);
@@ -95,10 +92,20 @@ export default async function handler(req, res, dependencies = {}) {
         } else if (rollout === 'production') {
             return res.status(503).json({ code: 'SHARED_RATE_LIMIT_UNAVAILABLE' });
         }
+        if (validationFailure) {
+            return res.status(validationFailure.status).json({ code: validationFailure.code });
+        }
         if (auth.guest && requiresGuestProvision(commandEvent)) {
             if (typeof service.ensureGuestIdentity !== 'function') {
                 return res.status(503).json({ code: 'GUEST_IDENTITY_UNAVAILABLE' });
             }
+            const provisionRate = await service.checkRateLimit({
+                clerkId: sourceKey,
+                bucket: 'guest-provision',
+                limit: 30,
+                windowSeconds: 60
+            });
+            if (!provisionRate?.allowed) return rateLimited(res, provisionRate);
             await service.ensureGuestIdentity(auth.userId);
         }
         if (req.method === 'GET') return handleRead(req, res, auth, service);

@@ -55,6 +55,7 @@ create table public.stripe_events (
   event_id text not null unique,
   created_at timestamptz not null default pg_catalog.clock_timestamp()
 );
+\ir ../supabase/migrations/20260823021500_player_album_entitlements.sql
 create table public.puzzle_training_progress (
   user_id uuid primary key references public.users(id) on delete cascade,
   rating integer not null default 1800,
@@ -225,16 +226,25 @@ create table public.scanner_beta_scans (
   scan_id uuid primary key,
   user_id uuid references public.users(id) on delete restrict,
   image_storage_reference text,
-  created_at timestamptz not null default pg_catalog.clock_timestamp()
+  created_at timestamptz not null default pg_catalog.clock_timestamp(),
+  inserted_at timestamptz not null default pg_catalog.clock_timestamp()
 );
 create table public.scanner_beta_feedback (
   feedback_id uuid primary key,
   scan_id uuid not null references public.scanner_beta_scans(scan_id) on delete cascade,
-  user_id uuid references public.users(id) on delete restrict
+  user_id uuid references public.users(id) on delete restrict,
+  inserted_at timestamptz not null default pg_catalog.clock_timestamp()
 );
 create table public.scanner_beta_scan_failures (
   feedback_id uuid primary key,
-  user_id uuid references public.users(id) on delete restrict
+  user_id uuid references public.users(id) on delete restrict,
+  inserted_at timestamptz not null default pg_catalog.clock_timestamp()
+);
+create table public.scanner_beta_square_corrections (
+  feedback_id uuid not null references public.scanner_beta_feedback(feedback_id) on delete cascade,
+  square text not null,
+  corrected_class text,
+  primary key(feedback_id,square)
 );
 
 -- Minimal Storage contract required by the modern Scanner public-feedback
@@ -253,6 +263,7 @@ create table storage.buckets (
 \ir ../supabase/migrations/20261018174754_caissa_account_control_v1.sql
 \ir ../supabase/migrations/20261018174844_caissa_account_control_v1_fk_indexes.sql
 \ir ../supabase/migrations/20261018181749_caissa_account_control_v1_security_followup.sql
+\ir ../supabase/migrations/20261021214528_opening_trainer_repertoires.sql
 \ir ../supabase/migrations/20261022235500_identity_migration_challenge_service_read.sql
 \ir ../supabase/migrations/20261023203000_caissa_online_guest_rate_limit_principals.sql
 \ir ../supabase/migrations/20261024153000_caissa_account_control_explicit_service_grants.sql
@@ -275,12 +286,31 @@ insert into public.users(id,clerk_id,email,credits) values
  ('10000000-0000-4000-8000-000000000002','synthetic_dev_b','b@example.invalid',11),
  ('10000000-0000-4000-8000-000000000003','synthetic_dev_c','c@example.invalid',3),
  ('10000000-0000-4000-8000-000000000004','synthetic_dev_d','reusable@example.invalid',5),
- ('10000000-0000-4000-8000-000000000006','synthetic_dev_scanner','scanner@example.invalid',0);
+ ('10000000-0000-4000-8000-000000000006','synthetic_dev_scanner','scanner@example.invalid',0),
+ ('10000000-0000-4000-8000-000000000007','synthetic_dev_album','album@example.invalid',0);
 
 -- The foundation backfill ran before these fixtures, so create exact synthetic bindings.
 insert into public.identity_bindings(user_id,environment,external_subject,status,proof_method,activated_at)
 select id,'legacy_development',clerk_id,'ACTIVE','LEGACY_BACKFILL',pg_catalog.clock_timestamp()
 from public.users;
+insert into public.identity_bindings(
+  user_id,environment,external_subject,status,proof_method,activated_at,retired_at
+) values (
+  '10000000-0000-4000-8000-000000000004','legacy_development','synthetic_dev_d_old',
+  'RETIRED','LEGACY_BACKFILL',pg_catalog.clock_timestamp()-interval '1 day',pg_catalog.clock_timestamp()
+);
+
+insert into public.caissa_online_rate_limits(clerk_id,bucket) values
+ ('synthetic_dev_d','fixture-current'),
+ ('synthetic_dev_d_old','fixture-retired'),
+ ('synthetic_dev_a','fixture-other');
+
+insert into public.identity_enrollment_decisions(
+  environment,external_subject,decision,reason,expires_at,consumed_at
+) values (
+  'production','synthetic_dev_d','APPROVED_NEW','synthetic owner approval',
+  pg_catalog.clock_timestamp()+interval '1 day',pg_catalog.clock_timestamp()
+);
 
 insert into public.puzzle_training_progress(user_id,rating,solved,failed)
 values ('10000000-0000-4000-8000-000000000001',1850,18,9);
@@ -300,6 +330,8 @@ insert into public.caissa_online_ratings(user_id,pool,rating) values
  ('10000000-0000-4000-8000-000000000004','rapid',1666);
 insert into public.caissa_online_games(white_user_id,black_user_id) values
  ('10000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000002');
+update public.caissa_online_games set draw_offer_by='synthetic_dev_d'
+where white_user_id='10000000-0000-4000-8000-000000000004';
 insert into public.caissa_online_challenges(challenger_user_id,challenged_user_id) values
  ('10000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000002');
 insert into public.caissa_online_tournaments(id,owner_user_id) values
@@ -310,10 +342,22 @@ insert into public.library_positions(user_id,local_id,fen) values
  ('10000000-0000-4000-8000-000000000004','fixture-position','8/8/8/8/8/8/8/8 w - - 0 1');
 insert into public.library_collections(user_id,local_id,name) values
  ('10000000-0000-4000-8000-000000000004','fixture-collection','Fixture');
+insert into public.opening_repertoires(
+  user_id,local_id,name,color,opening,initial_fen,lines,local_created_at,local_updated_at
+) values
+ ('10000000-0000-4000-8000-000000000004','fixture-opening','Fixture Opening','white','Fixture Opening',
+  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','[]'::jsonb,
+  pg_catalog.clock_timestamp(),pg_catalog.clock_timestamp()),
+ ('10000000-0000-4000-8000-000000000001','preserved-opening','Preserved Opening','black','Preserved Opening',
+  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','[]'::jsonb,
+  pg_catalog.clock_timestamp(),pg_catalog.clock_timestamp());
 insert into public.library_sync_log(user_id) values
  ('10000000-0000-4000-8000-000000000004');
 insert into public.user_entitlements(user_id,entitlement,revoked_at) values
  ('10000000-0000-4000-8000-000000000004','historic_fixture',pg_catalog.clock_timestamp());
+insert into public.player_album_entitlements(user_id,album_id,credit_cost,operation_id) values
+ ('10000000-0000-4000-8000-000000000007','fixture-album',1,
+  '79000000-0000-4000-8000-000000000001');
 insert into public.beta_audit_events(user_id,experiment_id,event_type) values
  ('10000000-0000-4000-8000-000000000004','fixture','experiment_opened');
 insert into public.credit_reservations(id,user_id,operation_id,state) values
@@ -329,6 +373,8 @@ insert into public.scanner_beta_scans(scan_id,user_id) values
 insert into public.scanner_beta_feedback(feedback_id,scan_id,user_id) values
  ('76000000-0000-4000-8000-000000000001','75000000-0000-4000-8000-000000000001',
   '10000000-0000-4000-8000-000000000004');
+insert into public.scanner_beta_square_corrections(feedback_id,square,corrected_class) values
+ ('76000000-0000-4000-8000-000000000001','e4','P');
 insert into public.scanner_beta_scan_failures(feedback_id,user_id) values
  ('77000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000004');
 insert into public.scanner_beta_scans(scan_id,user_id,image_storage_reference) values
@@ -360,12 +406,12 @@ insert into public.scanner_feedback_certifications(
   feedback_id,action,certified_by,certified_at,certification_version,training_eligible,reason_codes
 ) values (
   '86000000-0000-4000-8000-000000000001','HOLD',
-  '10000000-0000-4000-8000-000000000002','2026-10-31T14:02:00Z',
+  '10000000-0000-4000-8000-000000000007','2026-10-31T14:02:00Z',
   'caissa-scanner-owner-certification/1',false,array['MANUAL_REVIEW']
 );
 insert into public.scanner_feedback_review_audit(feedback_id,reviewer_id,event_type,recorded_at)
 values ('86000000-0000-4000-8000-000000000001',
-  '10000000-0000-4000-8000-000000000002','CASE_OPENED','2026-10-31T14:03:00Z');
+  '10000000-0000-4000-8000-000000000007','CASE_OPENED','2026-10-31T14:03:00Z');
 
 do $$
 declare
@@ -380,7 +426,7 @@ begin
   select id into v_binding from public.identity_bindings
     where external_subject='synthetic_dev_scanner' and status='ACTIVE';
   select id into v_reviewer_binding from public.identity_bindings
-    where external_subject='synthetic_dev_b' and status='ACTIVE';
+    where external_subject='synthetic_dev_album' and status='ACTIVE';
   v_summary:=public.caissa_account_control_summary(
     '10000000-0000-4000-8000-000000000006',v_binding);
   perform pg_temp.assert_true(v_summary->>'ownership'='VERIFIED',
@@ -399,23 +445,40 @@ begin
     into v_export_rows,v_identity_leaks
   from (
     select data from public.export_caissa_scanner_public_data_page(
-      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicScans',0,100,clock_timestamp())
+      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicScans',0,2,clock_timestamp())
     union all select data from public.export_caissa_scanner_public_data_page(
-      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicFeedback',0,100,clock_timestamp())
+      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicFeedback',0,2,clock_timestamp())
     union all select data from public.export_caissa_scanner_public_data_page(
-      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicCertifications',0,100,clock_timestamp())
+      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicCertifications',0,2,clock_timestamp())
     union all select data from public.export_caissa_scanner_public_data_page(
-      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicReviewEvents',0,100,clock_timestamp())
+      '10000000-0000-4000-8000-000000000006',v_binding,'scannerPublicReviewEvents',0,2,clock_timestamp())
   ) scanner_export;
   perform pg_temp.assert_true(v_export_rows=4,'Scanner public private export is incomplete');
   perform pg_temp.assert_true(v_identity_leaks=0,'Scanner public private export leaked actor identity columns');
 
   select data->>'scope',data->'feedbackId' into v_reviewer_scope,v_reviewer_target
   from public.export_caissa_scanner_public_data_page(
-    '10000000-0000-4000-8000-000000000002',v_reviewer_binding,
-    'scannerPublicCertifications',0,100,clock_timestamp());
+    '10000000-0000-4000-8000-000000000007',v_reviewer_binding,
+    'scannerPublicCertifications',0,2,clock_timestamp());
   perform pg_temp.assert_true(v_reviewer_scope='reviewerAction' and v_reviewer_target='null'::jsonb,
     'reviewer export leaked a cross-account Scanner feedback identifier');
+
+  insert into public.scanner_public_scans(
+    scan_id,submitted_by,submitted_at,model_version,model_checksum,occupancy_threshold,
+    localization_version,image_hash,snapshot_hash,platform,capture_type,snapshot
+  ) values (
+    '85000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000006',
+    '2999-01-01T00:00:00Z','caissa-piece-classifier-v0.5-occupancy-recovery',
+    '90D06A3C1AAC934188CBA5EEB4B68D51AC64C815351BFE372F2215101DD7209E',0.99,
+    'caissa-scanner-board-localizer/4',repeat('9',64),repeat('8',64),'test','camera','{}'::jsonb
+  );
+  select pg_catalog.count(*) into v_export_rows
+  from public.export_caissa_scanner_public_data_page(
+    '10000000-0000-4000-8000-000000000006',v_binding,
+    'scannerPublicScans',0,2,pg_catalog.clock_timestamp()) exported
+  where exported.data->>'scan_id'='85000000-0000-4000-8000-000000000003';
+  perform pg_temp.assert_true(v_export_rows=1,
+    'server insertion snapshot incorrectly excluded a future-dated Scanner event');
 
   begin
     perform public.prepare_caissa_account_control(
@@ -472,6 +535,27 @@ begin
     'scanner storage reference did not require manual review');
   perform pg_temp.assert_true(not (v_summary->'capabilities'->>'accountDeletion')::boolean,
     'scanner storage reference allowed automatic deletion');
+end;
+$$;
+
+do $$
+declare v_binding uuid; v_summary jsonb; v_album integer;
+begin
+  select id into v_binding from public.identity_bindings
+   where external_subject='synthetic_dev_album' and status='ACTIVE';
+  v_summary:=public.caissa_account_control_summary(
+    '10000000-0000-4000-8000-000000000007',v_binding);
+  perform pg_temp.assert_true((v_summary->'counts'->>'playerAlbumEntitlements')::integer=1
+      and (v_summary->'counts'->>'activeEntitlements')::integer=1
+      and not (v_summary->'capabilities'->>'accountDeletion')::boolean,
+    'permanent player-album entitlement did not fail account deletion closed');
+  select pg_catalog.count(*) into v_album
+  from public.export_caissa_account_supplemental_data_page(
+    '10000000-0000-4000-8000-000000000007',v_binding,
+    'playerAlbumEntitlements',0,100,pg_catalog.clock_timestamp()) exported
+  where exported.data->>'albumId'='fixture-album'
+    and not (exported.data ? 'user_id') and not (exported.data ? 'operation_id');
+  perform pg_temp.assert_true(v_album=1,'player-album entitlement missing from private export');
 end;
 $$;
 
@@ -680,30 +764,57 @@ $$;
 do $$
 declare
   v_binding uuid;
+  v_other_binding uuid;
   v_operation uuid;
+  v_summary jsonb;
   v_game_count integer;
   v_library integer;
   v_scanner integer;
+  v_scanner_feedback integer;
+  v_scanner_failures integer;
+  v_scanner_corrections integer;
   v_mentor integer;
   v_beta integer;
   v_economy integer;
+  v_opening integer;
+  v_identity_decisions integer;
   v_owner_leaks integer;
 begin
   select id into v_binding from public.identity_bindings where external_subject='synthetic_dev_d';
+  select id into v_other_binding from public.identity_bindings where external_subject='synthetic_dev_a';
   select count(*) into v_game_count from public.caissa_online_games;
+  v_summary:=public.caissa_account_control_summary(
+    '10000000-0000-4000-8000-000000000004',v_binding);
+  perform pg_temp.assert_true((v_summary->'counts'->>'openingRepertoires')::integer=1,
+    'Opening Trainer repertoire was omitted from account summary');
+  perform pg_temp.assert_true((v_summary->'counts'->>'scannerLegacyFeedback')::integer=1
+      and (v_summary->'counts'->>'scannerLegacyFailures')::integer=1
+      and (v_summary->'counts'->>'scannerLegacyCorrections')::integer=1
+      and (v_summary->'counts'->>'identityEnrollmentDecisions')::integer=1,
+    'supplemental Scanner or identity data was omitted from account summary');
   select
     count(*) filter(where section='libraryPositions'),
     count(*) filter(where section='scannerScans'),
+    count(*) filter(where section='scannerFeedback'),
+    count(*) filter(where section='scannerFailures'),
+    count(*) filter(where section='scannerCorrections'),
     count(*) filter(where section='mentorResults'),
     count(*) filter(where section='betaActivity'),
     count(*) filter(where section='creditReservations'),
     count(*) filter(where data ? 'user_id')
-  into v_library,v_scanner,v_mentor,v_beta,v_economy,v_owner_leaks
+  into v_library,v_scanner,v_scanner_feedback,v_scanner_failures,v_scanner_corrections,
+    v_mentor,v_beta,v_economy,v_owner_leaks
   from (
     select 'libraryPositions' section,data from public.export_caissa_account_data_page(
       '10000000-0000-4000-8000-000000000004',v_binding,'libraryPositions',0,100,clock_timestamp())
-    union all select 'scannerScans',data from public.export_caissa_account_data_page(
-      '10000000-0000-4000-8000-000000000004',v_binding,'scannerScans',0,100,clock_timestamp())
+    union all select 'scannerScans',data from public.export_caissa_account_supplemental_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'scannerScans',0,2,clock_timestamp())
+    union all select 'scannerFeedback',data from public.export_caissa_account_supplemental_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'scannerFeedback',0,2,clock_timestamp())
+    union all select 'scannerFailures',data from public.export_caissa_account_supplemental_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'scannerFailures',0,2,clock_timestamp())
+    union all select 'scannerCorrections',data from public.export_caissa_account_supplemental_data_page(
+      '10000000-0000-4000-8000-000000000004',v_binding,'scannerCorrections',0,2,clock_timestamp())
     union all select 'mentorResults',data from public.export_caissa_account_data_page(
       '10000000-0000-4000-8000-000000000004',v_binding,'mentorResults',0,100,clock_timestamp())
     union all select 'betaActivity',data from public.export_caissa_account_data_page(
@@ -713,10 +824,36 @@ begin
   ) export_rows;
   perform pg_temp.assert_true(v_library=1,'library position missing from private export');
   perform pg_temp.assert_true(v_scanner=1,'scanner record missing from private export');
+  perform pg_temp.assert_true(v_scanner_feedback=1 and v_scanner_failures=1 and v_scanner_corrections=1,
+    'legacy Scanner feedback, failure, or correction missing from private export');
   perform pg_temp.assert_true(v_mentor=1,'mentor result metadata missing from private export');
   perform pg_temp.assert_true(v_beta=1,'beta activity missing from private export');
   perform pg_temp.assert_true(v_economy=1,'economic evidence missing from private export');
   perform pg_temp.assert_true(v_owner_leaks=0,'internal owner column leaked from private export');
+  select pg_catalog.count(*) into v_opening
+  from public.export_caissa_opening_repertoire_data_page(
+    '10000000-0000-4000-8000-000000000004',v_binding,
+    'openingRepertoires',0,10,pg_catalog.clock_timestamp()) exported
+  where exported.data->>'id'='fixture-opening'
+    and not (exported.data ? 'user_id') and not (exported.data ? 'userId');
+  perform pg_temp.assert_true(v_opening=1,
+    'Opening Trainer owner export was incomplete or leaked the internal owner');
+  select pg_catalog.count(*) into v_identity_decisions
+  from public.export_caissa_account_supplemental_data_page(
+    '10000000-0000-4000-8000-000000000004',v_binding,
+    'identityEnrollmentDecisions',0,100,pg_catalog.clock_timestamp()) exported
+  where exported.data->>'decision'='APPROVED_NEW'
+    and not (exported.data ? 'external_subject');
+  perform pg_temp.assert_true(v_identity_decisions=1,
+    'identity enrollment decision missing from private export or leaked raw subject');
+  begin
+    perform * from public.export_caissa_opening_repertoire_data_page(
+      '10000000-0000-4000-8000-000000000004',v_other_binding,
+      'openingRepertoires',0,10,pg_catalog.clock_timestamp());
+    raise exception 'cross-account Opening Trainer export unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like '%CAISSA_ACCOUNT_OWNERSHIP_REQUIRED%' then raise; end if;
+  end;
   select operation_id into v_operation from public.prepare_caissa_account_control(
     '10000000-0000-4000-8000-000000000004',v_binding,'ACCOUNT_DELETION',
     repeat('4',64),repeat('5',64),repeat('6',64),pg_catalog.clock_timestamp()+interval '5 minutes');
@@ -748,11 +885,19 @@ begin
     where user_id='10000000-0000-4000-8000-000000000004')
     and not exists(select 1 from public.scanner_beta_scans
     where user_id='10000000-0000-4000-8000-000000000004')
+    and not exists(select 1 from public.scanner_beta_feedback
+    where user_id='10000000-0000-4000-8000-000000000004')
+    and not exists(select 1 from public.scanner_beta_scan_failures
+    where user_id='10000000-0000-4000-8000-000000000004')
     and not exists(select 1 from public.mentor_operation_results
     where user_id='10000000-0000-4000-8000-000000000004')
     and not exists(select 1 from public.beta_audit_events
-    where user_id='10000000-0000-4000-8000-000000000004'),
-    'owned library, scanner, mentor, or beta activity was not erased');
+    where user_id='10000000-0000-4000-8000-000000000004')
+    and not exists(select 1 from public.opening_repertoires
+    where user_id='10000000-0000-4000-8000-000000000004')
+    and exists(select 1 from public.opening_repertoires
+    where user_id='10000000-0000-4000-8000-000000000001'),
+    'owned library, scanner, mentor, beta, or Opening Trainer data was not erased safely');
   perform pg_temp.assert_true(exists(select 1 from public.user_entitlements
     where user_id='10000000-0000-4000-8000-000000000004')
     and exists(select 1 from public.credit_reservations
@@ -763,10 +908,45 @@ begin
   perform pg_temp.assert_true(not exists(select 1 from public.identity_bindings
     where user_id='10000000-0000-4000-8000-000000000004' and external_subject='synthetic_dev_d'),
     'deleted Clerk subject was retained in plaintext');
+  perform pg_temp.assert_true(not exists(select 1 from public.identity_enrollment_decisions
+      where external_subject='synthetic_dev_d' or reason='synthetic owner approval')
+      and exists(select 1 from public.identity_enrollment_decisions
+      where external_subject like 'deleted_%' and reason='ACCOUNT_ERASURE_RETAINED'
+        and retired_subject_hash ~ '^[0-9a-f]{64}$'),
+    'identity enrollment ledger retained a deleted raw subject or free-form reason');
+  perform pg_temp.assert_true(not exists(select 1 from public.caissa_online_games
+      where draw_offer_by='synthetic_dev_d'),
+    'retained Online game leaked the deleted Clerk subject through draw_offer_by');
+  perform pg_temp.assert_true(not exists(select 1 from public.caissa_online_rate_limits
+      where clerk_id in ('synthetic_dev_d','synthetic_dev_d_old'))
+      and exists(select 1 from public.caissa_online_rate_limits
+      where clerk_id='synthetic_dev_a'),
+    'Online rate-limit cleanup missed a retired subject or deleted another account');
   begin
     insert into public.caissa_public_identities(user_id,fallback_alias)
     values('10000000-0000-4000-8000-000000000004','should-not-return');
     raise exception 'write barrier unexpectedly allowed deleted identity recreation';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
+    insert into public.identity_enrollment_decisions(
+      environment,external_subject,decision,reason,expires_at
+    ) values (
+      'production','synthetic_dev_d','REVIEW','should-not-return',
+      pg_catalog.clock_timestamp()+interval '1 day'
+    );
+    raise exception 'identity enrollment barrier allowed retired raw subject recreation';
+  exception when sqlstate '55000' then null;
+  end;
+  begin
+    insert into public.opening_repertoires(
+      user_id,local_id,name,color,opening,initial_fen,lines,local_created_at,local_updated_at
+    ) values (
+      '10000000-0000-4000-8000-000000000004','should-not-return','Blocked','white','Blocked',
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','[]'::jsonb,
+      pg_catalog.clock_timestamp(),pg_catalog.clock_timestamp()
+    );
+    raise exception 'Opening Trainer write barrier allowed deleted data recreation';
   exception when sqlstate '55000' then null;
   end;
   begin
@@ -795,9 +975,36 @@ select pg_temp.assert_true(
   and not pg_catalog.has_table_privilege('authenticated','public.caissa_account_control_operations','SELECT')
   and pg_catalog.has_function_privilege('service_role','public.caissa_account_control_summary(uuid,uuid)','EXECUTE')
   and pg_catalog.has_function_privilege('service_role','public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
+  and pg_catalog.has_function_privilege('service_role','public.export_caissa_opening_repertoire_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
+  and pg_catalog.has_function_privilege('service_role','public.export_caissa_account_supplemental_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
   and not pg_catalog.has_function_privilege('authenticated','public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
+  and not pg_catalog.has_function_privilege('authenticated','public.export_caissa_opening_repertoire_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
+  and not pg_catalog.has_function_privilege('authenticated','public.export_caissa_account_supplemental_data_page(uuid,uuid,text,integer,integer,timestamptz)','EXECUTE')
   and not pg_catalog.has_function_privilege('authenticated','public.caissa_account_control_summary(uuid,uuid)','EXECUTE'),
   'account control privilege boundary is incorrect'
+);
+
+select pg_temp.assert_true(
+  pg_catalog.has_table_privilege('service_role','public.opening_repertoires','SELECT')
+  and pg_catalog.has_table_privilege('service_role','public.opening_repertoires','INSERT')
+  and pg_catalog.has_table_privilege('service_role','public.opening_repertoires','UPDATE')
+  and pg_catalog.has_table_privilege('service_role','public.opening_repertoires','DELETE')
+  and not pg_catalog.has_table_privilege('anon','public.opening_repertoires','SELECT')
+  and not pg_catalog.has_table_privilege('authenticated','public.opening_repertoires','SELECT'),
+  'Opening Trainer service-only privilege boundary is incorrect'
+);
+
+select pg_temp.assert_true(
+  pg_catalog.has_table_privilege('service_role','public.player_album_entitlements','SELECT')
+  and pg_catalog.has_table_privilege('service_role','public.player_album_entitlements','INSERT')
+  and not pg_catalog.has_table_privilege('service_role','public.player_album_entitlements','UPDATE')
+  and not pg_catalog.has_table_privilege('service_role','public.player_album_entitlements','DELETE')
+  and not pg_catalog.has_table_privilege('anon','public.player_album_entitlements','SELECT')
+  and not pg_catalog.has_table_privilege('authenticated','public.player_album_entitlements','SELECT')
+  and not pg_catalog.has_table_privilege('service_role','public.identity_enrollment_decisions','SELECT')
+  and not pg_catalog.has_table_privilege('anon','public.identity_enrollment_decisions','SELECT')
+  and not pg_catalog.has_table_privilege('authenticated','public.identity_enrollment_decisions','SELECT'),
+  'supplemental entitlement or identity-ledger privilege boundary is incorrect'
 );
 
 do $$
@@ -941,6 +1148,7 @@ select pg_temp.assert_true(
   not pg_catalog.has_function_privilege('service_role','public.caissa_account_assert_writable(uuid)','EXECUTE')
   and not pg_catalog.has_function_privilege('service_role','public.caissa_account_write_barrier()','EXECUTE')
   and not pg_catalog.has_function_privilege('service_role','public.caissa_account_rate_limit_write_barrier()','EXECUTE')
+  and not pg_catalog.has_function_privilege('service_role','public.caissa_account_external_subject_write_barrier()','EXECUTE')
   and pg_catalog.has_function_privilege('service_role','public.prepare_caissa_account_control(uuid,uuid,text,text,text,text,timestamptz)','EXECUTE')
   and pg_catalog.has_function_privilege('service_role','public.resolve_caissa_identity_ownership(text,text)','EXECUTE'),
   'service role function privileges were not normalized exactly'
@@ -958,6 +1166,8 @@ declare
     'public.caissa_account_has_active_economic_work(uuid)',
     'public.caissa_account_control_summary(uuid,uuid)',
     'public.export_caissa_account_data_page(uuid,uuid,text,integer,integer,timestamptz)',
+    'public.export_caissa_opening_repertoire_data_page(uuid,uuid,text,integer,integer,timestamptz)',
+    'public.export_caissa_account_supplemental_data_page(uuid,uuid,text,integer,integer,timestamptz)',
     'public.prepare_caissa_account_control(uuid,uuid,text,text,text,text,timestamptz)',
     'public.confirm_caissa_progress_reset(uuid,uuid,uuid,text,text,text,text)',
     'public.lock_caissa_account_deletion(uuid,uuid,uuid,text,text,text,text)',
@@ -970,7 +1180,8 @@ declare
   v_all text[] := v_allowed || array[
     'public.caissa_account_assert_writable(uuid)',
     'public.caissa_account_write_barrier()',
-    'public.caissa_account_rate_limit_write_barrier()'
+    'public.caissa_account_rate_limit_write_barrier()',
+    'public.caissa_account_external_subject_write_barrier()'
   ];
   v_expected boolean;
   v_actual boolean;
@@ -1011,12 +1222,40 @@ do $$ declare v_binding uuid; begin
   exception when others then
     if sqlerrm not like '%CAISSA_ACCOUNT_EXPORT_PAGE_INVALID%' then raise; end if;
   end;
+  begin
+    perform * from public.export_caissa_scanner_public_data_page(
+      '10000000-0000-4000-8000-000000000001',v_binding,'scannerPublicScans',0,3,clock_timestamp());
+    raise exception 'oversized Scanner export page unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like '%CAISSA_ACCOUNT_EXPORT_PAGE_INVALID%' then raise; end if;
+  end;
+  begin
+    perform * from public.export_caissa_account_supplemental_data_page(
+      '10000000-0000-4000-8000-000000000001',v_binding,'scannerScans',0,3,clock_timestamp());
+    raise exception 'oversized legacy Scanner export page unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like '%CAISSA_ACCOUNT_EXPORT_PAGE_INVALID%' then raise; end if;
+  end;
+  begin
+    perform * from public.export_caissa_opening_repertoire_data_page(
+      '10000000-0000-4000-8000-000000000001',v_binding,'openingRepertoires',0,11,clock_timestamp());
+    raise exception 'oversized Opening Trainer export page unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like '%CAISSA_ACCOUNT_EXPORT_PAGE_INVALID%' then raise; end if;
+  end;
 end $$;
 
 select pg_temp.assert_true(
   exists(select 1 from pg_catalog.pg_trigger t join pg_catalog.pg_class c on c.oid=t.tgrelid
     where c.oid='public.caissa_online_rate_limits'::regclass and t.tgname='caissa_account_write_barrier' and not t.tgisinternal),
   'raw-subject rate-limit barrier is missing'
+);
+
+select pg_temp.assert_true(
+  exists(select 1 from pg_catalog.pg_trigger t
+    where t.tgrelid='public.identity_enrollment_decisions'::regclass
+      and t.tgname='caissa_account_external_subject_write_barrier' and not t.tgisinternal),
+  'raw-subject identity enrollment barrier is missing'
 );
 
 select pg_temp.assert_true(not exists(
