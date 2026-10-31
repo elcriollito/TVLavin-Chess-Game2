@@ -1312,4 +1312,38 @@ select pg_temp.assert_true(not exists(
       where t.tgrelid=rel.oid and t.tgname='caissa_account_write_barrier' and not t.tgisinternal)
 ), 'a current users foreign-key table is missing the account write barrier');
 
+-- Production intentionally omits the review-only Opening Trainer v2 table and
+-- disabled player-album commerce table. The terminal integration must remain
+-- idempotent and return empty optional sections on that exact baseline.
+drop table public.opening_repertoires;
+drop table public.player_album_entitlements cascade;
+\ir ../supabase/migrations/20261031152722_caissa_account_control_scanner_public_evidence_guard.sql
+
+do $$
+declare
+  v_binding uuid;
+  v_summary jsonb;
+  v_opening_rows integer;
+  v_album_rows integer;
+begin
+  select id into v_binding from public.identity_bindings
+  where external_subject='synthetic_dev_a' and status='ACTIVE';
+  v_summary:=public.caissa_account_control_summary(
+    '10000000-0000-4000-8000-000000000001',v_binding);
+  select pg_catalog.count(*)::integer into v_opening_rows
+  from public.export_caissa_opening_repertoire_data_page(
+    '10000000-0000-4000-8000-000000000001',v_binding,
+    'openingRepertoires',0,10,pg_catalog.clock_timestamp());
+  select pg_catalog.count(*)::integer into v_album_rows
+  from public.export_caissa_account_supplemental_data_page(
+    '10000000-0000-4000-8000-000000000001',v_binding,
+    'playerAlbumEntitlements',0,100,pg_catalog.clock_timestamp());
+  perform pg_temp.assert_true(
+    (v_summary->'counts'->>'openingRepertoires')::integer=0
+      and (v_summary->'counts'->>'playerAlbumEntitlements')::integer=0
+      and v_opening_rows=0 and v_album_rows=0,
+    'optional owner-data surfaces did not degrade to empty on the Production baseline');
+end
+$$;
+
 \echo CAISSA_ACCOUNT_CONTROL_POSTGRES_PASS

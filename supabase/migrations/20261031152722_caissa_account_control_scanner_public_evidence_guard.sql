@@ -17,8 +17,6 @@ begin
     ('public.scanner_beta_feedback'),
     ('public.scanner_beta_scan_failures'),
     ('public.scanner_beta_square_corrections'),
-    ('public.opening_repertoires'),
-    ('public.player_album_entitlements'),
     ('public.identity_enrollment_decisions'),
     ('public.caissa_account_states'),
     ('public.identity_bindings')
@@ -35,6 +33,11 @@ begin
   end if;
 end
 $$;
+
+-- Opening Trainer v1 is session-only and player-album commerce is disabled in
+-- Production. Their retained migrations are optional release surfaces: when a
+-- table exists, Account Control governs it; when absent, exports are empty and
+-- counts remain zero without weakening the required Scanner/Identity guards.
 
 -- Snapshot boundaries must use a server-controlled clock. submitted_at is a
 -- user event timestamp and may legitimately be in the future.
@@ -113,8 +116,12 @@ begin
       into v_count using p_user_id;
     v_total:=v_total+v_count;
   end if;
-  select pg_catalog.count(*)::integer into v_count
-    from public.player_album_entitlements e where e.user_id=p_user_id;
+  if pg_catalog.to_regclass('public.player_album_entitlements') is not null then
+    execute 'select count(*)::integer from public.player_album_entitlements where user_id=$1'
+      into v_count using p_user_id;
+  else
+    v_count:=0;
+  end if;
   return v_total+v_count;
 end;
 $$;
@@ -249,8 +256,10 @@ begin
     execute 'select count(*)::integer from public.library_collections where user_id=$1'
       into v_library_collections using p_user_id;
   end if;
-  select pg_catalog.count(*)::integer into v_opening_repertoires
-    from public.opening_repertoires r where r.user_id=p_user_id;
+  if pg_catalog.to_regclass('public.opening_repertoires') is not null then
+    execute 'select count(*)::integer from public.opening_repertoires where user_id=$1'
+      into v_opening_repertoires using p_user_id;
+  end if;
   if pg_catalog.to_regclass('public.scanner_beta_scans') is not null then
     execute 'select count(*)::integer from public.scanner_beta_scans where user_id=$1'
       into v_scanner_legacy_records using p_user_id;
@@ -285,8 +294,10 @@ begin
     execute 'select count(*)::integer from public.beta_audit_events where user_id=$1'
       into v_beta_activity using p_user_id;
   end if;
-  select pg_catalog.count(*)::integer into v_player_album_entitlements
-    from public.player_album_entitlements e where e.user_id=p_user_id;
+  if pg_catalog.to_regclass('public.player_album_entitlements') is not null then
+    execute 'select count(*)::integer from public.player_album_entitlements where user_id=$1'
+      into v_player_album_entitlements using p_user_id;
+  end if;
   select pg_catalog.count(*)::integer into v_identity_enrollment_decisions
     from public.identity_enrollment_decisions d
     where d.environment='production' and d.external_subject=v_binding.external_subject;
@@ -443,22 +454,25 @@ begin
     raise exception 'CAISSA_ACCOUNT_OWNERSHIP_REQUIRED';
   end if;
 
-  return query select pg_catalog.jsonb_build_object(
-    'schemaVersion',r.schema_version,
-    'id',r.local_id,
-    'name',r.name,
-    'color',r.color,
-    'eco',r.eco,
-    'opening',r.opening,
-    'initialFen',r.initial_fen,
-    'lines',r.lines,
-    'progress',r.progress,
-    'createdAt',r.local_created_at,
-    'updatedAt',r.local_updated_at
-  )
-  from public.opening_repertoires r
-  where r.user_id=p_user_id and r.synced_at<=p_snapshot_at
-  order by r.synced_at,r.id offset v_offset limit v_limit;
+  if pg_catalog.to_regclass('public.opening_repertoires') is null then return; end if;
+  return query execute $query$
+    select pg_catalog.jsonb_build_object(
+      'schemaVersion',r.schema_version,
+      'id',r.local_id,
+      'name',r.name,
+      'color',r.color,
+      'eco',r.eco,
+      'opening',r.opening,
+      'initialFen',r.initial_fen,
+      'lines',r.lines,
+      'progress',r.progress,
+      'createdAt',r.local_created_at,
+      'updatedAt',r.local_updated_at
+    )
+    from public.opening_repertoires r
+    where r.user_id=$1 and r.synced_at<=$2
+    order by r.synced_at,r.id offset $3 limit $4
+  $query$ using p_user_id,p_snapshot_at,v_offset,v_limit;
 end;
 $$;
 
@@ -524,11 +538,14 @@ begin
       where f.user_id=p_user_id and f.inserted_at<=p_snapshot_at
       order by f.inserted_at,c.feedback_id,c.square offset v_offset limit v_limit;
   elsif p_section='playerAlbumEntitlements' then
-    return query select pg_catalog.jsonb_build_object(
-      'albumId',e.album_id,'creditCost',e.credit_cost,'acquiredAt',e.acquired_at)
+    if pg_catalog.to_regclass('public.player_album_entitlements') is null then return; end if;
+    return query execute $query$
+      select pg_catalog.jsonb_build_object(
+        'albumId',e.album_id,'creditCost',e.credit_cost,'acquiredAt',e.acquired_at)
       from public.player_album_entitlements e
-      where e.user_id=p_user_id and e.acquired_at<=p_snapshot_at
-      order by e.acquired_at,e.id offset v_offset limit v_limit;
+      where e.user_id=$1 and e.acquired_at<=$2
+      order by e.acquired_at,e.id offset $3 limit $4
+    $query$ using p_user_id,p_snapshot_at,v_offset,v_limit;
   elsif p_section='identityEnrollmentDecisions' then
     return query select pg_catalog.jsonb_build_object(
       'environment',d.environment,'decision',d.decision,'reason',d.reason,
@@ -600,7 +617,9 @@ begin
   delete from public.insight_reports where user_id=p_user_id;
   delete from public.insight_datasets where user_id=p_user_id;
   delete from public.caissa_public_identities where user_id=p_user_id;
-  delete from public.opening_repertoires where user_id=p_user_id;
+  if pg_catalog.to_regclass('public.opening_repertoires') is not null then
+    execute 'delete from public.opening_repertoires where user_id=$1' using p_user_id;
+  end if;
   if pg_catalog.to_regclass('public.library_positions') is not null then
     execute 'delete from public.library_positions where user_id=$1' using p_user_id;
   end if;
@@ -778,8 +797,14 @@ create index if not exists scanner_feedback_certifications_actor_idx
   on public.scanner_feedback_certifications(certified_by,certified_at,id);
 create index if not exists scanner_feedback_review_audit_actor_idx
   on public.scanner_feedback_review_audit(reviewer_id,recorded_at,id);
-create index if not exists opening_repertoires_account_export_idx
-  on public.opening_repertoires(user_id,synced_at,id);
+do $$
+begin
+  if pg_catalog.to_regclass('public.opening_repertoires') is not null then
+    execute 'create index if not exists opening_repertoires_account_export_idx '
+      || 'on public.opening_repertoires(user_id,synced_at,id)';
+  end if;
+end
+$$;
 
 -- Account state changes and immutable Scanner evidence now share the same
 -- advisory-lock barrier. The Scanner's own append-only triggers remain active.
@@ -803,13 +828,18 @@ create trigger caissa_account_write_barrier
 before insert or update or delete on public.scanner_feedback_review_audit
 for each row execute function public.caissa_account_write_barrier('reviewer_id');
 
--- Opening Trainer was added after the original dynamic barrier installation.
--- Reconcile it explicitly so a previously resolved UUID cannot write after an
--- account enters deletion.
-drop trigger if exists caissa_account_write_barrier on public.opening_repertoires;
-create trigger caissa_account_write_barrier
-before insert or update or delete on public.opening_repertoires
-for each row execute function public.caissa_account_write_barrier('user_id');
+-- If the optional v2 Opening Trainer table exists, reconcile it explicitly so
+-- a previously resolved UUID cannot write after an account enters deletion.
+do $$
+begin
+  if pg_catalog.to_regclass('public.opening_repertoires') is not null then
+    execute 'drop trigger if exists caissa_account_write_barrier on public.opening_repertoires';
+    execute 'create trigger caissa_account_write_barrier '
+      || 'before insert or update or delete on public.opening_repertoires '
+      || 'for each row execute function public.caissa_account_write_barrier(''user_id'')';
+  end if;
+end
+$$;
 
 drop trigger if exists caissa_account_external_subject_write_barrier
   on public.identity_enrollment_decisions;
@@ -817,13 +847,20 @@ create trigger caissa_account_external_subject_write_barrier
 before insert or update or delete on public.identity_enrollment_decisions
 for each row execute function public.caissa_account_external_subject_write_barrier('external_subject');
 
-revoke all on table public.opening_repertoires
-from public,anon,authenticated,service_role;
-grant select,insert,update,delete on table public.opening_repertoires to service_role;
-
-revoke all on table public.player_album_entitlements
-from public,anon,authenticated,service_role;
-grant select,insert on table public.player_album_entitlements to service_role;
+do $$
+begin
+  if pg_catalog.to_regclass('public.opening_repertoires') is not null then
+    execute 'revoke all on table public.opening_repertoires '
+      || 'from public,anon,authenticated,service_role';
+    execute 'grant select,insert,update,delete on table public.opening_repertoires to service_role';
+  end if;
+  if pg_catalog.to_regclass('public.player_album_entitlements') is not null then
+    execute 'revoke all on table public.player_album_entitlements '
+      || 'from public,anon,authenticated,service_role';
+    execute 'grant select,insert on table public.player_album_entitlements to service_role';
+  end if;
+end
+$$;
 
 revoke all on table public.identity_enrollment_decisions
 from public,anon,authenticated,service_role;
