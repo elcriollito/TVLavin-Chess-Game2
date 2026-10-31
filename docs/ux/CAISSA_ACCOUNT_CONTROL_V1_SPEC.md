@@ -79,6 +79,14 @@ No omitir pruebas de prestaciones de pago, cobros o suscripciones actuales o fut
 
 El esquema y los datos personales pueden abarcar registros fuera de `public.users`; exportación y erasure no se limitan a `DELETE FROM public.users`.
 
+En v1.0, mientras la integración no conserve un ledger autoritativo por ID de
+suscripción, toda cuenta con `stripe_customer_id` permanece en revisión manual
+para el borrado. Este límite fail-closed también puede incluir clientes que sólo
+compraron créditos: antes de borrar se debe conciliar el cliente en Stripe,
+confirmar que no existe ningún cobro recurrente presente o futuro y retirar el
+vínculo de forma controlada. Nunca se sustituye esa verificación por poner
+`is_premium=false`.
+
 ## 6. Reinscripción futura con el mismo correo
 
 Si se completó la baja:

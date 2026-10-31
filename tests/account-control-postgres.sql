@@ -287,7 +287,10 @@ insert into public.users(id,clerk_id,email,credits) values
  ('10000000-0000-4000-8000-000000000003','synthetic_dev_c','c@example.invalid',3),
  ('10000000-0000-4000-8000-000000000004','synthetic_dev_d','reusable@example.invalid',5),
  ('10000000-0000-4000-8000-000000000006','synthetic_dev_scanner','scanner@example.invalid',0),
- ('10000000-0000-4000-8000-000000000007','synthetic_dev_album','album@example.invalid',0);
+ ('10000000-0000-4000-8000-000000000007','synthetic_dev_album','album@example.invalid',0),
+ ('10000000-0000-4000-8000-000000000008','synthetic_dev_billing','billing@example.invalid',0);
+update public.users set is_premium=true,stripe_customer_id='cus_synthetic_active_billing'
+where id='10000000-0000-4000-8000-000000000008';
 
 -- The foundation backfill ran before these fixtures, so create exact synthetic bindings.
 insert into public.identity_bindings(user_id,environment,external_subject,status,proof_method,activated_at)
@@ -522,6 +525,43 @@ begin
   end;
   update public.caissa_account_states set state='ACTIVE',reason_code='TEST_RESTORED'
     where user_id='10000000-0000-4000-8000-000000000006';
+end;
+$$;
+
+-- Premium status and every unresolved Stripe customer linkage fail deletion
+-- closed. Clearing only the coarse Premium Boolean is insufficient because a
+-- second or delayed subscription can still exist at the provider.
+do $$
+declare v_binding uuid; v_summary jsonb;
+begin
+  select id into v_binding from public.identity_bindings
+   where external_subject='synthetic_dev_billing' and status='ACTIVE';
+  v_summary:=public.caissa_account_control_summary(
+    '10000000-0000-4000-8000-000000000008',v_binding);
+  perform pg_temp.assert_true(
+    (v_summary->'counts'->>'activeEntitlements')::integer=1
+      and not (v_summary->'capabilities'->>'accountDeletion')::boolean
+      and (v_summary->>'manualReviewRequired')::boolean,
+    'active Premium billing did not fail account deletion closed');
+
+  update public.users set is_premium=false
+   where id='10000000-0000-4000-8000-000000000008';
+  v_summary:=public.caissa_account_control_summary(
+    '10000000-0000-4000-8000-000000000008',v_binding);
+  perform pg_temp.assert_true(
+    (v_summary->'counts'->>'activeEntitlements')::integer=0
+      and not (v_summary->'capabilities'->>'accountDeletion')::boolean
+      and (v_summary->>'manualReviewRequired')::boolean
+      and (v_summary->>'economicRetentionRequired')::boolean,
+    'unreconciled Stripe linkage allowed automatic account deletion');
+  begin
+    perform * from public.prepare_caissa_account_control(
+      '10000000-0000-4000-8000-000000000008',v_binding,'ACCOUNT_DELETION',
+      repeat('a',64),repeat('b',64),repeat('c',64),pg_catalog.clock_timestamp()+interval '5 minutes');
+    raise exception 'unreconciled Stripe linkage unexpectedly prepared deletion';
+  exception when others then
+    if sqlerrm not like '%CAISSA_ACCOUNT_REVIEW_REQUIRED%' then raise; end if;
+  end;
 end;
 $$;
 

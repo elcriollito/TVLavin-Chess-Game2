@@ -231,7 +231,7 @@ test('inactive sessions cannot consume a replacement session\'s per-user action 
     assert.notEqual(revoked.rateLimitInputs[0].scopeHash, replacement.rateLimitInputs[0].scopeHash);
 });
 
-test('stale active sessions cannot consume a freshly reverified session action quota', async () => {
+test('JWT refresh keeps the Clerk lookup quota stable while fresh verification controls action eligibility', async () => {
     const stale = fixture({ authResult: auth({ factorVerificationAge: [7, -1], tokenId: 'jwt_stale' }) });
     const staleResponse = response();
     await stale.handlers.exportData(request('POST', {}), staleResponse);
@@ -244,7 +244,7 @@ test('stale active sessions cannot consume a freshly reverified session action q
     await fresh.handlers.exportData(request('POST', {}), freshResponse);
     assert.equal(freshResponse.statusCode, 200);
     assert.deepEqual(fresh.rateLimitInputs.map(input => input.bucket), ['session_lookup', 'export']);
-    assert.notEqual(stale.rateLimitInputs[0].scopeHash, fresh.rateLimitInputs[0].scopeHash);
+    assert.equal(stale.rateLimitInputs[0].scopeHash, fresh.rateLimitInputs[0].scopeHash);
 });
 
 test('Account Control rejects missing or crossed signed session identity before account-data access', async () => {

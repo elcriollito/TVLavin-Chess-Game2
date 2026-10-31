@@ -146,7 +146,7 @@ export function createAccountControlHandlers(dependencies = {}) {
         }
         const [sessionMaxAttempts, sessionWindowSeconds] = RATE_LIMITS.sessionLookup;
         const sessionScopeHash = crypto.createHmac('sha256', rateSecret)
-            .update(`account-control-session:${auth.userId}:${auth.sessionId || 'missing'}:${auth.tokenId || 'missing'}`, 'utf8')
+            .update(`account-control-session:${auth.userId}:${auth.sessionId || 'missing'}`, 'utf8')
             .digest('hex');
         const sessionAllowed = await consumeRateLimit({
             db,

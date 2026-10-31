@@ -100,6 +100,9 @@ set search_path = ''
 as $$
 declare v_total integer:=0; v_count integer:=0;
 begin
+  select case when u.is_premium then 1 else 0 end into v_count
+    from public.users u where u.id=p_user_id;
+  v_total:=v_total+coalesce(v_count,0);
   if pg_catalog.to_regclass('public.product_entitlements') is not null then
     execute 'select count(*)::integer from public.product_entitlements where user_id=$1 and status=''active'''
       into v_count using p_user_id;
@@ -113,6 +116,36 @@ begin
   select pg_catalog.count(*)::integer into v_count
     from public.player_album_entitlements e where e.user_id=p_user_id;
   return v_total+v_count;
+end;
+$$;
+
+-- The current Stripe integration does not retain authoritative subscription
+-- IDs or statuses. Keep deletion fail-closed for every linked Stripe customer
+-- until billing has been reconciled and the linkage can be cleared safely.
+-- This also covers checkout/webhook races and multiple-subscription ambiguity.
+create or replace function public.caissa_account_has_active_economic_work(p_user_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare v_found boolean:=false;
+begin
+  select nullif(pg_catalog.btrim(u.stripe_customer_id),'') is not null into v_found
+    from public.users u where u.id=p_user_id;
+  if coalesce(v_found,false) then return true; end if;
+  if pg_catalog.to_regclass('public.credit_reservations') is not null then
+    execute 'select exists(select 1 from public.credit_reservations where user_id=$1 and state=''RESERVED'')'
+      into v_found using p_user_id;
+  end if;
+  if not coalesce(v_found,false) then
+    select exists(
+      select 1 from public.caissa_online_games
+      where status='active' and (white_user_id=p_user_id or black_user_id=p_user_id)
+    ) into v_found;
+  end if;
+  return coalesce(v_found,false);
 end;
 $$;
 
@@ -297,7 +330,7 @@ begin
         and v_active_entitlements=0 and v_storage_references=0 and not v_active_economic_work
         and v_scanner_public_evidence=0
     ),
-    'economicRetentionRequired',v_active_entitlements>0 or exists (
+    'economicRetentionRequired',v_active_entitlements>0 or v_active_economic_work or exists (
       select 1 from public.credit_events c where c.user_id=p_user_id
     ) or exists (
       select 1 from public.stripe_events s where s.user_id=p_user_id
@@ -850,18 +883,22 @@ to service_role;
 revoke all on function
   public.caissa_account_has_blocking_state(uuid),
   public.caissa_account_active_entitlement_count(uuid),
+  public.caissa_account_has_active_economic_work(uuid),
   public.caissa_account_storage_reference_count(uuid),
   public.caissa_account_control_summary(uuid,uuid)
 from public,anon,authenticated,service_role;
 grant execute on function
   public.caissa_account_has_blocking_state(uuid),
   public.caissa_account_active_entitlement_count(uuid),
+  public.caissa_account_has_active_economic_work(uuid),
   public.caissa_account_storage_reference_count(uuid),
   public.caissa_account_control_summary(uuid,uuid)
 to service_role;
 
 comment on function public.caissa_account_scanner_public_evidence_count(uuid) is
   'Counts immutable Scanner public evidence related to an account. Any positive result requires manual deletion review.';
+comment on function public.caissa_account_has_active_economic_work(uuid) is
+  'Requires manual deletion review while a Stripe customer remains linked, a credit reservation remains active, or a shared Online game is active.';
 comment on function public.export_caissa_scanner_public_data_page(uuid,uuid,text,integer,integer,timestamptz) is
   'Returns bounded owner-scoped Scanner public evidence pages without exposing reviewer identities or cross-account target identifiers.';
 comment on function public.export_caissa_opening_repertoire_data_page(uuid,uuid,text,integer,integer,timestamptz) is

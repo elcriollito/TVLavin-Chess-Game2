@@ -96,7 +96,7 @@ function createDialogController() {
                 <h4>Delete my CAISSA account</h4>
                 <p>Delete your login and removable profile data. Shared games and required economic evidence are retained safely.</p>
                 <button type="button" data-account-delete-start>Delete my CAISSA account</button>
-                <p class="account-control-review" data-account-delete-review hidden>Deletion needs secure manual review because this account has an ownership hold or active entitlement.</p>
+                <p class="account-control-review" data-account-delete-review hidden>Deletion needs secure manual review because this account has an ownership, billing, active-game, storage-evidence, or entitlement hold.</p>
                 <form class="account-control-confirm" data-account-delete-confirm hidden>
                   <label>Type <strong>DELETE</strong> to confirm
                     <input name="confirmation" autocomplete="off" spellcheck="false" maxlength="6">
