@@ -115,11 +115,11 @@ test('guest matchmaking provisions a temporary identity and is server-forced unr
     });
 
     assert.equal(res.statusCode, 202);
-    assert.deepEqual(calls[0][1], {
+    assert.match(calls[0][1].clerkId, /^online-source:[0-9a-f]{64}$/);
+    assert.equal(calls[0][1].bucket, 'guest-outer');
+    assert.deepEqual(calls[1][1], {
         clerkId: 'online-global', bucket: 'guest-outer', limit: 1000, windowSeconds: 60
     });
-    assert.match(calls[1][1].clerkId, /^online-source:[0-9a-f]{64}$/);
-    assert.equal(calls[1][1].bucket, 'guest-outer');
     assert.equal(calls[2][1].clerkId, guestId);
     assert.equal(calls[3][1].bucket, 'guest-provision');
     assert.deepEqual(calls[4], ['ensure', guestId]);
@@ -200,7 +200,35 @@ test('rotating guest subjects share global and trusted-source budgets before sub
     assert.deepEqual(subjectKeys.map(call => call.clerkId), guests);
 });
 
-test('outer guest denial stops before subject limiting and durable provisioning', async () => {
+test('source guest denial does not consume the global, subject, or provisioning budgets', async () => {
+    const calls = [];
+    let provisions = 0;
+    const res = response();
+    const req = command('presence.join');
+    req.headers = guestHeaders;
+    await handler(req, res, {
+        env: { ...env, VERCEL: '1', CAISSA_ONLINE_GUESTS: '1' },
+        authenticate: async () => ({ authenticated: true, userId: gameId, guest: true }),
+        rateLimit,
+        service: {
+            async checkRateLimit(input) {
+                calls.push(input);
+                return input.clerkId.startsWith('online-source:')
+                    ? { allowed: false, retryAfter: 13 } : { allowed: true };
+            },
+            async ensureGuestIdentity() { provisions += 1; }
+        }
+    });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.headers['Retry-After'], '13');
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].clerkId, /^online-source:[0-9a-f]{64}$/);
+    assert.equal(calls.some(call => call.clerkId === 'online-global'), false);
+    assert.equal(calls.some(call => call.clerkId === gameId), false);
+    assert.equal(provisions, 0);
+});
+
+test('global guest denial stops after the bounded source charge and before subject work', async () => {
     const calls = [];
     let provisions = 0;
     const res = response();
@@ -221,7 +249,9 @@ test('outer guest denial stops before subject limiting and durable provisioning'
     });
     assert.equal(res.statusCode, 429);
     assert.equal(res.headers['Retry-After'], '11');
-    assert.equal(calls.length, 1);
+    assert.equal(calls.length, 2);
+    assert.match(calls[0].clerkId, /^online-source:[0-9a-f]{64}$/);
+    assert.equal(calls[1].clerkId, 'online-global');
     assert.equal(calls.some(call => call.clerkId === gameId), false);
     assert.equal(provisions, 0);
 });

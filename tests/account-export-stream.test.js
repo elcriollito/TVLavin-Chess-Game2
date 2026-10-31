@@ -119,6 +119,82 @@ test('export preserves the v1 contract while every database response stays bound
     assert.ok(Buffer.byteLength(JSON.stringify(openingRows)) < 4.5 * 1024 * 1024);
 });
 
+test('export aborts before an RPC beyond the aggregate request budget', async () => {
+    const calls = [];
+    const db = { async rpc(_name, args) {
+        calls.push(args.p_section);
+        if (['account', 'publicIdentity'].includes(args.p_section)) {
+            return { data: [{ data: { id: owner } }], error: null };
+        }
+        return {
+            data: Array.from({ length: args.p_limit }, (_, index) => ({ data: { index } })),
+            error: null
+        };
+    } };
+    const observed = { bytes: 0, writes: 0, headers: {}, ended: false, chunks: [] };
+
+    await assert.rejects(streamAccountExport({
+        res: response(observed),
+        db,
+        userId: owner,
+        bindingId: binding,
+        now: () => generatedAt,
+        workLimits: { rpcCalls: 3, rows: 1_000, bodyBytes: 1_000_000 }
+    }), error => error.code === 'CAISSA_ACCOUNT_EXPORT_WORK_BUDGET_EXCEEDED');
+
+    assert.deepEqual(calls, ['account', 'publicIdentity', 'identityEnrollmentDecisions']);
+    assert.equal(observed.ended, false);
+    assert.equal(observed.destroyed?.code, 'CAISSA_ACCOUNT_EXPORT_WORK_BUDGET_EXCEEDED');
+});
+
+test('export rejects an aggregate row overflow before writing the offending page', async () => {
+    const calls = [];
+    const db = { async rpc(_name, args) {
+        calls.push(args.p_section);
+        return { data: [{ data: args.p_section === 'account'
+            ? { id: owner } : { blockedSection: args.p_section } }], error: null };
+    } };
+    const observed = { bytes: 0, writes: 0, headers: {}, ended: false, chunks: [] };
+
+    await assert.rejects(streamAccountExport({
+        res: response(observed),
+        db,
+        userId: owner,
+        bindingId: binding,
+        now: () => generatedAt,
+        workLimits: { rpcCalls: 10, rows: 1, bodyBytes: 1_000_000 }
+    }), error => error.code === 'CAISSA_ACCOUNT_EXPORT_WORK_BUDGET_EXCEEDED');
+
+    assert.deepEqual(calls, ['account', 'publicIdentity']);
+    assert.equal(observed.chunks.join('').includes('publicIdentity'), true);
+    assert.equal(observed.chunks.join('').includes('blockedSection'), false);
+    assert.equal(observed.ended, false);
+});
+
+test('export rejects a body overflow before writing bytes beyond the ceiling', async () => {
+    const db = { async rpc(_name, args) {
+        if (args.p_section === 'account') {
+            return { data: [{ data: { payload: 'A'.repeat(2_000) } }], error: null };
+        }
+        return { data: [], error: null };
+    } };
+    const observed = { bytes: 0, writes: 0, headers: {}, ended: false, chunks: [] };
+    const bodyBytes = 256;
+
+    await assert.rejects(streamAccountExport({
+        res: response(observed),
+        db,
+        userId: owner,
+        bindingId: binding,
+        now: () => generatedAt,
+        workLimits: { rpcCalls: 10, rows: 10, bodyBytes }
+    }), error => error.code === 'CAISSA_ACCOUNT_EXPORT_WORK_BUDGET_EXCEEDED');
+
+    assert.ok(observed.bytes <= bodyBytes);
+    assert.equal(observed.chunks.join('').includes('A'.repeat(100)), false);
+    assert.equal(observed.ended, false);
+});
+
 test('export fails closed before headers when the first owner-scoped page is rejected', async () => {
     const res = {
         headersSent: false,
@@ -168,6 +244,7 @@ function response(observed, { backpressureOnce = false } = {}) {
             }
             return this;
         },
-        end() { observed.ended = true; }
+        end() { observed.ended = true; },
+        destroy(error) { observed.destroyed = error || true; }
     };
 }

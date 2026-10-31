@@ -62,8 +62,8 @@ export default async function handler(req, res, dependencies = {}) {
             sourceKey = (dependencies.trustedSourceKey || trustedOnlineSourceKey)(req, env);
             if (!sourceKey) return res.status(503).json({ code: 'TRUSTED_SOURCE_UNAVAILABLE' });
             const outerPolicies = [
-                { clerkId: 'online-global', bucket: 'guest-outer', limit: 1000, windowSeconds: 60 },
-                { clerkId: sourceKey, bucket: 'guest-outer', limit: 300, windowSeconds: 60 }
+                { clerkId: sourceKey, bucket: 'guest-outer', limit: 300, windowSeconds: 60 },
+                { clerkId: 'online-global', bucket: 'guest-outer', limit: 1000, windowSeconds: 60 }
             ];
             for (const policy of outerPolicies) {
                 const outerRate = await service.checkRateLimit(policy);
