@@ -53,9 +53,15 @@ test('transition preparation stops owned runtime without mutating the record', (
 
 test('PostGame Analyze delegates section state to canonical navigation', () => {
     const core = read('js/play/post-game-core.js');
+    const navigation = read('js/caissa-navigation.js');
     assert.match(core, /this\.#navigation\?\.navigateToSection\?\.\('analyze',\s*\{/);
     assert.match(core, /handoffToken:\s*handoff\.value\.token/);
     assert.match(core, /source:\s*'post-game'/);
+    assert.match(core, /usesCanonicalAnalyzeDocument\?\.\(\) !== true/);
+    assert.match(navigation, /caissaPlayV2Entry === 'official'/);
+    assert.match(navigation, /window\.location\.assign\(`\/analyze\?handoff=\$\{encodeURIComponent\(token\)\}`\)/);
+    assert.ok(navigation.indexOf('usesCanonicalAnalyzeDocument()')
+        < navigation.indexOf("CaissaPlayLazyLoader.load('analyze-deep'"));
     assert.doesNotMatch(core, /CaissaPlayV2InlineAnalyze\?\.open|CaissaPlayV2InlineAnalyze\.open/);
 });
 

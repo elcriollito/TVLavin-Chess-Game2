@@ -59,3 +59,15 @@ test('expanded Coach levels use compact full-width rows in one vertical stack', 
     assert.match(expandedRule, /flex-direction:\s*column/);
     assert.doesNotMatch(css, /caissa-native-coach-panel__more-levels[^}]*grid-template-columns/);
 });
+
+test('Coach levels preserve typography and geometry while improving selected and focus states', () => {
+    const css = read('css/play-coach-review.css');
+    assert.match(css, /\.caissa-native-coach-panel__level-card\s*\{[^}]*padding:\s*\.7rem \.85rem/s);
+    assert.match(css, /\.caissa-native-coach-panel__level-row\s*\{[^}]*padding:\s*\.65rem \.75rem/s);
+    assert.match(css, /\.caissa-native-coach-panel__level-name\s*\{[^}]*font-size:\s*\.92rem[^}]*font-weight:\s*800/s);
+    assert.match(css, /\.caissa-native-coach-panel__level-description\s*\{[^}]*font-size:\s*\.8rem[^}]*line-height:\s*1\.4/s);
+    assert.match(css, /:has\(input:checked\)[\s\S]*border-color:\s*#57bd83/);
+    assert.match(css, /:has\(input:checked\)::after[\s\S]*content:\s*"\\2713"/);
+    assert.match(css, /:has\(input:focus-visible\)[\s\S]*outline:\s*3px solid #8de4b1/);
+    assert.match(read('js/play/performance/play-load-registry.js'), /play-coach-review\.css\?v=1\.14\.0/);
+});

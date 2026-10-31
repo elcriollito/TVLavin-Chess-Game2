@@ -134,7 +134,7 @@ html = html
   .replace('    <script src="js/play/post-game-experience.js?v=1.8.0"></script>',
     '    <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>\n' +
     '    <script src="js/play/play-v2-inline-analyze.js?v=1.4.0"></script>\n' +
-    '    <script src="js/play/post-game-core.js?v=1.5.0"></script>')
+    '    <script src="js/play/post-game-core.js?v=1.5.1"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
   .replace('</body>', '    <script src="js/play/play-v2-invite-client.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');

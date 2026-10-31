@@ -56,12 +56,28 @@ test('Classic remains isolated from official Play',async({page})=>{await page.go
 
 test('public Bots owns one Worker from Play through PostGame and tears down cleanly',async({page})=>{await instrumentPlay(page);await page.goto('/play/bots');expect(await page.evaluate(()=>window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);await page.getByLabel(/Casual, Unrated/).check();await page.locator('[data-bot-primary]').click();await expect.poll(()=>page.evaluate(()=>window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(1);page.once('dialog',dialog=>dialog.accept());await page.locator('[data-active-game-action="resign"]').click();await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();expect(await page.evaluate(()=>window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);await page.locator('[data-post-game-action="new-game"]').click();expect(await page.evaluate(()=>window.CaissaPlayV2BotWorkerReadiness.getSnapshot().activeWorkerCount)).toBe(0);});
 
-test('public completed game preserves PostGame Analyze Back and explicit Mentor',async({page})=>{
-  await instrumentPlay(page,{autoReply:false});await page.goto('/play');await page.locator('[data-games-primary]').click();await loadPosition(page,positions.checkmateInOne.fen);await playMove(page,positions.checkmateInOne.from,positions.checkmateInOne.to);await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();
+test('public completed game opens canonical Analyze and returns safely',async({page})=>{
+  await instrumentPlay(page,{autoReply:false});
+  await page.goto('/play');
+  await page.locator('[data-games-primary]').click();
+  await loadPosition(page,positions.checkmateInOne.fen);
+  await playMove(page,positions.checkmateInOne.from,positions.checkmateInOne.to);
+  await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();
   const hierarchy=await page.evaluate(()=>{const style=selector=>{const node=document.querySelector(selector),css=getComputedStyle(node);return{background:css.backgroundColor,color:css.color,fontSize:css.fontSize,fontWeight:css.fontWeight,wrap:css.whiteSpace,overflow:node.scrollWidth>node.clientWidth};};return{analyze:style('[data-post-game-action="analyze"]'),rematch:style('[data-post-game-action="rematch"]'),newGame:style('[data-post-game-action="new-game"]'),mentor:style('[data-post-game-action="mentor-review"]')};});
   expect(hierarchy.rematch).toEqual(hierarchy.newGame);expect(Number(hierarchy.rematch.fontWeight)).toBeGreaterThanOrEqual(700);expect(hierarchy.rematch.wrap).toBe('nowrap');expect(hierarchy.rematch.overflow).toBe(false);expect(hierarchy.analyze.background).not.toBe(hierarchy.rematch.background);expect(hierarchy.mentor.background).not.toBe(hierarchy.rematch.background);
   await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);for(const selector of['[data-post-game-action="analyze"]','[data-post-game-action="rematch"]','[data-post-game-action="new-game"]','[data-post-game-action="mentor-review"]'])expect(await page.locator(selector).evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
-  await page.locator('[data-post-game-action="analyze"]').click();await expect(page.locator('#analyzeSection')).toHaveClass(/caissa-play-v2-inline-analyze/);
-  await expect.poll(()=>page.evaluate(()=>[...document.querySelectorAll('.board-b72b1')].filter(node=>{const style=getComputedStyle(node),box=node.getBoundingClientRect();return style.display!=='none'&&style.visibility!=='hidden'&&box.width>0&&box.height>0;}).length)).toBe(1);
-  await page.getByRole('button',{name:'Back to game result'}).click();await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();await page.locator('[data-post-game-action="mentor-review"]').click();await expect(page.locator('[data-native-mentor-review]')).toBeVisible();await expect(page.getByRole('button',{name:'Report an issue'})).toHaveCount(0);
+
+  const navigation=page.waitForNavigation({waitUntil:'domcontentloaded'});
+  await page.locator('[data-post-game-action="analyze"]').click();
+  await navigation;
+  await expect(page).toHaveURL(/\/analyze\?handoff=[A-Za-z0-9_-]+$/);
+  await expect(page.locator('[data-caissa-analyze-v2]')).toHaveAttribute('data-analyze-v2-ready','true');
+  await expect(page.locator('body[data-caissa-play-v2-entry]')).toHaveCount(0);
+  await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
+
+  await page.goBack({waitUntil:'domcontentloaded'});
+  await expect(page).toHaveURL(/\/play$/);
+  await expect(page.locator('body[data-caissa-play-v2-entry="official"]')).toHaveCount(1);
+  expect(await page.evaluate(()=>window.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.().activeWorkerCount??0)).toBe(0);
+  await expect(page.getByRole('button',{name:'Report an issue'})).toHaveCount(0);
 });
