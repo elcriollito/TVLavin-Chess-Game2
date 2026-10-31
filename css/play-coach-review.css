@@ -683,12 +683,34 @@ body.caissa-simplified-play-active .caissa-native-coach-panel__level-picker {
 .caissa-native-coach-panel__level-description { color: var(--play-theme-muted, var(--text-secondary)); font-size: .8rem; line-height: 1.4; }
 .caissa-native-coach-panel__level-card:has(input:checked),
 .caissa-native-coach-panel__level-row:has(input:checked) {
-    border-color: var(--play-theme-accent, var(--primary-color));
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--play-theme-accent, var(--primary-color)) 22%, transparent);
-    background: color-mix(in srgb, var(--play-theme-accent, var(--primary-color)) 11%, var(--play-theme-surface, var(--bg-secondary)));
+    border-color: #57bd83;
+    box-shadow: 0 0 0 2px rgb(87 189 131 / 20%), inset 0 0 0 1px rgb(87 189 131 / 14%);
+    background: color-mix(in srgb, #285d43 34%, var(--play-theme-surface, var(--bg-secondary)));
+}
+.caissa-native-coach-panel__level-card:has(input:checked)::after,
+.caissa-native-coach-panel__level-row:has(input:checked)::after {
+    content: "\2713";
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-end: .8rem;
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 1px solid #72d69d;
+    border-radius: 50%;
+    background: #255c40;
+    color: #e8fff1;
+    font-size: .78rem;
+    font-weight: 800;
+    line-height: 1;
+    transform: translateY(-50%);
 }
 .caissa-native-coach-panel__level-card:has(input:focus-visible),
-.caissa-native-coach-panel__level-row:has(input:focus-visible) { outline: 3px solid var(--play-theme-accent, var(--primary-color)); outline-offset: 3px; }
+.caissa-native-coach-panel__level-row:has(input:focus-visible) {
+    outline: 3px solid #8de4b1;
+    outline-offset: 3px;
+}
 .caissa-native-coach-panel__show-levels {
     justify-self: start;
     min-height: 44px;
@@ -1267,4 +1289,10 @@ body.caissa-simplified-play-active [data-caissa-coach-game-over-foot]
 @media (forced-colors: active) {
     .caissa-native-coach-panel__level-card:has(input:checked),
     .caissa-native-coach-panel__level-row:has(input:checked) { border: 3px solid Highlight; box-shadow: none; }
+    .caissa-native-coach-panel__level-card:has(input:checked)::after,
+    .caissa-native-coach-panel__level-row:has(input:checked)::after {
+        border-color: Highlight;
+        background: Canvas;
+        color: CanvasText;
+    }
 }

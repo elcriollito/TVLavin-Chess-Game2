@@ -174,7 +174,8 @@
             retainedRecord = null; retainedKey = null; this.#diagnostics.rematches += 1; this.hide(); return outcome(true, 'accepted', 'REMATCH_STARTED');
         }
         #analyze() {
-            if (!root.AnalyzeSection?.onEnter && root.CaissaPlayLazyLoader?.load) {
+            if (this.#navigation?.usesCanonicalAnalyzeDocument?.() !== true
+                && !root.AnalyzeSection?.onEnter && root.CaissaPlayLazyLoader?.load) {
                 return root.CaissaPlayLazyLoader.load('analyze-deep', { qa: false, retry: true })
                     .then(() => this.#analyze()).catch(() => outcome(false, 'failed', 'ACTION_FAILED'));
             }

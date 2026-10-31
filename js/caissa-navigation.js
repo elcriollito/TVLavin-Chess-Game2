@@ -146,9 +146,40 @@ const CaissaNavigation = {
     },
 
     /**
+     * Dedicated Play documents must leave their embedded legacy shell when
+     * handing a game to the canonical Analyzer document. The main SPA keeps
+     * its existing section navigation behavior.
+     */
+    usesCanonicalAnalyzeDocument() {
+        return document.body?.dataset?.caissaPlayV2Entry === 'official';
+    },
+
+    /**
      * Navigate to a section
      */
     navigateToSection(sectionId, options = {}) {
+        if (sectionId === 'analyze' && window.CaissaAnalyzeHandoff) {
+            if (options.handoffToken) {
+                this.lastAnalyzeHandoffToken = options.handoffToken;
+                options.query = Object.assign({}, options.query, { handoff: options.handoffToken });
+            } else if (this.currentSection === 'play') {
+                const handoff = window.CaissaAnalyzeHandoff.createFromLegacyActivePlay?.();
+                if (!handoff?.ok) {
+                    console.warn('[CAISSA Nav] Analyze handoff unavailable:', handoff.reasonCode);
+                    return false;
+                }
+                this.lastAnalyzeHandoffToken = handoff.value.token;
+                options.query = Object.assign({}, options.query, { handoff: handoff.value.token });
+            }
+
+            if (this.usesCanonicalAnalyzeDocument()) {
+                const token = options.query?.handoff;
+                if (!token) return false;
+                window.location.assign(`/analyze?handoff=${encodeURIComponent(token)}`);
+                return true;
+            }
+        }
+
         if (sectionId === 'analyze' && !window.AnalyzeSection?.onEnter
             && window.CaissaPlayLazyLoader?.load && options.lazyReady !== true) {
             const sourceSection = this.currentSection;
@@ -163,21 +194,6 @@ const CaissaNavigation = {
         }
 
         console.log('[CAISSA Nav] Navigating from', this.currentSection, 'to', sectionId);
-
-        if (sectionId === 'analyze' && window.CaissaAnalyzeHandoff) {
-            if (options.handoffToken) {
-                this.lastAnalyzeHandoffToken = options.handoffToken;
-                options.query = Object.assign({}, options.query, { handoff: options.handoffToken });
-            } else if (this.currentSection === 'play') {
-                const handoff = window.CaissaAnalyzeHandoff.createFromLegacyActivePlay?.();
-                if (!handoff?.ok) {
-                    console.warn('[CAISSA Nav] Analyze handoff unavailable:', handoff.reasonCode);
-                    return false;
-                }
-                this.lastAnalyzeHandoffToken = handoff.value.token;
-                options.query = Object.assign({}, options.query, { handoff: handoff.value.token });
-            }
-        }
 
         // Special cases: Library, Mentor, and Premium
         if (sectionId === 'library') {
