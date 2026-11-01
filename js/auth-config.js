@@ -44,6 +44,7 @@ const CAISSA_AUTH_CONFIG = {
     // Fallback only. Production should hydrate this from /api/public-auth-config.
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
     REGISTRATION_TRACKING_AVAILABLE: false,
+    REGISTRATION_OPEN: false,
     IDENTITY_OWNER_HANDOFF: null,
 
     // Redirect URLs after auth actions
@@ -97,6 +98,7 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
             }
         }
         CAISSA_AUTH_CONFIG.REGISTRATION_TRACKING_AVAILABLE = data.registrationTracking === true;
+        CAISSA_AUTH_CONFIG.REGISTRATION_OPEN = data.registrationOpen === true;
         CAISSA_AUTH_CONFIG.IDENTITY_OWNER_HANDOFF = normalizeOwnerHandoffMetadata(data.identityOwnerHandoff);
     } catch (error) {
         console.warn('[Auth Config] Public auth config failed to load', error.message);

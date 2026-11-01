@@ -19,6 +19,10 @@ import {
     resolveVerifiedIdentityOwnership,
     respondIdentityOwnershipFailure
 } from '../_lib/identity-ownership.js';
+import {
+    enrollPublicRegistration,
+    respondPublicRegistrationFailure
+} from '../_lib/public-registration.js';
 
 export default async function handler(req, res, dependencies = {}) {
     if (!setCorsHeaders(req, res, ['POST'])) return;
@@ -49,11 +53,16 @@ export default async function handler(req, res, dependencies = {}) {
                 email: safeEmail,
                 dependencies
             });
-            if (!ownership.ok) return respondIdentityOwnershipFailure(res, ownership);
+            if (!ownership.ok) {
+                return ownership.publicRegistrationFailure
+                    ? respondPublicRegistrationFailure(res, ownership)
+                    : respondIdentityOwnershipFailure(res, ownership);
+            }
 
+            const syncEmail = ownership.verifiedEmail || safeEmail;
             const { data, error } = await supabase
                 .from('users')
-                .update({ email: safeEmail, updated_at: new Date().toISOString() })
+                .update({ email: syncEmail, updated_at: new Date().toISOString() })
                 .eq('id', ownership.userId)
                 .eq('clerk_id', auth.userId)
                 .select('clerk_id, email, role, is_premium, credits')
@@ -147,6 +156,7 @@ async function resolveOwnershipForSync({ supabase, auth, env, email, dependencie
     const resolveOwnership = dependencies.resolveIdentityOwnership || resolveVerifiedIdentityOwnership;
     let ownership = await resolveOwnership({ db: supabase, auth, env });
     if (ownership.ok) return ownership;
+    if (ownership.code !== 'IDENTITY_RESOLUTION_REQUIRED') return ownership;
 
     // Ownership enforcement must not bypass the explicit enrollment decision.
     // Only a Production subject in the existing migration window may consume an
@@ -155,28 +165,47 @@ async function resolveOwnershipForSync({ supabase, auth, env, email, dependencie
     const canProvisionApprovedNew = ownership.code === 'IDENTITY_RESOLUTION_REQUIRED'
         && auth.authority === 'production'
         && isIdentityMigrationEnforced(env);
-    if (!canProvisionApprovedNew) return ownership;
-
-    const resolveForSync = dependencies.resolveIdentityForSync || resolveIdentityForSync;
-    const identity = await resolveForSync(supabase, auth.userId);
-    if (!identity.ok) {
-        return { ok: false, status: 503, code: 'IDENTITY_SERVICE_UNAVAILABLE' };
-    }
-
-    if (identity.resolution === 'APPROVED_NEW') {
-        const provision = dependencies.provisionApprovedIdentity || provisionApprovedIdentity;
-        const result = await provision(supabase, auth.userId, email);
-        if (!result.ok && result.code !== 'SUBJECT_ALREADY_BOUND') {
-            return {
-                ok: false,
-                status: result.code === 'IDENTITY_SERVICE_UNAVAILABLE' ? 503 : 409,
-                code: result.code
-            };
+    if (canProvisionApprovedNew) {
+        const resolveForSync = dependencies.resolveIdentityForSync || resolveIdentityForSync;
+        const identity = await resolveForSync(supabase, auth.userId);
+        if (!identity.ok) {
+            return { ok: false, status: 503, code: 'IDENTITY_SERVICE_UNAVAILABLE' };
         }
-    } else if (identity.resolution !== 'BOUND') {
-        return ownership;
+
+        if (identity.resolution === 'APPROVED_NEW') {
+            const provision = dependencies.provisionApprovedIdentity || provisionApprovedIdentity;
+            const result = await provision(supabase, auth.userId, email);
+            if (!result.ok && result.code !== 'SUBJECT_ALREADY_BOUND') {
+                return {
+                    ok: false,
+                    status: result.code === 'IDENTITY_SERVICE_UNAVAILABLE' ? 503 : 409,
+                    code: result.code
+                };
+            }
+            ownership = await resolveOwnership({ db: supabase, auth, env });
+            return ownership;
+        }
+        if (identity.resolution === 'BOUND') {
+            ownership = await resolveOwnership({ db: supabase, auth, env });
+            return ownership;
+        }
+        if (identity.resolution !== 'UNRESOLVED') return ownership;
     }
+
+    const enroll = dependencies.enrollPublicRegistration || enrollPublicRegistration;
+    const registration = await enroll({
+        db: supabase,
+        auth,
+        env,
+        createClerkClient: dependencies.createClerkClient,
+        clerkTimeoutMs: dependencies.clerkTimeoutMs,
+        log: dependencies.log
+    });
+    if (!registration.attempted) return ownership;
+    if (!registration.ok) return { ...registration, publicRegistrationFailure: true };
 
     ownership = await resolveOwnership({ db: supabase, auth, env });
-    return ownership;
+    return ownership.ok
+        ? { ...ownership, verifiedEmail: registration.verifiedEmail }
+        : ownership;
 }

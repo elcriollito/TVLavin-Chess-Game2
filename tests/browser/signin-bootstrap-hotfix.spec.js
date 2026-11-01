@@ -27,7 +27,7 @@ test('existing-user sign-in mounts in the browser while registration stays pause
     await expect(page.getByLabel('Email address')).toBeVisible();
     await expect(page.getByLabel('Password')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
-    await expect(page.getByText('New sign-ups are paused during maintenance.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Create an account' })).toBeHidden();
     await expect(page.locator('#clerk-sign-in')).not.toContainText('Authentication error');
 
     expect(await page.evaluate(() => ({
@@ -38,5 +38,5 @@ test('existing-user sign-in mounts in the browser while registration stays pause
 
     const signup = await page.request.get('/signup.html');
     expect(signup.status()).toBe(200);
-    expect(await signup.text()).not.toMatch(/mountSignUp|signup-page\.js|id="clerk-sign-up"/i);
+    expect(await signup.text()).toMatch(/signup-page\.js|id="clerk-sign-up"[^>]*hidden/i);
 });

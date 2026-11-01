@@ -133,7 +133,8 @@ test('Home auth and progress presentation distinguishes loading, guest, connecte
   assert.match(source, /publicIdentityModulePromise = null/);
   assert.match(source, /openUserProfile/);
   assert.match(source, /authHref\('signin'\)/);
-  assert.doesNotMatch(source, /authHref\('signup'\)/);
+  assert.match(source, /REGISTRATION_OPEN === true/);
+  assert.match(source, /authHref\('signup'\)/);
   assert.doesNotMatch(source, /recent games|continue position|streak|accuracy/i);
 });
 

@@ -60,9 +60,10 @@ test('public auth endpoint exposes only its allowlisted public fields', () => {
     try {
         handler({ method: 'GET' }, response);
         assert.equal(status, 200);
-        assert.deepEqual(Object.keys(payload).sort(), ['clerkPublishableKey', 'identityOwnerHandoff', 'registrationTracking']);
+        assert.deepEqual(Object.keys(payload).sort(), ['clerkPublishableKey', 'identityOwnerHandoff', 'registrationOpen', 'registrationTracking']);
         assert.equal(payload.clerkPublishableKey, 'pk_live_public_identifier');
         assert.equal(payload.registrationTracking, true);
+        assert.equal(payload.registrationOpen, false);
         assert.deepEqual(payload.identityOwnerHandoff, {
             productionOrigin: 'https://www.caissa-chess.org',
             legacyOrigin: 'https://validation.example.test'
