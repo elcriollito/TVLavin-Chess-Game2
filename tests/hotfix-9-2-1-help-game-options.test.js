@@ -26,6 +26,29 @@ test('/help is a canonical standalone page in the persistent shell', () => {
   assert.ok(read('public/sitemap.xml').includes('https://www.caissa-chess.org/help'));
 });
 
+test('Help explains public chess nickname changes in English and Spanish', () => {
+  const page = load(read('help.html'));
+  const topic = page('[data-help-topic="public-identity"]');
+  assert.equal(topic.length, 1);
+  assert.equal(topic.children('summary').text().trim(), 'Change your public chess name');
+  assert.equal(topic.find('[lang="en"]').length, 1);
+  assert.equal(topic.find('[lang="es"]').length, 1);
+
+  const copy = topic.text().replace(/\s+/g, ' ');
+  for (const required of [
+    'Player-XXXX...', 'Account & identity', 'Public chess identity',
+    'Public nickname', 'Check', 'Save public identity',
+    'email stays private', 'not public until you save it',
+    'New games use your updated public identity',
+    'completed games may keep the name used when they were played',
+    'tu correo electrónico permanece privado',
+    'El cambio no será público hasta que lo guardes',
+    'Las partidas nuevas usan tu identidad pública actualizada'
+  ]) assert.ok(copy.includes(required), `missing Help copy: ${required}`);
+
+  assert.equal(topic.find('form, input, button, script').length, 0);
+});
+
 test('Help is a route and game-specific Settings is absent from global navigation', () => {
   const support = inventory().support;
   assert.equal(support.find(item => item.id === 'help').route, '/help');
