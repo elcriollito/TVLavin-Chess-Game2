@@ -162,6 +162,52 @@ test('sync ignores browser identity fields and persists only the Backend-verifie
     assert.doesNotMatch(JSON.stringify(updates), /attacker|admin|999/);
 });
 
+test('subsequent ownership sync without an email claim preserves the verified stored email', async () => {
+    const updates = [];
+    const storedEmail = 'verified-primary@example.test';
+    const db = {
+        from(name) {
+            assert.equal(name, 'users');
+            return {
+                update(value) {
+                    updates.push(value);
+                    return {
+                        eq() { return this; },
+                        select() { return this; },
+                        single: async () => ({
+                            data: {
+                                clerk_id: auth.userId,
+                                email: storedEmail,
+                                role: 'member',
+                                is_premium: false,
+                                credits: 5
+                            },
+                            error: null
+                        })
+                    };
+                }
+            };
+        }
+    };
+    const res = response();
+    await syncHandler({ method: 'POST', headers: {}, body: {} }, res, {
+        env: stagingEnv,
+        verifyAuth: async () => ({ ...auth, email: null }),
+        getSupabase: () => db,
+        resolveIdentityOwnership: async () => ({
+            ok: true,
+            status: 200,
+            userId: '10000000-0000-4000-8000-000000000001',
+            bindingId: '20000000-0000-4000-8000-000000000001'
+        }),
+        enrollPublicRegistration: async () => assert.fail('existing verified ownership must not re-enroll')
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.user.email, storedEmail);
+    assert.equal(Object.hasOwn(updates[0], 'email'), false);
+});
+
 test('migration is service-role only, atomic, idempotent and rejects historical/email collisions', () => {
     const sql = fs.readFileSync('supabase/migrations/20261101192942_caissa_public_registration_v1.sql', 'utf8');
     assert.match(sql, /security definer[\s\S]*set search_path = ''/iu);

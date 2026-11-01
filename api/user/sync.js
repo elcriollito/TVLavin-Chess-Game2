@@ -60,9 +60,11 @@ export default async function handler(req, res, dependencies = {}) {
             }
 
             const syncEmail = ownership.verifiedEmail || safeEmail;
+            const updateData = { updated_at: new Date().toISOString() };
+            if (syncEmail) updateData.email = syncEmail;
             const { data, error } = await supabase
                 .from('users')
-                .update({ email: syncEmail, updated_at: new Date().toISOString() })
+                .update(updateData)
                 .eq('id', ownership.userId)
                 .eq('clerk_id', auth.userId)
                 .select('clerk_id, email, role, is_premium, credits')

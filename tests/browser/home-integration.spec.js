@@ -85,7 +85,7 @@ test('desktop Home renders approved identity, route discovery and clean console'
   await expect(scannerAllTools).toContainText('Scan chess positions from screenshots, websites, broadcasts, and photos of 2D boards.');
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeVisible();
   await expect(page.getByText('Coming next')).toBeVisible();
-  await expect(page.getByText('New accounts are temporarily paused.')).toBeVisible();
+  await expect(page.getByText('New accounts are temporarily paused.')).toHaveCount(0);
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
   await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
@@ -141,7 +141,7 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
   }
 });
 
-test('auth check failure keeps Sign in and Settings available while registration is paused', async ({ page }) => {
+test('auth check failure keeps Sign in and Settings available without the retired pause copy', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installAuthMock(page, {
     isLoaded: true,
@@ -161,7 +161,7 @@ test('auth check failure keeps Sign in and Settings available while registration
 
   const journey = page.locator('#account-content');
   await expect(journey.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(journey).toContainText('new registration is temporarily paused.');
+  await expect(journey).not.toContainText('registration is temporarily paused');
   await expect(journey.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
@@ -318,6 +318,8 @@ test('Home Account & identity reuses the native privacy panel across responsive 
   ];
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await expect(page.locator('.season-label')).toHaveCount(0);
+    await expect(page.getByText('Home · 2026 season', { exact: true })).toHaveCount(0);
     const trigger = topbar.getByRole('button', { name: 'AP Ada Player account menu', exact: true });
     await trigger.focus();
     await trigger.press('Enter');
@@ -400,7 +402,7 @@ test('Home loads progress after sign-in and keeps API errors account-scoped', as
   });
 
   await page.goto('/');
-  await expect(page.getByText('New accounts are temporarily paused.')).toBeVisible();
+  await expect(page.getByText('New accounts are temporarily paused.')).toHaveCount(0);
   await page.evaluate(() => window.CAISSA_AUTH.__setAuthForTest({
     isSignedIn: true,
     userId: 'user_alexander',
@@ -470,7 +472,7 @@ test('Home refreshes restored progress and rejects stale account responses', asy
 
   await page.getByRole('button', { name: /Second Player account menu$/ }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-  await expect(page.getByText('New accounts are temporarily paused.')).toBeVisible();
+  await expect(page.getByText('New accounts are temporarily paused.')).toHaveCount(0);
   await expect(page.locator('#account-content')).not.toContainText('1,847');
   await expect(page.locator('#topbar-account').getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
 });

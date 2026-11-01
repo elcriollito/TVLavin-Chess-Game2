@@ -71,6 +71,8 @@ test('Home owns canonical metadata and preserves the approved product boundaries
   assert.equal($('.online-callout').text().includes('CAISSA Online'), true);
   assert.equal($('.online-callout').text().includes('Play against other people'), true);
   assert.equal($('.online-callout a[href="/online"]').text().trim(), 'Play online');
+  assert.equal($('.season-label').length, 0);
+  assert.equal($.root().text().includes('Home · 2026 season'), false);
   assert.equal($('.sidebar a[href="/scanner"]').text().trim(), 'Scanner');
   assert.equal($('.mobile-nav a[href="/scanner"]').text().trim(), 'Scanner');
   assert.equal($('.scanner-home-card[href="/scanner"]').length, 1);
