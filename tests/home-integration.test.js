@@ -127,6 +127,10 @@ test('Home auth and progress presentation distinguishes loading, guest, connecte
   assert.match(source, /event\.persisted/);
   assert.match(source, /auth\.userId !== userId/);
   assert.match(source, /caissa\.home\.recent-tools\.v1/);
+  assert.match(source, /Account & identity/);
+  assert.match(source, /import\('\/js\/identity\/public-identity-dialog\.js'\)/);
+  assert.match(source, /openPublicIdentityAccount\(\{ auth, opener \}\)/);
+  assert.match(source, /publicIdentityModulePromise = null/);
   assert.match(source, /openUserProfile/);
   assert.match(source, /authHref\('signin'\)/);
   assert.doesNotMatch(source, /authHref\('signup'\)/);
