@@ -33,7 +33,7 @@ function signedToken(overrides = {}) {
   const payload = Buffer.from(JSON.stringify({
     sub: 'synthetic-user', sid: 'session-a', jti: 'token-a',
     iss: localIssuer, azp: 'https://www.caissa-chess.org',
-    iat: now, nbf: now - 1, exp: now + 120, fva: [0, -1],
+    iat: now, nbf: now - 1, exp: now + 120, fva: [0, -1], v: 2,
     ...overrides
   })).toString('base64url');
   const unsigned = `${header}.${payload}`;
@@ -265,6 +265,11 @@ test('real local Clerk verification accepts only intact, current, issuer-bound a
   assert.equal(valid.sessionId, 'session-a');
   assert.equal(valid.tokenId, 'token-a');
   assert.deepEqual(valid.factorVerificationAge, [0, -1]);
+
+  const withoutTokenId = await authenticate(request('GET', `Bearer ${signedToken({ jti: undefined })}`));
+  assert.equal(withoutTokenId.authenticated, true);
+  assert.equal(withoutTokenId.tokenId, null);
+  assert.deepEqual(withoutTokenId.factorVerificationAge, [0, -1]);
 
   const now = Math.floor(Date.now() / 1000);
   const invalidTokens = [

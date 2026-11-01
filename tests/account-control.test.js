@@ -165,8 +165,16 @@ test('environment gate binds mode, Clerk authority, ownership mode and exact Sup
     assert.equal(accountControlEnvironment(environment({ CAISSA_IDENTITY_OWNERSHIP_MODE: 'off' })), null);
     assert.equal(accountControlEnvironment(environment({ SUPABASE_URL: 'https://jczauvkfkweuvdpurpem.supabase.co' })), null);
     assert.equal(accountControlEnvironment(environment({ CAISSA_ACCOUNT_CONTROL_MODE: 'production' })), null);
+    assert.deepEqual(accountControlEnvironment(environment({
+        CAISSA_ACCOUNT_CONTROL_MODE: 'production',
+        CAISSA_CLERK_AUTHORITY: 'production',
+        SUPABASE_URL: 'https://jczauvkfkweuvdpurpem.supabase.co',
+        CLERK_SECRET_KEY: 'sk_live_fixture'
+    })), {
+        mode: 'production', projectRef: 'jczauvkfkweuvdpurpem', authority: 'production'
+    });
 });
-test('fresh reverification uses signed Clerk fva and rejects token age or missing session metadata', () => {
+test('fresh reverification uses signed Clerk identity, sid and fva while treating jti as optional metadata', () => {
     assert.equal(freshReverification(auth()), true);
     assert.equal(freshReverification(auth({ factorVerificationAge: [0, -1] })), true);
     assert.equal(freshReverification(auth({ factorVerificationAge: [5, -1] })), true);
@@ -177,7 +185,28 @@ test('fresh reverification uses signed Clerk fva and rejects token age or missin
     assert.equal(freshReverification(auth({ factorVerificationAge: {} })), false);
     assert.equal(freshReverification(auth({ factorVerificationAge: null })), false);
     assert.equal(freshReverification(auth({ sessionId: null })), false);
-    assert.equal(freshReverification(auth({ tokenId: null })), false);
+    assert.equal(freshReverification(auth({ sessionId: '   ' })), false);
+    assert.equal(freshReverification(auth({ userId: null })), false);
+    assert.equal(freshReverification(auth({ userId: '   ' })), false);
+    assert.equal(freshReverification(auth({ authenticated: false })), false);
+    assert.equal(freshReverification(auth({ tokenId: null })), true);
+});
+
+test('Production Account Control accepts a verified v2 session without jti only after ACTIVE lookup and fresh fva', async () => {
+    const current = fixture({
+        authResult: auth({ authority: 'production', tokenId: null }),
+        envOverrides: {
+            CAISSA_ACCOUNT_CONTROL_MODE: 'production',
+            CAISSA_CLERK_AUTHORITY: 'production',
+            SUPABASE_URL: 'https://jczauvkfkweuvdpurpem.supabase.co',
+            CLERK_SECRET_KEY: 'sk_live_fixture'
+        }
+    });
+    const res = response();
+    await current.handlers.exportData(request('POST', {}), res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(current.rateLimitInputs.map(input => input.bucket), ['session_lookup', 'export']);
+    assert.equal(current.sessionCalls.length, 1);
 });
 
 test('Account Control requires a current active Clerk session bound to the signed sid and sub', async () => {
@@ -231,7 +260,7 @@ test('inactive sessions cannot consume a replacement session\'s per-user action 
     assert.notEqual(revoked.rateLimitInputs[0].scopeHash, replacement.rateLimitInputs[0].scopeHash);
 });
 
-test('JWT refresh keeps the Clerk lookup quota stable while fresh verification controls action eligibility', async () => {
+test('JWT refresh keeps the Clerk lookup quota stable and missing jti does not weaken freshness checks', async () => {
     const stale = fixture({ authResult: auth({ factorVerificationAge: [7, -1], tokenId: 'jwt_stale' }) });
     const staleResponse = response();
     await stale.handlers.exportData(request('POST', {}), staleResponse);
@@ -239,12 +268,18 @@ test('JWT refresh keeps the Clerk lookup quota stable while fresh verification c
     assert.equal(staleResponse.body.code, 'REVERIFICATION_REQUIRED');
     assert.deepEqual(stale.rateLimitInputs.map(input => input.bucket), ['session_lookup']);
 
-    const fresh = fixture({ authResult: auth({ factorVerificationAge: [0, -1], tokenId: 'jwt_fresh' }) });
+    const fresh = fixture({ authResult: auth({ factorVerificationAge: [0, -1], tokenId: null }) });
     const freshResponse = response();
     await fresh.handlers.exportData(request('POST', {}), freshResponse);
     assert.equal(freshResponse.statusCode, 200);
     assert.deepEqual(fresh.rateLimitInputs.map(input => input.bucket), ['session_lookup', 'export']);
     assert.equal(stale.rateLimitInputs[0].scopeHash, fresh.rateLimitInputs[0].scopeHash);
+
+    const rotated = fixture({ authResult: auth({ factorVerificationAge: [0, -1], tokenId: 'jwt_rotated' }) });
+    const rotatedResponse = response();
+    await rotated.handlers.exportData(request('POST', {}), rotatedResponse);
+    assert.equal(rotatedResponse.statusCode, 200);
+    assert.equal(fresh.rateLimitInputs[0].scopeHash, rotated.rateLimitInputs[0].scopeHash);
 });
 
 test('Account Control rejects missing or crossed signed session identity before account-data access', async () => {
@@ -342,7 +377,6 @@ test('summary is scoped to the ownership UUID and exposes no client-selected tar
 test('stale reverification, crossed authority, CSRF origin and owner fields fail before effects', async () => {
     for (const [authResult, req, expected] of [
         [auth({ factorVerificationAge: [7, -1] }), request('POST', {}), 'REVERIFICATION_REQUIRED'],
-        [auth({ tokenId: null }), request('POST', {}), 'REVERIFICATION_REQUIRED'],
         [auth({ factorVerificationAge: null }), request('POST', {}), 'REVERIFICATION_REQUIRED'],
         [auth({ authority: 'production' }), request('POST', {}), 'IDENTITY_AUTHORITY_REJECTED'],
         [auth(), request('POST', {}, { origin: 'https://attacker.example' }), null]

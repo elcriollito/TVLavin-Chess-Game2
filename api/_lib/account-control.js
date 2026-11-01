@@ -46,7 +46,9 @@ export function accountControlEnvironment(env = process.env) {
 
 export function freshReverification(auth) {
     const firstFactorAge = auth?.factorVerificationAge?.[0];
-    return Boolean(auth?.sessionId && auth?.tokenId
+    return Boolean(auth?.authenticated === true
+        && typeof auth?.userId === 'string' && auth.userId.trim()
+        && typeof auth?.sessionId === 'string' && auth.sessionId.trim()
         && Number.isInteger(firstFactorAge) && firstFactorAge >= 0 && firstFactorAge <= FRESH_MINUTES);
 }
 
