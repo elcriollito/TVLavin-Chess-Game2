@@ -14,6 +14,7 @@
     "test:online": "node --test tests/online/*.test.js",
     "test:public-identity": "node --test tests/public-identity-policy.test.js tests/public-identity-api.test.js tests/public-identity-migration.test.js tests/online/public-identity-projection.test.js",
     "test:sec005": "node --test tests/identity-remapping-foundation.test.js tests/clerk-migration-cutover-tooling.test.js tests/identity-migration-default-off.test.js tests/sec005-cutover-compatibility.test.js tests/identity-owner-handoff.test.js tests/auth-complete-recovery.test.js tests/identity-recovery-client.test.js tests/identity-recovery-return.test.js",
+    "test:auth-bootstrap": "node --test tests/caissa-auth-loader-resilience.test.js tests/clerk-bootstrap-race.test.js tests/signin-bootstrap-hotfix.test.js && playwright test tests/browser/caissa-auth-loader-resilience.spec.js tests/browser/signin-bootstrap-hotfix.spec.js --project=chromium --project=firefox --project=webkit",
     "test:identity-organization": "node --test tests/api-auth-contract.test.js tests/auth-registration-sync.test.js tests/public-identity-api.test.js tests/puzzles-account-progress.test.js tests/identity-organization.test.js tests/staging-synthetic-identity.test.js",
     "test:staging-synthetic-identity:postgres": "node tests/run-staging-synthetic-identity-postgres.mjs",
     "test:account-control": "node --test tests/account-control.test.js tests/account-control-client.test.js tests/account-export-stream.test.js tests/checkout-customer-linkage.test.js tests/recent-reauthentication.test.js",

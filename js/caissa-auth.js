@@ -8,9 +8,12 @@
 (function() {
     'use strict';
 
-    const CLERK_SDK_URL = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js';
-    const CLERK_SDK_INTEGRITY = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
     const CLERK_UI_VERSION = '1.30.1';
+    const CLERK_JS_VERSION = '6.28.1';
+    const CLERK_UI_CDN_URL = `https://cdn.jsdelivr.net/npm/@clerk/ui@${CLERK_UI_VERSION}/dist/ui.browser.js`;
+    const CLERK_JS_CDN_URL = `https://cdn.jsdelivr.net/npm/@clerk/clerk-js@${CLERK_JS_VERSION}/dist/clerk.browser.js`;
+    const CLERK_UI_INTEGRITY = 'sha384-BX9kdfAv6/55jYgfyaZcddR1/MJYO/idlamutUDyTEv0YUL56a9Wx7IHgfEnbL82';
+    const CLERK_JS_INTEGRITY = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
 
     // Global auth state object
     window.CAISSA_AUTH = {
@@ -29,6 +32,8 @@
     let _sessionListeners = [];
     let _clerkLoadPromise = null;
     let _initializePromise = null;
+    let _sessionListenerAttached = false;
+    let _automaticRetryUsed = false;
     let _lastAuthSignature = '';
     let _lastBootstrappedUserId = null;
 
@@ -49,41 +54,70 @@
         }
     }
 
-    function _loadClerkUi(publishableKey) {
-        if (window.__internal_ClerkUICtor) return Promise.resolve();
-        const clerkDomain = _getClerkDomain(publishableKey);
+    function _loadScript(src, { integrity, publishableKey } = {}) {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.async = true;
             script.crossOrigin = 'anonymous';
             script.referrerPolicy = 'no-referrer';
-            script.src = `https://${clerkDomain}/npm/@clerk/ui@${CLERK_UI_VERSION}/dist/ui.browser.js`;
-            script.onload = resolve;
-            script.onerror = () => reject(new Error('Clerk UI failed to load'));
+            script.src = src;
+            if (integrity) script.integrity = integrity;
+            if (publishableKey) script.dataset.clerkPublishableKey = publishableKey;
+            script.onload = () => resolve(script);
+            script.onerror = () => {
+                script.remove?.();
+                reject(new Error('Clerk asset failed to load'));
+            };
             document.head.appendChild(script);
         });
     }
 
+    async function _loadScriptWithFallback(sources, options, validate, label) {
+        let lastError;
+        for (const source of sources) {
+            let script;
+            try {
+                if (validate()) return;
+                const src = typeof source === 'function' ? source() : source;
+                script = await _loadScript(src, options);
+                if (!validate()) throw new Error(`${label} did not expose the expected browser API`);
+                return;
+            } catch (error) {
+                script?.remove?.();
+                lastError = error;
+                console.warn(`CAISSA Auth: ${label} source unavailable; trying the next approved source`);
+            }
+        }
+        throw lastError || new Error(`No approved ${label} source is available`);
+    }
+
     async function _loadClerkSdk(publishableKey, includeUi) {
-        if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
+        const sdkReady = () => Boolean(window.Clerk && typeof window.Clerk.load === 'function');
+        const uiReady = () => typeof window.__internal_ClerkUICtor === 'function';
+        if (sdkReady() && (!includeUi || uiReady())) return window.Clerk;
         if (_clerkLoadPromise) return _clerkLoadPromise;
 
-        _clerkLoadPromise = (async () => {
-            if (includeUi) await _loadClerkUi(publishableKey);
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.async = true;
-                script.crossOrigin = 'anonymous';
-                script.integrity = CLERK_SDK_INTEGRITY;
-                script.src = CLERK_SDK_URL;
-                script.dataset.clerkPublishableKey = publishableKey;
-                script.onload = () => resolve(window.Clerk);
-                script.onerror = () => reject(new Error('Clerk SDK failed to load'));
-                document.head.appendChild(script);
-            });
+        const attempt = (async () => {
+            if (includeUi && !uiReady()) {
+                await _loadScriptWithFallback([
+                    CLERK_UI_CDN_URL,
+                    () => `https://${_getClerkDomain(publishableKey)}/npm/@clerk/ui@${CLERK_UI_VERSION}/dist/ui.browser.js`
+                ], { integrity: CLERK_UI_INTEGRITY }, uiReady, 'Clerk UI');
+            }
+            if (!sdkReady()) {
+                await _loadScriptWithFallback([
+                    CLERK_JS_CDN_URL,
+                    () => `https://${_getClerkDomain(publishableKey)}/npm/@clerk/clerk-js@${CLERK_JS_VERSION}/dist/clerk.browser.js`
+                ], { integrity: CLERK_JS_INTEGRITY, publishableKey }, sdkReady, 'ClerkJS');
+            }
+            return window.Clerk;
         })();
 
-        return _clerkLoadPromise;
+        _clerkLoadPromise = attempt;
+        attempt.catch(() => {
+            if (_clerkLoadPromise === attempt) _clerkLoadPromise = null;
+        });
+        return attempt;
     }
 
     /**
@@ -106,7 +140,7 @@
             window.CAISSA_AUTH.isLoaded = true;
             window.CAISSA_AUTH.status = 'unavailable';
             _notifyListeners();
-            return;
+            return false;
         }
 
         try {
@@ -123,9 +157,12 @@
             window.CAISSA_AUTH.clerk = _clerkInstance;
 
             // Set up session listener
-            _clerkInstance.addListener((event) => {
-                _handleSessionChange();
-            });
+            if (!_sessionListenerAttached) {
+                _clerkInstance.addListener(() => {
+                    _handleSessionChange();
+                });
+                _sessionListenerAttached = true;
+            }
 
             // Initial session check. Mark loaded first so UI never renders a
             // transient signed-out state while Clerk already has a session.
@@ -133,7 +170,7 @@
             _handleSessionChange();
 
             console.log('CAISSA Auth: Initialized successfully');
-            return;
+            return true;
 
         } catch (error) {
             console.warn('CAISSA Auth: Initialization failed - running without authentication', error);
@@ -142,11 +179,25 @@
         }
 
         _notifyListeners();
+        return false;
     }
 
     function initializeAuth() {
-        if (!_initializePromise) _initializePromise = _initializeAuthOnce();
-        return _initializePromise;
+        if (_initializePromise) return _initializePromise;
+        const attempt = _initializeAuthOnce().then(initialized => {
+            if (!initialized && _initializePromise === attempt) {
+                _initializePromise = null;
+                if (!_automaticRetryUsed && _getConfiguredPublishableKey() && typeof window.setTimeout === 'function') {
+                    _automaticRetryUsed = true;
+                    window.setTimeout(() => {
+                        if (!_initializePromise && window.CAISSA_AUTH.status === 'unavailable') initializeAuth();
+                    }, 1_000);
+                }
+            }
+            return window.CAISSA_AUTH;
+        });
+        _initializePromise = attempt;
+        return attempt;
     }
 
     /**
