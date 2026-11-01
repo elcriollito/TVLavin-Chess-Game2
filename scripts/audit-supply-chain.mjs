@@ -7,6 +7,8 @@ import { auditHttpsExternalScripts } from './supply-chain-script-tags.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const clerkUrl = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js';
 const clerkIntegrity = 'sha384-hDYzybzZL06dXvUhFHr0WXKf/sBfpbnhOwxF4xa/m4/hOYAAgZrNpO1n6eJ5np47';
+const clerkUiUrl = 'https://cdn.jsdelivr.net/npm/@clerk/ui@1.30.1/dist/ui.browser.js';
+const clerkUiIntegrity = 'sha384-BX9kdfAv6/55jYgfyaZcddR1/MJYO/idlamutUDyTEv0YUL56a9Wx7IHgfEnbL82';
 const externalScriptRegistry = Object.freeze(new Map([
     [clerkUrl, clerkIntegrity],
     ['https://pgn.chessbase.com/jquery-3.0.0.min.js', 'sha384-THPy051/pYDQGanwU6poAc/hOdQxjnOEXzbT+OuUAFqNqFjL+4IGLBgCJC3ZOShY'],
@@ -37,8 +39,24 @@ for (const file of runtimeFiles) {
 }
 
 const authSource = fs.readFileSync(path.join(root, 'js/caissa-auth.js'), 'utf8');
-if (!authSource.includes(`CLERK_SDK_URL = '${clerkUrl}'`) || !authSource.includes(`CLERK_SDK_INTEGRITY = '${clerkIntegrity}'`)
-    || !authSource.includes('script.integrity = CLERK_SDK_INTEGRITY')) failures.push('dynamic Clerk loader is not pinned with SRI');
+const clerkLoaderContract = [
+    "CLERK_UI_VERSION = '1.30.1'",
+    "CLERK_JS_VERSION = '6.28.1'",
+    `CLERK_UI_INTEGRITY = '${clerkUiIntegrity}'`,
+    `CLERK_JS_INTEGRITY = '${clerkIntegrity}'`,
+    'CLERK_UI_CDN_URL',
+    'CLERK_JS_CDN_URL',
+    '/npm/@clerk/ui@${CLERK_UI_VERSION}/dist/ui.browser.js',
+    '/npm/@clerk/clerk-js@${CLERK_JS_VERSION}/dist/clerk.browser.js',
+    '{ integrity: CLERK_UI_INTEGRITY }',
+    '{ integrity: CLERK_JS_INTEGRITY, publishableKey }',
+    'script.integrity = integrity'
+];
+if (!authSource.includes(clerkUiUrl.replace('@1.30.1', '@${CLERK_UI_VERSION}'))
+    || !authSource.includes(clerkUrl.replace('@6.28.1', '@${CLERK_JS_VERSION}'))
+    || clerkLoaderContract.some(contract => !authSource.includes(contract))) {
+    failures.push('dynamic Clerk UI/JS loaders are not pinned with reviewed SRI on every approved source');
+}
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
