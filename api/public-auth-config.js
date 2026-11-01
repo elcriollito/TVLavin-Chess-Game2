@@ -1,5 +1,6 @@
 import { ownerHandoffOrigins } from './_lib/identity-owner-handoff.js';
 import { isIdentityMigrationEnforced } from './_lib/identity-resolution.js';
+import { isPublicRegistrationOpen } from './_lib/public-registration.js';
 
 /**
  * Public auth configuration for the browser.
@@ -32,8 +33,9 @@ export default function handler(req, res) {
         registrationTracking: Boolean(
             process.env.CLERK_SECRET_KEY &&
             supabaseUrl &&
-            process.env.SUPABASE_SERVICE_ROLE_KEY
+            (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
         ),
+        registrationOpen: isPublicRegistrationOpen(process.env),
         identityOwnerHandoff: publicOwnerHandoffMetadata(process.env)
     });
 }

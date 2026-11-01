@@ -522,6 +522,21 @@
     text-decoration: underline;
 }
 
+.auth-registration-status {
+    margin: 24px 0;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #dce3ed;
+    line-height: 1.55;
+}
+
+.auth-registration-status p {
+    margin: 8px 0 0;
+    color: #c2cad7;
+}
+
 /* ========================================
    RESPONSIVE
    ======================================== */

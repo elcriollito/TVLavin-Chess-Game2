@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync('js/signin-page.js', 'utf8');
+const loaderSource = fs.readFileSync('js/clerk-auth-page-loader.js', 'utf8');
 const validKey = 'pk_test_c3ludGhldGljLmNsZXJrLmFjY291bnRzLmRldiQ';
 const uiCdn = 'https://cdn.jsdelivr.net/npm/@clerk/ui@1.30.1/dist/ui.browser.js';
 const uiFallback = 'https://synthetic.clerk.accounts.dev/npm/@clerk/ui@1.30.1/dist/ui.browser.js';
@@ -34,9 +35,12 @@ function bootstrapWithFirstUiSourceUnavailable() {
         createElement: () => ({
             async: false,
             crossOrigin: '',
+            dataset: {},
             attributes: {},
-            setAttribute(name, value) { this.attributes[name] = value; }
+            setAttribute(name, value) { this.attributes[name] = value; },
+            remove() {}
         }),
+        querySelectorAll: () => [],
         head: {
             appendChild(script) {
                 attempts.push({ src: script.src, attributes: { ...script.attributes }, crossOrigin: script.crossOrigin });
@@ -57,7 +61,7 @@ function bootstrapWithFirstUiSourceUnavailable() {
         }
     };
 
-    vm.runInContext(source, vm.createContext({
+    const context = vm.createContext({
         window,
         document,
         URL,
@@ -66,7 +70,9 @@ function bootstrapWithFirstUiSourceUnavailable() {
         console,
         queueMicrotask,
         atob: value => Buffer.from(value, 'base64').toString('utf8')
-    }));
+    });
+    vm.runInContext(loaderSource, context);
+    vm.runInContext(source, context);
 
     return {
         attempts,
@@ -75,11 +81,12 @@ function bootstrapWithFirstUiSourceUnavailable() {
 }
 
 test('sign-in pins reviewed Clerk UI and ClerkJS versions without runtime ranges', () => {
-    assert.match(source, /@clerk\/ui@\$\{CLERK_UI_VERSION\}/);
-    assert.match(source, /@clerk\/clerk-js@\$\{CLERK_JS_VERSION\}/);
-    assert.doesNotMatch(source, /@clerk\/clerk-js@6\/dist|@clerk\/ui@1\/dist|@latest|@next/);
-    assert.match(source, /CLERK_UI_INTEGRITY = 'sha384-/);
-    assert.match(source, /CLERK_JS_INTEGRITY = 'sha384-/);
+    assert.match(loaderSource, /@clerk\/ui@\$\{UI_VERSION\}/);
+    assert.match(loaderSource, /@clerk\/clerk-js@\$\{JS_VERSION\}/);
+    assert.doesNotMatch(loaderSource, /@clerk\/clerk-js@6\/dist|@clerk\/ui@1\/dist|@latest|@next/);
+    assert.match(loaderSource, /UI_INTEGRITY = 'sha384-/);
+    assert.match(loaderSource, /JS_INTEGRITY = 'sha384-/);
+    assert.match(loaderSource, /loadPromise = null/);
 });
 
 test('sign-in falls back to the exact custom-domain asset after a CDN load failure', async () => {

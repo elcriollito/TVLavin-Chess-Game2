@@ -4,31 +4,35 @@ import test from 'node:test';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('signup is a static bilingual pause page and cannot mount Clerk signup', () => {
+test('signup exposes the reviewed Clerk surface behind a server-hydrated gate', () => {
   const html = read('signup.html');
-  assert.match(html, /id="registration-paused-title"/);
-  assert.match(html, /lang="es"/);
-  assert.match(html, /lang="en"/);
-  assert.match(html, /registrations are temporarily paused/i);
-  assert.doesNotMatch(html, /id="clerk-sign-up"|signup-page\.js|mountSignUp/i);
+  const signup = read('js/signup-page.js');
+  assert.match(html, /id="registration-unavailable"[^>]*hidden/);
+  assert.match(html, /id="clerk-sign-up"[^>]*hidden/);
+  assert.match(html, /clerk-auth-page-loader\.js/);
+  assert.match(html, /signup-page\.js/);
+  assert.match(signup, /REGISTRATION_OPEN !== true/);
+  assert.match(signup, /CAISSA_CLERK_PAGE_LOADER\.load/);
+  assert.match(signup, /mountSignUp/);
+  assert.match(signup, /transferable:\s*false/);
   assert.match(html, /href="\/signin"/);
 });
 
-test('home and sign in explain pause while leaving sign in and chess tools available', () => {
+test('Home and Sign In expose Create account only when the backend gate is open', () => {
   const home = read('home.html');
   const signin = read('signin.html');
   const homeJs = read('js/home/home.js');
-  assert.match(home, /id="home-registration-notice-title"/);
-  assert.match(home, /registration-paused\.css/);
-  assert.match(signin, /registration temporarily paused/i);
+  assert.doesNotMatch(home, /home-registration-notice-title|registration-paused\.css/);
+  assert.doesNotMatch(signin, /registration temporarily paused/i);
   assert.match(signin, /id="clerk-sign-in"/);
+  assert.match(signin, /id="signin-registration-link" hidden/);
   assert.match(signin, /signin-page\.js/);
   const signinClient = read('js/signin-page.js');
   assert.match(signinClient, /transferable:\s*false/);
-  assert.match(signinClient, /withSignUp:\s*false/);
-  assert.doesNotMatch(homeJs, /authHref\('signup'\)/);
+  assert.match(signinClient, /withSignUp:\s*config\.REGISTRATION_OPEN === true/);
+  assert.match(homeJs, /REGISTRATION_OPEN === true/);
+  assert.match(homeJs, /authHref\('signup'\)/);
   assert.match(homeJs, /authHref\('signin'\)/);
-  assert.match(read('css/registration-paused.css'), /max-width:720px/);
 });
 
 test('routes stay intact, signup responses are uncached, reset is not falsely announced', () => {

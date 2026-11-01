@@ -98,8 +98,10 @@ test('the exact Staging schema baseline is restored only after guarded zero-resi
     assert.match(postgresRunner, /CAISSA_STAGING_SYNTHETIC_IDENTITY_TEARDOWN_RACE_PASS/i);
 });
 
-test('ordinary Development sync remains fail-closed and Production-only approval is unchanged', () => {
+test('ordinary Development sync can enroll only through the explicit public-registration gate', () => {
     assert.match(sync, /auth\.authority === 'production'/i);
     assert.match(sync, /isIdentityMigrationEnforced\(env\)/i);
-    assert.doesNotMatch(sync, /legacy_development[\s\S]*provisionApprovedIdentity/i);
+    assert.match(sync, /enrollPublicRegistration/i);
+    assert.match(fs.readFileSync('api/_lib/public-registration.js', 'utf8'), /CAISSA_PUBLIC_REGISTRATION_MODE/i);
+    assert.match(fs.readFileSync('api/_lib/public-registration.js', 'utf8'), /legacy_development/i);
 });

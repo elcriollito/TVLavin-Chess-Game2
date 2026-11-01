@@ -7,8 +7,6 @@
 (function() {
     'use strict';
 
-    let clerkLoadPromise = null;
-
     // Get redirect URL from query params
     function getRedirectUrl() {
         const params = new URLSearchParams(window.location.search);
@@ -17,49 +15,6 @@
 
     function getCompletionUrl() {
         return '/auth/complete?redirect_url=' + encodeURIComponent(getRedirectUrl());
-    }
-
-    function getClerkDomain(publishableKey) {
-        try {
-            return atob(publishableKey.split('_')[2]).slice(0, -1);
-        } catch (error) {
-            throw new Error('Invalid Clerk publishable key');
-        }
-    }
-
-    function loadScript(src, attributes = {}) {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.async = true;
-            script.crossOrigin = 'anonymous';
-            script.src = src;
-            Object.entries(attributes).forEach(([key, value]) => {
-                script.setAttribute(key, value);
-            });
-            script.onload = resolve;
-            script.onerror = () => reject(new Error(`Failed to load ${src}`));
-            document.head.appendChild(script);
-        });
-    }
-
-    function loadClerkSdk(publishableKey) {
-        if (typeof window.Clerk !== 'undefined') return Promise.resolve(window.Clerk);
-        if (clerkLoadPromise) return clerkLoadPromise;
-
-        clerkLoadPromise = (async () => {
-            window.process = window.process || {};
-            window.process.env = window.process.env || {};
-            window.process.env.CLERK_TELEMETRY_DISABLED = '1';
-
-            const clerkDomain = getClerkDomain(publishableKey);
-            await loadScript(`https://${clerkDomain}/npm/@clerk/ui@1.30.1/dist/ui.browser.js`);
-            await loadScript(`https://${clerkDomain}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`, {
-                'data-clerk-publishable-key': publishableKey
-            });
-            return window.Clerk;
-        })();
-
-        return clerkLoadPromise;
     }
 
     // Initialize Clerk Sign Up
@@ -80,6 +35,15 @@
             }
         }
 
+        const unavailable = document.getElementById('registration-unavailable');
+        if (config?.REGISTRATION_OPEN !== true) {
+            container.hidden = true;
+            if (unavailable) unavailable.hidden = false;
+            return;
+        }
+        if (unavailable) unavailable.hidden = true;
+        container.hidden = false;
+
         // Check if key is configured before waiting for the Clerk SDK.
         const publishableKey = config?.CLERK_PUBLISHABLE_KEY;
         if (!publishableKey || publishableKey === 'pk_test_REPLACE_WITH_YOUR_KEY') {
@@ -94,7 +58,7 @@
         }
 
         try {
-            const Clerk = await loadClerkSdk(publishableKey);
+            const Clerk = await window.CAISSA_CLERK_PAGE_LOADER.load(publishableKey);
             if (!Clerk) throw new Error('Clerk SDK unavailable');
 
             // Load Clerk with publishable key
@@ -110,6 +74,7 @@
 
             // Mount Sign Up component
             Clerk.mountSignUp(container, {
+                transferable: false,
                 signInForceRedirectUrl: getCompletionUrl(),
                 signUpForceRedirectUrl: getCompletionUrl(),
                 signInUrl: '/signin',

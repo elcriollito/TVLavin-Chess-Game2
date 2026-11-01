@@ -6,6 +6,7 @@ import {
     resolveVerifiedIdentityOwnership,
     respondIdentityOwnershipFailure
 } from '../_lib/identity-ownership.js';
+import curatedCatalog from '../../public/data/puzzles/lichess-curated-preview.json' with { type: 'json' };
 
 const PUZZLE_ID = /^[A-Za-z0-9]{5}$/u;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -105,14 +106,24 @@ export default async function handler(req, res, dependencies = {}) {
 }
 
 export async function lookupPuzzle(puzzleId, { fetchFn = fetch, env = process.env } = {}) {
-    if (!env.CAISSA_PUZZLE_WORKER_URL || !env.CAISSA_PUZZLE_WORKER_TOKEN) throw new Error('Catalog unavailable');
+    if (!env.CAISSA_PUZZLE_WORKER_URL || !env.CAISSA_PUZZLE_WORKER_TOKEN) {
+        return lookupCuratedPuzzle(puzzleId);
+    }
     const url = new URL(`/v1/puzzle/${puzzleId}`, env.CAISSA_PUZZLE_WORKER_URL);
     const response = await fetchFn(url, {
         headers: { Authorization: `Bearer ${env.CAISSA_PUZZLE_WORKER_TOKEN}` },
         signal: AbortSignal.timeout(5000),
     });
-    if (!response.ok) throw new Error('Catalog lookup failed');
+    if (!response.ok) return lookupCuratedPuzzle(puzzleId);
     const puzzle = await response.json();
     if (puzzle.puzzleId !== puzzleId || puzzle.sourceVersion !== SOURCE_VERSION) throw new Error('Catalog mismatch');
     return puzzle;
+}
+
+export function lookupCuratedPuzzle(puzzleId, catalog = curatedCatalog) {
+    const puzzle = catalog?.puzzles?.find(candidate => candidate?.id === puzzleId);
+    if (!puzzle || !Number.isInteger(puzzle.rating) || puzzle.rating < 1 || puzzle.rating > 5000) {
+        throw new Error('Catalog unavailable');
+    }
+    return { puzzleId: puzzle.id, rating: puzzle.rating, sourceVersion: SOURCE_VERSION };
 }

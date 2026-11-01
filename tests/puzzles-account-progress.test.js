@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler from '../api/puzzles/progress.js';
+import handler, { lookupCuratedPuzzle, lookupPuzzle } from '../api/puzzles/progress.js';
 import { loadAccountProgress } from '../js/puzzles/account-progress-api.js';
 
 const USER = '7e6977c8-d287-4a53-b85a-5df92a0b44ba';
@@ -126,6 +126,28 @@ test('returns a retryable service response when catalog lookup or the RPC fails'
         operationId: OPERATION, puzzleId: '4TN7E', outcome: 'failed', assisted: true,
     } }, rpcResponse, deps({ rpcError: { code: 'XX000' } }));
     assert.equal(rpcResponse.statusCode, 503);
+});
+
+test('validates curated fallback ratings server-side when the remote catalog is not configured', async () => {
+    let fetched = false;
+    const puzzle = await lookupPuzzle('pcJtP', {
+        env: {},
+        fetchFn: async () => { fetched = true; throw new Error('must not fetch'); },
+    });
+
+    assert.equal(fetched, false);
+    assert.deepEqual(puzzle, {
+        puzzleId: 'pcJtP',
+        rating: 1818,
+        sourceVersion: '2026-09-10',
+    });
+});
+
+test('curated fallback fails closed for unknown or malformed catalog entries', () => {
+    assert.throws(() => lookupCuratedPuzzle('zzzzz', { puzzles: [] }), /Catalog unavailable/);
+    assert.throws(() => lookupCuratedPuzzle('pcJtP', {
+        puzzles: [{ id: 'pcJtP', rating: '1818' }],
+    }), /Catalog unavailable/);
 });
 
 test('a first Puzzles visit creates the verified internal account mapping once', async () => {

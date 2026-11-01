@@ -51,10 +51,12 @@ async function authPageDestination(script, search, signedIn = false, options = {
         Clerk,
         CAISSA_AUTH_CONFIG: {
             CLERK_PUBLISHABLE_KEY: 'pk_test_synthetic',
+            REGISTRATION_OPEN: script.includes('signup'),
             ...(options.handoff ? { IDENTITY_OWNER_HANDOFF: options.handoff } : {})
         },
         CAISSA_AUTH_CONFIG_READY: Promise.resolve(),
-        CAISSA_REDIRECTS: { sanitizeInternalRedirect: sanitize }
+        CAISSA_REDIRECTS: { sanitizeInternalRedirect: sanitize },
+        CAISSA_CLERK_PAGE_LOADER: { load: async () => Clerk }
     };
     const document = { readyState: 'complete', getElementById: () => container, createElement: () => ({}), head: { appendChild() {} } };
     vm.runInContext(fs.readFileSync(script, 'utf8'), vm.createContext({ window, document, URL, URLSearchParams, Promise, console, atob }));

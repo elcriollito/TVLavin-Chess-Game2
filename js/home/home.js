@@ -82,8 +82,15 @@
     return `/${kind}?redirect_url=${encodeURIComponent(returnPath())}`;
   }
 
+  function registrationOpen() {
+    return global.CAISSA_AUTH_CONFIG?.REGISTRATION_OPEN === true;
+  }
+
   function appendAuthEntryPoints(parent) {
     appendLink(parent, { href: authHref('signin'), className: 'topbar-control', text: 'Sign in' });
+    if (registrationOpen()) {
+      appendLink(parent, { href: authHref('signup'), className: 'topbar-control account-create', text: 'Create account' });
+    }
   }
 
   function openSettings(trigger) {
@@ -266,21 +273,33 @@
       return;
     }
     if (state === 'guest') {
-      accountContent.append(
-        element('div', 'journey-mark', '♙'),
-        element('h3', '', 'New accounts are temporarily paused.'),
-        element('p', '', 'We are updating registration. Please check back soon; free chess tools are still available.')
-      );
-      appendLink(accountContent, { href: authHref('signin'), className: 'subtle-link', text: 'Already a member? Sign in' });
+      accountContent.append(element('div', 'journey-mark', '♙'));
+      if (registrationOpen()) {
+        accountContent.append(
+          element('h3', '', 'Begin your CAISSA journey.'),
+          element('p', '', 'Create an account to save puzzle progress and build your public chess identity.')
+        );
+        appendLink(accountContent, { href: authHref('signup'), className: 'button', text: 'Create account' });
+        appendLink(accountContent, { href: authHref('signin'), className: 'subtle-link', text: 'Already a member? Sign in' });
+      } else {
+        accountContent.append(
+          element('h3', '', 'Your chess journey, when you are ready.'),
+          element('p', '', 'Existing members can sign in; free chess tools remain available to everyone.')
+        );
+        appendLink(accountContent, { href: authHref('signin'), className: 'subtle-link', text: 'Sign in' });
+      }
       return;
     }
     if (state === 'error') {
       accountContent.append(
         element('div', 'journey-mark account-warning', '!'),
         element('h3', '', 'Account status unavailable.'),
-        element('p', '', 'CAISSA could not check your session. Existing members can try signing in; new registration is temporarily paused.')
+        element('p', '', 'CAISSA could not check your session. You can retry or continue to the secure account pages.')
       );
       appendLink(accountContent, { href: authHref('signin'), className: 'button', text: 'Sign in' });
+      if (registrationOpen()) {
+        appendLink(accountContent, { href: authHref('signup'), className: 'subtle-link', text: 'Create account' });
+      }
       return;
     }
 
