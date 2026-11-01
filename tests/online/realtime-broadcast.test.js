@@ -6,9 +6,9 @@ const gameId = '11111111-1111-4111-8111-111111111111';
 
 test('server Broadcast uses a private game topic and correlated version', async () => {
     let request;
-    const serviceKey = 'test-service-key-never-log';
+    const secretKey = 'sb_secret_test_server_only_never_log';
     const result = await sendOnlineGameBroadcast({
-        env: { SUPABASE_URL: 'https://example.supabase.co/', SUPABASE_SERVICE_ROLE_KEY: serviceKey },
+        env: { SUPABASE_URL: 'https://example.supabase.co/', SUPABASE_SECRET_KEY: secretKey },
         gameId,
         version: 7,
         eventType: 'game.moveAccepted',
@@ -21,8 +21,8 @@ test('server Broadcast uses a private game topic and correlated version', async 
 
     assert.deepEqual(result, { delivered: true });
     assert.equal(request.url, 'https://example.supabase.co/realtime/v1/api/broadcast');
-    assert.equal(request.init.headers.apikey, serviceKey);
-    assert.equal(request.init.headers.Authorization, `Bearer ${serviceKey}`);
+    assert.equal(request.init.headers.apikey, secretKey);
+    assert.equal(Object.hasOwn(request.init.headers, 'Authorization'), false);
     assert.deepEqual(JSON.parse(request.init.body), {
         messages: [{
             topic: `online-game:${gameId}`,
@@ -36,7 +36,7 @@ test('server Broadcast uses a private game topic and correlated version', async 
 test('server Broadcast fails closed for invalid correlation and does not call fetch', async () => {
     let calls = 0;
     await assert.rejects(sendOnlineGameBroadcast({
-        env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'secret' },
+        env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_test' },
         gameId: 'not-a-game',
         version: 0,
         fetchImpl: async () => { calls += 1; return { status: 202 }; }
@@ -55,7 +55,7 @@ test('server Broadcast aborts a stalled REST send within the configured bound', 
     let observedSignal;
     const startedAt = Date.now();
     await assert.rejects(sendOnlineGameBroadcast({
-        env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'secret' },
+        env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_test' },
         gameId,
         version: 8,
         timeoutMs: 20,
@@ -73,4 +73,18 @@ test('server Broadcast aborts a stalled REST send within the configured bound', 
 
     assert.equal(observedSignal.aborted, true);
     assert.ok(Date.now() - startedAt < 1_000);
+});
+
+test('server Broadcast rejects a public key before making a privileged request', async () => {
+    let calls = 0;
+    await assert.rejects(sendOnlineGameBroadcast({
+        env: {
+            SUPABASE_URL: 'https://example.supabase.co',
+            SUPABASE_SECRET_KEY: 'sb_publishable_wrong_class'
+        },
+        gameId,
+        version: 2,
+        fetchImpl: async () => { calls += 1; return { status: 202 }; }
+    }), /SUPABASE_SECRET_KEY_INVALID_CLASS/);
+    assert.equal(calls, 0);
 });

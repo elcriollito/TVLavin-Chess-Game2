@@ -19,11 +19,11 @@ Este plan no fue ejecutado. No contiene valores secretos.
 - `CAISSA_CLERK_AUTHORIZED_PARTIES`: únicamente hosts de Preview autorizados.
 - `CAISSA_BROWSER_ORIGINS`: únicamente orígenes de Preview autorizados.
 - `SUPABASE_URL` o `NEXT_PUBLIC_SUPABASE_URL`: ref Staging exacta.
-- `SUPABASE_SERVICE_ROLE_KEY`: Staging, server-only.
-- `SUPABASE_PUBLISHABLE_KEY` o equivalente público: Staging.
+- `SUPABASE_SECRET_KEY`: clave moderna `sb_secret_…` de Staging, server-only. `SUPABASE_SERVICE_ROLE_KEY` queda sólo como compatibilidad legacy para un JWT `service_role` todavía habilitado.
+- `SUPABASE_PUBLISHABLE_KEY`: clave moderna `sb_publishable_…` de Staging. El navegador combina esta API key pública con el JWT real de la sesión del usuario; ninguna clave secreta puede entrar en la configuración pública.
 - `CAISSA_ONLINE_ROLLOUT=internal`.
 - `CAISSA_ONLINE_INTERNAL_USERS`: solo IDs sintéticos Development autorizados.
-- `CAISSA_ONLINE_GUESTS=1`.
+- `CAISSA_ONLINE_GUESTS=0`; Guest permanece desactivado durante la recuperación de credenciales y sólo podrá cambiar en una autorización independiente posterior.
 - `CAISSA_ONLINE_RATED=0` durante el gate.
 - `CAISSA_ONLINE_TOURNAMENTS=0`.
 - `CAISSA_ONLINE_SPECTATORS=0`.
@@ -44,5 +44,7 @@ Cualquier ref/key de Production, Clerk Production, `CAISSA_ONLINE_ROLLOUT=produc
 7. Ejecutar primero smoke read-only; las escrituras sintéticas necesitan autorización propia.
 
 Rollback de Preview: volver el alias autorizado al deployment anterior o retirar la Preview; no tocar Production ni hacer rollback SQL automático.
+
+Antes de habilitar `CAISSA_ONLINE_GUESTS=1`, Supabase Auth debe tener límites de alta anónima y protección anti-bot/CAPTCHA verificados, y debe existir limpieza operativa de identidades y estado guest vencidos. El modo `internal` no anuncia alta guest pública: cualquier prueba interna de un invitado exige que su UUID ya esté explícitamente en `CAISSA_ONLINE_INTERNAL_USERS`. El API requiere el origen derivado por Vercel y aplica cuotas compartidas globales, por origen pseudonimizado y por sujeto antes de crear estado durable.
 
 Gate: `PREVIEW_CONFIGURATION_PLAN_READY`.

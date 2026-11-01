@@ -13,7 +13,7 @@ function response() {
 }
 function deps({ authenticated = true, lookup = { puzzleId: '4TN7E', rating: 1820, sourceVersion: '2026-09-10' },
     user = { id: USER }, userError = null, rpcData = { rating: 1813, solved: 1, failed: 0, change: 13 },
-    rpcError = null } = {}) {
+    rpcError = null, authority = null } = {}) {
     const calls = [];
     const db = {
         from(table) {
@@ -25,7 +25,7 @@ function deps({ authenticated = true, lookup = { puzzleId: '4TN7E', rating: 1820
         async rpc(name, arguments_) { calls.push({ name, arguments_ });
             return { data: rpcData, error: rpcError }; },
     };
-    return { calls, authenticate: async () => authenticated ? { authenticated: true, userId: 'clerk_user' }
+    return { calls, authenticate: async () => authenticated ? { authenticated: true, userId: 'clerk_user', authority }
         : { authenticated: false, status: 401 }, getSupabase: () => db,
         checkRateLimit: () => ({ allowed: true }), lookupPuzzle: async () => lookup };
 }
@@ -46,7 +46,7 @@ test('reads only the authenticated account progress and disables caching', async
 
 test('Preview can relay a read to the canonical progress API without copying production database credentials', async () => {
     const res = response();
-    const dependencies = deps();
+    const dependencies = deps({ authority: 'production' });
     dependencies.env = {
         CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'https://www.caissa-chess.org',
     };
@@ -69,7 +69,7 @@ test('Preview can relay a read to the canonical progress API without copying pro
 
 test('Preview read relay rejects malformed or non-HTTPS origins and stays on the local backend', async () => {
     const res = response();
-    const dependencies = deps();
+    const dependencies = deps({ authority: 'production' });
     dependencies.env = {
         CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'http://www.caissa-chess.org/path',
     };
@@ -160,7 +160,7 @@ test('account bootstrap does not mask non-mapping service failures', async () =>
 });
 
 test('marks a successful relayed Preview read as read-only without changing progress', async () => {
-    const dependencies = deps();
+    const dependencies = deps({ authority: 'production' });
     dependencies.env = { CAISSA_PUZZLE_PROGRESS_READ_ORIGIN: 'https://www.caissa-chess.org' };
     dependencies.fetchFn = async () => ({
         ok: true,

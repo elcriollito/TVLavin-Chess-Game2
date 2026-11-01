@@ -37,8 +37,8 @@ function loadAuth({ resolveConfig, key = validKey, includeUi = false }) {
 
 test('slow config prevents Clerk construction until valid config resolves', async()=>{
   let resolveReady; const ready=new Promise(resolve=>{resolveReady=resolve;}); let appended=0;
-  const window={CAISSA_AUTH_CONFIG:{CLERK_PUBLISHABLE_KEY:'pk_test_REPLACE_WITH_YOUR_KEY'},CAISSA_AUTH_CONFIG_UTILS:{isValidClerkPublishableKey},CAISSA_AUTH_CONFIG_READY:ready,addEventListener(){},dispatchEvent(){}};
-  const document={readyState:'complete',createElement:()=>({dataset:{}}),head:{appendChild(){appended++;}}};
+  const window={CAISSA_AUTH_CONFIG:{CLERK_PUBLISHABLE_KEY:'pk_test_REPLACE_WITH_YOUR_KEY'},CAISSA_AUTH_CONFIG_UTILS:{isValidClerkPublishableKey},CAISSA_AUTH_CONFIG_READY:ready,addEventListener(){},dispatchEvent(){},atob:value=>Buffer.from(value,'base64').toString('utf8')};
+  const document={readyState:'complete',documentElement:{hasAttribute:()=>false},createElement:()=>({dataset:{}}),head:{appendChild(){appended++;}}};
   vm.runInContext(fs.readFileSync('js/caissa-auth.js','utf8'),vm.createContext({window,document,localStorage:{},CustomEvent:class{},Promise,console}));
   await new Promise(resolve=>setTimeout(resolve,0)); assert.equal(appended,0);
   window.CAISSA_AUTH_CONFIG.CLERK_PUBLISHABLE_KEY=validKey; resolveReady();
