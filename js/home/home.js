@@ -45,6 +45,8 @@
   const settingsDialog = document.getElementById('home-settings');
   let accountRequest = 0;
   let progressModulePromise = null;
+  let publicIdentityModulePromise = null;
+  let accountDialogOpenPromise = null;
   let currentAuth = null;
   let recent = [];
   let settingsTrigger = null;
@@ -118,6 +120,44 @@
     return email ? email.split('@')[0] : 'CAISSA player';
   }
 
+  function loadPublicIdentityModule() {
+    if (!publicIdentityModulePromise) {
+      publicIdentityModulePromise = import('/js/identity/public-identity-dialog.js').catch(error => {
+        publicIdentityModulePromise = null;
+        throw error;
+      });
+    }
+    return publicIdentityModulePromise;
+  }
+
+  async function openAccountIdentity(auth, opener, action, status) {
+    if (classifyAuth(currentAuth) !== 'signed-in' || auth !== currentAuth) return;
+    if (accountDialogOpenPromise) return accountDialogOpenPromise;
+
+    status.textContent = '';
+    action.disabled = true;
+    action.setAttribute('aria-busy', 'true');
+    accountDialogOpenPromise = (async () => {
+      try {
+        const module = await loadPublicIdentityModule();
+        if (classifyAuth(currentAuth) !== 'signed-in' || auth !== currentAuth) return;
+        await module.openPublicIdentityAccount({ auth, opener });
+      } catch {
+        const message = 'Account settings are temporarily unavailable.';
+        status.textContent = message;
+        global.CaissaNotify?.error?.(message);
+        global.CAISSA_NOTIFICATIONS?.error?.(message);
+        opener.focus?.();
+        console.error('[CAISSA Home] Account & identity unavailable');
+      } finally {
+        action.disabled = false;
+        action.removeAttribute('aria-busy');
+        accountDialogOpenPromise = null;
+      }
+    })();
+    return accountDialogOpenPromise;
+  }
+
   function renderTopbar(auth, state) {
     topbarAccount.replaceChildren();
     if (state === 'loading') {
@@ -145,8 +185,11 @@
     appendSettings(topbarAccount);
     const menu = element('details', 'account-menu');
     const account = element('summary', 'account-identity account-trigger');
+    const accountName = displayName(auth);
     account.setAttribute('role', 'button');
-    account.setAttribute('aria-label', `Account menu for ${displayName(auth)}`);
+    account.setAttribute('aria-label', auth.imageUrl
+      ? `${accountName} account menu`
+      : `${initials(accountName)} ${accountName} account menu`);
     if (auth.imageUrl) {
       const image = element('img', 'account-avatar');
       image.src = auth.imageUrl;
@@ -154,9 +197,11 @@
       image.referrerPolicy = 'no-referrer';
       account.append(image);
     } else {
-      account.append(element('span', 'account-avatar account-initials', initials(displayName(auth))));
+      const avatarInitials = element('span', 'account-avatar account-initials', initials(accountName));
+      avatarInitials.setAttribute('aria-hidden', 'true');
+      account.append(avatarInitials);
     }
-    account.append(element('span', 'account-name', displayName(auth)));
+    account.append(element('span', 'account-name', accountName));
     const chevron = element('i', 'fa-solid fa-chevron-down account-chevron');
     chevron.setAttribute('aria-hidden', 'true');
     account.append(chevron);
@@ -167,6 +212,16 @@
       element('strong', '', displayName(auth)),
       element('span', '', auth.email || 'CAISSA account')
     );
+    const accountIdentity = element('button', 'account-menu-action', 'Account & identity');
+    accountIdentity.type = 'button';
+    accountIdentity.setAttribute('aria-label', 'Account & identity');
+    const accountDialogStatus = element('span', 'account-dialog-status');
+    accountDialogStatus.setAttribute('role', 'status');
+    accountDialogStatus.setAttribute('aria-live', 'polite');
+    accountIdentity.addEventListener('click', () => {
+      menu.removeAttribute('open');
+      void openAccountIdentity(auth, account, accountIdentity, accountDialogStatus);
+    });
     const profile = element('button', 'account-menu-action', 'Profile');
     profile.type = 'button';
     profile.setAttribute('aria-label', 'Profile');
@@ -187,9 +242,9 @@
         signOut.disabled = false;
       }
     });
-    panel.append(identity, profile, signOut);
+    panel.append(identity, accountIdentity, profile, signOut);
     menu.append(account, panel);
-    topbarAccount.append(menu);
+    topbarAccount.append(menu, accountDialogStatus);
   }
 
   function resetAccountContent() {

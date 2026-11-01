@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+const hotfixOutput = name => `test-results/home-account-identity/${name}.png`;
 
 const installAuthMock = async (page, auth) => {
   await page.route('**/js/auth-config.js*', route => route.fulfill({
@@ -237,17 +240,17 @@ test('connected Home renders only returned puzzle progress and preserves the emp
   await expect(page.locator('.account-stats')).toContainText('15');
   const topbar = page.locator('#topbar-account');
   await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
-  await topbar.getByRole('button', { name: 'Account menu for Ada Player', exact: true }).click();
+  await topbar.getByRole('button', { name: /Ada Player account menu$/ }).click();
   await expect(topbar.getByRole('button', { name: 'Profile', exact: true })).toBeVisible();
   await topbar.getByRole('button', { name: 'Profile', exact: true }).click();
   expect(await page.evaluate(() => window.__caissaProfileOpened)).toBe(true);
   if (process.env.CAISSA_CAPTURE_HOME === '1') {
-    await topbar.getByRole('button', { name: 'Account menu for Ada Player', exact: true }).click();
+    await topbar.getByRole('button', { name: /Ada Player account menu$/ }).click();
     await page.screenshot({ path: 'docs/home-season/screenshots/home-controls-signed-in.png' });
   }
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-  await expect(page.getByRole('button', { name: 'Account menu for Ada Player', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Ada Player account menu$/ })).toBeVisible();
   expect(errors).toEqual([]);
 
   await page.route('**/api/puzzles/progress', route => route.fulfill({
@@ -258,6 +261,117 @@ test('connected Home renders only returned puzzle progress and preserves the emp
   await page.reload();
   await expect(page.getByText('No saved puzzle activity yet. Your first completed puzzle will appear here.')).toBeVisible();
   await expect(page.locator('#account-content')).not.toContainText('1800');
+});
+
+test('Home Account & identity reuses the native privacy panel across responsive breakpoints', async ({ page, browserName }) => {
+  await installAuthMock(page, {
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user_home_account',
+    status: 'authenticated',
+    fullName: 'Ada Player',
+    email: 'ada@example.test',
+    imageUrl: null
+  });
+  await page.route('**/api/puzzles/progress', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ progress: { rating: 1876, solved: 12, failed: 3 }, persistent: true })
+  }));
+  const accountRequests = [];
+  await page.route('**/api/user/public-identity', route => {
+    accountRequests.push({ path: '/api/user/public-identity', method: route.request().method() });
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ identity: {
+        displayName: 'SafeKnight', nickname: 'SafeKnight', fallbackAlias: 'Player-1122334455667788',
+        hasCustomNickname: true, policyVersion: 1, version: 1, updatedAt: '2026-10-18T00:00:00Z'
+      } })
+    });
+  });
+  await page.route('**/api/account/privacy/summary', route => {
+    accountRequests.push({ path: '/api/account/privacy/summary', method: route.request().method() });
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        backendReady: true,
+        requiresReauthentication: true,
+        summary: {
+          ownership: 'VERIFIED', accountState: 'ACTIVE',
+          counts: { onlineGames: 4, puzzleProgress: 1, puzzleAttempts: 27, activeEntitlements: 0 },
+          capabilities: { export: true, progressReset: true, accountDeletion: true },
+          manualReviewRequired: false
+        }
+      })
+    });
+  });
+  const errors = collectConsoleErrors(page);
+  await page.goto('/');
+
+  const topbar = page.locator('#topbar-account');
+  const viewports = [
+    { label: 'desktop-1440', width: 1440, height: 1000 },
+    { label: 'tablet-885', width: 885, height: 900 },
+    { label: 'mobile-390', width: 390, height: 844 }
+  ];
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    const trigger = topbar.getByRole('button', { name: 'AP Ada Player account menu', exact: true });
+    await trigger.focus();
+    await trigger.press('Enter');
+    const actions = topbar.locator('.account-menu-action');
+    await expect(actions).toHaveText(['Account & identity', 'Profile', 'Sign out']);
+
+    const settings = topbar.getByRole('button', { name: 'Settings', exact: true });
+    const accountAction = topbar.getByRole('button', { name: 'Account & identity', exact: true });
+    const touchTargets = await Promise.all([settings, trigger, ...await actions.all()].map(async locator => {
+      const box = await locator.boundingBox();
+      return { width: box?.width || 0, height: box?.height || 0 };
+    }));
+    for (const target of touchTargets) {
+      expect(Math.round(target.width)).toBeGreaterThanOrEqual(44);
+      expect(Math.round(target.height)).toBeGreaterThanOrEqual(44);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth))
+      .toBeLessThanOrEqual(0);
+    if (process.env.CAISSA_CAPTURE_HOME_HOTFIX === '1' && browserName === 'chromium') {
+      await page.screenshot({ path: hotfixOutput(`${viewport.label}-menu`) });
+    }
+
+    await accountAction.click();
+    const dialog = page.locator('.caissa-public-identity-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Account & identity', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Control your CAISSA account', exact: true })).toBeVisible();
+    await expect(page.locator('[data-public-preview]')).toHaveText('SafeKnight');
+    await expect(page.locator('[data-account-summary]')).toBeVisible();
+    await expect(page.locator('[data-account-control-status]')).toHaveText('Recent identity verification required.');
+    await expect(page.locator('[data-account-reauth]')).toBeVisible();
+    await expect(page.locator('[data-account-controls]')).toBeHidden();
+    expect(await page.evaluate(() => document.querySelector('.caissa-public-identity-dialog')
+      ?.contains(document.activeElement))).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth))
+      .toBeLessThanOrEqual(0);
+    if (process.env.CAISSA_CAPTURE_HOME_HOTFIX === '1' && browserName === 'chromium') {
+      await dialog.screenshot({ path: hotfixOutput(`${viewport.label}-dialog`) });
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  }
+
+  await topbar.getByRole('button', { name: 'AP Ada Player account menu', exact: true }).click();
+  await topbar.getByRole('button', { name: 'Profile', exact: true }).click();
+  expect(await page.evaluate(() => window.__caissaProfileOpened)).toBe(true);
+  expect(accountRequests.every(request => request.method === 'GET')).toBe(true);
+  expect(accountRequests.filter(request => request.path === '/api/account/privacy/summary')).toHaveLength(3);
+  expect(accountRequests.filter(request => request.path === '/api/user/public-identity')).toHaveLength(3);
+  const serious = (await new AxeBuilder({ page }).include('#topbar-account').analyze())
+    .violations.filter(item => ['critical', 'serious'].includes(item.impact));
+  expect(serious).toEqual([]);
+  expect(errors).toEqual([]);
 });
 
 test('Home loads progress after sign-in and keeps API errors account-scoped', async ({ page }) => {
@@ -354,7 +468,7 @@ test('Home refreshes restored progress and rejects stale account responses', asy
   await expect(page.locator('.account-stats')).toContainText('1,847');
   await expect(page.locator('.account-stats')).toContainText('16');
 
-  await page.getByRole('button', { name: 'Account menu for Second Player', exact: true }).click();
+  await page.getByRole('button', { name: /Second Player account menu$/ }).click();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByText('New accounts are temporarily paused.')).toBeVisible();
   await expect(page.locator('#account-content')).not.toContainText('1,847');
