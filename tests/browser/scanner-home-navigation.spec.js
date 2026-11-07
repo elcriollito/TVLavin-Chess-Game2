@@ -33,6 +33,15 @@ for (const viewport of [
     expect(layout.link.right).toBeLessThanOrEqual(viewport.width);
     expect(layout.link.width).toBeGreaterThanOrEqual(44);
     expect(layout.link.height).toBeGreaterThanOrEqual(44);
+    if (viewport.width > 520) {
+      const placement = await page.evaluate(() => {
+        const badge = document.querySelector('.public-beta-badge').getBoundingClientRect();
+        const link = document.querySelector('.scanner-home-link').getBoundingClientRect();
+        return { gap: link.left - badge.right };
+      });
+      expect(placement.gap).toBeGreaterThanOrEqual(8);
+      expect(placement.gap).toBeLessThanOrEqual(24);
+    }
 
     await home.focus();
     await expect(home).toBeFocused();
