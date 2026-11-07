@@ -34,7 +34,8 @@ test('Chess Gym primary and nested tabs expose complete ARIA relationships and k
 test('Opening Database tabs, results, loading, and errors have deterministic semantics', () => {
   const html = read('opening-database.html');
   const source = read('js/opening-database.js');
-  assert.match(html, /id="odbTabMoves"[^>]+aria-controls="odbMovesPanel"[^>]+tabindex="0"/);
+  assert.match(html, /id="odbTabExplorer"[^>]+aria-controls="odbExplorerPanel"[^>]+tabindex="0"/);
+  assert.match(html, /id="odbTabMoves"[^>]+aria-controls="odbMovesPanel"[^>]+tabindex="-1"/);
   assert.match(html, /id="odbGamesPanel"[^>]+role="tabpanel"[^>]+aria-busy="false"/);
   assert.match(html, /id="odbGamesStatus"[^>]+role="status"[^>]+aria-live="polite"/);
   assert.match(html, /id="odbFenError"[^>]+role="alert"/);

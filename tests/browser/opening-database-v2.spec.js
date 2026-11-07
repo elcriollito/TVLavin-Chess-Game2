@@ -35,23 +35,27 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
-test('Explore is default, tab keyboard behavior works, and move activation updates the position', async ({ page }) => {
+test('Explorer is default, four-tab keyboard behavior works, and move activation updates the position', async ({ page }) => {
   await page.goto('/opening-database');
   await expect(page.locator('#openingDbBoard .piece-417db')).toHaveCount(32);
   const tabs = page.getByRole('tab');
-  await expect(tabs).toHaveCount(3);
-  await expect(tabs.nth(0)).toHaveText(/Analysis/);
-  await expect(tabs.nth(1)).toHaveText(/Games/);
-  await expect(tabs.nth(2)).toHaveText(/Explore/);
-  await expect(page.getByRole('tab', { name: 'Explore' })).toHaveAttribute('aria-selected', 'true');
+  await expect(tabs).toHaveCount(4);
+  await expect(tabs.nth(0)).toHaveText(/Explorer/);
+  await expect(tabs.nth(1)).toHaveText(/Analysis/);
+  await expect(tabs.nth(2)).toHaveText(/Games/);
+  await expect(tabs.nth(3)).toHaveText(/Moves/);
+  await expect(page.getByRole('tab', { name: 'Explorer' })).toHaveAttribute('aria-selected', 'true');
 
-  await page.getByRole('tab', { name: 'Explore' }).focus();
+  await page.getByRole('tab', { name: 'Explorer' }).focus();
   await page.keyboard.press('Home');
+  await expect(page.getByRole('tab', { name: 'Explorer' })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'Analysis' })).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('tab', { name: 'Explore' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Moves' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: 'Explorer' }).click();
 
   const firstMove = page.locator('#odbStatsBody [data-move-index="0"]');
   await expect(firstMove).toBeVisible();
@@ -59,6 +63,46 @@ test('Explore is default, tab keyboard behavior works, and move activation updat
   await page.keyboard.press('Enter');
   await expect(page.locator('#odbCurrentLine')).toContainText('1.e4');
   await expect(page.locator('#odbTurnPly')).toContainText('Black to move');
+});
+
+test('all approved piece images load from the local route', async ({ page }) => {
+  const failedPieces = [];
+  page.on('response', response => {
+    if (response.url().includes('/img/chesspieces/wikipedia/') && !response.ok()) failedPieces.push(response.url());
+  });
+  await page.goto('/opening-database');
+  await expect(page.locator('#openingDbBoard .piece-417db')).toHaveCount(32);
+  expect(failedPieces).toEqual([]);
+  const imageState = await page.locator('#openingDbBoard .piece-417db').evaluateAll(pieces => pieces.map(piece => ({
+    piece: piece.getAttribute('data-piece'),
+    src: piece.getAttribute('src')
+  })));
+  expect(imageState.every(image => image.piece && image.src === `/img/chesspieces/wikipedia/${image.piece}.png`)).toBe(true);
+  const originals = await page.evaluate(async () => {
+    const pieces = ['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'];
+    return Promise.all(pieces.map(piece => new Promise(resolve => {
+      const image = new Image();
+      image.onload = () => resolve({ piece, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight });
+      image.onerror = () => resolve({ piece, naturalWidth: 0, naturalHeight: 0 });
+      image.src = `/img/chesspieces/wikipedia/${piece}.png`;
+    })));
+  });
+  expect(originals.every(image => image.naturalWidth > 0 && image.naturalHeight > 0)).toBe(true);
+});
+
+test('Moves reviews the explored line without mutating it', async ({ page }) => {
+  await page.goto('/opening-database');
+  await page.locator('#odbStatsBody [data-move-index="0"]').click();
+  const exploredLine = await page.locator('#odbCurrentLine').textContent();
+  await page.getByRole('tab', { name: 'Moves' }).click();
+  await expect(page.locator('#odbMovesNotation [data-review-ply="1"]')).toContainText('e4');
+  await expect(page.locator('#odbMovesPlyLabel')).toContainText('Ply 1 of 1');
+  await page.getByRole('button', { name: 'First position' }).click();
+  await expect(page.locator('#odbMovesPlyLabel')).toContainText('Start position');
+  await page.getByRole('button', { name: 'Last position' }).click();
+  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await expect(page.locator('#odbCurrentLine')).toHaveText(exploredLine || '');
+  await expect(page.locator('#openingDbBoard [data-square="e4"] .piece-417db')).toHaveAttribute('data-piece', 'wP');
 });
 
 test('Games reports line-order scope, escapes metadata, and separates indexed totals from sample results', async ({ page }) => {
@@ -86,6 +130,48 @@ test('Games reports line-order scope, escapes metadata, and separates indexed to
   await expect(page.locator('#odbGamesBody img')).toHaveCount(0);
   await expect(page.locator('#odbGamesBody script')).toHaveCount(0);
   await expect(page.locator('#odbGamesBody')).toContainText('Metadata only');
+  await page.getByRole('button', { name: 'Review', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Moves' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#odbMovesStatus')).toContainText('metadata only');
+  await expect(page.locator('#odbMovesNotation')).toContainText('Move notation is unavailable');
+  await page.getByRole('button', { name: 'Return to Games' }).click();
+  await expect(page.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('selected game PGN drives SAN navigation and restores the exploration board', async ({ page }) => {
+  await page.route('**/gamesearch/manifest.json', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ version: 'v1', maxPlies: 10, topK: 100 })
+  }));
+  await page.route('**/gamesearch/line?*', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      games: 1,
+      top: [{ gameId: 'genuine-1', white: 'White Player', black: 'Black Player', result: '1-0', event: 'Test Event', year: 2026, whiteElo: 2500, blackElo: 2450, eco: 'C20' }]
+    })
+  }));
+  await page.route('**/data/openingdb_games/v1/pgn/genuine-1.pgn', route => route.fulfill({
+    contentType: 'application/x-chess-pgn',
+    body: '[Event "Test Event"]\n[White "White Player"]\n[Black "Black Player"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 1-0'
+  }));
+  await page.goto('/opening-database');
+  await page.locator('#odbStatsBody [data-move-index="0"]').click();
+  await page.getByRole('tab', { name: 'Games' }).click();
+  await page.getByRole('button', { name: 'Search this line', exact: true }).click();
+  await page.getByRole('button', { name: 'Review', exact: true }).click();
+  await expect(page.locator('#odbMovesStatus')).toContainText('Genuine PGN loaded');
+  await expect(page.locator('#odbMovesNotation [data-review-ply]')).toHaveCount(4);
+  await expect(page.locator('#odbMovesGameDetails')).toContainText('1-0');
+  await expect(page.locator('#odbMovesGameDetails')).toContainText('Starting FEN');
+  await page.getByRole('button', { name: 'Next move' }).click();
+  await expect(page.locator('#odbMovesPlyLabel')).toContainText('e4');
+  await page.getByRole('button', { name: 'Last position' }).click();
+  await expect(page.locator('#odbMovesPlyLabel')).toContainText('Nc6');
+  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await expect(page.locator('#odbCurrentLine')).toContainText('1.e4');
+  await expect(page.locator('#openingDbBoard [data-square="e4"] .piece-417db')).toHaveAttribute('data-piece', 'wP');
+  await expect(page.locator('#openingDbBoard [data-square="e5"] .piece-417db')).toHaveCount(0);
 });
 
 test('desktop and mobile preserve the board/workspace composition without horizontal overflow', async ({ page }) => {

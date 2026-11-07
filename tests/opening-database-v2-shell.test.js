@@ -8,11 +8,14 @@ const css = read('css/opening-database.css');
 const source = read('js/opening-database.js');
 
 test('Opening Database V2 exposes the requested HEAD/BODY/FOOT workspace and tab order', () => {
+  const explorer = html.indexOf('id="odbTabExplorer"');
   const analysis = html.indexOf('id="odbTabAnalysis"');
   const games = html.indexOf('id="odbTabGames"');
-  const explore = html.indexOf('id="odbTabMoves"');
-  assert.ok(analysis > -1 && games > analysis && explore > games);
-  assert.match(html, /id="odbTabMoves"[^>]+aria-selected="true"[^>]+tabindex="0"/);
+  const moves = html.indexOf('id="odbTabMoves"');
+  assert.ok(explorer > -1 && analysis > explorer && games > analysis && moves > games);
+  assert.match(html, /id="odbTabExplorer"[^>]+aria-selected="true"[^>]+tabindex="0"/);
+  assert.match(html, /id="odbExplorerPanel"[^>]+aria-labelledby="odbTabExplorer"/);
+  assert.match(html, /id="odbMovesPanel"[^>]+aria-labelledby="odbTabMoves"[^>]+hidden/);
   assert.match(html, /openingdb-workspace-head/);
   assert.match(html, /openingdb-workspace-body/);
   assert.match(html, /openingdb-workspace-foot/);
@@ -25,6 +28,7 @@ test('V2 preserves board dependencies, theme assets, and Quiet Drag integration'
   assert.match(html, /chess-0\.10\.3\.min\.js/);
   assert.match(html, /caissa-legacy-quiet-drag\.css/);
   assert.match(source, /caissa-legacy-quiet-drag-adapter\.js/);
+  assert.match(source, /pieceTheme:\s*'\/img\/chesspieces\/wikipedia\/\{piece\}\.png'/);
   assert.doesNotMatch(css, /\.white-1e1d7\s*\{|\.black-3c85d\s*\{|\.piece-417db\s*\{/);
 });
 
@@ -55,6 +59,37 @@ test('Analyzer handoff and deferred Trainer action are explicit', () => {
   assert.match(source, /window\.location\.assign\(`\/analyze\?handoff=/);
   assert.match(html, /id="odbPracticeTrainerBtn"[^>]+disabled/);
   assert.match(html, /compatible repertoire handoff contract/);
+  const explorerPanel = html.indexOf('id="odbExplorerPanel"');
+  const analyzeAction = html.indexOf('id="odbAnalyzeInCaissaBtn"');
+  const workspaceFoot = html.indexOf('openingdb-workspace-foot');
+  assert.ok(analyzeAction > explorerPanel && analyzeAction < workspaceFoot);
+});
+
+test('Opening Database owns a vetted Stockfish 19 Lite client and bounded Fast/Pro queues', () => {
+  const adapter = html.indexOf('/js/engine-adapter.js');
+  const sf19 = html.indexOf('/js/opening-trainer/stockfish19-client.js');
+  const page = html.indexOf('/js/opening-database.js');
+  assert.ok(adapter > -1 && sf19 > adapter && page > sf19);
+  assert.doesNotMatch(html, /\/js\/engine\/stockfish-client\.js/);
+  assert.match(html, /id="odbEngineIdentityValue">Stockfish 19 Lite/);
+  assert.match(source, /owner:\s*'opening-database'/);
+  assert.match(source, /ENGINE_MOVE_EVAL_FAST_LIMIT\s*=\s*10/);
+  assert.match(source, /ENGINE_MOVE_EVAL_PRO_LIMIT\s*=\s*20/);
+  assert.match(source, /startInfiniteAnalysis/);
+  assert.doesNotMatch(source, /\.goDepth\(/);
+});
+
+test('Moves is a dedicated isolated SAN review surface with honest metadata fallback', () => {
+  assert.match(html, /id="odbMovesNotation"/);
+  assert.match(html, /id="odbMovesFirstBtn"/);
+  assert.match(html, /id="odbMovesPrevBtn"/);
+  assert.match(html, /id="odbMovesNextBtn"/);
+  assert.match(html, /id="odbMovesLastBtn"/);
+  assert.match(html, /id="odbMovesReturnGamesBtn"/);
+  assert.match(source, /Move notation is unavailable because this indexed result contains metadata only/);
+  assert.match(source, /createReplayAtPly/);
+  assert.match(source, /restoreExplorationBoard/);
+  assert.match(source, /candidate\.load_pgn\(pgnText/);
 });
 
 test('SEO metadata describes the public Opening Explorer', () => {

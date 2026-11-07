@@ -227,7 +227,7 @@
 
 .openingdb-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding: 0 10px;
 }
 
@@ -303,6 +303,25 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.openingdb-analyze-action {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(243, 167, 18, 0.42);
+  border-radius: 7px;
+  background: rgba(243, 167, 18, 0.08);
+  color: #ffd77a;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.openingdb-analyze-action:hover {
+  border-color: var(--odb-accent);
+  background: rgba(243, 167, 18, 0.15);
 }
 
 .openingdb-modes {
@@ -658,6 +677,124 @@
   border: 1px solid var(--odb-border-soft);
   border-radius: 8px;
   background: #141d29;
+}
+
+.engine-readout-identity {
+  grid-column: 1 / -1;
+}
+
+.engine-readout-identity strong {
+  color: #ffd77a;
+}
+
+.openingdb-review-heading {
+  align-items: center;
+}
+
+.openingdb-review-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.openingdb-review-detail {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--odb-border-soft);
+  border-radius: 7px;
+  background: #141d29;
+}
+
+.openingdb-review-detail span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--odb-subtle);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.openingdb-review-detail strong {
+  color: var(--odb-text);
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.openingdb-review-notation {
+  display: flex;
+  min-height: 112px;
+  align-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--odb-border-soft);
+  border-radius: 9px;
+  background: #141d29;
+}
+
+.openingdb-review-move {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #e8eef6;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.openingdb-review-move:hover {
+  border-color: #526881;
+  background: #202b39;
+}
+
+.openingdb-review-move.is-current {
+  border-color: var(--odb-accent);
+  background: rgba(243, 167, 18, 0.14);
+  color: #ffe3a2;
+}
+
+.openingdb-review-move-number {
+  color: var(--odb-subtle);
+}
+
+.openingdb-review-empty {
+  width: 100%;
+  margin: auto;
+  color: var(--odb-muted);
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.openingdb-review-controls {
+  display: grid;
+  grid-template-columns: 42px 42px minmax(120px, 1fr) 42px 42px;
+  gap: 7px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.openingdb-review-nav {
+  min-height: 40px;
+  border: 1px solid #3d4d63;
+  border-radius: 7px;
+  background: #222e3e;
+  color: #eef3f9;
+  cursor: pointer;
+}
+
+.openingdb-review-nav:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.openingdb-review-ply {
+  color: var(--odb-muted);
+  font-size: 0.72rem;
+  text-align: center;
 }
 
 .engine-analysis-readout span,
@@ -1105,6 +1242,10 @@
 
   .openingdb-quick-eval-toggle {
     margin-left: 0;
+  }
+
+  .openingdb-review-details {
+    grid-template-columns: 1fr;
   }
 
   .openingdb-explorer-legend {

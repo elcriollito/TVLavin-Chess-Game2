@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=2.0.0">
+  <link rel="stylesheet" href="/css/opening-database.css?v=2.1.0">
   <link rel="stylesheet" href="/css/caissa-legacy-quiet-drag.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
   <script type="application/ld+json">
@@ -93,9 +93,10 @@
               </div>
 
               <div class="openingdb-tabs" role="tablist" aria-label="Opening workspace">
+                <button id="odbTabExplorer" class="openingdb-tab active" type="button" role="tab" aria-controls="odbExplorerPanel" aria-selected="true" tabindex="0"><i class="fas fa-compass" aria-hidden="true"></i><span>Explorer</span></button>
                 <button id="odbTabAnalysis" class="openingdb-tab" type="button" role="tab" aria-controls="odbAnalysisPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Analysis</span></button>
                 <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-controls="odbGamesPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chess-knight" aria-hidden="true"></i><span>Games</span></button>
-                <button id="odbTabMoves" class="openingdb-tab active" type="button" role="tab" aria-controls="odbMovesPanel" aria-selected="true" tabindex="0"><i class="fas fa-compass" aria-hidden="true"></i><span>Explore</span></button>
+                <button id="odbTabMoves" class="openingdb-tab" type="button" role="tab" aria-controls="odbMovesPanel" aria-selected="false" tabindex="-1"><i class="fas fa-list-ol" aria-hidden="true"></i><span>Moves</span></button>
               </div>
             </header>
 
@@ -111,6 +112,7 @@
                     <button id="odbStopEngineBtn" class="btn btn-secondary openingdb-engine-stop" type="button" disabled><i class="fas fa-stop" aria-hidden="true"></i> Stop</button>
                   </div>
                   <div class="engine-analysis-readout">
+                    <div class="engine-readout-identity"><span>Engine</span><strong id="odbEngineIdentityValue">Stockfish 19 Lite</strong></div>
                     <div class="engine-readout-primary"><span>Evaluation</span><strong id="odbEngineEvalValue">—</strong></div>
                     <div><span>Best move</span><strong id="odbEngineBestMoveValue">—</strong></div>
                     <div><span>Depth</span><strong id="odbEngineDepthValue">—</strong></div>
@@ -165,20 +167,34 @@
                   </table>
                 </div>
                 <div id="odbGamesDownloads" class="openingdb-games-downloads" aria-live="polite"></div>
-                <div id="odbGamesPgnViewer" class="openingdb-games-pgn" hidden>
-                  <div class="openingdb-games-pgn-header"><strong id="odbGamesPgnTitle">PGN</strong><div class="openingdb-games-pgn-actions"><button id="odbGamesPgnCopyBtn" class="btn btn-secondary" type="button">Copy PGN</button><button id="odbGamesPgnCloseBtn" class="btn btn-secondary" type="button">Close</button></div></div>
-                  <textarea id="odbGamesPgnText" rows="10" readonly></textarea>
-                </div>
                 <details class="openingdb-disclosure openingdb-games-tools">
                   <summary>Line search tools</summary>
                   <div><button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button">Copy line key</button><button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button" hidden disabled>PGN export unavailable</button></div>
                 </details>
               </section>
 
-              <section id="odbMovesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabMoves">
+              <section id="odbMovesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabMoves" hidden>
+                <div class="openingdb-panel-heading openingdb-review-heading">
+                  <div><p class="openingdb-panel-kicker">Notation and review</p><h3 id="odbMovesTitle">Current explored line</h3></div>
+                  <button id="odbMovesReturnGamesBtn" class="btn btn-secondary" type="button" hidden>Return to Games</button>
+                </div>
+                <p id="odbMovesStatus" class="openingdb-scope-note" role="status" aria-live="polite">Your explored line is ready to review.</p>
+                <div id="odbMovesGameDetails" class="openingdb-review-details" hidden></div>
+                <div id="odbMovesNotation" class="openingdb-review-notation" role="list" aria-label="Move notation"></div>
+                <div class="openingdb-review-controls" aria-label="Move navigation">
+                  <button id="odbMovesFirstBtn" class="openingdb-review-nav" type="button" aria-label="First position"><i class="fas fa-backward-step" aria-hidden="true"></i></button>
+                  <button id="odbMovesPrevBtn" class="openingdb-review-nav" type="button" aria-label="Previous move"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                  <span id="odbMovesPlyLabel" class="openingdb-review-ply">Start position</span>
+                  <button id="odbMovesNextBtn" class="openingdb-review-nav" type="button" aria-label="Next move"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                  <button id="odbMovesLastBtn" class="openingdb-review-nav" type="button" aria-label="Last position"><i class="fas fa-forward-step" aria-hidden="true"></i></button>
+                </div>
+              </section>
+
+              <section id="odbExplorerPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabExplorer">
                 <div id="odbDatasetBanner" class="openingdb-dataset-banner" role="status" hidden></div>
                 <div class="openingdb-moves-toolbar">
                   <div class="openingdb-modes" role="group" aria-label="Move list mode"><button id="odbMovesPopularBtn" class="openingdb-mode-button active" type="button" aria-pressed="true">Popular</button><button id="odbMovesAllBtn" class="openingdb-mode-button" type="button" aria-pressed="false">All legal</button></div>
+                  <button id="odbAnalyzeInCaissaBtn" class="openingdb-analyze-action" type="button">Analyze in CAISSA <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                   <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span>Evaluate moves</span></label>
                   <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode"><span class="sr-only">Candidate evaluation mode</span><select id="odbQuickEvalMode" aria-label="Candidate evaluation mode"><option value="fast" selected>Fast</option><option value="pro">Pro</option></select></label>
                 </div>
@@ -212,7 +228,6 @@
                 <button id="odbFenToggleBtn" class="openingdb-foot-action" type="button"><i class="fas fa-pen-to-square" aria-hidden="true"></i><span>Input FEN</span></button>
               </div>
               <div class="openingdb-integrations" aria-label="Continue studying">
-                <button id="odbAnalyzeInCaissaBtn" class="openingdb-integration-action" type="button">Analyze in CAISSA <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                 <button id="odbPracticeTrainerBtn" class="openingdb-integration-action" type="button" aria-describedby="odbTrainerUnavailable" disabled>Practice in Trainer</button>
                 <span id="odbTrainerUnavailable" class="sr-only">Opening Trainer transfer is unavailable until a compatible repertoire handoff contract is implemented.</span>
               </div>
@@ -246,9 +261,10 @@
   <script src="/assets/vendor/jquery/jquery-3.6.0.min.js"></script>
   <script src="/assets/vendor/chess.js/chess-0.10.3.min.js"></script>
   <script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js"></script>
-  <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
+  <script src="/js/engine-adapter.js?v=1.0.0"></script>
+  <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=2.0.0"></script>
+  <script src="/js/opening-database.js?v=2.1.0"></script>
 </body>
 </html>

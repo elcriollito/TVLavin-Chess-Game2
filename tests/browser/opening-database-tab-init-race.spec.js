@@ -26,7 +26,7 @@ async function delayBoardInitialization(page) {
   return { requested: requestObserved.promise, release: releaseModule.release };
 }
 
-const names = ['Analysis', 'Games', 'Explore'];
+const names = ['Explorer', 'Analysis', 'Games', 'Moves'];
 
 async function expectActiveTab(page, name, { focused = true } = {}) {
   for (const candidate of names) {
@@ -36,9 +36,10 @@ async function expectActiveTab(page, name, { focused = true } = {}) {
     await expect(tab).toHaveAttribute('tabindex', selected ? '0' : '-1');
   }
   const panels = {
+    Explorer: '#odbExplorerPanel',
     Analysis: '#odbAnalysisPanel',
     Games: '#odbGamesPanel',
-    Explore: '#odbMovesPanel'
+    Moves: '#odbMovesPanel'
   };
   for (const [candidate, selector] of Object.entries(panels)) {
     if (candidate === name) await expect(page.locator(selector)).toBeVisible();
@@ -52,25 +53,27 @@ test('tabs work before delayed board initialization and preserve early selection
   const navigation = page.goto('/opening-database', { waitUntil: 'domcontentloaded' });
   await boundary.requested;
   await navigation;
-  const explore = page.getByRole('tab', { name: 'Explore', exact: true });
+  const explorer = page.getByRole('tab', { name: 'Explorer', exact: true });
 
   try {
-    await explore.focus();
+    await explorer.focus();
     await page.keyboard.press('Home');
-    await expectActiveTab(page, 'Analysis');
+    await expectActiveTab(page, 'Explorer');
     await page.keyboard.press('ArrowRight');
-    await expectActiveTab(page, 'Games');
+    await expectActiveTab(page, 'Analysis');
     await page.keyboard.press('End');
-    await expectActiveTab(page, 'Explore');
+    await expectActiveTab(page, 'Moves');
     await page.keyboard.press('ArrowRight');
-    await expectActiveTab(page, 'Analysis');
+    await expectActiveTab(page, 'Explorer');
     await page.keyboard.press('ArrowLeft');
-    await expectActiveTab(page, 'Explore');
+    await expectActiveTab(page, 'Moves');
 
+    await page.keyboard.press('Home');
+    await expectActiveTab(page, 'Explorer');
     await page.keyboard.press('Tab');
     await expect(page.locator('#odbMovesPopularBtn')).toBeFocused();
     await page.keyboard.press('Shift+Tab');
-    await expect(explore).toBeFocused();
+    await expect(explorer).toBeFocused();
 
     for (const tabName of names) {
       const tab = page.getByRole('tab', { name: tabName, exact: true });
@@ -82,17 +85,17 @@ test('tabs work before delayed board initialization and preserve early selection
   }
 
   await expect(page.locator('#openingDbBoard .board-b72b1')).toBeVisible();
-  await expectActiveTab(page, 'Explore', { focused: false });
+  await expectActiveTab(page, 'Moves', { focused: false });
 });
 
 test('tabs work after fast board initialization', async ({ page }) => {
   await page.goto('/opening-database');
-  const explore = page.getByRole('tab', { name: 'Explore', exact: true });
-  await explore.focus();
+  const explorer = page.getByRole('tab', { name: 'Explorer', exact: true });
+  await explorer.focus();
   await page.keyboard.press('Home');
-  await expectActiveTab(page, 'Analysis');
+  await expectActiveTab(page, 'Explorer');
   await page.keyboard.press('End');
-  await expectActiveTab(page, 'Explore');
+  await expectActiveTab(page, 'Moves');
 });
 
 test('tab binding is idempotent', async ({ page }) => {
@@ -100,7 +103,7 @@ test('tab binding is idempotent', async ({ page }) => {
     const addEventListener = EventTarget.prototype.addEventListener;
     window.__openingDbTabListenerCount = 0;
     EventTarget.prototype.addEventListener = function (type, listener, options) {
-      if (['odbTabAnalysis', 'odbTabGames', 'odbTabMoves'].includes(this.id) && ['keydown', 'click'].includes(type)) {
+      if (['odbTabExplorer', 'odbTabAnalysis', 'odbTabGames', 'odbTabMoves'].includes(this.id) && ['keydown', 'click'].includes(type)) {
         window.__openingDbTabListenerCount += 1;
       }
       return addEventListener.call(this, type, listener, options);
@@ -118,22 +121,22 @@ test('tab binding is idempotent', async ({ page }) => {
   });
 
   await page.goto('/opening-database');
-  await expect.poll(() => page.evaluate(() => window.__openingDbTabListenerCount)).toBe(6);
+  await expect.poll(() => page.evaluate(() => window.__openingDbTabListenerCount)).toBe(8);
   await page.evaluate(() => {
     window.__testBindOpeningDbTabInteractions();
     window.__testBindOpeningDbTabInteractions();
   });
-  await expect.poll(() => page.evaluate(() => window.__openingDbTabListenerCount)).toBe(6);
+  await expect.poll(() => page.evaluate(() => window.__openingDbTabListenerCount)).toBe(8);
 });
 
 test('tabs retain truthful semantics when board initialization fails', async ({ page }) => {
   await page.route('**/assets/vendor/chessboard.js/chessboard-1.0.0.min.js', route => route.abort('failed'));
   await page.goto('/opening-database');
   await expect(page.locator('#openingDbBoard')).toContainText('The board could not load');
-  const explore = page.getByRole('tab', { name: 'Explore', exact: true });
-  await explore.focus();
+  const explorer = page.getByRole('tab', { name: 'Explorer', exact: true });
+  await explorer.focus();
   await page.keyboard.press('Home');
-  await expectActiveTab(page, 'Analysis');
+  await expectActiveTab(page, 'Explorer');
   await page.keyboard.press('End');
-  await expectActiveTab(page, 'Explore');
+  await expectActiveTab(page, 'Moves');
 });
