@@ -1,4 +1,8 @@
 import { test, expect } from '@playwright/test';
+import jsQR from 'jsqr';
+import sharp from 'sharp';
+
+const canonicalScannerUrl = 'https://www.caissa-chess.org/scanner';
 
 for (const viewport of [
   { width: 1440, height: 900 },
@@ -17,9 +21,7 @@ for (const viewport of [
     const home = page.getByRole('link', { name: 'Go to CAISSA Chess homepage' });
     await expect(home).toBeVisible();
     await expect(home).toHaveAttribute('href', '/');
-    if (viewport.width <= 520) {
-      await expect(page.locator('.public-beta-badge')).toBeHidden();
-    }
+    await expect(page.locator('.public-beta-badge')).toBeVisible();
 
     const layout = await page.evaluate(() => {
       const link = document.querySelector('.scanner-home-link').getBoundingClientRect();
@@ -46,9 +48,51 @@ for (const viewport of [
     await home.focus();
     await expect(home).toBeFocused();
     expect(await home.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
+    expect(errors).toEqual([]);
 
     await home.click();
     await expect(page).toHaveURL(/\/$/);
-    expect(errors).toEqual([]);
   });
 }
+
+test('desktop QR initializes, renders, decodes, and copies the canonical Scanner URL', async ({ page, request }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (value) => { window.__copiedScannerUrl = value; } }
+    });
+  });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/scanner');
+  await expect(page.locator('html')).toHaveAttribute('data-scanner-handoff-ready', 'true');
+  await expect(page.locator('#scannerCanonicalUrl')).toHaveValue(canonicalScannerUrl);
+  await expect(page.locator('#scannerMobileCta')).toHaveAttribute('href', canonicalScannerUrl);
+  await expect(page.locator('#copyScannerUrlBtn')).toBeEnabled();
+  await expect.poll(() => page.locator('#scannerHandoffQr').evaluate((image) => ({
+    complete: image.complete,
+    width: image.naturalWidth,
+    height: image.naturalHeight
+  }))).toEqual({ complete: true, width: 208, height: 208 });
+
+  const response = await request.get('/api/scanner/public/handoff-qr');
+  expect(response.ok()).toBe(true);
+  expect(response.headers()['content-type']).toBe('image/png');
+  const png = await response.body();
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const decoded = jsQR(
+    new Uint8ClampedArray(data.buffer, data.byteOffset, data.byteLength),
+    info.width,
+    info.height
+  )?.data;
+  expect(decoded).toBe(canonicalScannerUrl);
+
+  await page.locator('#copyScannerUrlBtn').click();
+  await expect.poll(() => page.evaluate(() => window.__copiedScannerUrl)).toBe(canonicalScannerUrl);
+  expect(errors).toEqual([]);
+});
