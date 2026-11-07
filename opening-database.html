@@ -193,7 +193,6 @@
               <section id="odbExplorerPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabExplorer">
                 <div id="odbDatasetBanner" class="openingdb-dataset-banner" role="status" hidden></div>
                 <div class="openingdb-moves-toolbar">
-                  <div class="openingdb-modes" role="group" aria-label="Move list mode"><button id="odbMovesPopularBtn" class="openingdb-mode-button active" type="button" aria-pressed="true">Popular</button><button id="odbMovesAllBtn" class="openingdb-mode-button" type="button" aria-pressed="false">All legal</button></div>
                   <button id="odbAnalyzeInCaissaBtn" class="openingdb-analyze-action" type="button">Analyze in CAISSA <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                   <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span>Evaluate moves</span></label>
                   <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode"><span class="sr-only">Candidate evaluation mode</span><select id="odbQuickEvalMode" aria-label="Candidate evaluation mode"><option value="fast" selected>Fast</option><option value="pro">Pro</option></select></label>
@@ -245,7 +244,7 @@
         <textarea id="odbMoveList" class="openingdb-visually-hidden-field" tabindex="-1" aria-hidden="true" readonly></textarea>
         <section class="openingdb-seo-copy" aria-labelledby="openingdbAboutTitle">
           <h2 id="openingdbAboutTitle">Study opening positions, not just names</h2>
-          <p>CAISSA’s Opening Explorer connects legal board moves with practical continuation data from the active opening dataset. Results are always shown from White’s perspective, while moves without database coverage remain available in All legal mode.</p>
+          <p>CAISSA’s Opening Explorer connects legal board moves with practical continuation data from the active opening dataset. Results and optional engine evaluations are always shown from White’s perspective.</p>
           <nav aria-label="Related CAISSA chess tools"><a href="/eco">ECO Codes</a><a href="/opening-trainer">Opening Trainer</a><a href="/analyze">Analyzer</a><a href="/tools/polyglot">Polyglot Tool</a></nav>
         </section>
       </section>
@@ -265,6 +264,6 @@
   <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=2.1.0"></script>
+  <script src="/js/opening-database.js?v=2.2.0"></script>
 </body>
 </html>

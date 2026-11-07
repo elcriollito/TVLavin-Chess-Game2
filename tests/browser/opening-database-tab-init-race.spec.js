@@ -71,7 +71,7 @@ test('tabs work before delayed board initialization and preserve early selection
     await page.keyboard.press('Home');
     await expectActiveTab(page, 'Explorer');
     await page.keyboard.press('Tab');
-    await expect(page.locator('#odbMovesPopularBtn')).toBeFocused();
+    await expect(page.locator('#odbAnalyzeInCaissaBtn')).toBeFocused();
     await page.keyboard.press('Shift+Tab');
     await expect(explorer).toBeFocused();
 

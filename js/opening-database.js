@@ -32,10 +32,9 @@
       sourcePopularCount: 0,
       sourceAllLegalCount: 0,
       renderedCount: 0,
-      mode: 'popular',
+      mode: 'explorer',
       matchLevel: 'none'
     },
-    moveListMode: 'popular',
     activeTab: 'explorer',
     tabInteractionsBound: false,
     gamesVersion: 'v1',
@@ -98,6 +97,7 @@
         attribution: null,
         workerLifecycle: null,
         handshakeState: 'idle',
+        lastStopReason: '',
         lastLine: '',
         lastInfoAt: 0,
         errors: [],
@@ -203,8 +203,6 @@
     tabGames: document.getElementById('odbTabGames'),
     analysisPanel: document.getElementById('odbAnalysisPanel'),
     explorerPanel: document.getElementById('odbExplorerPanel'),
-    movesPopularBtn: document.getElementById('odbMovesPopularBtn'),
-    movesAllBtn: document.getElementById('odbMovesAllBtn'),
     coverageBadge: document.getElementById('odbCoverageBadge'),
     rowsDiag: document.getElementById('odbRowsDiag'),
     movesPanel: document.getElementById('odbMovesPanel'),
@@ -975,7 +973,9 @@
       const uci = String(row?.moveUCI || row?.uci || '').trim().toLowerCase();
       const cell = moveButton.closest('tr')?.querySelector('td.col-engine');
       if (!cell) return;
-      const text = uci ? (getEngineEvalCacheValue(getEngineCacheKey(fen, uci)) || row.engineEval || '-') : '-';
+      const text = state.engine.evalNextMoves && uci
+        ? (getEngineEvalCacheValue(getEngineCacheKey(fen, uci)) || row.engineEval || '-')
+        : '-';
       cell.textContent = text;
       cell.setAttribute('data-engine-eval', text);
       cell.classList.toggle('is-pending', text === '...');
@@ -1005,6 +1005,7 @@
       workerLifecycle: state.engine.debug.workerLifecycle || null,
       state: state.engine.status || '',
       handshakeState: state.engine.debug.handshakeState || '',
+      lastStopReason: state.engine.debug.lastStopReason || '',
       evalNextMoves: !!state.engine.evalNextMoves,
       nextMoveEvalRunning: !!state.engine.nextMoveEvalRunning,
       lastLine: state.engine.debug.lastLine || '',
@@ -1127,14 +1128,14 @@
         engine.debug.owner = snapshot.owner || engine.debug.owner;
         engine.debug.attribution = snapshot.attribution || engine.debug.attribution;
         engine.debug.workerLifecycle = snapshot.workerLifecycle || engine.debug.workerLifecycle;
+        engine.debug.lastStopReason = snapshot.lastStopReason || '';
         engine.debug.lastLine = snapshot.lastLine || '';
         engine.debug.lastInfoAt = Number(snapshot.lastInfoAt) || 0;
         engine.debug.errors = Array.isArray(snapshot.errors) ? snapshot.errors.slice(-20) : [];
         if (snapshot.handshakeState === 'uciok') console.log('[Engine] uciok');
         if (snapshot.handshakeState === 'readyok') console.log('[Engine] readyok');
-        if (snapshot.state === 'ready' && snapshot.lastStopReason === 'target-depth' && engine.running) {
-          engine.running = false;
-          engine.status = 'Complete';
+        if (snapshot.state === 'analyzing' && engine.running) {
+          engine.status = 'Infinite';
         }
         renderEnginePanel();
       });
@@ -1147,6 +1148,10 @@
       });
       engine.client.onError((err) => {
         const msg = err?.message || String(err);
+        engine.requestId += 1;
+        engine.activeRequestId = engine.requestId;
+        engine.running = false;
+        engine.paused = false;
         setEngineStatus(msg.startsWith('Worker') ? msg : `Engine error: ${msg}`);
       });
       engine.client.onInfo((info) => {
@@ -1220,9 +1225,10 @@
     const multiPV = Number(opts.multiPV || els.engineMultiPV?.value || engine.multiPV || 1);
     engine.depth = depth;
     engine.multiPV = multiPV;
+    engine.running = false;
+    engine.client.stop('restart');
     engine.requestId += 1;
     engine.activeRequestId = engine.requestId;
-    engine.running = true;
     engine.paused = false;
     engine.lastFen = state.game.fen();
     engine.pvLines = {};
@@ -1230,15 +1236,15 @@
     engine.lastPvSan = '';
     engine.lastPvUci = [];
     engine.lastBestMove = '';
+    engine.running = true;
     setEngineStatus('Running');
 
-    engine.client.stop();
     engine.client.setOptions({ multiPV });
     engine.client.setPositionFEN(engine.lastFen);
     const requestId = engine.client.startInfiniteAnalysis({
       targetDepth: depth || ENGINE_DEFAULT_DEPTH,
-      stopAtTarget: true,
-      maxActivityMs: 120000,
+      stopAtTarget: false,
+      maxActivityMs: 0,
       stallTimeoutMs: 30000
     });
     if (!requestId) {
@@ -1266,11 +1272,13 @@
   function stopEngineAnalysis() {
     const engine = state.engine;
     clearEngineDebounce();
-    if (engine.client) engine.client.stop();
     cancelNextMoveEvalQueue();
+    engine.requestId += 1;
+    engine.activeRequestId = engine.requestId;
     engine.running = false;
-    engine.paused = true;
-    setEngineStatus('Paused');
+    engine.paused = false;
+    if (engine.client) engine.client.stop('user-stop');
+    setEngineStatus('Idle');
   }
 
   function cancelNextMoveEvalQueue() {
@@ -1280,6 +1288,7 @@
       // Stop only the quick-eval worker; never touch main engine worker here.
       state.engine.evalClient.stop();
     }
+    updateEngineDebugWindow();
   }
 
   async function ensureEvalClient() {
@@ -1390,7 +1399,7 @@
     const mode = engine.evalMode === 'pro' ? 'pro' : 'fast';
     const evalLimit = mode === 'pro' ? ENGINE_MOVE_EVAL_PRO_LIMIT : ENGINE_MOVE_EVAL_FAST_LIMIT;
     const evalDepth = mode === 'pro' ? ENGINE_MOVE_EVAL_DEPTH : 8;
-    const sourceRows = (state.moveListMode === 'all' ? state.latestAllLegalRows : state.latestPopularRows) || [];
+    const sourceRows = getExplorerSourceRows();
     const queueRows = sourceRows
       .filter((row) => row && String(row.moveUCI || '').trim())
       .slice(0, evalLimit);
@@ -1398,6 +1407,7 @@
 
     const sessionId = ++engine.nextMoveEvalSessionId;
     engine.nextMoveEvalRunning = true;
+    updateEngineDebugWindow();
     const fen = String(positionFen || state.game.fen() || '');
 
     for (let i = 0; i < queueRows.length; i += 1) {
@@ -1409,7 +1419,7 @@
       const cached = getEngineEvalCacheValue(cacheKey);
       if (cached) {
         setRowEngineEvalByUci(uci, cached);
-        refreshRenderedEngineEvalCells();
+        renderExplorerRows();
         continue;
       }
       setRowEngineEvalByUci(uci, '...');
@@ -1421,7 +1431,7 @@
       if (sessionId !== engine.nextMoveEvalSessionId) break;
       setEngineEvalCacheValue(cacheKey, evalText || '-');
       setRowEngineEvalByUci(uci, evalText || '-');
-      refreshRenderedEngineEvalCells();
+      renderExplorerRows();
       if (i < queueRows.length - 1) {
         await delay(ENGINE_MOVE_EVAL_GAP_MS);
       }
@@ -1429,6 +1439,7 @@
 
     if (sessionId === engine.nextMoveEvalSessionId) {
       engine.nextMoveEvalRunning = false;
+      updateEngineDebugWindow();
     }
   }
 
@@ -1456,6 +1467,16 @@
     if (fen === engine.lastFen) return;
     cancelNextMoveEvalQueue();
     clearEngineDebounce();
+    engine.requestId += 1;
+    engine.activeRequestId = engine.requestId;
+    engine.client?.stop('position-change');
+    engine.lastInfo = null;
+    engine.lastInfoFen = '';
+    engine.lastPvSan = '';
+    engine.lastPvUci = [];
+    engine.lastBestMove = '';
+    engine.pvLines = {};
+    setEngineStatus('Analyzing');
     engine.debounceTimer = setTimeout(() => {
       engine.debounceTimer = null;
       startEngineAnalysis({ depth: engine.depth, multiPV: engine.multiPV });
@@ -2121,6 +2142,49 @@
     return copy;
   }
 
+  function parseExplorerEngineEval(value) {
+    const text = String(value || '').trim();
+    if (!text || text === '-' || text === '...') return null;
+    const mate = text.match(/^(-?)M(\d+)$/i);
+    if (mate) {
+      const distance = Math.max(0, Number(mate[2]) || 0);
+      return mate[1] ? (-1000000 + distance) : (1000000 - distance);
+    }
+    if (!/^[+-]?\d+(?:\.\d+)?$/.test(text)) return null;
+    const numeric = Number(text);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  function getExplorerSourceRows() {
+    return state.latestPopularRows.length > 0
+      ? state.latestPopularRows
+      : state.latestAllLegalRows;
+  }
+
+  function getExplorerDisplayRows(rows = getExplorerSourceRows()) {
+    const source = Array.isArray(rows) ? rows.slice() : [];
+    if (!state.engine.evalNextMoves) return source;
+    return source
+      .map((row, index) => ({ row, index, score: parseExplorerEngineEval(getEngineEvalText(row)) }))
+      .sort((a, b) => {
+        const aEvaluated = a.score !== null;
+        const bEvaluated = b.score !== null;
+        if (aEvaluated && bEvaluated && b.score !== a.score) return b.score - a.score;
+        if (aEvaluated !== bEvaluated) return aEvaluated ? -1 : 1;
+        return a.index - b.index;
+      })
+      .map((entry) => entry.row);
+  }
+
+  function renderExplorerRows() {
+    if (isOpeningDbDepthLimitReached()) {
+      renderOpeningDbDepthLimit();
+      return;
+    }
+    renderStatsRows(getExplorerDisplayRows());
+    refreshRenderedEngineEvalCells();
+  }
+
   function buildAllLegalRowsFromGame(game) {
     if (!game || typeof game.moves !== 'function') return [];
     const legalMoves = game.moves({ verbose: true }) || [];
@@ -2188,31 +2252,6 @@
     els.coverageBadge.textContent = `${withData}/${total} moves have database statistics`;
   }
 
-  function setMovesListMode(mode) {
-    state.moveListMode = mode === 'all' ? 'all' : 'popular';
-    const isPopular = state.moveListMode === 'popular';
-    if (els.movesPopularBtn) {
-      els.movesPopularBtn.classList.toggle('active', isPopular);
-      els.movesPopularBtn.setAttribute('aria-pressed', isPopular ? 'true' : 'false');
-    }
-    if (els.movesAllBtn) {
-      els.movesAllBtn.classList.toggle('active', !isPopular);
-      els.movesAllBtn.setAttribute('aria-pressed', isPopular ? 'false' : 'true');
-    }
-    if (isOpeningDbDepthLimitReached()) {
-      renderOpeningDbDepthLimit();
-      return;
-    }
-    const rows = isPopular && state.latestPopularRows.length > 0
-      ? state.latestPopularRows
-      : state.latestAllLegalRows;
-    if (rowsNeedRender(rows)) {
-      renderStatsRows(rows);
-    }
-    refreshRenderedEngineEvalCells();
-    maybeRunNextMoveEvalQueue();
-  }
-
   function getPlyFromFen(fen) {
     const parts = String(fen || '').trim().split(/\s+/);
     const fullmove = Math.max(1, Number.parseInt(parts[5] || '1', 10) || 1);
@@ -2245,7 +2284,7 @@
     state.rowDiagnostics.sourceAllLegalCount = 0;
     state.rowDiagnostics.sourcePopularCount = 0;
     state.rowDiagnostics.renderedCount = 0;
-    state.rowDiagnostics.mode = state.moveListMode;
+    state.rowDiagnostics.mode = 'explorer';
     state.rowDiagnostics.matchLevel = 'depth_limit';
     if (els.statsBody) {
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${OPENINGDB_DEPTH_LIMIT_MESSAGE}</td></tr>`;
@@ -2263,7 +2302,7 @@
 
   function rowsNeedRender(rows) {
     const next = {
-      mode: state.moveListMode === 'all' ? 'all' : 'popular',
+      mode: 'explorer',
       fp: rowFingerprint(rows)
     };
     const prev = state.lastRenderedRowsFingerprint || { mode: '', fp: '' };
@@ -2320,8 +2359,10 @@
   function renderRowDiagnostics() {
     if (!els.rowsDiag) return;
     const diag = state.rowDiagnostics || {};
-    const modeLabel = diag.mode === 'all' ? 'AllLegal' : 'Popular';
-    const sourceCount = diag.mode === 'all' ? (Number(diag.sourceAllLegalCount) || 0) : (Number(diag.sourcePopularCount) || 0);
+    const modeLabel = 'Explorer';
+    const sourceCount = Number(diag.sourcePopularCount) > 0
+      ? Number(diag.sourcePopularCount)
+      : (Number(diag.sourceAllLegalCount) || 0);
     const renderedCount = Number(diag.renderedCount) || 0;
     const matchLevel = String(diag.matchLevel || 'none');
     els.rowsDiag.textContent = `Rows rendered: ${renderedCount} / Source rows: ${sourceCount} / Mode: ${modeLabel} / matchLevel: ${matchLevel}`;
@@ -2337,7 +2378,7 @@
     if (!els.statsBody) return;
 
     if (!Array.isArray(rows) || rows.length === 0) {
-      if (state.moveListMode === 'all' && state.game) {
+      if (state.game) {
         const fallbackRows = buildAllLegalRowsFromGame(state.game).slice(0, OPENINGDB_COMPACT_ROW_LIMIT);
         if (fallbackRows.length > 0) {
           state.currentRows = fallbackRows;
@@ -2348,24 +2389,21 @@
 
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
-      const message = state.moveListMode === 'popular'
-        ? 'No DB stats for this position yet. Switch to "All Legal" to see playable moves.'
-        : 'No legal moves in this position.';
+      const message = 'No legal continuations are available in this position.';
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       state.rowDiagnostics.renderedCount = 0;
-      state.rowDiagnostics.mode = state.moveListMode;
+      state.rowDiagnostics.mode = 'explorer';
       renderRowDiagnostics();
       return;
     }
 
-    const rowLimit = state.moveListMode === 'all' ? OPENINGDB_COMPACT_ROW_LIMIT : OPENINGDB_WIDE_ROW_LIMIT;
-    rows = rows.slice(0, rowLimit);
+    rows = rows.slice(0, OPENINGDB_WIDE_ROW_LIMIT);
     const currentPly = state.game && typeof state.game.history === 'function'
       ? state.game.history({ verbose: false }).length
       : 0;
     state.currentRows = rows.slice();
     state.rowDiagnostics.renderedCount = state.currentRows.length;
-    state.rowDiagnostics.mode = state.moveListMode;
+    state.rowDiagnostics.mode = 'explorer';
     const rowsHtml = rows.map((row, idx) => {
       const n = Number(row.games) || 0;
       const wPct = Number(row.wins) || 0;
@@ -3325,12 +3363,9 @@
     }
     updateCoverageBadge(state.latestPopularRows.length, state.latestAllLegalRows.length);
 
-    const popularFallbackToLegal = state.moveListMode === 'popular' &&
-      state.latestPopularRows.length === 0 &&
+    const popularFallbackToLegal = state.latestPopularRows.length === 0 &&
       state.latestAllLegalRows.length > 0;
-    const rows = state.moveListMode === 'all' || popularFallbackToLegal
-      ? state.latestAllLegalRows
-      : state.latestPopularRows;
+    const rows = getExplorerDisplayRows();
     state.gameSearchLineKey = buildCurrentLineKey();
 
     const hasKnownOpening = openingFallback.eco || openingFallback.name !== 'Opening: (TBD)';
@@ -3632,13 +3667,6 @@
   }
 
   function bindEvents() {
-    if (els.movesPopularBtn) {
-      els.movesPopularBtn.addEventListener('click', () => setMovesListMode('popular'));
-    }
-    if (els.movesAllBtn) {
-      els.movesAllBtn.addEventListener('click', () => setMovesListMode('all'));
-    }
-
     els.startBtn.addEventListener('click', () => {
       cancelActiveBoardDrag();
       state.game.reset();
@@ -3841,11 +3869,11 @@
         persistQuickEvalPreference(state.engine.evalNextMoves);
         if (!state.engine.evalNextMoves) {
           cancelNextMoveEvalQueue();
-          state.currentRows.forEach((row) => {
-            if (row && row.engineEval === '...') row.engineEval = '-';
-          });
-          refreshRenderedEngineEvalCells();
+          clearCurrentPositionEngineEvalRows();
+          renderExplorerRows();
         } else {
+          applyEngineEvalCacheToRows(getExplorerSourceRows(), state.game ? state.game.fen() : '');
+          renderExplorerRows();
           maybeRunNextMoveEvalQueue();
         }
         renderEnginePanel();
@@ -3857,6 +3885,10 @@
         state.engine.evalMode = String(els.quickEvalMode.value || 'fast').toLowerCase() === 'pro' ? 'pro' : 'fast';
         persistQuickEvalModePreference(state.engine.evalMode);
         if (state.engine.evalNextMoves) {
+          cancelNextMoveEvalQueue();
+          clearCurrentPositionEngineEvalRows();
+          applyEngineEvalCacheToRows(getExplorerSourceRows(), state.game ? state.game.fen() : '');
+          renderExplorerRows();
           maybeRunNextMoveEvalQueue();
         }
         renderEnginePanel();
@@ -3904,7 +3936,6 @@
     });
     window.addEventListener('pagehide', destroyBoard);
 
-    setMovesListMode(state.moveListMode);
   }
 
   function captureChessboardGlobalHandlers() {
@@ -4203,6 +4234,7 @@
       state.engine.debug.workerUrl = new URL('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js', window.location.origin).toString();
       state.engine.debug.wasmUrl = new URL('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.wasm', window.location.origin).toString();
       state.engine.debug.handshakeState = 'idle';
+      state.engine.debug.lastStopReason = '';
       state.engine.debug.lastLine = '';
       state.engine.debug.lastInfoAt = 0;
       state.engine.debug.errors = [];

@@ -76,7 +76,19 @@ test('Opening Database owns a vetted Stockfish 19 Lite client and bounded Fast/P
   assert.match(source, /ENGINE_MOVE_EVAL_FAST_LIMIT\s*=\s*10/);
   assert.match(source, /ENGINE_MOVE_EVAL_PRO_LIMIT\s*=\s*20/);
   assert.match(source, /startInfiniteAnalysis/);
+  assert.match(source, /startInfiniteAnalysis\(\{[\s\S]*?stopAtTarget:\s*false,[\s\S]*?maxActivityMs:\s*0,[\s\S]*?stallTimeoutMs:\s*30000/);
+  assert.match(source, /engine\.evalClient\.startInfiniteAnalysis\(\{[\s\S]*?stopAtTarget:\s*true/);
   assert.doesNotMatch(source, /\.goDepth\(/);
+});
+
+test('Explorer is a single database-first list with optional stable engine sorting', () => {
+  assert.doesNotMatch(html, /id="odbMovesAllBtn"|>All legal</i);
+  assert.doesNotMatch(html, /aria-label="Move list mode"/);
+  assert.match(source, /function parseExplorerEngineEval/);
+  assert.match(source, /function getExplorerDisplayRows/);
+  assert.match(source, /if \(!state\.engine\.evalNextMoves\) return source/);
+  assert.match(source, /aEvaluated !== bEvaluated/);
+  assert.match(source, /return a\.index - b\.index/);
 });
 
 test('Moves is a dedicated isolated SAN review surface with honest metadata fallback', () => {
