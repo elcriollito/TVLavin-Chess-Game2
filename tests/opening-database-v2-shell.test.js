@@ -64,4 +64,3 @@ test('SEO metadata describes the public Opening Explorer', () => {
   assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /"@type":\s*"BreadcrumbList"/);
 });
-

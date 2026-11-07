@@ -1,9 +1,13 @@
 # Opening Database V2 — Phase 0 Baseline
 
-Date: 2026-11-07 (America/New_York)  
-Repository: `elcriollito/TVLavin-Chess-Game2`  
-Branch: `feature/opening-database-v2-modernization`  
-Audited base: `ce9a5198a8d0618d32fa9c34c500267ad89efc85`  
+Date: 2026-11-07 (America/New_York)
+
+Repository: `elcriollito/TVLavin-Chess-Game2`
+
+Branch: `feature/opening-database-v2-modernization`
+
+Audited base: `ce9a5198a8d0618d32fa9c34c500267ad89efc85`
+
 Base tree: `8e80b1cc806ba6b4249534f1c2b3cafd3a6da868`
 
 ## Isolation and protected state
@@ -65,4 +69,3 @@ Base tree: `8e80b1cc806ba6b4249534f1c2b3cafd3a6da868`
 - PGN/ZIP controls imply capabilities that the live dataset cannot support.
 - Debug implementation details are exposed by default.
 - Responsive and accessibility verification must be repeated after modernization.
-
