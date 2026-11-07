@@ -3,269 +3,235 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chess Opening Database - CAISSA</title>
-  <meta name="description" content="Interactive chess opening database with board exploration and practical game statistics.">
+  <title>Chess Opening Explorer & Database | CAISSA Chess</title>
+  <meta name="description" content="Explore chess openings on an interactive board with real-game continuation statistics, Stockfish analysis, ECO identification, and line-based game discovery.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://www.caissa-chess.org/opening-database">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="CAISSA Chess">
+  <meta property="og:title" content="Chess Opening Explorer & Database | CAISSA Chess">
+  <meta property="og:description" content="Study opening positions with real-game continuation statistics, Stockfish analysis, ECO identification, and line-based game discovery.">
+  <meta property="og:url" content="https://www.caissa-chess.org/opening-database">
+  <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
+  <meta property="og:image:alt" content="CAISSA Chess">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Chess Opening Explorer & Database | CAISSA Chess">
+  <meta name="twitter:description" content="Study opening positions with real-game continuation statistics, Stockfish analysis, ECO identification, and line-based game discovery.">
+  <meta name="twitter:image" content="https://www.caissa-chess.org/og-image.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/css/chessboard-1.0.0.min.css">
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=1.0.48">
+  <link rel="stylesheet" href="/css/opening-database.css?v=2.0.0">
   <link rel="stylesheet" href="/css/caissa-legacy-quiet-drag.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "CAISSA Chess Opening Explorer",
+      "description": "Interactive chess opening explorer with real-game continuation statistics, Stockfish analysis, and ECO identification.",
+      "url": "https://www.caissa-chess.org/opening-database",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any",
+      "isPartOf": {"@type": "WebSite", "name": "CAISSA Chess", "url": "https://www.caissa-chess.org/"}
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.caissa-chess.org/"},
+        {"@type": "ListItem", "position": 2, "name": "Opening Database", "item": "https://www.caissa-chess.org/opening-database"}
+      ]
+    }
+  </script>
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body data-clarity-mask>
   <div class="openingdb-app caissa-standalone-layout">
     <div data-caissa-standalone-sidebar data-active="opening-database"></div>
 
-    <main class="content-area openingdb-content caissa-standalone-content">
-      <section class="openingdb-page">
-        <header class="openingdb-header">
-          <h1>Chess Opening Database</h1>
-          <p>
-            Enter opening moves on the chess board below to identify the opening and inspect practical statistics from strong human games.
-            The database summarizes millions of moves and highlights what is played most often in real games.
-          </p>
-          <p class="openingdb-eco-reference">
-            Need a classification reference? <a href="/eco">Browse chess ECO codes A00–E99</a>, or <a href="/tools/polyglot">create a Polyglot opening book from your PGN games</a>.
-          </p>
+    <main class="content-area openingdb-content caissa-standalone-content" id="caissaStandaloneMain">
+      <section class="openingdb-page" aria-labelledby="openingdbPageTitle">
+        <header class="openingdb-page-intro">
+          <div>
+            <p class="openingdb-eyebrow">Study • Compare • Understand</p>
+            <h1 id="openingdbPageTitle">Opening Explorer</h1>
+          </div>
+          <p class="openingdb-intro-copy">Play a line on the board to compare real-game continuations, identify its ECO family, and examine the position with Stockfish.</p>
         </header>
 
-        <section class="openingdb-top-area" aria-label="Opening database board area">
-          <div class="openingdb-board-column">
+        <div class="openingdb-product-grid">
+          <section class="openingdb-board-column" aria-label="Opening board">
             <div class="openingdb-board-shell">
               <div id="openingDbBoard" class="openingdb-board" role="group" aria-label="Opening database board"></div>
             </div>
-          </div>
-
-          <section class="openingdb-stats-section openingdb-stats-section-compact" aria-label="Opening statistics compact">
-            <div class="openingdb-opening-meta">
-              <strong id="odbOpeningLabel">Opening: (TBD)</strong>
-              <span class="openingdb-lookup-wrap">
-                <span id="odbLookupStatus">Position lookup ready.</span>
-                <span id="odbMatchBadge" class="openingdb-match-badge" hidden>match: none</span>
-              </span>
-            </div>
-            <div id="odbDatasetBanner" class="openingdb-dataset-banner" hidden></div>
-
-            <div class="openingdb-tabs" role="tablist" aria-label="Explorer mode">
-              <button id="odbTabMoves" class="openingdb-tab active" type="button" role="tab" aria-controls="odbMovesPanel" aria-selected="true" tabindex="0">Moves</button>
-              <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-controls="odbGamesPanel" aria-selected="false" tabindex="-1">Search Games</button>
-            </div>
-
-            <div id="odbMovesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabMoves">
-              <div class="openingdb-moves-toolbar">
-                <div class="openingdb-modes" role="group" aria-label="Move list mode">
-                  <button id="odbMovesPopularBtn" class="openingdb-tab active" type="button" aria-pressed="true">Popular</button>
-                  <button id="odbMovesAllBtn" class="openingdb-tab" type="button" aria-pressed="false">All Legal</button>
-                </div>
-                <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle">
-                  <input id="odbQuickEvalToggle" type="checkbox">
-                  Eval Next Moves (fast)
-                </label>
-                <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode">
-                  Mode
-                  <select id="odbQuickEvalMode">
-                    <option value="fast" selected>Fast</option>
-                    <option value="pro">Pro</option>
-                  </select>
-                </label>
-                <div id="odbCoverageBadge" class="openingdb-coverage-badge">0/0 moves have DB stats</div>
-              </div>
-              <div id="odbRowsDiag" class="openingdb-rows-diag">Rows rendered: 0 / Source rows: 0 / Mode: Popular / matchLevel: none</div>
-              <div class="openingdb-table-wrap openingdb-table-wrap-compact" tabindex="0" role="region" aria-label="Opening moves table; scroll horizontally for all columns">
-                <table class="openingdb-stats-table">
-                  <colgroup>
-                    <col class="colg-move">
-                    <col class="colg-games">
-                    <col class="colg-wdl">
-                    <col class="colg-engine">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th class="col-move">Next Move</th>
-                      <th class="col-games"># Games</th>
-                      <th class="col-wdl">Winnings % (W/D/L)</th>
-                      <th class="col-engine">Engine Eval.</th>
-                    </tr>
-                  </thead>
-                  <tbody id="odbStatsBody">
-                    <tr>
-                      <td colspan="4" class="openingdb-empty">No data for this position yet (TBD).</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-            </div>
-
-            <div id="odbGamesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabGames" aria-busy="false" hidden>
-              <div class="openingdb-games-controls">
-                <button id="odbSearchGamesBtn" class="btn btn-primary" type="button">Search Games From This Position</button>
-                <button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button">Copy lineKey</button>
-                <button id="odbOpenSearchNewTabBtn" class="btn btn-secondary" type="button">Open in New Tab</button>
-                <button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button">Download top 10 (ZIP)</button>
-              </div>
-              <div class="openingdb-games-filters">
-                <label>Year Min <input id="odbGamesYearMin" type="number" min="1000" max="3000" placeholder="1900"></label>
-                <label>Year Max <input id="odbGamesYearMax" type="number" min="1000" max="3000" placeholder="2026"></label>
-                <label>Elo Min <input id="odbGamesEloMin" type="number" min="0" max="3500" placeholder="2400"></label>
-                <label>Result
-                  <select id="odbGamesResult">
-                    <option value="all">All</option>
-                    <option value="1-0">White wins</option>
-                    <option value="1/2-1/2">Draw</option>
-                    <option value="0-1">Black wins</option>
-                  </select>
-                </label>
-              </div>
-              <div id="odbGamesStatus" class="openingdb-games-status" role="status" aria-live="polite" aria-atomic="true">Ready to search.</div>
-              <div id="odbGamesSummary" class="openingdb-games-summary">Summary pending.</div>
-              <div class="openingdb-games-wrap" tabindex="0" role="region" aria-label="Matching games table; scroll horizontally for all columns">
-                <table class="openingdb-games-table">
-                  <thead>
-                    <tr>
-                      <th>White</th>
-                      <th>Black</th>
-                      <th>Result</th>
-                      <th>Event</th>
-                      <th>Year</th>
-                      <th>Elo</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="odbGamesBody">
-                    <tr>
-                      <td colspan="7">
-                        <div class="caissa-ui-empty-state caissa-ui-empty-state--compact" role="status">
-                          <i class="fas fa-database caissa-ui-empty-state__icon" aria-hidden="true"></i>
-                          <p class="caissa-ui-empty-state__title">No position loaded.</p>
-                          <p class="caissa-ui-empty-state__message">Load a position to browse opening theory.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div id="odbGamesDownloads" class="openingdb-games-downloads"></div>
-              <div id="odbGamesPgnViewer" class="openingdb-games-pgn" hidden>
-                <div class="openingdb-games-pgn-header">
-                  <strong id="odbGamesPgnTitle">PGN</strong>
-                  <div class="openingdb-games-pgn-actions">
-                    <button id="odbGamesPgnCopyBtn" class="btn btn-secondary" type="button">Copy PGN</button>
-                    <button id="odbGamesPgnCloseBtn" class="btn btn-secondary" type="button">Close</button>
-                  </div>
-                </div>
-                <textarea id="odbGamesPgnText" rows="12" readonly></textarea>
-              </div>
-            </div>
-          </section>
-        </section>
-
-        <section class="openingdb-action-band" aria-label="Position controls">
-          <div class="openingdb-controls">
-            <button id="odbStartBtn" class="btn btn-secondary" type="button">Start Position</button>
-            <button id="odbTakebackBtn" class="btn btn-secondary" type="button">Takeback</button>
-            <button id="odbFlipBtn" class="btn btn-secondary" type="button">Flip Board</button>
-            <button id="odbFenToggleBtn" class="btn btn-secondary" type="button">Input FEN</button>
-          </div>
-          <div class="engine-analysis-zone" aria-label="Engine analysis controls">
-            <div class="engine-analysis-label">ENGINE ANALYSIS</div>
-            <div class="engine-analysis-controls">
-              <label>Depth
-                <select id="odbEngineDepth">
-                  <option value="10">10</option>
-                  <option value="14">14</option>
-                  <option value="18" selected>18</option>
-                  <option value="22">22</option>
-                </select>
-              </label>
-              <label>MultiPV
-                <select id="odbEngineMultiPV">
-                  <option value="1" selected>1</option>
-                  <option value="3">3</option>
-                </select>
-              </label>
-            </div>
-            <div class="engine-analysis-actions">
-              <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button">START ENGINE ANALYSIS</button>
-              <button id="odbStopEngineBtn" class="btn btn-secondary openingdb-engine-stop" type="button">STOP</button>
-              <button id="odbEngineCopyPvBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy PV</button>
-              <button id="odbEngineCopyFenBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy FEN</button>
-              <span id="odbEngineCopyFeedback" class="engine-copy-feedback" aria-live="polite"></span>
-            </div>
-            <div class="engine-analysis-readout">
-              <div><span>Status</span><strong id="odbEngineStatusValue">Idle</strong></div>
-              <div><span>Eval</span><strong id="odbEngineEvalValue">—</strong></div>
-              <div><span>Depth</span><strong id="odbEngineDepthValue">—</strong></div>
-              <div><span>Best Move</span><strong id="odbEngineBestMoveValue">—</strong></div>
-              <div><span>NPS</span><strong id="odbEngineNpsValue">—</strong></div>
-              <div><span>Nodes</span><strong id="odbEngineNodesValue">—</strong></div>
-              <div class="engine-pv">
-                <span>PV</span>
-                <div id="odbEnginePvLines" class="engine-pv-lines">
-                  <div class="engine-pv-line">
-                    <strong id="odbEnginePvValue">-</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="engine-analysis-debug">
-              <div class="engine-analysis-debug-head">
-                <span>DEBUG</span>
-                <button id="odbEngineCopyDebugBtn" class="btn btn-secondary openingdb-engine-debug-copy" type="button">COPY DEBUG</button>
-              </div>
-              <div class="engine-analysis-debug-grid">
-                <div><span>workerUrl</span><strong id="odbEngineDebugWorkerUrl">—</strong></div>
-                <div><span>handshake</span><strong id="odbEngineDebugHandshake">—</strong></div>
-                <div><span>lastInfoAt</span><strong id="odbEngineDebugLastInfoAt">—</strong></div>
-                <div class="engine-debug-line"><span>lastLine</span><strong id="odbEngineDebugLastLine">—</strong></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
-            <label for="odbFenInput">FEN</label>
-            <textarea id="odbFenInput" rows="3" placeholder="Paste FEN here"></textarea>
-            <div class="openingdb-fen-actions">
-              <button id="odbApplyFenBtn" class="btn btn-primary" type="button">Apply</button>
-              <button id="odbCancelFenBtn" class="btn btn-secondary" type="button">Cancel</button>
-            </div>
-            <p id="odbFenError" class="openingdb-error" role="alert" aria-atomic="true" hidden>Invalid FEN.</p>
-          </div>
-        </section>
-
-        <section id="openingdbBottomBox" class="openingdb-bottom-area" aria-label="Opening database explorer area">
-          <section class="openingdb-games-dock" aria-label="Search games dock">
-            <div class="openingdb-games-dock-header">
-              <strong>Search Games</strong>
-              <button id="odbOpenSearchDockBtn" class="btn btn-secondary" type="button">Open Search Games</button>
-            </div>
-            <p class="openingdb-games-dock-text">
-              Use Search Games to find real games from this position. This area stays visible for quick access and results context.
-            </p>
-            <div class="openingdb-games-dock-note">If Search Games is not available yet, you'll see a "coming soon" message in the top-right panel.</div>
-
-            <div id="odbTransitionPanel" class="odb-transition" hidden>
-              <h3>Entering Early Middlegame</h3>
-              <p id="odbTransitionMessage">
-                Position branching is narrowing. You are transitioning
-                from Opening Theory into Early Middlegame.
-              </p>
-              <div id="odbTransitionStats" class="odb-transition-stats"></div>
-              <div class="odb-transition-actions">
-                <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search Games From This Position</button>
-                <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button" disabled>Analyze Position</button>
-              </div>
+            <div class="openingdb-board-context" aria-live="polite">
+              <span id="odbTurnPly">White to move • Start position</span>
+              <span id="odbDatasetFreshness">Loading opening data…</span>
             </div>
           </section>
 
-          <aside class="openingdb-side-panel openingdb-side-panel-bottom" aria-label="Current position move list">
-            <div id="odbTurnPly" class="openingdb-turnply">Turn: White | Ply: 0</div>
-            <label class="openingdb-movelist-label" for="odbMoveList">Move list (SAN)</label>
-            <textarea id="odbMoveList" class="openingdb-movelist" rows="18" readonly></textarea>
-          </aside>
+          <section class="openingdb-workspace" aria-label="Opening explorer workspace">
+            <header class="openingdb-workspace-head">
+              <div class="openingdb-opening-context">
+                <div class="openingdb-opening-heading">
+                  <a id="odbEcoLink" class="openingdb-eco-badge" href="/eco" aria-label="Browse ECO opening codes"><span id="odbEcoCode">ECO —</span></a>
+                  <div>
+                    <p class="openingdb-context-label">Current opening</p>
+                    <h2 id="odbOpeningLabel">Starting position</h2>
+                  </div>
+                </div>
+                <p class="openingdb-current-line"><span>Line</span> <strong id="odbCurrentLine">Start position</strong></p>
+                <div class="openingdb-status-line">
+                  <span id="odbLookupStatus" role="status" aria-live="polite">Loading position data…</span>
+                  <span id="odbMatchBadge" class="openingdb-match-badge" hidden>match: none</span>
+                </div>
+              </div>
+
+              <div class="openingdb-tabs" role="tablist" aria-label="Opening workspace">
+                <button id="odbTabAnalysis" class="openingdb-tab" type="button" role="tab" aria-controls="odbAnalysisPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Analysis</span></button>
+                <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-controls="odbGamesPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chess-knight" aria-hidden="true"></i><span>Games</span></button>
+                <button id="odbTabMoves" class="openingdb-tab active" type="button" role="tab" aria-controls="odbMovesPanel" aria-selected="true" tabindex="0"><i class="fas fa-compass" aria-hidden="true"></i><span>Explore</span></button>
+              </div>
+            </header>
+
+            <div class="openingdb-workspace-body">
+              <section id="odbAnalysisPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabAnalysis" hidden>
+                <div class="openingdb-panel-heading">
+                  <div><p class="openingdb-panel-kicker">Stockfish</p><h3>Position analysis</h3></div>
+                  <span id="odbEngineStatusValue" class="openingdb-engine-state" role="status" aria-live="polite">Idle</span>
+                </div>
+                <div class="engine-analysis-zone" aria-label="Engine analysis controls">
+                  <div class="engine-analysis-actions engine-analysis-actions-primary">
+                    <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button"><i class="fas fa-play" aria-hidden="true"></i> Start analysis</button>
+                    <button id="odbStopEngineBtn" class="btn btn-secondary openingdb-engine-stop" type="button" disabled><i class="fas fa-stop" aria-hidden="true"></i> Stop</button>
+                  </div>
+                  <div class="engine-analysis-readout">
+                    <div class="engine-readout-primary"><span>Evaluation</span><strong id="odbEngineEvalValue">—</strong></div>
+                    <div><span>Best move</span><strong id="odbEngineBestMoveValue">—</strong></div>
+                    <div><span>Depth</span><strong id="odbEngineDepthValue">—</strong></div>
+                    <div><span>Speed</span><strong id="odbEngineNpsValue">—</strong></div>
+                    <div class="engine-readout-nodes"><span>Nodes</span><strong id="odbEngineNodesValue">—</strong></div>
+                  </div>
+                  <div class="engine-pv-card">
+                    <div class="engine-pv-heading"><span>Principal variation</span><strong id="odbEnginePvValue">—</strong></div>
+                    <div id="odbEnginePvLines" class="engine-pv-lines"><div class="engine-pv-line">Waiting for analysis.</div></div>
+                  </div>
+                  <details class="openingdb-disclosure">
+                    <summary>Analysis settings</summary>
+                    <div class="engine-analysis-controls">
+                      <label>Depth<select id="odbEngineDepth"><option value="10">10</option><option value="14">14</option><option value="18" selected>18</option><option value="22">22</option></select></label>
+                      <label>MultiPV<select id="odbEngineMultiPV"><option value="1" selected>1</option><option value="3">3</option></select></label>
+                    </div>
+                    <div class="engine-analysis-actions">
+                      <button id="odbEngineCopyPvBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy PV</button>
+                      <button id="odbEngineCopyFenBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy FEN</button>
+                      <span id="odbEngineCopyFeedback" class="engine-copy-feedback" aria-live="polite"></span>
+                    </div>
+                  </details>
+                  <details id="odbEngineDiagnostics" class="openingdb-disclosure engine-analysis-debug" hidden>
+                    <summary>Developer diagnostics</summary>
+                    <div class="engine-analysis-debug-head"><span>Engine lifecycle</span><button id="odbEngineCopyDebugBtn" class="btn btn-secondary openingdb-engine-debug-copy" type="button">Copy diagnostics</button></div>
+                    <div class="engine-analysis-debug-grid">
+                      <div><span>Worker</span><strong id="odbEngineDebugWorkerUrl">—</strong></div>
+                      <div><span>Handshake</span><strong id="odbEngineDebugHandshake">—</strong></div>
+                      <div><span>Last info</span><strong id="odbEngineDebugLastInfoAt">—</strong></div>
+                      <div class="engine-debug-line"><span>Last line</span><strong id="odbEngineDebugLastLine">—</strong></div>
+                    </div>
+                  </details>
+                </div>
+              </section>
+
+              <section id="odbGamesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabGames" aria-busy="false" hidden>
+                <div class="openingdb-panel-heading"><div><p class="openingdb-panel-kicker">Indexed master games</p><h3>Games from this line</h3></div></div>
+                <p id="odbGamesScope" class="openingdb-scope-note">Results match the played move order for up to 10 plies. Transpositions reached through a different line are not included.</p>
+                <div class="openingdb-games-filters" aria-label="Game filters">
+                  <label>From year<input id="odbGamesYearMin" type="number" min="1000" max="3000" placeholder="1900"></label>
+                  <label>To year<input id="odbGamesYearMax" type="number" min="1000" max="3000" placeholder="2026"></label>
+                  <label>Minimum Elo<input id="odbGamesEloMin" type="number" min="0" max="3500" placeholder="2400"></label>
+                  <label>Result<select id="odbGamesResult"><option value="all">All results</option><option value="1-0">White wins</option><option value="1/2-1/2">Draw</option><option value="0-1">Black wins</option></select></label>
+                </div>
+                <div class="openingdb-games-controls"><button id="odbSearchGamesBtn" class="btn btn-primary" type="button"><i class="fas fa-search" aria-hidden="true"></i> Search this line</button></div>
+                <div id="odbGamesStatus" class="openingdb-games-status" role="status" aria-live="polite" aria-atomic="true">Play at least one move to search.</div>
+                <div id="odbGamesSummary" class="openingdb-games-summary">Indexed: — • Returned: — • Displayed: —</div>
+                <div class="openingdb-games-wrap" role="region" aria-label="Matching games">
+                  <table class="openingdb-games-table">
+                    <thead><tr><th>White</th><th>Black</th><th>Result</th><th>Event</th><th>Year</th><th>Elo</th><th>PGN</th></tr></thead>
+                    <tbody id="odbGamesBody"><tr><td colspan="7"><div class="openingdb-empty">Play a line, then search for matching indexed games.</div></td></tr></tbody>
+                  </table>
+                </div>
+                <div id="odbGamesDownloads" class="openingdb-games-downloads" aria-live="polite"></div>
+                <div id="odbGamesPgnViewer" class="openingdb-games-pgn" hidden>
+                  <div class="openingdb-games-pgn-header"><strong id="odbGamesPgnTitle">PGN</strong><div class="openingdb-games-pgn-actions"><button id="odbGamesPgnCopyBtn" class="btn btn-secondary" type="button">Copy PGN</button><button id="odbGamesPgnCloseBtn" class="btn btn-secondary" type="button">Close</button></div></div>
+                  <textarea id="odbGamesPgnText" rows="10" readonly></textarea>
+                </div>
+                <details class="openingdb-disclosure openingdb-games-tools">
+                  <summary>Line search tools</summary>
+                  <div><button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button">Copy line key</button><button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button" hidden disabled>PGN export unavailable</button></div>
+                </details>
+              </section>
+
+              <section id="odbMovesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabMoves">
+                <div id="odbDatasetBanner" class="openingdb-dataset-banner" role="status" hidden></div>
+                <div class="openingdb-moves-toolbar">
+                  <div class="openingdb-modes" role="group" aria-label="Move list mode"><button id="odbMovesPopularBtn" class="openingdb-mode-button active" type="button" aria-pressed="true">Popular</button><button id="odbMovesAllBtn" class="openingdb-mode-button" type="button" aria-pressed="false">All legal</button></div>
+                  <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span>Evaluate moves</span></label>
+                  <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode"><span class="sr-only">Candidate evaluation mode</span><select id="odbQuickEvalMode" aria-label="Candidate evaluation mode"><option value="fast" selected>Fast</option><option value="pro">Pro</option></select></label>
+                </div>
+                <div class="openingdb-explorer-legend" aria-label="Results legend">
+                  <span id="odbCoverageBadge">0/0 moves have database statistics</span>
+                  <span class="openingdb-legend-items"><span><i class="legend-white" aria-hidden="true"></i>White</span><span><i class="legend-draw" aria-hidden="true"></i>Draw</span><span><i class="legend-black" aria-hidden="true"></i>Black</span></span>
+                </div>
+                <div class="openingdb-table-wrap" role="region" aria-label="Opening continuations">
+                  <table class="openingdb-stats-table">
+                    <colgroup><col class="colg-move"><col class="colg-engine"><col class="colg-games"><col class="colg-wdl"></colgroup>
+                    <thead class="openingdb-stat-headings"><tr><th>Move</th><th>Engine evaluation</th><th>Games</th><th>White / Draw / Black</th></tr></thead>
+                    <tbody id="odbStatsBody"><tr><td colspan="4" class="openingdb-empty">Loading continuation data…</td></tr></tbody>
+                  </table>
+                </div>
+                <details class="openingdb-disclosure openingdb-data-details"><summary>Dataset details</summary><div id="odbRowsDiag">Rows rendered: 0 / Source rows: 0 / Mode: Popular / matchLevel: none</div></details>
+                <div id="odbTransitionPanel" class="odb-transition" hidden>
+                  <h3>Entering the early middlegame</h3>
+                  <p id="odbTransitionMessage">Position branching is narrowing beyond common opening theory.</p>
+                  <div id="odbTransitionStats" class="odb-transition-stats"></div>
+                  <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search this line</button>
+                  <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button">Open analysis</button>
+                </div>
+              </section>
+            </div>
+
+            <footer class="openingdb-workspace-foot">
+              <div class="openingdb-controls" aria-label="Position controls">
+                <button id="odbStartBtn" class="openingdb-foot-action" type="button"><i class="fas fa-backward-step" aria-hidden="true"></i><span>Start Position</span></button>
+                <button id="odbTakebackBtn" class="openingdb-foot-action" type="button"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Takeback</span></button>
+                <button id="odbFlipBtn" class="openingdb-foot-action" type="button"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><span>Flip Board</span></button>
+                <button id="odbFenToggleBtn" class="openingdb-foot-action" type="button"><i class="fas fa-pen-to-square" aria-hidden="true"></i><span>Input FEN</span></button>
+              </div>
+              <div class="openingdb-integrations" aria-label="Continue studying">
+                <button id="odbAnalyzeInCaissaBtn" class="openingdb-integration-action" type="button">Analyze in CAISSA <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                <button id="odbPracticeTrainerBtn" class="openingdb-integration-action" type="button" aria-describedby="odbTrainerUnavailable" disabled>Practice in Trainer</button>
+                <span id="odbTrainerUnavailable" class="sr-only">Opening Trainer transfer is unavailable until a compatible repertoire handoff contract is implemented.</span>
+              </div>
+              <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
+                <label for="odbFenInput">Position FEN</label>
+                <textarea id="odbFenInput" rows="2" placeholder="Paste a complete FEN"></textarea>
+                <div class="openingdb-fen-actions"><button id="odbApplyFenBtn" class="btn btn-primary" type="button">Load position</button><button id="odbCancelFenBtn" class="btn btn-secondary" type="button">Cancel</button></div>
+                <p id="odbFenError" class="openingdb-error" role="alert" aria-atomic="true" hidden>Invalid FEN.</p>
+              </div>
+              <p id="odbActionStatus" class="openingdb-action-status" role="status" aria-live="polite"></p>
+            </footer>
+          </section>
+        </div>
+
+        <textarea id="odbMoveList" class="openingdb-visually-hidden-field" tabindex="-1" aria-hidden="true" readonly></textarea>
+        <section class="openingdb-seo-copy" aria-labelledby="openingdbAboutTitle">
+          <h2 id="openingdbAboutTitle">Study opening positions, not just names</h2>
+          <p>CAISSA’s Opening Explorer connects legal board moves with practical continuation data from the active opening dataset. Results are always shown from White’s perspective, while moves without database coverage remain available in All legal mode.</p>
+          <nav aria-label="Related CAISSA chess tools"><a href="/eco">ECO Codes</a><a href="/opening-trainer">Opening Trainer</a><a href="/analyze">Analyzer</a><a href="/tools/polyglot">Polyglot Tool</a></nav>
         </section>
       </section>
     </main>
@@ -281,7 +247,8 @@
   <script src="/assets/vendor/chess.js/chess-0.10.3.min.js"></script>
   <script src="/assets/vendor/chessboard.js/chessboard-1.0.0.min.js"></script>
   <script src="/js/engine/stockfish-client.js?v=1.0.1"></script>
+  <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=1.0.48"></script>
+  <script src="/js/opening-database.js?v=2.0.0"></script>
 </body>
 </html>
