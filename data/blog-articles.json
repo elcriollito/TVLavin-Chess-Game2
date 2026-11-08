@@ -4,7 +4,7 @@
   "articles": [
     {
       "slug": "caissa-opening-explorer-free-chess-analysis",
-      "title": "CAISSA Opening Explorer: Powerful Chess Analysis Without the Complexity",
+      "title": "CAISSA Opening Explorer: Powerful Chess Opening Analysis Without the Complexity",
       "seoTitle": "Free Chess Opening Explorer with Stockfish | CAISSA",
       "description": "Explore real-game opening statistics, compare moves with Stockfish 19 Lite, and study complete ideas in CAISSA's free four-tab workspace.",
       "excerpt": "CAISSA Opening Explorer combines real-game evidence, optional Stockfish evaluations, relevant games, and move review in one approachable workspace.",
@@ -18,7 +18,7 @@
       "featuredImageWidth": 1440,
       "featuredImageHeight": 960,
       "introduction": [
-        "You play one opening move, and a practical question follows: what should come next? A database can show what people have tried, while an engine can estimate what the position allows. The difficulty is seeing the right information together without turning study into a tour of menus and settings.",
+        "A familiar opening suddenly takes an unexpected turn. What should come next? A database can show what people have tried, while an engine can estimate what the position allows. The difficulty is seeing the right information together without turning study into a tour of menus and settings.",
         "[CAISSA Opening Explorer](/opening-database) is designed around that moment. Its four-tab workspace brings real-game opening evidence, optional Stockfish 19 Lite evaluations, relevant games, and move-by-move review beside the board. The goal is powerful chess analysis without the complexity: enough depth to investigate an opening seriously, with a path that still feels natural when you simply want to understand your next move."
       ],
       "body": [
@@ -26,14 +26,14 @@
           "heading": "Why CAISSA Redesigned Opening Explorer",
           "subheading": "Keep the position, evidence, and next question in one place",
           "paragraphs": [
-            "Opening study can become fragmented. One screen gives a list of popular moves, another provides an engine line, and a third holds the games that explain why a choice became important. Every transition adds friction and makes it easier to forget the original question. CAISSA's redesign keeps the current board as the anchor and organizes the investigation into Explorer, Analysis, Games, and Moves.",
+            "Opening study can become fragmented. One screen gives popular moves, another an engine line, and a third the games that explain why a choice matters. Every transition adds friction. CAISSA's redesign reduces visual clutter, keeps a large board as the permanent anchor, and organizes one contextual workspace into Explorer, Analysis, Games, and Moves.",
             "Those four tabs have distinct jobs. Explorer compares candidate moves. Analysis follows the engine continuously. Games looks for examples associated with the indexed move order. Moves preserves the notation and review path. You can move between them without treating each view as a separate product, and identify the opening through its [ECO classification](/eco) as the position develops."
           ]
         },
         {
           "heading": "Explorer: Compare Opening Moves Intelligently",
           "paragraphs": [
-            "The Explorer tab begins with database evidence. Popularity mode, the default, orders moves by the number of recorded games so the most frequently played choices appear first. Each row can show the move, its game count, and a color-coded W/D/L bar for White wins, draws, and Black wins. These are genuine descriptive statistics from the available dataset, not predictions that a move will produce the same result in your next game.",
+            "The Explorer tab begins with database evidence. Popularity mode, the default, orders moves by the number of recorded games so the most frequently played choices appear first. Each row can show the move, its game count, and a W/D/L bar for White wins, draws, and Black wins in green, gray, and red, with readable numerical percentages. These are genuine descriptive statistics, not predictions that your next game will produce the same result.",
             "When you want a different question answered, select Engine. CAISSA then ranks completed Stockfish evaluations with the best move for the side to move first: higher White-perspective scores when White moves, lower White-perspective scores when Black moves. Mate scores and mate distance are handled separately from ordinary pawn-based evaluations. Moves still waiting for analysis remain visibly unevaluated, so an incomplete ranking is never presented as complete evidence."
           ]
         },

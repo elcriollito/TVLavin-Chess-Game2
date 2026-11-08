@@ -72,7 +72,7 @@ test('Opening Explorer V2.3 launch article is a complete unpublished editorial d
   const article = registry.articles.find(item => item.slug === slug);
   assert.ok(article, 'Opening Explorer V2.3 launch article is missing from registry');
   assert.equal(article.status, 'draft');
-  assert.equal(article.title, 'CAISSA Opening Explorer: Powerful Chess Analysis Without the Complexity');
+  assert.equal(article.title, 'CAISSA Opening Explorer: Powerful Chess Opening Analysis Without the Complexity');
   assert.equal(article.seoTitle, 'Free Chess Opening Explorer with Stockfish | CAISSA');
   assert.equal(article.author, 'CAISSA Chess Editorial');
   assert.equal(article.category, 'CAISSA Tools');
