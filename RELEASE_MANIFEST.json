@@ -27,11 +27,17 @@
       "certification": "pending"
     }
   },
+  "publicRelease": {
+    "policy": "exact-path-and-sha256",
+    "manifest": "PUBLIC_RELEASE_ARTIFACT_MANIFEST.json",
+    "deploymentAllowlist": ".vercelignore",
+    "publicPathCount": 1762
+  },
   "security": {
     "recoveredBaselineScanId": "975a2ce9-51d8-4310-9e2e-7aaee8a3ab76",
     "recoveredBaselineScanStatus": "complete",
     "validatedFindings": 5,
-    "candidateRemediationReview": "pass",
+    "candidateRemediationReview": "positive-manifest-remediation-verified-locally",
     "freshCandidateScan": "external-sealed-attestation-required-after-commit"
   },
   "releaseGate": "HUMAN_QA_AND_OWNER_APPROVAL_REQUIRED"

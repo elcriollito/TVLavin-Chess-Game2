@@ -109,6 +109,7 @@
     "lint:disclosure": "node --check tests/public-disclosure.test.js",
     "release:public:audit": "node scripts/build-public-release.mjs --check",
     "release:public:build": "node scripts/build-public-release.mjs",
+    "release:public:manifest": "node scripts/update-public-release-manifest.mjs",
     "test:public-release": "node --test tests/public-release-builder.test.js",
     "lint:public-release": "node --check scripts/build-public-release.mjs && node --check tests/public-release-builder.test.js",
     "test:guided-study": "node --test tests/guided-study-entry.test.js",

@@ -40,13 +40,13 @@ All five findings from original scan `975a2ce9-51d8-4310-9e2e-7aaee8a3ab76` were
 2. GameSearch metadata is encoded at HTML sinks and PGN URLs are allowlisted before rendering or fetch.
 3. Portable downloads fail closed unless R2's validated SHA-256 matches the reviewed digest.
 4. Anonymous server Polyglot work was removed; the route is a `410` tombstone.
-5. Public release staging rejects risky extensions and file signatures unless the exact path and SHA-256 are approved.
+5. Public release staging is governed by a positive manifest that binds every publishable path and SHA-256; the same manifest generates the Vercel upload allowlist. Risky extensions and deep file signatures remain defense in depth.
 
-Independent pre-edit and post-patch reviews were performed. The final patch review found no residual issue in the five validated paths.
+Independent pre-edit and post-patch reviews were performed. The first frozen-candidate scan exposed a residual finite-denylist bypass for unrecognized disk-image formats; the positive manifest closes that gap before the final candidate scan.
 
 ## Verification summary
 
-- Focused candidate Node suite: 49/49 passed.
+- Focused candidate Node suite after positive-manifest remediation: 53/53 passed.
 - Broader changed-file Node regression: 110/110 passed.
 - Chromium/Firefox/WebKit Downloads and Polyglot browser suite: 27/27 passed.
 - Navigation/home browser run: 27/28 passed; one pre-existing Endgame Trainer visibility assertion remains reproducibly failing and is unrelated to this candidate.

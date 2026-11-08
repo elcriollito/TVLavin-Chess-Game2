@@ -8,6 +8,8 @@ import {
   buildPublicRelease,
   isUnapprovedPublicBinaryPath,
   isProtectedPublicPath,
+  loadPublicArtifactManifest,
+  renderVercelIgnore,
   trackedPublicFiles
 } from '../scripts/build-public-release.mjs';
 import { dirname, join, resolve } from 'node:path';
@@ -85,7 +87,14 @@ test('committed-tree audit has no protected paths and all required runtime files
   const result = auditPublicFiles(files);
   assert.equal(result.protectedPaths, 0);
   assert.equal(result.requiredPaths, 23);
+  assert.equal(result.manifestPaths, files.length);
   assert.ok(result.files > 500);
+});
+
+test('the exact public manifest also generates the Vercel upload allowlist', () => {
+  const manifest = loadPublicArtifactManifest();
+  assert.equal(readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8'), renderVercelIgnore(manifest));
+  assert.deepEqual(manifest.files.map(item => item.path), [...manifest.files.map(item => item.path)].sort());
 });
 
 test('public release audit enforces all permanent Chess TV contracts', () => {
@@ -128,7 +137,7 @@ test('audit blocks unapproved executables and archives even outside protected di
     assert.equal(isUnapprovedPublicBinaryPath(path), true, path);
   }
   const files = trackedPublicFiles();
-  assert.throws(() => auditPublicFiles([...files, 'public/new-tool.exe']), /Unapproved executable\/archive artifacts/);
+  assert.throws(() => auditPublicFiles([...files, 'public/new-tool.exe']), /Unapproved public paths: public\/new-tool\.exe/);
 });
 
 test('audit blocks disguised archive magic without a risky extension', () => {
@@ -139,7 +148,7 @@ test('audit blocks disguised archive magic without a risky extension', () => {
     mkdirSync(dirname(absoluteArtifact), { recursive: true });
     writeFileSync(absoluteArtifact, Buffer.from([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c, 0, 0]));
     assert.throws(
-      () => auditPublicFiles([artifact], { cwd: temporaryRoot }),
+      () => auditPublicFiles([artifact], { cwd: temporaryRoot, manifest: { schemaVersion: 1, files: [] } }),
       /Unapproved executable\/archive artifacts: public\/not-a-text-file\.dat/
     );
   } finally {
@@ -155,8 +164,45 @@ test('audit blocks an empty ZIP disguised without an archive extension', () => {
     mkdirSync(dirname(absoluteArtifact), { recursive: true });
     writeFileSync(absoluteArtifact, Buffer.from([0x50, 0x4b, 0x05, 0x06, 0, 0, 0, 0]));
     assert.throws(
-      () => auditPublicFiles([artifact], { cwd: temporaryRoot }),
+      () => auditPublicFiles([artifact], { cwd: temporaryRoot, manifest: { schemaVersion: 1, files: [] } }),
       /Unapproved executable\/archive artifacts: public\/empty-archive\.dat/
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test('audit blocks unmanifested disk images and deep ISO signatures', () => {
+  for (const path of ['public/release.iso', 'public/disk.img', 'public/system.vhd', 'public/system.vhdx']) {
+    assert.equal(isUnapprovedPublicBinaryPath(path), true, path);
+  }
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-release-iso-'));
+  const artifact = 'public/unpublished.dat';
+  const absoluteArtifact = join(temporaryRoot, artifact);
+  try {
+    mkdirSync(dirname(absoluteArtifact), { recursive: true });
+    const bytes = Buffer.alloc(0x8006);
+    bytes.write('CD001', 0x8001, 'ascii');
+    writeFileSync(absoluteArtifact, bytes);
+    assert.throws(
+      () => auditPublicFiles([artifact], { cwd: temporaryRoot, manifest: { schemaVersion: 1, files: [] } }),
+      /Unapproved executable\/archive artifacts: public\/unpublished\.dat/
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test('audit rejects every unmanifested file even when its format is unknown', () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-release-positive-manifest-'));
+  const artifact = 'public/unreviewed.opaque';
+  const absoluteArtifact = join(temporaryRoot, artifact);
+  try {
+    mkdirSync(dirname(absoluteArtifact), { recursive: true });
+    writeFileSync(absoluteArtifact, 'not in the reviewed manifest');
+    assert.throws(
+      () => auditPublicFiles([artifact], { cwd: temporaryRoot, manifest: { schemaVersion: 1, files: [] } }),
+      /Unapproved public paths: public\/unreviewed\.opaque/
     );
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });

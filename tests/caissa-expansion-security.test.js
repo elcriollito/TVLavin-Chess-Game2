@@ -104,8 +104,14 @@ test('public release audit binds approved opaque artifacts to exact SHA-256 dige
     fs.mkdirSync(path.dirname(absoluteArtifact), { recursive: true });
     fs.writeFileSync(absoluteArtifact, 'not-the-reviewed-artifact');
     assert.throws(
-      () => auditPublicFiles([artifact], { cwd: temporaryRoot }),
-      /Approved binary digest mismatch: public\/dos\/games\/gnuchess\/gnuchess\.zip/
+      () => auditPublicFiles([artifact], {
+        cwd: temporaryRoot,
+        manifest: {
+          schemaVersion: 1,
+          files: [{ path: artifact, sha256: '9d9aebe75cb38da6c0bf7b0f0e438eef317182b52eaa38b191dd827de1074d20' }]
+        }
+      }),
+      /Manifest digest mismatch: public\/dos\/games\/gnuchess\/gnuchess\.zip/
     );
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });

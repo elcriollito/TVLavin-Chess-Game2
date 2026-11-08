@@ -59,10 +59,25 @@ test('public roadmap remains useful without exposing delivery or infrastructure 
 
 test('internal architecture and authoring sources are excluded from deployment', () => {
   const ignored = read('.vercelignore');
-  for (const pattern of [
-    'docs/**', 'PROJECT_ARCHITECTURE.md', 'knowledge/AUTHORING.md',
-    'knowledge/authoring/**', 'knowledge/domains/**', 'knowledge/schema/**'
-  ]) assert.ok(ignored.includes(pattern), `${pattern} is not deployment-excluded`);
+  const manifest = JSON.parse(read('PUBLIC_RELEASE_ARTIFACT_MANIFEST.json'));
+  const publicPaths = manifest.files.map(item => item.path);
+  assert.match(ignored, /^# Generated from PUBLIC_RELEASE_ARTIFACT_MANIFEST\.json/m);
+  assert.ok(ignored.split(/\r?\n/).includes('*'), 'positive Vercel default-deny rule is missing');
+  for (const protectedPath of [
+    'docs/', 'PROJECT_ARCHITECTURE.md', 'knowledge/AUTHORING.md',
+    'knowledge/authoring/', 'knowledge/domains/', 'knowledge/schema/'
+  ]) {
+    assert.equal(
+      publicPaths.some(path => path === protectedPath || path.startsWith(protectedPath)),
+      false,
+      `${protectedPath} is present in the deployment manifest`
+    );
+  }
+  assert.equal(
+    publicPaths.some(path => !path.includes('/') && path.endsWith('.md')),
+    false,
+    'a root-level internal Markdown report is present in the deployment manifest'
+  );
   const releaseBuilder = read('scripts/build-public-release.mjs');
   for (const protectedPath of [
     "'docs/'", "'knowledge/authoring/'", "'knowledge/domains/'",
