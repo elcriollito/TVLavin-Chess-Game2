@@ -29,6 +29,23 @@ function squareSurfaceRect(root) {
     };
 }
 
+function squareRectFromBoard(square, boardRect, orientation) {
+    const file = String(square || '').charCodeAt(0) - 97;
+    const rank = Number(String(square || '').slice(1));
+    if (file < 0 || file > 7 || rank < 1 || rank > 8) return null;
+    const black = normalizeOrientation(orientation) === 'black';
+    const visualFile = black ? 7 - file : file;
+    const visualRank = black ? rank - 1 : 8 - rank;
+    const width = boardRect.width / 8;
+    const height = boardRect.height / 8;
+    return {
+        left: boardRect.left + visualFile * width,
+        top: boardRect.top + visualRank * height,
+        width,
+        height
+    };
+}
+
 function localQaRequested(view, query = DEFAULT_QA_QUERY) {
     if (!LOCAL_HOSTS.has(view?.location?.hostname)) return false;
     return new URLSearchParams(view.location.search).get(query) === '1';
@@ -106,10 +123,14 @@ export class CaissaLegacyQuietDragAdapter {
             preventDefaultOnPointerDown: true,
             startImmediately: true,
             allowsDrag: () => true,
-            resolvePiece: square => {
+            resolvePiece: (square, resolver) => {
                 const node = this.#root.querySelector(`.square-${square} .piece-417db`);
                 const id = pieceCode(node);
-                return node && id ? { id, node } : null;
+                return node && id ? {
+                    id,
+                    node,
+                    rect: squareRectFromBoard(square, resolver.geometry, this.#board.orientation?.())
+                } : null;
             },
             onDragStart: (source, drag) => this.#options.onDragStart?.(source, drag.pieceId) !== false,
             onDragEnd: detail => this.#options.onDragEnd?.(detail),

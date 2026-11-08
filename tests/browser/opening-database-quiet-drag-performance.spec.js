@@ -56,18 +56,62 @@ async function runGesture(page, session, mode) {
   const target = await point(page, 'e4');
   const before = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
 
-  await page.evaluate(({ selectedMode, sourcePoint }) => {
+  await page.evaluate(({ selectedMode, sourcePoint, initialPositionViewRequests }) => {
     window.__openingDbBench = {
       pointerEvents: 0,
       geometryReads: 0,
+      pickupGeometryReads: 0,
       positionWrites: 0,
       animateCalls: 0,
       movementActive: false,
+      pickupActive: false,
+      pointerDownAt: 0,
+      pickupPresentedAt: 0,
+      pointerUpAt: 0,
+      dropVisibleAt: 0,
+      positionViewRequestAt: 0,
+      initialPositionViewRequests,
       frameTimes: [],
       running: false,
       longTasks: []
     };
     const bench = window.__openingDbBench;
+    const root = document.querySelector('#openingDbBoard .board-b72b1');
+    bench.pointerDownHandler = () => {
+      bench.pickupActive = true;
+      bench.pointerDownAt = performance.now();
+    };
+    bench.pointerUpHandler = () => {
+      bench.pointerUpAt = performance.now();
+      const watchPositionView = () => {
+        if (bench.positionViewRequestAt) return;
+        const current = window.__openingDbQuietDrag.getSnapshot().interaction.positionViewRequests;
+        if (current > bench.initialPositionViewRequests) {
+          bench.positionViewRequestAt = performance.now();
+          return;
+        }
+        bench.positionViewFrame = requestAnimationFrame(watchPositionView);
+      };
+      bench.positionViewFrame = requestAnimationFrame(watchPositionView);
+    };
+    root.addEventListener('pointerdown', bench.pointerDownHandler, true);
+    root.addEventListener('pointerup', bench.pointerUpHandler, true);
+    bench.presentationObserver = new MutationObserver(() => {
+      if (!bench.pickupPresentedAt && root.getAttribute('data-caissa-legacy-quiet-drag-active') === 'true') {
+        bench.pickupPresentedAt = performance.now();
+        bench.pickupActive = false;
+      }
+      if (bench.pointerUpAt && !bench.dropVisibleAt && root.querySelector('.square-e4 .piece-417db')) {
+        bench.dropVisibleAt = performance.now();
+      }
+    });
+    bench.presentationObserver.observe(root, { attributes: true, childList: true, subtree: true });
+    bench.restoreGestureObservers = () => {
+      root.removeEventListener('pointerdown', bench.pointerDownHandler, true);
+      root.removeEventListener('pointerup', bench.pointerUpHandler, true);
+      if (bench.positionViewFrame) cancelAnimationFrame(bench.positionViewFrame);
+      bench.presentationObserver.disconnect();
+    };
     bench.inputEventType = selectedMode === 'legacy' ? 'mousemove' : 'pointermove';
     bench.pointerHandler = () => {
       if (bench.movementActive) bench.pointerEvents += 1;
@@ -79,6 +123,7 @@ async function runGesture(page, session, mode) {
     bench.restoreRect = () => { Element.prototype.getBoundingClientRect = originalRect; };
     Element.prototype.getBoundingClientRect = function (...args) {
       if (bench.movementActive) bench.geometryReads += 1;
+      else if (bench.pickupActive) bench.pickupGeometryReads += 1;
       return originalRect.apply(this, args);
     };
     const jquery = window.jQuery;
@@ -104,7 +149,11 @@ async function runGesture(page, session, mode) {
     try { bench.observer?.observe({ type: 'longtask' }); } catch (_) {}
     const piece = document.querySelector('#openingDbBoard .square-e2 .piece-417db').getBoundingClientRect();
     bench.grab = { x: sourcePoint.x - piece.left, y: sourcePoint.y - piece.top };
-  }, { selectedMode: mode, sourcePoint: source });
+  }, {
+    selectedMode: mode,
+    sourcePoint: source,
+    initialPositionViewRequests: before.interaction.positionViewRequests
+  });
 
   await page.mouse.move(source.x, source.y);
   await page.mouse.down();
@@ -152,6 +201,8 @@ async function runGesture(page, session, mode) {
   }, { selectedMode: mode, targetPoint: target });
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().history.length)).toBe(1);
+  await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().interaction.positionViewRequests))
+    .toBe(before.interaction.positionViewRequests + 1);
   const after = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
 
   return page.evaluate(({ initial, moving, finished, browserBefore, browserAfter, selectedMode }) => {
@@ -160,6 +211,7 @@ async function runGesture(page, session, mode) {
     bench.restorePointer();
     bench.restoreRect();
     bench.restoreJquery();
+    bench.restoreGestureObservers();
     const intervals = bench.frameTimes.slice(1)
       .map((time, index) => time - bench.frameTimes[index])
       .sort((a, b) => a - b);
@@ -169,6 +221,16 @@ async function runGesture(page, session, mode) {
     const result = {
       mode: selectedMode,
       pointerEvents: bench.pointerEvents,
+      pickupGeometryReads: bench.pickupGeometryReads,
+      pointerToPieceVisualLatencyMs: bench.pickupPresentedAt && bench.pointerDownAt
+        ? Math.max(0, bench.pickupPresentedAt - bench.pointerDownAt)
+        : null,
+      dropToVisiblePositionMs: bench.dropVisibleAt && bench.pointerUpAt
+        ? Math.max(0, bench.dropVisibleAt - bench.pointerUpAt)
+        : null,
+      dropToPositionViewRequestMs: bench.positionViewRequestAt && bench.pointerUpAt
+        ? Math.max(0, bench.positionViewRequestAt - bench.pointerUpAt)
+        : null,
       visualWrites: selectedMode === 'quiet'
         ? finished.adapter.movementVisualWrites - initial.adapter.movementVisualWrites
         : bench.positionWrites,
@@ -215,6 +277,11 @@ test('Legacy versus Quiet benchmark satisfies state and movement contracts', asy
   console.log('OPENING_DATABASE_QUIET_DRAG_BENCHMARK', JSON.stringify({ legacy, quiet }));
   expect(legacy.pointerEvents).toBeGreaterThan(0);
   expect(quiet.pointerEvents).toBeGreaterThan(0);
+  expect(quiet.pickupGeometryReads).toBe(1);
+  expect(quiet.pointerToPieceVisualLatencyMs).not.toBeNull();
+  expect(quiet.dropToVisiblePositionMs).not.toBeNull();
+  expect(quiet.dropToPositionViewRequestMs).not.toBeNull();
+  expect(quiet.dropToVisiblePositionMs).toBeLessThan(quiet.dropToPositionViewRequestMs);
   expect(quiet.geometryReads).toBe(0);
   expect(quiet.leftTopWrites).toBe(0);
   expect(quiet.jqueryAnimateCalls).toBe(0);

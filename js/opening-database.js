@@ -38,6 +38,12 @@
     explorerSortMode: 'popularity',
     activeTab: 'explorer',
     tabInteractionsBound: false,
+    tapSelection: {
+      source: '',
+      legalTargets: new Map()
+    },
+    positionViewFrame: null,
+    positionViewGeneration: 0,
     gamesVersion: 'v1',
     gamesBaseRoot: '/openingdb/games',
     gameSearchManifest: null,
@@ -110,7 +116,9 @@
       boardMovesApplied: 0,
       boardPositionWrites: 0,
       moveListWrites: 0,
-      positionViewRequests: 0
+      positionViewRequests: 0,
+      tapSelections: 0,
+      tapMovesApplied: 0
     }
   };
 
@@ -2806,6 +2814,7 @@
   function setActiveTab(tabName) {
     const previousTab = state.activeTab;
     state.activeTab = ['explorer', 'analysis', 'games', 'moves'].includes(tabName) ? tabName : 'explorer';
+    if (previousTab !== state.activeTab) clearTapSelection();
     const isExplorer = state.activeTab === 'explorer';
     const isAnalysis = state.activeTab === 'analysis';
     const isGames = state.activeTab === 'games';
@@ -3203,7 +3212,7 @@
     cancelActiveBoardDrag();
     state.board.position(state.game.fen(), false);
     state.interactionMetrics.boardPositionWrites += 1;
-    updatePositionView(state.game.fen());
+    schedulePositionViewAfterBoardCommit(state.game.fen());
     return true;
   }
 
@@ -3440,6 +3449,7 @@
     state.interactionMetrics.positionViewRequests += 1;
     const lookupStartedAt = performance.now();
     const force = !!options.force;
+    const presentationAlreadyUpdated = options.presentationAlreadyUpdated === true;
     const requestId = (state.positionRequestId || 0) + 1;
     state.positionRequestId = requestId;
     cancelNextMoveEvalQueue();
@@ -3452,8 +3462,10 @@
 
     if (!force && state.lastResolvedFenKey === fenKey) {
       debugLog('[OpeningDB][perf] skipLookupSameFen', { fenKey, ply });
-      updateMoveListFromGame(state.game);
-      updateTurnPlyLabel(ply);
+      if (!presentationAlreadyUpdated) {
+        updateMoveListFromGame(state.game);
+        updateTurnPlyLabel(ply);
+      }
       return;
     }
 
@@ -3462,8 +3474,10 @@
       debugLog('[OpeningDB] fenKey', fenKey, 'ply', ply);
     }
 
-    updateMoveListFromGame(state.game);
-    updateTurnPlyLabel(ply);
+    if (!presentationAlreadyUpdated) {
+      updateMoveListFromGame(state.game);
+      updateTurnPlyLabel(ply);
+    }
 
     const openingFallback = resolveOpeningByPrefix();
     if (ply >= OPENINGDB_MAX_PLIES) {
@@ -3802,6 +3816,7 @@
 
   function bindEvents() {
     els.startBtn.addEventListener('click', () => {
+      cancelScheduledPositionView();
       cancelActiveBoardDrag();
       state.game.reset();
       state.openingDbBasePly = 0;
@@ -3813,6 +3828,7 @@
     });
 
     els.takebackBtn.addEventListener('click', () => {
+      cancelScheduledPositionView();
       cancelActiveBoardDrag();
       const undone = state.game.undo();
       if (!undone) return;
@@ -3866,6 +3882,7 @@
 
       els.fenError.hidden = true;
       els.fenPanel.hidden = true;
+      cancelScheduledPositionView();
       cancelActiveBoardDrag();
       state.board.position(state.game.fen(), false);
       state.interactionMetrics.boardPositionWrites += 1;
@@ -4147,6 +4164,7 @@
   }
 
   function cancelActiveBoardDrag() {
+    clearTapSelection();
     if (!state.quietDragAdapter) return false;
     state.quietDragAdapter.setEnabled(false);
     state.quietDragAdapter.refreshEnabledState();
@@ -4167,9 +4185,128 @@
     return /^[a-h][1-8]$/.test(String(source || ''));
   }
 
+  function clearTapSelection() {
+    state.tapSelection.source = '';
+    state.tapSelection.legalTargets = new Map();
+    els.board?.querySelectorAll?.(
+      '[data-caissa-tap-selected], [data-caissa-tap-legal], [data-caissa-tap-capture]'
+    ).forEach((square) => {
+      square.removeAttribute('data-caissa-tap-selected');
+      square.removeAttribute('data-caissa-tap-legal');
+      square.removeAttribute('data-caissa-tap-capture');
+    });
+    if (els.actionStatus && /^Selected\s/.test(els.actionStatus.textContent || '')) {
+      els.actionStatus.textContent = '';
+    }
+  }
+
+  function boardPieceId(piece) {
+    if (!piece || !/[wb]/.test(String(piece.color || '')) || !/[pnbrqk]/.test(String(piece.type || ''))) return '';
+    return `${piece.color}${String(piece.type).toUpperCase()}`;
+  }
+
+  function renderTapSelection() {
+    const selection = state.tapSelection;
+    els.board?.querySelectorAll?.(
+      '[data-caissa-tap-selected], [data-caissa-tap-legal], [data-caissa-tap-capture]'
+    ).forEach((square) => {
+      square.removeAttribute('data-caissa-tap-selected');
+      square.removeAttribute('data-caissa-tap-legal');
+      square.removeAttribute('data-caissa-tap-capture');
+    });
+    if (!selection.source) return;
+    els.board?.querySelector?.(`.square-${selection.source}`)?.setAttribute('data-caissa-tap-selected', 'true');
+    selection.legalTargets.forEach((detail, target) => {
+      const square = els.board?.querySelector?.(`.square-${target}`);
+      if (!square) return;
+      square.setAttribute('data-caissa-tap-legal', 'true');
+      if (detail.capture) square.setAttribute('data-caissa-tap-capture', 'true');
+    });
+    if (els.actionStatus) {
+      const destinations = Array.from(selection.legalTargets.keys()).join(', ');
+      els.actionStatus.textContent = `Selected ${selection.source}. Legal destinations: ${destinations || 'none'}.`;
+    }
+  }
+
+  function selectTapSource(square) {
+    const piece = state.game?.get?.(square) || null;
+    const pieceId = boardPieceId(piece);
+    if (!pieceId || !canStartBoardDrag(square, pieceId)) return false;
+    const legalMoves = state.game.moves({ square, verbose: true }) || [];
+    const legalTargets = new Map();
+    legalMoves.forEach((move) => {
+      const target = String(move?.to || '');
+      if (!/^[a-h][1-8]$/.test(target)) return;
+      const capture = !!move.captured || /[ce]/.test(String(move.flags || ''));
+      const previous = legalTargets.get(target);
+      legalTargets.set(target, { capture: capture || previous?.capture === true });
+    });
+    state.tapSelection.source = square;
+    state.tapSelection.legalTargets = legalTargets;
+    state.interactionMetrics.tapSelections += 1;
+    renderTapSelection();
+    return true;
+  }
+
+  function handleBoardTap(square) {
+    if (!state.game || !state.board || state.activeTab === 'moves' || state.game.game_over()) {
+      clearTapSelection();
+      return false;
+    }
+    if (!/^[a-h][1-8]$/.test(String(square || ''))) return false;
+    const selected = state.tapSelection.source;
+    const piece = state.game.get(square);
+    const friendly = !!piece && piece.color === state.game.turn();
+
+    if (!selected) return friendly ? selectTapSource(square) : false;
+    if (square === selected) {
+      clearTapSelection();
+      return true;
+    }
+    if (friendly) return selectTapSource(square);
+    if (!state.tapSelection.legalTargets.has(square)) return false;
+
+    const selectedPiece = state.game.get(selected);
+    const pieceId = boardPieceId(selectedPiece);
+    clearTapSelection();
+    const outcome = applyBoardDrop(
+      selected,
+      square,
+      pieceId,
+      undefined,
+      undefined,
+      state.board.orientation?.()
+    );
+    if (outcome !== 'snapback') state.interactionMetrics.tapMovesApplied += 1;
+    return outcome !== 'snapback';
+  }
+
+  function cancelScheduledPositionView() {
+    state.positionViewGeneration += 1;
+    if (state.positionViewFrame !== null) {
+      window.cancelAnimationFrame(state.positionViewFrame);
+      state.positionViewFrame = null;
+    }
+  }
+
+  function schedulePositionViewAfterBoardCommit(fen) {
+    cancelScheduledPositionView();
+    updateMoveListFromGame(state.game);
+    updateTurnPlyLabel(getOpeningDbPly(state.game));
+    const generation = state.positionViewGeneration;
+    state.positionViewFrame = window.requestAnimationFrame(() => {
+      state.positionViewFrame = window.requestAnimationFrame(() => {
+        state.positionViewFrame = null;
+        if (generation !== state.positionViewGeneration) return;
+        void updatePositionView(fen, { presentationAlreadyUpdated: true });
+      });
+    });
+  }
+
   function applyBoardDrop(source, target, piece, _newPos, _oldPos, orientation) {
     state.interactionMetrics.boardMoveAttempts += 1;
     debugLog('[OpeningDB] onDrop', { source, target, piece, fenBefore: state.game.fen(), orientation });
+    clearTapSelection();
 
     if (state.activeTab === 'moves') return 'snapback';
 
@@ -4191,7 +4328,7 @@
     debugLog('[OpeningDB] legal move', { san: move.san, fenAfter: state.game.fen() });
     state.board.position(state.game.fen(), false);
     state.interactionMetrics.boardPositionWrites += 1;
-    updatePositionView(state.game.fen());
+    schedulePositionViewAfterBoardCommit(state.game.fen());
     return undefined;
   }
 
@@ -4210,6 +4347,10 @@
       positionRequestId: state.positionRequestId,
       lookupCount: openingDbDebugState.counters.lookupCount,
       interaction: { ...state.interactionMetrics },
+      tapSelection: {
+        source: state.tapSelection.source,
+        legalTargets: Array.from(state.tapSelection.legalTargets.entries())
+      },
       adapter: state.quietDragAdapter?.getMetrics?.() || null
     });
   }
@@ -4237,6 +4378,8 @@
   function destroyBoard() {
     if (!state.board && !state.quietDragAdapter && !state.boardCleanup) return false;
     state.boardDestroying = true;
+    cancelScheduledPositionView();
+    clearTapSelection();
     state.quietDragAdapter?.destroy?.();
     state.quietDragAdapter = null;
     state.boardCleanup?.();
@@ -4294,6 +4437,7 @@
             qaTitle: 'Opening Database',
             isEnabled: () => state.board === board && !state.boardDestroying,
             onDragStart: canStartBoardDrag,
+            onTap: handleBoardTap,
             onDrop: (source, target, metadata) => applyBoardDrop(
               source,
               target,

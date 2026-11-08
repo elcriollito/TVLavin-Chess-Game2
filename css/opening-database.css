@@ -102,6 +102,30 @@
   aspect-ratio: 1;
 }
 
+#openingDbBoard .square-55d63[data-caissa-tap-selected="true"] {
+  box-shadow: inset 0 0 0 3px rgba(255, 208, 94, 0.86) !important;
+}
+
+#openingDbBoard .square-55d63[data-caissa-tap-legal="true"]::after {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 50%;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(20, 31, 44, 0.46);
+  content: "";
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+#openingDbBoard .square-55d63[data-caissa-tap-capture="true"]::after {
+  width: 66%;
+  border: 3px solid rgba(255, 208, 94, 0.76);
+  background: transparent;
+}
+
 .openingdb-board-error {
   display: grid;
   min-height: 260px;
@@ -1281,60 +1305,104 @@
   }
 
   .openingdb-table-wrap {
-    overflow: visible;
-    border: 0;
-    background: transparent;
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--odb-border-soft);
+    background: #141d29;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .openingdb-stats-table,
-  .openingdb-stats-table tbody {
+  .openingdb-stats-table {
     display: block;
+    min-width: 360px;
+    table-layout: fixed;
   }
 
-  .openingdb-stats-table thead,
   .openingdb-stats-table colgroup {
     display: none;
   }
 
+  .openingdb-stats-table thead,
   .openingdb-stats-table tbody {
+    display: block;
+  }
+
+  .openingdb-stat-headings {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .openingdb-stats-table tr {
     display: grid;
-    gap: 8px;
+    grid-template-areas: "move games wdl engine";
+    grid-template-columns: minmax(62px, 0.85fr) minmax(54px, 0.7fr) minmax(148px, 2fr) minmax(48px, 0.65fr);
+    align-items: center;
+  }
+
+  .openingdb-stats-table thead tr {
+    min-height: 34px;
+    border-bottom: 1px solid #334154;
+    background: #111925;
   }
 
   .openingdb-stats-table tbody tr {
-    display: grid;
-    grid-template-columns: 1fr auto;
+    min-height: 48px;
     overflow: hidden;
-    border: 1px solid var(--odb-border-soft);
-    border-radius: 8px;
-    background: #141d29;
+    border-bottom: 1px solid #273447;
+    background: transparent;
   }
 
-  .openingdb-stats-table td {
-    display: block;
-    min-width: 0;
-    padding: 8px 10px;
+  .openingdb-stats-table tbody tr:last-child {
     border-bottom: 0;
   }
 
-  .openingdb-stats-table .col-wdl {
-    grid-column: 1 / -1;
-    padding-top: 2px;
+  .openingdb-stats-table th,
+  .openingdb-stats-table td {
+    display: block;
+    min-width: 0;
+    padding: 2px 6px;
+    border-bottom: 0;
   }
 
-  .openingdb-stats-table .col-engine {
-    grid-column: 2;
-    grid-row: 1;
-    color: #ffd77a;
+  .openingdb-stats-table tr > :nth-child(1) { grid-area: move; }
+  .openingdb-stats-table tr > :nth-child(2) { grid-area: engine; }
+  .openingdb-stats-table tr > :nth-child(3) { grid-area: games; }
+  .openingdb-stats-table tr > :nth-child(4) { grid-area: wdl; }
+
+  .openingdb-stats-table th:nth-child(2),
+  .openingdb-stats-table td.col-engine,
+  .openingdb-stats-table th:nth-child(3),
+  .openingdb-stats-table td.col-games {
     text-align: right;
   }
 
+  .openingdb-stats-table td.col-engine {
+    color: #ffd77a;
+  }
+
   .openingdb-stats-table .openingdb-empty {
+    grid-area: auto;
     grid-column: 1 / -1;
   }
 
+  .openingdb-move-action {
+    min-height: 44px;
+    padding: 3px 4px;
+  }
+
   .wdb-bar {
-    min-width: 0;
+    min-width: 136px;
+    height: 22px;
+  }
+
+  .wdb-bar > div {
+    font-size: 0.56rem;
   }
 
   .openingdb-games-filters {
@@ -1417,7 +1485,7 @@
   }
 
   .openingdb-product-grid {
-    grid-template-columns: minmax(300px, 0.92fr) minmax(380px, 1.08fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .openingdb-board-shell {
@@ -1435,6 +1503,18 @@
 
   .openingdb-workspace-body {
     overflow-y: auto;
+  }
+
+  .openingdb-moves-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .openingdb-sort-selector {
+    flex: 1 1 180px;
+  }
+
+  .openingdb-quick-eval-toggle {
+    margin-left: 0;
   }
 }
 
@@ -1459,5 +1539,10 @@
 
   .wdb-bar > div {
     border-right: 1px solid CanvasText;
+  }
+
+  #openingDbBoard .square-55d63[data-caissa-tap-selected="true"],
+  #openingDbBoard .square-55d63[data-caissa-tap-capture="true"]::after {
+    outline: 3px solid Highlight;
   }
 }

@@ -19,12 +19,29 @@ test('Opening Database reuses the canonical legacy Quiet Drag adapter', () => {
 test('Opening Database preserves queen promotion and one commit path', () => {
   const source = read('js/opening-database.js');
   const drop = source.slice(source.indexOf('function applyBoardDrop'), source.indexOf('function getQuietDragSnapshot'));
+  const scheduler = source.slice(source.indexOf('function schedulePositionViewAfterBoardCommit'), source.indexOf('function applyBoardDrop'));
 
   assert.match(drop, /state\.game\.move\(\{ from: source, to: target, promotion: 'q' \}\)/);
   assert.equal((drop.match(/state\.game\.move\(/g) || []).length, 1);
   assert.equal((drop.match(/state\.board\.position\(/g) || []).length, 1);
-  assert.equal((drop.match(/updatePositionView\(/g) || []).length, 1);
+  assert.equal((drop.match(/schedulePositionViewAfterBoardCommit\(/g) || []).length, 1);
+  assert.equal((scheduler.match(/updatePositionView\(/g) || []).length, 1);
+  assert.equal((scheduler.match(/requestAnimationFrame\(/g) || []).length, 2);
   assert.equal((drop.match(/updateMoveListFromGame\(/g) || []).length, 0);
+});
+
+test('Opening Database integrates tap-to-move through the shared adapter and legal move authority', () => {
+  const source = read('js/opening-database.js');
+  const tap = source.slice(source.indexOf('function handleBoardTap'), source.indexOf('function cancelScheduledPositionView'));
+
+  assert.match(source, /onTap:\s*handleBoardTap/);
+  assert.match(tap, /state\.game\.get\(square\)/);
+  assert.match(tap, /state\.tapSelection\.legalTargets\.has\(square\)/);
+  assert.equal((tap.match(/applyBoardDrop\(/g) || []).length, 1);
+  assert.equal((tap.match(/state\.game\.move\(/g) || []).length, 0);
+  assert.match(source, /data-caissa-tap-selected/);
+  assert.match(source, /data-caissa-tap-legal/);
+  assert.match(source, /data-caissa-tap-capture/);
 });
 
 test('Opening Database owns legacy handler suspension and lifecycle cleanup', () => {

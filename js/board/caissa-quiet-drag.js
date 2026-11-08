@@ -204,12 +204,16 @@ export class CaissaPointerController {
         this.#metrics.geometryReadsAtStart += 1;
         const from = resolver.squareAt(event.clientX, event.clientY);
         if (!from) return;
-        const piece = this.#options.resolvePiece?.(from) || null;
+        const piece = this.#options.resolvePiece?.(from, resolver) || null;
         let grabOffset = Object.freeze({ x: 0, y: 0 });
         let pieceRect = null;
         if (piece?.node) {
-            pieceRect = frozenRect(piece.node.getBoundingClientRect());
-            this.#metrics.geometryReadsAtStart += 1;
+            if (piece.rect) {
+                pieceRect = frozenRect(piece.rect);
+            } else {
+                pieceRect = frozenRect(piece.node.getBoundingClientRect());
+                this.#metrics.geometryReadsAtStart += 1;
+            }
             grabOffset = Object.freeze({
                 x: event.clientX - pieceRect.left,
                 y: event.clientY - pieceRect.top
@@ -237,7 +241,9 @@ export class CaissaPointerController {
         if (piece?.id && this.#options.startImmediately === true
             && this.#options.allowsDrag?.(event.pointerType)) {
             if (this.#options.onDragStart?.(from, this.#drag) === false) {
-                this.cancel(false);
+                // Keep the short gesture eligible for onTap. This matters when
+                // an occupied opponent square is the destination of a selected
+                // tap-to-move piece; a real drag still fails the threshold gate.
                 return;
             }
             this.#drag.started = true;
