@@ -1,7 +1,8 @@
 {
   "name": "caissa-vault-downloads-worker",
   "version": "1.0.0",
-  "description": "CAISSA Vault downloads Worker for serving files from R2",
+  "type": "module",
+  "description": "CAISSA Downloads Worker for serving verified files from R2",
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",

@@ -20,7 +20,7 @@ const standalone = [
   ['Opening Database', '/opening-database', 'h1', /Opening Database/],
   ['ECO Codes', '/eco', 'h1', /ECO Codes/],
   ['World Champions', '/game-library/champions', '.archive-hero', /World Chess Champions Archive/],
-  ['Vault', '/vault', 'h1', /Vault/],
+  ['Downloads', '/downloads', 'h1', /Chess tools|Downloads/],
   ['Blog', '/blog', 'h1', /Blog/],
   ['Lichess TV', '/watch/lichess-tv', 'h1', /Watch Lichess TV Live/]
 ];

@@ -649,6 +649,11 @@ const server = http.createServer(async (req, res) => {
     res.end();
     return;
   }
+  if (pathname === '/vault' || pathname === '/vault/' || pathname === '/vault.html') {
+    res.writeHead(308, { Location: '/downloads', 'Cache-Control': 'public, max-age=3600' });
+    res.end();
+    return;
+  }
   let filePath = '.' + pathname;
   let responseStatus = 200;
   if (filePath === './') {
@@ -670,8 +675,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/help' || pathname === '/help/') {
     filePath = './help.html';
   }
-  if (pathname === '/vault' || pathname === '/vault/') {
-    filePath = './vault.html';
+  if (pathname === '/downloads' || pathname === '/downloads/') {
+    filePath = './downloads.html';
   }
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';

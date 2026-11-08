@@ -62,7 +62,10 @@
     { "source": "/watch/lichess-broadcasts/", "destination": "/watch/live-tournaments", "permanent": true },
     { "source": "/support", "destination": "/help", "permanent": true },
     { "source": "/support/", "destination": "/help", "permanent": true },
-    { "source": "/support.html", "destination": "/help", "permanent": true }
+    { "source": "/support.html", "destination": "/help", "permanent": true },
+    { "source": "/vault", "destination": "/downloads", "permanent": true },
+    { "source": "/vault/", "destination": "/downloads", "permanent": true },
+    { "source": "/vault.html", "destination": "/downloads", "permanent": true }
   ],
   "rewrites": [
     { "source": "/", "destination": "/home.html" },
@@ -97,7 +100,8 @@
     { "source": "/gif-maker/", "destination": "/gif-maker.html" },
     { "source": "/library", "destination": "/library.html" },
     { "source": "/premium", "destination": "/premium.html" },
-    { "source": "/vault", "destination": "/vault.html" },
+    { "source": "/downloads", "destination": "/downloads.html" },
+    { "source": "/downloads/", "destination": "/downloads.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/help", "destination": "/help.html" },
     { "source": "/roadmap", "destination": "/roadmap.html" },

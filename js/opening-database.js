@@ -662,6 +662,17 @@
       .replace(/'/g, '&#39;');
   }
 
+  function safeGamePgnUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      const allowedOrigin = url.origin === 'https://downloads.caissa-chess.org';
+      const allowedPath = /^\/openingdb\/games\/[a-zA-Z0-9._-]+\/pgn\/g_[0-9a-f]+\.pgn$/i.test(url.pathname);
+      return allowedOrigin && allowedPath ? url.href : '';
+    } catch (_error) {
+      return '';
+    }
+  }
+
   function formatPrefixedSAN({ ply, sanForCandidateMove }) {
     const san = sanitizeMoveCellToken(sanForCandidateMove || '');
     if (!san) return { prefix: '', san: 'TBD' };
@@ -2397,8 +2408,11 @@
 
   async function loadGamePgnText(row) {
     if (!row || !row.gameId) return null;
-    const remoteText = await fetchTextWithTimeout(row.pgnUrl, GAMES_FETCH_TIMEOUT_MS);
-    if (remoteText) return remoteText;
+    const remoteUrl = safeGamePgnUrl(row.pgnUrl);
+    if (remoteUrl) {
+      const remoteText = await fetchTextWithTimeout(remoteUrl, GAMES_FETCH_TIMEOUT_MS);
+      if (remoteText) return remoteText;
+    }
     const localUrl = `/data/openingdb_games/${state.gamesVersion}/pgn/${row.gameId}.pgn`;
     return fetchTextWithTimeout(localUrl, GAMES_FETCH_TIMEOUT_MS);
   }
@@ -2500,18 +2514,20 @@
     }
 
     els.gamesBody.innerHTML = rows.map((row, idx) => {
-      const white = row.white || 'Unknown';
-      const black = row.black || 'Unknown';
-      const result = row.result || '?';
-      const event = row.eco ? `${row.event || row.site || '-'} [${row.eco}]` : (row.event || row.site || '-');
-      const year = row.year || '-';
+      const white = escapeHtml(row.white || 'Unknown');
+      const black = escapeHtml(row.black || 'Unknown');
+      const result = escapeHtml(row.result || '?');
+      const event = escapeHtml(row.eco ? `${row.event || row.site || '-'} [${row.eco}]` : (row.event || row.site || '-'));
+      const year = escapeHtml(row.year || '-');
       const avgElo = Number(row.avgElo);
-      const whiteElo = row.whiteElo ? String(row.whiteElo) : '?';
-      const blackElo = row.blackElo ? String(row.blackElo) : '?';
+      const whiteElo = escapeHtml(row.whiteElo ? String(row.whiteElo) : '?');
+      const blackElo = escapeHtml(row.blackElo ? String(row.blackElo) : '?');
       const eloCell = Number.isFinite(avgElo) ? `${Math.round(avgElo)} (avg)` : `${whiteElo}/${blackElo}`;
-      const actions = row.pgnUrl
+      const pgnUrl = safeGamePgnUrl(row.pgnUrl);
+      const gameId = escapeHtml(row.gameId || 'game');
+      const actions = pgnUrl
         ? `<button class="btn btn-secondary odb-game-view-btn" data-action="view" data-game-index="${idx}" type="button">View PGN</button>
-            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${row.pgnUrl}" download="${row.gameId}.pgn">Download</a>`
+            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${escapeHtml(pgnUrl)}" download="${gameId}.pgn">Download</a>`
         : '—';
       return `
         <tr data-game-index="${idx}">
@@ -2535,7 +2551,11 @@
     }
     const limit = Math.min(rows.length, getCurrentDownloadLimit());
     const chosen = rows.slice(0, limit);
-    const links = chosen.map((row) => `<a href="${row.pgnUrl}" download="${row.gameId}.pgn">${row.white || '?'} vs ${row.black || '?'} (${row.year || '?'})</a>`);
+    const links = chosen.map((row) => {
+      const pgnUrl = safeGamePgnUrl(row.pgnUrl);
+      if (!pgnUrl) return '';
+      return `<a href="${escapeHtml(pgnUrl)}" download="${escapeHtml(row.gameId || 'game')}.pgn">${escapeHtml(row.white || '?')} vs ${escapeHtml(row.black || '?')} (${escapeHtml(row.year || '?')})</a>`;
+    }).filter(Boolean);
     const paywall = state.gamesTier === 'free' && rows.length > limit
       ? '<div class="openingdb-games-status">Upgrade to Premium to download more games.</div>'
       : '';

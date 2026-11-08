@@ -15,9 +15,9 @@
     "internalPrimaryPages": 35,
     "publicCanonicalRoutesNotInPrimaryNavigation": 18,
     "externalDestinations": 4,
-    "redirects": 18,
+    "redirects": 21,
     "protectedRouteFamilies": 5,
-    "totalInventoriedRecords": 80
+    "totalInventoriedRecords": 83
   },
   "primaryNavigation": [
     {
@@ -518,9 +518,9 @@
     },
     {
       "id": "vault",
-      "label": "Vault",
-      "canonicalPath": "/vault",
-      "absoluteUrl": "https://www.caissa-chess.org/vault",
+      "label": "Downloads",
+      "canonicalPath": "/downloads",
+      "absoluteUrl": "https://www.caissa-chess.org/downloads",
       "type": "internal-page",
       "group": "tools",
       "navigationPosition": 32,
@@ -1132,6 +1132,42 @@
       "status": "public",
       "redirectFrom": "/support.html",
       "redirectTo": "/help",
+      "expectedStatus": 308
+    },
+    {
+      "id": "redirect-vault",
+      "label": "/vault to /downloads",
+      "canonicalPath": "/downloads",
+      "absoluteUrl": "https://www.caissa-chess.org/downloads",
+      "type": "redirect",
+      "owner": "vercel.json and middleware",
+      "status": "public",
+      "redirectFrom": "/vault",
+      "redirectTo": "/downloads",
+      "expectedStatus": 308
+    },
+    {
+      "id": "redirect-vault",
+      "label": "/vault/ to /downloads",
+      "canonicalPath": "/downloads",
+      "absoluteUrl": "https://www.caissa-chess.org/downloads",
+      "type": "redirect",
+      "owner": "vercel.json and middleware",
+      "status": "public",
+      "redirectFrom": "/vault/",
+      "redirectTo": "/downloads",
+      "expectedStatus": 308
+    },
+    {
+      "id": "redirect-vault-html",
+      "label": "/vault.html to /downloads",
+      "canonicalPath": "/downloads",
+      "absoluteUrl": "https://www.caissa-chess.org/downloads",
+      "type": "redirect",
+      "owner": "vercel.json and middleware",
+      "status": "public",
+      "redirectFrom": "/vault.html",
+      "redirectTo": "/downloads",
       "expectedStatus": 308
     }
   ],

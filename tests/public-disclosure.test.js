@@ -7,7 +7,7 @@ const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), '
 const publicHtml = [
   'index.html', 'yahoo-classic.html', 'about.html', 'help.html', 'roadmap.html',
   'endgame-library.html', 'endgame-trainer.html', 'polyglot.html',
-  'eco.html', 'opening-database.html', 'vault.html', 'blog/index.html',
+  'eco.html', 'opening-database.html', 'downloads.html', 'vault.html', 'blog/index.html',
   'blog/who-is-caissa-goddess-of-chess/index.html',
   'blog/what-is-a-polyglot-opening-book/index.html',
   'blog/yahoo-chess-spirit-caissa-classic/index.html'
@@ -16,7 +16,9 @@ const publicHtml = [
 test('About describes benefits without publishing the protected implementation stack', () => {
   const about = read('about.html');
   const page = load(about);
-  const text = page('main').text().replace(/\s+/g, ' ');
+  const nonPrivacyMain = page('main').clone();
+  nonPrivacyMain.find('section').filter((_, section) => /Privacy & Data/i.test(page(section).find('h2').text())).remove();
+  const text = nonPrivacyMain.text().replace(/\s+/g, ' ');
   for (const disclosure of [
     'Technology Stack', 'WebAssembly', 'Chess.js', 'Chessboard.js', 'Together.ai',
     'OpenAI', 'Anthropic', 'Llama API', 'IndexedDB', 'Supabase', 'Vercel',

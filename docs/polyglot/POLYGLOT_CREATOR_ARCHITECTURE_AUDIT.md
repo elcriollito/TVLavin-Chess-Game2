@@ -3,6 +3,8 @@
 Status: PGT-001 complete  
 Baseline: `ac157ae2cc1d1ebc2c14fcd1927ce426f17ed5b6`
 
+> Current candidate note (2026-11-08): this document records a historical baseline. The active candidate performs conversion on-device in `js/polyglot-worker.js`; the browser no longer uploads PGN data to `/api/polyglot/build`, and that server route is now a body-independent `410 Gone` tombstone. See `POLYGLOT_ONLINE_ARCHITECTURE.md` for the replacement architecture.
+
 ## Public route and shell
 
 - `/tools/polyglot` is the canonical public route and resolves to `polyglot.html` in both `server.js` and `vercel.json`.

@@ -20,9 +20,9 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 - Internal primary pages: 35
 - Public canonical routes not in primary navigation: 18
 - External destinations: 4
-- Redirects: 18
+- Redirects: 21
 - Protected route families: 5
-- Total inventoried records: 80
+- Total inventoried records: 83
 
 ## Primary navigation
 
@@ -59,7 +59,7 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | 29 | tools | World Champions | /game-library/champions | internal-page | CaissaPrimaryNavigation |
 | 30 | tools | History | /history | internal-page | CaissaPrimaryNavigation |
 | 31 | tools | DOS Chess | /dos-chess | internal-page | CaissaPrimaryNavigation |
-| 32 | tools | Vault | /vault | internal-page | CaissaPrimaryNavigation |
+| 32 | tools | Downloads | /downloads | internal-page | CaissaPrimaryNavigation |
 | 33 | more | Blog | /blog | internal-page | CaissaPrimaryNavigation |
 | 34 | more | Help | /help | internal-page | CaissaPrimaryNavigation |
 | 35 | more | About | /about | internal-page | CaissaPrimaryNavigation |
@@ -113,6 +113,9 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | /support | /help | 308 | vercel.json and middleware |
 | /support/ | /help | 308 | vercel.json and middleware |
 | /support.html | /help | 308 | vercel.json and middleware |
+| /vault | /downloads | 308 | vercel.json and middleware |
+| /vault/ | /downloads | 308 | vercel.json and middleware |
+| /vault.html | /downloads | 308 | vercel.json and middleware |
 
 ## Protected and fail-closed routes
 

@@ -1,0 +1,38 @@
+{
+  "schema": "caissa-release-candidate-manifest/v1",
+  "project": "CAISSA Downloads & Polyglot Expansion",
+  "candidateDate": "2026-11-08",
+  "branch": "feature/caissa-downloads-polyglot-expansion",
+  "baselineCommit": "ce9a5198a8d0618d32fa9c34c500267ad89efc85",
+  "candidateCommitBinding": "the Git commit containing this manifest",
+  "productionAuthorized": false,
+  "newPortableArtifactProduced": false,
+  "online": {
+    "canonicalRoute": "/tools/polyglot",
+    "processing": "browser-web-worker",
+    "testedInputCeilingBytes": 26214400,
+    "serverBuildEndpoint": "410-gone"
+  },
+  "downloads": {
+    "canonicalRoute": "/downloads",
+    "legacyRoute": "/vault",
+    "existingArtifact": {
+      "name": "CAISSA-Book-Creator-v0.2.0-portable.zip",
+      "r2Key": "apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip",
+      "bytes": 244203091,
+      "etag": "1c3e28de1490a11cf13e9f6453e396c7",
+      "sha256": "58e12d34644f223c905583318961c3d8dde33644445a78d750709a923ffa4b38",
+      "provenance": "blocked-source-not-found",
+      "authenticode": "unsigned",
+      "certification": "pending"
+    }
+  },
+  "security": {
+    "recoveredBaselineScanId": "975a2ce9-51d8-4310-9e2e-7aaee8a3ab76",
+    "recoveredBaselineScanStatus": "complete",
+    "validatedFindings": 5,
+    "candidateRemediationReview": "pass",
+    "freshCandidateScan": "external-sealed-attestation-required-after-commit"
+  },
+  "releaseGate": "HUMAN_QA_AND_OWNER_APPROVAL_REQUIRED"
+}

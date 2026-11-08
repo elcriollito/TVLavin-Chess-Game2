@@ -6,11 +6,12 @@ import {
   auditChessTVContracts,
   auditPublicFiles,
   buildPublicRelease,
+  isUnapprovedPublicBinaryPath,
   isProtectedPublicPath,
   trackedPublicFiles
 } from '../scripts/build-public-release.mjs';
-import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 
@@ -19,6 +20,8 @@ test('public release excludes internal architecture and authored Knowledge sourc
     'docs/architecture/SEASON_9_2_PUBLIC_DISCLOSURE_REVIEW_AND_GUIDED_STUDY_ENTRY.md',
     'docs/architecture/SEASON_9_3_1_LEARNING_EVIDENCE_CONSENT_AND_PROGRESS_CONTRACTS.md',
     'PROJECT_ARCHITECTURE.md',
+    'SECURITY_SCAN_REPORT.md',
+    'RELEASE_MANIFEST.json',
     'knowledge/AUTHORING.md',
     'knowledge/domains/endgames/example/unit.js',
     'endgame-pools/authoring/pools/private.json',
@@ -118,4 +121,44 @@ test('audit rejects a leaked protected path and a missing required path', () => 
     () => auditPublicFiles(['docs/architecture/private.md']),
     /Protected paths: docs\/architecture\/private\.md[\s\S]*Missing runtime paths:/
   );
+});
+
+test('audit blocks unapproved executables and archives even outside protected directories', () => {
+  for (const path of ['public/new-tool.exe', 'public/legacy.com', 'assets/release.zip', 'js/native.node', 'models/new.onnx', 'books/new.bin']) {
+    assert.equal(isUnapprovedPublicBinaryPath(path), true, path);
+  }
+  const files = trackedPublicFiles();
+  assert.throws(() => auditPublicFiles([...files, 'public/new-tool.exe']), /Unapproved executable\/archive artifacts/);
+});
+
+test('audit blocks disguised archive magic without a risky extension', () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-release-magic-'));
+  const artifact = 'public/not-a-text-file.dat';
+  const absoluteArtifact = join(temporaryRoot, artifact);
+  try {
+    mkdirSync(dirname(absoluteArtifact), { recursive: true });
+    writeFileSync(absoluteArtifact, Buffer.from([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c, 0, 0]));
+    assert.throws(
+      () => auditPublicFiles([artifact], { cwd: temporaryRoot }),
+      /Unapproved executable\/archive artifacts: public\/not-a-text-file\.dat/
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test('audit blocks an empty ZIP disguised without an archive extension', () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-release-empty-zip-'));
+  const artifact = 'public/empty-archive.dat';
+  const absoluteArtifact = join(temporaryRoot, artifact);
+  try {
+    mkdirSync(dirname(absoluteArtifact), { recursive: true });
+    writeFileSync(absoluteArtifact, Buffer.from([0x50, 0x4b, 0x05, 0x06, 0, 0, 0, 0]));
+    assert.throws(
+      () => auditPublicFiles([artifact], { cwd: temporaryRoot }),
+      /Unapproved executable\/archive artifacts: public\/empty-archive\.dat/
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });
