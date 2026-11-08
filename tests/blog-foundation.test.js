@@ -67,11 +67,11 @@ test('only published articles have public pages and sitemap entries', () => {
   }
 });
 
-test('Opening Explorer V2.3 launch article is a complete unpublished editorial draft', async () => {
+test('Opening Explorer V2.3 launch article is a complete published editorial article', async () => {
   const slug = 'caissa-opening-explorer-free-chess-analysis';
   const article = registry.articles.find(item => item.slug === slug);
   assert.ok(article, 'Opening Explorer V2.3 launch article is missing from registry');
-  assert.equal(article.status, 'draft');
+  assert.equal(article.status, 'published');
   assert.equal(article.title, 'CAISSA Opening Explorer: Powerful Chess Opening Analysis Without the Complexity');
   assert.equal(article.seoTitle, 'Free Chess Opening Explorer with Stockfish | CAISSA');
   assert.equal(article.author, 'CAISSA Chess Editorial');
@@ -109,9 +109,9 @@ test('Opening Explorer V2.3 launch article is a complete unpublished editorial d
   assert.match(prose, /not a claimed one-click transfer/);
   assert.doesNotMatch(prose, /CAISSA (?:is|ranks as) (?:one of )?the (?:top|best) five/i);
 
-  assert.ok(!fs.existsSync(path.join(root, `blog/${slug}/index.html`)), 'draft has a public article route');
-  assert.ok(!sitemap.includes(`${production}/blog/${slug}`), 'draft appears in the sitemap');
-  assert.ok(!read('blog/index.html').includes(`/blog/${slug}`), 'draft appears on the public blog index');
+  assert.ok(fs.existsSync(path.join(root, `blog/${slug}/index.html`)), 'published article route missing');
+  assert.ok(sitemap.includes(`${production}/blog/${slug}`), 'published article missing from sitemap');
+  assert.ok(read('blog/index.html').includes(`/blog/${slug}`), 'published article missing from public blog index');
 
   const image = await sharp(path.join(root, article.featuredImage)).metadata();
   assert.equal(image.format, 'webp');
@@ -287,7 +287,7 @@ test('Yahoo Chess article remains uniquely indexed and linked after newer public
 
   const index = load(read('blog/index.html'));
   assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
-  assert.equal(index('.blog-card-featured a').attr('href'), '/blog/caissa-scanner-image-to-chess-analysis');
+  assert.equal(index('.blog-card-featured a').attr('href'), '/blog/caissa-opening-explorer-free-chess-analysis');
   assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 1);
   assert.equal(index('a[href="/blog/what-is-a-polyglot-opening-book"]').length, 1);
   assert.equal(index('a[href="/blog/who-is-caissa-goddess-of-chess"]').length, 1);
