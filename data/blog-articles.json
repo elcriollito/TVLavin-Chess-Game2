@@ -40,7 +40,7 @@
         {
           "heading": "Stockfish 19 Lite: Powerful Analysis Within Reach",
           "paragraphs": [
-            "The Evaluate moves checkbox controls whether candidate scores are calculated; the Popularity and Engine selector controls how rows are ordered. That distinction matters. You can show engine scores while keeping database popularity order, or switch to Engine when evaluation should determine the ranking. Selecting Engine starts quick evaluation when needed, and turning evaluation off returns the list to Popularity with a clear status change.",
+            "CAISSA uses a verified Stockfish 19 Lite WebAssembly (WASM) integration. The Evaluate moves checkbox controls whether candidate scores are calculated; the Popularity and Engine selector controls how rows are ordered. That distinction matters. You can show engine scores while keeping database popularity order, or switch to Engine when evaluation should determine the ranking. Selecting Engine starts quick evaluation when needed, and turning evaluation off returns the list to Popularity with a clear status change.",
             "Quick candidate coverage has two practical modes. Fast evaluates up to 10 candidate moves, while Pro covers up to 20; these are coverage limits, not paid plans and not promises about a fixed search horizon. Results arrive progressively, and the list updates only from completed work for the current position. CAISSA does not invent missing numbers, reuse stale scores after the board changes, or create extra engine workers merely to make sorting appear faster."
           ]
         },
