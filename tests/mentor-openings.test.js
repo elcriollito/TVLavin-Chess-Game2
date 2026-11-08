@@ -8,7 +8,8 @@ const catalog = parseEcoCatalog(source);
 
 test('shared ECO catalog preserves all entries and admits only fully legal lines', () => {
     assert.equal(catalog.length, source.length);
-    assert.equal(catalog.filter(entry => !entry.playable).length, 19);
+    assert.equal(catalog.filter(entry => !entry.playable).length, 8);
+    assert.equal(catalog.filter(entry => /^E(?:4[5-9]|5[0-7])$/.test(entry.code) && entry.playable).length, 13);
     for (const entry of catalog) {
         if (!entry.playable) { assert.throws(() => prepareEcoLesson(entry)); continue; }
         const lesson = prepareEcoLesson(entry), game = new Chess();

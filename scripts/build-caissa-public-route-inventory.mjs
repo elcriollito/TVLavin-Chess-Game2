@@ -54,7 +54,6 @@ const additionalMetadata = new Map([
   ['/help', ['help', 'Help', 'CaissaPrimaryNavigation.more']],
   ['/premium', ['premium', 'Premium', 'vercel.json']],
   ['/roadmap', ['roadmap', 'Roadmap', 'vercel.json']],
-  ['/database', ['database', 'Chess Database', 'vercel.json']],
   ['/library', ['library-page', 'Library', 'vercel.json']],
   ['/game-library', ['game-library-legacy', 'Legacy Game Library', 'vercel.json and server.js']],
   ['/game-library/champions', ['game-library-champions', 'World Champions Archive', 'vercel.json and server.js']],

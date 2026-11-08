@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/styles.css?v=2.0.1">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/eco-page.css?v=1.9.2">
+  <link rel="stylesheet" href="/css/eco-page.css?v=1.9.3">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
   <script type="application/ld+json">
     {
@@ -88,40 +88,42 @@
 
           <section class="eco-board-wrap" aria-label="Board overview">
             <div class="eco-board-container">
-              <div id="ecoMiniBoard" class="eco-mini-board" aria-label="Opening preview board"></div>
+              <div id="ecoMiniBoard" class="eco-mini-board" role="img" aria-label="Opening preview board"></div>
             </div>
-            <p id="ecoMiniBoardFallback" class="eco-muted">Board preview coming soon.</p>
+            <p id="ecoMiniBoardFallback" class="eco-muted">Select an opening to preview its verified position.</p>
+            <p id="ecoReplayStatus" class="eco-replay-status" role="status" aria-live="polite">Select an opening to load move replay.</p>
             <div class="eco-board-controls" id="ecoBoardControls">
-              <button data-action="start" disabled title="Coming soon">|&lt;</button>
-              <button data-action="prev" disabled title="Coming soon">&lt;</button>
-              <button data-action="next" disabled title="Coming soon">&gt;</button>
-              <button data-action="end" disabled title="Coming soon">&gt;|</button>
-              <button data-action="flip" title="Flip board">Flip</button>
+              <button type="button" data-action="start" disabled title="First position" aria-label="Go to first position">|&lt;</button>
+              <button type="button" data-action="prev" disabled title="Previous move" aria-label="Go to previous move">&lt;</button>
+              <button type="button" data-action="next" disabled title="Next move" aria-label="Go to next move">&gt;</button>
+              <button type="button" data-action="end" disabled title="Last position" aria-label="Go to last position">&gt;|</button>
+              <button type="button" data-action="flip" title="Flip board" aria-label="Flip board">Flip</button>
             </div>
           </section>
 
           <section class="eco-overview">
             <h3>Overview</h3>
-            <div class="eco-stats-row"><span>Games on database</span><strong id="ecoStatGames">TBD</strong></div>
-            <div class="eco-stats-row"><span>Book weight total</span><strong id="ecoStatBookWeight">TBD</strong></div>
-            <div class="eco-stats-row"><span>Last played</span><strong id="ecoStatLastPlayed">TBD</strong></div>
+            <div class="eco-stats-row"><span>Local game aggregate</span><strong id="ecoStatGames">-</strong></div>
+            <div class="eco-stats-row"><span>Optional book weight</span><strong id="ecoStatBookWeight">-</strong></div>
+            <div class="eco-stats-row"><span>Last played</span><strong id="ecoStatLastPlayed">-</strong></div>
+            <p id="ecoStatsStatus" class="eco-muted" role="status" aria-live="polite">Select an opening to load local statistics.</p>
             <div class="eco-pro-block">
               <h4>W / D / L</h4>
               <div class="eco-wdl-bar" aria-hidden="true">
-                <span id="ecoWdlWhiteBar" class="eco-wdl-white" style="width: 33%"></span>
-                <span id="ecoWdlDrawBar" class="eco-wdl-draw" style="width: 34%"></span>
-                <span id="ecoWdlBlackBar" class="eco-wdl-black" style="width: 33%"></span>
+                <span id="ecoWdlWhiteBar" class="eco-wdl-white" style="width: 0%"></span>
+                <span id="ecoWdlDrawBar" class="eco-wdl-draw" style="width: 0%"></span>
+                <span id="ecoWdlBlackBar" class="eco-wdl-black" style="width: 0%"></span>
               </div>
-              <div class="eco-stats-row"><span>White</span><strong id="ecoStatWhite">TBD</strong></div>
-              <div class="eco-stats-row"><span>Draw</span><strong id="ecoStatDraw">TBD</strong></div>
-              <div class="eco-stats-row"><span>Black</span><strong id="ecoStatBlack">TBD</strong></div>
+              <div class="eco-stats-row"><span>White</span><strong id="ecoStatWhite">-</strong></div>
+              <div class="eco-stats-row"><span>Draw</span><strong id="ecoStatDraw">-</strong></div>
+              <div class="eco-stats-row"><span>Black</span><strong id="ecoStatBlack">-</strong></div>
             </div>
           </section>
 
           <section class="eco-pro-block">
             <h3>Popular Continuations</h3>
             <ol id="ecoContinuations" class="eco-continuations"></ol>
-            <p class="eco-muted">Continuations will be computed from PGNs/DB soon.</p>
+            <p class="eco-muted">Local game lines that pass integrity checks are preferred; the optional cloud book is used only when local data is unavailable.</p>
           </section>
 
           <section class="eco-defining">
@@ -159,7 +161,9 @@
   <script src="/js/caissa-auth.js?v=1.0.6" defer></script>
   <script src="/js/caissa-access.js?v=1.0.2" defer></script>
   <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
-  <script src="/js/books/book-registry.js?v=1.3.0" defer></script>
-  <script src="/js/eco-page.js?v=2.3.0" defer></script>
+  <script src="/assets/vendor/chess.js/chess-0.10.3.min.js" defer></script>
+  <script src="/js/eco-replay.js?v=1.0.0" defer></script>
+  <script src="/js/books/book-registry.js?v=1.4.0" defer></script>
+  <script src="/js/eco-page.js?v=2.5.0" defer></script>
 </body>
 </html>

@@ -19,11 +19,21 @@
   let windowResizeDebounce = null;
   let ecoStatsData = null;
   let ecoContinuationsData = null;
-  let ecoFenData = null;
+  let theoryAvailableCodes = new Set();
+  let theoryManifestPromise = null;
+  let activeDetailController = null;
+  let currentBoardState = 'default';
+  let boardRenderSeq = 0;
+  let replayCode = null;
+  let replayFrames = Object.freeze([]);
+  let replayPly = 0;
+  let replayStatusState = 'idle';
+  let replayUnavailableMessage = 'Select an opening to load move replay.';
 
   const MAX_MINI_BOARD_RETRIES = 5;
   const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '';
-  const ECO_STATS_DATA_VERSION = '1.9.0';
+  const ECO_STATS_DATA_VERSION = '2.0.0';
+  const REMOTE_REQUEST_TIMEOUT_MS = 5000;
   const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
   const ECO_DEBUG = new URLSearchParams(window.location.search).get('debug') === '1';
 
@@ -33,14 +43,21 @@
   }
 
   const StatsProvider = {
-    async getStatsByKey(key) {
+    async getStatsByKey(key, options = {}) {
       if (!POS_STATS_URL) return null;
       const normalized = String(key || '').toLowerCase().trim();
       if (!/^[0-9a-f]{16}$/.test(normalized)) return null;
 
+      const controller = new AbortController();
+      const abortFromExternal = () => controller.abort(options.signal?.reason || 'cancelled');
+      if (options.signal?.aborted) abortFromExternal();
+      else options.signal?.addEventListener('abort', abortFromExternal, { once: true });
+      const timeoutId = setTimeout(() => controller.abort('timeout'), REMOTE_REQUEST_TIMEOUT_MS);
+
       try {
         const res = await fetch(`${POS_STATS_URL}?key=${encodeURIComponent(normalized)}`, {
-          headers: { Accept: 'application/json' }
+          headers: { Accept: 'application/json' },
+          signal: controller.signal
         });
         if (!res.ok) {
           if (res.status === 404) {
@@ -53,6 +70,9 @@
         return payload;
       } catch (_err) {
         return null;
+      } finally {
+        clearTimeout(timeoutId);
+        options.signal?.removeEventListener('abort', abortFromExternal);
       }
     }
   };
@@ -102,7 +122,8 @@
   function getFilteredRows() {
     const q = (ecoSearch.value || '').trim();
     const qLower = q.toLowerCase();
-    let rows = ecoCodes.filter((row) => row.code.startsWith(activeLetter));
+    const explicitLetter = /^[A-E]/i.test(q) ? q[0].toUpperCase() : '';
+    let rows = ecoCodes.filter((row) => row.code.startsWith(explicitLetter || activeLetter));
 
     if (q) {
       if (isCodeQuery(q)) {
@@ -223,6 +244,11 @@
 
     boardEl.innerHTML = '';
     boardEl.style.display = 'grid';
+    boardEl.dataset.fen = fen || '';
+    boardEl.dataset.positionState = currentBoardState;
+    boardEl.dataset.replayCode = replayCode || '';
+    boardEl.dataset.replayPly = String(replayPly);
+    boardEl.dataset.replayTotal = String(Math.max(0, replayFrames.length - 1));
 
     if (!fen || !String(fen).trim()) {
       fallbackEl.style.display = 'block';
@@ -270,16 +296,18 @@
     return true;
   }
 
-  function renderMiniBoardFromFen(fen, attempt = 0) {
+  function renderMiniBoardFromFen(fen, attempt = 0, token = null) {
+    const renderToken = token === null ? ++boardRenderSeq : token;
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
+        if (renderToken !== boardRenderSeq) return;
         const boardEl = document.getElementById('ecoMiniBoard');
         if (!boardEl) return;
 
         ensureBoardSized();
         const ok = mountMiniBoardFromFen(fen);
         if (!ok && attempt < MAX_MINI_BOARD_RETRIES) {
-          renderMiniBoardFromFen(fen, attempt + 1);
+          renderMiniBoardFromFen(fen, attempt + 1, renderToken);
           return;
         }
 
@@ -293,6 +321,122 @@
 
   function rerenderMiniBoard() {
     renderMiniBoardFromFen(currentBoardFen);
+  }
+
+  function updateReplayControls() {
+    const available = replayCode === selectedCode && replayFrames.length > 1;
+    const lastPly = Math.max(0, replayFrames.length - 1);
+    const states = {
+      start: !available || replayPly === 0,
+      prev: !available || replayPly === 0,
+      next: !available || replayPly === lastPly,
+      end: !available || replayPly === lastPly
+    };
+
+    const controls = document.getElementById('ecoBoardControls');
+    Object.entries(states).forEach(([action, disabled]) => {
+      const button = controls?.querySelector(`[data-action="${action}"]`);
+      if (button) button.disabled = disabled;
+    });
+  }
+
+  function renderReplayStatus() {
+    const statusEl = document.getElementById('ecoReplayStatus');
+    const boardEl = document.getElementById('ecoMiniBoard');
+    const frame = replayFrames[replayPly] || null;
+    const available = replayCode === selectedCode && replayFrames.length > 1 && frame;
+    const text = available
+      ? window.CaissaEcoReplay.formatFrame(frame, replayFrames.length - 1)
+      : replayUnavailableMessage;
+
+    if (statusEl) {
+      statusEl.textContent = text;
+      statusEl.dataset.replayState = available ? 'available' : replayStatusState;
+    }
+    if (boardEl) {
+      boardEl.setAttribute('aria-label', `Opening preview board. ${text}`);
+      boardEl.dataset.replayCode = replayCode || '';
+      boardEl.dataset.replayPly = String(replayPly);
+      boardEl.dataset.replayTotal = String(Math.max(0, replayFrames.length - 1));
+    }
+  }
+
+  function renderDefiningMoves(fallbackMoves = '') {
+    const movesEl = document.getElementById('ecoDetailMoves');
+    if (!movesEl) return;
+
+    if (replayCode === selectedCode && replayFrames.length > 1) {
+      const tokens = replayFrames.slice(1).map((frame) => {
+        const active = frame.ply === replayPly ? ' is-active' : '';
+        const current = frame.ply === replayPly ? ' aria-current="step"' : '';
+        return `<span class="eco-move-token${active}" data-replay-ply="${frame.ply}"${current}>${escapeHtml(frame.san)}</span>`;
+      });
+      movesEl.innerHTML = `Defining moves: ${tokens.join(' ')}`;
+      return;
+    }
+
+    movesEl.textContent = fallbackMoves
+      ? `Defining moves unavailable for replay: ${fallbackMoves}`
+      : 'Defining moves unavailable for replay.';
+  }
+
+  function clearReplayState(message, state = 'unavailable') {
+    replayCode = null;
+    replayFrames = Object.freeze([]);
+    replayPly = 0;
+    replayStatusState = state;
+    replayUnavailableMessage = message;
+    updateReplayControls();
+    renderReplayStatus();
+  }
+
+  function initializeReplay(code, defining, detail) {
+    const replayApi = window.CaissaEcoReplay;
+    if (!replayApi || typeof replayApi.createReplay !== 'function') {
+      clearReplayState('Move replay unavailable: validator failed to load.');
+      return null;
+    }
+
+    const result = replayApi.createReplay(window.Chess, defining?.moves, {
+      canonicalFinalFen: detail?.fen
+    });
+    if (!result.available) {
+      clearReplayState(`Move replay unavailable: ${result.reason}`);
+      return null;
+    }
+
+    replayCode = code;
+    replayFrames = result.frames;
+    replayPly = result.totalPlies;
+    replayStatusState = 'available';
+    replayUnavailableMessage = '';
+    return result;
+  }
+
+  function goToReplayPly(targetPly) {
+    if (replayCode !== selectedCode || replayFrames.length <= 1) return false;
+    const requested = Number(targetPly);
+    if (!Number.isFinite(requested)) return false;
+
+    const lastPly = replayFrames.length - 1;
+    replayPly = Math.max(0, Math.min(lastPly, Math.trunc(requested)));
+    const frame = replayFrames[replayPly];
+    currentBoardFen = frame.fen;
+    currentBoardState = 'verified';
+
+    const boardFallbackEl = document.getElementById('ecoMiniBoardFallback');
+    if (boardFallbackEl) {
+      boardFallbackEl.textContent = replayPly === 0
+        ? 'Verified starting position loaded.'
+        : 'Verified replay position loaded.';
+    }
+
+    updateReplayControls();
+    renderReplayStatus();
+    renderDefiningMoves();
+    ensureBoardSized();
+    renderMiniBoardFromFen(currentBoardFen);
+    return true;
   }
 
   function setupBoardResizeObserver() {
@@ -357,15 +501,15 @@
     if (!continuationsEl) return;
 
     continuationsEl.innerHTML = items.map((item) => {
-      const san = escapeHtml(item.san || 'TBD');
+      const san = escapeHtml(item.san || 'Unavailable');
       const label = escapeHtml(item.label || 'Line');
       const shareNumeric = Number(item.sharePercent ?? item.percent);
       const sharePct = shareNumeric > 0 ? Math.min(100, Math.max(0, shareNumeric)) : 0;
-      const shareText = sharePct > 0 ? `${sharePct.toFixed(1)}%` : 'TBD';
+      const shareText = sharePct > 0 ? `${sharePct.toFixed(1)}%` : 'Unavailable';
       const wdl = normalizeWdlPercents(item.whitePct, item.drawPct, item.blackPct);
-      const whitePct = wdl ? wdl.whitePct : 33;
-      const drawPct = wdl ? wdl.drawPct : 34;
-      const blackPct = wdl ? wdl.blackPct : 33;
+      const whitePct = wdl ? wdl.whitePct : 0;
+      const drawPct = wdl ? wdl.drawPct : 0;
+      const blackPct = wdl ? wdl.blackPct : 0;
 
       return `<li class="eco-cont-row">
         <span class="eco-cont-main eco-cont-move">${san}</span>
@@ -384,36 +528,6 @@
     }).join('');
   }
 
-  function fenFromMoveList(moves) {
-    if (!window.Chess || !Array.isArray(moves) || moves.length === 0) return '';
-    try {
-      const game = new window.Chess();
-      for (const san of moves) {
-        const ok = game.move(san, { sloppy: true });
-        if (!ok) return '';
-      }
-      return game.fen();
-    } catch (_err) {
-      return '';
-    }
-  }
-
-  function resolveFenForCode(code, detail, defining) {
-    if (detail && detail.fen) {
-      return { fen: String(detail.fen), source: 'fen' };
-    }
-    if (code && ecoFenData && ecoFenData[code]) {
-      return { fen: String(ecoFenData[code]), source: 'eco_fen' };
-    }
-    if (defining && Array.isArray(defining.moves)) {
-      const fenFromMoves = fenFromMoveList(defining.moves);
-      if (fenFromMoves) {
-        return { fen: fenFromMoves, source: 'moves' };
-      }
-    }
-    return { fen: START_FEN, source: 'start' };
-  }
-
   function uciToSanIfPossible(fen, uci, fallbackSan) {
     if (!window.Chess || !fen || !uci) return fallbackSan || uci || '';
     try {
@@ -425,28 +539,23 @@
     }
   }
 
-  function applyStatsToPanel(stats) {
-    const whitePct = Number(stats?.w) || 0;
-    const drawPct = Number(stats?.d) || 0;
-    const blackPct = Number(stats?.l) || 0;
-    const total = whitePct + drawPct + blackPct;
-    const showPct = (v) => (Number(v) > 0 ? `${v}%` : 'TBD');
+  function setStatsStatus(message, state = 'unavailable') {
+    const statusEl = document.getElementById('ecoStatsStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.dataset.statsState = state;
+  }
 
-    document.getElementById('ecoStatGames').textContent = Number(stats?.games) > 0 ? String(stats.games) : 'TBD';
-    document.getElementById('ecoStatLastPlayed').textContent = stats?.lastPlayed || 'TBD';
-    document.getElementById('ecoStatWhite').textContent = showPct(whitePct);
-    document.getElementById('ecoStatDraw').textContent = showPct(drawPct);
-    document.getElementById('ecoStatBlack').textContent = showPct(blackPct);
-
-    if (total > 0) {
-      document.getElementById('ecoWdlWhiteBar').style.width = `${(whitePct / total) * 100}%`;
-      document.getElementById('ecoWdlDrawBar').style.width = `${(drawPct / total) * 100}%`;
-      document.getElementById('ecoWdlBlackBar').style.width = `${(blackPct / total) * 100}%`;
-    } else {
-      document.getElementById('ecoWdlWhiteBar').style.width = '33%';
-      document.getElementById('ecoWdlDrawBar').style.width = '34%';
-      document.getElementById('ecoWdlBlackBar').style.width = '33%';
-    }
+  function setStatsUnavailable(message = 'No verified aggregate is available for this ECO code.') {
+    document.getElementById('ecoStatGames').textContent = 'Unavailable';
+    document.getElementById('ecoStatLastPlayed').textContent = 'Unavailable';
+    document.getElementById('ecoStatWhite').textContent = 'Unavailable';
+    document.getElementById('ecoStatDraw').textContent = 'Unavailable';
+    document.getElementById('ecoStatBlack').textContent = 'Unavailable';
+    document.getElementById('ecoWdlWhiteBar').style.width = '0%';
+    document.getElementById('ecoWdlDrawBar').style.width = '0%';
+    document.getElementById('ecoWdlBlackBar').style.width = '0%';
+    setStatsStatus(message, 'unavailable');
   }
 
   function applyEcoStatsByCode(code) {
@@ -454,33 +563,53 @@
     const row = ecoStatsData[code];
     if (!row) return false;
 
-    const games = Number(row.games) || 0;
-    const whiteWins = Number(row.whiteWins) || 0;
-    const draws = Number(row.draws) || 0;
-    const blackWins = Number(row.blackWins) || 0;
+    const games = Number(row.games);
+    const whiteWins = Number(row.whiteWins);
+    const draws = Number(row.draws);
+    const blackWins = Number(row.blackWins);
     const total = whiteWins + draws + blackWins;
 
-    document.getElementById('ecoStatGames').textContent = games > 0 ? String(games) : 'TBD';
-    document.getElementById('ecoStatLastPlayed').textContent = row.lastYearSeen || row.lastDate || 'TBD';
+    if (![games, whiteWins, draws, blackWins].every((value) => Number.isFinite(value) && value >= 0)
+      || games <= 0 || total !== games) {
+      console.warn(`[ECO] Rejected inconsistent local statistics for ${code}.`);
+      return false;
+    }
+
+    document.getElementById('ecoStatGames').textContent = String(games);
+    document.getElementById('ecoStatLastPlayed').textContent = row.lastYearSeen || row.lastDate || 'Unavailable';
 
     const wPct = total > 0 ? (whiteWins / total) * 100 : 0;
     const dPct = total > 0 ? (draws / total) * 100 : 0;
     const bPct = total > 0 ? (blackWins / total) * 100 : 0;
 
-    document.getElementById('ecoStatWhite').textContent = total > 0 ? `${wPct.toFixed(1)}%` : 'TBD';
-    document.getElementById('ecoStatDraw').textContent = total > 0 ? `${dPct.toFixed(1)}%` : 'TBD';
-    document.getElementById('ecoStatBlack').textContent = total > 0 ? `${bPct.toFixed(1)}%` : 'TBD';
+    document.getElementById('ecoStatWhite').textContent = `${wPct.toFixed(1)}%`;
+    document.getElementById('ecoStatDraw').textContent = `${dPct.toFixed(1)}%`;
+    document.getElementById('ecoStatBlack').textContent = `${bPct.toFixed(1)}%`;
 
-    document.getElementById('ecoWdlWhiteBar').style.width = total > 0 ? `${wPct}%` : '33%';
-    document.getElementById('ecoWdlDrawBar').style.width = total > 0 ? `${dPct}%` : '34%';
-    document.getElementById('ecoWdlBlackBar').style.width = total > 0 ? `${bPct}%` : '33%';
+    document.getElementById('ecoWdlWhiteBar').style.width = `${wPct}%`;
+    document.getElementById('ecoWdlDrawBar').style.width = `${dPct}%`;
+    document.getElementById('ecoWdlBlackBar').style.width = `${bPct}%`;
+    setStatsStatus('Local aggregate passed consistency checks.', 'available');
 
     return true;
   }
 
-  function setStatsPlaceholders() {
-    applyStatsToPanel(null);
-    document.getElementById('ecoStatBookWeight').textContent = 'TBD';
+  function setStatsPlaceholders(selected = false) {
+    if (selected) {
+      setStatsUnavailable();
+      document.getElementById('ecoStatBookWeight').textContent = 'Loading...';
+      return;
+    }
+    document.getElementById('ecoStatGames').textContent = '-';
+    document.getElementById('ecoStatBookWeight').textContent = '-';
+    document.getElementById('ecoStatLastPlayed').textContent = '-';
+    document.getElementById('ecoStatWhite').textContent = '-';
+    document.getElementById('ecoStatDraw').textContent = '-';
+    document.getElementById('ecoStatBlack').textContent = '-';
+    document.getElementById('ecoWdlWhiteBar').style.width = '0%';
+    document.getElementById('ecoWdlDrawBar').style.width = '0%';
+    document.getElementById('ecoWdlBlackBar').style.width = '0%';
+    setStatsStatus('Select an opening to load local statistics.', 'idle');
   }
 
   function mergeContinuations(fen, bookData, statsData) {
@@ -544,6 +673,21 @@
     const rows = ecoContinuationsData[code];
     if (!Array.isArray(rows) || rows.length === 0) return false;
 
+    const validRows = rows.every((row) => {
+      const count = Number(row?.count);
+      const whiteWins = Number(row?.whiteWins);
+      const draws = Number(row?.draws);
+      const blackWins = Number(row?.blackWins);
+      return typeof row?.move === 'string' && row.move.trim()
+        && [count, whiteWins, draws, blackWins].every((value) => Number.isFinite(value) && value >= 0)
+        && count > 0
+        && count === whiteWins + draws + blackWins;
+    });
+    if (!validRows) {
+      console.warn(`[ECO] Rejected inconsistent local continuations for ${code}.`);
+      return false;
+    }
+
     const top = rows.slice(0, 8);
     const totalCount = top.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
     const mapped = top.map((r) => {
@@ -557,7 +701,7 @@
       const bPct = total > 0 ? (b / total) * 100 : 0;
       const barPct = totalCount > 0 ? (count / totalCount) * 100 : 0;
       return {
-        san: r.move || 'TBD',
+        san: r.move,
         label: `${count} games`,
         sharePercent: barPct,
         whitePct: wPct,
@@ -569,15 +713,70 @@
     return true;
   }
 
+  async function loadTheoryManifest() {
+    try {
+      const response = await fetch('/data/openings/eco/manifest.json', { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`Theory manifest HTTP ${response.status}`);
+      const manifest = await response.json();
+      const codes = Array.isArray(manifest?.availableCodes)
+        ? manifest.availableCodes.map(parseCode).filter(Boolean)
+        : [];
+      theoryAvailableCodes = new Set(codes);
+    } catch (err) {
+      theoryAvailableCodes = new Set();
+      console.warn('[ECO] Theory manifest unavailable; individual theory requests are disabled.', err);
+    }
+    return theoryAvailableCodes;
+  }
+
+  async function renderTheory(code, renderSeq, signal) {
+    const theoryEl = document.getElementById('ecoDetailTheory');
+    if (!theoryEl) return;
+    theoryEl.textContent = 'Checking verified theory availability...';
+    theoryEl.dataset.theoryState = 'loading';
+
+    await theoryManifestPromise;
+    if (signal.aborted || renderSeq !== detailRenderSeq) return;
+
+    if (!theoryAvailableCodes.has(code)) {
+      theoryEl.textContent = 'Verified theory is not available for this opening yet.';
+      theoryEl.dataset.theoryState = 'unavailable';
+      return;
+    }
+
+    try {
+      const response = await fetch(`/data/openings/eco/${code}.json`, {
+        cache: 'no-cache',
+        signal
+      });
+      if (!response.ok) throw new Error(`Theory HTTP ${response.status}`);
+      const theory = await response.json();
+      if (signal.aborted || renderSeq !== detailRenderSeq) return;
+
+      const parts = [];
+      if (Array.isArray(theory.principles)) parts.push(...theory.principles.filter(Boolean));
+      if (Array.isArray(theory.plansWhite) && theory.plansWhite[0]) parts.push(`White: ${theory.plansWhite[0]}`);
+      if (Array.isArray(theory.plansBlack) && theory.plansBlack[0]) parts.push(`Black: ${theory.plansBlack[0]}`);
+      theoryEl.textContent = parts.length ? parts.join('\n') : 'Verified theory file contains no summary.';
+      theoryEl.dataset.theoryState = parts.length ? 'available' : 'unavailable';
+    } catch (err) {
+      if (signal.aborted || renderSeq !== detailRenderSeq) return;
+      theoryEl.textContent = 'Verified theory could not be loaded.';
+      theoryEl.dataset.theoryState = 'error';
+      console.warn(`[ECO] Theory load failed for ${code}.`, err);
+    }
+  }
+
   async function loadContinuationsAndStats(fen, renderSeq, options = {}) {
     const renderContinuations = options.renderContinuations !== false;
+    const signal = options.signal;
     const weightEl = document.getElementById('ecoStatBookWeight');
     if (weightEl) weightEl.textContent = 'Loading...';
     if (renderContinuations) showContinuationStatus('Loading book...');
 
     if (!fen) {
-      if (weightEl) weightEl.textContent = 'TBD';
-      if (renderContinuations) showContinuationStatus('No book moves found for this position.');
+      if (weightEl) weightEl.textContent = 'Unavailable';
+      if (renderContinuations) showContinuationStatus('Continuations unavailable: no verified position.');
       return;
     }
 
@@ -595,17 +794,14 @@
         throw new Error('Book adapter missing getContinuations or not ready');
       }
 
-      const bookData = await book.getContinuations(fen, 15);
-      if (renderSeq !== detailRenderSeq) return;
+      const bookData = await book.getContinuations(fen, 15, { signal });
+      if (signal?.aborted || renderSeq !== detailRenderSeq) return;
 
       const totalWeight = Number(bookData?.totalWeight) || 0;
       if (weightEl) weightEl.textContent = totalWeight > 0 ? String(totalWeight) : '0';
 
-      const statsData = await StatsProvider.getStatsByKey(bookData?.key || '');
-      if (renderSeq !== detailRenderSeq) return;
-      if (statsData && !applyEcoStatsByCode(selectedCode)) {
-        applyStatsToPanel(statsData);
-      }
+      const statsData = await StatsProvider.getStatsByKey(bookData?.key || '', { signal });
+      if (signal?.aborted || renderSeq !== detailRenderSeq) return;
 
       if (renderContinuations) {
         const rows = mergeContinuations(fen, bookData, statsData);
@@ -617,8 +813,8 @@
         renderContinuationRows(rows);
       }
     } catch (err) {
-      if (renderSeq !== detailRenderSeq) return;
-      if (weightEl) weightEl.textContent = 'TBD';
+      if (signal?.aborted || renderSeq !== detailRenderSeq) return;
+      if (weightEl) weightEl.textContent = 'Unavailable';
 
       if (window.CAISSA_BOOK_REGISTRY?.markUnavailableOnce) {
         window.CAISSA_BOOK_REGISTRY.markUnavailableOnce(err);
@@ -633,6 +829,9 @@
   }
 
   function renderDefaultDetail() {
+    activeDetailController?.abort('selection-cleared');
+    activeDetailController = null;
+    detailRenderSeq += 1;
     const titleEl = document.getElementById('ecoDetailTitle');
     const movesEl = document.getElementById('ecoDetailMoves');
     const relatedEl = document.getElementById('ecoDetailRelated');
@@ -641,31 +840,34 @@
     if (titleEl) titleEl.textContent = 'Select an opening';
     if (movesEl) movesEl.textContent = 'Select an opening to preview position and stats.';
     if (relatedEl) relatedEl.innerHTML = '<li>Select an ECO code to load related lines.</li>';
-    if (theoryEl) theoryEl.textContent = 'Theory summary will appear here.';
+    if (theoryEl) {
+      theoryEl.textContent = 'Select an opening to inspect verified theory.';
+      theoryEl.dataset.theoryState = 'idle';
+    }
 
+    clearReplayState('Select an opening to load move replay.', 'idle');
     currentBoardFen = START_FEN;
+    currentBoardState = 'default';
+    const boardFallbackEl = document.getElementById('ecoMiniBoardFallback');
+    if (boardFallbackEl) boardFallbackEl.textContent = 'Select an opening to preview its verified position.';
     ensureBoardSized();
     renderMiniBoardFromFen(currentBoardFen);
     setStatsPlaceholders();
-
-    renderContinuationRows([
-      { san: 'TBD', label: 'Main line', sharePercent: 0 },
-      { san: 'TBD', label: 'Positional plan', sharePercent: 0 },
-      { san: 'TBD', label: 'Tactical option', sharePercent: 0 },
-      { san: 'TBD', label: 'Sideline', sharePercent: 0 },
-      { san: 'TBD', label: 'Flexible setup', sharePercent: 0 }
-    ]);
+    showContinuationStatus('Select an opening to load local continuations.');
   }
 
-  async function renderDetail(code) {
+  function renderDetail(code) {
     const normalized = parseCode(code);
     if (!normalized) {
       renderDefaultDetail();
       return;
     }
 
+    activeDetailController?.abort('selection-changed');
+    activeDetailController = new AbortController();
     detailRenderSeq += 1;
     const renderSeq = detailRenderSeq;
+    const signal = activeDetailController.signal;
 
     const row = ecoCodes.find((r) => r.code === normalized) || null;
     const detail = ecoDetails.find((d) => d.code === normalized) || null;
@@ -688,53 +890,51 @@
     const lines = openings.filter((o) => o.eco === normalized && Array.isArray(o.moves));
     const defining = lines.length ? lines.slice().sort((a, b) => a.moves.length - b.moves.length)[0] : null;
     const fallbackMoves = (detail && detail.moves) || (row && row.moves) || '';
-    if (movesEl) {
-      movesEl.textContent = defining
-        ? `Defining moves: ${defining.moves.join(' ')}`
-        : (fallbackMoves ? `Defining moves: ${fallbackMoves}` : 'Moves not added yet');
-    }
-
     const tensPrefix = `${normalized[0]}${normalized[1]}`;
-    const related = ecoCodes
+    const neighboringCodes = ecoCodes
       .filter((r) => r.code !== normalized && r.code.startsWith(tensPrefix))
       .slice(0, 20);
 
     if (relatedEl) {
-      relatedEl.innerHTML = related.length
-        ? related.map((r) => `<li><a href="/eco/${r.code}" data-code="${r.code}">${r.code} - ${escapeHtml(r.name)}</a></li>`).join('')
-        : '<li>No related lines found.</li>';
+      const variationItems = lines.map((line) => {
+        const variationMoves = line.moves.join(' ');
+        return `<li><strong>${escapeHtml(line.name || displayName)}</strong><br><span class="eco-muted">${escapeHtml(variationMoves)}</span></li>`;
+      });
+      const neighborItems = neighboringCodes.map((r) =>
+        `<li><a href="/eco/${r.code}" data-code="${r.code}">${r.code} - ${escapeHtml(r.name)}</a></li>`
+      );
+      relatedEl.innerHTML = [...variationItems, ...neighborItems].join('') || '<li>No related lines found.</li>';
     }
 
-    let theoryText = 'Theory coming soon.';
-    try {
-      const tRes = await fetch(`/data/openings/eco/${normalized}.json`, { cache: 'no-cache' });
-      if (tRes.ok) {
-        const theory = await tRes.json();
-        const parts = [];
-        if (Array.isArray(theory.principles)) parts.push(...theory.principles);
-        if (Array.isArray(theory.plansWhite) && theory.plansWhite[0]) parts.push(`White: ${theory.plansWhite[0]}`);
-        if (Array.isArray(theory.plansBlack) && theory.plansBlack[0]) parts.push(`Black: ${theory.plansBlack[0]}`);
-        if (parts.length) theoryText = parts.join('\n');
-      }
-    } catch (_err) {
-      // Keep fallback text
-    }
-    if (theoryEl) theoryEl.textContent = theoryText;
+    void renderTheory(normalized, renderSeq, signal);
 
     debugLog('selected code', normalized);
-    const fenResolution = resolveFenForCode(normalized, detail, defining);
-    currentBoardFen = fenResolution.fen || START_FEN;
-    debugLog('fen source', fenResolution.source, 'final fen', currentBoardFen);
-    ensureBoardSized();
-    renderMiniBoardFromFen(currentBoardFen);
-    setStatsPlaceholders();
+    const replay = initializeReplay(normalized, defining, detail);
+    const finalFen = replay?.finalFen || '';
+    if (replay) {
+      goToReplayPly(replay.totalPlies);
+      debugLog('fen source', 'verified-move-replay', 'final fen', finalFen);
+    } else {
+      currentBoardFen = '';
+      currentBoardState = 'unavailable';
+      const boardFallbackEl = document.getElementById('ecoMiniBoardFallback');
+      if (boardFallbackEl) boardFallbackEl.textContent = 'Verified opening move replay unavailable.';
+      renderDefiningMoves(defining?.moves?.join(' ') || fallbackMoves);
+      ensureBoardSized();
+      renderMiniBoardFromFen('');
+      debugLog('fen source', 'unavailable');
+    }
+    setStatsPlaceholders(true);
     const hasEcoStats = applyEcoStatsByCode(normalized);
     const hasEcoCont = renderEcoDbContinuations(normalized);
     if (!hasEcoCont) {
-      showContinuationStatus('Loading book...');
+      showContinuationStatus('No verified local continuations. Checking optional cloud book...');
     }
 
-    loadContinuationsAndStats(currentBoardFen, renderSeq, { renderContinuations: !hasEcoCont });
+    void loadContinuationsAndStats(finalFen, renderSeq, {
+      renderContinuations: !hasEcoCont,
+      signal
+    });
     debugLog('stats source', hasEcoStats ? 'eco_stats.json' : 'fallback');
     debugLog('continuations source', hasEcoCont ? 'eco_popular_continuations.json' : 'book');
   }
@@ -799,7 +999,15 @@
       if (!btn || btn.disabled) return;
 
       const action = btn.dataset.action;
-      if (action === 'flip') {
+      if (action === 'start') {
+        goToReplayPly(0);
+      } else if (action === 'prev') {
+        goToReplayPly(replayPly - 1);
+      } else if (action === 'next') {
+        goToReplayPly(replayPly + 1);
+      } else if (action === 'end') {
+        goToReplayPly(replayFrames.length - 1);
+      } else if (action === 'flip') {
         boardFlipped = !boardFlipped;
         rerenderMiniBoard();
       }
@@ -819,6 +1027,7 @@
   }
 
   async function init() {
+    theoryManifestPromise = loadTheoryManifest();
     try {
       const [codesRes, openingsRes, detailsRes] = await Promise.all([
         fetch('/data/eco/eco_codes.json', { cache: 'no-cache' }),
@@ -840,10 +1049,9 @@
         console.warn(`[ECO] eco_details.json failed to load (${detailsRes.status}), using fallback detail rendering`);
       }
 
-      const [statsRes, contRes, fenRes] = await Promise.allSettled([
+      const [statsRes, contRes] = await Promise.allSettled([
         fetch(`/data/eco/eco_stats.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' }),
-        fetch(`/data/eco/eco_popular_continuations.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' }),
-        fetch(`/data/eco/eco_fen.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' })
+        fetch(`/data/eco/eco_popular_continuations.json?v=${encodeURIComponent(ECO_STATS_DATA_VERSION)}`, { cache: 'no-cache' })
       ]);
 
       if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
@@ -852,10 +1060,6 @@
       if (contRes.status === 'fulfilled' && contRes.value.ok) {
         ecoContinuationsData = await contRes.value.json();
       }
-      if (fenRes.status === 'fulfilled' && fenRes.value.ok) {
-        ecoFenData = await fenRes.value.json();
-      }
-
       loadTabs();
       bindEvents();
 

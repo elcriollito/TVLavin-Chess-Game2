@@ -52,7 +52,7 @@ test('ECO structured data and reciprocal opening-database link are valid', () =>
   assert.equal(schemas[1].itemListElement.at(-1).item, productionUrl);
 
   const openingDatabase = load(read('opening-database.html'));
-  assert.equal(openingDatabase('.openingdb-eco-reference a[href="/eco"]').length, 1);
+  assert.equal(openingDatabase('a#odbEcoLink.openingdb-eco-badge[href="/eco"]').length, 1);
 });
 
 test('ECO canonical is listed once and crawling remains allowed', () => {

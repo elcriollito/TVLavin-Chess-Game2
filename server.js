@@ -784,8 +784,16 @@ const server = http.createServer(async (req, res) => {
   if (/^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pathname)) {
     filePath = `.${pathname}/index.html`;
   }
-  if (pathname === '/database' || pathname.startsWith('/database/eco/')) {
-    filePath = './database.html';
+  if ((req.method === 'GET' || req.method === 'HEAD') && (pathname === '/database' || pathname === '/database/')) {
+    res.writeHead(308, { Location: `/eco${url.search}` });
+    res.end();
+    return;
+  }
+  const legacyEcoMatch = pathname.match(/^\/database\/eco\/([A-E]\d{2})\/?$/i);
+  if ((req.method === 'GET' || req.method === 'HEAD') && legacyEcoMatch) {
+    res.writeHead(308, { Location: `/eco/${legacyEcoMatch[1].toUpperCase()}${url.search}` });
+    res.end();
+    return;
   }
   if (pathname === '/eco' || pathname.startsWith('/eco/')) {
     filePath = './eco.html';
