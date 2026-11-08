@@ -120,3 +120,12 @@ test('SEO metadata describes the public Opening Explorer', () => {
   assert.match(html, /"@type":\s*"WebApplication"/);
   assert.match(html, /"@type":\s*"BreadcrumbList"/);
 });
+
+test('Opening ECO badge links to the supported detail route', () => {
+  const ecoPage = read('js/eco-page.js');
+  const vercel = read('vercel.json');
+  assert.ok(source.includes('els.ecoLink.href = openingFallback.eco ? `/eco/${encodeURIComponent(openingFallback.eco)}` : \'/eco\';'));
+  assert.ok(!source.includes('`/eco?code=${encodeURIComponent(openingFallback.eco)}`'));
+  assert.ok(ecoPage.includes('const pathMatch = window.location.pathname.match('));
+  assert.ok(vercel.includes('"source": "/eco/:code", "destination": "/eco.html"'));
+});
