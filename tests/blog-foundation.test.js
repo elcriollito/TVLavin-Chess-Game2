@@ -67,6 +67,58 @@ test('only published articles have public pages and sitemap entries', () => {
   }
 });
 
+test('Opening Explorer V2.3 launch article is a complete published editorial article', async () => {
+  const slug = 'caissa-opening-explorer-free-chess-analysis';
+  const article = registry.articles.find(item => item.slug === slug);
+  assert.ok(article, 'Opening Explorer V2.3 launch article is missing from registry');
+  assert.equal(article.status, 'published');
+  assert.equal(article.title, 'CAISSA Opening Explorer: Powerful Chess Opening Analysis Without the Complexity');
+  assert.equal(article.seoTitle, 'Free Chess Opening Explorer with Stockfish | CAISSA');
+  assert.equal(article.author, 'CAISSA Chess Editorial');
+  assert.equal(article.category, 'CAISSA Tools');
+  assert.equal(article.relatedCaissaRoute, '/opening-database');
+  assert.deepEqual(article.relatedArticleSlugs, ['what-is-a-polyglot-opening-book']);
+
+  const headings = article.body.map(section => section.heading);
+  assert.deepEqual(headings, [
+    'Why CAISSA Redesigned Opening Explorer',
+    'Explorer: Compare Opening Moves Intelligently',
+    'Stockfish 19 Lite: Powerful Analysis Within Reach',
+    'Real-Game Statistics Versus Machine Evaluation',
+    'Analysis, Games, and Moves: Follow the Ideas',
+    'Why Simplicity Deserves a Place Beside Sophistication',
+    'Example: Exploring the Ruy Lopez',
+    'Our Ambition: One of the Most Useful Free Opening Tools',
+    'The Next Move Is Yours'
+  ]);
+
+  const prose = [
+    ...article.introduction,
+    ...article.body.flatMap(section => [...section.paragraphs, ...(section.orderedList || [])]),
+    article.ctaText
+  ].join(' ');
+  const words = prose.match(/\b[\w’'-]+\b/g) || [];
+  assert.ok(words.length >= 1100 && words.length <= 1500, `draft length is ${words.length} words`);
+  for (const route of ['/opening-database', '/eco', '/analyze', '/opening-trainer', '/blog/what-is-a-polyglot-opening-book']) {
+    assert.ok(prose.includes(`](${route})`), `draft is missing internal link to ${route}`);
+  }
+  assert.match(prose, /Fast evaluates up to 10 candidate moves, while Pro covers up to 20/);
+  assert.match(prose, /continues until you press Stop, change the position, or safely end the session/);
+  assert.match(prose, /ambition is for CAISSA Opening Explorer to grow into one of the five most useful free opening tools/);
+  assert.match(prose, /not a current ranking or an award we claim to hold/);
+  assert.match(prose, /not a claimed one-click transfer/);
+  assert.doesNotMatch(prose, /CAISSA (?:is|ranks as) (?:one of )?the (?:top|best) five/i);
+
+  assert.ok(fs.existsSync(path.join(root, `blog/${slug}/index.html`)), 'published article route missing');
+  assert.ok(sitemap.includes(`${production}/blog/${slug}`), 'published article missing from sitemap');
+  assert.ok(read('blog/index.html').includes(`/blog/${slug}`), 'published article missing from public blog index');
+
+  const image = await sharp(path.join(root, article.featuredImage)).metadata();
+  assert.equal(image.format, 'webp');
+  assert.equal(image.width, 1440);
+  assert.equal(image.height, 960);
+});
+
 test('published article pages carry complete visible and structured metadata', () => {
   const seenTitles = new Set();
   const seenDescriptions = new Set();
@@ -235,7 +287,7 @@ test('Yahoo Chess article remains uniquely indexed and linked after newer public
 
   const index = load(read('blog/index.html'));
   assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
-  assert.equal(index('.blog-card-featured a').attr('href'), '/blog/caissa-scanner-image-to-chess-analysis');
+  assert.equal(index('.blog-card-featured a').attr('href'), '/blog/caissa-opening-explorer-free-chess-analysis');
   assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 1);
   assert.equal(index('a[href="/blog/what-is-a-polyglot-opening-book"]').length, 1);
   assert.equal(index('a[href="/blog/who-is-caissa-goddess-of-chess"]').length, 1);

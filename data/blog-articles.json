@@ -3,13 +3,127 @@
   "publisher": "CAISSA Chess Editorial",
   "articles": [
     {
+      "slug": "caissa-opening-explorer-free-chess-analysis",
+      "title": "CAISSA Opening Explorer: Powerful Chess Opening Analysis Without the Complexity",
+      "seoTitle": "Free Chess Opening Explorer with Stockfish | CAISSA",
+      "description": "Explore real-game opening statistics, compare moves with Stockfish 19 Lite, and study complete ideas in CAISSA's free four-tab workspace.",
+      "excerpt": "CAISSA Opening Explorer combines real-game evidence, optional Stockfish evaluations, relevant games, and move review in one approachable workspace.",
+      "category": "CAISSA Tools",
+      "tags": [
+        "CAISSA Opening Explorer",
+        "Chess Opening Database",
+        "Stockfish 19",
+        "Chess Opening Statistics",
+        "Free Chess Analysis"
+      ],
+      "author": "CAISSA Chess Editorial",
+      "publishedDate": "2026-11-07",
+      "modifiedDate": "2026-11-07",
+      "featuredImage": "/assets/blog/caissa-opening-explorer-v23-ruy-lopez.webp",
+      "featuredImageAlt": "CAISSA Opening Explorer showing the C60 Ruy Lopez position, Popularity and Engine controls, and color-coded game statistics",
+      "featuredImageWidth": 1440,
+      "featuredImageHeight": 960,
+      "introduction": [
+        "A familiar opening suddenly takes an unexpected turn. What should come next? A database can show what people have tried, while an engine can estimate what the position allows. The difficulty is seeing the right information together without turning study into a tour of menus and settings.",
+        "[CAISSA Opening Explorer](/opening-database) is designed around that moment. Its four-tab workspace brings real-game opening evidence, optional Stockfish 19 Lite evaluations, relevant games, and move-by-move review beside the board. The goal is powerful chess analysis without the complexity: enough depth to investigate an opening seriously, with a path that still feels natural when you simply want to understand your next move."
+      ],
+      "body": [
+        {
+          "heading": "Why CAISSA Redesigned Opening Explorer",
+          "subheading": "Keep the position, evidence, and next question in one place",
+          "paragraphs": [
+            "Opening study can become fragmented. One screen gives popular moves, another an engine line, and a third the games that explain why a choice matters. Every transition adds friction. CAISSA's redesign reduces visual clutter, keeps a large board as the permanent anchor, and organizes one contextual workspace into Explorer, Analysis, Games, and Moves.",
+            "Those four tabs have distinct jobs. Explorer compares candidate moves. Analysis follows the engine continuously. Games looks for examples associated with the indexed move order. Moves preserves the notation and review path. You can move between them without treating each view as a separate product, and identify the opening through its [ECO classification](/eco) as the position develops."
+          ]
+        },
+        {
+          "heading": "Explorer: Compare Opening Moves Intelligently",
+          "paragraphs": [
+            "The Explorer tab begins with database evidence. Popularity mode, the default, orders moves by the number of recorded games so the most frequently played choices appear first. Each row can show the move, its game count, and a W/D/L bar for White wins, draws, and Black wins in green, gray, and red, with readable numerical percentages. These are genuine descriptive statistics, not predictions that your next game will produce the same result.",
+            "When you want a different question answered, select Engine. CAISSA then ranks completed Stockfish evaluations with the best move for the side to move first: higher White-perspective scores when White moves, lower White-perspective scores when Black moves. Mate scores and mate distance are handled separately from ordinary pawn-based evaluations. Moves still waiting for analysis remain visibly unevaluated, so an incomplete ranking is never presented as complete evidence."
+          ]
+        },
+        {
+          "heading": "Stockfish 19 Lite: Powerful Analysis Within Reach",
+          "paragraphs": [
+            "CAISSA uses a verified Stockfish 19 Lite WebAssembly (WASM) integration. The Evaluate moves checkbox controls whether candidate scores are calculated; the Popularity and Engine selector controls how rows are ordered. That distinction matters. You can show engine scores while keeping database popularity order, or switch to Engine when evaluation should determine the ranking. Selecting Engine starts quick evaluation when needed, and turning evaluation off returns the list to Popularity with a clear status change.",
+            "Quick candidate coverage has two practical modes. Fast evaluates up to 10 candidate moves, while Pro covers up to 20; these are coverage limits, not paid plans and not promises about a fixed search horizon. Results arrive progressively, and the list updates only from completed work for the current position. CAISSA does not invent missing numbers, reuse stale scores after the board changes, or create extra engine workers merely to make sorting appear faster."
+          ]
+        },
+        {
+          "heading": "Real-Game Statistics Versus Machine Evaluation",
+          "paragraphs": [
+            "Database frequency and engine evaluation answer different questions. Frequency tells you what has been played in the collected games and how often. W/D/L summarizes the recorded outcomes. An engine score estimates the position under calculated play and is displayed from White's perspective, even when Black is choosing a move. None of these measures alone explains whether a line suits your style, memory, time control, or likely opponents.",
+            "Using the signals together is more revealing. A popular move with a stable evaluation may point to established theory. A less common move that the engine likes may deserve investigation, but its small sample can make the game percentages noisy. A high historical score can reflect player strength or selection effects rather than objective superiority. Explorer keeps the evidence adjacent so you can compare it instead of collapsing it into one misleading verdict."
+          ]
+        },
+        {
+          "heading": "Analysis, Games, and Moves: Follow the Ideas",
+          "paragraphs": [
+            "The Analysis tab is for sustained calculation. Start Stockfish 19 Lite and it continues until you press Stop, change the position, or safely end the session. Evaluation, best move, principal variation, depth, and speed keep updating, and the status remains Running or Infinite rather than becoming Idle at an arbitrary depth. You can also continue in the main [CAISSA Analyzer](/analyze).",
+            "Games and Moves provide human context. Games searches available metadata associated with the indexed move order; transpositions are not guaranteed to retrieve every game, and full review is available only when an authorized PGN exists. Moves preserves the notation and lets you revisit the current line without mixing its state with a selected game. If you prefer repetition after exploration, the [Opening Trainer](/opening-trainer) is a companion for practicing lines, not a claimed one-click transfer from this workspace."
+          ]
+        },
+        {
+          "heading": "Why Simplicity Deserves a Place Beside Sophistication",
+          "paragraphs": [
+            "Established chess services show how many forms an opening tool can take. Chess.com's Game Explorer connects positions with master and member-game exploration. Lichess integrates an open-source explorer into its analysis ecosystem and publishes database resources. ChessBase offers reference workflows, professional databases, theory updates, repertoire tools, and connected engines. Each serves players with its own priorities.",
+            "CAISSA is not trying to erase those differences or claim that one compact screen replaces every specialist workflow. Its contribution is a focused free path from a position to understandable evidence: a board, an opening identity, database statistics, optional engine ranking, relevant games, and notation review. Advanced concepts remain present, but they are introduced where they answer a visible question rather than presented as prerequisites.",
+            "That approach also separates live calculation from prepared opening knowledge. A [Polyglot opening book](/blog/what-is-a-polyglot-opening-book) stores precomputed move choices for compatible software, while Explorer queries game evidence and can request current engine evaluations for the position in front of you. Both can support preparation, but they solve different parts of the learning process."
+          ]
+        },
+        {
+          "heading": "Example: Exploring the Ruy Lopez",
+          "paragraphs": [
+            "Begin from the initial position and play 1.e4 e5 2.Nf3 Nc6 3.Bb5. CAISSA identifies the position in the C60 Ruy Lopez family and presents Black's recorded replies. In Popularity mode, you can see which responses appear most often and compare their game totals and W/D/L distributions without pretending that historical percentages are a personal recommendation.",
+            "Turn on Evaluate moves if you want Stockfish scores beside that evidence while preserving popularity order. Then choose Engine to ask which completed evaluation is best for Black, with lower White-perspective scores ranked first. Open Analysis to examine a promising continuation continuously, visit Games for available examples, and use Moves to step through the line. The same position remains the thread connecting every question."
+          ],
+          "orderedList": [
+            "Open [CAISSA Opening Explorer](/opening-database) and play 1.e4 e5 2.Nf3 Nc6 3.Bb5.",
+            "Compare Black's replies in Popularity order using the game totals and W/D/L bars.",
+            "Enable Evaluate moves to add completed Stockfish scores without changing the sort mode.",
+            "Choose Engine to rank evaluated replies for Black, then follow an idea in Analysis.",
+            "Check examples in Games and return to Moves to review the notation."
+          ]
+        },
+        {
+          "heading": "Our Ambition: One of the Most Useful Free Opening Tools",
+          "paragraphs": [
+            "Our ambition is for CAISSA Opening Explorer to grow into one of the five most useful free opening tools on the web. That is a direction for the work, not a current ranking or an award we claim to hold. Reaching it requires more than adding controls: it means protecting accurate statistics, honest evaluation states, responsive analysis, keyboard access, mobile usability, and the quiet board behavior players already trust.",
+            "The V2.3 release is a meaningful step because it makes the central choice explicit. Popularity answers what players have done; Engine answers what completed Stockfish analysis currently prefers for the side to move. Keeping those modes separate makes the interface easier to understand and makes every row more accountable to its source."
+          ]
+        },
+        {
+          "heading": "The Next Move Is Yours",
+          "paragraphs": [
+            "An opening explorer should help you form better questions, not merely produce longer lists. Start with the move that interests you, compare its history with the alternatives, and use the engine only when calculation adds something useful. Follow a game when statistics need a story, or remain in Analysis when a concrete variation deserves attention.",
+            "No account upgrade or invented certainty is required to begin. Bring a familiar line, a position from your last game, or an opening you have always avoided. The board will keep the context while each tab adds a different kind of evidence. Your next useful discovery may be one move away."
+          ]
+        }
+      ],
+      "relatedArticleSlugs": [
+        "what-is-a-polyglot-opening-book"
+      ],
+      "relatedCaissaRoute": "/opening-database",
+      "ctaHeading": "Explore Your Next Chess Opening — Free",
+      "ctaText": "Open CAISSA Opening Explorer to compare real-game statistics, request Stockfish 19 Lite evaluations, and follow the ideas behind each move.",
+      "ctaLabel": "Open the Opening Explorer",
+      "status": "published"
+    },
+    {
       "slug": "caissa-scanner-image-to-chess-analysis",
       "title": "CAISSA Scanner: Convert a Chess Image into a Position for Analysis",
       "seoTitle": "Scan a Chessboard Image for Analysis | CAISSA Scanner",
       "description": "Use CAISSA Scanner to recognize a chess position from a clear image, correct the board, choose the side to move, and analyze it with Stockfish.",
       "excerpt": "Take a photo or choose a compatible chessboard image, review the recognized position, correct it when needed, and continue with Stockfish analysis.",
       "category": "CAISSA Tools",
-      "tags": ["CAISSA Scanner", "Chessboard Scanner", "Chess Position Recognition", "Stockfish Analysis", "Chess Tools"],
+      "tags": [
+        "CAISSA Scanner",
+        "Chessboard Scanner",
+        "Chess Position Recognition",
+        "Stockfish Analysis",
+        "Chess Tools"
+      ],
       "author": "CAISSA Chess Editorial",
       "publishedDate": "2026-10-28",
       "modifiedDate": "2026-10-28",
@@ -66,7 +180,9 @@
           ]
         }
       ],
-      "relatedArticleSlugs": ["what-is-a-polyglot-opening-book"],
+      "relatedArticleSlugs": [
+        "what-is-a-polyglot-opening-book"
+      ],
       "relatedCaissaRoute": "/scanner",
       "ctaHeading": "Turn an Image into a Position",
       "ctaText": "Open the public beta, review the recognized board, and explore the confirmed position with Stockfish 18.",
@@ -80,7 +196,13 @@
       "description": "Preview CAISSA Chess Online, the native playing room for finding casual games, challenging players, and helping a new chess community take shape.",
       "excerpt": "CAISSA Online brings the board, game search, direct challenges, and community lobby together in one native playing room, with more still to come.",
       "category": "CAISSA News",
-      "tags": ["CAISSA Online", "Play Chess Online", "Online Chess Community", "Casual Chess", "Chess Lobby"],
+      "tags": [
+        "CAISSA Online",
+        "Play Chess Online",
+        "Online Chess Community",
+        "Casual Chess",
+        "Chess Lobby"
+      ],
       "author": "CAISSA Chess Editorial",
       "publishedDate": "2026-10-28",
       "modifiedDate": "2026-10-28",
@@ -137,7 +259,9 @@
           ]
         }
       ],
-      "relatedArticleSlugs": ["yahoo-chess-spirit-caissa-classic"],
+      "relatedArticleSlugs": [
+        "yahoo-chess-spirit-caissa-classic"
+      ],
       "relatedCaissaRoute": "/online",
       "ctaHeading": "Visit the CAISSA Online Playing Room",
       "ctaText": "Sign in, choose a time control, and look for a casual game or a direct challenge in the community lobby.",
@@ -151,7 +275,15 @@
       "description": "Remember Yahoo Chess rooms and see how independent CAISSA Classic brings social lobbies, visible tables and a retro chess atmosphere to today's players.",
       "excerpt": "Many players remember Yahoo Chess as a place of rooms, tables and familiar names. Explore the independent tribute behind CAISSA Classic.",
       "category": "Online Chess History",
-      "tags": ["Yahoo Chess", "CAISSA Classic", "Online Chess", "Chess Rooms", "Chess Community", "Retro Chess", "Internet History"],
+      "tags": [
+        "Yahoo Chess",
+        "CAISSA Classic",
+        "Online Chess",
+        "Chess Rooms",
+        "Chess Community",
+        "Retro Chess",
+        "Internet History"
+      ],
       "author": "CAISSA Chess Editorial",
       "publishedDate": "2026-07-24",
       "modifiedDate": "2026-07-24",
@@ -261,7 +393,9 @@
           ]
         }
       ],
-      "relatedArticleSlugs": ["who-is-caissa-goddess-of-chess"],
+      "relatedArticleSlugs": [
+        "who-is-caissa-goddess-of-chess"
+      ],
       "relatedCaissaRoute": "/yahoo-classic",
       "ctaHeading": "Enter CAISSA Classic",
       "ctaText": "CAISSA Chess is an independent project and is not affiliated with or endorsed by Yahoo. Explore the released room-based chess experience.",
@@ -275,7 +409,14 @@
       "description": "Learn how Polyglot BIN opening books store positions, moves and weights, how compatible chess engines use them, and how to create one from PGN files.",
       "excerpt": "Learn what a Polyglot opening book stores, how compatible chess software chooses book moves, and how PGN games can become a practical BIN book.",
       "category": "Chess Engines",
-      "tags": ["Polyglot", "Opening Books", "Chess Engines", "PGN", "BIN Files", "Engine Chess"],
+      "tags": [
+        "Polyglot",
+        "Opening Books",
+        "Chess Engines",
+        "PGN",
+        "BIN Files",
+        "Engine Chess"
+      ],
       "author": "CAISSA Chess Editorial",
       "publishedDate": "2026-07-23",
       "modifiedDate": "2026-07-23",
@@ -388,7 +529,9 @@
           ]
         }
       ],
-      "relatedArticleSlugs": ["who-is-caissa-goddess-of-chess"],
+      "relatedArticleSlugs": [
+        "who-is-caissa-goddess-of-chess"
+      ],
       "relatedCaissaRoute": "/tools/polyglot",
       "ctaHeading": "Create a Polyglot Opening Book with CAISSA",
       "ctaText": "Turn a reviewed PGN into a BIN book, then test it with a compatible chess engine or interface.",
@@ -402,7 +545,13 @@
       "description": "Discover the literary origin of Caissa, the symbolic goddess and muse of chess, and learn why her name still resonates throughout modern chess culture.",
       "excerpt": "Chess has no ancient goddess, yet Caissa has inspired players and writers for centuries. Discover how a literary figure became the enduring muse of the game.",
       "category": "Chess History",
-      "tags": ["Caissa", "Chess History", "Chess Culture", "William Jones", "Goddess of Chess"],
+      "tags": [
+        "Caissa",
+        "Chess History",
+        "Chess Culture",
+        "William Jones",
+        "Goddess of Chess"
+      ],
       "author": "CAISSA Chess Editorial",
       "publishedDate": "2026-07-23",
       "modifiedDate": "2026-07-23",
