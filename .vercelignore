@@ -22,7 +22,7 @@
 !api/lichess/
 !api/mentor/
 !api/mentor/result/
-!api/mentor/result/[operationId]/
+!api/mentor/result/\[operationId\]/
 !api/opening-trainer/
 !api/pgn/
 !api/play/
@@ -412,15 +412,15 @@
 !api/insights/datasets.js
 !api/insights/engine-check.js
 !api/insights/reports.js
-!api/insights/reports/[id].js
+!api/insights/reports/\[id\].js
 !api/insights/status.js
 !api/library/delete.js
 !api/library/pull.js
 !api/library/push.js
 !api/lichess/games.js
 !api/mentor/chat.js
-!api/mentor/result/[operationId].js
-!api/mentor/result/[operationId]/confirm.js
+!api/mentor/result/\[operationId\].js
+!api/mentor/result/\[operationId\]/confirm.js
 !api/online.js
 !api/opening-trainer/repertoires.js
 !api/pgn/entitlements.js

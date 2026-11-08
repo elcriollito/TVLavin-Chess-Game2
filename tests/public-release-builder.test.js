@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
 import {
   CHESS_TV_CONTRACTS,
   DEFAULT_OUTPUT,
   auditChessTVContracts,
   auditPublicFiles,
   buildPublicRelease,
+  escapeVercelIgnorePath,
   isUnapprovedPublicBinaryPath,
   isProtectedPublicPath,
   loadPublicArtifactManifest,
@@ -95,6 +97,75 @@ test('the exact public manifest also generates the Vercel upload allowlist', () 
   const manifest = loadPublicArtifactManifest();
   assert.equal(readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8'), renderVercelIgnore(manifest));
   assert.deepEqual(manifest.files.map(item => item.path), [...manifest.files.map(item => item.path)].sort());
+});
+
+test('every manifest path is included under Git-compatible Vercel ignore semantics', () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-vercelignore-manifest-'));
+  try {
+    const initialized = spawnSync('git', ['init', '--quiet'], { cwd: temporaryRoot, encoding: 'utf8' });
+    assert.equal(initialized.status, 0, initialized.stderr);
+    const manifest = loadPublicArtifactManifest();
+    writeFileSync(join(temporaryRoot, '.gitignore'), renderVercelIgnore(manifest));
+    const checked = spawnSync(
+      'git',
+      ['check-ignore', '--no-index', '--stdin'],
+      {
+        cwd: temporaryRoot,
+        encoding: 'utf8',
+        input: `${manifest.files.map(item => item.path).join('\n')}\n`
+      }
+    );
+    assert.equal(checked.stdout, '', `manifest paths remained ignored:\n${checked.stdout}`);
+    assert.equal(checked.status, 1, checked.stderr);
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test('Vercel allowlist escapes literal path metacharacters', () => {
+  assert.equal(
+    escapeVercelIgnorePath('api/[id]/literal*question?.js'),
+    'api/\\[id\\]/literal\\*question\\?.js'
+  );
+  assert.equal(escapeVercelIgnorePath('public/!important #1.txt'), 'public/\\!important\\ \\#1.txt');
+});
+
+test('Vercel allowlist includes literal dynamic routes and excludes colliding siblings', () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-vercelignore-'));
+  const approved = [
+    'api/insights/reports/[id].js',
+    'api/mentor/result/[operationId].js',
+    'api/mentor/result/[operationId]/confirm.js'
+  ];
+  const colliding = [
+    'api/insights/reports/i.js',
+    'api/insights/reports/d.js',
+    'api/mentor/result/o.js',
+    'api/mentor/result/o/confirm.js'
+  ];
+  try {
+    const initialized = spawnSync('git', ['init', '--quiet'], { cwd: temporaryRoot, encoding: 'utf8' });
+    assert.equal(initialized.status, 0, initialized.stderr);
+    const manifest = {
+      schemaVersion: 1,
+      files: approved.map(path => ({ path, sha256: '0'.repeat(64) }))
+    };
+    writeFileSync(join(temporaryRoot, '.gitignore'), renderVercelIgnore(manifest));
+    for (const path of [...approved, ...colliding]) {
+      const absolutePath = join(temporaryRoot, path);
+      mkdirSync(dirname(absolutePath), { recursive: true });
+      writeFileSync(absolutePath, path);
+    }
+    const isIgnored = path => spawnSync(
+      'git',
+      ['check-ignore', '--no-index', '--quiet', '--', path],
+      { cwd: temporaryRoot, encoding: 'utf8' }
+    ).status === 0;
+    for (const path of approved) assert.equal(isIgnored(path), false, `${path} was not allowed`);
+    for (const path of colliding) assert.equal(isIgnored(path), true, `${path} was over-allowed`);
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test('public release audit enforces all permanent Chess TV contracts', () => {

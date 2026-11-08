@@ -227,6 +227,11 @@ export function loadPublicArtifactManifest({ cwd = repositoryRoot } = {}) {
   return manifest;
 }
 
+export function escapeVercelIgnorePath(path) {
+  const metacharacters = new Set(['\\', '*', '?', '[', ']', '!', '#', ' ']);
+  return [...path].map(character => metacharacters.has(character) ? `\\${character}` : character).join('');
+}
+
 export function renderVercelIgnore(manifest) {
   const entries = normalizePublicManifest(manifest);
   const directories = new Set();
@@ -240,8 +245,8 @@ export function renderVercelIgnore(manifest) {
     '# Generated from PUBLIC_RELEASE_ARTIFACT_MANIFEST.json. Do not edit by hand.',
     '# The positive allowlist keeps unreviewed tracked files out of Vercel uploads.',
     '*',
-    ...[...directories].sort().map(path => `!${path}/`),
-    ...[...entries.keys()].sort().map(path => `!${path}`),
+    ...[...directories].sort().map(path => `!${escapeVercelIgnorePath(path)}/`),
+    ...[...entries.keys()].sort().map(path => `!${escapeVercelIgnorePath(path)}`),
     ''
   ].join('\n');
 }

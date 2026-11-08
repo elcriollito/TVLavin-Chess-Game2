@@ -213,7 +213,8 @@ test('Capablanca public collection has exact release metadata and is honestly cl
 
 test('non-public Fischer asset and local-only endpoint are absent from production surfaces', () => {
   assert.equal(fs.existsSync(new URL('../public/data/pgn/world-championships/fischer-spassky-1972.pgn', import.meta.url)), false);
-  assert.match(read('.vercelignore'), /^internal-assets\/\*\*$/m);
+  const publicPaths = JSON.parse(read('PUBLIC_RELEASE_ARTIFACT_MANIFEST.json')).files.map(item => item.path);
+  assert.equal(publicPaths.some(path => path.startsWith('internal-assets/')), false);
   assert.doesNotMatch(read('vercel.json'), /fischer-spassky-1972/);
   const server = read('server.js');
   assert.doesNotMatch(server, /__caissa_internal_qa|INTERNAL_QA_PGN_ASSETS|fischer-spassky-1972/);
