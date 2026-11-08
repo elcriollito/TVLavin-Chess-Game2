@@ -2100,7 +2100,7 @@
     },
     {
       "path": "js/caissa-i18n.js",
-      "sha256": "413fbc2f12e357a2f186df6f4a4857fb7d9cf7e2c870e92050b61291ffcd6b2e"
+      "sha256": "a88c7ed132de0aa211d4e11f4a34129adb9c53d4987ab3e3dc86929672e77bda"
     },
     {
       "path": "js/caissa-logger.js",
@@ -2895,8 +2895,12 @@
       "sha256": "eed12cc211e55b7e3610f17bc25ec242c3622d4e680cb873293249b0e8d5bc63"
     },
     {
+      "path": "js/opening-database-i18n.js",
+      "sha256": "c327acfafafe84096c2813b9ce7a19c4ab83d6c5233dedf8026d70a861999bda"
+    },
+    {
       "path": "js/opening-database.js",
-      "sha256": "97e5e4a1433c4016ef5a3907cf0dbcc0bae368bf4c2cbdd5520871c87f66382f"
+      "sha256": "cd9eeb8218de5725963794f61d351ceada8b93b668e4d0dc25c800ed8bc43316"
     },
     {
       "path": "js/opening-db-service.js",
@@ -4096,7 +4100,7 @@
     },
     {
       "path": "opening-database.html",
-      "sha256": "b8ca68e07f6bd012b2aa8dcb567849f3c592460fa560266d7c26a90bd6a73084"
+      "sha256": "2fcb83847f23c1ae6164d298e569c3b1dae2fd8576434ffa5796702de4f06b77"
     },
     {
       "path": "opening-trainer.html",

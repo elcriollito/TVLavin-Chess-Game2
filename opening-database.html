@@ -58,188 +58,188 @@
       <section class="openingdb-page" aria-labelledby="openingdbPageTitle">
         <header class="openingdb-page-intro">
           <div>
-            <p class="openingdb-eyebrow">Study • Compare • Understand</p>
-            <h1 id="openingdbPageTitle">Opening Explorer</h1>
+            <p class="openingdb-eyebrow" data-caissa-i18n="openingdb.eyebrow">Study • Compare • Understand</p>
+            <h1 id="openingdbPageTitle" data-caissa-i18n="openingdb.title">Opening Explorer</h1>
           </div>
-          <p class="openingdb-intro-copy">Play a line on the board to compare real-game continuations, identify its ECO family, and examine the position with Stockfish.</p>
+          <p class="openingdb-intro-copy" data-caissa-i18n="openingdb.intro">Play a line on the board to compare real-game continuations, identify its ECO family, and examine the position with Stockfish.</p>
         </header>
 
         <div class="openingdb-product-grid">
-          <section class="openingdb-board-column" aria-label="Opening board">
+          <section class="openingdb-board-column" aria-label="Opening board" data-caissa-i18n-aria-label="openingdb.aria.boardSection">
             <div class="openingdb-board-shell">
-              <div id="openingDbBoard" class="openingdb-board" role="group" aria-label="Opening database board"></div>
+              <div id="openingDbBoard" class="openingdb-board" role="group" aria-label="Opening database board" data-caissa-i18n-aria-label="openingdb.aria.board"></div>
             </div>
             <div class="openingdb-board-context" aria-live="polite">
-              <span id="odbTurnPly">White to move • Start position</span>
-              <span id="odbDatasetFreshness">Loading opening data…</span>
+              <span id="odbTurnPly" data-caissa-i18n="openingdb.board.turnStart">White to move • Start position</span>
+              <span id="odbDatasetFreshness" data-caissa-i18n="openingdb.dataset.loading">Loading opening data…</span>
             </div>
           </section>
 
-          <section class="openingdb-workspace" aria-label="Opening explorer workspace">
+          <section class="openingdb-workspace" aria-label="Opening explorer workspace" data-caissa-i18n-aria-label="openingdb.aria.workspace">
             <header class="openingdb-workspace-head">
               <div class="openingdb-opening-context">
                 <div class="openingdb-opening-heading">
-                  <a id="odbEcoLink" class="openingdb-eco-badge" href="/eco" aria-label="Browse ECO opening codes"><span id="odbEcoCode">ECO —</span></a>
+                  <a id="odbEcoLink" class="openingdb-eco-badge" href="/eco" aria-label="Browse ECO opening codes" data-caissa-i18n-aria-label="openingdb.aria.ecoBrowse"><span id="odbEcoCode">ECO —</span></a>
                   <div>
-                    <p class="openingdb-context-label">Current opening</p>
-                    <h2 id="odbOpeningLabel">Starting position</h2>
+                    <p class="openingdb-context-label" data-caissa-i18n="openingdb.currentOpening">Current opening</p>
+                    <h2 id="odbOpeningLabel" data-caissa-i18n="openingdb.startingPosition">Starting position</h2>
                   </div>
                 </div>
-                <p class="openingdb-current-line"><span>Line</span> <strong id="odbCurrentLine">Start position</strong></p>
+                <p class="openingdb-current-line"><span data-caissa-i18n="openingdb.line">Line</span> <strong id="odbCurrentLine" data-caissa-i18n="openingdb.startPosition">Start position</strong></p>
                 <div class="openingdb-status-line">
-                  <span id="odbLookupStatus" role="status" aria-live="polite">Loading position data…</span>
+                  <span id="odbLookupStatus" role="status" aria-live="polite" data-caissa-i18n="openingdb.dataset.loading">Loading opening data…</span>
                   <span id="odbMatchBadge" class="openingdb-match-badge" hidden>match: none</span>
                 </div>
               </div>
 
-              <div class="openingdb-tabs" role="tablist" aria-label="Opening workspace">
-                <button id="odbTabExplorer" class="openingdb-tab active" type="button" role="tab" aria-controls="odbExplorerPanel" aria-selected="true" tabindex="0"><i class="fas fa-compass" aria-hidden="true"></i><span>Explorer</span></button>
-                <button id="odbTabAnalysis" class="openingdb-tab" type="button" role="tab" aria-controls="odbAnalysisPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Analysis</span></button>
-                <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-controls="odbGamesPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chess-knight" aria-hidden="true"></i><span>Games</span></button>
-                <button id="odbTabMoves" class="openingdb-tab" type="button" role="tab" aria-controls="odbMovesPanel" aria-selected="false" tabindex="-1"><i class="fas fa-list-ol" aria-hidden="true"></i><span>Moves</span></button>
+              <div class="openingdb-tabs" role="tablist" aria-label="Opening workspace" data-caissa-i18n-aria-label="openingdb.aria.workspaceTabs">
+                <button id="odbTabExplorer" class="openingdb-tab active" type="button" role="tab" aria-controls="odbExplorerPanel" aria-selected="true" tabindex="0"><i class="fas fa-compass" aria-hidden="true"></i><span data-caissa-i18n="openingdb.tabs.explorer">Explorer</span></button>
+                <button id="odbTabAnalysis" class="openingdb-tab" type="button" role="tab" aria-controls="odbAnalysisPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chart-line" aria-hidden="true"></i><span data-caissa-i18n="openingdb.tabs.analysis">Analysis</span></button>
+                <button id="odbTabGames" class="openingdb-tab" type="button" role="tab" aria-controls="odbGamesPanel" aria-selected="false" tabindex="-1"><i class="fas fa-chess-knight" aria-hidden="true"></i><span data-caissa-i18n="openingdb.tabs.games">Games</span></button>
+                <button id="odbTabMoves" class="openingdb-tab" type="button" role="tab" aria-controls="odbMovesPanel" aria-selected="false" tabindex="-1"><i class="fas fa-list-ol" aria-hidden="true"></i><span data-caissa-i18n="openingdb.tabs.moves">Moves</span></button>
               </div>
             </header>
 
             <div class="openingdb-workspace-body">
               <section id="odbAnalysisPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabAnalysis" hidden>
                 <div class="openingdb-panel-heading">
-                  <div><p class="openingdb-panel-kicker">Stockfish</p><h3>Position analysis</h3></div>
-                  <span id="odbEngineStatusValue" class="openingdb-engine-state" role="status" aria-live="polite">Idle</span>
+                  <div><p class="openingdb-panel-kicker" data-caissa-i18n="openingdb.analysis.kicker">Stockfish</p><h3 data-caissa-i18n="openingdb.analysis.title">Position analysis</h3></div>
+                  <span id="odbEngineStatusValue" class="openingdb-engine-state" role="status" aria-live="polite" data-caissa-i18n="openingdb.engine.status.idle">Idle</span>
                 </div>
-                <div class="engine-analysis-zone" aria-label="Engine analysis controls">
+                <div class="engine-analysis-zone" aria-label="Engine analysis controls" data-caissa-i18n-aria-label="openingdb.aria.engineControls">
                   <div class="engine-analysis-actions engine-analysis-actions-primary">
-                    <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button"><i class="fas fa-play" aria-hidden="true"></i> Start analysis</button>
-                    <button id="odbStopEngineBtn" class="btn btn-secondary openingdb-engine-stop" type="button" disabled><i class="fas fa-stop" aria-hidden="true"></i> Stop</button>
+                    <button id="odbStartEngineBtn" class="btn btn-primary openingdb-engine-cta" type="button"><i class="fas fa-play" aria-hidden="true"></i> <span data-caissa-i18n="openingdb.analysis.start">Start analysis</span></button>
+                    <button id="odbStopEngineBtn" class="btn btn-secondary openingdb-engine-stop" type="button" disabled><i class="fas fa-stop" aria-hidden="true"></i> <span data-caissa-i18n="openingdb.analysis.stop">Stop</span></button>
                   </div>
                   <div class="engine-analysis-readout">
-                    <div class="engine-readout-identity"><span>Engine</span><strong id="odbEngineIdentityValue">Stockfish 19 Lite</strong></div>
-                    <div class="engine-readout-primary"><span>Evaluation</span><strong id="odbEngineEvalValue">—</strong></div>
-                    <div><span>Best move</span><strong id="odbEngineBestMoveValue">—</strong></div>
-                    <div><span>Depth</span><strong id="odbEngineDepthValue">—</strong></div>
-                    <div><span>Speed</span><strong id="odbEngineNpsValue">—</strong></div>
-                    <div class="engine-readout-nodes"><span>Nodes</span><strong id="odbEngineNodesValue">—</strong></div>
+                    <div class="engine-readout-identity"><span data-caissa-i18n="openingdb.analysis.engine">Engine</span><strong id="odbEngineIdentityValue">Stockfish 19 Lite</strong></div>
+                    <div class="engine-readout-primary"><span data-caissa-i18n="openingdb.analysis.evaluation">Evaluation</span><strong id="odbEngineEvalValue">—</strong></div>
+                    <div><span data-caissa-i18n="openingdb.analysis.bestMove">Best move</span><strong id="odbEngineBestMoveValue">—</strong></div>
+                    <div><span data-caissa-i18n="openingdb.analysis.depth">Depth</span><strong id="odbEngineDepthValue">—</strong></div>
+                    <div><span data-caissa-i18n="openingdb.analysis.speed">Speed</span><strong id="odbEngineNpsValue">—</strong></div>
+                    <div class="engine-readout-nodes"><span data-caissa-i18n="openingdb.analysis.nodes">Nodes</span><strong id="odbEngineNodesValue">—</strong></div>
                   </div>
                   <div class="engine-pv-card">
-                    <div class="engine-pv-heading"><span>Principal variation</span><strong id="odbEnginePvValue">—</strong></div>
-                    <div id="odbEnginePvLines" class="engine-pv-lines"><div class="engine-pv-line">Waiting for analysis.</div></div>
+                    <div class="engine-pv-heading"><span data-caissa-i18n="openingdb.analysis.pv">Principal variation</span><strong id="odbEnginePvValue">—</strong></div>
+                    <div id="odbEnginePvLines" class="engine-pv-lines"><div class="engine-pv-line" data-caissa-i18n="openingdb.analysis.waiting">Waiting for analysis.</div></div>
                   </div>
                   <details class="openingdb-disclosure">
-                    <summary>Analysis settings</summary>
+                    <summary data-caissa-i18n="openingdb.analysis.settings">Analysis settings</summary>
                     <div class="engine-analysis-controls">
-                      <label>Depth<select id="odbEngineDepth"><option value="10">10</option><option value="14">14</option><option value="18" selected>18</option><option value="22">22</option></select></label>
-                      <label>MultiPV<select id="odbEngineMultiPV"><option value="1" selected>1</option><option value="3">3</option></select></label>
+                      <label><span data-caissa-i18n="openingdb.analysis.depth">Depth</span><select id="odbEngineDepth"><option value="10">10</option><option value="14">14</option><option value="18" selected>18</option><option value="22">22</option></select></label>
+                      <label><span data-caissa-i18n="openingdb.analysis.multiPv">MultiPV</span><select id="odbEngineMultiPV"><option value="1" selected>1</option><option value="3">3</option></select></label>
                     </div>
                     <div class="engine-analysis-actions">
-                      <button id="odbEngineCopyPvBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy PV</button>
-                      <button id="odbEngineCopyFenBtn" class="btn btn-secondary openingdb-engine-share" type="button">Copy FEN</button>
+                      <button id="odbEngineCopyPvBtn" class="btn btn-secondary openingdb-engine-share" type="button" data-caissa-i18n="openingdb.analysis.copyPv">Copy PV</button>
+                      <button id="odbEngineCopyFenBtn" class="btn btn-secondary openingdb-engine-share" type="button" data-caissa-i18n="openingdb.analysis.copyFen">Copy FEN</button>
                       <span id="odbEngineCopyFeedback" class="engine-copy-feedback" aria-live="polite"></span>
                     </div>
                   </details>
                   <details id="odbEngineDiagnostics" class="openingdb-disclosure engine-analysis-debug" hidden>
-                    <summary>Developer diagnostics</summary>
-                    <div class="engine-analysis-debug-head"><span>Engine lifecycle</span><button id="odbEngineCopyDebugBtn" class="btn btn-secondary openingdb-engine-debug-copy" type="button">Copy diagnostics</button></div>
+                    <summary data-caissa-i18n="openingdb.analysis.devDiagnostics">Developer diagnostics</summary>
+                    <div class="engine-analysis-debug-head"><span data-caissa-i18n="openingdb.analysis.lifecycle">Engine lifecycle</span><button id="odbEngineCopyDebugBtn" class="btn btn-secondary openingdb-engine-debug-copy" type="button" data-caissa-i18n="openingdb.analysis.copyDiagnostics">Copy diagnostics</button></div>
                     <div class="engine-analysis-debug-grid">
-                      <div><span>Worker</span><strong id="odbEngineDebugWorkerUrl">—</strong></div>
-                      <div><span>Handshake</span><strong id="odbEngineDebugHandshake">—</strong></div>
-                      <div><span>Last info</span><strong id="odbEngineDebugLastInfoAt">—</strong></div>
-                      <div class="engine-debug-line"><span>Last line</span><strong id="odbEngineDebugLastLine">—</strong></div>
+                      <div><span data-caissa-i18n="openingdb.analysis.worker">Worker</span><strong id="odbEngineDebugWorkerUrl">—</strong></div>
+                      <div><span data-caissa-i18n="openingdb.analysis.handshake">Handshake</span><strong id="odbEngineDebugHandshake">—</strong></div>
+                      <div><span data-caissa-i18n="openingdb.analysis.lastInfo">Last info</span><strong id="odbEngineDebugLastInfoAt">—</strong></div>
+                      <div class="engine-debug-line"><span data-caissa-i18n="openingdb.analysis.lastLine">Last line</span><strong id="odbEngineDebugLastLine">—</strong></div>
                     </div>
                   </details>
                 </div>
               </section>
 
               <section id="odbGamesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabGames" aria-busy="false" hidden>
-                <div class="openingdb-panel-heading"><div><p class="openingdb-panel-kicker">Indexed master games</p><h3>Games from this line</h3></div></div>
+                <div class="openingdb-panel-heading"><div><p class="openingdb-panel-kicker" data-caissa-i18n="openingdb.games.kicker">Indexed master games</p><h3 data-caissa-i18n="openingdb.games.title">Games from this line</h3></div></div>
                 <p id="odbGamesScope" class="openingdb-scope-note">Results match the played move order for up to 10 plies. Transpositions reached through a different line are not included.</p>
-                <div class="openingdb-games-filters" aria-label="Game filters">
-                  <label>From year<input id="odbGamesYearMin" type="number" min="1000" max="3000" placeholder="1900"></label>
-                  <label>To year<input id="odbGamesYearMax" type="number" min="1000" max="3000" placeholder="2026"></label>
-                  <label>Minimum Elo<input id="odbGamesEloMin" type="number" min="0" max="3500" placeholder="2400"></label>
-                  <label>Result<select id="odbGamesResult"><option value="all">All results</option><option value="1-0">White wins</option><option value="1/2-1/2">Draw</option><option value="0-1">Black wins</option></select></label>
+                <div class="openingdb-games-filters" aria-label="Game filters" data-caissa-i18n-aria-label="openingdb.aria.gameFilters">
+                  <label><span data-caissa-i18n="openingdb.games.fromYear">From year</span><input id="odbGamesYearMin" type="number" min="1000" max="3000" placeholder="1900"></label>
+                  <label><span data-caissa-i18n="openingdb.games.toYear">To year</span><input id="odbGamesYearMax" type="number" min="1000" max="3000" placeholder="2026"></label>
+                  <label><span data-caissa-i18n="openingdb.games.minimumElo">Minimum Elo</span><input id="odbGamesEloMin" type="number" min="0" max="3500" placeholder="2400"></label>
+                  <label><span data-caissa-i18n="openingdb.games.result">Result</span><select id="odbGamesResult"><option value="all" data-caissa-i18n="openingdb.games.allResults">All results</option><option value="1-0" data-caissa-i18n="openingdb.games.whiteWins">White wins</option><option value="1/2-1/2" data-caissa-i18n="openingdb.games.draw">Draw</option><option value="0-1" data-caissa-i18n="openingdb.games.blackWins">Black wins</option></select></label>
                 </div>
-                <div class="openingdb-games-controls"><button id="odbSearchGamesBtn" class="btn btn-primary" type="button"><i class="fas fa-search" aria-hidden="true"></i> Search this line</button></div>
-                <div id="odbGamesStatus" class="openingdb-games-status" role="status" aria-live="polite" aria-atomic="true">Play at least one move to search.</div>
-                <div id="odbGamesSummary" class="openingdb-games-summary">Indexed: — • Returned: — • Displayed: —</div>
-                <div class="openingdb-games-wrap" role="region" aria-label="Matching games">
+                <div class="openingdb-games-controls"><button id="odbSearchGamesBtn" class="btn btn-primary" type="button"><i class="fas fa-search" aria-hidden="true"></i> <span data-caissa-i18n="openingdb.games.search">Search this line</span></button></div>
+                <div id="odbGamesStatus" class="openingdb-games-status" role="status" aria-live="polite" aria-atomic="true" data-caissa-i18n="openingdb.games.playToSearch">Play at least one move to search.</div>
+                <div id="odbGamesSummary" class="openingdb-games-summary" data-caissa-i18n="openingdb.games.summaryInitial">Indexed: — • Returned: — • Displayed: —</div>
+                <div class="openingdb-games-wrap" role="region" aria-label="Matching games" data-caissa-i18n-aria-label="openingdb.aria.matchingGames">
                   <table class="openingdb-games-table">
-                    <thead><tr><th>White</th><th>Black</th><th>Result</th><th>Event</th><th>Year</th><th>Elo</th><th>PGN</th></tr></thead>
-                    <tbody id="odbGamesBody"><tr><td colspan="7"><div class="openingdb-empty">Play a line, then search for matching indexed games.</div></td></tr></tbody>
+                    <thead><tr><th data-caissa-i18n="openingdb.games.white">White</th><th data-caissa-i18n="openingdb.games.black">Black</th><th data-caissa-i18n="openingdb.games.result">Result</th><th data-caissa-i18n="openingdb.games.event">Event</th><th data-caissa-i18n="openingdb.games.year">Year</th><th data-caissa-i18n="openingdb.games.elo">Elo</th><th data-caissa-i18n="openingdb.games.pgn">PGN</th></tr></thead>
+                    <tbody id="odbGamesBody"><tr><td colspan="7"><div class="openingdb-empty" data-caissa-i18n="openingdb.games.emptyInitial">Play a line, then search for matching indexed games.</div></td></tr></tbody>
                   </table>
                 </div>
                 <div id="odbGamesDownloads" class="openingdb-games-downloads" aria-live="polite"></div>
                 <details class="openingdb-disclosure openingdb-games-tools">
-                  <summary>Line search tools</summary>
-                  <div><button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button">Copy line key</button><button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button" hidden disabled>PGN export unavailable</button></div>
+                  <summary data-caissa-i18n="openingdb.games.tools">Line search tools</summary>
+                  <div><button id="odbCopyLineKeyBtn" class="btn btn-secondary" type="button" data-caissa-i18n="openingdb.games.copyLineKey">Copy line key</button><button id="odbDownloadGamesBtn" class="btn btn-secondary" type="button" hidden disabled data-caissa-i18n="openingdb.games.exportUnavailable">PGN export unavailable</button></div>
                 </details>
               </section>
 
               <section id="odbMovesPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabMoves" hidden>
                 <div class="openingdb-panel-heading openingdb-review-heading">
-                  <div><p class="openingdb-panel-kicker">Notation and review</p><h3 id="odbMovesTitle">Current explored line</h3></div>
-                  <button id="odbMovesReturnGamesBtn" class="btn btn-secondary" type="button" hidden>Return to Games</button>
+                  <div><p class="openingdb-panel-kicker" data-caissa-i18n="openingdb.moves.kicker">Notation and review</p><h3 id="odbMovesTitle" data-caissa-i18n="openingdb.moves.title">Current explored line</h3></div>
+                  <button id="odbMovesReturnGamesBtn" class="btn btn-secondary" type="button" hidden data-caissa-i18n="openingdb.moves.returnGames">Return to Games</button>
                 </div>
-                <p id="odbMovesStatus" class="openingdb-scope-note" role="status" aria-live="polite">Your explored line is ready to review.</p>
+                <p id="odbMovesStatus" class="openingdb-scope-note" role="status" aria-live="polite" data-caissa-i18n="openingdb.moves.ready">Your explored line is ready to review.</p>
                 <div id="odbMovesGameDetails" class="openingdb-review-details" hidden></div>
-                <div id="odbMovesNotation" class="openingdb-review-notation" role="list" aria-label="Move notation"></div>
-                <div class="openingdb-review-controls" aria-label="Move navigation">
-                  <button id="odbMovesFirstBtn" class="openingdb-review-nav" type="button" aria-label="First position"><i class="fas fa-backward-step" aria-hidden="true"></i></button>
-                  <button id="odbMovesPrevBtn" class="openingdb-review-nav" type="button" aria-label="Previous move"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
-                  <span id="odbMovesPlyLabel" class="openingdb-review-ply">Start position</span>
-                  <button id="odbMovesNextBtn" class="openingdb-review-nav" type="button" aria-label="Next move"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
-                  <button id="odbMovesLastBtn" class="openingdb-review-nav" type="button" aria-label="Last position"><i class="fas fa-forward-step" aria-hidden="true"></i></button>
+                <div id="odbMovesNotation" class="openingdb-review-notation" role="list" aria-label="Move notation" data-caissa-i18n-aria-label="openingdb.aria.moveNotation"></div>
+                <div class="openingdb-review-controls" aria-label="Move navigation" data-caissa-i18n-aria-label="openingdb.aria.moveNavigation">
+                  <button id="odbMovesFirstBtn" class="openingdb-review-nav" type="button" aria-label="First position" data-caissa-i18n-aria-label="openingdb.moves.first"><i class="fas fa-backward-step" aria-hidden="true"></i></button>
+                  <button id="odbMovesPrevBtn" class="openingdb-review-nav" type="button" aria-label="Previous move" data-caissa-i18n-aria-label="openingdb.moves.previous"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                  <span id="odbMovesPlyLabel" class="openingdb-review-ply" data-caissa-i18n="openingdb.startPosition">Start position</span>
+                  <button id="odbMovesNextBtn" class="openingdb-review-nav" type="button" aria-label="Next move" data-caissa-i18n-aria-label="openingdb.moves.next"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                  <button id="odbMovesLastBtn" class="openingdb-review-nav" type="button" aria-label="Last position" data-caissa-i18n-aria-label="openingdb.moves.last"><i class="fas fa-forward-step" aria-hidden="true"></i></button>
                 </div>
               </section>
 
               <section id="odbExplorerPanel" class="openingdb-tab-panel" role="tabpanel" aria-labelledby="odbTabExplorer">
                 <div id="odbDatasetBanner" class="openingdb-dataset-banner" role="status" hidden></div>
                 <div class="openingdb-moves-toolbar">
-                  <button id="odbAnalyzeInCaissaBtn" class="openingdb-analyze-action" type="button">Analyze in CAISSA <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
-                  <div class="openingdb-modes openingdb-sort-selector" role="group" aria-label="Explorer sort order">
-                    <button id="odbSortPopularityBtn" class="openingdb-mode-button active" type="button" aria-pressed="true">Popularity</button>
-                    <button id="odbSortEngineBtn" class="openingdb-mode-button" type="button" aria-pressed="false">Engine</button>
+                  <button id="odbAnalyzeInCaissaBtn" class="openingdb-analyze-action" type="button"><span data-caissa-i18n="openingdb.explorer.analyze">Analyze in CAISSA</span> <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                  <div class="openingdb-modes openingdb-sort-selector" role="group" aria-label="Explorer sort order" data-caissa-i18n-aria-label="openingdb.aria.explorerSort">
+                    <button id="odbSortPopularityBtn" class="openingdb-mode-button active" type="button" aria-pressed="true" data-caissa-i18n="openingdb.explorer.popularity">Popularity</button>
+                    <button id="odbSortEngineBtn" class="openingdb-mode-button" type="button" aria-pressed="false" data-caissa-i18n="openingdb.explorer.engine">Engine</button>
                   </div>
-                  <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span>Evaluate moves</span></label>
-                  <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode"><span class="sr-only">Candidate evaluation mode</span><select id="odbQuickEvalMode" aria-label="Candidate evaluation mode"><option value="fast" selected>Fast</option><option value="pro">Pro</option></select></label>
+                  <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span data-caissa-i18n="openingdb.explorer.evaluateMoves">Evaluate moves</span></label>
+                  <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode"><span class="sr-only" data-caissa-i18n="openingdb.explorer.evalMode">Candidate evaluation mode</span><select id="odbQuickEvalMode" aria-label="Candidate evaluation mode" data-caissa-i18n-aria-label="openingdb.aria.evalMode"><option value="fast" selected data-caissa-i18n="openingdb.explorer.fast">Fast</option><option value="pro" data-caissa-i18n="openingdb.explorer.pro">Pro</option></select></label>
                 </div>
-                <p id="odbExplorerSortStatus" class="openingdb-sort-status" role="status" aria-live="polite" aria-atomic="true">Popularity order. Moves are sorted by database game frequency.</p>
-                <div class="openingdb-explorer-legend" aria-label="Results legend">
-                  <span id="odbCoverageBadge">0/0 moves have database statistics</span>
-                  <span class="openingdb-legend-items"><span><i class="legend-white" aria-hidden="true"></i>White</span><span><i class="legend-draw" aria-hidden="true"></i>Draw</span><span><i class="legend-black" aria-hidden="true"></i>Black</span></span>
+                <p id="odbExplorerSortStatus" class="openingdb-sort-status" role="status" aria-live="polite" aria-atomic="true" data-caissa-i18n="openingdb.explorer.popularityStatus">Popularity order. Moves are sorted by database game frequency.</p>
+                <div class="openingdb-explorer-legend" aria-label="Results legend" data-caissa-i18n-aria-label="openingdb.aria.resultsLegend">
+                  <span id="odbCoverageBadge" data-caissa-i18n="openingdb.explorer.coverageInitial">0/0 moves have database statistics</span>
+                  <span class="openingdb-legend-items"><span><i class="legend-white" aria-hidden="true"></i><span data-caissa-i18n="openingdb.explorer.white">White</span></span><span><i class="legend-draw" aria-hidden="true"></i><span data-caissa-i18n="openingdb.explorer.draw">Draw</span></span><span><i class="legend-black" aria-hidden="true"></i><span data-caissa-i18n="openingdb.explorer.black">Black</span></span></span>
                 </div>
-                <div class="openingdb-table-wrap" role="region" aria-label="Opening continuations" tabindex="0">
+                <div class="openingdb-table-wrap" role="region" aria-label="Opening continuations" data-caissa-i18n-aria-label="openingdb.aria.continuations" tabindex="0">
                   <table class="openingdb-stats-table">
                     <colgroup><col class="colg-move"><col class="colg-engine"><col class="colg-games"><col class="colg-wdl"></colgroup>
-                    <thead class="openingdb-stat-headings"><tr><th>Move</th><th>Engine evaluation</th><th>Games</th><th>White / Draw / Black</th></tr></thead>
-                    <tbody id="odbStatsBody"><tr><td colspan="4" class="openingdb-empty">Loading continuation data…</td></tr></tbody>
+                    <thead class="openingdb-stat-headings"><tr><th data-caissa-i18n="openingdb.explorer.move">Move</th><th data-caissa-i18n="openingdb.explorer.engineEvaluation">Engine evaluation</th><th data-caissa-i18n="openingdb.explorer.games">Games</th><th data-caissa-i18n="openingdb.explorer.wdl">White / Draw / Black</th></tr></thead>
+                    <tbody id="odbStatsBody"><tr><td colspan="4" class="openingdb-empty" data-caissa-i18n="openingdb.explorer.loading">Loading continuation data…</td></tr></tbody>
                   </table>
                 </div>
-                <details class="openingdb-disclosure openingdb-data-details"><summary>Dataset details</summary><div id="odbRowsDiag">Rows rendered: 0 / Source rows: 0 / Mode: Popular / matchLevel: none</div></details>
+                <details class="openingdb-disclosure openingdb-data-details"><summary data-caissa-i18n="openingdb.explorer.datasetDetails">Dataset details</summary><div id="odbRowsDiag" data-caissa-i18n="openingdb.explorer.rowsInitial">Rows rendered: 0 / Source rows: 0 / Mode: Explorer / matchLevel: none</div></details>
                 <div id="odbTransitionPanel" class="odb-transition" hidden>
-                  <h3>Entering the early middlegame</h3>
-                  <p id="odbTransitionMessage">Position branching is narrowing beyond common opening theory.</p>
+                  <h3 data-caissa-i18n="openingdb.transition.title">Entering the early middlegame</h3>
+                  <p id="odbTransitionMessage" data-caissa-i18n="openingdb.transition.message">Position branching is narrowing beyond common opening theory.</p>
                   <div id="odbTransitionStats" class="odb-transition-stats"></div>
-                  <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button">Search this line</button>
-                  <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button">Open analysis</button>
+                  <button id="odbTransitionSearchGamesBtn" class="btn btn-secondary" type="button" data-caissa-i18n="openingdb.transition.search">Search this line</button>
+                  <button id="odbAnalyzePositionBtn" class="btn btn-secondary" type="button" data-caissa-i18n="openingdb.transition.analysis">Open analysis</button>
                 </div>
               </section>
             </div>
 
             <footer class="openingdb-workspace-foot">
-              <div class="openingdb-controls" aria-label="Position controls">
-                <button id="odbStartBtn" class="openingdb-foot-action" type="button"><i class="fas fa-backward-step" aria-hidden="true"></i><span>Start Position</span></button>
-                <button id="odbTakebackBtn" class="openingdb-foot-action" type="button"><i class="fas fa-rotate-left" aria-hidden="true"></i><span>Takeback</span></button>
-                <button id="odbFlipBtn" class="openingdb-foot-action" type="button"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><span>Flip Board</span></button>
-                <button id="odbFenToggleBtn" class="openingdb-foot-action" type="button"><i class="fas fa-pen-to-square" aria-hidden="true"></i><span>Input FEN</span></button>
+              <div class="openingdb-controls" aria-label="Position controls" data-caissa-i18n-aria-label="openingdb.aria.positionControls">
+                <button id="odbStartBtn" class="openingdb-foot-action" type="button"><i class="fas fa-backward-step" aria-hidden="true"></i><span data-caissa-i18n="openingdb.controls.start">Start Position</span></button>
+                <button id="odbTakebackBtn" class="openingdb-foot-action" type="button"><i class="fas fa-rotate-left" aria-hidden="true"></i><span data-caissa-i18n="openingdb.controls.takeback">Takeback</span></button>
+                <button id="odbFlipBtn" class="openingdb-foot-action" type="button"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><span data-caissa-i18n="openingdb.controls.flip">Flip Board</span></button>
+                <button id="odbFenToggleBtn" class="openingdb-foot-action" type="button"><i class="fas fa-pen-to-square" aria-hidden="true"></i><span data-caissa-i18n="openingdb.controls.inputFen">Input FEN</span></button>
               </div>
-              <div class="openingdb-integrations" aria-label="Continue studying">
-                <button id="odbPracticeTrainerBtn" class="openingdb-integration-action" type="button" aria-describedby="odbTrainerUnavailable" disabled>Practice in Trainer</button>
-                <span id="odbTrainerUnavailable" class="sr-only">Opening Trainer transfer is unavailable until a compatible repertoire handoff contract is implemented.</span>
+              <div class="openingdb-integrations" aria-label="Continue studying" data-caissa-i18n-aria-label="openingdb.aria.continueStudying">
+                <button id="odbPracticeTrainerBtn" class="openingdb-integration-action" type="button" aria-describedby="odbTrainerUnavailable" disabled data-caissa-i18n="openingdb.controls.practice">Practice in Trainer</button>
+                <span id="odbTrainerUnavailable" class="sr-only" data-caissa-i18n="openingdb.controls.trainerUnavailable">Opening Trainer transfer is unavailable until a compatible repertoire handoff contract is implemented.</span>
               </div>
               <div id="odbFenPanel" class="openingdb-fen-panel" hidden>
-                <label for="odbFenInput">Position FEN</label>
-                <textarea id="odbFenInput" rows="2" placeholder="Paste a complete FEN"></textarea>
-                <div class="openingdb-fen-actions"><button id="odbApplyFenBtn" class="btn btn-primary" type="button">Load position</button><button id="odbCancelFenBtn" class="btn btn-secondary" type="button">Cancel</button></div>
-                <p id="odbFenError" class="openingdb-error" role="alert" aria-atomic="true" hidden>Invalid FEN.</p>
+                <label for="odbFenInput" data-caissa-i18n="openingdb.controls.positionFen">Position FEN</label>
+                <textarea id="odbFenInput" rows="2" placeholder="Paste a complete FEN" data-caissa-i18n-placeholder="openingdb.controls.pasteFen"></textarea>
+                <div class="openingdb-fen-actions"><button id="odbApplyFenBtn" class="btn btn-primary" type="button" data-caissa-i18n="openingdb.controls.loadPosition">Load position</button><button id="odbCancelFenBtn" class="btn btn-secondary" type="button" data-caissa-i18n="openingdb.controls.cancel">Cancel</button></div>
+                <p id="odbFenError" class="openingdb-error" role="alert" aria-atomic="true" hidden data-caissa-i18n="openingdb.controls.invalidFen">Invalid FEN.</p>
               </div>
               <p id="odbActionStatus" class="openingdb-action-status" role="status" aria-live="polite"></p>
             </footer>
@@ -248,15 +248,17 @@
 
         <textarea id="odbMoveList" class="openingdb-visually-hidden-field" tabindex="-1" aria-hidden="true" readonly></textarea>
         <section class="openingdb-seo-copy" aria-labelledby="openingdbAboutTitle">
-          <h2 id="openingdbAboutTitle">Study opening positions, not just names</h2>
-          <p>CAISSA’s Opening Explorer connects legal board moves with practical continuation data from the active opening dataset. Results and optional engine evaluations are always shown from White’s perspective.</p>
-          <nav aria-label="Related CAISSA chess tools"><a href="/eco">ECO Codes</a><a href="/opening-trainer">Opening Trainer</a><a href="/analyze">Analyzer</a><a href="/tools/polyglot">Polyglot Tool</a></nav>
+          <h2 id="openingdbAboutTitle" data-caissa-i18n="openingdb.about.title">Study opening positions, not just names</h2>
+          <p data-caissa-i18n="openingdb.about.copy">CAISSA’s Opening Explorer connects legal board moves with practical continuation data from the active opening dataset. Results and optional engine evaluations are always shown from White’s perspective.</p>
+          <nav aria-label="Related CAISSA chess tools" data-caissa-i18n-aria-label="openingdb.aria.relatedTools"><a href="/eco" data-caissa-i18n="openingdb.about.eco">ECO Codes</a><a href="/opening-trainer" data-caissa-i18n="openingdb.about.trainer">Opening Trainer</a><a href="/analyze" data-caissa-i18n="openingdb.about.analyzer">Analyzer</a><a href="/tools/polyglot" data-caissa-i18n="openingdb.about.polyglot">Polyglot Tool</a></nav>
         </section>
       </section>
     </main>
   </div>
 
-  <script src="/js/caissa-i18n.js?v=1.0.0"></script><script src="/js/caissa-primary-navigation.js?v=1.22.0"></script>
+  <script src="/js/caissa-i18n.js?v=1.0.1"></script>
+  <script src="/js/opening-database-i18n.js?v=1.0.0"></script>
+  <script src="/js/caissa-primary-navigation.js?v=1.22.0"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0" data-caissa-auth-runtime="external"></script>
   <script src="/js/auth-config.js?v=1.0.2" defer></script>
   <script src="/js/caissa-auth.js?v=1.0.6" defer></script>
@@ -269,6 +271,6 @@
   <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=2.4.0"></script>
+  <script src="/js/opening-database.js?v=2.4.1"></script>
 </body>
 </html>

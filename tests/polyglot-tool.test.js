@@ -116,7 +116,7 @@ test('Polyglot layout uses bounded grid columns and a container-driven stacked f
 test('Polyglot page and dynamic states have exact EN ES PT catalog parity', () => {
   const values = catalogs();
   const keys = Object.fromEntries(['en', 'es', 'pt'].map(locale => [locale, Object.keys(values[locale]).sort()]));
-  assert.equal(keys.en.length, 612);
+  assert.equal(keys.en.length, 863);
   assert.deepEqual(keys.es, keys.en);
   assert.deepEqual(keys.pt, keys.en);
   const polyglotKeys = keys.en.filter(key => key.startsWith('polyglot.'));
