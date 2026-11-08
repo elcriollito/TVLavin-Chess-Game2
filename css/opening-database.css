@@ -350,6 +350,15 @@
   color: white;
 }
 
+.openingdb-mode-button:focus-visible {
+  outline: 2px solid var(--odb-accent);
+  outline-offset: 2px;
+}
+
+.openingdb-sort-selector {
+  flex: 0 0 auto;
+}
+
 .openingdb-quick-eval-toggle {
   display: inline-flex;
   min-height: 34px;
@@ -384,6 +393,14 @@
 
 .openingdb-quick-eval-mode select {
   padding: 0 24px 0 8px;
+}
+
+.openingdb-sort-status {
+  min-height: 1.1em;
+  margin: -4px 0 10px;
+  color: var(--odb-subtle);
+  font-size: 0.68rem;
+  line-height: 1.45;
 }
 
 .openingdb-explorer-legend {
@@ -1242,6 +1259,15 @@
 
   .openingdb-quick-eval-toggle {
     margin-left: 0;
+  }
+
+  .openingdb-sort-selector {
+    order: 2;
+  }
+
+  .openingdb-quick-eval-toggle,
+  .openingdb-quick-eval-mode {
+    order: 3;
   }
 
   .openingdb-review-details {

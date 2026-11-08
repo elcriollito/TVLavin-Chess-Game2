@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=2.1.0">
+  <link rel="stylesheet" href="/css/opening-database.css?v=2.3.0">
   <link rel="stylesheet" href="/css/caissa-legacy-quiet-drag.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
   <script type="application/ld+json">
@@ -194,9 +194,14 @@
                 <div id="odbDatasetBanner" class="openingdb-dataset-banner" role="status" hidden></div>
                 <div class="openingdb-moves-toolbar">
                   <button id="odbAnalyzeInCaissaBtn" class="openingdb-analyze-action" type="button">Analyze in CAISSA <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                  <div class="openingdb-modes openingdb-sort-selector" role="group" aria-label="Explorer sort order">
+                    <button id="odbSortPopularityBtn" class="openingdb-mode-button active" type="button" aria-pressed="true">Popularity</button>
+                    <button id="odbSortEngineBtn" class="openingdb-mode-button" type="button" aria-pressed="false">Engine</button>
+                  </div>
                   <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span>Evaluate moves</span></label>
                   <label class="openingdb-quick-eval-mode" for="odbQuickEvalMode"><span class="sr-only">Candidate evaluation mode</span><select id="odbQuickEvalMode" aria-label="Candidate evaluation mode"><option value="fast" selected>Fast</option><option value="pro">Pro</option></select></label>
                 </div>
+                <p id="odbExplorerSortStatus" class="openingdb-sort-status" role="status" aria-live="polite" aria-atomic="true">Popularity order. Moves are sorted by database game frequency.</p>
                 <div class="openingdb-explorer-legend" aria-label="Results legend">
                   <span id="odbCoverageBadge">0/0 moves have database statistics</span>
                   <span class="openingdb-legend-items"><span><i class="legend-white" aria-hidden="true"></i>White</span><span><i class="legend-draw" aria-hidden="true"></i>Draw</span><span><i class="legend-black" aria-hidden="true"></i>Black</span></span>
@@ -264,6 +269,6 @@
   <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=2.2.0"></script>
+  <script src="/js/opening-database.js?v=2.3.0"></script>
 </body>
 </html>

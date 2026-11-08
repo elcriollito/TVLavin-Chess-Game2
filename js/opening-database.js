@@ -35,6 +35,7 @@
       mode: 'explorer',
       matchLevel: 'none'
     },
+    explorerSortMode: 'popularity',
     activeTab: 'explorer',
     tabInteractionsBound: false,
     gamesVersion: 'v1',
@@ -248,6 +249,9 @@
     engineNodesValue: document.getElementById('odbEngineNodesValue'),
     quickEvalToggle: document.getElementById('odbQuickEvalToggle') || document.getElementById('odbEngineEvalMovesToggle'),
     quickEvalMode: document.getElementById('odbQuickEvalMode'),
+    sortPopularityBtn: document.getElementById('odbSortPopularityBtn'),
+    sortEngineBtn: document.getElementById('odbSortEngineBtn'),
+    explorerSortStatus: document.getElementById('odbExplorerSortStatus'),
     engineCopyPvBtn: document.getElementById('odbEngineCopyPvBtn'),
     engineCopyFenBtn: document.getElementById('odbEngineCopyFenBtn'),
     engineCopyFeedback: document.getElementById('odbEngineCopyFeedback'),
@@ -968,8 +972,11 @@
     const moveButtons = els.statsBody.querySelectorAll('[data-move-index]');
     moveButtons.forEach((moveButton) => {
       const idx = Number(moveButton.getAttribute('data-move-index'));
-      if (!Number.isInteger(idx) || idx < 0 || idx >= state.currentRows.length) return;
-      const row = state.currentRows[idx];
+      const buttonUci = String(moveButton.getAttribute('data-move-uci') || '').trim().toLowerCase();
+      const row = (buttonUci
+        ? state.currentRows.find((candidate) => String(candidate?.moveUCI || candidate?.uci || '').trim().toLowerCase() === buttonUci)
+        : null) || (Number.isInteger(idx) && idx >= 0 ? state.currentRows[idx] : null);
+      if (!row) return;
       const uci = String(row?.moveUCI || row?.uci || '').trim().toLowerCase();
       const cell = moveButton.closest('tr')?.querySelector('td.col-engine');
       if (!cell) return;
@@ -979,7 +986,14 @@
       cell.textContent = text;
       cell.setAttribute('data-engine-eval', text);
       cell.classList.toggle('is-pending', text === '...');
+      cell.setAttribute('aria-label', text === '...'
+        ? 'Engine evaluation pending'
+        : (text === '-' ? 'Not evaluated' : `Engine evaluation ${text}`));
+      cell.title = text === '...'
+        ? 'Engine evaluation pending'
+        : (text === '-' ? 'Not evaluated' : `Engine evaluation ${text}`);
     });
+    updateExplorerSortStatus();
   }
 
   function clearEngineDebounce() {
@@ -1007,6 +1021,7 @@
       handshakeState: state.engine.debug.handshakeState || '',
       lastStopReason: state.engine.debug.lastStopReason || '',
       evalNextMoves: !!state.engine.evalNextMoves,
+      explorerSortMode: state.explorerSortMode,
       nextMoveEvalRunning: !!state.engine.nextMoveEvalRunning,
       lastLine: state.engine.debug.lastLine || '',
       lastInfoAt: state.engine.debug.lastInfoAt || 0,
@@ -1253,7 +1268,7 @@
       return;
     }
     if (engine.evalNextMoves) {
-      void runNextMoveEvalQueue(engine.lastFen);
+      maybeRunNextMoveEvalQueue();
     }
   }
 
@@ -1284,9 +1299,11 @@
   function cancelNextMoveEvalQueue() {
     state.engine.nextMoveEvalSessionId += 1;
     state.engine.nextMoveEvalRunning = false;
+    state.engine.evalRequestId += 1;
+    state.engine.activeEvalRequestId = state.engine.evalRequestId;
     if (state.engine.evalClient) {
       // Stop only the quick-eval worker; never touch main engine worker here.
-      state.engine.evalClient.stop();
+      state.engine.evalClient.stop('quick-eval-cancel');
     }
     updateEngineDebugWindow();
   }
@@ -1397,9 +1414,11 @@
     const engine = state.engine;
     if (!engine.evalNextMoves || !state.game) return;
     const mode = engine.evalMode === 'pro' ? 'pro' : 'fast';
+    const fen = String(positionFen || state.game.fen() || '');
+    if (!fen || state.game.fen() !== fen) return;
     const evalLimit = mode === 'pro' ? ENGINE_MOVE_EVAL_PRO_LIMIT : ENGINE_MOVE_EVAL_FAST_LIMIT;
     const evalDepth = mode === 'pro' ? ENGINE_MOVE_EVAL_DEPTH : 8;
-    const sourceRows = getExplorerSourceRows();
+    const sourceRows = sortExplorerRows(getExplorerSourceRows());
     const queueRows = sourceRows
       .filter((row) => row && String(row.moveUCI || '').trim())
       .slice(0, evalLimit);
@@ -1408,18 +1427,21 @@
     const sessionId = ++engine.nextMoveEvalSessionId;
     engine.nextMoveEvalRunning = true;
     updateEngineDebugWindow();
-    const fen = String(positionFen || state.game.fen() || '');
+    updateExplorerSortStatus();
 
     for (let i = 0; i < queueRows.length; i += 1) {
-      if (sessionId !== engine.nextMoveEvalSessionId) break;
+      if (sessionId !== engine.nextMoveEvalSessionId ||
+          !engine.evalNextMoves ||
+          engine.evalMode !== mode ||
+          !state.game ||
+          state.game.fen() !== fen) break;
       const row = queueRows[i];
       const uci = String(row.moveUCI || '').toLowerCase();
       if (!uci) continue;
       const cacheKey = getEngineCacheKey(fen, uci, mode);
       const cached = getEngineEvalCacheValue(cacheKey);
       if (cached) {
-        setRowEngineEvalByUci(uci, cached);
-        renderExplorerRows();
+        applyCompletedExplorerEvaluation(uci, cached);
         continue;
       }
       setRowEngineEvalByUci(uci, '...');
@@ -1428,10 +1450,13 @@
         depth: evalDepth,
         timeoutMs: mode === 'pro' ? ENGINE_MOVE_EVAL_TIMEOUT_MS : 2200
       });
-      if (sessionId !== engine.nextMoveEvalSessionId) break;
+      if (sessionId !== engine.nextMoveEvalSessionId ||
+          !engine.evalNextMoves ||
+          engine.evalMode !== mode ||
+          !state.game ||
+          state.game.fen() !== fen) break;
       setEngineEvalCacheValue(cacheKey, evalText || '-');
-      setRowEngineEvalByUci(uci, evalText || '-');
-      renderExplorerRows();
+      applyCompletedExplorerEvaluation(uci, evalText || '-');
       if (i < queueRows.length - 1) {
         await delay(ENGINE_MOVE_EVAL_GAP_MS);
       }
@@ -1440,6 +1465,7 @@
     if (sessionId === engine.nextMoveEvalSessionId) {
       engine.nextMoveEvalRunning = false;
       updateEngineDebugWindow();
+      updateExplorerSortStatus();
     }
   }
 
@@ -2131,15 +2157,34 @@
     return normalized;
   }
 
-  function sortExplorerRows(rows) {
-    const copy = Array.isArray(rows) ? rows.slice() : [];
-    copy.sort((a, b) => {
+  function getExplorerMoveIdentity(row) {
+    return String(row?.moveUCI || row?.uci || row?.moveSAN || row?.san || '').trim().toLowerCase();
+  }
+
+  function sortExplorerRows(rows, options = {}) {
+    const mode = String(options.mode || 'popularity').toLowerCase() === 'engine' ? 'engine' : 'popularity';
+    const turn = options.turn === 'b' ? 'b' : 'w';
+    const popularityRows = Array.isArray(rows) ? rows.slice() : [];
+    popularityRows.sort((a, b) => {
       const gamesA = Number(a?.games) || 0;
       const gamesB = Number(b?.games) || 0;
       if (gamesB !== gamesA) return gamesB - gamesA;
       return String(a?.moveSAN || a?.moveUCI || '').localeCompare(String(b?.moveSAN || b?.moveUCI || ''));
     });
-    return copy;
+    if (mode !== 'engine') return popularityRows;
+
+    return popularityRows
+      .map((row, index) => ({ row, index, score: parseExplorerEngineEval(getEngineEvalText(row)) }))
+      .sort((a, b) => {
+        const aEvaluated = a.score !== null;
+        const bEvaluated = b.score !== null;
+        if (aEvaluated && bEvaluated && a.score !== b.score) {
+          return turn === 'b' ? a.score - b.score : b.score - a.score;
+        }
+        if (aEvaluated !== bEvaluated) return aEvaluated ? -1 : 1;
+        return a.index - b.index;
+      })
+      .map((entry) => entry.row);
   }
 
   function parseExplorerEngineEval(value) {
@@ -2162,18 +2207,78 @@
   }
 
   function getExplorerDisplayRows(rows = getExplorerSourceRows()) {
-    const source = Array.isArray(rows) ? rows.slice() : [];
-    if (!state.engine.evalNextMoves) return source;
-    return source
-      .map((row, index) => ({ row, index, score: parseExplorerEngineEval(getEngineEvalText(row)) }))
-      .sort((a, b) => {
-        const aEvaluated = a.score !== null;
-        const bEvaluated = b.score !== null;
-        if (aEvaluated && bEvaluated && b.score !== a.score) return b.score - a.score;
-        if (aEvaluated !== bEvaluated) return aEvaluated ? -1 : 1;
-        return a.index - b.index;
-      })
-      .map((entry) => entry.row);
+    return sortExplorerRows(rows, {
+      mode: state.explorerSortMode,
+      turn: state.game?.turn?.() || 'w'
+    });
+  }
+
+  function getExplorerEvaluationCoverage() {
+    const sourceRows = sortExplorerRows(getExplorerSourceRows());
+    const limit = state.engine.evalMode === 'pro' ? ENGINE_MOVE_EVAL_PRO_LIMIT : ENGINE_MOVE_EVAL_FAST_LIMIT;
+    const candidates = sourceRows.slice(0, limit);
+    const evaluated = candidates.filter((row) => parseExplorerEngineEval(getEngineEvalText(row)) !== null).length;
+    const pending = candidates.filter((row) => getEngineEvalText(row) === '...').length;
+    return {
+      total: sourceRows.length,
+      candidateCount: candidates.length,
+      evaluated,
+      pending,
+      limit,
+      profile: state.engine.evalMode === 'pro' ? 'Pro' : 'Fast'
+    };
+  }
+
+  function renderExplorerSortControls() {
+    const engineSelected = state.explorerSortMode === 'engine';
+    if (els.sortPopularityBtn) {
+      els.sortPopularityBtn.classList.toggle('active', !engineSelected);
+      els.sortPopularityBtn.setAttribute('aria-pressed', String(!engineSelected));
+    }
+    if (els.sortEngineBtn) {
+      els.sortEngineBtn.classList.toggle('active', engineSelected);
+      els.sortEngineBtn.setAttribute('aria-pressed', String(engineSelected));
+    }
+  }
+
+  function updateExplorerSortStatus() {
+    renderExplorerSortControls();
+    if (!els.explorerSortStatus) return;
+    if (state.explorerSortMode !== 'engine') {
+      els.explorerSortStatus.textContent = state.engine.evalNextMoves
+        ? 'Popularity order. Engine scores are shown without changing database frequency order.'
+        : 'Popularity order. Moves are sorted by database game frequency.';
+      return;
+    }
+
+    const coverage = getExplorerEvaluationCoverage();
+    const side = state.game?.turn?.() === 'b' ? 'Black' : 'White';
+    const outsideCoverage = Math.max(0, coverage.total - coverage.candidateCount);
+    const incomplete = coverage.evaluated < coverage.candidateCount || outsideCoverage > 0;
+    if (incomplete) {
+      const pendingText = coverage.pending > 0 ? ` ${coverage.pending} pending.` : '';
+      const limitText = outsideCoverage > 0
+        ? ` ${outsideCoverage} moves are outside the ${coverage.profile} ${coverage.limit}-candidate coverage.`
+        : '';
+      els.explorerSortStatus.textContent = `Engine order is incomplete: ${coverage.evaluated} of ${coverage.candidateCount} candidates evaluated.${pendingText}${limitText} Unevaluated moves remain in popularity order.`;
+      return;
+    }
+    els.explorerSortStatus.textContent = `Engine order complete for ${coverage.evaluated} candidates. Best move for ${side} to move is first.`;
+  }
+
+  function getExplorerOrderSignature() {
+    return getExplorerDisplayRows().map(getExplorerMoveIdentity).join('|');
+  }
+
+  function applyCompletedExplorerEvaluation(uci, evalText) {
+    const before = getExplorerOrderSignature();
+    setRowEngineEvalByUci(uci, evalText);
+    const after = getExplorerOrderSignature();
+    if (state.explorerSortMode === 'engine' && before !== after) {
+      renderExplorerRows();
+    } else {
+      refreshRenderedEngineEvalCells();
+    }
   }
 
   function renderExplorerRows() {
@@ -2181,8 +2286,33 @@
       renderOpeningDbDepthLimit();
       return;
     }
+    const focusedMove = document.activeElement?.closest?.('[data-move-uci]');
+    const focusedUci = String(focusedMove?.getAttribute('data-move-uci') || '').trim().toLowerCase();
     renderStatsRows(getExplorerDisplayRows());
     refreshRenderedEngineEvalCells();
+    if (focusedUci) {
+      const nextFocus = Array.from(els.statsBody?.querySelectorAll('[data-move-uci]') || [])
+        .find((button) => String(button.getAttribute('data-move-uci') || '').trim().toLowerCase() === focusedUci);
+      nextFocus?.focus({ preventScroll: true });
+    }
+  }
+
+  function setExplorerSortMode(mode) {
+    const nextMode = String(mode || '').toLowerCase() === 'engine' ? 'engine' : 'popularity';
+    state.explorerSortMode = nextMode;
+    if (nextMode === 'engine' && !state.engine.evalNextMoves) {
+      state.engine.evalNextMoves = true;
+      persistQuickEvalPreference(true);
+      if (els.quickEvalToggle) els.quickEvalToggle.checked = true;
+    }
+    if (state.engine.evalNextMoves) {
+      applyEngineEvalCacheToRows(getExplorerSourceRows(), state.game ? state.game.fen() : '');
+    }
+    renderExplorerRows();
+    if (nextMode === 'engine' && state.engine.evalNextMoves && !state.engine.nextMoveEvalRunning) {
+      maybeRunNextMoveEvalQueue();
+    }
+    renderEnginePanel();
   }
 
   function buildAllLegalRowsFromGame(game) {
@@ -2297,12 +2427,12 @@
 
   function rowFingerprint(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return '';
-    return rows.map((row) => `${row.moveUCI || ''}:${row.games || 0}:${row.wins || 0}:${row.draws || 0}:${row.losses || 0}`).join('|');
+    return rows.map((row) => `${row.moveUCI || ''}:${row.games || 0}:${row.wins || 0}:${row.draws || 0}:${row.losses || 0}:${getEngineEvalText(row)}`).join('|');
   }
 
   function rowsNeedRender(rows) {
     const next = {
-      mode: 'explorer',
+      mode: `explorer:${state.explorerSortMode}:${state.engine.evalNextMoves ? 'scores' : 'no-scores'}`,
       fp: rowFingerprint(rows)
     };
     const prev = state.lastRenderedRowsFingerprint || { mode: '', fp: '' };
@@ -2413,12 +2543,16 @@
       const moveText = sanitizeMoveCellToken(row.moveSAN || row.moveUCI || 'TBD') || 'TBD';
       const prefixed = formatPrefixedSAN({ ply: currentPly, sanForCandidateMove: row.moveSAN || row.moveUCI || moveText });
       const moveLabel = `${prefixed.prefix}${prefixed.san}`.trim();
-      const moveCellHtml = `<button class="openingdb-move-action" type="button" data-move-index="${idx}" aria-label="Play ${escapeHtml(moveLabel)}"><span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span></button>`;
+      const moveUci = String(row.moveUCI || row.uci || '').trim().toLowerCase();
+      const moveCellHtml = `<button class="openingdb-move-action" type="button" data-move-index="${idx}" data-move-uci="${escapeHtml(moveUci)}" aria-label="Play ${escapeHtml(moveLabel)}"><span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span></button>`;
       const title = row.preview && row.preview !== moveText ? ` title="${escapeHtml(row.preview)}"` : '';
       const wdlTitle = `W:${wPct.toFixed(1)} D:${dPct.toFixed(1)} L:${lPct.toFixed(1)}`;
       const rowClass = hasData ? dominantClass(wPct, dPct, lPct) : 'row-nodata';
-      const engineEval = getEngineEvalText(row);
+      const engineEval = state.engine.evalNextMoves ? getEngineEvalText(row) : '-';
       const engineClass = engineEval === '...' ? 'col-engine is-pending' : 'col-engine';
+      const engineAriaLabel = engineEval === '...'
+        ? 'Engine evaluation pending'
+        : (engineEval === '-' ? 'Not evaluated' : `Engine evaluation ${engineEval}`);
       const wdlCell = hasData
         ? `<div class="wdb-bar" title="${wdlTitle}" role="img" aria-label="White wins ${wPct.toFixed(1)} percent, draws ${dPct.toFixed(1)} percent, Black wins ${lPct.toFixed(1)} percent">
               <div class="w" style="width:${wPct.toFixed(1)}%"><span>${wPct.toFixed(1)}%</span></div>
@@ -2430,7 +2564,7 @@
       return `
         <tr class="${rowClass}">
           <td class="col-move" data-label="Next Move"${title}>${moveCellHtml}</td>
-          <td class="${engineClass}" data-label="Engine" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(String(row.moveUCI || ''))}">${escapeHtml(engineEval)}</td>
+          <td class="${engineClass}" data-label="Engine" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(moveUci)}" aria-label="${escapeHtml(engineAriaLabel)}" title="${escapeHtml(engineAriaLabel)}">${escapeHtml(engineEval)}</td>
           <td class="col-games" data-label="Games">${n.toLocaleString()}</td>
           <td class="col-wdl" data-label="Results">
             ${wdlCell}
@@ -3308,6 +3442,9 @@
     const force = !!options.force;
     const requestId = (state.positionRequestId || 0) + 1;
     state.positionRequestId = requestId;
+    cancelNextMoveEvalQueue();
+    clearCurrentPositionEngineEvalRows();
+    refreshRenderedEngineEvalCells();
 
     const fen = inputFen || state.game.fen();
     const fenKey = normalizeFenForHash(fen);
@@ -3469,9 +3606,6 @@
     });
 
     scheduleEngineReanalyzeForCurrentPosition();
-    if (!state.engine.running) {
-      maybeRunNextMoveEvalQueue();
-    }
   }
 
   async function copyEnginePvToClipboard() {
@@ -3743,8 +3877,11 @@
         const moveButton = event.target && event.target.closest ? event.target.closest('[data-move-index]') : null;
         if (!moveButton) return;
         const idx = Number(moveButton.getAttribute('data-move-index'));
-        if (!Number.isInteger(idx) || idx < 0) return;
-        const row = state.currentRows[idx];
+        const moveUci = String(moveButton.getAttribute('data-move-uci') || '').trim().toLowerCase();
+        const row = (moveUci
+          ? state.currentRows.find((candidate) => getExplorerMoveIdentity(candidate) === moveUci)
+          : null) || (Number.isInteger(idx) && idx >= 0 ? state.currentRows[idx] : null);
+        if (!row) return;
         applyMoveFromRow(row);
       });
     }
@@ -3863,11 +4000,20 @@
       });
     }
 
+    els.sortPopularityBtn?.addEventListener('click', () => {
+      setExplorerSortMode('popularity');
+    });
+
+    els.sortEngineBtn?.addEventListener('click', () => {
+      setExplorerSortMode('engine');
+    });
+
     if (els.quickEvalToggle) {
       els.quickEvalToggle.addEventListener('change', () => {
         state.engine.evalNextMoves = !!els.quickEvalToggle.checked;
         persistQuickEvalPreference(state.engine.evalNextMoves);
         if (!state.engine.evalNextMoves) {
+          state.explorerSortMode = 'popularity';
           cancelNextMoveEvalQueue();
           clearCurrentPositionEngineEvalRows();
           renderExplorerRows();
@@ -4231,6 +4377,7 @@
       if (els.quickEvalMode) {
         els.quickEvalMode.value = state.engine.evalMode;
       }
+      state.explorerSortMode = 'popularity';
       state.engine.debug.workerUrl = new URL('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js', window.location.origin).toString();
       state.engine.debug.wasmUrl = new URL('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.wasm', window.location.origin).toString();
       state.engine.debug.handshakeState = 'idle';
@@ -4239,6 +4386,8 @@
       state.engine.debug.lastInfoAt = 0;
       state.engine.debug.errors = [];
       renderEnginePanel();
+      renderExplorerSortControls();
+      updateExplorerSortStatus();
       await initBoard();
       bindEvents();
       updateDownloadButtonLabel();

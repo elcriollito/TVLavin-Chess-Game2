@@ -81,14 +81,23 @@ test('Opening Database owns a vetted Stockfish 19 Lite client and bounded Fast/P
   assert.doesNotMatch(source, /\.goDepth\(/);
 });
 
-test('Explorer is a single database-first list with optional stable engine sorting', () => {
+test('Explorer exposes independent Popularity and Engine sorting without restoring All legal', () => {
   assert.doesNotMatch(html, /id="odbMovesAllBtn"|>All legal</i);
   assert.doesNotMatch(html, /aria-label="Move list mode"/);
+  assert.match(html, /id="odbSortPopularityBtn"[^>]*aria-pressed="true"[^>]*>Popularity/);
+  assert.match(html, /id="odbSortEngineBtn"[^>]*aria-pressed="false"[^>]*>Engine/);
+  assert.match(html, /id="odbQuickEvalToggle"/);
+  assert.match(html, /id="odbQuickEvalMode"/);
+  assert.match(html, /id="odbExplorerSortStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(source, /explorerSortMode:\s*'popularity'/);
   assert.match(source, /function parseExplorerEngineEval/);
+  assert.match(source, /function sortExplorerRows/);
   assert.match(source, /function getExplorerDisplayRows/);
-  assert.match(source, /if \(!state\.engine\.evalNextMoves\) return source/);
+  assert.match(source, /mode:\s*state\.explorerSortMode/);
+  assert.match(source, /turn === 'b' \? a\.score - b\.score : b\.score - a\.score/);
   assert.match(source, /aEvaluated !== bEvaluated/);
   assert.match(source, /return a\.index - b\.index/);
+  assert.match(source, /state\.explorerSortMode = 'popularity';[\s\S]*?cancelNextMoveEvalQueue/);
 });
 
 test('Moves is a dedicated isolated SAN review surface with honest metadata fallback', () => {

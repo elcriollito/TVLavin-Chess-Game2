@@ -83,7 +83,7 @@ test('Opening Database runs the vetted Stockfish 19 Lite runtime with scoped own
   await expect.poll(() => page.evaluate(() => window.__engineDebug?.lastStopReason || '')).toBe('user-stop');
 });
 
-test('Explorer removes All legal and sorts evaluated rows while preserving database order when disabled', async ({ page }) => {
+test('Explorer keeps score visibility separate from explicit Engine sorting', async ({ page }) => {
   await page.route('**/js/opening-trainer/stockfish19-client.js*', route => route.fulfill({
     contentType: 'text/javascript',
     body: `(() => {
@@ -163,15 +163,24 @@ test('Explorer removes All legal and sorts evaluated rows while preserving datab
 
   await page.goto('/opening-database');
   await expect(page.getByText('All legal', { exact: true })).toHaveCount(0);
+  await expect(page.locator('#odbSortPopularityBtn')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#odbSortEngineBtn')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#odbStatsBody .moveSan')).toHaveText(['e4', 'd4']);
 
   await page.locator('#odbQuickEvalToggle').check();
-  await expect.poll(async () => page.locator('#odbStatsBody td.col-engine').allTextContents()).toEqual(['+0.80', '-0.50']);
+  await expect.poll(async () => page.locator('#odbStatsBody td.col-engine').allTextContents()).toEqual(['-0.50', '+0.80']);
+  await expect(page.locator('#odbStatsBody .moveSan')).toHaveText(['e4', 'd4']);
+  await expect(page.locator('#odbSortPopularityBtn')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.locator('#odbSortEngineBtn').click();
   await expect(page.locator('#odbStatsBody .moveSan')).toHaveText(['d4', 'e4']);
+  await expect(page.locator('#odbStatsBody td.col-engine')).toHaveText(['+0.80', '-0.50']);
 
   await page.locator('#odbQuickEvalToggle').uncheck();
   await expect(page.locator('#odbStatsBody .moveSan')).toHaveText(['e4', 'd4']);
   await expect(page.locator('#odbStatsBody td.col-engine')).toHaveText(['-', '-']);
+  await expect(page.locator('#odbSortPopularityBtn')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#odbExplorerSortStatus')).toContainText('Popularity order');
 });
 
 test('Fast candidate evaluation is sequential, cached, and cancellable', async ({ page }) => {
