@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/styles.css?v=2.0.1">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/eco-page.css?v=1.9.2">
+  <link rel="stylesheet" href="/css/eco-page.css?v=1.9.3">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
   <script type="application/ld+json">
     {
@@ -91,12 +91,13 @@
               <div id="ecoMiniBoard" class="eco-mini-board" role="img" aria-label="Opening preview board"></div>
             </div>
             <p id="ecoMiniBoardFallback" class="eco-muted">Select an opening to preview its verified position.</p>
+            <p id="ecoReplayStatus" class="eco-replay-status" role="status" aria-live="polite">Select an opening to load move replay.</p>
             <div class="eco-board-controls" id="ecoBoardControls">
-              <button data-action="start" disabled title="Coming soon">|&lt;</button>
-              <button data-action="prev" disabled title="Coming soon">&lt;</button>
-              <button data-action="next" disabled title="Coming soon">&gt;</button>
-              <button data-action="end" disabled title="Coming soon">&gt;|</button>
-              <button data-action="flip" title="Flip board">Flip</button>
+              <button type="button" data-action="start" disabled title="First position" aria-label="Go to first position">|&lt;</button>
+              <button type="button" data-action="prev" disabled title="Previous move" aria-label="Go to previous move">&lt;</button>
+              <button type="button" data-action="next" disabled title="Next move" aria-label="Go to next move">&gt;</button>
+              <button type="button" data-action="end" disabled title="Last position" aria-label="Go to last position">&gt;|</button>
+              <button type="button" data-action="flip" title="Flip board" aria-label="Flip board">Flip</button>
             </div>
           </section>
 
@@ -161,7 +162,8 @@
   <script src="/js/caissa-access.js?v=1.0.2" defer></script>
   <script src="/js/caissa-ui-auth.js?v=1.0.2" defer></script>
   <script src="/assets/vendor/chess.js/chess-0.10.3.min.js" defer></script>
+  <script src="/js/eco-replay.js?v=1.0.0" defer></script>
   <script src="/js/books/book-registry.js?v=1.4.0" defer></script>
-  <script src="/js/eco-page.js?v=2.4.0" defer></script>
+  <script src="/js/eco-page.js?v=2.5.0" defer></script>
 </body>
 </html>

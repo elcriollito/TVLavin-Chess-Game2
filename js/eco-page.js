@@ -23,6 +23,12 @@
   let theoryManifestPromise = null;
   let activeDetailController = null;
   let currentBoardState = 'default';
+  let boardRenderSeq = 0;
+  let replayCode = null;
+  let replayFrames = Object.freeze([]);
+  let replayPly = 0;
+  let replayStatusState = 'idle';
+  let replayUnavailableMessage = 'Select an opening to load move replay.';
 
   const MAX_MINI_BOARD_RETRIES = 5;
   const POS_STATS_URL = window.CAISSA_POS_STATS_URL || '';
@@ -240,6 +246,9 @@
     boardEl.style.display = 'grid';
     boardEl.dataset.fen = fen || '';
     boardEl.dataset.positionState = currentBoardState;
+    boardEl.dataset.replayCode = replayCode || '';
+    boardEl.dataset.replayPly = String(replayPly);
+    boardEl.dataset.replayTotal = String(Math.max(0, replayFrames.length - 1));
 
     if (!fen || !String(fen).trim()) {
       fallbackEl.style.display = 'block';
@@ -287,16 +296,18 @@
     return true;
   }
 
-  function renderMiniBoardFromFen(fen, attempt = 0) {
+  function renderMiniBoardFromFen(fen, attempt = 0, token = null) {
+    const renderToken = token === null ? ++boardRenderSeq : token;
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
+        if (renderToken !== boardRenderSeq) return;
         const boardEl = document.getElementById('ecoMiniBoard');
         if (!boardEl) return;
 
         ensureBoardSized();
         const ok = mountMiniBoardFromFen(fen);
         if (!ok && attempt < MAX_MINI_BOARD_RETRIES) {
-          renderMiniBoardFromFen(fen, attempt + 1);
+          renderMiniBoardFromFen(fen, attempt + 1, renderToken);
           return;
         }
 
@@ -310,6 +321,122 @@
 
   function rerenderMiniBoard() {
     renderMiniBoardFromFen(currentBoardFen);
+  }
+
+  function updateReplayControls() {
+    const available = replayCode === selectedCode && replayFrames.length > 1;
+    const lastPly = Math.max(0, replayFrames.length - 1);
+    const states = {
+      start: !available || replayPly === 0,
+      prev: !available || replayPly === 0,
+      next: !available || replayPly === lastPly,
+      end: !available || replayPly === lastPly
+    };
+
+    const controls = document.getElementById('ecoBoardControls');
+    Object.entries(states).forEach(([action, disabled]) => {
+      const button = controls?.querySelector(`[data-action="${action}"]`);
+      if (button) button.disabled = disabled;
+    });
+  }
+
+  function renderReplayStatus() {
+    const statusEl = document.getElementById('ecoReplayStatus');
+    const boardEl = document.getElementById('ecoMiniBoard');
+    const frame = replayFrames[replayPly] || null;
+    const available = replayCode === selectedCode && replayFrames.length > 1 && frame;
+    const text = available
+      ? window.CaissaEcoReplay.formatFrame(frame, replayFrames.length - 1)
+      : replayUnavailableMessage;
+
+    if (statusEl) {
+      statusEl.textContent = text;
+      statusEl.dataset.replayState = available ? 'available' : replayStatusState;
+    }
+    if (boardEl) {
+      boardEl.setAttribute('aria-label', `Opening preview board. ${text}`);
+      boardEl.dataset.replayCode = replayCode || '';
+      boardEl.dataset.replayPly = String(replayPly);
+      boardEl.dataset.replayTotal = String(Math.max(0, replayFrames.length - 1));
+    }
+  }
+
+  function renderDefiningMoves(fallbackMoves = '') {
+    const movesEl = document.getElementById('ecoDetailMoves');
+    if (!movesEl) return;
+
+    if (replayCode === selectedCode && replayFrames.length > 1) {
+      const tokens = replayFrames.slice(1).map((frame) => {
+        const active = frame.ply === replayPly ? ' is-active' : '';
+        const current = frame.ply === replayPly ? ' aria-current="step"' : '';
+        return `<span class="eco-move-token${active}" data-replay-ply="${frame.ply}"${current}>${escapeHtml(frame.san)}</span>`;
+      });
+      movesEl.innerHTML = `Defining moves: ${tokens.join(' ')}`;
+      return;
+    }
+
+    movesEl.textContent = fallbackMoves
+      ? `Defining moves unavailable for replay: ${fallbackMoves}`
+      : 'Defining moves unavailable for replay.';
+  }
+
+  function clearReplayState(message, state = 'unavailable') {
+    replayCode = null;
+    replayFrames = Object.freeze([]);
+    replayPly = 0;
+    replayStatusState = state;
+    replayUnavailableMessage = message;
+    updateReplayControls();
+    renderReplayStatus();
+  }
+
+  function initializeReplay(code, defining, detail) {
+    const replayApi = window.CaissaEcoReplay;
+    if (!replayApi || typeof replayApi.createReplay !== 'function') {
+      clearReplayState('Move replay unavailable: validator failed to load.');
+      return null;
+    }
+
+    const result = replayApi.createReplay(window.Chess, defining?.moves, {
+      canonicalFinalFen: detail?.fen
+    });
+    if (!result.available) {
+      clearReplayState(`Move replay unavailable: ${result.reason}`);
+      return null;
+    }
+
+    replayCode = code;
+    replayFrames = result.frames;
+    replayPly = result.totalPlies;
+    replayStatusState = 'available';
+    replayUnavailableMessage = '';
+    return result;
+  }
+
+  function goToReplayPly(targetPly) {
+    if (replayCode !== selectedCode || replayFrames.length <= 1) return false;
+    const requested = Number(targetPly);
+    if (!Number.isFinite(requested)) return false;
+
+    const lastPly = replayFrames.length - 1;
+    replayPly = Math.max(0, Math.min(lastPly, Math.trunc(requested)));
+    const frame = replayFrames[replayPly];
+    currentBoardFen = frame.fen;
+    currentBoardState = 'verified';
+
+    const boardFallbackEl = document.getElementById('ecoMiniBoardFallback');
+    if (boardFallbackEl) {
+      boardFallbackEl.textContent = replayPly === 0
+        ? 'Verified starting position loaded.'
+        : 'Verified replay position loaded.';
+    }
+
+    updateReplayControls();
+    renderReplayStatus();
+    renderDefiningMoves();
+    ensureBoardSized();
+    renderMiniBoardFromFen(currentBoardFen);
+    return true;
   }
 
   function setupBoardResizeObserver() {
@@ -399,58 +526,6 @@
         </div>
       </li>`;
     }).join('');
-  }
-
-  function fenFromMoveList(moves) {
-    if (!window.Chess || !Array.isArray(moves) || moves.length === 0) return '';
-    try {
-      const game = new window.Chess();
-      for (const san of moves) {
-        const ok = game.move(san, { sloppy: true });
-        if (!ok) return '';
-      }
-      return game.fen();
-    } catch (_err) {
-      return '';
-    }
-  }
-
-  function normalizeValidFen(fen) {
-    if (!window.Chess || !fen) return '';
-    try {
-      return new window.Chess(String(fen)).fen();
-    } catch (_err) {
-      return '';
-    }
-  }
-
-  function resolveFenForCode(_code, detail, defining) {
-    if (defining && Array.isArray(defining.moves)) {
-      const fenFromMoves = fenFromMoveList(defining.moves);
-      if (fenFromMoves) {
-        const detailFen = normalizeValidFen(detail?.fen);
-        if (detailFen) {
-          const replayParts = fenFromMoves.split(' ');
-          const detailParts = detailFen.split(' ');
-          const auditedFieldsMatch = [0, 1, 2, 4, 5].every((index) => replayParts[index] === detailParts[index]);
-          if (auditedFieldsMatch) {
-            // chess.js 0.10 emits a permissive en-passant target while the pinned
-            // generator uses the modern legal-capture convention. Both describe
-            // the same replayed position; retain the canonical stored FEN.
-            return { fen: detailFen, source: 'verified-move-replay' };
-          }
-          console.warn('[ECO] Stored FEN does not match legal move replay; using replayed position.');
-        }
-        return { fen: fenFromMoves, source: 'moves' };
-      }
-    }
-
-    const verifiedFen = normalizeValidFen(detail?.fen);
-    if (verifiedFen) {
-      return { fen: verifiedFen, source: 'verified-fen' };
-    }
-
-    return { fen: '', source: 'unavailable' };
   }
 
   function uciToSanIfPossible(fen, uci, fallbackSan) {
@@ -770,6 +845,7 @@
       theoryEl.dataset.theoryState = 'idle';
     }
 
+    clearReplayState('Select an opening to load move replay.', 'idle');
     currentBoardFen = START_FEN;
     currentBoardState = 'default';
     const boardFallbackEl = document.getElementById('ecoMiniBoardFallback');
@@ -814,12 +890,6 @@
     const lines = openings.filter((o) => o.eco === normalized && Array.isArray(o.moves));
     const defining = lines.length ? lines.slice().sort((a, b) => a.moves.length - b.moves.length)[0] : null;
     const fallbackMoves = (detail && detail.moves) || (row && row.moves) || '';
-    if (movesEl) {
-      movesEl.textContent = defining
-        ? `Defining moves: ${defining.moves.join(' ')}`
-        : (fallbackMoves ? `Defining moves: ${fallbackMoves}` : 'Moves not added yet');
-    }
-
     const tensPrefix = `${normalized[0]}${normalized[1]}`;
     const neighboringCodes = ecoCodes
       .filter((r) => r.code !== normalized && r.code.startsWith(tensPrefix))
@@ -839,18 +909,21 @@
     void renderTheory(normalized, renderSeq, signal);
 
     debugLog('selected code', normalized);
-    const fenResolution = resolveFenForCode(normalized, detail, defining);
-    currentBoardFen = fenResolution.fen;
-    currentBoardState = currentBoardFen ? 'verified' : 'unavailable';
-    const boardFallbackEl = document.getElementById('ecoMiniBoardFallback');
-    if (boardFallbackEl) {
-      boardFallbackEl.textContent = currentBoardFen
-        ? 'Verified position loaded.'
-        : 'Verified opening position unavailable.';
+    const replay = initializeReplay(normalized, defining, detail);
+    const finalFen = replay?.finalFen || '';
+    if (replay) {
+      goToReplayPly(replay.totalPlies);
+      debugLog('fen source', 'verified-move-replay', 'final fen', finalFen);
+    } else {
+      currentBoardFen = '';
+      currentBoardState = 'unavailable';
+      const boardFallbackEl = document.getElementById('ecoMiniBoardFallback');
+      if (boardFallbackEl) boardFallbackEl.textContent = 'Verified opening move replay unavailable.';
+      renderDefiningMoves(defining?.moves?.join(' ') || fallbackMoves);
+      ensureBoardSized();
+      renderMiniBoardFromFen('');
+      debugLog('fen source', 'unavailable');
     }
-    debugLog('fen source', fenResolution.source, 'final fen', currentBoardFen);
-    ensureBoardSized();
-    renderMiniBoardFromFen(currentBoardFen);
     setStatsPlaceholders(true);
     const hasEcoStats = applyEcoStatsByCode(normalized);
     const hasEcoCont = renderEcoDbContinuations(normalized);
@@ -858,7 +931,7 @@
       showContinuationStatus('No verified local continuations. Checking optional cloud book...');
     }
 
-    void loadContinuationsAndStats(currentBoardFen, renderSeq, {
+    void loadContinuationsAndStats(finalFen, renderSeq, {
       renderContinuations: !hasEcoCont,
       signal
     });
@@ -926,7 +999,15 @@
       if (!btn || btn.disabled) return;
 
       const action = btn.dataset.action;
-      if (action === 'flip') {
+      if (action === 'start') {
+        goToReplayPly(0);
+      } else if (action === 'prev') {
+        goToReplayPly(replayPly - 1);
+      } else if (action === 'next') {
+        goToReplayPly(replayPly + 1);
+      } else if (action === 'end') {
+        goToReplayPly(replayFrames.length - 1);
+      } else if (action === 'flip') {
         boardFlipped = !boardFlipped;
         rerenderMiniBoard();
       }

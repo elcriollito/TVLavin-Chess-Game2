@@ -43,6 +43,20 @@ Accordingly, every E45-E57 aggregate and continuation row is removed from the se
 - Selection changes abort stale theory, book, and position-stat work. Remote book/stat calls have a five-second upper bound. A remote failure may change only optional book/continuation availability, never the opening identity, board, or valid local stats.
 - Local aggregate and continuation rows are rejected unless counts are finite, nonnegative, and internally consistent.
 
+## Mandatory move navigation recovery
+
+The ECO board now has working **FIRST**, **PREV**, **NEXT**, **LAST**, and **FLIP** controls. Selection still opens at the final verified position, while navigation indexes an immutable array containing the legal starting FEN and one `chess.js`-generated FEN per ply.
+
+- Every replay is rebuilt from the selected opening's defining SAN sequence. A stored final FEN is accepted only when its audited fields match the legal replay.
+- The live status announces the current SAN and ply (for example, `5... Ba6 — Ply 10 of 10`), and the corresponding defining move receives `aria-current="step"`.
+- FIRST/PREV disable only at ply 0; NEXT/LAST disable only at the final ply. Native buttons preserve Enter/Space keyboard activation.
+- FLIP changes orientation only. It does not change the replay index, FEN, selection, statistics, or optional-book state.
+- Move navigation is entirely local and performs no book, stats, or theory request. Optional book lookup remains tied to the selected opening's verified final FEN, independent of the frame currently displayed.
+- Rapid navigation uses a render generation token so a delayed animation frame cannot overwrite a newer requested position.
+- Invalid legacy sequences fail closed without a partial board or static-FEN fallback. The existing malformed sequences at C76, C77, C78, C83, C86, C87, C88, and C89 are exposed as **Move replay unavailable**; their four navigation controls remain disabled while FLIP remains available.
+
+Automated replay coverage includes E45-E57, representative A00/B20/C60/D37/E45 paths, boundary state, selection changes, direct routes, Back/Forward restoration, rapid clicks, keyboard activation, orientation changes, invalid sequences, captures, castling, en passant, promotion, statistics isolation, and offline external-book behavior.
+
 ## External book diagnosis
 
 `https://caissa-game-fetcher.elcriollito.workers.dev/api/book` failed before HTTP on 2026-11-07:
@@ -78,10 +92,11 @@ The catalog now contains 366 unique codes. The 134 missing codes outside E45-E57
 ## Automated verification
 
 - Deterministic data sync executed twice without drift.
-- 85 affected Node tests passed, including ECO, Mentor, Chess TV, Opening Database, navigation, route inventory, IndexNow, and accessibility contracts.
-- 36/36 ECO browser tests passed across Chromium, Firefox, WebKit, installed Microsoft Edge, Pixel-class mobile Chromium, and iPhone-class mobile WebKit.
-- The affected advanced Chess TV ECO-resolution browser scenario passed separately in Chromium.
-- Offline-book, rapid-selection, theory-request, deep-link redirect, responsive-overflow, and serious/critical axe checks are included in the browser matrix.
+- The original data-integrity gate passed 85 affected Node tests. The navigation extension adds 6 focused immutable-replay tests; those and the 6 core data-integrity tests pass together (12/12).
+- A broader 79-test regression selection produced 78 passes. Its sole failure is a pre-existing selector drift in `eco-seo.test.js`: the test expects `.openingdb-eco-reference`, while unchanged `opening-database.html` uses `#odbEcoLink.openingdb-eco-badge`. Opening Explorer was intentionally not modified by this hotfix.
+- 60/60 ECO browser tests passed across Chromium, Firefox, WebKit, installed Microsoft Edge, Pixel-class mobile Chromium, and iPhone-class mobile WebKit.
+- The affected advanced Chess TV ECO-resolution browser scenario passed separately in Chromium against a fresh server from this checkout.
+- Offline-book, rapid-selection, theory-request, deep-link redirect, boundary state, keyboard input, Back/Forward restoration, responsive-overflow, and serious/critical axe checks are included in the browser matrix.
 - `npm ci` reported zero dependency vulnerabilities.
 
 This repair is preview-only. It does not authorize a production deployment or merge. The terminal state is **READY FOR OWNER HUMAN QA**.

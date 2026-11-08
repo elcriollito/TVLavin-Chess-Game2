@@ -17,6 +17,23 @@ const expected = {
   E57: ['Nimzo-Indian Defense: Normal Variation, Gligoric System, Bernstein Defense', 'r1bq1rk1/pp3ppp/2n1pn2/8/1bBp4/P1N1PN2/1P3PPP/R1BQ1RK1 w - - 0 10']
 };
 
+const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const expectedPlies = {
+  E45: 10,
+  E46: 8,
+  E47: 9,
+  E48: 10,
+  E49: 13,
+  E50: 9,
+  E51: 10,
+  E52: 12,
+  E53: 12,
+  E54: 15,
+  E55: 16,
+  E56: 14,
+  E57: 18
+};
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
   await page.route('**/api/public-auth-config', route => route.fulfill({
@@ -39,7 +56,17 @@ test('E45-E57 direct routes render verified identity, moves, positions, and hone
     await expect(page.locator('#ecoDetailMoves')).toContainText('Defining moves: d4 Nf6 c4 e6 Nc3 Bb4');
     await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-position-state', 'verified');
     await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-fen', fen);
+    await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-code', code);
+    await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-ply', String(expectedPlies[code]));
+    await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-total', String(expectedPlies[code]));
     await expect(page.locator('#ecoMiniBoard .eco-sq')).toHaveCount(64);
+    await expect(page.locator('#ecoReplayStatus')).toHaveAttribute('data-replay-state', 'available');
+    await expect(page.locator('#ecoReplayStatus')).toContainText(`Ply ${expectedPlies[code]} of ${expectedPlies[code]}`);
+    await expect(page.locator('#ecoDetailMoves [aria-current="step"]')).toHaveCount(1);
+    await expect(page.locator('[data-action="start"]')).toBeEnabled();
+    await expect(page.locator('[data-action="prev"]')).toBeEnabled();
+    await expect(page.locator('[data-action="next"]')).toBeDisabled();
+    await expect(page.locator('[data-action="end"]')).toBeDisabled();
     await expect(page.locator('#ecoDetailTheory')).toHaveAttribute('data-theory-state', 'unavailable');
     await expect(page.locator('#ecoDetailTheory')).toContainText('Verified theory is not available');
     await expect(page.locator('#ecoStatsStatus')).toHaveAttribute('data-stats-state', 'unavailable');
@@ -48,6 +75,115 @@ test('E45-E57 direct routes render verified identity, moves, positions, and hone
   }
 
   expect(theoryRequests).toEqual([]);
+});
+
+test('FIRST/PREV/NEXT/LAST, keyboard, flip, and rapid navigation preserve exact E45 replay state', async ({ page }) => {
+  let requestsAfterLoad = 0;
+  await page.goto('/eco/E45', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-ply', '10');
+  await page.waitForLoadState('networkidle');
+  page.on('request', (request) => {
+    if (['fetch', 'xhr'].includes(request.resourceType())) requestsAfterLoad += 1;
+  });
+
+  const board = page.locator('#ecoMiniBoard');
+  const firstPiece = board.locator('.eco-piece').first();
+  await expect(firstPiece).toHaveAttribute('src', /bR\.png$/);
+  const statsBefore = await page.locator('#ecoStatsStatus').textContent();
+
+  await page.locator('[data-action="start"]').click();
+  await expect(board).toHaveAttribute('data-fen', startFen);
+  await expect(board).toHaveAttribute('data-replay-ply', '0');
+  await expect(page.locator('#ecoReplayStatus')).toHaveText('Starting position — Ply 0 of 10');
+  await expect(page.locator('#ecoDetailMoves [aria-current="step"]')).toHaveCount(0);
+  await expect(page.locator('[data-action="start"]')).toBeDisabled();
+  await expect(page.locator('[data-action="prev"]')).toBeDisabled();
+  await expect(page.locator('[data-action="next"]')).toBeEnabled();
+  await expect(page.locator('[data-action="end"]')).toBeEnabled();
+
+  const next = page.locator('[data-action="next"]');
+  await next.focus();
+  await page.keyboard.press('Enter');
+  await expect(board).toHaveAttribute('data-replay-ply', '1');
+  await expect(page.locator('#ecoReplayStatus')).toHaveText('1. d4 — Ply 1 of 10');
+  await expect(page.locator('#ecoDetailMoves [aria-current="step"]')).toHaveText('d4');
+
+  const fenBeforeFlip = await board.getAttribute('data-fen');
+  await page.locator('[data-action="flip"]').click();
+  await expect(board).toHaveAttribute('data-fen', fenBeforeFlip);
+  await expect(board).toHaveAttribute('data-replay-ply', '1');
+  await expect(firstPiece).toHaveAttribute('src', /wR\.png$/);
+
+  await next.focus();
+  await page.keyboard.press('Space');
+  await expect(board).toHaveAttribute('data-replay-ply', '2');
+  await page.locator('[data-action="prev"]').click();
+  await expect(board).toHaveAttribute('data-replay-ply', '1');
+
+  await page.locator('[data-action="start"]').click();
+  await next.click();
+  await next.click();
+  await page.locator('[data-action="end"]').click();
+  await page.locator('[data-action="prev"]').click();
+  await expect(board).toHaveAttribute('data-replay-ply', '9');
+  await expect(page.locator('#ecoReplayStatus')).toContainText('Ply 9 of 10');
+  await expect(board.locator('.eco-sq')).toHaveCount(64);
+
+  await page.locator('[data-action="end"]').click();
+  await expect(board).toHaveAttribute('data-fen', expected.E45[1]);
+  await expect(board).toHaveAttribute('data-replay-ply', '10');
+  await expect(page.locator('#ecoStatsStatus')).toHaveText(statsBefore || '');
+  expect(requestsAfterLoad).toBe(0);
+});
+
+test('E45/E57 switching and browser back/forward restore each opening at its final frame', async ({ page }) => {
+  await page.goto('/eco/E45', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-ply', '10');
+
+  await page.locator('#ecoSearch').fill('E57');
+  await page.locator('#ecoList [data-code="E57"]').click();
+  await expect(page).toHaveURL(/\/eco\/E57$/);
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-fen', expected.E57[1]);
+  await expect(page.locator('#ecoReplayStatus')).toHaveText('9... cxd4 — Ply 18 of 18');
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/eco\/E45$/);
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-fen', expected.E45[1]);
+  await expect(page.locator('#ecoReplayStatus')).toHaveText('5... Ba6 — Ply 10 of 10');
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/eco\/E57$/);
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-fen', expected.E57[1]);
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-ply', '18');
+});
+
+test('representative A/B/C/D/E routes support legal boundary navigation', async ({ page }) => {
+  for (const code of ['A00', 'B20', 'C60', 'D37', 'E45']) {
+    await page.goto(`/eco/${code}`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ecoReplayStatus')).toHaveAttribute('data-replay-state', 'available');
+    const total = Number(await page.locator('#ecoMiniBoard').getAttribute('data-replay-total'));
+    expect(total).toBeGreaterThan(0);
+
+    await page.locator('[data-action="start"]').click();
+    await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-fen', startFen);
+    await page.locator('[data-action="next"]').click();
+    await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-ply', '1');
+    if (total > 1) await page.locator('[data-action="end"]').click();
+    await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-replay-ply', String(total));
+  }
+});
+
+test('invalid legacy move sequences fail closed with honest unavailable navigation', async ({ page }) => {
+  await page.goto('/eco/C76', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#ecoReplayStatus')).toHaveAttribute('data-replay-state', 'unavailable');
+  await expect(page.locator('#ecoReplayStatus')).toContainText('Illegal or unverifiable move at ply 13: Ba4');
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-position-state', 'unavailable');
+  await expect(page.locator('#ecoMiniBoard')).toHaveAttribute('data-fen', '');
+  await expect(page.locator('#ecoMiniBoard')).toBeHidden();
+  for (const action of ['start', 'prev', 'next', 'end']) {
+    await expect(page.locator(`[data-action="${action}"]`)).toBeDisabled();
+  }
+  await expect(page.locator('[data-action="flip"]')).toBeEnabled();
 });
 
 test('search crosses the active volume and same-code variation labels are preserved', async ({ page }) => {
@@ -69,6 +205,11 @@ test('offline cloud book cannot erase valid local identity, board, or consistent
   await expect(page.locator('#ecoStatBookWeight')).toHaveText('Unavailable');
   await expect(page.locator('#ecoDetailTitle')).toHaveText('E44 - Nimzo-Indian Defense');
   await expect(page.locator('#ecoStatGames')).toHaveText('2748');
+  await page.locator('[data-action="start"]').click();
+  await page.locator('[data-action="next"]').click();
+  await page.locator('[data-action="end"]').click();
+  await expect(page.locator('#ecoStatGames')).toHaveText('2748');
+  await expect(page.locator('#ecoStatsStatus')).toHaveAttribute('data-stats-state', 'available');
 });
 
 test('rapid selection cancels stale async work and leaves the final opening authoritative', async ({ page }) => {
