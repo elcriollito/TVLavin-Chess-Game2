@@ -3512,7 +3512,7 @@
     els.openingLabel.textContent = openingName;
     if (els.ecoCode) els.ecoCode.textContent = openingFallback.eco || 'ECO —';
     if (els.ecoLink) {
-      els.ecoLink.href = openingFallback.eco ? `/eco?code=${encodeURIComponent(openingFallback.eco)}` : '/eco';
+      els.ecoLink.href = openingFallback.eco ? `/eco/${encodeURIComponent(openingFallback.eco)}` : '/eco';
       els.ecoLink.setAttribute('aria-label', openingFallback.eco
         ? `Browse ECO ${openingFallback.eco}`
         : 'Browse ECO opening codes');
