@@ -55,6 +55,11 @@ async function drag(page, sourceSquare, targetSquare) {
   await page.mouse.up();
 }
 
+async function tap(page, square) {
+  const target = await squarePoint(page, square, 0.5, 0.5);
+  await page.mouse.click(target.x, target.y);
+}
+
 async function applyFen(page, fen) {
   await page.getByRole('button', { name: 'Input FEN' }).click();
   await page.locator('#odbFenInput').fill(fen);
@@ -139,6 +144,160 @@ test('Quiet Drag is silent and isolates Chess.js, notation, and lookup work unti
   expect(after.adapter.representationCount).toBe(0);
 });
 
+test('tap-to-move selects, switches, deselects, rejects, and commits exactly once for both turns', async ({ page }) => {
+  await openLab(page);
+  const initial = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+
+  await tap(page, 'e7');
+  await tap(page, 'e4');
+  let snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.tapSelection.source).toBe('');
+  expect(snapshot.history).toEqual([]);
+
+  await tap(page, 'e2');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.tapSelection.source).toBe('e2');
+  expect(snapshot.tapSelection.legalTargets.map(([square]) => square).sort()).toEqual(['e3', 'e4']);
+  await expect(page.locator('#openingDbBoard .square-e2')).toHaveAttribute('data-caissa-tap-selected', 'true');
+  await expect(page.locator('#openingDbBoard [data-caissa-tap-legal]')).toHaveCount(2);
+
+  await tap(page, 'e2');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.tapSelection.source).toBe('');
+  await expect(page.locator('#openingDbBoard [data-caissa-tap-selected]')).toHaveCount(0);
+
+  await tap(page, 'e2');
+  await tap(page, 'd2');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.tapSelection.source).toBe('d2');
+  expect(snapshot.tapSelection.legalTargets.map(([square]) => square).sort()).toEqual(['d3', 'd4']);
+
+  await tap(page, 'd5');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.history).toEqual([]);
+  expect(snapshot.tapSelection.source).toBe('d2');
+
+  await tap(page, 'e2');
+  const beforeMove = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  await tap(page, 'e4');
+  await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().interaction.positionViewRequests))
+    .toBe(beforeMove.interaction.positionViewRequests + 1);
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.history).toEqual(['e4']);
+  expect(snapshot.boardPosition.e4).toBe('wP');
+  expect(snapshot.tapSelection.source).toBe('');
+  expect(snapshot.interaction.boardMoveAttempts).toBe(beforeMove.interaction.boardMoveAttempts + 1);
+  expect(snapshot.interaction.boardMovesApplied).toBe(beforeMove.interaction.boardMovesApplied + 1);
+  expect(snapshot.interaction.boardPositionWrites).toBe(beforeMove.interaction.boardPositionWrites + 1);
+  expect(snapshot.interaction.tapMovesApplied).toBe(beforeMove.interaction.tapMovesApplied + 1);
+
+  await tap(page, 'c7');
+  await tap(page, 'c5');
+  await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().history)).toEqual(['e4', 'c5']);
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.boardPosition.c5).toBe('bP');
+  expect(snapshot.interaction.tapMovesApplied).toBe(initial.interaction.tapMovesApplied + 2);
+});
+
+test('tap-to-move preserves captures, castling, en passant, promotion, flip, takeback, FEN, and review isolation', async ({ page }) => {
+  await openLab(page);
+
+  await applyFen(page, '8/8/8/3p4/4P3/8/8/4K2k w - - 0 1');
+  await tap(page, 'e4');
+  await expect(page.locator('#openingDbBoard .square-d5')).toHaveAttribute('data-caissa-tap-capture', 'true');
+  await tap(page, 'd5');
+  let snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.history).toEqual(['exd5']);
+  expect(snapshot.boardPosition.d5).toBe('wP');
+
+  await applyFen(page, 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1');
+  await tap(page, 'e1');
+  await tap(page, 'g1');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.history).toEqual(['O-O']);
+  expect(snapshot.boardPosition.g1).toBe('wK');
+  expect(snapshot.boardPosition.f1).toBe('wR');
+
+  await applyFen(page, '7k/8/8/3pP3/8/8/8/K7 w - d6 0 1');
+  await tap(page, 'e5');
+  await expect(page.locator('#openingDbBoard .square-d6')).toHaveAttribute('data-caissa-tap-capture', 'true');
+  await tap(page, 'd6');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.history).toEqual(['exd6']);
+  expect(snapshot.boardPosition.d5).toBeUndefined();
+
+  await applyFen(page, '7k/P7/8/8/8/8/8/K7 w - - 0 1');
+  await tap(page, 'a7');
+  await tap(page, 'a8');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.uciHistory).toEqual(['a7a8q']);
+  expect(snapshot.boardPosition.a8).toBe('wQ');
+
+  await page.getByRole('button', { name: 'Start Position' }).click();
+  await page.getByRole('button', { name: 'Flip Board' }).click();
+  await tap(page, 'g1');
+  await tap(page, 'f3');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.orientation).toBe('black');
+  expect(snapshot.history).toEqual(['Nf3']);
+
+  await page.getByRole('button', { name: 'Takeback' }).click();
+  await tap(page, 'd2');
+  await tap(page, 'd4');
+  await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().history)).toEqual(['d4']);
+
+  await page.getByRole('tab', { name: 'Moves' }).click();
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  const beforeReviewTap = snapshot;
+  await tap(page, 'd7');
+  await tap(page, 'd5');
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.history).toEqual(beforeReviewTap.history);
+  expect(snapshot.tapSelection.source).toBe('');
+
+  await page.getByRole('tab', { name: 'Explorer' }).click();
+  await tap(page, 'd7');
+  await tap(page, 'd5');
+  await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().history)).toEqual(['d4', 'd5']);
+});
+
+test('tap and drag arbitration prevents duplicate commits and cleans up cancellation', async ({ page }) => {
+  await openLab(page);
+  const beforeTap = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  await tap(page, 'g1');
+  const selected = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(selected.history).toEqual([]);
+  expect(selected.interaction.boardMoveAttempts).toBe(beforeTap.interaction.boardMoveAttempts);
+  await tap(page, 'f3');
+  await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().history)).toEqual(['Nf3']);
+  let snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.interaction.boardMovesApplied).toBe(beforeTap.interaction.boardMovesApplied + 1);
+
+  await page.getByRole('button', { name: 'Start Position' }).click();
+  const source = await squarePoint(page, 'e2');
+  const middle = await squarePoint(page, 'e3');
+  await page.evaluate(({ sourcePoint, middlePoint }) => {
+    const root = document.querySelector('#openingDbBoard .board-b72b1');
+    const dispatch = (type, point) => root.dispatchEvent(new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      isPrimary: true,
+      pointerId: 44,
+      pointerType: 'touch',
+      clientX: point.x,
+      clientY: point.y
+    }));
+    dispatch('pointerdown', sourcePoint);
+    dispatch('pointermove', middlePoint);
+    dispatch('pointercancel', middlePoint);
+  }, { sourcePoint: source, middlePoint: middle });
+  snapshot = await page.evaluate(() => window.__openingDbQuietDrag.getSnapshot());
+  expect(snapshot.history).toEqual([]);
+  expect(snapshot.adapter.representationCount).toBe(0);
+  expect(snapshot.adapter.controller.scheduler.pendingFrame).toBe(false);
+  expect(snapshot.tapSelection.source).toBe('');
+});
+
 test('captures, castling, en passant, queen promotion, rejection, flip, and touch stay correct', async ({ page }) => {
   await openLab(page);
 
@@ -171,7 +330,8 @@ test('captures, castling, en passant, queen promotion, rejection, flip, and touc
   expect(snapshot.uciHistory).toEqual(['a7a8q']);
   expect(snapshot.fen.split(' ')[0]).toBe('Q6k/8/8/8/8/8/8/K7');
   expect(snapshot.boardPosition.a8).toBe('wQ');
-  expect(snapshot.positionRequestId).toBe(beforeWhitePromotion.positionRequestId + 1);
+  await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().positionRequestId))
+    .toBe(beforeWhitePromotion.positionRequestId + 1);
 
   await applyFen(page, 'k7/8/8/8/8/8/p7/7K b - - 0 1');
   await drag(page, 'a2', 'a1');
