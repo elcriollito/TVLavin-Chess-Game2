@@ -14,5 +14,6 @@ Record only `PASS`, `FAIL`, `BLOCKED`, or `NOT TESTED`.
 | HQA-08 | SHA-256 verification | NOT TESTED | `Get-FileHash -Algorithm SHA256` must match manifest |
 | HQA-09 | VirusTotal report | BLOCKED | No indexed report; no upload performed |
 | HQA-10 | Final owner approval of exact candidate commit | NOT TESTED | Required before merge/deploy/publish |
+| HQA-11 | Exact staged Vercel inventory | NOT TESTED | Run `npm run release:public:verify-vercel`; require exact manifest parity and repository-root block |
 
 Also verify keyboard navigation, EN/ES/PT switching, Chrome, Edge, Firefox, mobile viewport behavior, legacy `/vault` redirect, and that future products have no download links.

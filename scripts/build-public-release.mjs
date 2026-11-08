@@ -227,26 +227,11 @@ export function loadPublicArtifactManifest({ cwd = repositoryRoot } = {}) {
   return manifest;
 }
 
-export function escapeVercelIgnorePath(path) {
-  const metacharacters = new Set(['\\', '*', '?', '[', ']', '!', '#', ' ']);
-  return [...path].map(character => metacharacters.has(character) ? `\\${character}` : character).join('');
-}
-
-export function renderVercelIgnore(manifest) {
-  const entries = normalizePublicManifest(manifest);
-  const directories = new Set();
-  for (const path of entries.keys()) {
-    const parts = path.split('/');
-    for (let index = 1; index < parts.length; index += 1) {
-      directories.add(parts.slice(0, index).join('/'));
-    }
-  }
+export function renderVercelIgnore() {
   return [
-    '# Generated from PUBLIC_RELEASE_ARTIFACT_MANIFEST.json. Do not edit by hand.',
-    '# The positive allowlist keeps unreviewed tracked files out of Vercel uploads.',
+    '# Direct repository-root Vercel uploads are intentionally disabled.',
+    '# Build and verify the exact audited staging tree with `npm run release:public:verify-vercel`.',
     '*',
-    ...[...directories].sort().map(path => `!${escapeVercelIgnorePath(path)}/`),
-    ...[...entries.keys()].sort().map(path => `!${escapeVercelIgnorePath(path)}`),
     ''
   ].join('\n');
 }
@@ -381,7 +366,11 @@ export function auditChessTVContracts({ cwd = repositoryRoot, files = trackedPub
 export async function buildPublicRelease({ cwd = repositoryRoot, output = DEFAULT_OUTPUT } = {}) {
   const sourceRoot = resolve(cwd);
   const targetRoot = resolve(output);
-  if (targetRoot === sourceRoot || sourceRoot.startsWith(`${targetRoot}${sep}`)) {
+  if (
+    targetRoot === sourceRoot
+    || targetRoot.startsWith(`${sourceRoot}${sep}`)
+    || sourceRoot.startsWith(`${targetRoot}${sep}`)
+  ) {
     throw new Error('Release output must be a dedicated directory outside the repository tree.');
   }
   const files = trackedPublicFiles({ cwd: sourceRoot });

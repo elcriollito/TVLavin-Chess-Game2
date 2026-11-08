@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { spawnSync } from 'node:child_process';
 import {
   CHESS_TV_CONTRACTS,
   DEFAULT_OUTPUT,
   auditChessTVContracts,
   auditPublicFiles,
   buildPublicRelease,
-  escapeVercelIgnorePath,
   isUnapprovedPublicBinaryPath,
   isProtectedPublicPath,
   loadPublicArtifactManifest,
@@ -93,79 +91,18 @@ test('committed-tree audit has no protected paths and all required runtime files
   assert.ok(result.files > 500);
 });
 
-test('the exact public manifest also generates the Vercel upload allowlist', () => {
+test('the exact public manifest controls staging while repository-root deployment is blocked', () => {
   const manifest = loadPublicArtifactManifest();
-  assert.equal(readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8'), renderVercelIgnore(manifest));
+  assert.equal(readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8'), renderVercelIgnore());
+  assert.match(renderVercelIgnore(), /Direct repository-root Vercel uploads are intentionally disabled/);
+  assert.deepEqual(renderVercelIgnore().split(/\r?\n/).filter(line => line && !line.startsWith('#')), ['*']);
   assert.deepEqual(manifest.files.map(item => item.path), [...manifest.files.map(item => item.path)].sort());
 });
 
-test('every manifest path is included under Git-compatible Vercel ignore semantics', () => {
-  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-vercelignore-manifest-'));
-  try {
-    const initialized = spawnSync('git', ['init', '--quiet'], { cwd: temporaryRoot, encoding: 'utf8' });
-    assert.equal(initialized.status, 0, initialized.stderr);
-    const manifest = loadPublicArtifactManifest();
-    writeFileSync(join(temporaryRoot, '.gitignore'), renderVercelIgnore(manifest));
-    const checked = spawnSync(
-      'git',
-      ['check-ignore', '--no-index', '--stdin'],
-      {
-        cwd: temporaryRoot,
-        encoding: 'utf8',
-        input: `${manifest.files.map(item => item.path).join('\n')}\n`
-      }
-    );
-    assert.equal(checked.stdout, '', `manifest paths remained ignored:\n${checked.stdout}`);
-    assert.equal(checked.status, 1, checked.stderr);
-  } finally {
-    rmSync(temporaryRoot, { recursive: true, force: true });
-  }
-});
-
-test('Vercel allowlist escapes literal path metacharacters', () => {
-  assert.equal(
-    escapeVercelIgnorePath('api/[id]/literal*question?.js'),
-    'api/\\[id\\]/literal\\*question\\?.js'
-  );
-  assert.equal(escapeVercelIgnorePath('public/!important #1.txt'), 'public/\\!important\\ \\#1.txt');
-});
-
-test('Vercel allowlist includes literal dynamic routes and excludes colliding siblings', () => {
-  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-vercelignore-'));
-  const approved = [
-    'api/insights/reports/[id].js',
-    'api/mentor/result/[operationId].js',
-    'api/mentor/result/[operationId]/confirm.js'
-  ];
-  const colliding = [
-    'api/insights/reports/i.js',
-    'api/insights/reports/d.js',
-    'api/mentor/result/o.js',
-    'api/mentor/result/o/confirm.js'
-  ];
-  try {
-    const initialized = spawnSync('git', ['init', '--quiet'], { cwd: temporaryRoot, encoding: 'utf8' });
-    assert.equal(initialized.status, 0, initialized.stderr);
-    const manifest = {
-      schemaVersion: 1,
-      files: approved.map(path => ({ path, sha256: '0'.repeat(64) }))
-    };
-    writeFileSync(join(temporaryRoot, '.gitignore'), renderVercelIgnore(manifest));
-    for (const path of [...approved, ...colliding]) {
-      const absolutePath = join(temporaryRoot, path);
-      mkdirSync(dirname(absolutePath), { recursive: true });
-      writeFileSync(absolutePath, path);
-    }
-    const isIgnored = path => spawnSync(
-      'git',
-      ['check-ignore', '--no-index', '--quiet', '--', path],
-      { cwd: temporaryRoot, encoding: 'utf8' }
-    ).status === 0;
-    for (const path of approved) assert.equal(isIgnored(path), false, `${path} was not allowed`);
-    for (const path of colliding) assert.equal(isIgnored(path), true, `${path} was over-allowed`);
-  } finally {
-    rmSync(temporaryRoot, { recursive: true, force: true });
-  }
+test('built staging omits the repository-root Vercel deployment block', async () => {
+  const output = await mkdtemp(resolve(tmpdir(), 'caissa-vercel-stage-'));
+  await buildPublicRelease({ output });
+  await assert.rejects(stat(resolve(output, '.vercelignore')), { code: 'ENOENT' });
 });
 
 test('public release audit enforces all permanent Chess TV contracts', () => {
@@ -194,6 +131,13 @@ test('Chess TV guard rejects a missing board control and a duplicate ECO catalog
 
 test('default release output is outside the repository to prevent parent-worktree scanning', () => {
   assert.equal(DEFAULT_OUTPUT.startsWith(`${resolve('.') }\\`), false);
+});
+
+test('release output rejects a child directory inside the repository', async () => {
+  await assert.rejects(
+    buildPublicRelease({ output: resolve('.public-release-unsafe-child') }),
+    /dedicated directory outside the repository tree/
+  );
 });
 
 test('audit rejects a leaked protected path and a missing required path', () => {

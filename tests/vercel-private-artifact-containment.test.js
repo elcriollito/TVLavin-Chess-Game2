@@ -14,8 +14,9 @@ function hasManifestPrefix(prefix) {
   return publicPaths.some(path => path === prefix || path.startsWith(`${prefix}/`));
 }
 
-test('Vercel upload policy is default-deny and manifest-derived', () => {
+test('repository-root Vercel upload is blocked and staging remains manifest-derived', () => {
   assert.equal(ignore[0], '*');
+  assert.deepEqual(ignore, ['*']);
   assert.equal(manifest.policy, 'exact-path-and-sha256');
   assert.equal(manifest.files.every(item => /^[0-9a-f]{64}$/.test(item.sha256)), true);
 });

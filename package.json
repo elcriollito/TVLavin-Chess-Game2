@@ -109,6 +109,7 @@
     "lint:disclosure": "node --check tests/public-disclosure.test.js",
     "release:public:audit": "node scripts/build-public-release.mjs --check",
     "release:public:build": "node scripts/build-public-release.mjs",
+    "release:public:verify-vercel": "node scripts/verify-public-release-vercel.mjs",
     "release:public:manifest": "node scripts/update-public-release-manifest.mjs",
     "test:public-release": "node --test tests/public-release-builder.test.js",
     "lint:public-release": "node --check scripts/build-public-release.mjs && node --check tests/public-release-builder.test.js",
