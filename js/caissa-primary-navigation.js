@@ -56,7 +56,7 @@
             { id: 'world-champions', label: 'World Champions', icon: 'fas fa-crown', route: '/game-library/champions' },
             { id: 'history', label: 'History', icon: 'fas fa-history', section: 'history', route: '/history', canonicalNavigation: true },
             { id: 'dosChess', label: 'DOS Chess', icon: 'fas fa-desktop', section: 'dosChess', route: '/dos-chess', canonicalNavigation: true },
-            { id: 'vault', label: 'Vault', icon: 'fas fa-box-archive', route: '/vault', externalIndicator: true }
+            { id: 'vault', label: 'Downloads', icon: 'fas fa-download', route: '/downloads', externalIndicator: true }
         ])
     ];
     const groups = Object.freeze(allGroups);

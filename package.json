@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "test:caissa-downloads-polyglot": "node --test tests/polyglot-tool.test.js tests/downloads-page.test.js tests/caissa-expansion-security.test.js tests/public-route-inventory.test.js tests/navigation-integrity.test.js tests/global-navigation-order-policy.test.js tests/public-release-builder.test.js",
+    "test:caissa-downloads-polyglot:browser": "playwright test tests/browser/polyglot-responsive-localization.spec.js tests/browser/downloads-page.spec.js --project=chromium",
     "test:opening-trainer": "node --test tests/opening-trainer.test.js tests/opening-trainer-stockfish19.test.js tests/navigation-integrity.test.js tests/global-navigation-order-policy.test.js tests/public-route-inventory.test.js",
     "test:opening-trainer:browser": "playwright test tests/browser/opening-trainer.spec.js tests/browser/opening-trainer-stockfish19.spec.js --project=chromium --project=firefox --project=webkit",
     "test:opening-trainer:engine-soak": "playwright test tests/browser/opening-trainer-stockfish19-soak.spec.js --project=chromium --project=firefox --project=webkit",
@@ -107,6 +109,8 @@
     "lint:disclosure": "node --check tests/public-disclosure.test.js",
     "release:public:audit": "node scripts/build-public-release.mjs --check",
     "release:public:build": "node scripts/build-public-release.mjs",
+    "release:public:verify-vercel": "node scripts/verify-public-release-vercel.mjs",
+    "release:public:manifest": "node scripts/update-public-release-manifest.mjs",
     "test:public-release": "node --test tests/public-release-builder.test.js",
     "lint:public-release": "node --check scripts/build-public-release.mjs && node --check tests/public-release-builder.test.js",
     "test:guided-study": "node --test tests/guided-study-entry.test.js",

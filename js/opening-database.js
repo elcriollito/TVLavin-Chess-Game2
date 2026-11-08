@@ -703,6 +703,17 @@
       .replace(/'/g, '&#39;');
   }
 
+  function safeGamePgnUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      const allowedOrigin = url.origin === 'https://downloads.caissa-chess.org';
+      const allowedPath = /^\/openingdb\/games\/[a-zA-Z0-9._-]+\/pgn\/g_[0-9a-f]+\.pgn$/i.test(url.pathname);
+      return allowedOrigin && allowedPath ? url.href : '';
+    } catch (_error) {
+      return '';
+    }
+  }
+
   function formatPrefixedSAN({ ply, sanForCandidateMove }) {
     const san = sanitizeMoveCellToken(sanForCandidateMove || '');
     if (!san) return { prefix: '', san: 'TBD' };
@@ -2665,8 +2676,11 @@
 
   async function loadGamePgnText(row) {
     if (!row || !row.gameId) return null;
-    const remoteText = row.pgnUrl ? await fetchTextWithTimeout(row.pgnUrl, GAMES_FETCH_TIMEOUT_MS) : null;
-    if (remoteText) return remoteText;
+    const remoteUrl = safeGamePgnUrl(row.pgnUrl);
+    if (remoteUrl) {
+      const remoteText = await fetchTextWithTimeout(remoteUrl, GAMES_FETCH_TIMEOUT_MS);
+      if (remoteText) return remoteText;
+    }
     const localUrl = `/data/openingdb_games/${state.gamesVersion}/pgn/${row.gameId}.pgn`;
     return fetchTextWithTimeout(localUrl, GAMES_FETCH_TIMEOUT_MS);
   }
@@ -2936,12 +2950,14 @@
       const event = escapeHtml(row.eco ? `${row.event || row.site || '-'} [${row.eco}]` : (row.event || row.site || '-'));
       const year = escapeHtml(row.year || '-');
       const avgElo = Number(row.avgElo);
-      const whiteElo = row.whiteElo ? String(row.whiteElo) : '?';
-      const blackElo = row.blackElo ? String(row.blackElo) : '?';
-      const eloCell = escapeHtml(Number.isFinite(avgElo) ? `${Math.round(avgElo)} (avg)` : `${whiteElo}/${blackElo}`);
-      const actions = row.pgnUrl
+      const whiteElo = escapeHtml(row.whiteElo ? String(row.whiteElo) : '?');
+      const blackElo = escapeHtml(row.blackElo ? String(row.blackElo) : '?');
+      const eloCell = Number.isFinite(avgElo) ? `${Math.round(avgElo)} (avg)` : `${whiteElo}/${blackElo}`;
+      const pgnUrl = safeGamePgnUrl(row.pgnUrl);
+      const gameId = escapeHtml(row.gameId || 'game');
+      const actions = pgnUrl
         ? `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">Review moves</button>
-            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${escapeHtml(row.pgnUrl)}" download="${escapeHtml(row.gameId)}.pgn">Download</a>`
+            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${escapeHtml(pgnUrl)}" download="${gameId}.pgn">Download</a>`
         : `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">Review</button>
            <span class="openingdb-muted">Metadata only</span>`;
       return `

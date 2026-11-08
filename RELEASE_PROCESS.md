@@ -172,6 +172,28 @@ At minimum, validate Chromium/Chrome. Firefox, Edge, Safari, and Mobile Safari s
 
 CAISSA primarily deploys through Git integration.
 
+### Exact Public-Artifact Gate
+
+The Downloads & Polyglot release candidate is a governed exception to a direct
+repository-root upload. The repository contains private development, test,
+architecture, and release material that is intentionally absent from the public
+artifact. Its root `.vercelignore` therefore blocks every repository-root upload.
+
+Before any owner-authorized preview or production release:
+
+```powershell
+npm run release:public:audit
+npm run release:public:verify-vercel
+```
+
+The verifier rebuilds the exact SHA-256-bound staging tree at the printed
+temporary path, requires the reviewed Vercel CLI version, proves Vercel's actual
+file enumerator sees exactly the manifest paths and no extras, and proves the
+repository root remains blocked. Only that verified staging directory may be
+used as deployment input. A direct Git/repository-root deployment is prohibited
+for this candidate. These commands do not deploy; merge, preview, production,
+alias, and publication actions still require explicit owner authorization.
+
 Standard deployment path:
 
 1. Confirm branch is `main`.

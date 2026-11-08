@@ -81,10 +81,11 @@ test('public product sources do not import, expose or activate the fixture', asy
     assert.doesNotMatch(joined, /[?&]qa=1|localStorage[^\n]*fixture|globalThis[^\n]*fixture/i);
 });
 
-test('Vercel upload explicitly excludes both ET.10C fixture files', async () => {
-    const ignored = await readFile(new URL('../../.vercelignore', import.meta.url), 'utf8');
-    assert.match(ignored, /^tests\/endgame-trainer\/et10c-deterministic-curriculum-fixture\.js$/m);
-    assert.match(ignored, /^tests\/endgame-trainer\/et10c-deterministic-curriculum-fixture\.test\.js$/m);
+test('positive Vercel manifest excludes both ET.10C fixture files', async () => {
+    const manifest = JSON.parse(await readFile(new URL('../../PUBLIC_RELEASE_ARTIFACT_MANIFEST.json', import.meta.url), 'utf8'));
+    const publicPaths = new Set(manifest.files.map(item => item.path));
+    assert.equal(publicPaths.has('tests/endgame-trainer/et10c-deterministic-curriculum-fixture.js'), false);
+    assert.equal(publicPaths.has('tests/endgame-trainer/et10c-deterministic-curriculum-fixture.test.js'), false);
 });
 
 test('existing lesson contract and Stockfish Worker path are unchanged', () => {

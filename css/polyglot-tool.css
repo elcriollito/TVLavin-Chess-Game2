@@ -10,6 +10,10 @@
     --logo-text: #111827;
 }
 
+.polyglot-page [hidden] {
+    display: none !important;
+}
+
 @media (prefers-color-scheme: dark) {
     :root {
         --text: #e2e8f0;
@@ -250,6 +254,40 @@
     width: fit-content;
 }
 
+.poly-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.poly-progress {
+    margin-top: 18px;
+    padding: 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.poly-progress-copy {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 10px;
+    color: var(--text);
+}
+
+.poly-progress-copy span {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.poly-progress progress {
+    display: block;
+    width: 100%;
+    height: 12px;
+    accent-color: #1d4ed8;
+}
+
 .poly-output {
     margin-top: 18px;
 }
@@ -278,6 +316,10 @@
     flex-wrap: wrap;
     font-weight: 600;
     color: var(--text);
+}
+
+.poly-result-row[hidden] {
+    display: none;
 }
 
 .poly-education {
@@ -407,6 +449,7 @@
     }
 
     .poly-generate-btn,
+    .poly-action-row .poly-btn,
     .poly-download-actions .poly-btn,
     .poly-result-row .poly-btn {
         width: 100%;
@@ -417,6 +460,6 @@
 
 @media (max-width: 768px) {
     .polyglot-content-area {
-        padding: 16px 12px 24px;
+        padding: 80px 12px 24px;
     }
 }
