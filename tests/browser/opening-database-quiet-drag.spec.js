@@ -58,7 +58,7 @@ async function drag(page, sourceSquare, targetSquare) {
 async function applyFen(page, fen) {
   await page.getByRole('button', { name: 'Input FEN' }).click();
   await page.locator('#odbFenInput').fill(fen);
-  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await page.getByRole('button', { name: 'Load position', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.__openingDbQuietDrag.getSnapshot().fen)).toBe(fen);
 }
 

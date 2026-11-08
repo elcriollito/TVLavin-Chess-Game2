@@ -32,13 +32,12 @@
       sourcePopularCount: 0,
       sourceAllLegalCount: 0,
       renderedCount: 0,
-      mode: 'popular',
+      mode: 'explorer',
       matchLevel: 'none'
     },
-    moveListMode: 'popular',
-    activeTab: 'moves',
+    explorerSortMode: 'popularity',
+    activeTab: 'explorer',
     tabInteractionsBound: false,
-    gamesTier: 'free',
     gamesVersion: 'v1',
     gamesBaseRoot: '/openingdb/games',
     gameSearchManifest: null,
@@ -49,7 +48,18 @@
     gamesShardCache: new Map(),
     gamesCatalogCache: new Map(),
     gamesResults: [],
-    pgnViewsUsed: 0,
+    moveReview: {
+      source: 'exploration',
+      gameRow: null,
+      pgnText: '',
+      initialFen: '',
+      moves: [],
+      ply: 0,
+      notationAvailable: true,
+      status: ''
+    },
+    openingDbInitialFen: '',
+    manifestGeneratedAt: '',
     engine: {
       client: null,
       evalClient: null,
@@ -80,7 +90,15 @@
       nextMoveEvalRunning: false,
       debug: {
         workerUrl: '',
+        wasmUrl: '',
+        engineId: '',
+        engineAuthor: '',
+        identityAccepted: false,
+        owner: '',
+        attribution: null,
+        workerLifecycle: null,
         handshakeState: 'idle',
+        lastStopReason: '',
         lastLine: '',
         lastInfoAt: 0,
         errors: [],
@@ -143,11 +161,6 @@
   const GAMESEARCH_LINE_URL = '/gamesearch/line';
   const GAMESEARCH_DEFAULT_MAX_PLIES = 10;
   const GAMESEARCH_RENDER_LIMIT = 50;
-  const FREE_GAME_PREVIEW_LIMIT = 20;
-  const PREMIUM_GAME_PREVIEW_LIMIT = 500;
-  const FREE_PGN_VIEW_LIMIT = 5;
-  const FREE_DOWNLOAD_LINK_LIMIT = 10;
-  const PREMIUM_DOWNLOAD_LINK_LIMIT = 200;
   const EARLY_MIDDLEGAME_PLY = 10;
   const EARLY_MIDDLEGAME_MIN_MOVES = 3;
   const EARLY_MIDDLEGAME_MIN_GAMES = 20;
@@ -155,7 +168,8 @@
   const ENGINE_DEFAULT_DEPTH = 18;
   const ENGINE_DEFAULT_MOVETIME_MS = 1500;
   const ENGINE_MOVE_EVAL_DEPTH = 10;
-  const ENGINE_MOVE_EVAL_LIMIT = 12;
+  const ENGINE_MOVE_EVAL_FAST_LIMIT = 10;
+  const ENGINE_MOVE_EVAL_PRO_LIMIT = 20;
   const ENGINE_MOVE_EVAL_GAP_MS = 100;
   const ENGINE_MOVE_EVAL_TIMEOUT_MS = 3500;
   const ENGINE_EVAL_CACHE_MAX_ENTRIES = 1200;
@@ -176,14 +190,20 @@
     moveList: document.getElementById('odbMoveList'),
     turnPly: document.getElementById('odbTurnPly'),
     openingLabel: document.getElementById('odbOpeningLabel'),
+    ecoCode: document.getElementById('odbEcoCode'),
+    ecoLink: document.getElementById('odbEcoLink'),
+    currentLine: document.getElementById('odbCurrentLine'),
+    datasetFreshness: document.getElementById('odbDatasetFreshness'),
     lookupStatus: document.getElementById('odbLookupStatus'),
     matchBadge: document.getElementById('odbMatchBadge'),
     datasetBanner: document.getElementById('odbDatasetBanner'),
     statsBody: document.getElementById('odbStatsBody'),
+    tabExplorer: document.getElementById('odbTabExplorer'),
+    tabAnalysis: document.getElementById('odbTabAnalysis'),
     tabMoves: document.getElementById('odbTabMoves'),
     tabGames: document.getElementById('odbTabGames'),
-    movesPopularBtn: document.getElementById('odbMovesPopularBtn'),
-    movesAllBtn: document.getElementById('odbMovesAllBtn'),
+    analysisPanel: document.getElementById('odbAnalysisPanel'),
+    explorerPanel: document.getElementById('odbExplorerPanel'),
     coverageBadge: document.getElementById('odbCoverageBadge'),
     rowsDiag: document.getElementById('odbRowsDiag'),
     movesPanel: document.getElementById('odbMovesPanel'),
@@ -196,7 +216,6 @@
     openSearchDockBtn: document.getElementById('odbOpenSearchDockBtn'),
     searchGamesBtn: document.getElementById('odbSearchGamesBtn'),
     copyLineKeyBtn: document.getElementById('odbCopyLineKeyBtn'),
-    openSearchNewTabBtn: document.getElementById('odbOpenSearchNewTabBtn'),
     downloadGamesBtn: document.getElementById('odbDownloadGamesBtn'),
     gamesYearMin: document.getElementById('odbGamesYearMin'),
     gamesYearMax: document.getElementById('odbGamesYearMax'),
@@ -206,15 +225,21 @@
     gamesSummary: document.getElementById('odbGamesSummary'),
     gamesBody: document.getElementById('odbGamesBody'),
     gamesDownloads: document.getElementById('odbGamesDownloads'),
-    gamesPgnViewer: document.getElementById('odbGamesPgnViewer'),
-    gamesPgnTitle: document.getElementById('odbGamesPgnTitle'),
-    gamesPgnText: document.getElementById('odbGamesPgnText'),
-    gamesPgnCopyBtn: document.getElementById('odbGamesPgnCopyBtn'),
-    gamesPgnCloseBtn: document.getElementById('odbGamesPgnCloseBtn'),
+    movesTitle: document.getElementById('odbMovesTitle'),
+    movesStatus: document.getElementById('odbMovesStatus'),
+    movesGameDetails: document.getElementById('odbMovesGameDetails'),
+    movesNotation: document.getElementById('odbMovesNotation'),
+    movesPlyLabel: document.getElementById('odbMovesPlyLabel'),
+    movesFirstBtn: document.getElementById('odbMovesFirstBtn'),
+    movesPrevBtn: document.getElementById('odbMovesPrevBtn'),
+    movesNextBtn: document.getElementById('odbMovesNextBtn'),
+    movesLastBtn: document.getElementById('odbMovesLastBtn'),
+    movesReturnGamesBtn: document.getElementById('odbMovesReturnGamesBtn'),
     stopEngineBtn: document.getElementById('odbStopEngineBtn'),
     engineDepth: document.getElementById('odbEngineDepth'),
     engineMultiPV: document.getElementById('odbEngineMultiPV'),
     engineStatusValue: document.getElementById('odbEngineStatusValue'),
+    engineIdentityValue: document.getElementById('odbEngineIdentityValue'),
     engineEvalValue: document.getElementById('odbEngineEvalValue'),
     engineDepthValue: document.getElementById('odbEngineDepthValue'),
     enginePvValue: document.getElementById('odbEnginePvValue'),
@@ -224,6 +249,9 @@
     engineNodesValue: document.getElementById('odbEngineNodesValue'),
     quickEvalToggle: document.getElementById('odbQuickEvalToggle') || document.getElementById('odbEngineEvalMovesToggle'),
     quickEvalMode: document.getElementById('odbQuickEvalMode'),
+    sortPopularityBtn: document.getElementById('odbSortPopularityBtn'),
+    sortEngineBtn: document.getElementById('odbSortEngineBtn'),
+    explorerSortStatus: document.getElementById('odbExplorerSortStatus'),
     engineCopyPvBtn: document.getElementById('odbEngineCopyPvBtn'),
     engineCopyFenBtn: document.getElementById('odbEngineCopyFenBtn'),
     engineCopyFeedback: document.getElementById('odbEngineCopyFeedback'),
@@ -232,6 +260,7 @@
     engineDebugHandshake: document.getElementById('odbEngineDebugHandshake'),
     engineDebugLastInfoAt: document.getElementById('odbEngineDebugLastInfoAt'),
     engineDebugLastLine: document.getElementById('odbEngineDebugLastLine'),
+    engineDiagnostics: document.getElementById('odbEngineDiagnostics'),
     startEngineBtn: document.getElementById('odbStartEngineBtn'),
     startBtn: document.getElementById('odbStartBtn'),
     takebackBtn: document.getElementById('odbTakebackBtn'),
@@ -241,7 +270,11 @@
     fenInput: document.getElementById('odbFenInput'),
     applyFenBtn: document.getElementById('odbApplyFenBtn'),
     cancelFenBtn: document.getElementById('odbCancelFenBtn'),
-    fenError: document.getElementById('odbFenError')
+    fenError: document.getElementById('odbFenError'),
+    analyzeInCaissaBtn: document.getElementById('odbAnalyzeInCaissaBtn'),
+    practiceTrainerBtn: document.getElementById('odbPracticeTrainerBtn'),
+    actionStatus: document.getElementById('odbActionStatus'),
+    gamesScope: document.getElementById('odbGamesScope')
   };
 
   const DEBUG = (() => {
@@ -739,6 +772,15 @@
 
   function scoreToWhitePerspective(info, fen) {
     if (!info || !info.scoreType) return null;
+    if (info.scorePerspective === 'white') {
+      if (info.scoreType === 'mate') {
+        return { scoreType: 'mate', score: Number.isFinite(info.whiteMate) ? Number(info.whiteMate) : (Number(info.score) || 0) };
+      }
+      return {
+        scoreType: 'cp',
+        score: Number.isFinite(info.whiteScorePawns) ? Math.round(Number(info.whiteScorePawns) * 100) : (Number(info.score) || 0)
+      };
+    }
     const fenTurn = String(fen || '').split(/\s+/)[1] || 'w';
     const whitePerspectiveSign = fenTurn === 'b' ? -1 : 1;
     if (info.scoreType === 'mate') {
@@ -783,8 +825,9 @@
     return '-';
   }
 
-  function getEngineCacheKey(fen, moveUci) {
-    return `${String(fen || '').trim()}|${String(moveUci || '').trim().toLowerCase()}`;
+  function getEngineCacheKey(fen, moveUci, profile = state.engine.evalMode) {
+    const mode = String(profile || 'fast').toLowerCase() === 'pro' ? 'pro' : 'fast';
+    return `${mode}|${String(fen || '').trim()}|${String(moveUci || '').trim().toLowerCase()}`;
   }
 
   function getEngineEvalCacheValue(cacheKey) {
@@ -926,19 +969,31 @@
   function refreshRenderedEngineEvalCells() {
     if (!els.statsBody) return;
     const fen = state.game ? state.game.fen() : '';
-    const rowElements = els.statsBody.querySelectorAll('tr[data-row-index]');
-    rowElements.forEach((rowEl) => {
-      const idx = Number(rowEl.getAttribute('data-row-index'));
-      if (!Number.isInteger(idx) || idx < 0 || idx >= state.currentRows.length) return;
-      const row = state.currentRows[idx];
+    const moveButtons = els.statsBody.querySelectorAll('[data-move-index]');
+    moveButtons.forEach((moveButton) => {
+      const idx = Number(moveButton.getAttribute('data-move-index'));
+      const buttonUci = String(moveButton.getAttribute('data-move-uci') || '').trim().toLowerCase();
+      const row = (buttonUci
+        ? state.currentRows.find((candidate) => String(candidate?.moveUCI || candidate?.uci || '').trim().toLowerCase() === buttonUci)
+        : null) || (Number.isInteger(idx) && idx >= 0 ? state.currentRows[idx] : null);
+      if (!row) return;
       const uci = String(row?.moveUCI || row?.uci || '').trim().toLowerCase();
-      const cell = rowEl.querySelector('td.col-engine');
+      const cell = moveButton.closest('tr')?.querySelector('td.col-engine');
       if (!cell) return;
-      const text = uci ? (getEngineEvalCacheValue(getEngineCacheKey(fen, uci)) || row.engineEval || '-') : '-';
+      const text = state.engine.evalNextMoves && uci
+        ? (getEngineEvalCacheValue(getEngineCacheKey(fen, uci)) || row.engineEval || '-')
+        : '-';
       cell.textContent = text;
       cell.setAttribute('data-engine-eval', text);
       cell.classList.toggle('is-pending', text === '...');
+      cell.setAttribute('aria-label', text === '...'
+        ? 'Engine evaluation pending'
+        : (text === '-' ? 'Not evaluated' : `Engine evaluation ${text}`));
+      cell.title = text === '...'
+        ? 'Engine evaluation pending'
+        : (text === '-' ? 'Not evaluated' : `Engine evaluation ${text}`);
     });
+    updateExplorerSortStatus();
   }
 
   function clearEngineDebounce() {
@@ -955,9 +1010,18 @@
   function updateEngineDebugWindow() {
     window.__engineDebug = {
       workerUrl: state.engine.debug.workerUrl || '',
+      wasmUrl: state.engine.debug.wasmUrl || '',
+      engineId: state.engine.debug.engineId || '',
+      engineAuthor: state.engine.debug.engineAuthor || '',
+      identityAccepted: state.engine.debug.identityAccepted === true,
+      owner: state.engine.debug.owner || '',
+      attribution: state.engine.debug.attribution || null,
+      workerLifecycle: state.engine.debug.workerLifecycle || null,
       state: state.engine.status || '',
       handshakeState: state.engine.debug.handshakeState || '',
+      lastStopReason: state.engine.debug.lastStopReason || '',
       evalNextMoves: !!state.engine.evalNextMoves,
+      explorerSortMode: state.explorerSortMode,
       nextMoveEvalRunning: !!state.engine.nextMoveEvalRunning,
       lastLine: state.engine.debug.lastLine || '',
       lastInfoAt: state.engine.debug.lastInfoAt || 0,
@@ -969,6 +1033,11 @@
   function renderEnginePanel() {
     const engine = state.engine;
     if (els.engineStatusValue) els.engineStatusValue.textContent = engine.status || 'Idle';
+    if (els.engineIdentityValue) {
+      els.engineIdentityValue.textContent = engine.debug.identityAccepted
+        ? (engine.debug.engineId || 'Stockfish 19 Lite')
+        : 'Stockfish 19 Lite';
+    }
     if (els.engineEvalValue) els.engineEvalValue.textContent = engine.lastInfo ? formatEngineScore(engine.lastInfo, engine.lastInfoFen || engine.lastFen) : '-';
     if (els.engineDepthValue) els.engineDepthValue.textContent = engine.lastInfo ? String(engine.lastInfo.depth || engine.depth || '-') : String(engine.depth || '-');
     renderMultiPvLines();
@@ -1007,15 +1076,19 @@
   }
 
   async function runEngineAssetSanityCheck() {
-    const workerPath = '/engine/stockfish.worker.js';
+    const workerPath = '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js';
+    const wasmPath = '/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.wasm';
     const result = {
       url: workerPath,
+      wasmUrl: wasmPath,
       ok: false,
       status: 0,
       contentType: '',
       startsWithHtml: false,
       checkedAt: Date.now(),
-      error: ''
+      error: '',
+      wasmStatus: 0,
+      wasmContentType: ''
     };
     try {
       const response = await fetch(workerPath, { cache: 'no-store' });
@@ -1023,11 +1096,16 @@
       result.contentType = String(response.headers.get('content-type') || '');
       const text = await response.text();
       result.startsWithHtml = /^\s*<!doctype html|^\s*<html/i.test(text);
-      result.ok = response.ok && !result.startsWithHtml;
+      const wasmResponse = await fetch(wasmPath, { cache: 'no-store' });
+      result.wasmStatus = wasmResponse.status;
+      result.wasmContentType = String(wasmResponse.headers.get('content-type') || '');
+      result.ok = response.ok && !result.startsWithHtml && wasmResponse.ok;
       if (result.startsWithHtml) {
         setEngineStatus('Worker file is HTML (rewrite/route). Check hosting/public path.');
       } else if (!/javascript|ecmascript/i.test(result.contentType)) {
         setEngineStatus(`Worker content-type warning: ${result.contentType || 'unknown'}`);
+      } else if (!wasmResponse.ok) {
+        setEngineStatus('Stockfish 19 Lite WASM asset is unavailable.');
       }
     } catch (err) {
       result.error = err?.message || String(err);
@@ -1041,7 +1119,7 @@
     const engine = state.engine;
     if (engine.client && engine.available) return true;
     if (engine.loading) return false;
-    if (!window.StockfishClient) {
+    if (!window.CaissaStockfish19LiteClient) {
       setEngineStatus('Engine unavailable');
       renderEnginePanel();
       return false;
@@ -1049,17 +1127,31 @@
     engine.loading = true;
     setEngineStatus('Loading engine...');
     try {
-      const workerUrl = new URL('/engine/stockfish.worker.js', window.location.origin).toString();
+      const workerUrl = new URL('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js', window.location.origin).toString();
       engine.debug.workerUrl = workerUrl;
-      engine.client = new window.StockfishClient({ workerUrl });
+      engine.client = new window.CaissaStockfish19LiteClient({
+        owner: 'opening-database',
+        clientId: 'opening-database-stockfish-19',
+        requestedEngineId: 'opening-database-stockfish-19'
+      });
       engine.client.onState((snapshot) => {
         engine.debug.workerUrl = snapshot.workerUrl || engine.debug.workerUrl;
+        engine.debug.wasmUrl = snapshot.wasmUrl || engine.debug.wasmUrl;
         engine.debug.handshakeState = snapshot.handshakeState || '';
+        engine.debug.engineId = snapshot.engineId || engine.debug.engineId;
+        engine.debug.engineAuthor = snapshot.engineAuthor || engine.debug.engineAuthor;
+        engine.debug.owner = snapshot.owner || engine.debug.owner;
+        engine.debug.attribution = snapshot.attribution || engine.debug.attribution;
+        engine.debug.workerLifecycle = snapshot.workerLifecycle || engine.debug.workerLifecycle;
+        engine.debug.lastStopReason = snapshot.lastStopReason || '';
         engine.debug.lastLine = snapshot.lastLine || '';
         engine.debug.lastInfoAt = Number(snapshot.lastInfoAt) || 0;
         engine.debug.errors = Array.isArray(snapshot.errors) ? snapshot.errors.slice(-20) : [];
         if (snapshot.handshakeState === 'uciok') console.log('[Engine] uciok');
         if (snapshot.handshakeState === 'readyok') console.log('[Engine] readyok');
+        if (snapshot.state === 'analyzing' && engine.running) {
+          engine.status = 'Infinite';
+        }
         renderEnginePanel();
       });
       engine.client.onLine((line) => {
@@ -1071,6 +1163,10 @@
       });
       engine.client.onError((err) => {
         const msg = err?.message || String(err);
+        engine.requestId += 1;
+        engine.activeRequestId = engine.requestId;
+        engine.running = false;
+        engine.paused = false;
         setEngineStatus(msg.startsWith('Worker') ? msg : `Engine error: ${msg}`);
       });
       engine.client.onInfo((info) => {
@@ -1097,27 +1193,35 @@
               engine.lastInfoFen = baseFen;
               engine.lastPvUci = pvUci;
               engine.lastPvSan = pvSan;
+              engine.lastBestMove = uciToSanFromFen(baseFen, pvUci[0] || '');
             }
           }
           renderEnginePanel();
         }
       });
-      engine.client.onBestMove((payload) => {
-        if (!payload) return;
-        if (engine.activeRequestId !== engine.requestId) return;
-        engine.lastBestMove = uciToSanFromFen(engine.lastFen, payload.bestmove || '');
-        renderEnginePanel();
-      });
       engine.debug.handshakeState = 'uci';
       renderEnginePanel();
       await engine.client.init();
+      const identity = engine.client.getIdentity();
+      if (!identity.ready || !/^Stockfish\s+19(?:\.\d+){0,2}\s+Lite\s+WASM(?:\s.*)?$/.test(identity.uciName || '') || identity.author !== 'the Stockfish developers (see AUTHORS file)') {
+        const error = new Error('Unexpected engine identity. Analysis was blocked.');
+        error.code = 'ENGINE_IDENTITY_REJECTED';
+        engine.client.terminate();
+        engine.client = null;
+        throw error;
+      }
+      engine.debug.engineId = identity.uciName;
+      engine.debug.engineAuthor = identity.author;
+      engine.debug.wasmUrl = identity.wasmPath;
+      engine.debug.identityAccepted = true;
       engine.available = true;
       setEngineStatus('Idle');
       return true;
     } catch (err) {
       console.warn('[OpeningDB] engine init failed', err);
       engine.available = false;
-      setEngineStatus('Engine unavailable. Try again.');
+      engine.debug.identityAccepted = false;
+      setEngineStatus(err?.code === 'ENGINE_IDENTITY_REJECTED' ? err.message : 'Engine unavailable. Try again.');
       return false;
     } finally {
       engine.loading = false;
@@ -1136,9 +1240,10 @@
     const multiPV = Number(opts.multiPV || els.engineMultiPV?.value || engine.multiPV || 1);
     engine.depth = depth;
     engine.multiPV = multiPV;
+    engine.running = false;
+    engine.client.stop('restart');
     engine.requestId += 1;
     engine.activeRequestId = engine.requestId;
-    engine.running = true;
     engine.paused = false;
     engine.lastFen = state.game.fen();
     engine.pvLines = {};
@@ -1146,14 +1251,24 @@
     engine.lastPvSan = '';
     engine.lastPvUci = [];
     engine.lastBestMove = '';
+    engine.running = true;
     setEngineStatus('Running');
 
-    engine.client.stop();
     engine.client.setOptions({ multiPV });
     engine.client.setPositionFEN(engine.lastFen);
-    engine.client.goDepth(depth || ENGINE_DEFAULT_DEPTH);
+    const requestId = engine.client.startInfiniteAnalysis({
+      targetDepth: depth || ENGINE_DEFAULT_DEPTH,
+      stopAtTarget: false,
+      maxActivityMs: 0,
+      stallTimeoutMs: 30000
+    });
+    if (!requestId) {
+      engine.running = false;
+      setEngineStatus('Engine could not start analysis.');
+      return;
+    }
     if (engine.evalNextMoves) {
-      void runNextMoveEvalQueue(engine.lastFen);
+      maybeRunNextMoveEvalQueue();
     }
   }
 
@@ -1172,31 +1287,45 @@
   function stopEngineAnalysis() {
     const engine = state.engine;
     clearEngineDebounce();
-    if (engine.client) engine.client.stop();
     cancelNextMoveEvalQueue();
+    engine.requestId += 1;
+    engine.activeRequestId = engine.requestId;
     engine.running = false;
-    engine.paused = true;
-    setEngineStatus('Paused');
+    engine.paused = false;
+    if (engine.client) engine.client.stop('user-stop');
+    setEngineStatus('Idle');
   }
 
   function cancelNextMoveEvalQueue() {
     state.engine.nextMoveEvalSessionId += 1;
     state.engine.nextMoveEvalRunning = false;
+    state.engine.evalRequestId += 1;
+    state.engine.activeEvalRequestId = state.engine.evalRequestId;
     if (state.engine.evalClient) {
       // Stop only the quick-eval worker; never touch main engine worker here.
-      state.engine.evalClient.stop();
+      state.engine.evalClient.stop('quick-eval-cancel');
     }
+    updateEngineDebugWindow();
   }
 
   async function ensureEvalClient() {
     const engine = state.engine;
     if (engine.evalClient) return true;
-    if (!window.StockfishClient) return false;
+    if (!window.CaissaStockfish19LiteClient) return false;
     try {
-      const workerUrl = new URL('/engine/stockfish.worker.js', window.location.origin).toString();
       // Dedicated quick-eval client (isolated from main engine analysis client).
-      engine.evalClient = new window.StockfishClient({ workerUrl });
+      engine.evalClient = new window.CaissaStockfish19LiteClient({
+        owner: 'opening-database-quick-eval',
+        clientId: 'opening-database-stockfish-19-quick-eval',
+        requestedEngineId: 'opening-database-stockfish-19-quick-eval'
+      });
       await engine.evalClient.init();
+      const identity = engine.evalClient.getIdentity();
+      if (!identity.ready || !/^Stockfish\s+19(?:\.\d+){0,2}\s+Lite\s+WASM(?:\s.*)?$/.test(identity.uciName || '') || identity.author !== 'the Stockfish developers (see AUTHORS file)') {
+        engine.evalClient.terminate();
+        engine.evalClient = null;
+        throw new Error('Quick evaluation rejected an unexpected engine identity.');
+      }
       return true;
     } catch (err) {
       console.warn('[OpeningDB] eval engine init failed', err);
@@ -1237,6 +1366,8 @@
       const finalize = (value) => {
         if (done) return;
         done = true;
+        clearTimeout(timer);
+        if (engine.activeEvalRequestId === reqId) engine.evalClient?.stop('quick-eval-complete');
         if (engine.activeEvalRequestId === reqId) {
           resolve(value);
         } else {
@@ -1254,10 +1385,11 @@
         const depth = Number(info.depth) || 0;
         if (depth >= prevDepth) bestInfo = info;
       });
-      engine.evalClient.onBestMove(() => {
-        if (engine.activeEvalRequestId !== reqId) return;
-        clearTimeout(timer);
-        finalize(bestInfo ? formatEngineScoreCompact(bestInfo, childFen) : '-');
+      engine.evalClient.onState((snapshot) => {
+        if (done || engine.activeEvalRequestId !== reqId) return;
+        if (snapshot?.state === 'ready' && ['target-depth', 'activity-limit'].includes(snapshot.lastStopReason)) {
+          finalize(bestInfo ? formatEngineScoreCompact(bestInfo, childFen) : '-');
+        }
       });
       engine.evalClient.onError(() => {
         if (engine.activeEvalRequestId !== reqId) return;
@@ -1268,7 +1400,13 @@
       engine.evalClient.stop();
       engine.evalClient.setOptions({ multiPV: 1 });
       engine.evalClient.setPositionFEN(childFen);
-      engine.evalClient.goDepth(depth);
+      const requestId = engine.evalClient.startInfiniteAnalysis({
+        targetDepth: depth,
+        stopAtTarget: true,
+        maxActivityMs: timeoutMs,
+        stallTimeoutMs: timeoutMs
+      });
+      if (!requestId) finalize('-');
     });
   }
 
@@ -1276,9 +1414,11 @@
     const engine = state.engine;
     if (!engine.evalNextMoves || !state.game) return;
     const mode = engine.evalMode === 'pro' ? 'pro' : 'fast';
-    const evalLimit = mode === 'pro' ? ENGINE_MOVE_EVAL_LIMIT : 8;
+    const fen = String(positionFen || state.game.fen() || '');
+    if (!fen || state.game.fen() !== fen) return;
+    const evalLimit = mode === 'pro' ? ENGINE_MOVE_EVAL_PRO_LIMIT : ENGINE_MOVE_EVAL_FAST_LIMIT;
     const evalDepth = mode === 'pro' ? ENGINE_MOVE_EVAL_DEPTH : 8;
-    const sourceRows = (state.moveListMode === 'all' ? state.latestAllLegalRows : state.latestPopularRows) || [];
+    const sourceRows = sortExplorerRows(getExplorerSourceRows());
     const queueRows = sourceRows
       .filter((row) => row && String(row.moveUCI || '').trim())
       .slice(0, evalLimit);
@@ -1286,18 +1426,22 @@
 
     const sessionId = ++engine.nextMoveEvalSessionId;
     engine.nextMoveEvalRunning = true;
-    const fen = String(positionFen || state.game.fen() || '');
+    updateEngineDebugWindow();
+    updateExplorerSortStatus();
 
     for (let i = 0; i < queueRows.length; i += 1) {
-      if (sessionId !== engine.nextMoveEvalSessionId) break;
+      if (sessionId !== engine.nextMoveEvalSessionId ||
+          !engine.evalNextMoves ||
+          engine.evalMode !== mode ||
+          !state.game ||
+          state.game.fen() !== fen) break;
       const row = queueRows[i];
       const uci = String(row.moveUCI || '').toLowerCase();
       if (!uci) continue;
-      const cacheKey = getEngineCacheKey(fen, uci);
+      const cacheKey = getEngineCacheKey(fen, uci, mode);
       const cached = getEngineEvalCacheValue(cacheKey);
       if (cached) {
-        setRowEngineEvalByUci(uci, cached);
-        refreshRenderedEngineEvalCells();
+        applyCompletedExplorerEvaluation(uci, cached);
         continue;
       }
       setRowEngineEvalByUci(uci, '...');
@@ -1306,10 +1450,13 @@
         depth: evalDepth,
         timeoutMs: mode === 'pro' ? ENGINE_MOVE_EVAL_TIMEOUT_MS : 2200
       });
-      if (sessionId !== engine.nextMoveEvalSessionId) break;
+      if (sessionId !== engine.nextMoveEvalSessionId ||
+          !engine.evalNextMoves ||
+          engine.evalMode !== mode ||
+          !state.game ||
+          state.game.fen() !== fen) break;
       setEngineEvalCacheValue(cacheKey, evalText || '-');
-      setRowEngineEvalByUci(uci, evalText || '-');
-      refreshRenderedEngineEvalCells();
+      applyCompletedExplorerEvaluation(uci, evalText || '-');
       if (i < queueRows.length - 1) {
         await delay(ENGINE_MOVE_EVAL_GAP_MS);
       }
@@ -1317,6 +1464,8 @@
 
     if (sessionId === engine.nextMoveEvalSessionId) {
       engine.nextMoveEvalRunning = false;
+      updateEngineDebugWindow();
+      updateExplorerSortStatus();
     }
   }
 
@@ -1344,6 +1493,16 @@
     if (fen === engine.lastFen) return;
     cancelNextMoveEvalQueue();
     clearEngineDebounce();
+    engine.requestId += 1;
+    engine.activeRequestId = engine.requestId;
+    engine.client?.stop('position-change');
+    engine.lastInfo = null;
+    engine.lastInfoFen = '';
+    engine.lastPvSan = '';
+    engine.lastPvUci = [];
+    engine.lastBestMove = '';
+    engine.pvLines = {};
+    setEngineStatus('Analyzing');
     engine.debounceTimer = setTimeout(() => {
       engine.debounceTimer = null;
       startEngineAnalysis({ depth: engine.depth, multiPV: engine.multiPV });
@@ -1351,8 +1510,9 @@
   }
 
   function updateMoveListFromGame(game) {
-    if (!els.moveList) return;
-    els.moveList.value = formatMoveList(game) || '(start position)';
+    const line = formatMoveList(game) || 'Start position';
+    if (els.moveList) els.moveList.value = line;
+    if (els.currentLine) els.currentLine.textContent = line;
     state.interactionMetrics.moveListWrites += 1;
   }
 
@@ -1430,7 +1590,7 @@
   function updateTurnPlyLabel(ply) {
     if (!els.turnPly) return;
     const turnLabel = state.game.turn() === 'w' ? 'White' : 'Black';
-    els.turnPly.textContent = `Turn: ${turnLabel} | Ply: ${ply} | ${getDbVersionLabel()}`;
+    els.turnPly.textContent = `${turnLabel} to move • Ply ${ply} • ${getDbVersionLabel()}`;
   }
 
   function readManifestFromSession(sourceUrl) {
@@ -1464,25 +1624,9 @@
     return 'openingdb_games_manifest_cache';
   }
 
-  function getPgnViewsSessionKey() {
-    return 'openingdb_games_pgn_views_used';
-  }
-
-  function getTierFromUrl() {
-    const tier = String(new URLSearchParams(window.location.search).get('tier') || '').toLowerCase();
-    return tier === 'premium' ? 'premium' : 'free';
-  }
-
   function getGamesVersionLabel() {
-    return `Games: ${state.gamesVersion}${state.gamesManifestFallback ? ' (fallback)' : ''}`;
-  }
-
-  function getCurrentPreviewLimit() {
-    return state.gamesTier === 'premium' ? PREMIUM_GAME_PREVIEW_LIMIT : FREE_GAME_PREVIEW_LIMIT;
-  }
-
-  function getCurrentDownloadLimit() {
-    return state.gamesTier === 'premium' ? PREMIUM_DOWNLOAD_LINK_LIMIT : FREE_DOWNLOAD_LINK_LIMIT;
+    const version = String(state.gameSearchManifest?.version || state.gameSearchManifest?.activeVersion || state.gamesVersion || 'v1');
+    return `Line index: ${version}`;
   }
 
   function normalizeResultFilterForApi(rawResult) {
@@ -1495,27 +1639,9 @@
 
   function updateDownloadButtonLabel() {
     if (!els.downloadGamesBtn) return;
-    const limit = getCurrentDownloadLimit();
-    els.downloadGamesBtn.textContent = `Download top ${limit} (ZIP)`;
-  }
-
-  function hydratePgnViewCounter() {
-    try {
-      if (!window.sessionStorage) return;
-      const used = Number.parseInt(sessionStorage.getItem(getPgnViewsSessionKey()) || '0', 10);
-      state.pgnViewsUsed = Number.isFinite(used) && used > 0 ? used : 0;
-    } catch (_err) {
-      state.pgnViewsUsed = 0;
-    }
-  }
-
-  function persistPgnViewCounter() {
-    try {
-      if (!window.sessionStorage) return;
-      sessionStorage.setItem(getPgnViewsSessionKey(), String(state.pgnViewsUsed));
-    } catch (_err) {
-      // Ignore write errors.
-    }
+    els.downloadGamesBtn.hidden = true;
+    els.downloadGamesBtn.disabled = true;
+    els.downloadGamesBtn.textContent = 'PGN export unavailable';
   }
 
   function readGamesManifestFromSession() {
@@ -1609,7 +1735,15 @@
     const previousVersion = String(state.activeDbVersion || '');
     state.activeDbVersion = activeVersion;
     state.dbVersionFallback = !!fallback;
+    state.manifestGeneratedAt = String(m.generatedAt || '');
     state.shardBaseUrl = alreadyVersioned ? normalizedBase : `${normalizedBase}/${activeVersion}`;
+    if (els.datasetFreshness) {
+      const generated = state.manifestGeneratedAt ? new Date(state.manifestGeneratedAt) : null;
+      const dateText = generated && Number.isFinite(generated.getTime())
+        ? generated.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+        : 'date unavailable';
+      els.datasetFreshness.textContent = `Dataset ${activeVersion} • ${dateText}${fallback ? ' • fallback' : ''}`;
+    }
     const changed = previousBase !== state.shardBaseUrl || previousVersion !== state.activeDbVersion;
     if (changed) {
       state.openingDbShardCache.clear();
@@ -1722,12 +1856,12 @@
   async function ensureGamesManifestLoaded() {
     if (state.gamesManifestLoaded) return { ok: true, source: 'cached' };
     if (state.gamesManifestLoadAttempted && state.gamesManifestFallback) {
-      setGamesStatus('Search Games: coming soon.');
+      setGamesStatus('Individual-game PGN data is not available in the current dataset.');
       return { ok: false, source: 'fallback-cached' };
     }
     const result = await loadOpeningDbGamesManifest();
     if (!result || !result.ok) {
-      setGamesStatus('Search Games: coming soon.');
+      setGamesStatus('Individual-game PGN data is not available in the current dataset.');
       return { ok: false, source: result?.source || 'fallback' };
     }
     return { ok: true, source: result.source || 'remote' };
@@ -1988,6 +2122,7 @@
       w,
       d,
       l,
+      hasData: n > 0 && sample > 0,
       preview: sequenceHit.preview || ''
     };
   }
@@ -2022,15 +2157,162 @@
     return normalized;
   }
 
-  function sortExplorerRows(rows) {
-    const copy = Array.isArray(rows) ? rows.slice() : [];
-    copy.sort((a, b) => {
+  function getExplorerMoveIdentity(row) {
+    return String(row?.moveUCI || row?.uci || row?.moveSAN || row?.san || '').trim().toLowerCase();
+  }
+
+  function sortExplorerRows(rows, options = {}) {
+    const mode = String(options.mode || 'popularity').toLowerCase() === 'engine' ? 'engine' : 'popularity';
+    const turn = options.turn === 'b' ? 'b' : 'w';
+    const popularityRows = Array.isArray(rows) ? rows.slice() : [];
+    popularityRows.sort((a, b) => {
       const gamesA = Number(a?.games) || 0;
       const gamesB = Number(b?.games) || 0;
       if (gamesB !== gamesA) return gamesB - gamesA;
       return String(a?.moveSAN || a?.moveUCI || '').localeCompare(String(b?.moveSAN || b?.moveUCI || ''));
     });
-    return copy;
+    if (mode !== 'engine') return popularityRows;
+
+    return popularityRows
+      .map((row, index) => ({ row, index, score: parseExplorerEngineEval(getEngineEvalText(row)) }))
+      .sort((a, b) => {
+        const aEvaluated = a.score !== null;
+        const bEvaluated = b.score !== null;
+        if (aEvaluated && bEvaluated && a.score !== b.score) {
+          return turn === 'b' ? a.score - b.score : b.score - a.score;
+        }
+        if (aEvaluated !== bEvaluated) return aEvaluated ? -1 : 1;
+        return a.index - b.index;
+      })
+      .map((entry) => entry.row);
+  }
+
+  function parseExplorerEngineEval(value) {
+    const text = String(value || '').trim();
+    if (!text || text === '-' || text === '...') return null;
+    const mate = text.match(/^(-?)M(\d+)$/i);
+    if (mate) {
+      const distance = Math.max(0, Number(mate[2]) || 0);
+      return mate[1] ? (-1000000 + distance) : (1000000 - distance);
+    }
+    if (!/^[+-]?\d+(?:\.\d+)?$/.test(text)) return null;
+    const numeric = Number(text);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  function getExplorerSourceRows() {
+    return state.latestPopularRows.length > 0
+      ? state.latestPopularRows
+      : state.latestAllLegalRows;
+  }
+
+  function getExplorerDisplayRows(rows = getExplorerSourceRows()) {
+    return sortExplorerRows(rows, {
+      mode: state.explorerSortMode,
+      turn: state.game?.turn?.() || 'w'
+    });
+  }
+
+  function getExplorerEvaluationCoverage() {
+    const sourceRows = sortExplorerRows(getExplorerSourceRows());
+    const limit = state.engine.evalMode === 'pro' ? ENGINE_MOVE_EVAL_PRO_LIMIT : ENGINE_MOVE_EVAL_FAST_LIMIT;
+    const candidates = sourceRows.slice(0, limit);
+    const evaluated = candidates.filter((row) => parseExplorerEngineEval(getEngineEvalText(row)) !== null).length;
+    const pending = candidates.filter((row) => getEngineEvalText(row) === '...').length;
+    return {
+      total: sourceRows.length,
+      candidateCount: candidates.length,
+      evaluated,
+      pending,
+      limit,
+      profile: state.engine.evalMode === 'pro' ? 'Pro' : 'Fast'
+    };
+  }
+
+  function renderExplorerSortControls() {
+    const engineSelected = state.explorerSortMode === 'engine';
+    if (els.sortPopularityBtn) {
+      els.sortPopularityBtn.classList.toggle('active', !engineSelected);
+      els.sortPopularityBtn.setAttribute('aria-pressed', String(!engineSelected));
+    }
+    if (els.sortEngineBtn) {
+      els.sortEngineBtn.classList.toggle('active', engineSelected);
+      els.sortEngineBtn.setAttribute('aria-pressed', String(engineSelected));
+    }
+  }
+
+  function updateExplorerSortStatus() {
+    renderExplorerSortControls();
+    if (!els.explorerSortStatus) return;
+    if (state.explorerSortMode !== 'engine') {
+      els.explorerSortStatus.textContent = state.engine.evalNextMoves
+        ? 'Popularity order. Engine scores are shown without changing database frequency order.'
+        : 'Popularity order. Moves are sorted by database game frequency.';
+      return;
+    }
+
+    const coverage = getExplorerEvaluationCoverage();
+    const side = state.game?.turn?.() === 'b' ? 'Black' : 'White';
+    const outsideCoverage = Math.max(0, coverage.total - coverage.candidateCount);
+    const incomplete = coverage.evaluated < coverage.candidateCount || outsideCoverage > 0;
+    if (incomplete) {
+      const pendingText = coverage.pending > 0 ? ` ${coverage.pending} pending.` : '';
+      const limitText = outsideCoverage > 0
+        ? ` ${outsideCoverage} moves are outside the ${coverage.profile} ${coverage.limit}-candidate coverage.`
+        : '';
+      els.explorerSortStatus.textContent = `Engine order is incomplete: ${coverage.evaluated} of ${coverage.candidateCount} candidates evaluated.${pendingText}${limitText} Unevaluated moves remain in popularity order.`;
+      return;
+    }
+    els.explorerSortStatus.textContent = `Engine order complete for ${coverage.evaluated} candidates. Best move for ${side} to move is first.`;
+  }
+
+  function getExplorerOrderSignature() {
+    return getExplorerDisplayRows().map(getExplorerMoveIdentity).join('|');
+  }
+
+  function applyCompletedExplorerEvaluation(uci, evalText) {
+    const before = getExplorerOrderSignature();
+    setRowEngineEvalByUci(uci, evalText);
+    const after = getExplorerOrderSignature();
+    if (state.explorerSortMode === 'engine' && before !== after) {
+      renderExplorerRows();
+    } else {
+      refreshRenderedEngineEvalCells();
+    }
+  }
+
+  function renderExplorerRows() {
+    if (isOpeningDbDepthLimitReached()) {
+      renderOpeningDbDepthLimit();
+      return;
+    }
+    const focusedMove = document.activeElement?.closest?.('[data-move-uci]');
+    const focusedUci = String(focusedMove?.getAttribute('data-move-uci') || '').trim().toLowerCase();
+    renderStatsRows(getExplorerDisplayRows());
+    refreshRenderedEngineEvalCells();
+    if (focusedUci) {
+      const nextFocus = Array.from(els.statsBody?.querySelectorAll('[data-move-uci]') || [])
+        .find((button) => String(button.getAttribute('data-move-uci') || '').trim().toLowerCase() === focusedUci);
+      nextFocus?.focus({ preventScroll: true });
+    }
+  }
+
+  function setExplorerSortMode(mode) {
+    const nextMode = String(mode || '').toLowerCase() === 'engine' ? 'engine' : 'popularity';
+    state.explorerSortMode = nextMode;
+    if (nextMode === 'engine' && !state.engine.evalNextMoves) {
+      state.engine.evalNextMoves = true;
+      persistQuickEvalPreference(true);
+      if (els.quickEvalToggle) els.quickEvalToggle.checked = true;
+    }
+    if (state.engine.evalNextMoves) {
+      applyEngineEvalCacheToRows(getExplorerSourceRows(), state.game ? state.game.fen() : '');
+    }
+    renderExplorerRows();
+    if (nextMode === 'engine' && state.engine.evalNextMoves && !state.engine.nextMoveEvalRunning) {
+      maybeRunNextMoveEvalQueue();
+    }
+    renderEnginePanel();
   }
 
   function buildAllLegalRowsFromGame(game) {
@@ -2082,7 +2364,7 @@
         ...found,
         moveSAN: sanitizeMoveCellToken(found.moveSAN || san || base.moveSAN),
         moveUCI: sanitizeMoveCellToken(found.moveUCI || uci || base.moveUCI).toLowerCase(),
-        hasData: true
+        hasData: found.hasData !== false && (Number(found.games) || 0) > 0
       };
     });
 
@@ -2097,32 +2379,7 @@
     if (!els.coverageBadge) return;
     const withData = Number(hasDataCount) || 0;
     const total = Number(totalLegal) || 0;
-    els.coverageBadge.textContent = `${withData}/${total} moves have DB stats`;
-  }
-
-  function setMovesListMode(mode) {
-    state.moveListMode = mode === 'all' ? 'all' : 'popular';
-    const isPopular = state.moveListMode === 'popular';
-    if (els.movesPopularBtn) {
-      els.movesPopularBtn.classList.toggle('active', isPopular);
-      els.movesPopularBtn.setAttribute('aria-pressed', isPopular ? 'true' : 'false');
-    }
-    if (els.movesAllBtn) {
-      els.movesAllBtn.classList.toggle('active', !isPopular);
-      els.movesAllBtn.setAttribute('aria-pressed', isPopular ? 'false' : 'true');
-    }
-    if (isOpeningDbDepthLimitReached()) {
-      renderOpeningDbDepthLimit();
-      return;
-    }
-    const rows = isPopular && state.latestPopularRows.length > 0
-      ? state.latestPopularRows
-      : state.latestAllLegalRows;
-    if (rowsNeedRender(rows)) {
-      renderStatsRows(rows);
-    }
-    refreshRenderedEngineEvalCells();
-    maybeRunNextMoveEvalQueue();
+    els.coverageBadge.textContent = `${withData}/${total} moves have database statistics`;
   }
 
   function getPlyFromFen(fen) {
@@ -2157,7 +2414,7 @@
     state.rowDiagnostics.sourceAllLegalCount = 0;
     state.rowDiagnostics.sourcePopularCount = 0;
     state.rowDiagnostics.renderedCount = 0;
-    state.rowDiagnostics.mode = state.moveListMode;
+    state.rowDiagnostics.mode = 'explorer';
     state.rowDiagnostics.matchLevel = 'depth_limit';
     if (els.statsBody) {
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${OPENINGDB_DEPTH_LIMIT_MESSAGE}</td></tr>`;
@@ -2170,12 +2427,12 @@
 
   function rowFingerprint(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return '';
-    return rows.map((row) => `${row.moveUCI || ''}:${row.games || 0}:${row.wins || 0}:${row.draws || 0}:${row.losses || 0}`).join('|');
+    return rows.map((row) => `${row.moveUCI || ''}:${row.games || 0}:${row.wins || 0}:${row.draws || 0}:${row.losses || 0}:${getEngineEvalText(row)}`).join('|');
   }
 
   function rowsNeedRender(rows) {
     const next = {
-      mode: state.moveListMode === 'all' ? 'all' : 'popular',
+      mode: `explorer:${state.explorerSortMode}:${state.engine.evalNextMoves ? 'scores' : 'no-scores'}`,
       fp: rowFingerprint(rows)
     };
     const prev = state.lastRenderedRowsFingerprint || { mode: '', fp: '' };
@@ -2232,8 +2489,10 @@
   function renderRowDiagnostics() {
     if (!els.rowsDiag) return;
     const diag = state.rowDiagnostics || {};
-    const modeLabel = diag.mode === 'all' ? 'AllLegal' : 'Popular';
-    const sourceCount = diag.mode === 'all' ? (Number(diag.sourceAllLegalCount) || 0) : (Number(diag.sourcePopularCount) || 0);
+    const modeLabel = 'Explorer';
+    const sourceCount = Number(diag.sourcePopularCount) > 0
+      ? Number(diag.sourcePopularCount)
+      : (Number(diag.sourceAllLegalCount) || 0);
     const renderedCount = Number(diag.renderedCount) || 0;
     const matchLevel = String(diag.matchLevel || 'none');
     els.rowsDiag.textContent = `Rows rendered: ${renderedCount} / Source rows: ${sourceCount} / Mode: ${modeLabel} / matchLevel: ${matchLevel}`;
@@ -2249,7 +2508,7 @@
     if (!els.statsBody) return;
 
     if (!Array.isArray(rows) || rows.length === 0) {
-      if (state.moveListMode === 'all' && state.game) {
+      if (state.game) {
         const fallbackRows = buildAllLegalRowsFromGame(state.game).slice(0, OPENINGDB_COMPACT_ROW_LIMIT);
         if (fallbackRows.length > 0) {
           state.currentRows = fallbackRows;
@@ -2260,24 +2519,21 @@
 
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
-      const message = state.moveListMode === 'popular'
-        ? 'No DB stats for this position yet. Switch to "All Legal" to see playable moves.'
-        : 'No legal moves in this position.';
+      const message = 'No legal continuations are available in this position.';
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       state.rowDiagnostics.renderedCount = 0;
-      state.rowDiagnostics.mode = state.moveListMode;
+      state.rowDiagnostics.mode = 'explorer';
       renderRowDiagnostics();
       return;
     }
 
-    const rowLimit = state.moveListMode === 'all' ? OPENINGDB_COMPACT_ROW_LIMIT : OPENINGDB_WIDE_ROW_LIMIT;
-    rows = rows.slice(0, rowLimit);
+    rows = rows.slice(0, OPENINGDB_WIDE_ROW_LIMIT);
     const currentPly = state.game && typeof state.game.history === 'function'
       ? state.game.history({ verbose: false }).length
       : 0;
     state.currentRows = rows.slice();
     state.rowDiagnostics.renderedCount = state.currentRows.length;
-    state.rowDiagnostics.mode = state.moveListMode;
+    state.rowDiagnostics.mode = 'explorer';
     const rowsHtml = rows.map((row, idx) => {
       const n = Number(row.games) || 0;
       const wPct = Number(row.wins) || 0;
@@ -2286,28 +2542,33 @@
       const hasData = !!row.hasData;
       const moveText = sanitizeMoveCellToken(row.moveSAN || row.moveUCI || 'TBD') || 'TBD';
       const prefixed = formatPrefixedSAN({ ply: currentPly, sanForCandidateMove: row.moveSAN || row.moveUCI || moveText });
-      const moveCellHtml = `<span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span>`;
-      const title = row.preview && row.preview !== moveText ? ` title="${String(row.preview).replace(/"/g, '&quot;')}"` : '';
+      const moveLabel = `${prefixed.prefix}${prefixed.san}`.trim();
+      const moveUci = String(row.moveUCI || row.uci || '').trim().toLowerCase();
+      const moveCellHtml = `<button class="openingdb-move-action" type="button" data-move-index="${idx}" data-move-uci="${escapeHtml(moveUci)}" aria-label="Play ${escapeHtml(moveLabel)}"><span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span></button>`;
+      const title = row.preview && row.preview !== moveText ? ` title="${escapeHtml(row.preview)}"` : '';
       const wdlTitle = `W:${wPct.toFixed(1)} D:${dPct.toFixed(1)} L:${lPct.toFixed(1)}`;
       const rowClass = hasData ? dominantClass(wPct, dPct, lPct) : 'row-nodata';
-      const engineEval = getEngineEvalText(row);
+      const engineEval = state.engine.evalNextMoves ? getEngineEvalText(row) : '-';
       const engineClass = engineEval === '...' ? 'col-engine is-pending' : 'col-engine';
+      const engineAriaLabel = engineEval === '...'
+        ? 'Engine evaluation pending'
+        : (engineEval === '-' ? 'Not evaluated' : `Engine evaluation ${engineEval}`);
       const wdlCell = hasData
-        ? `<div class="wdb-bar" title="${wdlTitle}">
+        ? `<div class="wdb-bar" title="${wdlTitle}" role="img" aria-label="White wins ${wPct.toFixed(1)} percent, draws ${dPct.toFixed(1)} percent, Black wins ${lPct.toFixed(1)} percent">
               <div class="w" style="width:${wPct.toFixed(1)}%"><span>${wPct.toFixed(1)}%</span></div>
               <div class="d" style="width:${dPct.toFixed(1)}%"><span>${dPct.toFixed(1)}%</span></div>
               <div class="l" style="width:${lPct.toFixed(1)}%"><span>${lPct.toFixed(1)}%</span></div>
             </div>`
-        : '<div class="wdb-bar is-empty" title="No statistics for this move">—</div>';
+        : '<div class="wdb-bar is-empty" role="img" aria-label="No game-result statistics for this move">No data</div>';
 
       return `
-        <tr class="${rowClass}" data-row-index="${idx}">
+        <tr class="${rowClass}">
           <td class="col-move" data-label="Next Move"${title}>${moveCellHtml}</td>
-          <td class="col-games" data-label="Games">${n}</td>
+          <td class="${engineClass}" data-label="Engine" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(moveUci)}" aria-label="${escapeHtml(engineAriaLabel)}" title="${escapeHtml(engineAriaLabel)}">${escapeHtml(engineEval)}</td>
+          <td class="col-games" data-label="Games">${n.toLocaleString()}</td>
           <td class="col-wdl" data-label="Results">
             ${wdlCell}
           </td>
-          <td class="${engineClass}" data-label="Engine" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(String(row.moveUCI || ''))}">${escapeHtml(engineEval)}</td>
         </tr>
       `;
     }).join('');
@@ -2317,14 +2578,13 @@
 
   function setGamesStatus(message) {
     if (!els.gamesStatus) return;
-    const tierNote = `Tier: ${state.gamesTier.toUpperCase()} | ${getGamesVersionLabel()}`;
-    els.gamesStatus.textContent = `${message} | ${tierNote}`;
+    els.gamesStatus.textContent = `${message} | ${getGamesVersionLabel()}`;
   }
 
   function renderGamesSummary(rows, totalGames) {
     if (!els.gamesSummary) return;
     if (!Array.isArray(rows) || rows.length === 0) {
-      els.gamesSummary.textContent = 'Games: 0 | White 0% | Draw 0% | Black 0% | Avg Elo - | Years -';
+      els.gamesSummary.textContent = 'Indexed matches: 0 | Shown sample: 0 | Sample results unavailable';
       return;
     }
     const count = Number(totalGames) || rows.length;
@@ -2359,7 +2619,7 @@
     };
     const avgEloText = eloCount > 0 ? String(Math.round(sumElo / eloCount)) : '-';
     const yearsText = Number.isFinite(yearMin) && Number.isFinite(yearMax) ? `${yearMin}-${yearMax}` : '-';
-    els.gamesSummary.textContent = `Games: ${count} | White ${pct(whiteWins)} | Draw ${pct(draws)} | Black ${pct(blackWins)} | Avg Elo ${avgEloText} | Years ${yearsText}`;
+    els.gamesSummary.textContent = `Indexed matches: ${count.toLocaleString()} | Shown sample: ${rows.length} | Sample White ${pct(whiteWins)} | Draw ${pct(draws)} | Black ${pct(blackWins)} | Avg Elo ${avgEloText} | Years ${yearsText}`;
   }
 
   function toggleTransitionPanel(show, message, statsText) {
@@ -2397,29 +2657,176 @@
 
   async function loadGamePgnText(row) {
     if (!row || !row.gameId) return null;
-    const remoteText = await fetchTextWithTimeout(row.pgnUrl, GAMES_FETCH_TIMEOUT_MS);
+    const remoteText = row.pgnUrl ? await fetchTextWithTimeout(row.pgnUrl, GAMES_FETCH_TIMEOUT_MS) : null;
     if (remoteText) return remoteText;
     const localUrl = `/data/openingdb_games/${state.gamesVersion}/pgn/${row.gameId}.pgn`;
     return fetchTextWithTimeout(localUrl, GAMES_FETCH_TIMEOUT_MS);
   }
 
+  function toReplayMove(move) {
+    if (!move || typeof move !== 'object') return null;
+    return Object.freeze({
+      san: String(move.san || ''),
+      from: String(move.from || ''),
+      to: String(move.to || ''),
+      promotion: String(move.promotion || '')
+    });
+  }
+
+  function setExplorationMoveReview() {
+    const history = state.game?.history?.({ verbose: true }) || [];
+    state.moveReview = {
+      source: 'exploration',
+      gameRow: null,
+      pgnText: '',
+      initialFen: state.openingDbInitialFen || new Chess().fen(),
+      moves: history.map(toReplayMove).filter(Boolean),
+      ply: history.length,
+      notationAvailable: true,
+      status: history.length ? 'Reviewing your current explored line.' : 'Play a move in Explorer to build a line for review.'
+    };
+  }
+
+  function createReplayAtPly(review, requestedPly) {
+    try {
+      const replay = new Chess(review.initialFen || undefined);
+      const limit = Math.max(0, Math.min(Number(requestedPly) || 0, review.moves.length));
+      for (let idx = 0; idx < limit; idx += 1) {
+        const source = review.moves[idx];
+        const move = replay.move({
+          from: source.from,
+          to: source.to,
+          promotion: source.promotion || undefined
+        }) || replay.move(source.san, { sloppy: true });
+        if (!move) return null;
+      }
+      return replay;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function appendReviewDetail(label, value) {
+    if (!els.movesGameDetails) return;
+    const item = document.createElement('div');
+    item.className = 'openingdb-review-detail';
+    const name = document.createElement('span');
+    name.textContent = label;
+    const content = document.createElement('strong');
+    content.textContent = String(value || '-');
+    item.append(name, content);
+    els.movesGameDetails.append(item);
+  }
+
+  function renderMoveReview() {
+    const review = state.moveReview;
+    const isGame = review.source === 'game';
+    if (els.movesTitle) {
+      els.movesTitle.textContent = isGame
+        ? `${review.gameRow?.white || '?'} vs ${review.gameRow?.black || '?'}`
+        : 'Current explored line';
+    }
+    if (els.movesStatus) els.movesStatus.textContent = review.status || '';
+    if (els.movesReturnGamesBtn) els.movesReturnGamesBtn.hidden = !isGame;
+
+    if (els.movesGameDetails) {
+      els.movesGameDetails.replaceChildren();
+      els.movesGameDetails.hidden = !isGame;
+      if (isGame) {
+        const row = review.gameRow || {};
+        appendReviewDetail('Result', row.result || '?');
+        appendReviewDetail('Event', row.event || row.site || '-');
+        appendReviewDetail('Year', row.year || '-');
+        appendReviewDetail('Starting FEN', review.initialFen || 'Standard starting position');
+      }
+    }
+
+    if (els.movesNotation) {
+      els.movesNotation.replaceChildren();
+      if (!review.notationAvailable) {
+        const empty = document.createElement('p');
+        empty.className = 'openingdb-review-empty';
+        empty.textContent = 'Move notation is unavailable because this indexed result contains metadata only.';
+        els.movesNotation.append(empty);
+      } else if (review.moves.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'openingdb-review-empty';
+        empty.textContent = 'No moves have been played yet.';
+        els.movesNotation.append(empty);
+      } else {
+        review.moves.forEach((move, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `openingdb-review-move${review.ply === index + 1 ? ' is-current' : ''}`;
+          button.setAttribute('role', 'listitem');
+          button.setAttribute('data-review-ply', String(index + 1));
+          const moveNumber = Math.floor(index / 2) + 1;
+          button.textContent = `${index % 2 === 0 ? `${moveNumber}.` : `${moveNumber}...`} ${move.san || `${move.from}${move.to}`}`;
+          button.setAttribute('aria-label', `Go to ply ${index + 1}: ${move.san || `${move.from}${move.to}`}`);
+          els.movesNotation.append(button);
+        });
+      }
+    }
+
+    const canNavigate = review.notationAvailable && review.moves.length > 0;
+    if (els.movesFirstBtn) els.movesFirstBtn.disabled = !canNavigate || review.ply <= 0;
+    if (els.movesPrevBtn) els.movesPrevBtn.disabled = !canNavigate || review.ply <= 0;
+    if (els.movesNextBtn) els.movesNextBtn.disabled = !canNavigate || review.ply >= review.moves.length;
+    if (els.movesLastBtn) els.movesLastBtn.disabled = !canNavigate || review.ply >= review.moves.length;
+    if (els.movesPlyLabel) {
+      els.movesPlyLabel.textContent = review.ply > 0
+        ? `Ply ${review.ply} of ${review.moves.length}: ${review.moves[review.ply - 1]?.san || ''}`
+        : `Start position · 0 of ${review.moves.length}`;
+    }
+  }
+
+  function syncBoardToMoveReview() {
+    if (state.activeTab !== 'moves' || !state.board || !state.moveReview.notationAvailable) return false;
+    const replay = createReplayAtPly(state.moveReview, state.moveReview.ply);
+    if (!replay) return false;
+    cancelActiveBoardDrag();
+    state.board.position(replay.fen(), false);
+    return true;
+  }
+
+  function setMoveReviewPly(ply) {
+    const review = state.moveReview;
+    if (!review.notationAvailable) return;
+    review.ply = Math.max(0, Math.min(Number(ply) || 0, review.moves.length));
+    renderMoveReview();
+    syncBoardToMoveReview();
+  }
+
+  function restoreExplorationBoard() {
+    if (!state.board || !state.game) return;
+    cancelActiveBoardDrag();
+    state.board.position(state.game.fen(), false);
+  }
+
   function setActiveTab(tabName) {
-    state.activeTab = tabName === 'games' ? 'games' : 'moves';
+    const previousTab = state.activeTab;
+    state.activeTab = ['explorer', 'analysis', 'games', 'moves'].includes(tabName) ? tabName : 'explorer';
+    const isExplorer = state.activeTab === 'explorer';
+    const isAnalysis = state.activeTab === 'analysis';
     const isGames = state.activeTab === 'games';
-    if (els.tabMoves) {
-      els.tabMoves.classList.toggle('active', !isGames);
-      els.tabMoves.setAttribute('aria-selected', isGames ? 'false' : 'true');
-      els.tabMoves.tabIndex = isGames ? -1 : 0;
-    }
-    if (els.tabGames) {
-      els.tabGames.classList.toggle('active', isGames);
-      els.tabGames.setAttribute('aria-selected', isGames ? 'true' : 'false');
-      els.tabGames.tabIndex = isGames ? 0 : -1;
-    }
-    if (els.movesPanel) els.movesPanel.hidden = isGames;
+    const isMoves = state.activeTab === 'moves';
+    [
+      [els.tabExplorer, isExplorer],
+      [els.tabAnalysis, isAnalysis],
+      [els.tabGames, isGames],
+      [els.tabMoves, isMoves]
+    ].forEach(([tab, selected]) => {
+      if (!tab) return;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    if (els.analysisPanel) els.analysisPanel.hidden = !isAnalysis;
+    if (els.explorerPanel) els.explorerPanel.hidden = !isExplorer;
+    if (els.movesPanel) els.movesPanel.hidden = !isMoves;
     if (els.gamesPanel) els.gamesPanel.hidden = !isGames;
     if (isGames && !SEARCH_GAMES_ENABLED) {
-      setGamesStatus('Search Games: coming soon.');
+      setGamesStatus('Line search is unavailable for this dataset.');
       renderGamesSummary([], 0);
       return;
     }
@@ -2432,11 +2839,19 @@
         setGamesStatus('Ready. Click Search Games From This Position.');
       }
     }
+    if (isMoves) {
+      if (state.moveReview.source !== 'game') setExplorationMoveReview();
+      renderMoveReview();
+      syncBoardToMoveReview();
+    } else if (previousTab === 'moves') {
+      restoreExplorationBoard();
+    }
+    if (isExplorer && state.moveReview.source === 'game') setExplorationMoveReview();
   }
 
   function bindOpeningDbTabInteractions() {
     if (state.tabInteractionsBound) return false;
-    const explorerTabs = [els.tabMoves, els.tabGames].filter(Boolean);
+    const explorerTabs = [els.tabExplorer, els.tabAnalysis, els.tabGames, els.tabMoves].filter(Boolean);
     if (explorerTabs.length === 0) return false;
     state.tabInteractionsBound = true;
 
@@ -2450,10 +2865,16 @@
             ? explorerTabs.length - 1
             : (index + (event.key === 'ArrowRight' ? 1 : explorerTabs.length - 1)) % explorerTabs.length;
         const next = explorerTabs[nextIndex];
-        setActiveTab(next === els.tabGames ? 'games' : 'moves');
+        setActiveTab(next === els.tabExplorer ? 'explorer' : next === els.tabAnalysis ? 'analysis' : next === els.tabGames ? 'games' : 'moves');
         next.focus();
       });
     });
+    if (els.tabExplorer) {
+      els.tabExplorer.addEventListener('click', () => setActiveTab('explorer'));
+    }
+    if (els.tabAnalysis) {
+      els.tabAnalysis.addEventListener('click', () => setActiveTab('analysis'));
+    }
     if (els.tabMoves) {
       els.tabMoves.addEventListener('click', () => setActiveTab('moves'));
     }
@@ -2500,19 +2921,20 @@
     }
 
     els.gamesBody.innerHTML = rows.map((row, idx) => {
-      const white = row.white || 'Unknown';
-      const black = row.black || 'Unknown';
-      const result = row.result || '?';
-      const event = row.eco ? `${row.event || row.site || '-'} [${row.eco}]` : (row.event || row.site || '-');
-      const year = row.year || '-';
+      const white = escapeHtml(row.white || 'Unknown');
+      const black = escapeHtml(row.black || 'Unknown');
+      const result = escapeHtml(row.result || '?');
+      const event = escapeHtml(row.eco ? `${row.event || row.site || '-'} [${row.eco}]` : (row.event || row.site || '-'));
+      const year = escapeHtml(row.year || '-');
       const avgElo = Number(row.avgElo);
       const whiteElo = row.whiteElo ? String(row.whiteElo) : '?';
       const blackElo = row.blackElo ? String(row.blackElo) : '?';
-      const eloCell = Number.isFinite(avgElo) ? `${Math.round(avgElo)} (avg)` : `${whiteElo}/${blackElo}`;
+      const eloCell = escapeHtml(Number.isFinite(avgElo) ? `${Math.round(avgElo)} (avg)` : `${whiteElo}/${blackElo}`);
       const actions = row.pgnUrl
-        ? `<button class="btn btn-secondary odb-game-view-btn" data-action="view" data-game-index="${idx}" type="button">View PGN</button>
-            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${row.pgnUrl}" download="${row.gameId}.pgn">Download</a>`
-        : '—';
+        ? `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">Review moves</button>
+            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${escapeHtml(row.pgnUrl)}" download="${escapeHtml(row.gameId)}.pgn">Download</a>`
+        : `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">Review</button>
+           <span class="openingdb-muted">Metadata only</span>`;
       return `
         <tr data-game-index="${idx}">
           <td>${white}</td>
@@ -2529,17 +2951,9 @@
 
   function renderGamesDownloadLinks(rows) {
     if (!els.gamesDownloads) return;
-    if (!Array.isArray(rows) || rows.length === 0) {
-      els.gamesDownloads.innerHTML = '';
-      return;
-    }
-    const limit = Math.min(rows.length, getCurrentDownloadLimit());
-    const chosen = rows.slice(0, limit);
-    const links = chosen.map((row) => `<a href="${row.pgnUrl}" download="${row.gameId}.pgn">${row.white || '?'} vs ${row.black || '?'} (${row.year || '?'})</a>`);
-    const paywall = state.gamesTier === 'free' && rows.length > limit
-      ? '<div class="openingdb-games-status">Upgrade to Premium to download more games.</div>'
+    els.gamesDownloads.textContent = Array.isArray(rows) && rows.length
+      ? 'This index currently provides game metadata only; individual PGN files are not available.'
       : '';
-    els.gamesDownloads.innerHTML = `<div class="openingdb-games-status">Download list (${limit}/${rows.length})</div>${links.join('')}${paywall}`;
   }
 
   function moveVerboseToUci(move) {
@@ -2569,6 +2983,10 @@
     const manifest = await fetchJsonWithTimeout(GAMESEARCH_MANIFEST_URL, MANIFEST_FETCH_TIMEOUT_MS);
     if (!manifest || typeof manifest !== 'object') return null;
     state.gameSearchManifest = manifest;
+    if (els.gamesScope) {
+      const maxPlies = getGameSearchMaxPlies();
+      els.gamesScope.textContent = `Results match the played move order for up to ${maxPlies} plies. Transpositions reached through a different line are not included.`;
+    }
     return manifest;
   }
 
@@ -2595,12 +3013,12 @@
   }
 
   async function triggerGamesZipDownload() {
-    setGamesStatus('Download Games ZIP: coming soon.');
+    setGamesStatus('PGN and ZIP exports are not available in the current dataset.');
   }
 
   async function runGamesSearch() {
     if (!SEARCH_GAMES_ENABLED) {
-      setGamesStatus('Search Games: coming soon.');
+      setGamesStatus('Line search is unavailable for this dataset.');
       return;
     }
     if (!state.game) return;
@@ -2663,11 +3081,16 @@
       renderGamesRows(rows);
       renderGamesSummary(rows, Number(payload.games) || rows.length);
       if (els.gamesDownloads) {
-        const safeLineKey = String(lineKey).replace(/"/g, '&quot;');
-        els.gamesDownloads.innerHTML = `
-          <div class="openingdb-games-status">lineKey: <code>${safeLineKey}</code></div>
-          <div class="openingdb-games-status">Total indexed games: ${Number(payload.games) || 0} | Showing: ${rows.length}</div>
-        `;
+        els.gamesDownloads.replaceChildren();
+        const line = document.createElement('div');
+        line.className = 'openingdb-games-status';
+        const code = document.createElement('code');
+        code.textContent = lineKey;
+        line.append('Line key: ', code);
+        const totals = document.createElement('div');
+        totals.className = 'openingdb-games-status';
+        totals.textContent = `Total indexed matches: ${(Number(payload.games) || 0).toLocaleString()} | Showing metadata: ${rows.length}`;
+        els.gamesDownloads.append(line, totals);
       }
 
       if ((Number(payload.games) || 0) === 0) {
@@ -2683,7 +3106,7 @@
 
   async function viewGamePgn(gameIndex) {
     if (!SEARCH_GAMES_ENABLED) {
-      setGamesStatus('Search Games: coming soon.');
+      setGamesStatus('Line search is unavailable for this dataset.');
       return;
     }
     const idx = Number(gameIndex);
@@ -2691,33 +3114,64 @@
     const row = state.gamesResults[idx];
     if (!row) return;
 
-    if (state.gamesTier !== 'premium' && state.pgnViewsUsed >= FREE_PGN_VIEW_LIMIT) {
-      setGamesStatus(`Free limit reached (${FREE_PGN_VIEW_LIMIT} PGN views/session). Upgrade to Premium.`);
-      return;
-    }
+    state.moveReview = {
+      source: 'game',
+      gameRow: row,
+      pgnText: '',
+      initialFen: '',
+      moves: [],
+      ply: 0,
+      notationAvailable: false,
+      status: 'Checking for genuine PGN notation...'
+    };
+    setActiveTab('moves');
+    renderMoveReview();
 
     const pgnText = await loadGamePgnText(row);
     if (!pgnText) {
-      setGamesStatus('PGN is not available for this game yet.');
+      state.moveReview.status = 'This indexed game contains metadata only. Move notation is unavailable.';
+      renderMoveReview();
+      setGamesStatus('PGN is not available for this game; metadata is shown in Moves.');
       return;
     }
 
-    if (state.gamesTier !== 'premium') {
-      state.pgnViewsUsed += 1;
-      persistPgnViewCounter();
+    let parsed = null;
+    try {
+      const candidate = new Chess();
+      if (candidate.load_pgn(pgnText, { sloppy: true })) parsed = candidate;
+    } catch (_err) {
+      parsed = null;
+    }
+    if (!parsed) {
+      state.moveReview.status = 'A PGN file was found but could not be parsed safely. No notation was shown.';
+      renderMoveReview();
+      setGamesStatus('The game PGN could not be parsed.');
+      return;
     }
 
-    if (els.gamesPgnTitle) {
-      els.gamesPgnTitle.textContent = `${row.white || '?'} vs ${row.black || '?'} (${row.result || '?'})`;
-    }
-    if (els.gamesPgnText) {
-      els.gamesPgnText.value = pgnText;
-    }
-    if (els.gamesPgnViewer) {
-      els.gamesPgnViewer.hidden = false;
-    }
-    const usedText = state.gamesTier === 'premium' ? 'premium' : `${state.pgnViewsUsed}/${FREE_PGN_VIEW_LIMIT}`;
-    setGamesStatus(`PGN loaded (${usedText}).`);
+    const headers = parsed.header?.() || {};
+    const initialFen = String(headers.FEN || new Chess().fen());
+    const moves = (parsed.history({ verbose: true }) || []).map(toReplayMove).filter(Boolean);
+    state.moveReview = {
+      source: 'game',
+      gameRow: {
+        ...row,
+        white: headers.White || row.white,
+        black: headers.Black || row.black,
+        result: headers.Result || row.result,
+        event: headers.Event || row.event,
+        year: String(headers.Date || '').slice(0, 4).replace(/\?/g, '') || row.year
+      },
+      pgnText,
+      initialFen,
+      moves,
+      ply: 0,
+      notationAvailable: true,
+      status: moves.length ? 'Genuine PGN loaded. Use the controls or select any SAN move.' : 'The PGN contains no moves.'
+    };
+    renderMoveReview();
+    syncBoardToMoveReview();
+    setGamesStatus('PGN loaded in Moves.');
   }
 
   function applyMoveFromRow(row) {
@@ -2988,6 +3442,9 @@
     const force = !!options.force;
     const requestId = (state.positionRequestId || 0) + 1;
     state.positionRequestId = requestId;
+    cancelNextMoveEvalQueue();
+    clearCurrentPositionEngineEvalRows();
+    refreshRenderedEngineEvalCells();
 
     const fen = inputFen || state.game.fen();
     const fenKey = normalizeFenForHash(fen);
@@ -3043,19 +3500,23 @@
     }
     updateCoverageBadge(state.latestPopularRows.length, state.latestAllLegalRows.length);
 
-    const popularFallbackToLegal = state.moveListMode === 'popular' &&
-      state.latestPopularRows.length === 0 &&
+    const popularFallbackToLegal = state.latestPopularRows.length === 0 &&
       state.latestAllLegalRows.length > 0;
-    const rows = state.moveListMode === 'all' || popularFallbackToLegal
-      ? state.latestAllLegalRows
-      : state.latestPopularRows;
+    const rows = getExplorerDisplayRows();
     state.gameSearchLineKey = buildCurrentLineKey();
 
-    let openingText = 'Opening: (TBD)';
-    if (openingFallback.eco || openingFallback.name !== 'Opening: (TBD)') {
-      openingText = openingFallback.eco ? `${openingFallback.name} (${openingFallback.eco})` : openingFallback.name;
+    const hasKnownOpening = openingFallback.eco || openingFallback.name !== 'Opening: (TBD)';
+    const openingName = hasKnownOpening
+      ? String(openingFallback.name || 'Opening not classified').replace(/^Opening:\s*/i, '')
+      : 'Opening not classified';
+    els.openingLabel.textContent = openingName;
+    if (els.ecoCode) els.ecoCode.textContent = openingFallback.eco || 'ECO —';
+    if (els.ecoLink) {
+      els.ecoLink.href = openingFallback.eco ? `/eco/${encodeURIComponent(openingFallback.eco)}` : '/eco';
+      els.ecoLink.setAttribute('aria-label', openingFallback.eco
+        ? `Browse ECO ${openingFallback.eco}`
+        : 'Browse ECO opening codes');
     }
-    els.openingLabel.textContent = openingText;
 
     const renderStartedAt = performance.now();
     const shouldRenderRows = rowsNeedRender(rows);
@@ -3145,9 +3606,6 @@
     });
 
     scheduleEngineReanalyzeForCurrentPosition();
-    if (!state.engine.running) {
-      maybeRunNextMoveEvalQueue();
-    }
   }
 
   async function copyEnginePvToClipboard() {
@@ -3272,10 +3730,6 @@
 
     updateTurnPlyLabel(state.game ? state.game.history({ verbose: false }).length : 0);
     updateDownloadButtonLabel();
-    if (els.downloadGamesBtn) {
-      els.downloadGamesBtn.disabled = true;
-      els.downloadGamesBtn.textContent = 'Download (coming soon)';
-    }
     setGamesStatus('Ready. Click Search Games From This Position.');
     if (!SEARCH_GAMES_ENABLED) {
       if (els.searchGamesBtn) els.searchGamesBtn.disabled = true;
@@ -3288,18 +3742,70 @@
     await updatePositionView(state.game ? state.game.fen() : undefined, { force: true });
   }
 
-  function bindEvents() {
-    if (els.movesPopularBtn) {
-      els.movesPopularBtn.addEventListener('click', () => setMovesListMode('popular'));
-    }
-    if (els.movesAllBtn) {
-      els.movesAllBtn.addEventListener('click', () => setMovesListMode('all'));
-    }
+  function setIntegrationStatus(message) {
+    if (els.actionStatus) els.actionStatus.textContent = message || '';
+  }
 
+  function openCurrentPositionInAnalyzer() {
+    if (!state.game || !window.CaissaAnalyzeHandoff?.createTransport) {
+      setIntegrationStatus('Analyzer handoff is unavailable. Refresh and try again.');
+      return false;
+    }
+    try {
+      const history = state.game.history({ verbose: false }) || [];
+      const standardFen = new Chess().fen();
+      const initialFen = state.openingDbInitialFen || standardFen;
+      const canReplayGame = initialFen === standardFen && history.length > 0;
+      const transport = window.CaissaAnalyzeHandoff.createTransport();
+      const created = transport.create({
+        source: 'opening-database',
+        intent: canReplayGame ? 'analyze-game' : 'analyze-position',
+        payload: {
+          recordId: null,
+          initialFen,
+          finalFen: state.game.fen(),
+          pgn: canReplayGame && typeof state.game.pgn === 'function' ? state.game.pgn() : null,
+          selectedPly: history.length,
+          playerColor: null,
+          boardOrientation: state.boardFlipped ? 'black' : 'white',
+          result: null,
+          termination: null,
+          whiteLabel: null,
+          blackLabel: null,
+          recordStatus: 'active',
+          mode: 'opening-database'
+        },
+        provenance: {
+          sourceSection: 'opening-database',
+          compatibilitySchemaVersion: null,
+          lifecycleSessionId: null,
+          clockSessionId: null
+        }
+      });
+      if (!created.ok) {
+        setIntegrationStatus('Could not prepare this position for Analyzer.');
+        return false;
+      }
+      const stored = transport.store(created.value);
+      if (!stored.ok) {
+        setIntegrationStatus('Browser storage blocked the Analyzer handoff.');
+        return false;
+      }
+      window.location.assign(`/analyze?handoff=${encodeURIComponent(created.value.token)}`);
+      return true;
+    } catch (error) {
+      console.error('[OpeningDB] Analyzer handoff failed', error);
+      setIntegrationStatus('Could not open this position in Analyzer.');
+      return false;
+    }
+  }
+
+  function bindEvents() {
     els.startBtn.addEventListener('click', () => {
       cancelActiveBoardDrag();
       state.game.reset();
       state.openingDbBasePly = 0;
+      state.openingDbInitialFen = state.game.fen();
       clearEngineEvalCache();
       state.board.position('start', false);
       state.interactionMetrics.boardPositionWrites += 1;
@@ -3350,6 +3856,7 @@
       try {
         state.game.load(check.fen);
         state.openingDbBasePly = getPlyFromFen(check.fen);
+        state.openingDbInitialFen = state.game.fen();
         clearEngineEvalCache();
       } catch (_err) {
         els.fenError.hidden = false;
@@ -3367,11 +3874,14 @@
 
     if (els.statsBody) {
       els.statsBody.addEventListener('click', (event) => {
-        const rowEl = event.target && event.target.closest ? event.target.closest('tr[data-row-index]') : null;
-        if (!rowEl) return;
-        const idx = Number(rowEl.getAttribute('data-row-index'));
-        if (!Number.isInteger(idx) || idx < 0) return;
-        const row = state.currentRows[idx];
+        const moveButton = event.target && event.target.closest ? event.target.closest('[data-move-index]') : null;
+        if (!moveButton) return;
+        const idx = Number(moveButton.getAttribute('data-move-index'));
+        const moveUci = String(moveButton.getAttribute('data-move-uci') || '').trim().toLowerCase();
+        const row = (moveUci
+          ? state.currentRows.find((candidate) => getExplorerMoveIdentity(candidate) === moveUci)
+          : null) || (Number.isInteger(idx) && idx >= 0 ? state.currentRows[idx] : null);
+        if (!row) return;
         applyMoveFromRow(row);
       });
     }
@@ -3404,15 +3914,6 @@
       });
     }
 
-    if (els.openSearchNewTabBtn) {
-      els.openSearchNewTabBtn.addEventListener('click', () => {
-        const fen = state.game ? state.game.fen() : '';
-        const lineKey = state.gameSearchLineKey || buildCurrentLineKey();
-        const url = `/search?fen=${encodeURIComponent(fen)}${lineKey ? `&lineKey=${encodeURIComponent(lineKey)}` : ''}`;
-        window.open(url, '_blank', 'noopener');
-      });
-    }
-
     if (els.transitionSearchGamesBtn) {
       els.transitionSearchGamesBtn.addEventListener('click', () => {
         setActiveTab('games');
@@ -3422,8 +3923,13 @@
 
     if (els.analyzePositionBtn) {
       els.analyzePositionBtn.addEventListener('click', () => {
-        startEngineAnalysis();
+        setActiveTab('analysis');
+        els.startEngineBtn?.focus();
       });
+    }
+
+    if (els.analyzeInCaissaBtn) {
+      els.analyzeInCaissaBtn.addEventListener('click', openCurrentPositionInAnalyzer);
     }
 
     if (els.downloadGamesBtn) {
@@ -3494,17 +4000,26 @@
       });
     }
 
+    els.sortPopularityBtn?.addEventListener('click', () => {
+      setExplorerSortMode('popularity');
+    });
+
+    els.sortEngineBtn?.addEventListener('click', () => {
+      setExplorerSortMode('engine');
+    });
+
     if (els.quickEvalToggle) {
       els.quickEvalToggle.addEventListener('change', () => {
         state.engine.evalNextMoves = !!els.quickEvalToggle.checked;
         persistQuickEvalPreference(state.engine.evalNextMoves);
         if (!state.engine.evalNextMoves) {
+          state.explorerSortMode = 'popularity';
           cancelNextMoveEvalQueue();
-          state.currentRows.forEach((row) => {
-            if (row && row.engineEval === '...') row.engineEval = '-';
-          });
-          refreshRenderedEngineEvalCells();
+          clearCurrentPositionEngineEvalRows();
+          renderExplorerRows();
         } else {
+          applyEngineEvalCacheToRows(getExplorerSourceRows(), state.game ? state.game.fen() : '');
+          renderExplorerRows();
           maybeRunNextMoveEvalQueue();
         }
         renderEnginePanel();
@@ -3516,6 +4031,10 @@
         state.engine.evalMode = String(els.quickEvalMode.value || 'fast').toLowerCase() === 'pro' ? 'pro' : 'fast';
         persistQuickEvalModePreference(state.engine.evalMode);
         if (state.engine.evalNextMoves) {
+          cancelNextMoveEvalQueue();
+          clearCurrentPositionEngineEvalRows();
+          applyEngineEvalCacheToRows(getExplorerSourceRows(), state.game ? state.game.fen() : '');
+          renderExplorerRows();
           maybeRunNextMoveEvalQueue();
         }
         renderEnginePanel();
@@ -3528,30 +4047,26 @@
         if (!target) return;
         const action = target.getAttribute('data-action');
         const idx = Number(target.getAttribute('data-game-index'));
-        if (action === 'view') {
+        if (action === 'review') {
           event.preventDefault();
           viewGamePgn(idx);
         }
       });
     }
 
-    if (els.gamesPgnCloseBtn) {
-      els.gamesPgnCloseBtn.addEventListener('click', () => {
-        if (els.gamesPgnViewer) els.gamesPgnViewer.hidden = true;
+    if (els.movesNotation) {
+      els.movesNotation.addEventListener('click', (event) => {
+        const target = event.target && event.target.closest ? event.target.closest('[data-review-ply]') : null;
+        if (!target) return;
+        setMoveReviewPly(Number(target.getAttribute('data-review-ply')));
       });
     }
 
-    if (els.gamesPgnCopyBtn) {
-      els.gamesPgnCopyBtn.addEventListener('click', async () => {
-        if (!els.gamesPgnText || !els.gamesPgnText.value) return;
-        try {
-          await navigator.clipboard.writeText(els.gamesPgnText.value);
-          setGamesStatus('PGN copied to clipboard.');
-        } catch (_err) {
-          setGamesStatus('Copy did not work. Try again.');
-        }
-      });
-    }
+    els.movesFirstBtn?.addEventListener('click', () => setMoveReviewPly(0));
+    els.movesPrevBtn?.addEventListener('click', () => setMoveReviewPly(state.moveReview.ply - 1));
+    els.movesNextBtn?.addEventListener('click', () => setMoveReviewPly(state.moveReview.ply + 1));
+    els.movesLastBtn?.addEventListener('click', () => setMoveReviewPly(state.moveReview.moves.length));
+    els.movesReturnGamesBtn?.addEventListener('click', () => setActiveTab('games'));
 
     window.addEventListener('resize', () => {
       if (state.board && typeof state.board.resize === 'function') {
@@ -3567,7 +4082,6 @@
     });
     window.addEventListener('pagehide', destroyBoard);
 
-    setMovesListMode(state.moveListMode);
   }
 
   function captureChessboardGlobalHandlers() {
@@ -3641,6 +4155,7 @@
 
   function canStartBoardDrag(source, piece) {
     if (!state.game || state.game.game_over()) return false;
+    if (state.activeTab === 'moves') return false;
     if (isOpeningDbDepthLimitReached()) {
       renderOpeningDbDepthLimit();
       return false;
@@ -3655,6 +4170,8 @@
   function applyBoardDrop(source, target, piece, _newPos, _oldPos, orientation) {
     state.interactionMetrics.boardMoveAttempts += 1;
     debugLog('[OpeningDB] onDrop', { source, target, piece, fenBefore: state.game.fen(), orientation });
+
+    if (state.activeTab === 'moves') return 'snapback';
 
     if ((state.game.turn() === 'w' && String(piece || '').startsWith('b')) ||
         (state.game.turn() === 'b' && String(piece || '').startsWith('w'))) {
@@ -3730,7 +4247,10 @@
   }
 
   async function initBoard() {
-    if (!state.game) state.game = new Chess();
+    if (!state.game) {
+      state.game = new Chess();
+      state.openingDbInitialFen = state.game.fen();
+    }
     destroyBoard();
 
     let quietDragModule = null;
@@ -3840,8 +4360,7 @@
 
     try {
       configureNodeApiMode();
-      state.gamesTier = getTierFromUrl();
-      hydratePgnViewCounter();
+      if (els.engineDiagnostics) els.engineDiagnostics.hidden = !DEBUG;
       if (els.engineDepth) {
         const d = Number(els.engineDepth.value) || ENGINE_DEFAULT_DEPTH;
         state.engine.depth = d;
@@ -3858,12 +4377,17 @@
       if (els.quickEvalMode) {
         els.quickEvalMode.value = state.engine.evalMode;
       }
-      state.engine.debug.workerUrl = new URL('/engine/stockfish.worker.js', window.location.origin).toString();
+      state.explorerSortMode = 'popularity';
+      state.engine.debug.workerUrl = new URL('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.js', window.location.origin).toString();
+      state.engine.debug.wasmUrl = new URL('/assets/vendor/stockfish/19.0.0/stockfish-19-lite-single.wasm', window.location.origin).toString();
       state.engine.debug.handshakeState = 'idle';
+      state.engine.debug.lastStopReason = '';
       state.engine.debug.lastLine = '';
       state.engine.debug.lastInfoAt = 0;
       state.engine.debug.errors = [];
       renderEnginePanel();
+      renderExplorerSortControls();
+      updateExplorerSortStatus();
       await initBoard();
       bindEvents();
       updateDownloadButtonLabel();
@@ -3882,5 +4406,3 @@
     runInit();
   }
 })();
-
-

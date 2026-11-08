@@ -60,6 +60,9 @@
   class OpeningTrainerStockfishClient {
     constructor(options = {}) {
       this.workerPath = String(options.workerPath || WORKER_PATH);
+      this.owner = String(options.owner || 'opening-trainer');
+      this.clientId = String(options.clientId || `${this.owner}-stockfish-19`);
+      this.requestedEngineId = String(options.requestedEngineId || this.clientId);
       this.adapter = null;
       this.ready = false;
       this.initPromise = null;
@@ -99,6 +102,8 @@
         activityLimitMs: 0,
         lastStopReason: ''
       };
+      this.debug.owner = this.owner;
+      this.debug.clientId = this.clientId;
     }
 
     claimWorker() {
@@ -206,13 +211,20 @@
         this.debug.lastReadyOkAt = Date.now();
         this.setHandshakeState('readyok');
       }
+      const bestMove = value.match(/^bestmove\s+(\S+)(?:\s+ponder\s+(\S+))?/i);
+      if (bestMove) {
+        this.onBestMoveHandler?.(Object.freeze({
+          bestmove: String(bestMove[1] || '').toLowerCase(),
+          ponder: String(bestMove[2] || '').toLowerCase()
+        }));
+      }
       this.onLineHandler?.(value);
     }
 
     validateWorkerPath() {
       const requested = new URL(this.workerPath, window.location.origin);
       if (requested.origin !== window.location.origin || requested.pathname !== WORKER_PATH || requested.search || requested.hash) {
-        const error = new Error('Opening Trainer only permits the local Stockfish 19 Lite worker.');
+        const error = new Error('CAISSA only permits the approved local Stockfish 19 Lite worker.');
         error.code = 'ENGINE_WORKER_NOT_APPROVED';
         throw error;
       }
@@ -238,11 +250,11 @@
           this.setState('loading');
           this.setHandshakeState('uci');
           const candidate = new window.EngineAdapter({
-            id: 'opening-trainer-stockfish-19',
+            id: this.clientId,
             providerId: 'stockfish-19-lite',
-            requestedEngineId: 'opening-trainer-stockfish-19',
+            requestedEngineId: this.requestedEngineId,
             name: DISPLAY_NAME,
-            owner: 'opening-trainer',
+            owner: this.owner,
             workerPath: WORKER_PATH,
             wasmPath: WASM_PATH,
             defaultDepth: 20,
@@ -278,7 +290,7 @@
           this.claimWorker();
           await candidate.start();
           if (this.adapter !== candidate) {
-            candidate.terminate('opening-trainer-superseded');
+            candidate.terminate(`${this.owner}-superseded`);
             return false;
           }
           const identity = candidate.getUciIdentity();
@@ -295,7 +307,7 @@
           this.releaseWorker();
           this.setState('error');
           this.addError(error);
-          this.adapter?.terminate('opening-trainer-init-failed');
+          this.adapter?.terminate(`${this.owner}-init-failed`);
           this.adapter = null;
           this.initPromise = null;
           throw error;
@@ -327,7 +339,7 @@
         this.ready = false;
         const candidate = this.adapter;
         this.adapter = null;
-        candidate?.terminate('opening-trainer-analysis-stalled');
+        candidate?.terminate(`${this.owner}-analysis-stalled`);
         this.releaseWorker();
         this.setState('error');
         this.addError(error);
@@ -341,7 +353,7 @@
       const boundedStallMs = stallTimeoutMs > 0 ? boundedInteger(stallTimeoutMs, 120000, 1000, 300000) : 0;
       const fen = this.positionFen;
       const localGeneration = ++this.requestGeneration;
-      this.activeRequestId = `opening-trainer:${localGeneration}`;
+      this.activeRequestId = `${this.owner}:${localGeneration}`;
       this.debug.activeFen = fen;
       this.debug.activeRequestId = this.activeRequestId;
       this.debug.searchMode = 'infinite-attributed';
@@ -388,7 +400,7 @@
       this.ready = false;
       const candidate = this.adapter;
       this.adapter = null;
-      candidate?.terminate('opening-trainer-owner-exit');
+      candidate?.terminate(`${this.owner}-owner-exit`);
       this.releaseWorker();
       this.initPromise = null;
       this.positionFen = '';
@@ -405,5 +417,6 @@
     parseWhiteBound
   });
   window.OpeningTrainerStockfishClient = OpeningTrainerStockfishClient;
+  window.CaissaStockfish19LiteClient = OpeningTrainerStockfishClient;
 })();
 
