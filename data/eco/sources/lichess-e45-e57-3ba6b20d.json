@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "source": "https://github.com/lichess-org/chess-openings/blob/3ba6b20d31b2e6125cb0e6a2e792f400717d9d39/e.tsv",
+  "sourceCommit": "3ba6b20d31b2e6125cb0e6a2e792f400717d9d39",
+  "retrievedAt": "2026-11-07",
+  "license": "CC0-1.0",
+  "records": [
+    {
+      "eco": "E45",
+      "name": "Nimzo-Indian Defense: St. Petersburg Variation, Fischer Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Ne2 Ba6"
+    },
+    {
+      "eco": "E46",
+      "name": "Nimzo-Indian Defense: Normal Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O"
+    },
+    {
+      "eco": "E46",
+      "name": "Nimzo-Indian Defense: Reshevsky Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Ne2"
+    },
+    {
+      "eco": "E46",
+      "name": "Nimzo-Indian Defense: Simagin Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Ne2 d5 6. a3 Bd6"
+    },
+    {
+      "eco": "E47",
+      "name": "Nimzo-Indian Defense: Normal Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3"
+    },
+    {
+      "eco": "E48",
+      "name": "Nimzo-Indian Defense: Normal Variation, Classical Defense",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5"
+    },
+    {
+      "eco": "E48",
+      "name": "Nimzo-Indian Defense: Ragozin Defense",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 Nc6 7. O-O"
+    },
+    {
+      "eco": "E49",
+      "name": "Nimzo-Indian Defense: Normal Variation, Botvinnik System",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. a3 Bxc3+ 7. bxc3"
+    },
+    {
+      "eco": "E50",
+      "name": "Nimzo-Indian Defense",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Nf3"
+    },
+    {
+      "eco": "E51",
+      "name": "Nimzo-Indian Defense: Normal Variation, Ragozin Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Nf3 d5"
+    },
+    {
+      "eco": "E51",
+      "name": "Nimzo-Indian Defense: Normal Variation, Ragozin Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Nf3 d5 6. Bd2 Nc6"
+    },
+    {
+      "eco": "E51",
+      "name": "Nimzo-Indian Defense: Normal Variation, Ragozin Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Nf3 d5 6. Bd2 Nc6 7. a3"
+    },
+    {
+      "eco": "E51",
+      "name": "Nimzo-Indian Defense: Normal Variation, Sämisch Deferred",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Nf3 d5 6. a3"
+    },
+    {
+      "eco": "E51",
+      "name": "Nimzo-Indian Defense: Ragozin Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 Nc6 7. O-O dxc4"
+    },
+    {
+      "eco": "E52",
+      "name": "Nimzo-Indian Defense: Normal Variation, Schlechter Defense",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 b6"
+    },
+    {
+      "eco": "E52",
+      "name": "Nimzo-Indian Defense: Normal Variation, Schlechter Defense",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Bd3 Bb7 6. Nf3 O-O 7. O-O d5"
+    },
+    {
+      "eco": "E53",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5"
+    },
+    {
+      "eco": "E53",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nbd7"
+    },
+    {
+      "eco": "E53",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Keres Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O b6"
+    },
+    {
+      "eco": "E54",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Exchange Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O dxc4 8. Bxc4"
+    },
+    {
+      "eco": "E54",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Exchange Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O dxc4 8. Bxc4 cxd4 9. exd4"
+    },
+    {
+      "eco": "E54",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Smyslov Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O dxc4 8. Bxc4 Qe7"
+    },
+    {
+      "eco": "E55",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Bronstein Variation",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O dxc4 8. Bxc4 Nbd7"
+    },
+    {
+      "eco": "E56",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Bernstein Defense",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6"
+    },
+    {
+      "eco": "E57",
+      "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Bernstein Defense",
+      "pgn": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Bd3 d5 6. Nf3 c5 7. O-O Nc6 8. a3 dxc4 9. Bxc4 cxd4"
+    }
+  ]
+}

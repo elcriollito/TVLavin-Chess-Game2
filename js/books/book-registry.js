@@ -6,6 +6,7 @@
  */
 (function () {
   const DEFAULT_BOOK_URL = 'https://caissa-game-fetcher.elcriollito.workers.dev/api/book';
+  const BOOK_REQUEST_TIMEOUT_MS = 5000;
   const fenCache = new Map();
   let warnedUnavailable = false;
   let singletonPromise = null;
@@ -30,7 +31,27 @@
     };
   }
 
-  async function lookupPosition(fen, max = 15) {
+  function createBoundedSignal(externalSignal, timeoutMs = BOOK_REQUEST_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const abortFromExternal = () => controller.abort(externalSignal?.reason || 'cancelled');
+
+    if (externalSignal?.aborted) {
+      abortFromExternal();
+    } else if (externalSignal) {
+      externalSignal.addEventListener('abort', abortFromExternal, { once: true });
+    }
+
+    const timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs);
+    return {
+      signal: controller.signal,
+      cleanup() {
+        clearTimeout(timeoutId);
+        externalSignal?.removeEventListener('abort', abortFromExternal);
+      }
+    };
+  }
+
+  async function lookupPosition(fen, max = 15, options = {}) {
     const fenKey = normalizeFenKey(fen);
     if (!fenKey) {
       return { key: '', fen: fenKey, moves: [], totalWeight: 0 };
@@ -48,14 +69,22 @@
 
     const queryMax = Math.max(1, Math.min(32, max));
     const url = `${DEFAULT_BOOK_URL}?fen=${encodeURIComponent(fenKey)}&max=${queryMax}`;
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) {
-      throw new Error(`Cloud book HTTP ${resp.status}`);
-    }
-
-    const payload = await resp.json();
-    if (payload?.error) {
-      throw new Error(String(payload.error));
+    const request = createBoundedSignal(options?.signal);
+    let payload;
+    try {
+      const resp = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: request.signal
+      });
+      if (!resp.ok) {
+        throw new Error(`Cloud book HTTP ${resp.status}`);
+      }
+      payload = await resp.json();
+      if (payload?.error) {
+        throw new Error(String(payload.error));
+      }
+    } finally {
+      request.cleanup();
     }
 
     const moves = Array.isArray(payload?.moves) ? payload.moves.map(mapMove) : [];
@@ -73,8 +102,8 @@
     };
   }
 
-  async function getMovesForFen(fen, max = 15) {
-    const data = await lookupPosition(fen, max);
+  async function getMovesForFen(fen, max = 15, options = {}) {
+    const data = await lookupPosition(fen, max, options);
     return data.moves;
   }
 
@@ -123,8 +152,8 @@
         isReady() {
           return true;
         },
-        async getContinuations(fen, max = 15) {
-          const moves = await normalized.getMovesForFen(fen, max);
+        async getContinuations(fen, max = 15, options = {}) {
+          const moves = await normalized.getMovesForFen(fen, max, options);
           const totalWeight = Array.isArray(moves)
             ? moves.reduce((sum, m) => sum + (Number(m.weight) || 0), 0)
             : 0;

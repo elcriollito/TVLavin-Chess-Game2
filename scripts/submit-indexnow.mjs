@@ -18,7 +18,6 @@ const exactRouteFiles = new Map([
   ['play-v2-public-beta.html', '/play'],
   ['about.html', '/about'],
   ['blog/index.html', '/blog'],
-  ['database.html', '/database'],
   ['eco.html', '/eco'],
   ['endgame-library.html', '/endgame-library'],
   ['endgame-trainer.html', '/endgame-trainer'],

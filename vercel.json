@@ -62,7 +62,11 @@
     { "source": "/watch/lichess-broadcasts/", "destination": "/watch/live-tournaments", "permanent": true },
     { "source": "/support", "destination": "/help", "permanent": true },
     { "source": "/support/", "destination": "/help", "permanent": true },
-    { "source": "/support.html", "destination": "/help", "permanent": true }
+    { "source": "/support.html", "destination": "/help", "permanent": true },
+    { "source": "/database", "destination": "/eco", "permanent": true },
+    { "source": "/database/", "destination": "/eco", "permanent": true },
+    { "source": "/database/eco/:code", "destination": "/eco/:code", "permanent": true },
+    { "source": "/database/eco/:code/", "destination": "/eco/:code", "permanent": true }
   ],
   "rewrites": [
     { "source": "/", "destination": "/home.html" },
@@ -90,8 +94,6 @@
     { "source": "/endgame-tablebase/", "destination": "/endgame-tablebase.html" },
     { "source": "/eco", "destination": "/eco.html" },
     { "source": "/eco/:code", "destination": "/eco.html" },
-    { "source": "/database", "destination": "/database.html" },
-    { "source": "/database/eco/:code", "destination": "/database.html" },
     { "source": "/tools/polyglot", "destination": "/polyglot.html" },
     { "source": "/gif-maker", "destination": "/gif-maker.html" },
     { "source": "/gif-maker/", "destination": "/gif-maker.html" },

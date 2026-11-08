@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "availableCodes": [
+    "B20",
+    "B34",
+    "B70"
+  ],
+  "policy": "Only listed verified theory files may be requested."
+}

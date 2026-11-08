@@ -90,6 +90,7 @@ test('route mapping covers standalone pages and generated blog articles', () => 
   assert.equal(mapChangedFileToUrl('index.html'), null);
   assert.equal(mapChangedFileToUrl('polyglot.html'), '/tools/polyglot');
   assert.equal(mapChangedFileToUrl('opening-database.html'), '/opening-database');
+  assert.equal(mapChangedFileToUrl('database.html'), null);
   assert.equal(mapChangedFileToUrl('blog/example-article/index.html'), '/blog/example-article');
   assert.equal(mapChangedFileToUrl('public/sitemap.xml'), null);
   assert.equal(mapChangedFileToUrl('css/blog.css'), null);

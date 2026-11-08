@@ -20,9 +20,9 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 - Internal primary pages: 35
 - Public canonical routes not in primary navigation: 18
 - External destinations: 4
-- Redirects: 18
+- Redirects: 22
 - Protected route families: 5
-- Total inventoried records: 80
+- Total inventoried records: 84
 
 ## Primary navigation
 
@@ -74,11 +74,11 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | --- | --- | --- | --- |
 | CAISSA Home | / | home.html, vercel.json and server.js | public |
 | Caissa Chess Online Community | /blog/caissa-chess-online-community | public/sitemap.xml | public |
+| Caissa Opening Explorer Free Chess Analysis | /blog/caissa-opening-explorer-free-chess-analysis | public/sitemap.xml | public |
 | Caissa Scanner Image To Chess Analysis | /blog/caissa-scanner-image-to-chess-analysis | public/sitemap.xml | public |
 | What Is A Polyglot Opening Book | /blog/what-is-a-polyglot-opening-book | public/sitemap.xml | public |
 | Who Is Caissa Goddess Of Chess | /blog/who-is-caissa-goddess-of-chess | public/sitemap.xml | public |
 | Yahoo Chess Spirit Caissa Classic | /blog/yahoo-chess-spirit-caissa-classic | public/sitemap.xml | public |
-| Chess Database | /database | vercel.json | public |
 | Legacy Game Library | /game-library | vercel.json and server.js | public |
 | World Championship Replay | /game-library/champions/replay | vercel.json and server.js | public |
 | Library | /library | vercel.json | public |
@@ -113,6 +113,10 @@ This document and [the machine-readable inventory](../../config/caissa-public-ro
 | /support | /help | 308 | vercel.json and middleware |
 | /support/ | /help | 308 | vercel.json and middleware |
 | /support.html | /help | 308 | vercel.json and middleware |
+| /database | /eco | 308 | vercel.json and middleware |
+| /database/ | /eco | 308 | vercel.json and middleware |
+| /database/eco/:code | /eco/:code | 308 | vercel.json and middleware |
+| /database/eco/:code/ | /eco/:code | 308 | vercel.json and middleware |
 
 ## Protected and fail-closed routes
 

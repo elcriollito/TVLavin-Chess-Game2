@@ -278,7 +278,7 @@
     ]
   },
   {
-    "eco": "B27",
+    "eco": "B90",
     "name": "Sicilian Defense: Najdorf",
     "moves": [
       "e4",
@@ -4979,7 +4979,7 @@
   },
   {
     "eco": "E45",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: St. Petersburg Variation, Fischer Variation",
     "moves": [
       "d4",
       "Nf6",
@@ -4988,25 +4988,28 @@
       "Nc3",
       "Bb4",
       "e3",
-      "O-O",
-      "Bd3",
-      "d5",
-      "Nf3",
-      "c5",
-      "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
       "b6",
-      "Bb2",
-      "Ba6",
-      "c4"
+      "Ne2",
+      "Ba6"
     ]
   },
   {
     "eco": "E46",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O"
+    ]
+  },
+  {
+    "eco": "E46",
+    "name": "Nimzo-Indian Defense: Reshevsky Variation",
     "moves": [
       "d4",
       "Nf6",
@@ -5016,25 +5019,30 @@
       "Bb4",
       "e3",
       "O-O",
-      "Bd3",
-      "d5",
-      "Nf3",
-      "c5",
-      "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
+      "Ne2"
+    ]
+  },
+  {
+    "eco": "E46",
+    "name": "Nimzo-Indian Defense: Simagin Variation",
+    "moves": [
+      "d4",
+      "Nf6",
       "c4",
-      "Nc6"
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Ne2",
+      "d5",
+      "a3",
+      "Bd6"
     ]
   },
   {
     "eco": "E47",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation",
     "moves": [
       "d4",
       "Nf6",
@@ -5044,26 +5052,28 @@
       "Bb4",
       "e3",
       "O-O",
-      "Bd3",
-      "d5",
-      "Nf3",
-      "c5",
-      "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
-      "c4",
-      "Nc6",
-      "Rc1"
+      "Bd3"
     ]
   },
   {
     "eco": "E48",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation, Classical Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "E48",
+    "name": "Nimzo-Indian Defense: Ragozin Defense",
     "moves": [
       "d4",
       "Nf6",
@@ -5076,24 +5086,13 @@
       "Bd3",
       "d5",
       "Nf3",
-      "c5",
-      "O-O",
       "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
-      "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8"
+      "O-O"
     ]
   },
   {
     "eco": "E49",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation, Botvinnik System",
     "moves": [
       "d4",
       "Nf6",
@@ -5105,21 +5104,9 @@
       "O-O",
       "Bd3",
       "d5",
-      "Nf3",
-      "c5",
-      "O-O",
-      "Nc6",
       "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
-      "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8",
-      "Qb3"
+      "Bxc3+",
+      "bxc3"
     ]
   },
   {
@@ -5134,29 +5121,82 @@
       "Bb4",
       "e3",
       "O-O",
-      "Bd3",
-      "d5",
-      "Nf3",
-      "c5",
-      "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
-      "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8",
-      "Qb3",
-      "Na5"
+      "Nf3"
     ]
   },
   {
     "eco": "E51",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation, Ragozin Variation",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Nf3",
+      "d5"
+    ]
+  },
+  {
+    "eco": "E51",
+    "name": "Nimzo-Indian Defense: Normal Variation, Ragozin Variation",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Nf3",
+      "d5",
+      "Bd2",
+      "Nc6"
+    ]
+  },
+  {
+    "eco": "E51",
+    "name": "Nimzo-Indian Defense: Normal Variation, Ragozin Variation",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Nf3",
+      "d5",
+      "Bd2",
+      "Nc6",
+      "a3"
+    ]
+  },
+  {
+    "eco": "E51",
+    "name": "Nimzo-Indian Defense: Normal Variation, Sämisch Deferred",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Nf3",
+      "d5",
+      "a3"
+    ]
+  },
+  {
+    "eco": "E51",
+    "name": "Nimzo-Indian Defense: Ragozin Variation",
     "moves": [
       "d4",
       "Nf6",
@@ -5169,27 +5209,70 @@
       "Bd3",
       "d5",
       "Nf3",
-      "c5",
+      "Nc6",
       "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
-      "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8",
-      "Qb3",
-      "Na5",
-      "Qa2"
+      "dxc4"
     ]
   },
   {
     "eco": "E52",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation, Schlechter Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "b6"
+    ]
+  },
+  {
+    "eco": "E52",
+    "name": "Nimzo-Indian Defense: Normal Variation, Schlechter Defense",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "b6",
+      "Bd3",
+      "Bb7",
+      "Nf3",
+      "O-O",
+      "O-O",
+      "d5"
+    ]
+  },
+  {
+    "eco": "E53",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5"
+    ]
+  },
+  {
+    "eco": "E53",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System",
     "moves": [
       "d4",
       "Nf6",
@@ -5204,26 +5287,53 @@
       "Nf3",
       "c5",
       "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
+      "Nbd7"
+    ]
+  },
+  {
+    "eco": "E53",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Keres Variation",
+    "moves": [
+      "d4",
+      "Nf6",
       "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8",
-      "Qb3",
-      "Na5",
-      "Qa2",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "b6"
+    ]
+  },
+  {
+    "eco": "E54",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Exchange Variation",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "dxc4",
       "Bxc4"
     ]
   },
   {
     "eco": "E54",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Exchange Variation",
     "moves": [
       "d4",
       "Nf6",
@@ -5238,28 +5348,59 @@
       "Nf3",
       "c5",
       "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
+      "dxc4",
+      "Bxc4",
+      "cxd4",
+      "exd4"
+    ]
+  },
+  {
+    "eco": "E54",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Smyslov Variation",
+    "moves": [
+      "d4",
+      "Nf6",
       "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8",
-      "Qb3",
-      "Na5",
-      "Qa2",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "dxc4",
       "Bxc4",
+      "Qe7"
+    ]
+  },
+  {
+    "eco": "E55",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Bronstein Variation",
+    "moves": [
+      "d4",
+      "Nf6",
+      "c4",
+      "e6",
+      "Nc3",
+      "Bb4",
+      "e3",
+      "O-O",
+      "Bd3",
+      "d5",
+      "Nf3",
+      "c5",
+      "O-O",
+      "dxc4",
       "Bxc4",
-      "Nxc4"
+      "Nbd7"
     ]
   },
   {
     "eco": "E56",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Bernstein Defense",
     "moves": [
       "d4",
       "Nf6",
@@ -5274,29 +5415,12 @@
       "Nf3",
       "c5",
       "O-O",
-      "Nc6",
-      "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
-      "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8",
-      "Qb3",
-      "Na5",
-      "Qa2",
-      "Bxc4",
-      "Bxc4",
-      "Nxc4",
-      "Rxc4"
+      "Nc6"
     ]
   },
   {
     "eco": "E57",
-    "name": "Nimzo-Indian Defense",
+    "name": "Nimzo-Indian Defense: Normal Variation, Gligoric System, Bernstein Defense",
     "moves": [
       "d4",
       "Nf6",
@@ -5313,23 +5437,9 @@
       "O-O",
       "Nc6",
       "a3",
-      "Bxc3",
-      "bxc3",
-      "b6",
-      "Bb2",
-      "Ba6",
-      "c4",
-      "Nc6",
-      "Rc1",
-      "Rc8",
-      "Qb3",
-      "Na5",
-      "Qa2",
+      "dxc4",
       "Bxc4",
-      "Bxc4",
-      "Nxc4",
-      "Rxc4",
-      "Rxc4"
+      "cxd4"
     ]
   }
 ]

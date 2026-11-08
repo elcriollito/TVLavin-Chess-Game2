@@ -773,7 +773,7 @@ test('advanced FICS history resolves ECO, links the canonical page, and isolates
   await page.addInitScript(() => localStorage.setItem('caissa_onboarding_completed', 'true'));
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto('/spectator-tv?hotfix=001c');
-  await expect.poll(() => page.evaluate(() => window.CaissaSpectatorTVSection.ecoCatalog.length)).toBe(364);
+  await expect.poll(() => page.evaluate(() => window.CaissaSpectatorTVSection.ecoCatalog.length)).toBe(366);
 
   const setup = await page.evaluate(() => {
     const section = window.CaissaSpectatorTVSection;

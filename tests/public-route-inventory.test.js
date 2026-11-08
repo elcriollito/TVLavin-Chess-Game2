@@ -41,6 +41,8 @@ test('CaissaPublicRouteInventory@1.4.0 is complete, unique, and ordered', () => 
   assert.equal(inventory.primaryNavigation.some(item => item.id === 'library'), false);
   assert.equal(inventory.primaryNavigation.find(item => item.id === 'world-champions')?.canonicalPath, '/game-library/champions');
   assert.equal(inventory.publicCanonicalRoutes.find(item => item.id === 'game-library-legacy')?.canonicalPath, '/game-library');
+  assert.equal(inventory.publicCanonicalRoutes.some(item => item.canonicalPath === '/database'), false);
+  assert.equal(inventory.redirectsAndAliases.some(item => item.redirectFrom === '/database' && item.redirectTo === '/eco'), true);
   assert.equal(inventory.primaryNavigation.some(item => item.id === 'interactive-diagrams'), false);
   assert.deepEqual(inventory.primaryNavigation.map(item => item.navigationPosition), Array.from({ length: inventory.primaryNavigation.length }, (_, index) => index + 1));
   assert.equal(new Set(inventory.primaryNavigation.map(item => item.id)).size, inventory.primaryNavigation.length);

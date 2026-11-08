@@ -17,7 +17,7 @@ const resolver = loadResolver();
 const moves = (line) => line.split(/\s+/).filter((token) => !/^\d+\./.test(token));
 
 test('canonical ECO catalog is reused without a parallel copy', async () => {
-    assert.equal(catalog.length, 364);
+    assert.equal(catalog.length, 366);
     assert.equal(resolver.CATALOG_URL, '/data/eco/eco_codes.json');
     let requests = 0;
     const rows = await loadResolver({

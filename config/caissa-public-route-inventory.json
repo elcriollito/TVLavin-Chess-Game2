@@ -15,9 +15,9 @@
     "internalPrimaryPages": 35,
     "publicCanonicalRoutesNotInPrimaryNavigation": 18,
     "externalDestinations": 4,
-    "redirects": 18,
+    "redirects": 22,
     "protectedRouteFamilies": 5,
-    "totalInventoriedRecords": 80
+    "totalInventoriedRecords": 84
   },
   "primaryNavigation": [
     {
@@ -677,6 +677,21 @@
       "status": "public"
     },
     {
+      "id": "blog-caissa-opening-explorer-free-chess-analysis",
+      "label": "Caissa Opening Explorer Free Chess Analysis",
+      "canonicalPath": "/blog/caissa-opening-explorer-free-chess-analysis",
+      "absoluteUrl": "https://www.caissa-chess.org/blog/caissa-opening-explorer-free-chess-analysis",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "blog-caissa-opening-explorer-free-chess-analysis",
+      "owner": "public/sitemap.xml",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
       "id": "blog-caissa-scanner-image-to-chess-analysis",
       "label": "Caissa Scanner Image To Chess Analysis",
       "canonicalPath": "/blog/caissa-scanner-image-to-chess-analysis",
@@ -732,21 +747,6 @@
       "visibleInPrimaryNavigation": false,
       "activeIdentity": "blog-yahoo-chess-spirit-caissa-classic",
       "owner": "public/sitemap.xml",
-      "target": "_self",
-      "rel": null,
-      "status": "public"
-    },
-    {
-      "id": "database",
-      "label": "Chess Database",
-      "canonicalPath": "/database",
-      "absoluteUrl": "https://www.caissa-chess.org/database",
-      "type": "internal-page",
-      "group": null,
-      "navigationPosition": null,
-      "visibleInPrimaryNavigation": false,
-      "activeIdentity": "database",
-      "owner": "vercel.json",
       "target": "_self",
       "rel": null,
       "status": "public"
@@ -1132,6 +1132,54 @@
       "status": "public",
       "redirectFrom": "/support.html",
       "redirectTo": "/help",
+      "expectedStatus": 308
+    },
+    {
+      "id": "redirect-database",
+      "label": "/database to /eco",
+      "canonicalPath": "/eco",
+      "absoluteUrl": "https://www.caissa-chess.org/eco",
+      "type": "redirect",
+      "owner": "vercel.json and middleware",
+      "status": "public",
+      "redirectFrom": "/database",
+      "redirectTo": "/eco",
+      "expectedStatus": 308
+    },
+    {
+      "id": "redirect-database",
+      "label": "/database/ to /eco",
+      "canonicalPath": "/eco",
+      "absoluteUrl": "https://www.caissa-chess.org/eco",
+      "type": "redirect",
+      "owner": "vercel.json and middleware",
+      "status": "public",
+      "redirectFrom": "/database/",
+      "redirectTo": "/eco",
+      "expectedStatus": 308
+    },
+    {
+      "id": "redirect-database-eco-code",
+      "label": "/database/eco/:code to /eco/:code",
+      "canonicalPath": "/eco/:code",
+      "absoluteUrl": "https://www.caissa-chess.org/eco/:code",
+      "type": "redirect",
+      "owner": "vercel.json and middleware",
+      "status": "public",
+      "redirectFrom": "/database/eco/:code",
+      "redirectTo": "/eco/:code",
+      "expectedStatus": 308
+    },
+    {
+      "id": "redirect-database-eco-code",
+      "label": "/database/eco/:code/ to /eco/:code",
+      "canonicalPath": "/eco/:code",
+      "absoluteUrl": "https://www.caissa-chess.org/eco/:code",
+      "type": "redirect",
+      "owner": "vercel.json and middleware",
+      "status": "public",
+      "redirectFrom": "/database/eco/:code/",
+      "redirectTo": "/eco/:code",
       "expectedStatus": 308
     }
   ],
