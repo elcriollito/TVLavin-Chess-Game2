@@ -633,6 +633,27 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static file serving
+  if (pathname === '/api/polyglot/build') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Deprecation', 'true');
+    res.setHeader('Link', '</tools/polyglot>; rel="alternate"');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200);
+      res.end();
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.writeHead(405);
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
+      return;
+    }
+    res.writeHead(410);
+    res.end(JSON.stringify({
+      error: 'The server-side Polyglot builder is retired. Use the private on-device converter at /tools/polyglot.'
+    }));
+    return;
+  }
   if (pathname === '/api/public-auth-config') {
     if (req.method !== 'GET') {
       res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -646,6 +667,11 @@ const server = http.createServer(async (req, res) => {
   const retiredDestination = RETIRED_PAGE_REDIRECTS.get(pathname.replace(/\/$/, ''));
   if (retiredDestination && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(308, { Location: retiredDestination });
+    res.end();
+    return;
+  }
+  if (pathname === '/vault' || pathname === '/vault/' || pathname === '/vault.html') {
+    res.writeHead(308, { Location: '/downloads', 'Cache-Control': 'public, max-age=3600' });
     res.end();
     return;
   }
@@ -670,8 +696,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/help' || pathname === '/help/') {
     filePath = './help.html';
   }
-  if (pathname === '/vault' || pathname === '/vault/') {
-    filePath = './vault.html';
+  if (pathname === '/downloads' || pathname === '/downloads/') {
+    filePath = './downloads.html';
   }
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';

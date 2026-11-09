@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polyglot Opening Book Creator for Chess Engines | CAISSA</title>
-    <meta name="description" content="Turn PGN game files into Polyglot BIN opening books for compatible chess engines, with clear controls for maximum plies, move frequency, side and download.">
+    <title>Free PGN to Polyglot BIN Converter | CAISSA Chess</title>
+    <meta name="description" content="Create a Polyglot BIN opening book from PGN files free in your browser. Private on-device conversion, progress, cancellation and no account required.">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="https://www.caissa-chess.org/tools/polyglot">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="CAISSA Chess">
-    <meta property="og:title" content="Polyglot Opening Book Creator for Chess Engines | CAISSA">
-    <meta property="og:description" content="Turn PGN game files into Polyglot BIN opening books for compatible chess engines, with clear controls for maximum plies, move frequency, side and download.">
+    <meta property="og:title" content="Free PGN to Polyglot BIN Converter | CAISSA Chess">
+    <meta property="og:description" content="Create a Polyglot BIN opening book from PGN files free in your browser. Private on-device conversion, progress, cancellation and no account required.">
     <meta property="og:url" content="https://www.caissa-chess.org/tools/polyglot">
     <meta property="og:image" content="https://www.caissa-chess.org/og-image.png">
     <meta property="og:image:alt" content="CAISSA Chess">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Polyglot Opening Book Creator for Chess Engines | CAISSA">
-    <meta name="twitter:description" content="Turn PGN game files into Polyglot BIN opening books for compatible chess engines, with clear controls for maximum plies, move frequency, side and download.">
+    <meta name="twitter:title" content="Free PGN to Polyglot BIN Converter | CAISSA Chess">
+    <meta name="twitter:description" content="Create a Polyglot BIN opening book from PGN files free in your browser. Private on-device conversion, progress, cancellation and no account required.">
     <meta name="twitter:image" content="https://www.caissa-chess.org/og-image.png">
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
@@ -26,9 +26,12 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Polyglot Opening Book Creator",
-      "description": "Turn PGN game files into Polyglot BIN opening books for compatible chess engines, with clear controls for maximum plies, move frequency, side and download.",
+      "@type": "WebApplication",
+      "name": "CAISSA Polyglot Online",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any modern web browser",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "description": "Free browser-based PGN to Polyglot BIN converter that processes chess files on the visitor's device.",
       "url": "https://www.caissa-chess.org/tools/polyglot",
       "isPartOf": {
         "@type": "WebSite",
@@ -67,27 +70,29 @@
             <main class="polyglot-content-area caissa-standalone-content">
                 <div class="polyglot-workspace">
                     <section class="polyglot-tool-column" aria-labelledby="polyglot-page-title" data-caissa-i18n-aria-label="polyglot.toolAria">
-                        <div class="polyglot-banner" data-caissa-i18n="polyglot.banner">PGN files are sent to the CAISSA builder service to generate the downloadable BIN file.</div>
+                        <div class="polyglot-banner" data-caissa-i18n="polyglot.banner">Private by design: your PGN is processed on this device and is not uploaded to CAISSA.</div>
 
                         <section class="poly-main">
                             <section class="poly-hero poly-container">
                                 <h1 id="polyglot-page-title" data-caissa-i18n="polyglot.title">Polyglot Opening Book Creator</h1>
-                                <p class="poly-intro" data-caissa-i18n="polyglot.intro">Create Polyglot-compatible BIN opening books from PGN game files for use with compatible chess engines and interfaces. Choose how many plies to include, set a minimum move frequency, select one or both sides, and download the generated book. The tool prepares opening-book data; it does not analyze positions or replace an engine.</p>
+                                <p class="poly-intro" data-caissa-i18n="polyglot.intro">Create a standard Polyglot BIN opening book from PGN games without uploading the file. A dedicated browser worker streams and validates the main line, reports progress, and generates the book locally. The tool prepares opening-book data; it does not analyze positions or replace an engine.</p>
                             </section>
 
                             <section class="poly-card poly-container">
-                                <h2 data-caissa-i18n="polyglot.downloadTitle">Download v0.2.0</h2>
+                                <h2 data-caissa-i18n="polyglot.downloadTitle">Need more capacity?</h2>
+                                <p class="poly-note" data-caissa-i18n="polyglot.portableNote">The existing Windows portable build handles conversion offline. Its updated large-file certification is pending; keep backups and validate output before production use.</p>
                                 <div class="poly-download-actions">
                                     <a class="poly-btn poly-btn-primary" href="https://downloads.caissa-chess.org/apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip" target="_blank" rel="noopener" data-caissa-i18n-aria-label="polyglot.downloadPortable">
                                         <i class="fas fa-download"></i>
                                         <span data-caissa-i18n="polyglot.downloadPortable">Download CAISSA Book Creator v0.2.0 (Portable ZIP)</span>
                                     </a>
+                                    <a class="poly-btn poly-btn-secondary" href="/downloads" data-caissa-i18n="polyglot.allDownloads">View CAISSA Downloads</a>
                                 </div>
                             </section>
 
                             <section class="poly-card poly-container">
-                                <h2 data-caissa-i18n="polyglot.serviceTitle">Online PGN &rarr; BIN Service</h2>
-                                <p class="poly-note" data-caissa-i18n="polyglot.serviceNote">Choose a .pgn file of up to 25 MB, apply the available options, and generate a Polyglot .bin file. The file is uploaded to the CAISSA builder service for processing.</p>
+                                <h2 data-caissa-i18n="polyglot.serviceTitle">Online PGN &rarr; BIN Converter</h2>
+                                <p class="poly-note" data-caissa-i18n="polyglot.serviceNote">Choose a .pgn file up to the tested 25 MiB browser limit. Conversion runs locally with a bounded memory budget. Standard comments and NAGs are ignored; the main line is used and recursive variations are excluded.</p>
 
                                 <form id="polyForm" class="poly-form">
                                     <label for="pgnFile" data-caissa-i18n="polyglot.fileLabel">Choose PGN file</label>
@@ -112,15 +117,26 @@
                                         </label>
                                     </div>
 
-                                    <button id="generateBtn" class="poly-btn poly-btn-primary poly-generate-btn" type="submit" data-caissa-i18n-aria-label="polyglot.generate">
-                                        <i class="fas fa-gears"></i>
-                                        <span data-caissa-i18n="polyglot.generate">Generate opening book</span>
-                                    </button>
+                                    <div class="poly-action-row">
+                                        <button id="generateBtn" class="poly-btn poly-btn-primary poly-generate-btn" type="submit" data-caissa-i18n-aria-label="polyglot.generate">
+                                            <i class="fas fa-gears"></i>
+                                            <span data-caissa-i18n="polyglot.generate">Generate opening book</span>
+                                        </button>
+                                        <button id="cancelBtn" class="poly-btn poly-btn-secondary" type="button" hidden data-caissa-i18n="polyglot.cancel">Cancel</button>
+                                    </div>
                                 </form>
+
+                                <div id="buildProgress" class="poly-progress" role="status" aria-live="polite" hidden>
+                                    <div class="poly-progress-copy">
+                                        <strong id="buildProgressLabel">0% processed locally</strong>
+                                        <span id="buildProgressStats">0 games parsed · 0 skipped · 0 moves · 0 unique records</span>
+                                    </div>
+                                    <progress id="buildProgressBar" max="100" value="0">0%</progress>
+                                </div>
 
                                 <div class="poly-output">
                                     <h3 id="polyglot-build-log-heading" data-caissa-i18n="polyglot.buildLog">Build Log</h3>
-                                    <pre id="buildLog" class="poly-log" role="log" aria-live="polite" aria-relevant="additions text" aria-labelledby="polyglot-build-log-heading" tabindex="0">[ready] Waiting for PGN upload...</pre>
+                                    <pre id="buildLog" class="poly-log" role="log" aria-live="polite" aria-relevant="additions text" aria-labelledby="polyglot-build-log-heading" tabindex="0">[ready] Waiting for a local PGN file...</pre>
                                     <div id="resultRow" class="poly-result-row" hidden>
                                         <span id="outputSize"></span>
                                         <a id="downloadOutputBtn" class="poly-btn poly-btn-primary" download data-caissa-i18n="polyglot.downloadBin" data-caissa-i18n-aria-label="polyglot.downloadBin">Download BIN</a>
@@ -150,9 +166,9 @@
                                 <section aria-labelledby="polyglot-steps-heading">
                                     <h2 id="polyglot-steps-heading" data-caissa-i18n="polyglot.stepsHeading">How to Use the CAISSA Polyglot Tool</h2>
                                     <ol class="poly-steps">
-                                        <li data-caissa-i18n="polyglot.step1">Choose a .pgn file no larger than 25 MB.</li>
+                                        <li data-caissa-i18n="polyglot.step1">Choose a .pgn file no larger than the tested 25 MiB online limit.</li>
                                         <li data-caissa-i18n="polyglot.step2">Set the maximum plies, minimum occurrence count, and side to include.</li>
-                                        <li data-caissa-i18n="polyglot.step3">Select Generate opening book. CAISSA uploads the PGN to its builder service and validates the games it can parse.</li>
+                                        <li data-caissa-i18n="polyglot.step3">Select Generate opening book. The browser streams the file to a local worker and validates each main line.</li>
                                         <li data-caissa-i18n="polyglot.step4">When the build succeeds, the BIN downloads automatically and a Download BIN link remains beside the output summary.</li>
                                         <li data-caissa-i18n="polyglot.step5">Load the file in a compatible engine or chess interface and test its opening choices.</li>
                                     </ol>
@@ -176,7 +192,7 @@
         </div>
     </div>
 
-    <script src="/js/caissa-i18n.js?v=1.0.0"></script><script src="/js/caissa-primary-navigation.js?v=1.22.0"></script>
+    <script src="/js/caissa-i18n.js?v=1.0.0"></script><script src="/js/caissa-expansion-i18n.js?v=1.0.0"></script><script src="/js/caissa-primary-navigation.js?v=1.22.0"></script>
     <script src="/js/caissa-standalone-sidebar.js?v=1.1.0" data-caissa-auth-runtime="external"></script>
     <script src="/js/auth-config.js?v=1.0.2" defer></script>
     <script src="/js/caissa-auth.js?v=1.0.6" defer></script>

@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 test.setTimeout(240_000);
 
@@ -6,15 +9,15 @@ const widths = [320, 360, 375, 390, 393, 412, 430, 768, 1024, 1280, 1440, 1920];
 const copy = {
     en: {
         title: 'Polyglot Opening Book Creator', generate: 'Generate opening book',
-        help: 'What Is a Polyglot Opening Book?', log: '[ready] Waiting for PGN upload...'
+        help: 'What Is a Polyglot Opening Book?', log: '[ready] Waiting for a local PGN file...'
     },
     es: {
         title: 'Creador de libros de aperturas Polyglot', generate: 'Generar libro de aperturas',
-        help: '¿Qué es un libro de aperturas Polyglot?', log: '[listo] Esperando un archivo PGN...'
+        help: '¿Qué es un libro de aperturas Polyglot?', log: '[listo] Esperando un archivo PGN local...'
     },
     pt: {
         title: 'Criador de livros de aberturas Polyglot', generate: 'Gerar livro de aberturas',
-        help: 'O que é um livro de aberturas Polyglot?', log: '[pronto] Aguardando um arquivo PGN...'
+        help: 'O que é um livro de aberturas Polyglot?', log: '[pronto] Aguardando um arquivo PGN local...'
     }
 };
 
@@ -66,10 +69,13 @@ test('desktop aligns Tool and Help while tablet and mobile stack without overflo
                     columns, tool: { left: tool.left, right: tool.right, top: tool.top, bottom: tool.bottom },
                     help: { left: help.left, right: help.right, top: help.top },
                     overflow: document.documentElement.scrollWidth - innerWidth,
+                    mobileToggleOverlap: innerWidth <= 768
+                        && document.querySelector('.caissa-standalone-mobile-toggle').getBoundingClientRect().bottom > tool.top,
                     controlsOutside: controls.filter(item => item.rect.left < tool.left - 1 || item.rect.right > tool.right + 1).map(item => item.id)
                 };
             });
             expect(geometry.overflow, `${width}px page overflow`).toBeLessThanOrEqual(1);
+            expect(geometry.mobileToggleOverlap, `${width}px navigation toggle overlap`).toBe(false);
             expect(geometry.controlsOutside, `${width}px controls`).toEqual([]);
             if (width >= 1280) {
                 expect(geometry.columns, `${width}px columns`).toBe(2);
@@ -98,6 +104,7 @@ test('keyboard labels, live log semantics, and UX-012 mobile icon-label pairs re
 
     const toggle = page.locator('.caissa-standalone-mobile-toggle');
     await toggle.click();
+    await page.locator('.nav-more-toggle').click();
     const mobile = await page.locator('.caissa-standalone-sidebar-host').evaluate(nav => {
         const items = [...nav.querySelectorAll('.nav-item[data-nav-key]')];
         return {
@@ -113,26 +120,13 @@ test('keyboard labels, live log semantics, and UX-012 mobile icon-label pairs re
     expect(mobile.overflow).toBeLessThanOrEqual(1);
 });
 
-test('real PGN build preserves options, reports progress, and exposes the BIN download', async ({ page, request }) => {
+test('real PGN build stays on-device, preserves options, reports progress, and exposes the BIN download', async ({ page }) => {
     await prepare(page, 'pt');
     const pgn = `[Event "PGT-006"]\n[Site "CAISSA"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 1-0`;
-    const apiBaseUrl = process.env.POLYGLOT_API_BASE_URL;
-    let observedPayload;
-    if (apiBaseUrl) {
-        const apiResponse = await request.post(`${apiBaseUrl}/api/polyglot/build`, {
-            data: {
-                fileName: 'certificacao.pgn', contentType: 'application/x-chess-pgn', pgnText: pgn,
-                options: { maxPly: 6, minCount: 1, side: 'white' }
-            }
-        });
-        expect(apiResponse.ok()).toBeTruthy();
-        const apiBody = await apiResponse.body();
-        const apiHeaders = apiResponse.headers();
-        await page.route('**/api/polyglot/build', async route => {
-            observedPayload = route.request().postDataJSON();
-            await route.fulfill({ status: apiResponse.status(), headers: apiHeaders, body: apiBody });
-        });
-    }
+    const serverBuildRequests = [];
+    page.on('request', request => {
+        if (request.url().includes('/api/polyglot/build')) serverBuildRequests.push(request.url());
+    });
     await page.goto('/tools/polyglot');
     await page.locator('#pgnFile').setInputFiles({ name: 'certificacao.pgn', mimeType: 'application/x-chess-pgn', buffer: Buffer.from(pgn) });
     await page.locator('#maxPly').fill('6');
@@ -145,11 +139,65 @@ test('real PGN build preserves options, reports progress, and exposes the BIN do
     ]);
     expect(download.suggestedFilename()).toBe('certificacao.bin');
     await expect(page.locator('#resultRow')).toBeVisible();
+    await expect(page.locator('#buildProgress')).toBeVisible();
+    await expect.poll(() => page.locator('#buildProgressBar').evaluate(progress => progress.value)).toBe(100);
     await expect(page.locator('#downloadOutputBtn')).toHaveAttribute('href', /^blob:/);
-    await expect(page.locator('#outputSize')).toContainText('Partidas processadas: 1');
-    await expect(page.locator('#buildLog')).toContainText('Geração do BIN concluída');
+    await expect(page.locator('#outputSize')).toContainText('Partidas: 1');
+    await expect(page.locator('#buildLog')).toContainText('Geração local do BIN concluída');
     await expect(page.locator('#maxPly')).toHaveValue('6');
     await expect(page.locator('#minCount')).toHaveValue('1');
     await expect(page.locator('#side')).toHaveValue('white');
-    if (apiBaseUrl) expect(observedPayload.options).toEqual({ maxPly: 6, minCount: 1, side: 'white' });
+    expect(serverBuildRequests).toEqual([]);
+});
+
+test('an active local conversion can be canceled without creating output or calling the server API', async ({ page }) => {
+    await prepare(page, 'en');
+    const game = '[Event "Cancel"]\n[Result "*"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *\n\n';
+    const targetBytes = 2 * 1024 * 1024;
+    const pgn = Buffer.from(game.repeat(Math.ceil(targetBytes / Buffer.byteLength(game))));
+    const serverBuildRequests = [];
+    page.on('request', request => {
+        if (request.url().includes('/api/polyglot/build')) serverBuildRequests.push(request.url());
+    });
+
+    await page.goto('/tools/polyglot');
+    await page.locator('#pgnFile').setInputFiles({ name: 'cancel-me.pgn', mimeType: 'application/x-chess-pgn', buffer: pgn });
+    await page.locator('#generateBtn').click();
+    await expect(page.locator('#cancelBtn')).toBeVisible();
+    await page.locator('#cancelBtn').click();
+
+    await expect(page.locator('#buildLog')).toContainText('Conversion canceled; no output file was created.');
+    await expect(page.locator('#resultRow')).toBeHidden();
+    await expect(page.locator('#downloadOutputBtn')).not.toHaveAttribute('href', /^blob:/);
+    expect(serverBuildRequests).toEqual([]);
+});
+
+test('a 50 MiB PGN is rejected at the tested browser ceiling before worker or API processing', async ({ page }) => {
+    await prepare(page, 'en');
+    const serverBuildRequests = [];
+    page.on('request', request => {
+        if (request.url().includes('/api/polyglot/build')) serverBuildRequests.push(request.url());
+    });
+
+    const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'caissa-polyglot-oversize-'));
+    const fixturePath = path.join(temporaryRoot, 'oversize.pgn');
+    const descriptor = fs.openSync(fixturePath, 'w');
+    try {
+        fs.ftruncateSync(descriptor, 50 * 1024 * 1024);
+    } finally {
+        fs.closeSync(descriptor);
+    }
+
+    try {
+        await page.goto('/tools/polyglot');
+        await page.locator('#pgnFile').setInputFiles(fixturePath);
+        await page.locator('#generateBtn').click();
+
+        await expect(page.locator('#buildLog')).toContainText('PGN exceeds the tested 25 MiB online limit');
+        await expect(page.locator('#cancelBtn')).toBeHidden();
+        await expect(page.locator('#resultRow')).toBeHidden();
+        expect(serverBuildRequests).toEqual([]);
+    } finally {
+        fs.rmSync(temporaryRoot, { recursive: true, force: true });
+    }
 });

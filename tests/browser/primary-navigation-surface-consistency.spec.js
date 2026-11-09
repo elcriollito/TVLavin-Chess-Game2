@@ -14,13 +14,13 @@ const legacy = [
 const standalone = [
   ['CAISSA Classic', '/yahoo-classic', '.yc-shell', /CAISSA Classic|Yahoo Chess Alternative/],
   ['Academy', '/academy', '#academySection', /Academy/],
-  ['Endgame Trainer', '/endgame-trainer', '#endgame-v2-title', /Endgame Trainer/],
+  ['Endgame Trainer', '/endgame-trainer', '#egt-title', /Endgame Trainer/],
   ['Endgame Library', '/endgame-library', '#library-title', /Endgame Library/],
   ['Polyglot Tool', '/tools/polyglot', 'h1', /Polyglot/],
-  ['Opening Database', '/opening-database', 'h1', /Opening Database/],
+  ['Opening Database', '/opening-database', 'h1', /Opening Explorer|Opening Database/],
   ['ECO Codes', '/eco', 'h1', /ECO Codes/],
   ['World Champions', '/game-library/champions', '.archive-hero', /World Chess Champions Archive/],
-  ['Vault', '/vault', 'h1', /Vault/],
+  ['Downloads', '/downloads', 'h1', /Chess Tools|Portable Software|Downloads/],
   ['Blog', '/blog', 'h1', /Blog/],
   ['Lichess TV', '/watch/lichess-tv', 'h1', /Watch Lichess TV Live/]
 ];

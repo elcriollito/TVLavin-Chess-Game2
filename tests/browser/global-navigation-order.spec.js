@@ -15,7 +15,7 @@ const canonicalOrder = [
   'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
   'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
   'Scanner', 'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
-  'World Champions', 'History', 'DOS Chess', 'Vault',
+  'World Champions', 'History', 'DOS Chess', 'Downloads',
   'Blog', 'Help', 'About', 'Share an Idea / Contact & Feedback'
 ];
 

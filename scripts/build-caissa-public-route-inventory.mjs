@@ -78,17 +78,19 @@ const publicCanonicalRoutes = [...additionalMetadata].filter(([canonicalPath]) =
   owner, target: '_self', rel: null, status: 'public'
 })).sort((a, b) => a.canonicalPath.localeCompare(b.canonicalPath));
 
-const serverOwnedRetiredRoutes = new Set([
+const serverOwnedRedirectRoutes = new Set([
   '/puzzles/chessbase-tactics', '/puzzles/chessbase-tactics/',
   '/endgame-practice', '/endgame-practice/',
-  '/watch/lichess-broadcasts', '/watch/lichess-broadcasts/'
+  '/watch/lichess-broadcasts', '/watch/lichess-broadcasts/',
+  '/database', '/database/', '/database/eco/:code', '/database/eco/:code/',
+  '/vault', '/vault/', '/vault.html'
 ]);
 const redirectsAndAliases = vercel.redirects.map(rule => ({
   id: `redirect-${rule.source.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root'}`,
   label: `${rule.source} to ${rule.destination}`,
   canonicalPath: rule.destination,
   absoluteUrl: `${origin}${rule.destination}`,
-  type: 'redirect', owner: serverOwnedRetiredRoutes.has(rule.source) ? 'vercel.json and server.js' : 'vercel.json and middleware', status: 'public',
+  type: 'redirect', owner: serverOwnedRedirectRoutes.has(rule.source) ? 'vercel.json and server.js' : 'vercel.json and middleware', status: 'public',
   redirectFrom: rule.source, redirectTo: rule.destination, expectedStatus: rule.permanent ? 308 : 307
 }));
 

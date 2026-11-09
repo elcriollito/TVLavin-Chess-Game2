@@ -1,4 +1,33 @@
 (function () {
+  const openingDbI18n = window.CaissaOpeningDatabaseI18n || null;
+  const localizedTextBindings = new Map();
+
+  function tr(key, fallback = '', variables = {}) {
+    return openingDbI18n?.t?.(key, fallback, variables) || fallback;
+  }
+
+  function setLocalizedText(element, key, fallback = '', variables = {}) {
+    if (!element) return;
+    localizedTextBindings.set(element, { key, fallback, variables });
+    element.textContent = tr(key, fallback, variables);
+  }
+
+  function setUntranslatedText(element, text) {
+    if (!element) return;
+    localizedTextBindings.delete(element);
+    element.textContent = String(text ?? '');
+  }
+
+  function refreshLocalizedTextBindings() {
+    localizedTextBindings.forEach((binding, element) => {
+      if (!element?.isConnected) {
+        localizedTextBindings.delete(element);
+        return;
+      }
+      element.textContent = tr(binding.key, binding.fallback, binding.variables);
+    });
+  }
+
   const state = {
     game: null,
     board: null,
@@ -54,6 +83,8 @@
     gamesShardCache: new Map(),
     gamesCatalogCache: new Map(),
     gamesResults: [],
+    gamesTotal: 0,
+    gamesStatusPresentation: null,
     moveReview: {
       source: 'exploration',
       gameRow: null,
@@ -192,6 +223,84 @@
   const OPENINGDB_QUIET_DRAG_QUERY = 'quiet-drag-lab';
   const QUICK_EVAL_STORAGE_KEY = 'odb_eval_next_moves_fast';
   const QUICK_EVAL_MODE_STORAGE_KEY = 'odb_eval_next_moves_mode';
+
+  const ENGINE_STATUS_KEYS = Object.freeze({
+    Idle: 'openingdb.engine.status.idle',
+    Infinite: 'openingdb.engine.status.infinite',
+    Running: 'openingdb.engine.status.running',
+    Analyzing: 'openingdb.engine.status.analyzing',
+    'Loading engine...': 'openingdb.engine.status.loading',
+    'Engine unavailable': 'openingdb.engine.status.unavailable',
+    'Engine unavailable. Try again.': 'openingdb.engine.status.unavailableRetry',
+    'Engine could not start analysis.': 'openingdb.engine.status.startFailed',
+    'Worker file is HTML (rewrite/route). Check hosting/public path.': 'openingdb.engine.status.workerHtml',
+    'Stockfish 19 Lite WASM asset is unavailable.': 'openingdb.engine.status.wasmUnavailable',
+    'Unexpected engine identity. Analysis was blocked.': 'openingdb.engine.status.identityRejected',
+    'Engine debug copied': 'openingdb.engine.status.debugCopied'
+  });
+
+  const GAME_STATUS_KEYS = Object.freeze({
+    'Individual-game PGN data is not available in the current dataset.': 'openingdb.games.individualUnavailable',
+    'Line search is unavailable for this dataset.': 'openingdb.games.lineUnavailable',
+    'Play moves, then click Search Games From This Position.': 'openingdb.games.playThenSearch',
+    'Ready. Click Search Games From This Position.': 'openingdb.games.readySearch',
+    'PGN and ZIP exports are not available in the current dataset.': 'openingdb.games.exportsUnavailable',
+    'Game search data is not available yet.': 'openingdb.games.searchUnavailable',
+    'No moves played yet. Play moves to search games.': 'openingdb.games.noMoves',
+    'Searching indexed games...': 'openingdb.games.searching',
+    'Could not load matching games. Try again.': 'openingdb.games.loadError',
+    'No indexed games for this line (yet).': 'openingdb.games.noneIndexed',
+    'PGN is not available for this game; metadata is shown in Moves.': 'openingdb.games.pgnMetadata',
+    'The game PGN could not be parsed.': 'openingdb.games.pgnParseError',
+    'PGN loaded in Moves.': 'openingdb.games.pgnLoaded',
+    'Ready to search.': 'openingdb.games.ready',
+    'No lineKey yet. Play moves first.': 'openingdb.games.noLineKey',
+    'lineKey copied.': 'openingdb.games.lineKeyCopied'
+  });
+
+  const REVIEW_STATUS_KEYS = Object.freeze({
+    'Reviewing your current explored line.': 'openingdb.moves.reviewing',
+    'Play a move in Explorer to build a line for review.': 'openingdb.moves.playToBuild',
+    'Checking for genuine PGN notation...': 'openingdb.moves.checkingPgn',
+    'This indexed game contains metadata only. Move notation is unavailable.': 'openingdb.moves.metadataStatus',
+    'A PGN file was found but could not be parsed safely. No notation was shown.': 'openingdb.moves.parseStatus',
+    'Genuine PGN loaded. Use the controls or select any SAN move.': 'openingdb.moves.genuineLoaded',
+    'The PGN contains no moves.': 'openingdb.moves.pgnNoMoves'
+  });
+
+  function engineStatusPresentation(status) {
+    const fallback = String(status || 'Idle');
+    if (ENGINE_STATUS_KEYS[fallback]) return { key: ENGINE_STATUS_KEYS[fallback], fallback, variables: {} };
+    if (fallback.startsWith('Worker content-type warning: ')) {
+      return { key: 'openingdb.engine.status.contentType', fallback, variables: { contentType: fallback.slice(29) } };
+    }
+    if (fallback.startsWith('Engine error: ')) {
+      return { key: 'openingdb.engine.status.error', fallback, variables: { message: fallback.slice(14) } };
+    }
+    if (fallback.startsWith('Engine debug: ')) {
+      return { key: 'openingdb.engine.status.debugPayload', fallback, variables: { payload: fallback.slice(14) } };
+    }
+    return { key: '', fallback, variables: {} };
+  }
+
+  function gameStatusPresentation(message) {
+    const fallback = String(message || '');
+    if (GAME_STATUS_KEYS[fallback]) return { key: GAME_STATUS_KEYS[fallback], fallback, variables: {} };
+    const found = fallback.match(/^Found (\d+) indexed games for this line\.$/);
+    if (found) return { key: 'openingdb.games.found', fallback, variables: { count: found[1] } };
+    const lineKey = fallback.match(/^lineKey: (.*)$/);
+    if (lineKey) return { key: 'openingdb.games.lineKeyValue', fallback, variables: { lineKey: lineKey[1] } };
+    if (fallback === OPENINGDB_DEPTH_LIMIT_MESSAGE) {
+      return { key: 'openingdb.depthLimit', fallback, variables: { move: OPENINGDB_MAX_FULLMOVES } };
+    }
+    return { key: '', fallback, variables: {} };
+  }
+
+  function localizedReviewStatus(status) {
+    const fallback = String(status || '');
+    const key = REVIEW_STATUS_KEYS[fallback] || '';
+    return key ? tr(key, fallback) : fallback;
+  }
 
   const els = {
     board: document.getElementById('openingDbBoard'),
@@ -464,20 +573,21 @@
     }
   };
 
-  function renderBoardFatal(message) {
+  function renderBoardFatal(message, key = 'openingdb.board.error', variables = {}) {
     if (!els.board) return;
-    els.board.innerHTML = `<div class="openingdb-board-error" role="alert">${message}</div>`;
+    els.board.innerHTML = `<div class="openingdb-board-error" role="alert" data-caissa-i18n="${escapeHtml(key)}">${escapeHtml(tr(key, message, variables))}</div>`;
   }
 
-  function showDatasetBanner(message) {
+  function showDatasetBanner(message, key = '', variables = {}) {
     if (!els.datasetBanner) return;
     if (!message) {
       els.datasetBanner.hidden = true;
-      els.datasetBanner.textContent = '';
+      setUntranslatedText(els.datasetBanner, '');
       return;
     }
     els.datasetBanner.hidden = false;
-    els.datasetBanner.textContent = message;
+    if (key) setLocalizedText(els.datasetBanner, key, message, variables);
+    else setUntranslatedText(els.datasetBanner, message);
   }
 
   function setMatchBadge(label) {
@@ -485,11 +595,11 @@
     const text = String(label || '').trim();
     if (!text) {
       els.matchBadge.hidden = true;
-      els.matchBadge.textContent = '';
+      setUntranslatedText(els.matchBadge, '');
       return;
     }
     els.matchBadge.hidden = false;
-    els.matchBadge.textContent = `match: ${text}`;
+    setLocalizedText(els.matchBadge, 'openingdb.match', `match: ${text}`, { level: text });
   }
 
   function normalizeNodeApiBase(rawBase) {
@@ -703,6 +813,17 @@
       .replace(/'/g, '&#39;');
   }
 
+  function safeGamePgnUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      const allowedOrigin = url.origin === 'https://downloads.caissa-chess.org';
+      const allowedPath = /^\/openingdb\/games\/[a-zA-Z0-9._-]+\/pgn\/g_[0-9a-f]+\.pgn$/i.test(url.pathname);
+      return allowedOrigin && allowedPath ? url.href : '';
+    } catch (_error) {
+      return '';
+    }
+  }
+
   function formatPrefixedSAN({ ply, sanForCandidateMove }) {
     const san = sanitizeMoveCellToken(sanForCandidateMove || '');
     if (!san) return { prefix: '', san: 'TBD' };
@@ -802,14 +923,19 @@
     if (!normalized) return '-';
     if (normalized.scoreType === 'mate') {
       const mate = Number(normalized.score) || 0;
-      const side = mate >= 0 ? 'White' : 'Black';
-      return `Mate in ${Math.abs(mate)} (${side})`;
+      const side = mate >= 0
+        ? tr('openingdb.side.white', 'White')
+        : tr('openingdb.side.black', 'Black');
+      return tr('openingdb.engine.mate', `Mate in ${Math.abs(mate)} (${side})`, { count: Math.abs(mate), side });
     }
     const cp = Number(normalized.score) || 0;
     const value = cp / 100;
-    const side = cp >= 0 ? 'White' : 'Black';
+    const side = cp >= 0
+      ? tr('openingdb.side.white', 'White')
+      : tr('openingdb.side.black', 'Black');
     const sign = value >= 0 ? '+' : '';
-    return `${sign}${value.toFixed(2)} (${side})`;
+    const formatted = `${sign}${value.toFixed(2)}`;
+    return tr('openingdb.engine.score', `${formatted} (${side})`, { value: formatted, side });
   }
 
   function formatEngineScoreCompact(info, fen) {
@@ -866,7 +992,10 @@
 
   function setEngineCopyFeedback(message) {
     if (!els.engineCopyFeedback) return;
-    els.engineCopyFeedback.textContent = String(message || '');
+    const fallback = String(message || '');
+    if (fallback === 'Copied!') setLocalizedText(els.engineCopyFeedback, 'openingdb.copy.copied', fallback);
+    else if (fallback === 'Copy did not work. Try again.') setLocalizedText(els.engineCopyFeedback, 'openingdb.copy.failed', fallback);
+    else setUntranslatedText(els.engineCopyFeedback, fallback);
     if (state.engine.copyFeedbackTimer) {
       clearTimeout(state.engine.copyFeedbackTimer);
       state.engine.copyFeedbackTimer = null;
@@ -874,7 +1003,7 @@
     if (message) {
       state.engine.copyFeedbackTimer = setTimeout(() => {
         state.engine.copyFeedbackTimer = null;
-        if (els.engineCopyFeedback) els.engineCopyFeedback.textContent = '';
+        if (els.engineCopyFeedback) setUntranslatedText(els.engineCopyFeedback, '');
       }, 1400);
     }
   }
@@ -929,7 +1058,7 @@
     const lineHtml = linesToShow.map((idx) => {
       const entry = state.engine.pvLines[idx] || null;
       if (!entry) {
-        return `<div class="engine-pv-line"><div class="engine-pv-line-header">PV${idx}: pending</div><strong>-</strong></div>`;
+        return `<div class="engine-pv-line"><div class="engine-pv-line-header">${escapeHtml(tr('openingdb.engine.pvPending', `PV${idx}: pending`, { index: idx }))}</div><strong>-</strong></div>`;
       }
       const evalText = formatEngineScore(entry.info, state.engine.lastInfoFen || state.engine.lastFen || (state.game ? state.game.fen() : ''));
       const depthText = Number(entry.info?.depth) || '-';
@@ -994,12 +1123,13 @@
       cell.textContent = text;
       cell.setAttribute('data-engine-eval', text);
       cell.classList.toggle('is-pending', text === '...');
-      cell.setAttribute('aria-label', text === '...'
-        ? 'Engine evaluation pending'
-        : (text === '-' ? 'Not evaluated' : `Engine evaluation ${text}`));
-      cell.title = text === '...'
-        ? 'Engine evaluation pending'
-        : (text === '-' ? 'Not evaluated' : `Engine evaluation ${text}`);
+      const evaluationLabel = text === '...'
+        ? tr('openingdb.engine.evalPending', 'Engine evaluation pending')
+        : (text === '-'
+          ? tr('openingdb.engine.notEvaluated', 'Not evaluated')
+          : tr('openingdb.engine.evalValue', `Engine evaluation ${text}`, { value: text }));
+      cell.setAttribute('aria-label', evaluationLabel);
+      cell.title = evaluationLabel;
     });
     updateExplorerSortStatus();
   }
@@ -1040,7 +1170,11 @@
 
   function renderEnginePanel() {
     const engine = state.engine;
-    if (els.engineStatusValue) els.engineStatusValue.textContent = engine.status || 'Idle';
+    if (els.engineStatusValue) {
+      const presentation = engineStatusPresentation(engine.status);
+      if (presentation.key) setLocalizedText(els.engineStatusValue, presentation.key, presentation.fallback, presentation.variables);
+      else setUntranslatedText(els.engineStatusValue, presentation.fallback);
+    }
     if (els.engineIdentityValue) {
       els.engineIdentityValue.textContent = engine.debug.identityAccepted
         ? (engine.debug.engineId || 'Stockfish 19 Lite')
@@ -1055,7 +1189,12 @@
     if (els.engineNodesValue) els.engineNodesValue.textContent = engine.lastInfo?.nodes ? String(engine.lastInfo.nodes) : '-';
     if (els.startEngineBtn) {
       els.startEngineBtn.disabled = engine.loading;
-      els.startEngineBtn.textContent = engine.running ? 'RESTART ANALYSIS' : (engine.paused ? 'RESUME ANALYSIS' : 'START ENGINE ANALYSIS');
+      const button = engine.running
+        ? { key: 'openingdb.engine.button.restart', fallback: 'RESTART ANALYSIS' }
+        : (engine.paused
+          ? { key: 'openingdb.engine.button.resume', fallback: 'RESUME ANALYSIS' }
+          : { key: 'openingdb.engine.button.start', fallback: 'START ENGINE ANALYSIS' });
+      setLocalizedText(els.startEngineBtn, button.key, button.fallback);
     }
     if (els.stopEngineBtn) {
       els.stopEngineBtn.disabled = !engine.running;
@@ -1069,8 +1208,11 @@
     if (els.engineDebugWorkerUrl) els.engineDebugWorkerUrl.textContent = engine.debug.workerUrl || '-';
     if (els.engineDebugHandshake) els.engineDebugHandshake.textContent = engine.debug.handshakeState || '-';
     if (els.engineDebugLastInfoAt) {
-      const ago = engine.debug.lastInfoAt ? `${Math.max(0, Date.now() - engine.debug.lastInfoAt)}ms ago` : '-';
-      els.engineDebugLastInfoAt.textContent = ago;
+      const milliseconds = Math.max(0, Date.now() - engine.debug.lastInfoAt);
+      const ago = engine.debug.lastInfoAt
+        ? tr('openingdb.engine.lastInfoAgo', `${milliseconds}ms ago`, { milliseconds })
+        : '-';
+      setUntranslatedText(els.engineDebugLastInfoAt, ago);
     }
     if (els.engineDebugLastLine) {
       els.engineDebugLastLine.textContent = sanitizeDebugLine(engine.debug.lastLine) || '-';
@@ -1517,11 +1659,15 @@
     }, ENGINE_RESTART_DEBOUNCE_MS);
   }
 
-  function updateMoveListFromGame(game) {
-    const line = formatMoveList(game) || 'Start position';
+  function updateMoveListFromGame(game, { trackWrite = true } = {}) {
+    const formatted = formatMoveList(game);
+    const line = formatted || tr('openingdb.startPosition', 'Start position');
     if (els.moveList) els.moveList.value = line;
-    if (els.currentLine) els.currentLine.textContent = line;
-    state.interactionMetrics.moveListWrites += 1;
+    if (els.currentLine) {
+      if (formatted) setUntranslatedText(els.currentLine, formatted);
+      else setLocalizedText(els.currentLine, 'openingdb.startPosition', 'Start position');
+    }
+    if (trackWrite) state.interactionMetrics.moveListWrites += 1;
   }
 
   function toPercent(numerator, denominator) {
@@ -1589,16 +1735,24 @@
 
   function getDbVersionLabel() {
     if (state.useNodeApi) {
-      const strictTag = state.strictNodeApi ? ' strict' : '';
-      return `DB: ${state.nodeApiVersion || 'v4_sub'} (node-api${strictTag})`;
+      const strict = state.strictNodeApi ? tr('openingdb.db.strict', ' strict') : '';
+      const suffix = tr('openingdb.db.nodeApi', ` (node-api${strict})`, { strict });
+      return tr('openingdb.db.version', `DB: ${state.nodeApiVersion || 'v4_sub'}${suffix}`, { version: state.nodeApiVersion || 'v4_sub', suffix });
     }
-    return `DB: ${state.activeDbVersion}${state.dbVersionFallback ? ' (fallback)' : ''}`;
+    const suffix = state.dbVersionFallback ? tr('openingdb.db.fallback', ' (fallback)') : '';
+    return tr('openingdb.db.version', `DB: ${state.activeDbVersion}${suffix}`, { version: state.activeDbVersion, suffix });
   }
 
   function updateTurnPlyLabel(ply) {
     if (!els.turnPly) return;
-    const turnLabel = state.game.turn() === 'w' ? 'White' : 'Black';
-    els.turnPly.textContent = `${turnLabel} to move • Ply ${ply} • ${getDbVersionLabel()}`;
+    const turnLabel = state.game.turn() === 'w'
+      ? tr('openingdb.side.white', 'White')
+      : tr('openingdb.side.black', 'Black');
+    setLocalizedText(els.turnPly, 'openingdb.board.turnPly', `${turnLabel} to move • Ply ${ply} • ${getDbVersionLabel()}`, {
+      side: turnLabel,
+      ply,
+      version: getDbVersionLabel()
+    });
   }
 
   function readManifestFromSession(sourceUrl) {
@@ -1649,7 +1803,7 @@
     if (!els.downloadGamesBtn) return;
     els.downloadGamesBtn.hidden = true;
     els.downloadGamesBtn.disabled = true;
-    els.downloadGamesBtn.textContent = 'PGN export unavailable';
+    setLocalizedText(els.downloadGamesBtn, 'openingdb.games.exportUnavailable', 'PGN export unavailable');
   }
 
   function readGamesManifestFromSession() {
@@ -1729,6 +1883,21 @@
     }
   }
 
+  function renderDatasetFreshness() {
+    if (!els.datasetFreshness) return;
+    const generated = state.manifestGeneratedAt ? new Date(state.manifestGeneratedAt) : null;
+    const locale = openingDbI18n?.getLocale?.() || undefined;
+    const dateText = generated && Number.isFinite(generated.getTime())
+      ? generated.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
+      : tr('openingdb.dataset.dateUnavailable', 'date unavailable');
+    const fallbackSuffix = state.dbVersionFallback ? tr('openingdb.dataset.fallbackSuffix', ' • fallback') : '';
+    setLocalizedText(els.datasetFreshness, 'openingdb.dataset.freshness', `Dataset ${state.activeDbVersion} • ${dateText}${fallbackSuffix}`, {
+      version: state.activeDbVersion,
+      date: dateText,
+      fallback: fallbackSuffix
+    });
+  }
+
   function applyManifest(manifest, fallback = false) {
     const m = manifest && typeof manifest === 'object' ? manifest : {};
     const activeVersion = String(m.activeVersion || DEFAULT_ACTIVE_VERSION).trim() || DEFAULT_ACTIVE_VERSION;
@@ -1745,13 +1914,7 @@
     state.dbVersionFallback = !!fallback;
     state.manifestGeneratedAt = String(m.generatedAt || '');
     state.shardBaseUrl = alreadyVersioned ? normalizedBase : `${normalizedBase}/${activeVersion}`;
-    if (els.datasetFreshness) {
-      const generated = state.manifestGeneratedAt ? new Date(state.manifestGeneratedAt) : null;
-      const dateText = generated && Number.isFinite(generated.getTime())
-        ? generated.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-        : 'date unavailable';
-      els.datasetFreshness.textContent = `Dataset ${activeVersion} • ${dateText}${fallback ? ' • fallback' : ''}`;
-    }
+    renderDatasetFreshness();
     const changed = previousBase !== state.shardBaseUrl || previousVersion !== state.activeDbVersion;
     if (changed) {
       state.openingDbShardCache.clear();
@@ -2233,7 +2396,9 @@
       evaluated,
       pending,
       limit,
-      profile: state.engine.evalMode === 'pro' ? 'Pro' : 'Fast'
+      profile: state.engine.evalMode === 'pro'
+        ? tr('openingdb.explorer.pro', 'Pro')
+        : tr('openingdb.explorer.fast', 'Fast')
     };
   }
 
@@ -2253,25 +2418,43 @@
     renderExplorerSortControls();
     if (!els.explorerSortStatus) return;
     if (state.explorerSortMode !== 'engine') {
-      els.explorerSortStatus.textContent = state.engine.evalNextMoves
-        ? 'Popularity order. Engine scores are shown without changing database frequency order.'
-        : 'Popularity order. Moves are sorted by database game frequency.';
+      if (state.engine.evalNextMoves) {
+        setLocalizedText(els.explorerSortStatus, 'openingdb.sort.popularityWithScores', 'Popularity order. Engine scores are shown without changing database frequency order.');
+      } else {
+        setLocalizedText(els.explorerSortStatus, 'openingdb.explorer.popularityStatus', 'Popularity order. Moves are sorted by database game frequency.');
+      }
       return;
     }
 
     const coverage = getExplorerEvaluationCoverage();
-    const side = state.game?.turn?.() === 'b' ? 'Black' : 'White';
+    const side = state.game?.turn?.() === 'b'
+      ? tr('openingdb.side.black', 'Black')
+      : tr('openingdb.side.white', 'White');
     const outsideCoverage = Math.max(0, coverage.total - coverage.candidateCount);
     const incomplete = coverage.evaluated < coverage.candidateCount || outsideCoverage > 0;
     if (incomplete) {
-      const pendingText = coverage.pending > 0 ? ` ${coverage.pending} pending.` : '';
-      const limitText = outsideCoverage > 0
-        ? ` ${outsideCoverage} moves are outside the ${coverage.profile} ${coverage.limit}-candidate coverage.`
+      const pendingText = coverage.pending > 0
+        ? tr('openingdb.sort.pending', ` ${coverage.pending} pending.`, { count: coverage.pending })
         : '';
-      els.explorerSortStatus.textContent = `Engine order is incomplete: ${coverage.evaluated} of ${coverage.candidateCount} candidates evaluated.${pendingText}${limitText} Unevaluated moves remain in popularity order.`;
+      const limitText = outsideCoverage > 0
+        ? tr('openingdb.sort.outside', ` ${outsideCoverage} moves are outside the ${coverage.profile} ${coverage.limit}-candidate coverage.`, {
+            count: outsideCoverage,
+            profile: coverage.profile,
+            limit: coverage.limit
+          })
+        : '';
+      setLocalizedText(els.explorerSortStatus, 'openingdb.sort.engineIncomplete', `Engine order is incomplete: ${coverage.evaluated} of ${coverage.candidateCount} candidates evaluated.${pendingText}${limitText} Unevaluated moves remain in popularity order.`, {
+        evaluated: coverage.evaluated,
+        candidates: coverage.candidateCount,
+        pending: pendingText,
+        outside: limitText
+      });
       return;
     }
-    els.explorerSortStatus.textContent = `Engine order complete for ${coverage.evaluated} candidates. Best move for ${side} to move is first.`;
+    setLocalizedText(els.explorerSortStatus, 'openingdb.sort.engineComplete', `Engine order complete for ${coverage.evaluated} candidates. Best move for ${side} to move is first.`, {
+      evaluated: coverage.evaluated,
+      side
+    });
   }
 
   function getExplorerOrderSignature() {
@@ -2387,7 +2570,7 @@
     if (!els.coverageBadge) return;
     const withData = Number(hasDataCount) || 0;
     const total = Number(totalLegal) || 0;
-    els.coverageBadge.textContent = `${withData}/${total} moves have database statistics`;
+    setLocalizedText(els.coverageBadge, 'openingdb.coverage', `${withData}/${total} moves have database statistics`, { withData, total });
   }
 
   function getPlyFromFen(fen) {
@@ -2425,9 +2608,9 @@
     state.rowDiagnostics.mode = 'explorer';
     state.rowDiagnostics.matchLevel = 'depth_limit';
     if (els.statsBody) {
-      els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${OPENINGDB_DEPTH_LIMIT_MESSAGE}</td></tr>`;
+      els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${escapeHtml(tr('openingdb.depthLimit', OPENINGDB_DEPTH_LIMIT_MESSAGE, { move: OPENINGDB_MAX_FULLMOVES }))}</td></tr>`;
     }
-    if (els.lookupStatus) els.lookupStatus.textContent = OPENINGDB_DEPTH_LIMIT_MESSAGE;
+    setLocalizedText(els.lookupStatus, 'openingdb.depthLimit', OPENINGDB_DEPTH_LIMIT_MESSAGE, { move: OPENINGDB_MAX_FULLMOVES });
     setMatchBadge('depth limit');
     updateCoverageBadge(0, 0);
     renderRowDiagnostics();
@@ -2503,7 +2686,11 @@
       : (Number(diag.sourceAllLegalCount) || 0);
     const renderedCount = Number(diag.renderedCount) || 0;
     const matchLevel = String(diag.matchLevel || 'none');
-    els.rowsDiag.textContent = `Rows rendered: ${renderedCount} / Source rows: ${sourceCount} / Mode: ${modeLabel} / matchLevel: ${matchLevel}`;
+    setLocalizedText(els.rowsDiag, 'openingdb.rowsDiagnostics', `Rows rendered: ${renderedCount} / Source rows: ${sourceCount} / Mode: ${modeLabel} / matchLevel: ${matchLevel}`, {
+      rendered: renderedCount,
+      source: sourceCount,
+      matchLevel
+    });
     debugLog('[OpeningDB] rows', {
       sourceCount,
       renderedCount,
@@ -2527,7 +2714,7 @@
 
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
-      const message = 'No legal continuations are available in this position.';
+      const message = tr('openingdb.noLegalMoves', 'No legal continuations are available in this position.');
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       state.rowDiagnostics.renderedCount = 0;
       state.rowDiagnostics.mode = 'explorer';
@@ -2552,29 +2739,32 @@
       const prefixed = formatPrefixedSAN({ ply: currentPly, sanForCandidateMove: row.moveSAN || row.moveUCI || moveText });
       const moveLabel = `${prefixed.prefix}${prefixed.san}`.trim();
       const moveUci = String(row.moveUCI || row.uci || '').trim().toLowerCase();
-      const moveCellHtml = `<button class="openingdb-move-action" type="button" data-move-index="${idx}" data-move-uci="${escapeHtml(moveUci)}" aria-label="Play ${escapeHtml(moveLabel)}"><span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span></button>`;
+      const playLabel = tr('openingdb.moves.play', `Play ${moveLabel}`, { move: moveLabel });
+      const moveCellHtml = `<button class="openingdb-move-action" type="button" data-move-index="${idx}" data-move-uci="${escapeHtml(moveUci)}" aria-label="${escapeHtml(playLabel)}"><span class="movePrefix">${escapeHtml(prefixed.prefix)}</span><span class="moveSan">${escapeHtml(prefixed.san)}</span></button>`;
       const title = row.preview && row.preview !== moveText ? ` title="${escapeHtml(row.preview)}"` : '';
       const wdlTitle = `W:${wPct.toFixed(1)} D:${dPct.toFixed(1)} L:${lPct.toFixed(1)}`;
       const rowClass = hasData ? dominantClass(wPct, dPct, lPct) : 'row-nodata';
       const engineEval = state.engine.evalNextMoves ? getEngineEvalText(row) : '-';
       const engineClass = engineEval === '...' ? 'col-engine is-pending' : 'col-engine';
       const engineAriaLabel = engineEval === '...'
-        ? 'Engine evaluation pending'
-        : (engineEval === '-' ? 'Not evaluated' : `Engine evaluation ${engineEval}`);
+        ? tr('openingdb.engine.evalPending', 'Engine evaluation pending')
+        : (engineEval === '-'
+          ? tr('openingdb.engine.notEvaluated', 'Not evaluated')
+          : tr('openingdb.engine.evalValue', `Engine evaluation ${engineEval}`, { value: engineEval }));
       const wdlCell = hasData
-        ? `<div class="wdb-bar" title="${wdlTitle}" role="img" aria-label="White wins ${wPct.toFixed(1)} percent, draws ${dPct.toFixed(1)} percent, Black wins ${lPct.toFixed(1)} percent">
+        ? `<div class="wdb-bar" title="${wdlTitle}" role="img" aria-label="${escapeHtml(tr('openingdb.wdlAria', `White wins ${wPct.toFixed(1)} percent, draws ${dPct.toFixed(1)} percent, Black wins ${lPct.toFixed(1)} percent`, { white: wPct.toFixed(1), draw: dPct.toFixed(1), black: lPct.toFixed(1) }))}">
               <div class="w" style="width:${wPct.toFixed(1)}%"><span>${wPct.toFixed(1)}%</span></div>
               <div class="d" style="width:${dPct.toFixed(1)}%"><span>${dPct.toFixed(1)}%</span></div>
               <div class="l" style="width:${lPct.toFixed(1)}%"><span>${lPct.toFixed(1)}%</span></div>
             </div>`
-        : '<div class="wdb-bar is-empty" role="img" aria-label="No game-result statistics for this move">No data</div>';
+        : `<div class="wdb-bar is-empty" role="img" aria-label="${escapeHtml(tr('openingdb.noStatisticsAria', 'No game-result statistics for this move'))}">${escapeHtml(tr('openingdb.noData', 'No data'))}</div>`;
 
       return `
         <tr class="${rowClass}">
-          <td class="col-move" data-label="Next Move"${title}>${moveCellHtml}</td>
-          <td class="${engineClass}" data-label="Engine" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(moveUci)}" aria-label="${escapeHtml(engineAriaLabel)}" title="${escapeHtml(engineAriaLabel)}">${escapeHtml(engineEval)}</td>
-          <td class="col-games" data-label="Games">${n.toLocaleString()}</td>
-          <td class="col-wdl" data-label="Results">
+          <td class="col-move" data-label="${escapeHtml(tr('openingdb.explorer.move', 'Move'))}"${title}>${moveCellHtml}</td>
+          <td class="${engineClass}" data-label="${escapeHtml(tr('openingdb.analysis.engine', 'Engine'))}" data-engine-eval="${escapeHtml(engineEval)}" data-engine-uci="${escapeHtml(moveUci)}" aria-label="${escapeHtml(engineAriaLabel)}" title="${escapeHtml(engineAriaLabel)}">${escapeHtml(engineEval)}</td>
+          <td class="col-games" data-label="${escapeHtml(tr('openingdb.explorer.games', 'Games'))}">${n.toLocaleString()}</td>
+          <td class="col-wdl" data-label="${escapeHtml(tr('openingdb.games.result', 'Result'))}">
             ${wdlCell}
           </td>
         </tr>
@@ -2586,13 +2776,20 @@
 
   function setGamesStatus(message) {
     if (!els.gamesStatus) return;
-    els.gamesStatus.textContent = `${message} | ${getGamesVersionLabel()}`;
+    const presentation = gameStatusPresentation(message);
+    state.gamesStatusPresentation = presentation;
+    const localized = presentation.key
+      ? tr(presentation.key, presentation.fallback, presentation.variables)
+      : presentation.fallback;
+    const version = String(state.gameSearchManifest?.version || state.gameSearchManifest?.activeVersion || state.gamesVersion || 'v1');
+    setUntranslatedText(els.gamesStatus, `${localized} | ${tr('openingdb.games.lineIndex', getGamesVersionLabel(), { version })}`);
   }
 
   function renderGamesSummary(rows, totalGames) {
     if (!els.gamesSummary) return;
+    state.gamesTotal = Number(totalGames) || 0;
     if (!Array.isArray(rows) || rows.length === 0) {
-      els.gamesSummary.textContent = 'Indexed matches: 0 | Shown sample: 0 | Sample results unavailable';
+      setLocalizedText(els.gamesSummary, 'openingdb.games.summaryEmpty', 'Indexed matches: 0 | Shown sample: 0 | Sample results unavailable');
       return;
     }
     const count = Number(totalGames) || rows.length;
@@ -2627,7 +2824,15 @@
     };
     const avgEloText = eloCount > 0 ? String(Math.round(sumElo / eloCount)) : '-';
     const yearsText = Number.isFinite(yearMin) && Number.isFinite(yearMax) ? `${yearMin}-${yearMax}` : '-';
-    els.gamesSummary.textContent = `Indexed matches: ${count.toLocaleString()} | Shown sample: ${rows.length} | Sample White ${pct(whiteWins)} | Draw ${pct(draws)} | Black ${pct(blackWins)} | Avg Elo ${avgEloText} | Years ${yearsText}`;
+    setLocalizedText(els.gamesSummary, 'openingdb.games.summary', `Indexed matches: ${count.toLocaleString()} | Shown sample: ${rows.length} | Sample White ${pct(whiteWins)} | Draw ${pct(draws)} | Black ${pct(blackWins)} | Avg Elo ${avgEloText} | Years ${yearsText}`, {
+      count: count.toLocaleString(),
+      shown: rows.length,
+      white: pct(whiteWins),
+      draw: pct(draws),
+      black: pct(blackWins),
+      elo: avgEloText,
+      years: yearsText
+    });
   }
 
   function toggleTransitionPanel(show, message, statsText) {
@@ -2635,10 +2840,10 @@
     els.transitionPanel.hidden = !show;
     if (show) {
       if (els.transitionMessage) {
-        els.transitionMessage.textContent = message || 'Position branching is narrowing. You are transitioning from Opening Theory into Early Middlegame.';
+        setUntranslatedText(els.transitionMessage, message || tr('openingdb.transition.narrowing', 'Position branching is narrowing. You are transitioning from Opening Theory into Early Middlegame.'));
       }
       if (els.transitionStats) {
-        els.transitionStats.textContent = statsText || '';
+        setUntranslatedText(els.transitionStats, statsText || '');
       }
     }
   }
@@ -2657,16 +2862,23 @@
     }
 
     const message = lowCandidates
-      ? 'Branching is narrowing. You are transitioning from Opening Theory into Early Middlegame.'
-      : 'This position is rare in the database. You are transitioning from Opening Theory into Early Middlegame.';
-    const statsText = `Ply: ${Number(plyCount) || 0} • Candidates: ${moves.length} • Games: ${totalGames}`;
+      ? tr('openingdb.transition.narrowing', 'Branching is narrowing. You are transitioning from Opening Theory into Early Middlegame.')
+      : tr('openingdb.transition.rare', 'This position is rare in the database. You are transitioning from Opening Theory into Early Middlegame.');
+    const statsText = tr('openingdb.transition.stats', `Ply: ${Number(plyCount) || 0} • Candidates: ${moves.length} • Games: ${totalGames}`, {
+      ply: Number(plyCount) || 0,
+      candidates: moves.length,
+      games: totalGames
+    });
     toggleTransitionPanel(true, message, statsText);
   }
 
   async function loadGamePgnText(row) {
     if (!row || !row.gameId) return null;
-    const remoteText = row.pgnUrl ? await fetchTextWithTimeout(row.pgnUrl, GAMES_FETCH_TIMEOUT_MS) : null;
-    if (remoteText) return remoteText;
+    const remoteUrl = safeGamePgnUrl(row.pgnUrl);
+    if (remoteUrl) {
+      const remoteText = await fetchTextWithTimeout(remoteUrl, GAMES_FETCH_TIMEOUT_MS);
+      if (remoteText) return remoteText;
+    }
     const localUrl = `/data/openingdb_games/${state.gamesVersion}/pgn/${row.gameId}.pgn`;
     return fetchTextWithTimeout(localUrl, GAMES_FETCH_TIMEOUT_MS);
   }
@@ -2730,11 +2942,14 @@
     const review = state.moveReview;
     const isGame = review.source === 'game';
     if (els.movesTitle) {
-      els.movesTitle.textContent = isGame
-        ? `${review.gameRow?.white || '?'} vs ${review.gameRow?.black || '?'}`
-        : 'Current explored line';
+      if (isGame) setUntranslatedText(els.movesTitle, `${review.gameRow?.white || '?'} vs ${review.gameRow?.black || '?'}`);
+      else setLocalizedText(els.movesTitle, 'openingdb.moves.title', 'Current explored line');
     }
-    if (els.movesStatus) els.movesStatus.textContent = review.status || '';
+    if (els.movesStatus) {
+      setUntranslatedText(els.movesStatus, review.status
+        ? localizedReviewStatus(review.status)
+        : tr('openingdb.moves.ready', 'Your explored line is ready to review.'));
+    }
     if (els.movesReturnGamesBtn) els.movesReturnGamesBtn.hidden = !isGame;
 
     if (els.movesGameDetails) {
@@ -2742,10 +2957,13 @@
       els.movesGameDetails.hidden = !isGame;
       if (isGame) {
         const row = review.gameRow || {};
-        appendReviewDetail('Result', row.result || '?');
-        appendReviewDetail('Event', row.event || row.site || '-');
-        appendReviewDetail('Year', row.year || '-');
-        appendReviewDetail('Starting FEN', review.initialFen || 'Standard starting position');
+        appendReviewDetail(tr('openingdb.moves.result', 'Result'), row.result || '?');
+        appendReviewDetail(tr('openingdb.moves.event', 'Event'), row.event || row.site || '-');
+        appendReviewDetail(tr('openingdb.moves.year', 'Year'), row.year || '-');
+        appendReviewDetail(
+          tr('openingdb.moves.startingFen', 'Starting FEN'),
+          review.initialFen || tr('openingdb.moves.standardStart', 'Standard starting position')
+        );
       }
     }
 
@@ -2754,12 +2972,12 @@
       if (!review.notationAvailable) {
         const empty = document.createElement('p');
         empty.className = 'openingdb-review-empty';
-        empty.textContent = 'Move notation is unavailable because this indexed result contains metadata only.';
+        empty.textContent = tr('openingdb.moves.metadataUnavailable', 'Move notation is unavailable because this indexed result contains metadata only.');
         els.movesNotation.append(empty);
       } else if (review.moves.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'openingdb-review-empty';
-        empty.textContent = 'No moves have been played yet.';
+        empty.textContent = tr('openingdb.moves.noMoves', 'No moves have been played yet.');
         els.movesNotation.append(empty);
       } else {
         review.moves.forEach((move, index) => {
@@ -2770,7 +2988,10 @@
           button.setAttribute('data-review-ply', String(index + 1));
           const moveNumber = Math.floor(index / 2) + 1;
           button.textContent = `${index % 2 === 0 ? `${moveNumber}.` : `${moveNumber}...`} ${move.san || `${move.from}${move.to}`}`;
-          button.setAttribute('aria-label', `Go to ply ${index + 1}: ${move.san || `${move.from}${move.to}`}`);
+          button.setAttribute('aria-label', tr('openingdb.moves.goPly', `Go to ply ${index + 1}: ${move.san || `${move.from}${move.to}`}`, {
+            ply: index + 1,
+            move: move.san || `${move.from}${move.to}`
+          }));
           els.movesNotation.append(button);
         });
       }
@@ -2782,9 +3003,10 @@
     if (els.movesNextBtn) els.movesNextBtn.disabled = !canNavigate || review.ply >= review.moves.length;
     if (els.movesLastBtn) els.movesLastBtn.disabled = !canNavigate || review.ply >= review.moves.length;
     if (els.movesPlyLabel) {
-      els.movesPlyLabel.textContent = review.ply > 0
-        ? `Ply ${review.ply} of ${review.moves.length}: ${review.moves[review.ply - 1]?.san || ''}`
-        : `Start position · 0 of ${review.moves.length}`;
+      const move = review.moves[review.ply - 1]?.san || '';
+      setUntranslatedText(els.movesPlyLabel, review.ply > 0
+        ? tr('openingdb.moves.ply', `Ply ${review.ply} of ${review.moves.length}: ${move}`, { ply: review.ply, total: review.moves.length, move })
+        : tr('openingdb.moves.plyStart', `Start position • 0 of ${review.moves.length}`, { total: review.moves.length }));
     }
   }
 
@@ -2914,11 +3136,11 @@
     const content = window.CaissaUI?.emptyStateHtml
       ? window.CaissaUI.emptyStateHtml({
           icon: 'fa-search',
-          title: 'No games found.',
-          message: 'Adjust the position or filters and search again.',
+          title: tr('openingdb.games.noResultsTitle', 'No games found.'),
+          message: tr('openingdb.games.noResultsMessage', 'Adjust the position or filters and search again.'),
           className: 'caissa-ui-empty-state--compact'
         })
-      : '<div class="openingdb-empty">No games found for this position/filter.</div>';
+      : `<div class="openingdb-empty">${escapeHtml(tr('openingdb.games.noResultsFallback', 'No games found for this position/filter.'))}</div>`;
     return `<tr><td colspan="7">${content}</td></tr>`;
   }
 
@@ -2930,20 +3152,22 @@
     }
 
     els.gamesBody.innerHTML = rows.map((row, idx) => {
-      const white = escapeHtml(row.white || 'Unknown');
-      const black = escapeHtml(row.black || 'Unknown');
+      const white = escapeHtml(row.white || tr('openingdb.games.unknown', 'Unknown'));
+      const black = escapeHtml(row.black || tr('openingdb.games.unknown', 'Unknown'));
       const result = escapeHtml(row.result || '?');
       const event = escapeHtml(row.eco ? `${row.event || row.site || '-'} [${row.eco}]` : (row.event || row.site || '-'));
       const year = escapeHtml(row.year || '-');
       const avgElo = Number(row.avgElo);
-      const whiteElo = row.whiteElo ? String(row.whiteElo) : '?';
-      const blackElo = row.blackElo ? String(row.blackElo) : '?';
-      const eloCell = escapeHtml(Number.isFinite(avgElo) ? `${Math.round(avgElo)} (avg)` : `${whiteElo}/${blackElo}`);
-      const actions = row.pgnUrl
-        ? `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">Review moves</button>
-            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${escapeHtml(row.pgnUrl)}" download="${escapeHtml(row.gameId)}.pgn">Download</a>`
-        : `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">Review</button>
-           <span class="openingdb-muted">Metadata only</span>`;
+      const whiteElo = escapeHtml(row.whiteElo ? String(row.whiteElo) : '?');
+      const blackElo = escapeHtml(row.blackElo ? String(row.blackElo) : '?');
+      const eloCell = Number.isFinite(avgElo) ? `${Math.round(avgElo)} (${escapeHtml(tr('openingdb.games.average', 'avg'))})` : `${whiteElo}/${blackElo}`;
+      const pgnUrl = safeGamePgnUrl(row.pgnUrl);
+      const gameId = escapeHtml(row.gameId || 'game');
+      const actions = pgnUrl
+        ? `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">${escapeHtml(tr('openingdb.games.reviewMoves', 'Review moves'))}</button>
+            <a class="btn btn-secondary odb-game-download-link" data-action="download" data-game-index="${idx}" href="${escapeHtml(pgnUrl)}" download="${gameId}.pgn">${escapeHtml(tr('openingdb.games.download', 'Download'))}</a>`
+        : `<button class="btn btn-secondary odb-game-view-btn" data-action="review" data-game-index="${idx}" type="button">${escapeHtml(tr('openingdb.games.review', 'Review'))}</button>
+           <span class="openingdb-muted">${escapeHtml(tr('openingdb.games.metadataOnly', 'Metadata only'))}</span>`;
       return `
         <tr data-game-index="${idx}">
           <td>${white}</td>
@@ -2960,9 +3184,28 @@
 
   function renderGamesDownloadLinks(rows) {
     if (!els.gamesDownloads) return;
-    els.gamesDownloads.textContent = Array.isArray(rows) && rows.length
-      ? 'This index currently provides game metadata only; individual PGN files are not available.'
-      : '';
+    setUntranslatedText(els.gamesDownloads, Array.isArray(rows) && rows.length
+      ? tr('openingdb.games.metadataDisclosure', 'This index currently provides game metadata only; individual PGN files are not available.')
+      : '');
+  }
+
+  function renderGameSearchMetadata() {
+    if (!els.gamesDownloads) return;
+    els.gamesDownloads.replaceChildren();
+    const lineKey = String(state.gameSearchLineKey || '');
+    if (!lineKey || (!state.gamesResults.length && state.gamesTotal === 0)) return;
+    const line = document.createElement('div');
+    line.className = 'openingdb-games-status';
+    const code = document.createElement('code');
+    code.textContent = lineKey;
+    line.append(tr('openingdb.games.lineKey', 'Line key: '), code);
+    const totals = document.createElement('div');
+    totals.className = 'openingdb-games-status';
+    totals.textContent = tr('openingdb.games.totalMetadata', `Total indexed matches: ${state.gamesTotal.toLocaleString()} | Showing metadata: ${state.gamesResults.length}`, {
+      count: state.gamesTotal.toLocaleString(),
+      shown: state.gamesResults.length
+    });
+    els.gamesDownloads.append(line, totals);
   }
 
   function moveVerboseToUci(move) {
@@ -2994,7 +3237,7 @@
     state.gameSearchManifest = manifest;
     if (els.gamesScope) {
       const maxPlies = getGameSearchMaxPlies();
-      els.gamesScope.textContent = `Results match the played move order for up to ${maxPlies} plies. Transpositions reached through a different line are not included.`;
+      setLocalizedText(els.gamesScope, 'openingdb.games.scope', `Results match the played move order for up to ${maxPlies} plies. Transpositions reached through a different line are not included.`, { maxPlies });
     }
     return manifest;
   }
@@ -3036,7 +3279,7 @@
       return;
     }
     const loadingButtons = [els.searchGamesBtn, els.transitionSearchGamesBtn].filter(Boolean);
-    loadingButtons.forEach((button) => window.CaissaUI?.setButtonLoading(button, true, { label: 'Searching...' }));
+    loadingButtons.forEach((button) => window.CaissaUI?.setButtonLoading(button, true, { label: tr('openingdb.games.searchingShort', 'Searching...') }));
     if (els.gamesPanel) els.gamesPanel.setAttribute('aria-busy', 'true');
     try {
       const manifest = await ensureGameSearchManifest();
@@ -3072,8 +3315,8 @@
         const avgElo = Number(meta.avgElo);
         return {
           gameId: meta.gameId || '',
-          white: meta.white || 'Unknown',
-          black: meta.black || 'Unknown',
+          white: meta.white || '',
+          black: meta.black || '',
           result: meta.result || '?',
           event: meta.event || meta.site || '',
           site: meta.site || '',
@@ -3089,18 +3332,7 @@
       state.gamesResults = rows;
       renderGamesRows(rows);
       renderGamesSummary(rows, Number(payload.games) || rows.length);
-      if (els.gamesDownloads) {
-        els.gamesDownloads.replaceChildren();
-        const line = document.createElement('div');
-        line.className = 'openingdb-games-status';
-        const code = document.createElement('code');
-        code.textContent = lineKey;
-        line.append('Line key: ', code);
-        const totals = document.createElement('div');
-        totals.className = 'openingdb-games-status';
-        totals.textContent = `Total indexed matches: ${(Number(payload.games) || 0).toLocaleString()} | Showing metadata: ${rows.length}`;
-        els.gamesDownloads.append(line, totals);
-      }
+      renderGameSearchMetadata();
 
       if ((Number(payload.games) || 0) === 0) {
         setGamesStatus('No indexed games for this line (yet).');
@@ -3521,15 +3753,16 @@
 
     const hasKnownOpening = openingFallback.eco || openingFallback.name !== 'Opening: (TBD)';
     const openingName = hasKnownOpening
-      ? String(openingFallback.name || 'Opening not classified').replace(/^Opening:\s*/i, '')
-      : 'Opening not classified';
-    els.openingLabel.textContent = openingName;
+      ? String(openingFallback.name || tr('openingdb.opening.notClassified', 'Opening not classified')).replace(/^Opening:\s*/i, '')
+      : tr('openingdb.opening.notClassified', 'Opening not classified');
+    if (hasKnownOpening) setUntranslatedText(els.openingLabel, openingName);
+    else setLocalizedText(els.openingLabel, 'openingdb.opening.notClassified', 'Opening not classified');
     if (els.ecoCode) els.ecoCode.textContent = openingFallback.eco || 'ECO —';
     if (els.ecoLink) {
       els.ecoLink.href = openingFallback.eco ? `/eco/${encodeURIComponent(openingFallback.eco)}` : '/eco';
       els.ecoLink.setAttribute('aria-label', openingFallback.eco
-        ? `Browse ECO ${openingFallback.eco}`
-        : 'Browse ECO opening codes');
+        ? tr('openingdb.eco.browseCode', `Browse ECO ${openingFallback.eco}`, { code: openingFallback.eco })
+        : tr('openingdb.aria.ecoBrowse', 'Browse ECO opening codes'));
     }
 
     const renderStartedAt = performance.now();
@@ -3542,19 +3775,20 @@
     checkTransitionState(state.latestPopularRows, ply);
 
     if (!state.datasetsLoaded) {
-      els.lookupStatus.textContent = state.datasetsError || 'Loading datasets...';
+      if (state.datasetsError) setLocalizedText(els.lookupStatus, 'openingdb.dataset.unavailable', state.datasetsError);
+      else setLocalizedText(els.lookupStatus, 'openingdb.dataset.loadingAll', 'Loading datasets...');
       setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
     } else if (exactData.source === 'openingdb_node_error') {
-      els.lookupStatus.textContent = 'Position lookup: Node API unavailable (strict mode)';
+      setLocalizedText(els.lookupStatus, 'openingdb.lookup.nodeUnavailable', 'Position lookup: Node API unavailable (strict mode)');
       setMatchBadge('none');
     } else if (exactData.source === 'openingdb_shard_exact' || exactData.source === 'openingdb_node_api') {
-      els.lookupStatus.textContent = `Position lookup: match (${exactData.matchLevel || 'exact'})`;
+      setLocalizedText(els.lookupStatus, 'openingdb.lookup.match', `Position lookup: match (${exactData.matchLevel || 'exact'})`, { level: exactData.matchLevel || 'exact' });
       setMatchBadge(exactData.matchLevel || 'exact');
     } else if (popularFallbackToLegal) {
-      els.lookupStatus.textContent = 'No database statistics for this position yet. Showing legal replies.';
+      setLocalizedText(els.lookupStatus, 'openingdb.lookup.noStats', 'No database statistics for this position yet. Showing legal replies.');
       setMatchBadge('legal');
     } else {
-      els.lookupStatus.textContent = 'Position lookup: no exact match (TBD)';
+      setLocalizedText(els.lookupStatus, 'openingdb.lookup.noExact', 'Position lookup: no exact match (TBD)');
       setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
     }
 
@@ -3655,10 +3889,10 @@
 
   function validateFenInput(rawFen) {
     const fen = String(rawFen || '').trim();
-    if (!fen) return { ok: false, message: 'FEN is empty.' };
+    if (!fen) return { ok: false, key: 'openingdb.fen.empty', message: 'FEN is empty.' };
     const parts = fen.split(/\s+/);
     if (parts.length !== 6) {
-      return { ok: false, message: 'FEN must contain 6 fields.' };
+      return { ok: false, key: 'openingdb.fen.sixFields', message: 'FEN must contain 6 fields.' };
     }
     return { ok: true, fen };
   }
@@ -3706,7 +3940,7 @@
       if (!ecoCodesLoaded) missing.push('eco_codes.json');
       if (!manifestReady) missing.push('openingdb/manifest.json');
       if (missing.length > 0) {
-        showDatasetBanner(`Fallback dataset active - missing ${missing.join(', ')}`);
+        showDatasetBanner(`Fallback dataset active — missing ${missing.join(', ')}`, 'openingdb.dataset.fallbackBanner', { files: missing.join(', ') });
       } else {
         showDatasetBanner('');
       }
@@ -3726,7 +3960,7 @@
     } catch (error) {
       state.datasetsLoaded = false;
       state.datasetsError = 'Opening data is not available yet.';
-      showDatasetBanner('Opening data is not available yet.');
+      showDatasetBanner('Opening data is not available yet.', 'openingdb.dataset.unavailable');
       console.warn('[OpeningDB] dataset load error', error);
       debugLog('datasets loaded', {
         ecoCodesLoaded,
@@ -3757,7 +3991,16 @@
   }
 
   function setIntegrationStatus(message) {
-    if (els.actionStatus) els.actionStatus.textContent = message || '';
+    if (!els.actionStatus) return;
+    const fallback = String(message || '');
+    const keys = {
+      'Analyzer handoff is unavailable. Refresh and try again.': 'openingdb.integration.unavailable',
+      'Could not prepare this position for Analyzer.': 'openingdb.integration.prepareFailed',
+      'Browser storage blocked the Analyzer handoff.': 'openingdb.integration.storageBlocked',
+      'Could not open this position in Analyzer.': 'openingdb.integration.openFailed'
+    };
+    if (keys[fallback]) setLocalizedText(els.actionStatus, keys[fallback], fallback);
+    else setUntranslatedText(els.actionStatus, fallback);
   }
 
   function openCurrentPositionInAnalyzer() {
@@ -3865,7 +4108,7 @@
       const check = validateFenInput(els.fenInput.value);
       if (!check.ok) {
         els.fenError.hidden = false;
-        els.fenError.textContent = check.message;
+        setLocalizedText(els.fenError, check.key || 'openingdb.controls.invalidFen', check.message);
         return;
       }
 
@@ -3876,7 +4119,7 @@
         clearEngineEvalCache();
       } catch (_err) {
         els.fenError.hidden = false;
-        els.fenError.textContent = 'FEN could not be loaded. Check the position and try again.';
+        setLocalizedText(els.fenError, 'openingdb.fen.loadFailed', 'FEN could not be loaded. Check the position and try again.');
         return;
       }
 
@@ -4186,6 +4429,7 @@
   }
 
   function clearTapSelection() {
+    const hadSelection = !!state.tapSelection.source;
     state.tapSelection.source = '';
     state.tapSelection.legalTargets = new Map();
     els.board?.querySelectorAll?.(
@@ -4195,9 +4439,7 @@
       square.removeAttribute('data-caissa-tap-legal');
       square.removeAttribute('data-caissa-tap-capture');
     });
-    if (els.actionStatus && /^Selected\s/.test(els.actionStatus.textContent || '')) {
-      els.actionStatus.textContent = '';
-    }
+    if (els.actionStatus && hadSelection) setUntranslatedText(els.actionStatus, '');
   }
 
   function boardPieceId(piece) {
@@ -4224,7 +4466,10 @@
     });
     if (els.actionStatus) {
       const destinations = Array.from(selection.legalTargets.keys()).join(', ');
-      els.actionStatus.textContent = `Selected ${selection.source}. Legal destinations: ${destinations || 'none'}.`;
+      setLocalizedText(els.actionStatus, 'openingdb.tap.selected', `Selected ${selection.source}. Legal destinations: ${destinations || 'none'}.`, {
+        source: selection.source,
+        destinations: destinations || tr('openingdb.tap.none', 'none')
+      });
     }
   }
 
@@ -4480,7 +4725,47 @@
     }, 60);
   }
 
+  function refreshOpeningDatabaseLocale() {
+    openingDbI18n?.apply?.();
+    refreshLocalizedTextBindings();
+    renderDatasetFreshness();
+    updateDownloadButtonLabel();
+
+    if (state.game) {
+      updateMoveListFromGame(state.game, { trackWrite: false });
+      updateTurnPlyLabel(getOpeningDbPly(state.game));
+      if (isOpeningDbDepthLimitReached()) {
+        renderOpeningDbDepthLimit();
+      } else if (state.currentRows.length || state.datasetsLoaded) {
+        renderStatsRows(getExplorerDisplayRows());
+        refreshRenderedEngineEvalCells();
+      }
+      updateCoverageBadge(state.latestPopularRows.length, state.latestAllLegalRows.length);
+      checkTransitionState(state.latestPopularRows, getOpeningDbPly(state.game));
+    }
+
+    renderEnginePanel();
+    renderRowDiagnostics();
+    renderGamesRows(state.gamesResults);
+    renderGamesSummary(state.gamesResults, state.gamesTotal);
+    renderGameSearchMetadata();
+    if (state.gamesStatusPresentation) setGamesStatus(state.gamesStatusPresentation.fallback);
+    if (els.gamesScope) {
+      const maxPlies = getGameSearchMaxPlies();
+      setLocalizedText(els.gamesScope, 'openingdb.games.scope', `Results match the played move order for up to ${maxPlies} plies. Transpositions reached through a different line are not included.`, { maxPlies });
+    }
+    renderMoveReview();
+
+    if (els.ecoLink) {
+      const code = String(els.ecoCode?.textContent || '').replace(/^ECO\s*/i, '').trim();
+      els.ecoLink.setAttribute('aria-label', code && code !== '—'
+        ? tr('openingdb.eco.browseCode', `Browse ECO ${code}`, { code })
+        : tr('openingdb.aria.ecoBrowse', 'Browse ECO opening codes'));
+    }
+  }
+
   async function runInit() {
+    openingDbI18n?.subscribe?.(refreshOpeningDatabaseLocale);
     bindOpeningDbTabInteractions();
     setActiveTab(state.activeTab);
     debugLog('[OpeningDB] init start');
@@ -4537,6 +4822,10 @@
       updateDownloadButtonLabel();
       setGamesStatus('Ready to search.');
       renderGamesSummary([], 0);
+      if (els.gamesScope) {
+        const maxPlies = getGameSearchMaxPlies();
+        setLocalizedText(els.gamesScope, 'openingdb.games.scope', `Results match the played move order for up to ${maxPlies} plies. Transpositions reached through a different line are not included.`, { maxPlies });
+      }
       loadDatasets();
     } catch (err) {
       console.error('[OpeningDB] init fatal', err);

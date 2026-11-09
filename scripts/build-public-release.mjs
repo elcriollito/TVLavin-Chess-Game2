@@ -1,14 +1,21 @@
 import { copyFile, mkdir, rm } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, readSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_OUTPUT = join(tmpdir(), 'caissa-public-release');
+export const PUBLIC_RELEASE_MANIFEST_PATH = 'PUBLIC_RELEASE_ARTIFACT_MANIFEST.json';
 
 const protectedFiles = new Set([
+  '.gitattributes',
+  '.gitignore',
+  '.npmrc',
+  '.vercelignore',
+  'AGENTS.md',
   'DIAGNOSTIC.html',
   'DEBUG_BOARD.html',
   'LAUNCH_CHESS_GAME.html',
@@ -23,6 +30,23 @@ const protectedFiles = new Set([
   'TVLavin-Chess-Game2.zip',
   'TOOLING_MIGRATION_PLAN.md',
   'CHANGELOG.md',
+  'CAISSA_DOWNLOADS_IMPLEMENTATION_REPORT.md',
+  'DEPENDENCY_MANIFEST.md',
+  'HUMAN_ACCEPTANCE_CHECKLIST.md',
+  'OPEN_SOURCE_LICENSE_AUDIT.md',
+  'POLYGLOT_COMPATIBILITY_REPORT.md',
+  'POLYGLOT_ONLINE_ARCHITECTURE.md',
+  'PORTABLE_PERFORMANCE_BENCHMARK.md',
+  'PORTABLE_SOURCE_AUDIT.md',
+  PUBLIC_RELEASE_MANIFEST_PATH,
+  'RELEASE_MANIFEST.json',
+  'RELEASE_NOTES.md',
+  'ROLLBACK_PLAN.md',
+  'SECURITY_SCAN_REPORT.md',
+  'SHA256SUMS.txt',
+  'SOURCE_AVAILABILITY.md',
+  'THIRD_PARTY_NOTICES.md',
+  'VIRUSTOTAL_VERIFICATION_STATUS.md',
   'JUGAR_AJEDREZ.bat',
   'LEEME_PRIMERO.txt',
   'chess-llm-platform-complete.tar.gz',
@@ -40,17 +64,30 @@ const protectedFiles = new Set([
 ]);
 const protectedDirectories = [
   '.claude/',
+  '.codex/',
+  '.github/',
+  '.vercel/',
+  '.wrangler/',
   'chess-llm-platform/',
   'client/',
   'cloudflare-worker/',
+  'coverage/',
+  'data/openingdb/shards/',
+  'data/openingdb/shards_build/',
+  'data/openingdb/subshards_build/',
+  'data/openingdb_games/',
+  'data/pgn/',
+  'data/pgn_db/',
   'deployment/',
   'docs/',
   'downloads-worker/',
   'endgame-pools/authoring/',
   'endgame-pools/private/',
   'experimental/',
+  'experiments/',
   'gateway/',
   'history/',
+  'internal-assets/',
   'knowledge/authoring/',
   'knowledge/consumer/',
   'knowledge/domains/',
@@ -62,8 +99,17 @@ const protectedDirectories = [
   'knowledge/taxonomy/',
   'knowledge/validation/',
   'scripts/',
+  'playwright-report/',
+  'supabase/',
+  'test-results/',
   'tests/',
   'tools/'
+];
+const protectedFilePatterns = [
+  /^\.env(?:\.|$)/i,
+  /^[^/]+\.md$/i,
+  /(?:^|\/)[^/]*(?:credential|credentials|secrets)[^/]*$/i,
+  /\.(?:sqlite|sqlite3|zst|zst\.part|csv|csv\.part|db|dump|backup|pgdump|sql\.gz|log|pfx|pem|key|cer)$/i
 ];
 const requiredFiles = [
   'index.html',
@@ -90,6 +136,105 @@ const requiredFiles = [
   'public/data/eco/eco_codes.json',
   'knowledge/releases/rel-58b238dfdda8f295fdab023cead6bf069aceefbee74a64a5cd71af2202480a84/release.json'
 ];
+
+const unapprovedBinaryPattern = /\.(?:exe|com|dll|scr|cpl|ocx|sys|msi|msix|appx|apk|dmg|pkg|deb|rpm|zip|7z|rar|tar|tgz|gz|bz2|xz|cab|iso|img|vhd|vhdx|qcow|qcow2|jar|war|class|node|wasm|onnx|bin|so|dylib|ps1|bat|cmd|vbs|vbe|hta)$/i;
+
+export const isUnapprovedPublicBinaryPath = path =>
+  unapprovedBinaryPattern.test(path);
+
+function hasExecutableOrArchiveMagic(path, cwd) {
+  const absolutePath = join(cwd, path);
+  if (!existsSync(absolutePath)) return false;
+  const bytes = Buffer.alloc(64 * 1024);
+  const descriptor = openSync(absolutePath, 'r');
+  try {
+    readSync(descriptor, bytes, 0, bytes.length, 0);
+  } finally {
+    closeSync(descriptor);
+  }
+  const starts = (...values) => values.every((value, index) => bytes[index] === value);
+  const hasTarMagic = bytes.subarray(257, 262).equals(Buffer.from('ustar'));
+  const hasIso9660Magic = bytes.subarray(0x8001, 0x8006).equals(Buffer.from('CD001'));
+  return starts(0x4d, 0x5a)
+    || starts(0x50, 0x4b, 0x03, 0x04)
+    || starts(0x50, 0x4b, 0x05, 0x06)
+    || starts(0x50, 0x4b, 0x07, 0x08)
+    || starts(0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c)
+    || starts(0x52, 0x61, 0x72, 0x21, 0x1a, 0x07)
+    || starts(0x7f, 0x45, 0x4c, 0x46)
+    || starts(0x1f, 0x8b)
+    || starts(0x42, 0x5a, 0x68)
+    || starts(0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00)
+    || starts(0x4d, 0x53, 0x43, 0x46)
+    || starts(0x21, 0x3c, 0x61, 0x72, 0x63, 0x68, 0x3e, 0x0a)
+    || starts(0x00, 0x61, 0x73, 0x6d)
+    || starts(0xcf, 0xfa, 0xed, 0xfe)
+    || starts(0xfe, 0xed, 0xfa, 0xcf)
+    || starts(0xca, 0xfe, 0xba, 0xbe)
+    || hasTarMagic
+    || hasIso9660Magic;
+}
+
+export function sha256File(path, cwd) {
+  const descriptor = openSync(join(cwd, path), 'r');
+  const hash = createHash('sha256');
+  const chunk = Buffer.allocUnsafe(1024 * 1024);
+  try {
+    for (;;) {
+      const bytesRead = readSync(descriptor, chunk, 0, chunk.length, null);
+      if (bytesRead === 0) break;
+      hash.update(chunk.subarray(0, bytesRead));
+    }
+  } finally {
+    closeSync(descriptor);
+  }
+  return hash.digest('hex');
+}
+
+function normalizePublicManifest(manifest) {
+  if (!manifest || manifest.schemaVersion !== 1 || !Array.isArray(manifest.files)) {
+    throw new Error('Public release manifest must use schemaVersion 1 and a files array.');
+  }
+  const entries = new Map();
+  for (const item of manifest.files) {
+    const path = String(item?.path || '');
+    const sha256 = String(item?.sha256 || '').toLowerCase();
+    if (!path || path.includes('\\') || path.startsWith('/') || path.split('/').includes('..')) {
+      throw new Error(`Invalid public release manifest path: ${path || '<empty>'}`);
+    }
+    if (!/^[0-9a-f]{64}$/.test(sha256)) {
+      throw new Error(`Invalid public release manifest digest: ${path}`);
+    }
+    if (entries.has(path)) throw new Error(`Duplicate public release manifest path: ${path}`);
+    entries.set(path, sha256);
+  }
+  return entries;
+}
+
+export function createPublicArtifactManifest(files, { cwd = repositoryRoot } = {}) {
+  return {
+    schemaVersion: 1,
+    policy: 'exact-path-and-sha256',
+    files: [...new Set(files)].sort().map(path => ({ path, sha256: sha256File(path, cwd) }))
+  };
+}
+
+export function loadPublicArtifactManifest({ cwd = repositoryRoot } = {}) {
+  const manifestPath = join(cwd, PUBLIC_RELEASE_MANIFEST_PATH);
+  if (!existsSync(manifestPath)) throw new Error(`Missing public release manifest: ${PUBLIC_RELEASE_MANIFEST_PATH}`);
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  normalizePublicManifest(manifest);
+  return manifest;
+}
+
+export function renderVercelIgnore() {
+  return [
+    '# Direct repository-root Vercel uploads are intentionally disabled.',
+    '# Build and verify the exact audited staging tree with `npm run release:public:verify-vercel`.',
+    '*',
+    ''
+  ].join('\n');
+}
 
 export const CHESS_TV_CONTRACTS = Object.freeze([
   'route /spectator-tv exists',
@@ -119,24 +264,45 @@ export const CHESS_TV_CONTRACTS = Object.freeze([
 ]);
 
 export const isProtectedPublicPath = path =>
-  protectedFiles.has(path) || protectedDirectories.some(prefix => path.startsWith(prefix));
+  protectedFiles.has(path)
+  || protectedDirectories.some(prefix => path.startsWith(prefix))
+  || protectedFilePatterns.some(pattern => pattern.test(path));
 
 export function trackedPublicFiles({ cwd = repositoryRoot } = {}) {
   const result = spawnSync('git', ['ls-files', '-z'], { cwd, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr || 'Unable to read committed files.');
-  return result.stdout.split('\0').filter(Boolean).filter(path => !isProtectedPublicPath(path));
+  return result.stdout
+    .split('\0')
+    .filter(Boolean)
+    .filter(path => existsSync(join(cwd, path)))
+    .filter(path => !isProtectedPublicPath(path));
 }
 
-export function auditPublicFiles(files) {
+export function auditPublicFiles(files, { cwd = repositoryRoot, manifest = loadPublicArtifactManifest({ cwd }) } = {}) {
+  const manifestEntries = normalizePublicManifest(manifest);
+  const fileSet = new Set(files);
   const leaked = files.filter(isProtectedPublicPath);
+  const unapprovedPaths = files.filter(path => !manifestEntries.has(path));
+  const unapprovedBinaries = unapprovedPaths.filter(path =>
+    isUnapprovedPublicBinaryPath(path) || hasExecutableOrArchiveMagic(path, cwd)
+  );
+  const manifestMissingPaths = [...manifestEntries.keys()].filter(path => !fileSet.has(path));
+  const manifestDigestMismatches = files.filter(path => manifestEntries.has(path)).filter(path => {
+    const absolutePath = join(cwd, path);
+    return !existsSync(absolutePath) || sha256File(path, cwd) !== manifestEntries.get(path);
+  });
   const missing = requiredFiles.filter(path => !files.includes(path));
-  if (leaked.length || missing.length) {
+  if (leaked.length || unapprovedPaths.length || manifestMissingPaths.length || manifestDigestMismatches.length || missing.length) {
     throw new Error([
       leaked.length ? `Protected paths: ${leaked.join(', ')}` : '',
+      unapprovedPaths.length ? `Unapproved public paths: ${unapprovedPaths.join(', ')}` : '',
+      unapprovedBinaries.length ? `Unapproved executable/archive artifacts: ${unapprovedBinaries.join(', ')}` : '',
+      manifestMissingPaths.length ? `Manifest paths missing from release: ${manifestMissingPaths.join(', ')}` : '',
+      manifestDigestMismatches.length ? `Manifest digest mismatch: ${manifestDigestMismatches.join(', ')}` : '',
       missing.length ? `Missing runtime paths: ${missing.join(', ')}` : ''
     ].filter(Boolean).join('\n'));
   }
-  return { files: files.length, protectedPaths: 0, requiredPaths: requiredFiles.length };
+  return { files: files.length, protectedPaths: 0, requiredPaths: requiredFiles.length, manifestPaths: manifestEntries.size };
 }
 
 export function auditChessTVContracts({ cwd = repositoryRoot, files = trackedPublicFiles({ cwd }), sources = {} } = {}) {
@@ -200,11 +366,16 @@ export function auditChessTVContracts({ cwd = repositoryRoot, files = trackedPub
 export async function buildPublicRelease({ cwd = repositoryRoot, output = DEFAULT_OUTPUT } = {}) {
   const sourceRoot = resolve(cwd);
   const targetRoot = resolve(output);
-  if (targetRoot === sourceRoot || sourceRoot.startsWith(`${targetRoot}${sep}`)) {
+  if (
+    targetRoot === sourceRoot
+    || targetRoot.startsWith(`${sourceRoot}${sep}`)
+    || sourceRoot.startsWith(`${targetRoot}${sep}`)
+  ) {
     throw new Error('Release output must be a dedicated directory outside the repository tree.');
   }
   const files = trackedPublicFiles({ cwd: sourceRoot });
-  const audit = auditPublicFiles(files);
+  const manifest = loadPublicArtifactManifest({ cwd: sourceRoot });
+  const audit = auditPublicFiles(files, { cwd: sourceRoot, manifest });
   const chessTv = auditChessTVContracts({ cwd: sourceRoot, files });
   await rm(targetRoot, { recursive: true, force: true });
   for (const path of files) {
@@ -212,6 +383,7 @@ export async function buildPublicRelease({ cwd = repositoryRoot, output = DEFAUL
     await mkdir(dirname(destination), { recursive: true });
     await copyFile(join(sourceRoot, path), destination);
   }
+  auditPublicFiles(files, { cwd: targetRoot, manifest });
   return { ...audit, ...chessTv, output: targetRoot };
 }
 
@@ -219,7 +391,7 @@ async function main() {
   const checkOnly = process.argv.includes('--check');
   const files = trackedPublicFiles();
   const result = checkOnly
-    ? { ...auditPublicFiles(files), ...auditChessTVContracts({ files }) }
+    ? { ...auditPublicFiles(files, { cwd: repositoryRoot }), ...auditChessTVContracts({ files }) }
     : await buildPublicRelease();
   console.log(checkOnly
     ? `Public release audit passed (${result.files} committed files; ${result.requiredPaths} required paths; ${result.chessTvContracts} Chess TV contracts).`

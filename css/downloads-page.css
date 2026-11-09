@@ -1,0 +1,114 @@
+:root {
+    --downloads-bg: #071018;
+    --downloads-panel: rgba(13, 29, 43, 0.92);
+    --downloads-border: rgba(148, 163, 184, 0.2);
+    --downloads-text: #e8eef5;
+    --downloads-muted: #a9b8c7;
+    --downloads-gold: #f4c86a;
+    --downloads-blue: #4ea5ff;
+}
+
+html { background: var(--downloads-bg); }
+body { margin: 0; background: var(--downloads-bg); color: var(--downloads-text); }
+
+.downloads-page {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 88% 8%, rgba(78, 165, 255, 0.17), transparent 30rem),
+        radial-gradient(circle at 45% 35%, rgba(244, 200, 106, 0.08), transparent 32rem),
+        linear-gradient(145deg, #071018 0%, #091722 54%, #061019 100%);
+}
+
+.downloads-main {
+    box-sizing: border-box;
+    width: min(1220px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0 72px;
+}
+
+.downloads-breadcrumb { display: flex; gap: 9px; align-items: center; margin-bottom: 28px; color: var(--downloads-muted); font-size: 0.9rem; }
+.downloads-breadcrumb a { color: var(--downloads-blue); text-decoration: none; }
+.downloads-breadcrumb a:hover { text-decoration: underline; }
+
+.downloads-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.72fr);
+    gap: clamp(24px, 5vw, 72px);
+    align-items: end;
+    padding: clamp(28px, 5vw, 62px);
+    border: 1px solid var(--downloads-border);
+    border-radius: 26px;
+    background: linear-gradient(145deg, rgba(16, 38, 55, 0.96), rgba(9, 23, 35, 0.96));
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
+}
+
+.downloads-eyebrow, .downloads-kicker { margin: 0 0 10px; color: var(--downloads-gold); font-size: 0.76rem; font-weight: 800; letter-spacing: 0.16em; }
+.downloads-hero h1 { max-width: 760px; margin: 0; color: #fff; font-size: clamp(2.4rem, 6vw, 5.3rem); line-height: 0.98; letter-spacing: -0.055em; }
+.downloads-hero > div > p:last-child { max-width: 700px; margin: 24px 0 0; color: var(--downloads-muted); font-size: clamp(1rem, 2vw, 1.2rem); line-height: 1.7; }
+
+.downloads-trust-card { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 20px; border: 1px solid rgba(244, 200, 106, 0.28); border-radius: 18px; background: rgba(4, 13, 21, 0.55); }
+.downloads-trust-card > i { color: var(--downloads-gold); font-size: 1.7rem; }
+.downloads-trust-card strong, .downloads-trust-card span { display: block; }
+.downloads-trust-card strong { color: #fff; margin-bottom: 6px; }
+.downloads-trust-card span { color: var(--downloads-muted); line-height: 1.55; }
+
+.downloads-section { margin-top: 70px; }
+.downloads-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 30px; margin-bottom: 24px; }
+.downloads-section-heading h2 { margin: 0; color: #fff; font-size: clamp(1.7rem, 3vw, 2.65rem); letter-spacing: -0.025em; }
+.downloads-section-heading > p { max-width: 560px; margin: 0; color: var(--downloads-muted); line-height: 1.6; }
+
+.downloads-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.downloads-grid-featured { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.download-card { position: relative; overflow: hidden; padding: clamp(24px, 3vw, 34px); border: 1px solid var(--downloads-border); border-radius: 22px; background: var(--downloads-panel); box-shadow: 0 22px 50px rgba(0, 0, 0, 0.18); }
+.download-card::after { content: ''; position: absolute; inset: auto -25% -55% 35%; height: 240px; border-radius: 50%; background: rgba(78, 165, 255, 0.06); filter: blur(12px); pointer-events: none; }
+.download-card-online { border-color: rgba(78, 165, 255, 0.38); background: linear-gradient(145deg, rgba(15, 41, 62, 0.96), rgba(10, 27, 41, 0.96)); }
+.download-card-topline { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; }
+.download-status { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border: 1px solid var(--downloads-border); border-radius: 999px; color: #d2dce6; background: rgba(255, 255, 255, 0.04); font-size: 0.76rem; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+.download-status.is-available { border-color: rgba(74, 222, 128, 0.35); color: #8ff0b2; background: rgba(34, 197, 94, 0.08); }
+.download-status.is-pending { border-color: rgba(244, 200, 106, 0.36); color: #f7d88d; background: rgba(244, 200, 106, 0.07); }
+.download-platform { color: var(--downloads-muted); font-size: 0.82rem; }
+.download-icon { position: relative; z-index: 1; display: grid; place-items: center; width: 54px; height: 54px; margin: 30px 0 22px; border-radius: 16px; color: var(--downloads-gold); background: rgba(244, 200, 106, 0.1); font-size: 1.5rem; }
+.download-card h3 { position: relative; z-index: 1; margin: 0 0 12px; color: #fff; font-size: clamp(1.45rem, 3vw, 2.05rem); }
+.download-card > p { position: relative; z-index: 1; color: var(--downloads-muted); line-height: 1.66; }
+
+.download-facts { position: relative; z-index: 1; display: grid; gap: 10px; margin: 24px 0 0; padding: 0; list-style: none; }
+.download-facts li { display: flex; gap: 10px; color: #cfdae4; }
+.download-facts i { width: 18px; color: var(--downloads-blue); margin-top: 3px; text-align: center; }
+.download-metadata { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 24px 0; overflow: hidden; border: 1px solid var(--downloads-border); border-radius: 14px; background: var(--downloads-border); }
+.download-metadata div { padding: 14px; background: #0a1b28; }
+.download-metadata dt { color: var(--downloads-muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.07em; }
+.download-metadata dd { margin: 5px 0 0; color: #fff; overflow-wrap: anywhere; }
+.download-caution { padding: 12px 14px; border-left: 3px solid var(--downloads-gold); background: rgba(244, 200, 106, 0.06); font-size: 0.9rem; }
+.download-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 28px; }
+.download-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; box-sizing: border-box; padding: 0 17px; border-radius: 12px; font-weight: 750; text-decoration: none; }
+.download-button-primary { color: #071018; background: var(--downloads-gold); }
+.download-button-primary:hover { background: #ffe09b; }
+.download-text-link { color: #7fc0ff; font-weight: 700; text-decoration: none; }
+.download-text-link:hover { text-decoration: underline; }
+.download-notice { display: inline-flex; margin-top: 16px; color: #c5d0da; font-size: 0.88rem; font-weight: 700; }
+.download-card.is-future { min-height: 290px; background: rgba(10, 25, 37, 0.74); }
+
+.downloads-faq { max-width: 900px; }
+.downloads-faq details { border-top: 1px solid var(--downloads-border); }
+.downloads-faq details:last-child { border-bottom: 1px solid var(--downloads-border); }
+.downloads-faq summary { padding: 20px 2px; color: #fff; cursor: pointer; font-weight: 750; }
+.downloads-faq details p { margin: -6px 0 22px; color: var(--downloads-muted); line-height: 1.65; }
+
+.download-button:focus-visible, .download-text-link:focus-visible, .downloads-breadcrumb a:focus-visible, .downloads-faq summary:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+
+@media (max-width: 980px) {
+    .downloads-hero, .downloads-grid, .downloads-grid-featured { grid-template-columns: minmax(0, 1fr); }
+    .downloads-section-heading { align-items: start; flex-direction: column; }
+}
+
+@media (max-width: 600px) {
+    .downloads-main { width: min(100% - 24px, 1220px); padding-top: 80px; }
+    .downloads-hero { padding: 24px 20px; border-radius: 20px; }
+    .downloads-hero h1 { font-size: clamp(2.35rem, 15vw, 3.6rem); }
+    .downloads-section { margin-top: 54px; }
+    .download-card { padding: 22px 18px; border-radius: 18px; }
+    .download-metadata { grid-template-columns: minmax(0, 1fr); }
+    .download-actions, .download-button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }

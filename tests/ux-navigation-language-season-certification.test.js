@@ -30,7 +30,7 @@ const expected = [
     ['arena', '/arena'], ['scanner', '/scanner'], ['cheater-insight', '/cheater-insight'],
     ['polyglot', '/tools/polyglot'], ['gif-studio', '/gif-maker'], ['opening-database', '/opening-database'], ['eco', '/eco'],
     ['world-champions', '/game-library/champions'], ['history', '/history'], ['dosChess', '/dos-chess'],
-    ['vault', '/vault'], ['blog', '/blog'], ['help', '/help'], ['about', '/about'],
+    ['vault', '/downloads'], ['blog', '/blog'], ['help', '/help'], ['about', '/about'],
     ['feedback', 'mailto:tvlavin1978@gmail.com?subject=CAISSA%20Feedback&body=Hello%20CAISSA%20Team%2C%0A%0AI%20would%20like%20to%20report%3A%0A%0A%5B%20%5D%20Bug%0A%0A%5B%20%5D%20Feature%20Request%0A%0A%5B%20%5D%20Improvement%20Suggestion%0A%0A%5B%20%5D%20General%20Feedback%0A%0ADetails%3A%0A'],
     ['facebook', 'https://www.facebook.com/CaissaChessOrg/'],
     ['youtube', 'https://www.youtube.com/@CaissaChessOrg'],

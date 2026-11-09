@@ -2,6 +2,8 @@
 
 Baseline: `6bcec62d5bb9306313ddf889198d98f1579ae37a`
 
+> Current candidate delta (2026-11-08): `/api/polyglot/build` is retired and returns `410 Gone` without reading a body. Polyglot conversion now runs locally in a bounded Web Worker. The Downloads Worker additionally serves a digest-bound portable catalog and retires anonymous OpeningDB ZIP generation before request-body or R2 access. The inventory below remains the stated historical baseline.
+
 ## Inventory counts
 
 - API routes: 12
@@ -25,7 +27,7 @@ Baseline: `6bcec62d5bb9306313ddf889198d98f1579ae37a`
 | `POST /api/library/push` | Clerk Bearer | positions/collections/deletions | Writes caller-owned library records. |
 | `POST /api/library/delete` | Clerk Bearer | item identifiers/types | Deletes caller-owned records. |
 | `POST /api/mentor/chat` | Mixed | provider/key/messages/model/tokens/temp | Calls fixed LLM provider; shared mode uses CAISSA key and credits. |
-| `POST /api/polyglot/build` | Public | PGN/filename/options | CPU/memory-intensive book generation. |
+| `POST /api/polyglot/build` | Public tombstone | Body is not read | Returns `410 Gone`; no server-side book generation. |
 | `GET /api/public-auth-config` | Public | none | Returns publishable Clerk config and capability boolean. |
 | `POST /api/stripe/webhook` | Stripe signature | signed Stripe event | Premium/credit fulfillment. |
 | `POST /api/user/sync` | Clerk Bearer | email | Creates/updates caller user row. |
