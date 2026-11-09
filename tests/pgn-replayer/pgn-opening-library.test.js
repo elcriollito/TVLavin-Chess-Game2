@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 import AdmZip from 'adm-zip';
-import handler, { openingTitle, splitPgnGames } from '../../api/pgn/opening.js';
+import handler, { createOpeningWorkState, openingTitle, splitPgnGames } from '../../api/pgn/opening.js';
 import { PGN_MENTOR_OPENING_FILES } from '../../api/pgn/pgnmentor-allowlist.js';
 import { PGN_MENTOR_OPENING_METADATA } from '../../api/pgn/pgnmentor-opening-metadata.js';
 
@@ -94,6 +94,36 @@ test('extracts one allowlisted opening ZIP and returns bounded 100-game PGN page
   assert.equal(last.statusCode, 200);
   assert.equal(last.headers.get('X-CAISSA-Opening-Page-Games'), '5');
   assert.equal(splitPgnGames(last.payload.toString('utf8')).length, 5);
+});
+
+test('coalesces concurrent pages and reuses one bounded parsed archive', async () => {
+  const zip = openingZip();
+  const openingWorkState = createOpeningWorkState();
+  let fetchCalls = 0;
+  const dependencies = {
+    fetch: async () => {
+      fetchCalls += 1;
+      await new Promise(resolve => setTimeout(resolve, 5));
+      return new Response(zip, { status: 200, headers: { 'content-length': String(zip.byteLength) } });
+    },
+    openingMetadata: metadataForZip(zip),
+    rateLimiter: allowAllRequests,
+    openingWorkState
+  };
+  const first = responseRecorder();
+  const second = responseRecorder();
+  await Promise.all([
+    handler({ method: 'GET', query: { file: 'Vienna.zip', page: '1' } }, first, dependencies),
+    handler({ method: 'GET', query: { file: 'Vienna.zip', page: '2' } }, second, dependencies)
+  ]);
+  const third = responseRecorder();
+  await handler({ method: 'GET', query: { file: 'Vienna.zip', page: '3' } }, third, dependencies);
+
+  assert.equal(fetchCalls, 1);
+  assert.equal(splitPgnGames(first.payload.toString('utf8')).length, 100);
+  assert.equal(splitPgnGames(second.payload.toString('utf8')).length, 100);
+  assert.equal(splitPgnGames(third.payload.toString('utf8')).length, 5);
+  assert.match(first.headers.get('Cache-Control'), /s-maxage=604800/);
 });
 
 test('rejects unknown files, traversal, noncanonical pages, and impossible pages before fetch', async () => {

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -9,7 +10,16 @@ import {
 } from './build-public-release.mjs';
 
 const EXPECTED_VERCEL_CLI_VERSION = '59.10.0';
+const EXPECTED_VERCEL_PACKAGE_SHA256 = '2305295d019154421b6eb7e88ba4132d20110854a4777f89575841923d071f68';
+const EXPECTED_VERCEL_ENUMERATOR = Object.freeze({
+  path: 'dist/chunks/chunk-Z44PATWW.js',
+  sha256: '5d731ca9bd0cafb0b2a96e1b69e658a51c58cef717c191e3b891b36513be397c'
+});
 const require = createRequire(import.meta.url);
+
+function sha256Bytes(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
 
 function loadPinnedVercelClient() {
   let globalRoot;
@@ -32,25 +42,33 @@ function loadPinnedVercelClient() {
   if (!existsSync(packagePath)) {
     throw new Error(`Vercel CLI ${EXPECTED_VERCEL_CLI_VERSION} is required for release verification.`);
   }
-  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+  const packageBytes = readFileSync(packagePath);
+  if (sha256Bytes(packageBytes) !== EXPECTED_VERCEL_PACKAGE_SHA256) {
+    throw new Error(`Vercel CLI ${EXPECTED_VERCEL_CLI_VERSION} package metadata failed the release integrity pin.`);
+  }
+  const packageJson = JSON.parse(packageBytes.toString('utf8'));
   if (packageJson.version !== EXPECTED_VERCEL_CLI_VERSION) {
     throw new Error(
       `Expected Vercel CLI ${EXPECTED_VERCEL_CLI_VERSION}, found ${packageJson.version || '<unknown>'}. Review and update the release verifier before changing versions.`
     );
   }
-  const chunksRoot = join(vercelRoot, 'dist', 'chunks');
-  for (const name of readdirSync(chunksRoot).filter(name => name.endsWith('.js'))) {
-    const chunkPath = join(chunksRoot, name);
-    const source = readFileSync(chunkPath, 'utf8');
-    if (!source.includes('buildFileTree') || !source.includes('getVercelIgnore')) continue;
-    const chunk = require(chunkPath);
-    if (typeof chunk.require_dist !== 'function') continue;
-    const client = chunk.require_dist();
-    if (typeof client?.buildFileTree === 'function' && typeof client?.getVercelIgnore === 'function') {
-      return { ...client, version: packageJson.version };
-    }
+  const chunkPath = join(vercelRoot, ...EXPECTED_VERCEL_ENUMERATOR.path.split('/'));
+  if (!existsSync(chunkPath)) {
+    throw new Error(`Pinned Vercel enumerator is missing: ${EXPECTED_VERCEL_ENUMERATOR.path}`);
   }
-  throw new Error(`Unable to load the file enumerator from Vercel CLI ${packageJson.version}.`);
+  const chunkBytes = readFileSync(chunkPath);
+  if (sha256Bytes(chunkBytes) !== EXPECTED_VERCEL_ENUMERATOR.sha256) {
+    throw new Error(`Pinned Vercel enumerator failed SHA-256 verification: ${EXPECTED_VERCEL_ENUMERATOR.path}`);
+  }
+  const chunk = require(chunkPath);
+  if (typeof chunk.require_dist !== 'function') {
+    throw new Error(`Pinned Vercel enumerator is incompatible with CLI ${packageJson.version}.`);
+  }
+  const client = chunk.require_dist();
+  if (typeof client?.buildFileTree !== 'function' || typeof client?.getVercelIgnore !== 'function') {
+    throw new Error(`Pinned Vercel enumerator does not expose the required interface for CLI ${packageJson.version}.`);
+  }
+  return { ...client, version: packageJson.version };
 }
 
 function relativeFileSet(root, files) {

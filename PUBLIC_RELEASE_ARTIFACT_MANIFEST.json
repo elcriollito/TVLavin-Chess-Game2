@@ -252,7 +252,7 @@
     },
     {
       "path": "api/_lib/scanner-public-service.js",
-      "sha256": "38c1b5f638ca6fad8235e5147205ed48fe893469e4949d99bad1c00c4a21290b"
+      "sha256": "3582a5e97e83412972894225fe455a2f23207c266b57e23aa7d1218264ef3515"
     },
     {
       "path": "api/_lib/scanner-public-store.js",
@@ -748,7 +748,7 @@
     },
     {
       "path": "api/pgn/opening.js",
-      "sha256": "781847910d2f1782bdd9952d4501d42033025ebf9abd8a1b1bfcb99802700452"
+      "sha256": "cdff99380eb8aca9778a0c613b7cf7f813b603404b339d20ed1f2424a06b50f4"
     },
     {
       "path": "api/pgn/pgnmentor-allowlist.js",
@@ -760,7 +760,7 @@
     },
     {
       "path": "api/pgn/pgnmentor.js",
-      "sha256": "bf4512185222eaa76594082de40e06b88902f55f920fc8cd9ef71de70502d355"
+      "sha256": "9a4d6fc10ada2f6060ff21c315bbc4eb7b39ad1b5fe24fd0b774d3ed549874a3"
     },
     {
       "path": "api/pgn/player.js",
@@ -856,7 +856,7 @@
     },
     {
       "path": "api/scanner/public/image.js",
-      "sha256": "3bab2e3ece996f6363ff777758b897c5769acf6df983588cb2d70f0fddddb0a7"
+      "sha256": "c3bad3809b2da1bda7a9538d52db0fa4d9a6314d35ed60372c356a6308d8ac6a"
     },
     {
       "path": "api/scanner/public/recognize.js",
@@ -1796,7 +1796,7 @@
     },
     {
       "path": "downloads.html",
-      "sha256": "ffda47ec3ebb949fb9fae4f9bb94ccdd2fb2625977897258796d78e44e325240"
+      "sha256": "44a77b29e456e6148629da077b1815922b9c4e0b1fecb56c18daf65ac4bb4819"
     },
     {
       "path": "eco.html",
@@ -2088,7 +2088,7 @@
     },
     {
       "path": "js/caissa-expansion-i18n.js",
-      "sha256": "147fcc21899194d3da8c264b78d5e175c004b774c6bb6b665511caf352ed6848"
+      "sha256": "8efdf6d3295e3ab8eeda850dcc2d68a7bbfdf6d5194ef0317470005b641b51ea"
     },
     {
       "path": "js/caissa-feature-flags.js",
@@ -2104,7 +2104,7 @@
     },
     {
       "path": "js/caissa-i18n.js",
-      "sha256": "a88c7ed132de0aa211d4e11f4a34129adb9c53d4987ab3e3dc86929672e77bda"
+      "sha256": "ff8ed82504dea1ac4e0bbb7441d2fce762cfffcc03a9fbe310ad274475f499e2"
     },
     {
       "path": "js/caissa-logger.js",
@@ -2112,7 +2112,7 @@
     },
     {
       "path": "js/caissa-navigation.js",
-      "sha256": "ed7cb9d960e473f9b11668da4bedf13dce936ad0365938c974307b7e88958aca"
+      "sha256": "99d5da1798f6c4dce089629570892b19f4bd16ae7a3641686cbaef037636f635"
     },
     {
       "path": "js/caissa-notifications.js",
@@ -4120,7 +4120,7 @@
     },
     {
       "path": "pgn-replayer.html",
-      "sha256": "51c0ac4d562563fe73c4388e82792fd22d0d72af9aa2714ed9d1b64a43a049d7"
+      "sha256": "45cd1c551114341205b04f360b3950466e2a3b62053f702a0229387a1146e9d7"
     },
     {
       "path": "pgn/DOWNLOAD_INSTRUCTIONS.md",
@@ -4288,7 +4288,7 @@
     },
     {
       "path": "polyglot.html",
-      "sha256": "25e437e64e1bf197dee3dd0bbb720ff5f2066cb20a98f514b5b923dee24bbcc7"
+      "sha256": "4f4d4e84c805d838d82de61f0008e0a2f0cbf396c3beddc539d34886000117bb"
     },
     {
       "path": "position-forge-ui.js",
@@ -7048,7 +7048,7 @@
     },
     {
       "path": "server.js",
-      "sha256": "2de04341f0944fa5283983a9ba2681c2f9e449273212d4422ca975d75a781d9c"
+      "sha256": "f0df50e59fcca204a7a1b86fc355a188a38a8af580a2642edd25634d3ac66fbc"
     },
     {
       "path": "signin.html",
@@ -7088,7 +7088,7 @@
     },
     {
       "path": "yahoo-classic.html",
-      "sha256": "2020a08787b49d1c28b69ad83dfcc66ded0ce5df6bc8252c35efd513fa0bdd71"
+      "sha256": "02cde078f73fdf2d56a79b10020faa709350289f9e665bed6126c295b450d236"
     }
   ]
 }

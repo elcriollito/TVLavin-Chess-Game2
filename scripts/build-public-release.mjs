@@ -1,6 +1,6 @@
 import { copyFile, mkdir, rm } from 'node:fs/promises';
-import { closeSync, existsSync, openSync, readFileSync, readSync } from 'node:fs';
-import { dirname, join, resolve, sep } from 'node:path';
+import { closeSync, existsSync, lstatSync, openSync, readFileSync, readSync, realpathSync } from 'node:fs';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -268,14 +268,42 @@ export const isProtectedPublicPath = path =>
   || protectedDirectories.some(prefix => path.startsWith(prefix))
   || protectedFilePatterns.some(pattern => pattern.test(path));
 
+function isPathInside(root, candidate) {
+  const rel = relative(root, candidate);
+  return rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+}
+
+export function validatePublicSourceFile(path, cwd = repositoryRoot) {
+  const sourceRoot = realpathSync(resolve(cwd));
+  const lexicalPath = resolve(sourceRoot, path);
+  if (!isPathInside(sourceRoot, lexicalPath)) {
+    throw new Error(`Public release source escapes the repository: ${path}`);
+  }
+  const sourceStat = lstatSync(lexicalPath);
+  if (!sourceStat.isFile() || sourceStat.isSymbolicLink()) {
+    throw new Error(`Public release source must be a regular file: ${path}`);
+  }
+  const resolvedPath = realpathSync(lexicalPath);
+  if (!isPathInside(sourceRoot, resolvedPath)) {
+    throw new Error(`Public release source resolves outside the repository: ${path}`);
+  }
+  const resolvedRelative = relative(sourceRoot, resolvedPath).split(sep).join('/');
+  if (isProtectedPublicPath(path) || isProtectedPublicPath(resolvedRelative)) {
+    throw new Error(`Public release source resolves to a protected path: ${path}`);
+  }
+  return Object.freeze({ lexicalPath, resolvedPath, resolvedRelative });
+}
+
 export function trackedPublicFiles({ cwd = repositoryRoot } = {}) {
   const result = spawnSync('git', ['ls-files', '-z'], { cwd, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr || 'Unable to read committed files.');
-  return result.stdout
+  const files = result.stdout
     .split('\0')
     .filter(Boolean)
     .filter(path => existsSync(join(cwd, path)))
     .filter(path => !isProtectedPublicPath(path));
+  for (const path of files) validatePublicSourceFile(path, cwd);
+  return files;
 }
 
 export function auditPublicFiles(files, { cwd = repositoryRoot, manifest = loadPublicArtifactManifest({ cwd }) } = {}) {
@@ -289,7 +317,9 @@ export function auditPublicFiles(files, { cwd = repositoryRoot, manifest = loadP
   const manifestMissingPaths = [...manifestEntries.keys()].filter(path => !fileSet.has(path));
   const manifestDigestMismatches = files.filter(path => manifestEntries.has(path)).filter(path => {
     const absolutePath = join(cwd, path);
-    return !existsSync(absolutePath) || sha256File(path, cwd) !== manifestEntries.get(path);
+    if (!existsSync(absolutePath)) return true;
+    validatePublicSourceFile(path, cwd);
+    return sha256File(path, cwd) !== manifestEntries.get(path);
   });
   const missing = requiredFiles.filter(path => !files.includes(path));
   if (leaked.length || unapprovedPaths.length || manifestMissingPaths.length || manifestDigestMismatches.length || missing.length) {
@@ -379,9 +409,10 @@ export async function buildPublicRelease({ cwd = repositoryRoot, output = DEFAUL
   const chessTv = auditChessTVContracts({ cwd: sourceRoot, files });
   await rm(targetRoot, { recursive: true, force: true });
   for (const path of files) {
+    const source = validatePublicSourceFile(path, sourceRoot);
     const destination = join(targetRoot, path);
     await mkdir(dirname(destination), { recursive: true });
-    await copyFile(join(sourceRoot, path), destination);
+    await copyFile(source.resolvedPath, destination);
   }
   auditPublicFiles(files, { cwd: targetRoot, manifest });
   return { ...audit, ...chessTv, output: targetRoot };

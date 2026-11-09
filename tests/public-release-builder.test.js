@@ -10,10 +10,11 @@ import {
   isProtectedPublicPath,
   loadPublicArtifactManifest,
   renderVercelIgnore,
-  trackedPublicFiles
+  trackedPublicFiles,
+  validatePublicSourceFile
 } from '../scripts/build-public-release.mjs';
 import { dirname, join, resolve } from 'node:path';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 
@@ -97,6 +98,15 @@ test('the exact public manifest controls staging while repository-root deploymen
   assert.match(renderVercelIgnore(), /Direct repository-root Vercel uploads are intentionally disabled/);
   assert.deepEqual(renderVercelIgnore().split(/\r?\n/).filter(line => line && !line.startsWith('#')), ['*']);
   assert.deepEqual(manifest.files.map(item => item.path), [...manifest.files.map(item => item.path)].sort());
+});
+
+test('Vercel enumeration is bound to exact package and chunk digests', () => {
+  const verifier = readFileSync(new URL('../scripts/verify-public-release-vercel.mjs', import.meta.url), 'utf8');
+  assert.match(verifier, /EXPECTED_VERCEL_PACKAGE_SHA256 = '[a-f0-9]{64}'/);
+  assert.match(verifier, /path: 'dist\/chunks\/chunk-[A-Z0-9]+\.js'/);
+  assert.match(verifier, /sha256: '[a-f0-9]{64}'/);
+  assert.match(verifier, /Pinned Vercel enumerator failed SHA-256 verification/);
+  assert.doesNotMatch(verifier, /readdirSync\(chunksRoot\)/);
 });
 
 test('built staging omits the repository-root Vercel deployment block', async () => {
@@ -219,6 +229,34 @@ test('audit rejects every unmanifested file even when its format is unknown', ()
       () => auditPublicFiles([artifact], { cwd: temporaryRoot, manifest: { schemaVersion: 1, files: [] } }),
       /Unapproved public paths: public\/unreviewed\.opaque/
     );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test('release source validation rejects files reached through a directory junction', () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-release-containment-'));
+  const outsideRoot = mkdtempSync(join(tmpdir(), 'caissa-release-outside-'));
+  try {
+    writeFileSync(join(outsideRoot, 'private.txt'), 'protected external bytes');
+    symlinkSync(outsideRoot, join(temporaryRoot, 'public'), 'junction');
+    assert.throws(
+      () => validatePublicSourceFile('public/private.txt', temporaryRoot),
+      /resolves outside the repository/
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+    rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('release source validation accepts an ordinary contained file', () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'caissa-release-regular-'));
+  try {
+    mkdirSync(join(temporaryRoot, 'public'));
+    writeFileSync(join(temporaryRoot, 'public', 'safe.txt'), 'approved bytes');
+    const validated = validatePublicSourceFile('public/safe.txt', temporaryRoot);
+    assert.equal(validated.resolvedRelative, 'public/safe.txt');
   } finally {
     rmSync(temporaryRoot, { recursive: true, force: true });
   }

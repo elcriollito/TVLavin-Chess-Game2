@@ -18,6 +18,8 @@
   "downloads": {
     "canonicalRoute": "/downloads",
     "legacyRoute": "/vault",
+    "portableCatalogState": "v0.3.1-coming-soon-no-download",
+    "historicalArtifactPromoted": false,
     "existingArtifact": {
       "name": "CAISSA-Book-Creator-v0.2.0-portable.zip",
       "r2Key": "apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip",
@@ -39,7 +41,9 @@
     "recoveredBaselineScanId": "975a2ce9-51d8-4310-9e2e-7aaee8a3ab76",
     "recoveredBaselineScanStatus": "complete",
     "validatedFindings": 5,
-    "candidateRemediationReview": "positive-manifest-and-bounded-pgn-pagination-remediation-verified-locally",
+    "preRemediationScanId": "63b6562f-23cf-4b11-938b-3aa3937b2796",
+    "preRemediationFindings": 5,
+    "candidateRemediationReview": "opening-single-flight-cache-event-proxy-admission-scanner-preauth-gate-enumerator-digest-pin-and-symlink-containment-verified-locally",
     "freshIntegrationScan": "required-against-the-exact-final-commit-before-deployment"
   },
   "releaseGate": "OWNER_AUTHORIZED_FRESH_SECURITY_SCAN_AND_EXACT_COMMIT_VALIDATION_REQUIRED"

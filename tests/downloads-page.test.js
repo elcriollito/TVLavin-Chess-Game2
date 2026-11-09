@@ -20,11 +20,10 @@ test('Downloads page has unique metadata, structured data and accurate release s
   const schemas = $('script[type="application/ld+json"]').toArray().map(node => JSON.parse($(node).text()));
   assert.equal($('h1').length, 1);
   assert.equal($('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/downloads');
-  assert.deepEqual(schemas.map(schema => schema['@type']), ['CollectionPage', 'BreadcrumbList', 'SoftwareApplication']);
-  assert.equal(schemas[2].offers.price, '0');
-  assert.equal(schemas[2].softwareVersion, '0.2.0');
+  assert.deepEqual(schemas.map(schema => schema['@type']), ['CollectionPage', 'BreadcrumbList']);
   const text = $('body').text().replace(/\s+/g, ' ');
-  assert.match(text, /Certification pending/);
+  assert.match(text, /Coming soon/);
+  assert.match(text, /Version 0\.3\.1/);
   assert.match(text, /Future application/);
   assert.match(text, /Not released/);
   assert.doesNotMatch(text, /v1\.0\.0|certified safe|VirusTotal PASS/i);
@@ -59,7 +58,7 @@ test('Downloads and Polyglot expansion keys have exact EN ES PT parity and compl
     const $ = load(read(html));
     $('[data-caissa-i18n], [data-caissa-i18n-aria-label]').each((_index, node) => {
       const key = $(node).attr('data-caissa-i18n') || $(node).attr('data-caissa-i18n-aria-label');
-      if (key.startsWith('downloads.') || ['polyglot.portableNote', 'polyglot.allDownloads', 'polyglot.cancel'].includes(key)) {
+      if (key.startsWith('downloads.') || ['polyglot.portableNote', 'polyglot.downloadPortable', 'polyglot.allDownloads', 'polyglot.cancel'].includes(key)) {
         assert.ok(catalogs.en[key], `${html}:${key}`);
       }
     });
@@ -71,5 +70,9 @@ test('Downloads page declares local privacy and provides no fake links for futur
   assert.match($('.download-card-online').text(), /PGN stays on your device/);
   assert.equal($('.is-future a').length, 0);
   assert.equal($('a[href="/tools/polyglot"]').length >= 1, true);
-  assert.equal($('a[href*="v0.2.0"]').length, 1);
+  assert.equal($('#book-creator').length, 1);
+  assert.equal($('#book-creator a').length, 0);
+  assert.equal($('a[href*="v0.2.0"]').length, 0);
+  assert.equal(read('polyglot.html').includes('href="/downloads#book-creator"'), true);
+  assert.doesNotMatch(read('polyglot.html'), /downloads\.caissa-chess\.org\/apps\/caissa-book-creator/);
 });

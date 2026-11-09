@@ -82,11 +82,12 @@ test('gateway serves an allowlisted event and rejects player or traversal reques
   const { default: handler } = await import('../../api/pgn/pgnmentor.js');
   const originalFetch = globalThis.fetch;
   const calls = [];
+  const pgn = '[Event "1972"]\n[White "Fischer"]\n[Black "Spassky"]\n\n1. d4 Nf6 *';
   globalThis.fetch = async url => {
     calls.push(String(url));
-    return new Response('[Event "1972"]\n[White "Fischer"]\n[Black "Spassky"]\n\n1. d4 Nf6 *', {
+    return new Response(pgn, {
       status: 200,
-      headers: { 'content-length': '73' }
+      headers: { 'content-length': String(Buffer.byteLength(pgn)) }
     });
   };
   try {

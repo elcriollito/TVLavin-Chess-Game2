@@ -129,7 +129,12 @@ export function createScannerPublicService({
     catch (error) { reply(res, failStatus(String(error.message)), { error: String(error.message) }); return false; }
   }
 
+  async function authorizeImage(req, res) {
+    return guard(req, res, { methods: ['PUT'], auth: true, rateKind: 'image' });
+  }
+
   return Object.freeze({
+    authorizeImage,
     async status(req, res) {
       publicHeaders(res);
       if (!['GET', 'HEAD'].includes(req.method)) return res.status(405).end();
@@ -230,8 +235,8 @@ export function createScannerPublicService({
         return reply(res, failStatus(code), { error: code });
       }
     },
-    async image(req, res) {
-      const access = await guard(req, res, { methods: ['PUT'], auth: true, rateKind: 'image' }); if (!access) return;
+    async image(req, res, options = {}) {
+      const access = options.access || await authorizeImage(req, res); if (!access) return;
       try {
         const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
         if (!SCANNER_PUBLIC.imageTypes.includes(contentType)) throw new Error('IMAGE_TYPE_INVALID');

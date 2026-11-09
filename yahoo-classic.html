@@ -4675,13 +4675,13 @@
 
                 <!-- Quick Links -->
                 <div class="help-actions">
-                    <button class="btn btn-primary" onclick="document.getElementById('legacyHelpContent').hidden = true; CaissaNavigation.navigateToSection('play');">
+                    <button class="btn btn-primary" type="button" data-legacy-help-action="play">
                         <i class="fas fa-play"></i> Start Playing
                     </button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('legacyHelpContent').hidden = true; CaissaNavigation.navigateToSection('analyze');">
+                    <button class="btn btn-secondary" type="button" data-legacy-help-action="analyze">
                         <i class="fas fa-chart-line"></i> Analyze Games
                     </button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('legacyHelpContent').hidden = true; CaissaNavigation.openMentorPanel();">
+                    <button class="btn btn-secondary" type="button" data-legacy-help-action="mentor">
                         <i class="fas fa-graduation-cap"></i> Open Mentor
                     </button>
                 </div>
