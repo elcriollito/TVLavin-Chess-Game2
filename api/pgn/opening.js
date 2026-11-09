@@ -1,5 +1,9 @@
 import AdmZip from 'adm-zip';
+import { createHash } from 'node:crypto';
+import { checkRateLimit } from '../_lib/rate-limit.js';
+import { trustedOnlineSourceKey } from '../_lib/online-request-source.js';
 import { PGN_MENTOR_OPENING_FILES } from './pgnmentor-allowlist.js';
+import { PGN_MENTOR_OPENING_METADATA } from './pgnmentor-opening-metadata.js';
 
 const SOURCE_BASE_URL = 'https://www.pgnmentor.com/openings/';
 const SOURCE_UPDATED = 'January 2026';
@@ -7,10 +11,7 @@ const PAGE_SIZE = 100;
 const MAX_ZIP_BYTES = 32 * 1024 * 1024;
 const MAX_PGN_BYTES = 96 * 1024 * 1024;
 const SAFE_FILE = /^[A-Za-z0-9][A-Za-z0-9._()\-]{0,119}\.zip$/;
-
-function first(value) {
-    return Array.isArray(value) ? value[0] : value;
-}
+const SAFE_PAGE = /^[1-9]\d{0,3}$/;
 
 export function openingTitle(file) {
     return String(file || '')
@@ -48,7 +49,13 @@ export function splitPgnGames(text) {
 
 function catalogResponse() {
     const openings = [...PGN_MENTOR_OPENING_FILES]
-        .map(file => ({ id: `opening-${file.replace(/\.zip$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, title: openingTitle(file), file }))
+        .map(file => ({
+            id: `opening-${file.replace(/\.zip$/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+            title: openingTitle(file),
+            file,
+            games: PGN_MENTOR_OPENING_METADATA[file]?.games,
+            pages: PGN_MENTOR_OPENING_METADATA[file]?.pages
+        }))
         .sort((left, right) => left.title.localeCompare(right.title, 'en', { sensitivity: 'base' }));
     return { schemaVersion: 1, access: 'free', sourceUpdated: SOURCE_UPDATED, pageSize: PAGE_SIZE, count: openings.length, openings };
 }
@@ -57,29 +64,88 @@ function sourceUnavailable(res, status = 502) {
     return res.status(status).json({ error: 'Opening source unavailable' });
 }
 
+function requestKey(req, env = process.env) {
+    const vercelSource = trustedOnlineSourceKey(req, env);
+    if (vercelSource) return vercelSource.replace('online-source:', 'opening-source:');
+    if (env.VERCEL === '1') return 'opening-source:unverified';
+    const localSource = String(req.socket?.remoteAddress || 'anonymous-opening-library');
+    const digest = createHash('sha256').update(`caissa-opening-local-v1:${localSource}`).digest('hex');
+    return `opening-source:${digest}`;
+}
+
+async function readExactResponseBody(response, expectedBytes) {
+    if (!response.body?.getReader) {
+        const bytes = Buffer.from(await response.arrayBuffer());
+        if (bytes.byteLength !== expectedBytes) throw new Error('Unexpected opening archive size');
+        return bytes;
+    }
+
+    const reader = response.body.getReader();
+    const bytes = Buffer.allocUnsafe(expectedBytes);
+    let offset = 0;
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value || offset + value.byteLength > expectedBytes) {
+                await reader.cancel('Opening archive exceeded trusted size');
+                throw new Error('Unexpected opening archive size');
+            }
+            Buffer.from(value.buffer, value.byteOffset, value.byteLength).copy(bytes, offset);
+            offset += value.byteLength;
+        }
+    } finally {
+        reader.releaseLock();
+    }
+    if (offset !== expectedBytes) throw new Error('Unexpected opening archive size');
+    return bytes;
+}
+
 export default async function handler(req, res, dependencies = {}) {
     if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const file = first(req.query?.file);
-    if (!file) {
+    const queryKeys = Object.keys(req.query || {});
+    if (queryKeys.some(key => key !== 'file' && key !== 'page')) {
+        return res.status(400).json({ error: 'Invalid opening query' });
+    }
+
+    const fileValue = req.query?.file;
+    if (fileValue === undefined || fileValue === null || fileValue === '') {
         res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
         res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
         return res.status(200).json(catalogResponse());
     }
+    const file = typeof fileValue === 'string' ? fileValue : '';
     if (!validOpeningFile(file)) return res.status(404).json({ error: 'Unknown opening collection' });
 
-    const requestedPage = Number.parseInt(first(req.query?.page) || '1', 10);
-    if (!Number.isInteger(requestedPage) || requestedPage < 1 || requestedPage > 10000) {
+    const pageValue = req.query?.page === undefined ? '1' : req.query.page;
+    if (typeof pageValue !== 'string' || !SAFE_PAGE.test(pageValue)) {
         return res.status(400).json({ error: 'Invalid opening page' });
+    }
+    const requestedPage = Number(pageValue);
+    const openingMetadata = dependencies.openingMetadata || PGN_MENTOR_OPENING_METADATA;
+    const metadata = openingMetadata[file];
+    if (!metadata) return sourceUnavailable(res, 503);
+    if (requestedPage > metadata.pages) {
+        res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+        return res.status(404).json({ error: 'Opening page not found' });
+    }
+
+    const limiter = dependencies.rateLimiter || checkRateLimit;
+    const rateLimit = limiter(requestKey(req, dependencies.env || process.env), { windowMs: 60 * 1000, max: 20, prefix: 'pgn-opening-free' });
+    if (!rateLimit.allowed) {
+        if (rateLimit.retryAfter) res.setHeader('Retry-After', String(rateLimit.retryAfter));
+        return res.status(429).json({ error: 'Too many opening requests.', retryAfter: rateLimit.retryAfter });
     }
 
     try {
         const fetcher = dependencies.fetch || globalThis.fetch;
         const upstream = await fetcher(`${SOURCE_BASE_URL}${encodeURIComponent(file)}`, {
             redirect: 'follow',
+            signal: dependencies.signal || AbortSignal.timeout(12_000),
             headers: {
                 'User-Agent': 'CAISSA-Chess-Opening-Library/1.0 (+https://www.caissa-chess.org/)',
                 Accept: 'application/zip, application/octet-stream;q=0.9, */*;q=0.1'
@@ -89,22 +155,28 @@ export default async function handler(req, res, dependencies = {}) {
 
         const declaredLength = Number(upstream.headers.get('content-length') || 0);
         if (declaredLength > MAX_ZIP_BYTES) return res.status(413).json({ error: 'Opening archive exceeds safety limit' });
-        const zipBytes = Buffer.from(await upstream.arrayBuffer());
+        if (declaredLength && declaredLength !== metadata.zipBytes) return sourceUnavailable(res);
+        const zipBytes = await readExactResponseBody(upstream, metadata.zipBytes);
         if (zipBytes.byteLength > MAX_ZIP_BYTES) return res.status(413).json({ error: 'Opening archive exceeds safety limit' });
         if (zipBytes.byteLength < 4 || zipBytes[0] !== 0x50 || zipBytes[1] !== 0x4b) return sourceUnavailable(res);
+        if (zipBytes.byteLength !== metadata.zipBytes) return sourceUnavailable(res);
+        const zipSha256 = createHash('sha256').update(zipBytes).digest('hex');
+        if (zipSha256 !== metadata.zipSha256) return sourceUnavailable(res);
 
         const archive = new AdmZip(zipBytes);
         const entries = archive.getEntries().filter(entry => !entry.isDirectory && /\.pgn$/i.test(entry.entryName));
         if (entries.length !== 1) return sourceUnavailable(res);
         const entry = entries[0];
         if (Number(entry.header?.size || 0) > MAX_PGN_BYTES) return res.status(413).json({ error: 'Opening PGN exceeds safety limit' });
+        if (Number(entry.header?.size || 0) !== metadata.pgnBytes) return sourceUnavailable(res);
         const pgnBytes = entry.getData();
         if (pgnBytes.byteLength > MAX_PGN_BYTES) return res.status(413).json({ error: 'Opening PGN exceeds safety limit' });
+        if (pgnBytes.byteLength !== metadata.pgnBytes) return sourceUnavailable(res);
 
         const games = splitPgnGames(pgnBytes.toString('utf8'));
-        if (!games.length) return sourceUnavailable(res);
+        if (!games.length || games.length !== metadata.games) return sourceUnavailable(res);
         const pageCount = Math.ceil(games.length / PAGE_SIZE);
-        if (requestedPage > pageCount) return res.status(404).json({ error: 'Opening page not found' });
+        if (pageCount !== metadata.pages) return sourceUnavailable(res);
         const start = (requestedPage - 1) * PAGE_SIZE;
         const pageGames = games.slice(start, start + PAGE_SIZE);
         const body = Buffer.from(`${pageGames.join('\n\n')}\n`, 'utf8');
