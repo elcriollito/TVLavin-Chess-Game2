@@ -43,7 +43,11 @@
     "validatedFindings": 5,
     "preRemediationScanId": "63b6562f-23cf-4b11-938b-3aa3937b2796",
     "preRemediationFindings": 5,
-    "candidateRemediationReview": "opening-single-flight-cache-event-proxy-admission-scanner-preauth-gate-enumerator-digest-pin-and-symlink-containment-verified-locally",
+    "repositoryWideCandidateScanId": "35849a7c-8e1d-4ba1-af95-c49bc944e294",
+    "repositoryWideCandidateFindings": 7,
+    "productionDiffClassificationScanId": "1d2ac4d6-2715-47d0-8474-06a35ab9f181",
+    "productionDiffClassificationFindings": 0,
+    "candidateRemediationReview": "opening-single-flight-cache-event-proxy-admission-scanner-preauth-gate-independent-release-staging-walker-no-installed-cli-code-execution-and-symlink-containment-verified-locally",
     "freshIntegrationScan": "required-against-the-exact-final-commit-before-deployment"
   },
   "releaseGate": "OWNER_AUTHORIZED_FRESH_SECURITY_SCAN_AND_EXACT_COMMIT_VALIDATION_REQUIRED"
