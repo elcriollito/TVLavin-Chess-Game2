@@ -187,22 +187,28 @@ npm run release:public:verify-vercel
 ```
 
 The verifier rebuilds the exact SHA-256-bound staging tree at the printed
-temporary path, requires the reviewed Vercel CLI version, proves Vercel's actual
-file enumerator sees exactly the manifest paths and no extras, and proves the
-repository root remains blocked. Only that verified staging directory may be
-used as deployment input. A direct Git/repository-root deployment is prohibited
-for this candidate. These commands do not deploy; merge, preview, production,
-alias, and publication actions still require explicit owner authorization.
+temporary path, requires the reviewed Vercel CLI package and executable entry,
+enumerates the staging tree with the repository-owned containment checks, and
+proves the repository-root ignore policy is present with no local `.vercel`
+state that Vercel could add implicitly. It deliberately does not execute
+undocumented Vercel internals. Only that verified staging directory may be used
+as deployment input. A direct Git/repository-root deployment is prohibited for
+this candidate. The actual Vercel packaging behavior must be validated by a
+Preview made from this staging directory before the same candidate is promoted.
+These commands do not deploy; preview, production, alias, and publication
+actions still require explicit owner authorization.
 
 Standard deployment path:
 
-1. Confirm branch is `main`.
-2. Confirm HEAD is the intended commit.
-3. Confirm only intended commits are ahead of `origin/main`.
-4. Push to `origin/main`.
-5. Let Vercel auto-deploy.
-6. Inspect deployment status.
-7. Confirm the production alias serves the new version.
+1. Confirm HEAD is the intended commit and the working tree is clean.
+2. Rebuild and verify the exact staging directory with the commands above.
+3. Deploy that staging directory as a Vercel Preview using the explicit CAISSA
+   team and project identity; never rely on implicit linking.
+4. Verify the Preview routes, headers, functions, logs, and public inventory.
+5. Create a production build from the same reviewed source/staging procedure,
+   test it before alias assignment, and promote only that tested deployment.
+6. Inspect deployment status and confirm the production alias serves the
+   intended commit and content.
 8. Run validation if production behavior changed.
 
 Manual Vercel deployment is not the default.

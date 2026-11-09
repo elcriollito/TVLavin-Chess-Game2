@@ -1,27 +1,37 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { createRequire } from 'node:module';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import {
   DEFAULT_OUTPUT,
   buildPublicRelease,
-  loadPublicArtifactManifest
+  loadPublicArtifactManifest,
+  renderVercelIgnore
 } from './build-public-release.mjs';
 
 const EXPECTED_VERCEL_CLI_VERSION = '59.10.0';
 const EXPECTED_VERCEL_PACKAGE_SHA256 = '2305295d019154421b6eb7e88ba4132d20110854a4777f89575841923d071f68';
-const EXPECTED_VERCEL_ENUMERATOR = Object.freeze({
-  path: 'dist/chunks/chunk-Z44PATWW.js',
-  sha256: '5d731ca9bd0cafb0b2a96e1b69e658a51c58cef717c191e3b891b36513be397c'
-});
-const require = createRequire(import.meta.url);
 
 function sha256Bytes(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-function loadPinnedVercelClient() {
+export function validateVercelExecutable(vercelRoot, packageJson) {
+  const entryRelative = packageJson.bin?.vercel;
+  if (typeof entryRelative !== 'string' || !entryRelative) {
+    throw new Error(`Vercel CLI ${EXPECTED_VERCEL_CLI_VERSION} has no declared executable entrypoint.`);
+  }
+  const entryPath = join(vercelRoot, ...entryRelative.replace(/^\.\//, '').split('/'));
+  const entryStats = lstatSync(entryPath);
+  if (!entryStats.isFile() || entryStats.isSymbolicLink()) {
+    throw new Error(`Vercel CLI ${EXPECTED_VERCEL_CLI_VERSION} executable entrypoint is not a regular file.`);
+  }
+  assertContained(realpathSync(vercelRoot), realpathSync(entryPath));
+  return entryPath;
+}
+
+export function inspectVercelCliPackage() {
   let globalRoot;
   if (process.platform === 'win32') {
     const whereResult = spawnSync('where.exe', ['vercel'], { encoding: 'utf8' });
@@ -52,77 +62,94 @@ function loadPinnedVercelClient() {
       `Expected Vercel CLI ${EXPECTED_VERCEL_CLI_VERSION}, found ${packageJson.version || '<unknown>'}. Review and update the release verifier before changing versions.`
     );
   }
-  const chunkPath = join(vercelRoot, ...EXPECTED_VERCEL_ENUMERATOR.path.split('/'));
-  if (!existsSync(chunkPath)) {
-    throw new Error(`Pinned Vercel enumerator is missing: ${EXPECTED_VERCEL_ENUMERATOR.path}`);
-  }
-  const chunkBytes = readFileSync(chunkPath);
-  if (sha256Bytes(chunkBytes) !== EXPECTED_VERCEL_ENUMERATOR.sha256) {
-    throw new Error(`Pinned Vercel enumerator failed SHA-256 verification: ${EXPECTED_VERCEL_ENUMERATOR.path}`);
-  }
-  const chunk = require(chunkPath);
-  if (typeof chunk.require_dist !== 'function') {
-    throw new Error(`Pinned Vercel enumerator is incompatible with CLI ${packageJson.version}.`);
-  }
-  const client = chunk.require_dist();
-  if (typeof client?.buildFileTree !== 'function' || typeof client?.getVercelIgnore !== 'function') {
-    throw new Error(`Pinned Vercel enumerator does not expose the required interface for CLI ${packageJson.version}.`);
-  }
-  return { ...client, version: packageJson.version };
+  const entryPath = validateVercelExecutable(vercelRoot, packageJson);
+  return { version: packageJson.version, entryPath };
 }
 
-function relativeFileSet(root, files) {
-  return new Set(files.map(path => relative(root, path).split(sep).join('/')));
+function assertContained(root, candidate) {
+  const pathFromRoot = relative(root, candidate);
+  if (pathFromRoot === '') return;
+  if (isAbsolute(pathFromRoot) || pathFromRoot === '..' || pathFromRoot.startsWith(`..${sep}`)) {
+    throw new Error(`Release staging path resolves outside the audited root: ${candidate}`);
+  }
 }
 
-function compareExactSets(expected, actual) {
+export function enumerateRegularFiles(root) {
+  const absoluteRoot = resolve(root);
+  const realRoot = realpathSync(absoluteRoot);
+  const files = [];
+
+  function visit(directory) {
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const absolutePath = join(directory, entry.name);
+      const stats = lstatSync(absolutePath);
+      if (stats.isSymbolicLink()) {
+        throw new Error(`Release staging contains a symbolic link or junction: ${relative(absoluteRoot, absolutePath)}`);
+      }
+      const realPath = realpathSync(absolutePath);
+      assertContained(realRoot, realPath);
+      if (stats.isDirectory()) {
+        visit(absolutePath);
+      } else if (stats.isFile()) {
+        files.push(relative(absoluteRoot, absolutePath).split(sep).join('/'));
+      } else {
+        throw new Error(`Release staging contains an unsupported filesystem entry: ${relative(absoluteRoot, absolutePath)}`);
+      }
+    }
+  }
+
+  visit(absoluteRoot);
+  return files;
+}
+
+export function compareExactSets(expected, actual) {
   return {
     missing: [...expected].filter(path => !actual.has(path)),
     extra: [...actual].filter(path => !expected.has(path))
   };
 }
 
+export function assertNoRepositoryVercelState(repositoryRoot) {
+  if (existsSync(join(repositoryRoot, '.vercel'))) {
+    throw new Error('Repository-root .vercel state is prohibited because Vercel can include it outside normal ignore filtering.');
+  }
+}
+
 async function main() {
   const repositoryRoot = resolve('.');
   const manifest = loadPublicArtifactManifest({ cwd: repositoryRoot });
   const expected = new Set(manifest.files.map(item => item.path));
-  const client = loadPinnedVercelClient();
+  const cliPackage = inspectVercelCliPackage();
+  assertNoRepositoryVercelState(repositoryRoot);
   const built = await buildPublicRelease({ cwd: repositoryRoot, output: DEFAULT_OUTPUT });
 
   if (existsSync(join(built.output, '.vercelignore'))) {
     throw new Error('The audited staging tree must not contain the repository-root deployment block.');
   }
 
-  const stagedTree = await client.buildFileTree(
-    built.output,
-    { isDirectory: true, prebuilt: false },
-    () => {}
-  );
-  const staged = relativeFileSet(built.output, stagedTree.fileList);
+  const staged = new Set(enumerateRegularFiles(built.output));
   const stagedMismatch = compareExactSets(expected, staged);
   if (stagedMismatch.missing.length || stagedMismatch.extra.length) {
     throw new Error([
-      `Vercel staging inventory mismatch for CLI ${client.version}.`,
+      `Release staging inventory mismatch for Vercel CLI package ${cliPackage.version}.`,
       stagedMismatch.missing.length ? `Missing: ${stagedMismatch.missing.join(', ')}` : '',
       stagedMismatch.extra.length ? `Extra: ${stagedMismatch.extra.join(', ')}` : ''
     ].filter(Boolean).join('\n'));
   }
 
-  const repositoryTree = await client.buildFileTree(
-    repositoryRoot,
-    { isDirectory: true, prebuilt: false },
-    () => {}
-  );
-  if (repositoryTree.fileList.length !== 0) {
-    throw new Error(`Repository-root deployment block failed: Vercel enumerated ${repositoryTree.fileList.length} files.`);
+  const rootIgnorePath = join(repositoryRoot, '.vercelignore');
+  if (!existsSync(rootIgnorePath) || readFileSync(rootIgnorePath, 'utf8') !== renderVercelIgnore()) {
+    throw new Error('Repository-root deployment block does not match the reviewed Vercel ignore policy.');
   }
 
   console.log(
-    `Vercel release input verified with CLI ${client.version}: ${staged.size} exact manifest files at ${built.output}; repository-root upload blocked.`
+    `Release staging verified for Vercel CLI package ${cliPackage.version} without executing installed CLI internals: ${staged.size} exact manifest files at ${built.output}; repository-root upload blocked.`
   );
 }
 
-main().catch(error => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(error => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}

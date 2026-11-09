@@ -13,6 +13,12 @@ import {
   trackedPublicFiles,
   validatePublicSourceFile
 } from '../scripts/build-public-release.mjs';
+import {
+  assertNoRepositoryVercelState,
+  compareExactSets,
+  enumerateRegularFiles,
+  validateVercelExecutable
+} from '../scripts/verify-public-release-vercel.mjs';
 import { dirname, join, resolve } from 'node:path';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, stat } from 'node:fs/promises';
@@ -100,13 +106,56 @@ test('the exact public manifest controls staging while repository-root deploymen
   assert.deepEqual(manifest.files.map(item => item.path), [...manifest.files.map(item => item.path)].sort());
 });
 
-test('Vercel enumeration is bound to exact package and chunk digests', () => {
+test('Vercel staging verification does not execute installed CLI internals', () => {
   const verifier = readFileSync(new URL('../scripts/verify-public-release-vercel.mjs', import.meta.url), 'utf8');
   assert.match(verifier, /EXPECTED_VERCEL_PACKAGE_SHA256 = '[a-f0-9]{64}'/);
-  assert.match(verifier, /path: 'dist\/chunks\/chunk-[A-Z0-9]+\.js'/);
-  assert.match(verifier, /sha256: '[a-f0-9]{64}'/);
-  assert.match(verifier, /Pinned Vercel enumerator failed SHA-256 verification/);
-  assert.doesNotMatch(verifier, /readdirSync\(chunksRoot\)/);
+  assert.match(verifier, /enumerateRegularFiles\(built\.output\)/);
+  assert.match(verifier, /without executing installed CLI internals/);
+  assert.match(verifier, /packageJson\.bin\?\.vercel/);
+  assert.match(verifier, /Repository-root \.vercel state is prohibited/);
+  assert.doesNotMatch(verifier, /createRequire|require\(chunkPath\)|dist\/chunks|EXPECTED_VERCEL_ENUMERATOR/);
+});
+
+test('release staging enumeration is exact and rejects filesystem indirection', () => {
+  const stagingRoot = mkdtempSync(join(tmpdir(), 'caissa-vercel-enumeration-'));
+  const outsideRoot = mkdtempSync(join(tmpdir(), 'caissa-vercel-enumeration-outside-'));
+  try {
+    mkdirSync(join(stagingRoot, 'nested'));
+    writeFileSync(join(stagingRoot, 'index.html'), 'safe');
+    writeFileSync(join(stagingRoot, 'nested', 'asset.js'), 'safe');
+    assert.deepEqual(enumerateRegularFiles(stagingRoot), ['index.html', 'nested/asset.js']);
+    assert.deepEqual(
+      compareExactSets(new Set(['index.html']), new Set(['nested/asset.js'])),
+      { missing: ['index.html'], extra: ['nested/asset.js'] }
+    );
+
+    writeFileSync(join(outsideRoot, 'private.txt'), 'outside');
+    symlinkSync(outsideRoot, join(stagingRoot, 'linked'), 'junction');
+    assert.throws(() => enumerateRegularFiles(stagingRoot), /symbolic link or junction|resolves outside/);
+  } finally {
+    rmSync(stagingRoot, { recursive: true, force: true });
+    rmSync(outsideRoot, { recursive: true, force: true });
+  }
+});
+
+test('Vercel compatibility checks require an executable and reject implicit root state', () => {
+  const packageRoot = mkdtempSync(join(tmpdir(), 'caissa-vercel-package-'));
+  const repositoryRoot = mkdtempSync(join(tmpdir(), 'caissa-vercel-root-state-'));
+  const packageJson = { bin: { vercel: './dist/vc.js' } };
+  try {
+    assert.throws(() => validateVercelExecutable(packageRoot, packageJson), /ENOENT/);
+    mkdirSync(join(packageRoot, 'dist'));
+    writeFileSync(join(packageRoot, 'dist', 'vc.js'), 'safe entrypoint');
+    assert.equal(validateVercelExecutable(packageRoot, packageJson), join(packageRoot, 'dist', 'vc.js'));
+
+    assert.doesNotThrow(() => assertNoRepositoryVercelState(repositoryRoot));
+    mkdirSync(join(repositoryRoot, '.vercel'));
+    writeFileSync(join(repositoryRoot, '.vercel', 'routes.json'), '{}');
+    assert.throws(() => assertNoRepositoryVercelState(repositoryRoot), /\.vercel state is prohibited/);
+  } finally {
+    rmSync(packageRoot, { recursive: true, force: true });
+    rmSync(repositoryRoot, { recursive: true, force: true });
+  }
 });
 
 test('built staging omits the repository-root Vercel deployment block', async () => {
