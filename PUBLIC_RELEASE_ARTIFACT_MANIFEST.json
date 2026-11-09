@@ -748,11 +748,15 @@
     },
     {
       "path": "api/pgn/opening.js",
-      "sha256": "595a6fdc38f0d6204bdef360d48fce597b04d9d5745cece156205752675f0ed5"
+      "sha256": "781847910d2f1782bdd9952d4501d42033025ebf9abd8a1b1bfcb99802700452"
     },
     {
       "path": "api/pgn/pgnmentor-allowlist.js",
       "sha256": "09c1054c7a914b988c538f6b5c68a65edc43526d8d854c0d2742697a871db056"
+    },
+    {
+      "path": "api/pgn/pgnmentor-opening-metadata.js",
+      "sha256": "a0bb8e5d5a891b7dc53c87df5a9bc4673f62387dff5985664e9d3ad8c94df592"
     },
     {
       "path": "api/pgn/pgnmentor.js",

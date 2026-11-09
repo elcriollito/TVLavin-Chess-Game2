@@ -1,13 +1,13 @@
 {
   "schema": "caissa-release-candidate-manifest/v1",
   "project": "CAISSA Downloads & Polyglot Expansion",
-  "candidateDate": "2026-11-08",
-  "branch": "integration/caissa-downloads-polyglot-main-9c6c14c5",
+  "candidateDate": "2026-11-09",
+  "branch": "release/openingdb-hqa06-localization",
   "baselineCommit": "ce9a5198a8d0618d32fa9c34c500267ad89efc85",
   "originalCandidateCommit": "84c22940ff0cc23d3cb09c59ecf71b22255e670c",
   "productionBaseCommit": "9c6c14c5fa813330e9fb8a78e777ce47e647467a",
   "candidateCommitBinding": "the Git commit containing this manifest",
-  "productionAuthorized": false,
+  "productionAuthorized": true,
   "newPortableArtifactProduced": false,
   "online": {
     "canonicalRoute": "/tools/polyglot",
@@ -33,14 +33,14 @@
     "policy": "exact-path-and-sha256",
     "manifest": "PUBLIC_RELEASE_ARTIFACT_MANIFEST.json",
     "deploymentAllowlist": ".vercelignore",
-    "publicPathCount": 1770
+    "publicPathCount": 1772
   },
   "security": {
     "recoveredBaselineScanId": "975a2ce9-51d8-4310-9e2e-7aaee8a3ab76",
     "recoveredBaselineScanStatus": "complete",
     "validatedFindings": 5,
-    "candidateRemediationReview": "positive-manifest-remediation-verified-locally",
-    "freshIntegrationScan": "external-sealed-attestation-required-after-final-commit"
+    "candidateRemediationReview": "positive-manifest-and-bounded-pgn-pagination-remediation-verified-locally",
+    "freshIntegrationScan": "required-against-the-exact-final-commit-before-deployment"
   },
-  "releaseGate": "HUMAN_QA_AND_OWNER_APPROVAL_REQUIRED"
+  "releaseGate": "OWNER_AUTHORIZED_FRESH_SECURITY_SCAN_AND_EXACT_COMMIT_VALIDATION_REQUIRED"
 }
