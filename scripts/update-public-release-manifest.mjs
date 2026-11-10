@@ -17,6 +17,6 @@ await writeFile(
   `${JSON.stringify(manifest, null, 2)}\n`,
   'utf8'
 );
-await writeFile(join(repositoryRoot, '.vercelignore'), renderVercelIgnore(), 'utf8');
+await writeFile(join(repositoryRoot, '.vercelignore'), renderVercelIgnore(manifest), 'utf8');
 
-console.log(`Updated ${PUBLIC_RELEASE_MANIFEST_PATH} for ${manifest.files.length} public paths and preserved the repository-root deployment block.`);
+console.log(`Updated ${PUBLIC_RELEASE_MANIFEST_PATH} and the exact default-deny Vercel allowlist for ${manifest.files.length} public paths.`);

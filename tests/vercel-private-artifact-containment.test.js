@@ -14,9 +14,12 @@ function hasManifestPrefix(prefix) {
   return publicPaths.some(path => path === prefix || path.startsWith(`${prefix}/`));
 }
 
-test('repository-root Vercel upload is blocked and staging remains manifest-derived', () => {
-  assert.equal(ignore[0], '*');
-  assert.deepEqual(ignore, ['*']);
+test('repository-root Vercel upload is default-deny and exact-manifest allowlisted', () => {
+  const fileExceptions = ignore.filter(line => line.startsWith('!/') && !ignore.includes(`${line.slice(1)}/*`));
+  const unescapePath = path => path.replace(/\\([*?\[\]])/g, '$1');
+  assert.equal(ignore[0], '/*');
+  assert.deepEqual(fileExceptions.map(line => unescapePath(line.slice(2))), publicPaths);
+  assert.equal(fileExceptions.some(line => /(^|[^\\])[*?]/.test(line)), false, 'wildcard allowlist exception found');
   assert.equal(manifest.policy, 'exact-path-and-sha256');
   assert.equal(manifest.files.every(item => /^[0-9a-f]{64}$/.test(item.sha256)), true);
 });

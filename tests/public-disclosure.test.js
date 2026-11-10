@@ -61,8 +61,8 @@ test('internal architecture and authoring sources are excluded from deployment',
   const ignored = read('.vercelignore');
   const manifest = JSON.parse(read('PUBLIC_RELEASE_ARTIFACT_MANIFEST.json'));
   const publicPaths = manifest.files.map(item => item.path);
-  assert.match(ignored, /Direct repository-root Vercel uploads are intentionally disabled/);
-  assert.ok(ignored.split(/\r?\n/).includes('*'), 'repository-root Vercel deployment block is missing');
+  assert.match(ignored, /Default-deny Vercel upload policy/);
+  assert.ok(ignored.split(/\r?\n/).includes('/*'), 'repository-root Vercel default-deny rule is missing');
   for (const protectedPath of [
     'docs/', 'PROJECT_ARCHITECTURE.md', 'knowledge/AUTHORING.md',
     'knowledge/authoring/', 'knowledge/domains/', 'knowledge/schema/'

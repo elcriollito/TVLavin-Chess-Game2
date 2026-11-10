@@ -227,11 +227,37 @@ export function loadPublicArtifactManifest({ cwd = repositoryRoot } = {}) {
   return manifest;
 }
 
-export function renderVercelIgnore() {
+function manifestParentDirectories(paths) {
+  const directories = new Set();
+  for (const path of paths) {
+    const parts = path.split('/');
+    for (let index = 1; index < parts.length; index += 1) {
+      directories.add(parts.slice(0, index).join('/'));
+    }
+  }
+  return [...directories].sort((left, right) => {
+    const depthDifference = left.split('/').length - right.split('/').length;
+    return depthDifference || left.localeCompare(right);
+  });
+}
+
+function escapeVercelIgnorePath(path) {
+  return path.replace(/([*?\[\]])/g, '\\$1');
+}
+
+export function renderVercelIgnore(manifest = loadPublicArtifactManifest()) {
+  const paths = [...normalizePublicManifest(manifest).keys()].sort();
+  const directories = manifestParentDirectories(paths);
   return [
-    '# Direct repository-root Vercel uploads are intentionally disabled.',
-    '# Build and verify the exact audited staging tree with `npm run release:public:verify-vercel`.',
-    '*',
+    '# Default-deny Vercel upload policy generated from PUBLIC_RELEASE_ARTIFACT_MANIFEST.json.',
+    '# Every allowed directory is re-closed before exact manifest files are re-included.',
+    '# Regenerate only with `npm run release:public:manifest` and verify before deployment.',
+    '/*',
+    ...directories.flatMap(path => {
+      const pattern = escapeVercelIgnorePath(path);
+      return [`!/${pattern}`, `/${pattern}/*`];
+    }),
+    ...paths.map(path => `!/${escapeVercelIgnorePath(path)}`),
     ''
   ].join('\n');
 }

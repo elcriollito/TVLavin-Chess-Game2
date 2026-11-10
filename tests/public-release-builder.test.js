@@ -100,10 +100,16 @@ test('committed-tree audit has no protected paths and all required runtime files
 
 test('the exact public manifest controls staging while repository-root deployment is blocked', () => {
   const manifest = loadPublicArtifactManifest();
-  assert.equal(readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8'), renderVercelIgnore());
-  assert.match(renderVercelIgnore(), /Direct repository-root Vercel uploads are intentionally disabled/);
-  assert.deepEqual(renderVercelIgnore().split(/\r?\n/).filter(line => line && !line.startsWith('#')), ['*']);
-  assert.deepEqual(manifest.files.map(item => item.path), [...manifest.files.map(item => item.path)].sort());
+  const manifestPaths = manifest.files.map(item => item.path);
+  const ignore = renderVercelIgnore(manifest);
+  const rules = ignore.split(/\r?\n/).filter(line => line && !line.startsWith('#'));
+  const exactFiles = rules.filter(line => line.startsWith('!/') && !rules.includes(`${line.slice(1)}/*`));
+  const unescapePath = path => path.replace(/\\([*?\[\]])/g, '$1');
+  assert.equal(readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8'), ignore);
+  assert.match(ignore, /Default-deny Vercel upload policy/);
+  assert.equal(rules[0], '/*');
+  assert.deepEqual(exactFiles.map(line => unescapePath(line.slice(2))), manifestPaths);
+  assert.deepEqual(manifestPaths, [...manifestPaths].sort());
 });
 
 test('Vercel staging verification does not execute installed CLI internals', () => {
@@ -158,7 +164,7 @@ test('Vercel compatibility checks require an executable and reject implicit root
   }
 });
 
-test('built staging omits the repository-root Vercel deployment block', async () => {
+test('built staging omits the repository-root Vercel allowlist', async () => {
   const output = await mkdtemp(resolve(tmpdir(), 'caissa-vercel-stage-'));
   await buildPublicRelease({ output });
   await assert.rejects(stat(resolve(output, '.vercelignore')), { code: 'ENOENT' });

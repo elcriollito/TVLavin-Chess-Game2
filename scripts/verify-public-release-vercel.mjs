@@ -138,12 +138,12 @@ async function main() {
   }
 
   const rootIgnorePath = join(repositoryRoot, '.vercelignore');
-  if (!existsSync(rootIgnorePath) || readFileSync(rootIgnorePath, 'utf8') !== renderVercelIgnore()) {
-    throw new Error('Repository-root deployment block does not match the reviewed Vercel ignore policy.');
+  if (!existsSync(rootIgnorePath) || readFileSync(rootIgnorePath, 'utf8') !== renderVercelIgnore(manifest)) {
+    throw new Error('Repository-root default-deny allowlist does not match the reviewed public manifest.');
   }
 
   console.log(
-    `Release staging verified for Vercel CLI package ${cliPackage.version} without executing installed CLI internals: ${staged.size} exact manifest files at ${built.output}; repository-root upload blocked.`
+    `Release staging verified for Vercel CLI package ${cliPackage.version} without executing installed CLI internals: ${staged.size} exact manifest files at ${built.output}; repository-root upload is manifest-allowlisted.`
   );
 }
 
