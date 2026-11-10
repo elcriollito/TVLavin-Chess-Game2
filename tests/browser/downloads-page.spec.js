@@ -12,10 +12,11 @@ test('Downloads is first-class, localized, factual and contains no fake future l
     await page.goto('/downloads');
     await expect(page).toHaveTitle(/Free Chess Tools/);
     await expect(page.locator('h1')).toHaveText('Chess tools, clearly released.');
-    await expect(page.locator('.download-status.is-available')).toHaveText('Available');
-    await expect(page.locator('.download-status.is-pending')).toHaveText('Coming soon');
+    await expect(page.locator('.download-status.is-available')).toHaveCount(2);
+    await expect(page.locator('#book-creator .download-status')).toHaveText('Available');
     await expect(page.locator('#book-creator')).toContainText('0.3.1');
-    await expect(page.locator('#book-creator a')).toHaveCount(0);
+    await expect(page.locator('#book-creator a')).toHaveCount(3);
+    await expect(page.locator('#book-creator .download-button-primary')).toHaveAttribute('href', /CAISSA-Book-Creator-v0\.3\.1-portable-unsigned-release-candidate\.zip$/);
     await expect(page.locator('.is-future a')).toHaveCount(0);
     await expect(page.locator('a[href="/tools/polyglot"]')).not.toHaveCount(0);
 

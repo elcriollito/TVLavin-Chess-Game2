@@ -22,7 +22,7 @@ test('Downloads page has unique metadata, structured data and accurate release s
   assert.equal($('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/downloads');
   assert.deepEqual(schemas.map(schema => schema['@type']), ['CollectionPage', 'BreadcrumbList']);
   const text = $('body').text().replace(/\s+/g, ' ');
-  assert.match(text, /Coming soon/);
+  assert.match(text, /Unsigned release/);
   assert.match(text, /Version 0\.3\.1/);
   assert.match(text, /Future application/);
   assert.match(text, /Not released/);
@@ -65,13 +65,19 @@ test('Downloads and Polyglot expansion keys have exact EN ES PT parity and compl
   }
 });
 
-test('Downloads page declares local privacy and provides no fake links for future products', () => {
+test('Downloads page declares local privacy and links only the exact approved portable release', () => {
   const $ = load(read('downloads.html'));
   assert.match($('.download-card-online').text(), /PGN stays on your device/);
   assert.equal($('.is-future a').length, 0);
   assert.equal($('a[href="/tools/polyglot"]').length >= 1, true);
   assert.equal($('#book-creator').length, 1);
-  assert.equal($('#book-creator a').length, 0);
+  assert.equal($('#book-creator a').length, 3);
+  assert.equal(
+    $('#book-creator .download-button-primary').attr('href'),
+    'https://github.com/elcriollito/CAISSA-Book-Creator/releases/download/v0.3.1/CAISSA-Book-Creator-v0.3.1-portable-unsigned-release-candidate.zip'
+  );
+  assert.match($('#book-creator').text(), /b227fa1a0dd272d80d6da3c13733f2aa2d4d64bd14d02aec3dac3008e444e63b/);
+  assert.match($('#book-creator').text(), /UNVERIFIED/);
   assert.equal($('a[href*="v0.2.0"]').length, 0);
   assert.equal(read('polyglot.html').includes('href="/downloads#book-creator"'), true);
   assert.doesNotMatch(read('polyglot.html'), /downloads\.caissa-chess\.org\/apps\/caissa-book-creator/);
