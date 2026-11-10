@@ -1796,7 +1796,7 @@
     },
     {
       "path": "downloads.html",
-      "sha256": "44a77b29e456e6148629da077b1815922b9c4e0b1fecb56c18daf65ac4bb4819"
+      "sha256": "534109a5ecb665c904446a4d24db537f0e77773189c36e1a9fb3d960e5e6e13f"
     },
     {
       "path": "eco.html",
@@ -2088,7 +2088,7 @@
     },
     {
       "path": "js/caissa-expansion-i18n.js",
-      "sha256": "8efdf6d3295e3ab8eeda850dcc2d68a7bbfdf6d5194ef0317470005b641b51ea"
+      "sha256": "9aa71f33ea609f03ff26b8df7a80ed30a231c8873979e51aef3a4e46ea687af6"
     },
     {
       "path": "js/caissa-feature-flags.js",
@@ -4288,7 +4288,7 @@
     },
     {
       "path": "polyglot.html",
-      "sha256": "4f4d4e84c805d838d82de61f0008e0a2f0cbf396c3beddc539d34886000117bb"
+      "sha256": "ea2bed303fa5b8ef6b2c1aae07ade9c59b422ac3f19c95ccba207d8a24dd070c"
     },
     {
       "path": "position-forge-ui.js",
