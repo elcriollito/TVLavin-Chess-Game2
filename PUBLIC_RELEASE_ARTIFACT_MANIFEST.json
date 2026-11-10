@@ -1251,6 +1251,10 @@
       "sha256": "0da67aec35dcb1c0dfb19db7f87e7d1de4150e55eb2f771bb9f13ea0dd1374a4"
     },
     {
+      "path": "assets/blog/caissa-book-creator-v031-carlsen.webp",
+      "sha256": "fd987c5b23eed22b2dfb20a3ab71ebb547c986449f8680ae1005cde7a4ca8d49"
+    },
+    {
       "path": "assets/blog/caissa-goddess-of-chess.webp",
       "sha256": "489af8f1cf172786518901d75b448be8d3f9a107d4a6793c48a3d7be83a4ab05"
     },
@@ -1403,12 +1407,16 @@
       "sha256": "d97c6a619a884a045ed91cc03fb26f9609ff2c3f3a1d2e44391ade411e646abc"
     },
     {
+      "path": "blog/caissa-polyglot-book-creator-v031/index.html",
+      "sha256": "c862d9eca12638d2a3c5a4c5f60907c5021054b7c04c5a0238cc62b92c3d0d0f"
+    },
+    {
       "path": "blog/caissa-scanner-image-to-chess-analysis/index.html",
       "sha256": "c382a6b90017e9b5274acd4c44ebef7593b3a603619a171146778ec6b14d44ea"
     },
     {
       "path": "blog/index.html",
-      "sha256": "6763190f493792e0f1a4be18c30e8799e6357e0086217eb10d478a6f3ab3b84b"
+      "sha256": "cf95c1ab0e6095eff43fd51a055dc012b6944839b7184f19a5682ca4a21e218c"
     },
     {
       "path": "blog/what-is-a-polyglot-opening-book/index.html",
@@ -1484,7 +1492,7 @@
     },
     {
       "path": "config/caissa-public-route-inventory.json",
-      "sha256": "04c481705c0a44da53c80399942c876aa2bfc481fecd71c1f0facb46ade4e0e9"
+      "sha256": "d5e7bc9c54c20221db56a8493dfb69a22b4de4db31c078e94c0d677ae0cf718a"
     },
     {
       "path": "config/scanner-flags.js",
@@ -1740,7 +1748,7 @@
     },
     {
       "path": "data/blog-articles.json",
-      "sha256": "9a2f99ab648954d920c941938ce38022d0b033b7d7f10b7c39c6ddaf42938339"
+      "sha256": "d50f919835bea11936e27b6544963d237dd9d606642247a79430dbc07eae0c72"
     },
     {
       "path": "data/blogPosts.json",
@@ -5716,7 +5724,7 @@
     },
     {
       "path": "public/sitemap.xml",
-      "sha256": "dff962a6817b8d98a1c58f29fa9bd636ecc4f68b6a2e946042b2c49b2257e8b5"
+      "sha256": "f1c40a8fd3260cfa8b1298b2a2a8e7886fab8461c3d5604e0c385f7d54da9662"
     },
     {
       "path": "puzzles.html",

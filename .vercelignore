@@ -128,6 +128,8 @@
 /blog/caissa-chess-online-community/*
 !/blog/caissa-opening-explorer-free-chess-analysis
 /blog/caissa-opening-explorer-free-chess-analysis/*
+!/blog/caissa-polyglot-book-creator-v031
+/blog/caissa-polyglot-book-creator-v031/*
 !/blog/caissa-scanner-image-to-chess-analysis
 /blog/caissa-scanner-image-to-chess-analysis/*
 !/blog/what-is-a-polyglot-opening-book
@@ -794,6 +796,7 @@
 !/artifacts/scanner-piece-dataset/quality-v0.1.json
 !/artifacts/scanner-piece-dataset/quality-v0.2.json
 !/artifacts/scanner-piece-dataset/quality-v0.3.json
+!/assets/blog/caissa-book-creator-v031-carlsen.webp
 !/assets/blog/caissa-goddess-of-chess.webp
 !/assets/blog/caissa-online-playing-room.jpg
 !/assets/blog/caissa-opening-explorer-v23-ruy-lopez.webp
@@ -832,6 +835,7 @@
 !/auth-complete.html
 !/blog/caissa-chess-online-community/index.html
 !/blog/caissa-opening-explorer-free-chess-analysis/index.html
+!/blog/caissa-polyglot-book-creator-v031/index.html
 !/blog/caissa-scanner-image-to-chess-analysis/index.html
 !/blog/index.html
 !/blog/what-is-a-polyglot-opening-book/index.html

@@ -13,11 +13,11 @@
   "counts": {
     "primaryNavigationEntries": 39,
     "internalPrimaryPages": 35,
-    "publicCanonicalRoutesNotInPrimaryNavigation": 18,
+    "publicCanonicalRoutesNotInPrimaryNavigation": 19,
     "externalDestinations": 4,
     "redirects": 25,
     "protectedRouteFamilies": 5,
-    "totalInventoriedRecords": 87
+    "totalInventoriedRecords": 88
   },
   "primaryNavigation": [
     {
@@ -686,6 +686,21 @@
       "navigationPosition": null,
       "visibleInPrimaryNavigation": false,
       "activeIdentity": "blog-caissa-opening-explorer-free-chess-analysis",
+      "owner": "public/sitemap.xml",
+      "target": "_self",
+      "rel": null,
+      "status": "public"
+    },
+    {
+      "id": "blog-caissa-polyglot-book-creator-v031",
+      "label": "Caissa Polyglot Book Creator V031",
+      "canonicalPath": "/blog/caissa-polyglot-book-creator-v031",
+      "absoluteUrl": "https://www.caissa-chess.org/blog/caissa-polyglot-book-creator-v031",
+      "type": "internal-page",
+      "group": null,
+      "navigationPosition": null,
+      "visibleInPrimaryNavigation": false,
+      "activeIdentity": "blog-caissa-polyglot-book-creator-v031",
       "owner": "public/sitemap.xml",
       "target": "_self",
       "rel": null,

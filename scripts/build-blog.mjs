@@ -16,12 +16,13 @@ const escape = value => String(value).replace(/[&<>"']/g, character => ({
 }[character]));
 const renderInline = value => {
   const source = String(value);
-  const linkPattern = /\[([^\]]+)\]\((\/(?:[a-z0-9][a-z0-9/-]*)?)\)/gi;
+  const linkPattern = /\[([^\]]+)\]\((\/(?:[a-z0-9][a-z0-9/-]*)?|https:\/\/[^\s)]+)\)/gi;
   let output = '';
   let cursor = 0;
   for (const match of source.matchAll(linkPattern)) {
     output += escape(source.slice(cursor, match.index));
-    output += `<a href="${escape(match[2])}">${escape(match[1])}</a>`;
+    const rel = match[2].startsWith('https://') ? ' rel="noopener"' : '';
+    output += `<a href="${escape(match[2])}"${rel}>${escape(match[1])}</a>`;
     cursor = match.index + match[0].length;
   }
   return output + escape(source.slice(cursor));
