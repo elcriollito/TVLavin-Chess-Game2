@@ -67,6 +67,64 @@ test('only published articles have public pages and sitemap entries', () => {
   }
 });
 
+test('Book Creator v0.3.1 release article preserves verified claims and authentic screenshot evidence', async () => {
+  const slug = 'caissa-polyglot-book-creator-v031';
+  const article = registry.articles.find(item => item.slug === slug);
+  assert.ok(article, 'Book Creator v0.3.1 release article is missing from registry');
+  assert.equal(article.status, 'published');
+  assert.equal(article.seoTitle, 'CAISSA Polyglot Book Creator v0.3.1 | Free PGN to BIN');
+  assert.equal(article.relatedCaissaRoute, '/downloads');
+  assert.deepEqual(article.relatedArticleSlugs, ['what-is-a-polyglot-opening-book']);
+  assert.deepEqual(article.body.map(section => section.heading), [
+    'Polyglot Online: Private Browser Conversion',
+    'Portable v0.3.1: Built for Larger Collections',
+    'Performance Results in Context',
+    'Integrity and Transparency',
+    'How to Create a Polyglot Opening Book',
+    'Where to Download'
+  ]);
+
+  const prose = [
+    ...article.introduction,
+    ...article.body.flatMap(section => [...section.paragraphs, ...(section.orderedList || [])]),
+    article.ctaText
+  ].join(' ');
+  const words = prose.match(/\b[\wâ€™'-]+\b/g) || [];
+  assert.ok(words.length >= 800 && words.length <= 1100, `release article length is ${words.length} words`);
+  assert.match(prose, /tested 25 MiB input limit/);
+  assert.match(prose, /without uploading the PGN to CAISSA/);
+  assert.match(prose, /approximately 820 MiB PGN collection/);
+  assert.match(prose, /180,000 generated legal games/);
+  assert.match(prose, /17,078,075 moves/);
+  assert.match(prose, /16,441,386 unique Polyglot entries/);
+  assert.match(prose, /263,062,176 output bytes/);
+  assert.match(prose, /7,818 games and 187,434 moves into 99,433 entries and a 1,590,928-byte BIN/);
+  assert.match(prose, /official publisher verification correctly reports UNVERIFIED/);
+  assert.match(prose, /does not certify that software is malware-free/);
+  assert.match(prose, /not guaranteed maximums or performance promises/);
+  assert.doesNotMatch(prose, /(?:is|are) digitally signed|antivirus certified/i);
+
+  const pagePath = `blog/${slug}/index.html`;
+  assert.ok(fs.existsSync(path.join(root, pagePath)), 'Book Creator article route is missing');
+  const $ = load(read(pagePath));
+  assert.equal($('link[rel="canonical"]').attr('href'), `${production}/blog/${slug}`);
+  assert.equal($('a[href="/downloads"]').length >= 1, true);
+  assert.equal($('a[href="/tools/polyglot"]').length >= 1, true);
+  for (const href of [
+    'https://github.com/elcriollito/CAISSA-Book-Creator/releases/tag/v0.3.1',
+    'https://github.com/elcriollito/CAISSA-Book-Creator'
+  ]) {
+    assert.equal($(`a[href="${href}"]`).attr('rel'), 'noopener', `missing safe external link to ${href}`);
+  }
+
+  const imagePath = path.join(root, article.featuredImage);
+  const image = await sharp(imagePath).metadata();
+  assert.equal(image.format, 'webp');
+  assert.equal(image.width, 1920);
+  assert.equal(image.height, 1020);
+  assert.ok(fs.statSync(imagePath).size < 200_000, 'featured screenshot is not sufficiently optimized');
+});
+
 test('Opening Explorer V2.3 launch article is a complete published editorial article', async () => {
   const slug = 'caissa-opening-explorer-free-chess-analysis';
   const article = registry.articles.find(item => item.slug === slug);
@@ -287,7 +345,7 @@ test('Yahoo Chess article remains uniquely indexed and linked after newer public
 
   const index = load(read('blog/index.html'));
   assert.equal(index(`a[href="/blog/${slug}"]`).length, 1);
-  assert.equal(index('.blog-card-featured a').attr('href'), '/blog/caissa-opening-explorer-free-chess-analysis');
+  assert.equal(index('.blog-card-featured a').attr('href'), '/blog/caissa-polyglot-book-creator-v031');
   assert.equal(index(`.blog-grid a[href="/blog/${slug}"]`).length, 1);
   assert.equal(index('a[href="/blog/what-is-a-polyglot-opening-book"]').length, 1);
   assert.equal(index('a[href="/blog/who-is-caissa-goddess-of-chess"]').length, 1);
