@@ -19,8 +19,13 @@ test('Book Creator release article exposes the approved editorial and SEO contra
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://www.caissa-chess.org${route}`);
   await expect(page.locator('article img')).toHaveAttribute('alt', /Carlsen PGN collection/);
   await expect(page.locator('article img')).toHaveJSProperty('complete', true);
+  await expect(page.locator('article img')).toHaveClass('blog-article-image--uncropped');
   expect(await page.locator('article img').evaluate(image => ({ width: image.naturalWidth, height: image.naturalHeight })))
     .toEqual({ width: 1920, height: 1020 });
+  expect(await page.locator('article img').evaluate(image => {
+    const styles = getComputedStyle(image);
+    return { aspectRatio: styles.aspectRatio, objectFit: styles.objectFit, objectPosition: styles.objectPosition };
+  })).toEqual({ aspectRatio: 'auto', objectFit: 'contain', objectPosition: '50% 50%' });
 
   await expect(page.locator('a[href="/downloads"]')).not.toHaveCount(0);
   await expect(page.locator('a[href="/tools/polyglot"]')).not.toHaveCount(0);
