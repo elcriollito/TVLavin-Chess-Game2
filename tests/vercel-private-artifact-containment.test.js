@@ -6,41 +6,47 @@ const ignore = fs.readFileSync('.vercelignore', 'utf8')
   .split(/\r?\n/)
   .map(line => line.trim())
   .filter(line => line && !line.startsWith('#'));
+const manifest = JSON.parse(fs.readFileSync('PUBLIC_RELEASE_ARTIFACT_MANIFEST.json', 'utf8'));
+const publicPaths = manifest.files.map(item => item.path);
+const publicPathSet = new Set(publicPaths);
 
-function hasRule(rule) {
-  return ignore.includes(rule);
+function hasManifestPrefix(prefix) {
+  return publicPaths.some(path => path === prefix || path.startsWith(`${prefix}/`));
 }
 
+test('repository-root Vercel upload is default-deny and exact-manifest allowlisted', () => {
+  const fileExceptions = ignore.filter(line => line.startsWith('!/') && !ignore.includes(`${line.slice(1)}/*`));
+  const unescapePath = path => path.replace(/\\([*?\[\]])/g, '$1');
+  assert.equal(ignore[0], '/*');
+  assert.deepEqual(fileExceptions.map(line => unescapePath(line.slice(2))), publicPaths);
+  assert.equal(fileExceptions.some(line => /(^|[^\\])[*?]/.test(line)), false, 'wildcard allowlist exception found');
+  assert.equal(manifest.policy, 'exact-path-and-sha256');
+  assert.equal(manifest.files.every(item => /^[0-9a-f]{64}$/.test(item.sha256)), true);
+});
+
 test('operator database material and private security documentation are excluded', () => {
-  assert.equal(hasRule('supabase/**'), true);
-  assert.equal(hasRule('docs/**'), true);
-  assert.equal(hasRule('scripts/**'), true);
-  assert.equal(hasRule('tests/**'), true);
-  assert.equal(hasRule('.wrangler/**'), true);
-  assert.equal(hasRule('.codex/**'), true);
-});
-
-test('local environment, credential, database, and dump artifacts are denied', () => {
-  for (const rule of [
-    '.env', '.env.*', '*.pfx', '*.pem', '*.key', '*.cer',
-    '*.sqlite', '*.sqlite3', '*.db', '*.dump', '*.backup', '*.pgdump', '*.sql.gz',
-    '*credentials*', '*credential*', '*secrets*'
-  ]) assert.equal(hasRule(rule), true, rule);
-});
-
-test('environment exclusions have no deployable exception', () => {
-  assert.equal(ignore.some(rule => rule.startsWith('!.env')), false);
-});
-
-test('runtime roots are not denied by broad deployment rules', () => {
-  for (const forbiddenRule of ['api/**', 'js/**', 'css/**', 'assets/**', 'public/**', 'middleware.js', 'server.js']) {
-    assert.equal(hasRule(forbiddenRule), false, forbiddenRule);
+  for (const prefix of ['supabase', 'docs', 'scripts', 'tests', '.wrangler', '.codex']) {
+    assert.equal(hasManifestPrefix(prefix), false, prefix);
   }
 });
 
+test('local environment, credential, database, and dump artifacts are denied', () => {
+  for (const path of publicPaths) {
+    assert.doesNotMatch(path, /(^|\/)\.env(?:\.|$)|\.(?:pfx|pem|key|cer|sqlite|sqlite3|db|dump|backup|pgdump|sql\.gz)$|credentials?|secrets?/i);
+  }
+});
+
+test('runtime roots retain exact manifest-approved files', () => {
+  for (const prefix of ['api/', 'js/', 'css/', 'assets/', 'public/']) {
+    assert.equal(publicPaths.some(path => path.startsWith(prefix)), true, prefix);
+  }
+  assert.equal(publicPathSet.has('middleware.js'), true);
+  assert.equal(publicPathSet.has('server.js'), true);
+});
+
 test('large local OpeningDB build intermediates are not deployment assets', () => {
-  assert.equal(hasRule('data/openingdb/shards_build/**'), true);
-  assert.equal(hasRule('data/openingdb/subshards_build/**'), true);
+  assert.equal(hasManifestPrefix('data/openingdb/shards_build'), false);
+  assert.equal(hasManifestPrefix('data/openingdb/subshards_build'), false);
   const config = fs.readFileSync('vercel.json', 'utf8');
   assert.match(config, /downloads\.caissa-chess\.org\/openingdb/);
 });
@@ -66,6 +72,6 @@ test('SEC-005 routes remain present and exact-default-off gated', () => {
 test('private recovery CLI and bootstrap remain repository-only', () => {
   assert.equal(fs.existsSync('scripts/recover-clerk-identity.mjs'), true);
   assert.equal(fs.existsSync('supabase/bootstrap/caissa-production-bootstrap.sql'), true);
-  assert.equal(hasRule('scripts/**'), true);
-  assert.equal(hasRule('supabase/**'), true);
+  assert.equal(publicPathSet.has('scripts/recover-clerk-identity.mjs'), false);
+  assert.equal(publicPathSet.has('supabase/bootstrap/caissa-production-bootstrap.sql'), false);
 });

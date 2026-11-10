@@ -54,9 +54,10 @@ test('commercial rights registry blocks all player sales until both source grant
   assert.match(read('docs/legal/PGN_PLAYER_COMMERCIAL_RIGHTS_AUDIT.md'), /0 of 82 albums are certified/);
 });
 
-test('player PGNs stay outside the public tree and are bundled only with controlled PGN endpoints', () => {
+test('commerce player PGNs stay private while the approved free Capablanca collection remains public', () => {
   const vercel = JSON.parse(read('vercel.json'));
-  assert.equal(fs.existsSync(new URL('../../public/data/pgn/capablanca-games-1901-1941.pgn', import.meta.url)), false);
+  assert.equal(fs.existsSync(new URL('../../public/data/pgn/capablanca-games-1901-1941.pgn', import.meta.url)), true);
+  assert.equal(fs.existsSync(new URL('../../public/data/pgn/capablanca-games-1901-1941.provenance.json', import.meta.url)), true);
   const publicPlayerRoot = new URL('../../public/data/pgn/players', import.meta.url);
   const publicPlayerPgns = fs.existsSync(publicPlayerRoot)
     ? fs.readdirSync(publicPlayerRoot, { recursive: true }).filter(name => String(name).endsWith('.pgn'))

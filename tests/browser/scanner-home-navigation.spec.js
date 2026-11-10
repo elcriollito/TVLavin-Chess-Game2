@@ -18,7 +18,7 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     await page.goto('/scanner');
 
-    const home = page.getByRole('link', { name: 'Go to CAISSA Chess homepage' });
+    const home = page.getByRole('link', { name: 'Home — Go to CAISSA Chess homepage' });
     await expect(home).toBeVisible();
     await expect(home).toHaveAttribute('href', '/');
     await expect(page.locator('.public-beta-badge')).toBeVisible();

@@ -140,7 +140,14 @@
 
   <url>
     <loc>https://www.caissa-chess.org/tools/polyglot</loc>
-    <lastmod>2026-07-09</lastmod>
+    <lastmod>2026-11-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://www.caissa-chess.org/downloads</loc>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

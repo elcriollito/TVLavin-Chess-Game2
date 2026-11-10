@@ -138,7 +138,7 @@ test('explicit legacy section routing remains ahead of the Home default', () => 
 test('all standalone shell pages load the canonical source before the renderer', () => {
   const pages = [
     'endgame-library.html', 'game-library.html', 'about.html', 'help.html', 'eco.html', 'opening-database.html',
-    'polyglot.html', 'gif-maker.html', 'vault.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'live-blitz.html',
+    'polyglot.html', 'gif-maker.html', 'downloads.html', 'blog/index.html', 'playchess.html', 'fritz.html', 'live-blitz.html',
     'live-tournaments.html', 'lichess-tv.html', 'pgn-replayer.html', 'mentor.html', 'chess-gym.html', 'opening-trainer.html'
   ];
   for (const path of pages) {

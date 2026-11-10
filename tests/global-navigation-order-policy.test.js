@@ -28,7 +28,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.22.0 owns the primary, More, and socia
     'Puzzles', 'Chess Gym', 'Opening Trainer', 'Academy', 'CAISSA Mentor', 'Endgame Trainer', 'Endgame Library', 'Endgame Tablebase',
     'Insights', 'Analyze', 'CAISSA PGN Reader', 'Chess TV', 'Lichess TV', 'Live Blitz', 'Live Tournaments', 'Engine Arena',
     'Scanner', 'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
-    'World Champions', 'History', 'DOS Chess', 'Vault'
+    'World Champions', 'History', 'DOS Chess', 'Downloads'
   ]);
   assert.deepEqual(Array.from(navigation.inventory.social, item => item.label), [
     'Facebook', 'CAISSA Chess YouTube', 'CAISSA Discord'
@@ -48,7 +48,7 @@ test('CaissaGlobalNavigationOrderPolicy@1.22.0 owns the primary, More, and socia
   ]);
   assert.deepEqual(Array.from(navigation.inventory.groups[3], item => item.label), [
     'Scanner', 'Cheater Insight', 'Polyglot Tool', 'GIF Studio', 'Opening Database', 'ECO Codes',
-    'World Champions', 'History', 'DOS Chess', 'Vault'
+    'World Champions', 'History', 'DOS Chess', 'Downloads'
   ]);
   const scanner = navigation.inventory.primary.find(item => item.id === 'scanner');
   assert.deepEqual(

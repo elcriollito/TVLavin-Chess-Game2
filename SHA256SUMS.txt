@@ -1,0 +1,4 @@
+# Existing public portable v0.2.0 evidence only; no new binary was produced.
+58e12d34644f223c905583318961c3d8dde33644445a78d750709a923ffa4b38 *CAISSA-Book-Creator-v0.2.0-portable.zip
+7e1c62cf1d014b1ec03ba4b71caeee328f1d91294f04aa1f9f710007f2a14c35 *CAISSA-Book-Creator-GUI.exe
+a51ee2918d0a3c9cd17dab26159ac9008272506400dcf186123e794041dd62ed *CAISSA-Book-Builder.exe

@@ -1,5 +1,5 @@
 /**
- * CAISSA Vault - Downloads Worker
+ * CAISSA Downloads Worker
  *
  * Serves software downloads and files from R2 storage
  * Uses private R2 bucket with slug-based download URLs
@@ -16,7 +16,11 @@ const DOWNLOADS = {
     filename: 'CAISSA-Book-Creator-v0.2.0-portable.zip',
     contentType: 'application/zip',
     version: 'v0.2.0',
-    category: 'software'
+    category: 'software',
+    expectedSize: 244203091,
+    expectedEtag: '1c3e28de1490a11cf13e9f6453e396c7',
+    sha256: '58e12d34644f223c905583318961c3d8dde33644445a78d750709a923ffa4b38',
+    sha256Base64: 'WOEtNGRPIjyQVYMxiWHD2N3jNkREWnjXUHCakj/6Szg='
   },
 
   // Polyglot Book Creator v1.0.0
@@ -25,29 +29,35 @@ const DOWNLOADS = {
     filename: 'CAISSA-Polyglot-Book-Creator-v1.0.0-Portable.zip',
     contentType: 'application/zip',
     version: 'v1.0.0',
-    category: 'software'
+    category: 'software',
+    unavailable: true,
+    statusNote: 'No v1.0.0 artifact is present in R2. This historical catalog record is not a release.'
   },
   'polyglot-book-creator-changelog': {
     key: 'apps/polyglot-book-creator/v1.0.0/CHANGELOG.txt',
     filename: 'CHANGELOG.txt',
     contentType: 'text/plain',
     version: 'v1.0.0',
-    category: 'documentation'
+    category: 'documentation',
+    unavailable: true,
+    statusNote: 'No v1.0.0 changelog object is present in R2.'
   },
   'polyglot-book-creator-sha256': {
     key: 'apps/polyglot-book-creator/v1.0.0/CAISSA-Polyglot-Book-Creator-v1.0.0-Portable.sha256',
     filename: 'CAISSA-Polyglot-Book-Creator-v1.0.0-Portable.sha256',
     contentType: 'text/plain',
     version: 'v1.0.0',
-    category: 'checksum'
+    category: 'checksum',
+    unavailable: true,
+    statusNote: 'No v1.0.0 checksum object is present in R2.'
   },
 
   // DEPRECATED: Old broken polyglot book creator
   // Kept for backwards compatibility but redirects to v1.0.0
   'polyglot-book-creator-old': {
-    redirect: 'polyglot-book-creator',
+    unavailable: true,
     deprecated: true,
-    deprecationNote: 'Redirected to v1.0.0 - old version was broken'
+    deprecationNote: 'Historical route retired because no certified replacement artifact is present.'
   }
 };
 
@@ -55,11 +65,24 @@ const COUNTED_SLUG = 'caissa-book-creator';
 const COUNTED_DOWNLOAD_KEY = 'apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip';
 
 const DOWNLOAD_PATH_TO_SLUG = Object.entries(DOWNLOADS).reduce((acc, [slug, config]) => {
-  if (!config.deprecated && config.key) {
+  if (!config.deprecated && !config.unavailable && config.key) {
     acc[config.key] = slug;
   }
   return acc;
 }, {});
+
+function checksumHex(value) {
+  if (value instanceof ArrayBuffer) {
+    return Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  if (ArrayBuffer.isView(value)) {
+    return Array.from(
+      new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+      byte => byte.toString(16).padStart(2, '0')
+    ).join('');
+  }
+  return '';
+}
 
 // ============================================================================
 // CORS HELPER
@@ -170,13 +193,24 @@ async function handleDownload(slug, env, origin, method = 'GET', shouldCount = f
     return new Response(JSON.stringify({
       error: 'Download not found',
       slug,
-      availableSlugs: Object.keys(DOWNLOADS).filter(s => !DOWNLOADS[s].deprecated)
+      availableSlugs: Object.keys(DOWNLOADS).filter(s => !DOWNLOADS[s].deprecated && !DOWNLOADS[s].unavailable)
     }), {
       status: 404,
       headers: {
         'Content-Type': 'application/json',
         ...getCorsHeaders(origin)
       }
+    });
+  }
+
+  if (config.unavailable) {
+    return new Response(JSON.stringify({
+      error: 'Release artifact unavailable',
+      slug,
+      note: config.statusNote || config.deprecationNote || 'This catalog record is not an available release.'
+    }), {
+      status: 410,
+      headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
     });
   }
 
@@ -217,6 +251,27 @@ async function handleDownload(slug, env, origin, method = 'GET', shouldCount = f
       });
     }
 
+    const normalizedEtag = String(object.etag || '').replace(/^W\//, '').replace(/^"|"$/g, '');
+    const storedSha256 = checksumHex(object.checksums?.sha256).toLowerCase();
+    const sizeMatches = !config.expectedSize || Number(object.size) === Number(config.expectedSize);
+    const etagMatches = !config.expectedEtag || normalizedEtag === config.expectedEtag;
+    const sha256Matches = !config.sha256 || storedSha256 === config.sha256.toLowerCase();
+    if (!sizeMatches || !etagMatches || !sha256Matches) {
+      console.error('Release integrity metadata mismatch', {
+        slug,
+        expectedSize: config.expectedSize,
+        actualSize: object.size,
+        expectedEtag: config.expectedEtag,
+        actualEtag: normalizedEtag,
+        expectedSha256: config.sha256,
+        actualSha256: storedSha256 || null
+      });
+      return new Response(JSON.stringify({ error: 'Release integrity check failed', slug }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...getCorsHeaders(origin) }
+      });
+    }
+
     // Serve file with proper headers
     const headers = {
       'Content-Type': config.contentType,
@@ -226,6 +281,9 @@ async function handleDownload(slug, env, origin, method = 'GET', shouldCount = f
       'Cache-Control': 'public, max-age=31536000, immutable', // 1 year cache for versioned files
       ...getCorsHeaders(origin)
     };
+
+    if (config.sha256) headers['X-CAISSA-SHA256'] = config.sha256;
+    if (config.sha256Base64) headers.Digest = `sha-256=${config.sha256Base64}`;
 
     // Add version header if available
     if (config.version) {
@@ -266,7 +324,7 @@ async function handleCatalog(origin) {
   const catalog = {};
 
   for (const [slug, config] of Object.entries(DOWNLOADS)) {
-    if (config.deprecated) continue; // Skip deprecated entries
+    if (config.deprecated || config.unavailable) continue;
 
     catalog[slug] = {
       filename: config.filename,
@@ -275,6 +333,8 @@ async function handleCatalog(origin) {
       downloadUrl: `/download/${slug}`,
       contentType: config.contentType
     };
+    if (config.sha256) catalog[slug].sha256 = config.sha256;
+    if (config.expectedSize) catalog[slug].size = config.expectedSize;
   }
 
   return new Response(JSON.stringify(catalog, null, 2), {
@@ -621,13 +681,6 @@ async function handleGameSearchLine(url, env, origin) {
   });
 }
 
-function getTier(url, request) {
-  const fromQuery = String(url.searchParams.get('tier') || '').toLowerCase();
-  const fromHeader = String(request.headers.get('x-caissa-tier') || '').toLowerCase();
-  if (fromQuery === 'premium' || fromHeader === 'premium') return 'premium';
-  return 'free';
-}
-
 async function getOpeningDbGamesObject(env, key) {
   const bucket = env.OPENINGDB_BUCKET || env.VAULT_BUCKET;
   if (!bucket) return null;
@@ -931,6 +984,22 @@ async function handleOpeningDbGamesDownloadZip(request, path, url, env, origin) 
     });
   }
 
+  // The browser does not expose ZIP generation, and this public route has no
+  // durable rate or concurrency budget. Retire it before reading the request
+  // body or touching R2 so anonymous callers cannot trigger buffered exports.
+  return new Response(JSON.stringify({
+    error: 'OpeningDB ZIP export is retired',
+    note: 'Use the bounded individual game links returned by the download endpoint.'
+  }), {
+    status: 410,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      ...getCorsHeaders(origin, { allowPost: true })
+    }
+  });
+
+
   const startedAt = Date.now();
   const version = String(m[1]);
   let body = {};
@@ -948,9 +1017,11 @@ async function handleOpeningDbGamesDownloadZip(request, path, url, env, origin) 
     });
   }
 
-  const tier = getTier(url, request);
-  const cap = tier === 'premium' ? 200 : 10;
-  const sizeCapBytes = tier === 'premium' ? 80 * 1024 * 1024 : 15 * 1024 * 1024;
+  // This public endpoint has no verified entitlement context. Never accept a
+  // workload tier from a query parameter or caller-controlled header.
+  const tier = 'public';
+  const cap = 10;
+  const sizeCapBytes = 15 * 1024 * 1024;
   const asked = Number.parseInt(String(body.limit || cap), 10);
   const finalLimit = Number.isFinite(asked) && asked > 0 ? Math.min(asked, cap) : cap;
   const filters = parseDownloadFilters(body.filters);
@@ -1087,8 +1158,8 @@ async function handleOpeningDbGamesDownload(request, path, url, env, origin) {
     });
   }
 
-  const tier = getTier(url, request);
-  const maxByTier = tier === 'premium' ? 200 : 10;
+  const tier = 'public';
+  const maxByTier = 10;
   const asked = Number.parseInt(String(body.limit || maxByTier), 10);
   const limit = Number.isFinite(asked) && asked > 0 ? Math.min(asked, maxByTier) : maxByTier;
 
@@ -1115,7 +1186,7 @@ async function handleOpeningDbGamesDownload(request, path, url, env, origin) {
     count: urls.length,
     maxAllowed: maxByTier,
     urls,
-    upgradeMessage: tier === 'free' && ids.length > limit ? 'Upgrade to Premium to download more games.' : null
+    upgradeMessage: ids.length > limit ? 'Additional results are not available from the public download endpoint.' : null
   }), {
     status: 200,
     headers: { 'Content-Type': 'application/json', ...getCorsHeaders(origin) }
@@ -1144,7 +1215,7 @@ async function handleRequest(request, env) {
   if (path === '/health' || path === '/') {
     return new Response(JSON.stringify({
       ok: true,
-      service: 'CAISSA Vault Downloads',
+      service: 'CAISSA Downloads',
       version: '1.0.0',
       timestamp: new Date().toISOString()
     }), {

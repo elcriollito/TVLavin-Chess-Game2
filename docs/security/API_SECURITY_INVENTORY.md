@@ -1,5 +1,7 @@
 # API Security Inventory
 
+Candidate update (2026-11-08): the Polyglot API is a body-independent `410 Gone` tombstone. Normal conversion runs on-device in a Web Worker with an independently enforced 25 MiB transfer ceiling.
+
 | Endpoint | AuthN/AuthZ | Validation/limits | Rate limit | Ownership / outbound behavior | Assessment |
 | --- | --- | --- | --- | --- | --- |
 | `/api/checkout/session` | Clerk Bearer | Allowlisted type/plan/package; server price IDs | 5/10m/user, in-memory | Caller Clerk ID stored in Stripe metadata | Partial; proxy-derived base URL and non-distributed limiter need hardening. |
@@ -9,7 +11,7 @@
 | `/api/library/push` | Clerk Bearer | 200 items/category, weak field/size schemas | None | Forces caller `user_id` | No BOLA evidence; resource/data validation gaps. |
 | `/api/library/delete` | Clerk Bearer | Requires array; max 200 | None | Deletes by caller `user_id` + local ID | Ownership sound. |
 | `/api/mentor/chat` | Shared mode Clerk; BYO anonymous | 50 messages, 100k chars/message; weak types/aggregate/token/model/temp validation | Imported but not invoked | Shared mode atomically consumes through `consume_credits` before Together; four fixed providers; redirects rejected | SEC-006 remediated locally; anonymous resource/cost-control gaps remain. |
-| `/api/polyglot/build` | None | 25 MB PGN, filename/content validation, 90s build timeout | 8/10m/IP, in-memory | Local CPU/memory work | Public expensive operation; platform/distributed controls recommended. |
+| `/api/polyglot/build` | None | POST-only tombstone; body not read | N/A | No build work; directs clients to `/tools/polyglot` | Retired; returns `410 Gone`. |
 | `/api/public-auth-config` | None | GET only; response allowlist | None | Exposes publishable configuration only | Safe data class; reveals production development-instance selection. |
 | `/api/stripe/webhook` | Stripe signature | Raw body; event switch | Stripe delivery | Elevated premium/credit mutations | Signature sound; idempotency TOCTOU and fail-open. |
 | `/api/user/sync` | Clerk Bearer | Email weakly validated | None | Upsert keyed by caller Clerk ID | No cross-user write found; validate email and rate-limit. |

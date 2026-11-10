@@ -133,6 +133,15 @@ const CaissaNavigation = {
                 this.handleNavigationAction(event.currentTarget.dataset.navAction);
             });
         });
+        document.querySelectorAll('[data-legacy-help-action]').forEach(button => {
+            button.addEventListener('click', event => {
+                const action = event.currentTarget.dataset.legacyHelpAction;
+                const legacyHelpContent = document.getElementById('legacyHelpContent');
+                if (legacyHelpContent) legacyHelpContent.hidden = true;
+                if (action === 'mentor') this.openMentorPanel();
+                else if (action === 'play' || action === 'analyze') this.navigateToSection(action);
+            });
+        });
         window.CaissaI18n?.subscribe?.(() => {
             this.updateSectionName(this.currentSection);
         });

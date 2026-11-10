@@ -1,0 +1,54 @@
+{
+  "schema": "caissa-release-candidate-manifest/v1",
+  "project": "CAISSA Downloads & Polyglot Expansion",
+  "candidateDate": "2026-11-09",
+  "branch": "release/openingdb-hqa06-localization",
+  "baselineCommit": "ce9a5198a8d0618d32fa9c34c500267ad89efc85",
+  "originalCandidateCommit": "84c22940ff0cc23d3cb09c59ecf71b22255e670c",
+  "productionBaseCommit": "9c6c14c5fa813330e9fb8a78e777ce47e647467a",
+  "candidateCommitBinding": "the Git commit containing this manifest",
+  "productionAuthorized": true,
+  "newPortableArtifactProduced": false,
+  "online": {
+    "canonicalRoute": "/tools/polyglot",
+    "processing": "browser-web-worker",
+    "testedInputCeilingBytes": 26214400,
+    "serverBuildEndpoint": "410-gone"
+  },
+  "downloads": {
+    "canonicalRoute": "/downloads",
+    "legacyRoute": "/vault",
+    "portableCatalogState": "v0.3.1-coming-soon-no-download",
+    "historicalArtifactPromoted": false,
+    "existingArtifact": {
+      "name": "CAISSA-Book-Creator-v0.2.0-portable.zip",
+      "r2Key": "apps/caissa-book-creator/v0.2.0/CAISSA-Book-Creator-v0.2.0-portable.zip",
+      "bytes": 244203091,
+      "etag": "1c3e28de1490a11cf13e9f6453e396c7",
+      "sha256": "58e12d34644f223c905583318961c3d8dde33644445a78d750709a923ffa4b38",
+      "provenance": "blocked-source-not-found",
+      "authenticode": "unsigned",
+      "certification": "pending"
+    }
+  },
+  "publicRelease": {
+    "policy": "exact-path-and-sha256",
+    "manifest": "PUBLIC_RELEASE_ARTIFACT_MANIFEST.json",
+    "deploymentAllowlist": ".vercelignore",
+    "publicPathCount": 1772
+  },
+  "security": {
+    "recoveredBaselineScanId": "975a2ce9-51d8-4310-9e2e-7aaee8a3ab76",
+    "recoveredBaselineScanStatus": "complete",
+    "validatedFindings": 5,
+    "preRemediationScanId": "63b6562f-23cf-4b11-938b-3aa3937b2796",
+    "preRemediationFindings": 5,
+    "repositoryWideCandidateScanId": "35849a7c-8e1d-4ba1-af95-c49bc944e294",
+    "repositoryWideCandidateFindings": 7,
+    "productionDiffClassificationScanId": "1d2ac4d6-2715-47d0-8474-06a35ab9f181",
+    "productionDiffClassificationFindings": 0,
+    "candidateRemediationReview": "opening-single-flight-cache-event-proxy-admission-scanner-preauth-gate-independent-release-staging-walker-no-installed-cli-code-execution-and-symlink-containment-verified-locally",
+    "freshIntegrationScan": "required-against-the-exact-final-commit-before-deployment"
+  },
+  "releaseGate": "OWNER_AUTHORIZED_FRESH_SECURITY_SCAN_AND_EXACT_COMMIT_VALIDATION_REQUIRED"
+}

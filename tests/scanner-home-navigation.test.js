@@ -9,7 +9,7 @@ test('Scanner header exposes a semantic, direct Home link', async () => {
   const html = await read('scanner/index.html');
   assert.match(
     html,
-    /<a class="scanner-home-link" href="\/" aria-label="Go to CAISSA Chess homepage">[\s\S]*?<span>Home<\/span>[\s\S]*?<\/a>/
+    /<a class="scanner-home-link" href="\/" aria-label="Home — Go to CAISSA Chess homepage">[\s\S]*?<span>Home<\/span>[\s\S]*?<\/a>/
   );
   assert.doesNotMatch(html, /class="scanner-home-link"[^>]+(?:onclick|target)=/);
 });

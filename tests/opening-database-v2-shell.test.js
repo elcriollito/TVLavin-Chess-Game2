@@ -34,7 +34,8 @@ test('V2 preserves board dependencies, theme assets, and Quiet Drag integration'
 
 test('Explore rows are semantic controls with honest accessible WDL statistics', () => {
   assert.match(source, /<button class="openingdb-move-action"[^>]+data-move-index/);
-  assert.match(source, /aria-label="White wins \$\{wPct\.toFixed\(1\)\} percent, draws/);
+  assert.match(source, /openingdb\.wdlAria/);
+  assert.match(source, /White wins \$\{wPct\.toFixed\(1\)\} percent, draws/);
   assert.match(source, /No game-result statistics for this move/);
   assert.match(html, /legend-white[\s\S]*White[\s\S]*legend-draw[\s\S]*Draw[\s\S]*legend-black[\s\S]*Black/);
   assert.match(css, /--odb-win:\s*#[0-9a-f]+/i);

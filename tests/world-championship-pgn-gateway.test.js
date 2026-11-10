@@ -24,6 +24,7 @@ test('PGN gateway rejects arbitrary, malformed, and non-event inputs before fetc
       { kind: 'event', file: '../../secret.pgn' },
       { kind: 'event', file: 'Unknown2024.pgn' },
       { kind: 'player', file: 'WorldChamp2024.pgn' },
+      { kind: 'opening', file: 'Vienna.zip' },
       { kind: 'event', file: 'https://evil.example/file.pgn' }
     ]) {
       const res = responseRecorder();
@@ -33,6 +34,21 @@ test('PGN gateway rejects arbitrary, malformed, and non-event inputs before fetc
     }
     assert.equal(fetchCalls, 0);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('PGN gateway rejects cache aliases and duplicate query values before fetch', async () => {
+  let fetchCalls = 0;
+  const fetch = async () => { fetchCalls += 1; throw new Error('must not fetch'); };
+  for (const query of [
+    { kind: 'event', file: 'WorldChamp2024.pgn', nonce: 'unique' },
+    { kind: ['event', 'event'], file: 'WorldChamp2024.pgn' },
+    { kind: 'event', file: ['WorldChamp2024.pgn', 'WorldChamp2024.pgn'] }
+  ]) {
+    const response = responseRecorder();
+    await handler({ method: 'GET', query }, response, { fetch, rateLimiter: () => ({ allowed: true, remaining: 19 }) });
+    assert.ok([400, 404].includes(response.statusCode));
+  }
+  assert.equal(fetchCalls, 0);
 });
 
 test('PGN gateway fetches only the exact allowlisted upstream and returns inline PGN', async () => {
@@ -69,4 +85,15 @@ test('gateway does not expose a download method or accept oversized/invalid payl
     await handler({ method: 'GET', query: { kind: 'event', file: 'WorldChamp2024.pgn' } }, invalid);
     assert.equal(invalid.statusCode, 502);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('gateway aborts a body that exceeds the trusted declared length', async () => {
+  const pgn = '[Event "WCh"]\n[White "W"]\n[Black "B"]\n\n1. e4 *';
+  const response = responseRecorder();
+  await handler({ method: 'GET', query: { kind: 'event', file: 'WorldChamp2024.pgn' } }, response, {
+    fetch: async () => new Response(pgn, { status: 200, headers: { 'content-length': '4' } }),
+    rateLimiter: () => ({ allowed: true, remaining: 19 })
+  });
+  assert.equal(response.statusCode, 502);
+  assert.deepEqual(response.body, { error: 'PGN source unavailable' });
 });

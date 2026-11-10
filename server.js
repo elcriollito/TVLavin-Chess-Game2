@@ -20,8 +20,8 @@ import { renderBetaCenter, renderBetaDenied } from './api/_lib/beta-center-docum
 import { fetchLichessGames } from './api/_lib/lichess-games.js';
 import tablebaseHandler from './api/tablebase/standard.js';
 import onlineHandler from './api/online.js';
-import { worldChampionshipPgnCatalog } from './js/game-library/world-championship-pgn-catalog.js';
 import pgnOpeningHandler from './api/pgn/opening.js';
+import pgnMentorHandler from './api/pgn/pgnmentor.js';
 import { MODEL, expandPlacement, squareAt } from './scanner/beta/scanner-beta-contract.js';
 import { createScannerHandoff, scannerHandoffHeaders } from './api/_lib/scanner-handoff.js';
 
@@ -162,44 +162,8 @@ function handleHealthCheck(res) {
   }));
 }
 
-const PGN_MENTOR_EVENT_FILES = new Set(worldChampionshipPgnCatalog.map(entry => entry.file));
-const PGN_MENTOR_MAX_BYTES = 12 * 1024 * 1024;
-
-async function handlePgnMentorEvent(req, res, url) {
-  const file = url.searchParams.get('file');
-  const valid = url.searchParams.get('kind') === 'event'
-    && typeof file === 'string'
-    && /^[A-Za-z0-9][A-Za-z0-9._()-]{0,119}\.pgn$/.test(file)
-    && !file.includes('..') && !file.includes('/') && !file.includes('\\')
-    && PGN_MENTOR_EVENT_FILES.has(file);
-  const headers = { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow, noarchive' };
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.writeHead(405, { ...headers, Allow: 'GET, HEAD' }); res.end(JSON.stringify({ error: 'Method not allowed' })); return;
-  }
-  if (!valid) {
-    res.writeHead(404, headers); res.end(JSON.stringify({ error: 'Unknown PGN collection' })); return;
-  }
-  try {
-    const upstream = await fetch(`https://www.pgnmentor.com/events/${encodeURIComponent(file)}`, {
-      method: req.method === 'HEAD' ? 'HEAD' : 'GET', redirect: 'follow',
-      headers: { 'User-Agent': 'CAISSA-Chess-PGN-Gateway/1.0 (+https://www.caissa-chess.org/)', Accept: 'application/x-chess-pgn, text/plain;q=0.9, */*;q=0.1' }
-    });
-    if (!upstream.ok || Number(upstream.headers.get('content-length') || 0) > PGN_MENTOR_MAX_BYTES) throw new Error('Source unavailable');
-    if (req.method === 'HEAD') {
-      res.writeHead(200, { 'Content-Type': 'application/x-chess-pgn; charset=utf-8', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow, noarchive' });
-      res.end(); return;
-    }
-    const body = Buffer.from(await upstream.arrayBuffer());
-    if (body.byteLength > PGN_MENTOR_MAX_BYTES || !body.includes(Buffer.from('[Event ')) || !body.includes(Buffer.from('[White ')) || !body.includes(Buffer.from('[Black '))) throw new Error('Invalid PGN');
-    res.writeHead(200, { 'Content-Type': 'application/x-chess-pgn; charset=utf-8', 'Content-Disposition': `inline; filename="${file}"`, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow, noarchive', 'X-CAISSA-PGN-Source': 'pgnmentor-event' });
-    res.end(body);
-  } catch {
-    res.writeHead(502, headers); res.end(JSON.stringify({ error: 'PGN source unavailable' }));
-  }
-}
-
-async function handlePgnOpening(req, res, url) {
-  const adapter = {
+function serverlessAdapter(res) {
+  return {
     setHeader(name, value) { res.setHeader(name, value); },
     status(code) { res.statusCode = code; return this; },
     json(value) {
@@ -210,8 +174,25 @@ async function handlePgnOpening(req, res, url) {
     send(value) { res.end(value); return this; },
     end() { res.end(); return this; }
   };
-  req.query = Object.fromEntries(url.searchParams.entries());
-  await pgnOpeningHandler(req, adapter);
+}
+
+function queryFromSearchParams(searchParams) {
+  const query = {};
+  for (const key of new Set(searchParams.keys())) {
+    const values = searchParams.getAll(key);
+    query[key] = values.length === 1 ? values[0] : values;
+  }
+  return query;
+}
+
+async function handlePgnMentorEvent(req, res, url) {
+  req.query = queryFromSearchParams(url.searchParams);
+  await pgnMentorHandler(req, serverlessAdapter(res));
+}
+
+async function handlePgnOpening(req, res, url) {
+  req.query = queryFromSearchParams(url.searchParams);
+  await pgnOpeningHandler(req, serverlessAdapter(res));
 }
 
 // ============================================================================
@@ -633,6 +614,27 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static file serving
+  if (pathname === '/api/polyglot/build') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Deprecation', 'true');
+    res.setHeader('Link', '</tools/polyglot>; rel="alternate"');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200);
+      res.end();
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.writeHead(405);
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
+      return;
+    }
+    res.writeHead(410);
+    res.end(JSON.stringify({
+      error: 'The server-side Polyglot builder is retired. Use the private on-device converter at /tools/polyglot.'
+    }));
+    return;
+  }
   if (pathname === '/api/public-auth-config') {
     if (req.method !== 'GET') {
       res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -646,6 +648,11 @@ const server = http.createServer(async (req, res) => {
   const retiredDestination = RETIRED_PAGE_REDIRECTS.get(pathname.replace(/\/$/, ''));
   if (retiredDestination && (req.method === 'GET' || req.method === 'HEAD')) {
     res.writeHead(308, { Location: retiredDestination });
+    res.end();
+    return;
+  }
+  if (pathname === '/vault' || pathname === '/vault/' || pathname === '/vault.html') {
+    res.writeHead(308, { Location: '/downloads', 'Cache-Control': 'public, max-age=3600' });
     res.end();
     return;
   }
@@ -670,8 +677,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/help' || pathname === '/help/') {
     filePath = './help.html';
   }
-  if (pathname === '/vault' || pathname === '/vault/') {
-    filePath = './vault.html';
+  if (pathname === '/downloads' || pathname === '/downloads/') {
+    filePath = './downloads.html';
   }
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';

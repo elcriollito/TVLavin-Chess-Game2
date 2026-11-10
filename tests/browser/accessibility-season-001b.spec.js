@@ -27,13 +27,13 @@ test('Chess Gym tabsets support roving focus, Home, End, and retain selected sta
 
 test('Opening Database exposes operable tabs and an assertive FEN error', async ({ page }) => {
   await page.goto('/opening-database');
-  const moves = page.getByRole('tab', { name: 'Moves', exact: true });
-  await moves.focus();
+  const explorer = page.getByRole('tab', { name: 'Explorer', exact: true });
+  await explorer.focus();
   await page.keyboard.press('End');
-  await expect(page.getByRole('tab', { name: 'Search Games', exact: true })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Moves', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Input FEN' }).click();
   await page.locator('#odbFenInput').fill('not a fen');
-  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await page.getByRole('button', { name: 'Load position', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
 });
 

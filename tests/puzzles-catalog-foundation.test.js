@@ -45,11 +45,11 @@ test('full catalog category totals and selected rating counts do not use curated
 
 test('the full Lichess archive and generated catalogs are excluded from Git and Vercel', () => {
     const gitignore = read('../.gitignore');
-    const vercelignore = read('../.vercelignore');
+    const publicPaths = JSON.parse(read('../PUBLIC_RELEASE_ARTIFACT_MANIFEST.json')).files.map(item => item.path);
     for (const pattern of ['*.zst', '*.sqlite3']) {
         assert.match(gitignore, new RegExp(pattern.replaceAll('*', '\\*').replaceAll('.', '\\.')));
-        assert.match(vercelignore, new RegExp(pattern.replaceAll('*', '\\*').replaceAll('.', '\\.')));
     }
+    assert.equal(publicPaths.some(path => /\.(?:zst|sqlite3)$/i.test(path)), false);
     assert.doesNotMatch(read('../vercel.json'), /lichess_db_puzzle[.]csv/);
 });
 

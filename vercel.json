@@ -66,7 +66,10 @@
     { "source": "/database", "destination": "/eco", "permanent": true },
     { "source": "/database/", "destination": "/eco", "permanent": true },
     { "source": "/database/eco/:code", "destination": "/eco/:code", "permanent": true },
-    { "source": "/database/eco/:code/", "destination": "/eco/:code", "permanent": true }
+    { "source": "/database/eco/:code/", "destination": "/eco/:code", "permanent": true },
+    { "source": "/vault", "destination": "/downloads", "permanent": true },
+    { "source": "/vault/", "destination": "/downloads", "permanent": true },
+    { "source": "/vault.html", "destination": "/downloads", "permanent": true }
   ],
   "rewrites": [
     { "source": "/", "destination": "/home.html" },
@@ -99,7 +102,8 @@
     { "source": "/gif-maker/", "destination": "/gif-maker.html" },
     { "source": "/library", "destination": "/library.html" },
     { "source": "/premium", "destination": "/premium.html" },
-    { "source": "/vault", "destination": "/vault.html" },
+    { "source": "/downloads", "destination": "/downloads.html" },
+    { "source": "/downloads/", "destination": "/downloads.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/help", "destination": "/help.html" },
     { "source": "/roadmap", "destination": "/roadmap.html" },
