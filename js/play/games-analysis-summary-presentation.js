@@ -134,7 +134,6 @@
         root.document.body.classList.add('caissa-games-analysis-active');
         ui.newGame.addEventListener('click', () => {
             if (!mounted || ui.newGame.disabled) return; ui.newGame.disabled = true;
-            root.CaissaPlayV2InlineAnalyze?.close?.();
             Promise.resolve(root.CaissaPostGameExperienceInstance?.execute?.('new-game')).catch(() => {});
         });
         ui.review.addEventListener('click', () => {

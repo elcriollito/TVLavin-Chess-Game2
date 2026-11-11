@@ -35,11 +35,8 @@ test('all effective Play CSP sources allow only self and Blob Workers', () => {
 
     const server = read('server.js');
     assertPlayPolicy(server.match(/const PLAY_V2_CSP = "([^"]+)"/)?.[1] || '', 'local server Play response');
-    const diagnostic = server.match(/const PLAY_V2_DIAGNOSTIC_CSP = "([^"]+)"/)?.[1] || '';
-    assert.deepEqual(directives(diagnostic).filter(value => value.startsWith('worker-src ')), [expectedWorkerDirective]);
 
-    for (const file of ['play-v2.html', 'play-v2-public-beta.html', 'play-v2-promotion-qa.html',
-        'play-v2-ipad-analyze-diagnostic.html']) {
+    for (const file of ['play-v2.html', 'play-v2-public-beta.html', 'play-v2-promotion-qa.html']) {
         assertPlayPolicy(metaCsp(read(file)), `${file} meta policy`);
     }
 

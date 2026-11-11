@@ -5,7 +5,7 @@
 > Repositorio: `elcriollito/TVLavin-Chess-Game2`<br>
 > Ruta canónica del Analyzer: **`/analyze`**<br>
 > Elaborado: **2026-10-30**<br>
-> Estado documentado: **hotfix de aplicación `44e557c0` preparado, Human QA aprobado (6/6) y release readiness verificado; merge, push y producción NO autorizados ni ejecutados**. Esta versión del runbook se añade en un commit de documentación posterior, sin cambiar la identidad del código de aplicación aprobado.
+> Estado documentado: **candidato local derivado de `be952ff6` sobre `origin/main` `dea4181466389d3defd18f26b7f99a5bf8441ce1`, en `codex/retire-play-inline-analyzer`; Human QA final `Chrome PASS · iPhone PASS · iPad PASS` registrada el 2026-11-11 y corrección local del arranque de Coach por HTTP LAN incorporada; push, PR, merge y deploy NO ejecutados**.
 
 ## 0. Leer primero — reglas de recuperación
 
@@ -13,7 +13,7 @@
 2. **NO eliminar `#analyzeSection`, `AnalyzeSection`, los módulos PGN/RAV ni el motor compartido.** La versión moderna conserva IDs y dependencias históricas.
 3. **NO copiar el shell moderno dentro del documento Play.** Play y Analyzer usan documentos HTML diferentes en producción.
 4. **NO tratar una URL cambiada con `history.pushState` como navegación entre documentos.** Para salir desde el documento dedicado Play hay que abrir el documento real `/analyze`.
-5. **NO borrar todavía el Analyzer antiguo embebido en Play.** Su retiro es una operación posterior y separada de la corrección de navegación.
+5. **El Analyzer antiguo embebido ya no forma parte de los documentos Play dedicados.** No reintroducir su plantilla, controlador, estilos overlay ni lazy-load `analyze-deep`; conservar el Analyzer moderno de `index.html` y sus consumidores legítimos.
 6. Antes de publicar: comparar contra `main` actual, comprobar artefactos generados, repetir QA relevante, preparar rollback y obtener autorización explícita del propietario.
 
 Este documento consolida **dos auditorías de Codex y sus reportes posteriores de implementación/QA** proporcionados por el propietario. No sustituye comprobar el estado actual de GitHub, del worktree y de Vercel antes de intervenir.
@@ -31,7 +31,9 @@ Este documento consolida **dos auditorías de Codex y sus reportes posteriores d
 | Human QA del propietario | **6/6 PASS** para Game, Bots, Coach, selección de nivel, Back y móvil |
 | Release readiness | **VERIFICADO / GO para PR y staging controlado**; autorización de producción todavía pendiente |
 | Producción del hotfix | **PENDIENTE**: no merge, push ni deploy al cierre de los reportes |
-| Retiro del Analyzer embebido | **NO IMPLEMENTADO / NO AUTORIZADO** |
+| Baseline del retiro | `dea4181466389d3defd18f26b7f99a5bf8441ce1` (`origin/main`, verificado el 2026-11-10) |
+| Rama local del retiro | `codex/retire-play-inline-analyzer` |
+| Retiro del Analyzer embebido | **IMPLEMENTADO Y VERIFICADO LOCALMENTE / QA HUMANO PENDIENTE / NO PUBLICADO** |
 
 **Importante:** SHA de `main` y despliegue son un *punto de referencia histórico*, no afirmaciones sobre el HEAD actual. Actualizar esta tabla únicamente con pruebas verificadas. No confundir el QA del candidato con un despliegue publicado.
 
@@ -101,7 +103,7 @@ Si después de pulsar Analyze desde Play aparece la segunda disposición, **diag
 ### Documentos y middleware
 
 - `middleware.js` (auditoría: líneas 119–132) intercepta `/play/*` y sirve `PLAY_V2_PUBLIC_BETA_DOCUMENT`.
-- El documento Play se genera a partir de plantillas (`play-v2-public-beta.html` y export del middleware), y **contiene todavía un Analyzer embebido heredado**.
+- El documento Play se genera con `scripts/build-play-v2.mjs`; el HTML público y su export del middleware **omiten por contrato cualquier DOM, controlador o shell Analyzer**.
 - `/analyze` abre `index.html`, que **sí** incluye el markup moderno, `css/analyze-v2-shell.css` y `js/analyze-v2-shell.js`.
 - `vercel.json` hace el **rewrite SPA normal** de `/analyze` a `index.html`. **No es una redirección al Analyzer antiguo** y debe conservarse.
 
@@ -139,7 +141,7 @@ En lugar de mostrar el workspace moderno V2 se abría la estructura visual hered
 
 - `js/caissa-navigation.js`: detecta **solo** el documento dedicado Play oficial y usa `location.assign('/analyze?handoff=…')`.
 - `js/play/post-game-core.js`: evita cargar innecesariamente el bundle Analyzer viejo antes de abandonar Play.
-- La navegación SPA del `index.html` principal y los caminos QA-only inline **no se cambian**.
+- La navegación SPA del `index.html` principal no se cambia. Las entradas Play dedicadas `official` y `qa-only` salen mediante navegación real a `/analyze`; el Analyzer general sigue siendo SPA y sin token cuando no existe handoff.
 - Contrato de handoff, propietario Stockfish y módulos V2 **no se reconstruyen**.
 - `css/play-coach-review.css`: resaltado verde del nivel elegido sin incrementar tipografía.
 - Actualización de versionado/cache keys, regeneración de documentos Play y pruebas de regresión.
@@ -243,28 +245,49 @@ Los PASS anteriores describen el **candidato aislado probado localmente**, no un
 
 **No confundir un test `HTTP 200` con una garantía de que se ha cargado el shell correcto.** Comprobar markup y estado inicializado.
 
-## 8. Retiro del legado — temporada separada, todavía NO aprobada
+## 8. Retiro del legado — candidato local 2026-11-10
 
-**Objetivo posterior:** que la única experiencia Analyzer accesible desde Play sea `/analyze`, sin fragmentos heredados que vuelvan a activarse accidentalmente.
+El candidato local elimina del documento Play la plantilla `templates/play-v2-inline-analyze-section.html`, el controlador `js/play/play-v2-inline-analyze.js`, sus selectores overlay exclusivos y la carga `analyze-deep`. `scripts/build-play-v2.mjs` contiene guardas que hacen fallar la generación si reaparecen DOM, controlador o shell V2 de Analyzer. Los documentos Play y `api/_lib/play-v2-public-beta-document.js` se regeneran únicamente desde ese generador.
 
-Candidatos propuestos por auditoría/implementación; verificar consumidores primero:
+Los consumidores auditados de Games, Bots y Coach conservan sus modelos de resumen y Guided Review; se retiraron solamente las llamadas opcionales de cierre al controlador eliminado. El PostGame crea un único token opaco y navega una sola vez a `/analyze?handoff=<token>`. Un latch evita que un doble clic síncrono cree un segundo handoff y se restablece al volver por BFCache.
 
-1. `templates/play-v2-inline-analyze-section.html` (markup de la sección embebida).
-2. `js/play/play-v2-inline-analyze.js` (controlador Play-only, sujeto a auditoría de dependencias).
-3. CSS exclusivamente scoped bajo `.caissa-play-v2-inline-analyze` en `css/play-simplified-shell.css`.
-4. Inyección de plantilla/scripts de legado en `scripts/build-play-v2.mjs`.
-5. Regenerar `play-v2.html`, beta/public/QA y `api/_lib/play-v2-public-beta-document.js` con **generadores existentes**.
-6. Actualizar pruebas de rutas y expectativas de Analyzer inline: `play-v2-inline-analyze-containment.spec.js`, `play-routing.spec.js`, `play-v2-product-boundary.spec.js`, `play-post-game-exits.spec.js`.
-7. Revisar enlaces históricos `/?section=analyze` y mantener/redirigir hacia `/analyze` **preservando handoff** cuando exista.
+También se retiró el diagnóstico interno de iPad que dependía del overlay. Sus rutas y el documento directo fallan cerrados incluso si se presentan las variables históricas de habilitación. Promotion QA se conserva.
 
-**No eliminar sin auditoría:** `AnalyzeSection`, `analyze-handoff.js`, `analyze-v2-shell.*`, variaciones PGN/RAV, Game Review, Move Evidence, estilos `.analyze-*` compartidos, ni dependencias que siguen usando Coach/Bots/FICS/PGN Reader.
+La URL histórica `/?section=analyze&handoff=...` **no se modifica ni se adopta como ruta Play** en este retiro. En la comprobación local del 2026-11-10, el servidor entregó `index.html` con HTTP 200, conservó literalmente esa URL y, con un token de prueba inválido, no activó `#analyzeSection` ni el shell V2: falló cerrada sin redirección. La salida soportada desde los documentos Play dedicados es `/analyze?handoff=...`; la navegación general a Analyze sin partida usa `/analyze` sin token.
 
-**Secuencia obligatoria:** hotfix publicado y smoke PASS → inventario de consumidores → PR de limpieza separado → QA → aprobación humana → despliegue.
+**Protección permanente:** no eliminar `AnalyzeSection`, `analyze-handoff.js`, `analyze-v2-shell.*`, variaciones PGN/RAV, Game Review, Move Evidence, estilos `.analyze-*` compartidos ni dependencias de FICS/PGN Reader. Esos elementos pertenecen al Analyzer moderno de `index.html` o a consumidores legítimos, no al overlay retirado.
+
+### Human QA final y corrección de Coach por HTTP LAN — 2026-11-11
+
+El propietario probó el candidato desde Safari físico en iPhone y tablet contra el servidor LAN. Solo se registran como Human QA PASS los comportamientos que confirmó expresamente:
+
+| Flujo físico | Estado | Evidencia del propietario |
+| --- | --- | --- |
+| Game → Analyzer V2 | **PASS** | Abre Analyzer V2 directamente, sin destello de la página antigua. |
+| Bots → Analyzer V2 | **PASS** | Abre Analyzer V2 directamente, sin destello de la página antigua. |
+| Coach → botón naranja Play | **PASS** | Play inicia la partida y permitió jugar. |
+| Coach → Review Game → Analyzer V2 | **PASS** | Confirmado en Chrome, iPhone Safari e iPad Safari; abre V2 sin destello heredado y conserva la partida. |
+| Analyzer V2 → Atrás → Coach | **PASS** | Confirmado en Chrome, iPhone Safari e iPad Safari; vuelve a Coach sin iniciar otra partida ni duplicar el tablero. |
+
+Certificación final comunicada por el propietario: **`Chrome PASS · iPhone PASS · iPad PASS`**.
+
+Durante esa QA, `be952ff6` cargaba `/play/coach` por la IP LAN pero Play no iniciaba. La reproducción en Chromium de escritorio contra `http://192.168.1.251:8000` descartó un fallo exclusivo de Safari: el toque/clic llegaba al botón y Stockfish terminaba `ready=true`, pero el flujo se detenía antes de `startNewGame`. `http://localhost:8000` sí funcionaba porque es un contexto confiable.
+
+La causa fue `coach-entitlement-client.js`: `consume()` exigía `crypto.randomUUID()` antes de aplicar el acceso temporal de preview abierto. Los navegadores no exponen `randomUUID` en el origen HTTP LAN no seguro. Los blobs del cliente de entitlement, panel, adaptador y worker eran idénticos entre el baseline `dea4181` y `be952ff6`; por tanto, era un defecto preexistente descubierto por esta QA, no una regresión del retiro del Analyzer.
+
+La corrección local mínima adelanta el cortocircuito de preview abierto antes de crear el UUID. No altera la ruta autenticada/premium, que conserva su clave de idempotencia. Se incrementaron las claves de caché del cliente y del registro de carga para impedir que Safari reutilice el runtime anterior. La verificación automatizada confirmó:
+
+- Play inicia con motor listo por IP LAN en Chromium, WebKit iPhone y WebKit iPad aunque `crypto.randomUUID` no exista.
+- En WebKit iPhone/iPad por IP LAN: Play → `e4` → respuesta del motor → narración de Coach → Review Game → `/analyze?handoff=…`; Analyzer V2 queda listo y no aparece el Analyzer heredado.
+- Las pruebas focalizadas de handoff oficial para Game, Bots y Coach, navegación fría, ausencia del Analyzer heredado y Back/Forward obtuvieron **21 PASS / 1 SKIP esperado** en Chromium y WebKit.
+- Los contratos focalizados de Coach/postgame obtuvieron **43/43 PASS** y la auditoría pública de artefactos obtuvo PASS.
+
+**Estado de publicación:** Human QA solicitada completada; candidato local en **HOLD**. No se autoriza push, PR, merge ni deploy desde este runbook.
 
 ## 9. Riesgos y asuntos fuera de alcance
 
 - En el documento Play se reportaron advertencias CSP de **Clerk** relacionadas con `https://clerk.caissa-chess.org`; seguimiento **separado** de autenticación, salvo regresión introducida por el hotfix.
-- Los controladores de Coach/Bots pueden depender de hooks inline de review aunque el destino final ya sea canónico.
+- Los modelos de resumen y Guided Review de Coach/Bots siguen dependiendo de contratos de `AnalyzeSection` en el documento Analyzer; no dependen ya del controlador inline retirado.
 - El Analyzer, FICS y el PGN Reader comparten contratos de handoff y componentes: cualquier limpieza necesita búsqueda de referencias completa.
 - Evitar limpiar worktrees históricos, reflogs, guard refs o snapshots de recuperación sin una operación de higiene expresamente aprobada.
 - Para diagnóstico, usar URL/estado sin exponer handoff tokens reales, sesiones o datos sensibles en reportes públicos.
@@ -281,6 +304,7 @@ Candidatos propuestos por auditoría/implementación; verificar consumidores pri
 | Upgrade PGN/RAV | 2026-09-30 | `b134135f3aba95491c26acba8ef460a9c142268e`; merge PR **#36** `2bef6d2` | PGN múltiple, variaciones, Flip, tipografía |
 | Producción auditada | 2026-10-28 | `f8bf140f4b7d4779bce7e5167e3632ce866cf4aa` | Analyzer moderno V2 incluido en `main` |
 | Hotfix Play → V2 + Coach verde | 2026-10-30 | `44e557c062ac580fad28b1d642ed764df0d07888` | Candidato aislado, 6/6 Human QA PASS; **no publicado aún** |
+| Retiro del Analyzer embebido | 2026-11-10 | baseline `dea4181466389d3defd18f26b7f99a5bf8441ce1`; rama `codex/retire-play-inline-analyzer` | Candidato local; SHA final se registra en el handoff, sin push/PR/merge/deploy |
 
 PRs clave:
 

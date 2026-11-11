@@ -2,13 +2,15 @@
 
 ## P3.1-002 / P3.1-003 scope
 
-Coach Review is an isolated presentation context inside the existing inline `/play/coach` Analyze handoff. It is not a route, chess session, analysis pipeline, or replacement for `AnalyzeSection`.
+Coach Review is an isolated presentation context consumed by the canonical `/analyze` document after a completed `/play/coach` handoff. It is not a route, chess session, analysis pipeline, or replacement for `AnalyzeSection`.
 
-The context is admitted only when `post-game-core` creates a review request from a completed game whose Play shell mode is `coach`. `play-v2-inline-analyze` validates that context before mounting the Coach Review header and Coach-scoped layout class. Games, Bots, generic Analyze, malformed contexts, and direct Analyze entry do not mount the presentation. Closing inline Analyze unmounts the presentation and removes its Coach-only classes and data attributes.
+`post-game-core` creates one completed-game handoff and performs a real document navigation to `/analyze?handoff=<opaque-token>`. The retired `play-v2-inline-analyze` controller no longer admits or mounts this context inside Play. Games, Bots, generic Analyze, malformed contexts, and direct Analyze entry without a Coach handoff do not mount the Coach presentation. Analyzer lifecycle cleanup unmounts the presentation and removes its Coach-only classes and data attributes.
 
 `AnalyzeSection.currentMoveIndex` remains the sole authoritative review ply. The presentation owns no move index, chess state, board, engine, evaluation, PGN, FEN, legal-move logic, score, classification, entitlement, persistence, authentication, or backend behavior.
 
 The existing classification vocabulary is unchanged. This milestone does not introduce or render Brilliant, Great, or Miss counts.
+
+The Coach summary/model and Guided Review presentation modules remain legitimate consumers of the authoritative Analyzer state. Their retention does not authorize Analyzer DOM, controller, or `analyze-deep` assets in dedicated Play documents.
 
 ## Deferred Guided Review boundary
 

@@ -34,8 +34,6 @@
 /public/*
 !/scanner
 /scanner/*
-!/templates
-/templates/*
 !/worker
 /worker/*
 !/api/_lib
@@ -908,7 +906,6 @@
 !/css/play-native-mentor-review.css
 !/css/play-simplified-shell.css
 !/css/play-v2-invite.css
-!/css/play-v2-physical-ipad-analyze-diagnostic.css
 !/css/play-v2-physical-promotion-qa.css
 !/css/play-visual-components.css
 !/css/play-visual-tokens.css
@@ -1332,17 +1329,12 @@
 !/js/play/play-v2-coach-boundary.js
 !/js/play/play-v2-fics-isolation.js
 !/js/play/play-v2-identity-policy.js
-!/js/play/play-v2-inline-analyze.js
 !/js/play/play-v2-invite-client.js
 !/js/play/play-v2-invite-policy.js
 !/js/play/play-v2-invite-redemption.js
 !/js/play/play-v2-mentor-review-boundary.js
 !/js/play/play-v2-mode-transition-policy.js
 !/js/play/play-v2-native-players-policy.js
-!/js/play/play-v2-physical-ipad-analyze-diagnostic-boot.js
-!/js/play/play-v2-physical-ipad-analyze-diagnostic-gate.js
-!/js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js
-!/js/play/play-v2-physical-ipad-analyze-diagnostic.js
 !/js/play/play-v2-physical-promotion-qa-boot.js
 !/js/play/play-v2-physical-promotion-qa-gate.js
 !/js/play/play-v2-physical-promotion-qa-harness.js
@@ -1546,7 +1538,6 @@
 !/pgn/world-champions/Kasparov_Garry/kasparov-topalov-1999.pgn
 !/pgn/world-champions/Tal_Mikhail/tal-smyslov-1959.pgn
 !/play-v2-invite.html
-!/play-v2-ipad-analyze-diagnostic.html
 !/play-v2-promotion-qa.html
 !/play-v2-public-beta.html
 !/play-v2-unavailable.html
@@ -2252,7 +2243,6 @@
 !/signup.html
 !/stockfish-worker.js
 !/styles.css
-!/templates/play-v2-inline-analyze-section.html
 !/vault.html
 !/vercel.json
 !/worker/stats-worker.js

@@ -16,7 +16,6 @@ const legacyShells = [
     'play-v2.html',
     'play-v2-public-beta.html',
     'play-v2-promotion-qa.html',
-    'play-v2-ipad-analyze-diagnostic.html',
     'yahoo-classic.html'
 ].map(file => ({ file, source: fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8') }));
 

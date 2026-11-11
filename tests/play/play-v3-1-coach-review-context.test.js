@@ -107,15 +107,11 @@ test('presentation rejects Games and Bots evidence', () => {
     }
 });
 
-test('boundary integration starts the existing lifecycle once and keeps review ply ownership in AnalyzeSection', () => {
+test('canonical Analyze retirement preserves Coach summary and Guided Review consumers', () => {
     const postGame = read('js/play/post-game-core.js');
-    const inline = read('js/play/play-v2-inline-analyze.js');
     const presentation = read('js/play/native-coach/coach-review-presentation.js');
-    assert.match(postGame, /sourceMode[\s\S]*CaissaCoachReviewContext\?\.create/);
-    assert.match(inline, /reviewPresentation\.mount\(\{ section, host: phaseHost, close: closeButton,[\s\S]*context: input\.reviewContext, handoff: resolved\.value \}\)/);
-    assert.match(inline, /if \(!embeddedReview && playSection\)[\s\S]*playSection\.inert = true/);
-    assert.match(inline, /if \(embeddedReview\)[\s\S]*reviewPresentation\.mount[\s\S]*else \{[\s\S]*section\.classList\.add\('active', 'caissa-play-v2-inline-analyze'\)/);
-    assert.match(inline, /AnalyzeSection\.onEnter[\s\S]*reviewPresentation\?\.begin\?\.\(\{ analyze: root\.AnalyzeSection \}\)/);
+    assert.equal(fs.existsSync(`${root}/js/play/play-v2-inline-analyze.js`), false);
+    assert.match(postGame, /navigateToSection\?\.\('analyze',[\s\S]*handoffToken:\s*handoff\.value\.token/);
     assert.match(presentation, /createSummaryStructure\(\)/);
     assert.match(presentation, /phase: 'review-summary', content: summary\.panel,[\s\S]*foot: summary\.foot/);
     assert.match(presentation, /foot\.append\(newGame, action\)/);
@@ -123,6 +119,7 @@ test('boundary integration starts the existing lifecycle once and keeps review p
     assert.match(presentation, /summary\.newGame\.addEventListener\('click',[\s\S]*startNewGame\(summary\.newGame\)/);
     assert.match(presentation, /mounted\.analyze\?\.currentMoveIndex !== -1[\s\S]*mounted\.analyze\?\.jumpToMove\?\.\(-1\)/);
     assert.match(presentation, /CaissaPostGameExperienceInstance\?\.execute\?\.\('new-game'\)/);
+    assert.doesNotMatch(presentation, /CaissaPlayV2InlineAnalyze/);
     assert.doesNotMatch(presentation, /caissa-coach-review-summary__header|caissa-coach-review-summary__eyebrow|caissa-coach-review-summary__title|Back to game result/);
     assert.doesNotMatch(presentation, /section\.querySelector\('\.analyze-board-navigation'\)|navigationState/);
     assert.doesNotMatch(presentation, /contextPanel\.append|tabsState|caissa-coach-review-context/);

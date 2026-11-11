@@ -460,7 +460,6 @@
         if (!mounted || button?.disabled) return;
         button.disabled = true;
         if (mounted.analyze?.currentMoveIndex !== -1) mounted.analyze?.jumpToMove?.(-1);
-        root.CaissaPlayV2InlineAnalyze?.close?.();
         Promise.resolve(root.CaissaPostGameExperienceInstance?.execute?.('new-game')).then(outcome => {
             if (mounted && !outcome?.ok) button.disabled = false;
         }).catch(() => { if (mounted) button.disabled = false; });

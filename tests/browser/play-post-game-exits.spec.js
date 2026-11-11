@@ -4,7 +4,7 @@ import { instrumentPlay, playMove } from '../play/playwright-helpers.js';
 
 test.beforeEach(async ({ page }) => instrumentPlay(page));
 async function completed(page) {
-    await page.goto('/play/beta'); await page.locator('[data-games-primary]').click();
+    await page.goto('/play/games'); await page.locator('[data-games-primary]').click();
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
@@ -30,21 +30,30 @@ test('exit ownership is preserved behind the minimal completed-game presentation
 
 test('Analyze rejects concurrent activation and canonical navigation preserves one completed record', async ({ page }) => {
     const recordId = await completed(page);
-    const result = await page.evaluate(async () => {
+    const navigation = page.waitForNavigation({ waitUntil: 'domcontentloaded' });
+    const result = await page.evaluate(() => {
         const first = window.CaissaPostGameExperienceInstance.execute('analyze');
         const second = window.CaissaPostGameExperienceInstance.execute('analyze');
-        return { first: await first, second };
+        return { first, second };
     });
+    await navigation;
     expect(result.first.ok).toBe(true); expect(result.second.reasonCode).toBe('ACTION_BUSY');
-    await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
+    await expect(page).toHaveURL(/\/analyze\?handoff=[A-Za-z0-9_-]+$/);
+    await expect(page.locator('[data-caissa-analyze-v2]')).toHaveAttribute('data-analyze-v2-ready', 'true');
     await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
-    await expect(page.locator('#playSection')).not.toHaveClass(/active/);
+    await expect(page.locator('body[data-caissa-play-v2-entry]')).toHaveCount(0);
     expect(page.url()).not.toMatch(/(?:pgn|fen)=/i);
     expect(await page.evaluate(() => window.AnalyzeSection.loadedGame.recordId)).toBe(recordId);
-    expect(await page.evaluate(() => window.CaissaPlayV2InlineAnalyze.isOpen())).toBe(false);
     await page.goBack();
-    await expect(page.locator('[data-post-game-result]')).toBeVisible();
-    expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(recordId);
+    await expect(page).toHaveURL(/\/play\/games$/);
+    const restored = await page.evaluate(() => ({
+        gameActive: window.App?.gameActive === true,
+        postGame: window.CaissaPostGameExperienceInstance?.getSnapshot?.(),
+        activeWorkers: window.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.().activeWorkerCount ?? 0
+    }));
+    expect(restored.gameActive).toBe(false);
+    expect(restored.activeWorkers).toBe(0);
+    if (restored.postGame?.visible) expect(restored.postGame.gameRecordId).toBe(recordId);
 });
 
 test('Mentor rejects concurrent activation, consumes its session, and restores exact PostGame', async ({ page }) => {

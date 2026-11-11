@@ -159,7 +159,7 @@ test('public setup keeps legacy controls inert and outside the Game Body', async
     for (const id of ['btnSettings', 'flipBoard', 'pasteFEN', 'analyzeGame', 'btnDownload'])
         await expect(advanced.locator(`#${id}`)).toHaveCount(1);
     await expect(page.locator('[data-caissa-games-body] #analyzeGame')).toHaveCount(0);
-    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
+    await expect(page.locator('#analyzeSection')).toHaveCount(0);
 });
 
 test('canonical Play preserves unique controls across mode restoration', async ({ page }) => {

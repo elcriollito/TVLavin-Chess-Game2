@@ -49,7 +49,7 @@
                 'js/play/native-coach/coach-assistance-policy.js?v=1.0.0',
                 'js/play/native-coach/coach-configuration.js?v=1.0.0',
                 'js/play/native-coach/coach-levels.js?v=1.0.0',
-                'js/play/native-coach/coach-entitlement-client.js?v=1.1.0',
+                'js/play/native-coach/coach-entitlement-client.js?v=1.1.1',
                 'js/play/native-coach/coach-assistance-sanitizer.js?v=1.0.0',
                 'js/play/native-coach/coach-assistance.js?v=1.0.0',
                 'js/play/native-coach/coach-move-review.js?v=1.2.0',
