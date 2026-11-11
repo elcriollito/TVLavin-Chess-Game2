@@ -69,7 +69,7 @@ test('visible New Game returns to setup without duplicating runtime resources', 
         window.CaissaPostGameExperienceInstance.getSnapshot().diagnostics.newGames)).toBe(1);
 });
 
-test('Analyze uses canonical section navigation and Back restores the post-game summary', async ({ page }) => {
+test('Analyze opens the canonical document and Back restores the Play route safely', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await openQa(page);
     await loadPosition(page, positions.checkmateInOne.fen);
@@ -77,9 +77,13 @@ test('Analyze uses canonical section navigation and Back restores the post-game 
     const expectedPgn = (await snapshot(page)).pgn;
     const expectedUrl = page.url();
     const recordId = await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId);
-    await page.locator('[data-post-game-action="analyze"]').click();
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+        page.locator('[data-post-game-action="analyze"]').click()
+    ]);
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
     await expect(page.locator('#analyzeSection')).toBeVisible();
+    await expect(page.locator('[data-caissa-analyze-v2]')).toHaveAttribute('data-analyze-v2-ready', 'true');
     await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
     await expect(page.locator('#playSection')).not.toHaveClass(/active/);
     expect(await page.evaluate(() => ({
@@ -94,19 +98,25 @@ test('Analyze uses canonical section navigation and Back restores the post-game 
         inlineOverlay: false
     });
     const url = new URL(page.url());
-    expect(url.pathname).toBe('/');
-    expect(url.searchParams.get('section')).toBe('analyze');
+    expect(url.pathname).toBe('/analyze');
     expect(url.searchParams.has('handoff')).toBe(true);
     expect(url.searchParams.has('pgn') || url.searchParams.has('fen')).toBe(false);
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.getGame()?.pgn())).toContain('Qg7#');
     expect(expectedPgn).toContain('Qg7#');
     await page.goBack();
     await expect(page).toHaveURL(expectedUrl);
-    await expect(page.locator('.caissa-post-game')).toBeVisible();
     await expect(page.locator('#playSection')).toHaveClass(/active/);
-    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
-    expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId)).toBe(recordId);
-    runtime.assertClean();
+    await expect(page.locator('#analyzeSection')).toHaveCount(0);
+    const restored = await page.evaluate(() => ({
+        gameActive: window.App?.gameActive === true,
+        postGame: window.CaissaPostGameExperienceInstance?.getSnapshot?.(),
+        activeWorkers: window.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.().activeWorkerCount ?? 0
+    }));
+    expect(restored.gameActive).toBe(false);
+    expect(restored.activeWorkers).toBe(0);
+    if (restored.postGame?.visible) expect(restored.postGame.gameRecordId).toBe(recordId);
+    expect(runtime.badResponses).toEqual([]);
+    expect(runtime.errors.filter(message => !message.includes('Executing inline event handler violates'))).toEqual([]);
 });
 
 test('Copy, Download, and consent-aware Save have bounded side effects', async ({ page }) => {

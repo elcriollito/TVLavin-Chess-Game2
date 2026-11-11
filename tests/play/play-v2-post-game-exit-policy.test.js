@@ -58,11 +58,15 @@ test('PostGame Analyze delegates section state to canonical navigation', () => {
     assert.match(core, /handoffToken:\s*handoff\.value\.token/);
     assert.match(core, /source:\s*'post-game'/);
     assert.match(core, /usesCanonicalAnalyzeDocument\?\.\(\) !== true/);
-    assert.match(navigation, /caissaPlayV2Entry === 'official'/);
+    assert.match(navigation, /\['official', 'qa-only'\]\.includes\(document\.body\?\.dataset\?\.caissaPlayV2Entry\)/);
     assert.match(navigation, /window\.location\.assign\(`\/analyze\?handoff=\$\{encodeURIComponent\(token\)\}`\)/);
     assert.ok(navigation.indexOf('usesCanonicalAnalyzeDocument()')
         < navigation.indexOf("CaissaPlayLazyLoader.load('analyze-deep'"));
     assert.doesNotMatch(core, /CaissaPlayV2InlineAnalyze\?\.open|CaissaPlayV2InlineAnalyze\.open/);
+    assert.equal(fs.existsSync(new URL('../../js/play/play-v2-inline-analyze.js', import.meta.url)), false);
+    for (const document of ['play-v2.html', 'play-v2-public-beta.html', 'play-v2-promotion-qa.html']) {
+        assert.doesNotMatch(read(document), /id=["']analyzeSection["']|play-v2-inline-analyze\.js|data-caissa-analyze-v2/, document);
+    }
 });
 
 test('policy and PostGame sources contain no automatic, education, FICS, legacy, URL, upload, identity, or analytics fallback', () => {

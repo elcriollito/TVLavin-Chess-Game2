@@ -22,7 +22,7 @@ const blockedEntrypoints = [
   'DEBUG_BOARD.html', 'DIAGNOSTIC.html', 'LAUNCH_CHESS_GAME.html', 'TEST_ENGINE.html',
   'endgame-board-harness.html', 'endgame-engine-harness.html',
   'endgame-trainer-integration-harness.html', 'play-v2.html', 'play-v2-invite.html',
-  'play-v2-promotion-qa.html', 'play-v2-ipad-analyze-diagnostic.html',
+  'play-v2-promotion-qa.html',
   'play-v2-unavailable.html', 'test-hash.html', 'test-pgn-load.html'
 ];
 

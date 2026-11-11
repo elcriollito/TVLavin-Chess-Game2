@@ -71,7 +71,6 @@ await build('yahoo-classic.html', 'application', 'yahooClassic');
 await build('play-v2.html', 'application', 'play');
 await build('play-v2-public-beta.html', 'application', 'play');
 await build('play-v2-promotion-qa.html', 'application', 'play');
-await build('play-v2-ipad-analyze-diagnostic.html', 'application', 'play');
 await build('endgame-trainer.html', 'trainer', 'endgame-trainer');
 await buildPlayDocumentModule();
 console.log(checkOnly ? 'Navigation fallbacks are current' : 'Generated navigation fallbacks');

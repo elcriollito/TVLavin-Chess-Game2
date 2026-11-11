@@ -1,6 +1,6 @@
 # Legacy Analyze Compatibility Restoration
 
-Status: **IMPLEMENTED LOCALLY — VALIDATION REQUIRED BEFORE COMMIT**
+Status: **HISTORICAL COMPATIBILITY RECORD — PLAY V2 INLINE DESTINATION RETIRED 2026-11-10**
 
 Issue: `LEGACY-ANALYZE-42C64AA-001`
 
@@ -44,7 +44,7 @@ The opaque payload identifies an active `inspect-current-position` handoff. It m
 - at least one move;
 - PGN that replays legally to the recorded final FEN.
 
-Play v2 PostGame calls only this API. Its inline owner consumes the opaque token exactly once, remains URL-preserving, and returns to the identical PostGame. Active, incomplete, malformed, illegal, expired, missing, and already-consumed handoffs fail closed.
+Play v2 PostGame calls only this API. The canonical `/analyze` document consumes the opaque token exactly once after a real document navigation; Browser Back may restore the originating PostGame through BFCache. Active, incomplete, malformed, illegal, expired, missing, and already-consumed handoffs fail closed.
 
 ## Caller inventory
 
@@ -53,8 +53,7 @@ Play v2 PostGame calls only this API. Its inline owner consumes the opaque token
 | `CaissaPlayCompatibility.execute('openAnalyze')` | Classic/Legacy active game | `createFromLegacyActivePlay()` | Independent Analyze section | Inspect current position without completion claims |
 | `CaissaNavigation.navigateToSection('analyze')` without a supplied token | Classic/Legacy active navigation | `createFromLegacyActivePlay()` | Independent Analyze section | Preserve established SPA navigation |
 | Legacy `PostGameExperience` Analyze | Completed Legacy quick-play record | `createFromCompletedPlayRecord(record)` | Independent Analyze section | Review the finalized record through a supplied token |
-| Play v2 `PostGameCore` Analyze This Game | Completed Play v2 record | `createFromCompletedPlayRecord(record)` | Play v2 inline Analyze | Strict completed-game continuation |
-| `PlayV2InlineAnalyze.open()` | Completed Play v2 handoff | one-time `consume(token)` | Inline modal owner | Reject stale, missing, or reused tokens |
+| Play v2 `PostGameCore` Analyze This Game | Completed Play v2 record | `createFromCompletedPlayRecord(record)` | Canonical `/analyze` document | Strict completed-game continuation |
 | `AnalyzeSection.onEnter()` | Independent Legacy destination | `resolve(token)` or supplied trusted handoff | Independent Analyze workspace | Hydrate active position or completed record honestly |
 | Play v2 readiness probe | Capability only | checks completed-record API exists | none | No handoff creation |
 | Native Mentor review | Completed Play v2 record | separate Mentor handoff contract | Native Mentor workspace | Does not share Analyze context selection |

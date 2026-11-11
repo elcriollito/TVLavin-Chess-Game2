@@ -109,8 +109,9 @@ test('shell CSS layout rules are scoped to explicit Play body states', () => {
         !rule.trim().startsWith('@media') && !rule.trim().startsWith('@'));
     for (const rule of layoutRules) {
         const selector = rule.slice(0, rule.indexOf('{')).trim();
-        assert.match(selector, /caissa-simplified-play-active|caissa-bots-game-over-active|body\[data-caissa-play-v2-entry(?:=[^\]]+)?\]|caissa-simplified-shell\[hidden\]|caissa-play-v2-inline-analyze/);
+        assert.match(selector, /caissa-simplified-play-active|caissa-bots-game-over-active|body\[data-caissa-play-v2-entry(?:=[^\]]+)?\]|caissa-simplified-shell\[hidden\]|#playSection/);
     }
+    assert.doesNotMatch(css, /caissa-play-v2-inline-analyze|caissa-play-v2-analyze-open|--play-v2-analyze-/);
 });
 
 test('SPA pages register shell assets once and no sitemap entry or dependency was added', () => {

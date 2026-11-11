@@ -9,7 +9,6 @@ import QRCode from 'qrcode';
 import { createPrivateRunOperationalConfig } from './js/endgame-trainer/v2/private-run-operational-config.js';
 import { resolvePlayV2BetaEntry } from './js/play/play-v2-beta-entry-gate.js';
 import { resolvePlayV2PhysicalPromotionQA } from './js/play/play-v2-physical-promotion-qa-gate.js';
-import { resolvePlayV2PhysicalIpadAnalyzeDiagnostic } from './js/play/play-v2-physical-ipad-analyze-diagnostic-gate.js';
 import {
   injectPlayGameplayPreviewMarker,
   resolvePlayGameplayDeploymentConfig
@@ -38,7 +37,6 @@ const RETIRED_PAGE_REDIRECTS = new Map([
   ['/support.html', '/help']
 ]);
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
-const PLAY_V2_DIAGNOSTIC_CSP = "worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'";
 const BETA_PRIVATE_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const ONLINE_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; script-src-elem 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://img.clerk.com https://images.clerk.dev; font-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://*.supabase.co wss://*.supabase.co; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
@@ -740,7 +738,6 @@ const server = http.createServer(async (req, res) => {
     filePath = './public/dos/dos_chess_games.json';
   }
   const physicalPromotionQA = resolvePlayV2PhysicalPromotionQA(pathname, url.search, process.env);
-  const ipadAnalyzeDiagnostic = resolvePlayV2PhysicalIpadAnalyzeDiagnostic(pathname, url.search, process.env);
   const retiredBetaRedirects = new Map([
     ['/play/beta', '/play'], ['/play/beta/games', '/play/games'],
     ['/play/beta/bots', '/play/bots'], ['/play/beta/coach', '/play/coach']
@@ -751,18 +748,17 @@ const server = http.createServer(async (req, res) => {
     filePath = './play-v2-unavailable.html';
   }
   const betaEntry = physicalPromotionQA.requested ? physicalPromotionQA
-    : ipadAnalyzeDiagnostic.requested ? ipadAnalyzeDiagnostic
-      : resolvePlayV2BetaEntry(pathname, process.env);
+    : resolvePlayV2BetaEntry(pathname, process.env);
   if (betaEntry.requested) {
     filePath = `./${betaEntry.document}`;
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     const canonicalPublicPlay = betaEntry.authorized
       && ['/play', '/play/games', '/play/bots', '/play/coach'].includes(pathname)
-      && !physicalPromotionQA.requested && !ipadAnalyzeDiagnostic.requested;
+      && !physicalPromotionQA.requested;
     res.setHeader('X-Robots-Tag', canonicalPublicPlay ? 'index, follow' : 'noindex, nofollow, noarchive');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', ipadAnalyzeDiagnostic.requested ? PLAY_V2_DIAGNOSTIC_CSP : PLAY_V2_CSP);
+    res.setHeader('Content-Security-Policy', PLAY_V2_CSP);
     if (betaEntry.authorized) {
       const gameplayPreview = resolvePlayGameplayDeploymentConfig(process.env);
       res.setHeader('X-Caissa-Gameplay-Provider', gameplayPreview.providerKey);

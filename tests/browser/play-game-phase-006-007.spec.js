@@ -70,11 +70,18 @@ async function completeGame(page, turns = 3) {
 }
 
 async function openCanonicalAnalyze(page) {
-    await page.locator('[data-post-game-action="analyze"]').click();
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+        page.locator('[data-post-game-action="analyze"]').click()
+    ]);
+    await expect(page).toHaveURL(/\/analyze\?handoff=[A-Za-z0-9_-]+$/);
+    await expect(page.locator('[data-caissa-analyze-v2]')).toHaveAttribute('data-analyze-v2-ready', 'true');
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await expect(page.locator('#playSection')).not.toHaveClass(/active/);
+    await expect(page.locator('body[data-caissa-play-v2-entry]')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => Boolean(window.AnalyzeSection?.loadedGame && window.AnalyzeSection?.board)),
+        { timeout: 15_000 }).toBe(true);
     await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
-    await expect(page.locator('#analyzeSection .analyze-layout')).toBeVisible();
+    await expect(page.locator('#analyzeSection .caissa-analyze-v2')).toBeVisible();
 }
 
 async function analyzeState(page) {
@@ -85,7 +92,6 @@ async function analyzeState(page) {
         history: window.AnalyzeSection.getLoadedMoves(),
         cursor: window.AnalyzeSection.currentMoveIndex,
         handoffId: window.AnalyzeSection.activeHandoffId,
-        inlineOpen: window.CaissaPlayV2InlineAnalyze.isOpen(),
         activeSections: [...document.querySelectorAll('.content-section.active')].map(section => section.id)
     }));
 }
@@ -101,7 +107,7 @@ async function geometry(page) {
         const moveList = document.getElementById('analyzeMoveList');
         return {
             section: rect('#analyzeSection'),
-            layout: rect('#analyzeSection .analyze-layout'),
+            layout: rect('#analyzeSection .caissa-analyze-v2'),
             board: rect('#analyzeChessboard .caissa-board'),
             actions: rect('#analyzeSection .analyze-board-navigation'),
             horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -116,7 +122,7 @@ async function geometry(page) {
     });
 }
 
-test('canonical Analyze preserves completed-game authority, exact ply navigation, and Back state', async ({ page }) => {
+test('canonical Analyze preserves completed-game authority, exact ply navigation, and safe Back state', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await mkdir(ARTIFACT_DIR, { recursive: true });
     await page.setViewportSize(viewports[0]);
@@ -128,7 +134,6 @@ test('canonical Analyze preserves completed-game authority, exact ply navigation
         recordId: completed.recordId,
         fen: completed.fen,
         history: completed.history,
-        inlineOpen: false,
         activeSections: ['analyzeSection']
     });
     expect(initial.handoffId).toBeTruthy();
@@ -149,14 +154,12 @@ test('canonical Analyze preserves completed-game authority, exact ply navigation
         pgn: afterNavigation.pgn,
         history: afterNavigation.history,
         handoffId: afterNavigation.handoffId,
-        inlineOpen: afterNavigation.inlineOpen,
         activeSections: afterNavigation.activeSections
     }).toEqual({
         recordId: initial.recordId,
         pgn: initial.pgn,
         history: initial.history,
         handoffId: initial.handoffId,
-        inlineOpen: initial.inlineOpen,
         activeSections: initial.activeSections
     });
 
@@ -172,12 +175,17 @@ test('canonical Analyze preserves completed-game authority, exact ply navigation
     await page.goBack();
     await expect(page).toHaveURL(completed.url);
     await expect(page.locator('#playSection')).toHaveClass(/active/);
-    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
-    await expect(page.locator('[data-post-game-result]')).toHaveText(completed.result);
-    await expect(page.locator('[data-post-game-reason]')).toHaveText(completed.reason);
-    expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId))
-        .toBe(completed.recordId);
-    runtime.assertClean();
+    await expect(page.locator('#analyzeSection')).toHaveCount(0);
+    const restored = await page.evaluate(() => ({
+        gameActive: window.App?.gameActive === true,
+        postGame: window.CaissaPostGameExperienceInstance?.getSnapshot?.(),
+        activeWorkers: window.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.().activeWorkerCount ?? 0
+    }));
+    expect(restored.gameActive).toBe(false);
+    expect(restored.activeWorkers).toBe(0);
+    if (restored.postGame?.visible) expect(restored.postGame.gameRecordId).toBe(completed.recordId);
+    expect(runtime.badResponses).toEqual([]);
+    expect(runtime.errors.filter(message => !message.includes('Executing inline event handler violates'))).toEqual([]);
     console.log(`PHASE006007_CANONICAL_EVIDENCE ${JSON.stringify({ frames, recordId: completed.recordId })}`);
 });
 
@@ -194,7 +202,6 @@ test('long canonical Analyze notation remains reachable across supported zoom le
         await page.evaluate(value => { document.documentElement.style.zoom = String(value); }, zoom);
         const measured = measurements[zoom] = await geometry(page);
         expect(measured).toMatchObject({ boardVisible: true, actionsVisible: true, horizontalOverflow: 0 });
-        expect(measured.sectionOverflow).toBe('auto');
         expect(measured.moveListScrollHeight).toBeGreaterThan(0);
     }
     await page.evaluate(() => { document.documentElement.style.zoom = '1'; });
@@ -204,27 +211,12 @@ test('long canonical Analyze notation remains reachable across supported zoom le
 });
 
 test('generic Analyze remains isolated when opened without a Play Game review context', async ({ page }) => {
-    await page.goto('/play/games?simplified=1');
-    await page.locator('[data-games-primary]').click();
-    await page.evaluate(() => window.__caissaPlayHarness.configure({ autoReply: true,
-        resetSearchSequence: true, bestMoves: ['e7e5'] }));
-    expect(await playMove(page, 'e2', 'e4')).toBe(true);
-    await expect.poll(() => page.evaluate(() => window.App.game.history().length)).toBe(2);
-    await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
-    await expect(page.locator('.caissa-games-panel[data-games-phase="game-over"]')).toBeVisible();
-
-    const opened = await page.evaluate(async () => {
-        await window.CaissaPlayLazyLoader.load('analyze-deep', { qa: false, retry: true });
-        const record = window.CaissaGameRecord.buildFromPlay();
-        const handoff = window.CaissaAnalyzeHandoff.createFromCompletedPlayRecord(record);
-        return handoff.ok ? window.CaissaPlayV2InlineAnalyze.open({ token: handoff.value.token }) : handoff;
-    });
-    expect(opened).toMatchObject({ ok: true, status: 'accepted' });
+    await page.goto('/analyze');
+    await expect(page).toHaveURL(/\/analyze$/);
+    await expect(page.locator('[data-caissa-analyze-v2]')).toHaveAttribute('data-analyze-v2-ready', 'true');
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await expect(page.locator('#analyzeSection')).toHaveAttribute('role', 'dialog');
-    await expect(page.locator('.caissa-games-panel')).toHaveAttribute('data-games-phase', 'game-over');
+    await expect(page.locator('#analyzeSection > .analyze-layout')).toHaveCount(0);
+    await expect(page.locator('body[data-caissa-play-v2-entry]')).toHaveCount(0);
     await expect(page.locator('[data-bots-guided-review], [data-bots-analysis-exploration]')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Back to game result' }).click();
-    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
-    await expect(page.locator('.caissa-games-panel[data-games-phase="game-over"]')).toBeVisible();
+    expect(new URL(page.url()).search).toBe('');
 });

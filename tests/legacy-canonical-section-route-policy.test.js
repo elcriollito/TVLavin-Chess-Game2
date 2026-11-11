@@ -34,7 +34,7 @@ test('canonical pathname wins without accepting descendants or lookalikes', () =
 });
 
 test('Play builder excludes the legacy route policy and historical runtime owners', () => {
-  for (const file of ['play-v2.html', 'play-v2-public-beta.html', 'play-v2-promotion-qa.html', 'play-v2-ipad-analyze-diagnostic.html']) {
+  for (const file of ['play-v2.html', 'play-v2-public-beta.html', 'play-v2-promotion-qa.html']) {
     const html = fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
     assert.doesNotMatch(html, /legacy-canonical-section-route-policy|fics-client|spectator-tv-(?:state|catalog|section)/i, file);
   }

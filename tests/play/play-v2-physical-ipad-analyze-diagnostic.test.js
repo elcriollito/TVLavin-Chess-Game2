@@ -1,74 +1,69 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
-import { PLAY_V2_PHYSICAL_IPAD_ANALYZE_DIAGNOSTIC as contract,
-    resolvePlayV2PhysicalIpadAnalyzeDiagnostic as resolve } from '../../js/play/play-v2-physical-ipad-analyze-diagnostic-gate.js';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
+const root = fileURLToPath(new URL('../../', import.meta.url));
 const read = path => fs.readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+const retiredFiles = [
+    'play-v2-ipad-analyze-diagnostic.html',
+    'css/play-v2-physical-ipad-analyze-diagnostic.css',
+    'js/play/play-v2-physical-ipad-analyze-diagnostic.js',
+    'js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js',
+    'js/play/play-v2-physical-ipad-analyze-diagnostic-boot.js',
+    'js/play/play-v2-physical-ipad-analyze-diagnostic-gate.js'
+];
 
-test('PlayV2PhysicalIpadAnalyzeDiagnosticPolicy@1.1.0 is volatile and allowlisted-route only', () => {
-    const window = { location: { pathname: contract.canonicalRoute, search: '', hash: '' } };
-    vm.runInNewContext(read('js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js'), { window });
-    const policy = window.CaissaPlayV2PhysicalIpadAnalyzeDiagnosticPolicy;
-    assert.equal(policy.contractId, contract.contractId);
-    assert.equal(policy.capacity, 512);
-    assert.equal(policy.requiredEvidenceGenerationCapacity, 16);
-    assert.equal(policy.persistence, 'prohibited');
-    assert.equal(policy.transport, 'prohibited');
-    assert.equal(policy.isAuthorizedLocation(window.location), true);
-    for (const mode of ['games', 'bots', 'coach']) {
-        const pathname = policy.modeRoutes[mode];
-        assert.equal(policy.resolveMode({ pathname }), mode);
-        assert.equal(policy.isAuthorizedLocation({ pathname, search: '', hash: '' }), true);
+test('the legacy iPad Analyze diagnostic implementation is retired', () => {
+    for (const path of retiredFiles) assert.equal(fs.existsSync(new URL(`../../${path}`, import.meta.url)), false, path);
+    for (const path of ['scripts/build-play-v2.mjs', 'scripts/build-navigation-fallbacks.mjs',
+        'js/play/play-route-controller.js', 'js/play/simplified-play-shell.js']) {
+        assert.doesNotMatch(read(path), /PhysicalIpadAnalyzeDiagnostic|data-caissa-ipad-analyze-diagnostic|getModeTarget/i, path);
     }
-    assert.equal(policy.isAuthorizedLocation({ pathname: `${contract.canonicalRoute}/players`, search: '', hash: '' }), false);
-    assert.equal(policy.isAuthorizedLocation({ ...window.location, hash: '#attempt' }), false);
+    assert.doesNotMatch(read('server.js'), /resolvePlayV2PhysicalIpadAnalyzeDiagnostic|PLAY_V2_DIAGNOSTIC_CSP/i);
 });
 
-test('iPad Analyze diagnostic requires both process gates and fails closed', () => {
-    const allowed = { CAISSA_PLAY_V2_BETA_STAGE: 'internal', CAISSA_PLAY_V2_PHYSICAL_QA: 'ipad-analyze-diagnostic' };
-    assert.equal(resolve(contract.canonicalRoute, '', allowed).authorized, true);
-    assert.equal(resolve(contract.modeRoutes.bots, '', allowed).mode, 'bots');
-    assert.equal(resolve(contract.modeRoutes.coach, '', allowed).mode, 'coach');
-    for (const environment of [{}, { CAISSA_PLAY_V2_BETA_STAGE: 'disabled', CAISSA_PLAY_V2_PHYSICAL_QA: 'ipad-analyze-diagnostic' },
-        { CAISSA_PLAY_V2_BETA_STAGE: 'invite-only', CAISSA_PLAY_V2_PHYSICAL_QA: 'ipad-analyze-diagnostic' },
-        { CAISSA_PLAY_V2_BETA_STAGE: 'public-beta', CAISSA_PLAY_V2_PHYSICAL_QA: 'ipad-analyze-diagnostic' },
-        { CAISSA_PLAY_V2_BETA_STAGE: 'internal' }]) assert.equal(resolve(contract.canonicalRoute, '', environment).authorized, false);
-    for (const [path, search] of [[`${contract.canonicalRoute}/`, ''], [`${contract.canonicalRoute}/child`, ''],
-        [`${contract.canonicalRoute}/players`, ''],
-        [contract.canonicalRoute, '?attempt=1'], [`/${contract.entryDocument}`, '']]) {
-        const result = resolve(path, search, allowed); assert.equal(result.authorized, false);
-        assert.equal(result.document, 'play-v2-unavailable.html');
+test('the retired route remains explicitly unavailable at hosting boundaries', () => {
+    const middleware = read('middleware.js');
+    const vercel = JSON.parse(read('vercel.json'));
+    assert.match(middleware, /play-v2-ipad-analyze-diagnostic\.html/);
+    assert.ok(vercel.rewrites.some(rule => rule.source === '/play-v2-ipad-analyze-diagnostic.html'
+        && rule.destination === '/play-v2-unavailable.html'));
+});
+
+test('old local-server flags cannot reactivate the retired diagnostic', async t => {
+    const port = 23000 + (process.pid % 10000);
+    const child = spawn(process.execPath, ['server.js'], {
+        cwd: root,
+        env: { ...process.env, PORT: String(port), CAISSA_SERVER_HOST: '127.0.0.1',
+            CAISSA_PLAY_V2_BETA_STAGE: 'internal',
+            CAISSA_PLAY_V2_PHYSICAL_QA: 'ipad-analyze-diagnostic' },
+        stdio: ['ignore', 'ignore', 'pipe']
+    });
+    let stderr = '';
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    t.after(() => { if (!child.killed) child.kill(); });
+
+    const origin = `http://127.0.0.1:${port}`;
+    let ready = false;
+    for (let attempt = 0; attempt < 100 && !ready; attempt += 1) {
+        try {
+            const response = await fetch(`${origin}/play/beta/qa/ipad-analyze-diagnostic`, { redirect: 'manual' });
+            ready = response.status > 0;
+        } catch (_) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
     }
-});
+    assert.equal(ready, true, stderr || 'local server did not start');
 
-test('diagnostic source has no persistence, transport, identity, or chess record capture', () => {
-    const source = read('js/play/play-v2-physical-ipad-analyze-diagnostic.js');
-    assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB|document\.cookie|fetch\(|XMLHttpRequest|WebSocket|sendBeacon/i);
-    assert.doesNotMatch(source, /\bfen\b|\bpgn\b|moveHistory|playerName|userId|ssid|thumbprint|certificate/i);
-    for (const path of ['play-v2.html', 'index.html', 'js/caissa-primary-navigation.js', 'public/sitemap.xml'])
-        assert.doesNotMatch(read(path), /ipad-analyze-diagnostic/i, path);
-    assert.match(read('play-v2-ipad-analyze-diagnostic.html'), /data-caissa-ipad-analyze-diagnostic="internal"/);
-    assert.doesNotMatch(read('scripts/build-public-release.mjs'), /play-v2-ipad-analyze-diagnostic\.html/);
-});
-
-test('diagnostic reliability owns bounded evidence, atomic verdicts, eviction accounting, and applicable geometry', () => {
-    const source = read('js/play/play-v2-physical-ipad-analyze-diagnostic.js');
-    for (const marker of ['requiredEvidence', 'recordsDropped', 'firstRetainedSequence', 'lastRetainedSequence',
-        'verdictSequence', 'verdictElapsedMs', 'geometryApplicability', 'BOARD_MATERIAL_STRIP']) assert.match(source, new RegExp(marker));
-    assert.match(source, /requiredEvidence\.clear\(\)/);
-    assert.match(source, /records\.length > capacity/);
-    assert.match(source, /applyVerdict\(exportSnapshot\(\)\)/);
-    assert.match(source, /Math\.max\([\s\S]*2 \/ Math\.max[\s\S]*0\.01/);
-    assert.doesNotMatch(source, /new Date|Date\.now|toISOString/);
-});
-
-test('diagnostic route owner preserves Games, Bots, and Coach without admitting Classic or Players', () => {
-    const shell = read('js/play/simplified-play-shell.js');
-    const routes = read('js/play/play-route-controller.js');
-    assert.match(shell, /getModeTarget/);
-    assert.match(routes, /ipad-analyze-diagnostic/);
-    assert.match(routes, /metadata: \{ requestedModeAvailable: true, betaEntry: true, ipadAnalyzeDiagnostic: true \}/);
-    assert.doesNotMatch(contract.modeRoutes.games, /players|classic/i);
+    for (const path of ['/play/beta/qa/ipad-analyze-diagnostic',
+        '/play/beta/qa/ipad-analyze-diagnostic/bots',
+        '/play/beta/qa/ipad-analyze-diagnostic/coach',
+        '/play-v2-ipad-analyze-diagnostic.html']) {
+        const response = await fetch(`${origin}${path}`, { redirect: 'manual' });
+        const body = await response.text();
+        assert.match(body, /Play beta is unavailable/i, path);
+        assert.doesNotMatch(body, /data-caissa-ipad-analyze-diagnostic|iPad Analyze diagnostic/i, path);
+    }
 });

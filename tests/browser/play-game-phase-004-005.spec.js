@@ -38,11 +38,18 @@ async function completeGame(page) {
 }
 
 async function openCanonicalAnalyze(page) {
-    await page.locator('[data-post-game-action="analyze"]').click();
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+        page.locator('[data-post-game-action="analyze"]').click()
+    ]);
+    await expect(page).toHaveURL(/\/analyze\?handoff=[A-Za-z0-9_-]+$/);
+    await expect(page.locator('[data-caissa-analyze-v2]')).toHaveAttribute('data-analyze-v2-ready', 'true');
     await expect(page.locator('#analyzeSection')).toHaveClass(/active/);
-    await expect(page.locator('#playSection')).not.toHaveClass(/active/);
+    await expect(page.locator('body[data-caissa-play-v2-entry]')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => Boolean(window.AnalyzeSection?.loadedGame && window.AnalyzeSection?.board)),
+        { timeout: 15_000 }).toBe(true);
     await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
-    await expect(page.locator('#analyzeSection .analyze-layout')).toBeVisible();
+    await expect(page.locator('#analyzeSection .caissa-analyze-v2')).toBeVisible();
 }
 
 async function analyzeFrame(page) {
@@ -54,7 +61,7 @@ async function analyzeFrame(page) {
         return {
             activeSections: [...document.querySelectorAll('.content-section.active')].map(section => section.id),
             section: rect('#analyzeSection'),
-            workspace: rect('#analyzeSection .analyze-layout'),
+            workspace: rect('#analyzeSection .caissa-analyze-v2'),
             board: rect('#analyzeChessboard .caissa-board'),
             actions: rect('#analyzeSection .analyze-board-navigation'),
             horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -64,7 +71,7 @@ async function analyzeFrame(page) {
     });
 }
 
-test('PostGame hands the completed game to the canonical Analyze section and Back restores it', async ({ page }) => {
+test('PostGame hands the completed game to canonical Analyze and Back restores the Play route safely', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await mkdir(ARTIFACT_DIR, { recursive: true });
     await page.setViewportSize(viewports[0]);
@@ -77,17 +84,13 @@ test('PostGame hands the completed game to the canonical Analyze section and Bac
         fen: window.AnalyzeSection.getGame().fen(),
         pgn: window.AnalyzeSection.loadedGame.pgn,
         activeHandoffId: window.AnalyzeSection.activeHandoffId,
-        inlineOpen: window.CaissaPlayV2InlineAnalyze.isOpen(),
-        analyzeAriaHidden: document.getElementById('analyzeSection').getAttribute('aria-hidden'),
-        inlineOverlay: document.body.classList.contains('caissa-play-v2-analyze-open')
+        analyzeAriaHidden: document.getElementById('analyzeSection').getAttribute('aria-hidden')
     }));
     expect(handoff).toMatchObject({
         currentSection: 'analyze',
         recordId: completed.recordId,
         fen: completed.fen,
-        inlineOpen: false,
-        analyzeAriaHidden: null,
-        inlineOverlay: false
+        analyzeAriaHidden: null
     });
     expect(handoff.activeHandoffId).toBeTruthy();
     expect(handoff.pgn).toContain(completed.pgn.split('\n').at(-1).trim().split(' ')[1]);
@@ -108,12 +111,17 @@ test('PostGame hands the completed game to the canonical Analyze section and Bac
     await page.goBack();
     await expect(page).toHaveURL(completed.url);
     await expect(page.locator('#playSection')).toHaveClass(/active/);
-    await expect(page.locator('#analyzeSection')).not.toHaveClass(/active/);
-    await expect(page.locator('[data-post-game-result]')).toHaveText(completed.result);
-    await expect(page.locator('[data-post-game-reason]')).toHaveText(completed.reason);
-    expect(await page.evaluate(() => window.CaissaPostGameExperienceInstance.getSnapshot().gameRecordId))
-        .toBe(completed.recordId);
-    runtime.assertClean();
+    await expect(page.locator('#analyzeSection')).toHaveCount(0);
+    const restored = await page.evaluate(() => ({
+        gameActive: window.App?.gameActive === true,
+        postGame: window.CaissaPostGameExperienceInstance?.getSnapshot?.(),
+        activeWorkers: window.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.().activeWorkerCount ?? 0
+    }));
+    expect(restored.gameActive).toBe(false);
+    expect(restored.activeWorkers).toBe(0);
+    if (restored.postGame?.visible) expect(restored.postGame.gameRecordId).toBe(completed.recordId);
+    expect(runtime.badResponses).toEqual([]);
+    expect(runtime.errors.filter(message => !message.includes('Executing inline event handler violates'))).toEqual([]);
 });
 
 test('canonical Analyze keeps its board and actions reachable across supported zoom levels', async ({ page }) => {

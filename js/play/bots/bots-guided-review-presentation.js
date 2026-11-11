@@ -561,7 +561,7 @@
             navigate(targets[button.dataset.botsGuidedNav]);
         });
         ui.newGame.addEventListener('click', () => { if (!mounted || ui.newGame.disabled) return;
-            ui.newGame.disabled = true; root.CaissaPlayV2InlineAnalyze?.close?.();
+            ui.newGame.disabled = true;
             Promise.resolve(root.CaissaPostGameExperienceInstance?.execute?.('new-game')).catch(() => {}); });
         ui.analysis.addEventListener('click', enterExploration);
         exploration.navigation.addEventListener('click', event => {

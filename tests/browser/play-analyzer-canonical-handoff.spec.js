@@ -11,7 +11,11 @@ const modes = [
 ];
 
 async function completeGame(page, mode) {
-    await page.goto(mode.route);
+    const response = await page.goto(mode.route);
+    const responseHtml = await response.text();
+    expect(responseHtml).not.toContain('id="analyzeSection"');
+    expect(responseHtml).not.toContain('js/play/play-v2-inline-analyze.js');
+    expect(responseHtml).not.toContain('data-caissa-analyze-v2');
     await expect(page.locator('body[data-caissa-play-v2-entry="official"]')).toHaveCount(1);
     await expect(page.locator(mode.start)).toBeEnabled();
     await page.locator(mode.start).click();
@@ -25,11 +29,18 @@ async function completeGame(page, mode) {
     await expect(page.locator('[data-play-v2-post-game-core]')).toBeVisible();
     const state = await page.evaluate(() => {
         const postGame = window.CaissaPostGameExperienceInstance.getSnapshot();
+        const record = window.CaissaGameRecord.buildFromPlay();
         return {
             recordId: postGame.gameRecordId,
             result: postGame.result.value,
             termination: postGame.result.termination,
+            initialFen: record.position.initialFen,
             finalFen: window.App.game.fen(),
+            pgn: record.notation.pgn,
+            selectedPly: record.moves.count,
+            playerColor: record.player.color,
+            recordStatus: record.status,
+            mode: record.mode,
             history: window.App.game.history(),
             orientation: window.CaissaPlayCompatibility.getSnapshot().board.orientation,
             activeWorkers: window.CaissaPlayV2BotWorkerReadiness?.getSnapshot?.().activeWorkerCount ?? 0
@@ -40,9 +51,27 @@ async function completeGame(page, mode) {
     return state;
 }
 
-async function openCanonicalAnalyzer(page) {
+async function openCanonicalAnalyzer(page, { doubleClick = false } = {}) {
+    const navigations = [];
+    const playAnalyzeDeepRequests = [];
+    page.on('framenavigated', frame => {
+        if (frame === page.mainFrame()) navigations.push(frame.url());
+    });
+    page.on('request', request => {
+        if (request.resourceType() === 'script' && new URL(request.frame().url()).pathname.startsWith('/play')
+            && /analyze-(?:section|session|game-import|v2-shell)\.js/.test(request.url())) {
+            playAnalyzeDeepRequests.push(request.url());
+        }
+    });
     const navigationRequest = page.waitForNavigation({ waitUntil: 'domcontentloaded' });
-    await page.locator('[data-post-game-action="analyze"]:visible').first().click();
+    if (doubleClick) {
+        await page.locator('[data-post-game-action="analyze"]:visible').first().evaluate(button => {
+            button.click();
+            button.click();
+        });
+    } else {
+        await page.locator('[data-post-game-action="analyze"]:visible').first().click();
+    }
     await navigationRequest;
     await expect(page).toHaveURL(/\/analyze\?handoff=[A-Za-z0-9_-]+$/);
     await expect(page.locator('[data-caissa-analyze-v2]')).toHaveAttribute('data-analyze-v2-ready', 'true');
@@ -51,13 +80,18 @@ async function openCanonicalAnalyzer(page) {
     await expect(page.locator('#analyzeChessboard .caissa-board')).toBeVisible();
     expect(await page.evaluate(() => window.__caissaPlayDocumentIdentity)).toBeUndefined();
     await expect.poll(() => page.evaluate(() => Boolean(window.AnalyzeSection?.loadedGame))).toBe(true);
+    expect(navigations).toHaveLength(1);
+    expect(new URL(navigations[0]).pathname).toBe('/analyze');
+    expect(playAnalyzeDeepRequests).toEqual([]);
+    expect(await page.evaluate(() => Array.from({ length: sessionStorage.length }, (_, index) => sessionStorage.key(index))
+        .filter(key => key?.startsWith('caissa:analyze:handoff:v1:')).length)).toBe(1);
 }
 
 for (const mode of modes) {
     test(`official ${mode.name} hands its completed record to the canonical Analyzer document`, async ({ page }) => {
         await instrumentPlay(page);
         const before = await completeGame(page, mode);
-        await openCanonicalAnalyzer(page);
+        await openCanonicalAnalyzer(page, { doubleClick: mode.name === 'coach' });
 
         const proof = await page.evaluate(() => {
             const token = new URL(location.href).searchParams.get('handoff');
@@ -75,12 +109,18 @@ for (const mode of modes) {
             };
         });
         expect(proof.payload.recordId).toBe(before.recordId);
+        expect(proof.payload.initialFen).toBe(before.initialFen);
         expect(proof.payload.finalFen).toBe(before.finalFen);
-        expect(proof.payload.pgn).toContain(before.history[0]);
+        expect(proof.payload.pgn).toBe(before.pgn);
+        expect(proof.payload.selectedPly).toBe(before.selectedPly);
+        expect(proof.payload.playerColor).toBe(before.playerColor);
         expect(proof.payload.boardOrientation).toBe(before.orientation);
         expect(proof.payload.result).toBe(before.result);
         expect(proof.payload.termination).toBe(before.termination);
-        expect(proof.payload.selectedPly).toBeGreaterThan(0);
+        expect(proof.payload.recordStatus).toBe(before.recordStatus);
+        expect(proof.payload.mode).toBe(before.mode);
+        expect(proof.payload.whiteLabel).toBeTruthy();
+        expect(proof.payload.blackLabel).toBeTruthy();
         expect(proof.loadedFen).toBe(before.finalFen);
         expect(proof.loadedPgn).toBe(proof.payload.pgn);
         expect(proof.currentMoveIndex).toBe(proof.payload.selectedPly - 1);

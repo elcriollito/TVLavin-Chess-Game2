@@ -1,7 +1,7 @@
 (function installPlayV2PostGameCore(root) {
     'use strict';
 
-    const VERSION = '1.5.0';
+    const VERSION = '1.5.1';
     const ACTIONS = Object.freeze(['rematch', 'analyze', 'mentor-review', 'copy-pgn', 'download-pgn', 'save-game', 'new-game']);
     let sequence = 0; let retainedRecord = null; let retainedKey = null;
     const freeze = value => {
@@ -25,7 +25,7 @@
         #id = `play-v2-post-game-${++sequence}`; #root = null; #actionsContainer = null; #actionButtons = [];
         #consentInput = null; #feedbackNode = null;
         #record = null; #visible = false;
-        #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null; #reviewLaunching = false; #busyAction = null;
+        #disposed = false; #listeners = []; #feedback = ''; #consent = 'unknown'; #saved = false; #configuration = null; #reviewLaunching = false; #busyAction = null; #analyzeNavigationCommitted = false;
         #compatibility; #records; #persistence; #handoff; #navigation; #onVisibilityChange; #onNewGame;
         #clipboard; #url; #Blob;
         #diagnostics = { hydrations: 0, displays: 0, actions: 0, rematches: 0, newGames: 0,
@@ -80,6 +80,10 @@
                 const state = input.checked ? 'granted' : 'denied'; const changed = this.#persistence?.setConsent?.(state);
                 if (changed?.ok) this.#consent = state; this.#render();
             });
+            this.#listen(root, 'pageshow', event => {
+                if (!event.persisted || !this.#analyzeNavigationCommitted) return;
+                this.#analyzeNavigationCommitted = false; this.#busyAction = null; this.#render();
+            });
             return outcome(true, 'accepted', 'MOUNTED', this.getSnapshot());
         }
         syncFromPlay() {
@@ -97,7 +101,7 @@
             if (!validation?.valid || !['completed', 'aborted'].includes(record?.status) || record?.result?.complete !== true)
                 return outcome(false, 'rejected', 'INVALID_RECORD');
             const snapshot = input.snapshot || this.#compatibility?.getSnapshot?.();
-            this.#record = record; retainedRecord = record; retainedKey = recordKey(record); this.#configuration = {
+            this.#record = record; retainedRecord = record; retainedKey = recordKey(record); this.#analyzeNavigationCommitted = false; this.#configuration = {
                 mode: snapshot?.mode === 'engine' ? 'engine' : null,
                 color: ['white', 'black'].includes(snapshot?.playerColor) ? snapshot.playerColor : null,
                 timeControl: Number.isInteger(snapshot?.clocks?.timeControlSeconds) ? snapshot.clocks.timeControlSeconds : null,
@@ -119,6 +123,8 @@
             if (this.#root) this.#root.hidden = true; this.#onVisibilityChange?.(false); return outcome(true, 'accepted', 'HIDDEN'); }
         execute(action) {
             if (this.#busyAction) return outcome(false, 'rejected', 'ACTION_BUSY');
+            if (action === 'analyze' && this.#analyzeNavigationCommitted)
+                return outcome(false, 'rejected', 'ACTION_BUSY');
             if (!ACTIONS.includes(action) || !this.#actions()[action]?.enabled) return outcome(false, 'unavailable', 'ACTION_UNAVAILABLE');
             root.CaissaPlayV2ProductBoundary?.requireAllowed?.({ type: 'action', value: action });
             const authorized = root.CaissaPlayV2PostGameExitPolicy?.authorize?.(action, this.#record);
@@ -174,6 +180,7 @@
             retainedRecord = null; retainedKey = null; this.#diagnostics.rematches += 1; this.hide(); return outcome(true, 'accepted', 'REMATCH_STARTED');
         }
         #analyze() {
+            if (this.#analyzeNavigationCommitted) return outcome(false, 'rejected', 'ACTION_BUSY');
             if (this.#navigation?.usesCanonicalAnalyzeDocument?.() !== true
                 && !root.AnalyzeSection?.onEnter && root.CaissaPlayLazyLoader?.load) {
                 return root.CaissaPlayLazyLoader.load('analyze-deep', { qa: false, retry: true })
@@ -188,11 +195,21 @@
             root.App?.engine?.terminate?.('post-game-analyze');
             const handoff = this.#handoff.createFromCompletedPlayRecord(this.#record, { identityContext: 'play-v2' });
             if (!handoff?.ok) return outcome(false, 'failed', handoff?.reasonCode || 'ACTION_FAILED');
-            const opened = this.#navigation?.navigateToSection?.('analyze', {
-                handoffToken: handoff.value.token,
-                source: 'post-game'
-            });
-            if (opened === false || opened?.ok === false) return outcome(false, 'failed', 'ACTION_FAILED');
+            this.#analyzeNavigationCommitted = true;
+            let opened;
+            try {
+                opened = this.#navigation?.navigateToSection?.('analyze', {
+                    handoffToken: handoff.value.token,
+                    source: 'post-game'
+                });
+            } catch (error) {
+                this.#analyzeNavigationCommitted = false;
+                throw error;
+            }
+            if (opened === false || opened?.ok === false) {
+                this.#analyzeNavigationCommitted = false;
+                return outcome(false, 'failed', 'ACTION_FAILED');
+            }
             this.#diagnostics.handoffs += 1; return outcome(true, 'accepted', 'ANALYZE_OPENED');
         }
         #mentorReview() {
@@ -302,7 +319,7 @@
         clearForModeTransition() {
             if (this.#busyAction) return outcome(false, 'rejected', 'ACTION_BUSY');
             retainedRecord = null; retainedKey = null; this.#record = null; this.#configuration = null;
-            this.#feedback = ''; this.#saved = false; this.hide(); this.#render();
+            this.#feedback = ''; this.#saved = false; this.#analyzeNavigationCommitted = false; this.hide(); this.#render();
             return outcome(true, 'accepted', 'MODE_TRANSITION_CLEARED');
         }
         dispose() { if (this.#disposed) return outcome(true, 'unchanged', 'DISPOSED'); this.hide();

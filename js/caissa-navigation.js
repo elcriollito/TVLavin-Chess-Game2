@@ -160,7 +160,7 @@ const CaissaNavigation = {
      * its existing section navigation behavior.
      */
     usesCanonicalAnalyzeDocument() {
-        return document.body?.dataset?.caissaPlayV2Entry === 'official';
+        return ['official', 'qa-only'].includes(document.body?.dataset?.caissaPlayV2Entry);
     },
 
     /**

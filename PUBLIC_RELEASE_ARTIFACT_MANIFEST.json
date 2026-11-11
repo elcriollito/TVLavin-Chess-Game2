@@ -184,7 +184,7 @@
     },
     {
       "path": "api/_lib/play-v2-public-beta-document.js",
-      "sha256": "807e3185696f4a6e755fbb3b175565f6f356432d83859cdba1d6a234aedc0f3b"
+      "sha256": "fc3572a7676152db83c79ff77ec38f3217ad909207e9cefe1231b23ae945eafe"
     },
     {
       "path": "api/_lib/polyglot-builder.js",
@@ -1408,7 +1408,7 @@
     },
     {
       "path": "blog/caissa-polyglot-book-creator-v031/index.html",
-      "sha256": "c862d9eca12638d2a3c5a4c5f60907c5021054b7c04c5a0238cc62b92c3d0d0f"
+      "sha256": "c38d268a2b3ae48217d587dffd3830551a27d7edab725a0196873d53cb105f08"
     },
     {
       "path": "blog/caissa-scanner-image-to-chess-analysis/index.html",
@@ -1512,7 +1512,7 @@
     },
     {
       "path": "css/blog.css",
-      "sha256": "16de9ed93c526793b8f921fa7c36019641331f39cc3600ddd543d7c35864071a"
+      "sha256": "1f864052abb442db823f41e9498060eec5f591521a0c167ead0cc6a8fccb4f3c"
     },
     {
       "path": "css/caissa-auth.css",
@@ -1692,15 +1692,11 @@
     },
     {
       "path": "css/play-simplified-shell.css",
-      "sha256": "daa73fc1aa3476da84faca394947e9e9f33477dceb1c67814ff6177e2e980174"
+      "sha256": "1655d2b8f6d5ab90f8e69308b02d961877ae2565540c42fce7b36ca979ac4916"
     },
     {
       "path": "css/play-v2-invite.css",
       "sha256": "a41517c99a85f8a07a7dfc446139b7400e0c4bc21c38f407b766568ac79fdb97"
-    },
-    {
-      "path": "css/play-v2-physical-ipad-analyze-diagnostic.css",
-      "sha256": "5d5de859c81a86ddc952c9fb68c03dc73e69479c2708f5fa3730ffb5aa776954"
     },
     {
       "path": "css/play-v2-physical-promotion-qa.css",
@@ -1956,7 +1952,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "085e57467472d3d5025086cebacbdd79061a9f0255e0a507035acfb5eab08c56"
+      "sha256": "633322e139b9e49d3a37610892581a92f16728a35da653174043b826f2844b89"
     },
     {
       "path": "integrations/chessbase-pgn-replayer.html",
@@ -2120,7 +2116,7 @@
     },
     {
       "path": "js/caissa-navigation.js",
-      "sha256": "99d5da1798f6c4dce089629570892b19f4bd16ae7a3641686cbaef037636f635"
+      "sha256": "48e579adb2e33bfe49e8492abaca0f8af6f3c2bb75089a3612a4f0760385c265"
     },
     {
       "path": "js/caissa-notifications.js",
@@ -3132,11 +3128,11 @@
     },
     {
       "path": "js/play/bots/bots-analysis-summary-presentation.js",
-      "sha256": "d8986fdcd1569f395ca63f24c3c05c6c75fb2711d51e1253ef3ca04e17245a66"
+      "sha256": "e45d17b7fb25cf2e13065065317b0fa43c30f2c82824ab7dfbbbc99f519d6b24"
     },
     {
       "path": "js/play/bots/bots-guided-review-presentation.js",
-      "sha256": "1224058a9bd72e91a58d760034ef0668205286fd9a24f1c723ff3e2c4c86946e"
+      "sha256": "6bec47194a6a423eb7b2bee5332972fa061ffcea78d4773466e86be1a384695b"
     },
     {
       "path": "js/play/bots/bots-review-context.js",
@@ -3240,7 +3236,7 @@
     },
     {
       "path": "js/play/games-analysis-summary-presentation.js",
-      "sha256": "fd91f57ac583be5d7b017bba92f77054e3364449ab8f5c4033dec4ee78cdf33c"
+      "sha256": "3b4ec5bc9f9c83366c0c72a1f5a4bd65d53a95253bfa47f4707473b0fc456697"
     },
     {
       "path": "js/play/games-panel.js",
@@ -3308,7 +3304,7 @@
     },
     {
       "path": "js/play/native-coach/coach-review-presentation.js",
-      "sha256": "d00866eb3c9412a29cb5e4c9586c6f5f0fc99c49c45c08ec9789152700696ed2"
+      "sha256": "3ccdf3815ac055565efe2575617df69dd5cc4a6ba09df2abac60a86c371f333b"
     },
     {
       "path": "js/play/native-mentor-review/mentor-review-analysis.js",
@@ -3368,7 +3364,7 @@
     },
     {
       "path": "js/play/play-route-controller.js",
-      "sha256": "3cff98b098440ddb20c91b946e637d621a1759c7cbd9e0b4ec981c914e1d2c93"
+      "sha256": "afc0e9c5ec8bf561ab6608b29c4e76f7f7b6b7b7af3367dfd6e8c519ef5f1101"
     },
     {
       "path": "js/play/play-share-dialog.js",
@@ -3395,10 +3391,6 @@
       "sha256": "1dff178989e97f2c5fa8906bf79b6f9bd464db53fa0230375c34a65ac27f54b3"
     },
     {
-      "path": "js/play/play-v2-inline-analyze.js",
-      "sha256": "35842afff207fefbea5fa192d1e4dd5e1b5f1511237a7efb160b7b3d7f6c174c"
-    },
-    {
       "path": "js/play/play-v2-invite-client.js",
       "sha256": "ac9f67e0c8972d055cf35c7119fb9dc7a523ec7fbc26fb725727feaf23e9b859"
     },
@@ -3421,22 +3413,6 @@
     {
       "path": "js/play/play-v2-native-players-policy.js",
       "sha256": "d6691ae07efd083ee902fd555799266da991295bcde16230339f14537fd5efd4"
-    },
-    {
-      "path": "js/play/play-v2-physical-ipad-analyze-diagnostic-boot.js",
-      "sha256": "24f68b2d62fd5528f5f928ce98bea263380f598db138a3e0e7c6605fd489ef9b"
-    },
-    {
-      "path": "js/play/play-v2-physical-ipad-analyze-diagnostic-gate.js",
-      "sha256": "faf5022209cb8c050929ff09055ebcccef638abe3855f8f9bc217cff9252774f"
-    },
-    {
-      "path": "js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js",
-      "sha256": "6e7c9ca10806d7281f52d0586dea23f686a288baac1bbe9c3e402224d4373a02"
-    },
-    {
-      "path": "js/play/play-v2-physical-ipad-analyze-diagnostic.js",
-      "sha256": "f17919a94b2c27640024d88d451e9498c7146144ec7205d1afa9e96630ea850d"
     },
     {
       "path": "js/play/play-v2-physical-promotion-qa-boot.js",
@@ -3596,7 +3572,7 @@
     },
     {
       "path": "js/play/post-game-core.js",
-      "sha256": "65852a475b473d6b46e4c84c3ae9638bb17ecbea0b379e196082586d21848e6b"
+      "sha256": "a415d3cd28b88ee3c131f9540355222249e27dca5ef40802a6697ab3aae7159a"
     },
     {
       "path": "js/play/post-game-experience.js",
@@ -3604,7 +3580,7 @@
     },
     {
       "path": "js/play/simplified-play-shell.js",
-      "sha256": "5183234245f1141665de65a4cb12b363373d08829ed2dcac9dd2aeedf42b7514"
+      "sha256": "4c4da38c4c9caba4cef60b8c8d5dedc4c89adca6995ab546369f171e3a3c9059"
     },
     {
       "path": "js/play/ui/play-accessibility.js",
@@ -4251,16 +4227,12 @@
       "sha256": "36960672f929f2dd6dbf7efe1bf475c0770bfbe12e5ad695b02ad987d0119572"
     },
     {
-      "path": "play-v2-ipad-analyze-diagnostic.html",
-      "sha256": "0151989a56c06fa9c20260585316661437e5272941afca0ec375684c69951251"
-    },
-    {
       "path": "play-v2-promotion-qa.html",
-      "sha256": "f0d8939ce80ac82c189717f0e04c5c441e66ee3567c2deb9f92864951a592ea8"
+      "sha256": "751421419f9bd866c38f6a67b8c8d39eaabca0eed7485db4ee02c35b33f99e32"
     },
     {
       "path": "play-v2-public-beta.html",
-      "sha256": "f11764613adfae443cd3cc8d87664fbd967bb0957c1cf7ef72ea0fe7b7dc046b"
+      "sha256": "671ee847ff2363b94e2715dcc8ef64415398cd29163428c724450556f1b63724"
     },
     {
       "path": "play-v2-unavailable.html",
@@ -4268,7 +4240,7 @@
     },
     {
       "path": "play-v2.html",
-      "sha256": "f83f601d15056ff52010076c97ae0cf0d138b33fb4c461b0d1e68b1e4abcc78a"
+      "sha256": "7cae3696392d79d0d2e2a4a505361494aa1f1fef109496445eece6ded9a2e6a6"
     },
     {
       "path": "playchess.html",
@@ -7056,7 +7028,7 @@
     },
     {
       "path": "server.js",
-      "sha256": "f0df50e59fcca204a7a1b86fc355a188a38a8af580a2642edd25634d3ac66fbc"
+      "sha256": "5d043ad0f425e7972708c4e1b42f158ce16836400859c2f7789aade3ccf8d2fc"
     },
     {
       "path": "signin.html",
@@ -7073,10 +7045,6 @@
     {
       "path": "styles.css",
       "sha256": "6dab6c32a1e8ac1d9ef20b2baf89f994d2aca86c9fde595c388a88644a97af0a"
-    },
-    {
-      "path": "templates/play-v2-inline-analyze-section.html",
-      "sha256": "a513447a4ff221b3be4a4571d90406b32e5c7cb8aa721ed2d51c040eb16650cf"
     },
     {
       "path": "vault.html",

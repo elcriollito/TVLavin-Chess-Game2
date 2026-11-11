@@ -5,13 +5,11 @@ import {
 } from './lib/canonical-text.mjs';
 
 const sourcePath = new URL('../index.html', import.meta.url);
-const inlineAnalyzeSectionPath = new URL('../templates/play-v2-inline-analyze-section.html', import.meta.url);
 const outputPath = new URL('../play-v2.html', import.meta.url);
 const publicBetaOutputPath = new URL('../play-v2-public-beta.html', import.meta.url);
 const publicBetaDocumentModulePath = new URL('../api/_lib/play-v2-public-beta-document.js', import.meta.url);
 const unavailableOutputPath = new URL('../play-v2-unavailable.html', import.meta.url);
 const promotionQaOutputPath = new URL('../play-v2-promotion-qa.html', import.meta.url);
-const ipadAnalyzeDiagnosticOutputPath = new URL('../play-v2-ipad-analyze-diagnostic.html', import.meta.url);
 const publicPlayTitle = 'Play Chess Online | CAISSA Chess';
 const publicPlayDescription = 'Play chess online with CAISSA Games, Bots and Coach modes, then review your game and continue training.';
 const publicPlayUrl = 'https://www.caissa-chess.org/play';
@@ -34,10 +32,7 @@ const publicPlayStructuredData = `<script type="application/ld+json">
     }
     </script>`;
 
-const [sourceHtml, inlineAnalyzeSection] = await Promise.all([
-  readCanonicalText(sourcePath),
-  readCanonicalText(inlineAnalyzeSectionPath)
-]);
+const sourceHtml = await readCanonicalText(sourcePath);
 let html = sourceHtml;
 
 const forbiddenElements = [
@@ -69,7 +64,7 @@ for (const pattern of forbiddenElements) html = html.replace(pattern, '\n');
 
 html = html.replace(
   /\s*<!-- SECTION: ANALYZE \(Game Analysis\) -->[\s\S]*?\s*(?=<!-- SECTION: ARENA)/i,
-  `\n\n${inlineAnalyzeSection.trimEnd()}\n\n            `
+  '\n\n            '
 );
 
 html = html
@@ -133,8 +128,7 @@ html = html
   )
   .replace('    <script src="js/play/post-game-experience.js?v=1.8.0"></script>',
     '    <script src="js/play/play-v2-post-game-policy.js?v=1.1.0"></script>\n' +
-    '    <script src="js/play/play-v2-inline-analyze.js?v=1.4.0"></script>\n' +
-    '    <script src="js/play/post-game-core.js?v=1.5.1"></script>')
+    '    <script src="js/play/post-game-core.js?v=1.5.2"></script>')
   .replace('<body data-clarity-mask>', '<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>')
   .replace('</body>', '    <script src="js/play/play-v2-invite-client.js?v=1.0.0"></script>\n</body>')
   .replace(/[ \t]+(?=\r?$)/gm, '');
@@ -152,11 +146,14 @@ if (!html.includes('js/play/play-v2-invite-policy.js?v=1.0.0')) throw new Error(
 if (!html.includes('js/play/play-v2-post-game-policy.js?v=1.1.0')) throw new Error('PLAY_V2_POST_GAME_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-identity-policy.js?v=1.0.0')) throw new Error('PLAY_V2_IDENTITY_POLICY_MISSING');
 if (!html.includes('js/play/play-v2-mode-transition-policy.js?v=1.0.0')) throw new Error('PLAY_V2_MODE_TRANSITION_POLICY_MISSING');
-if (!html.includes('js/play/play-v2-inline-analyze.js?v=1.4.0')) throw new Error('PLAY_V2_INLINE_ANALYZE_MISSING');
-if (!html.includes('<!-- SECTION: ANALYZE (Game Analysis) -->') || !html.includes('class="analyze-layout"'))
-  throw new Error('PLAY_V2_INLINE_ANALYZE_TEMPLATE_MISSING');
-if (/data-caissa-analyze-v2|analyze-v2-shell\.(?:css|js)/i.test(html))
-  throw new Error('PROHIBITED_STANDALONE_ANALYZE_V2_PRESENTATION');
+const prohibitedAnalyzePresentation = [
+  ['PLAY_V2_ANALYZE_SECTION_DOM', /<!-- SECTION: ANALYZE \(Game Analysis\) -->|id=["']analyzeSection["']|id=["']analyzeChessboard["']|class=["'][^"']*\banalyze-layout\b/i],
+  ['PLAY_V2_INLINE_ANALYZE_CONTROLLER', /js\/play\/play-v2-inline-analyze\.js/i],
+  ['PLAY_V2_ANALYZE_V2_SHELL', /data-caissa-analyze-v2|\bcaissa-analyze-v2(?:__|\b)|analyze-v2-shell\.(?:css|js)/i]
+];
+for (const [name, pattern] of prohibitedAnalyzePresentation) {
+  if (pattern.test(html)) throw new Error(`PROHIBITED_${name}`);
+}
 if (!html.includes("worker-src 'self' blob:;") || /worker-src[^;]*(?:https?:|\*)/.test(html))
   throw new Error('PLAY_V2_WORKER_CSP_INVALID');
 if (/script-src[^;]*'unsafe-eval'/.test(html)) throw new Error('PLAY_V2_UNSAFE_EVAL_CSP');
@@ -249,21 +246,4 @@ for (const required of ['Play v2 - Internal Promotion QA', 'play-v2-physical-pro
   if (!promotionQaHtml.includes(required)) throw new Error(`PLAY_V2_PHYSICAL_PROMOTION_QA_BUILD_MISSING: ${required}`);
 }
 await writeCanonicalText(promotionQaOutputPath, promotionQaHtml);
-const ipadAnalyzeDiagnosticHtml = html
-  .replace(/\s*<script[^>]+src="(?:\/js\/caissa-clarity\.js(?:\?[^\"]*)?|js\/play\/analytics\/[^\"]+)"[^>]*><\/script>\r?\n/gi, '\n')
-  .replace(/<title>CAISSA Play v2 .* Internal<\/title>/, '<title>CAISSA Play v2 - Internal iPad Analyze Diagnostic</title>')
-  .replace('<link rel="canonical" href="/play/beta">', '<link rel="canonical" href="/play/beta/qa/ipad-analyze-diagnostic">')
-  .replace('</head>', '    <link rel="stylesheet" href="css/play-v2-physical-ipad-analyze-diagnostic.css?v=1.0.0">\n' +
-    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-policy.js?v=1.1.0"></script>\n' +
-    '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic-boot.js?v=1.1.0"></script>\n</head>')
-  .replace('<body data-caissa-play-v2-entry="qa-only" data-clarity-mask>',
-    '<body data-caissa-play-v2-entry="qa-only" data-caissa-ipad-analyze-diagnostic="internal" data-clarity-mask>')
-  .replace('</body>', '    <script src="js/play/play-v2-physical-ipad-analyze-diagnostic.js?v=1.1.0"></script>\n</body>')
-  .replace(/[ \t]+(?=\r?$)/gm, '');
-for (const required of ['Internal iPad Analyze Diagnostic', 'physical-ipad-analyze-diagnostic-policy.js',
-  'physical-ipad-analyze-diagnostic-boot.js', 'physical-ipad-analyze-diagnostic.js',
-  'physical-ipad-analyze-diagnostic.css', 'data-caissa-ipad-analyze-diagnostic="internal"']) {
-  if (!ipadAnalyzeDiagnosticHtml.includes(required)) throw new Error(`PLAY_V2_IPAD_ANALYZE_DIAGNOSTIC_BUILD_MISSING: ${required}`);
-}
-await writeCanonicalText(ipadAnalyzeDiagnosticOutputPath, ipadAnalyzeDiagnosticHtml);
-console.log('Generated Play v2 internal, public-beta, promotion, and iPad diagnostic HTML from index.html');
+console.log('Generated Play v2 internal, public-beta, and promotion HTML from index.html');
