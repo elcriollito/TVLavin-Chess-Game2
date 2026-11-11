@@ -499,21 +499,6 @@
   background: #141d29;
 }
 
-.openingdb-more-moves {
-  display: none;
-  width: 100%;
-  min-height: 44px;
-  margin-top: 8px;
-  border: 1px solid #334154;
-  border-radius: 8px;
-  background: #182331;
-  color: #bcd5ef;
-  font: inherit;
-  font-size: .76rem;
-  font-weight: 750;
-  cursor: pointer;
-}
-
 .openingdb-stats-table,
 .openingdb-games-table {
   width: 100%;
@@ -1315,6 +1300,22 @@
     padding: 7px 4px 1px;
   }
 
+  .openingdb-mobile-data-region:not([hidden]) {
+    display: grid;
+    width: 100%;
+    margin-top: 10px;
+    gap: 8px;
+  }
+
+  .openingdb-mobile-data-region .openingdb-sort-status {
+    min-height: 0;
+    margin: -2px 2px 0;
+  }
+
+  .openingdb-mobile-data-region .openingdb-explorer-legend {
+    margin: 0 2px;
+  }
+
   .openingdb-workspace {
     min-height: 0;
     border-radius: 9px;
@@ -1467,10 +1468,6 @@
   .openingdb-move-action {
     min-height: 44px;
     padding: 3px 4px;
-  }
-
-  .openingdb-more-moves:not([hidden]) {
-    display: block;
   }
 
   .wdb-bar {

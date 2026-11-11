@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=2.4.2">
+  <link rel="stylesheet" href="/css/opening-database.css?v=2.4.3">
   <link rel="stylesheet" href="/css/caissa-legacy-quiet-drag.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
   <script type="application/ld+json">
@@ -80,6 +80,7 @@
               <span id="odbTurnPly" data-caissa-i18n="openingdb.board.turnStart">White to move • Start position</span>
               <span id="odbDatasetFreshness" data-caissa-i18n="openingdb.dataset.loading">Loading opening data…</span>
             </div>
+            <section id="odbMobileDataRegion" class="openingdb-mobile-data-region" aria-label="Position continuations" hidden></section>
           </section>
 
           <section class="openingdb-workspace" aria-label="Opening explorer workspace" data-caissa-i18n-aria-label="openingdb.aria.workspace">
@@ -220,7 +221,6 @@
                     <tbody id="odbStatsBody"><tr><td colspan="4" class="openingdb-empty" data-caissa-i18n="openingdb.explorer.loading">Loading continuation data…</td></tr></tbody>
                   </table>
                 </div>
-                <button id="odbMoreMovesBtn" class="openingdb-more-moves" type="button" aria-expanded="false" hidden>More moves</button>
                 <details class="openingdb-disclosure openingdb-data-details"><summary data-caissa-i18n="openingdb.explorer.datasetDetails">Dataset details</summary><div id="odbRowsDiag" data-caissa-i18n="openingdb.explorer.rowsInitial">Rows rendered: 0 / Source rows: 0 / Mode: Explorer / matchLevel: none</div></details>
                 <div id="odbTransitionPanel" class="odb-transition" hidden>
                   <h3 data-caissa-i18n="openingdb.transition.title">Entering the early middlegame</h3>
@@ -279,6 +279,6 @@
   <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=2.4.2"></script>
+  <script src="/js/opening-database.js?v=2.4.3"></script>
 </body>
 </html>

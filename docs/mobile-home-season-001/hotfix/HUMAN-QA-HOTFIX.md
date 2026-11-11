@@ -16,13 +16,14 @@ Canonical routes: `/`, `/watch/lichess-tv`, `/opening-database`, `/analyze`
 | Analyzer vertical movement | SHARED ISSUE | The shared Analyze notation renderer called `scrollIntoView()` on the active move. At the shorter 390 px viewport that also scrolled the outer Analyze section by 10 px, moving the board. | The renderer now scrolls only its notation owner using local bounding rectangles and `scrollTop`; the compact shell also disables scroll anchoring and uses viewport-relative board sizing. |
 | Analyzer legacy Menu | LEGACY ISSUE | The generic legacy mobile quick-action factory added its `menu` action to Analyze, exposing the old mobile shell from the new canonical experience. | Analyze now registers only its Engine action; the canonical mobile header/menu toggle is route-scoped out of the compact surface. |
 | “CAISSA Classic” title | LEGACY ISSUE | The legacy SPA shell shipped a hard-coded Classic header default, while the canonical-route metadata policy created canonical metadata but did not apply the route title early on direct loads. | The shell default is neutral and the route policy applies `Analyze | CAISSA Chess` plus the canonical surface marker before the Analyze UI initializes. |
+| Opening Explorer zero-data rows | SHARED ISSUE | When no popular database rows were available, the shared source selector fell back to all legal moves, and the renderer independently synthesized the same legal fallback. Those generated rows carried `games: 0`. | Mobile Popular Moves now accepts only rows with a positive database game count and never uses the legal fallback. Engine mode retains legal candidates. |
 
 ## Implementation evidence
 
 - Mobile Home Watch Games is a single anchor to `/watch/lichess-tv` with the copy “High-rated chess live”; it has no provider submenu.
 - FICS was removed only from Mobile Home navigation. Desktop Home still contains its FICS card, and the global `/fics` route, primary navigation, client, and spectator integrations are unchanged.
 - Lichess TV is board-first below 800 px. The intro, promotional blocks, duplicated navigation and footer are hidden; `Powered by Lichess · Info` remains as compact progressive disclosure.
-- Opening Explorer uses the existing real-game row source and `sortExplorerRows()`. At up to 640 px, `renderStatsRows()` takes the first five popularity-sorted rows. “More moves” is optional disclosure, and expansion resets whenever the normalized FEN changes.
+- Opening Explorer follows `BOARD → DATA → CONTEXT` at up to 640 px. The live selector, status, legend and statistics table move directly below the board metadata while the opening/ECO block, tabs and secondary actions remain below the data. Popular Moves filters positive database game counts, sorts descending through `sortExplorerRows()` and caps the result at five after every position change.
 - Engine arrows reuse the existing Stockfish 19 candidate-evaluation queue and `getExplorerDisplayRows()` ordering. The first valid evaluated move is the primary SVG arrow; at most two further evaluated moves are translucent secondary arrows. No second engine owner was added.
 - `/analyze` is canonical. Legacy `/?section=analyze` links found in Help and Blog were changed to `/analyze`; the exact legacy route adapter remains only for backward-compatible inbound URLs.
 
@@ -31,6 +32,7 @@ Canonical routes: `/`, `/watch/lichess-tv`, `/opening-database`, `/analyze`
 - 43/43 targeted Node contract tests passed.
 - 28/28 required mobile browser tests passed in Chromium and WebKit, covering 390 px and 430 px.
 - 29/29 scoped desktop/tablet regression checks passed: desktop Home, Analyzer shell/session sanity, Explorer at 768/1024/1440, sort behavior, accessibility and overflow.
+- Opening Explorer hierarchy adjustment: 13/13 Node contracts, 14/14 Chromium/WebKit hotfix scenarios and 25/25 Explorer regression scenarios passed.
 - An additional pre-existing Analyzer engine-streaming test completed its functional assertions but its final console-cleanliness check still reports three baseline CSP violations from the unchanged inline Help buttons in `index.html`. The same handlers exist in the baseline commit; they are outside this mobile hotfix and did not block the scoped regression gate.
 
 ## Physical iPhone checklist
@@ -75,6 +77,8 @@ Hotfix surfaces:
 
 - [Opening Explorer — 390 px](screenshots/opening-explorer-390.png)
 - [Opening Explorer — 430 px](screenshots/opening-explorer-430.png)
+- [Opening Explorer Engine — 390 px](screenshots/opening-explorer-engine-390.png)
+- [Opening Explorer Engine — 430 px](screenshots/opening-explorer-engine-430.png)
 - [Analyzer — 390 px](screenshots/analyzer-390.png)
 - [Analyzer — 430 px](screenshots/analyzer-430.png)
 - [Lichess TV — 390 px](screenshots/lichess-tv-390.png)

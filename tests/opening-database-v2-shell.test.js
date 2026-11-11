@@ -101,7 +101,12 @@ test('Explorer exposes independent Popular Moves and Engine sorting without rest
   assert.match(source, /OPENINGDB_MOBILE_ROW_LIMIT\s*=\s*5/);
   assert.match(source, /renderMobileEngineArrows/);
   assert.match(html, /id="odbMoveArrows"/);
-  assert.match(html, /id="odbMoreMovesBtn"/);
+  assert.match(html, /id="odbMobileDataRegion"[^>]*openingdb-mobile-data-region/);
+  assert.doesNotMatch(html, /id="odbMoreMovesBtn"/);
+  assert.match(source, /state\.explorerSortMode === 'popularity'[\s\S]*?latestPopularRows\.filter/);
+  assert.match(source, /mobilePopularity[\s\S]*?Number\(row\?\.games\)[\s\S]*?> 0/);
+  assert.match(source, /const displayLimit = isMobileExplorer\(\) \? OPENINGDB_MOBILE_ROW_LIMIT : OPENINGDB_WIDE_ROW_LIMIT/);
+  assert.match(source, /function initializeMobileDataRegion\(\)/);
   assert.match(source, /state\.explorerSortMode = 'popularity';[\s\S]*?cancelNextMoveEvalQueue/);
 });
 

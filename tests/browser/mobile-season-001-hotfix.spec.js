@@ -9,7 +9,8 @@ const fixture = {
   [START_HASH]: {
     moves: [
       { uci: 'g1f3', san: 'Nf3', games: 800, w: 300, d: 280, l: 220 },
-      { uci: 'a2a3', san: 'a3', games: 400, w: 150, d: 140, l: 110 },
+      { uci: 'a2a3', san: 'a3', games: 0, w: 0, d: 0, l: 0 },
+      { uci: 'a2a4', san: 'a4', games: 0, w: 0, d: 0, l: 0 },
       { uci: 'e2e4', san: 'e4', games: 1000, w: 400, d: 340, l: 260 },
       { uci: 'g2g3', san: 'g3', games: 500, w: 190, d: 170, l: 140 },
       { uci: 'd2d4', san: 'd4', games: 900, w: 360, d: 300, l: 240 },
@@ -21,10 +22,10 @@ const fixture = {
     moves: [
       { uci: 'e7e6', san: 'e6', games: 700, w: 270, d: 240, l: 190 },
       { uci: 'c7c5', san: 'c5', games: 900, w: 350, d: 300, l: 250 },
-      { uci: 'g7g6', san: 'g6', games: 400, w: 150, d: 140, l: 110 },
+      { uci: 'g7g6', san: 'g6', games: 0, w: 0, d: 0, l: 0 },
       { uci: 'e7e5', san: 'e5', games: 800, w: 310, d: 270, l: 220 },
-      { uci: 'd7d6', san: 'd6', games: 500, w: 190, d: 170, l: 140 },
-      { uci: 'c7c6', san: 'c6', games: 600, w: 230, d: 210, l: 160 }
+      { uci: 'd7d6', san: 'd6', games: 0, w: 0, d: 0, l: 0 },
+      { uci: 'c7c6', san: 'c6', games: 0, w: 0, d: 0, l: 0 }
     ]
   }
 };
@@ -104,20 +105,50 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await expect(page.locator('.caissa-standalone-mobile-toggle')).toBeHidden();
     await expect(page.locator('#odbSortPopularityBtn')).toHaveText('Popular Moves');
     await expect(page.locator('#odbStatsBody tr')).toHaveCount(5);
+    await expect(page.locator('#odbStatsBody [data-move-uci="a2a3"], #odbStatsBody [data-move-uci="a2a4"]')).toHaveCount(0);
     expectDescending(await page.locator('#odbStatsBody .col-games').allTextContents());
     expect((await page.locator('.openingdb-board-shell').boundingBox()).y).toBeLessThan(20);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 
-    const more = page.locator('#odbMoreMovesBtn');
-    await expect(more).toBeVisible();
-    await expect(more).toContainText('2');
-    await more.click();
-    await expect(page.locator('#odbStatsBody tr')).toHaveCount(7);
+    const hierarchy = await page.evaluate(() => {
+      const rect = (selector) => {
+        const box = document.querySelector(selector).getBoundingClientRect();
+        return { top: box.top, bottom: box.bottom };
+      };
+      return {
+        board: rect('.openingdb-board-shell'),
+        metadata: rect('.openingdb-board-context'),
+        selector: rect('.openingdb-sort-selector'),
+        firstRow: rect('#odbStatsBody tr'),
+        table: rect('.openingdb-table-wrap'),
+        opening: rect('.openingdb-opening-context'),
+        tabs: rect('.openingdb-tabs'),
+        analyze: rect('#odbAnalyzeInCaissaBtn')
+      };
+    });
+    expect(hierarchy.board.bottom).toBeLessThanOrEqual(hierarchy.metadata.top + 1);
+    expect(hierarchy.selector.top).toBeGreaterThanOrEqual(hierarchy.metadata.bottom - 1);
+    expect(hierarchy.selector.top - hierarchy.metadata.bottom).toBeLessThanOrEqual(24);
+    expect(hierarchy.selector.bottom).toBeLessThan(hierarchy.firstRow.top);
+    expect(hierarchy.firstRow.bottom).toBeLessThan(viewport.height);
+    expect(hierarchy.table.bottom).toBeLessThan(hierarchy.opening.top);
+    expect(hierarchy.opening.bottom).toBeLessThanOrEqual(hierarchy.tabs.top + 1);
+    expect(hierarchy.tabs.bottom).toBeLessThan(hierarchy.analyze.top);
+
+    if (capture) {
+      fs.mkdirSync(evidenceDir, { recursive: true });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({ path: path.join(evidenceDir, `opening-explorer-${viewport.width}.png`), fullPage: true });
+    }
+
     await page.locator('[data-move-uci="e2e4"]').click();
     await expect(page.locator('#odbCurrentLine')).toContainText('1.e4');
-    await expect(page.locator('#odbStatsBody tr')).toHaveCount(5);
-    expectDescending(await page.locator('#odbStatsBody .col-games').allTextContents());
+    await expect(page.locator('#odbStatsBody tr')).toHaveCount(3);
+    const afterMoveGameCounts = await page.locator('#odbStatsBody .col-games').allTextContents();
+    expect(afterMoveGameCounts.map(value => Number(value.replaceAll(',', ''))).every(value => value > 0)).toBe(true);
+    expectDescending(afterMoveGameCounts);
 
+    const boardTop = (await page.locator('.openingdb-board-shell').boundingBox()).y;
     await page.locator('#odbSortEngineBtn').click();
     await expect.poll(() => page.evaluate(() => window.__engineDebug?.nextMoveEvalRunning), { timeout: 20_000 }).toBe(false);
     const arrows = page.locator('#odbMoveArrows [data-move-uci]');
@@ -127,14 +158,38 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     const firstMove = await page.locator('#odbStatsBody [data-move-uci]').first().getAttribute('data-move-uci');
     expect(primaryMove).toBe(firstMove);
     await expect(page.locator('#odbQuickEvalToggle')).toBeHidden();
+    expect(Math.abs((await page.locator('.openingdb-board-shell').boundingBox()).y - boardTop)).toBeLessThanOrEqual(1);
 
     if (capture) {
-      fs.mkdirSync(evidenceDir, { recursive: true });
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.screenshot({ path: path.join(evidenceDir, `opening-explorer-${viewport.width}.png`), fullPage: true });
+      await page.screenshot({ path: path.join(evidenceDir, `opening-explorer-engine-${viewport.width}.png`), fullPage: true });
     }
   });
 }
+
+test('Opening Explorer restores the unchanged desktop composition after a mobile viewport', async ({ page }) => {
+  await installOpeningFixture(page);
+  await page.setViewportSize({ width: 430, height: 932 });
+  await page.goto('/opening-database');
+  await expect(page.locator('#odbMobileDataRegion .openingdb-sort-selector')).toBeVisible();
+  await expect(page.locator('#odbMobileDataRegion .openingdb-table-wrap')).toBeVisible();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator('#odbMobileDataRegion')).toBeHidden();
+  await expect(page.locator('#odbExplorerPanel .openingdb-moves-toolbar .openingdb-sort-selector')).toBeVisible();
+  await expect(page.locator('#odbExplorerPanel > .openingdb-table-wrap')).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const board = document.querySelector('.openingdb-board-shell').getBoundingClientRect();
+    const workspace = document.querySelector('.openingdb-workspace').getBoundingClientRect();
+    return {
+      boardRight: board.right,
+      workspaceLeft: workspace.left,
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  expect(layout.boardRight).toBeLessThan(layout.workspaceLeft);
+  expect(layout.overflow).toBeLessThanOrEqual(1);
+});
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }]) {
   test(`Analyzer keeps its board anchor and canonical identity at ${viewport.width}px`, async ({ page }) => {

@@ -65,7 +65,6 @@
       matchLevel: 'none'
     },
     explorerSortMode: 'popularity',
-    mobileRowsExpanded: false,
     activeTab: 'explorer',
     tabInteractionsBound: false,
     tapSelection: {
@@ -318,7 +317,10 @@
     matchBadge: document.getElementById('odbMatchBadge'),
     datasetBanner: document.getElementById('odbDatasetBanner'),
     statsBody: document.getElementById('odbStatsBody'),
-    moreMovesBtn: document.getElementById('odbMoreMovesBtn'),
+    mobileDataRegion: document.getElementById('odbMobileDataRegion'),
+    sortSelector: document.querySelector('.openingdb-sort-selector'),
+    explorerLegend: document.querySelector('.openingdb-explorer-legend'),
+    statsTableWrap: document.querySelector('#odbExplorerPanel .openingdb-table-wrap'),
     tabExplorer: document.getElementById('odbTabExplorer'),
     tabAnalysis: document.getElementById('odbTabAnalysis'),
     tabMoves: document.getElementById('odbTabMoves'),
@@ -2377,6 +2379,9 @@
   }
 
   function getExplorerSourceRows() {
+    if (isMobileExplorer() && state.explorerSortMode === 'popularity') {
+      return state.latestPopularRows.filter((row) => (Number(row?.games) || 0) > 0);
+    }
     return state.latestPopularRows.length > 0
       ? state.latestPopularRows
       : state.latestAllLegalRows;
@@ -2391,6 +2396,34 @@
 
   function isMobileExplorer() {
     return window.matchMedia?.('(max-width: 640px)').matches ?? window.innerWidth <= 640;
+  }
+
+  let mobileDataRelocations = null;
+
+  function initializeMobileDataRegion() {
+    if (!els.mobileDataRegion || mobileDataRelocations) return;
+    const nodes = [els.sortSelector, els.explorerSortStatus, els.explorerLegend, els.statsTableWrap]
+      .filter(Boolean);
+    mobileDataRelocations = nodes.map((node, index) => {
+      const marker = document.createComment(`openingdb-mobile-data-origin-${index}`);
+      node.parentNode?.insertBefore(marker, node);
+      return { node, marker };
+    });
+
+    const query = window.matchMedia?.('(max-width: 640px)');
+    const sync = () => {
+      const compact = query?.matches ?? window.innerWidth <= 640;
+      els.mobileDataRegion.hidden = !compact;
+      mobileDataRelocations.forEach(({ node, marker }) => {
+        if (compact) {
+          els.mobileDataRegion.append(node);
+        } else if (marker.parentNode) {
+          marker.parentNode.insertBefore(node, marker.nextSibling);
+        }
+      });
+    };
+    query?.addEventListener?.('change', sync);
+    sync();
   }
 
   function arrowSquarePoint(square) {
@@ -2424,17 +2457,6 @@
       line.setAttribute('data-move-uci', uci);
       els.moveArrows.append(line);
     });
-  }
-
-  function updateMobileMoreButton(total, visible) {
-    if (!els.moreMovesBtn) return;
-    const compact = isMobileExplorer();
-    els.moreMovesBtn.hidden = !compact || total <= OPENINGDB_MOBILE_ROW_LIMIT;
-    els.moreMovesBtn.setAttribute('aria-expanded', String(compact && state.mobileRowsExpanded));
-    if (els.moreMovesBtn.hidden) return;
-    els.moreMovesBtn.textContent = state.mobileRowsExpanded
-      ? 'Show top 5'
-      : `More moves (${Math.max(0, total - visible)})`;
   }
 
   function getExplorerEvaluationCoverage() {
@@ -2660,7 +2682,6 @@
     state.rowDiagnostics.renderedCount = 0;
     state.rowDiagnostics.mode = 'explorer';
     state.rowDiagnostics.matchLevel = 'depth_limit';
-    updateMobileMoreButton(0, 0);
     renderMobileEngineArrows();
     if (els.statsBody) {
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${escapeHtml(tr('openingdb.depthLimit', OPENINGDB_DEPTH_LIMIT_MESSAGE, { move: OPENINGDB_MAX_FULLMOVES }))}</td></tr>`;
@@ -2757,7 +2778,12 @@
   function renderStatsRows(rows) {
     if (!els.statsBody) return;
 
-    if (!Array.isArray(rows) || rows.length === 0) {
+    const mobilePopularity = isMobileExplorer() && state.explorerSortMode === 'popularity';
+    if (mobilePopularity && Array.isArray(rows)) {
+      rows = rows.filter((row) => (Number(row?.games) || 0) > 0);
+    }
+
+    if ((!Array.isArray(rows) || rows.length === 0) && !mobilePopularity) {
       if (state.game) {
         const fallbackRows = buildAllLegalRowsFromGame(state.game).slice(0, OPENINGDB_COMPACT_ROW_LIMIT);
         if (fallbackRows.length > 0) {
@@ -2769,9 +2795,10 @@
 
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
-      updateMobileMoreButton(0, 0);
       renderMobileEngineArrows();
-      const message = tr('openingdb.noLegalMoves', 'No legal continuations are available in this position.');
+      const message = mobilePopularity
+        ? tr('openingdb.noDatabaseMoves', 'No database continuations are available for this position.')
+        : tr('openingdb.noLegalMoves', 'No legal continuations are available in this position.');
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       state.rowDiagnostics.renderedCount = 0;
       state.rowDiagnostics.mode = 'explorer';
@@ -2779,12 +2806,8 @@
       return;
     }
 
-    const sourceRowCount = rows.length;
-    const displayLimit = isMobileExplorer() && !state.mobileRowsExpanded
-      ? OPENINGDB_MOBILE_ROW_LIMIT
-      : OPENINGDB_WIDE_ROW_LIMIT;
+    const displayLimit = isMobileExplorer() ? OPENINGDB_MOBILE_ROW_LIMIT : OPENINGDB_WIDE_ROW_LIMIT;
     rows = rows.slice(0, displayLimit);
-    updateMobileMoreButton(sourceRowCount, rows.length);
     const currentPly = state.game && typeof state.game.history === 'function'
       ? state.game.history({ verbose: false }).length
       : 0;
@@ -3753,7 +3776,6 @@
 
     const fen = inputFen || state.game.fen();
     const fenKey = normalizeFenForHash(fen);
-    if (fenKey !== state.lastResolvedFenKey) state.mobileRowsExpanded = false;
     const ply = getOpeningDbPly(state.game);
 
     if (!force && state.lastResolvedFenKey === fenKey) {
@@ -4153,11 +4175,6 @@
         state.board.resize();
       }
       renderMobileEngineArrows();
-    });
-
-    els.moreMovesBtn?.addEventListener('click', () => {
-      state.mobileRowsExpanded = !state.mobileRowsExpanded;
-      renderExplorerRows();
     });
 
     els.fenToggleBtn.addEventListener('click', () => {
@@ -4836,6 +4853,7 @@
 
   async function runInit() {
     openingDbI18n?.subscribe?.(refreshOpeningDatabaseLocale);
+    initializeMobileDataRegion();
     bindOpeningDbTabInteractions();
     setActiveTab(state.activeTab);
     debugLog('[OpeningDB] init start');
