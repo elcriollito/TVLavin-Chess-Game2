@@ -5,7 +5,7 @@
 > Repositorio: `elcriollito/TVLavin-Chess-Game2`<br>
 > Ruta canónica del Analyzer: **`/analyze`**<br>
 > Elaborado: **2026-10-30**<br>
-> Estado documentado: **retiro del Analyzer embebido preparado localmente el 2026-11-10 sobre `origin/main` `dea4181466389d3defd18f26b7f99a5bf8441ce1`, en `codex/retire-play-inline-analyzer`; QA humano, push, PR, merge y deploy NO ejecutados**.
+> Estado documentado: **candidato local derivado de `be952ff6` sobre `origin/main` `dea4181466389d3defd18f26b7f99a5bf8441ce1`, en `codex/retire-play-inline-analyzer`; Human QA final `Chrome PASS · iPhone PASS · iPad PASS` registrada el 2026-11-11 y corrección local del arranque de Coach por HTTP LAN incorporada; push, PR, merge y deploy NO ejecutados**.
 
 ## 0. Leer primero — reglas de recuperación
 
@@ -257,7 +257,32 @@ La URL histórica `/?section=analyze&handoff=...` **no se modifica ni se adopta 
 
 **Protección permanente:** no eliminar `AnalyzeSection`, `analyze-handoff.js`, `analyze-v2-shell.*`, variaciones PGN/RAV, Game Review, Move Evidence, estilos `.analyze-*` compartidos ni dependencias de FICS/PGN Reader. Esos elementos pertenecen al Analyzer moderno de `index.html` o a consumidores legítimos, no al overlay retirado.
 
-**Estado de publicación:** local solamente. QA humana en Chrome de escritorio, iPhone y iPad sigue pendiente; no se autoriza push, PR, merge ni deploy desde este runbook.
+### Human QA final y corrección de Coach por HTTP LAN — 2026-11-11
+
+El propietario probó el candidato desde Safari físico en iPhone y tablet contra el servidor LAN. Solo se registran como Human QA PASS los comportamientos que confirmó expresamente:
+
+| Flujo físico | Estado | Evidencia del propietario |
+| --- | --- | --- |
+| Game → Analyzer V2 | **PASS** | Abre Analyzer V2 directamente, sin destello de la página antigua. |
+| Bots → Analyzer V2 | **PASS** | Abre Analyzer V2 directamente, sin destello de la página antigua. |
+| Coach → botón naranja Play | **PASS** | Play inicia la partida y permitió jugar. |
+| Coach → Review Game → Analyzer V2 | **PASS** | Confirmado en Chrome, iPhone Safari e iPad Safari; abre V2 sin destello heredado y conserva la partida. |
+| Analyzer V2 → Atrás → Coach | **PASS** | Confirmado en Chrome, iPhone Safari e iPad Safari; vuelve a Coach sin iniciar otra partida ni duplicar el tablero. |
+
+Certificación final comunicada por el propietario: **`Chrome PASS · iPhone PASS · iPad PASS`**.
+
+Durante esa QA, `be952ff6` cargaba `/play/coach` por la IP LAN pero Play no iniciaba. La reproducción en Chromium de escritorio contra `http://192.168.1.251:8000` descartó un fallo exclusivo de Safari: el toque/clic llegaba al botón y Stockfish terminaba `ready=true`, pero el flujo se detenía antes de `startNewGame`. `http://localhost:8000` sí funcionaba porque es un contexto confiable.
+
+La causa fue `coach-entitlement-client.js`: `consume()` exigía `crypto.randomUUID()` antes de aplicar el acceso temporal de preview abierto. Los navegadores no exponen `randomUUID` en el origen HTTP LAN no seguro. Los blobs del cliente de entitlement, panel, adaptador y worker eran idénticos entre el baseline `dea4181` y `be952ff6`; por tanto, era un defecto preexistente descubierto por esta QA, no una regresión del retiro del Analyzer.
+
+La corrección local mínima adelanta el cortocircuito de preview abierto antes de crear el UUID. No altera la ruta autenticada/premium, que conserva su clave de idempotencia. Se incrementaron las claves de caché del cliente y del registro de carga para impedir que Safari reutilice el runtime anterior. La verificación automatizada confirmó:
+
+- Play inicia con motor listo por IP LAN en Chromium, WebKit iPhone y WebKit iPad aunque `crypto.randomUUID` no exista.
+- En WebKit iPhone/iPad por IP LAN: Play → `e4` → respuesta del motor → narración de Coach → Review Game → `/analyze?handoff=…`; Analyzer V2 queda listo y no aparece el Analyzer heredado.
+- Las pruebas focalizadas de handoff oficial para Game, Bots y Coach, navegación fría, ausencia del Analyzer heredado y Back/Forward obtuvieron **21 PASS / 1 SKIP esperado** en Chromium y WebKit.
+- Los contratos focalizados de Coach/postgame obtuvieron **43/43 PASS** y la auditoría pública de artefactos obtuvo PASS.
+
+**Estado de publicación:** Human QA solicitada completada; candidato local en **HOLD**. No se autoriza push, PR, merge ni deploy desde este runbook.
 
 ## 9. Riesgos y asuntos fuera de alcance
 

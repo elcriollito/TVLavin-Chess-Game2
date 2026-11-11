@@ -1,6 +1,6 @@
 (function installCoachEntitlementClient(root) {
     'use strict';
-    const SCHEMA_VERSION = '1.1.0';
+    const SCHEMA_VERSION = '1.1.1';
     // Temporary Play v3 feedback window. The server preserves the same explicit switch.
     const TEMPORARY_OPEN_PREVIEW = true;
     const ALLOWED_ACCESS = new Set(['none', 'trial', 'premium', 'locked', 'preview']);
@@ -47,6 +47,7 @@
         return freeze({
             refresh: () => call('GET'),
             consume: async () => {
+                if (previewOpen) return call('POST');
                 if (!operationId) operationId = root.crypto?.randomUUID?.() || null;
                 if (!operationId) { current = normalize(null); return current; }
                 return call('POST', operationId);

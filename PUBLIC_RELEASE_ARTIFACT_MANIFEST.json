@@ -184,7 +184,7 @@
     },
     {
       "path": "api/_lib/play-v2-public-beta-document.js",
-      "sha256": "fc3572a7676152db83c79ff77ec38f3217ad909207e9cefe1231b23ae945eafe"
+      "sha256": "deca15c0d4774680aa2bcddd743a94d725d674cc8de607439b424b1f81d387a9"
     },
     {
       "path": "api/_lib/polyglot-builder.js",
@@ -1952,7 +1952,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "633322e139b9e49d3a37610892581a92f16728a35da653174043b826f2844b89"
+      "sha256": "5b1a452f1cdcf48ff501fd1c4ba011f648ed41ddbd9441daea884741d4de8ee8"
     },
     {
       "path": "integrations/chessbase-pgn-replayer.html",
@@ -3276,7 +3276,7 @@
     },
     {
       "path": "js/play/native-coach/coach-entitlement-client.js",
-      "sha256": "746f158fab6bff95a12eca9c2ad84790cd3e0eb40d388ba87619dcc833ad2df8"
+      "sha256": "088e251b92609e3ce8022cf5823eee8d279db7311094429ea5421b1402ba0e79"
     },
     {
       "path": "js/play/native-coach/coach-game-over-presentation.js",
@@ -3340,7 +3340,7 @@
     },
     {
       "path": "js/play/performance/play-load-registry.js",
-      "sha256": "18b76f5e431992a3a667a691d53699e634e1fac9acc913b7e9aebd6bb3c4aa2d"
+      "sha256": "35842b2214194b6a4fbfb6fa4945b62a132d9c2fc8726f203c0033d053f083d8"
     },
     {
       "path": "js/play/performance/play-performance-budget.js",
@@ -4228,11 +4228,11 @@
     },
     {
       "path": "play-v2-promotion-qa.html",
-      "sha256": "751421419f9bd866c38f6a67b8c8d39eaabca0eed7485db4ee02c35b33f99e32"
+      "sha256": "f745ea1fa6c2aa036959501fe5b23fad8d5070a0d305b67f314cbaa48f9b55c5"
     },
     {
       "path": "play-v2-public-beta.html",
-      "sha256": "671ee847ff2363b94e2715dcc8ef64415398cd29163428c724450556f1b63724"
+      "sha256": "530a834801f92a4ed5b4c8afe5339044fcef87490a697853c2e34962de3ed588"
     },
     {
       "path": "play-v2-unavailable.html",
@@ -4240,7 +4240,7 @@
     },
     {
       "path": "play-v2.html",
-      "sha256": "7cae3696392d79d0d2e2a4a505361494aa1f1fef109496445eece6ded9a2e6a6"
+      "sha256": "9a7459f2b6b65c0bcbb8a3ba41976a5fcca3a8519971719ddd6024dbcdf55549"
     },
     {
       "path": "playchess.html",

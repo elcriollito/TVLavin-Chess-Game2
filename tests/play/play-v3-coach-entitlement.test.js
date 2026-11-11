@@ -110,6 +110,17 @@ test('browser entitlement client uses Clerk bearer auth and keeps no local entit
     assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB|document\.cookie/i);
 });
 
+test('open preview consumption does not require secure-context randomUUID', async () => {
+    const window = { crypto: {}, fetch: async () => assert.fail('open preview must not call the server') };
+    vm.runInNewContext(read('js/play/native-coach/coach-entitlement-client.js'),
+        { window, globalThis: window, Object, Set });
+    const client = window.CaissaCoachEntitlementClient.create();
+    assert.deepEqual(JSON.parse(JSON.stringify(await client.consume())), {
+        verified: true, allowed: true, code: 'OPEN_PREVIEW_ACCESS', coachAccess: 'preview',
+        coachTrialGamesRemaining: 0, coachGameConsumed: false
+    });
+});
+
 test('Coach remains visible when locked and only server admission can enable Play', () => {
     const panel = read('js/play/native-coach/coach-panel.js');
     const registry = read('js/play/performance/play-load-registry.js');
@@ -123,5 +134,5 @@ test('Coach remains visible when locked and only server admission can enable Pla
     assert.match(panel, /setAttribute\('aria-busy', 'true'\)/);
     const shell = read('js/play/simplified-play-shell.js');
     assert.match(shell, /getAttribute\('aria-busy'\) === 'true'/);
-    assert.ok(registry.indexOf('coach-entitlement-client.js?v=1.1.0') < registry.indexOf('coach-panel.js?v=2.8.2'));
+    assert.ok(registry.indexOf('coach-entitlement-client.js?v=1.1.1') < registry.indexOf('coach-panel.js?v=2.8.2'));
 });
