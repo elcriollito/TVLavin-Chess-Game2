@@ -109,7 +109,7 @@ test('desktop Home renders approved identity, route discovery and clean console'
   }
 });
 
-test('mobile Home has no horizontal overflow and keeps Classic desktop-only', async ({ page }) => {
+test('mobile Home presents the dedicated app shell and keeps Classic desktop-only', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installAuthMock(page, {
     isLoaded: true,
@@ -120,21 +120,17 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
   const errors = collectConsoleErrors(page);
 
   await page.goto('/');
-  await expect(page.locator('.mobile-nav')).toBeVisible();
-  await expect(page.locator('.mobile-nav').getByRole('link', { name: 'Online', exact: true })).toBeVisible();
-  await expect(page.locator('.mobile-nav').getByRole('link', { name: 'Scanner', exact: true })).toBeVisible();
-  await expect(page.locator('.online-callout').getByRole('link', { name: 'Play online', exact: true })).toBeVisible();
+  await expect(page.locator('[data-mobile-home]')).toBeVisible();
+  await expect(page.locator('.mobile-nav')).toBeHidden();
+  await expect(page.locator('[data-mobile-destination="play"]')).toHaveAttribute('href', '/play/games');
+  await expect(page.locator('[data-mobile-destination="scanner"]')).toBeVisible();
   await expect(page.getByRole('link', { name: 'CAISSA Classic', exact: true }).last()).toBeHidden();
-  const topbar = page.locator('#topbar-account');
-  await expect(topbar.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
-  await expect(topbar.getByRole('link', { name: 'Register', exact: true })).toHaveCount(0);
-  await expect(topbar.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 
   await page.keyboard.press('Tab');
-  await expect(page.locator('.skip')).toBeFocused();
+  await expect(page.locator('.mobile-skip')).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#main')).toBeFocused();
+  await expect(page.locator('#mobile-main')).toBeFocused();
   expect(errors).toEqual([]);
   if (process.env.CAISSA_CAPTURE_HOME === '1') {
     await page.screenshot({ path: 'docs/home-season/screenshots/home-mobile.png', fullPage: true });
@@ -142,7 +138,7 @@ test('mobile Home has no horizontal overflow and keeps Classic desktop-only', as
 });
 
 test('auth check failure keeps Sign in and Settings available without the retired pause copy', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await installAuthMock(page, {
     isLoaded: true,
     isSignedIn: false,
@@ -250,9 +246,11 @@ test('connected Home renders only returned puzzle progress and preserves the emp
   }
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-  await expect(page.getByRole('button', { name: /Ada Player account menu$/ })).toBeVisible();
+  await expect(page.locator('[data-mobile-home]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Ada Player account menu$/ })).toBeHidden();
   expect(errors).toEqual([]);
 
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route('**/api/puzzles/progress', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -313,8 +311,7 @@ test('Home Account & identity reuses the native privacy panel across responsive 
   const topbar = page.locator('#topbar-account');
   const viewports = [
     { label: 'desktop-1440', width: 1440, height: 1000 },
-    { label: 'tablet-885', width: 885, height: 900 },
-    { label: 'mobile-390', width: 390, height: 844 }
+    { label: 'tablet-885', width: 885, height: 900 }
   ];
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -368,8 +365,8 @@ test('Home Account & identity reuses the native privacy panel across responsive 
   await topbar.getByRole('button', { name: 'Profile', exact: true }).click();
   expect(await page.evaluate(() => window.__caissaProfileOpened)).toBe(true);
   expect(accountRequests.every(request => request.method === 'GET')).toBe(true);
-  expect(accountRequests.filter(request => request.path === '/api/account/privacy/summary')).toHaveLength(3);
-  expect(accountRequests.filter(request => request.path === '/api/user/public-identity')).toHaveLength(3);
+  expect(accountRequests.filter(request => request.path === '/api/account/privacy/summary')).toHaveLength(2);
+  expect(accountRequests.filter(request => request.path === '/api/user/public-identity')).toHaveLength(2);
   const serious = (await new AxeBuilder({ page }).include('#topbar-account').analyze())
     .violations.filter(item => ['critical', 'serious'].includes(item.impact));
   expect(serious).toEqual([]);
