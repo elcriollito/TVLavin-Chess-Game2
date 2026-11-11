@@ -82,10 +82,10 @@ test('Opening Database owns a vetted Stockfish 19 Lite client and bounded Fast/P
   assert.doesNotMatch(source, /\.goDepth\(/);
 });
 
-test('Explorer exposes independent Popularity and Engine sorting without restoring All legal', () => {
+test('Explorer exposes independent Popular Moves and Engine sorting without restoring All legal', () => {
   assert.doesNotMatch(html, /id="odbMovesAllBtn"|>All legal</i);
   assert.doesNotMatch(html, /aria-label="Move list mode"/);
-  assert.match(html, /id="odbSortPopularityBtn"[^>]*aria-pressed="true"[^>]*>Popularity/);
+  assert.match(html, /id="odbSortPopularityBtn"[^>]*aria-pressed="true"[^>]*>Popular Moves/);
   assert.match(html, /id="odbSortEngineBtn"[^>]*aria-pressed="false"[^>]*>Engine/);
   assert.match(html, /id="odbQuickEvalToggle"/);
   assert.match(html, /id="odbQuickEvalMode"/);
@@ -98,6 +98,10 @@ test('Explorer exposes independent Popularity and Engine sorting without restori
   assert.match(source, /turn === 'b' \? a\.score - b\.score : b\.score - a\.score/);
   assert.match(source, /aEvaluated !== bEvaluated/);
   assert.match(source, /return a\.index - b\.index/);
+  assert.match(source, /OPENINGDB_MOBILE_ROW_LIMIT\s*=\s*5/);
+  assert.match(source, /renderMobileEngineArrows/);
+  assert.match(html, /id="odbMoveArrows"/);
+  assert.match(html, /id="odbMoreMovesBtn"/);
   assert.match(source, /state\.explorerSortMode = 'popularity';[\s\S]*?cancelNextMoveEvalQueue/);
 });
 

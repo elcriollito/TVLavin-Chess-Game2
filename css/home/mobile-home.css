@@ -498,7 +498,6 @@
 
   .mobile-settings-panels a,
   .mobile-settings-panels select {
-    display: flex;
     align-items: center;
     min-height: 48px;
     width: 100%;
@@ -511,6 +510,7 @@
   }
 
   .mobile-settings-panels a {
+    display: flex;
     justify-content: center;
     color: #075da7;
     font-weight: 750;
@@ -522,6 +522,14 @@
     color: #4c5665;
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .mobile-settings-panels select {
+    display: block;
+    font-size: 16px;
+    touch-action: manipulation;
+    -webkit-appearance: menulist;
+    appearance: auto;
   }
 
   @media (max-width: 380px) {

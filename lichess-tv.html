@@ -20,7 +20,7 @@
   <link rel="icon" href="/favicon.ico?v=4">
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
-  <link rel="stylesheet" href="/css/lichess-tv.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/lichess-tv.css?v=1.0.1">
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="lichess-tv-page">
@@ -33,8 +33,9 @@
           <a href="/academy">Explore CAISSA Chess</a>
         </aside>
         <header class="lichess-tv-heading">
+          <p class="lichess-tv-provider">Lichess TV</p>
           <h1>Watch High-Rated Chess Live</h1>
-          <p>Follow a featured high-rated game selected automatically by Lichess TV. The players, ratings, clocks, moves, and featured game are controlled by Lichess.</p>
+          <p class="lichess-tv-intro">Follow a featured high-rated game selected automatically by Lichess TV. The players, ratings, clocks, moves, and featured game are controlled by Lichess.</p>
         </header>
         <section class="lichess-tv-shell" data-lichess-tv-shell aria-label="Lichess TV Top Rated viewer">
           <div class="lichess-tv-status" data-lichess-tv-status role="status" aria-live="polite" tabindex="-1">Loading the Lichess TV viewer…</div>
@@ -46,18 +47,21 @@
           </div>
         </section>
         <noscript><p class="lichess-tv-noscript">JavaScript is required to load this viewer. <a href="https://lichess.org/tv" target="_blank" rel="noopener noreferrer">Open the official Lichess TV service.</a></p></noscript>
-        <section class="lichess-tv-disclosure" aria-label="Lichess TV service attribution">
-          <p><strong>Service attribution:</strong> Lichess TV is operated by Lichess. CAISSA Chess provides this independent gateway and does not select or operate the featured game, players, ratings, clocks, or moves.</p>
-          <p>Featured game availability is controlled by Lichess. A loaded viewer does not allow CAISSA Chess to verify that a game is currently active.</p>
-          <p><a href="https://lichess.org/tv" data-lichess-tv-provider-link target="_blank" rel="noopener noreferrer">Open the official Lichess TV service</a></p>
-          <p class="lichess-tv-broadcast-boundary">Event and round-specific Lichess Broadcast integrations are separate and deferred to LBC-0.1.</p>
-        </section>
+        <details class="lichess-tv-disclosure" aria-label="Lichess TV service attribution" open>
+          <summary data-lichess-tv-attribution>Powered by Lichess &middot; Info</summary>
+          <div class="lichess-tv-disclosure-copy">
+            <p><strong>Service attribution:</strong> Lichess TV is operated by Lichess. CAISSA Chess provides this independent gateway and does not select or operate the featured game, players, ratings, clocks, or moves.</p>
+            <p>Featured game availability is controlled by Lichess. A loaded viewer does not allow CAISSA Chess to verify that a game is currently active.</p>
+            <p><a href="https://lichess.org/tv" data-lichess-tv-provider-link target="_blank" rel="noopener noreferrer">Open the official Lichess TV service</a></p>
+            <p class="lichess-tv-broadcast-boundary">Event and round-specific Lichess Broadcast integrations are separate and deferred to LBC-0.1.</p>
+          </div>
+        </details>
       </main>
       <footer class="lichess-tv-footer"><p>&copy; 2026 CAISSA Chess. All rights reserved.</p><p><a href="/play">Play</a> · <a href="/about">About CAISSA Chess</a></p></footer>
     </div>
   </div>
   <script src="/js/caissa-i18n.js?v=1.0.0"></script><script src="/js/caissa-primary-navigation.js?v=1.22.0"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0"></script>
-  <script type="module" src="/js/lichess-tv-parent.js?v=1.0.0"></script>
+  <script type="module" src="/js/lichess-tv-parent.js?v=1.0.1"></script>
 </body>
 </html>

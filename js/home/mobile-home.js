@@ -9,7 +9,7 @@
     Object.freeze({ id: 'analyze', route: '/analyze' }),
     Object.freeze({ id: 'scanner', route: '/scanner' }),
     Object.freeze({ id: 'opening-explorer', route: '/opening-database' }),
-    Object.freeze({ id: 'watch-games', routes: Object.freeze(['/watch/lichess-tv', '/spectator-tv']) }),
+    Object.freeze({ id: 'watch-games', route: '/watch/lichess-tv' }),
     Object.freeze({ id: 'settings', route: null })
   ]);
   const settingsCategories = Object.freeze([
@@ -27,6 +27,7 @@
   const back = sheet?.querySelector('[data-mobile-settings-back]');
   const closeButton = sheet?.querySelector('[data-mobile-settings-close]');
   const panels = [...(sheet?.querySelectorAll('[data-mobile-settings-panel]') || [])];
+  const localeSelect = sheet?.querySelector('[data-caissa-locale-select]');
   let settingsTrigger = null;
 
   if (!home || !sheet || !list || !title || !back || !closeButton) return;
@@ -86,6 +87,18 @@
     settingsTrigger?.focus?.();
     settingsTrigger = null;
   });
+
+  function selectLocale(event) {
+    const nextLocale = event.currentTarget?.value;
+    if (!nextLocale || !global.CaissaI18n?.setLocale) return;
+    event.stopPropagation();
+    global.CaissaI18n.setLocale(nextLocale);
+  }
+
+  // Native iOS pickers are more reliable with a listener on the control
+  // itself than with document-only delegation from inside a modal dialog.
+  localeSelect?.addEventListener('input', selectLocale);
+  localeSelect?.addEventListener('change', selectLocale);
 
   global.matchMedia?.('(max-width: 720px)').addEventListener?.('change', event => {
     if (!event.matches && sheet.open) closeSettings();

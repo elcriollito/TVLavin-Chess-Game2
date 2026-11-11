@@ -519,8 +519,7 @@ const CaissaNavigation = {
                 { action: 'menu', label: 'Menu', icon: 'fa-bars', style: 'analysis' }
             ],
             analyze: [
-                { action: 'analyze-engine', label: 'Engine', icon: 'fa-brain', style: 'primary' },
-                { action: 'menu', label: 'Menu', icon: 'fa-bars', style: 'analysis' }
+                { action: 'analyze-engine', label: 'Engine', icon: 'fa-brain', style: 'primary' }
             ],
             arena: [
                 { action: 'arena-start', label: 'New Game', icon: 'fa-play', style: 'primary' },

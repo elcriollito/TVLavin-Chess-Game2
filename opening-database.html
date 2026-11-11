@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=2.4.0">
+  <link rel="stylesheet" href="/css/opening-database.css?v=2.4.2">
   <link rel="stylesheet" href="/css/caissa-legacy-quiet-drag.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
   <script type="application/ld+json">
@@ -68,6 +68,13 @@
           <section class="openingdb-board-column" aria-label="Opening board" data-caissa-i18n-aria-label="openingdb.aria.boardSection">
             <div class="openingdb-board-shell">
               <div id="openingDbBoard" class="openingdb-board" role="group" aria-label="Opening database board" data-caissa-i18n-aria-label="openingdb.aria.board"></div>
+              <svg id="odbMoveArrows" class="openingdb-move-arrows" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <defs>
+                  <marker id="odbArrowPrimary" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L4,2 L0,4 Z"></path></marker>
+                  <marker id="odbArrowSecondary" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L4,2 L0,4 Z"></path></marker>
+                </defs>
+                <g data-odb-arrow-lines></g>
+              </svg>
             </div>
             <div class="openingdb-board-context" aria-live="polite">
               <span id="odbTurnPly" data-caissa-i18n="openingdb.board.turnStart">White to move • Start position</span>
@@ -195,7 +202,7 @@
                 <div class="openingdb-moves-toolbar">
                   <button id="odbAnalyzeInCaissaBtn" class="openingdb-analyze-action" type="button"><span data-caissa-i18n="openingdb.explorer.analyze">Analyze in CAISSA</span> <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                   <div class="openingdb-modes openingdb-sort-selector" role="group" aria-label="Explorer sort order" data-caissa-i18n-aria-label="openingdb.aria.explorerSort">
-                    <button id="odbSortPopularityBtn" class="openingdb-mode-button active" type="button" aria-pressed="true" data-caissa-i18n="openingdb.explorer.popularity">Popularity</button>
+                    <button id="odbSortPopularityBtn" class="openingdb-mode-button active" type="button" aria-pressed="true" data-caissa-i18n="openingdb.explorer.popularity">Popular Moves</button>
                     <button id="odbSortEngineBtn" class="openingdb-mode-button" type="button" aria-pressed="false" data-caissa-i18n="openingdb.explorer.engine">Engine</button>
                   </div>
                   <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span data-caissa-i18n="openingdb.explorer.evaluateMoves">Evaluate moves</span></label>
@@ -213,6 +220,7 @@
                     <tbody id="odbStatsBody"><tr><td colspan="4" class="openingdb-empty" data-caissa-i18n="openingdb.explorer.loading">Loading continuation data…</td></tr></tbody>
                   </table>
                 </div>
+                <button id="odbMoreMovesBtn" class="openingdb-more-moves" type="button" aria-expanded="false" hidden>More moves</button>
                 <details class="openingdb-disclosure openingdb-data-details"><summary data-caissa-i18n="openingdb.explorer.datasetDetails">Dataset details</summary><div id="odbRowsDiag" data-caissa-i18n="openingdb.explorer.rowsInitial">Rows rendered: 0 / Source rows: 0 / Mode: Explorer / matchLevel: none</div></details>
                 <div id="odbTransitionPanel" class="odb-transition" hidden>
                   <h3 data-caissa-i18n="openingdb.transition.title">Entering the early middlegame</h3>
@@ -271,6 +279,6 @@
   <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=2.4.1"></script>
+  <script src="/js/opening-database.js?v=2.4.2"></script>
 </body>
 </html>

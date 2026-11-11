@@ -23,12 +23,20 @@ export function initializeLichessTv(root = document, options = {}) {
   const status = shell.querySelector('[data-lichess-tv-status]');
   const error = shell.querySelector('[data-lichess-tv-error]');
   const retry = shell.querySelector('[data-lichess-tv-retry]');
+  const attribution = root.querySelector('.lichess-tv-disclosure');
+  const mobileAttribution = window.matchMedia('(max-width: 800px)');
   const timeoutMs = options.timeoutMs ?? 15000;
   let timer = 0;
   let frame = null;
   let generation = 0;
   let state = 'loading';
   let moveFocusAfterLoad = false;
+
+  function syncAttribution() {
+    if (attribution) attribution.open = !mobileAttribution.matches;
+  }
+  syncAttribution();
+  mobileAttribution.addEventListener?.('change', syncAttribution);
 
   function clearAttempt() {
     window.clearTimeout(timer);
@@ -78,7 +86,10 @@ export function initializeLichessTv(root = document, options = {}) {
       shell.classList.add('is-document-loaded');
       if (moveFocusAfterLoad) {
         moveFocusAfterLoad = false;
-        root.querySelector('[data-lichess-tv-provider-link]')?.focus({ preventScroll: true });
+        const focusTarget = mobileAttribution.matches
+          ? root.querySelector('[data-lichess-tv-attribution]')
+          : root.querySelector('[data-lichess-tv-provider-link]');
+        focusTarget?.focus({ preventScroll: true });
       }
     }, { once: true });
     next.addEventListener('error', () => showUnavailable(currentGeneration), { once: true });
@@ -93,7 +104,12 @@ export function initializeLichessTv(root = document, options = {}) {
     get state() { return state; },
     get frame() { return frame; },
     retry() { createFrame({ focusStatus: true }); return true; },
-    destroy() { generation += 1; clearAttempt(); state = 'destroyed'; }
+    destroy() {
+      generation += 1;
+      clearAttempt();
+      mobileAttribution.removeEventListener?.('change', syncAttribution);
+      state = 'destroyed';
+    }
   });
   shell.__caissaLichessTvController = controller;
   createFrame();

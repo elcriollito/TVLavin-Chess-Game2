@@ -34,6 +34,8 @@
 
     function applyDocumentMetadata(definition, document = global.document) {
         if (!definition || !document?.head) return false;
+        if (definition.title) document.title = definition.title;
+        document.documentElement?.setAttribute('data-caissa-route-surface', definition.surface || definition.section);
         const absoluteUrl = new URL(definition.route, global.location?.origin || 'https://www.caissa-chess.org').href;
         let canonical = document.querySelector('link[rel="canonical"]');
         if (!canonical) {

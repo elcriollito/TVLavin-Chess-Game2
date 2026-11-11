@@ -65,7 +65,7 @@ test('CAISSA Mobile renders the isolated nine-card app shell at phone widths', a
   }
 });
 
-test('mobile routes are direct and Watch Games progressively discloses Lichess and FICS', async ({ page }) => {
+test('mobile routes are direct and Watch Games opens Lichess without a provider submenu', async ({ page }) => {
   await installGuestAuth(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
@@ -79,21 +79,20 @@ test('mobile routes are direct and Watch Games progressively discloses Lichess a
   await expect(page.locator('[data-mobile-destination="opening-explorer"]')).toHaveAttribute('href', '/opening-database');
 
   const watch = page.locator('[data-mobile-destination="watch-games"]');
-  await expect(watch.locator('.mobile-submenu-options')).toBeHidden();
-  await watch.locator('summary').click();
-  await expect(watch.locator('.mobile-submenu-options')).toBeVisible();
-  await expect(watch.getByRole('link', { name: /Lichess/ })).toHaveAttribute('href', '/watch/lichess-tv');
-  await expect(watch.getByRole('link', { name: /FICS/ })).toHaveAttribute('href', '/spectator-tv');
-  if (capture) {
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(200);
-    await page.screenshot({ path: 'docs/mobile-home-season-001/screenshots/watch-games-expanded.png', fullPage: true });
-  }
+  await expect(watch).toHaveAttribute('href', '/watch/lichess-tv');
+  await expect(watch).toContainText('High-rated chess live');
+  await expect(page.locator('[data-mobile-home] .mobile-submenu-options')).toHaveCount(0);
+  await expect(page.locator('[data-mobile-home] a[href="/spectator-tv"]')).toHaveCount(0);
 
   await page.locator('[data-mobile-destination="play"]').click();
   await expect(page).toHaveURL(/\/play\/games$/);
   await page.reload();
   await expect(page).toHaveURL(/\/play\/games$/);
+  await page.goBack();
+  await expect(page.locator('[data-mobile-home]')).toBeVisible();
+
+  await page.locator('[data-mobile-destination="analyze"]').click();
+  await expect(page).toHaveURL(/\/analyze$/);
   await page.goBack();
   await expect(page.locator('[data-mobile-home]')).toBeVisible();
 });
@@ -113,8 +112,15 @@ test('mobile Settings is a focused category sheet with working navigation and lo
   await sheet.locator('[data-mobile-settings-view="language"]').click();
   await expect(sheet.locator('#mobile-settings-title')).toHaveText('Language');
   await expect(sheet.locator('[data-mobile-settings-panel="language"]')).toBeVisible();
-  await sheet.locator('#mobile-language').selectOption('es');
-  expect(await page.evaluate(() => localStorage.getItem('caissa.locale'))).toBe('es');
+  for (const locale of ['es', 'pt', 'en']) {
+    await sheet.locator('#mobile-language').selectOption(locale);
+    await expect(page.locator('html')).toHaveAttribute('lang', locale);
+    expect(await page.evaluate(() => localStorage.getItem('caissa.locale'))).toBe(locale);
+    await page.reload();
+    await page.locator('[data-mobile-settings-open]').click();
+    await page.locator('#mobile-settings [data-mobile-settings-view="language"]').click();
+    await expect(page.locator('#mobile-language')).toHaveValue(locale);
+  }
   if (capture) {
     await page.screenshot({ path: 'docs/mobile-home-season-001/screenshots/mobile-settings-language.png' });
   }

@@ -59,15 +59,27 @@ test('timeout and Retry replace one frame without duplicate attempts', async ({ 
   await expect(page.locator('[data-lichess-tv-provider-link]')).toBeFocused();
 });
 
-test('mobile drawer remains accessible and returns focus', async ({ page }) => {
+test('mobile viewer is board-first with compact progressive attribution and no duplicated drawer', async ({ page }) => {
   await page.route(frameUrl, request => request.fulfill({ status: 200, contentType: 'text/html', body: fixture }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(route, { waitUntil: 'domcontentloaded' });
   const toggle = page.locator('.caissa-standalone-mobile-toggle');
-  await toggle.click();
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.locator('body')).toHaveClass(/caissa-standalone-nav-open/);
-  await page.keyboard.press('Escape');
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  await expect(toggle).toBeFocused();
+  await expect(toggle).toBeHidden();
+  await expect(page.locator('.lichess-tv-banner')).toBeHidden();
+  await expect(page.locator('.lichess-tv-intro')).toBeHidden();
+  await expect(page.locator('.lichess-tv-footer')).toBeHidden();
+  const heading = page.locator('.lichess-tv-heading');
+  const shell = page.locator('[data-lichess-tv-shell]');
+  const geometry = await page.evaluate(() => ({
+    headingTop: document.querySelector('.lichess-tv-heading').getBoundingClientRect().top,
+    shellTop: document.querySelector('[data-lichess-tv-shell]').getBoundingClientRect().top
+  }));
+  expect(geometry.headingTop).toBeLessThan(20);
+  expect(geometry.shellTop).toBeLessThan(70);
+  await expect(heading).toContainText('Lichess TV');
+  const attribution = page.locator('.lichess-tv-disclosure');
+  await expect(attribution.locator('.lichess-tv-disclosure-copy')).toBeHidden();
+  await attribution.locator('summary').click();
+  await expect(attribution.locator('.lichess-tv-disclosure-copy')).toBeVisible();
+  await expect(shell).toBeVisible();
 });

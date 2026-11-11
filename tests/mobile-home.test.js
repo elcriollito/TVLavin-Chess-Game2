@@ -29,9 +29,10 @@ test('mobile Home exposes the nine approved destinations in product order', () =
   assert.equal($('[data-mobile-destination="analyze"]').attr('href'), '/analyze');
   assert.equal($('[data-mobile-destination="scanner"]').attr('href'), '/scanner');
   assert.equal($('[data-mobile-destination="opening-explorer"]').attr('href'), '/opening-database');
-  assert.deepEqual($('.mobile-submenu-options a').toArray().map(link => $(link).attr('href')), [
-    '/watch/lichess-tv', '/spectator-tv'
-  ]);
+  assert.equal($('[data-mobile-destination="watch-games"]').attr('href'), '/watch/lichess-tv');
+  assert.equal($('[data-mobile-destination="watch-games"] .mobile-card-copy small').text(), 'High-rated chess live');
+  assert.equal($('[data-mobile-home] a[href="/spectator-tv"]').length, 0);
+  assert.equal($('.mobile-submenu-options').length, 0);
   assert.equal($('[data-mobile-destination="settings"]').is('button'), true);
   assert.equal($('[data-mobile-home] a[href="/yahoo-classic"]').length, 0);
 });
@@ -43,7 +44,7 @@ test('mobile Home uses isolated primitives and the existing CAISSA knight identi
   assert.equal($('.mobile-hero img[src="/icon-512.png"]').attr('alt'), 'CAISSA blue knight');
   assert.equal($('.mobile-card-list').length, 1);
   assert.equal($('.mobile-card').length, 9);
-  assert.equal($('.mobile-submenu').length, 1);
+  assert.equal($('.mobile-submenu').length, 0);
   assert.equal($('.mobile-sheet').length, 1);
   assert.equal($('.mobile-settings-entry').length, 1);
   assert.equal($('.sidebar').length, 1, 'desktop navigation remains present');
@@ -73,7 +74,7 @@ test('mobile Home JavaScript contract matches the rendered routing contract', ()
   assert.equal(contract.destinations[0].route, '/play/games');
   assert.equal(contract.destinations[2].route, '/play/bots');
   assert.equal(contract.destinations[3].route, '/play/coach');
-  assert.deepEqual(Array.from(contract.destinations[7].routes), ['/watch/lichess-tv', '/spectator-tv']);
+  assert.equal(contract.destinations[7].route, '/watch/lichess-tv');
   assert.deepEqual(Array.from(contract.settingsCategories), [
     'account', 'board', 'appearance', 'engine-coach', 'language', 'notation', 'accessibility', 'advanced'
   ]);
