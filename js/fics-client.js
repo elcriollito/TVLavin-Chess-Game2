@@ -206,14 +206,28 @@ const CaissaFICSClient = {
         const configuredUrl = typeof window.CAISSA_FICS_GATEWAY_URL === 'string'
             ? window.CAISSA_FICS_GATEWAY_URL.trim()
             : '';
+        const hqaRelayPath = document.querySelector?.('meta[name="caissa-fics-hqa-relay"]')
+            ?.getAttribute('content')?.trim() || '';
+
+        if (configuredUrl && (isLocal || configuredUrl.startsWith('wss://'))) {
+            this.gatewayUrl = configuredUrl;
+            this.gatewayMode = configuredUrl.startsWith('wss://') ? 'configured wss' : 'configured ws';
+            return;
+        }
+
+        if (hqaRelayPath.startsWith('/')) {
+            const relayUrl = new URL(hqaRelayPath, window.location.href);
+            relayUrl.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            this.gatewayUrl = relayUrl.href;
+            this.gatewayMode = 'mobile hqa relay';
+            return;
+        }
 
         if (isLocal) {
-            this.gatewayUrl = configuredUrl || 'ws://127.0.0.1:8787/ws';
+            this.gatewayUrl = 'ws://127.0.0.1:8787/ws';
             this.gatewayMode = this.gatewayUrl.startsWith('wss://') ? 'local wss' : 'local ws';
         } else {
-            this.gatewayUrl = configuredUrl.startsWith('wss://')
-                ? configuredUrl
-                : 'wss://fics-gateway.caissa-chess.org/ws';
+            this.gatewayUrl = 'wss://fics-gateway.caissa-chess.org/ws';
             this.gatewayMode = 'production wss';
         }
     },

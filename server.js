@@ -24,12 +24,17 @@ import pgnOpeningHandler from './api/pgn/opening.js';
 import pgnMentorHandler from './api/pgn/pgnmentor.js';
 import { MODEL, expandPlacement, squareAt } from './scanner/beta/scanner-beta-contract.js';
 import { createScannerHandoff, scannerHandoffHeaders } from './api/_lib/scanner-handoff.js';
+import {
+  attachMobileHqaFicsRelay,
+  injectMobileHqaFicsRelayMarker
+} from './scripts/mobile-hqa-fics-relay.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = Number.parseInt(process.env.PORT || '8000', 10);
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
+const mobileHqaFicsRelayEnabled = process.env.CAISSA_MOBILE_HQA_FICS_RELAY === '1';
 const RETIRED_PAGE_REDIRECTS = new Map([
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
@@ -810,6 +815,9 @@ const server = http.createServer(async (req, res) => {
   if (['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight',
     '/history', '/dos-chess'].includes(pathname)) {
     filePath = './index.html';
+    if (pathname === '/fics' && mobileHqaFicsRelayEnabled) {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    }
   }
   if (pathname === '/game-library' || pathname === '/game-library/') {
     filePath = './game-library.html';
@@ -922,14 +930,19 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500);
       res.end('Server Error: ' + error.code, 'utf-8');
     } else {
-      const servedContent = betaEntry.authorized && mimeType === 'text/html'
+      let servedContent = betaEntry.authorized && mimeType === 'text/html'
         ? injectPlayGameplayPreviewMarker(content.toString('utf8'), resolvePlayGameplayDeploymentConfig(process.env))
         : content;
+      if (pathname === '/fics' && mimeType === 'text/html') {
+        servedContent = injectMobileHqaFicsRelayMarker(servedContent.toString('utf8'), mobileHqaFicsRelayEnabled);
+      }
       res.writeHead(responseStatus, { 'Content-Type': mimeType });
       res.end(servedContent, 'utf-8');
     }
   });
 });
+
+attachMobileHqaFicsRelay(server, { enabled: mobileHqaFicsRelayEnabled });
 
 server.listen(PORT, HOST, () => {
   console.log('========================================');

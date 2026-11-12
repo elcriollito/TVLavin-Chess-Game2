@@ -7,6 +7,7 @@ const DEFAULT_PLAY_STAGE = 'public-beta';
 process.env.PORT ||= DEFAULT_PORT;
 process.env.CAISSA_SERVER_HOST ||= DEFAULT_HOST;
 process.env.CAISSA_PLAY_V2_BETA_STAGE ||= DEFAULT_PLAY_STAGE;
+process.env.CAISSA_MOBILE_HQA_FICS_RELAY = '1';
 
 function privateIpv4Addresses() {
   return Object.values(os.networkInterfaces())
@@ -32,5 +33,6 @@ for (const address of privateIpv4Addresses()) {
   console.log(`LAN:   http://${address}:${port}`);
 }
 console.log('Private-LAN HQA only. No firewall settings are changed.');
+console.log('FICS HQA relay enabled through the canonical CAISSA gateway.');
 
 await import('../server.js');

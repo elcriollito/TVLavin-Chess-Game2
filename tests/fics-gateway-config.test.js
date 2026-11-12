@@ -6,11 +6,19 @@ import vm from 'node:vm';
 const clientSource = fs.readFileSync(new URL('../js/fics-client.js', import.meta.url), 'utf8');
 const classicEntries = ['../index.html', '../yahoo-classic.html'];
 
-function loadClient(hostname, configuredUrl) {
-    const root = { location: { hostname } };
+function loadClient(hostname, configuredUrl, relayPath = '') {
+    const root = { location: { hostname, protocol: 'http:', href: `http://${hostname}/fics` } };
     if (configuredUrl !== undefined) root.CAISSA_FICS_GATEWAY_URL = configuredUrl;
-    const document = { readyState: 'loading', addEventListener() {} };
-    vm.runInNewContext(clientSource, { window: root, document, console });
+    const document = {
+        readyState: 'loading',
+        addEventListener() {},
+        querySelector(selector) {
+            return relayPath && selector === 'meta[name="caissa-fics-hqa-relay"]'
+                ? { getAttribute: () => relayPath }
+                : null;
+        }
+    };
+    vm.runInNewContext(clientSource, { window: root, document, console, URL });
     root.CaissaFICSClient.configureGateway();
     return root.CaissaFICSClient;
 }
@@ -23,6 +31,20 @@ test('local hosts default to the current Worker endpoint', () => {
 
 test('explicit configuration retains precedence locally', () => {
     assert.equal(loadClient('localhost', 'ws://configured.example/ws').gatewayUrl, 'ws://configured.example/ws');
+});
+
+test('explicit insecure configuration is ignored outside loopback', () => {
+    assert.equal(
+        loadClient('www.caissa-chess.org', 'ws://configured.example/ws').gatewayUrl,
+        'wss://fics-gateway.caissa-chess.org/ws'
+    );
+});
+
+test('Mobile HQA marker selects the same-origin LAN relay without a loopback leak', () => {
+    const client = loadClient('192.168.1.78', undefined, '/__caissa_hqa/fics');
+    assert.equal(client.gatewayUrl, 'ws://192.168.1.78/__caissa_hqa/fics');
+    assert.equal(client.gatewayMode, 'mobile hqa relay');
+    assert.doesNotMatch(client.gatewayUrl, /localhost|127\.0\.0\.1/);
 });
 
 test('production retains the secure deployed gateway default', () => {

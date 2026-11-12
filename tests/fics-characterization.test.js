@@ -146,6 +146,21 @@ test('connection remains authenticating after WebSocket open until a FICS sessio
     assert.equal(client.authenticated, true);
 });
 
+test('bounded connection timeout closes the attempt and enters a readable error state', () => {
+    const { client, FakeWebSocket, timeoutTasks } = createHarness();
+    client.connect('guest');
+    const socket = FakeWebSocket.instances[0];
+    const timeout = timeoutTasks.find(task => task.delay === 5000);
+    assert.ok(timeout);
+
+    timeout.callback();
+
+    assert.equal(client.connectionState, 'error');
+    assert.equal(socket.readyState, FakeWebSocket.CLOSED);
+    assert.equal(socket.closed.length, 1);
+    assert.match(client.messageBuffer.join('\n'), /Connection timeout/i);
+});
+
 test('abnormal guest close schedules reconnect and retains stale live-game state', () => {
     const { client, FakeWebSocket, timeoutTasks } = createHarness();
     client.connect('guest');
