@@ -1680,7 +1680,7 @@
     },
     {
       "path": "css/opening-database.css",
-      "sha256": "008bc301a8e9b4b935376eb5b129b711ccfd46e3cdab3ccd4dc14343b7082f24"
+      "sha256": "e46b648dfe929b4f16f378a781e82a02564b35518ab77b2235084838ee0a638c"
     },
     {
       "path": "css/opening-trainer.css",
@@ -1724,7 +1724,7 @@
     },
     {
       "path": "css/playchess.css",
-      "sha256": "7221a164ae5acf8c6cff44889b6274978a151672e6607f24d751a037484f9b36"
+      "sha256": "71ad11ce27c7a6397e59b465a7eb003970f7fc9b0444d764df115236625e6e8f"
     },
     {
       "path": "css/polyglot-tool.css",
@@ -4120,7 +4120,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "e6157e4d72b03661039d525a89a7d0d8b22f87d24f3de60357f17eb82c117752"
+      "sha256": "93952c0e91e286dab770628c644c37b269ff3fad2378ad5e95e30189bce78766"
     },
     {
       "path": "pgn-replayer.html",

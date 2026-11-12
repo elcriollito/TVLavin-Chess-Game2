@@ -59,5 +59,6 @@ test('gateway CSS maximizes width without page-level horizontal overflow', () =>
   assert.match(css, /@media \(max-width: 480px\)/);
   assert.match(css, /transform:\s*translateX\(-24px\) scale\(1\.15\)/);
   assert.match(css, /height:\s*86\.9566%/);
-  assert.match(css, /height:\s*max\(900px,/);
+  assert.match(css, /height:\s*clamp\([\s\S]*?680px,[\s\S]*?100dvh - 124px[\s\S]*?760px/);
+  assert.match(css, /\.playchess-mobile-disclosure\s*\{[\s\S]*?display:\s*block/);
 });

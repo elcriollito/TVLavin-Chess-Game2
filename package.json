@@ -7,6 +7,7 @@
     "start": "node server.js",
     "start:mobile-hqa": "node scripts/start-mobile-hqa-server.mjs",
     "test:mobile-play-hub-route": "node --test tests/mobile-play-hub-local-route.test.js",
+    "test:mobile:compactness": "playwright test tests/browser/mobile-compactness-hotfix.spec.js --project=chromium --project=webkit",
     "test:caissa-downloads-polyglot": "node --test tests/polyglot-tool.test.js tests/downloads-page.test.js tests/caissa-expansion-security.test.js tests/public-route-inventory.test.js tests/navigation-integrity.test.js tests/global-navigation-order-policy.test.js tests/public-release-builder.test.js",
     "test:caissa-downloads-polyglot:browser": "playwright test tests/browser/polyglot-responsive-localization.spec.js tests/browser/downloads-page.spec.js --project=chromium",
     "test:opening-trainer": "node --test tests/opening-trainer.test.js tests/opening-trainer-stockfish19.test.js tests/navigation-integrity.test.js tests/global-navigation-order-policy.test.js tests/public-route-inventory.test.js",

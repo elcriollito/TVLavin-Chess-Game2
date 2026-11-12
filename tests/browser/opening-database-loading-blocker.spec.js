@@ -157,15 +157,16 @@ test('live LAN route loads canonical Popular Moves at 390px and 430px', async ({
       };
       return {
         board: rect('.openingdb-board-shell'),
-        metadata: rect('.openingdb-board-context'),
         results: rect('.openingdb-table-wrap'),
         controls: rect('.openingdb-sort-selector'),
         context: rect('.openingdb-opening-context'),
+        metadataDisplay: getComputedStyle(document.querySelector('.openingdb-board-context')).display,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
       };
     });
-    expect(layout.board.bottom).toBeLessThanOrEqual(layout.metadata.top + 1);
-    expect(layout.metadata.bottom).toBeLessThan(layout.results.top);
+    expect(layout.metadataDisplay).toBe('none');
+    expect(layout.results.top).toBeGreaterThanOrEqual(layout.board.bottom);
+    expect(layout.results.top - layout.board.bottom).toBeLessThanOrEqual(6);
     expect(layout.results.bottom).toBeLessThan(layout.controls.top);
     expect(layout.controls.bottom).toBeLessThan(layout.context.top);
     expect(layout.overflow).toBeLessThanOrEqual(1);
@@ -249,6 +250,7 @@ test('desktop keeps its two-column composition and canonical data behavior', asy
   await page.goto('/opening-database');
   await expect(page.locator('#odbStatsBody tr')).toHaveCount(5);
   await expect(page.locator('#odbMobileDataRegion')).toBeHidden();
+  await expect(page.locator('.openingdb-board-context')).toBeVisible();
   const layout = await page.evaluate(() => {
     const board = document.querySelector('.openingdb-board-shell').getBoundingClientRect();
     const workspace = document.querySelector('.openingdb-workspace').getBoundingClientRect();
