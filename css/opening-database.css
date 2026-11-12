@@ -37,6 +37,8 @@
     #0f151e;
 }
 
+.openingdb-mobile2-header { display: none; }
+
 .openingdb-page-intro {
   display: flex;
   align-items: end;
@@ -1274,7 +1276,14 @@
   }
 
   .openingdb-content {
-    padding: max(8px, env(safe-area-inset-top)) 8px calc(24px + env(safe-area-inset-bottom));
+    padding: 0 8px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .openingdb-mobile2-header {
+    display: block;
+    margin: 0 -8px 6px;
+    background: #0f151e;
+    color: #f4f7fb;
   }
 
   .openingdb-page-intro {

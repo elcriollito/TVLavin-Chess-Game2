@@ -9,6 +9,9 @@
         '/online': Object.freeze({ id: 'online', title: 'CAISSA Online', ...HUB_BACK }),
         '/play-online/playchess': Object.freeze({ id: 'playchess', title: 'Playchess', ...HUB_BACK }),
         '/fics': Object.freeze({ id: 'fics', title: 'FICS', ...HUB_BACK }),
+        '/analyze': Object.freeze({ id: 'analyze', title: 'Analyze', ...HOME_BACK }),
+        '/opening-database': Object.freeze({ id: 'opening-explorer', title: 'Opening Explorer', ...HOME_BACK }),
+        '/watch/lichess-tv': Object.freeze({ id: 'watch-games', title: 'Watch Games', ...HOME_BACK }),
         '/puzzles': Object.freeze({ id: 'puzzles', title: 'CAISSA Puzzles', ...HOME_BACK }),
         '/play/bots': Object.freeze({ id: 'bots', title: 'Play Bots', ...HOME_BACK }),
         '/play/coach': Object.freeze({ id: 'coach', title: 'Play Coach', ...HOME_BACK })
@@ -134,7 +137,7 @@
     mobile.addEventListener?.('change', () => sync());
 
     global.CaissaMobile2DestinationHeader = Object.freeze({
-        contractId: 'CaissaMobile2DestinationHeader@1.1.0',
+        contractId: 'CaissaMobile2DestinationHeader@1.2.0',
         routes: ROUTES,
         owns,
         enhance,

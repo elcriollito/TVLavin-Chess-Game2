@@ -107,7 +107,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await expect(page.locator('#odbStatsBody tr')).toHaveCount(5);
     await expect(page.locator('#odbStatsBody [data-move-uci="a2a3"], #odbStatsBody [data-move-uci="a2a4"]')).toHaveCount(0);
     expectDescending(await page.locator('#odbStatsBody .col-games').allTextContents());
-    expect((await page.locator('.openingdb-board-shell').boundingBox()).y).toBeLessThan(20);
+    const mobileHeaderBottom = (await page.locator('[data-caissa-mobile2-destination-header]').boundingBox()).y
+      + (await page.locator('[data-caissa-mobile2-destination-header]').boundingBox()).height;
+    const openingBoardTop = (await page.locator('.openingdb-board-shell').boundingBox()).y;
+    expect(openingBoardTop).toBeGreaterThanOrEqual(mobileHeaderBottom);
+    expect(openingBoardTop).toBeLessThan(mobileHeaderBottom + 20);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 
     const hierarchy = await page.evaluate(() => {
@@ -242,7 +246,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
     await page.goto('/watch/lichess-tv');
     await expect(page.locator('[data-lichess-tv-shell]')).toHaveClass(/is-document-loaded/);
     await expect(page.locator('.lichess-tv-disclosure-copy')).toBeHidden();
-    expect((await page.locator('[data-lichess-tv-shell]').boundingBox()).y).toBeLessThan(70);
+    const mobileHeader = await page.locator('[data-caissa-mobile2-destination-header]').boundingBox();
+    expect((await page.locator('[data-lichess-tv-shell]').boundingBox()).y)
+      .toBeLessThan(mobileHeader.y + mobileHeader.height + 70);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
     if (capture) {
       fs.mkdirSync(evidenceDir, { recursive: true });

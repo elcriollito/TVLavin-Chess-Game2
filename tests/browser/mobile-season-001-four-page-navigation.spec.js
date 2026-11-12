@@ -135,7 +135,10 @@ test('Play mode tabs keep the isolated header in sync without exposing legacy na
   }
 
   expect(await page.evaluate(() => [
-    '/analyze', '/scanner', '/opening-database', '/watch/lichess-tv', '/settings'
+    '/analyze', '/opening-database', '/watch/lichess-tv'
+  ].every(path => window.CaissaMobile2DestinationHeader.owns(path) === true))).toBe(true);
+  expect(await page.evaluate(() => [
+    '/scanner', '/settings'
   ].every(path => window.CaissaMobile2DestinationHeader.owns(path) === false))).toBe(true);
 });
 

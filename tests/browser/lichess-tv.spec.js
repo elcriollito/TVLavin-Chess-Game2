@@ -71,11 +71,12 @@ test('mobile viewer is board-first with compact progressive attribution and no d
   const heading = page.locator('.lichess-tv-heading');
   const shell = page.locator('[data-lichess-tv-shell]');
   const geometry = await page.evaluate(() => ({
+    headerBottom: document.querySelector('[data-caissa-mobile2-destination-header]').getBoundingClientRect().bottom,
     headingTop: document.querySelector('.lichess-tv-heading').getBoundingClientRect().top,
     shellTop: document.querySelector('[data-lichess-tv-shell]').getBoundingClientRect().top
   }));
-  expect(geometry.headingTop).toBeLessThan(20);
-  expect(geometry.shellTop).toBeLessThan(70);
+  expect(geometry.headingTop).toBeGreaterThanOrEqual(geometry.headerBottom);
+  expect(geometry.shellTop).toBeLessThan(geometry.headerBottom + 80);
   await expect(heading).toContainText('Lichess TV');
   const attribution = page.locator('.lichess-tv-disclosure');
   await expect(attribution.locator('.lichess-tv-disclosure-copy')).toBeHidden();

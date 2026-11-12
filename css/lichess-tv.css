@@ -20,6 +20,7 @@
 .lichess-tv-broadcast-boundary { font-size: .9rem; }
 .lichess-tv-footer { padding: 22px 16px 32px; text-align: center; color: #9eabba; }
 .lichess-tv-footer p { margin: 6px 0; }
+.lichess-tv-mobile2-header { display: none; }
 @media (max-width: 800px) {
   .lichess-tv-page .caissa-standalone-sidebar-host,
   .lichess-tv-page .caissa-standalone-mobile-toggle,
@@ -27,7 +28,8 @@
   .lichess-tv-intro,
   .lichess-tv-footer { display: none !important; }
   .lichess-tv-page .caissa-standalone-content { margin-left: 0; }
-  .lichess-tv-main { padding: max(8px, env(safe-area-inset-top)) 8px calc(18px + env(safe-area-inset-bottom)); }
+  .lichess-tv-mobile2-header { display: block; background: #080c14; color: #f4f7fb; }
+  .lichess-tv-main { padding: 8px 8px calc(18px + env(safe-area-inset-bottom)); }
   .lichess-tv-heading { margin-bottom: 8px; text-align: left; }
   .lichess-tv-provider { display: block; margin: 0 0 2px; color: #77b8ff; font-size: .7rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
   .lichess-tv-heading h1 { margin: 0; font-size: clamp(1rem, 4.5vw, 1.25rem); line-height: 1.2; }

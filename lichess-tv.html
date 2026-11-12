@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' https://img.clerk.com data:; font-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://api.clerk.com https://clerk-telemetry.com; frame-src https://lichess.org; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'">
   <title>Watch Lichess TV Live | CAISSA Chess</title>
   <meta name="description" content="Watch the Top Rated live chess game selected by Lichess through an independent gateway on CAISSA Chess.">
@@ -21,12 +21,15 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
   <link rel="stylesheet" href="/css/lichess-tv.css?v=1.0.1">
+  <link rel="stylesheet" href="/css/mobile2-destination-header.css?v=1.2.0">
+  <script src="/js/mobile2-destination-header.js?v=1.2.0"></script>
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="lichess-tv-page">
   <div class="caissa-standalone-layout">
     <div data-caissa-standalone-sidebar data-active="lichess-tv"></div>
     <div class="caissa-standalone-content">
+      <header class="lichess-tv-mobile2-header" data-caissa-mobile2-header-host></header>
       <main class="lichess-tv-main">
         <aside class="lichess-tv-banner" aria-label="CAISSA tournament announcement">
           <div><strong>CAISSA Weekend Tournament — Coming Soon</strong><p>Registered CAISSA players will be able to compete in our future weekly tournament.</p></div>

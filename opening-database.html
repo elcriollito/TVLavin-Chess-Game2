@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Chess Opening Explorer & Database | CAISSA Chess</title>
   <meta name="description" content="Explore chess openings on an interactive board with real-game continuation statistics, Stockfish analysis, ECO identification, and line-based game discovery.">
   <meta name="robots" content="index,follow">
@@ -26,6 +26,8 @@
   <link rel="stylesheet" href="/css/opening-database.css?v=2.4.3">
   <link rel="stylesheet" href="/css/caissa-legacy-quiet-drag.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
+  <link rel="stylesheet" href="/css/mobile2-destination-header.css?v=1.2.0">
+  <script src="/js/mobile2-destination-header.js?v=1.2.0"></script>
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -55,6 +57,7 @@
     <div data-caissa-standalone-sidebar data-active="opening-database"></div>
 
     <main class="content-area openingdb-content caissa-standalone-content" id="caissaStandaloneMain">
+      <header class="openingdb-mobile2-header" data-caissa-mobile2-header-host></header>
       <section class="openingdb-page" aria-labelledby="openingdbPageTitle">
         <header class="openingdb-page-intro">
           <div>
