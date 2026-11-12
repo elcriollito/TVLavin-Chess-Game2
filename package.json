@@ -156,7 +156,7 @@
     "test:play:games-panel": "node --test tests/play/games-panel.test.js && playwright test --project=chromium tests/browser/play-games-panel.spec.js",
     "test:play:evaluation-rail": "node --test tests/play/evaluation-rail.test.js && playwright test --project=chromium tests/browser/play-evaluation-rail.spec.js",
     "test:play:post-game": "node --test tests/play/post-game-experience.test.js && playwright test --project=chromium tests/browser/play-post-game-experience.spec.js",
-    "test:play:bots": "node --test tests/play/bots-foundation.test.js tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-bots.spec.js",
+    "test:play:bots": "node --test tests/play/bots-foundation.test.js tests/play/play-route-controller.test.js && playwright test --project=chromium tests/browser/play-bots.spec.js && playwright test --project=chromium --project=webkit tests/browser/play-bots-resign-hotfix.spec.js",
     "test:play:bots:calibration": "node --test tests/play/bots/calibration-contract.test.js && playwright test --project=chromium bot-calibration.spec.js",
     "test:play:coach": "node --test tests/play/play-v2-coach-boundary.test.js tests/play/play-v2-coach-assistance.test.js tests/play/play-route-controller.test.js && playwright test tests/browser/play-native-coach.spec.js --project=chromium --project=webkit",
     "test:play:players": "node --test tests/play/presence-contracts.test.js tests/play/challenge-contracts.test.js tests/play/players-panel.test.js tests/play/play-route-controller.test.js tests/play/simplified-play-shell.test.js && playwright test tests/browser/play-players.spec.js",

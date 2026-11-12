@@ -3431,7 +3431,7 @@ function resignGame() {
 
     // Stop game
     App.gameActive = false;
-    stopAnalysis();
+    cancelCoachMoveReview('resignation');
     stopTimerLoop();
 
     // Hide resign button
@@ -3444,6 +3444,15 @@ function resignGame() {
     App.elements.gameResult.style.color = 'white';
 
     setGameStatus(`${resigningSide} resigned`, result, `${winner} wins by resignation.`);
+    syncPlayMobileStateClasses();
+
+    // Publish the result first so the bot worker owner can perform its single
+    // terminal teardown. Calling stopAnalysis() first starts a UCI stop/readiness
+    // barrier and then immediately destroys that worker from setGameStatus(),
+    // which WebKit can surface as an unhandled cancellation rejection.
+    if (App.analyzing) {
+        stopAnalysis();
+    }
 }
 
 // ===== FEN OPERATIONS =====

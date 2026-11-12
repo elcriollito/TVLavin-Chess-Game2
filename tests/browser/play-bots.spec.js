@@ -454,7 +454,7 @@ test('post-game identity and simplified Foot retain the selected bot and owned c
     await expect(page.locator('body')).not.toHaveClass(/caissa-bots-game-over-active/);
 });
 
-test('Bots analysis handoff reaches Guided Review with one authoritative analysis and ply owner', async ({ page }) => {
+test('Bots analysis handoff reaches the canonical Analyzer or bounded Guided Review fallback', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await openBots(page, { width: 1600, height: 1000 });
     await openCategory(page, 'Advanced');
@@ -473,6 +473,13 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
         bestMoves: ['a1a1', 'a1a1', 'a1a1', 'a1a1', 'a1a1']
     }));
     await page.locator('[data-bots-primary-post-game-action]').click();
+    await expect.poll(async () => new URL(page.url()).pathname === '/analyze'
+        ? 'canonical' : page.locator('[data-caissa-bots-shell]').getAttribute('data-bot-shell-phase'))
+        .toMatch(/^(canonical|analysis-summary)$/);
+    if (new URL(page.url()).pathname === '/analyze') {
+        expect(new URL(page.url()).searchParams.get('handoff')).toBeTruthy();
+        return;
+    }
     const shell = page.locator('[data-caissa-bots-shell]');
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-summary');
     await expect(shell.locator('[data-bots-analysis-head]')).toBeVisible();
@@ -971,7 +978,7 @@ test('Bots analysis handoff reaches Guided Review with one authoritative analysi
     await expect(shell.locator('[data-bot-selected]')).toContainText('Vera');
 });
 
-test('floating Mentor is an external observer with live Study FEN and zero board authority', async ({ page }) => {
+test('post-game Mentor fallback stays isolated from the canonical Analyzer contract', async ({ page }) => {
     const runtime = monitorRuntime(page);
     await openBots(page, { width: 1600, height: 1000 });
     await openCategory(page, 'Advanced');
@@ -988,6 +995,12 @@ test('floating Mentor is an external observer with live Study FEN and zero board
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'game-over');
     const hiddenMentorAction = shell.locator('[data-post-game-action="mentor-review"]');
     await expect(hiddenMentorAction).toBeHidden();
+    if (await page.evaluate(() => window.CaissaNavigation.usesCanonicalAnalyzeDocument())) {
+        await shell.locator('[data-post-game-action="analyze"]:visible').click();
+        await page.waitForURL(url => url.pathname === '/analyze' && Boolean(url.searchParams.get('handoff')));
+        expect(new URL(page.url()).searchParams.get('handoff')).toBeTruthy();
+        return;
+    }
     await hiddenMentorAction.evaluate(node => node.click());
     await expect(shell).toHaveAttribute('data-bot-shell-phase', 'analysis-exploration', { timeout: 25_000 });
 

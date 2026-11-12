@@ -920,7 +920,7 @@
     },
     {
       "path": "app.js",
-      "sha256": "4fa81851ad6294b8df62ac33a9e4a4a85873006f6f72956843b0e31998ddad08"
+      "sha256": "bac082d05d5c6ebcf33dc707bb22850519907f7e17c97dac27721123962b1dbb"
     },
     {
       "path": "apple-touch-icon.png",
@@ -4120,7 +4120,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "2fc6aca5624308b1b07089f7b4404f202c81be4abc0f575380e5a6670fc9f17d"
+      "sha256": "e6157e4d72b03661039d525a89a7d0d8b22f87d24f3de60357f17eb82c117752"
     },
     {
       "path": "pgn-replayer.html",
