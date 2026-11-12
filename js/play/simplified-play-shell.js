@@ -167,7 +167,10 @@
                     preview.append(stageLabel);
                 }
             } else preview.textContent = 'QA Preview · Simplified Play';
-            global.CaissaMobile2DestinationHeader?.enhance?.(preview);
+            const mobileHeaderPath = String(global.location?.pathname || '').replace(/\/$/, '') || '/';
+            if (['/play/games', '/play/bots', '/play/coach'].includes(mobileHeaderPath)) {
+                global.CaissaMobile2DestinationHeader?.enhance?.(preview);
+            }
             const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
                 variant: 'caissa-rail', ariaLabel: 'Play modes',
                 items: Object.entries(MODES).filter(([, available]) => available).map(([mode, available]) => ({

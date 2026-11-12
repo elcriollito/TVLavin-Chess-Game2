@@ -22,7 +22,7 @@ test('mobile Home exposes the nine approved destinations in product order', () =
     'play', 'puzzles', 'bots', 'coach', 'analyze', 'scanner', 'opening-explorer', 'watch-games', 'settings'
   ]);
   assert.equal(cards.length, 9);
-  assert.equal($('[data-mobile-destination="play"]').attr('href'), '/play/games');
+  assert.equal($('[data-mobile-destination="play"]').attr('href'), '/play-hub');
   assert.equal($('[data-mobile-destination="puzzles"]').attr('href'), '/puzzles');
   assert.equal($('[data-mobile-destination="bots"]').attr('href'), '/play/bots');
   assert.equal($('[data-mobile-destination="coach"]').attr('href'), '/play/coach');
@@ -71,7 +71,7 @@ test('mobile Home JavaScript contract matches the rendered routing contract', ()
   assert.deepEqual(Array.from(contract.destinations, item => item.id), [
     'play', 'puzzles', 'bots', 'coach', 'analyze', 'scanner', 'opening-explorer', 'watch-games', 'settings'
   ]);
-  assert.equal(contract.destinations[0].route, '/play/games');
+  assert.equal(contract.destinations[0].route, '/play-hub');
   assert.equal(contract.destinations[2].route, '/play/bots');
   assert.equal(contract.destinations[3].route, '/play/coach');
   assert.equal(contract.destinations[7].route, '/watch/lichess-tv');

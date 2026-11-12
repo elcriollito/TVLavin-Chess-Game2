@@ -70,7 +70,7 @@ test('mobile routes are direct and Watch Games opens Lichess without a provider 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
-  await expect(page.locator('[data-mobile-destination="play"]')).toHaveAttribute('href', '/play/games');
+  await expect(page.locator('[data-mobile-destination="play"]')).toHaveAttribute('href', '/play-hub');
   await expect(page.locator('[data-mobile-destination="puzzles"]')).toHaveAttribute('href', '/puzzles');
   await expect(page.locator('[data-mobile-destination="bots"]')).toHaveAttribute('href', '/play/bots');
   await expect(page.locator('[data-mobile-destination="coach"]')).toHaveAttribute('href', '/play/coach');
@@ -85,9 +85,9 @@ test('mobile routes are direct and Watch Games opens Lichess without a provider 
   await expect(page.locator('[data-mobile-home] a[href="/spectator-tv"]')).toHaveCount(0);
 
   await page.locator('[data-mobile-destination="play"]').click();
-  await expect(page).toHaveURL(/\/play\/games$/);
+  await expect(page).toHaveURL(/\/play-hub$/);
   await page.reload();
-  await expect(page).toHaveURL(/\/play\/games$/);
+  await expect(page).toHaveURL(/\/play-hub$/);
   await page.goBack();
   await expect(page.locator('[data-mobile-home]')).toBeVisible();
 
@@ -151,7 +151,7 @@ test('mobile Home has no serious accessibility violations and desktop remains th
 
 test('every mobile destination has a refresh-safe local route owner', async ({ request }) => {
   for (const route of [
-    '/play/games', '/puzzles', '/play/bots', '/play/coach', '/analyze', '/scanner',
+    '/play-hub', '/play/games', '/puzzles', '/play/bots', '/play/coach', '/analyze', '/scanner',
     '/opening-database', '/watch/lichess-tv', '/spectator-tv'
   ]) {
     const response = await request.get(route);

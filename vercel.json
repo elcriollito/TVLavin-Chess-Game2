@@ -73,6 +73,8 @@
   ],
   "rewrites": [
     { "source": "/", "destination": "/home.html" },
+    { "source": "/play-hub", "destination": "/play-hub.html" },
+    { "source": "/play-hub/", "destination": "/play-hub.html" },
     { "source": "/mentor", "destination": "/mentor.html" },
     { "source": "/mentor/", "destination": "/mentor.html" },
     { "source": "/online", "destination": "/online.html" },

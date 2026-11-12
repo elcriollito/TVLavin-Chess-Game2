@@ -68,13 +68,50 @@
 .playchess-fallback { font-size: 0.9rem; }
 .playchess-footer { padding: 22px 16px 32px; text-align: center; color: #9eabba; }
 .playchess-footer p { margin: 6px 0; }
+.playchess-mobile2-header,
+.playchess-mobile-disclosure { display: none; }
 
 @media (max-width: 800px) {
-  .playchess-main { padding: 10px; }
-  .playchess-banner { align-items: flex-start; flex-direction: column; }
-  .playchess-embed-shell { height: max(560px, calc(100dvh - 170px)); min-height: 0; border-radius: 8px; }
+  .playchess-mobile2-header {
+    display: block;
+    background: #080c14;
+    color: #f4f7fb;
+  }
+  .playchess-main { padding: 6px 8px max(14px, env(safe-area-inset-bottom, 0px)); }
+  .playchess-banner,
+  .playchess-heading,
+  .playchess-disclosure,
+  .playchess-footer { display: none; }
+  .playchess-embed-shell {
+    height: max(560px, calc(100dvh - 62px - env(safe-area-inset-top, 0px)));
+    min-height: 0;
+    border-radius: 8px;
+  }
+  .playchess-mobile-disclosure {
+    margin: 10px 2px 0;
+    padding: 0 12px;
+    border: 1px solid #26344a;
+    border-radius: 10px;
+    background: #111827;
+    color: #c7d1df;
+    font-size: .88rem;
+  }
+  .playchess-mobile-disclosure summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .playchess-mobile-disclosure p { margin: 0 0 8px; }
+  .playchess-mobile-disclosure a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    color: #77b8ff;
+  }
 }
 
 @media (max-width: 480px) {
-  .playchess-embed-shell { height: max(520px, calc(100dvh - 150px)); }
+  .playchess-embed-shell { height: max(520px, calc(100dvh - 62px - env(safe-area-inset-top, 0px))); }
 }

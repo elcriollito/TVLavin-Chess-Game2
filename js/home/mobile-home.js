@@ -2,7 +2,7 @@
   'use strict';
 
   const destinations = Object.freeze([
-    Object.freeze({ id: 'play', route: '/play/games' }),
+    Object.freeze({ id: 'play', route: '/play-hub' }),
     Object.freeze({ id: 'puzzles', route: '/puzzles' }),
     Object.freeze({ id: 'bots', route: '/play/bots' }),
     Object.freeze({ id: 'coach', route: '/play/coach' }),

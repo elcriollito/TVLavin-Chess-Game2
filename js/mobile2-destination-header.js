@@ -1,11 +1,17 @@
 (function (global) {
     'use strict';
 
+    const HOME_BACK = Object.freeze({ backHref: '/', backLabel: 'CAISSA Mobile Home' });
+    const HUB_BACK = Object.freeze({ backHref: '/play-hub', backLabel: 'Play Hub' });
     const ROUTES = Object.freeze({
-        '/play/games': Object.freeze({ id: 'play', title: 'Play' }),
-        '/puzzles': Object.freeze({ id: 'puzzles', title: 'CAISSA Puzzles' }),
-        '/play/bots': Object.freeze({ id: 'bots', title: 'Play Bots' }),
-        '/play/coach': Object.freeze({ id: 'coach', title: 'Play Coach' })
+        '/play-hub': Object.freeze({ id: 'play-hub', title: 'Play', ...HOME_BACK }),
+        '/play/games': Object.freeze({ id: 'play', title: 'Play', ...HUB_BACK }),
+        '/online': Object.freeze({ id: 'online', title: 'CAISSA Online', ...HUB_BACK }),
+        '/play-online/playchess': Object.freeze({ id: 'playchess', title: 'Playchess', ...HUB_BACK }),
+        '/fics': Object.freeze({ id: 'fics', title: 'FICS', ...HUB_BACK }),
+        '/puzzles': Object.freeze({ id: 'puzzles', title: 'CAISSA Puzzles', ...HOME_BACK }),
+        '/play/bots': Object.freeze({ id: 'bots', title: 'Play Bots', ...HOME_BACK }),
+        '/play/coach': Object.freeze({ id: 'coach', title: 'Play Coach', ...HOME_BACK })
     });
     const mobile = global.matchMedia?.('(max-width: 768px)') || {
         matches: false,
@@ -45,8 +51,8 @@
 
         const back = global.document.createElement('a');
         back.className = 'caissa-mobile2-destination-back';
-        back.href = '/';
-        back.setAttribute('aria-label', `Back to CAISSA Mobile Home from ${route.title}`);
+        back.href = route.backHref;
+        back.setAttribute('aria-label', `Back to ${route.backLabel} from ${route.title}`);
         back.dataset.caissaMobile2Back = '';
 
         const arrow = global.document.createElement('span');
@@ -106,7 +112,9 @@
             if (route) title.textContent = route.title;
         });
         global.document.querySelectorAll('[data-caissa-mobile2-back]').forEach((back) => {
-            if (route) back.setAttribute('aria-label', `Back to CAISSA Mobile Home from ${route.title}`);
+            if (!route) return;
+            back.href = route.backHref;
+            back.setAttribute('aria-label', `Back to ${route.backLabel} from ${route.title}`);
         });
         global.document.querySelectorAll('[data-caissa-mobile2-header-host]').forEach(enhance);
         isolateLegacyNavigation(route);
@@ -126,7 +134,7 @@
     mobile.addEventListener?.('change', () => sync());
 
     global.CaissaMobile2DestinationHeader = Object.freeze({
-        contractId: 'CaissaMobile2DestinationHeader@1.0.0',
+        contractId: 'CaissaMobile2DestinationHeader@1.1.0',
         routes: ROUTES,
         owns,
         enhance,

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' https://img.clerk.com data:; font-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://clerk.caissa-chess.org https://api.clerk.com https://clerk-telemetry.com; frame-src https://play.chessbase.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'">
   <title>Play Chess Online Free | CAISSA Chess</title>
   <meta name="description" content="Play chess online free with no registration or download through the Playchess network, available directly from CAISSA Chess.">
@@ -21,12 +21,15 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.16">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.1.0">
   <link rel="stylesheet" href="/css/playchess.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/mobile2-destination-header.css?v=1.1.0">
+  <script src="/js/mobile2-destination-header.js?v=1.1.0"></script>
   <script src="/js/caissa-vercel-analytics.js?v=1.0.0" defer></script>
 </head>
 <body class="playchess-page">
   <div class="caissa-standalone-layout">
     <div data-caissa-standalone-sidebar data-active="playchess"></div>
     <div class="caissa-standalone-content">
+      <header class="playchess-mobile2-header" data-caissa-mobile2-header-host></header>
       <main class="playchess-main">
         <aside class="playchess-banner" aria-label="CAISSA tournament announcement">
           <div>
@@ -55,6 +58,11 @@
           <p><a href="https://play.chessbase.com/en/Play" target="_blank" rel="noopener noreferrer">Open the official Playchess service</a></p>
           <p class="playchess-fallback">Playchess could not be displayed in this browser. <a href="https://play.chessbase.com/en/Play" target="_blank" rel="noopener noreferrer">Open the official service in a new tab.</a></p>
         </section>
+        <details class="playchess-mobile-disclosure">
+          <summary>About Playchess</summary>
+          <p>Playchess is operated by ChessBase GmbH.</p>
+          <a href="https://play.chessbase.com/en/Play" target="_blank" rel="noopener noreferrer">Open the official Playchess service</a>
+        </details>
       </main>
       <footer class="playchess-footer">
         <p>&copy; 2026 CAISSA Chess. All rights reserved.</p>

@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 const destinations = [
-  { id: 'play', route: '/play/games', title: 'Play', board: '#chessboard', ready: '[data-caissa-games-panel]' },
-  { id: 'puzzles', route: '/puzzles', title: 'CAISSA Puzzles', board: '#puzzle-board', ready: '#categories button' },
-  { id: 'bots', route: '/play/bots', title: 'Play Bots', board: '#chessboard', ready: '[data-caissa-bots-panel]' },
-  { id: 'coach', route: '/play/coach', title: 'Play Coach', board: '#chessboard', ready: '[data-caissa-native-coach-panel]' }
+  { id: 'play', route: '/play/games', title: 'Play', back: '/play-hub', backLabel: 'Play Hub', board: '#chessboard', ready: '[data-caissa-games-panel]' },
+  { id: 'puzzles', route: '/puzzles', title: 'CAISSA Puzzles', back: '/', backLabel: 'CAISSA Mobile Home', board: '#puzzle-board', ready: '#categories button' },
+  { id: 'bots', route: '/play/bots', title: 'Play Bots', back: '/', backLabel: 'CAISSA Mobile Home', board: '#chessboard', ready: '[data-caissa-bots-panel]' },
+  { id: 'coach', route: '/play/coach', title: 'Play Coach', back: '/', backLabel: 'CAISSA Mobile Home', board: '#chessboard', ready: '[data-caissa-native-coach-panel]' }
 ];
 const viewports = [
   { width: 390, height: 844 },
@@ -58,8 +58,8 @@ for (const viewport of viewports) {
 
       await expect(header).toBeVisible();
       await expect(header.locator('[data-caissa-mobile2-destination-title]')).toHaveText(destination.title);
-      await expect(back).toHaveAttribute('href', '/');
-      await expect(back).toHaveAttribute('aria-label', `Back to CAISSA Mobile Home from ${destination.title}`);
+      await expect(back).toHaveAttribute('href', destination.back);
+      await expect(back).toHaveAttribute('aria-label', `Back to ${destination.backLabel} from ${destination.title}`);
       await expect(board).toBeVisible();
       await expect(page.locator(destination.ready).first()).toBeVisible();
 
@@ -89,8 +89,9 @@ for (const viewport of viewports) {
       }
 
       await back.click();
-      await expect(page).toHaveURL(/\/$/);
-      await expect(page.locator('[data-mobile-home]')).toBeVisible();
+      await expect(page).toHaveURL(new RegExp(`${destination.back.replaceAll('/', '\\/')}$`));
+      if (destination.back === '/') await expect(page.locator('[data-mobile-home]')).toBeVisible();
+      else await expect(page.locator('[data-play-hub-destination]')).toHaveCount(4);
     }
   });
 
@@ -100,9 +101,17 @@ for (const viewport of viewports) {
     for (const destination of destinations) {
       await page.goto('/');
       await page.locator(`[data-mobile-destination="${destination.id}"]`).click();
+      if (destination.id === 'play') {
+        await expect(page).toHaveURL(/\/play-hub$/);
+        await page.locator('[data-play-hub-destination="play"]').click();
+      }
       await expect(page).toHaveURL(new RegExp(`${destination.route.replaceAll('/', '\\/')}$`));
       await expect(page.locator('[data-caissa-mobile2-destination-header]')).toBeVisible();
       await page.goBack();
+      if (destination.id === 'play') {
+        await expect(page.locator('[data-play-hub-destination]')).toHaveCount(4);
+        await page.goBack();
+      }
       await expect(page.locator('[data-mobile-home]')).toBeVisible();
     }
   });
