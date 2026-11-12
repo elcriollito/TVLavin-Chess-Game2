@@ -419,8 +419,13 @@ const CaissaNavigation = {
      * Open mobile nav
      */
     openNav() {
+        if (window.CaissaMobile2DestinationHeader?.isMobileNavigationIsolated?.()) {
+            this.drawerController?.close({ returnFocus: false });
+            return false;
+        }
         this.drawerController?.open();
         console.log('[CAISSA Nav] Mobile nav opened');
+        return true;
     },
 
     /**
@@ -435,11 +440,16 @@ const CaissaNavigation = {
      * Toggle mobile nav open/close
      */
     toggleMobileNav() {
+        if (window.CaissaMobile2DestinationHeader?.isMobileNavigationIsolated?.()) {
+            this.drawerController?.close({ returnFocus: false });
+            return false;
+        }
         if (this.navOpen) {
             this.closeNav();
         } else {
             this.openNav();
         }
+        return true;
     },
 
     /**

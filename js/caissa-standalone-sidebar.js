@@ -30,12 +30,15 @@
         const activeKey = host.dataset.active || '';
         const renderOptions = { activeKey };
         const items = adapter.renderBody(renderOptions);
+        const mobile2OwnsRoute = window.CaissaMobile2DestinationHeader?.owns?.() === true;
+        const mobileToggleMarkup = mobile2OwnsRoute ? '' : `
+            <button type="button" class="mobile-nav-toggle caissa-standalone-mobile-toggle" data-caissa-i18n-aria-label="shell.openNavigation" aria-label="${i18n.t('shell.openNavigation', 'Open navigation menu')}" aria-controls="mainNav" aria-expanded="false">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>`;
 
         host.classList.add('caissa-standalone-sidebar-host');
         host.innerHTML = `
-            <button type="button" class="mobile-nav-toggle caissa-standalone-mobile-toggle" data-caissa-i18n-aria-label="shell.openNavigation" aria-label="${i18n.t('shell.openNavigation', 'Open navigation menu')}" aria-controls="mainNav" aria-expanded="false">
-                <i class="fas fa-bars" aria-hidden="true"></i>
-            </button>
+            ${mobileToggleMarkup}
             <nav id="mainNav" class="main-navigation" data-caissa-i18n-aria-label="shell.mainNavigation" aria-label="${i18n.t('shell.mainNavigation', 'CAISSA main navigation')}">
                 <div class="nav-head" data-caissa-sidebar-head>
                 <div class="nav-header">
@@ -100,13 +103,15 @@
             collapseButton.querySelector('i').className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
         });
 
-        navigation.createDrawerController({
-            host,
-            nav,
-            toggle: mobileToggle,
-            backdrop,
-            bodyOpenClass: 'caissa-standalone-nav-open'
-        });
+        if (mobileToggle) {
+            navigation.createDrawerController({
+                host,
+                nav,
+                toggle: mobileToggle,
+                backdrop,
+                bodyOpenClass: 'caissa-standalone-nav-open'
+            });
+        }
     }
 
     document.querySelectorAll('[data-caissa-standalone-sidebar]').forEach(renderSidebar);
