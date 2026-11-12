@@ -49,9 +49,11 @@ Esta aplicación ahora funciona **completamente sin servidor**:
 
 **⚠️ Si prefieres usar servidor (opcional):**
 ```bash
-python -m http.server 8000
+npm start
 ```
-O doble clic en `START_SERVER.bat`
+O doble clic en `START_SERVER.bat`. Para QA desde un teléfono en la misma red
+privada, usa `npm run start:mobile-hqa`; ese comando conserva rutas limpias como
+`/play-hub` y usa el puerto 8001.
 
 ## 🎯 Features
 
