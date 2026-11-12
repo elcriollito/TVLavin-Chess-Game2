@@ -1672,14 +1672,35 @@
 }
 
 @media (max-width: 560px) {
+    html[data-caissa-route-surface='analyze'] body .header-minimal,
+    html[data-caissa-route-surface='analyze'] body #mobileNavToggle {
+        display: none !important;
+    }
+
+    html[data-caissa-route-surface='analyze'] body .content-area {
+        padding-top: 0;
+    }
+
     #analyzeSection .caissa-analyze-v2 {
+        --analyze-mobile-inline-gutter: clamp(8px, 3vw, 16px);
+        --analyze-mobile-eval-rail: 31px;
+        align-content: start;
         padding: 8px;
+        overflow-anchor: none;
     }
 
     #analyzeSection .caissa-analyze-v2__stage {
         order: 0;
         grid-template-rows: 30px minmax(0, auto) 30px;
+        align-content: start;
+        align-self: start;
         gap: 5px;
+        overflow-anchor: none;
+    }
+
+    #analyzeSection .caissa-analyze-v2 .analyze-board-zone > #analyzeChessboard {
+        width: min(100%, calc(100dvw - var(--analyze-mobile-eval-rail) - var(--analyze-mobile-inline-gutter) - var(--analyze-mobile-inline-gutter) - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))) !important;
+        aspect-ratio: 1;
     }
 
     #analyzeSection .caissa-analyze-v2__workspace {
@@ -1688,6 +1709,7 @@
         min-height: 0;
         max-height: none;
         overflow: visible;
+        overflow-anchor: none;
     }
 
     #analyzeSection .caissa-analyze-v2 .analyze-board-zone {
@@ -1703,6 +1725,8 @@
     #analyzeSection .caissa-analyze-v2__player {
         width: 100%;
         padding-left: 31px;
+        overflow: hidden;
+        white-space: nowrap;
     }
 
     #analyzeSection .caissa-analyze-v2 .analyze-eval-bar {

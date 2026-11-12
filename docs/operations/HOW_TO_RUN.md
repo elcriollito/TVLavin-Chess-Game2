@@ -1,5 +1,28 @@
 # How to Run TVLavin Chess Game
 
+## Canonical local server
+
+Use the repository's route-aware Node.js server for application QA. Generic static
+servers such as `python -m http.server`, Live Server, `http-server`, PHP's static
+server, or `serve` only resolve literal filenames; they do not reproduce CAISSA's
+clean routes such as `/play-hub`.
+
+For loopback development on port 8000:
+
+```powershell
+npm start
+```
+
+For explicit Mobile 2.0 physical-device HQA on a trusted private LAN, bound to
+port 8001:
+
+```powershell
+npm run start:mobile-hqa
+```
+
+The LAN command prints the available private-network URL. It does not modify the
+Windows firewall. Stop it with `Ctrl+C` when HQA is complete.
+
 ## ⚠️ IMPORTANT: Must Use Local Web Server
 
 This chess application **CANNOT** be run by simply double-clicking `index.html` because:
@@ -14,15 +37,18 @@ This chess application **CANNOT** be run by simply double-clicking `index.html` 
 **Simply double-click `START_SERVER.bat`**
 
 The batch file will automatically:
-- Check for Python first (uses `python -m http.server 8000`)
-- If Python not found, check for Node.js (uses `node server.js`)
-- If neither found, show installation instructions
+- Check for Node.js
+- Start the route-aware application server with `node server.js`
+- Show installation instructions if Node.js is unavailable
 
 Then open: **http://localhost:8000**
 
 ---
 
 ### Method 2: Python (Works on Windows/Mac/Linux)
+
+Literal-file preview only. Do not use this method for application QA or clean
+routes such as `/play-hub`.
 
 **If you have Python 3:**
 ```bash
@@ -54,6 +80,8 @@ Then open: **http://localhost:8000**
 
 ### Method 4: Node.js (http-server)
 
+Literal-file preview only. This method does not reproduce clean application routes.
+
 **Install http-server globally:**
 ```bash
 npm install -g http-server
@@ -71,6 +99,8 @@ Then open: **http://localhost:8000**
 
 ### Method 5: PHP
 
+Literal-file preview only. This method does not reproduce clean application routes.
+
 **If you have PHP installed:**
 ```bash
 cd "c:\Users\ALEXANDER\Alexander Projects\TVLavin-Chess-Game2"
@@ -83,6 +113,8 @@ Then open: **http://localhost:8000**
 
 ### Method 6: Live Server (VS Code Extension)
 
+Literal-file preview only. This method does not reproduce clean application routes.
+
 1. Install "Live Server" extension in VS Code
 2. Right-click on `index.html`
 3. Select "Open with Live Server"
@@ -91,6 +123,8 @@ Then open: **http://localhost:8000**
 ---
 
 ### Method 7: Serve (Node.js - Simple)
+
+Literal-file preview only. This method does not reproduce clean application routes.
 
 **Install:**
 ```bash
@@ -130,8 +164,9 @@ Once the server is running and you open http://localhost:8000, you should see:
 
 ### Port Already in Use
 If port 8000 is taken, use a different port:
-```bash
-python -m http.server 8080
+```powershell
+$env:PORT = '8080'
+npm start
 ```
 Then open: http://localhost:8080
 

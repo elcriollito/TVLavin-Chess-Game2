@@ -39,6 +39,7 @@
     openingDbShardCache: new Map(),
     openingDbShardInflight: new Map(),
     openingDbShardMeta: new Map(),
+    openingDbShardErrors: new Set(),
     useNodeApi: false,
     strictNodeApi: false,
     nodeApiBase: '',
@@ -65,6 +66,7 @@
       matchLevel: 'none'
     },
     explorerSortMode: 'popularity',
+    explorerDataStatus: 'loading',
     activeTab: 'explorer',
     tabInteractionsBound: false,
     tapSelection: {
@@ -160,6 +162,7 @@
   const MANIFEST_URL = manifestUrl;
   const REMOTE_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
   const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
+  const MANIFEST_CACHE_SCHEMA = 'v2';
   const MANIFEST_TTL_MS = 5 * 60 * 1000;
   const SHARD_PREFETCH_DELAY_MS = 200;
   const SHARD_BASE = (() => {
@@ -185,7 +188,7 @@
     const localHost = host === 'localhost' || host === '127.0.0.1';
     return forceDev || localHost;
   })();
-  const SHARD_FETCH_TIMEOUT_MS = 4000;
+  const SHARD_FETCH_TIMEOUT_MS = 15000;
   const OPENINGDB_MAX_SHARDS_IN_MEMORY = 2;
   const ENABLE_SHARD_SESSION_CACHE = false;
   const PREFETCH_NEXT_SHARDS_LIMIT = readFlagParam('prefetch', false) ? 2 : 0;
@@ -216,6 +219,7 @@
   const DISPLAY_PV_PLIES = 40;
   const OPENINGDB_COMPACT_ROW_LIMIT = 20;
   const OPENINGDB_WIDE_ROW_LIMIT = 20;
+  const OPENINGDB_MOBILE_ROW_LIMIT = 5;
   const OPENINGDB_MAX_FULLMOVES = 15;
   const OPENINGDB_MAX_PLIES = OPENINGDB_MAX_FULLMOVES * 2;
   const OPENINGDB_DEPTH_LIMIT_MESSAGE = `Opening database depth limit reached. Analysis is capped at move ${OPENINGDB_MAX_FULLMOVES} for performance.`;
@@ -304,6 +308,7 @@
 
   const els = {
     board: document.getElementById('openingDbBoard'),
+    moveArrows: document.querySelector('#odbMoveArrows [data-odb-arrow-lines]'),
     moveList: document.getElementById('odbMoveList'),
     turnPly: document.getElementById('odbTurnPly'),
     openingLabel: document.getElementById('odbOpeningLabel'),
@@ -315,6 +320,10 @@
     matchBadge: document.getElementById('odbMatchBadge'),
     datasetBanner: document.getElementById('odbDatasetBanner'),
     statsBody: document.getElementById('odbStatsBody'),
+    mobileDataRegion: document.getElementById('odbMobileDataRegion'),
+    sortSelector: document.querySelector('.openingdb-sort-selector'),
+    explorerLegend: document.querySelector('.openingdb-explorer-legend'),
+    statsTableWrap: document.querySelector('#odbExplorerPanel .openingdb-table-wrap'),
     tabExplorer: document.getElementById('odbTabExplorer'),
     tabAnalysis: document.getElementById('odbTabAnalysis'),
     tabMoves: document.getElementById('odbTabMoves'),
@@ -1132,6 +1141,7 @@
       cell.title = evaluationLabel;
     });
     updateExplorerSortStatus();
+    renderMobileEngineArrows();
   }
 
   function clearEngineDebounce() {
@@ -1714,7 +1724,7 @@
   }
 
   function getManifestSessionCacheKey(sourceUrl = MANIFEST_URL) {
-    return `openingdb_manifest_cache:${encodeURIComponent(String(sourceUrl || MANIFEST_URL))}`;
+    return `openingdb_manifest_cache:${MANIFEST_CACHE_SCHEMA}:${encodeURIComponent(String(sourceUrl || MANIFEST_URL))}`;
   }
 
   function clearLegacyShardSessionCache() {
@@ -2082,14 +2092,6 @@
       const startHash = hashFen(startFen);
       const startShard = startHash.slice(0, 2).toLowerCase();
       prefetchShard(startShard);
-
-      const base = Number.parseInt(startShard, 16);
-      if (Number.isFinite(base)) {
-        const next1 = ((base + 1) & 0xff).toString(16).padStart(2, '0');
-        const next2 = ((base + 2) & 0xff).toString(16).padStart(2, '0');
-        prefetchShard(next1);
-        prefetchShard(next2);
-      }
     } catch (_err) {
       // Prefetch is best effort.
     }
@@ -2133,9 +2135,19 @@
         openingDbDebugState.counters.shardFetchMsTotal += fetchMs;
         openingDbDebugState.counters.shardParseMsTotal += parseMs;
         openingDbDebugState.counters.shardBytesTotal += bytes;
-        if (!payload) openingDbDebugState.counters.shardFetchMisses += 1;
-        touchOpeningDbShardCache(shard, payload, { bytes });
-        if (payload) writeShardToSession(shard, payload);
+        if (!payload) {
+          openingDbDebugState.counters.shardFetchMisses += 1;
+          state.openingDbShardErrors.add(shard);
+        } else {
+          state.openingDbShardErrors.delete(shard);
+        }
+        if (payload) {
+          touchOpeningDbShardCache(shard, payload, { bytes });
+          writeShardToSession(shard, payload);
+        } else {
+          state.openingDbShardCache.delete(shard);
+          state.openingDbShardMeta.delete(shard);
+        }
         setOpeningDbDebugLast({
           shardId: shard,
           shardFetchMs: Number(fetchMs.toFixed(2)),
@@ -2160,7 +2172,9 @@
         return payload;
       } catch (_err) {
         openingDbDebugState.counters.shardFetchMisses += 1;
-        touchOpeningDbShardCache(shard, null);
+        state.openingDbShardErrors.add(shard);
+        state.openingDbShardCache.delete(shard);
+        state.openingDbShardMeta.delete(shard);
         setOpeningDbDebugLast({
           shardId: shard,
           shardSource: 'network_error'
@@ -2372,6 +2386,9 @@
   }
 
   function getExplorerSourceRows() {
+    if (isMobileExplorer() && state.explorerSortMode === 'popularity') {
+      return state.latestPopularRows.filter((row) => (Number(row?.games) || 0) > 0);
+    }
     return state.latestPopularRows.length > 0
       ? state.latestPopularRows
       : state.latestAllLegalRows;
@@ -2381,6 +2398,71 @@
     return sortExplorerRows(rows, {
       mode: state.explorerSortMode,
       turn: state.game?.turn?.() || 'w'
+    });
+  }
+
+  function isMobileExplorer() {
+    return window.matchMedia?.('(max-width: 640px)').matches ?? window.innerWidth <= 640;
+  }
+
+  let mobileDataRelocations = null;
+
+  function initializeMobileDataRegion() {
+    if (!els.mobileDataRegion || mobileDataRelocations) return;
+    const nodes = [els.statsTableWrap, els.sortSelector, els.explorerSortStatus, els.explorerLegend]
+      .filter(Boolean);
+    mobileDataRelocations = nodes.map((node, index) => {
+      const marker = document.createComment(`openingdb-mobile-data-origin-${index}`);
+      node.parentNode?.insertBefore(marker, node);
+      return { node, marker };
+    });
+
+    const query = window.matchMedia?.('(max-width: 640px)');
+    const sync = () => {
+      const compact = query?.matches ?? window.innerWidth <= 640;
+      els.mobileDataRegion.hidden = !compact;
+      mobileDataRelocations.forEach(({ node, marker }) => {
+        if (compact) {
+          els.mobileDataRegion.append(node);
+        } else if (marker.parentNode) {
+          marker.parentNode.insertBefore(node, marker.nextSibling);
+        }
+      });
+    };
+    query?.addEventListener?.('change', sync);
+    sync();
+  }
+
+  function arrowSquarePoint(square) {
+    const file = String(square || '')[0]?.charCodeAt(0) - 97;
+    const rank = Number(String(square || '')[1]);
+    if (file < 0 || file > 7 || rank < 1 || rank > 8) return null;
+    if (state.boardFlipped) return { x: 7 - file + .5, y: rank - .5 };
+    return { x: file + .5, y: 8.5 - rank };
+  }
+
+  function renderMobileEngineArrows() {
+    if (!els.moveArrows) return;
+    els.moveArrows.replaceChildren();
+    if (!isMobileExplorer() || state.explorerSortMode !== 'engine') return;
+    const evaluated = getExplorerDisplayRows()
+      .filter((row) => parseExplorerEngineEval(getEngineEvalText(row)) !== null)
+      .slice(0, 3);
+    evaluated.forEach((row, index) => {
+      const uci = String(row?.moveUCI || row?.uci || '').trim().toLowerCase();
+      if (!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) return;
+      const start = arrowSquarePoint(uci.slice(0, 2));
+      const end = arrowSquarePoint(uci.slice(2, 4));
+      if (!start || !end) return;
+      const shorten = .18;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', String(start.x));
+      line.setAttribute('y1', String(start.y));
+      line.setAttribute('x2', String(end.x + ((start.x - end.x) * shorten)));
+      line.setAttribute('y2', String(end.y + ((start.y - end.y) * shorten)));
+      line.setAttribute('class', index === 0 ? 'is-primary' : 'is-secondary');
+      line.setAttribute('data-move-uci', uci);
+      els.moveArrows.append(line);
     });
   }
 
@@ -2607,6 +2689,7 @@
     state.rowDiagnostics.renderedCount = 0;
     state.rowDiagnostics.mode = 'explorer';
     state.rowDiagnostics.matchLevel = 'depth_limit';
+    renderMobileEngineArrows();
     if (els.statsBody) {
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${escapeHtml(tr('openingdb.depthLimit', OPENINGDB_DEPTH_LIMIT_MESSAGE, { move: OPENINGDB_MAX_FULLMOVES }))}</td></tr>`;
     }
@@ -2623,7 +2706,7 @@
 
   function rowsNeedRender(rows) {
     const next = {
-      mode: `explorer:${state.explorerSortMode}:${state.engine.evalNextMoves ? 'scores' : 'no-scores'}`,
+      mode: `explorer:${state.explorerSortMode}:${state.explorerDataStatus}:${state.engine.evalNextMoves ? 'scores' : 'no-scores'}`,
       fp: rowFingerprint(rows)
     };
     const prev = state.lastRenderedRowsFingerprint || { mode: '', fp: '' };
@@ -2702,7 +2785,13 @@
   function renderStatsRows(rows) {
     if (!els.statsBody) return;
 
-    if (!Array.isArray(rows) || rows.length === 0) {
+    const mobilePopularity = isMobileExplorer() && state.explorerSortMode === 'popularity';
+    if (mobilePopularity && Array.isArray(rows)) {
+      rows = rows.filter((row) => (Number(row?.games) || 0) > 0);
+    }
+
+    const statusOnly = state.explorerDataStatus === 'loading' || state.explorerDataStatus === 'unavailable';
+    if ((!Array.isArray(rows) || rows.length === 0) && !mobilePopularity && !statusOnly) {
       if (state.game) {
         const fallbackRows = buildAllLegalRowsFromGame(state.game).slice(0, OPENINGDB_COMPACT_ROW_LIMIT);
         if (fallbackRows.length > 0) {
@@ -2714,7 +2803,14 @@
 
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
-      const message = tr('openingdb.noLegalMoves', 'No legal continuations are available in this position.');
+      renderMobileEngineArrows();
+      const message = state.explorerDataStatus === 'loading'
+        ? tr('openingdb.explorer.loading', 'Loading continuation data…')
+        : state.explorerDataStatus === 'unavailable'
+          ? tr('openingdb.explorer.unavailable', 'Database unavailable. Check your connection and try again.')
+          : mobilePopularity
+            ? tr('openingdb.noDatabaseMoves', 'No database continuations are available for this position.')
+            : tr('openingdb.noLegalMoves', 'No legal continuations are available in this position.');
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       state.rowDiagnostics.renderedCount = 0;
       state.rowDiagnostics.mode = 'explorer';
@@ -2722,7 +2818,8 @@
       return;
     }
 
-    rows = rows.slice(0, OPENINGDB_WIDE_ROW_LIMIT);
+    const displayLimit = isMobileExplorer() ? OPENINGDB_MOBILE_ROW_LIMIT : OPENINGDB_WIDE_ROW_LIMIT;
+    rows = rows.slice(0, displayLimit);
     const currentPly = state.game && typeof state.game.history === 'function'
       ? state.game.history({ verbose: false }).length
       : 0;
@@ -2771,6 +2868,7 @@
       `;
     }).join('');
     els.statsBody.innerHTML = rowsHtml;
+    renderMobileEngineArrows();
     renderRowDiagnostics();
   }
 
@@ -3475,6 +3573,7 @@
 
   async function getContinuationsForFenFromShards(fen, context = {}) {
     const variants = buildFenLookupVariants(fen);
+    let lookupUnavailable = false;
     for (const variant of variants) {
       const fenKeyCandidate = String(variant.key || '');
       const fenHash = hashFen(fenKeyCandidate);
@@ -3490,6 +3589,7 @@
       });
 
       const shardData = await loadOpeningDbShard(shard);
+      if (!shardData && state.openingDbShardErrors.has(shard)) lookupUnavailable = true;
       const entry = shardData && typeof shardData === 'object' ? shardData[fenHash] : null;
       const candidateCount = Array.isArray(entry?.moves) ? entry.moves.length : 0;
       const totalGames = Array.isArray(entry?.moves)
@@ -3513,7 +3613,7 @@
     }
 
     return {
-      source: 'none',
+      source: lookupUnavailable ? 'openingdb_shard_error' : 'none',
       matchLevel: 'none',
       entry: null,
       rawCandidates: []
@@ -3718,6 +3818,13 @@
       return;
     }
 
+    state.explorerDataStatus = 'loading';
+    state.latestAllLegalRows = [];
+    state.latestPopularRows = [];
+    state.lastRenderedRowsFingerprint = { mode: '', fp: '' };
+    renderStatsRows([]);
+    setLocalizedText(els.lookupStatus, 'openingdb.explorer.loading', 'Loading continuation data…');
+
     const exactData = await getContinuationsForFen(fen, { ply, fenKey });
     if (requestId !== state.positionRequestId) return;
 
@@ -3748,6 +3855,10 @@
 
     const popularFallbackToLegal = state.latestPopularRows.length === 0 &&
       state.latestAllLegalRows.length > 0;
+    const lookupUnavailable = exactData.source === 'openingdb_shard_error' || exactData.source === 'openingdb_node_error';
+    state.explorerDataStatus = lookupUnavailable
+      ? 'unavailable'
+      : state.latestPopularRows.length > 0 ? 'ready' : 'empty';
     const rows = getExplorerDisplayRows();
     state.gameSearchLineKey = buildCurrentLineKey();
 
@@ -3778,8 +3889,8 @@
       if (state.datasetsError) setLocalizedText(els.lookupStatus, 'openingdb.dataset.unavailable', state.datasetsError);
       else setLocalizedText(els.lookupStatus, 'openingdb.dataset.loadingAll', 'Loading datasets...');
       setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
-    } else if (exactData.source === 'openingdb_node_error') {
-      setLocalizedText(els.lookupStatus, 'openingdb.lookup.nodeUnavailable', 'Position lookup: Node API unavailable (strict mode)');
+    } else if (lookupUnavailable) {
+      setLocalizedText(els.lookupStatus, 'openingdb.lookup.unavailable', 'Database unavailable. Check your connection and try again.');
       setMatchBadge('none');
     } else if (exactData.source === 'openingdb_shard_exact' || exactData.source === 'openingdb_node_api') {
       setLocalizedText(els.lookupStatus, 'openingdb.lookup.match', `Position lookup: match (${exactData.matchLevel || 'exact'})`, { level: exactData.matchLevel || 'exact' });
@@ -4088,6 +4199,7 @@
       if (typeof state.board.resize === 'function') {
         state.board.resize();
       }
+      renderMobileEngineArrows();
     });
 
     els.fenToggleBtn.addEventListener('click', () => {
@@ -4766,6 +4878,7 @@
 
   async function runInit() {
     openingDbI18n?.subscribe?.(refreshOpeningDatabaseLocale);
+    initializeMobileDataRegion();
     bindOpeningDbTabInteractions();
     setActiveTab(state.activeTab);
     debugLog('[OpeningDB] init start');

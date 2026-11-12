@@ -167,6 +167,10 @@
                     preview.append(stageLabel);
                 }
             } else preview.textContent = 'QA Preview · Simplified Play';
+            const mobileHeaderPath = String(global.location?.pathname || '').replace(/\/$/, '') || '/';
+            if (['/play/games', '/play/bots', '/play/coach'].includes(mobileHeaderPath)) {
+                global.CaissaMobile2DestinationHeader?.enhance?.(preview);
+            }
             const nav = global.CaissaPlayVisualComponents?.createModeTabs?.({
                 variant: 'caissa-rail', ariaLabel: 'Play modes',
                 items: Object.entries(MODES).filter(([, available]) => available).map(([mode, available]) => ({
@@ -602,6 +606,7 @@
                 if (isPhoneLayout(this.#layoutMode))
                     this.#root.dataset.scrollOwner = mode === 'coach' ? 'coach-body' : 'document';
             }
+            global.CaissaMobile2DestinationHeader?.sync?.();
             global.document.body.classList.toggle('caissa-play-phone-layout',
                 usesMobileComposition(mode) && isPhoneLayout(this.#layoutMode));
             this.#root?.querySelectorAll?.('[data-shell-mode]').forEach(button => {

@@ -37,6 +37,8 @@
     #0f151e;
 }
 
+.openingdb-mobile2-header { display: none; }
+
 .openingdb-page-intro {
   display: flex;
   align-items: end;
@@ -87,6 +89,7 @@
 }
 
 .openingdb-board-shell {
+  position: relative;
   width: min(100%, 720px);
   aspect-ratio: 1;
   overflow: hidden;
@@ -101,6 +104,36 @@
   height: 100%;
   aspect-ratio: 1;
 }
+
+.openingdb-move-arrows {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.openingdb-move-arrows line {
+  stroke-linecap: round;
+}
+
+.openingdb-move-arrows .is-primary {
+  stroke: #22a7ff;
+  stroke-width: .16;
+  marker-end: url(#odbArrowPrimary);
+  filter: drop-shadow(0 0 .08px rgba(5, 22, 42, .9));
+}
+
+.openingdb-move-arrows .is-secondary {
+  stroke: rgba(79, 174, 255, .48);
+  stroke-width: .11;
+  marker-end: url(#odbArrowSecondary);
+}
+
+#odbArrowPrimary path { fill: #22a7ff; }
+#odbArrowSecondary path { fill: rgba(79, 174, 255, .56); }
 
 #openingDbBoard .square-55d63[data-caissa-tap-selected="true"] {
   box-shadow: inset 0 0 0 3px rgba(255, 208, 94, 0.86) !important;
@@ -1174,6 +1207,14 @@
     grid-template-columns: minmax(340px, 1fr) minmax(350px, 1fr);
   }
 
+  .openingdb-moves-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .openingdb-quick-eval-toggle {
+    margin-left: 0;
+  }
+
   .openingdb-workspace {
     min-height: 500px;
   }
@@ -1222,9 +1263,39 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .openingdb-app .caissa-standalone-sidebar-host,
+  .openingdb-app .caissa-standalone-mobile-toggle {
+    display: none !important;
+  }
+
+  .openingdb-app .caissa-standalone-content {
+    margin-left: 0;
+  }
+
   .openingdb-content {
-    padding: 70px 10px 34px;
+    padding-top: 0;
+  }
+
+  .openingdb-mobile2-header {
+    display: block;
+    background: #0f151e;
+    color: #f4f7fb;
+  }
+}
+
+@media (max-width: 640px) {
+  .openingdb-page-intro,
+  .openingdb-seo-copy {
+    display: none !important;
+  }
+
+  .openingdb-content {
+    padding: 0 8px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .openingdb-mobile2-header {
+    margin: 0 -8px 6px;
   }
 
   .openingdb-page-intro {
@@ -1248,6 +1319,22 @@
     flex-direction: column;
     gap: 2px;
     padding: 7px 4px 1px;
+  }
+
+  .openingdb-mobile-data-region:not([hidden]) {
+    display: grid;
+    width: 100%;
+    margin-top: 10px;
+    gap: 8px;
+  }
+
+  .openingdb-mobile-data-region .openingdb-sort-status {
+    min-height: 0;
+    margin: -2px 2px 0;
+  }
+
+  .openingdb-mobile-data-region .openingdb-explorer-legend {
+    margin: 0 2px;
   }
 
   .openingdb-workspace {
@@ -1281,17 +1368,25 @@
     flex-wrap: wrap;
   }
 
-  .openingdb-quick-eval-toggle {
-    margin-left: 0;
-  }
-
   .openingdb-sort-selector {
-    order: 2;
+    order: 0;
+    width: 100%;
   }
 
   .openingdb-quick-eval-toggle,
   .openingdb-quick-eval-mode {
-    order: 3;
+    display: none;
+  }
+
+  .openingdb-mode-button {
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .openingdb-analyze-action {
+    order: 2;
+    min-height: 44px;
+    margin-left: auto;
   }
 
   .openingdb-review-details {
@@ -1315,7 +1410,7 @@
 
   .openingdb-stats-table {
     display: block;
-    min-width: 360px;
+    min-width: 100%;
     table-layout: fixed;
   }
 
@@ -1437,15 +1532,6 @@
     min-height: 40px;
   }
 
-  .openingdb-seo-copy {
-    margin-top: 24px;
-    padding: 20px 8px;
-    text-align: left;
-  }
-
-  .openingdb-seo-copy nav {
-    justify-content: flex-start;
-  }
 }
 
 @media (max-width: 390px) {

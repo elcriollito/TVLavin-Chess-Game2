@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Chess Opening Explorer & Database | CAISSA Chess</title>
   <meta name="description" content="Explore chess openings on an interactive board with real-game continuation statistics, Stockfish analysis, ECO identification, and line-based game discovery.">
   <meta name="robots" content="index,follow">
@@ -23,9 +23,11 @@
   <link rel="stylesheet" href="/styles.css?v=2.0.10">
   <link rel="stylesheet" href="/css/caissa-standalone-sidebar.css?v=1.0.0">
   <link rel="stylesheet" href="/css/caissa-ui-foundation.css?v=1.0.2">
-  <link rel="stylesheet" href="/css/opening-database.css?v=2.4.0">
+  <link rel="stylesheet" href="/css/opening-database.css?v=2.4.4">
   <link rel="stylesheet" href="/css/caissa-legacy-quiet-drag.css?v=1.1.0">
   <link rel="stylesheet" href="/css/caissa-mobile-foundation.css?v=1.0.6">
+  <link rel="stylesheet" href="/css/mobile2-destination-header.css?v=1.2.0">
+  <script src="/js/mobile2-destination-header.js?v=1.2.0"></script>
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -55,6 +57,7 @@
     <div data-caissa-standalone-sidebar data-active="opening-database"></div>
 
     <main class="content-area openingdb-content caissa-standalone-content" id="caissaStandaloneMain">
+      <header class="openingdb-mobile2-header" data-caissa-mobile2-header-host></header>
       <section class="openingdb-page" aria-labelledby="openingdbPageTitle">
         <header class="openingdb-page-intro">
           <div>
@@ -68,11 +71,19 @@
           <section class="openingdb-board-column" aria-label="Opening board" data-caissa-i18n-aria-label="openingdb.aria.boardSection">
             <div class="openingdb-board-shell">
               <div id="openingDbBoard" class="openingdb-board" role="group" aria-label="Opening database board" data-caissa-i18n-aria-label="openingdb.aria.board"></div>
+              <svg id="odbMoveArrows" class="openingdb-move-arrows" viewBox="0 0 8 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <defs>
+                  <marker id="odbArrowPrimary" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L4,2 L0,4 Z"></path></marker>
+                  <marker id="odbArrowSecondary" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L4,2 L0,4 Z"></path></marker>
+                </defs>
+                <g data-odb-arrow-lines></g>
+              </svg>
             </div>
             <div class="openingdb-board-context" aria-live="polite">
               <span id="odbTurnPly" data-caissa-i18n="openingdb.board.turnStart">White to move • Start position</span>
               <span id="odbDatasetFreshness" data-caissa-i18n="openingdb.dataset.loading">Loading opening data…</span>
             </div>
+            <section id="odbMobileDataRegion" class="openingdb-mobile-data-region" aria-label="Position continuations" hidden></section>
           </section>
 
           <section class="openingdb-workspace" aria-label="Opening explorer workspace" data-caissa-i18n-aria-label="openingdb.aria.workspace">
@@ -195,7 +206,7 @@
                 <div class="openingdb-moves-toolbar">
                   <button id="odbAnalyzeInCaissaBtn" class="openingdb-analyze-action" type="button"><span data-caissa-i18n="openingdb.explorer.analyze">Analyze in CAISSA</span> <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                   <div class="openingdb-modes openingdb-sort-selector" role="group" aria-label="Explorer sort order" data-caissa-i18n-aria-label="openingdb.aria.explorerSort">
-                    <button id="odbSortPopularityBtn" class="openingdb-mode-button active" type="button" aria-pressed="true" data-caissa-i18n="openingdb.explorer.popularity">Popularity</button>
+                    <button id="odbSortPopularityBtn" class="openingdb-mode-button active" type="button" aria-pressed="true" data-caissa-i18n="openingdb.explorer.popularity">Popular Moves</button>
                     <button id="odbSortEngineBtn" class="openingdb-mode-button" type="button" aria-pressed="false" data-caissa-i18n="openingdb.explorer.engine">Engine</button>
                   </div>
                   <label class="openingdb-quick-eval-toggle" for="odbQuickEvalToggle"><input id="odbQuickEvalToggle" type="checkbox"><span data-caissa-i18n="openingdb.explorer.evaluateMoves">Evaluate moves</span></label>
@@ -256,7 +267,7 @@
     </main>
   </div>
 
-  <script src="/js/caissa-i18n.js?v=1.0.1"></script>
+  <script src="/js/caissa-i18n.js?v=1.0.2"></script>
   <script src="/js/opening-database-i18n.js?v=1.0.0"></script>
   <script src="/js/caissa-primary-navigation.js?v=1.22.0"></script>
   <script src="/js/caissa-standalone-sidebar.js?v=1.1.0" data-caissa-auth-runtime="external"></script>
@@ -271,6 +282,6 @@
   <script src="/js/opening-trainer/stockfish19-client.js?v=1.0.0"></script>
   <script src="/js/play/analyze-handoff.js?v=1.0.0"></script>
   <script src="/js/caissa-ui-foundation.js?v=1.0.2"></script>
-  <script src="/js/opening-database.js?v=2.4.1"></script>
+  <script src="/js/opening-database.js?v=2.4.5"></script>
 </body>
 </html>

@@ -26,7 +26,9 @@ test('Playchess gateway has the credited, accessible public embed', () => {
   assert.match(page('iframe').attr('title'), /Playchess guest chess board/i);
   assert.match(page('.playchess-disclosure').text(), /operated by ChessBase GmbH/i);
   assert.match(page('.playchess-fallback').text(), /could not be displayed/i);
-  assert.equal(page('a[href="https://play.chessbase.com/en/Play"]').length, 2);
+  assert.equal(page('a[href="https://play.chessbase.com/en/Play"]').length, 3);
+  assert.equal(page('.playchess-mobile-disclosure').is('details'), true);
+  assert.match(page('.playchess-mobile-disclosure').text(), /operated by ChessBase GmbH/i);
   assert.match(page('.playchess-banner').text(), /Coming Soon/);
   assert.doesNotMatch(page('.playchess-banner').text(), /countdown|register now|join tournament/i);
 });
@@ -55,4 +57,7 @@ test('gateway CSS maximizes width without page-level horizontal overflow', () =>
   assert.match(css, /\.playchess-embed-shell iframe[\s\S]*width:\s*100%[\s\S]*height:\s*100%/);
   assert.match(css, /@media \(max-width: 800px\)/);
   assert.match(css, /@media \(max-width: 480px\)/);
+  assert.match(css, /transform:\s*translateX\(-24px\) scale\(1\.15\)/);
+  assert.match(css, /height:\s*86\.9566%/);
+  assert.match(css, /height:\s*max\(900px,/);
 });

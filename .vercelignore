@@ -890,6 +890,7 @@
 !/css/game-replayer.css
 !/css/gif-studio.css
 !/css/home/home.css
+!/css/home/mobile-home.css
 !/css/insights-account.css
 !/css/lichess-tv.css
 !/css/live-blitz.css
@@ -897,12 +898,14 @@
 !/css/mentor-floating-shell.css
 !/css/mentor-guided-replay.css
 !/css/mentor-page.css
+!/css/mobile2-destination-header.css
 !/css/online.css
 !/css/opening-book.css
 !/css/opening-database.css
 !/css/opening-trainer.css
 !/css/pgn-replayer.css
 !/css/play-coach-review.css
+!/css/play-hub.css
 !/css/play-native-mentor-review.css
 !/css/play-simplified-shell.css
 !/css/play-v2-invite.css
@@ -1124,6 +1127,7 @@
 !/js/gif-studio/studio-page.js
 !/js/history-section.js
 !/js/home/home.js
+!/js/home/mobile-home.js
 !/js/identity-recovery-channel.js
 !/js/identity-recovery-return.js
 !/js/identity-recovery.js
@@ -1198,6 +1202,7 @@
 !/js/mentor/mentor-summary-registry.js
 !/js/mentor/mentor-summary-templates.js
 !/js/mentor/mentor-summary.js
+!/js/mobile2-destination-header.js
 !/js/online/online-api.js
 !/js/online/online-clock.js
 !/js/online/online-guest-session.js
@@ -1537,6 +1542,7 @@
 !/pgn/world-champions/Karpov_Anatoly/karpov-kasparov-1985.pgn
 !/pgn/world-champions/Kasparov_Garry/kasparov-topalov-1999.pgn
 !/pgn/world-champions/Tal_Mikhail/tal-smyslov-1959.pgn
+!/play-hub.html
 !/play-v2-invite.html
 !/play-v2-promotion-qa.html
 !/play-v2-public-beta.html

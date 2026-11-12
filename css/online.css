@@ -401,6 +401,20 @@ body.online-page{position:relative;overflow-x:hidden}
     .online-layout{--online-board-size:100cqw}
 }
 
+/* Mobile 2.0 owns navigation on the canonical Online destination. */
+.online-mobile2-header{display:none}
+@media(max-width:768px){
+    .online-mobile2-header{
+        display:block;
+        width:min(100%,700px);
+        margin-inline:auto;
+        background:#08120e;
+        color:#f4f7fb;
+    }
+    .online-menu-shell{display:none!important}
+    .online-main{padding-top:10px}
+}
+
 /* Lobby information architecture: real Online history and presence stay
    visually distinct from capabilities that remain staged for later. */
 .workspace-body>[role=tabpanel]{min-height:100%}

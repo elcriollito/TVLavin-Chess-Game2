@@ -1,0 +1,196 @@
+.caissa-mobile2-destination-header {
+    display: none;
+}
+
+@media (max-width: 800px) {
+    .caissa-mobile2-destination-header {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        min-height: calc(44px + env(safe-area-inset-top, 0px));
+        align-items: flex-end;
+        padding:
+            env(safe-area-inset-top, 0px)
+            max(0px, env(safe-area-inset-right, 0px))
+            0
+            max(0px, env(safe-area-inset-left, 0px));
+        border-bottom: 1px solid rgb(148 163 184 / 18%);
+        color: #f4f7fb;
+        letter-spacing: normal;
+        text-transform: none;
+    }
+
+    .caissa-mobile2-destination-back {
+        display: inline-flex;
+        box-sizing: border-box;
+        min-width: 44px;
+        min-height: 44px;
+        max-width: 100%;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px 0 4px;
+        border-radius: 9px;
+        color: inherit;
+        font: 700 17px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    .caissa-mobile2-destination-back:hover {
+        color: #fff;
+        background: rgb(148 163 184 / 10%);
+    }
+
+    .caissa-mobile2-destination-back:focus-visible {
+        outline: 3px solid #8fbaff;
+        outline-offset: -3px;
+    }
+
+    .caissa-mobile2-destination-arrow {
+        flex: 0 0 28px;
+        font-size: 29px;
+        font-weight: 400;
+        line-height: 1;
+        text-align: center;
+        transform: translateY(-1px);
+    }
+
+    .caissa-mobile2-destination-title {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    html:is(
+        [data-caissa-mobile2-destination="watch-games"],
+        [data-caissa-mobile2-destination="playchess"]
+    ) .caissa-mobile2-destination-header {
+        display: flex;
+    }
+}
+
+@media (max-width: 768px) {
+    html[data-caissa-mobile2-destination] body :is(
+        #mobileNavToggle,
+        .caissa-standalone-mobile-toggle,
+        .mobile-quick-actions [data-mobile-action="menu"]
+    ) {
+        display: none !important;
+    }
+
+    html[data-caissa-mobile2-destination] body #mainNav {
+        display: none !important;
+    }
+
+    .caissa-mobile2-destination-header {
+        display: flex;
+    }
+
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell[data-mobile2-release="approved"][data-layout^="phone-"]
+        .caissa-simplified-shell__preview[data-caissa-mobile2-header-host="true"] {
+        position: relative !important;
+        display: block !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 44px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        clip: auto !important;
+        clip-path: none !important;
+        white-space: normal !important;
+    }
+
+    body.caissa-simplified-play-active
+        .caissa-simplified-shell__preview[data-caissa-mobile2-header-host="true"]
+        > .caissa-simplified-shell__purpose {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        margin: -1px !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        clip: rect(0 0 0 0) !important;
+        clip-path: inset(50%) !important;
+        white-space: nowrap !important;
+    }
+
+    .puzzles-header[data-caissa-mobile2-header-host="true"] {
+        min-height: 44px;
+        align-items: stretch;
+        margin-bottom: 12px;
+        padding-left: 0;
+    }
+
+    .puzzles-header[data-caissa-mobile2-header-host="true"] > :not(.caissa-mobile2-destination-header) {
+        display: none !important;
+    }
+
+    html:is(
+        [data-caissa-mobile2-destination="fics"],
+        [data-caissa-mobile2-destination="analyze"]
+    ) body .app-container,
+    html:is(
+        [data-caissa-mobile2-destination="fics"],
+        [data-caissa-mobile2-destination="analyze"]
+    ) body .app-container.nav-collapsed {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        height: 100dvh !important;
+    }
+
+    html:is(
+        [data-caissa-mobile2-destination="fics"],
+        [data-caissa-mobile2-destination="analyze"]
+    ) body .header-minimal[data-caissa-mobile2-header-host="true"] {
+        position: relative !important;
+        inset: auto !important;
+        display: block !important;
+        box-sizing: border-box !important;
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 44px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: #0b0f14 !important;
+        box-shadow: none !important;
+    }
+
+    html:is(
+        [data-caissa-mobile2-destination="fics"],
+        [data-caissa-mobile2-destination="analyze"]
+    ) body
+        .header-minimal[data-caissa-mobile2-header-host="true"] > .header-content {
+        display: none !important;
+    }
+
+    html:is(
+        [data-caissa-mobile2-destination="fics"],
+        [data-caissa-mobile2-destination="analyze"]
+    ) body .content-area {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+    }
+
+    html[data-caissa-mobile2-destination="fics"] body #ficsSection .fics-layout {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        padding-top: 4px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .caissa-mobile2-destination-back,
+    .caissa-mobile2-destination-arrow {
+        transition: none !important;
+    }
+}

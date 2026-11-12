@@ -299,7 +299,7 @@ test('sorting toolbar remains operable and within the viewport on desktop and mo
       const controls = Array.from(toolbar.querySelectorAll('button, input, select')).map((control) => {
         const controlRect = control.getBoundingClientRect();
         return { left: controlRect.left, right: controlRect.right, width: controlRect.width, height: controlRect.height };
-      });
+      }).filter(control => control.width > 0 && control.height > 0);
       return {
         toolbar: { left: rect.left, right: rect.right },
         controls,

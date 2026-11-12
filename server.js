@@ -2,6 +2,7 @@
 // Usage: node server.js
 
 import http from 'http';
+import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -23,12 +24,17 @@ import pgnOpeningHandler from './api/pgn/opening.js';
 import pgnMentorHandler from './api/pgn/pgnmentor.js';
 import { MODEL, expandPlacement, squareAt } from './scanner/beta/scanner-beta-contract.js';
 import { createScannerHandoff, scannerHandoffHeaders } from './api/_lib/scanner-handoff.js';
+import {
+  attachMobileHqaFicsRelay,
+  injectMobileHqaFicsRelayMarker
+} from './scripts/mobile-hqa-fics-relay.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = Number.parseInt(process.env.PORT || '8000', 10);
 const HOST = process.env.CAISSA_SERVER_HOST || '127.0.0.1';
+const mobileHqaFicsRelayEnabled = process.env.CAISSA_MOBILE_HQA_FICS_RELAY === '1';
 const RETIRED_PAGE_REDIRECTS = new Map([
   ['/puzzles/chessbase-tactics', '/puzzles'],
   ['/endgame-practice', '/endgame-trainer'],
@@ -39,6 +45,17 @@ const RETIRED_PAGE_REDIRECTS = new Map([
 const PLAY_V2_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https://img.clerk.com data:; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://api.chess.com https://lichess.org https://caissa-game-fetcher.elcriollito.workers.dev https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com; frame-src 'self' https://*.clerk.accounts.dev; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const BETA_PRIVATE_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const ONLINE_CSP = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://challenges.cloudflare.com; script-src-elem 'self' https://cdn.jsdelivr.net https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://img.clerk.com https://images.clerk.dev; font-src 'self'; connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com https://clerk-telemetry.com https://*.supabase.co wss://*.supabase.co; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+const OPENING_DB_PROXY_ORIGIN = 'https://downloads.caissa-chess.org';
+const OPENING_DB_PROXY_RESPONSE_HEADERS = Object.freeze([
+  'cache-control',
+  'content-encoding',
+  'content-length',
+  'content-range',
+  'content-type',
+  'etag',
+  'last-modified',
+  'vary'
+]);
 
 const scannerExperiment = Object.freeze({ id: 'scanner', slug: 'scanner', displayName: 'CAISSA Scanner',
   description: 'Scan chess positions from your phone or screen.', stage: 'internal-beta', enabled: true,
@@ -149,6 +166,67 @@ async function handleLichessProxy(req, res, url) {
     'X-Content-Type-Options': 'nosniff'
   });
   res.end(JSON.stringify(result.body));
+}
+
+function handleOpeningDbAssetProxy(req, res, url) {
+  if (!url.pathname.startsWith('/openingdb/')) return false;
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      Allow: 'GET, HEAD'
+    });
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return true;
+  }
+
+  const upstreamUrl = new URL(`${url.pathname}${url.search}`, OPENING_DB_PROXY_ORIGIN);
+  const forwardedHeaders = {};
+  for (const name of ['accept', 'accept-encoding', 'if-modified-since', 'if-none-match', 'range']) {
+    if (req.headers[name]) forwardedHeaders[name] = req.headers[name];
+  }
+
+  const upstream = https.request(upstreamUrl, {
+    method: req.method,
+    headers: forwardedHeaders
+  }, upstreamResponse => {
+    const headers = {
+      'X-CAISSA-Local-Proxy': 'openingdb',
+      'X-Content-Type-Options': 'nosniff'
+    };
+    for (const name of OPENING_DB_PROXY_RESPONSE_HEADERS) {
+      const value = upstreamResponse.headers[name];
+      if (value !== undefined) headers[name] = value;
+    }
+    res.writeHead(upstreamResponse.statusCode || 502, headers);
+    if (req.method === 'HEAD') {
+      upstreamResponse.resume();
+      res.end();
+      return;
+    }
+    upstreamResponse.pipe(res);
+  });
+
+  upstream.setTimeout(30_000, () => {
+    upstream.destroy(new Error('Opening Database upstream timed out'));
+  });
+  upstream.on('error', error => {
+    if (res.headersSent) {
+      res.destroy(error);
+      return;
+    }
+    res.writeHead(502, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-CAISSA-Local-Proxy': 'openingdb'
+    });
+    res.end(JSON.stringify({ error: 'Opening Database upstream unavailable' }));
+  });
+  res.on('close', () => {
+    if (!res.writableEnded) upstream.destroy();
+  });
+  upstream.end();
+  return true;
 }
 
 function handleHealthCheck(res) {
@@ -465,6 +543,10 @@ const server = http.createServer(async (req, res) => {
   if (await scannerBeta.handle(req, res, pathname)) return;
   if (await handleScannerPublicTestApi(req, res, pathname)) return;
 
+  // Mirror the production Vercel rewrite so LAN HQA uses the canonical
+  // Opening Database manifest and shards instead of the stale bundled fixture.
+  if (handleOpeningDbAssetProxy(req, res, url)) return;
+
   if (pathname === '/api/beta/access') {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     if (req.method !== 'GET') {
@@ -681,6 +763,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/yahoo-classic') {
     filePath = './yahoo-classic.html';
   }
+  if (pathname === '/play-hub' || pathname === '/play-hub/') {
+    filePath = './play-hub.html';
+  }
   if (pathname === '/play-online/playchess' || pathname === '/play-online/playchess/') {
     filePath = './playchess.html';
   }
@@ -730,6 +815,9 @@ const server = http.createServer(async (req, res) => {
   if (['/insights', '/fics', '/analyze', '/spectator-tv', '/arena', '/cheater-insight',
     '/history', '/dos-chess'].includes(pathname)) {
     filePath = './index.html';
+    if (pathname === '/fics' && mobileHqaFicsRelayEnabled) {
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    }
   }
   if (pathname === '/game-library' || pathname === '/game-library/') {
     filePath = './game-library.html';
@@ -842,14 +930,19 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500);
       res.end('Server Error: ' + error.code, 'utf-8');
     } else {
-      const servedContent = betaEntry.authorized && mimeType === 'text/html'
+      let servedContent = betaEntry.authorized && mimeType === 'text/html'
         ? injectPlayGameplayPreviewMarker(content.toString('utf8'), resolvePlayGameplayDeploymentConfig(process.env))
         : content;
+      if (pathname === '/fics' && mimeType === 'text/html') {
+        servedContent = injectMobileHqaFicsRelayMarker(servedContent.toString('utf8'), mobileHqaFicsRelayEnabled);
+      }
       res.writeHead(responseStatus, { 'Content-Type': mimeType });
       res.end(servedContent, 'utf-8');
     }
   });
 });
+
+attachMobileHqaFicsRelay(server, { enabled: mobileHqaFicsRelayEnabled });
 
 server.listen(PORT, HOST, () => {
   console.log('========================================');

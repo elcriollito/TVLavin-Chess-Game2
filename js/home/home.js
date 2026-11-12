@@ -194,9 +194,6 @@
     const account = element('summary', 'account-identity account-trigger');
     const accountName = displayName(auth);
     account.setAttribute('role', 'button');
-    account.setAttribute('aria-label', auth.imageUrl
-      ? `${accountName} account menu`
-      : `${initials(accountName)} ${accountName} account menu`);
     if (auth.imageUrl) {
       const image = element('img', 'account-avatar');
       image.src = auth.imageUrl;
@@ -205,13 +202,12 @@
       account.append(image);
     } else {
       const avatarInitials = element('span', 'account-avatar account-initials', initials(accountName));
-      avatarInitials.setAttribute('aria-hidden', 'true');
       account.append(avatarInitials);
     }
     account.append(element('span', 'account-name', accountName));
     const chevron = element('i', 'fa-solid fa-chevron-down account-chevron');
     chevron.setAttribute('aria-hidden', 'true');
-    account.append(chevron);
+    account.append(chevron, element('span', 'account-menu-assistive', 'account menu'));
 
     const panel = element('div', 'account-menu-panel');
     const identity = element('div', 'account-menu-identity');

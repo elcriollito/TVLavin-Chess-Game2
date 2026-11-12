@@ -2114,8 +2114,16 @@ const AnalyzeSection = {
             }
         }
         this.elements.moveList.replaceChildren(grid);
-        this.elements.moveList.querySelector('[aria-current="move"]')
-            ?.scrollIntoView?.({ block: 'nearest' });
+        const currentMove = this.elements.moveList.querySelector('[aria-current="move"]');
+        if (currentMove) {
+            const listBox = this.elements.moveList.getBoundingClientRect();
+            const moveBox = currentMove.getBoundingClientRect();
+            if (moveBox.top < listBox.top) {
+                this.elements.moveList.scrollTop -= listBox.top - moveBox.top;
+            } else if (moveBox.bottom > listBox.bottom) {
+                this.elements.moveList.scrollTop += moveBox.bottom - listBox.bottom;
+            }
+        }
     },
 
     jumpToFicsAnalysisNode(nodeId, {
