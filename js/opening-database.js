@@ -2409,7 +2409,7 @@
 
   function initializeMobileDataRegion() {
     if (!els.mobileDataRegion || mobileDataRelocations) return;
-    const nodes = [els.sortSelector, els.explorerSortStatus, els.explorerLegend, els.statsTableWrap]
+    const nodes = [els.statsTableWrap, els.sortSelector, els.explorerSortStatus, els.explorerLegend]
       .filter(Boolean);
     mobileDataRelocations = nodes.map((node, index) => {
       const marker = document.createComment(`openingdb-mobile-data-origin-${index}`);

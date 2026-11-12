@@ -107,6 +107,7 @@ test('Explorer exposes independent Popular Moves and Engine sorting without rest
   assert.match(source, /mobilePopularity[\s\S]*?Number\(row\?\.games\)[\s\S]*?> 0/);
   assert.match(source, /const displayLimit = isMobileExplorer\(\) \? OPENINGDB_MOBILE_ROW_LIMIT : OPENINGDB_WIDE_ROW_LIMIT/);
   assert.match(source, /function initializeMobileDataRegion\(\)/);
+  assert.match(source, /const nodes = \[els\.statsTableWrap, els\.sortSelector, els\.explorerSortStatus, els\.explorerLegend\]/);
   assert.match(source, /state\.explorerSortMode = 'popularity';[\s\S]*?cancelNextMoveEvalQueue/);
 });
 

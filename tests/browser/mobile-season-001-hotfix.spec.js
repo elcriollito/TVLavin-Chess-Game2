@@ -131,11 +131,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 430, height: 932 }
       };
     });
     expect(hierarchy.board.bottom).toBeLessThanOrEqual(hierarchy.metadata.top + 1);
-    expect(hierarchy.selector.top).toBeGreaterThanOrEqual(hierarchy.metadata.bottom - 1);
-    expect(hierarchy.selector.top - hierarchy.metadata.bottom).toBeLessThanOrEqual(24);
-    expect(hierarchy.selector.bottom).toBeLessThan(hierarchy.firstRow.top);
+    expect(hierarchy.table.top).toBeGreaterThanOrEqual(hierarchy.metadata.bottom - 1);
+    expect(hierarchy.table.top - hierarchy.metadata.bottom).toBeLessThanOrEqual(24);
     expect(hierarchy.firstRow.bottom).toBeLessThan(viewport.height);
-    expect(hierarchy.table.bottom).toBeLessThan(hierarchy.opening.top);
+    expect(hierarchy.table.bottom).toBeLessThan(hierarchy.selector.top);
+    expect(hierarchy.selector.bottom).toBeLessThan(hierarchy.opening.top);
     expect(hierarchy.opening.bottom).toBeLessThanOrEqual(hierarchy.tabs.top + 1);
     expect(hierarchy.tabs.bottom).toBeLessThan(hierarchy.analyze.top);
 

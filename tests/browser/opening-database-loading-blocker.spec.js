@@ -150,27 +150,37 @@ test('live LAN route loads canonical Popular Moves at 390px and 430px', async ({
   await expect(page.locator('#odbDatasetFreshness')).toContainText('v3_p60');
 
   const verifyLayout = async () => {
-    const layout = await page.evaluate(() => ({
-      board: document.querySelector('.openingdb-board-shell').getBoundingClientRect().top,
-      data: document.querySelector('#odbMobileDataRegion').getBoundingClientRect().top,
-      context: document.querySelector('.openingdb-opening-context').getBoundingClientRect().top,
-      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
-    }));
-    expect(layout.board).toBeLessThan(layout.data);
-    expect(layout.data).toBeLessThan(layout.context);
+    const layout = await page.evaluate(() => {
+      const rect = selector => {
+        const { top, bottom } = document.querySelector(selector).getBoundingClientRect();
+        return { top, bottom };
+      };
+      return {
+        board: rect('.openingdb-board-shell'),
+        metadata: rect('.openingdb-board-context'),
+        results: rect('.openingdb-table-wrap'),
+        controls: rect('.openingdb-sort-selector'),
+        context: rect('.openingdb-opening-context'),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    expect(layout.board.bottom).toBeLessThanOrEqual(layout.metadata.top + 1);
+    expect(layout.metadata.bottom).toBeLessThan(layout.results.top);
+    expect(layout.results.bottom).toBeLessThan(layout.controls.top);
+    expect(layout.controls.bottom).toBeLessThan(layout.context.top);
     expect(layout.overflow).toBeLessThanOrEqual(1);
   };
   await verifyLayout();
 
   if (capture && testInfo.project.name === 'webkit') {
     fs.mkdirSync(evidenceDir, { recursive: true });
-    await page.screenshot({ path: path.join(evidenceDir, 'opening-explorer-database-390.png'), fullPage: true });
+    await page.screenshot({ path: path.join(evidenceDir, 'opening-explorer-results-first-390.png'), fullPage: true });
   }
 
   await page.setViewportSize({ width: 430, height: 932 });
   await verifyLayout();
   if (capture && testInfo.project.name === 'webkit') {
-    await page.screenshot({ path: path.join(evidenceDir, 'opening-explorer-database-430.png'), fullPage: true });
+    await page.screenshot({ path: path.join(evidenceDir, 'opening-explorer-results-first-430.png'), fullPage: true });
   }
 });
 
