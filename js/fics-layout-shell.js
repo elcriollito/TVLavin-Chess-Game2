@@ -388,6 +388,50 @@
         return wrapper;
     }
 
+    function renderMobileConnectionFallback(snapshot) {
+        const state = snapshot.connection?.state || 'disconnected';
+        const wrapper = createElement('section', 'fics-rd12-mobile-fallback', {
+            'data-fics-mobile-connection-fallback': '',
+            'aria-labelledby': 'ficsRd12MobileFallbackTitle'
+        });
+        const title = state === 'error'
+            ? 'Unable to connect to the FICS service.'
+            : state === 'reconnecting'
+                ? 'Reconnecting to FICS…'
+                : state === 'connecting'
+                    ? 'Connecting to FICS…'
+                    : 'Connect to FICS';
+        appendText(wrapper, 'h3', 'fics-rd12-mobile-fallback-title', title, {
+            id: 'ficsRd12MobileFallbackTitle'
+        });
+        appendText(wrapper, 'p', 'fics-rd12-mobile-fallback-copy', state === 'error'
+            ? 'The service is unavailable from this network right now. Try again when ready.'
+            : state === 'reconnecting'
+                ? 'Restoring the secure connection…'
+                : state === 'connecting'
+                    ? 'Opening a secure guest session…'
+                    : 'Guest access does not require a FICS account.', {
+            role: state === 'error' ? 'alert' : 'status'
+        });
+
+        if (state === 'error' || state === 'disconnected') {
+            const retry = appendText(wrapper, 'button', 'fics-rd12-mobile-fallback-action',
+                state === 'error' ? 'Retry' : 'Connect', {
+                    type: 'button', 'data-fics-focus-key': 'mobile-connection-retry'
+                });
+            retry.addEventListener('click', () => {
+                actionNotice = null;
+                root.CaissaFICSClient?.connect?.('guest');
+            });
+        }
+
+        const help = appendText(wrapper, 'a', 'fics-rd12-mobile-fallback-help', 'FICS information', {
+            href: 'https://www.freechess.org/', target: '_blank', rel: 'noopener noreferrer'
+        });
+        help.setAttribute('aria-label', 'Open FICS information in a new tab');
+        return wrapper;
+    }
+
     function seekStatusCopy(pending) {
         if (pending.status === 'cancel_requested') return 'Cancel requested. Waiting for the local FICS refresh.';
         if (pending.status === 'error') return pending.error || 'The last seek action was not delivered.';
@@ -1050,6 +1094,10 @@
         dynamic.replaceChildren();
         if (view.activeTab === 'game') dynamic.append(renderGame(snapshot));
         if (view.activeTab === 'tables') dynamic.append(renderTables(snapshot));
+        if (view.activeTab === 'tables'
+            && ['DISCONNECTED', 'AUTHENTICATING', 'RECONNECTING', 'ERROR'].includes(view.productState)) {
+            dynamic.append(renderMobileConnectionFallback(snapshot));
+        }
         if (view.activeTab === 'players') dynamic.append(renderPlayers(snapshot));
         if (view.activeTab === 'seek') dynamic.append(renderSeek(snapshot));
         restoreFocus(focus);

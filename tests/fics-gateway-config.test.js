@@ -29,6 +29,14 @@ test('production retains the secure deployed gateway default', () => {
     assert.equal(loadClient('www.caissa-chess.org').gatewayUrl, 'wss://fics-gateway.caissa-chess.org/ws');
 });
 
+test('private-LAN mobile origins use the canonical secure gateway, never loopback', () => {
+    for (const hostname of ['192.168.50.42', '10.20.30.40', '172.20.10.5']) {
+        const client = loadClient(hostname);
+        assert.equal(client.gatewayUrl, 'wss://fics-gateway.caissa-chess.org/ws');
+        assert.doesNotMatch(client.gatewayUrl, /localhost|127\.0\.0\.1|^ws:/);
+    }
+});
+
 test('Classic CSP permits only the current local Worker origin', () => {
     for (const entry of classicEntries) {
         const html = fs.readFileSync(new URL(entry, import.meta.url), 'utf8');
