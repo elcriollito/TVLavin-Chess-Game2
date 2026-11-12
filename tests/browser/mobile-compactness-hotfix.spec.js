@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test';
 test.setTimeout(60_000);
 
 const viewports = [
-  { width: 390, height: 844, expectedPlaychessHeight: 720 },
-  { width: 430, height: 932, expectedPlaychessHeight: 760 }
+  { width: 390, height: 844, expectedPlaychessHeight: 540 },
+  { width: 430, height: 932, expectedPlaychessHeight: 580 }
 ];
 
 const openingPositions = {

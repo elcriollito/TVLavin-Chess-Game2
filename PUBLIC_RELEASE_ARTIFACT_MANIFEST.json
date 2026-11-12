@@ -1724,7 +1724,7 @@
     },
     {
       "path": "css/playchess.css",
-      "sha256": "71ad11ce27c7a6397e59b465a7eb003970f7fc9b0444d764df115236625e6e8f"
+      "sha256": "8c6c613c63219bb52a64262814892d663518c87f174b09e5171b6fd992c88257"
     },
     {
       "path": "css/polyglot-tool.css",
@@ -4120,7 +4120,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "93952c0e91e286dab770628c644c37b269ff3fad2378ad5e95e30189bce78766"
+      "sha256": "49bb89632069388d1a4933eec392a6570e693eb674fa8b89ae79e96002b1f6f1"
     },
     {
       "path": "pgn-replayer.html",
@@ -4268,7 +4268,7 @@
     },
     {
       "path": "playchess.html",
-      "sha256": "84f7742e6d6bc33a38c769feafe2f2eff83c12cf18469fe35d44b6b2fa6c9479"
+      "sha256": "6114f9b8fd489a336489007695da75f259ded1edf9f16f24a7a8c5ed1c5a3e06"
     },
     {
       "path": "playwright.board.config.js",

@@ -133,10 +133,6 @@
 
 @media (max-width: 480px) {
   .playchess-embed-shell {
-    height: clamp(
-      680px,
-      calc(100dvh - 124px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)),
-      760px
-    );
+    height: clamp(540px, calc(100vw + 150px), 630px);
   }
 }

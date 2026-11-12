@@ -95,7 +95,7 @@ for (const viewport of viewports) {
       };
     });
     expect(geometry.shellWidth).toBeGreaterThanOrEqual(viewport.width - 10);
-    expect(geometry.shellHeight).toBe(viewport.width === 390 ? 720 : 760);
+    expect(geometry.shellHeight).toBe(viewport.width === 390 ? 540 : 580);
     expect(geometry.frameWidth).toBeGreaterThan(geometry.shellWidth * 1.14);
     expect(Math.abs(geometry.frameHeight - geometry.shellHeight)).toBeLessThanOrEqual(3);
     expect(geometry.hitTarget).toBe('IFRAME');
