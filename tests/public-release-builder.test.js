@@ -10,6 +10,7 @@ import {
   isProtectedPublicPath,
   loadPublicArtifactManifest,
   renderVercelIgnore,
+  sha256File,
   trackedPublicFiles,
   validatePublicSourceFile
 } from '../scripts/build-public-release.mjs';
@@ -110,6 +111,23 @@ test('the exact public manifest controls staging while repository-root deploymen
   assert.equal(rules[0], '/*');
   assert.deepEqual(exactFiles.map(line => unescapePath(line.slice(2))), manifestPaths);
   assert.deepEqual(manifestPaths, [...manifestPaths].sort());
+});
+
+test('public Home local assets are pinned in the release manifest with current digests', () => {
+  const home = readFileSync(new URL('../home.html', import.meta.url), 'utf8');
+  const manifest = loadPublicArtifactManifest();
+  const manifestEntries = new Map(manifest.files.map(item => [item.path, item.sha256]));
+  const documentOrigin = 'https://caissa-release-contract.invalid';
+  const assetPaths = [...home.matchAll(/<(?:link|script)\b[^>]*(?:href|src)="([^"]+)"/gi)]
+    .map(match => new URL(match[1], documentOrigin))
+    .filter(url => url.origin === documentOrigin)
+    .map(url => url.pathname.replace(/^\/+/, ''));
+
+  assert.ok(assetPaths.includes('css/home/mobile-home.css'));
+  assert.ok(assetPaths.includes('js/home/mobile-home.js'));
+  for (const path of assetPaths) {
+    assert.equal(manifestEntries.get(path), sha256File(path, resolve('.')), `${path} is absent or stale in the public release manifest`);
+  }
 });
 
 test('Vercel staging verification does not execute installed CLI internals', () => {

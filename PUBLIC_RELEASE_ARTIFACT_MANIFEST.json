@@ -1416,7 +1416,7 @@
     },
     {
       "path": "blog/index.html",
-      "sha256": "cf95c1ab0e6095eff43fd51a055dc012b6944839b7184f19a5682ca4a21e218c"
+      "sha256": "8e8449a5b8e308406cd81726bc8d6c572ec30ab176384effbf948a5bcff40990"
     },
     {
       "path": "blog/what-is-a-polyglot-opening-book/index.html",
@@ -1508,7 +1508,7 @@
     },
     {
       "path": "css/analyze-v2-shell.css",
-      "sha256": "90ba66c198c985172c7ab6955814f0567d8c401593d5815541f2810b49acd1e7"
+      "sha256": "85e39d0200eba3c0f3fa090570293b0eaee133485b501b3c95cfef2142e30754"
     },
     {
       "path": "css/blog.css",
@@ -1608,7 +1608,7 @@
     },
     {
       "path": "css/fics-redesign-shell.css",
-      "sha256": "ce971fc04be0b9e8c1147e6175aad7d2467db643e9e485b4098134218d7ed6cb"
+      "sha256": "28b91407d19d176223b98b70a063114ea4ab7d2649f8dad09ef40b3c0745e3e6"
     },
     {
       "path": "css/fritz.css",
@@ -1632,7 +1632,11 @@
     },
     {
       "path": "css/home/home.css",
-      "sha256": "7e3babdef6b143cafaeb6fce3ad58e872f1115b38f45757c694826dde021ce79"
+      "sha256": "dfc39420f8baf105957e8ec7c9ac9a9525c1264c4a8b14341a9e9cb5d25682ae"
+    },
+    {
+      "path": "css/home/mobile-home.css",
+      "sha256": "56d6a9523583929f96da750df62de0e2d1b208b5fa03c44bd9457121bee92d38"
     },
     {
       "path": "css/insights-account.css",
@@ -1640,7 +1644,7 @@
     },
     {
       "path": "css/lichess-tv.css",
-      "sha256": "d4db1ca9f812b9c1a395159d9b90f0aece0ff1261172c03f704f65eef5d3e1e8"
+      "sha256": "84fc671aac175e0a67b16ccce4cedafa12f8531fadf1238234a15ccbb4bc49c3"
     },
     {
       "path": "css/live-blitz.css",
@@ -1663,8 +1667,12 @@
       "sha256": "3679798bd947d32fae0279e9aef90cdec24900373d6765a460f841ba5c3a111a"
     },
     {
+      "path": "css/mobile2-destination-header.css",
+      "sha256": "04071aa48b47c85eff7c07d50188f1458808d9b4cdb8e400d2e035a6a33a7e91"
+    },
+    {
       "path": "css/online.css",
-      "sha256": "509efe75e6b089cb97fc3119600a466ae2042c0bf200e69764d4362e4103123e"
+      "sha256": "fee0b4d4c1f67610a49b92835ae6b7b82f294a3684088d2ff9bf84ec5c1c1bef"
     },
     {
       "path": "css/opening-book.css",
@@ -1672,7 +1680,7 @@
     },
     {
       "path": "css/opening-database.css",
-      "sha256": "54112133794c1fa7e389316190e394e806d24dbfbcde3becb6bcd6627a9080b1"
+      "sha256": "db1c6a2f1126e4802cb527f101995c63e4a29fe1cceb4fab15b23e422677c327"
     },
     {
       "path": "css/opening-trainer.css",
@@ -1685,6 +1693,10 @@
     {
       "path": "css/play-coach-review.css",
       "sha256": "313553ee52e133fbedb644f536d66f8e9df403ed1d743bafe0ab16c5ec0354b8"
+    },
+    {
+      "path": "css/play-hub.css",
+      "sha256": "1a9fd9146887f1006fd71b0e12a19ca09648efce6e0ee4431d3680572a422356"
     },
     {
       "path": "css/play-native-mentor-review.css",
@@ -1712,7 +1724,7 @@
     },
     {
       "path": "css/playchess.css",
-      "sha256": "63ba2a6dddcb6a97e50c1bcfd4a99e0b8be4d3ca327d4f26df0b5f2764fda8ae"
+      "sha256": "9cb6ea1866d0b17ffbbcdc4cfb2ad7f2fe493cd5aef90117ea524114a983e8d6"
     },
     {
       "path": "css/polyglot-tool.css",
@@ -1880,11 +1892,11 @@
     },
     {
       "path": "help.html",
-      "sha256": "9a084b61ef2342b9561fe264cdec9984b9fb86b188d4a3f3a881745661286f3d"
+      "sha256": "3e32153a713a2b014c0c9ccff4999f18aea7628eb7044704188994ad9c76f750"
     },
     {
       "path": "home.html",
-      "sha256": "b44d363073da1e3e535ee35a4131c011af854c9d96d6412d0f9878d00e5e0d78"
+      "sha256": "e67ceaea6fbf76bab2fc6d30cbc70e7e5f6b8327c8ea6111004d6a8229811e64"
     },
     {
       "path": "icon-192.png",
@@ -1952,7 +1964,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "5b1a452f1cdcf48ff501fd1c4ba011f648ed41ddbd9441daea884741d4de8ee8"
+      "sha256": "9d23ae7cf78a674f5b363096ed40552d8f029a2adb026b330c1507b92ab289ea"
     },
     {
       "path": "integrations/chessbase-pgn-replayer.html",
@@ -1976,7 +1988,7 @@
     },
     {
       "path": "js/analyze-section.js",
-      "sha256": "b297991707158124e8cb0094cb698764516a2c0a271a6482549f7042c25357de"
+      "sha256": "ee61f1f731f9e2ded511f7c6f84df555f6af034714191f0af8ce0c49eb8fd028"
     },
     {
       "path": "js/analyze-session.js",
@@ -2108,7 +2120,7 @@
     },
     {
       "path": "js/caissa-i18n.js",
-      "sha256": "ff8ed82504dea1ac4e0bbb7441d2fce762cfffcc03a9fbe310ad274475f499e2"
+      "sha256": "91c912460be1a53946d103f015be433f32703732ca68610d202458f3181474d2"
     },
     {
       "path": "js/caissa-logger.js",
@@ -2116,7 +2128,7 @@
     },
     {
       "path": "js/caissa-navigation.js",
-      "sha256": "48e579adb2e33bfe49e8492abaca0f8af6f3c2bb75089a3612a4f0760385c265"
+      "sha256": "7ee645d0275908f0fa349365de4f7ae1176daa57e3a2380e67f8bcf8f87e7f0a"
     },
     {
       "path": "js/caissa-notifications.js",
@@ -2144,7 +2156,7 @@
     },
     {
       "path": "js/caissa-standalone-sidebar.js",
-      "sha256": "0c0c36b0168d67ebb354285658a5e1ac4f51c87ba945fb731a42431789727814"
+      "sha256": "0e9361f1cf5bfa7d3280ac1230995c67c084738922da05c1940da5a2a81b8e89"
     },
     {
       "path": "js/caissa-sync.js",
@@ -2468,7 +2480,7 @@
     },
     {
       "path": "js/fics-client.js",
-      "sha256": "83724909948297ac9d775d8100fbb5da5eee663e443659bb15595c8ae43be386"
+      "sha256": "17ac01b1b4eda2db3da8f165fd841b9d51515f17d8c3f95c019da07a4f80489f"
     },
     {
       "path": "js/fics-computer-challenge.js",
@@ -2476,7 +2488,7 @@
     },
     {
       "path": "js/fics-layout-shell.js",
-      "sha256": "a21a3d380e43907e9379a264efebbd68f9d8896ee76b02e9b54bc062c822cbf1"
+      "sha256": "c11e7d177971b542300fd3023eda4a2e5c98cb2a197d3ed8df1f1905d71d6ca1"
     },
     {
       "path": "js/fics-match-research.js",
@@ -2568,7 +2580,11 @@
     },
     {
       "path": "js/home/home.js",
-      "sha256": "f08f77d6cdbb1c21e91163bdd0be628e0d0b0e0ec882c2daff906a77b7eab647"
+      "sha256": "226b19dc9fe67fd113ca54c574ea8f757c0725cddb29b09b7080e9ce4520e71d"
+    },
+    {
+      "path": "js/home/mobile-home.js",
+      "sha256": "8d4637f86e208493afa129dcdb15ca801e610b33b3f28032976115081d972147"
     },
     {
       "path": "js/identity-recovery-channel.js",
@@ -2656,7 +2672,7 @@
     },
     {
       "path": "js/legacy-canonical-section-route-policy.js",
-      "sha256": "ec3e84dd91906040e6debe44b57d7fcb9aa493427e39262547fee113ac2e857d"
+      "sha256": "c0795d5fd40e3e5128911c81a6c2a0d9f651a5443f5605d853e818a6f520fa42"
     },
     {
       "path": "js/lichess-broadcasts-config.js",
@@ -2668,7 +2684,7 @@
     },
     {
       "path": "js/lichess-tv-parent.js",
-      "sha256": "720e4426e76f42eebb4bc707357547f2ea08e96757b44859c15e45b9f70fb3aa"
+      "sha256": "fb744783bb5385a6e95795cdc6075c2b28a54a9741dc339e3820160f2f0dc7fe"
     },
     {
       "path": "js/live-tournaments-config.js",
@@ -2867,6 +2883,10 @@
       "sha256": "81f3b0b204c1bae6aed67ab918bb113291db910fbfbcce238b17a8b5bbd13659"
     },
     {
+      "path": "js/mobile2-destination-header.js",
+      "sha256": "bc6dd41e335f3ce82143aa9153e369f465679dcc5c8326e16b5430a365ef5b46"
+    },
+    {
       "path": "js/online/online-api.js",
       "sha256": "1fb58d2e87f6a2ec125133b2c4b3b77e3b4bead365e215414a653115e31a3552"
     },
@@ -2908,7 +2928,7 @@
     },
     {
       "path": "js/opening-database.js",
-      "sha256": "cd9eeb8218de5725963794f61d351ceada8b93b668e4d0dc25c800ed8bc43316"
+      "sha256": "f51096566bcd79dbbdeb8d03e41ecf4814454c2ab792d42593be9a8f68e6e7c2"
     },
     {
       "path": "js/opening-db-service.js",
@@ -3340,7 +3360,7 @@
     },
     {
       "path": "js/play/performance/play-load-registry.js",
-      "sha256": "35842b2214194b6a4fbfb6fa4945b62a132d9c2fc8726f203c0033d053f083d8"
+      "sha256": "9f645b8cf1555ee10fbad769d17e8e1248831081c07827d0f1911feb56759085"
     },
     {
       "path": "js/play/performance/play-performance-budget.js",
@@ -3580,7 +3600,7 @@
     },
     {
       "path": "js/play/simplified-play-shell.js",
-      "sha256": "4c4da38c4c9caba4cef60b8c8d5dedc4c89adca6995ab546369f171e3a3c9059"
+      "sha256": "1ade879497f32a8e9edef3248ee24829007a1577f3889f3ebdd7a42d5542ed9b"
     },
     {
       "path": "js/play/ui/play-accessibility.js",
@@ -4048,7 +4068,7 @@
     },
     {
       "path": "lichess-tv.html",
-      "sha256": "fad9b3f9b1fd5d7dede75b9f9221250f413946e7de6f395bef98de82e49f6cab"
+      "sha256": "df44bcf6f4bf9c4803db2d966be01649e38c2948f80b8ee95a152a76ff02f85f"
     },
     {
       "path": "live-blitz.html",
@@ -4084,11 +4104,11 @@
     },
     {
       "path": "online.html",
-      "sha256": "470c39bb99764d98ad9954a6d0d0ba812802af283b425bfcf65eb9d46a03be60"
+      "sha256": "f46feaae3740d264bc0c44308bc53c93e892e281f0cca075faa29d9c83e184c5"
     },
     {
       "path": "opening-database.html",
-      "sha256": "2fcb83847f23c1ae6164d298e569c3b1dae2fd8576434ffa5796702de4f06b77"
+      "sha256": "5ab2170674c01d7f16e75a23c0102f572333a5815a80ffafcb05292dfc9db52a"
     },
     {
       "path": "opening-trainer.html",
@@ -4100,7 +4120,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "f87e6ad3dbf20f1d92e22420f61f436c170bc785c17d84af6a92d5c846a71d01"
+      "sha256": "2fc6aca5624308b1b07089f7b4404f202c81be4abc0f575380e5a6670fc9f17d"
     },
     {
       "path": "pgn-replayer.html",
@@ -4223,6 +4243,10 @@
       "sha256": "ddca373a3836c4578203f00c99b027abbf94146b359cdb6b36c2c23313829869"
     },
     {
+      "path": "play-hub.html",
+      "sha256": "e707ee72c5885596d6ff14b7a6c492dd8bb1b12a29695a7b99731e820ca6fc9f"
+    },
+    {
       "path": "play-v2-invite.html",
       "sha256": "36960672f929f2dd6dbf7efe1bf475c0770bfbe12e5ad695b02ad987d0119572"
     },
@@ -4232,7 +4256,7 @@
     },
     {
       "path": "play-v2-public-beta.html",
-      "sha256": "530a834801f92a4ed5b4c8afe5339044fcef87490a697853c2e34962de3ed588"
+      "sha256": "c5a738abc0739e83a8ccaf8d69494b460e117ad8167931b20a0d94a19219bf2e"
     },
     {
       "path": "play-v2-unavailable.html",
@@ -4244,7 +4268,7 @@
     },
     {
       "path": "playchess.html",
-      "sha256": "0bf10606d3ada675f6a34cfda338fb9d8ba3f6224608aa0fbd8d73780a645b2f"
+      "sha256": "15e2faf6c17f85408050626936d81913149fab5ca4fff57c42fb41bd9c778f7f"
     },
     {
       "path": "playwright.board.config.js",
@@ -5700,7 +5724,7 @@
     },
     {
       "path": "puzzles.html",
-      "sha256": "36d6ebd5994e060490a63c922a98ee6568430bd8516f2e879c40f3e9ad3e647d"
+      "sha256": "7e1d71259bde90facff95623053e90f9c962422e064e4c44dd6f2ced9de2edef"
     },
     {
       "path": "query-engine-ui.js",
@@ -7028,7 +7052,7 @@
     },
     {
       "path": "server.js",
-      "sha256": "5d043ad0f425e7972708c4e1b42f158ce16836400859c2f7789aade3ccf8d2fc"
+      "sha256": "10bdefe76012e2ac772664e034eb73f2c1542b8cb3c70b47e1b1629b8afbe50d"
     },
     {
       "path": "signin.html",
@@ -7052,7 +7076,7 @@
     },
     {
       "path": "vercel.json",
-      "sha256": "8f8f5ac63bef39690da8f052842ddc493d865f776b36856966f5b2f8074bae45"
+      "sha256": "783f677649e98c56218faf715eeb625f26cf74483a530b1bc07f0c814a5f819b"
     },
     {
       "path": "worker/stats-worker.js",
@@ -7064,7 +7088,7 @@
     },
     {
       "path": "yahoo-classic.html",
-      "sha256": "02cde078f73fdf2d56a79b10020faa709350289f9e665bed6126c295b450d236"
+      "sha256": "e7730068644d9bf601eec778dc6b4f2daa2ea882e2cc8e9defed7f4f54eba7b6"
     }
   ]
 }
