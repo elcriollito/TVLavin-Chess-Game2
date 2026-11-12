@@ -184,7 +184,7 @@
     },
     {
       "path": "api/_lib/play-v2-public-beta-document.js",
-      "sha256": "deca15c0d4774680aa2bcddd743a94d725d674cc8de607439b424b1f81d387a9"
+      "sha256": "9495a408cbf9fb69c93f1f31dc38d08d2062df9be8456301dbd68c047bcc5ee7"
     },
     {
       "path": "api/_lib/polyglot-builder.js",
@@ -1668,7 +1668,7 @@
     },
     {
       "path": "css/mobile2-destination-header.css",
-      "sha256": "04071aa48b47c85eff7c07d50188f1458808d9b4cdb8e400d2e035a6a33a7e91"
+      "sha256": "b3c253471d63b4efa0d206e7fb5c8059eee974749e77c79b48f47ef7fd8cbc8c"
     },
     {
       "path": "css/online.css",
@@ -1680,7 +1680,7 @@
     },
     {
       "path": "css/opening-database.css",
-      "sha256": "db1c6a2f1126e4802cb527f101995c63e4a29fe1cceb4fab15b23e422677c327"
+      "sha256": "008bc301a8e9b4b935376eb5b129b711ccfd46e3cdab3ccd4dc14343b7082f24"
     },
     {
       "path": "css/opening-trainer.css",
@@ -1724,7 +1724,7 @@
     },
     {
       "path": "css/playchess.css",
-      "sha256": "9cb6ea1866d0b17ffbbcdc4cfb2ad7f2fe493cd5aef90117ea524114a983e8d6"
+      "sha256": "7221a164ae5acf8c6cff44889b6274978a151672e6607f24d751a037484f9b36"
     },
     {
       "path": "css/polyglot-tool.css",
@@ -2884,7 +2884,7 @@
     },
     {
       "path": "js/mobile2-destination-header.js",
-      "sha256": "bc6dd41e335f3ce82143aa9153e369f465679dcc5c8326e16b5430a365ef5b46"
+      "sha256": "845a4bc87c48f96098710dc56e8f0628beeecdbe602d9cb87290862b0ffde567"
     },
     {
       "path": "js/online/online-api.js",
@@ -4068,7 +4068,7 @@
     },
     {
       "path": "lichess-tv.html",
-      "sha256": "df44bcf6f4bf9c4803db2d966be01649e38c2948f80b8ee95a152a76ff02f85f"
+      "sha256": "a06d0be2302eab8edc09c0e65ad0f75635efef22fcdef3981043b34296e5734d"
     },
     {
       "path": "live-blitz.html",
@@ -4108,7 +4108,7 @@
     },
     {
       "path": "opening-database.html",
-      "sha256": "5ab2170674c01d7f16e75a23c0102f572333a5815a80ffafcb05292dfc9db52a"
+      "sha256": "14d13ee02f8a4a31457b62203f02c8507aefec147d98d5e57c958566f949cd4a"
     },
     {
       "path": "opening-trainer.html",
@@ -4268,7 +4268,7 @@
     },
     {
       "path": "playchess.html",
-      "sha256": "15e2faf6c17f85408050626936d81913149fab5ca4fff57c42fb41bd9c778f7f"
+      "sha256": "84f7742e6d6bc33a38c769feafe2f2eff83c12cf18469fe35d44b6b2fa6c9479"
     },
     {
       "path": "playwright.board.config.js",

@@ -1263,11 +1263,9 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .openingdb-app .caissa-standalone-sidebar-host,
-  .openingdb-app .caissa-standalone-mobile-toggle,
-  .openingdb-page-intro,
-  .openingdb-seo-copy {
+  .openingdb-app .caissa-standalone-mobile-toggle {
     display: none !important;
   }
 
@@ -1276,14 +1274,28 @@
   }
 
   .openingdb-content {
-    padding: 0 8px calc(24px + env(safe-area-inset-bottom));
+    padding-top: 0;
   }
 
   .openingdb-mobile2-header {
     display: block;
-    margin: 0 -8px 6px;
     background: #0f151e;
     color: #f4f7fb;
+  }
+}
+
+@media (max-width: 640px) {
+  .openingdb-page-intro,
+  .openingdb-seo-copy {
+    display: none !important;
+  }
+
+  .openingdb-content {
+    padding: 0 8px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .openingdb-mobile2-header {
+    margin: 0 -8px 6px;
   }
 
   .openingdb-page-intro {

@@ -163,3 +163,61 @@ test('desktop Analyze, Opening Explorer and Watch Games retain their existing na
       .toBeLessThanOrEqual(1);
   }
 });
+
+for (const width of [390, 430, 640, 641, 768, 769, 800, 801, 1440]) {
+  test(`destination navigation and Playchess fallback at ${width}px`, async ({ page }) => {
+    await prepare(page);
+    await page.setViewportSize({ width, height: width >= 640 && width <= 801 ? 450 : 900 });
+    const service = 'https://play.chessbase.com/en/Play';
+    await page.route(service, route => route.abort());
+
+    for (const destination of [
+      { route: '/opening-database', maxWidth: 768, back: '/' },
+      { route: '/watch/lichess-tv', maxWidth: 800, back: '/' },
+      { route: '/play-online/playchess', maxWidth: 800, back: '/play-hub' }
+    ]) {
+      await page.goto(destination.back, { waitUntil: 'domcontentloaded' });
+      await page.goto(destination.route, { waitUntil: 'domcontentloaded' });
+      const back = page.locator('[data-caissa-mobile2-back]');
+      const nav = page.locator('#mainNav');
+      const mobile = width <= destination.maxWidth;
+      const isolated = () => page.evaluate(() => window.CaissaMobile2DestinationHeader.isMobileNavigationIsolated());
+
+      await expect(back).toHaveCount(1);
+      await expect.poll(isolated).toBe(mobile);
+      if (destination.route === '/play-online/playchess') {
+        const disclosure = page.locator('.playchess-mobile-disclosure');
+        const desktopDisclosure = page.locator('.playchess-disclosure');
+        if (mobile) {
+          await expect(desktopDisclosure).toBeHidden();
+          const summary = disclosure.locator('summary');
+          await expect(summary).toHaveText('About Playchess');
+          await summary.click();
+          await expect(disclosure.getByText('Playchess is operated by ChessBase GmbH.')).toBeVisible();
+          const fallback = disclosure.getByRole('link', { name: 'Open the official Playchess service' });
+          await expect(fallback).toBeVisible();
+          await expect(fallback).toHaveAttribute('href', service);
+        } else {
+          await expect(disclosure).toBeHidden();
+          await expect(desktopDisclosure.locator('.playchess-fallback a')).toBeVisible();
+        }
+      }
+
+      if (mobile) {
+        await expect(back).toBeVisible();
+        await expect(nav).toBeHidden();
+        await expect(back).toHaveAttribute('href', destination.back);
+        await back.click();
+        await expect(page).toHaveURL(url => url.pathname === destination.back);
+        await page.goBack({ waitUntil: 'domcontentloaded' });
+        await expect(back).toBeVisible();
+      } else {
+        await expect(back).toBeHidden();
+        await expect(nav).toBeVisible();
+        await expect(nav).not.toHaveAttribute('inert', '');
+      }
+      await page.goBack({ waitUntil: 'domcontentloaded' });
+      await expect(page).toHaveURL(url => url.pathname === destination.back);
+    }
+  });
+}

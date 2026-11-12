@@ -8,7 +8,7 @@ import { load } from 'cheerio';
 const root = path.resolve(import.meta.dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
-function loadHeaderContract(pathname = '/analyze') {
+function loadHeaderContract(pathname = '/analyze', width = Infinity) {
   const document = {
     documentElement: { dataset: {} },
     readyState: 'loading',
@@ -20,7 +20,7 @@ function loadHeaderContract(pathname = '/analyze') {
   const context = {
     document,
     location: { pathname },
-    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    matchMedia: query => ({ matches: width <= Number(query.match(/(\d+)px/)[1]), addEventListener() {} }),
     addEventListener() {}
   };
   context.globalThis = context;
@@ -62,9 +62,10 @@ test('Opening Explorer and Watch Games mount one shared host before their approv
     ['lichess-tv.html', '.lichess-tv-mobile2-header', '.lichess-tv-main']
   ]) {
     const $ = load(read(file));
+    const version = file === 'lichess-tv.html' ? '1.2.1' : '1.2.0';
     assert.equal($(`${host}[data-caissa-mobile2-header-host]`).length, 1, file);
-    assert.equal($('script[src*="mobile2-destination-header.js?v=1.2.0"]').length, 1, file);
-    assert.equal($('link[href*="mobile2-destination-header.css?v=1.2.0"]').length, 1, file);
+    assert.equal($(`script[src*="mobile2-destination-header.js?v=${version}"]`).length, 1, file);
+    assert.equal($(`link[href*="mobile2-destination-header.css?v=${version}"]`).length, 1, file);
     assert.ok($(host).index() < $(firstContent).index(), file);
     assert.equal($('.caissa-standalone-mobile-toggle').length, 0, file);
   }
@@ -77,6 +78,23 @@ test('mobile-only host styles preserve desktop presentation and safe areas', () 
   assert.match(shared, /min-height:\s*calc\(44px \+ env\(safe-area-inset-top/);
   assert.match(opening, /\.openingdb-mobile2-header\s*\{\s*display:\s*none/);
   assert.match(watch, /\.lichess-tv-mobile2-header\s*\{\s*display:\s*none/);
-  assert.match(opening, /@media \(max-width: 640px\)[\s\S]*\.openingdb-mobile2-header\s*\{[\s\S]*display:\s*block/);
+  assert.match(opening, /@media \(max-width: 768px\)[\s\S]*\.openingdb-mobile2-header\s*\{[\s\S]*display:\s*block/);
   assert.match(watch, /@media \(max-width: 800px\)[\s\S]*\.lichess-tv-mobile2-header\s*\{\s*display:\s*block/);
+});
+
+test('navigation isolation follows each destination breakpoint', () => {
+  const destinations = [
+    ['/opening-database', 768],
+    ['/watch/lichess-tv', 800],
+    ['/play-online/playchess', 800],
+    ['/play/games', 768],
+    ['/play/bots', 768],
+    ['/play/coach', 768],
+    ['/analyze', 768]
+  ];
+  for (const width of [390, 430, 640, 641, 768, 769, 800, 801, 1440]) {
+    for (const [route, maxWidth] of destinations) {
+      assert.equal(loadHeaderContract(route, width).isMobileNavigationIsolated(), width <= maxWidth, `${route} at ${width}px`);
+    }
+  }
 });

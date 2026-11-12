@@ -21,6 +21,13 @@
         addEventListener() {}
     };
 
+    const wideMobile = global.matchMedia?.('(max-width: 800px)') || mobile;
+
+    function usesMobileNavigation(route) {
+        return Boolean(route && (route.id === 'watch-games' || route.id === 'playchess'
+            ? wideMobile.matches : mobile.matches));
+    }
+
     function normalizePath(pathname = global.location?.pathname || '') {
         const normalized = String(pathname || '').replace(/\/{2,}/g, '/').replace(/\/$/, '') || '/';
         try { return decodeURIComponent(normalized).toLowerCase(); } catch (_) { return normalized.toLowerCase(); }
@@ -75,7 +82,7 @@
     }
 
     function isolateLegacyNavigation(route = routeFor()) {
-        const shouldIsolate = Boolean(route && mobile.matches);
+        const shouldIsolate = usesMobileNavigation(route);
         const nav = global.document.getElementById('mainNav');
         const app = global.document.querySelector('.app-container');
         const toggle = global.document.getElementById('mobileNavToggle');
@@ -135,6 +142,7 @@
     global.addEventListener?.('pageshow', () => sync());
     global.addEventListener?.('popstate', () => sync());
     mobile.addEventListener?.('change', () => sync());
+    wideMobile.addEventListener?.('change', () => sync());
 
     global.CaissaMobile2DestinationHeader = Object.freeze({
         contractId: 'CaissaMobile2DestinationHeader@1.2.0',
@@ -142,6 +150,6 @@
         owns,
         enhance,
         sync,
-        isMobileNavigationIsolated: () => owns() && mobile.matches
+        isMobileNavigationIsolated: () => usesMobileNavigation(routeFor())
     });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -137,8 +137,10 @@ test('edge middleware owns canonical Play, redirects retired beta, and fails clo
             assert.match(body, /data-caissa-play-v2-entry="official"/);
             assert.match(body, /name="caissa-build" content="8426d0371ff68d4afe81d5be9bc8cfa64f4507f1"/);
             assert.match(response.headers.get('Content-Security-Policy'), /connect-src 'self'/);
+            const page = load(body);
+            assert.equal(page('script[src^="js/mobile2-destination-header.js?"]').length, 1, path);
+            assert.equal(page('link[href^="css/mobile2-destination-header.css?"]').length, 1, path);
             if (path === '/play') {
-                const page = load(body);
                 assert.equal(page('title').text(), 'Play Chess Online | CAISSA Chess');
                 assert.equal(page('link[rel="canonical"]').attr('href'), 'https://www.caissa-chess.org/play');
                 assert.equal(page('meta[property="og:url"]').attr('content'), 'https://www.caissa-chess.org/play');

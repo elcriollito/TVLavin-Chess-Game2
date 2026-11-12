@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PLAY_V2_PUBLIC_BETA_DOCUMENT } from '../../api/_lib/play-v2-public-beta-document.js';
 
 const destinations = [
   { id: 'play', route: '/play/games', title: 'Play', back: '/play-hub', backLabel: 'Play Hub', board: '#chessboard', ready: '[data-caissa-games-panel]' },
@@ -13,6 +14,12 @@ const viewports = [
 const capture = process.env.CAISSA_CAPTURE_FOUR_PAGE_NAVIGATION === '1';
 
 async function prepare(page) {
+  // The local server normally serves the source HTML. Exercise the document
+  // embedded in Vercel middleware while keeping local assets and route fixtures.
+  await page.route(/\/play\/(games|bots|coach)$/, route => route.fulfill({
+    contentType: 'text/html',
+    body: PLAY_V2_PUBLIC_BETA_DOCUMENT
+  }));
   await page.route('**/api/public-auth-config', route => route.fulfill({
     status: 200,
     contentType: 'application/json',

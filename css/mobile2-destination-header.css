@@ -2,21 +2,8 @@
     display: none;
 }
 
-@media (max-width: 768px) {
-    html[data-caissa-mobile2-destination] body :is(
-        #mobileNavToggle,
-        .caissa-standalone-mobile-toggle,
-        .mobile-quick-actions [data-mobile-action="menu"]
-    ) {
-        display: none !important;
-    }
-
-    html[data-caissa-mobile2-destination] body #mainNav {
-        display: none !important;
-    }
-
+@media (max-width: 800px) {
     .caissa-mobile2-destination-header {
-        display: flex;
         box-sizing: border-box;
         width: 100%;
         min-width: 0;
@@ -72,6 +59,31 @@
     .caissa-mobile2-destination-title {
         flex: 0 0 auto;
         white-space: nowrap;
+    }
+
+    html:is(
+        [data-caissa-mobile2-destination="watch-games"],
+        [data-caissa-mobile2-destination="playchess"]
+    ) .caissa-mobile2-destination-header {
+        display: flex;
+    }
+}
+
+@media (max-width: 768px) {
+    html[data-caissa-mobile2-destination] body :is(
+        #mobileNavToggle,
+        .caissa-standalone-mobile-toggle,
+        .mobile-quick-actions [data-mobile-action="menu"]
+    ) {
+        display: none !important;
+    }
+
+    html[data-caissa-mobile2-destination] body #mainNav {
+        display: none !important;
+    }
+
+    .caissa-mobile2-destination-header {
+        display: flex;
     }
 
     body.caissa-simplified-play-active
