@@ -39,6 +39,7 @@
     openingDbShardCache: new Map(),
     openingDbShardInflight: new Map(),
     openingDbShardMeta: new Map(),
+    openingDbShardErrors: new Set(),
     useNodeApi: false,
     strictNodeApi: false,
     nodeApiBase: '',
@@ -65,6 +66,7 @@
       matchLevel: 'none'
     },
     explorerSortMode: 'popularity',
+    explorerDataStatus: 'loading',
     activeTab: 'explorer',
     tabInteractionsBound: false,
     tapSelection: {
@@ -160,6 +162,7 @@
   const MANIFEST_URL = manifestUrl;
   const REMOTE_MANIFEST_URL = 'https://downloads.caissa-chess.org/openingdb/manifest.json';
   const LOCAL_MANIFEST_URL = '/openingdb/manifest.json';
+  const MANIFEST_CACHE_SCHEMA = 'v2';
   const MANIFEST_TTL_MS = 5 * 60 * 1000;
   const SHARD_PREFETCH_DELAY_MS = 200;
   const SHARD_BASE = (() => {
@@ -185,7 +188,7 @@
     const localHost = host === 'localhost' || host === '127.0.0.1';
     return forceDev || localHost;
   })();
-  const SHARD_FETCH_TIMEOUT_MS = 4000;
+  const SHARD_FETCH_TIMEOUT_MS = 15000;
   const OPENINGDB_MAX_SHARDS_IN_MEMORY = 2;
   const ENABLE_SHARD_SESSION_CACHE = false;
   const PREFETCH_NEXT_SHARDS_LIMIT = readFlagParam('prefetch', false) ? 2 : 0;
@@ -1721,7 +1724,7 @@
   }
 
   function getManifestSessionCacheKey(sourceUrl = MANIFEST_URL) {
-    return `openingdb_manifest_cache:${encodeURIComponent(String(sourceUrl || MANIFEST_URL))}`;
+    return `openingdb_manifest_cache:${MANIFEST_CACHE_SCHEMA}:${encodeURIComponent(String(sourceUrl || MANIFEST_URL))}`;
   }
 
   function clearLegacyShardSessionCache() {
@@ -2089,14 +2092,6 @@
       const startHash = hashFen(startFen);
       const startShard = startHash.slice(0, 2).toLowerCase();
       prefetchShard(startShard);
-
-      const base = Number.parseInt(startShard, 16);
-      if (Number.isFinite(base)) {
-        const next1 = ((base + 1) & 0xff).toString(16).padStart(2, '0');
-        const next2 = ((base + 2) & 0xff).toString(16).padStart(2, '0');
-        prefetchShard(next1);
-        prefetchShard(next2);
-      }
     } catch (_err) {
       // Prefetch is best effort.
     }
@@ -2140,9 +2135,19 @@
         openingDbDebugState.counters.shardFetchMsTotal += fetchMs;
         openingDbDebugState.counters.shardParseMsTotal += parseMs;
         openingDbDebugState.counters.shardBytesTotal += bytes;
-        if (!payload) openingDbDebugState.counters.shardFetchMisses += 1;
-        touchOpeningDbShardCache(shard, payload, { bytes });
-        if (payload) writeShardToSession(shard, payload);
+        if (!payload) {
+          openingDbDebugState.counters.shardFetchMisses += 1;
+          state.openingDbShardErrors.add(shard);
+        } else {
+          state.openingDbShardErrors.delete(shard);
+        }
+        if (payload) {
+          touchOpeningDbShardCache(shard, payload, { bytes });
+          writeShardToSession(shard, payload);
+        } else {
+          state.openingDbShardCache.delete(shard);
+          state.openingDbShardMeta.delete(shard);
+        }
         setOpeningDbDebugLast({
           shardId: shard,
           shardFetchMs: Number(fetchMs.toFixed(2)),
@@ -2167,7 +2172,9 @@
         return payload;
       } catch (_err) {
         openingDbDebugState.counters.shardFetchMisses += 1;
-        touchOpeningDbShardCache(shard, null);
+        state.openingDbShardErrors.add(shard);
+        state.openingDbShardCache.delete(shard);
+        state.openingDbShardMeta.delete(shard);
         setOpeningDbDebugLast({
           shardId: shard,
           shardSource: 'network_error'
@@ -2699,7 +2706,7 @@
 
   function rowsNeedRender(rows) {
     const next = {
-      mode: `explorer:${state.explorerSortMode}:${state.engine.evalNextMoves ? 'scores' : 'no-scores'}`,
+      mode: `explorer:${state.explorerSortMode}:${state.explorerDataStatus}:${state.engine.evalNextMoves ? 'scores' : 'no-scores'}`,
       fp: rowFingerprint(rows)
     };
     const prev = state.lastRenderedRowsFingerprint || { mode: '', fp: '' };
@@ -2783,7 +2790,8 @@
       rows = rows.filter((row) => (Number(row?.games) || 0) > 0);
     }
 
-    if ((!Array.isArray(rows) || rows.length === 0) && !mobilePopularity) {
+    const statusOnly = state.explorerDataStatus === 'loading' || state.explorerDataStatus === 'unavailable';
+    if ((!Array.isArray(rows) || rows.length === 0) && !mobilePopularity && !statusOnly) {
       if (state.game) {
         const fallbackRows = buildAllLegalRowsFromGame(state.game).slice(0, OPENINGDB_COMPACT_ROW_LIMIT);
         if (fallbackRows.length > 0) {
@@ -2796,9 +2804,13 @@
     if (!Array.isArray(rows) || rows.length === 0) {
       state.currentRows = [];
       renderMobileEngineArrows();
-      const message = mobilePopularity
-        ? tr('openingdb.noDatabaseMoves', 'No database continuations are available for this position.')
-        : tr('openingdb.noLegalMoves', 'No legal continuations are available in this position.');
+      const message = state.explorerDataStatus === 'loading'
+        ? tr('openingdb.explorer.loading', 'Loading continuation data…')
+        : state.explorerDataStatus === 'unavailable'
+          ? tr('openingdb.explorer.unavailable', 'Database unavailable. Check your connection and try again.')
+          : mobilePopularity
+            ? tr('openingdb.noDatabaseMoves', 'No database continuations are available for this position.')
+            : tr('openingdb.noLegalMoves', 'No legal continuations are available in this position.');
       els.statsBody.innerHTML = `<tr><td colspan="4" class="openingdb-empty">${message}</td></tr>`;
       state.rowDiagnostics.renderedCount = 0;
       state.rowDiagnostics.mode = 'explorer';
@@ -3561,6 +3573,7 @@
 
   async function getContinuationsForFenFromShards(fen, context = {}) {
     const variants = buildFenLookupVariants(fen);
+    let lookupUnavailable = false;
     for (const variant of variants) {
       const fenKeyCandidate = String(variant.key || '');
       const fenHash = hashFen(fenKeyCandidate);
@@ -3576,6 +3589,7 @@
       });
 
       const shardData = await loadOpeningDbShard(shard);
+      if (!shardData && state.openingDbShardErrors.has(shard)) lookupUnavailable = true;
       const entry = shardData && typeof shardData === 'object' ? shardData[fenHash] : null;
       const candidateCount = Array.isArray(entry?.moves) ? entry.moves.length : 0;
       const totalGames = Array.isArray(entry?.moves)
@@ -3599,7 +3613,7 @@
     }
 
     return {
-      source: 'none',
+      source: lookupUnavailable ? 'openingdb_shard_error' : 'none',
       matchLevel: 'none',
       entry: null,
       rawCandidates: []
@@ -3804,6 +3818,13 @@
       return;
     }
 
+    state.explorerDataStatus = 'loading';
+    state.latestAllLegalRows = [];
+    state.latestPopularRows = [];
+    state.lastRenderedRowsFingerprint = { mode: '', fp: '' };
+    renderStatsRows([]);
+    setLocalizedText(els.lookupStatus, 'openingdb.explorer.loading', 'Loading continuation data…');
+
     const exactData = await getContinuationsForFen(fen, { ply, fenKey });
     if (requestId !== state.positionRequestId) return;
 
@@ -3834,6 +3855,10 @@
 
     const popularFallbackToLegal = state.latestPopularRows.length === 0 &&
       state.latestAllLegalRows.length > 0;
+    const lookupUnavailable = exactData.source === 'openingdb_shard_error' || exactData.source === 'openingdb_node_error';
+    state.explorerDataStatus = lookupUnavailable
+      ? 'unavailable'
+      : state.latestPopularRows.length > 0 ? 'ready' : 'empty';
     const rows = getExplorerDisplayRows();
     state.gameSearchLineKey = buildCurrentLineKey();
 
@@ -3864,8 +3889,8 @@
       if (state.datasetsError) setLocalizedText(els.lookupStatus, 'openingdb.dataset.unavailable', state.datasetsError);
       else setLocalizedText(els.lookupStatus, 'openingdb.dataset.loadingAll', 'Loading datasets...');
       setMatchBadge(state.dbVersionFallback ? 'fallback' : 'none');
-    } else if (exactData.source === 'openingdb_node_error') {
-      setLocalizedText(els.lookupStatus, 'openingdb.lookup.nodeUnavailable', 'Position lookup: Node API unavailable (strict mode)');
+    } else if (lookupUnavailable) {
+      setLocalizedText(els.lookupStatus, 'openingdb.lookup.unavailable', 'Database unavailable. Check your connection and try again.');
       setMatchBadge('none');
     } else if (exactData.source === 'openingdb_shard_exact' || exactData.source === 'openingdb_node_api') {
       setLocalizedText(els.lookupStatus, 'openingdb.lookup.match', `Position lookup: match (${exactData.matchLevel || 'exact'})`, { level: exactData.matchLevel || 'exact' });

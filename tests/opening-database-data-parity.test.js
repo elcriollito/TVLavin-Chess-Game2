@@ -22,7 +22,8 @@ test('production retains its same-origin manifest and shard proxy', () => {
 });
 
 test('manifest cache is scoped to its source URL so the stale local v2 cache is ignored', () => {
-  assert.match(source, /openingdb_manifest_cache:\$\{encodeURIComponent\(/);
+  assert.match(source, /MANIFEST_CACHE_SCHEMA\s*=\s*'v2'/);
+  assert.match(source, /openingdb_manifest_cache:\$\{MANIFEST_CACHE_SCHEMA\}:\$\{encodeURIComponent\(/);
   assert.match(source, /readManifestFromSession\(siteManifestUrl\)/);
   assert.match(source, /writeManifestToSession\(runtimeManifest, siteManifestUrl\)/);
 });
