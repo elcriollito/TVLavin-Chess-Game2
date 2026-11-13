@@ -1774,7 +1774,8 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
 }
 
 .yc-classic-board {
-    width: min(100%, calc(100dvh - 300px), 616px);
+    width: min(100%, 616px);
+    max-width: 100%;
     min-width: 120px;
     aspect-ratio: 1;
     align-self: center;
@@ -2626,7 +2627,6 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .yc-classic-board,
     .yc-game-player,
     .yc-board-feedback {
         width: min(100%, calc(100dvh - 360px), 700px);
@@ -2818,7 +2818,6 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
         line-height: 1.45;
     }
 
-    .yc-classic-board,
     .yc-game-player,
     .yc-board-feedback {
         width: min(calc(100vw - 28px), calc(100dvh - 210px), 560px);
@@ -2978,7 +2977,6 @@ body.yc-classic-active .caissa-standalone-sidebar-host {
         grid-column: 2;
     }
 
-    .yc-classic-board,
     .yc-game-player,
     .yc-board-feedback {
         width: min(calc(100dvh - 96px), calc(50vw - 24px), 430px);

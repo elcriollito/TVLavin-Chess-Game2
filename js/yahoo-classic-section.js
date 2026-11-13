@@ -114,6 +114,7 @@
         lastMoveSignature: '',
         lastHighlightedSquares: [],
         boardResizeFrame: null,
+        boardResizeObserver: null,
         lastBoardSize: null,
         recentlyLeftObservedGame: null,
         leaveTableInProgress: false,
@@ -253,6 +254,8 @@
             window.addEventListener('pointerdown', unlockSound, { once: true, passive: true });
             window.addEventListener('keydown', unlockSound, { once: true });
             window.addEventListener('resize', () => this.scheduleClassicBoardResize(), { passive: true });
+            document.getElementById('navCollapseBtn')?.addEventListener('click', () => this.scheduleClassicBoardResize());
+            this.observeClassicBoardPanel();
         },
 
         onEnter() {
@@ -1768,6 +1771,7 @@
             }
             this.applyBoardStyle();
             this.renderBoardStyleControls();
+            this.lastBoardSize = null;
             this.scheduleClassicBoardResize();
         },
 
@@ -1955,6 +1959,10 @@
 
         renderClassicBoard() {
             if (!this.tableOpen) return;
+            // Establish the frame from the available slot before Chessboard.js
+            // reads the container. This avoids a small first render followed by
+            // a corrective frame.
+            if (!this.board) this.resizeClassicBoard();
             this.initClassicBoard();
             const fen = this.liveGame?.currentFen || 'start';
             const client = window.CaissaFICSClient;
@@ -1969,7 +1977,6 @@
             if (client?.pendingPromotionMove) this.showClassicPromotionSelector();
             else this.hideClassicPromotionSelector();
             this.renderClassicSelection();
-            this.scheduleClassicBoardResize();
         },
 
         scheduleClassicBoardResize() {
@@ -1978,6 +1985,17 @@
                 this.boardResizeFrame = null;
                 this.resizeClassicBoard();
             });
+        },
+
+        observeClassicBoardPanel() {
+            if (this.boardResizeObserver || typeof ResizeObserver !== 'function') return;
+            const panel = this.elements.classicBoard?.closest?.('.yc-game-board-panel');
+            if (!panel) return;
+            this.boardResizeObserver = new ResizeObserver(entries => {
+                if (!this.active || !this.tableOpen || !entries.some(entry => entry.target === panel)) return;
+                this.scheduleClassicBoardResize();
+            });
+            this.boardResizeObserver.observe(panel);
         },
 
         calculateClassicBoardSize({ availableWidth, availableHeight, maxSize = 620 }) {
@@ -1989,21 +2007,6 @@
 
         resizeClassicBoard() {
             if (!this.elements.classicBoard) return;
-
-            // Desktop sizing belongs to CSS. Measuring the board panel and then
-            // writing the board width created a feedback loop because the
-            // standalone Classic shell has intrinsic height: the board affects
-            // the panel height that was being used to resize the board again.
-            // Keep the existing mobile behavior outside this desktop-only fix.
-            if (window.matchMedia?.('(min-width: 821px)').matches) {
-                this.elements.classicBoard.style.removeProperty('width');
-                const renderedSize = Math.round(this.elements.classicBoard.getBoundingClientRect().width);
-                if (renderedSize < 120 || renderedSize === this.lastBoardSize) return;
-                this.lastBoardSize = renderedSize;
-                this.board?.resize?.();
-                return;
-            }
-
             const panel = this.elements.classicBoard.closest('.yc-game-board-panel');
             if (!panel) return;
             const reservedElements = [this.elements.boardFeedback].filter((element) => element && panel.contains(element));
@@ -2012,15 +2015,42 @@
                 return total + element.offsetHeight;
             }, 0);
             const panelStyle = window.getComputedStyle(panel);
-            const rowGap = parseFloat(panelStyle.rowGap || panelStyle.gap || '0') || 0;
             const horizontalPadding = (parseFloat(panelStyle.paddingLeft) || 0) + (parseFloat(panelStyle.paddingRight) || 0);
-            const verticalPadding = (parseFloat(panelStyle.paddingTop) || 0) + (parseFloat(panelStyle.paddingBottom) || 0);
-            const availableHeight = panel.clientHeight - verticalPadding - reserved - (rowGap * reservedElements.length);
-            const availableWidth = panel.clientWidth - horizontalPadding;
+            let availableWidth = panel.clientWidth - horizontalPadding;
+            let availableHeight = availableWidth;
+            const landscapeCompact = window.matchMedia?.(
+                '(max-width: 950px) and (max-height: 480px) and (orientation: landscape)'
+            ).matches;
+            const stackedLayout = window.matchMedia?.('(max-width: 1180px)').matches;
+
+            if (landscapeCompact) {
+                // The compact landscape panel uses a max-content grid column,
+                // so its own width depends on the board. Use viewport limits
+                // that are independent of the board to avoid a shrink loop.
+                availableWidth = Math.min(
+                    Math.max(0, window.innerWidth / 2 - 24),
+                    Math.max(0, window.innerHeight - 96)
+                );
+                availableHeight = availableWidth;
+            } else if (stackedLayout) {
+                // Tablet and mobile layouts stack additional table panels and
+                // scroll vertically. Their panel height is partly created by
+                // the board, while content width comes from the parent layout.
+                availableHeight = availableWidth;
+            } else {
+                // The wide layout is viewport-bound. Use the visible vertical
+                // slot below the panel's fixed top edge, not panel height (which
+                // can retain the previous board height after a viewport change).
+                const panelTop = Math.max(0, panel.getBoundingClientRect().top);
+                availableHeight = Math.max(0, window.innerHeight - panelTop - 16 - reserved);
+            }
+
             const size = this.calculateClassicBoardSize({ availableWidth, availableHeight });
-            if (size < 120 || size === this.lastBoardSize) return;
+            const expectedInlineWidth = `${size}px`;
+            if (size < 120 || (size === this.lastBoardSize
+                && this.elements.classicBoard.style.width === expectedInlineWidth)) return;
             this.lastBoardSize = size;
-            this.elements.classicBoard.style.width = `${size}px`;
+            this.elements.classicBoard.style.width = expectedInlineWidth;
             this.board?.resize?.();
         },
 
@@ -2184,7 +2214,6 @@
                     ? `Last move: ${this.formatMoveLabel(latest)}${isCapture ? ' - Capture' : ''}`
                     : 'Board ready. Waiting for first move.';
             }
-            this.scheduleClassicBoardResize();
             this.renderLastMoveSquares(showHighlight ? latest : null);
             const signature = hasMove
                 ? `${latest.moveNumber}:${latest.color}:${latest.san}:${this.liveGame?.currentFen || ''}`
