@@ -51,6 +51,15 @@ async function snapshotCompletedCoachState(page) {
     return snapshot;
 }
 
+async function usesCanonicalAnalyzer(page) {
+    return page.evaluate(() => window.CaissaNavigation?.usesCanonicalAnalyzeDocument?.() === true);
+}
+
+async function expectCanonicalAnalyzerHandoff(page) {
+    await page.waitForURL(url => url.pathname === '/analyze' && Boolean(url.searchParams.get('handoff')));
+    expect(new URL(page.url()).searchParams.get('handoff')).toBeTruthy();
+}
+
 test('isolated Coach is internal, compact, playable, and uses clean PostGame', async ({ page }) => {
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
@@ -157,7 +166,13 @@ test('isolated Coach is internal, compact, playable, and uses clean PostGame', a
     await expect(analyze).toBeVisible();
     const handoffsBeforeReview = await page.evaluate(() =>
         window.CaissaPostGameExperienceInstance.getSnapshot().diagnostics.handoffs);
+    const canonicalAnalyze = await usesCanonicalAnalyzer(page);
     await analyze.click();
+    if (canonicalAnalyze) {
+        await expectCanonicalAnalyzerHandoff(page);
+        expect(pageErrors).toEqual([]);
+        return;
+    }
     await expect.poll(() => page.evaluate(() =>
         window.CaissaPostGameExperienceInstance.getSnapshot().diagnostics.handoffs)).toBe(handoffsBeforeReview + 1);
     const summary = page.locator('[data-caissa-coach-review-summary]');
@@ -887,7 +902,12 @@ test('Coach real long-game review keeps one responsive vertical scroll owner', a
         window.handleGameOver();
     });
     await expect(page.locator('.caissa-post-game')).toBeVisible();
+    const canonicalAnalyze = await usesCanonicalAnalyzer(page);
     await page.locator('[data-post-game-action="analyze"]').click();
+    if (canonicalAnalyze) {
+        await expectCanonicalAnalyzerHandoff(page);
+        return;
+    }
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection?.analysisPhase || 'loading'),
         { timeout: 60_000 }).toBe('complete');
     await page.getByRole('button', { name: 'Review Game', exact: true }).click();
@@ -1123,7 +1143,12 @@ test('Coach Review Summary remains inside Play, is responsive, keyboard ordered,
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    const canonicalAnalyze = await usesCanonicalAnalyzer(page);
     await page.locator('[data-post-game-action="analyze"]').click();
+    if (canonicalAnalyze) {
+        await expectCanonicalAnalyzerHandoff(page);
+        return;
+    }
     const summary = page.locator('[data-caissa-coach-review-summary]');
     await expect(summary).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection.analysisPhase), { timeout: 30_000 }).toBe('complete');
@@ -1305,7 +1330,12 @@ test('Coach Review Summary New Game reuses the completed-game reset lifecycle', 
     expect(await playMove(page, 'e2', 'e4')).toBe(true);
     await expect.poll(() => page.evaluate(() => window.App.game.history())).toEqual(['e4', 'e5']);
     await page.evaluate(() => { window.confirm = () => true; window.resignGame(); });
+    const canonicalAnalyze = await usesCanonicalAnalyzer(page);
     await page.locator('[data-post-game-action="analyze"]').click();
+    if (canonicalAnalyze) {
+        await expectCanonicalAnalyzerHandoff(page);
+        return;
+    }
     await expect.poll(() => page.evaluate(() => window.AnalyzeSection?.analysisPhase || 'loading'),
         { timeout: 30_000 }).toBe('complete');
     await expect(page.locator('[data-caissa-coach-review-summary]')).toBeVisible();
@@ -1335,7 +1365,12 @@ test('Games-origin Analyze stays in the Play Game shell without affecting Coach 
     await page.locator('[data-games-primary]').click();
     await loadPosition(page, positions.checkmateInOne.fen);
     await playMove(page, positions.checkmateInOne.from, positions.checkmateInOne.to);
+    const canonicalAnalyze = await usesCanonicalAnalyzer(page);
     await page.locator('[data-post-game-action="analyze"]').click();
+    if (canonicalAnalyze) {
+        await expectCanonicalAnalyzerHandoff(page);
+        return;
+    }
     await expect(page.locator('.caissa-games-panel[data-games-phase="analysis-review"]')).toBeVisible();
     await expect(page.locator('[data-games-analysis]')).toBeVisible();
     await expect(page.locator('#analyzeSection .analyze-layout:visible')).toHaveCount(0);

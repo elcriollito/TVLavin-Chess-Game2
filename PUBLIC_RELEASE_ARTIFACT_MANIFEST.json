@@ -920,7 +920,7 @@
     },
     {
       "path": "app.js",
-      "sha256": "4fa81851ad6294b8df62ac33a9e4a4a85873006f6f72956843b0e31998ddad08"
+      "sha256": "bac082d05d5c6ebcf33dc707bb22850519907f7e17c97dac27721123962b1dbb"
     },
     {
       "path": "apple-touch-icon.png",
@@ -1680,7 +1680,7 @@
     },
     {
       "path": "css/opening-database.css",
-      "sha256": "008bc301a8e9b4b935376eb5b129b711ccfd46e3cdab3ccd4dc14343b7082f24"
+      "sha256": "e46b648dfe929b4f16f378a781e82a02564b35518ab77b2235084838ee0a638c"
     },
     {
       "path": "css/opening-trainer.css",
@@ -1724,7 +1724,7 @@
     },
     {
       "path": "css/playchess.css",
-      "sha256": "7221a164ae5acf8c6cff44889b6274978a151672e6607f24d751a037484f9b36"
+      "sha256": "8c6c613c63219bb52a64262814892d663518c87f174b09e5171b6fd992c88257"
     },
     {
       "path": "css/polyglot-tool.css",
@@ -4120,7 +4120,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "2fc6aca5624308b1b07089f7b4404f202c81be4abc0f575380e5a6670fc9f17d"
+      "sha256": "49bb89632069388d1a4933eec392a6570e693eb674fa8b89ae79e96002b1f6f1"
     },
     {
       "path": "pgn-replayer.html",
@@ -4268,7 +4268,7 @@
     },
     {
       "path": "playchess.html",
-      "sha256": "84f7742e6d6bc33a38c769feafe2f2eff83c12cf18469fe35d44b6b2fa6c9479"
+      "sha256": "6114f9b8fd489a336489007695da75f259ded1edf9f16f24a7a8c5ed1c5a3e06"
     },
     {
       "path": "playwright.board.config.js",

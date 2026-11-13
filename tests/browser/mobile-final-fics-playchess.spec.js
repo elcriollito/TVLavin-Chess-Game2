@@ -83,15 +83,22 @@ for (const viewport of viewports) {
       const frameRect = frame.getBoundingClientRect();
       return {
         shellWidth: shellRect.width,
+        shellHeight: shellRect.height,
         frameWidth: frameRect.width,
         frameHeight: frameRect.height,
+        hitTarget: document.elementFromPoint(
+          shellRect.left + (shellRect.width / 2),
+          shellRect.top + Math.min(200, shellRect.height / 2)
+        )?.tagName,
         transform: getComputedStyle(frame).transform,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
       };
     });
     expect(geometry.shellWidth).toBeGreaterThanOrEqual(viewport.width - 10);
+    expect(geometry.shellHeight).toBe(viewport.width === 390 ? 540 : 580);
     expect(geometry.frameWidth).toBeGreaterThan(geometry.shellWidth * 1.14);
-    expect(geometry.frameHeight).toBeGreaterThanOrEqual(895);
+    expect(Math.abs(geometry.frameHeight - geometry.shellHeight)).toBeLessThanOrEqual(3);
+    expect(geometry.hitTarget).toBe('IFRAME');
     expect(geometry.transform).toContain('1.15');
     expect(geometry.overflow).toBeLessThanOrEqual(1);
 
@@ -101,7 +108,11 @@ for (const viewport of viewports) {
     await expect(more).toBeVisible({ timeout: 15_000 });
     await more.click();
     await expect(playchess.getByText('Any Bullet', { exact: true })).toBeVisible();
-    await expect(page.locator('.playchess-mobile-disclosure a')).toHaveAttribute('href', 'https://play.chessbase.com/en/Play');
+    const disclosure = page.locator('.playchess-mobile-disclosure');
+    await expect(disclosure).toBeVisible();
+    await disclosure.locator('summary').click();
+    await expect(disclosure.locator('a')).toBeVisible();
+    await expect(disclosure.locator('a')).toHaveAttribute('href', 'https://play.chessbase.com/en/Play');
   });
 }
 

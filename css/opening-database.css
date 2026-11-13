@@ -1316,15 +1316,13 @@
   }
 
   .openingdb-board-context {
-    flex-direction: column;
-    gap: 2px;
-    padding: 7px 4px 1px;
+    display: none;
   }
 
   .openingdb-mobile-data-region:not([hidden]) {
     display: grid;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 4px;
     gap: 8px;
   }
 
