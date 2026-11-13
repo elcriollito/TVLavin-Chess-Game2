@@ -54,6 +54,7 @@ async function openPlayableYahoo(page, options = {}) {
     await page.waitForFunction(() => document.querySelectorAll('#ycClassicBoard .piece-417db').length > 0);
     await expect(page.locator('#ycClassicBoard .board-b72b1')).toHaveAttribute(
         'data-caissa-legacy-quiet-drag-enabled', 'true');
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
 async function installPosition(page, fen, options = {}) {
@@ -65,6 +66,9 @@ async function installPosition(page, fen, options = {}) {
         client.handleStyle12(value);
     }, playState(fen, options));
     await page.waitForFunction(expected => window.CaissaYahooClassic?.liveGame?.currentFen === expected, fen);
+    // WebKit can expose the updated application state before the replacement
+    // piece nodes have participated in a paint/hit-test cycle.
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
 async function squarePoint(page, square, offset = { x: 0.5, y: 0.5 }) {
