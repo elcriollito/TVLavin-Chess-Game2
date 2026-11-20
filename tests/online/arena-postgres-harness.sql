@@ -39,13 +39,15 @@ insert into public.users(clerk_id, email, role) values
   ('founder_a', 'a@example.test', 'user'),
   ('founder_b', 'b@example.test', 'user'),
   ('founder_c', 'c@example.test', 'user'),
-  ('founder_d', 'd@example.test', 'user');
+  ('founder_d', 'd@example.test', 'user'),
+  ('founder_e', 'e@example.test', 'user');
 
 select public.caissa_public_identity_get_or_create(clerk_id) from public.users order by clerk_id;
 select public.caissa_online_heartbeat('founder_a', 'Founder A');
 select public.caissa_online_heartbeat('founder_b', 'Founder B');
 select public.caissa_online_heartbeat('founder_c', 'Founder C');
 select public.caissa_online_heartbeat('founder_d', 'Founder D');
+select public.caissa_online_heartbeat('founder_e', 'Founder E');
 
 select public.caissa_online_arena_create(
   'founder_a', 'arena-create:founders-beta-001', 'CAISSA Arena S001 — Founders Beta',
@@ -61,11 +63,50 @@ from public.caissa_online_tournaments where creation_event_id = 'arena-create:fo
 select public.caissa_online_arena_join('founder_d', id, 'arena-join:founder-d-001')
 from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
 
--- A retried registration event is idempotent, and withdrawal prevents pairing
--- until a distinct, authenticated rejoin event restores registration.
+-- A retried registration event and a distinct no-op join are both idempotent.
+-- Neither may create an audit row or inflate the tournament version.
 select public.caissa_online_arena_join('founder_d', id, 'arena-join:founder-d-001')
 from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
+select public.caissa_online_arena_join('founder_d', id, 'arena-join:founder-d-noop')
+from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
+do $$
+declare v_tournament_id uuid;
+begin
+  select id into v_tournament_id from public.caissa_online_tournaments
+  where creation_event_id = 'arena-create:founders-beta-001';
+  if exists(select 1 from public.caissa_online_arena_events
+      where tournament_id = v_tournament_id and event_id = 'arena-join:founder-d-noop') then
+    raise exception 'no-op join created an audit event';
+  end if;
+end;
+$$;
+
+-- A nonparticipant cannot mutate the tournament through the withdrawal RPC.
+do $$
+declare v_tournament_id uuid;
+begin
+  select id into v_tournament_id from public.caissa_online_tournaments
+  where creation_event_id = 'arena-create:founders-beta-001';
+  begin
+    perform public.caissa_online_arena_withdraw(
+      'founder_e', v_tournament_id, 'arena-withdraw:founder-e-noop'
+    );
+    raise exception 'nonparticipant withdrawal unexpectedly succeeded';
+  exception when others then
+    if sqlerrm <> 'CAISSA_ONLINE_ARENA_NOT_PARTICIPANT' then raise; end if;
+  end;
+  if exists(select 1 from public.caissa_online_arena_events
+      where tournament_id = v_tournament_id and event_id = 'arena-withdraw:founder-e-noop') then
+    raise exception 'nonparticipant withdrawal created an audit event';
+  end if;
+end;
+$$;
+
+-- Withdrawal prevents pairing until a distinct, authenticated rejoin restores
+-- registration.
 select public.caissa_online_arena_withdraw('founder_d', id, 'arena-withdraw:founder-d-001')
+from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
+select public.caissa_online_arena_withdraw('founder_d', id, 'arena-withdraw:founder-d-noop')
 from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
 do $$
 declare v_tournament_id uuid;
@@ -79,6 +120,10 @@ begin
   if (select state from public.caissa_online_tournament_participants
       where tournament_id = v_tournament_id and clerk_id = 'founder_d') <> 'withdrawn' then
     raise exception 'withdrawal did not persist';
+  end if;
+  if exists(select 1 from public.caissa_online_arena_events
+      where tournament_id = v_tournament_id and event_id = 'arena-withdraw:founder-d-noop') then
+    raise exception 'no-op withdrawal created an audit event';
   end if;
 end;
 $$;

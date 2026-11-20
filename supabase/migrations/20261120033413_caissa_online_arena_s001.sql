@@ -769,6 +769,12 @@ begin
   if v_tournament.id is null or v_tournament.configuration->>'betaSeason' <> 'S001' then
     raise exception 'CAISSA_ONLINE_ARENA_NOT_FOUND';
   end if;
+  if exists (
+    select 1 from public.caissa_online_tournament_participants
+    where tournament_id = p_tournament_id and user_id = v_user_id and state <> 'withdrawn'
+  ) then
+    return public.caissa_online_arena_sync(p_clerk_id, p_tournament_id);
+  end if;
   perform caissa_online_private.arena_reconcile(p_tournament_id);
   select * into v_tournament from public.caissa_online_tournaments where id = p_tournament_id for update;
   if v_tournament.status not in ('registration_open', 'active')
@@ -819,7 +825,9 @@ language plpgsql
 security invoker
 set search_path = ''
 as $$
-declare v_user_id uuid;
+declare
+  v_user_id uuid;
+  v_participant_state text;
 begin
   select id into v_user_id from public.users where clerk_id = p_clerk_id and role <> 'online_guest';
   if v_user_id is null then raise exception 'CAISSA_ONLINE_IDENTITY_NOT_FOUND'; end if;
@@ -827,6 +835,16 @@ begin
   if not exists(select 1 from public.caissa_online_tournaments
     where id = p_tournament_id and configuration->>'betaSeason' = 'S001') then
     raise exception 'CAISSA_ONLINE_ARENA_NOT_FOUND';
+  end if;
+  select state into v_participant_state
+  from public.caissa_online_tournament_participants
+  where tournament_id = p_tournament_id and user_id = v_user_id
+  for update;
+  if v_participant_state is null then
+    raise exception 'CAISSA_ONLINE_ARENA_NOT_PARTICIPANT';
+  end if;
+  if v_participant_state = 'withdrawn' then
+    return public.caissa_online_arena_sync(p_clerk_id, p_tournament_id);
   end if;
   if exists(select 1 from public.caissa_online_arena_events
     where tournament_id = p_tournament_id and event_id = p_event_id) then

@@ -41,6 +41,12 @@ test('result scoring is guarded exactly once and finishing waits for active game
     assert.match(sql, /status = 'completed', completed_at/);
 });
 
+test('no-op membership commands cannot amplify audit events or tournament versions', () => {
+    assert.match(sql, /participant\.state <> 'withdrawn'[\s\S]+return public\.caissa_online_arena_sync\(p_clerk_id, p_tournament_id\)/);
+    assert.match(sql, /v_participant_state is null then[\s\S]+CAISSA_ONLINE_ARENA_NOT_PARTICIPANT/);
+    assert.match(sql, /v_participant_state = 'withdrawn' then[\s\S]+return public\.caissa_online_arena_sync\(p_clerk_id, p_tournament_id\)/);
+});
+
 test('Arena tables and RPCs stay server-only while Realtime is participant-private', () => {
     assert.match(sql, /alter table public\.caissa_online_arena_pairings enable row level security/);
     assert.match(sql, /revoke all on public\.caissa_online_arena_pairings from public, anon, authenticated/);
