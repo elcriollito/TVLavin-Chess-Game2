@@ -1,0 +1,104 @@
+# CAISSA Arena S001 Security Review
+
+Status: **HOLD — managed diff scan and isolated hosted verification outstanding**  
+Reviewed application range: `6df4c2bf4be00fea72f88d63cae726e8515c4380..c9998be49ec2f542d742a0cc8a2655698ad5daee`  
+Review date: 2026-11-19/20 (America/New_York)
+
+## Executive decision
+
+No confirmed critical or high-severity issue was found by the implementation
+review, static assertions, API tests, browser tests, or disposable PostgreSQL
+harness. The feature nevertheless remains on hold because:
+
+1. the Codex Security managed diff-scan launcher rejected valid Git targets after
+   its own setup inspection reported `hasHead: true`, `isWorktree: true`, and
+   `reviewChangesSupported: true`; and
+2. there is no verified non-production Vercel/Supabase environment in this
+   worktree for live Clerk, RLS, Realtime, and four-account testing.
+
+This document is an engineering control review, not a substitute for the blocked
+managed scan or the owner’s four-human acceptance test.
+
+## Threat model
+
+Protected assets are game/result integrity, clock integrity, tournament scoring
+and rank, private tournament membership and activity, canonical public identity,
+service-role credentials, and production isolation.
+
+Relevant attackers are an unauthenticated visitor, an Online guest, a normal
+registered user outside the four-member beta, an authorized beta participant
+sending malformed/replayed commands, and a participant attempting to observe or
+alter another game. Browser code and Realtime messages are treated as untrusted.
+
+Trust boundaries:
+
+- Clerk/Supabase token verification -> Online API;
+- Online API -> service-role RPC adapter;
+- PostgreSQL RPC/transaction -> durable tournament and game rows;
+- private Realtime invalidation -> canonical authenticated resync;
+- canonical API response -> escaped/text-only DOM presentation.
+
+## Control review
+
+| Surface | Control | Evidence/result |
+| --- | --- | --- |
+| Production isolation | Arena returns disabled for production rollout regardless of flags | API and pure-engine tests pass |
+| Beta authorization | exact server-side Clerk-subject allowlist; guests rejected | authorized/unauthorized/guest API tests pass |
+| Organizer authorization | separate admin allowlist plus creation flag | organizer tests pass; no implicit user promotion |
+| Input validation | bounded UUID, name, duration, start time, and fixed control catalog | API/engine/migration tests pass |
+| Rate limiting | tournament commands remain behind the existing common authenticated request limiter | inherited Online API tests pass |
+| Browser authority | no client result, clock, score, color, opponent, or display-name authority | canonical RPC/game-engine flow exercised |
+| Direct database access | RLS enabled; browser grants and RPC execute revoked; only service role executes Arena RPCs | migration assertions and real migration apply pass |
+| Least privilege | Arena tables grant service role only select/insert/update/delete; sequence usage is explicit | migration assertion passes |
+| Cross-instance concurrency | transaction advisory locks, row locks, `SKIP LOCKED`, state transitions, partial unique indexes | source assertions and PostgreSQL harness pass |
+| Idempotency | event IDs, creation-event unique index/lock, post-lock registration recheck, exact-once `scored_at` guard | duplicate join and repeated score harness checks pass |
+| Result integrity | scores only completed canonical Online games; explicit 2/1/0 contract | PostgreSQL harness and unit tests pass |
+| Private Realtime | private topic `online-tournament:<uuid>`; authenticated participant-membership policy | migration/API/browser tests pass; hosted JWT policy test outstanding |
+| Realtime authority | messages contain only ID/version/event/correlation and trigger canonical resync | browser recovery and duplicate-message regressions pass |
+| Identity privacy | state passes through the existing canonical public-identity resolver; no raw email returned | projection and Online regression tests pass |
+| XSS | tournament names reject control/angle characters; UI renders dynamic names/status with `textContent` | code review and browser tests pass |
+| Secret handling | no env file or credentials added; public config exposes booleans only | repository/config inspection pass |
+| Disconnect abuse | expired presence moves waiters to `disconnected`; only authenticated recovery requeues | migration assertion and lifecycle review pass |
+
+## Database policy notes
+
+The migration does not enable or otherwise reconfigure RLS on
+`realtime.messages`; it adds only the private broadcast read policy expected by
+Supabase Realtime. The policy’s definer function uses an empty `search_path`, an
+exact topic string, the authenticated JWT subject, and durable tournament
+membership. Arena RPCs use invoker rights and are executable only by
+`service_role`.
+
+The disposable PostgreSQL test stubs `auth.jwt`, `realtime.topic`, and Realtime
+send functions so the migration can be parsed and executed without Docker. That
+proves SQL validity, grants/revokes, constraints, and lifecycle behavior; it does
+not prove hosted Supabase JWT or Realtime behavior. A protected preview must test
+those controls with four distinct real accounts before release.
+
+## Managed scan blocker
+
+The security skill was invoked against both the linked implementation worktree and
+a clean ordinary clone at application commit `d1e39676`, using the immutable
+baseline range. `inspect_codex_security_setup` confirmed the clean clone’s exact
+branch, HEAD, and range. `start_codex_security_prompt_only_scan` then returned:
+
+> Review changes requires a non-bare Git worktree with a resolvable HEAD.
+
+No scan ID or canonical report was created. Per scanner policy, no substitute
+managed report was fabricated. Daybreak access also reported `not_granted`, which
+may prevent protected scan output display even after the launcher problem is
+resolved.
+
+## Open findings and release gates
+
+| ID | Severity | State | Required closure |
+| --- | --- | --- | --- |
+| SEC-S001-01 | release-blocking process gap | open | rerun the managed diff scan for the final application range and triage any findings |
+| SEC-S001-02 | release-blocking environment gap | open | verify separate non-production credentials/data, then exercise Clerk auth, service-role RPCs, RLS, and private Realtime with four accounts |
+| SEC-S001-03 | acceptance gap | open | complete the four-person human scenario and record owner PASS/FAIL |
+
+## Prohibited release actions
+
+Do not apply the migration to production, add production credentials to a preview,
+enable public discovery, merge to `main`, or promote any deployment until all
+three open gates are closed and the owner explicitly authorizes the next step.
