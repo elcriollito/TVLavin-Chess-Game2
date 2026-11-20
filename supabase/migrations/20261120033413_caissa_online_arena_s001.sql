@@ -132,8 +132,8 @@ alter table public.caissa_online_arena_pairings enable row level security;
 alter table public.caissa_online_arena_events enable row level security;
 revoke all on public.caissa_online_arena_pairings from public, anon, authenticated;
 revoke all on public.caissa_online_arena_events from public, anon, authenticated;
-grant all on public.caissa_online_arena_pairings to service_role;
-grant all on public.caissa_online_arena_events to service_role;
+grant select, insert, update, delete on public.caissa_online_arena_pairings to service_role;
+grant select, insert, update, delete on public.caissa_online_arena_events to service_role;
 grant usage, select on sequence public.caissa_online_arena_events_id_seq to service_role;
 
 create or replace function caissa_online_private.arena_pair_waiters(p_tournament_id uuid)
@@ -704,6 +704,7 @@ declare
 begin
   select id into v_user_id from public.users where clerk_id = p_clerk_id and role <> 'online_guest';
   if v_user_id is null then raise exception 'CAISSA_ONLINE_IDENTITY_NOT_FOUND'; end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_event_id, 701201));
   select id into v_existing from public.caissa_online_tournaments where creation_event_id = p_event_id;
   if v_existing is not null then return public.caissa_online_arena_sync(p_clerk_id, v_existing); end if;
   if p_name is null or pg_catalog.char_length(p_name) not between 3 and 80
@@ -759,6 +760,10 @@ begin
     return public.caissa_online_arena_sync(p_clerk_id, p_tournament_id);
   end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_tournament_id::text, 701101));
+  if exists(select 1 from public.caissa_online_arena_events
+    where tournament_id = p_tournament_id and event_id = p_event_id) then
+    return public.caissa_online_arena_sync(p_clerk_id, p_tournament_id);
+  end if;
   select * into v_tournament from public.caissa_online_tournaments
     where id = p_tournament_id for update;
   if v_tournament.id is null or v_tournament.configuration->>'betaSeason' <> 'S001' then

@@ -61,6 +61,30 @@ from public.caissa_online_tournaments where creation_event_id = 'arena-create:fo
 select public.caissa_online_arena_join('founder_d', id, 'arena-join:founder-d-001')
 from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
 
+-- A retried registration event is idempotent, and withdrawal prevents pairing
+-- until a distinct, authenticated rejoin event restores registration.
+select public.caissa_online_arena_join('founder_d', id, 'arena-join:founder-d-001')
+from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
+select public.caissa_online_arena_withdraw('founder_d', id, 'arena-withdraw:founder-d-001')
+from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
+do $$
+declare v_tournament_id uuid;
+begin
+  select id into v_tournament_id from public.caissa_online_tournaments
+  where creation_event_id = 'arena-create:founders-beta-001';
+  if (select count(*) from public.caissa_online_tournament_participants
+      where tournament_id = v_tournament_id) <> 4 then
+    raise exception 'duplicate registration created another participant';
+  end if;
+  if (select state from public.caissa_online_tournament_participants
+      where tournament_id = v_tournament_id and clerk_id = 'founder_d') <> 'withdrawn' then
+    raise exception 'withdrawal did not persist';
+  end if;
+end;
+$$;
+select public.caissa_online_arena_join('founder_d', id, 'arena-rejoin:founder-d-001')
+from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';
+
 select pg_sleep(1.1);
 select public.caissa_online_arena_sync('founder_a', id)
 from public.caissa_online_tournaments where creation_event_id = 'arena-create:founders-beta-001';

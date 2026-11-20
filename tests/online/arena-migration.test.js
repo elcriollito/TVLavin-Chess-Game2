@@ -22,6 +22,7 @@ test('Arena migration models every required lifecycle without weakening legacy s
 
 test('pairing is transactional, deterministic, color-aware, and excludes active games', () => {
     assert.match(sql, /pg_advisory_xact_lock[\s\S]+701101/);
+    assert.match(sql, /pg_advisory_xact_lock[\s\S]+701201/);
     assert.match(sql, /pg_advisory_xact_lock[\s\S]+701001/);
     assert.match(sql, /for update skip locked/);
     assert.match(sql, /last_opponent_user_id/);
@@ -45,6 +46,7 @@ test('Arena tables and RPCs stay server-only while Realtime is participant-priva
     assert.match(sql, /revoke all on public\.caissa_online_arena_pairings from public, anon, authenticated/);
     assert.match(sql, /revoke all on function public\.caissa_online_arena_join\(text, uuid, text\) from public, anon, authenticated/);
     assert.match(sql, /grant execute on function public\.caissa_online_arena_join\(text, uuid, text\) to service_role/);
+    assert.doesNotMatch(sql, /grant all on public\.caissa_online_arena_(?:pairings|events)/i);
     assert.match(sql, /create policy caissa_online_tournament_broadcast_read/);
     assert.match(sql, /can_read_current_tournament_topic/);
     assert.doesNotMatch(sql, /alter table realtime\.messages enable row level security/i);
