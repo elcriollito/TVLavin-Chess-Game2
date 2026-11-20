@@ -155,7 +155,17 @@ turn the preview Arena flags off, and follow the rollback plan.
 
 ## Current blocker
 
-This worktree contains no Vercel link, Supabase config, or environment file. No
-protected preview URL has been created. An authorized operator must provide or
-verify the isolated projects and four real test accounts before this runbook can
-advance beyond preparation.
+The authoritative Vercel project and its PGN Reader `staging` environment were
+verified. The Arena branch has no scoped variables or deployment. Reader staging
+contains existing Online/Reader data, and the separate identity/scanner rehearsal
+database also contains persisted rehearsal data; neither is an authorized Arena
+target. No Supabase development branch exists.
+
+Creating the preferred data-less Supabase Preview branch is billable and requires
+explicit owner cost approval. The owner must also select the separate Clerk
+Development identity to use; the main Development instance is already shared by
+PGN Reader staging, while the separate AUTH-004D Development application has an
+existing purpose and five users. See `CAISSA_ARENA_S001_ENVIRONMENT_AUDIT.md`.
+
+No protected preview URL has been created. Do not advance to Gate 2 until those
+two owner decisions are recorded.

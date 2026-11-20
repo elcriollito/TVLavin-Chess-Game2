@@ -32,6 +32,7 @@ candidate is the second commit above.
 
 - `CAISSA_ARENA_S001_ARCHITECTURE.md`
 - `CAISSA_ARENA_S001_SECURITY_REVIEW.md`
+- `CAISSA_ARENA_S001_ENVIRONMENT_AUDIT.md`
 - `CAISSA_ARENA_S001_TEST_MATRIX.md`
 - `CAISSA_ARENA_S001_BETA_RUNBOOK.md`
 - `CAISSA_ARENA_S001_RELEASE_CANDIDATE.md`
@@ -54,24 +55,33 @@ not regenerate unrelated public-release artifacts.
 
 ## Hold reasons
 
-1. **No isolated hosted environment.** The isolated worktree has no Vercel link,
-   Supabase project config, or environment file. A protected URL and separate
-   non-production credentials/data cannot be verified or prepared safely.
+1. **No authorized isolated backend.** The authoritative Vercel project is known,
+   but its custom `staging` environment is the PGN Reader release path, the Arena
+   branch has no scoped variables/deployment, and both nonproduction Supabase
+   projects contain pre-existing workload data. The preferred data-less Supabase
+   Preview branch is billable and needs owner approval.
 2. **Managed security scan unavailable.** The scanner setup validated the exact
    clean Git target/range, but its launcher then rejected the target as lacking a
-   resolvable HEAD. No canonical managed scan exists.
-3. **Four-human acceptance not run.** Synthetic tests do not replace the owner plus
-   three testers executing the required scenario.
+   resolvable HEAD. No canonical managed scan exists. A validated independent
+   immutable-patch review is complete with `hold_for_evidence`; it is explicitly
+   not a managed-scan pass.
+3. **Hosted four-user certification not run.** Local synthetic and PostgreSQL
+   tests do not replace actual hosted Clerk/API/database interactions with four
+   distinct automated identities.
 
 ## Exit criteria for HOLD
 
-- Verify a branch preview on the authoritative Vercel project with a separate
-  non-production Clerk/Supabase stack.
-- Run the managed security diff scan on the final application range and resolve
-  any reportable findings.
+- Obtain owner cost approval for a dedicated data-less Supabase branch/project
+  and owner selection of a separate Clerk Development identity.
+- Verify a protected branch Preview on the authoritative Vercel project with
+  branch-scoped variables and that isolated Clerk/Supabase stack.
+- Preserve the managed scanner failure and independent `hold_for_evidence`
+  assessment; rerun the managed scanner if its launcher becomes available.
 - Apply the migration only to that isolated database and validate hosted RLS and
   private Realtime with four distinct accounts.
-- Complete the runbook and record owner Human QA PASS.
+- Complete hosted four-identity automation, then deliver the protected URL and
+  four-person Human QA checklist. Human QA remains pending until the owner and
+  three real testers execute it.
 - Refresh the exact preview deployment/commit evidence after any code or
   documentation change that affects the candidate identity.
 

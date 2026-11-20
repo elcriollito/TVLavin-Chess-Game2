@@ -20,6 +20,8 @@ Execution date: 2026-11-19/20 (America/New_York)
 | Navigation | `npm run test:navigation` | **9/9 PASS** |
 | Public release manifest audit | `npm run release:public:audit` | FAIL — stale baseline manifest also names untouched Yahoo Classic files; not regenerated in this scoped branch |
 | Managed Codex Security diff scan | exact immutable range | BLOCKED by contradictory launcher HEAD error after setup validation succeeded |
+| Independent immutable-patch security/risk review | exact immutable range and SHA-256 | VALIDATED `hold_for_evidence`; no high/critical code vulnerability established, hosted evidence remains decision-critical |
+| Environment isolation audit | Supabase, Vercel, and Clerk read-only control-plane inventory | HOLD — no authorized isolated Arena backend or branch deployment |
 | Four-real-user acceptance | protected hosted environment required | NOT RUN |
 
 The npm warning about `onnxruntime-node-install` and the Playwright `NO_COLOR`

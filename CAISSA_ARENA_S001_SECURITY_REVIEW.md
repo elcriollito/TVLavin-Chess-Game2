@@ -1,6 +1,6 @@
 # CAISSA Arena S001 Security Review
 
-Status: **HOLD — managed diff scan and isolated hosted verification outstanding**  
+Status: **HOLD — managed diff scan failed; independent review and local checks complete; isolated hosted verification outstanding**
 Reviewed application range: `6df4c2bf4be00fea72f88d63cae726e8515c4380..c9998be49ec2f542d742a0cc8a2655698ad5daee`  
 Review date: 2026-11-19/20 (America/New_York)
 
@@ -75,12 +75,15 @@ proves SQL validity, grants/revokes, constraints, and lifecycle behavior; it doe
 not prove hosted Supabase JWT or Realtime behavior. A protected preview must test
 those controls with four distinct real accounts before release.
 
-## Managed scan blocker
+## Managed scan blocker and independent fallback
 
-The security skill was invoked against both the linked implementation worktree and
-a clean ordinary clone at application commit `d1e39676`, using the immutable
-baseline range. `inspect_codex_security_setup` confirmed the clean clone’s exact
-branch, HEAD, and range. `start_codex_security_prompt_only_scan` then returned:
+The scanner was retried against a clean ordinary clone with detached, resolvable
+HEAD `37af0bf72843440593521577e428731b0af6c42a` and the explicit full-SHA
+application range
+`6df4c2bf4be00fea72f88d63cae726e8515c4380..c9998be49ec2f542d742a0cc8a2655698ad5daee`.
+`inspect_codex_security_setup` returned `isGit: true`, `isWorktree: true`,
+`hasHead: true`, and `reviewChangesSupported: true`. The subsequent
+`start_codex_security_prompt_only_scan` call returned exactly:
 
 > Review changes requires a non-bare Git worktree with a resolvable HEAD.
 
@@ -89,12 +92,23 @@ managed report was fabricated. Daybreak access also reported `not_granted`, whic
 may prevent protected scan output display even after the launcher problem is
 resolved.
 
+The mission-authorized independent fallback bound the 164,153-byte immutable
+patch (21 files) at SHA-256
+`7dd349910b281bce0ba422533c350297ca71be1e7249c3cd4cf731e3be839917`.
+It reviewed authentication/authorization, service-role boundaries, migration
+grants/search paths, input validation, concurrency, idempotency, scoring,
+Realtime policy, identity projection, origin configuration, and recovery. Its
+validated recommendation is `hold_for_evidence`: no validated high- or
+critical-severity code vulnerability was established, but hosted identity,
+origin, Realtime, migration, and four-user evidence are decision-critical. This
+fallback does not convert the failed managed scan into a pass.
+
 ## Open findings and release gates
 
 | ID | Severity | State | Required closure |
 | --- | --- | --- | --- |
-| SEC-S001-01 | release-blocking process gap | open | rerun the managed diff scan for the final application range and triage any findings |
-| SEC-S001-02 | release-blocking environment gap | open | verify separate non-production credentials/data, then exercise Clerk auth, service-role RPCs, RLS, and private Realtime with four accounts |
+| SEC-S001-01 | process limitation | recorded | managed launch failure preserved; independent immutable-patch review completed with `hold_for_evidence`; rerun managed scan if the launcher becomes available |
+| SEC-S001-02 | release-blocking environment gap | open | obtain owner approval for a dedicated backend and selected Development identity, then exercise Clerk auth, service-role RPCs, RLS, and private Realtime with four accounts |
 | SEC-S001-03 | acceptance gap | open | complete the four-person human scenario and record owner PASS/FAIL |
 
 ## Prohibited release actions
