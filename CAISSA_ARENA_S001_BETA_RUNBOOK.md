@@ -1,7 +1,7 @@
 # CAISSA Arena S001 Founders Beta Runbook
 
 Status: prepared; execute only after an isolated preview is verified  
-Application candidate: `c9998be49ec2f542d742a0cc8a2655698ad5daee`  
+Application candidate: `86224d33f67ac7343e84a2406caac6c01b264843`
 Expected live session: 30–45 minutes including setup and evidence capture
 
 ## Roles
@@ -33,6 +33,14 @@ be proven non-production.
 
 ## Gate 2 — preview configuration
 
+Because AUTH-004D signup is restricted, the operator must create or invite four
+separate test users after the isolated backend exists. Give each tester a unique
+account and private credential/recovery path; never share one password or browser
+profile. Record only Tester A/B/C/D aliases and Clerk subject IDs in the private
+branch configuration. Add all four subjects to both internal/beta allowlists and
+only Tester A to the organizer allowlist. Each tester must complete AUTH-004D
+Development sign-in in a separate browser profile before the session.
+
 Set these only in the verified preview environment. Values below are names and
 shapes, not credentials:
 
@@ -51,11 +59,24 @@ CAISSA Online. Never paste their values into this runbook, screenshots, chat, or
 Git. Confirm `/api/online?action=config` exposes capability booleans and a
 publishable Realtime key only—not the subject allowlists or service key.
 
+Keep Vercel SSO/deployment protection enabled. For testers who are not team
+members, issue the shortest practical authenticated share access and verify its
+expiry before sending it privately. Do not attach a custom or Production domain.
+
+Before the Git push, add exact branch-scoped overrides for all five inherited
+Preview variables. Install the AUTH-004D Clerk pair; replace the Supabase/EAE
+values with only the dedicated beta project values actually required; and use
+inert branch overrides for unrelated Blob/Together capabilities. Do not allow
+the branch to inherit main CAISSA Development identity or unrelated shared
+Preview credentials.
+
 ## Gate 3 — database preparation
 
-Apply migrations only to the verified isolated Supabase database, in repository
-order. Confirm the target project reference twice before running the migration.
-The new migration is:
+Apply migrations only to the verified isolated Supabase database. A clean
+project must receive `supabase-schema.sql`, then `supabase-schema-v2.sql`, then
+all files under `supabase/migrations/` in filename order. Confirm the target
+project reference twice before every hosted batch. The terminal Arena migration
+is:
 
 ```text
 supabase/migrations/20261120033413_caissa_online_arena_s001.sql
@@ -155,17 +176,16 @@ turn the preview Arena flags off, and follow the rollback plan.
 
 ## Current blocker
 
-The authoritative Vercel project and its PGN Reader `staging` environment were
-verified. The Arena branch has no scoped variables or deployment. Reader staging
-contains existing Online/Reader data, and the separate identity/scanner rehearsal
-database also contains persisted rehearsal data; neither is an authorized Arena
-target. No Supabase development branch exists.
+The authorized data-less Supabase branch attempt failed closed after 15/36
+Reader staging migrations at the staging-specific canonical bridge and was
+deleted. A repeated branch would fail the same ledger contract. The only verified
+backend path is one dedicated Supabase project, currently quoted at $10/month.
+That new billable resource needs narrowly scoped owner approval.
 
-Creating the preferred data-less Supabase Preview branch is billable and requires
-explicit owner cost approval. The owner must also select the separate Clerk
-Development identity to use; the main Development instance is already shared by
-PGN Reader staging, while the separate AUTH-004D Development application has an
-existing purpose and five users. See `CAISSA_ARENA_S001_ENVIRONMENT_AUDIT.md`.
-
-No protected preview URL has been created. Do not advance to Gate 2 until those
-two owner decisions are recorded.
+AUTH-004D is verified as a separate Development application and is authorized by
+the final mission only after backend and Vercel isolation. The Arena branch still
+has no scoped variables/deployment and would otherwise inherit five shared
+Preview credentials, including main CAISSA Development identity. No protected
+Preview URL has been created. Do not advance to Gate 2 until the dedicated
+project approval is recorded and all branch-scoped overrides are ready before
+the Git push. See `CAISSA_ARENA_S001_FINAL_UNBLOCK_REPORT.md`.

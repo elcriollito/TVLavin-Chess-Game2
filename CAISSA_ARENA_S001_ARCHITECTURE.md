@@ -3,7 +3,7 @@
 Status: locally certified application candidate; remote beta environment not provisioned  
 Branch: `feature/caissa-online-arena-s001`  
 Baseline: `6df4c2bf4be00fea72f88d63cae726e8515c4380` (`origin/main`)  
-Application candidate: `c9998be49ec2f542d742a0cc8a2655698ad5daee`
+Application candidate: `86224d33f67ac7343e84a2406caac6c01b264843`
 
 ## Scope
 

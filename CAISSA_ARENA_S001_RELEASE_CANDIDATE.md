@@ -3,7 +3,7 @@
 Decision: **HOLD**  
 Branch: `feature/caissa-online-arena-s001`  
 Baseline: `6df4c2bf4be00fea72f88d63cae726e8515c4380`  
-Application candidate: `c9998be49ec2f542d742a0cc8a2655698ad5daee`  
+Application candidate: `86224d33f67ac7343e84a2406caac6c01b264843`
 Preview URL: not available
 
 ## Engineering status
@@ -15,8 +15,9 @@ transactional pairing, ordinary two-player Online games and clocks, exact-once
 join/withdraw, the eight approved controls, and responsive CAISSA tournament UI.
 
 The candidate is disabled by default and unconditionally disabled in production.
-No remote deployment, remote migration, environment change, production data
-access, push, PR, merge, or promotion was performed.
+No deployment, successful remote migration, environment change, production data
+access, push, PR, merge, or promotion was performed. The single previously
+authorized Supabase branch attempt failed closed and was deleted.
 
 ## Candidate commits
 
@@ -24,6 +25,7 @@ access, push, PR, merge, or promotion was performed.
 | --- | --- |
 | `d1e396769ba9288c8336aae30afd8bb025d8b57d` | Arena engine, migration, API, UI, Realtime, and focused tests |
 | `c9998be49ec2f542d742a0cc8a2655698ad5daee` | least-privilege grants, creation/join idempotency hardening, duplicate/withdraw/rejoin PostgreSQL tests |
+| `86224d33f67ac7343e84a2406caac6c01b264843` | prevent no-op membership audit/version amplification and deny nonparticipant withdrawals |
 
 The documentation commit is packaging evidence only; the runtime application
 candidate is the second commit above.
@@ -33,6 +35,7 @@ candidate is the second commit above.
 - `CAISSA_ARENA_S001_ARCHITECTURE.md`
 - `CAISSA_ARENA_S001_SECURITY_REVIEW.md`
 - `CAISSA_ARENA_S001_ENVIRONMENT_AUDIT.md`
+- `CAISSA_ARENA_S001_FINAL_UNBLOCK_REPORT.md`
 - `CAISSA_ARENA_S001_TEST_MATRIX.md`
 - `CAISSA_ARENA_S001_BETA_RUNBOOK.md`
 - `CAISSA_ARENA_S001_RELEASE_CANDIDATE.md`
@@ -41,7 +44,7 @@ candidate is the second commit above.
 
 ## Verification summary
 
-- Online unit/integration: 116/116 pass.
+- Online unit/integration: 117/117 pass.
 - Online browser: 108/108 pass across Chromium, Firefox, WebKit.
 - Arena browser: 12/12 pass within that matrix.
 - Disposable PostgreSQL 17 migration/lifecycle harness: pass.
@@ -55,11 +58,11 @@ not regenerate unrelated public-release artifacts.
 
 ## Hold reasons
 
-1. **No authorized isolated backend.** The authoritative Vercel project is known,
-   but its custom `staging` environment is the PGN Reader release path, the Arena
-   branch has no scoped variables/deployment, and both nonproduction Supabase
-   projects contain pre-existing workload data. The preferred data-less Supabase
-   Preview branch is billable and needs owner approval.
+1. **No authorized isolated backend.** The single authorized data-less Supabase
+   Preview branch failed at the staging-only canonical bridge because its modern
+   ledger contract differs from the historical Reader staging ledger. Another
+   branch would repeat that failure. The verified alternative is one dedicated
+   project, currently quoted at $10/month, requiring renewed owner approval.
 2. **Managed security scan unavailable.** The scanner setup validated the exact
    clean Git target/range, but its launcher then rejected the target as lacking a
    resolvable HEAD. No canonical managed scan exists. A validated independent
@@ -68,17 +71,23 @@ not regenerate unrelated public-release artifacts.
 3. **Hosted four-user certification not run.** Local synthetic and PostgreSQL
    tests do not replace actual hosted Clerk/API/database interactions with four
    distinct automated identities.
+4. **Git push would deploy with shared Preview credentials.** The Arena branch
+   has no scoped variables, while five project-wide Preview variables are
+   inherited; the inherited browser Clerk key is main CAISSA Development, not
+   AUTH-004D. Branch-scoped isolation must precede the push.
 
 ## Exit criteria for HOLD
 
-- Obtain owner cost approval for a dedicated data-less Supabase branch/project
-  and owner selection of a separate Clerk Development identity.
+- Obtain owner approval for one dedicated nonproduction Supabase project at the
+  current $10/month quote. AUTH-004D is the selected Development identity once
+  isolation is complete.
 - Verify a protected branch Preview on the authoritative Vercel project with
   branch-scoped variables and that isolated Clerk/Supabase stack.
 - Preserve the managed scanner failure and independent `hold_for_evidence`
   assessment; rerun the managed scanner if its launcher becomes available.
-- Apply the migration only to that isolated database and validate hosted RLS and
-  private Realtime with four distinct accounts.
+- Apply both root baselines and all ordered migrations only to that isolated
+  database, run hosted advisors, and validate RLS/private Realtime with four
+  distinct accounts.
 - Complete hosted four-identity automation, then deliver the protected URL and
   four-person Human QA checklist. Human QA remains pending until the owner and
   three real testers execute it.

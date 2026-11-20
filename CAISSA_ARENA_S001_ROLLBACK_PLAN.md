@@ -1,7 +1,7 @@
 # CAISSA Arena S001 Rollback Plan
 
 Scope: private preview/beta only  
-Application candidate: `c9998be49ec2f542d742a0cc8a2655698ad5daee`  
+Application candidate: `86224d33f67ac7343e84a2406caac6c01b264843`
 Production rollback: not applicable; nothing was deployed to production
 
 ## Principles

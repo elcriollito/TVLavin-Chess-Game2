@@ -1,7 +1,7 @@
 # CAISSA Arena S001 Test Matrix
 
 Branch: `feature/caissa-online-arena-s001`  
-Application candidate: `c9998be49ec2f542d742a0cc8a2655698ad5daee`  
+Application candidate: `86224d33f67ac7343e84a2406caac6c01b264843`
 Execution date: 2026-11-19/20 (America/New_York)
 
 ## Final automated results
@@ -9,9 +9,10 @@ Execution date: 2026-11-19/20 (America/New_York)
 | Gate | Command/evidence | Result |
 | --- | --- | --- |
 | Online syntax | `npm run lint:online` | PASS |
-| Full Online unit/integration | `npm run test:online` | **116/116 PASS** |
-| Arena-focused unit/static | included via `npm run test:online:arena` | **16/16 PASS** before final full run; all remain in 116/116 |
+| Full Online unit/integration | `npm run test:online` | **117/117 PASS** |
+| Arena-focused unit/static | included via `npm run test:online:arena` | all included in 117/117 |
 | Real PostgreSQL migration/lifecycle | PostgreSQL 17 plus `tests/online/arena-postgres-harness.sql` | PASS |
+| Clean schema architecture | baselines + 49 migrations on PostgreSQL 17 | 24 exact files to local `pg_cron` package boundary; all remaining files PASS with hosted-Cron test scaffold |
 | Full Online browser matrix | `npm run test:online:browser` | **108/108 PASS** in Chromium, Firefox, WebKit |
 | Arena browser cases | subset of full matrix | **12/12 PASS** (4 cases x 3 engines) |
 | Board syntax | `npm run lint:board` | PASS |
@@ -21,6 +22,7 @@ Execution date: 2026-11-19/20 (America/New_York)
 | Public release manifest audit | `npm run release:public:audit` | FAIL — stale baseline manifest also names untouched Yahoo Classic files; not regenerated in this scoped branch |
 | Managed Codex Security diff scan | exact immutable range | BLOCKED by contradictory launcher HEAD error after setup validation succeeded |
 | Independent immutable-patch security/risk review | exact immutable range and SHA-256 | VALIDATED `hold_for_evidence`; no high/critical code vulnerability established, hosted evidence remains decision-critical |
+| Dependency/supply-chain | `npm run security:dependencies` | PASS; 511 runtime files, 186 lock entries, 0 known vulnerabilities |
 | Environment isolation audit | Supabase, Vercel, and Clerk read-only control-plane inventory | HOLD — no authorized isolated Arena backend or branch deployment |
 | Four-real-user acceptance | protected hosted environment required | NOT RUN |
 
@@ -36,6 +38,7 @@ did not fail a test.
 | Creation authorization | organizer flag/admin and production fail-closed API tests | PASS |
 | Registration | authorized join API plus PostgreSQL participant insert | PASS |
 | Duplicate registration | repeated same event and participant-count assertion in PostgreSQL | PASS |
+| Distinct no-op membership events | duplicate join/withdraw create no audit row; nonparticipant withdraw is denied | PASS |
 | Withdrawal/rejoin | persisted withdrawn state, then distinct rejoin event in PostgreSQL | PASS |
 | Four-player pairing | pure planner and real database lifecycle | PASS |
 | Two simultaneous games | exact active-game count and four distinct players | PASS |
@@ -90,12 +93,27 @@ The harness initializes an isolated PostgreSQL 17 cluster and applies:
 3. `20261014035549_caissa_public_identity_v1.sql`;
 4. `20261120033413_caissa_online_arena_s001.sql`.
 
-It creates four synthetic members, heartbeats them, creates the Founders Beta,
+It creates five synthetic members (four participants plus a nonparticipant),
+heartbeats them, creates the Founders Beta,
 joins all four, retries a join, withdraws/rejoins one member, starts the Arena,
 asserts two unique games, ends/scored games, asserts two replacement games,
 repeats sync to prove score idempotency, expires the Arena, confirms `finishing`,
 ends remaining games, and asserts completion/final ranks. No remote database was
-contacted.
+contacted. The final verification tuple was `completed|4|4|0`: completed status,
+four participants, four scored games, and zero audit rows for the distinct
+no-op/nonparticipant regression event IDs.
+
+## Clean bootstrap investigation
+
+`supabase/migrations/` is not a standalone zero-bootstrap chain: without the two
+root baseline files it stops after three migrations because `stripe_events` is
+absent. With `supabase-schema.sql`, then `supabase-schema-v2.sql`, a Supabase-like
+`postgres` owner and Auth/Realtime/Storage scaffolds, the chain reached the
+desktop-only absence of the `pg_cron` extension after 24 migrations. A test-only
+Cron scaffold allowed every remaining migration to apply. Final checks confirmed
+Arena tables/RPCs, RLS enabled, authenticated RPC denial, and service-role RPC
+execution. Hosted application remains required before calling this a Supabase
+migration pass.
 
 ## Browser defect resolved during QA
 
