@@ -133,18 +133,16 @@ test('board-first shell remains usable at phone width and has no serious axe fin
     await page.goto('/online');
     await expect(page.locator('#online-board')).toBeVisible();
     await expect(page.locator('.online-header')).toHaveCount(0);
-    await expect(page.locator('#online-side-menu summary')).toBeVisible();
-    await page.locator('#online-side-menu summary').click();
-    await expect(page.locator('#online-side-menu .brand')).toBeVisible();
-    await expect(page.locator('#online-side-menu #account-link')).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible();
-    await expect(page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Puzzles' })).toBeVisible();
+    await expect(page.locator('#online-side-menu summary')).toBeHidden();
+    await expect(page.locator('.online-mobile2-header')).toBeVisible();
+    await expect(page.locator('[data-caissa-mobile2-destination-title]')).toHaveText('CAISSA Online');
+    await expect(page.getByRole('link', { name: 'Back to Play Hub from CAISSA Online' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Lobby', exact: true })).toBeVisible();
     const layout = await page.evaluate(() => ({
         domNodes: document.getElementsByTagName('*').length,
         horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
     }));
-    expect(layout.domNodes).toBeLessThan(575);
+    expect(layout.domNodes).toBeLessThan(640);
     expect(layout.horizontalOverflow).toBeLessThanOrEqual(0);
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations.filter(item => ['critical', 'serious'].includes(item.impact))).toEqual([]);
@@ -1357,7 +1355,7 @@ async function lobbyFooterGeometry(page) {
 
 async function mobileNavigationGeometry(page) {
     return page.evaluate(() => {
-        const navigation = document.querySelector('.online-side-menu>summary').getBoundingClientRect();
+        const navigation = document.querySelector('.online-mobile2-header').getBoundingClientRect();
         const board = document.querySelector('#board-shell').getBoundingClientRect();
         const overlapWidth = Math.max(0, Math.min(navigation.right, board.right) - Math.max(navigation.left, board.left));
         const overlapHeight = Math.max(0, Math.min(navigation.bottom, board.bottom) - Math.max(navigation.top, board.top));

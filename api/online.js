@@ -12,7 +12,16 @@ import {
     validateQueueJoin
 } from '../js/online/online-protocol.js';
 import { applyAuthoritativeMove } from './_lib/online-game-engine.js';
-import { sendOnlineGameBroadcast } from './_lib/online-realtime-broadcast.js';
+import {
+    sendOnlineGameBroadcast,
+    sendOnlineTournamentBroadcast
+} from './_lib/online-realtime-broadcast.js';
+import {
+    arenaSubjectSet,
+    isArenaEnabled,
+    validateArenaCreation,
+    validateArenaTournamentId
+} from './_lib/online-arena.js';
 import { trustedOnlineSourceKey } from './_lib/online-request-source.js';
 import { getSupabasePublishableKey, getSupabaseUrl } from './_lib/supabase.js';
 
@@ -108,7 +117,7 @@ export default async function handler(req, res, dependencies = {}) {
             if (!provisionRate?.allowed) return rateLimited(res, provisionRate);
             await service.ensureGuestIdentity(auth.userId);
         }
-        if (req.method === 'GET') return handleRead(req, res, auth, service);
+        if (req.method === 'GET') return handleRead(req, res, auth, service, env, rollout);
         return handleCommand(req, res, auth, service, dependencies, commandEvent);
     } catch (error) {
         const mapped = mapError(error?.code || error?.message);
@@ -121,9 +130,9 @@ export default async function handler(req, res, dependencies = {}) {
     }
 }
 
-async function handleRead(req, res, auth, service) {
+async function handleRead(req, res, auth, service, env, rollout) {
     if (String(req.query?.action || 'state') !== 'state') return res.status(404).json({ code: 'UNKNOWN_ACTION' });
-    const state = await service.getState(auth.userId);
+    const state = await stateWithArena(auth, service, env, rollout);
     return res.status(200).json(createServerEnvelope('game.snapshot', { state }, {
         correlationId: requestId(req),
         gameId: state?.game?.id || null,
@@ -132,6 +141,9 @@ async function handleRead(req, res, auth, service) {
 }
 
 async function handleCommand(req, res, auth, service, dependencies, event) {
+    if (event.eventType.startsWith('tournament.')) {
+        return handleTournamentCommand(req, res, auth, service, dependencies, event);
+    }
     if (event.eventType === 'presence.join') {
         const displayName = await resolveOnlineDisplayName(auth, service);
         const state = await service.heartbeat(auth.userId, displayName);
@@ -310,6 +322,7 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
 
 function publicConfig(rollout, env) {
     const enabled = rollout !== 'off';
+    const arenaEnabled = isArenaEnabled(rollout, env);
     const realtimeUrl = getSupabaseUrl(env);
     const publishableKey = getSupabasePublishableKey(env);
     return {
@@ -322,8 +335,11 @@ function publicConfig(rollout, env) {
                 && env.CAISSA_ONLINE_GUESTS === '1' && realtimeUrl && publishableKey),
             rated: enabled && env.CAISSA_ONLINE_RATED === '1',
             chat: false,
-            tournaments: enabled && env.CAISSA_ONLINE_TOURNAMENTS === '1',
-            tournamentCreation: false,
+            tournaments: arenaEnabled,
+            arenaS001: arenaEnabled,
+            tournamentCreation: arenaEnabled && env.CAISSA_ONLINE_ARENA_CREATE === '1',
+            publicTournamentDirectory: false,
+            tournamentRated: false,
             arena24h: false,
             multiboard: enabled && env.CAISSA_ONLINE_MULTIBOARD === '1',
             spectators: enabled && env.CAISSA_ONLINE_SPECTATORS === '1'
@@ -342,6 +358,80 @@ function rolloutMode(env) {
 
 function internalUsers(env) {
     return new Set(String(env.CAISSA_ONLINE_INTERNAL_USERS || '').split(',').map(value => value.trim()).filter(Boolean));
+}
+
+async function handleTournamentCommand(req, res, auth, service, dependencies, event) {
+    const env = dependencies.env || process.env;
+    const rollout = rolloutMode(env);
+    if (!isArenaEnabled(rollout, env)) return res.status(404).json({ code: 'ARENA_DISABLED' });
+    if (auth.guest) return res.status(403).json({ code: 'ARENA_MEMBER_ACCOUNT_REQUIRED' });
+    if (!arenaSubjectSet(env.CAISSA_ONLINE_ARENA_BETA_USERS).has(auth.userId)) {
+        return res.status(403).json({ code: 'ARENA_BETA_NOT_AUTHORIZED' });
+    }
+
+    let arena;
+    if (event.eventType === 'tournament.create') {
+        if (env.CAISSA_ONLINE_ARENA_CREATE !== '1'
+            || !arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth.userId)) {
+            return res.status(403).json({ code: 'ARENA_ORGANIZER_REQUIRED' });
+        }
+        const creation = validateArenaCreation(event.payload);
+        if (!creation.ok) return res.status(400).json({ code: creation.code });
+        arena = await service.createArena({
+            clerkId: auth.userId,
+            eventId: event.eventId,
+            ...creation.value
+        });
+    } else {
+        const checked = validateArenaTournamentId(event.payload);
+        if (!checked.ok) return res.status(400).json({ code: checked.code });
+        if (event.eventType === 'tournament.join') {
+            arena = await service.joinArena({
+                clerkId: auth.userId,
+                tournamentId: checked.value.tournamentId,
+                eventId: event.eventId
+            });
+        } else if (event.eventType === 'tournament.withdraw') {
+            arena = await service.withdrawArena({
+                clerkId: auth.userId,
+                tournamentId: checked.value.tournamentId,
+                eventId: event.eventId
+            });
+        } else if (event.eventType === 'tournament.sync') {
+            arena = await service.getArenaState(auth.userId, checked.value.tournamentId);
+        } else {
+            return res.status(501).json({ code: 'EVENT_NOT_ENABLED' });
+        }
+    }
+
+    const state = { ...(await service.getState(auth.userId)), arena };
+    const tournament = arena?.current;
+    if (tournament?.id && tournament?.version) {
+        await notifyTournamentChange(dependencies, env, {
+            tournamentId: tournament.id,
+            version: tournament.version,
+            eventType: 'tournament.snapshot',
+            correlationId: event.eventId
+        });
+    }
+    return res.status(event.eventType === 'tournament.create' ? 201 : 200)
+        .json(createServerEnvelope('tournament.snapshot', { state }, {
+            correlationId: event.eventId,
+            gameId: state.game?.id || null,
+            version: state.game?.version || null
+        }));
+}
+
+async function stateWithArena(auth, service, env, rollout, tournamentId = null) {
+    let arena = null;
+    if (!auth.guest
+        && isArenaEnabled(rollout, env)
+        && arenaSubjectSet(env.CAISSA_ONLINE_ARENA_BETA_USERS).has(auth.userId)
+        && typeof service.getArenaState === 'function') {
+        arena = await service.getArenaState(auth.userId, tournamentId);
+    }
+    const state = await service.getState(auth.userId);
+    return arena ? { ...state, arena } : state;
 }
 
 async function resolveOnlineDisplayName(auth, service) {
@@ -385,6 +475,19 @@ async function notifyGameChange(dependencies, env, payload) {
     }
 }
 
+async function notifyTournamentChange(dependencies, env, payload) {
+    try {
+        return await (dependencies.broadcastTournamentChange || sendOnlineTournamentBroadcast)({ ...payload, env });
+    } catch (error) {
+        console.warn('caissa_online_tournament_realtime_broadcast_failed', {
+            code: String(error?.message || 'ONLINE_TOURNAMENT_REALTIME_BROADCAST_FAILED').slice(0, 80),
+            tournamentId: payload.tournamentId,
+            version: payload.version
+        });
+        return { delivered: false, reason: 'send-failed' };
+    }
+}
+
 function focusCompletedGame(state, gameId) {
     if (!state || state.game) return state;
     const completed = state.recentGames?.find?.(game => game.id === gameId) || null;
@@ -393,6 +496,10 @@ function focusCompletedGame(state, gameId) {
 
 function mapError(code) {
     const value = String(code || 'ONLINE_SERVICE_UNAVAILABLE');
+    if (value.includes('ARENA_REGISTRATION_CLOSED')) return { status: 409, code: 'ARENA_REGISTRATION_CLOSED' };
+    if (value.includes('ARENA_FULL')) return { status: 409, code: 'ARENA_FULL' };
+    if (value.includes('ARENA_NOT_FOUND')) return { status: 404, code: 'ARENA_NOT_FOUND' };
+    if (value.includes('ARENA_INVALID')) return { status: 400, code: 'ARENA_INVALID' };
     if (value.includes('NOT_PARTICIPANT')) return { status: 403, code: 'NOT_A_PARTICIPANT' };
     if (value.includes('STALE_VERSION')) return { status: 409, code: 'STALE_VERSION' };
     if (value.includes('DUPLICATE')) return { status: 409, code: 'DUPLICATE_EVENT' };

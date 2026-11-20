@@ -104,6 +104,44 @@
     }
 }
 
+/* Arena S001: private, contextual tournament UI. */
+.arena-directory__head,.arena-context-head,.arena-detail__hero{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.arena-directory__head p,.arena-context-head p,.arena-detail__hero p{margin:0;color:var(--online-accent);font-size:.8125rem;font-weight:800;letter-spacing:.12em}
+.arena-directory__head h3,.arena-context-head h3,.arena-detail__hero h3{margin:4px 0 0;font:500 1.45rem/1.15 Georgia,serif}
+.arena-directory__head>span{padding:6px 9px;border:1px solid #725f37;border-radius:999px;color:#efd18f;font-size:.8125rem}
+.arena-filters{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px;margin:18px 0}
+.arena-filters label{display:grid;gap:6px;color:var(--online-muted);font-size:.875rem}
+.arena-filters input,.arena-filters select{width:100%;min-height:42px;border:1px solid var(--online-line);border-radius:8px;background:#09140f;color:var(--online-text);padding:9px 34px 9px 10px;font-size:1rem}
+.arena-filters select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#d5ae61 50%),linear-gradient(135deg,#d5ae61 50%,transparent 50%);background-position:calc(100% - 17px) 17px,calc(100% - 11px) 17px;background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+.arena-list{display:grid;gap:10px}
+.arena-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px;border:1px solid #31453a;border-radius:10px;background:linear-gradient(135deg,#172820,#122119)}
+.arena-card h4{margin:5px 0 3px;font:500 1.08rem Georgia,serif}
+.arena-card p{margin:0;color:var(--online-muted);font-size:.875rem;line-height:1.45}
+.arena-card button,.arena-back,.arena-detail__actions>button,.arena-pairing-state button,.arena-game-row{min-height:42px;border:1px solid #526b5d;border-radius:8px;background:#1b3026;color:var(--online-text);padding:8px 12px;cursor:pointer;font-size:.875rem}
+.arena-status{display:inline-flex;align-items:center;min-height:23px;padding:3px 7px;border-radius:999px;background:#26382f;color:#c9d7ce;font-size:.8125rem}
+.arena-status--active{background:#173d2e;color:#84d6ac}.arena-status--upcoming{background:#3a301d;color:#f0cd83}.arena-status--completed{background:#262d29;color:#aeb9b3}
+.arena-empty{padding:38px 20px;text-align:center;color:var(--online-muted)}.arena-empty strong{display:block;color:var(--online-text);font-size:1rem}.arena-empty p{font-size:.875rem}
+.arena-detail{display:grid;gap:17px}.arena-back{width:max-content;background:transparent}.arena-detail__hero time,.arena-context-head time{display:grid;justify-items:end;gap:4px;color:var(--online-muted);font-size:.8125rem}.arena-detail__hero time strong,.arena-context-head time strong{color:var(--online-text);font:700 1.45rem ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.arena-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}.arena-facts>div{padding:11px;border:1px solid var(--online-line);border-radius:8px;background:#101c17}.arena-facts dt{color:var(--online-muted);font-size:.8125rem}.arena-facts dd{margin:4px 0 0;font-weight:700;font-size:1rem}
+.arena-detail__actions{display:flex;gap:9px}.arena-detail__actions>button{flex:1}.arena-detail__actions .primary-action{min-height:46px}.arena-detail__actions button:disabled{opacity:.55;cursor:not-allowed}
+.arena-rules{border-top:1px solid var(--online-line);padding-top:14px}.arena-rules h4{margin:0 0 8px;font-size:1rem}.arena-rules ul{margin:0;padding-left:20px;color:var(--online-muted);font-size:.875rem;line-height:1.65}
+.arena-context-head{padding-bottom:15px;border-bottom:1px solid var(--online-line)}.arena-context-head>div>span{display:block;margin-top:5px;color:var(--online-muted);font-size:.875rem}
+.arena-context-tabs{display:grid;grid-template-columns:1fr 1fr;margin-top:12px;border-bottom:1px solid var(--online-line)}.arena-context-tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--online-muted);padding:10px;cursor:pointer;font-size:.875rem}.arena-context-tabs button[aria-selected=true]{border-color:var(--online-accent);color:var(--online-text)}
+[data-arena-context-panel][hidden]{display:none!important}.arena-standings{width:100%;border-collapse:collapse;margin-top:10px;font-size:.875rem}.arena-standings caption{text-align:left;padding:7px 0;color:var(--online-muted);font-size:.8125rem}.arena-standings th,.arena-standings td{padding:10px 7px;border-bottom:1px solid var(--online-line);text-align:left}.arena-standings th:nth-last-child(-n+2),.arena-standings td:nth-last-child(-n+2){text-align:right}.arena-standings td:nth-child(2){display:grid;gap:2px}.arena-standings td:nth-child(2)>span{color:var(--online-muted);font-size:.8125rem}.arena-standings .is-current-player{background:#293020;color:#fff4d4;box-shadow:inset 3px 0 var(--online-accent)}
+.arena-pairing-state{display:grid;justify-items:center;gap:7px;padding:24px 12px;text-align:center;border-bottom:1px solid var(--online-line)}.arena-pairing-state>span{font-size:2.1rem;color:var(--online-accent)}.arena-pairing-state>strong{font-size:1rem}.arena-pairing-state>p{margin:0;color:var(--online-muted);font-size:.875rem;line-height:1.45}.arena-pairing-state button{margin-top:5px}
+.arena-games-list{display:grid}.arena-game-row{display:grid;gap:4px;width:100%;border-width:0 0 1px;border-radius:0;background:transparent;text-align:left}.arena-game-row strong{font-size:.875rem}.arena-game-row span{color:var(--online-muted);font-size:.8125rem}
+
+@media(max-width:520px){
+    .workspace-tabs button{font-size:.8125rem;padding-inline:2px}
+    .arena-filters{grid-template-columns:1fr}
+    .arena-card{grid-template-columns:1fr}.arena-card button{width:100%}
+    .arena-directory__head h3,.arena-context-head h3,.arena-detail__hero h3{font-size:1.25rem}
+    .arena-detail__hero time strong,.arena-context-head time strong{font-size:1.2rem}
+    .arena-context-head,.arena-detail__hero{gap:10px}
+    .arena-facts{grid-template-columns:1fr 1fr}
+    .arena-standings th,.arena-standings td{padding-inline:5px}
+}
+
 /* Compact page identity: the page title shares the persistent navigation bar. */
 .online-brand-group{
     display:flex;
@@ -530,7 +568,7 @@ body.online-page{position:relative;overflow-x:hidden}
 .players-heading__status{display:flex;align-items:center;justify-content:flex-end;gap:7px}
 .players-heading__status>strong{color:#79c69f;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
 .local-test-badge{padding:3px 5px;border:1px solid #826b3c;border-radius:999px;background:#292719;color:#e0bd70;font-size:7px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
-.tournaments-coming-soon{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.tournaments-coming-soon{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.tournaments-coming-soon[hidden]{display:none!important}
 .tournaments-coming-soon>span{color:#d6af5c;font-size:36px}
 .tournaments-coming-soon>p{margin:13px 0 4px;color:var(--online-accent);font-size:8px;font-weight:800;letter-spacing:.15em}
 .tournaments-coming-soon>h3{margin:0;font:500 22px/1.25 Georgia,serif}

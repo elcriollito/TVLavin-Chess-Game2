@@ -5,7 +5,8 @@ export const ONLINE_EVENTS = Object.freeze({
         'presence.join', 'queue.join', 'queue.leave', 'challenge.create',
         'challenge.accept', 'challenge.decline', 'game.move', 'game.resign',
         'game.drawOffer', 'game.drawAccept', 'game.drawDecline', 'game.sync',
-        'game.rematch', 'spectate.join', 'spectate.leave', 'tournament.join'
+        'game.rematch', 'spectate.join', 'spectate.leave', 'tournament.join',
+        'tournament.withdraw', 'tournament.sync', 'tournament.create'
     ]),
     server: Object.freeze([
         'presence.snapshot', 'queue.status', 'match.found', 'game.snapshot',

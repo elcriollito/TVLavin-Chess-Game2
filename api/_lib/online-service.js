@@ -1,11 +1,12 @@
 import { getSupabase } from './supabase.js';
 import { resolvePublicIdentity as resolveCanonicalPublicIdentity } from './public-identity.js';
-import { projectOnlineState } from './online-public-projection.js';
+import { projectOnlineArenaState, projectOnlineState } from './online-public-projection.js';
 
 export function createOnlineService(options = {}) {
     const db = options.db || getSupabase();
     const sleep = options.sleep || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
     const safeState = state => projectOnlineState(state, clerkIds => resolveIdentityMap(db, clerkIds));
+    const safeArenaState = state => projectOnlineArenaState(state, clerkIds => resolveIdentityMap(db, clerkIds));
     return Object.freeze({
         async resolvePublicIdentity(clerkId) {
             return resolveCanonicalPublicIdentity(clerkId, {
@@ -124,6 +125,38 @@ export function createOnlineService(options = {}) {
             return safeState(await rpc(db, 'caissa_online_heartbeat', {
                 p_clerk_id: clerkId,
                 p_display_name: displayName
+            }));
+        },
+        async getArenaState(clerkId, tournamentId = null) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_sync', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId
+            }));
+        },
+        async createArena({ clerkId, eventId, name, startsAt, durationMinutes, control }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_create', {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_name: name,
+                p_starts_at: startsAt,
+                p_duration_minutes: durationMinutes,
+                p_pool: control.pool,
+                p_base_ms: control.baseMs,
+                p_increment_ms: control.incrementMs
+            }));
+        },
+        async joinArena({ clerkId, tournamentId, eventId }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_join', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId
+            }));
+        },
+        async withdrawArena({ clerkId, tournamentId, eventId }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_withdraw', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId
             }));
         }
     });

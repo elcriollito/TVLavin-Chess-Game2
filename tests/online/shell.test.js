@@ -55,12 +55,15 @@ test('player-facing panel copy follows enabled capabilities without internal dia
     assert.match(html, /id="workspace-foot-context">Private, server-verified games/);
 });
 
-test('tournament proposal is an isolated, synthetic and accessible panel', () => {
+test('Arena ships a gated real panel while retaining the isolated visual reference route', () => {
     assert.ok(vercel.rewrites.some(item => item.source === '/online/tournament-demo' && item.destination === '/online.html'));
     assert.match(server, /pathname === '\/online\/tournament-demo'/);
     assert.match(html, /data-lobby-tab="tournaments"[^>]*>Tournaments/);
     assert.match(html, /id="tournaments-coming-soon"[\s\S]*CAISSA Tournaments[\s\S]*Coming Soon/);
-    assert.doesNotMatch(html, /id="tab-tournament"/);
+    assert.match(html, /id="tab-tournament"[^>]*hidden>Tournament/);
+    assert.match(html, /id="arena-directory"[^>]*hidden/);
+    assert.match(html, /id="panel-tournament"[^>]*data-panel="tournament"[^>]*hidden/);
+    assert.match(html, /Win 2 · Draw 1 · Loss 0/);
     assert.match(html, /id="tournament-demo-content" hidden[\s\S]*Visual demo[\s\S]*Current standings/);
     assert.match(html, /class="is-current-player"[\s\S]*Alexander <span>\(you\)<\/span>/);
     assert.match(html, /data-tournament-view="standings"[\s\S]*>Standings<[\s\S]*data-tournament-view="games"[\s\S]*>Games</);
