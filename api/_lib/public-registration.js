@@ -60,7 +60,6 @@ export function isolatedArenaBetaRegistrationDiagnostics(env = process.env) {
         mode: String(env.CAISSA_PUBLIC_REGISTRATION_MODE || '').trim() === REGISTRATION_MODE,
         target: String(env.CAISSA_PUBLIC_REGISTRATION_TARGET || '').trim() === ISOLATED_ARENA_BETA_TARGET,
         rollout: String(env.CAISSA_ONLINE_ROLLOUT || '').trim() === 'preview',
-        vercelPreview: String(env.VERCEL_ENV || '').trim() === 'preview',
         ownershipModeOff: !isIdentityOwnershipEnforced(env),
         migrationModeOff: !isIdentityMigrationEnforced(env),
         authority: authority === 'legacy_development',
