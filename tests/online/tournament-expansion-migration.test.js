@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 
 const migrationUrl = new URL('../../supabase/migrations/20261121042618_caissa_tournaments_expansion_weekly_daily_s001.sql', import.meta.url);
 const sql = await readFile(migrationUrl, 'utf8');
+const hostedIndexesUrl = new URL('../../supabase/migrations/20261121052600_caissa_tournaments_expansion_fk_indexes.sql', import.meta.url);
+const hostedIndexesSql = await readFile(hostedIndexesUrl, 'utf8');
 
 test('expansion raises only the S001 ceiling and locks the final capacity decision', () => {
     assert.match(sql, /betaSeason'\) is distinct from 'S001' or capacity between 4 and 100/);
@@ -46,4 +48,16 @@ test('migration is forward-only and does not grant a browser administration path
     assert.doesNotMatch(sql, /drop table/i);
     assert.match(sql, /revoke all on function public\.caissa_online_weekly_admin[^;]+from public,anon,authenticated/);
     assert.match(sql, /grant execute on function public\.caissa_online_weekly_admin[^;]+to service_role/);
+});
+
+test('hosted advisor follow-up covers every expansion foreign key', () => {
+    for (const index of [
+        ['caissa_online_daily_events_actor_user_fk_idx', 'caissa_online_daily_events', 'actor_user_id'],
+        ['caissa_online_daily_group_members_user_fk_idx', 'caissa_online_daily_group_members', 'user_id'],
+        ['caissa_online_tournament_games_daily_group_fk_idx', 'caissa_online_tournament_games', 'daily_group_id'],
+        ['caissa_online_tournaments_series_fk_idx', 'caissa_online_tournaments', 'series_id']
+    ]) {
+        assert.match(hostedIndexesSql, new RegExp(`create index if not exists ${index[0]}[\\s\\S]+on public\\.${index[1]}\\(${index[2]}\\)`));
+    }
+    assert.doesNotMatch(hostedIndexesSql, /\b(?:drop|truncate|delete from)\b/i);
 });
