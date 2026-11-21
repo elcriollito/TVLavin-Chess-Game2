@@ -125,8 +125,8 @@ export default async function handler(req, res, dependencies = {}) {
             if (!provisionRate?.allowed) return rateLimited(res, provisionRate);
             await service.ensureGuestIdentity(auth.userId);
         }
-        if (req.method === 'GET') return handleRead(req, res, auth, service, env, rollout);
-        return handleCommand(req, res, auth, service, dependencies, commandEvent);
+        if (req.method === 'GET') return await handleRead(req, res, auth, service, env, rollout);
+        return await handleCommand(req, res, auth, service, dependencies, commandEvent);
     } catch (error) {
         const mapped = mapError(error?.code || error?.message);
         console.warn('caissa_online_request_failed', {

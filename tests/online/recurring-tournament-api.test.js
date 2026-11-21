@@ -136,3 +136,21 @@ test('guests and malformed ownership targets are rejected before storage', async
     });
     assert.equal(malformed.statusCode, 400);
 });
+
+test('an asynchronous storage ownership rejection is mapped to a safe 403', async () => {
+    const denied = response();
+    await handler(command('series.pause', { seriesId }), denied, {
+        env, rateLimit,
+        authenticate: async () => ({ authenticated: true, userId: 'user_other', guest: false }),
+        service: {
+            ...baseService,
+            async manageRecurringSeries() {
+                const error = new Error('CAISSA_ONLINE_RECURRING_NOT_OWNER');
+                error.code = 'CAISSA_ONLINE_RECURRING_NOT_OWNER';
+                throw error;
+            }
+        }
+    });
+    assert.equal(denied.statusCode, 403);
+    assert.equal(denied.body.code, 'RECURRING_NOT_OWNER');
+});
