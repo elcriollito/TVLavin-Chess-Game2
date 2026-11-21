@@ -24,8 +24,9 @@ const isolatedBetaEnv = Object.freeze({
     CAISSA_ONLINE_ROLLOUT: 'preview',
     VERCEL_ENV: 'preview',
     CAISSA_CLERK_AUTHORITY: 'legacy_development',
+    CAISSA_CLERK_ISSUER: 'https://cheerful-mantis-9523.clerk.accounts.dev',
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_c3ludGhldGljLmNsZXJrLmFjY291bnRzLmRldiQ',
-    CLERK_SECRET_KEY: 'sk_test_private',
+    CLERK_JWT_KEY: '-----BEGIN PUBLIC KEY-----\nfixture\n-----END PUBLIC KEY-----',
     SUPABASE_SERVICE_ROLE_KEY: 'eyJhbGciOiJub25lIn0.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature',
     SUPABASE_URL: 'https://imtwlzicxaaqjyvrkdsv.supabase.co'
 });
@@ -83,7 +84,9 @@ test('isolated Arena beta registration opens only on the exact Preview boundary'
         { ...isolatedBetaEnv, SUPABASE_URL: 'https://aqizagaskicotorfpwfn.supabase.co' },
         { ...isolatedBetaEnv, CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced' },
         { ...isolatedBetaEnv, CAISSA_IDENTITY_MIGRATION_MODE: 'enforced' },
-        { ...isolatedBetaEnv, CLERK_SECRET_KEY: 'sk_live_wrong_class' }
+        { ...isolatedBetaEnv, CAISSA_CLERK_ISSUER: 'https://other.clerk.accounts.dev' },
+        { ...isolatedBetaEnv, CLERK_JWT_KEY: '' },
+        { ...isolatedBetaEnv, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_live_wrong_class' }
     ]) assert.equal(isPublicRegistrationOpen(env), false);
 });
 

@@ -6,6 +6,7 @@ import { getSupabaseServerKey, getSupabaseUrl } from './supabase.js';
 const REGISTRATION_MODE = 'open';
 const ISOLATED_ARENA_BETA_TARGET = 'arena_s001_beta';
 const ISOLATED_ARENA_BETA_REF = 'imtwlzicxaaqjyvrkdsv';
+const ISOLATED_ARENA_BETA_CLERK_ISSUER = 'https://cheerful-mantis-9523.clerk.accounts.dev';
 const STAGING_REF = 'aqizagaskicotorfpwfn';
 const PRODUCTION_REF = 'jczauvkfkweuvdpurpem';
 const DEFAULT_CLERK_TIMEOUT_MS = 3_000;
@@ -47,12 +48,16 @@ function isolatedArenaBetaRegistrationEnvironment(env) {
         || isIdentityMigrationEnforced(env)) return null;
 
     const authority = clerkAuthorityFromEnvironment(env);
+    const publishableKey = String(
+        env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || env.CLERK_PUBLISHABLE_KEY || ''
+    ).trim();
     if (authority !== 'legacy_development'
         || String(env.CAISSA_CLERK_AUTHORITY || '').trim() !== authority
+        || String(env.CAISSA_CLERK_ISSUER || '').replace(/\/+$/, '') !== ISOLATED_ARENA_BETA_CLERK_ISSUER
+        || !publishableKey.startsWith('pk_test_')
+        || !String(env.CLERK_JWT_KEY || '').trim()
         || supabaseProjectRef(getSupabaseUrl(env)) !== ISOLATED_ARENA_BETA_REF) return null;
 
-    const secretKey = String(env.CLERK_SECRET_KEY || '').trim();
-    if (!clerkSecretMatchesAuthority(secretKey, authority)) return null;
     try {
         if (!getSupabaseServerKey(env)) return null;
     } catch {
