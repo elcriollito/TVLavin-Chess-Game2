@@ -56,10 +56,12 @@ test('auth completion is bounded, retryable, and registration redirects through 
   assert.match(completion,/MAX_ATTEMPTS = 3/);
   assert.match(completion,/authenticatedPost\('\/api\/user\/sync', \{\}\)/);
   assert.match(completion,/retry\.focus\(\)/);
-  assert.match(signup,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
-  assert.match(signup,/signInForceRedirectUrl: getCompletionUrl\(\)/);
-  assert.match(signin,/signUpForceRedirectUrl: getCompletionUrl\(\)/);
-  assert.match(signin,/signInForceRedirectUrl: getCompletionUrl\(\)/);
+  assert.match(signup,/forceRedirectUrl: completionUrl/);
+  assert.match(signup,/fallbackRedirectUrl: completionUrl/);
+  assert.match(signup,/signInForceRedirectUrl: completionUrl/);
+  assert.match(signin,/forceRedirectUrl: completionUrl/);
+  assert.match(signin,/fallbackRedirectUrl: completionUrl/);
+  assert.match(signin,/signUpForceRedirectUrl: completionUrl/);
   assert.doesNotMatch(`${signup}\n${signin}`,/afterSign(?:In|Up)Url/);
 });
 

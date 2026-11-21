@@ -43,6 +43,7 @@ test('public auth endpoint exposes only its allowlisted public fields', () => {
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
         CAISSA_IDENTITY_MIGRATION_MODE: process.env.CAISSA_IDENTITY_MIGRATION_MODE,
         CAISSA_APP_ORIGIN: process.env.CAISSA_APP_ORIGIN,
+        CAISSA_AUTH_DEFAULT_DESTINATION: process.env.CAISSA_AUTH_DEFAULT_DESTINATION,
         CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: process.env.CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN
     };
     Object.assign(process.env, {
@@ -52,6 +53,7 @@ test('public auth endpoint exposes only its allowlisted public fields', () => {
         SUPABASE_SERVICE_ROLE_KEY: 'service-role-must-not-escape',
         CAISSA_IDENTITY_MIGRATION_MODE: 'enforced',
         CAISSA_APP_ORIGIN: 'https://www.caissa-chess.org',
+        CAISSA_AUTH_DEFAULT_DESTINATION: '/online/tournaments?directory=1',
         CAISSA_SEC005_LEGACY_HANDOFF_ORIGIN: 'https://validation.example.test'
     });
     let status = null;
@@ -60,10 +62,11 @@ test('public auth endpoint exposes only its allowlisted public fields', () => {
     try {
         handler({ method: 'GET' }, response);
         assert.equal(status, 200);
-        assert.deepEqual(Object.keys(payload).sort(), ['clerkPublishableKey', 'identityOwnerHandoff', 'registrationOpen', 'registrationTracking']);
+        assert.deepEqual(Object.keys(payload).sort(), ['authDefaultDestination', 'clerkPublishableKey', 'identityOwnerHandoff', 'registrationOpen', 'registrationTracking']);
         assert.equal(payload.clerkPublishableKey, 'pk_live_public_identifier');
         assert.equal(payload.registrationTracking, true);
         assert.equal(payload.registrationOpen, false);
+        assert.equal(payload.authDefaultDestination, '/online/tournaments?directory=1');
         assert.deepEqual(payload.identityOwnerHandoff, {
             productionOrigin: 'https://www.caissa-chess.org',
             legacyOrigin: 'https://validation.example.test'

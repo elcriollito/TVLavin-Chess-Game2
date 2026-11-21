@@ -30,6 +30,7 @@ export default function handler(req, res) {
 
     return res.status(200).json({
         clerkPublishableKey,
+        authDefaultDestination: publicAuthDefaultDestination(process.env),
         registrationTracking: Boolean(
             process.env.CLERK_SECRET_KEY &&
             supabaseUrl &&
@@ -38,6 +39,24 @@ export default function handler(req, res) {
         registrationOpen: isPublicRegistrationOpen(process.env),
         identityOwnerHandoff: publicOwnerHandoffMetadata(process.env)
     });
+}
+
+const BLOCKED_AUTH_REDIRECT_PATHS = Object.freeze(['/api', '/internal', '/debug', '/qa', '/admin', '/auth']);
+
+export function publicAuthDefaultDestination(env = process.env) {
+    const candidate = String(env.CAISSA_AUTH_DEFAULT_DESTINATION || '').trim();
+    if (!candidate || candidate.length > 2048 || !/^\/(?![\\/])/.test(candidate)
+        || candidate.includes('\\') || /[\u0000-\u001f\u007f]/.test(candidate)
+        || /%(?:0[0-9a-f]|1[0-9a-f]|7f|2f|5c|25)/i.test(candidate)) return '/';
+    try {
+        const parsed = new URL(candidate, 'https://caissa.invalid');
+        const path = parsed.pathname.toLowerCase();
+        if (parsed.origin !== 'https://caissa.invalid'
+            || BLOCKED_AUTH_REDIRECT_PATHS.some(prefix => path === prefix || path.startsWith(`${prefix}/`))) return '/';
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+        return '/';
+    }
 }
 
 export function publicOwnerHandoffMetadata(env = process.env) {

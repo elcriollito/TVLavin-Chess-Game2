@@ -49,12 +49,14 @@ test('open gate mounts exact SignUp flow and redirects through auth completion',
     expect(await page.evaluate(() => ({
         transferable: window.__CAISSA_SIGNUP_OPTIONS__.transferable,
         signInUrl: window.__CAISSA_SIGNUP_OPTIONS__.signInUrl,
-        signUpRedirect: window.__CAISSA_SIGNUP_OPTIONS__.signUpForceRedirectUrl,
+        primaryRedirect: window.__CAISSA_SIGNUP_OPTIONS__.forceRedirectUrl,
+        fallbackRedirect: window.__CAISSA_SIGNUP_OPTIONS__.fallbackRedirectUrl,
         signInRedirect: window.__CAISSA_SIGNUP_OPTIONS__.signInForceRedirectUrl
     }))).toEqual({
         transferable: false,
         signInUrl: '/signin',
-        signUpRedirect: '/auth/complete?redirect_url=%2Fpuzzles',
+        primaryRedirect: '/auth/complete?redirect_url=%2Fpuzzles',
+        fallbackRedirect: '/auth/complete?redirect_url=%2Fpuzzles',
         signInRedirect: '/auth/complete?redirect_url=%2Fpuzzles'
     });
 });

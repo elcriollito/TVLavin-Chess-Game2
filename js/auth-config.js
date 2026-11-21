@@ -46,6 +46,7 @@ const CAISSA_AUTH_CONFIG = {
     REGISTRATION_TRACKING_AVAILABLE: false,
     REGISTRATION_OPEN: false,
     IDENTITY_OWNER_HANDOFF: null,
+    AUTH_DEFAULT_DESTINATION: '/',
 
     // Redirect URLs after auth actions
     REDIRECT_AFTER_SIGN_IN: '/',
@@ -100,6 +101,9 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
         CAISSA_AUTH_CONFIG.REGISTRATION_TRACKING_AVAILABLE = data.registrationTracking === true;
         CAISSA_AUTH_CONFIG.REGISTRATION_OPEN = data.registrationOpen === true;
         CAISSA_AUTH_CONFIG.IDENTITY_OWNER_HANDOFF = normalizeOwnerHandoffMetadata(data.identityOwnerHandoff);
+        CAISSA_AUTH_CONFIG.AUTH_DEFAULT_DESTINATION = sanitizeInternalRedirect(data.authDefaultDestination, '/');
+        CAISSA_AUTH_CONFIG.REDIRECT_AFTER_SIGN_IN = CAISSA_AUTH_CONFIG.AUTH_DEFAULT_DESTINATION;
+        CAISSA_AUTH_CONFIG.REDIRECT_AFTER_SIGN_UP = CAISSA_AUTH_CONFIG.AUTH_DEFAULT_DESTINATION;
     } catch (error) {
         console.warn('[Auth Config] Public auth config failed to load', error.message);
     }

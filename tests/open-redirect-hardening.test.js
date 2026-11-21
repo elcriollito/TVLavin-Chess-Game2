@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { getCheckoutBaseUrl } from '../api/checkout/session.js';
+import { publicAuthDefaultDestination } from '../api/public-auth-config.js';
 
 function loadRedirectValidator() {
     const window = {
@@ -33,6 +34,7 @@ for (const candidate of [
 
 async function authPageDestination(script, search, signedIn = false, options = {}) {
     let mounted;
+    let loadOptions;
     const container = {};
     const location = {
         search,
@@ -42,7 +44,7 @@ async function authPageDestination(script, search, signedIn = false, options = {
     };
     const Clerk = {
         user: signedIn ? { id: 'synthetic_user' } : null,
-        load: async () => {},
+        load: async options => { loadOptions = options; },
         mountSignIn: (_node, options) => { mounted = options; },
         mountSignUp: (_node, options) => { mounted = options; }
     };
@@ -52,6 +54,7 @@ async function authPageDestination(script, search, signedIn = false, options = {
         CAISSA_AUTH_CONFIG: {
             CLERK_PUBLISHABLE_KEY: 'pk_test_synthetic',
             REGISTRATION_OPEN: script.includes('signup'),
+            AUTH_DEFAULT_DESTINATION: options.authDefaultDestination || '/',
             ...(options.handoff ? { IDENTITY_OWNER_HANDOFF: options.handoff } : {})
         },
         CAISSA_AUTH_CONFIG_READY: Promise.resolve(),
@@ -61,23 +64,36 @@ async function authPageDestination(script, search, signedIn = false, options = {
     const document = { readyState: 'complete', getElementById: () => container, createElement: () => ({}), head: { appendChild() {} } };
     vm.runInContext(fs.readFileSync(script, 'utf8'), vm.createContext({ window, document, URL, URLSearchParams, Promise, console, atob }));
     await new Promise(resolve => setTimeout(resolve, 0));
-    return { mounted, href: location.href };
+    return { mounted, loadOptions, href: location.href };
 }
 
 test('normal sign-in falls back internally', async () => {
-    assert.equal((await authPageDestination('js/signin-page.js', '')).mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2F');
+    const result = await authPageDestination('js/signin-page.js', '');
+    assert.equal(result.mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2F');
+    assert.equal(result.mounted.fallbackRedirectUrl, '/auth/complete?redirect_url=%2F');
 });
 test('sign-in preserves a valid internal return', async () => {
-    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=%2Faccount')).mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2Faccount');
+    const result = await authPageDestination('js/signin-page.js', '?redirect_url=%2Faccount');
+    assert.equal(result.mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2Faccount');
+    assert.equal(result.loadOptions.signInFallbackRedirectUrl, '/auth/complete?redirect_url=%2Faccount');
 });
 test('sign-in rejects an external return before Clerk', async () => {
-    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example')).mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2F');
+    assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example')).mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2F');
 });
 test('signup preserves a valid premium return', async () => {
-    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2Fpremium')).mounted.signUpForceRedirectUrl, '/auth/complete?redirect_url=%2Fpremium');
+    const result = await authPageDestination('js/signup-page.js', '?redirect_url=%2Fpremium');
+    assert.equal(result.mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2Fpremium');
+    assert.equal(result.mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2Fpremium');
 });
 test('signup rejects a malicious return before Clerk', async () => {
-    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2F%2Fevil.example')).mounted.signUpForceRedirectUrl, '/auth/complete?redirect_url=%2F');
+    assert.equal((await authPageDestination('js/signup-page.js', '?redirect_url=%2F%2Fevil.example')).mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2F');
+});
+test('beta auth default reaches the tournament directory without overriding a valid internal return', async () => {
+    const fallback = '/online/tournaments?directory=1';
+    const direct = await authPageDestination('js/signin-page.js', '', false, { authDefaultDestination: fallback });
+    const explicit = await authPageDestination('js/signin-page.js', '?redirect_url=%2Faccount', false, { authDefaultDestination: fallback });
+    assert.equal(direct.mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2Fonline%2Ftournaments%3Fdirectory%3D1');
+    assert.equal(explicit.mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2Faccount');
 });
 test('already authenticated navigation uses the sanitized destination', async () => {
     assert.equal((await authPageDestination('js/signin-page.js', '?redirect_url=https%3A%2F%2Fevil.example', true)).href, '/auth/complete?redirect_url=%2F');
@@ -94,7 +110,7 @@ test('legacy recovery sign-in returns directly to recovery and isolates OAuth in
             handoff: { productionOrigin: 'https://www.caissa-chess.org', legacyOrigin }
         }
     );
-    assert.equal(result.mounted.signInForceRedirectUrl, '/identity-recovery');
+    assert.equal(result.mounted.forceRedirectUrl, '/identity-recovery');
     assert.equal(result.mounted.signUpForceRedirectUrl, '/identity-recovery');
     assert.equal(result.mounted.oauthFlow, 'popup');
 });
@@ -112,7 +128,7 @@ test('Production cannot opt into the legacy recovery sign-in exception', async (
             }
         }
     );
-    assert.equal(result.mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2Fidentity-recovery');
+    assert.equal(result.mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2Fidentity-recovery');
     assert.equal('oauthFlow' in result.mounted, false);
 });
 
@@ -128,7 +144,7 @@ test('the legacy recovery exception is unavailable outside the exact sign-in rou
             handoff: { productionOrigin: 'https://www.caissa-chess.org', legacyOrigin }
         }
     );
-    assert.equal(result.mounted.signInForceRedirectUrl, '/auth/complete?redirect_url=%2Fidentity-recovery');
+    assert.equal(result.mounted.forceRedirectUrl, '/auth/complete?redirect_url=%2Fidentity-recovery');
     assert.equal('oauthFlow' in result.mounted, false);
 });
 
@@ -179,6 +195,13 @@ test('checkout rejects malformed or credential-bearing configured origins', () =
             assert.throws(() => getCheckoutBaseUrl(), /Invalid CAISSA_APP_ORIGIN|Invalid URL/);
         }
     } finally { if (previous === undefined) delete process.env.CAISSA_APP_ORIGIN; else process.env.CAISSA_APP_ORIGIN = previous; }
+});
+
+test('public auth default accepts only a safe internal application route', () => {
+    assert.equal(publicAuthDefaultDestination({ CAISSA_AUTH_DEFAULT_DESTINATION: '/online/tournaments?directory=1' }), '/online/tournaments?directory=1');
+    for (const value of ['https://evil.example/x', '//evil.example/x', '/api/private', '/auth/complete', '/%2Fevil.example']) {
+        assert.equal(publicAuthDefaultDestination({ CAISSA_AUTH_DEFAULT_DESTINATION: value }), '/');
+    }
 });
 
 test('static guards require central validation before auth redirect sinks', () => {

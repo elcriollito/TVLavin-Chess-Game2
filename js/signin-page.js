@@ -10,7 +10,10 @@
     // Get redirect URL from query params
     function getRedirectUrl() {
         const params = new URLSearchParams(window.location.search);
-        return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(params.get('redirect_url'), '/');
+        return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(
+            params.get('redirect_url'),
+            window.CAISSA_AUTH_CONFIG?.AUTH_DEFAULT_DESTINATION || '/'
+        );
     }
 
     function isLegacyRecoverySignIn() {
@@ -74,8 +77,13 @@
             if (!Clerk) throw new Error('Clerk SDK unavailable');
 
             // Load Clerk with publishable key
+            const completionUrl = getCompletionUrl();
             await Clerk.load({
-                ui: { ClerkUI: window.__internal_ClerkUICtor }
+                ui: { ClerkUI: window.__internal_ClerkUICtor },
+                signInUrl: '/signin',
+                signUpUrl: '/signup',
+                signInFallbackRedirectUrl: completionUrl,
+                signUpFallbackRedirectUrl: completionUrl
             });
 
             // Check if already signed in
@@ -90,8 +98,10 @@
                 // Never transfer an unknown OAuth identity into new-user registration.
                 transferable: false,
                 withSignUp: config.REGISTRATION_OPEN === true,
-                signInForceRedirectUrl: getCompletionUrl(),
-                signUpForceRedirectUrl: getCompletionUrl(),
+                forceRedirectUrl: completionUrl,
+                fallbackRedirectUrl: completionUrl,
+                signUpForceRedirectUrl: completionUrl,
+                signUpFallbackRedirectUrl: completionUrl,
                 signUpUrl: '/signup',
                 ...(legacyRecovery ? { oauthFlow: 'popup' } : {}),
                 appearance: {

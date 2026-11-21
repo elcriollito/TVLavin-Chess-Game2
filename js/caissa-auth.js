@@ -149,8 +149,16 @@
 
             // Initialize Clerk
             _clerkInstance = window.Clerk;
+            const authDefaultDestination = window.CAISSA_REDIRECTS?.sanitizeInternalRedirect?.(
+                config.AUTH_DEFAULT_DESTINATION,
+                '/'
+            ) || '/';
             await _clerkInstance.load({
                 publishableKey,
+                signInUrl: '/signin',
+                signUpUrl: '/signup',
+                signInFallbackRedirectUrl: authDefaultDestination,
+                signUpFallbackRedirectUrl: authDefaultDestination,
                 ...(includeUi ? { ui: { ClerkUI: window.__internal_ClerkUICtor } } : {})
             });
 
