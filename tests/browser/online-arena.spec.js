@@ -84,6 +84,32 @@ test('authorized player discovers, opens, and joins the Founders beta', async ({
     ]);
 });
 
+test('Join targets the tournament explicitly opened when background state changes current Arena', async ({ page }) => {
+    await page.goto('/online/tournaments');
+    await page.getByRole('button', { name: 'Join / View' }).click();
+    await expect(page.locator('#arena-detail-name')).toHaveText('CAISSA Arena S001 — Founders Beta');
+
+    const harness = harnesses.get(page);
+    const backgroundTournament = {
+        ...tournamentFixture(),
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'Background Arena',
+        myState: 'registered'
+    };
+    harness.state = {
+        ...harness.state,
+        arena: {
+            tournaments: harness.state.arena.tournaments,
+            current: backgroundTournament
+        }
+    };
+    await expect(page.locator('#tab-tournament')).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole('button', { name: 'Join tournament' }).click();
+    const join = harness.commands.find(command => command.eventType === 'tournament.join');
+    expect(join.payload.tournamentId).toBe(tournamentId);
+});
+
 test('two simultaneous games render in context and tab navigation preserves the board', async ({ page }) => {
     await page.goto('/online');
     const harness = harnesses.get(page);

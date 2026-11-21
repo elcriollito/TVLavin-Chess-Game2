@@ -514,7 +514,7 @@ function showArenaDirectory() {
 }
 
 async function changeArenaMembership(eventType) {
-    const tournamentId = model.arena?.current?.id || model.selectedTournamentId;
+    const tournamentId = model.selectedTournamentId || model.arena?.current?.id;
     if (!tournamentId || model.arenaBusy) return;
     model.arenaBusy = true;
     ui.arenaJoin.disabled = true;

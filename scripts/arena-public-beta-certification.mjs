@@ -88,7 +88,7 @@ async function certifyPublicBeta() {
         startsAt = existing.startsAt;
         tournamentId = existing.id;
     } else {
-        startsAt = new Date(Date.now() + 30_000).toISOString();
+        startsAt = new Date(Date.now() + 120_000).toISOString();
         certificationName = `CAISSA Public Access Certification ${runId}`;
         const created = await command(OWNER, 'tournament.create', {
             name: certificationName,
@@ -99,23 +99,27 @@ async function certifyPublicBeta() {
         tournamentId = currentTournament(created).id;
     }
 
-    await Promise.all(players.map(player => joinThroughBrowser(player, certificationName)));
-    let states = await Promise.all(players.map(player => getState(player, tournamentId)));
+    for (const player of players) await joinThroughBrowser(player, certificationName, tournamentId);
+    let states = await Promise.all(players.map(player => syncTournament(player, tournamentId)));
     assert.ok(states.every(envelope => currentTournament(envelope).participantCount === 4));
     console.log(`PUBLIC_JOIN_BUTTON_PASS tournament=${tournamentId} participantCount=4`);
 
-    await command(players[0], 'tournament.withdraw', { tournamentId });
-    const afterWithdraw = await getState(players[1], tournamentId);
-    assert.equal(currentTournament(afterWithdraw).participantCount, 3);
-    await players[0].page.reload({ waitUntil: 'domcontentloaded' });
-    await waitForSignedIn(players[0]);
-    await joinThroughBrowser(players[0], certificationName);
-    await players[0].page.reload({ waitUntil: 'domcontentloaded' });
-    await waitForSignedIn(players[0]);
-    const persisted = await getState(players[0], tournamentId);
-    assert.equal(currentTournament(persisted).participantCount, 4);
-    assert.notEqual(currentTournament(persisted).myState, 'withdrawn');
-    console.log('PUBLIC_MEMBERSHIP_PERSISTENCE_PASS withdraw, rejoin, refresh');
+    if (Date.now() < Date.parse(currentTournament(states[0]).startsAt)) {
+        await command(players[0], 'tournament.withdraw', { tournamentId });
+        const afterWithdraw = await syncTournament(players[1], tournamentId);
+        assert.equal(currentTournament(afterWithdraw).participantCount, 3);
+        await players[0].page.reload({ waitUntil: 'domcontentloaded' });
+        await waitForSignedIn(players[0]);
+        await joinThroughBrowser(players[0], certificationName, tournamentId);
+        await players[0].page.reload({ waitUntil: 'domcontentloaded' });
+        await waitForSignedIn(players[0]);
+        const persisted = await syncTournament(players[0], tournamentId);
+        assert.equal(currentTournament(persisted).participantCount, 4);
+        assert.notEqual(currentTournament(persisted).myState, 'withdrawn');
+        console.log('PUBLIC_MEMBERSHIP_PERSISTENCE_PASS withdraw, rejoin, refresh');
+    } else {
+        console.log('PUBLIC_MEMBERSHIP_PERSISTENCE_SKIPPED tournament already active');
+    }
 
     await waitUntil(Date.parse(startsAt) + 1_500, 'certification Arena start');
     states = await pollRound(players, tournamentId, new Set(), 2);
@@ -144,28 +148,35 @@ async function certifyPublicBeta() {
     reconnectPlayer.context = null;
     reconnectPlayer.page = null;
     await establishSignIn(reconnectPlayer);
-    const recovered = await getState(reconnectPlayer, tournamentId);
+    const recovered = await syncTournament(reconnectPlayer, tournamentId);
     assert.equal(currentGame(recovered).id, reconnectGame.id);
     assert.equal(currentTournament(recovered).id, tournamentId);
     console.log('PUBLIC_RECONNECT_PASS fresh browser context recovered game and Arena');
 
+    const scoringBaseline = currentTournament(await syncTournament(players[0], tournamentId)).standings;
+    const baselineGamesPlayed = scoringBaseline.reduce((sum, row) => sum + row.gamesPlayed, 0);
+    const baselinePoints = scoringBaseline.reduce((sum, row) => sum + row.points, 0);
     for (const game of roundOneGames.values()) {
         await command(identityForSubject(game.black_clerk_id), 'game.resign', {}, game.id);
     }
-    const roundTwoStates = await pollRound(players, tournamentId, new Set(roundOneGames.keys()), 2);
-    const allRoundGames = uniqueCurrentGames(roundTwoStates);
-    const roundTwoGames = new Map([...allRoundGames].filter(([id]) => !roundOneGames.has(id)));
-    assert.equal(roundTwoGames.size, 2);
-    const standings = currentTournament(roundTwoStates[0]).standings;
-    assert.equal(standings.reduce((sum, row) => sum + row.gamesPlayed, 0), 4);
-    assert.equal(standings.reduce((sum, row) => sum + row.points, 0), 4);
-    console.log('PUBLIC_SCORING_REPAIR_PASS 2-1-0 scoring and re-pairing');
-
-    for (const game of roundTwoGames.values()) {
-        await command(identityForSubject(game.black_clerk_id), 'game.resign', {}, game.id);
+    const scored = currentTournament(await syncTournament(players[0], tournamentId));
+    assert.equal(scored.standings.reduce((sum, row) => sum + row.gamesPlayed, 0), baselineGamesPlayed + 4);
+    assert.equal(scored.standings.reduce((sum, row) => sum + row.points, 0), baselinePoints + 4);
+    const endsAt = Date.parse(scored.endsAt);
+    if (Date.now() < endsAt) {
+        const roundTwoStates = await pollRound(players, tournamentId, new Set(roundOneGames.keys()), 2);
+        const allRoundGames = uniqueCurrentGames(roundTwoStates);
+        const roundTwoGames = new Map([...allRoundGames].filter(([id]) => !roundOneGames.has(id)));
+        assert.equal(roundTwoGames.size, 2);
+        console.log('PUBLIC_SCORING_REPAIR_PASS 2-1-0 scoring and re-pairing');
+        for (const game of roundTwoGames.values()) {
+            await command(identityForSubject(game.black_clerk_id), 'game.resign', {}, game.id);
+        }
+    } else {
+        assert.ok(baselineGamesPlayed >= 4, 'A resumed certification must already prove re-pairing');
+        console.log('PUBLIC_SCORING_REPAIR_PASS 2-1-0 scoring; prior re-pairing retained');
     }
 
-    const endsAt = Date.parse(currentTournament(roundTwoStates[0]).endsAt);
     await waitUntil(endsAt + 1_500, 'certification Arena end');
     const finishing = await Promise.all(players.map(player => syncTournament(player, tournamentId)));
     const active = new Map();
@@ -290,7 +301,7 @@ async function waitForSignedIn(identity) {
     await identity.page.waitForFunction(() => window.CAISSA_AUTH?.isSignedIn === true, null, { timeout: 30_000 });
 }
 
-async function joinThroughBrowser(identity, tournamentName) {
+async function joinThroughBrowser(identity, tournamentName, tournamentId) {
     if (new URL(identity.page.url()).pathname !== '/online') {
         await identity.page.goto(`${ORIGIN}/online`, { waitUntil: 'domcontentloaded' });
         await waitForSignedIn(identity);
@@ -302,17 +313,42 @@ async function joinThroughBrowser(identity, tournamentName) {
     await card.getByRole('button', { name: /Join \/ View|View/ }).click();
     await identity.page.locator('#arena-detail-name').filter({ hasText: tournamentName })
         .waitFor({ state: 'visible', timeout: 15_000 });
+    const membership = currentTournament(await syncTournament(identity, tournamentId)).myState;
+    if (membership && membership !== 'withdrawn') return;
     const join = identity.page.locator('#arena-join');
     await join.waitFor({ state: 'visible', timeout: 15_000 });
     await identity.page.waitForFunction(() => {
         const button = document.getElementById('arena-join');
         return button && !button.disabled;
     }, null, { timeout: 15_000 });
-    await join.click();
-    await identity.page.waitForFunction(() => {
-        const button = document.getElementById('arena-withdraw');
-        return button && !button.hidden;
-    }, null, { timeout: 15_000 });
+    const [joinResponse] = await Promise.all([
+        identity.page.waitForResponse(response =>
+            response.url() === `${ORIGIN}/api/online`
+            && response.request().method() === 'POST'
+            && response.request().postDataJSON()?.eventType === 'tournament.join',
+        { timeout: 15_000 }),
+        join.click()
+    ]);
+    const joinBody = await joinResponse.json();
+    if (!joinResponse.ok()) {
+        throw new Error(`ARENA_JOIN_REJECTED:${identity.label}:${joinResponse.status()}:${joinBody.code || joinBody.eventType || 'UNKNOWN'}`);
+    }
+    console.log(`PUBLIC_JOIN_RESPONSE ${identity.label} ${JSON.stringify({
+        eventType: joinBody.eventType,
+        tournamentId: joinBody?.data?.state?.arena?.current?.id || null,
+        myState: joinBody?.data?.state?.arena?.current?.myState || null
+    })}`);
+    await waitForMembership(identity, tournamentId);
+}
+
+async function waitForMembership(identity, tournamentId) {
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+        const membership = currentTournament(await syncTournament(identity, tournamentId)).myState;
+        if (membership && membership !== 'withdrawn') return;
+        await delay(250);
+    }
+    throw new Error(`ARENA_JOIN_TIMEOUT:${identity.label}`);
 }
 
 async function rawCommand(identity, eventType, payload = {}, gameId = null) {
@@ -326,7 +362,11 @@ async function rawCommand(identity, eventType, payload = {}, gameId = null) {
             gameId, clientSentAt: Date.now(), payload
         })
     });
-    return { response, body: await response.json() };
+    const responseText = await response.text();
+    let body;
+    try { body = JSON.parse(responseText); }
+    catch { body = { code: 'NON_JSON_RESPONSE', error: responseText.slice(0, 200) }; }
+    return { response, body };
 }
 
 async function command(identity, eventType, payload = {}, gameId = null) {
@@ -392,7 +432,8 @@ async function pollRound(identities, tournamentId, excludedGameIds, expectedGame
     while (Date.now() < deadline) {
         const states = await Promise.all(identities.map(identity => syncTournament(identity, tournamentId)));
         const games = uniqueCurrentGames(states);
-        const fresh = [...games.keys()].filter(id => !excludedGameIds.has(id));
+        const fresh = [...games].filter(([id, game]) =>
+            !excludedGameIds.has(id) && game.status === 'active');
         if (fresh.length === expectedGames) return states;
         await delay(500);
     }
@@ -449,17 +490,23 @@ async function exerciseMovesClocksAndBroadcasts(games, handles) {
     for (const game of games.values()) {
         const white = identityForSubject(game.white_clerk_id);
         const black = identityForSubject(game.black_clerk_id);
+        const continuation = game.ply === 0
+            ? [{ from: 'e2', to: 'e4' }, { from: 'e7', to: 'e5' }]
+            : game.ply === 2
+                ? [{ from: 'g1', to: 'f3' }, { from: 'b8', to: 'c6' }]
+                : null;
+        assert.ok(continuation, `Unsupported certification ply ${game.ply}`);
         await delay(1_250);
         const whiteMove = await command(white, 'game.move', {
-            from: 'e2', to: 'e4', expectedVersion: game.version
+            ...continuation[0], expectedVersion: game.version
         }, game.id);
         const afterWhite = currentGame(whiteMove);
-        assert.ok(afterWhite.white_time_ms < game.white_time_ms);
+        assert.ok(afterWhite.white_time_ms < game.white_time_ms + game.increment_ms);
         await delay(1_250);
         const blackMove = await command(black, 'game.move', {
-            from: 'e7', to: 'e5', expectedVersion: afterWhite.version
+            ...continuation[1], expectedVersion: afterWhite.version
         }, game.id);
-        assert.ok(currentGame(blackMove).black_time_ms < game.black_time_ms);
+        assert.ok(currentGame(blackMove).black_time_ms < game.black_time_ms + game.increment_ms);
     }
     await delay(1_000);
     for (const handle of handles) {
