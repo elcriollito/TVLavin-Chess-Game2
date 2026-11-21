@@ -57,6 +57,18 @@ test('queue join does not retry unrelated database failures', async () => {
     assert.equal(calls, 1);
 });
 
+test('recurring ownership errors preserve their safe public code', async () => {
+    const db = { async rpc() {
+        return { data: null, error: { message: 'P0001: CAISSA_RECURRING_NOT_OWNER' } };
+    } };
+    const service = createOnlineService({ db });
+
+    await assert.rejects(() => service.manageRecurringSeries({
+        clerkId: 'user_b', eventId: 'series-pause:test', action: 'pause',
+        payload: { seriesId: '88888888-8888-4888-8888-888888888888' }
+    }), error => error.code === 'CAISSA_RECURRING_NOT_OWNER');
+});
+
 test('unrated Arena creation remains compatible before the rated RPC overload is migrated', async () => {
     const calls = [];
     const db = { async rpc(name, args) {

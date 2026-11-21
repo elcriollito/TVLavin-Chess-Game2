@@ -325,7 +325,10 @@ async function retryQueueBusy(operation, sleep) {
 
 async function rpc(db, name, args) {
     const { data, error } = await db.rpc(name, args);
-    if (error) throw serviceError(error.message?.match(/CAISSA_ONLINE_[A-Z_]+/)?.[0] || 'ONLINE_STORE_FAILED', error);
+    if (error) {
+        const publicCode = error.message?.match(/CAISSA_(?:ONLINE|RECURRING)_[A-Z_]+/)?.[0];
+        throw serviceError(publicCode || 'ONLINE_STORE_FAILED', error);
+    }
     return data;
 }
 
