@@ -88,6 +88,12 @@ test('online route is isolated, private-cache, noindex, and keeps the retired pl
     assert.ok(headers.some(item => item.key === 'Cache-Control' && item.value.includes('no-store')));
     assert.ok(headers.some(item => item.key === 'X-Robots-Tag' && item.value.includes('noindex')));
     assert.ok(headers.some(item => item.key === 'Content-Security-Policy' && item.value.includes('wss://*.supabase.co')));
+    const csp = headers.find(item => item.key === 'Content-Security-Policy')?.value || '';
+    assert.match(csp, /script-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
+    assert.match(csp, /script-src-elem[^;]*https:\/\/\*\.protect\.clerk\.com/);
+    assert.match(csp, /connect-src[^;]*https:\/\/\*\.protect\.clerk\.com:\*/);
+    assert.match(csp, /frame-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
+    assert.doesNotMatch(csp, /'unsafe-eval'/);
 });
 
 test('completed games use the existing opaque Analyze handoff transport', () => {
