@@ -51,7 +51,9 @@ begin
     where series_id=v_series and starts_at=v_first;
   if v_tournament is null then raise exception 'due occurrence was not generated'; end if;
   if (select base_ms<>120000 or increment_ms<>1000 or pool<>'bullet' or rated
-      or status<>'registration_open' from public.caissa_online_tournaments where id=v_tournament)
+      or status<>'registration_open' or configuration->>'betaSeason'<>'S001'
+      or configuration->>'recurrenceSeason'<>'S002'
+      from public.caissa_online_tournaments where id=v_tournament)
     then raise exception 'generated Arena template is incorrect'; end if;
   if caissa_online_private.weekly_generate(v_first-interval '2 days',4)<>0
     then raise exception 'official generator processed a user series'; end if;

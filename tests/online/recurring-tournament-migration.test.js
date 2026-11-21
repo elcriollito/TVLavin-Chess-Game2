@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 
 const migrationUrl = new URL('../../supabase/migrations/20261121220000_caissa_recurring_tournaments_s002.sql', import.meta.url);
 const sql = (await readFile(migrationUrl, 'utf8')).toLowerCase();
+const engineHotfixUrl = new URL('../../supabase/migrations/20261121232000_caissa_recurring_tournaments_s002_arena_engine_hfx.sql', import.meta.url);
+const engineHotfixSql = (await readFile(engineHotfixUrl, 'utf8')).toLowerCase();
 
 test('S002 extends the one existing series table without replacing official data', () => {
     assert.match(sql, /alter table public\.caissa_online_tournament_series[\s\S]+add column if not exists owner_clerk_id/);
@@ -53,4 +55,12 @@ test('S002 retains RLS and adds selective owner/due indexes', () => {
     assert.match(sql, /caissa_online_tournament_series_owner_active_idx/);
     assert.match(sql, /caissa_online_tournament_series_due_idx/);
     assert.match(sql, /caissa_online_tournament_series_creation_event_uq/);
+});
+
+test('generated recurrences reuse the certified Arena S001 engine', () => {
+    assert.match(engineHotfixSql, /'betaseason','s001'/);
+    assert.match(engineHotfixSql, /'recurrenceseason','s002'/);
+    assert.match(engineHotfixSql, /where tournament\.configuration->>'betaseason' = 's002'[\s\S]+series\.series_kind = 'user'/);
+    assert.doesNotMatch(engineHotfixSql, /delete from|truncate table|drop table/);
+    assert.match(engineHotfixSql, /revoke all on function caissa_online_private\.recurring_generate[\s\S]+from public,anon,authenticated/);
 });

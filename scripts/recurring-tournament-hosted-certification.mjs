@@ -9,7 +9,8 @@ const EXPECTED_ISSUER = 'https://cheerful-mantis-9523.clerk.accounts.dev';
 const runId = String(process.env.CAISSA_CERT_RUN_ID || Date.now().toString(36)).toLowerCase();
 const firstDate = easternDateOffset(1);
 const secondDate = easternDateOffset(4);
-const seriesName = `CAISSA Recurring S002 Hosted ${runId}`;
+const resumeSeriesName = String(process.env.CAISSA_RECURRING_CERT_RESUME_NAME || '').trim();
+const seriesName = resumeSeriesName || `CAISSA Recurring S002 Hosted ${runId}`;
 const existingIdentities = parseExistingIdentities(process.env.CAISSA_RECURRING_CERT_IDENTITIES);
 const identities = existingIdentities || ['OWNER', 'OTHER'].map(label => ({
     label,
@@ -43,13 +44,20 @@ async function certify() {
 
     const owner = identities[0];
     const other = identities[1];
-    await cleanPreviousCertificationSeries(owner);
-    await createThroughBrowser(owner);
-    const ownerState = await poll(async () => {
-        const state = await getState(owner);
-        return state.data.state.recurring?.series?.find(series => series.title === seriesName)
-            ? state : null;
-    }, 30_000, 'series creation');
+    let ownerState;
+    if (resumeSeriesName) {
+        ownerState = await getState(owner);
+        assert.ok(ownerState.data.state.recurring?.series?.some(series => series.title === seriesName),
+            'requested certification series is unavailable');
+    } else {
+        await cleanPreviousCertificationSeries(owner);
+        await createThroughBrowser(owner);
+        ownerState = await poll(async () => {
+            const state = await getState(owner);
+            return state.data.state.recurring?.series?.find(series => series.title === seriesName)
+                ? state : null;
+        }, 30_000, 'series creation');
+    }
     const series = ownerState.data.state.recurring.series.find(item => item.title === seriesName);
     assert.equal(series.frequencyUnit, 'daily');
     assert.equal(series.interval, 3);
@@ -159,7 +167,22 @@ async function joinThroughBrowser(identity, tournamentId) {
     const dialog = identity.page.locator('#tournament-directory-dialog');
     if (!await dialog.isVisible()) await identity.page.locator('#tournament-empty-browse').click();
     await dialog.waitFor({ state: 'visible', timeout: 15_000 });
+    await identity.page.locator('#directory-tab-current').click();
+    await identity.page.locator('#directory-panel-current[role="tabpanel"]')
+        .waitFor({ state: 'visible', timeout: 15_000 });
     const card = identity.page.locator('.arena-card').filter({ hasText: seriesName });
+    if (process.env.CAISSA_CERT_DIAGNOSTICS === '1') {
+        await identity.page.waitForTimeout(1_000);
+        const diagnostics = await card.evaluateAll(elements => elements.map(element => ({
+            panel: element.closest('[data-directory-panel]')?.id || null,
+            panelHidden: element.closest('[data-directory-panel]')?.hidden,
+            display: getComputedStyle(element).display,
+            visibility: getComputedStyle(element).visibility,
+            rect: { width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height },
+            text: element.textContent
+        })));
+        console.log(`RECURRING_HOSTED_UI_DIAGNOSTICS ${JSON.stringify(diagnostics)}`);
+    }
     await card.waitFor({ state: 'visible', timeout: 30_000 });
     await card.getByRole('button', { name: 'Join', exact: true }).click();
     await card.getByRole('button', { name: 'Registered', exact: true })
