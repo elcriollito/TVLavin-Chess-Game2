@@ -8,7 +8,6 @@ const baseEnv = {
     CAISSA_ONLINE_ROLLOUT: 'preview',
     CAISSA_ONLINE_TOURNAMENTS: '1',
     CAISSA_ONLINE_ARENA: '1',
-    CAISSA_ONLINE_ARENA_BETA_USERS: userId,
     CAISSA_ONLINE_TOURNAMENT_ADMINS: userId,
     CAISSA_ONLINE_ARENA_CREATE: '1'
 };
@@ -51,14 +50,35 @@ test('Arena remains disabled in production even when every flag is present', asy
     assert.equal(res.body.capabilities.publicTournamentDirectory, false);
 });
 
-test('unauthorized identities cannot discover or join the private beta', async () => {
+test('ordinary authenticated Preview users can discover and join without an allowlist', async () => {
+    let joined;
+    const service = {
+        async joinArena(input) { joined = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const res = response();
+    await handler(command('tournament.join', { tournamentId }), res, {
+        env: baseEnv,
+        authenticate, rateLimit, service
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.state.arena.current.id, tournamentId);
+    assert.equal(joined.clerkId, userId);
+});
+
+test('internal Arena mode retains its participant allowlist', async () => {
     const service = {
         joinArena: async () => assert.fail('join must not reach the store'),
         getState: async () => assert.fail('state must not be read')
     };
     const res = response();
     await handler(command('tournament.join', { tournamentId }), res, {
-        env: { ...baseEnv, CAISSA_ONLINE_ARENA_BETA_USERS: 'another_user' },
+        env: {
+            ...baseEnv,
+            CAISSA_ONLINE_ROLLOUT: 'internal',
+            CAISSA_ONLINE_INTERNAL_USERS: userId,
+            CAISSA_ONLINE_ARENA_BETA_USERS: 'another_user'
+        },
         authenticate, rateLimit, service
     });
     assert.equal(res.statusCode, 403);

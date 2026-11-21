@@ -365,7 +365,7 @@ async function handleTournamentCommand(req, res, auth, service, dependencies, ev
     const rollout = rolloutMode(env);
     if (!isArenaEnabled(rollout, env)) return res.status(404).json({ code: 'ARENA_DISABLED' });
     if (auth.guest) return res.status(403).json({ code: 'ARENA_MEMBER_ACCOUNT_REQUIRED' });
-    if (!arenaSubjectSet(env.CAISSA_ONLINE_ARENA_BETA_USERS).has(auth.userId)) {
+    if (!isArenaParticipantAuthorized(rollout, env, auth.userId)) {
         return res.status(403).json({ code: 'ARENA_BETA_NOT_AUTHORIZED' });
     }
 
@@ -426,12 +426,17 @@ async function stateWithArena(auth, service, env, rollout, tournamentId = null) 
     let arena = null;
     if (!auth.guest
         && isArenaEnabled(rollout, env)
-        && arenaSubjectSet(env.CAISSA_ONLINE_ARENA_BETA_USERS).has(auth.userId)
+        && isArenaParticipantAuthorized(rollout, env, auth.userId)
         && typeof service.getArenaState === 'function') {
         arena = await service.getArenaState(auth.userId, tournamentId);
     }
     const state = await service.getState(auth.userId);
     return arena ? { ...state, arena } : state;
+}
+
+function isArenaParticipantAuthorized(rollout, env, userId) {
+    return rollout === 'preview'
+        || arenaSubjectSet(env.CAISSA_ONLINE_ARENA_BETA_USERS).has(userId);
 }
 
 async function resolveOnlineDisplayName(auth, service) {
