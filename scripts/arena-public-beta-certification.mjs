@@ -8,6 +8,7 @@ const OTP = String(process.env.CAISSA_CLERK_TEST_OTP || '424242');
 const EXPECTED_ISSUER = 'https://cheerful-mantis-9523.clerk.accounts.dev';
 const CERT_TOURNAMENT_ID = String(process.env.CAISSA_CERT_TOURNAMENT_ID || '');
 const HUMAN_TOURNAMENT_ID = String(process.env.CAISSA_HUMAN_TOURNAMENT_ID || '');
+const JOIN_HOTFIX_ONLY = process.env.CAISSA_JOIN_HOTFIX_ONLY === '1';
 const EXPECTED_SOURCE_HEAD = String(process.env.CAISSA_EXPECTED_SOURCE_HEAD || 'verified externally');
 const EXISTING_PLAYERS = parseExistingPlayers(process.env.CAISSA_CERT_EXISTING_PLAYERS);
 const OWNER = {
@@ -63,7 +64,7 @@ async function certifyPublicBeta() {
         : 'PUBLIC_SIGNUP_PASS';
     console.log(`${identityGate} ${players.map(player => `${player.label}:${player.subject}`).join(' ')}`);
 
-    if (!CERT_TOURNAMENT_ID || !HUMAN_TOURNAMENT_ID) await establishSignIn(OWNER);
+    if (!JOIN_HOTFIX_ONLY && (!CERT_TOURNAMENT_ID || !HUMAN_TOURNAMENT_ID)) await establishSignIn(OWNER);
     const activeIdentities = OWNER.page ? [OWNER, ...players] : players;
     await Promise.all(activeIdentities.map(identity => command(identity, 'presence.join')));
     heartbeatTimer = setInterval(() => {
@@ -78,6 +79,12 @@ async function certifyPublicBeta() {
     assert.equal(denied.response.status, 403);
     assert.equal(denied.body.code, 'ARENA_ORGANIZER_REQUIRED');
     console.log('PUBLIC_ADMIN_DENIAL_PASS non-owner tournament creation rejected');
+
+    if (JOIN_HOTFIX_ONLY) {
+        assert.ok(HUMAN_TOURNAMENT_ID, 'CAISSA_HUMAN_TOURNAMENT_ID is required for Join hotfix certification');
+        await certifyJoinHotfix(HUMAN_TOURNAMENT_ID);
+        return;
+    }
 
     let certificationName;
     let startsAt;
@@ -224,6 +231,37 @@ async function certifyPublicBeta() {
     })}`);
 }
 
+async function certifyJoinHotfix(tournamentId) {
+    let tournament;
+    try {
+        tournament = currentTournament(await syncTournament(players[0], tournamentId));
+        assert.equal(tournament.status, 'registration_open');
+        assert.equal(tournament.participantCount, 0);
+        for (const player of players) {
+            await joinThroughBrowser(player, tournament.name, tournamentId);
+        }
+        let states = await Promise.all(players.map(player => syncTournament(player, tournamentId)));
+        assert.ok(states.every(envelope => currentTournament(envelope).participantCount === 4));
+        assert.ok(states.every(envelope => {
+            const state = currentTournament(envelope).myState;
+            return state && state !== 'withdrawn';
+        }));
+
+        await players[0].page.reload({ waitUntil: 'domcontentloaded' });
+        await waitForSignedIn(players[0]);
+        const persisted = currentTournament(await syncTournament(players[0], tournamentId));
+        assert.equal(persisted.participantCount, 4);
+        assert.notEqual(persisted.myState, 'withdrawn');
+        console.log(`JOIN_HOTFIX_HOSTED_PASS tournament=${tournamentId} participantCount=4 persisted=true`);
+    } finally {
+        await Promise.allSettled(players.map(player => command(player, 'tournament.withdraw', { tournamentId })));
+    }
+
+    const cleaned = currentTournament(await syncTournament(players[0], tournamentId));
+    assert.equal(cleaned.participantCount, 0);
+    console.log(`JOIN_HOTFIX_CLEANUP_PASS tournament=${tournamentId} participantCount=0`);
+}
+
 async function registerNewIdentity(identity) {
     identity.password = `Aa1!${crypto.randomBytes(18).toString('base64url')}`;
     identity.context = await browser.newContext();
@@ -306,21 +344,19 @@ async function joinThroughBrowser(identity, tournamentName, tournamentId) {
         await identity.page.goto(`${ORIGIN}/online`, { waitUntil: 'domcontentloaded' });
         await waitForSignedIn(identity);
     }
-    await identity.page.locator('#tab-lobby').click();
-    await identity.page.locator('#lobby-tab-tournaments').click();
+    await identity.page.locator('#tab-tournaments').click();
+    await identity.page.locator('#tournament-empty-browse').click();
+    await identity.page.locator('#tournament-directory-dialog').waitFor({ state: 'visible', timeout: 15_000 });
     const card = identity.page.locator('.arena-card').filter({ hasText: tournamentName });
     await card.waitFor({ state: 'visible', timeout: 30_000 });
-    await card.getByRole('button', { name: /Join \/ View|View/ }).click();
-    await identity.page.locator('#arena-detail-name').filter({ hasText: tournamentName })
-        .waitFor({ state: 'visible', timeout: 15_000 });
     const membership = currentTournament(await syncTournament(identity, tournamentId)).myState;
-    if (membership && membership !== 'withdrawn') return;
-    const join = identity.page.locator('#arena-join');
+    if (membership && membership !== 'withdrawn') {
+        await card.getByRole('button', { name: 'Registered', exact: true }).waitFor({ state: 'visible' });
+        return;
+    }
+    const join = card.getByRole('button', { name: 'Join', exact: true });
     await join.waitFor({ state: 'visible', timeout: 15_000 });
-    await identity.page.waitForFunction(() => {
-        const button = document.getElementById('arena-join');
-        return button && !button.disabled;
-    }, null, { timeout: 15_000 });
+    await join.waitFor({ state: 'attached' });
     const [joinResponse] = await Promise.all([
         identity.page.waitForResponse(response =>
             response.url() === `${ORIGIN}/api/online`
@@ -339,6 +375,9 @@ async function joinThroughBrowser(identity, tournamentName, tournamentId) {
         myState: joinBody?.data?.state?.arena?.current?.myState || null
     })}`);
     await waitForMembership(identity, tournamentId);
+    await identity.page.locator('#arena-context').waitFor({ state: 'visible', timeout: 15_000 });
+    await identity.page.locator('#arena-context-enrollment').filter({ hasText: 'Registered' })
+        .waitFor({ state: 'visible', timeout: 15_000 });
 }
 
 async function waitForMembership(identity, tournamentId) {

@@ -21,9 +21,11 @@ export function validateArenaTournamentId(payload) {
 }
 
 export function validateArenaCreation(payload, now = Date.now()) {
-    const name = String(payload?.name || 'CAISSA Arena S001 — Founders Beta').trim();
+    const name = String(payload?.name || '').trim();
     const control = CONTROL_BY_ID.get(String(payload?.timeControlId || 'blitz-3-2'));
     const durationMinutes = Number(payload?.durationMinutes ?? 15);
+    const capacity = Number(payload?.capacity ?? 16);
+    const lateJoin = payload?.lateJoin === true;
     const startsAt = Date.parse(payload?.startsAt || new Date(now + 60_000).toISOString());
     if (name.length < 3 || name.length > 80 || /[<>\u0000-\u001f\u007f]/u.test(name)) {
         return failure('INVALID_TOURNAMENT_NAME');
@@ -31,6 +33,9 @@ export function validateArenaCreation(payload, now = Date.now()) {
     if (!control) return failure('INVALID_TOURNAMENT_TIME_CONTROL');
     if (!Number.isSafeInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 180) {
         return failure('INVALID_TOURNAMENT_DURATION');
+    }
+    if (!Number.isSafeInteger(capacity) || capacity < 4 || capacity > 64) {
+        return failure('INVALID_TOURNAMENT_CAPACITY');
     }
     if (!Number.isFinite(startsAt) || startsAt < now - 30_000 || startsAt > now + (31 * 24 * 60 * 60 * 1000)) {
         return failure('INVALID_TOURNAMENT_START');
@@ -41,6 +46,8 @@ export function validateArenaCreation(payload, now = Date.now()) {
             name,
             control: Object.freeze({ ...control }),
             durationMinutes,
+            capacity,
+            lateJoin,
             startsAt: new Date(startsAt).toISOString()
         })
     });

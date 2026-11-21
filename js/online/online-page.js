@@ -39,11 +39,15 @@ const ui = {
     setupOpen: $('setup-open'), setupDialog: $('setup-dialog'), muteInvitationPopups: $('mute-invitation-popups'),
     offersState: $('offers-state'), offersStatus: $('offers-status'), offersTableWrap: $('offers-table-wrap'),
     offersTableBody: $('offers-table-body'), offersFixtureBanner: $('offers-fixture-banner'),
-    tournamentsComingSoon: $('tournaments-coming-soon'), tournamentDemoContent: $('tournament-demo-content'),
     accessDenied: $('online-access-denied'),
-    arenaDirectory: $('arena-directory'), arenaList: $('arena-list'), arenaDetail: $('arena-detail'),
-    arenaSearch: $('arena-search'), arenaStatusFilter: $('arena-status-filter'),
-    arenaJoin: $('arena-join'), arenaWithdraw: $('arena-withdraw'), arenaTab: $('tab-tournament'),
+    arenaDirectory: $('arena-directory'), arenaDetail: $('arena-detail'),
+    arenaCurrentList: $('arena-current-list'), arenaScheduleList: $('arena-schedule-list'), arenaMyList: $('arena-my-list'),
+    arenaSearch: $('arena-search'), arenaStatusFilter: $('arena-status-filter'), arenaControlFilter: $('arena-control-filter'),
+    arenaJoin: $('arena-join'), arenaWithdraw: $('arena-withdraw'), arenaTab: $('tab-tournaments'),
+    arenaViewResults: $('arena-view-results'), arenaContext: $('arena-context'), arenaContextEmpty: $('tournament-context-empty'),
+    directoryDialog: $('tournament-directory-dialog'), directoryClose: $('tournament-directory-close'),
+    directoryMessage: $('arena-directory-message'), directoryRetry: $('arena-directory-retry'),
+    createForm: $('arena-create-form'), createFeedback: $('arena-create-feedback'),
     arenaStandingsBody: $('arena-standings-body'), arenaGamesList: $('arena-games-list'),
     arenaPairingState: $('arena-pairing-state')
 };
@@ -59,9 +63,11 @@ const model = {
     signInPromptOpener: null, signInRedirecting: false,
     guestSession: null, guestStarting: false, pendingGameCommand: null,
     selectedTab: 'new', selectedLobbyView: 'players', muteInvitationPopups: false, preferenceEpoch: 0,
-    setupOpener: null, arena: null, selectedTournamentId: null,
+    setupOpener: null, arena: null, selectedTournamentId: null, directoryOpener: null,
     tournamentRealtime: null, tournamentRealtimeId: null, tournamentRealtimeEpoch: 0,
-    selectedArenaContext: 'standings', arenaBusy: false, accessDeniedCode: null
+    selectedArenaContext: 'standings', selectedDirectoryView: 'current', arenaBusy: false,
+    tournamentIntent: location.pathname === '/online/tournaments' && PAGE_PARAMS.get('directory') === '1',
+    accessDeniedCode: null
 };
 
 const api = createOnlineApi({
@@ -91,16 +97,13 @@ restoreSelectedControlFromLocation();
 selectTab('new');
 selectGamesView('daily');
 selectLobbyView('players');
-selectTournamentView('standings');
 selectArenaContext('standings');
+selectDirectoryView('current');
 renderOffersDirectory();
 setInterval(() => { renderClocks(); renderArenaCountdowns(); }, 100);
 if (TOURNAMENT_DEMO) renderTournamentDemo();
 else {
-    if (location.pathname === '/online/tournaments') {
-        selectLobbyView('tournaments');
-        selectTab('lobby');
-    }
+    if (location.pathname === '/online/tournaments') selectTab('tournaments');
     void boot();
 }
 
@@ -160,10 +163,7 @@ function configureCapabilities(capabilities) {
     ui.lobbyAccess.hidden = model.auth?.isSignedIn === true;
 
     const arenaEnabled = capabilities.arenaS001 === true;
-    if (!TOURNAMENT_DEMO) {
-        ui.tournamentsComingSoon.hidden = arenaEnabled;
-        ui.arenaDirectory.hidden = !arenaEnabled;
-    }
+    ui.arenaDirectory.hidden = !arenaEnabled;
 }
 
 function onAuthEvent(event) {
@@ -264,7 +264,7 @@ function bindControls() {
     $('new-opponent').addEventListener('click', () => {
         model.game = null;
         if (model.arena?.current?.myState && model.arena.current.myState !== 'withdrawn') {
-            selectTab('tournament');
+            selectTab('tournaments');
             renderArenaContext(model.arena.current);
         } else renderLobby();
     });
@@ -274,16 +274,19 @@ function bindControls() {
         selectLobbyView('players');
         selectTab('lobby');
     });
+    $('browse-tournaments').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
+    $('tournament-empty-browse').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
+    $('tournament-empty-create').addEventListener('click', event => openTournamentDirectory('create', event.currentTarget));
+    $('arena-context-directory').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
     $('resign-game').addEventListener('click', () => confirmAction('Resign this game?', 'This result is final and will be recorded.', 'Resign')
         .then(confirmed => confirmed && sendGameCommand('game.resign')));
     $('offer-draw').addEventListener('click', handleDrawAction);
     $('decline-draw').addEventListener('click', () => sendGameCommand('game.drawDecline'));
     $('download-pgn').addEventListener('click', downloadPgn);
     $('analyze-game').addEventListener('click', analyzeGame);
-    $('demo-next-game').addEventListener('click', () => showToast('Demo only — a server-confirmed pairing would open the game.'));
-    document.querySelectorAll('[data-tournament-view]').forEach(tab => {
-        tab.addEventListener('click', () => selectTournamentView(tab.dataset.tournamentView));
-        tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-tournament-view]', 'tournamentView', selectTournamentView));
+    document.querySelectorAll('[data-directory-tab]').forEach(tab => {
+        tab.addEventListener('click', () => selectDirectoryView(tab.dataset.directoryTab));
+        tab.addEventListener('keydown', event => handleRovingTabs(event, '[data-directory-tab]', 'directoryTab', selectDirectoryView));
     });
     document.querySelectorAll('[data-arena-context]').forEach(tab => {
         tab.addEventListener('click', () => selectArenaContext(tab.dataset.arenaContext));
@@ -291,9 +294,21 @@ function bindControls() {
     });
     ui.arenaSearch.addEventListener('input', renderArenaDirectory);
     ui.arenaStatusFilter.addEventListener('change', renderArenaDirectory);
+    ui.arenaControlFilter.addEventListener('change', renderArenaDirectory);
     $('arena-detail-back').addEventListener('click', showArenaDirectory);
     ui.arenaJoin.addEventListener('click', () => changeArenaMembership('tournament.join'));
     ui.arenaWithdraw.addEventListener('click', () => changeArenaMembership('tournament.withdraw'));
+    $('arena-context-withdraw').addEventListener('click', () => changeArenaMembership('tournament.withdraw'));
+    ui.arenaViewResults.addEventListener('click', viewSelectedTournament);
+    ui.directoryClose.addEventListener('click', closeTournamentDirectory);
+    ui.directoryDialog.addEventListener('close', restoreTournamentDirectoryFocus);
+    ui.directoryRetry.addEventListener('click', () => void syncState('tournament-directory-retry'));
+    $('arena-create-start-mode').addEventListener('change', event => {
+        $('arena-create-start-wrap').hidden = event.target.value !== 'scheduled';
+    });
+    ui.createForm.addEventListener('submit', createArenaTournament);
+    $('arena-cancel').addEventListener('click', () => manageArenaTournament('cancel'));
+    $('arena-close').addEventListener('click', () => manageArenaTournament('close'));
     $('player-search').addEventListener('input', () => renderPlayers(model.state?.players || [], model.state?.challenges || []));
     ui.challengeAccept.addEventListener('click', () => respondVisibleChallenge('challenge.accept'));
     ui.challengeDecline.addEventListener('click', () => respondVisibleChallenge('challenge.decline'));
@@ -343,7 +358,7 @@ function selectTab(name) {
         new: 'Private, server-verified games',
         games: 'Your game history',
         lobby: model.selectedLobbyView === 'players' ? 'Private challenges' : 'CAISSA Online lobby',
-        tournament: 'Private Arena · server-authoritative'
+        tournaments: 'Private Arena · server-authoritative'
     })[name] || 'CAISSA Online';
     renderWorkspaceHeader();
 }
@@ -393,13 +408,10 @@ function handleRovingTabs(event, selector, datasetKey, select) {
 function renderTournamentDemo() {
     document.body.dataset.tournamentDemo = 'true';
     document.title = 'Tournament Panel Demo — CAISSA';
-    selectLobbyView('tournaments');
-    selectTab('lobby');
+    selectTab('tournaments');
     ui.title.textContent = 'Tournament arena';
     ui.badge.textContent = 'DEMO';
     ui.footContext.textContent = 'Tournament concept · demo data';
-    ui.tournamentsComingSoon.hidden = true;
-    ui.tournamentDemoContent.hidden = false;
     setConnection('online', 'Demo');
     ui.curtain.hidden = false;
     ui.curtainTitle.textContent = 'Tournament preview';
@@ -412,40 +424,58 @@ function renderTournamentDemo() {
 
 function renderArena(arena) {
     const enabled = model.config?.capabilities?.arenaS001 === true;
-    if (!enabled || !arena) {
-        ui.arenaTab.hidden = true;
-        if (!enabled) void disconnectTournamentRealtime();
-        return;
-    }
+    ui.arenaDirectory.hidden = !enabled;
+    if (!enabled || !arena) { void disconnectTournamentRealtime(); return; }
     renderArenaDirectory();
     const current = arena.current;
-    const hasMembership = !!current?.myState;
-    ui.arenaTab.hidden = !hasMembership;
-    if (hasMembership) {
+    const hasContext = !!current;
+    ui.arenaContext.hidden = !hasContext;
+    ui.arenaContextEmpty.hidden = hasContext;
+    if (hasContext) {
         renderArenaContext(current);
-        void connectTournamentRealtime(current.id);
+        if (!['completed', 'cancelled'].includes(current.status)) void connectTournamentRealtime(current.id);
+        else void disconnectTournamentRealtime();
     } else {
         void disconnectTournamentRealtime();
-        if (model.selectedTab === 'tournament') selectTab('lobby');
     }
     if (model.selectedTournamentId && current?.id === model.selectedTournamentId) renderArenaDetail(current);
+    if (model.tournamentIntent && model.auth?.isSignedIn) {
+        model.tournamentIntent = false;
+        queueMicrotask(() => openTournamentDirectory('current', ui.arenaTab));
+    }
 }
 
 function renderArenaDirectory() {
     if (!model.arena || ui.arenaDirectory.hidden) return;
     const query = ui.arenaSearch.value.trim().toLocaleLowerCase();
-    const filter = ui.arenaStatusFilter.value;
+    const statusFilter = ui.arenaStatusFilter.value;
+    const controlFilter = ui.arenaControlFilter.value;
     const tournaments = (model.arena.tournaments || []).filter(tournament => {
         const category = arenaStatusCategory(tournament.status);
         return (!query || String(tournament.name || '').toLocaleLowerCase().includes(query))
-            && (filter === 'all' || filter === category);
+            && (statusFilter === 'all' || statusFilter === category)
+            && (controlFilter === 'all' || tournament.pool === controlFilter);
     });
-    ui.arenaList.replaceChildren();
+    const current = tournaments.filter(item => ['registration_open', 'active', 'finishing'].includes(item.status));
+    const schedule = tournaments.filter(item => ['draft', 'scheduled'].includes(item.status));
+    const mine = tournaments.filter(item => item.joined || item.organizedByMe || (item.myState && item.myState !== 'withdrawn'));
+    renderArenaList(ui.arenaCurrentList, current, 'No current tournaments', 'Live Arenas and open registrations will appear here.');
+    renderArenaList(ui.arenaScheduleList, schedule, 'No scheduled tournaments', 'New community Arenas will appear here in your local time.');
+    renderArenaList(ui.arenaMyList, mine, 'No tournaments yet', 'Join or create an Arena to keep it here.');
+    $('directory-count-current').textContent = String(current.length);
+    $('directory-count-schedule').textContent = String(schedule.length);
+    $('directory-count-mine').textContent = String(mine.length);
+}
+
+function renderArenaList(list, tournaments, title, copy) {
+    list.replaceChildren();
     if (!tournaments.length) {
         const empty = document.createElement('div');
         empty.className = 'arena-empty';
-        empty.innerHTML = '<strong>No matching Arenas</strong><p>Only authorized Season 001 beta tournaments appear here.</p>';
-        ui.arenaList.append(empty);
+        const heading = document.createElement('strong'); heading.textContent = title;
+        const detail = document.createElement('p'); detail.textContent = copy;
+        empty.append(heading, detail);
+        list.append(empty);
         return;
     }
     tournaments.forEach(tournament => {
@@ -457,18 +487,43 @@ function renderArenaDirectory() {
         status.textContent = arenaStatusLabel(tournament.status);
         const name = document.createElement('h4'); name.textContent = tournament.name;
         const facts = document.createElement('p');
-        facts.textContent = `${arenaControl(tournament)} · ${tournament.durationMinutes} min · ${tournament.participantCount}/${tournament.capacity || '∞'} players`;
+        const starts = new Date(tournament.startsAt);
+        const localStart = Number.isNaN(starts.valueOf()) ? '' : ` · ${starts.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`;
+        facts.textContent = `${arenaControl(tournament)} · ${tournament.durationMinutes} min · ${tournament.participantCount}/${tournament.capacity || '∞'} players${localStart}`;
         main.append(status, name, facts);
-        const action = document.createElement('button');
-        action.type = 'button';
-        action.textContent = tournament.joined ? 'View' : 'Join / View';
-        action.addEventListener('click', () => openArenaDetails(tournament.id));
-        card.append(main, action);
-        ui.arenaList.append(card);
+        const actions = document.createElement('div'); actions.className = 'arena-card__actions';
+        const completed = ['completed', 'cancelled'].includes(tournament.status);
+        const joined = tournament.joined || (!!tournament.myState && tournament.myState !== 'withdrawn');
+        const full = Number(tournament.participantCount) >= Number(tournament.capacity || Number.POSITIVE_INFINITY);
+        const registrationOpen = ['registration_open', 'active'].includes(tournament.status)
+            && Date.parse(tournament.registrationClosesAt || tournament.endsAt) > Date.now();
+        if (!completed) {
+            const join = document.createElement('button'); join.type = 'button';
+            join.className = joined ? 'arena-card__registered' : 'arena-card__join';
+            join.textContent = joined ? 'Registered' : full ? 'Full' : registrationOpen ? 'Join' : 'Not open';
+            join.disabled = joined || full || !registrationOpen || model.arenaBusy;
+            if (!join.disabled) join.addEventListener('click', () => joinArenaFromCard(tournament.id, join));
+            actions.append(join);
+        }
+        const details = document.createElement('button'); details.type = 'button';
+        details.textContent = completed ? 'View Results' : 'Details';
+        details.addEventListener('click', () => openArenaDetails(tournament.id, { focusAction: true }));
+        actions.append(details);
+        card.append(main, actions);
+        list.append(card);
     });
 }
 
-async function openArenaDetails(tournamentId) {
+async function joinArenaFromCard(tournamentId, button) {
+    if (!tournamentId || model.arenaBusy) return;
+    model.selectedTournamentId = tournamentId;
+    button.disabled = true;
+    button.textContent = 'Joining…';
+    await changeArenaMembership('tournament.join');
+    if (button.isConnected && model.arenaBusy) button.textContent = 'Joining…';
+}
+
+async function openArenaDetails(tournamentId, options = {}) {
     if (!tournamentId || model.arenaBusy) return;
     model.selectedTournamentId = tournamentId;
     model.arenaBusy = true;
@@ -479,37 +534,62 @@ async function openArenaDetails(tournamentId) {
         handleError(error, 'The tournament could not be opened.');
     } finally {
         model.arenaBusy = false;
-        if (model.arena?.current?.id === tournamentId) renderArenaDetail(model.arena.current);
+        if (model.arena?.current?.id === tournamentId) {
+            renderArenaDetail(model.arena.current);
+            if (options.focusAction) {
+                ui.arenaDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                queueMicrotask(() => {
+                    const target = !ui.arenaJoin.hidden && !ui.arenaJoin.disabled ? ui.arenaJoin
+                        : !ui.arenaViewResults.hidden ? ui.arenaViewResults : $('arena-detail-back');
+                    target.focus({ preventScroll: true });
+                });
+            }
+        }
     }
 }
 
 function renderArenaDetail(tournament) {
     if (!tournament) return;
     model.selectedTournamentId = tournament.id;
-    ui.arenaList.hidden = true;
-    document.querySelector('.arena-filters').hidden = true;
+    document.querySelectorAll('[data-directory-panel]').forEach(panel => { panel.hidden = true; });
+    $('arena-filters').hidden = true;
+    document.querySelector('.tournament-directory-tabs').hidden = true;
     ui.arenaDetail.hidden = false;
     $('arena-detail-name').textContent = tournament.name;
     $('arena-detail-kicker').textContent = `${String(tournament.format || 'arena').toUpperCase()} · ${tournament.rated ? 'RATED' : 'UNRATED'}`;
     $('arena-detail-control').textContent = arenaControl(tournament);
     $('arena-detail-duration').textContent = `${tournament.durationMinutes} min`;
     $('arena-detail-players').textContent = `${tournament.participantCount} / ${tournament.capacity || '∞'}`;
-    const joined = !!tournament.myState && tournament.myState !== 'withdrawn';
+    const joined = tournament.joined || (!!tournament.myState && tournament.myState !== 'withdrawn');
     const registrationOpen = ['registration_open', 'active'].includes(tournament.status)
         && Date.parse(tournament.registrationClosesAt || tournament.endsAt) > Date.now();
-    ui.arenaJoin.hidden = joined;
-    ui.arenaJoin.disabled = !registrationOpen || model.arenaBusy;
-    ui.arenaJoin.textContent = registrationOpen ? 'Join tournament' : 'Registration closed';
-    ui.arenaWithdraw.hidden = !joined || ['completed', 'cancelled'].includes(tournament.status);
+    const full = Number(tournament.participantCount) >= Number(tournament.capacity || Number.POSITIVE_INFINITY);
+    const completed = ['completed', 'cancelled'].includes(tournament.status);
+    $('arena-detail-registration').textContent = completed ? arenaStatusLabel(tournament.status)
+        : registrationOpen ? (tournament.lateJoin ? 'Open · late join allowed' : 'Open until start')
+            : arenaStatusLabel(tournament.status);
+    ui.arenaJoin.hidden = joined || completed;
+    ui.arenaJoin.disabled = !registrationOpen || full || model.arenaBusy;
+    ui.arenaJoin.textContent = full ? 'Tournament full' : registrationOpen ? 'Join tournament' : 'Registration not open';
+    ui.arenaWithdraw.hidden = !joined || completed;
     ui.arenaWithdraw.disabled = model.arenaBusy;
+    ui.arenaViewResults.hidden = !completed;
+    const rules = Array.isArray(tournament.rules) && tournament.rules.length ? tournament.rules : [
+        'Win 2 · Draw 1 · Loss 0', 'New pairings stop when Arena time expires.',
+        'Games already in progress finish normally.', 'Immediate rematches are avoided when alternatives exist.'
+    ];
+    $('arena-detail-rules').replaceChildren(...rules.map(rule => {
+        const item = document.createElement('li'); item.textContent = rule; return item;
+    }));
     configureArenaCountdown($('arena-detail-countdown'), tournament);
 }
 
 function showArenaDirectory() {
     model.selectedTournamentId = null;
     ui.arenaDetail.hidden = true;
-    ui.arenaList.hidden = false;
-    document.querySelector('.arena-filters').hidden = false;
+    $('arena-filters').hidden = false;
+    document.querySelector('.tournament-directory-tabs').hidden = false;
+    selectDirectoryView(model.selectedDirectoryView);
     renderArenaDirectory();
 }
 
@@ -524,23 +604,134 @@ async function changeArenaMembership(eventType) {
         applyState(envelope.data?.state);
         if (eventType === 'tournament.join') {
             showToast('You joined the Arena. Pairing is automatic.');
-            if (!model.game) selectTab('tournament');
+            closeTournamentDirectory();
+            selectTab('tournaments');
         } else {
             showToast('You withdrew. Active game results still count.');
-            selectLobbyView('tournaments');
-            selectTab('lobby');
+            renderArenaDirectory();
         }
     } catch (error) {
         handleError(error, 'The tournament membership could not be updated.');
     } finally {
         model.arenaBusy = false;
-        if (model.arena?.current) renderArenaDetail(model.arena.current);
+        const current = model.arena?.current;
+        if (current?.id === model.selectedTournamentId && ui.directoryDialog.open) renderArenaDetail(current);
+        renderArenaDirectory();
+    }
+}
+
+function openTournamentDirectory(view = 'current', opener = document.activeElement) {
+    if (!model.auth?.isSignedIn || model.auth?.isGuest) {
+        model.tournamentIntent = true;
+        $('signin-dialog-title').textContent = 'Sign in for CAISSA Tournaments';
+        $('signin-dialog-copy').textContent = 'Sign in to browse, join, or organize an Arena tournament.';
+        showSignInDialog(opener);
+        return;
+    }
+    if (model.config?.capabilities?.arenaS001 !== true) {
+        showToast('Tournament Season 001 is not enabled in this environment.');
+        return;
+    }
+    model.directoryOpener = opener instanceof HTMLElement ? opener : document.activeElement;
+    showArenaDirectory();
+    selectDirectoryView(view);
+    if (!ui.directoryDialog.open) ui.directoryDialog.showModal();
+}
+
+function closeTournamentDirectory() {
+    if (ui.directoryDialog.open) ui.directoryDialog.close();
+}
+
+function restoreTournamentDirectoryFocus() {
+    const opener = model.directoryOpener;
+    model.directoryOpener = null;
+    queueMicrotask(() => opener?.isConnected && opener.focus());
+}
+
+function viewSelectedTournament() {
+    closeTournamentDirectory();
+    selectTab('tournaments');
+    if (model.arena?.current) renderArenaContext(model.arena.current);
+}
+
+async function createArenaTournament(event) {
+    event.preventDefault();
+    if (model.arenaBusy) return;
+    const control = ({
+        'bullet-1-0': { pool: 'bullet', baseMs: 60000, incrementMs: 0 },
+        'bullet-1-1': { pool: 'bullet', baseMs: 60000, incrementMs: 1000 },
+        'blitz-3-0': { pool: 'blitz', baseMs: 180000, incrementMs: 0 },
+        'blitz-3-2': { pool: 'blitz', baseMs: 180000, incrementMs: 2000 },
+        'blitz-5-0': { pool: 'blitz', baseMs: 300000, incrementMs: 0 },
+        'blitz-5-5': { pool: 'blitz', baseMs: 300000, incrementMs: 5000 },
+        'rapid-10-0': { pool: 'rapid', baseMs: 600000, incrementMs: 0 },
+        'rapid-10-5': { pool: 'rapid', baseMs: 600000, incrementMs: 5000 }
+    })[$('arena-create-control').value];
+    const scheduled = $('arena-create-start-mode').value === 'scheduled';
+    const startInput = $('arena-create-start').value;
+    const startsAt = scheduled ? new Date(startInput) : new Date(Date.now() + 5 * 60_000);
+    if (!control || Number.isNaN(startsAt.valueOf()) || startsAt.valueOf() < Date.now() - 30_000) {
+        ui.createFeedback.textContent = 'Choose a valid future start time and approved time control.';
+        return;
+    }
+    const payload = {
+        name: $('arena-create-name').value.trim(),
+        timeControlId: $('arena-create-control').value,
+        startsAt: startsAt.toISOString(),
+        durationMinutes: Number($('arena-create-duration').value),
+        capacity: Number($('arena-create-capacity').value),
+        lateJoin: $('arena-create-late-join').checked,
+        ...control
+    };
+    model.arenaBusy = true;
+    setBusy($('arena-create-submit'), true, 'Creating…');
+    ui.createFeedback.textContent = 'Creating with server time and tournament safeguards…';
+    try {
+        const envelope = await api.command('tournament.create', payload);
+        applyState(envelope.data?.state);
+        ui.createForm.reset();
+        $('arena-create-start-wrap').hidden = true;
+        ui.createFeedback.textContent = '';
+        closeTournamentDirectory();
+        selectTab('tournaments');
+        showToast('Tournament created. You are its organizer.');
+    } catch (error) {
+        ui.createFeedback.textContent = messageForError(error);
+        handleError(error, 'The tournament could not be created.');
+    } finally {
+        model.arenaBusy = false;
+        setBusy($('arena-create-submit'), false, 'Create Tournament');
+    }
+}
+
+async function manageArenaTournament(action) {
+    const tournament = model.arena?.current;
+    if (!tournament?.id || !tournament.organizedByMe || model.arenaBusy) return;
+    const confirmed = await confirmAction(
+        action === 'cancel' ? 'Cancel this tournament?' : 'Close this tournament?',
+        action === 'cancel' ? 'Registration will close and the event will be marked cancelled.' : 'No new pairings will start. Active games may finish.',
+        action === 'cancel' ? 'Cancel Tournament' : 'Close Tournament'
+    );
+    if (!confirmed) return;
+    model.arenaBusy = true;
+    try {
+        const envelope = await api.command(`tournament.${action}`, { tournamentId: tournament.id });
+        applyState(envelope.data?.state);
+        showToast(action === 'cancel' ? 'Tournament cancelled.' : 'Tournament is finishing.');
+    } catch (error) {
+        handleError(error, 'The organizer action could not be completed.');
+    } finally {
+        model.arenaBusy = false;
     }
 }
 
 function renderArenaContext(tournament) {
     $('arena-context-name').textContent = tournament.name;
     $('arena-context-meta').textContent = `${arenaControl(tournament)} · Unrated · ${arenaStatusLabel(tournament.status)}`;
+    $('arena-context-enrollment').textContent = `${tournament.participantCount}/${tournament.capacity || '∞'} players · ${tournament.myState ? arenaParticipantStatus(tournament.myState) : tournament.organizedByMe ? 'Organizer' : 'Not joined'}`;
+    $('arena-context-withdraw').hidden = !tournament.myState || tournament.myState === 'withdrawn' || ['completed', 'cancelled'].includes(tournament.status);
+    $('arena-cancel').hidden = !tournament.organizedByMe || !['scheduled', 'registration_open'].includes(tournament.status);
+    $('arena-close').hidden = !tournament.organizedByMe || !['active', 'finishing'].includes(tournament.status);
     configureArenaCountdown($('arena-context-countdown'), tournament);
     ui.arenaStandingsBody.replaceChildren();
     (tournament.standings || []).forEach(standing => {
@@ -655,15 +846,20 @@ function arenaParticipantStatus(state) {
     return ({ registered: 'Registered', waiting: 'Waiting', playing: 'Playing', withdrawn: 'Withdrawn', disconnected: 'Reconnecting' })[state] || 'Registered';
 }
 
-function selectTournamentView(name) {
-    document.querySelectorAll('[data-tournament-view]').forEach(tab => {
-        const selected = tab.dataset.tournamentView === name;
+function selectDirectoryView(name) {
+    model.selectedDirectoryView = name;
+    ui.arenaDetail.hidden = true;
+    $('arena-filters').hidden = name === 'create';
+    document.querySelector('.tournament-directory-tabs').hidden = false;
+    document.querySelectorAll('[data-directory-tab]').forEach(tab => {
+        const selected = tab.dataset.directoryTab === name;
         tab.setAttribute('aria-selected', String(selected));
         tab.tabIndex = selected ? 0 : -1;
     });
-    document.querySelectorAll('[data-tournament-panel]').forEach(panel => {
-        panel.hidden = panel.dataset.tournamentPanel !== name;
+    document.querySelectorAll('[data-directory-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.directoryPanel !== name;
     });
+    renderArenaDirectory();
 }
 
 function selectArenaContext(name) {
@@ -1423,7 +1619,7 @@ function renderWorkspaceHeader() {
     let title = 'Find a game';
     if (model.selectedTab === 'games') title = 'Games';
     else if (model.selectedTab === 'lobby') title = 'Lobby';
-    else if (model.selectedTab === 'tournament') title = model.arena?.current?.name || 'Tournament';
+    else if (model.selectedTab === 'tournaments') title = model.arena?.current?.name || 'Tournaments';
     else if (game?.status === 'completed') title = 'Game complete';
     else if (game?.status === 'active') {
         const color = playerColor(game);
@@ -1485,6 +1681,7 @@ function handleSignInDialogClose() {
 }
 
 function selectedOnlineReturnPath() {
+    if (model.tournamentIntent || model.selectedTab === 'tournaments') return '/online/tournaments?directory=1';
     const params = new URLSearchParams({ control: model.selectedControl });
     if (model.selectedControl === 'custom') {
         params.set('minutes', boundedInputValue($('custom-minutes')));
@@ -1552,7 +1749,7 @@ function resetPlayerStrips(state = 'idle') {
 }
 function fillEmpty(strip, name) { strip.querySelector('.player-name').textContent = name; strip.querySelector('.player-rating').textContent = '—'; strip.querySelector('.player-avatar').textContent = initials(name); strip.dataset.running = 'false'; }
 function showBoardError(intent, message) { board.highlightSquares([{ square: intent.from, type: 'error' }, { square: intent.to, type: 'error' }]); showToast(message); setTimeout(() => board.clearHighlights(), 900); }
-function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.', ONLINE_INTERNAL_ONLY: 'Access denied. This Clerk account is not authorized for the private Arena beta.', ARENA_BETA_NOT_AUTHORIZED: 'Access denied. This Clerk account is not authorized for Arena Season 001.', ARENA_ORGANIZER_REQUIRED: 'This account may play, but only the authorized organizer can create an Arena.', STALE_VERSION: 'The board changed; it has been synchronized.', ILLEGAL_MOVE: 'That move is not legal.', NOT_YOUR_TURN: 'Wait for your turn.', RATE_LIMITED: 'Too many requests. Please wait a moment.', DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.' })[error?.code] || 'The server could not confirm that action.'; }
+function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.', ONLINE_INTERNAL_ONLY: 'Access denied. This account cannot use the isolated beta.', ARENA_BETA_NOT_AUTHORIZED: 'Access denied. This account cannot access Arena Season 001.', ARENA_MEMBER_ACCOUNT_REQUIRED: 'Sign in with a member account to use tournaments.', ARENA_REGISTRATION_NOT_OPEN: 'Registration is not open yet.', ARENA_REGISTRATION_CLOSED: 'Registration has closed.', ARENA_LATE_JOIN_DISABLED: 'This Arena does not allow joining after it starts.', ARENA_COMPLETED: 'This tournament is complete. Results are available.', ARENA_FULL: 'This tournament is full.', ARENA_PARTICIPATION_CONFLICT: 'You are already enrolled in an overlapping tournament.', ARENA_CREATION_LIMIT: 'You already have the maximum number of open tournaments.', ARENA_CREATION_COOLDOWN: 'Please wait a minute before creating another tournament.', ARENA_CREATION_CONFLICT: 'You already organize a tournament during this time.', ARENA_ORGANIZER_REQUIRED: 'Only this tournament’s organizer may perform that action.', ARENA_MANAGE_INVALID_STATE: 'That organizer action is not available in the current tournament state.', ARENA_INVALID: 'Review the tournament name, time, duration, capacity, and time control.', STALE_VERSION: 'The board changed; it has been synchronized.', ILLEGAL_MOVE: 'That move is not legal.', NOT_YOUR_TURN: 'Wait for your turn.', RATE_LIMITED: 'Too many requests. Please wait a moment.', DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.' })[error?.code] || 'The server could not confirm that action.'; }
 function isAccessDeniedError(error) { return error instanceof OnlineApiError && ['ONLINE_INTERNAL_ONLY', 'ARENA_BETA_NOT_AUTHORIZED'].includes(error.code); }
 function clearAccessDenied() {
     model.accessDeniedCode = null;
@@ -1576,10 +1773,7 @@ function renderAccessDenied(error) {
     ui.arenaJoin.disabled = true;
     ui.arenaWithdraw.disabled = true;
     ui.arenaDirectory.hidden = true;
-    ui.tournamentsComingSoon.hidden = true;
-    ui.tournamentDemoContent.hidden = true;
     ui.accessDenied.hidden = false;
-    ui.arenaTab.hidden = true;
     ui.curtain.hidden = false;
     ui.curtainTitle.textContent = 'Private beta access denied';
     ui.curtainCopy.textContent = 'This signed-in Clerk account is not authorized for the isolated Arena beta. Contact the organizer to add its Clerk user ID.';

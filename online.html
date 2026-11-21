@@ -8,13 +8,13 @@
     <title>Online Chess — CAISSA</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="stylesheet" href="/css/caissa-board.css">
-    <link rel="stylesheet" href="/css/online.css?v=arena-s001-rc1">
+    <link rel="stylesheet" href="/css/online.css?v=tournament-ux-s001">
     <link rel="stylesheet" href="/css/mobile2-destination-header.css?v=1.2.0">
     <script src="/js/mobile2-destination-header.js?v=1.2.0"></script>
     <script src="/js/auth-config.js" defer></script>
     <script src="/js/caissa-auth.js" defer></script>
     <script src="/js/play/analyze-handoff.js" defer></script>
-    <script type="module" src="/js/online/online-page.js?v=arena-s001-rc1"></script>
+    <script type="module" src="/js/online/online-page.js?v=tournament-ux-s001"></script>
 </head>
 <body class="online-page">
     <header class="online-mobile2-header" data-caissa-mobile2-header-host></header>
@@ -67,9 +67,9 @@
                     <div class="workspace-heading"><div><p>PLAYING ROOM</p><h2 id="workspace-title">Find a game</h2></div><span id="game-badge">READY</span></div>
                     <div class="workspace-tabs" role="tablist" aria-label="Online sections">
                         <button role="tab" id="tab-new" aria-controls="panel-new" aria-selected="true" data-tab="new">New Game</button>
-                        <button role="tab" id="tab-games" aria-controls="panel-games" aria-selected="false" data-tab="games">Games</button>
                         <button role="tab" id="tab-lobby" aria-controls="panel-lobby" aria-selected="false" data-tab="lobby">Lobby</button>
-                        <button role="tab" id="tab-tournament" aria-controls="panel-tournament" aria-selected="false" data-tab="tournament" hidden>Tournament</button>
+                        <button role="tab" id="tab-games" aria-controls="panel-games" aria-selected="false" data-tab="games">Games</button>
+                        <button role="tab" id="tab-tournaments" aria-controls="panel-tournaments" aria-selected="false" data-tab="tournaments">Tournaments</button>
                     </div>
                 </div>
 
@@ -93,6 +93,7 @@
                             <div class="lobby-secondary">
                                 <button id="play-friend">Play a Friend</button>
                             </div>
+                            <button class="tournament-cta" id="browse-tournaments" type="button" aria-haspopup="dialog" aria-controls="tournament-directory-dialog"><span aria-hidden="true">&#127942;</span><span><strong>Tournaments</strong><small>Browse and join CAISSA Arenas</small></span><span aria-hidden="true">&#8250;</span></button>
                             <p class="trust-note"><span aria-hidden="true">◆</span> Legal moves, clocks and results are verified by CAISSA's server.</p>
                             <div class="lobby-access" id="lobby-access">
                                 <p>Play with a CAISSA account or as a guest.</p>
@@ -161,7 +162,6 @@
                         <div class="lobby-subtabs" role="tablist" aria-label="Lobby sections">
                             <button id="lobby-tab-players" role="tab" aria-selected="true" aria-controls="lobby-panel-players" data-lobby-tab="players">Players</button>
                             <button id="lobby-tab-offers" role="tab" aria-selected="false" aria-controls="lobby-panel-offers" data-lobby-tab="offers" tabindex="-1">Tables / Offers</button>
-                            <button id="lobby-tab-tournaments" role="tab" aria-selected="false" aria-controls="lobby-panel-tournaments" data-lobby-tab="tournaments" tabindex="-1">Tournaments</button>
                         </div>
 
                         <section id="lobby-panel-players" role="tabpanel" aria-labelledby="lobby-tab-players" data-lobby-panel="players">
@@ -185,69 +185,28 @@
                             </div>
                         </section>
 
-                        <section id="lobby-panel-tournaments" role="tabpanel" aria-labelledby="lobby-tab-tournaments" data-lobby-panel="tournaments" hidden>
-                            <div id="online-access-denied" class="tournaments-coming-soon online-access-denied" role="alert" hidden>
-                                <span aria-hidden="true">&#128274;</span><p>PRIVATE BETA</p><h3>Access denied</h3><strong>Clerk ID not authorized</strong><small>This signed-in account is not on the isolated Arena beta allowlist. Contact the organizer before trying to join.</small>
-                            </div>
-                            <div id="tournaments-coming-soon" class="tournaments-coming-soon">
-                                <span aria-hidden="true">🏆</span><p>FUTURE SEASON</p><h3>CAISSA Tournaments</h3><strong>Coming Soon</strong><small>Organized CAISSA competitions will arrive in a future, separately certified season.</small>
-                            </div>
-                            <div id="arena-directory" class="arena-directory" hidden>
-                                <header class="arena-directory__head"><div><p>PRIVATE BETA</p><h3>CAISSA Arenas</h3></div><span>Season 001</span></header>
-                                <div class="arena-filters">
-                                    <label>Search<input id="arena-search" type="search" maxlength="80" placeholder="Tournament name"></label>
-                                    <label>Status<select id="arena-status-filter"><option value="all">All</option><option value="active">Active</option><option value="upcoming">Upcoming</option><option value="completed">Completed</option></select></label>
-                                </div>
-                                <div id="arena-list" class="arena-list" aria-live="polite"></div>
-                                <section id="arena-detail" class="arena-detail" aria-labelledby="arena-detail-name" hidden>
-                                    <button id="arena-detail-back" class="arena-back" type="button">Back to tournaments</button>
-                                    <div class="arena-detail__hero"><div><p id="arena-detail-kicker">ARENA · UNRATED</p><h3 id="arena-detail-name">Tournament</h3></div><time id="arena-detail-countdown"><span>Starts in</span><strong>—</strong></time></div>
-                                    <dl class="arena-facts"><div><dt>Time control</dt><dd id="arena-detail-control">3+2</dd></div><div><dt>Duration</dt><dd id="arena-detail-duration">15 min</dd></div><div><dt>Players</dt><dd id="arena-detail-players">0 / 4</dd></div><div><dt>Format</dt><dd>Arena</dd></div></dl>
-                                    <div class="arena-detail__actions"><button id="arena-join" class="primary-action" type="button">Join tournament</button><button id="arena-withdraw" type="button" hidden>Withdraw</button></div>
-                                    <section class="arena-rules"><h4>Season 001 rules</h4><ul><li>Win 2 · Draw 1 · Loss 0</li><li>New pairings stop when Arena time expires.</li><li>Games already in progress finish normally.</li><li>Immediate rematches are avoided when alternatives exist.</li></ul></section>
-                                </section>
-                            </div>
-                            <div id="tournament-demo-content" hidden>
-                                <div class="demo-banner"><strong>Visual demo</strong><span>Future tournament experience — synthetic data</span></div>
-                                <div class="tournament-demo-head"><div><p>CAISSA RAPID NIGHT</p><h3>Rapid Arena</h3></div><time datetime="PT18M42S"><span>Time remaining</span><strong>18:42</strong></time></div>
-                                <div class="tournament-demo-tabs" role="tablist" aria-label="Tournament demo sections">
-                                    <button role="tab" aria-selected="true" data-tournament-view="standings" aria-controls="tournament-demo-standings">Standings</button>
-                                    <button role="tab" aria-selected="false" data-tournament-view="games" aria-controls="tournament-demo-games">Games</button>
-                                </div>
-                                <section id="tournament-demo-standings" data-tournament-panel="standings">
-                                    <table class="tournament-standings">
-                                        <caption>Current standings</caption>
-                                        <thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col">Pts</th></tr></thead>
-                                        <tbody>
-                                            <tr><td>1</td><td>NovaKnight</td><td>12</td></tr>
-                                            <tr class="is-current-player"><td>2</td><td>Alexander <span>(you)</span></td><td>10</td></tr>
-                                            <tr><td>3</td><td>EndgameMuse</td><td>9</td></tr>
-                                            <tr><td>4</td><td>Criollito</td><td>8</td></tr>
-                                        </tbody>
-                                    </table>
-                                </section>
-                                <section id="tournament-demo-games" data-tournament-panel="games" hidden>
-                                    <div class="tournament-game-row"><strong>NovaKnight — EndgameMuse</strong><span>Playing · Board 1</span></div>
-                                    <div class="tournament-game-row"><strong>Alexander — Criollito</strong><span>Next · 10+0</span></div>
-                                    <div class="tournament-next"><p>OPPONENT ASSIGNED</p><strong>Criollito · Black · 10+0</strong><span>Your next game is ready in this demonstration.</span><button id="demo-next-game">Next game</button></div>
-                                </section>
-                            </div>
-                        </section>
                     </section>
 
-                    <section id="panel-tournament" role="tabpanel" aria-labelledby="tab-tournament" data-panel="tournament" hidden>
-                        <header class="arena-context-head"><div><p>ARENA TOURNAMENT</p><h3 id="arena-context-name">CAISSA Arena</h3><span id="arena-context-meta">3+2 · Unrated</span></div><time id="arena-context-countdown"><span>Time remaining</span><strong>—</strong></time></header>
-                        <div class="arena-context-tabs" role="tablist" aria-label="Tournament context">
-                            <button id="arena-context-tab-standings" role="tab" aria-selected="true" aria-controls="arena-context-standings" data-arena-context="standings">Standings</button>
-                            <button id="arena-context-tab-games" role="tab" aria-selected="false" aria-controls="arena-context-games" data-arena-context="games" tabindex="-1">Games</button>
+                    <section id="panel-tournaments" role="tabpanel" aria-labelledby="tab-tournaments" data-panel="tournaments" hidden>
+                        <div id="tournament-context-empty" class="tournament-context-empty">
+                            <span aria-hidden="true">&#127942;</span><p>CAISSA ARENA</p><h3>Find your next tournament</h3><small>Browse live and scheduled Arenas, or organize one for the community.</small>
+                            <div><button id="tournament-empty-browse" class="primary-action" type="button" aria-haspopup="dialog">Browse Tournaments</button><button id="tournament-empty-create" type="button" aria-haspopup="dialog">Create Tournament</button></div>
                         </div>
-                        <section id="arena-context-standings" role="tabpanel" aria-labelledby="arena-context-tab-standings" data-arena-context-panel="standings">
-                            <table class="arena-standings"><caption>Live Arena standings</caption><thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col">W-D-L</th><th scope="col">Pts</th></tr></thead><tbody id="arena-standings-body"></tbody></table>
-                        </section>
-                        <section id="arena-context-games" role="tabpanel" aria-labelledby="arena-context-tab-games" data-arena-context-panel="games" hidden>
-                            <div id="arena-pairing-state" class="arena-pairing-state"><span aria-hidden="true">♞</span><strong>Waiting for pairing</strong><p>CAISSA will assign your next opponent automatically.</p></div>
-                            <div id="arena-games-list" class="arena-games-list"></div>
-                        </section>
+                        <div id="arena-context" hidden>
+                            <header class="arena-context-head"><div><p>ARENA TOURNAMENT</p><h3 id="arena-context-name">CAISSA Arena</h3><span id="arena-context-meta">3+2 · Unrated</span><small id="arena-context-enrollment">Registration status</small></div><time id="arena-context-countdown"><span>Time remaining</span><strong>—</strong></time></header>
+                            <div class="arena-context-actions"><button id="arena-context-directory" type="button" aria-haspopup="dialog">Tournament Directory</button><button id="arena-context-withdraw" type="button" hidden>Withdraw</button><button id="arena-cancel" class="danger-action" type="button" hidden>Cancel Tournament</button><button id="arena-close" class="danger-action" type="button" hidden>Close Tournament</button></div>
+                            <div class="arena-context-tabs" role="tablist" aria-label="Tournament context">
+                                <button id="arena-context-tab-standings" role="tab" aria-selected="true" aria-controls="arena-context-standings" data-arena-context="standings">Standings</button>
+                                <button id="arena-context-tab-games" role="tab" aria-selected="false" aria-controls="arena-context-games" data-arena-context="games" tabindex="-1">Games</button>
+                            </div>
+                            <section id="arena-context-standings" role="tabpanel" aria-labelledby="arena-context-tab-standings" data-arena-context-panel="standings">
+                                <table class="arena-standings"><caption>Live Arena standings</caption><thead><tr><th scope="col">#</th><th scope="col">Player</th><th scope="col">W-D-L</th><th scope="col">Pts</th></tr></thead><tbody id="arena-standings-body"></tbody></table>
+                            </section>
+                            <section id="arena-context-games" role="tabpanel" aria-labelledby="arena-context-tab-games" data-arena-context-panel="games" hidden>
+                                <div id="arena-pairing-state" class="arena-pairing-state"><span aria-hidden="true">♞</span><strong>Waiting for pairing</strong><p>CAISSA will assign your next opponent automatically.</p></div>
+                                <div id="arena-games-list" class="arena-games-list"></div>
+                            </section>
+                        </div>
                     </section>
                 </div>
 
@@ -279,6 +238,57 @@
             </section>
             <a class="setup-help" href="/help"><span>Fair Play &amp; Help</span><small>Rules, conduct and assistance</small></a>
         </form>
+    </dialog>
+    <dialog id="tournament-directory-dialog" class="tournament-directory-dialog" aria-labelledby="tournament-directory-title">
+        <article>
+            <header class="tournament-directory-head">
+                <div><p>CAISSA ONLINE</p><h2 id="tournament-directory-title">Tournament Directory</h2><span>Arena competitions · Live and scheduled</span></div>
+                <button id="tournament-directory-close" type="button" aria-label="Close tournament directory">×</button>
+            </header>
+            <div class="tournament-directory-tabs" role="tablist" aria-label="Tournament directory sections">
+                <button id="directory-tab-current" role="tab" aria-selected="true" aria-controls="directory-panel-current" data-directory-tab="current">Current <span id="directory-count-current">0</span></button>
+                <button id="directory-tab-schedule" role="tab" aria-selected="false" aria-controls="directory-panel-schedule" data-directory-tab="schedule" tabindex="-1">Schedule <span id="directory-count-schedule">0</span></button>
+                <button id="directory-tab-mine" role="tab" aria-selected="false" aria-controls="directory-panel-mine" data-directory-tab="mine" tabindex="-1">My Tournaments <span id="directory-count-mine">0</span></button>
+                <button id="directory-tab-create" role="tab" aria-selected="false" aria-controls="directory-panel-create" data-directory-tab="create" tabindex="-1">Create</button>
+            </div>
+            <div id="online-access-denied" class="directory-message directory-message--error" role="alert" hidden><strong>Access denied</strong><span>Your account cannot access this isolated beta. Sign in with an eligible Development account.</span></div>
+            <div id="arena-directory" class="arena-directory" hidden>
+                <div id="arena-directory-message" class="directory-message" role="status" aria-live="polite" hidden><strong id="arena-directory-message-title">Could not load tournaments</strong><span id="arena-directory-message-copy">Check your connection and try again.</span><button id="arena-directory-retry" type="button">Retry</button></div>
+                <div class="arena-filters" id="arena-filters">
+                    <label>Search<input id="arena-search" type="search" maxlength="80" placeholder="Tournament name"></label>
+                    <label>Status<select id="arena-status-filter"><option value="all">All statuses</option><option value="active">Active</option><option value="upcoming">Upcoming</option><option value="completed">Completed</option></select></label>
+                    <label>Time control<select id="arena-control-filter"><option value="all">All controls</option><option value="bullet">Bullet</option><option value="blitz">Blitz</option><option value="rapid">Rapid</option></select></label>
+                </div>
+                <section id="directory-panel-current" role="tabpanel" aria-labelledby="directory-tab-current" data-directory-panel="current"><h3>Current Tournaments</h3><p>Live Arenas and events accepting registrations.</p><div id="arena-current-list" class="arena-list" aria-live="polite"></div></section>
+                <section id="directory-panel-schedule" role="tabpanel" aria-labelledby="directory-tab-schedule" data-directory-panel="schedule" hidden><h3>Schedule</h3><p>Upcoming Arenas shown in your local time.</p><div id="arena-schedule-list" class="arena-list" aria-live="polite"></div></section>
+                <section id="directory-panel-mine" role="tabpanel" aria-labelledby="directory-tab-mine" data-directory-panel="mine" hidden><h3>My Tournaments</h3><p>Events you joined or organized, including completed results.</p><div id="arena-my-list" class="arena-list" aria-live="polite"></div></section>
+                <section id="directory-panel-create" role="tabpanel" aria-labelledby="directory-tab-create" data-directory-panel="create" hidden>
+                    <form id="arena-create-form" class="arena-create-form">
+                        <header><h3>Create a Tournament</h3><p>Organize a private, unrated Arena for authenticated beta players.</p></header>
+                        <label class="form-wide">Tournament name<input id="arena-create-name" name="name" required minlength="3" maxlength="80" autocomplete="off"></label>
+                        <label>Variant<select id="arena-create-variant" name="variant" disabled><option>Standard chess</option></select></label>
+                        <label>Format<select id="arena-create-format" name="format" disabled><option>Arena</option></select></label>
+                        <label>Rating<select id="arena-create-rating" name="rating" disabled><option>Unrated</option></select></label>
+                        <label>Time control<select id="arena-create-control" name="control" required><option value="bullet-1-0">1+0 Bullet</option><option value="bullet-1-1">1+1 Bullet</option><option value="blitz-3-0">3+0 Blitz</option><option value="blitz-3-2" selected>3+2 Blitz</option><option value="blitz-5-0">5+0 Blitz</option><option value="blitz-5-5">5+5 Blitz</option><option value="rapid-10-0">10+0 Rapid</option><option value="rapid-10-5">10+5 Rapid</option></select></label>
+                        <label>Duration<select id="arena-create-duration" name="duration" required><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select></label>
+                        <label>Start<select id="arena-create-start-mode" name="startMode"><option value="now">Start soon</option><option value="scheduled">Schedule</option></select></label>
+                        <label id="arena-create-start-wrap" hidden>Start date and time<input id="arena-create-start" name="startsAt" type="datetime-local"></label>
+                        <label>Maximum players<input id="arena-create-capacity" name="capacity" type="number" min="4" max="64" value="16" required></label>
+                        <label class="arena-create-check"><input id="arena-create-late-join" name="lateJoin" type="checkbox" checked><span><strong>Allow late join</strong><small>Players may join while the Arena is active.</small></span></label>
+                        <section class="arena-create-rules form-wide"><h4>Rules</h4><ul><li>Win 2 · Draw 1 · Loss 0</li><li>Server-authoritative moves and clocks</li><li>Active games finish after Arena time expires</li></ul></section>
+                        <div id="arena-create-feedback" class="form-wide" role="status" aria-live="polite"></div>
+                        <button id="arena-create-submit" class="primary-action form-wide" type="submit">Create Tournament</button>
+                    </form>
+                </section>
+                <section id="arena-detail" class="arena-detail" aria-labelledby="arena-detail-name" hidden>
+                    <button id="arena-detail-back" class="arena-back" type="button">Back to tournaments</button>
+                    <div class="arena-detail__hero"><div><p id="arena-detail-kicker">ARENA · UNRATED</p><h3 id="arena-detail-name">Tournament</h3></div><time id="arena-detail-countdown"><span>Starts in</span><strong>—</strong></time></div>
+                    <dl class="arena-facts"><div><dt>Time control</dt><dd id="arena-detail-control">3+2</dd></div><div><dt>Duration</dt><dd id="arena-detail-duration">15 min</dd></div><div><dt>Players</dt><dd id="arena-detail-players">0 / 4</dd></div><div><dt>Registration</dt><dd id="arena-detail-registration">Open</dd></div></dl>
+                    <div class="arena-detail__actions"><button id="arena-join" class="primary-action" type="button">Join tournament</button><button id="arena-withdraw" type="button" hidden>Withdraw</button><button id="arena-view-results" type="button" hidden>View Results</button></div>
+                    <section class="arena-rules"><h4>Season 001 rules</h4><ul id="arena-detail-rules"><li>Win 2 · Draw 1 · Loss 0</li><li>New pairings stop when Arena time expires.</li><li>Games already in progress finish normally.</li><li>Immediate rematches are avoided when alternatives exist.</li></ul></section>
+                </section>
+            </div>
+        </article>
     </dialog>
     <div id="online-toast" role="alert" aria-live="assertive" hidden></div>
 </body>

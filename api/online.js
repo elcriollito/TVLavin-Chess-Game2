@@ -399,6 +399,13 @@ async function handleTournamentCommand(req, res, auth, service, dependencies, ev
             });
         } else if (event.eventType === 'tournament.sync') {
             arena = await service.getArenaState(auth.userId, checked.value.tournamentId);
+        } else if (event.eventType === 'tournament.cancel' || event.eventType === 'tournament.close') {
+            arena = await service.manageArena({
+                clerkId: auth.userId,
+                tournamentId: checked.value.tournamentId,
+                eventId: event.eventId,
+                action: event.eventType === 'tournament.cancel' ? 'cancel' : 'close'
+            });
         } else {
             return res.status(501).json({ code: 'EVENT_NOT_ENABLED' });
         }
@@ -501,8 +508,17 @@ function focusCompletedGame(state, gameId) {
 
 function mapError(code) {
     const value = String(code || 'ONLINE_SERVICE_UNAVAILABLE');
+    if (value.includes('ARENA_REGISTRATION_NOT_OPEN')) return { status: 409, code: 'ARENA_REGISTRATION_NOT_OPEN' };
     if (value.includes('ARENA_REGISTRATION_CLOSED')) return { status: 409, code: 'ARENA_REGISTRATION_CLOSED' };
+    if (value.includes('ARENA_LATE_JOIN_DISABLED')) return { status: 409, code: 'ARENA_LATE_JOIN_DISABLED' };
+    if (value.includes('ARENA_COMPLETED')) return { status: 409, code: 'ARENA_COMPLETED' };
     if (value.includes('ARENA_FULL')) return { status: 409, code: 'ARENA_FULL' };
+    if (value.includes('ARENA_PARTICIPATION_CONFLICT')) return { status: 409, code: 'ARENA_PARTICIPATION_CONFLICT' };
+    if (value.includes('ARENA_CREATION_LIMIT')) return { status: 409, code: 'ARENA_CREATION_LIMIT' };
+    if (value.includes('ARENA_CREATION_COOLDOWN')) return { status: 429, code: 'ARENA_CREATION_COOLDOWN' };
+    if (value.includes('ARENA_CREATION_CONFLICT')) return { status: 409, code: 'ARENA_CREATION_CONFLICT' };
+    if (value.includes('ARENA_ORGANIZER_REQUIRED')) return { status: 403, code: 'ARENA_ORGANIZER_REQUIRED' };
+    if (value.includes('ARENA_MANAGE_INVALID_STATE')) return { status: 409, code: 'ARENA_MANAGE_INVALID_STATE' };
     if (value.includes('ARENA_NOT_FOUND')) return { status: 404, code: 'ARENA_NOT_FOUND' };
     if (value.includes('ARENA_INVALID')) return { status: 400, code: 'ARENA_INVALID' };
     if (value.includes('NOT_PARTICIPANT')) return { status: 403, code: 'NOT_A_PARTICIPANT' };
@@ -521,6 +537,9 @@ function serializedBodyBytes(body) {
 
 function distributedRatePolicy(req, event) {
     if (req.method === 'GET') return { bucket: 'read', limit: 120, windowSeconds: 60 };
+    if (event?.eventType === 'tournament.create') {
+        return { bucket: 'tournament-create', limit: 6, windowSeconds: 3600 };
+    }
     if (event?.eventType === 'challenge.create' || event?.eventType === 'game.rematch') {
         return { bucket: 'challenge-create', limit: 20, windowSeconds: 60 };
     }

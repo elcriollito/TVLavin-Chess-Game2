@@ -8,8 +8,8 @@ const baseEnv = {
     CAISSA_ONLINE_ROLLOUT: 'preview',
     CAISSA_ONLINE_TOURNAMENTS: '1',
     CAISSA_ONLINE_ARENA: '1',
-    CAISSA_ONLINE_TOURNAMENT_ADMINS: userId,
-    CAISSA_ONLINE_ARENA_CREATE: '1'
+    CAISSA_ONLINE_ARENA_CREATE: '1',
+    CAISSA_ONLINE_TOURNAMENT_ADMINS: userId
 };
 
 function response() {
@@ -107,15 +107,15 @@ test('authorized registration returns a canonical snapshot and private invalidat
     assert.equal(broadcast.version, 3);
 });
 
-test('organizer creation is separately authorized and defaults to 3+2 for 15 minutes', async () => {
+test('only an allowlisted Preview organizer can create a bounded Arena', async () => {
     let created;
     const service = {
         async createArena(input) { created = input; return arena; },
         async getState() { return { game: null, recentGames: [] }; }
     };
     const denied = response();
-    await handler(command('tournament.create', {}), denied, {
-        env: { ...baseEnv, CAISSA_ONLINE_TOURNAMENT_ADMINS: 'other_admin' },
+    await handler(command('tournament.create', { name: 'Community Arena' }), denied, {
+        env: { ...baseEnv, CAISSA_ONLINE_TOURNAMENT_ADMINS: 'user_someone_else' },
         authenticate, rateLimit, service
     });
     assert.equal(denied.statusCode, 403);
@@ -123,15 +123,36 @@ test('organizer creation is separately authorized and defaults to 3+2 for 15 min
 
     const accepted = response();
     await handler(command('tournament.create', {
+        name: 'Community Arena', timeControlId: 'blitz-3-2',
+        durationMinutes: 30, capacity: 16, lateJoin: true,
         startsAt: new Date(Date.now() + 60_000).toISOString()
     }), accepted, {
         env: baseEnv, authenticate, rateLimit, service,
         broadcastTournamentChange: async () => ({ delivered: true })
     });
     assert.equal(accepted.statusCode, 201);
-    assert.equal(created.name, 'CAISSA Arena S001 — Founders Beta');
-    assert.equal(created.durationMinutes, 15);
+    assert.equal(created.name, 'Community Arena');
+    assert.equal(created.durationMinutes, 30);
+    assert.equal(created.capacity, 16);
+    assert.equal(created.lateJoin, true);
     assert.equal(created.control.label, '3+2');
+});
+
+test('cancel and close commands delegate organizer authorization to the tournament RPC', async () => {
+    let managed;
+    const service = {
+        async manageArena(input) { managed = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const res = response();
+    await handler(command('tournament.cancel', { tournamentId }), res, {
+        env: baseEnv, authenticate, rateLimit, service
+    });
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(managed, {
+        clerkId: userId, tournamentId,
+        eventId: 'tournament-cancel:123456789012', action: 'cancel'
+    });
 });
 
 test('guest and malformed tournament requests fail before the Arena store', async () => {

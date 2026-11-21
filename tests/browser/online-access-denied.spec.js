@@ -24,11 +24,10 @@ test('internal-only rejection is explicit and leaves no usable Join or Ready sta
     await expect(page.locator('#workspace-title')).toHaveText('Access required');
     await expect(page.locator('#game-badge')).toHaveText('ACCESS DENIED');
     await expect(page.locator('#curtain-title')).toHaveText('Private beta access denied');
-    await expect(page.locator('#curtain-copy')).toContainText('Clerk user ID');
-    await expect(page.locator('#online-access-denied')).toBeVisible();
-    await expect(page.locator('#online-access-denied')).toContainText('Clerk ID not authorized');
+    await expect(page.locator('#curtain-copy')).toContainText('not authorized');
+    await expect(page.locator('#tab-tournaments')).toBeVisible();
     await expect(page.locator('#arena-directory')).toBeHidden();
     await expect(page.locator('#find-game')).toBeDisabled();
     await expect(page.locator('#find-game')).toHaveText('Access required');
-    await expect(page.getByRole('button', { name: 'Join tournament' })).toBeHidden();
+    await expect(page.locator('#arena-join')).toBeHidden();
 });

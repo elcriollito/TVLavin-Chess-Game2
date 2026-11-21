@@ -36,7 +36,7 @@ test('clean-room foundation exposes only the minimal server-side account anchor'
     assert.doesNotMatch(foundation, /if not exists/i);
 });
 
-test('clean-room manifest contains only the eight reviewed Arena migrations', () => {
+test('clean-room manifest contains only the nine reviewed Arena migrations', () => {
     const migrationEntries = [...manifest.matchAll(/^\d+\. `([^`]+\.sql)`/gm)]
         .map(match => match[1]);
     assert.deepEqual(migrationEntries, [
@@ -47,7 +47,8 @@ test('clean-room manifest contains only the eight reviewed Arena migrations', ()
         '../../migrations/20261120033413_caissa_online_arena_s001.sql',
         'supabase/migrations/20261120232717_caissa_arena_s001_pairing_fk_indexes.sql',
         'supabase/migrations/20261120235311_caissa_arena_s001_rematch_hardening.sql',
-        'supabase/migrations/20261121000412_caissa_arena_s001_concurrent_rematch_hardening.sql'
+        'supabase/migrations/20261121000412_caissa_arena_s001_concurrent_rematch_hardening.sql',
+        '../../migrations/20261121034500_caissa_tournament_ux_s001.sql'
     ]);
     assert.match(manifest, /deliberately excludes `supabase-schema\.sql`/);
     assert.match(manifest, /Apply exactly these SQL artifacts, in this order/);

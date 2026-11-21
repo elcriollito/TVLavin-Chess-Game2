@@ -133,7 +133,7 @@ export function createOnlineService(options = {}) {
                 p_tournament_id: tournamentId
             }));
         },
-        async createArena({ clerkId, eventId, name, startsAt, durationMinutes, control }) {
+        async createArena({ clerkId, eventId, name, startsAt, durationMinutes, capacity, lateJoin, control }) {
             return safeArenaState(await rpc(db, 'caissa_online_arena_create', {
                 p_clerk_id: clerkId,
                 p_event_id: eventId,
@@ -142,7 +142,9 @@ export function createOnlineService(options = {}) {
                 p_duration_minutes: durationMinutes,
                 p_pool: control.pool,
                 p_base_ms: control.baseMs,
-                p_increment_ms: control.incrementMs
+                p_increment_ms: control.incrementMs,
+                p_capacity: capacity,
+                p_late_join: lateJoin
             }));
         },
         async joinArena({ clerkId, tournamentId, eventId }) {
@@ -157,6 +159,14 @@ export function createOnlineService(options = {}) {
                 p_clerk_id: clerkId,
                 p_tournament_id: tournamentId,
                 p_event_id: eventId
+            }));
+        },
+        async manageArena({ clerkId, tournamentId, eventId, action }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_manage', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId,
+                p_action: action
             }));
         }
     });

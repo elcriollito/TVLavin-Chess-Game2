@@ -19,11 +19,14 @@ migration API:
 6. `supabase/migrations/20261120232717_caissa_arena_s001_pairing_fk_indexes.sql`
 7. `supabase/migrations/20261120235311_caissa_arena_s001_rematch_hardening.sql`
 8. `supabase/migrations/20261121000412_caissa_arena_s001_concurrent_rematch_hardening.sql`
+9. `../../migrations/20261121034500_caissa_tournament_ux_s001.sql`
 
 The seventh migration adds a tournament-history preference. The eighth closes
 the hosted separate-transaction race: players wait for an active unseen
 opponent instead of accepting an immediate rematch while the other board is
-still finishing. Both preserve the reviewed pairing transaction and grants.
+still finishing. The ninth adds bounded community-created Arenas, per-event
+organizer lifecycle actions, overlap protection, and directory metadata. All
+preserve the reviewed pairing transaction, server-only RPC boundary and grants.
 
 The foundation is fail-closed: it does not use `if not exists`, and it grants
 the browser roles nothing. A non-empty or drifted target must be investigated,

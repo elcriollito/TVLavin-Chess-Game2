@@ -9,6 +9,8 @@ test.beforeEach(async ({ page }) => {
     const tournament = tournamentFixture();
     const harness = {
         commands: [],
+        joinDelayMs: 0,
+        joinErrorCode: null,
         state: {
             profile: { display_name: 'Founder A' }, ticket: null, game: null,
             recentGames: [], players: [], challenges: [],
@@ -20,7 +22,7 @@ test.beforeEach(async ({ page }) => {
         contentType: 'text/javascript',
         body: `window.CAISSA_AUTH={isLoaded:true,isSignedIn:true,userId:'founder_a',fullName:'Founder A',email:'founder@example.test',getToken:async()=> 'arena-token',whenReady:async()=>window.CAISSA_AUTH};`
     }));
-    await page.route('**/api/online**', route => {
+    await page.route('**/api/online**', async route => {
         const request = route.request();
         const url = new URL(request.url());
         if (request.method() === 'GET' && url.searchParams.get('action') === 'config') {
@@ -28,26 +30,32 @@ test.beforeEach(async ({ page }) => {
                 protocolVersion: '1.0.0', rollout: 'preview', enabled: true,
                 capabilities: {
                     matchmaking: true, rated: false, tournaments: true, arenaS001: true,
-                    tournamentCreation: false, publicTournamentDirectory: false
+                    tournamentCreation: true, publicTournamentDirectory: false
                 }, realtime: null
             } });
         }
         if (request.method() === 'POST') {
             const command = request.postDataJSON();
             harness.commands.push(command);
+            if (command.eventType === 'tournament.join' && harness.joinDelayMs) {
+                await new Promise(resolve => setTimeout(resolve, harness.joinDelayMs));
+            }
+            if (command.eventType === 'tournament.join' && harness.joinErrorCode) {
+                return route.fulfill({ status: 409, json: { code: harness.joinErrorCode } });
+            }
             if (command.eventType === 'tournament.sync') {
                 harness.state = {
                     ...harness.state,
                     arena: { tournaments: harness.state.arena.tournaments, current: tournamentFixture() }
                 };
             } else if (command.eventType === 'tournament.join') {
-                const current = { ...tournamentFixture(), myState: 'registered', standings: standingsFixture() };
+                const current = { ...tournamentFixture(), participantCount: 1, myState: 'registered', standings: standingsFixture() };
                 harness.state = {
                     ...harness.state,
                     arena: { tournaments: [{ ...directoryTournament(current), joined: true, myState: 'registered' }], current }
                 };
             } else if (command.eventType === 'tournament.withdraw') {
-                const current = { ...harness.state.arena.current, myState: 'withdrawn' };
+                const current = { ...harness.state.arena.current, participantCount: 0, myState: 'withdrawn' };
                 harness.state = {
                     ...harness.state,
                     arena: { tournaments: [{ ...directoryTournament(current), joined: false, myState: 'withdrawn' }], current }
@@ -61,32 +69,73 @@ test.beforeEach(async ({ page }) => {
     });
 });
 
-test('authorized player discovers, opens, and joins the Founders beta', async ({ page }) => {
-    await page.goto('/online/tournaments');
+test('authorized player joins directly from the visible tournament card', async ({ page }) => {
+    await page.goto('/online/tournaments?directory=1');
     await expect(page.locator('#arena-directory')).toBeVisible();
-    await expect(page.locator('#tournaments-coming-soon')).toBeHidden();
+    await expect(page.locator('#tournament-directory-dialog')).toBeVisible();
     await expect(page.locator('.arena-card')).toHaveCount(1);
     await expect(page.locator('.arena-card')).toContainText('CAISSA Arena S001 — Founders Beta');
-    await expect(page.locator('.arena-card')).toContainText('3+2 · 15 min · 4/4 players');
-    await page.getByRole('button', { name: 'Join / View' }).click();
-    await expect(page.locator('#arena-detail')).toBeVisible();
-    await expect(page.locator('#arena-detail-name')).toHaveText('CAISSA Arena S001 — Founders Beta');
-    await expect(page.locator('.arena-rules')).toContainText('Win 2 · Draw 1 · Loss 0');
-    const join = page.getByRole('button', { name: 'Join tournament' });
-    await expect(join).toBeEnabled();
+    await expect(page.locator('.arena-card')).toContainText('3+2 · 15 min · 0/4 players');
+    const join = page.getByRole('button', { name: 'Join', exact: true });
+    await expect(join).toBeVisible();
     await join.click();
-    await expect(page.locator('#tab-tournament')).toBeVisible();
-    await expect(page.locator('#panel-tournament')).toBeVisible();
+    await expect(page.locator('#tab-tournaments')).toBeVisible();
+    await expect(page.locator('#panel-tournaments')).toBeVisible();
+    await expect(page.locator('#arena-context-enrollment')).toContainText('1/4 players · Registered');
+    await expect(page.locator('#arena-context-withdraw')).toBeVisible();
     await expect(page.locator('#arena-standings-body tr')).toHaveCount(4);
     await expect(page.locator('#arena-standings-body .is-current-player')).toContainText('Founder A');
+    await page.reload();
+    await page.locator('#tournament-directory-close').click();
+    await expect(page.locator('#arena-context-enrollment')).toContainText('1/4 players · Registered');
+    await page.locator('#arena-context-withdraw').click();
+    await expect(page.locator('#arena-context-enrollment')).toContainText('0/4 players · Withdrawn');
+    await page.locator('#arena-context-directory').click();
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeEnabled();
     expect(harnesses.get(page).commands.map(command => command.eventType)).toEqual([
-        'presence.join', 'tournament.sync', 'tournament.join'
+        'presence.join', 'tournament.join', 'presence.join', 'tournament.withdraw'
     ]);
 });
 
+test('duplicate Join clicks issue one enrollment command and failures remain visible', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.joinDelayMs = 150;
+    await page.goto('/online/tournaments?directory=1');
+    await page.getByRole('button', { name: 'Join', exact: true }).dblclick();
+    await expect(page.locator('#arena-context-enrollment')).toContainText('Registered');
+    expect(harness.commands.filter(command => command.eventType === 'tournament.join')).toHaveLength(1);
+
+    harness.state = {
+        ...harness.state,
+        arena: { tournaments: [directoryTournament(tournamentFixture())], current: null }
+    };
+    harness.joinDelayMs = 0;
+    harness.joinErrorCode = 'ARENA_REGISTRATION_CLOSED';
+    await page.reload();
+    await page.getByRole('button', { name: 'Join', exact: true }).click();
+    await expect(page.locator('#online-toast')).toContainText('Registration has closed.');
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeEnabled();
+});
+
+test('full and completed tournaments never expose Join', async ({ page }) => {
+    const harness = harnesses.get(page);
+    const full = { ...tournamentFixture(), participantCount: 4 };
+    harness.state.arena = { tournaments: [directoryTournament(full)], current: null };
+    await page.goto('/online/tournaments?directory=1');
+    await expect(page.getByRole('button', { name: 'Full', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toHaveCount(0);
+
+    const completed = { ...tournamentFixture(), status: 'completed', participantCount: 4, organizedByMe: true };
+    harness.state.arena = { tournaments: [directoryTournament(completed)], current: null };
+    await page.reload();
+    await page.getByRole('tab', { name: /My Tournaments/ }).click();
+    await expect(page.getByRole('button', { name: 'View Results' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Join', exact: true })).toHaveCount(0);
+});
+
 test('Join targets the tournament explicitly opened when background state changes current Arena', async ({ page }) => {
-    await page.goto('/online/tournaments');
-    await page.getByRole('button', { name: 'Join / View' }).click();
+    await page.goto('/online/tournaments?directory=1');
+    await page.getByRole('button', { name: 'Details' }).click();
     await expect(page.locator('#arena-detail-name')).toHaveText('CAISSA Arena S001 — Founders Beta');
 
     const harness = harnesses.get(page);
@@ -103,7 +152,7 @@ test('Join targets the tournament explicitly opened when background state change
             current: backgroundTournament
         }
     };
-    await expect(page.locator('#tab-tournament')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#tab-tournaments')).toBeVisible({ timeout: 5_000 });
 
     await page.getByRole('button', { name: 'Join tournament' }).click();
     const join = harness.commands.find(command => command.eventType === 'tournament.join');
@@ -129,16 +178,16 @@ test('two simultaneous games render in context and tab navigation preserves the 
         ...harness.state, game, recentGames: [game],
         arena: { tournaments: [{ ...directoryTournament(tournament), joined: true, myState: 'playing' }], current: tournament }
     };
-    await expect.poll(() => page.locator('#tab-tournament').isVisible()).toBe(true);
+    await expect(page.locator('#arena-context')).not.toHaveAttribute('hidden', '', { timeout: 7_000 });
     const board = await page.locator('#online-board .caissa-board').elementHandle();
     const before = await page.locator('#board-shell').boundingBox();
-    await page.locator('#tab-tournament').click();
+    await page.locator('#tab-tournaments').click();
     await page.locator('#arena-context-tab-games').click();
     await expect(page.locator('#arena-games-list .arena-game-row')).toHaveCount(2);
     await expect(page.locator('#arena-pairing-state')).toContainText('Playing Founder B');
     await page.locator('#tab-games').click();
     await page.locator('#tab-lobby').click();
-    await page.locator('#tab-tournament').click();
+    await page.locator('#tab-tournaments').click();
     expect(await board.evaluate(node => node === document.querySelector('#online-board .caissa-board'))).toBe(true);
     const after = await page.locator('#board-shell').boundingBox();
     expect(Math.abs(after.width - before.width)).toBeLessThan(1);
@@ -158,10 +207,10 @@ test('refresh recovers membership, active game, and countdown from canonical sta
         arena: { tournaments: [{ ...directoryTournament(tournament), joined: true, myState: 'playing' }], current: tournament }
     };
     await page.goto('/online');
-    await expect(page.locator('#tab-tournament')).toBeVisible();
+    await expect(page.locator('#tab-tournaments')).toBeVisible();
     await page.reload();
     await expect(page.locator('#workspace-title')).toContainText('Playing Founder B');
-    await page.locator('#tab-tournament').click();
+    await page.locator('#tab-tournaments').click();
     await expect(page.locator('#arena-context-countdown strong')).not.toHaveText('—');
     await expect(page.locator('#arena-standings-body .is-current-player')).toContainText('Founder A');
 });
@@ -175,12 +224,12 @@ test('mobile keeps the board before tournament context and has no serious access
         arena: { tournaments: [{ ...directoryTournament(tournament), joined: true, myState: 'waiting' }], current: tournament }
     };
     await page.goto('/online');
-    await page.locator('#tab-tournament').click();
+    await page.locator('#tab-tournaments').click();
     const boardBox = await page.locator('#board-shell').boundingBox();
     const panelBox = await page.locator('.play-workspace').boundingBox();
     expect(panelBox.y).toBeGreaterThan(boardBox.y + boardBox.height);
     await expect(page.locator('#arena-context-countdown')).toBeVisible();
-    const results = await new AxeBuilder({ page }).include('#panel-tournament').analyze();
+    const results = await new AxeBuilder({ page }).include('#panel-tournaments').analyze();
     expect(results.violations.filter(violation => ['serious', 'critical'].includes(violation.impact))).toEqual([]);
 });
 
@@ -193,7 +242,7 @@ function tournamentFixture() {
         registrationOpensAt: new Date(Date.now() - 60_000).toISOString(),
         registrationClosesAt: new Date(Date.parse(startsAt) + 15 * 60_000).toISOString(),
         durationMinutes: 15, lateJoin: true, capacity: 4, minPlayers: 4,
-        participantCount: 4, version: 2, scoringContract: 'arena-s001-2-1-0',
+        participantCount: 0, version: 2, scoringContract: 'arena-s001-2-1-0',
         finishingPolicy: 'finish_active_games', myState: null, standings: standingsFixture(),
         games: [], nextPairing: null
     };
