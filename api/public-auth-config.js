@@ -1,6 +1,9 @@
 import { ownerHandoffOrigins } from './_lib/identity-owner-handoff.js';
 import { isIdentityMigrationEnforced } from './_lib/identity-resolution.js';
-import { isPublicRegistrationOpen } from './_lib/public-registration.js';
+import {
+    isPublicRegistrationOpen,
+    isolatedArenaBetaRegistrationDiagnostics
+} from './_lib/public-registration.js';
 
 /**
  * Public auth configuration for the browser.
@@ -28,6 +31,7 @@ export default function handler(req, res) {
         process.env.NEXT_PUBLIC_SUPABASE_URL ||
         '';
 
+    const diagnosticsRequested = req.query?.diagnostic === 'arena_s001_beta';
     return res.status(200).json({
         clerkPublishableKey,
         registrationTracking: Boolean(
@@ -36,7 +40,10 @@ export default function handler(req, res) {
             (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
         ),
         registrationOpen: isPublicRegistrationOpen(process.env),
-        identityOwnerHandoff: publicOwnerHandoffMetadata(process.env)
+        identityOwnerHandoff: publicOwnerHandoffMetadata(process.env),
+        ...(diagnosticsRequested ? {
+            registrationDiagnostics: isolatedArenaBetaRegistrationDiagnostics(process.env)
+        } : {})
     });
 }
 
