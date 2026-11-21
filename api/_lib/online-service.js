@@ -246,6 +246,43 @@ export function createOnlineService(options = {}) {
                 p_action: action,
                 p_payload: payload
             });
+        },
+        async getRecurringSeries(clerkId) {
+            return rpc(db, 'caissa_online_recurring_series_sync', { p_clerk_id: clerkId });
+        },
+        async createRecurringSeries({ clerkId, eventId, name, control, durationMinutes,
+            capacity, lateJoin, rated, recurrence }) {
+            return rpc(db, 'caissa_online_recurring_series_create', {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_name: name,
+                p_time_zone: recurrence.timeZone,
+                p_frequency_unit: recurrence.frequencyUnit,
+                p_interval: recurrence.interval,
+                p_weekdays: recurrence.weekdays,
+                p_first_date: recurrence.firstDate,
+                p_local_time: recurrence.localTime,
+                p_generation_lead_days: recurrence.leadDays,
+                p_end_mode: recurrence.endMode,
+                p_end_date: recurrence.endDate,
+                p_end_after_occurrences: recurrence.occurrenceCount,
+                p_enabled: recurrence.enabled,
+                p_pool: control.pool,
+                p_base_ms: control.baseMs,
+                p_increment_ms: control.incrementMs,
+                p_duration_minutes: durationMinutes,
+                p_capacity: capacity,
+                p_late_join: lateJoin,
+                p_rated: rated === true
+            });
+        },
+        async manageRecurringSeries({ clerkId, eventId, action, payload = {} }) {
+            return rpc(db, 'caissa_online_recurring_series_manage', {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_action: action,
+                p_payload: payload
+            });
         }
     });
 }

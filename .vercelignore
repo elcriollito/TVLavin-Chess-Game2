@@ -522,6 +522,7 @@
 !/api/_lib/online-public-projection.js
 !/api/_lib/online-rating.js
 !/api/_lib/online-realtime-broadcast.js
+!/api/_lib/online-recurring-scheduler.js
 !/api/_lib/online-request-source.js
 !/api/_lib/online-service.js
 !/api/_lib/online-weekly-scheduler.js

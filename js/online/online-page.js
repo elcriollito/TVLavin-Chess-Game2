@@ -63,12 +63,13 @@ const model = {
     signInPromptOpener: null, signInRedirecting: false,
     guestSession: null, guestStarting: false, pendingGameCommand: null,
     selectedTab: 'new', selectedLobbyView: 'players', muteInvitationPopups: false, preferenceEpoch: 0,
-    setupOpener: null, arena: null, daily: null, weeklySeries: null, selectedTournamentId: null, directoryOpener: null,
+    setupOpener: null, arena: null, daily: null, recurring: null, weeklySeries: null, selectedTournamentId: null, directoryOpener: null,
     tournamentRealtime: null, tournamentRealtimeId: null, tournamentRealtimeEpoch: 0,
     selectedArenaContext: 'standings', selectedDirectoryView: 'current', arenaBusy: false,
     tournamentIntent: location.pathname === '/online/tournaments' && PAGE_PARAMS.get('directory') === '1',
     accessDeniedCode: null,
-    tournamentCreateMode: null,
+    tournamentCreateMode: null, tournamentOrganizer: false, recurringTournamentCreator: false,
+    editingRecurringSeriesId: null,
     tournamentCreateDrafts: createDefaultTournamentDrafts()
 };
 const detachedWeeklyAdminForms = [];
@@ -322,11 +323,17 @@ function bindControls() {
     ui.directoryDialog.addEventListener('close', restoreTournamentDirectoryFocus);
     ui.directoryRetry.addEventListener('click', () => void syncState('tournament-directory-retry'));
     $('arena-create-start-mode').addEventListener('change', event => {
-        $('arena-create-start-wrap').hidden = event.target.value !== 'scheduled';
+        if (!$('arena-create-repeat')?.checked) $('arena-create-start-wrap').hidden = event.target.value !== 'scheduled';
     });
     $('arena-create-type').addEventListener('change', configureTournamentCreateType);
     ui.createForm.addEventListener('change', event => {
         if (event.target.id === 'daily-create-days') updateTournamentCreateRules();
+        if (event.target.id === 'arena-create-repeat'
+            || event.target.id === 'recurrence-frequency'
+            || event.target.id === 'recurrence-end-mode'
+            || event.target.closest?.('#arena-create-recurrence')) {
+            configureRecurrenceControls();
+        }
     });
     ui.createForm.addEventListener('submit', createArenaTournament);
     $('weekly-enable').addEventListener('click', () => manageWeeklySeries('enable'));
@@ -505,7 +512,24 @@ function renderArenaDirectory() {
         joined: !!tournament.myState && tournament.myState !== 'withdrawn',
         lateJoin: false
     }));
-    const tournaments = [...liveRows, ...dailyRows].filter(tournament => {
+    const plannedRows = (model.recurring?.directory || model.recurring?.series || []).flatMap(series => (series.upcoming || [])
+        .filter(occurrence => !occurrence.tournamentId)
+        .map(occurrence => ({
+            id: occurrence.occurrenceKey,
+            name: occurrence.name || series.title,
+            status: occurrence.state || 'planned',
+            startsAt: occurrence.startsAt,
+            playCategory: 'live',
+            pool: series.template?.pool,
+            baseMs: series.template?.baseMs,
+            incrementMs: series.template?.incrementMs,
+            durationMinutes: series.template?.durationMinutes,
+            capacity: series.template?.capacity,
+            participantCount: 0,
+            planned: true,
+            seriesId: series.id
+        })));
+    const tournaments = [...liveRows, ...dailyRows, ...plannedRows].filter(tournament => {
         const category = arenaStatusCategory(tournament.status);
         return (!query || String(tournament.name || '').toLocaleLowerCase().includes(query))
             && (statusFilter === 'all' || statusFilter === category)
@@ -513,7 +537,7 @@ function renderArenaDirectory() {
                 || tournament.playCategory === controlFilter);
     });
     const current = tournaments.filter(item => ['registration_open', 'active', 'finishing'].includes(item.status));
-    const schedule = tournaments.filter(item => ['draft', 'scheduled'].includes(item.status));
+    const schedule = tournaments.filter(item => ['draft', 'scheduled', 'planned', 'skipped'].includes(item.status));
     const mine = tournaments.filter(item => item.joined || item.organizedByMe || (item.myState && item.myState !== 'withdrawn'));
     renderArenaList(ui.arenaCurrentList, current, 'No current tournaments', 'Live Arenas and open registrations will appear here.');
     renderArenaList(ui.arenaScheduleList, schedule, 'No scheduled tournaments', 'New community Arenas will appear here in your local time.');
@@ -522,6 +546,7 @@ function renderArenaDirectory() {
     $('directory-count-schedule').textContent = String(schedule.length);
     $('directory-count-mine').textContent = String(mine.length);
     renderWeeklyFeatured(tournaments.filter(item => item.seriesSlug === 'saturdays-of-chess-s001'));
+    renderRecurringSeriesManager(model.recurring?.series || []);
 }
 
 function renderArenaList(list, tournaments, title, copy) {
@@ -548,9 +573,19 @@ function renderArenaList(list, tournaments, title, copy) {
         const localStart = Number.isNaN(starts.valueOf()) ? '' : ` · ${starts.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`;
         const duration = tournament.playCategory === 'daily'
             ? `Groups of ${tournament.groupSize || 4}` : `${tournament.durationMinutes} min`;
-        facts.textContent = `${arenaControl(tournament)} · ${duration} · ${tournament.participantCount}/${tournament.capacity || '∞'} players${localStart}`;
+        facts.textContent = tournament.planned
+            ? `${arenaControl(tournament)} · ${duration} · Tournament record not created yet${localStart}`
+            : `${arenaControl(tournament)} · ${duration} · ${tournament.participantCount}/${tournament.capacity || '∞'} players${localStart}`;
         main.append(status, name, facts);
         const actions = document.createElement('div'); actions.className = 'arena-card__actions';
+        if (tournament.planned) {
+            const marker = document.createElement('button'); marker.type = 'button'; marker.disabled = true;
+            marker.textContent = tournament.status === 'skipped' ? 'Skipped' : 'Planned';
+            actions.append(marker);
+            card.append(main, actions);
+            list.append(card);
+            return;
+        }
         const completed = ['completed', 'cancelled'].includes(tournament.status);
         const joined = tournament.joined || (!!tournament.myState && tournament.myState !== 'withdrawn');
         const full = Number(tournament.participantCount) >= Number(tournament.capacity || Number.POSITIVE_INFINITY);
@@ -743,13 +778,21 @@ async function createArenaTournament(event) {
         'rapid-10-5': { pool: 'rapid', baseMs: 600000, incrementMs: 5000 }
     };
     const control = type === 'live' ? controls[$('arena-create-control').value] : null;
-    const scheduled = $('arena-create-start-mode').value === 'scheduled';
+    const recurring = type === 'live' && $('arena-create-repeat')?.checked === true;
+    if (!model.tournamentOrganizer && !recurring) {
+        ui.createFeedback.textContent = 'Your account may create a Live Arena here only as a recurring series.';
+        return;
+    }
+    const scheduled = !recurring && $('arena-create-start-mode').value === 'scheduled';
     const startInput = $('arena-create-start').value;
-    const startsAt = scheduled ? new Date(startInput) : new Date(Date.now() + 5 * 60_000);
-    if ((type === 'live' && !control) || Number.isNaN(startsAt.valueOf()) || startsAt.valueOf() < Date.now() - 30_000) {
+    const startsAt = recurring ? null : scheduled ? new Date(startInput) : new Date(Date.now() + 5 * 60_000);
+    if ((type === 'live' && !control) || (!recurring
+        && (Number.isNaN(startsAt.valueOf()) || startsAt.valueOf() < Date.now() - 30_000))) {
         ui.createFeedback.textContent = 'Choose a valid future start time and approved time control.';
         return;
     }
+    const recurrence = recurring ? collectRecurrenceRule() : null;
+    if (recurring && !recurrence) return;
     const groupSize = type === 'daily' ? Number($('daily-create-group-size').value) : null;
     const capacity = Number($('arena-create-capacity').value);
     const qualifiersPerGroup = type === 'daily' ? Number($('daily-create-qualifiers').value) : null;
@@ -763,7 +806,7 @@ async function createArenaTournament(event) {
     }
     const payload = {
         name: $('arena-create-name').value.trim(),
-        startsAt: startsAt.toISOString(),
+        ...(!recurring ? { startsAt: startsAt.toISOString() } : {}),
         capacity,
         rated: $('arena-create-rating').value === 'rated',
         ...(type === 'daily' ? {
@@ -775,6 +818,7 @@ async function createArenaTournament(event) {
             timeControlId: $('arena-create-control').value,
             durationMinutes: Number($('arena-create-duration').value),
             lateJoin: $('arena-create-late-join').checked,
+            ...(recurring ? { recurrence } : {}),
             ...control
         })
     };
@@ -782,30 +826,46 @@ async function createArenaTournament(event) {
     setBusy($('arena-create-submit'), true, 'Creating…');
     ui.createFeedback.textContent = 'Creating with server time and tournament safeguards…';
     try {
-        const envelope = await api.command(type === 'daily' ? 'daily.create' : 'tournament.create', payload);
+        const eventType = model.editingRecurringSeriesId ? 'series.update'
+            : recurring ? 'series.create' : type === 'daily' ? 'daily.create' : 'tournament.create';
+        const commandPayload = model.editingRecurringSeriesId
+            ? { seriesId: model.editingRecurringSeriesId, recurrence }
+            : payload;
+        const envelope = await api.command(eventType, commandPayload);
         applyState(envelope.data?.state);
         ui.createForm.reset();
+        model.editingRecurringSeriesId = null;
         model.tournamentCreateMode = null;
         model.tournamentCreateDrafts = createDefaultTournamentDrafts();
         configureTournamentCreateType();
         $('arena-create-start-wrap').hidden = true;
         ui.createFeedback.textContent = '';
-        closeTournamentDirectory();
-        selectTab('tournaments');
-        showToast('Tournament created. You are its organizer.');
+        if (recurring) {
+            selectDirectoryView('schedule');
+            showToast(eventType === 'series.update'
+                ? 'Future recurrence settings updated.' : 'Recurring Arena saved. Planned dates are now in Schedule.');
+        } else {
+            closeTournamentDirectory();
+            selectTab('tournaments');
+            showToast('Tournament created. You are its organizer.');
+        }
     } catch (error) {
         ui.createFeedback.textContent = messageForError(error);
         handleError(error, 'The tournament could not be created.');
     } finally {
         model.arenaBusy = false;
-        setBusy($('arena-create-submit'), false, 'Create Tournament');
+        setBusy($('arena-create-submit'), false, model.editingRecurringSeriesId
+            ? 'Update future schedule' : $('arena-create-repeat')?.checked ? 'Save recurring series' : 'Create Tournament');
     }
 }
 
 function configureTournamentCreateType() {
+    const capabilities = model.config?.capabilities || {};
+    const dailyOption = $('arena-create-type').querySelector('option[value="daily"]');
+    dailyOption.disabled = capabilities.dailyTournaments !== true || !model.tournamentOrganizer;
+    if (dailyOption.disabled && $('arena-create-type').value === 'daily') $('arena-create-type').value = 'live';
     const mode = $('arena-create-type').value === 'daily' ? 'daily' : 'live';
     const daily = mode === 'daily';
-    const capabilities = model.config?.capabilities || {};
     $('arena-create-capacity').max = daily || capabilities.arena100 === true ? '100' : '64';
     if (model.tournamentCreateMode !== mode || !$('arena-create-type-fields').children.length) {
         saveTournamentCreateDraft(model.tournamentCreateMode);
@@ -815,7 +875,16 @@ function configureTournamentCreateType() {
         model.tournamentCreateMode = mode;
         restoreTournamentCreateDraft(mode);
     }
-    $('arena-create-start-wrap').hidden = $('arena-create-start-mode').value !== 'scheduled';
+    if (!daily && $('arena-create-repeat-wrap')) {
+        $('arena-create-repeat-wrap').hidden = capabilities.recurringTournaments !== true;
+        if (!model.tournamentOrganizer && capabilities.recurringTournaments === true) {
+            $('arena-create-repeat').checked = true;
+            $('arena-create-repeat').disabled = true;
+        }
+    }
+    configureRecurrenceControls();
+    $('arena-create-start-wrap').hidden = $('arena-create-repeat')?.checked === true
+        || $('arena-create-start-mode').value !== 'scheduled';
     const ratedOption = $('arena-create-rating').querySelector('option[value="rated"]');
     const ratedEnabled = daily ? capabilities.dailyRated === true : capabilities.tournamentRated === true;
     ratedOption.disabled = !ratedEnabled;
@@ -828,7 +897,7 @@ function configureTournamentCreateType() {
 
 function createDefaultTournamentDrafts() {
     return {
-        live: { control: 'blitz-3-2', duration: '30', lateJoin: true },
+        live: { control: 'blitz-3-2', duration: '30', lateJoin: true, repeat: false, recurrence: null },
         daily: { description: '', daysPerMove: '7', groupSize: '4', qualifiersPerGroup: '2' }
     };
 }
@@ -838,7 +907,9 @@ function saveTournamentCreateDraft(mode) {
         model.tournamentCreateDrafts.live = {
             control: $('arena-create-control').value,
             duration: $('arena-create-duration').value,
-            lateJoin: $('arena-create-late-join').checked
+            lateJoin: $('arena-create-late-join').checked,
+            repeat: $('arena-create-repeat')?.checked === true,
+            recurrence: readRecurrenceDraft()
         };
     }
     if (mode === 'daily' && $('daily-create-days')) {
@@ -857,12 +928,175 @@ function restoreTournamentCreateDraft(mode) {
         $('arena-create-control').value = draft.control;
         $('arena-create-duration').value = draft.duration;
         $('arena-create-late-join').checked = draft.lateJoin;
+        if ($('arena-create-repeat')) $('arena-create-repeat').checked = draft.repeat === true;
+        restoreRecurrenceDraft(draft.recurrence);
+        configureRecurrenceControls();
         return;
     }
     $('daily-create-description').value = draft.description;
     $('daily-create-days').value = draft.daysPerMove;
     $('daily-create-group-size').value = draft.groupSize;
     $('daily-create-qualifiers').value = draft.qualifiersPerGroup;
+}
+
+function readRecurrenceDraft() {
+    if (!$('recurrence-frequency')) return null;
+    return {
+        frequencyUnit: $('recurrence-frequency').value,
+        interval: $('recurrence-interval').value,
+        weekdays: Array.from($('recurrence-weekdays').querySelectorAll('input:checked')).map(input => input.value),
+        firstDate: $('recurrence-first-date').value,
+        localTime: $('recurrence-local-time').value,
+        timeZone: $('recurrence-timezone').value,
+        leadDays: $('recurrence-lead-days').value,
+        endMode: $('recurrence-end-mode').value,
+        endDate: $('recurrence-end-date').value,
+        occurrenceCount: $('recurrence-count').value,
+        enabled: $('recurrence-enabled').checked
+    };
+}
+
+function restoreRecurrenceDraft(draft) {
+    if (!$('recurrence-frequency')) return;
+    const nextDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const value = draft || {
+        frequencyUnit: 'weekly', interval: '1', weekdays: ['5'], firstDate: nextDate,
+        localTime: '19:00', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
+        leadDays: '2', endMode: 'never', endDate: '', occurrenceCount: '10', enabled: true
+    };
+    $('recurrence-frequency').value = value.frequencyUnit || 'weekly';
+    $('recurrence-interval').value = String(value.interval || 1);
+    $('recurrence-first-date').value = value.firstDate || nextDate;
+    $('recurrence-first-date').min = new Date().toISOString().slice(0, 10);
+    $('recurrence-local-time').value = value.localTime || '19:00';
+    $('recurrence-timezone').value = String(value.timeZone || 'America/New_York');
+    $('recurrence-lead-days').value = String(value.leadDays || 2);
+    $('recurrence-end-mode').value = value.endMode || 'never';
+    $('recurrence-end-date').value = value.endDate || '';
+    $('recurrence-count').value = String(value.occurrenceCount || 10);
+    $('recurrence-enabled').checked = value.enabled !== false;
+    const selected = new Set((value.weekdays || ['5']).map(String));
+    $('recurrence-weekdays').querySelectorAll('input').forEach(input => { input.checked = selected.has(input.value); });
+}
+
+function configureRecurrenceControls() {
+    const repeat = $('arena-create-repeat');
+    let section = $('arena-create-recurrence');
+    if (!repeat) return;
+    const enabled = repeat.checked && !repeat.closest('[hidden]');
+    const startMode = $('arena-create-start-mode');
+    startMode.disabled = enabled;
+    startMode.closest('label').hidden = enabled;
+    $('arena-create-start-wrap').hidden = enabled || startMode.value !== 'scheduled';
+    if (!enabled) {
+        if (section) {
+            model.tournamentCreateDrafts.live.recurrence = readRecurrenceDraft();
+            section.remove();
+        }
+        const rated = $('arena-create-rating').querySelector('option[value="rated"]');
+        const ratedEnabled = model.config?.capabilities?.tournamentRated === true;
+        rated.disabled = !ratedEnabled;
+        $('arena-create-rating-help').textContent = ratedEnabled
+            ? 'Arena Rated is certified in this beta.'
+            : 'Arena Rated remains disabled until its certification flag is enabled.';
+        if ($('arena-create-submit').textContent !== 'Create Tournament') {
+            $('arena-create-submit').textContent = 'Create Tournament';
+        }
+        return;
+    }
+    if (!section) {
+        const template = $('arena-create-recurrence-template');
+        $('arena-create-type-fields').append(template.content.cloneNode(true));
+        section = $('arena-create-recurrence');
+        restoreRecurrenceDraft(model.tournamentCreateDrafts.live.recurrence);
+    }
+    section.hidden = false;
+    section.querySelectorAll('input,select').forEach(control => { control.disabled = false; });
+    const daily = $('recurrence-frequency').value === 'daily';
+    $('recurrence-interval').max = daily ? '30' : '52';
+    $('recurrence-weekdays').hidden = daily;
+    $('recurrence-weekdays').querySelectorAll('input').forEach(input => { input.disabled = daily; });
+    const endMode = $('recurrence-end-mode').value;
+    $('recurrence-end-date-wrap').hidden = endMode !== 'on_date';
+    $('recurrence-end-date').disabled = endMode !== 'on_date';
+    $('recurrence-count-wrap').hidden = endMode !== 'after_count';
+    $('recurrence-count').disabled = endMode !== 'after_count';
+    const rated = $('arena-create-rating').querySelector('option[value="rated"]');
+    rated.disabled = true;
+    $('arena-create-rating').value = 'unrated';
+    $('arena-create-rating-help').textContent = 'Recurring Arena remains Unrated until its separate certification flag is approved.';
+    $('recurrence-summary').textContent = recurrenceFormSummary();
+    const submitLabel = model.editingRecurringSeriesId ? 'Update future schedule' : 'Save recurring series';
+    if ($('arena-create-submit').textContent !== submitLabel) $('arena-create-submit').textContent = submitLabel;
+}
+
+function collectRecurrenceRule() {
+    const draft = readRecurrenceDraft();
+    const interval = Number(draft.interval);
+    const weekdays = draft.frequencyUnit === 'weekly' ? draft.weekdays.map(Number) : [];
+    const leadDays = Number(draft.leadDays);
+    const occurrenceCount = draft.endMode === 'after_count' ? Number(draft.occurrenceCount) : null;
+    let timeZoneValid = false;
+    try { new Intl.DateTimeFormat('en-US', { timeZone: draft.timeZone }).format(); timeZoneValid = draft.timeZone.includes('/'); }
+    catch (_) { timeZoneValid = false; }
+    if (!Number.isSafeInteger(interval) || interval < 1 || interval > (draft.frequencyUnit === 'daily' ? 30 : 52)
+        || (draft.frequencyUnit === 'weekly' && !weekdays.length)
+        || !/^\d{4}-\d{2}-\d{2}$/u.test(draft.firstDate)
+        || !/^\d{2}:\d{2}$/u.test(draft.localTime) || !timeZoneValid || ![1, 2].includes(leadDays)
+        || (draft.endMode === 'on_date' && (!draft.endDate || draft.endDate < draft.firstDate))
+        || (draft.endMode === 'after_count' && (!Number.isSafeInteger(occurrenceCount)
+            || occurrenceCount < 1 || occurrenceCount > 100))) {
+        ui.createFeedback.textContent = 'Review the recurrence interval, weekdays, timezone, dates and ending condition.';
+        return null;
+    }
+    return {
+        frequencyUnit: draft.frequencyUnit,
+        interval,
+        weekdays,
+        firstDate: draft.firstDate,
+        localTime: draft.localTime,
+        timeZone: draft.timeZone,
+        leadDays,
+        endMode: draft.endMode,
+        endDate: draft.endMode === 'on_date' ? draft.endDate : null,
+        occurrenceCount,
+        enabled: draft.enabled
+    };
+}
+
+function recurrenceFormSummary() {
+    const draft = readRecurrenceDraft();
+    if (!draft) return '';
+    const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = draft.frequencyUnit === 'weekly'
+        ? ` on ${draft.weekdays.map(day => names[Number(day)]).join(', ') || 'a selected weekday'}` : '';
+    const end = draft.endMode === 'on_date' ? ` through ${draft.endDate || 'the chosen date'}`
+        : draft.endMode === 'after_count' ? ` for ${draft.occurrenceCount || 'N'} occurrences` : ' until paused';
+    return `Every ${draft.interval || 1} ${draft.frequencyUnit === 'daily' ? 'day(s)' : 'week(s)'}${days} at ${draft.localTime || '—'} (${draft.timeZone || 'timezone'}). Create each tournament ${draft.leadDays} day(s) before. Repeats${end}.`;
+}
+
+function editRecurringSeries(series) {
+    model.editingRecurringSeriesId = series.id;
+    selectDirectoryView('create');
+    $('arena-create-type').value = 'live';
+    configureTournamentCreateType();
+    $('arena-create-name').value = series.title;
+    $('arena-create-capacity').value = String(series.template?.capacity || 16);
+    $('arena-create-duration').value = String(series.template?.durationMinutes || 30);
+    $('arena-create-late-join').checked = series.template?.lateJoin === true;
+    const option = Array.from($('arena-create-control').options).find(item => {
+        const [pool, base, increment] = item.value.split('-');
+        return pool === series.template?.pool
+            && Number(base) * 60_000 === Number(series.template?.baseMs)
+            && Number(increment) * 1000 === Number(series.template?.incrementMs);
+    });
+    if (option) $('arena-create-control').value = option.value;
+    $('arena-create-repeat').disabled = true;
+    $('arena-create-repeat').checked = true;
+    configureRecurrenceControls();
+    restoreRecurrenceDraft(series);
+    configureRecurrenceControls();
+    $('arena-create-name').focus();
 }
 
 function updateTournamentCreateRules() {
@@ -938,6 +1172,73 @@ function renderWeeklyFeatured(tournaments) {
         time.textContent = `${new Date(tournament.startsAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · ${arenaStatusLabel(tournament.status)}`;
         row.append(title, time); return row;
     }));
+}
+
+function renderRecurringSeriesManager(seriesRows) {
+    const list = $('recurring-series-list');
+    if (!list) return;
+    list.replaceChildren(...seriesRows.map(series => {
+        const card = document.createElement('article');
+        card.className = `recurring-series-card${series.enabled ? '' : ' recurring-series-card--paused'}`;
+        const main = document.createElement('div');
+        const title = document.createElement('h4'); title.textContent = series.title;
+        const summary = document.createElement('p'); summary.textContent = recurringSeriesSummary(series);
+        const history = document.createElement('p');
+        history.textContent = `${series.generatedCount || 0} generated · ${(series.past || []).length} past results · ${series.enabled ? 'Enabled' : 'Paused'}`;
+        main.append(title, summary, history);
+        const actions = document.createElement('div'); actions.className = 'recurring-series-actions';
+        const pause = document.createElement('button'); pause.type = 'button';
+        pause.textContent = series.enabled ? 'Pause' : 'Resume';
+        pause.addEventListener('click', () => void manageRecurringSeries(series.enabled ? 'pause' : 'resume', { seriesId: series.id }));
+        const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Edit schedule';
+        edit.addEventListener('click', () => editRecurringSeries(series));
+        actions.append(pause, edit);
+        const nextPlanned = (series.upcoming || []).find(item => item.state === 'planned');
+        if (nextPlanned) {
+            const skip = document.createElement('button'); skip.type = 'button'; skip.textContent = 'Skip next';
+            skip.addEventListener('click', () => void manageRecurringSeries('skip', {
+                seriesId: series.id, localDate: nextPlanned.localDate, reason: 'Organizer skip'
+            }));
+            actions.append(skip);
+        }
+        const nextGenerated = (series.upcoming || []).find(item => item.tournamentId
+            && ['scheduled', 'registration_open'].includes(item.state));
+        if (nextGenerated) {
+            const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel next';
+            cancel.addEventListener('click', () => void manageRecurringSeries('cancel', {
+                seriesId: series.id, tournamentId: nextGenerated.tournamentId
+            }));
+            actions.append(cancel);
+        }
+        card.append(main, actions);
+        return card;
+    }));
+}
+
+async function manageRecurringSeries(action, payload) {
+    if (model.arenaBusy) return;
+    model.arenaBusy = true;
+    try {
+        const envelope = await api.command(`series.${action}`, payload);
+        applyState(envelope.data?.state);
+        showToast(({ pause: 'Recurring series paused.', resume: 'Recurring series resumed.',
+            skip: 'The planned date was skipped.', cancel: 'The generated occurrence was cancelled.',
+            update: 'Future recurrence settings updated.' })[action] || 'Recurring series updated.');
+    } catch (error) {
+        handleError(error, 'The recurring series could not be updated.');
+    } finally {
+        model.arenaBusy = false;
+        renderArenaDirectory();
+    }
+}
+
+function recurringSeriesSummary(series) {
+    const every = `Every ${series.interval === 1 ? '' : `${series.interval} `}${series.frequencyUnit === 'daily'
+        ? series.interval === 1 ? 'day' : 'days' : series.interval === 1 ? 'week' : 'weeks'}`;
+    const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = series.frequencyUnit === 'weekly'
+        ? ` on ${(series.weekdays || []).map(day => names[day]).join(', ')}` : '';
+    return `${every}${days} at ${series.localTime} (${series.timeZone}). Create ${series.leadDays} ${series.leadDays === 1 ? 'day' : 'days'} before.`;
 }
 
 async function manageArenaTournament(action) {
@@ -1074,12 +1375,12 @@ function arenaControl(tournament) {
 
 function arenaStatusCategory(status) {
     if (['active', 'finishing'].includes(status)) return 'active';
-    if (['draft', 'scheduled', 'registration_open'].includes(status)) return 'upcoming';
+    if (['draft', 'scheduled', 'registration_open', 'planned', 'skipped'].includes(status)) return 'upcoming';
     return 'completed';
 }
 
 function arenaStatusLabel(status) {
-    return ({ draft: 'Draft', scheduled: 'Scheduled', registration_open: 'Registration open', active: 'Live', finishing: 'Finishing', completed: 'Completed', cancelled: 'Cancelled' })[status] || 'Arena';
+    return ({ draft: 'Draft', planned: 'Planned', skipped: 'Skipped', scheduled: 'Scheduled', registration_open: 'Registration open', active: 'Live', finishing: 'Finishing', completed: 'Completed', cancelled: 'Cancelled' })[status] || 'Arena';
 }
 
 function arenaParticipantStatus(state) {
@@ -1235,6 +1536,7 @@ function applyState(state, options = {}) {
     if (!state) return;
     if (!Object.hasOwn(state, 'arena') && model.arena) state = { ...state, arena: model.arena };
     if (!Object.hasOwn(state, 'daily') && model.daily) state = { ...state, daily: model.daily };
+    if (!Object.hasOwn(state, 'recurring') && model.recurring) state = { ...state, recurring: model.recurring };
     const priorGame = model.game;
     const previousGameId = priorGame?.id;
     const previousVersion = gameVersion(priorGame);
@@ -1276,6 +1578,7 @@ function applyState(state, options = {}) {
     model.game = nextGame;
     model.arena = state.arena || null;
     model.daily = state.daily || null;
+    model.recurring = state.recurring || null;
     configureTournamentPermissions(state.permissions);
     renderArena(model.arena);
     renderDailyGames(model.daily);
@@ -1300,8 +1603,12 @@ function applyState(state, options = {}) {
 
 function configureTournamentPermissions(permissions) {
     const organizer = permissions?.tournamentOrganizer === true;
+    const recurringCreator = permissions?.recurringTournamentCreator === true;
+    model.tournamentOrganizer = organizer;
+    model.recurringTournamentCreator = recurringCreator;
     const capabilities = model.config?.capabilities || {};
-    $('directory-tab-create').hidden = !organizer || capabilities.tournamentCreation !== true;
+    $('directory-tab-create').hidden = !(organizer && capabilities.tournamentCreation === true)
+        && !(recurringCreator && capabilities.recurringTournaments === true);
     $('weekly-admin-controls').hidden = !organizer
         || capabilities.weeklyArenas !== true;
     for (const id of ['weekly-config-form', 'weekly-skip-form']) {
@@ -1314,7 +1621,8 @@ function configureTournamentPermissions(permissions) {
             if (detached) $('weekly-admin-controls').append(detached);
         }
     }
-    if (!organizer && model.selectedDirectoryView === 'create') selectDirectoryView('current');
+    if (!organizer && !recurringCreator && model.selectedDirectoryView === 'create') selectDirectoryView('current');
+    configureTournamentCreateType();
 }
 
 function renderLobby() {
@@ -2097,7 +2405,45 @@ function resetPlayerStrips(state = 'idle') {
 }
 function fillEmpty(strip, name) { strip.querySelector('.player-name').textContent = name; strip.querySelector('.player-rating').textContent = '—'; strip.querySelector('.player-avatar').textContent = initials(name); strip.dataset.running = 'false'; }
 function showBoardError(intent, message) { board.highlightSquares([{ square: intent.from, type: 'error' }, { square: intent.to, type: 'error' }]); showToast(message); setTimeout(() => board.clearHighlights(), 900); }
-function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.', ONLINE_INTERNAL_ONLY: 'Access denied. This account cannot use the isolated beta.', ARENA_BETA_NOT_AUTHORIZED: 'Access denied. This account cannot access Arena Season 001.', ARENA_MEMBER_ACCOUNT_REQUIRED: 'Sign in with a member account to use tournaments.', ARENA_REGISTRATION_NOT_OPEN: 'Registration is not open yet.', ARENA_REGISTRATION_CLOSED: 'Registration has closed.', ARENA_LATE_JOIN_DISABLED: 'This Arena does not allow joining after it starts.', ARENA_COMPLETED: 'This tournament is complete. Results are available.', ARENA_FULL: 'This tournament is full.', ARENA_100_NOT_ENABLED: 'Events above 64 players are not enabled in this environment.', RATED_NOT_ENABLED: 'Rated tournaments are not enabled in this environment.', DAILY_FULL: 'This Daily tournament is full.', DAILY_REGISTRATION_CLOSED: 'Daily registration has closed.', DAILY_NOT_FOUND: 'That Daily tournament is no longer available.', DAILY_INVALID: 'Review the Daily start, deadline, capacity and days-per-move settings.', INVALID_REGISTRATION_DEADLINE: 'Choose a registration deadline before the tournament starts.', ARENA_PARTICIPATION_CONFLICT: 'You are already enrolled in an overlapping tournament.', ARENA_CREATION_LIMIT: 'You already have the maximum number of open tournaments.', ARENA_CREATION_COOLDOWN: 'Please wait a minute before creating another tournament.', ARENA_CREATION_CONFLICT: 'You already organize a tournament during this time.', ARENA_ORGANIZER_REQUIRED: 'Only this tournament’s organizer may perform that action.', ARENA_MANAGE_INVALID_STATE: 'That organizer action is not available in the current tournament state.', ARENA_INVALID: 'Review the tournament name, time, duration, capacity, and time control.', STALE_VERSION: 'The board changed; it has been synchronized.', ILLEGAL_MOVE: 'That move is not legal.', NOT_YOUR_TURN: 'Wait for your turn.', TIME_EXPIRED: 'The move deadline has expired.', RATE_LIMITED: 'Too many requests. Please wait a moment.', DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.' })[error?.code] || 'The server could not confirm that action.'; }
+function messageForError(error) {
+    return ({
+        AUTH_REQUIRED: 'Sign in to continue.',
+        ONLINE_INTERNAL_ONLY: 'Access denied. This account cannot use the isolated beta.',
+        ARENA_BETA_NOT_AUTHORIZED: 'Access denied. This account cannot access Arena Season 001.',
+        ARENA_MEMBER_ACCOUNT_REQUIRED: 'Sign in with a member account to use tournaments.',
+        ARENA_REGISTRATION_NOT_OPEN: 'Registration is not open yet.',
+        ARENA_REGISTRATION_CLOSED: 'Registration has closed.',
+        ARENA_LATE_JOIN_DISABLED: 'This Arena does not allow joining after it starts.',
+        ARENA_COMPLETED: 'This tournament is complete. Results are available.',
+        ARENA_FULL: 'This tournament is full.',
+        ARENA_100_NOT_ENABLED: 'Events above 64 players are not enabled in this environment.',
+        RATED_NOT_ENABLED: 'Rated tournaments are not enabled in this environment.',
+        DAILY_FULL: 'This Daily tournament is full.',
+        DAILY_REGISTRATION_CLOSED: 'Daily registration has closed.',
+        DAILY_NOT_FOUND: 'That Daily tournament is no longer available.',
+        DAILY_INVALID: 'Review the Daily start, deadline, capacity and days-per-move settings.',
+        INVALID_REGISTRATION_DEADLINE: 'Choose a registration deadline before the tournament starts.',
+        ARENA_PARTICIPATION_CONFLICT: 'You are already enrolled in an overlapping tournament.',
+        ARENA_CREATION_LIMIT: 'You already have the maximum number of open tournaments.',
+        ARENA_CREATION_COOLDOWN: 'Please wait a minute before creating another tournament.',
+        ARENA_CREATION_CONFLICT: 'You already organize a tournament during this time.',
+        ARENA_ORGANIZER_REQUIRED: 'Only this tournament’s organizer may perform that action.',
+        ARENA_MANAGE_INVALID_STATE: 'That organizer action is not available in the current tournament state.',
+        ARENA_INVALID: 'Review the tournament name, time, duration, capacity, and time control.',
+        RECURRING_NOT_OWNER: 'Only the owner may change this recurring series.',
+        RECURRING_SERIES_LIMIT: 'You already have the maximum of five recurring series.',
+        RECURRING_CREATION_COOLDOWN: 'Please wait a minute before creating another recurring series.',
+        RECURRING_OCCURRENCE_NOT_CANCELLABLE: 'That generated occurrence can no longer be cancelled.',
+        RECURRING_INVALID_CONFIGURATION: 'Review the recurrence dates, timezone, frequency and ending condition.',
+        RECURRING_RATED_NOT_CERTIFIED: 'Recurring Rated Arena is not certified in this beta.',
+        STALE_VERSION: 'The board changed; it has been synchronized.',
+        ILLEGAL_MOVE: 'That move is not legal.',
+        NOT_YOUR_TURN: 'Wait for your turn.',
+        TIME_EXPIRED: 'The move deadline has expired.',
+        RATE_LIMITED: 'Too many requests. Please wait a moment.',
+        DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.'
+    })[error?.code] || 'The server could not confirm that action.';
+}
 function isAccessDeniedError(error) { return error instanceof OnlineApiError && ['ONLINE_INTERNAL_ONLY', 'ARENA_BETA_NOT_AUTHORIZED'].includes(error.code); }
 function clearAccessDenied() {
     model.accessDeniedCode = null;

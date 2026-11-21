@@ -9,7 +9,9 @@ export const ONLINE_EVENTS = Object.freeze({
         'tournament.withdraw', 'tournament.sync', 'tournament.create',
         'tournament.cancel', 'tournament.close', 'daily.create', 'daily.join',
         'daily.withdraw', 'daily.sync', 'weekly.sync', 'weekly.enable',
-        'weekly.pause', 'weekly.skip', 'weekly.cancel', 'weekly.update'
+        'weekly.pause', 'weekly.skip', 'weekly.cancel', 'weekly.update',
+        'series.create', 'series.sync', 'series.pause', 'series.resume',
+        'series.skip', 'series.cancel', 'series.update'
     ]),
     server: Object.freeze([
         'presence.snapshot', 'queue.status', 'match.found', 'game.snapshot',
