@@ -62,12 +62,23 @@ test('Arena ships a gated real panel while retaining the isolated visual referen
     assert.match(html, /id="tournaments-coming-soon"[\s\S]*CAISSA Tournaments[\s\S]*Coming Soon/);
     assert.match(html, /id="tab-tournament"[^>]*hidden>Tournament/);
     assert.match(html, /id="arena-directory"[^>]*hidden/);
+    assert.match(html, /id="online-access-denied"[^>]*role="alert"[^>]*hidden/);
+    assert.match(html, /Clerk ID not authorized/);
     assert.match(html, /id="panel-tournament"[^>]*data-panel="tournament"[^>]*hidden/);
     assert.match(html, /Win 2 · Draw 1 · Loss 0/);
     assert.match(html, /id="tournament-demo-content" hidden[\s\S]*Visual demo[\s\S]*Current standings/);
     assert.match(html, /class="is-current-player"[\s\S]*Alexander <span>\(you\)<\/span>/);
     assert.match(html, /data-tournament-view="standings"[\s\S]*>Standings<[\s\S]*data-tournament-view="games"[\s\S]*>Games</);
     assert.doesNotMatch(html.match(/id="tournament-demo-content"[\s\S]*?<\/div>\s*<\/section>/)?.[0] || '', />Chat</i);
+});
+
+test('authorization failures replace Ready and Join with a persistent access-denied state', () => {
+    assert.match(onlinePage, /ONLINE_INTERNAL_ONLY: 'Access denied\. This Clerk account is not authorized for the private Arena beta\.'/);
+    assert.match(onlinePage, /ARENA_BETA_NOT_AUTHORIZED: 'Access denied\. This Clerk account is not authorized for Arena Season 001\.'/);
+    assert.match(onlinePage, /ui\.badge\.textContent = 'ACCESS DENIED'/);
+    assert.match(onlinePage, /ui\.find\.textContent = 'Access required'/);
+    assert.match(onlinePage, /ui\.arenaDirectory\.hidden = true/);
+    assert.match(onlinePage, /ui\.accessDenied\.hidden = false/);
 });
 
 test('online route is isolated, private-cache, noindex, and keeps the retired play route intact', () => {
@@ -158,7 +169,7 @@ test('workspace and board-strip headings follow the selected tab and canonical g
     assert.match(onlinePage, /title = 'Finding an opponent'/);
     assert.match(onlinePage, /title = rival \? `Playing \$\{rival\}` : 'Game in progress'/);
     assert.match(onlinePage, /state === 'searching' \? 'Waiting for opponent'/);
-    assert.match(onlinePage, /state === 'signed-out' \? 'Sign in to play' : 'Ready to play'/);
+    assert.match(onlinePage, /state === 'signed-out' \? 'Sign in to play'[\s\S]*state === 'access-denied' \? 'Private beta access required' : 'Ready to play'/);
 });
 
 test('Setup keeps help and a real device-scoped invitation preference', () => {

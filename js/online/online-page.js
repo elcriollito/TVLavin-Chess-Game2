@@ -40,6 +40,7 @@ const ui = {
     offersState: $('offers-state'), offersStatus: $('offers-status'), offersTableWrap: $('offers-table-wrap'),
     offersTableBody: $('offers-table-body'), offersFixtureBanner: $('offers-fixture-banner'),
     tournamentsComingSoon: $('tournaments-coming-soon'), tournamentDemoContent: $('tournament-demo-content'),
+    accessDenied: $('online-access-denied'),
     arenaDirectory: $('arena-directory'), arenaList: $('arena-list'), arenaDetail: $('arena-detail'),
     arenaSearch: $('arena-search'), arenaStatusFilter: $('arena-status-filter'),
     arenaJoin: $('arena-join'), arenaWithdraw: $('arena-withdraw'), arenaTab: $('tab-tournament'),
@@ -60,7 +61,7 @@ const model = {
     selectedTab: 'new', selectedLobbyView: 'players', muteInvitationPopups: false, preferenceEpoch: 0,
     setupOpener: null, arena: null, selectedTournamentId: null,
     tournamentRealtime: null, tournamentRealtimeId: null, tournamentRealtimeEpoch: 0,
-    selectedArenaContext: 'standings', arenaBusy: false
+    selectedArenaContext: 'standings', arenaBusy: false, accessDeniedCode: null
 };
 
 const api = createOnlineApi({
@@ -113,9 +114,15 @@ async function boot() {
             model.guestSession = await createOnlineGuestSession(model.config.realtime);
         }
         const memberAuth = await waitForAuth();
-        if (memberAuth?.isSignedIn) return activateIdentity(memberAuth, 'boot');
+        if (memberAuth?.isSignedIn) {
+            await activateIdentity(memberAuth, 'boot');
+            return;
+        }
         const guestAuth = await model.guestSession?.restore?.();
-        if (guestAuth?.isSignedIn) return activateIdentity(guestAuth, 'guest-restore');
+        if (guestAuth?.isSignedIn) {
+            await activateIdentity(guestAuth, 'guest-restore');
+            return;
+        }
         model.auth = memberAuth;
         await loadLobbyPreferences(memberAuth);
         renderSignedOut();
@@ -200,6 +207,7 @@ async function handleAuthChange(nextAuth) {
 
 async function activateIdentity(auth, reason) {
     model.auth = auth;
+    clearAccessDenied();
     await loadLobbyPreferences(auth);
     configureCapabilities(model.config?.capabilities || {});
     if (auth.isGuest) {
@@ -1402,6 +1410,11 @@ function showView(name) {
 }
 
 function renderWorkspaceHeader() {
+    if (model.accessDeniedCode) {
+        ui.title.textContent = 'Access required';
+        ui.badge.textContent = 'ACCESS DENIED';
+        return;
+    }
     const game = model.game;
     const searching = !!model.state?.ticket && !game;
     const runtimeBadge = game?.status === 'completed' ? 'FINAL'
@@ -1428,6 +1441,7 @@ function renderUnavailable(copy) {
 }
 
 function renderSignedOut() {
+    clearAccessDenied();
     clearTimeout(model.challengeExpiryTimer);
     model.state = null;
     model.game = null;
@@ -1528,7 +1542,8 @@ function announceOpponentMove(game) {
 }
 function resetPlayerStrips(state = 'idle') {
     const topLabel = state === 'searching' ? 'Waiting for opponent'
-        : state === 'signed-out' ? 'Sign in to play' : 'Ready to play';
+        : state === 'signed-out' ? 'Sign in to play'
+            : state === 'access-denied' ? 'Private beta access required' : 'Ready to play';
     const selfLabel = model.state?.profile?.display_name || model.auth?.fullName || (model.auth?.isGuest ? 'Guest' : 'You');
     fillEmpty(ui.top, topLabel);
     fillEmpty(ui.bottom, selfLabel);
@@ -1537,8 +1552,48 @@ function resetPlayerStrips(state = 'idle') {
 }
 function fillEmpty(strip, name) { strip.querySelector('.player-name').textContent = name; strip.querySelector('.player-rating').textContent = '—'; strip.querySelector('.player-avatar').textContent = initials(name); strip.dataset.running = 'false'; }
 function showBoardError(intent, message) { board.highlightSquares([{ square: intent.from, type: 'error' }, { square: intent.to, type: 'error' }]); showToast(message); setTimeout(() => board.clearHighlights(), 900); }
-function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.', STALE_VERSION: 'The board changed; it has been synchronized.', ILLEGAL_MOVE: 'That move is not legal.', NOT_YOUR_TURN: 'Wait for your turn.', RATE_LIMITED: 'Too many requests. Please wait a moment.', DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.' })[error?.code] || 'The server could not confirm that action.'; }
-function handleError(error, fallback) { console.warn('CAISSA Online:', error?.code || error?.message); showToast(error instanceof OnlineApiError ? messageForError(error) : fallback); }
+function messageForError(error) { return ({ AUTH_REQUIRED: 'Sign in to continue.', ONLINE_INTERNAL_ONLY: 'Access denied. This Clerk account is not authorized for the private Arena beta.', ARENA_BETA_NOT_AUTHORIZED: 'Access denied. This Clerk account is not authorized for Arena Season 001.', ARENA_ORGANIZER_REQUIRED: 'This account may play, but only the authorized organizer can create an Arena.', STALE_VERSION: 'The board changed; it has been synchronized.', ILLEGAL_MOVE: 'That move is not legal.', NOT_YOUR_TURN: 'Wait for your turn.', RATE_LIMITED: 'Too many requests. Please wait a moment.', DRAW_OFFER_REQUIRED: 'There is no draw offer to accept.' })[error?.code] || 'The server could not confirm that action.'; }
+function isAccessDeniedError(error) { return error instanceof OnlineApiError && ['ONLINE_INTERNAL_ONLY', 'ARENA_BETA_NOT_AUTHORIZED'].includes(error.code); }
+function clearAccessDenied() {
+    model.accessDeniedCode = null;
+    ui.accessDenied.hidden = true;
+}
+function renderAccessDenied(error) {
+    model.accessDeniedCode = error.code;
+    model.state = null;
+    model.game = null;
+    model.arena = null;
+    model.pendingMove = null;
+    stopPolling();
+    void disconnectRealtime();
+    void disconnectTournamentRealtime();
+    showView('lobby');
+    setConnection('offline', 'Access denied');
+    renderWorkspaceHeader();
+    ui.status.textContent = messageForError(error);
+    ui.find.disabled = true;
+    ui.find.textContent = 'Access required';
+    ui.arenaJoin.disabled = true;
+    ui.arenaWithdraw.disabled = true;
+    ui.arenaDirectory.hidden = true;
+    ui.tournamentsComingSoon.hidden = true;
+    ui.tournamentDemoContent.hidden = true;
+    ui.accessDenied.hidden = false;
+    ui.arenaTab.hidden = true;
+    ui.curtain.hidden = false;
+    ui.curtainTitle.textContent = 'Private beta access denied';
+    ui.curtainCopy.textContent = 'This signed-in Clerk account is not authorized for the isolated Arena beta. Contact the organizer to add its Clerk user ID.';
+    board.setPosition(START_FEN, { animate: false });
+    board.setReadOnly(true);
+    board.setInteractive(false);
+    resetPlayerStrips('access-denied');
+    showToast(messageForError(error));
+}
+function handleError(error, fallback) {
+    console.warn('CAISSA Online:', error?.code || error?.message);
+    if (isAccessDeniedError(error)) return renderAccessDenied(error);
+    showToast(error instanceof OnlineApiError ? messageForError(error) : fallback);
+}
 function showToast(message) { clearTimeout(model.toastTimer); ui.toast.textContent = message; ui.toast.hidden = false; model.toastTimer = setTimeout(() => { ui.toast.hidden = true; }, 4200); }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]); }
 async function dispose() {
