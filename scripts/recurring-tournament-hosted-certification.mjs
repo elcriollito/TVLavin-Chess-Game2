@@ -170,7 +170,7 @@ async function joinThroughBrowser(identity, tournamentId) {
     await identity.page.locator('#directory-tab-current').click();
     await identity.page.locator('#directory-panel-current[role="tabpanel"]')
         .waitFor({ state: 'visible', timeout: 15_000 });
-    const card = identity.page.locator('.arena-card').filter({ hasText: seriesName });
+    const card = identity.page.locator('#arena-current-list .arena-card').filter({ hasText: seriesName });
     if (process.env.CAISSA_CERT_DIAGNOSTICS === '1') {
         await identity.page.waitForTimeout(1_000);
         const diagnostics = await card.evaluateAll(elements => elements.map(element => ({
@@ -184,11 +184,22 @@ async function joinThroughBrowser(identity, tournamentId) {
         console.log(`RECURRING_HOSTED_UI_DIAGNOSTICS ${JSON.stringify(diagnostics)}`);
     }
     await card.waitFor({ state: 'visible', timeout: 30_000 });
-    await card.getByRole('button', { name: 'Join', exact: true }).click();
-    await card.getByRole('button', { name: 'Registered', exact: true })
-        .waitFor({ state: 'visible', timeout: 20_000 });
-    const persisted = currentTournament(await command(identity, 'tournament.sync', { tournamentId }));
+    let persisted = currentTournament(await command(identity, 'tournament.sync', { tournamentId }));
+    if (!persisted.myState || persisted.myState === 'withdrawn') {
+        await card.getByRole('button', { name: 'Join', exact: true }).click();
+        await dialog.waitFor({ state: 'hidden', timeout: 20_000 });
+        persisted = currentTournament(await command(identity, 'tournament.sync', { tournamentId }));
+    }
     assert.notEqual(persisted.myState, 'withdrawn');
+    await identity.page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForSignedIn(identity);
+    const reopened = identity.page.locator('#tournament-directory-dialog');
+    if (!await reopened.isVisible()) await identity.page.locator('#tournament-empty-browse').click();
+    await reopened.waitFor({ state: 'visible', timeout: 15_000 });
+    await identity.page.locator('#directory-tab-current').click();
+    const registeredCard = identity.page.locator('#arena-current-list .arena-card').filter({ hasText: seriesName });
+    await registeredCard.getByRole('button', { name: 'Registered', exact: true })
+        .waitFor({ state: 'visible', timeout: 20_000 });
 }
 
 async function register(identity) {
