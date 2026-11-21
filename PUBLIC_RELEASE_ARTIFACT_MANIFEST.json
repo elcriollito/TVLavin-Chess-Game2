@@ -132,11 +132,15 @@
     },
     {
       "path": "api/_lib/online-arena.js",
-      "sha256": "6e6dd4e307b1e5da883b4df176932808a3cb6a791d2f3e990543f0d9c5a4907f"
+      "sha256": "ff25825f079dad8e7553123eac6ff471785c5ccbc832ce3d4f33055815e635d6"
+    },
+    {
+      "path": "api/_lib/online-daily.js",
+      "sha256": "2730c5e2562f9bcefed2333517435c3a41a722779bac2547c0c510847893e094"
     },
     {
       "path": "api/_lib/online-game-engine.js",
-      "sha256": "7e53164b1771b7f6889153ea2a5e887d916906e92e1d5f8d5ddaf77dfc08c75f"
+      "sha256": "c3b609821cbb3471c72eb98269b43fe0357ed7838ee77525e0d89dcc17b05614"
     },
     {
       "path": "api/_lib/online-guest-auth.js",
@@ -148,7 +152,7 @@
     },
     {
       "path": "api/_lib/online-public-projection.js",
-      "sha256": "439f42b5c2ccf53f1962cb9f2419e83511982dd3b9b01d985a3ef33df50db317"
+      "sha256": "d3004c0744d93e159570e7702f93df6f059fbd0f6c4c13bac41d38d15677ea60"
     },
     {
       "path": "api/_lib/online-rating.js",
@@ -164,7 +168,11 @@
     },
     {
       "path": "api/_lib/online-service.js",
-      "sha256": "2f7edc9e17c8ff5d34b38b9272371034186484803fcffc9a4cd6d673bacb7108"
+      "sha256": "0bb0ac96b6ff1cf895dec057ae2cdb2c7f893e71e3621ef5df1dc43e6d350f62"
+    },
+    {
+      "path": "api/_lib/online-weekly-scheduler.js",
+      "sha256": "d7db5a94f6daeee4baf2e1361da34a9e0c98d74b415974d786ada7ecd381309e"
     },
     {
       "path": "api/_lib/pgn-player-offers.js",
@@ -200,7 +208,7 @@
     },
     {
       "path": "api/_lib/public-registration.js",
-      "sha256": "d81510aa31ab4623ef3eba6b8db6f55e17b0cd6bd52f9e06632405ebb1ba1004"
+      "sha256": "6bd7ef1bf1d10daca63d280a914f8357bb890984a8d417d3dfe2d1347bf9af07"
     },
     {
       "path": "api/_lib/puzzle-catalog.js",
@@ -740,7 +748,7 @@
     },
     {
       "path": "api/online.js",
-      "sha256": "affc72f85824c7dd9424f440ed8663ce6d8c05583dcd566cfcbacec699dfae77"
+      "sha256": "319f362191352856810bde78e11b8dabcae8cc847c1ffed0989d484832dee766"
     },
     {
       "path": "api/opening-trainer/repertoires.js",
@@ -1676,7 +1684,7 @@
     },
     {
       "path": "css/online.css",
-      "sha256": "a995d3c5b98aae3dc610209b23b2b6a83e86907394aa1a9d01310b38b868a907"
+      "sha256": "0afdcbbe878b6e3f3e4d31ec47d7f53d79b81cf8d7ac7dff4dd54cedab45d770"
     },
     {
       "path": "css/opening-book.css",
@@ -2908,11 +2916,11 @@
     },
     {
       "path": "js/online/online-page.js",
-      "sha256": "9a519928147babf561e53c267cd346f2068b825ab92515ea69fbc39b79c1a582"
+      "sha256": "edd9a7fc072987d9d70015ce7ebd8946f4db41096d5fbff73265de6175ed8e48"
     },
     {
       "path": "js/online/online-protocol.js",
-      "sha256": "78f0738d93a3fa1de8d5533e1e236a05cbdad9d04415f804682ba418bd43cb3f"
+      "sha256": "bf73ef33a6fcf21c41bca5748f7d38f1bcf00174ecec6e98d8f24aae9435386f"
     },
     {
       "path": "js/online/online-realtime.js",
@@ -4108,7 +4116,7 @@
     },
     {
       "path": "online.html",
-      "sha256": "4e83a6bf2b066e23cd415bea53965ff12e0fdde4d4675deadb3d155770fb4ec9"
+      "sha256": "8356df9a7da13d5b78b0073091aafe62e4c0082ac64595d8d10502204e32304f"
     },
     {
       "path": "opening-database.html",
@@ -4124,7 +4132,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "3de328f064f84771b71d377ec51f4b2cc56ee01bdccbf97a7ce5b8c5dd641add"
+      "sha256": "d56638017e9ddec13aee21032741edc7ef8760ce6dc050f96407a38303f8eb6c"
     },
     {
       "path": "pgn-replayer.html",
@@ -4284,7 +4292,7 @@
     },
     {
       "path": "playwright.online.config.js",
-      "sha256": "db6087765c1d8d10e3818475efc82c9e5ded3af6f82ec4df814987a4b79a66e0"
+      "sha256": "765bdf5cf04ef8c631e4d4d8c383b67a93b0d3727f378f843bcbf5b405ab09b7"
     },
     {
       "path": "playwright.release.config.js",
@@ -7060,11 +7068,11 @@
     },
     {
       "path": "signin.html",
-      "sha256": "127a4cab2afd0383da534e21880e2d071b173f218f87d2c25924e48fea855036"
+      "sha256": "9be8bfd641fcd29f74afbedd0683869d21db3c8342ca7b2a8cea09583acdcc17"
     },
     {
       "path": "signup.html",
-      "sha256": "2136e2add87d24cc59aa43981e5d3ee26fecd449551b504244f68946775c71b5"
+      "sha256": "8e08597a2deba1dac7a7d181c6343c5e45d6188e9be9b50b1aa177867141b699"
     },
     {
       "path": "stockfish-worker.js",
@@ -7080,7 +7088,7 @@
     },
     {
       "path": "vercel.json",
-      "sha256": "783f677649e98c56218faf715eeb625f26cf74483a530b1bc07f0c814a5f819b"
+      "sha256": "150f98979a043b4805e4a68a9e34348295334bcf4e10a91153106768a1462690"
     },
     {
       "path": "worker/stats-worker.js",

@@ -57,6 +57,24 @@ test('queue join does not retry unrelated database failures', async () => {
     assert.equal(calls, 1);
 });
 
+test('unrated Arena creation remains compatible before the rated RPC overload is migrated', async () => {
+    const calls = [];
+    const db = { async rpc(name, args) {
+        calls.push({ name, args });
+        return { data: { tournaments: [], current: null }, error: null };
+    } };
+    const service = createOnlineService({ db });
+    const input = {
+        clerkId: 'user_a', eventId: 'arena:create:1', name: 'Compatible Arena',
+        startsAt: '2026-11-22T00:00:00.000Z', durationMinutes: 60, capacity: 16,
+        lateJoin: true, control: { pool: 'blitz', baseMs: 300000, incrementMs: 0 }
+    };
+    await service.createArena({ ...input, rated: false });
+    await service.createArena({ ...input, eventId: 'arena:create:2', rated: true });
+    assert.equal(Object.hasOwn(calls[0].args, 'p_rated'), false);
+    assert.equal(calls[1].args.p_rated, true);
+});
+
 test('public identity resolver calls the server-only canonical RPC', async () => {
     const calls = [];
     const db = { async rpc(name, args) {

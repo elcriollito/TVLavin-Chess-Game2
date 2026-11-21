@@ -26,6 +26,7 @@ export function validateArenaCreation(payload, now = Date.now()) {
     const durationMinutes = Number(payload?.durationMinutes ?? 15);
     const capacity = Number(payload?.capacity ?? 16);
     const lateJoin = payload?.lateJoin === true;
+    const rated = payload?.rated === true;
     const startsAt = Date.parse(payload?.startsAt || new Date(now + 60_000).toISOString());
     if (name.length < 3 || name.length > 80 || /[<>\u0000-\u001f\u007f]/u.test(name)) {
         return failure('INVALID_TOURNAMENT_NAME');
@@ -34,7 +35,7 @@ export function validateArenaCreation(payload, now = Date.now()) {
     if (!Number.isSafeInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 180) {
         return failure('INVALID_TOURNAMENT_DURATION');
     }
-    if (!Number.isSafeInteger(capacity) || capacity < 4 || capacity > 64) {
+    if (!Number.isSafeInteger(capacity) || capacity < 4 || capacity > 100) {
         return failure('INVALID_TOURNAMENT_CAPACITY');
     }
     if (!Number.isFinite(startsAt) || startsAt < now - 30_000 || startsAt > now + (31 * 24 * 60 * 60 * 1000)) {
@@ -48,9 +49,15 @@ export function validateArenaCreation(payload, now = Date.now()) {
             durationMinutes,
             capacity,
             lateJoin,
+            rated,
             startsAt: new Date(startsAt).toISOString()
         })
     });
+}
+
+export function isArenaRatedEnabled(rollout, env = {}) {
+    return isArenaEnabled(rollout, env)
+        && env.CAISSA_ONLINE_TOURNAMENT_RATED === '1';
 }
 
 export function isArenaEnabled(rollout, env = {}) {

@@ -11,7 +11,7 @@ import {
     validateMove,
     validateQueueJoin
 } from '../js/online/online-protocol.js';
-import { applyAuthoritativeMove } from './_lib/online-game-engine.js';
+import { applyAuthoritativeDailyMove, applyAuthoritativeMove } from './_lib/online-game-engine.js';
 import {
     sendOnlineGameBroadcast,
     sendOnlineTournamentBroadcast
@@ -19,9 +19,12 @@ import {
 import {
     arenaSubjectSet,
     isArenaEnabled,
+    isArenaRatedEnabled,
     validateArenaCreation,
     validateArenaTournamentId
 } from './_lib/online-arena.js';
+import { isDailyEnabled, validateDailyCreation } from './_lib/online-daily.js';
+import { isWeeklyArenaEnabled, validateWeeklyAdminAction } from './_lib/online-weekly-scheduler.js';
 import { trustedOnlineSourceKey } from './_lib/online-request-source.js';
 import { getSupabasePublishableKey, getSupabaseUrl } from './_lib/supabase.js';
 
@@ -144,6 +147,12 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
     if (event.eventType.startsWith('tournament.')) {
         return handleTournamentCommand(req, res, auth, service, dependencies, event);
     }
+    if (event.eventType.startsWith('daily.')) {
+        return handleDailyTournamentCommand(req, res, auth, service, dependencies, event);
+    }
+    if (event.eventType.startsWith('weekly.')) {
+        return handleWeeklyCommand(req, res, auth, service, dependencies, event);
+    }
     if (event.eventType === 'presence.join') {
         const displayName = await resolveOnlineDisplayName(auth, service);
         const state = await service.heartbeat(auth.userId, displayName);
@@ -206,6 +215,16 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
         ));
     }
     if (event.eventType === 'game.sync') {
+        if (event.gameId && typeof service.getGame === 'function' && typeof service.getDailyState === 'function') {
+            const game = await service.getGame(event.gameId);
+            if (game?.pool === 'daily') {
+                const daily = await service.getDailyState(auth.userId, game.tournament_id, event.gameId);
+                const state = await mergeDailyGameState(service, auth.userId, daily, event.gameId);
+                return res.status(200).json(createServerEnvelope('game.snapshot', { state }, {
+                    correlationId: event.eventId, gameId: state?.game?.id, version: state?.game?.version
+                }));
+            }
+        }
         const state = await service.getState(auth.userId);
         return res.status(200).json(createServerEnvelope('game.snapshot', { state }, {
             correlationId: event.eventId, gameId: state?.game?.id, version: state?.game?.version
@@ -215,6 +234,10 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
         const move = validateMove(event.payload);
         if (!move.ok || !event.gameId) return res.status(400).json({ code: move.code || 'GAME_ID_REQUIRED' });
         const game = await service.getGame(event.gameId);
+        const dailyGame = game?.pool === 'daily';
+        if (dailyGame && !isDailyEnabled(rolloutMode(dependencies.env || process.env), dependencies.env || process.env)) {
+            return res.status(404).json({ code: 'DAILY_DISABLED' });
+        }
         if (game && ![game.white_clerk_id, game.black_clerk_id].includes(auth.userId)) {
             return res.status(403).json(createServerEnvelope('game.moveRejected', { reasonCode: 'NOT_A_PARTICIPANT' }, {
                 correlationId: event.eventId, gameId: event.gameId
@@ -223,20 +246,28 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
         const replayed = game && typeof service.getEvent === 'function'
             ? await service.getEvent(event.gameId, event.eventId) : null;
         if (replayed) {
-            const rawState = await service.getState(auth.userId);
-            const state = focusCompletedGame(rawState, event.gameId);
+            const rawState = dailyGame
+                ? await service.getDailyState(auth.userId, game.tournament_id, event.gameId)
+                : await service.getState(auth.userId);
+            const state = dailyGame
+                ? await mergeDailyGameState(service, auth.userId, rawState, event.gameId)
+                : focusCompletedGame(rawState, event.gameId);
             const type = replayed.event_type === 'game.result' ? 'game.result' : 'game.moveAccepted';
             return res.status(200).json(createServerEnvelope(type, { state, replayed: true }, {
                 correlationId: event.eventId, gameId: event.gameId, version: state?.game?.version
             }));
         }
-        const projected = (dependencies.applyMove || applyAuthoritativeMove)(game, auth.userId, move.value);
+        const projected = dailyGame
+            ? (dependencies.applyDailyMove || applyAuthoritativeDailyMove)(game, auth.userId, move.value)
+            : (dependencies.applyMove || applyAuthoritativeMove)(game, auth.userId, move.value);
         if (!projected.ok) {
             if (projected.timeout) {
-                const rawState = await service.finishGame({
+                const rawState = await (dailyGame ? service.finishDailyGame : service.finishGame)({
                     clerkId: auth.userId, gameId: event.gameId, eventId: event.eventId, reason: 'timeout'
                 });
-                const state = focusCompletedGame(rawState, event.gameId);
+                const state = dailyGame
+                    ? await mergeDailyGameState(service, auth.userId, rawState, event.gameId)
+                    : focusCompletedGame(rawState, event.gameId);
                 return res.status(409).json(createServerEnvelope('game.result', { state, reasonCode: 'TIME_EXPIRED' }, {
                     correlationId: event.eventId, gameId: event.gameId, version: state?.game?.version
                 }));
@@ -245,14 +276,16 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
                 correlationId: event.eventId, gameId: event.gameId, version: game?.version
             }));
         }
-        const rawState = await service.commitMove({
+        const rawState = await (dailyGame ? service.commitDailyMove : service.commitMove)({
             clerkId: auth.userId,
             gameId: event.gameId,
             eventId: event.eventId,
             expectedVersion: move.value.expectedVersion,
             projection: projected.value
         });
-        const state = rawState?.game ? rawState : focusCompletedGame(rawState, event.gameId);
+        const state = dailyGame
+            ? await mergeDailyGameState(service, auth.userId, rawState, event.gameId)
+            : rawState?.game ? rawState : focusCompletedGame(rawState, event.gameId);
         const acceptedType = state?.game?.status === 'completed' ? 'game.result' : 'game.moveAccepted';
         audit(acceptedType, {
             gameId: event.gameId,
@@ -274,13 +307,17 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
     }
     if (event.eventType === 'game.resign' || event.eventType === 'game.drawAccept') {
         if (!event.gameId) return res.status(400).json({ code: 'GAME_ID_REQUIRED' });
-        const rawState = await service.finishGame({
+        const game = typeof service.getGame === 'function' ? await service.getGame(event.gameId) : null;
+        const dailyGame = game?.pool === 'daily';
+        const rawState = await (dailyGame ? service.finishDailyGame : service.finishGame)({
             clerkId: auth.userId,
             gameId: event.gameId,
             eventId: event.eventId,
             reason: event.eventType === 'game.resign' ? 'resignation' : 'agreement'
         });
-        const state = focusCompletedGame(rawState, event.gameId);
+        const state = dailyGame
+            ? await mergeDailyGameState(service, auth.userId, rawState, event.gameId)
+            : focusCompletedGame(rawState, event.gameId);
         return res.status(200).json(createServerEnvelope('game.result', { state }, {
             correlationId: event.eventId, gameId: event.gameId, version: state?.game?.version
         }));
@@ -323,6 +360,8 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
 function publicConfig(rollout, env) {
     const enabled = rollout !== 'off';
     const arenaEnabled = isArenaEnabled(rollout, env);
+    const dailyEnabled = isDailyEnabled(rollout, env);
+    const weeklyEnabled = isWeeklyArenaEnabled(rollout, env);
     const realtimeUrl = getSupabaseUrl(env);
     const publishableKey = getSupabasePublishableKey(env);
     return {
@@ -339,7 +378,11 @@ function publicConfig(rollout, env) {
             arenaS001: arenaEnabled,
             tournamentCreation: arenaEnabled && env.CAISSA_ONLINE_ARENA_CREATE === '1',
             publicTournamentDirectory: false,
-            tournamentRated: false,
+            arena100: arenaEnabled && env.CAISSA_ONLINE_ARENA_100 === '1',
+            tournamentRated: isArenaRatedEnabled(rollout, env),
+            dailyTournaments: dailyEnabled,
+            dailyRated: dailyEnabled && env.CAISSA_ONLINE_DAILY_RATED === '1',
+            weeklyArenas: weeklyEnabled,
             arena24h: false,
             multiboard: enabled && env.CAISSA_ONLINE_MULTIBOARD === '1',
             spectators: enabled && env.CAISSA_ONLINE_SPECTATORS === '1'
@@ -377,6 +420,12 @@ async function handleTournamentCommand(req, res, auth, service, dependencies, ev
         }
         const creation = validateArenaCreation(event.payload);
         if (!creation.ok) return res.status(400).json({ code: creation.code });
+        if (creation.value.capacity > 64 && env.CAISSA_ONLINE_ARENA_100 !== '1') {
+            return res.status(403).json({ code: 'ARENA_100_NOT_ENABLED' });
+        }
+        if (creation.value.rated && !isArenaRatedEnabled(rollout, env)) {
+            return res.status(403).json({ code: 'RATED_NOT_ENABLED' });
+        }
         arena = await service.createArena({
             clerkId: auth.userId,
             eventId: event.eventId,
@@ -411,7 +460,10 @@ async function handleTournamentCommand(req, res, auth, service, dependencies, ev
         }
     }
 
-    const state = { ...(await service.getState(auth.userId)), arena };
+    const state = {
+        ...(await service.getState(auth.userId)), arena,
+        permissions: onlinePermissions(auth, env)
+    };
     const tournament = arena?.current;
     if (tournament?.id && tournament?.version) {
         await notifyTournamentChange(dependencies, env, {
@@ -438,12 +490,91 @@ async function stateWithArena(auth, service, env, rollout, tournamentId = null) 
         arena = await service.getArenaState(auth.userId, tournamentId);
     }
     const state = await service.getState(auth.userId);
-    return arena ? { ...state, arena } : state;
+    let daily = null;
+    if (!auth.guest && isDailyEnabled(rollout, env) && typeof service.getDailyState === 'function') {
+        daily = await service.getDailyState(auth.userId);
+    }
+    return {
+        ...state, ...(arena ? { arena } : {}), ...(daily ? { daily } : {}),
+        permissions: onlinePermissions(auth, env)
+    };
+}
+
+async function handleDailyTournamentCommand(req, res, auth, service, dependencies, event) {
+    const env = dependencies.env || process.env;
+    const rollout = rolloutMode(env);
+    if (!isDailyEnabled(rollout, env)) return res.status(404).json({ code: 'DAILY_DISABLED' });
+    if (auth.guest) return res.status(403).json({ code: 'ARENA_MEMBER_ACCOUNT_REQUIRED' });
+    let daily;
+    if (event.eventType === 'daily.create') {
+        if (env.CAISSA_ONLINE_DAILY_CREATE !== '1'
+            || !arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth.userId)) {
+            return res.status(403).json({ code: 'ARENA_ORGANIZER_REQUIRED' });
+        }
+        const creation = validateDailyCreation(event.payload);
+        if (!creation.ok) return res.status(400).json({ code: creation.code });
+        if (creation.value.rated && env.CAISSA_ONLINE_DAILY_RATED !== '1') {
+            return res.status(403).json({ code: 'RATED_NOT_ENABLED' });
+        }
+        daily = await service.createDaily({ clerkId: auth.userId, eventId: event.eventId, ...creation.value });
+    } else {
+        const checked = validateArenaTournamentId(event.payload);
+        if (!checked.ok) return res.status(400).json({ code: checked.code });
+        if (event.eventType === 'daily.join') {
+            daily = await service.joinDaily({ clerkId: auth.userId, tournamentId: checked.value.tournamentId, eventId: event.eventId });
+        } else if (event.eventType === 'daily.withdraw') {
+            daily = await service.withdrawDaily({ clerkId: auth.userId, tournamentId: checked.value.tournamentId, eventId: event.eventId });
+        } else if (event.eventType === 'daily.sync') {
+            daily = await service.getDailyState(auth.userId, checked.value.tournamentId, event.payload?.gameId || null);
+        } else {
+            return res.status(501).json({ code: 'EVENT_NOT_ENABLED' });
+        }
+    }
+    const state = {
+        ...(await service.getState(auth.userId)), daily,
+        permissions: onlinePermissions(auth, env)
+    };
+    return res.status(event.eventType === 'daily.create' ? 201 : 200)
+        .json(createServerEnvelope('tournament.snapshot', { state }, {
+            correlationId: event.eventId,
+            gameId: daily?.game?.id || null,
+            version: daily?.game?.version || null
+        }));
+}
+
+async function handleWeeklyCommand(req, res, auth, service, dependencies, event) {
+    const env = dependencies.env || process.env;
+    const rollout = rolloutMode(env);
+    if (!isWeeklyArenaEnabled(rollout, env) || env.CAISSA_ONLINE_WEEKLY_ADMIN !== '1') {
+        return res.status(404).json({ code: 'WEEKLY_ARENAS_DISABLED' });
+    }
+    if (auth.guest || !arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth.userId)) {
+        return res.status(403).json({ code: 'ARENA_ORGANIZER_REQUIRED' });
+    }
+    const action = event.eventType.slice('weekly.'.length);
+    const checked = validateWeeklyAdminAction(action, event.payload, env);
+    if (!checked.ok) return res.status(400).json({ code: checked.code });
+    const series = await service.manageWeeklySeries({
+        clerkId: auth.userId,
+        eventId: event.eventId,
+        action: action === 'sync' ? 'inspect' : action,
+        payload: checked.value
+    });
+    return res.status(200).json(createServerEnvelope('tournament.snapshot', { series }, {
+        correlationId: event.eventId
+    }));
 }
 
 function isArenaParticipantAuthorized(rollout, env, userId) {
     return rollout === 'preview'
         || arenaSubjectSet(env.CAISSA_ONLINE_ARENA_BETA_USERS).has(userId);
+}
+
+function onlinePermissions(auth, env) {
+    return Object.freeze({
+        tournamentOrganizer: auth?.guest !== true
+            && arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth?.userId)
+    });
 }
 
 async function resolveOnlineDisplayName(auth, service) {
@@ -506,6 +637,15 @@ function focusCompletedGame(state, gameId) {
     return completed ? { ...state, game: completed } : state;
 }
 
+async function mergeDailyGameState(service, clerkId, daily, gameId) {
+    const base = await service.getState(clerkId);
+    const game = daily?.game
+        || daily?.games?.find?.(item => item.id === gameId)
+        || daily?.recentGames?.find?.(item => item.id === gameId)
+        || null;
+    return { ...base, daily, game };
+}
+
 function mapError(code) {
     const value = String(code || 'ONLINE_SERVICE_UNAVAILABLE');
     if (value.includes('ARENA_REGISTRATION_NOT_OPEN')) return { status: 409, code: 'ARENA_REGISTRATION_NOT_OPEN' };
@@ -513,6 +653,12 @@ function mapError(code) {
     if (value.includes('ARENA_LATE_JOIN_DISABLED')) return { status: 409, code: 'ARENA_LATE_JOIN_DISABLED' };
     if (value.includes('ARENA_COMPLETED')) return { status: 409, code: 'ARENA_COMPLETED' };
     if (value.includes('ARENA_FULL')) return { status: 409, code: 'ARENA_FULL' };
+    if (value.includes('DAILY_FULL')) return { status: 409, code: 'DAILY_FULL' };
+    if (value.includes('DAILY_REGISTRATION_CLOSED')) return { status: 409, code: 'DAILY_REGISTRATION_CLOSED' };
+    if (value.includes('DAILY_NOT_FOUND')) return { status: 404, code: 'DAILY_NOT_FOUND' };
+    if (value.includes('DAILY_INVALID')) return { status: 400, code: 'DAILY_INVALID' };
+    if (value.includes('SERIES_OCCURRENCE_NOT_CANCELLABLE')) return { status: 409, code: 'WEEKLY_OCCURRENCE_NOT_CANCELLABLE' };
+    if (value.includes('SERIES_INVALID')) return { status: 400, code: 'WEEKLY_INVALID_ACTION' };
     if (value.includes('ARENA_PARTICIPATION_CONFLICT')) return { status: 409, code: 'ARENA_PARTICIPATION_CONFLICT' };
     if (value.includes('ARENA_CREATION_LIMIT')) return { status: 409, code: 'ARENA_CREATION_LIMIT' };
     if (value.includes('ARENA_CREATION_COOLDOWN')) return { status: 429, code: 'ARENA_CREATION_COOLDOWN' };

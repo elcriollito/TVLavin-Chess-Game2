@@ -25,6 +25,29 @@ export async function projectOnlineState(state, resolveMany) {
         projected.challenges = state.challenges.map(challenge => projectChallenge(challenge, identities));
     }
     if (state.arena) projected.arena = await projectOnlineArenaState(state.arena, resolveMany);
+    if (state.daily && typeof state.daily === 'object') {
+        const current = state.daily.current ? {
+            ...state.daily.current,
+            standings: (state.daily.current.standings || []).map(row => ({
+                ...row,
+                displayName: publicName({
+                    subject: row.clerkId,
+                    userId: row.userId,
+                    raw: row.displayName,
+                    identity: identities[row.clerkId]
+                })
+            }))
+        } : null;
+        projected.daily = {
+            ...state.daily,
+            current,
+            game: projectGame(state.daily.game, identities),
+            games: Array.isArray(state.daily.games)
+                ? state.daily.games.map(game => projectGame(game, identities)) : [],
+            recentGames: Array.isArray(state.daily.recentGames)
+                ? state.daily.recentGames.map(game => projectGame(game, identities)) : []
+        };
+    }
     return projected;
 }
 
@@ -103,6 +126,12 @@ function collectSubjects(state) {
     }
     for (const player of Array.isArray(state.players) ? state.players : []) add(player?.clerkId);
     for (const challenge of Array.isArray(state.challenges) ? state.challenges : []) add(challenge?.otherClerkId);
+    for (const game of [state.daily?.game, ...(Array.isArray(state.daily?.games) ? state.daily.games : []),
+        ...(Array.isArray(state.daily?.recentGames) ? state.daily.recentGames : [])]) {
+        add(game?.white_clerk_id);
+        add(game?.black_clerk_id);
+    }
+    for (const row of state.daily?.current?.standings || []) add(row?.clerkId);
     return [...subjects].sort();
 }
 
