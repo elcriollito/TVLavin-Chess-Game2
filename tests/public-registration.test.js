@@ -18,6 +18,18 @@ const stagingEnv = Object.freeze({
     SUPABASE_URL: 'https://aqizagaskicotorfpwfn.supabase.co'
 });
 
+const isolatedBetaEnv = Object.freeze({
+    CAISSA_PUBLIC_REGISTRATION_MODE: 'open',
+    CAISSA_PUBLIC_REGISTRATION_TARGET: 'arena_s001_beta',
+    CAISSA_ONLINE_ROLLOUT: 'preview',
+    VERCEL_ENV: 'preview',
+    CAISSA_CLERK_AUTHORITY: 'legacy_development',
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_c3ludGhldGljLmNsZXJrLmFjY291bnRzLmRldiQ',
+    CLERK_SECRET_KEY: 'sk_test_private',
+    SUPABASE_SERVICE_ROLE_KEY: 'eyJhbGciOiJub25lIn0.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature',
+    SUPABASE_URL: 'https://imtwlzicxaaqjyvrkdsv.supabase.co'
+});
+
 const auth = Object.freeze({
     authenticated: true,
     userId: 'user_3PublicRegistrationFixture001',
@@ -59,6 +71,20 @@ test('public registration is closed by default and fails closed on authority/pro
         authority: 'legacy_development',
         projectRef: 'aqizagaskicotorfpwfn'
     });
+});
+
+test('isolated Arena beta registration opens only on the exact Preview boundary', () => {
+    assert.equal(isPublicRegistrationOpen(isolatedBetaEnv), true);
+    for (const env of [
+        { ...isolatedBetaEnv, CAISSA_PUBLIC_REGISTRATION_MODE: 'off' },
+        { ...isolatedBetaEnv, CAISSA_PUBLIC_REGISTRATION_TARGET: 'other' },
+        { ...isolatedBetaEnv, CAISSA_ONLINE_ROLLOUT: 'internal' },
+        { ...isolatedBetaEnv, VERCEL_ENV: 'production' },
+        { ...isolatedBetaEnv, SUPABASE_URL: 'https://aqizagaskicotorfpwfn.supabase.co' },
+        { ...isolatedBetaEnv, CAISSA_IDENTITY_OWNERSHIP_MODE: 'enforced' },
+        { ...isolatedBetaEnv, CAISSA_IDENTITY_MIGRATION_MODE: 'enforced' },
+        { ...isolatedBetaEnv, CLERK_SECRET_KEY: 'sk_live_wrong_class' }
+    ]) assert.equal(isPublicRegistrationOpen(env), false);
 });
 
 test('verified Clerk Backend user and active session are the only enrollment inputs', async () => {

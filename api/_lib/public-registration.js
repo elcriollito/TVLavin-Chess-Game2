@@ -1,8 +1,11 @@
 import { createClerkClient } from '@clerk/backend';
 import { isIdentityOwnershipEnforced, clerkAuthorityFromEnvironment } from './identity-ownership.js';
+import { isIdentityMigrationEnforced } from './identity-resolution.js';
 import { getSupabaseServerKey, getSupabaseUrl } from './supabase.js';
 
 const REGISTRATION_MODE = 'open';
+const ISOLATED_ARENA_BETA_TARGET = 'arena_s001_beta';
+const ISOLATED_ARENA_BETA_REF = 'imtwlzicxaaqjyvrkdsv';
 const STAGING_REF = 'aqizagaskicotorfpwfn';
 const PRODUCTION_REF = 'jczauvkfkweuvdpurpem';
 const DEFAULT_CLERK_TIMEOUT_MS = 3_000;
@@ -31,7 +34,31 @@ export function publicRegistrationEnvironment(env = process.env) {
 }
 
 export function isPublicRegistrationOpen(env = process.env) {
-    return publicRegistrationEnvironment(env) !== null;
+    return publicRegistrationEnvironment(env) !== null
+        || isolatedArenaBetaRegistrationEnvironment(env) !== null;
+}
+
+function isolatedArenaBetaRegistrationEnvironment(env) {
+    if (String(env.CAISSA_PUBLIC_REGISTRATION_MODE || '').trim() !== REGISTRATION_MODE
+        || String(env.CAISSA_PUBLIC_REGISTRATION_TARGET || '').trim() !== ISOLATED_ARENA_BETA_TARGET
+        || String(env.CAISSA_ONLINE_ROLLOUT || '').trim() !== 'preview'
+        || String(env.VERCEL_ENV || '').trim() !== 'preview'
+        || isIdentityOwnershipEnforced(env)
+        || isIdentityMigrationEnforced(env)) return null;
+
+    const authority = clerkAuthorityFromEnvironment(env);
+    if (authority !== 'legacy_development'
+        || String(env.CAISSA_CLERK_AUTHORITY || '').trim() !== authority
+        || supabaseProjectRef(getSupabaseUrl(env)) !== ISOLATED_ARENA_BETA_REF) return null;
+
+    const secretKey = String(env.CLERK_SECRET_KEY || '').trim();
+    if (!clerkSecretMatchesAuthority(secretKey, authority)) return null;
+    try {
+        if (!getSupabaseServerKey(env)) return null;
+    } catch {
+        return null;
+    }
+    return Object.freeze({ authority, projectRef: ISOLATED_ARENA_BETA_REF });
 }
 
 export async function enrollPublicRegistration({
