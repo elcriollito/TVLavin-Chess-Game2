@@ -18,16 +18,26 @@ export function isDailyEnabled(rollout, env = {}) {
 }
 
 export function validateDailyCreation(payload, now = Date.now()) {
+    if (hasAny(payload, ['timeControlId', 'durationMinutes', 'lateJoin', 'pool', 'baseMs', 'incrementMs'])) {
+        return failure('INVALID_DAILY_FIELDS');
+    }
+    if (Object.hasOwn(payload || {}, 'registrationClosesAt')) {
+        return failure('DAILY_REGISTRATION_MANAGED');
+    }
     const name = String(payload?.name || '').trim();
+    const description = String(payload?.description || '').trim();
     const daysPerMove = Number(payload?.daysPerMove ?? DAILY_DEFAULTS.daysPerMove);
     const groupSize = Number(payload?.groupSize ?? DAILY_DEFAULTS.groupSize);
     const capacity = Number(payload?.capacity ?? DAILY_DEFAULTS.capacity);
+    const qualifiersPerGroup = Number(payload?.qualifiersPerGroup ?? DAILY_DEFAULTS.qualifiersPerGroup);
     const rated = payload?.rated === true;
     const startsAt = Date.parse(payload?.startsAt || '');
-    const registrationClosesAt = Date.parse(payload?.registrationClosesAt || '');
 
     if (name.length < 3 || name.length > 80 || /[<>\u0000-\u001f\u007f]/u.test(name)) {
         return failure('INVALID_TOURNAMENT_NAME');
+    }
+    if (description.length > 500 || /[<>\u0000-\u001f\u007f]/u.test(description)) {
+        return failure('INVALID_TOURNAMENT_DESCRIPTION');
     }
     if (!DAILY_MOVE_CONTROLS.includes(daysPerMove)) return failure('INVALID_DAILY_MOVE_CONTROL');
     if (!Number.isSafeInteger(groupSize) || groupSize < 3 || groupSize > DAILY_DEFAULTS.maximumGroupSize) {
@@ -36,27 +46,31 @@ export function validateDailyCreation(payload, now = Date.now()) {
     if (!Number.isSafeInteger(capacity) || capacity < 4 || capacity > 100) {
         return failure('INVALID_TOURNAMENT_CAPACITY');
     }
+    if (groupSize > capacity) return failure('DAILY_GROUP_EXCEEDS_CAPACITY');
+    if (![1, 2].includes(qualifiersPerGroup) || qualifiersPerGroup >= groupSize) {
+        return failure('INVALID_DAILY_ADVANCEMENT');
+    }
     if (!Number.isFinite(startsAt) || startsAt < now + 60_000 || startsAt > now + (366 * DAY_MS)) {
         return failure('INVALID_TOURNAMENT_START');
-    }
-    if (!Number.isFinite(registrationClosesAt)
-        || registrationClosesAt <= now
-        || registrationClosesAt > startsAt) {
-        return failure('INVALID_REGISTRATION_DEADLINE');
     }
     return Object.freeze({
         ok: true,
         value: Object.freeze({
             name,
+            description,
             daysPerMove,
             groupSize,
             capacity,
-            qualifiersPerGroup: Math.min(DAILY_DEFAULTS.qualifiersPerGroup, groupSize - 1),
+            qualifiersPerGroup,
             rated,
             startsAt: new Date(startsAt).toISOString(),
-            registrationClosesAt: new Date(registrationClosesAt).toISOString()
+            registrationClosesAt: new Date(startsAt).toISOString()
         })
     });
+}
+
+function hasAny(payload, keys) {
+    return payload && typeof payload === 'object' && keys.some(key => Object.hasOwn(payload, key));
 }
 
 export function nextDailyDeadline(now, daysPerMove) {

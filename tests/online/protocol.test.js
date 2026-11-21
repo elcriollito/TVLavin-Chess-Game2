@@ -23,7 +23,9 @@ test('protocol rejects unversioned, malformed, and unknown client events', () =>
 });
 
 test('time controls and challenge inputs use the same canonical catalog', () => {
-    assert.equal(TIME_CONTROLS.length, 5);
+    assert.equal(TIME_CONTROLS.length, 6);
+    assert.deepEqual(validateQueueJoin({ timeControlId: 'bullet-2-1', rated: true }).value.control,
+        { id: 'bullet-2-1', label: '2+1', pool: 'bullet', baseMs: 120_000, incrementMs: 1_000 });
     assert.equal(validateQueueJoin({ timeControlId: 'blitz-3-2', rated: true }).value.control.baseMs, 180_000);
     assert.deepEqual(validateQueueJoin({ timeControlId: 'custom', baseMinutes: 7, incrementSeconds: 3 }).value.control,
         { id: 'custom', label: '7+3', pool: 'blitz', baseMs: 420_000, incrementMs: 3_000 });

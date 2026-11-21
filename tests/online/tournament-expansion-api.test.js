@@ -55,8 +55,8 @@ test('Daily flags fail closed and an ordinary Preview member can join when enabl
 test('Daily creation and rated mode require independent organizer flags', async () => {
     const payload = {
         name: 'Daily Championship', startsAt: new Date(Date.now() + 172_800_000).toISOString(),
-        registrationClosesAt: new Date(Date.now() + 86_400_000).toISOString(),
-        daysPerMove: 7, groupSize: 4, capacity: 16, rated: true
+        description: 'Daily correspondence event', daysPerMove: 7, groupSize: 4,
+        qualifiersPerGroup: 2, capacity: 16, rated: true
     };
     const denied = response();
     await handler(command('daily.create', payload), denied, {
@@ -66,6 +66,34 @@ test('Daily creation and rated mode require independent organizer flags', async 
     });
     assert.equal(denied.statusCode, 403);
     assert.equal(denied.body.code, 'RATED_NOT_ENABLED');
+});
+
+test('Daily creation derives registration closure and preserves the type-specific contract', async () => {
+    const startsAt = new Date(Date.now() + 172_800_000).toISOString();
+    let created;
+    const accepted = response();
+    await handler(command('daily.create', {
+        name: 'Daily UX Contract', description: 'Seven days applies to each move.',
+        startsAt, daysPerMove: 7, groupSize: 4, qualifiersPerGroup: 2,
+        capacity: 16, rated: false
+    }), accepted, {
+        env: {
+            ...baseEnv, CAISSA_ONLINE_DAILY_CREATE: '1',
+            CAISSA_ONLINE_TOURNAMENT_ADMINS: adminId
+        },
+        rateLimit, authenticate: async () => ({ authenticated: true, userId: adminId, guest: false }),
+        service: {
+            async createDaily(input) { created = input; return { current: { id: tournamentId } }; },
+            async getState() { return { game: null, recentGames: [] }; }
+        }
+    });
+    assert.equal(accepted.statusCode, 201);
+    assert.equal(created.description, 'Seven days applies to each move.');
+    assert.equal(created.registrationClosesAt, startsAt);
+    assert.equal(created.qualifiersPerGroup, 2);
+    for (const forbidden of ['timeControlId', 'durationMinutes', 'lateJoin']) {
+        assert.equal(Object.hasOwn(created, forbidden), false);
+    }
 });
 
 test('weekly administration is hidden from members and service-only for the organizer', async () => {

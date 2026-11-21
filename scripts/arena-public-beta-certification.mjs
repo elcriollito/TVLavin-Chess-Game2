@@ -9,6 +9,7 @@ const EXPECTED_ISSUER = 'https://cheerful-mantis-9523.clerk.accounts.dev';
 const CERT_TOURNAMENT_ID = String(process.env.CAISSA_CERT_TOURNAMENT_ID || '');
 const HUMAN_TOURNAMENT_ID = String(process.env.CAISSA_HUMAN_TOURNAMENT_ID || '');
 const JOIN_HOTFIX_ONLY = process.env.CAISSA_JOIN_HOTFIX_ONLY === '1';
+const EXPANSION_CERTIFICATION = process.env.CAISSA_EXPANSION_CERTIFICATION === '1';
 const EXPECTED_SOURCE_HEAD = String(process.env.CAISSA_EXPECTED_SOURCE_HEAD || 'verified externally');
 const EXISTING_PLAYERS = parseExistingPlayers(process.env.CAISSA_CERT_EXISTING_PLAYERS);
 const OWNER = {
@@ -50,6 +51,13 @@ async function certifyPublicBeta() {
     assert.equal(publicConfig.capabilities.rated, false);
     assert.equal(publicConfig.capabilities.publicTournamentDirectory, false);
     assert.equal(new URL(publicConfig.realtime.url).hostname, 'imtwlzicxaaqjyvrkdsv.supabase.co');
+    if (EXPANSION_CERTIFICATION) {
+        assert.equal(publicConfig.capabilities.arena100, true);
+        assert.equal(publicConfig.capabilities.tournamentRated, true);
+        assert.equal(publicConfig.capabilities.dailyTournaments, true);
+        assert.equal(publicConfig.capabilities.dailyRated, true);
+        assert.equal(publicConfig.capabilities.weeklyArenas, true);
+    }
     console.log('PUBLIC_BETA_CONFIG_PASS preview, member-only directory, isolated backend');
 
     for (const player of players) {
@@ -79,6 +87,16 @@ async function certifyPublicBeta() {
     assert.equal(denied.response.status, 403);
     assert.equal(denied.body.code, 'ARENA_ORGANIZER_REQUIRED');
     console.log('PUBLIC_ADMIN_DENIAL_PASS non-owner tournament creation rejected');
+    if (EXPANSION_CERTIFICATION) {
+        const deniedDaily = await rawCommand(players[0], 'daily.create', {
+            name: 'Unauthorized Daily creation', description: '', daysPerMove: 7,
+            groupSize: 4, qualifiersPerGroup: 2, capacity: 4,
+            startsAt: new Date(Date.now() + 120_000).toISOString(), rated: false
+        });
+        assert.equal(deniedDaily.response.status, 403);
+        assert.equal(deniedDaily.body.code, 'ARENA_ORGANIZER_REQUIRED');
+        console.log('PUBLIC_DAILY_ADMIN_DENIAL_PASS non-owner Daily creation rejected');
+    }
 
     if (JOIN_HOTFIX_ONLY) {
         assert.ok(HUMAN_TOURNAMENT_ID, 'CAISSA_HUMAN_TOURNAMENT_ID is required for Join hotfix certification');
@@ -99,9 +117,10 @@ async function certifyPublicBeta() {
         certificationName = `CAISSA Public Access Certification ${runId}`;
         const created = await command(OWNER, 'tournament.create', {
             name: certificationName,
-            timeControlId: 'blitz-3-2',
+            timeControlId: EXPANSION_CERTIFICATION ? 'bullet-2-1' : 'blitz-3-2',
             durationMinutes: 5,
-            startsAt
+            startsAt,
+            rated: EXPANSION_CERTIFICATION
         });
         tournamentId = currentTournament(created).id;
     }
@@ -134,7 +153,13 @@ async function certifyPublicBeta() {
     assert.equal(roundOneGames.size, 2);
     assert.equal(new Set([...roundOneGames.values()]
         .flatMap(game => [game.white_clerk_id, game.black_clerk_id])).size, 4);
-    console.log('PUBLIC_PAIRING_PASS two simultaneous 3+2 games');
+    if (EXPANSION_CERTIFICATION) {
+        assert.ok([...roundOneGames.values()].every(game => game.pool === 'bullet'
+            && game.base_ms === 120_000 && game.increment_ms === 1_000 && game.rated === true));
+        console.log('PUBLIC_PAIRING_PASS two simultaneous rated 2+1 Bullet games');
+    } else {
+        console.log('PUBLIC_PAIRING_PASS two simultaneous 3+2 games');
+    }
 
     const realtimeHandles = [];
     for (const player of players) {
@@ -163,8 +188,21 @@ async function certifyPublicBeta() {
     const scoringBaseline = currentTournament(await syncTournament(players[0], tournamentId)).standings;
     const baselineGamesPlayed = scoringBaseline.reduce((sum, row) => sum + row.gamesPlayed, 0);
     const baselinePoints = scoringBaseline.reduce((sum, row) => sum + row.points, 0);
+    let arenaRatingRetried = false;
     for (const game of roundOneGames.values()) {
-        await command(identityForSubject(game.black_clerk_id), 'game.resign', {}, game.id);
+        const black = identityForSubject(game.black_clerk_id);
+        const result = currentGame(await command(black, 'game.resign', {}, game.id));
+        if (EXPANSION_CERTIFICATION) {
+            assert.equal(result.pool, 'bullet');
+            assert.ok(Number.isInteger(result.white_rating_after));
+            assert.ok(Number.isInteger(result.black_rating_after));
+            if (!arenaRatingRetried) {
+                const ratings = [result.white_rating_after, result.black_rating_after];
+                const retry = currentGame(await command(black, 'game.resign', {}, game.id));
+                assert.deepEqual([retry.white_rating_after, retry.black_rating_after], ratings);
+                arenaRatingRetried = true;
+            }
+        }
     }
     const scored = currentTournament(await syncTournament(players[0], tournamentId));
     assert.equal(scored.standings.reduce((sum, row) => sum + row.gamesPlayed, 0), baselineGamesPlayed + 4);
@@ -198,6 +236,9 @@ async function certifyPublicBeta() {
     assert.equal(currentTournament(completed[0]).standings.length, 4);
     console.log('PUBLIC_CERTIFICATION_COMPLETION_PASS standings locked');
 
+    const dailyCertification = EXPANSION_CERTIFICATION
+        ? await certifyDailyExpansion() : null;
+
     let human;
     if (HUMAN_TOURNAMENT_ID) {
         human = currentTournament(await syncTournament(players[0], HUMAN_TOURNAMENT_ID));
@@ -225,6 +266,7 @@ async function certifyPublicBeta() {
     console.log(`PUBLIC_BETA_CERTIFICATION ${JSON.stringify({
         status: 'pass', origin: ORIGIN, sourceHead: EXPECTED_SOURCE_HEAD,
         certificationTournamentId: tournamentId,
+        dailyCertification,
         humanQaTournament: { id: human.id, name: human.name, startsAt: human.startsAt, endsAt: human.endsAt },
         owner: OWNER.subject,
         players: players.map(player => ({ label: player.label, subject: player.subject, email: player.email }))
@@ -260,6 +302,90 @@ async function certifyJoinHotfix(tournamentId) {
     const cleaned = currentTournament(await syncTournament(players[0], tournamentId));
     assert.equal(cleaned.participantCount, 0);
     console.log(`JOIN_HOTFIX_CLEANUP_PASS tournament=${tournamentId} participantCount=0`);
+}
+
+async function certifyDailyExpansion() {
+    const startsAt = new Date(Date.now() + 120_000).toISOString();
+    const name = `CAISSA Daily Hosted Certification ${runId}`;
+    const created = await command(OWNER, 'daily.create', {
+        name,
+        description: 'Hosted Daily certification with a server-authoritative deadline.',
+        daysPerMove: 1,
+        groupSize: 4,
+        qualifiersPerGroup: 1,
+        capacity: 4,
+        startsAt,
+        rated: true
+    });
+    const tournament = currentDaily(created);
+    assert.equal(tournament.description, 'Hosted Daily certification with a server-authoritative deadline.');
+    assert.equal(tournament.registrationClosesAt, tournament.startsAt);
+    assert.equal(tournament.rated, true);
+    const tournamentId = tournament.id;
+
+    for (const player of players) {
+        const joined = currentDaily(await command(player, 'daily.join', { tournamentId }));
+        assert.notEqual(joined.myState, 'withdrawn');
+    }
+    const registered = await Promise.all(players.map(player => dailySync(player, tournamentId)));
+    assert.ok(registered.every(envelope => currentDaily(envelope).participantCount === 4));
+    console.log(`DAILY_REGISTRATION_PASS tournament=${tournamentId} cutoff=${tournament.startsAt}`);
+
+    await waitUntil(Date.parse(startsAt) + 1_000, 'Daily certification start');
+    const active = await pollDailyStatus(OWNER, tournamentId, 'active');
+    assert.equal(currentDaily(active).participantCount, 4);
+    const states = await Promise.all(players.map(player => dailySync(player, tournamentId)));
+    const games = uniqueDailyGames(states);
+    assert.equal(games.size, 12);
+    assert.ok([...games.values()].every(game => game.pool === 'daily'
+        && game.rated === true && game.days_per_move === 1 && game.status === 'active'));
+    const deadlineFloor = Date.now() + 86_390_000;
+    const deadlineCeiling = Date.now() + 86_410_000;
+    assert.ok([...games.values()].every(game => {
+        const deadline = Date.parse(game.move_deadline_at);
+        return deadline >= deadlineFloor && deadline <= deadlineCeiling;
+    }));
+    console.log('DAILY_PAIRING_PASS 12 double-round-robin games with one-day-per-move deadlines');
+
+    const moveGame = [...games.values()][0];
+    const white = identityForSubject(moveGame.white_clerk_id);
+    const moved = currentGame(await command(white, 'game.move', {
+        from: 'e2', to: 'e4', expectedVersion: moveGame.version
+    }, moveGame.id));
+    const nextDeadlineDelta = Date.parse(moved.move_deadline_at) - Date.now();
+    assert.ok(nextDeadlineDelta >= 86_395_000 && nextDeadlineDelta <= 86_405_000);
+    assert.equal(moved.version, moveGame.version + 1);
+    console.log('DAILY_MOVE_DEADLINE_PASS legal move received a fresh server-authoritative one-day deadline');
+
+    await white.context.close();
+    white.context = null;
+    white.page = null;
+    await establishSignIn(white);
+    const reconnected = await dailySync(white, tournamentId, moveGame.id);
+    assert.equal(currentDailyGame(reconnected).id, moveGame.id);
+    assert.equal(currentDailyGame(reconnected).version, moved.version);
+    console.log('DAILY_RECONNECT_PASS fresh browser context recovered correspondence game');
+
+    let retriedRating = false;
+    for (const game of games.values()) {
+        const black = identityForSubject(game.black_clerk_id);
+        const finished = currentGame(await command(black, 'game.resign', {}, game.id));
+        assert.equal(finished.status, 'completed');
+        assert.equal(finished.pool, 'daily');
+        assert.ok(Number.isInteger(finished.white_rating_after));
+        assert.ok(Number.isInteger(finished.black_rating_after));
+        if (!retriedRating) {
+            const ratingSnapshot = [finished.white_rating_after, finished.black_rating_after];
+            const retry = currentGame(await command(black, 'game.resign', {}, game.id));
+            assert.deepEqual([retry.white_rating_after, retry.black_rating_after], ratingSnapshot);
+            retriedRating = true;
+        }
+    }
+    const completed = await pollDailyStatus(players[0], tournamentId, 'completed');
+    assert.equal(currentDaily(completed).standings.length, 4);
+    assert.ok(currentDaily(completed).standings.every(row => row.wins + row.draws + row.losses === 6));
+    console.log('DAILY_COMPLETION_PASS standings, scoring and rating application are idempotent');
+    return { tournamentId, games: games.size, status: currentDaily(completed).status };
 }
 
 async function registerNewIdentity(identity) {
@@ -438,6 +564,30 @@ function currentTournament(envelope) {
     return tournament;
 }
 
+function dailySync(identity, tournamentId, gameId = null) {
+    return command(identity, 'daily.sync', { tournamentId, ...(gameId ? { gameId } : {}) });
+}
+
+function currentDaily(envelope) {
+    const tournament = envelope?.data?.state?.daily?.current;
+    assert.ok(tournament, 'Daily tournament snapshot is missing');
+    return tournament;
+}
+
+function currentDailyGame(envelope) {
+    const game = envelope?.data?.state?.daily?.game;
+    assert.ok(game, 'Daily game snapshot is missing');
+    return game;
+}
+
+function uniqueDailyGames(states) {
+    const games = new Map();
+    for (const envelope of states) {
+        for (const game of envelope?.data?.state?.daily?.games || []) games.set(game.id, game);
+    }
+    return games;
+}
+
 function currentGame(envelope) {
     const game = envelope?.data?.state?.game;
     assert.ok(game, 'Game snapshot is missing');
@@ -487,6 +637,16 @@ async function pollTournamentStatus(identities, tournamentId, expectedStatus) {
         await delay(500);
     }
     throw new Error(`TOURNAMENT_STATUS_TIMEOUT:${expectedStatus}`);
+}
+
+async function pollDailyStatus(identity, tournamentId, expectedStatus) {
+    const deadline = Date.now() + 150_000;
+    while (Date.now() < deadline) {
+        const state = await dailySync(identity, tournamentId);
+        if (currentDaily(state).status === expectedStatus) return state;
+        await delay(2_000);
+    }
+    throw new Error(`DAILY_STATUS_TIMEOUT:${expectedStatus}`);
 }
 
 async function subscribeRealtime(identity, realtime, gameId) {
@@ -541,11 +701,18 @@ async function exerciseMovesClocksAndBroadcasts(games, handles) {
         }, game.id);
         const afterWhite = currentGame(whiteMove);
         assert.ok(afterWhite.white_time_ms < game.white_time_ms + game.increment_ms);
+        if (game.id && game.increment_ms === 1_000) {
+            assertClockIncrement(game, afterWhite, 'white', 1_000);
+        }
         await delay(1_250);
         const blackMove = await command(black, 'game.move', {
             ...continuation[1], expectedVersion: afterWhite.version
         }, game.id);
-        assert.ok(currentGame(blackMove).black_time_ms < game.black_time_ms + game.increment_ms);
+        const afterBlack = currentGame(blackMove);
+        assert.ok(afterBlack.black_time_ms < game.black_time_ms + game.increment_ms);
+        if (game.increment_ms === 1_000) {
+            assertClockIncrement(afterWhite, afterBlack, 'black', 1_000);
+        }
     }
     await delay(1_000);
     for (const handle of handles) {
@@ -553,6 +720,13 @@ async function exerciseMovesClocksAndBroadcasts(games, handles) {
         assert.ok(count >= 1, `${handle.identity.label} did not receive a private invalidation`);
     }
     console.log('PUBLIC_MOVES_CLOCKS_PASS legal moves, clocks, versions, broadcasts');
+}
+
+function assertClockIncrement(before, after, color, expectedIncrement) {
+    const elapsed = Math.max(0, Math.floor(Date.parse(after.clock_started_at) - Date.parse(before.clock_started_at)));
+    const awarded = Number(after[`${color}_time_ms`]) - Number(before[`${color}_time_ms`]) + elapsed;
+    assert.ok(Math.abs(awarded - expectedIncrement) <= 2,
+        `${color} increment expected ${expectedIncrement}ms, observed ${awarded}ms`);
 }
 
 async function waitUntil(epochMs, label) {

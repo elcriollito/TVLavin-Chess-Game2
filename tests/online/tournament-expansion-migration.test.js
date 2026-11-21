@@ -6,6 +6,10 @@ const migrationUrl = new URL('../../supabase/migrations/20261121042618_caissa_to
 const sql = await readFile(migrationUrl, 'utf8');
 const hostedIndexesUrl = new URL('../../supabase/migrations/20261121052600_caissa_tournaments_expansion_fk_indexes.sql', import.meta.url);
 const hostedIndexesSql = await readFile(hostedIndexesUrl, 'utf8');
+const creationUxUrl = new URL('../../supabase/migrations/20261121054500_caissa_tournament_creation_ux_hfx_002.sql', import.meta.url);
+const creationUxSql = await readFile(creationUxUrl, 'utf8');
+const legacyDeadlineRevokeUrl = new URL('../../supabase/migrations/20261121055000_caissa_daily_legacy_deadline_rpc_revoke.sql', import.meta.url);
+const legacyDeadlineRevokeSql = await readFile(legacyDeadlineRevokeUrl, 'utf8');
 
 test('expansion raises only the S001 ceiling and locks the final capacity decision', () => {
     assert.match(sql, /betaSeason'\) is distinct from 'S001' or capacity between 4 and 100/);
@@ -60,4 +64,17 @@ test('hosted advisor follow-up covers every expansion foreign key', () => {
         assert.match(hostedIndexesSql, new RegExp(`create index if not exists ${index[0]}[\\s\\S]+on public\\.${index[1]}\\(${index[2]}\\)`));
     }
     assert.doesNotMatch(hostedIndexesSql, /\b(?:drop|truncate|delete from)\b/i);
+});
+
+test('UX-HFX-002 keeps Daily cutoff server-managed and its RPC browser-inaccessible', () => {
+    assert.match(creationUxSql, /v_now,p_starts_at,null,false,p_capacity/);
+    assert.match(creationUxSql, /p_group_size>p_capacity/);
+    assert.match(creationUxSql, /p_qualifiers_per_group not in\(1,2\)/);
+    assert.match(creationUxSql, /'description',p_description/);
+    assert.match(creationUxSql, /revoke all on function public\.caissa_online_daily_create[\s\S]+from public,anon,authenticated/);
+    assert.match(creationUxSql, /grant execute on function public\.caissa_online_daily_create[\s\S]+to service_role/);
+    assert.doesNotMatch(creationUxSql, /\b(?:truncate|delete from|drop table)\b/i);
+    assert.match(legacyDeadlineRevokeSql,
+        /revoke all on function public\.caissa_online_daily_create[\s\S]+from public,anon,authenticated,service_role/);
+    assert.doesNotMatch(legacyDeadlineRevokeSql, /\b(?:truncate|delete from|drop)\b/i);
 });

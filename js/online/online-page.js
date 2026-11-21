@@ -67,7 +67,9 @@ const model = {
     tournamentRealtime: null, tournamentRealtimeId: null, tournamentRealtimeEpoch: 0,
     selectedArenaContext: 'standings', selectedDirectoryView: 'current', arenaBusy: false,
     tournamentIntent: location.pathname === '/online/tournaments' && PAGE_PARAMS.get('directory') === '1',
-    accessDeniedCode: null
+    accessDeniedCode: null,
+    tournamentCreateMode: null,
+    tournamentCreateDrafts: createDefaultTournamentDrafts()
 };
 const detachedWeeklyAdminForms = [];
 
@@ -173,7 +175,7 @@ function configureCapabilities(capabilities) {
     const dailyOption = $('arena-create-type').querySelector('option[value="daily"]');
     dailyOption.disabled = !dailyEnabled;
     const ratedOption = $('arena-create-rating').querySelector('option[value="rated"]');
-    ratedOption.disabled = capabilities.tournamentRated !== true && capabilities.dailyRated !== true;
+    ratedOption.disabled = capabilities.tournamentRated !== true;
     if (ratedOption.disabled) $('arena-create-rating').value = 'unrated';
     $('arena-create-capacity').max = capabilities.arena100 === true ? '100' : '64';
     $('weekly-featured').hidden = capabilities.weeklyArenas !== true;
@@ -323,6 +325,9 @@ function bindControls() {
         $('arena-create-start-wrap').hidden = event.target.value !== 'scheduled';
     });
     $('arena-create-type').addEventListener('change', configureTournamentCreateType);
+    ui.createForm.addEventListener('change', event => {
+        if (event.target.id === 'daily-create-days') updateTournamentCreateRules();
+    });
     ui.createForm.addEventListener('submit', createArenaTournament);
     $('weekly-enable').addEventListener('click', () => manageWeeklySeries('enable'));
     $('weekly-pause').addEventListener('click', () => manageWeeklySeries('pause'));
@@ -726,16 +731,18 @@ async function createArenaTournament(event) {
     event.preventDefault();
     if (model.arenaBusy) return;
     const type = $('arena-create-type').value;
-    const control = ({
+    const controls = {
         'bullet-1-0': { pool: 'bullet', baseMs: 60000, incrementMs: 0 },
         'bullet-1-1': { pool: 'bullet', baseMs: 60000, incrementMs: 1000 },
+        'bullet-2-1': { pool: 'bullet', baseMs: 120000, incrementMs: 1000 },
         'blitz-3-0': { pool: 'blitz', baseMs: 180000, incrementMs: 0 },
         'blitz-3-2': { pool: 'blitz', baseMs: 180000, incrementMs: 2000 },
         'blitz-5-0': { pool: 'blitz', baseMs: 300000, incrementMs: 0 },
         'blitz-5-5': { pool: 'blitz', baseMs: 300000, incrementMs: 5000 },
         'rapid-10-0': { pool: 'rapid', baseMs: 600000, incrementMs: 0 },
         'rapid-10-5': { pool: 'rapid', baseMs: 600000, incrementMs: 5000 }
-    })[$('arena-create-control').value];
+    };
+    const control = type === 'live' ? controls[$('arena-create-control').value] : null;
     const scheduled = $('arena-create-start-mode').value === 'scheduled';
     const startInput = $('arena-create-start').value;
     const startsAt = scheduled ? new Date(startInput) : new Date(Date.now() + 5 * 60_000);
@@ -743,20 +750,27 @@ async function createArenaTournament(event) {
         ui.createFeedback.textContent = 'Choose a valid future start time and approved time control.';
         return;
     }
-    const registration = type === 'daily' ? new Date($('daily-create-registration').value) : null;
-    if (type === 'daily' && (Number.isNaN(registration.valueOf()) || registration >= startsAt)) {
-        ui.createFeedback.textContent = 'Choose a registration deadline before the Daily tournament starts.';
+    const groupSize = type === 'daily' ? Number($('daily-create-group-size').value) : null;
+    const capacity = Number($('arena-create-capacity').value);
+    const qualifiersPerGroup = type === 'daily' ? Number($('daily-create-qualifiers').value) : null;
+    if (type === 'daily' && groupSize > capacity) {
+        ui.createFeedback.textContent = 'Daily group size cannot exceed maximum players.';
+        return;
+    }
+    if (type === 'daily' && (![1, 2].includes(qualifiersPerGroup) || qualifiersPerGroup >= groupSize)) {
+        ui.createFeedback.textContent = 'Advance per group must be one or two players and fewer than the group size.';
         return;
     }
     const payload = {
         name: $('arena-create-name').value.trim(),
         startsAt: startsAt.toISOString(),
-        capacity: Number($('arena-create-capacity').value),
+        capacity,
         rated: $('arena-create-rating').value === 'rated',
         ...(type === 'daily' ? {
+            description: $('daily-create-description').value.trim(),
             daysPerMove: Number($('daily-create-days').value),
-            groupSize: Number($('daily-create-group-size').value),
-            registrationClosesAt: registration.toISOString()
+            groupSize,
+            qualifiersPerGroup
         } : {
             timeControlId: $('arena-create-control').value,
             durationMinutes: Number($('arena-create-duration').value),
@@ -771,6 +785,8 @@ async function createArenaTournament(event) {
         const envelope = await api.command(type === 'daily' ? 'daily.create' : 'tournament.create', payload);
         applyState(envelope.data?.state);
         ui.createForm.reset();
+        model.tournamentCreateMode = null;
+        model.tournamentCreateDrafts = createDefaultTournamentDrafts();
         configureTournamentCreateType();
         $('arena-create-start-wrap').hidden = true;
         ui.createFeedback.textContent = '';
@@ -787,18 +803,73 @@ async function createArenaTournament(event) {
 }
 
 function configureTournamentCreateType() {
+    const mode = $('arena-create-type').value === 'daily' ? 'daily' : 'live';
+    const daily = mode === 'daily';
+    const capabilities = model.config?.capabilities || {};
+    $('arena-create-capacity').max = daily || capabilities.arena100 === true ? '100' : '64';
+    if (model.tournamentCreateMode !== mode || !$('arena-create-type-fields').children.length) {
+        saveTournamentCreateDraft(model.tournamentCreateMode);
+        $('arena-create-type-fields').replaceChildren(
+            $(`arena-create-${mode}-fields-template`).content.cloneNode(true)
+        );
+        model.tournamentCreateMode = mode;
+        restoreTournamentCreateDraft(mode);
+    }
+    $('arena-create-start-wrap').hidden = $('arena-create-start-mode').value !== 'scheduled';
+    const ratedOption = $('arena-create-rating').querySelector('option[value="rated"]');
+    const ratedEnabled = daily ? capabilities.dailyRated === true : capabilities.tournamentRated === true;
+    ratedOption.disabled = !ratedEnabled;
+    if (!ratedEnabled) $('arena-create-rating').value = 'unrated';
+    $('arena-create-rating-help').textContent = ratedEnabled
+        ? `${daily ? 'Daily' : 'Arena'} Rated is certified in this beta.`
+        : `${daily ? 'Daily' : 'Arena'} Rated remains disabled until its certification flag is enabled.`;
+    updateTournamentCreateRules();
+}
+
+function createDefaultTournamentDrafts() {
+    return {
+        live: { control: 'blitz-3-2', duration: '30', lateJoin: true },
+        daily: { description: '', daysPerMove: '7', groupSize: '4', qualifiersPerGroup: '2' }
+    };
+}
+
+function saveTournamentCreateDraft(mode) {
+    if (mode === 'live' && $('arena-create-control')) {
+        model.tournamentCreateDrafts.live = {
+            control: $('arena-create-control').value,
+            duration: $('arena-create-duration').value,
+            lateJoin: $('arena-create-late-join').checked
+        };
+    }
+    if (mode === 'daily' && $('daily-create-days')) {
+        model.tournamentCreateDrafts.daily = {
+            description: $('daily-create-description').value,
+            daysPerMove: $('daily-create-days').value,
+            groupSize: $('daily-create-group-size').value,
+            qualifiersPerGroup: $('daily-create-qualifiers').value
+        };
+    }
+}
+
+function restoreTournamentCreateDraft(mode) {
+    const draft = model.tournamentCreateDrafts[mode];
+    if (mode === 'live') {
+        $('arena-create-control').value = draft.control;
+        $('arena-create-duration').value = draft.duration;
+        $('arena-create-late-join').checked = draft.lateJoin;
+        return;
+    }
+    $('daily-create-description').value = draft.description;
+    $('daily-create-days').value = draft.daysPerMove;
+    $('daily-create-group-size').value = draft.groupSize;
+    $('daily-create-qualifiers').value = draft.qualifiersPerGroup;
+}
+
+function updateTournamentCreateRules() {
     const daily = $('arena-create-type').value === 'daily';
-    $('arena-create-capacity').max = daily || model.state?.capabilities?.arena100 === true ? '100' : '64';
-    document.querySelectorAll('[data-create-live]').forEach(element => { element.hidden = daily; });
-    document.querySelectorAll('[data-create-daily]').forEach(element => { element.hidden = !daily; });
-    $('arena-create-control').required = !daily;
-    $('arena-create-duration').required = !daily;
-    $('daily-create-registration').required = daily;
-    $('arena-create-start-mode').value = daily ? 'scheduled' : $('arena-create-start-mode').value;
-    $('arena-create-start-mode').querySelector('option[value="now"]').disabled = daily;
-    $('arena-create-start-wrap').hidden = !daily && $('arena-create-start-mode').value !== 'scheduled';
+    const days = daily ? Number($('daily-create-days')?.value || 7) : 7;
     $('arena-create-rules').querySelector('ul').replaceChildren(...(daily
-        ? ['One White and one Black game per group opponent', 'Seven days per move by default',
+        ? ['One White and one Black game per group opponent', `${days} ${days === 1 ? 'day' : 'days'} for every move`,
             'Persistent server deadlines and deterministic advancement']
         : ['Win 2 · Draw 1 · Loss 0', 'Server-authoritative moves and clocks',
             'Active games finish after Arena time expires']).map(text => {

@@ -16,7 +16,7 @@ import {
 
 test('S001 exposes exactly the approved Arena time controls', () => {
     assert.deepEqual(ARENA_TIME_CONTROLS.map(control => control.label), [
-        '1+0', '1+1', '3+0', '3+2', '5+0', '5+5', '10+0', '10+5'
+        '1+0', '1+1', '2+1', '3+0', '3+2', '5+0', '5+5', '10+0', '10+5'
     ]);
     const valid = validateArenaCreation({
         name: 'CAISSA Arena S001 — Founders Beta',
@@ -25,6 +25,16 @@ test('S001 exposes exactly the approved Arena time controls', () => {
     });
     assert.equal(valid.ok, true);
     assert.equal(valid.value.control.baseMs, 180_000);
+    const bullet = validateArenaCreation({
+        name: 'Bullet Arena', timeControlId: 'bullet-2-1', durationMinutes: 15,
+        startsAt: new Date(Date.now() + 60_000).toISOString()
+    });
+    assert.deepEqual(bullet.value.control, {
+        id: 'bullet-2-1', label: '2+1', pool: 'bullet', baseMs: 120_000, incrementMs: 1_000
+    });
+    assert.equal(validateArenaCreation({
+        name: 'Leaky Arena', timeControlId: 'bullet-2-1', daysPerMove: 7
+    }).code, 'INVALID_ARENA_FIELDS');
     assert.equal(validateArenaCreation({ timeControlId: 'rapid-15-10' }).ok, false);
     assert.equal(validateArenaTournamentId({ tournamentId: 'not-a-uuid' }).ok, false);
 });

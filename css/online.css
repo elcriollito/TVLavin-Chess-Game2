@@ -137,12 +137,15 @@
 .directory-message[hidden]{display:none!important}.directory-message strong{font-size:13px}.directory-message span{grid-column:1}.directory-message button{grid-column:2;grid-row:1/3}
 .directory-message--error{border-color:#754641;background:#2e1d1b;color:#efa39c}
 .arena-create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 18px;text-align:left!important}
+.arena-create-form [hidden]{display:none!important}
+.arena-create-fields{display:contents}
 .arena-create-form>header{grid-column:1/-1}.arena-create-form header h3{margin-bottom:4px}.arena-create-form header p{margin:0;color:var(--online-muted);font-size:12px}
-.arena-create-form label{display:grid;align-content:start;gap:7px;color:var(--online-muted);font-size:12px}
-.arena-create-form input,.arena-create-form select{width:100%;min-height:44px;border:1px solid var(--online-line);border-radius:8px;background:#09140f;color:var(--online-text);padding:9px 11px}
+.arena-create-form label{display:grid;align-content:start;gap:7px;color:var(--online-muted);font-size:14px}
+.arena-create-form input,.arena-create-form select,.arena-create-form textarea{width:100%;min-width:0;min-height:44px;border:1px solid var(--online-line);border-radius:8px;background:#09140f;color:var(--online-text);padding:9px 11px}
+.arena-create-form textarea{resize:vertical}.arena-create-form label>small{line-height:1.45;color:var(--online-muted)}
 .arena-create-form select:disabled{opacity:.72}.arena-create-form .form-wide{grid-column:1/-1}
 .arena-create-form .arena-create-check{grid-template-columns:auto 1fr;align-items:center;padding:10px;border:1px solid var(--online-line);border-radius:8px}
-.arena-create-check input{width:20px;min-height:20px}.arena-create-check span{display:grid;gap:3px}.arena-create-check strong{color:var(--online-text)}.arena-create-check small{font-size:10px}
+.arena-create-check input{width:20px;min-height:20px}.arena-create-check span{display:grid;gap:3px}.arena-create-check strong{color:var(--online-text)}.arena-create-check small{font-size:12px}
 .arena-create-rules{padding:14px;border:1px solid var(--online-line);border-radius:8px;background:#101c17}.arena-create-rules h4{margin:0 0 7px;color:var(--online-text)}.arena-create-rules ul{margin:0;padding-left:20px;line-height:1.6}
 #arena-create-feedback{min-height:18px;color:#e7c77f;font-size:12px}
 

@@ -89,6 +89,75 @@ test('weekly operations stay organizer-only and send bounded management commands
         && command.payload.tournamentId === weeklyId)).toBe(true);
 });
 
+test('creation form isolates Arena and Daily fields and submits only the selected contract', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.state.permissions.tournamentOrganizer = true;
+    await page.goto('/online/tournaments?directory=1');
+    await page.locator('#directory-tab-create').click();
+
+    await expect(page.locator('#arena-create-control')).toBeVisible();
+    await expect(page.locator('#arena-create-duration')).toBeVisible();
+    await expect(page.locator('#arena-create-pairing')).toBeVisible();
+    await expect(page.locator('#arena-create-late-join')).toBeVisible();
+    await expect(page.locator('#daily-create-days')).toHaveCount(0);
+    await expect(page.locator('#daily-create-group-size')).toHaveCount(0);
+    await expect(page.locator('#daily-create-qualifiers')).toHaveCount(0);
+    await expect(page.getByText('Registration deadline', { exact: true })).toHaveCount(0);
+    await page.locator('#arena-create-control').selectOption('bullet-2-1');
+
+    await page.locator('#arena-create-type').selectOption('daily');
+    await expect(page.locator('#daily-create-description')).toBeVisible();
+    await expect(page.locator('#daily-create-days')).toBeVisible();
+    await expect(page.locator('#daily-create-group-size')).toBeVisible();
+    await expect(page.locator('#daily-create-qualifiers')).toBeVisible();
+    await expect(page.locator('#daily-create-game-type')).toHaveValue('Standard');
+    await expect(page.locator('#daily-create-setup')).toHaveValue('Standard starting position');
+    await expect(page.locator('#arena-create-control')).toHaveCount(0);
+    await expect(page.locator('#arena-create-duration')).toHaveCount(0);
+    await expect(page.locator('#arena-create-late-join')).toHaveCount(0);
+
+    await page.locator('#daily-create-description').fill('A server-timed correspondence event.');
+    await page.locator('#daily-create-days').selectOption('1');
+    await page.locator('#daily-create-group-size').selectOption('4');
+    await page.locator('#daily-create-qualifiers').selectOption('2');
+    await page.locator('#arena-create-capacity').fill('4');
+    await page.locator('#arena-create-type').selectOption('live');
+    await expect(page.locator('#arena-create-control')).toHaveValue('bullet-2-1');
+    await page.locator('#arena-create-type').selectOption('daily');
+    await expect(page.locator('#daily-create-description')).toHaveValue('A server-timed correspondence event.');
+
+    await page.locator('#arena-create-name').fill('Daily UX Contract');
+    await page.locator('#arena-create-submit').click();
+    const creation = harness.commands.find(command => command.eventType === 'daily.create');
+    expect(creation.payload).toMatchObject({
+        name: 'Daily UX Contract', description: 'A server-timed correspondence event.',
+        daysPerMove: 1, groupSize: 4, qualifiersPerGroup: 2, capacity: 4
+    });
+    for (const forbidden of [
+        'registrationClosesAt', 'timeControlId', 'durationMinutes', 'lateJoin', 'pool', 'baseMs', 'incrementMs'
+    ]) expect(creation.payload).not.toHaveProperty(forbidden);
+});
+
+test('2+1 is selectable for New Game and tournament creation stays within a phone viewport', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.state.permissions.tournamentOrganizer = true;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/online');
+    await page.locator('[data-control="bullet-2-1"]').click();
+    await page.locator('#find-game').click();
+    const queued = harness.commands.find(command => command.eventType === 'queue.join');
+    expect(queued.payload).toMatchObject({ timeControlId: 'bullet-2-1' });
+
+    await page.locator('#browse-tournaments').click();
+    await page.locator('#directory-tab-create').click();
+    const overflow = await page.locator('#arena-create-form').evaluate(element => ({
+        form: element.scrollWidth - element.clientWidth,
+        dialog: element.closest('dialog').scrollWidth - element.closest('dialog').clientWidth
+    }));
+    expect(overflow.form).toBeLessThanOrEqual(1);
+    expect(overflow.dialog).toBeLessThanOrEqual(1);
+});
+
 test('ordinary member joins Daily, sees persistence, and opens the correspondence board', async ({ page }) => {
     await page.goto('/online/tournaments?directory=1');
     await expect(page.locator('.arena-card')).toHaveCount(2);

@@ -181,14 +181,14 @@ export function createOnlineService(options = {}) {
                 p_game_id: gameId
             }));
         },
-        async createDaily({ clerkId, eventId, name, startsAt, registrationClosesAt,
+        async createDaily({ clerkId, eventId, name, description, startsAt,
             daysPerMove, groupSize, qualifiersPerGroup, capacity, rated }) {
             return safeDailyState(await rpc(db, 'caissa_online_daily_create', {
                 p_clerk_id: clerkId,
                 p_event_id: eventId,
                 p_name: name,
+                p_description: description,
                 p_starts_at: startsAt,
-                p_registration_closes_at: registrationClosesAt,
                 p_days_per_move: daysPerMove,
                 p_group_size: groupSize,
                 p_qualifiers_per_group: qualifiersPerGroup,

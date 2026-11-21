@@ -14,17 +14,35 @@ test('Daily creation accepts 1, 3, 5, and 7 days and rejects invalid capacity', 
     const now = Date.parse('2026-11-20T12:00:00Z');
     for (const daysPerMove of [1, 3, 5, 7]) {
         const result = validateDailyCreation({
-            name: 'Daily Championship', daysPerMove, groupSize: 4, capacity: 100,
-            startsAt: '2026-11-25T12:00:00Z', registrationClosesAt: '2026-11-24T12:00:00Z'
+            name: 'Daily Championship', description: 'Seven days means seven days per move.',
+            daysPerMove, groupSize: 4, qualifiersPerGroup: 2, capacity: 100,
+            startsAt: '2026-11-25T12:00:00Z'
         }, now);
         assert.equal(result.ok, true);
+        assert.equal(result.value.registrationClosesAt, result.value.startsAt);
     }
     for (const capacity of [-1, 3, 4.5, 101]) {
         assert.equal(validateDailyCreation({
             name: 'Daily Championship', daysPerMove: 7, groupSize: 4, capacity,
-            startsAt: '2026-11-25T12:00:00Z', registrationClosesAt: '2026-11-24T12:00:00Z'
+            startsAt: '2026-11-25T12:00:00Z'
         }, now).code, 'INVALID_TOURNAMENT_CAPACITY');
     }
+    assert.equal(validateDailyCreation({
+        name: 'Daily Championship', daysPerMove: 7, groupSize: 6, capacity: 4,
+        startsAt: '2026-11-25T12:00:00Z'
+    }, now).code, 'DAILY_GROUP_EXCEEDS_CAPACITY');
+    assert.equal(validateDailyCreation({
+        name: 'Daily Championship', daysPerMove: 7, groupSize: 3,
+        qualifiersPerGroup: 3, capacity: 4, startsAt: '2026-11-25T12:00:00Z'
+    }, now).code, 'INVALID_DAILY_ADVANCEMENT');
+    assert.equal(validateDailyCreation({
+        name: 'Daily Championship', daysPerMove: 7, groupSize: 4, capacity: 16,
+        durationMinutes: 60, startsAt: '2026-11-25T12:00:00Z'
+    }, now).code, 'INVALID_DAILY_FIELDS');
+    assert.equal(validateDailyCreation({
+        name: 'Daily Championship', daysPerMove: 7, groupSize: 4, capacity: 16,
+        registrationClosesAt: '2026-11-24T12:00:00Z', startsAt: '2026-11-25T12:00:00Z'
+    }, now).code, 'DAILY_REGISTRATION_MANAGED');
 });
 
 test('Daily deadline advances exactly by the selected days', () => {

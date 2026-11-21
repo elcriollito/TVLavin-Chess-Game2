@@ -79,6 +79,7 @@
                             <fieldset class="mode-fieldset"><legend>Time control</legend>
                                 <div class="time-grid" id="time-controls">
                                     <button data-control="bullet-1-0"><b>1+0</b><span>Bullet</span></button>
+                                    <button data-control="bullet-2-1"><b>2+1</b><span>Bullet</span></button>
                                     <button data-control="blitz-3-2" class="selected"><b>3+2</b><span>Blitz</span></button>
                                     <button data-control="blitz-5-0"><b>5+0</b><span>Blitz</span></button>
                                     <button data-control="rapid-10-0"><b>10+0</b><span>Rapid</span></button>
@@ -267,22 +268,31 @@
                     <form id="arena-create-form" class="arena-create-form">
                         <header><h3>Create a Tournament</h3><p>Choose Live Arena or Daily correspondence. Capabilities remain independently gated.</p></header>
                         <label class="form-wide">Tournament name<input id="arena-create-name" name="name" required minlength="3" maxlength="80" autocomplete="off"></label>
-                        <label>Variant<select id="arena-create-variant" name="variant" disabled><option>Standard chess</option></select></label>
                         <label>Type<select id="arena-create-type" name="type"><option value="live">Live Arena</option><option value="daily">Daily / Correspondence</option></select></label>
-                        <label>Rating<select id="arena-create-rating" name="rating"><option value="unrated">Unrated</option><option value="rated">Rated</option></select></label>
-                        <label data-create-live>Time control<select id="arena-create-control" name="control" required><option value="bullet-1-0">1+0 Bullet</option><option value="bullet-1-1">1+1 Bullet</option><option value="blitz-3-0">3+0 Blitz</option><option value="blitz-3-2" selected>3+2 Blitz</option><option value="blitz-5-0">5+0 Blitz</option><option value="blitz-5-5">5+5 Blitz</option><option value="rapid-10-0">10+0 Rapid</option><option value="rapid-10-5">10+5 Rapid</option></select></label>
-                        <label data-create-live>Duration<select id="arena-create-duration" name="duration" required><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select></label>
-                        <label data-create-daily hidden>Days per move<select id="daily-create-days" name="daysPerMove"><option value="1">1 day</option><option value="3">3 days</option><option value="5">5 days</option><option value="7" selected>7 days</option></select></label>
-                        <label data-create-daily hidden>Group size<select id="daily-create-group-size" name="groupSize"><option value="3">3 players</option><option value="4" selected>4 players</option><option value="5">5 players</option><option value="6">6 players</option></select></label>
-                        <label>Start<select id="arena-create-start-mode" name="startMode"><option value="now">Start soon</option><option value="scheduled">Schedule</option></select></label>
+                        <label>Rating<select id="arena-create-rating" name="rating"><option value="unrated">Unrated</option><option value="rated">Rated</option></select><small id="arena-create-rating-help">Rated Arena requires its certification flag.</small></label>
+                        <div id="arena-create-type-fields" class="arena-create-fields"></div>
+                        <label>Start<select id="arena-create-start-mode" name="startMode"><option value="now">Immediate (about 5 minutes)</option><option value="scheduled">Scheduled</option></select></label>
                         <label id="arena-create-start-wrap" hidden>Start date and time<input id="arena-create-start" name="startsAt" type="datetime-local"></label>
                         <label>Maximum players<input id="arena-create-capacity" name="capacity" type="number" min="4" max="100" value="16" required></label>
-                        <label data-create-daily hidden>Registration deadline<input id="daily-create-registration" name="registrationClosesAt" type="datetime-local"></label>
-                        <label class="arena-create-check" data-create-live><input id="arena-create-late-join" name="lateJoin" type="checkbox" checked><span><strong>Allow late join</strong><small>Players may join while the Arena is active.</small></span></label>
                         <section class="arena-create-rules form-wide" id="arena-create-rules"><h4>Rules</h4><ul><li>Win 2 · Draw 1 · Loss 0</li><li>Server-authoritative moves and clocks</li><li>Active games finish after Arena time expires</li></ul></section>
                         <div id="arena-create-feedback" class="form-wide" role="status" aria-live="polite"></div>
                         <button id="arena-create-submit" class="primary-action form-wide" type="submit">Create Tournament</button>
                     </form>
+                    <template id="arena-create-live-fields-template">
+                        <label>Pairing logic<select id="arena-create-pairing" disabled><option>Continuous Arena pairings</option></select></label>
+                        <label>Game type<select id="arena-create-game-type" disabled><option>Standard</option></select></label>
+                        <label>Time control<select id="arena-create-control" name="control" required><option value="bullet-1-0">1+0 Bullet</option><option value="bullet-1-1">1+1 Bullet</option><option value="bullet-2-1">2+1 Bullet</option><option value="blitz-3-0">3+0 Blitz</option><option value="blitz-3-2" selected>3+2 Blitz</option><option value="blitz-5-0">5+0 Blitz</option><option value="blitz-5-5">5+5 Blitz</option><option value="rapid-10-0">10+0 Rapid</option><option value="rapid-10-5">10+5 Rapid</option></select></label>
+                        <label>Tournament duration<select id="arena-create-duration" name="duration" required><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select></label>
+                        <label class="arena-create-check"><input id="arena-create-late-join" name="lateJoin" type="checkbox" checked><span><strong>Allow late join</strong><small>Players may join while the Arena is active.</small></span></label>
+                    </template>
+                    <template id="arena-create-daily-fields-template">
+                        <label class="form-wide">Description<textarea id="daily-create-description" name="description" maxlength="500" rows="3" placeholder="Describe the event for participants."></textarea></label>
+                        <label>Game type<select id="daily-create-game-type" disabled><option>Standard</option></select></label>
+                        <label>Setup<select id="daily-create-setup" disabled><option>Standard starting position</option></select></label>
+                        <label>Days per move<select id="daily-create-days" name="daysPerMove" required><option value="1">1 day per move</option><option value="3">3 days per move</option><option value="5">5 days per move</option><option value="7" selected>7 days per move</option></select><small>Each move receives this full server-authoritative deadline.</small></label>
+                        <label>Group size<select id="daily-create-group-size" name="groupSize" required><option value="3">3 players</option><option value="4" selected>4 players</option><option value="5">5 players</option><option value="6">6 players</option></select></label>
+                        <label>Advance per group<select id="daily-create-qualifiers" name="qualifiersPerGroup" required><option value="1">1 player</option><option value="2" selected>2 players</option></select><small>Must be fewer than the group size.</small></label>
+                    </template>
                 </section>
                 <section id="arena-detail" class="arena-detail" aria-labelledby="arena-detail-name" hidden>
                     <button id="arena-detail-back" class="arena-back" type="button">Back to tournaments</button>

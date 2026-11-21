@@ -3,6 +3,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export const ARENA_TIME_CONTROLS = Object.freeze([
     Object.freeze({ id: 'bullet-1-0', label: '1+0', pool: 'bullet', baseMs: 60_000, incrementMs: 0 }),
     Object.freeze({ id: 'bullet-1-1', label: '1+1', pool: 'bullet', baseMs: 60_000, incrementMs: 1_000 }),
+    Object.freeze({ id: 'bullet-2-1', label: '2+1', pool: 'bullet', baseMs: 120_000, incrementMs: 1_000 }),
     Object.freeze({ id: 'blitz-3-0', label: '3+0', pool: 'blitz', baseMs: 180_000, incrementMs: 0 }),
     Object.freeze({ id: 'blitz-3-2', label: '3+2', pool: 'blitz', baseMs: 180_000, incrementMs: 2_000 }),
     Object.freeze({ id: 'blitz-5-0', label: '5+0', pool: 'blitz', baseMs: 300_000, incrementMs: 0 }),
@@ -21,6 +22,9 @@ export function validateArenaTournamentId(payload) {
 }
 
 export function validateArenaCreation(payload, now = Date.now()) {
+    if (hasAny(payload, ['description', 'daysPerMove', 'groupSize', 'qualifiersPerGroup', 'registrationClosesAt'])) {
+        return failure('INVALID_ARENA_FIELDS');
+    }
     const name = String(payload?.name || '').trim();
     const control = CONTROL_BY_ID.get(String(payload?.timeControlId || 'blitz-3-2'));
     const durationMinutes = Number(payload?.durationMinutes ?? 15);
@@ -53,6 +57,10 @@ export function validateArenaCreation(payload, now = Date.now()) {
             startsAt: new Date(startsAt).toISOString()
         })
     });
+}
+
+function hasAny(payload, keys) {
+    return payload && typeof payload === 'object' && keys.some(key => Object.hasOwn(payload, key));
 }
 
 export function isArenaRatedEnabled(rollout, env = {}) {
