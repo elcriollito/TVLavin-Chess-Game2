@@ -75,11 +75,21 @@ test('global, Reader, and Play CSP add only Clerk-required Blob Worker support',
   const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
   const global=config.headers.find(item=>item.source==='/(.*)').headers.find(h=>h.key==='Content-Security-Policy').value;
   assert.match(global,/worker-src 'self' blob:/); assert.doesNotMatch(global,/worker-src[^;]*\*/);
+  assert.match(global,/script-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
+  assert.match(global,/connect-src[^;]*https:\/\/\*\.protect\.clerk\.com:\*/);
+  assert.match(global,/frame-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
   const reader=config.headers.find(item=>item.source==='/pgn-replayer').headers.find(h=>h.key==='Content-Security-Policy').value;
   assert.match(reader,/worker-src 'self' blob:/); assert.doesNotMatch(reader,/worker-src[^;]*\*/);
   assert.match(reader,/img-src 'self' data: https:\/\/img\.clerk\.com https:\/\/images\.clerk\.dev/);
   for(const source of ['/play','/play/:path*']) {
     const value=config.headers.find(item=>item.source===source).headers.find(h=>h.key==='Content-Security-Policy').value;
     assert.match(value,/worker-src 'self' blob:;/); assert.doesNotMatch(value,/worker-src[^;]*\*/);
+  }
+  for(const file of ['signin.html','signup.html']) {
+    const value=fs.readFileSync(file,'utf8').match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/)?.[1] || '';
+    assert.match(value,/script-src[^;]*https:\/\/\*\.protect\.clerk\.com/,file);
+    assert.match(value,/script-src-elem[^;]*https:\/\/\*\.protect\.clerk\.com/,file);
+    assert.match(value,/connect-src[^;]*https:\/\/\*\.protect\.clerk\.com:\*/,file);
+    assert.match(value,/frame-src[^;]*https:\/\/\*\.protect\.clerk\.com/,file);
   }
 });
