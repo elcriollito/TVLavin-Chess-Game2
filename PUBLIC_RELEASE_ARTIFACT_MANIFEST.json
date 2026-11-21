@@ -131,6 +131,10 @@
       "sha256": "41c732884965595a58680a7ed6f58303aaefefdf910dcd9c03dfb7cd2e5a842e"
     },
     {
+      "path": "api/_lib/online-arena.js",
+      "sha256": "6e6dd4e307b1e5da883b4df176932808a3cb6a791d2f3e990543f0d9c5a4907f"
+    },
+    {
       "path": "api/_lib/online-game-engine.js",
       "sha256": "7e53164b1771b7f6889153ea2a5e887d916906e92e1d5f8d5ddaf77dfc08c75f"
     },
@@ -144,7 +148,7 @@
     },
     {
       "path": "api/_lib/online-public-projection.js",
-      "sha256": "e5a00e61e37240a84825c7325ff86368e03f06fec6fc7f4d8af930fdaadaf2ff"
+      "sha256": "439f42b5c2ccf53f1962cb9f2419e83511982dd3b9b01d985a3ef33df50db317"
     },
     {
       "path": "api/_lib/online-rating.js",
@@ -152,7 +156,7 @@
     },
     {
       "path": "api/_lib/online-realtime-broadcast.js",
-      "sha256": "091a61920349c9aa566697876c2748c1a0c9deb51a760c81bdf89ae3a93a7c01"
+      "sha256": "c358582f5cb96a9b3811cc8741024911e3a733f514e0fb0062d2d02eec9c6f36"
     },
     {
       "path": "api/_lib/online-request-source.js",
@@ -160,7 +164,7 @@
     },
     {
       "path": "api/_lib/online-service.js",
-      "sha256": "fe9a24eb7f263bf8f54b7928bc44beb30b3a11fbce7ad8997d5d4e91eda2ba71"
+      "sha256": "2f7edc9e17c8ff5d34b38b9272371034186484803fcffc9a4cd6d673bacb7108"
     },
     {
       "path": "api/_lib/pgn-player-offers.js",
@@ -736,7 +740,7 @@
     },
     {
       "path": "api/online.js",
-      "sha256": "1a03cbf19977233a4e3f8cf5a18c3a6c9ffac0ea2dc747f9a14deecc56b36b84"
+      "sha256": "affc72f85824c7dd9424f440ed8663ce6d8c05583dcd566cfcbacec699dfae77"
     },
     {
       "path": "api/opening-trainer/repertoires.js",
@@ -1672,7 +1676,7 @@
     },
     {
       "path": "css/online.css",
-      "sha256": "fee0b4d4c1f67610a49b92835ae6b7b82f294a3684088d2ff9bf84ec5c1c1bef"
+      "sha256": "a995d3c5b98aae3dc610209b23b2b6a83e86907394aa1a9d01310b38b868a907"
     },
     {
       "path": "css/opening-book.css",
@@ -1748,7 +1752,7 @@
     },
     {
       "path": "css/yahoo-classic.css",
-      "sha256": "4761606455dd205767d1c734fbb2169fea918254274ddefc3c11fbdad95bf6cd"
+      "sha256": "9f7d9c88fb8a2aa0b595b51f0878fb46cdc53d743045366a0b6e30a680ee9bc7"
     },
     {
       "path": "data/blog-article.schema.json",
@@ -2904,19 +2908,19 @@
     },
     {
       "path": "js/online/online-page.js",
-      "sha256": "2ae74b5e6636913546b4ec5b3c6ec6c9acd2e92922800c46572cdaadca7096f2"
+      "sha256": "9a519928147babf561e53c267cd346f2068b825ab92515ea69fbc39b79c1a582"
     },
     {
       "path": "js/online/online-protocol.js",
-      "sha256": "036a99bdc151c9bd797313de13b8b78bda26d84412fce28230ecd13d6d20b292"
+      "sha256": "78f0738d93a3fa1de8d5533e1e236a05cbdad9d04415f804682ba418bd43cb3f"
     },
     {
       "path": "js/online/online-realtime.js",
-      "sha256": "906bd3a94bcf8f1ab301880744ed3b94182b139018c47ca7c01bb00f49aa0142"
+      "sha256": "610864df0275c6886c75f4eef90018ac2f24bfb26dc3faa55d22710796046cce"
     },
     {
       "path": "js/online/online-tournaments.js",
-      "sha256": "ce0f91dbdd8ec179f379e1cce736f5aaf105df4123407f197d961705989255e8"
+      "sha256": "892282ed43df4622ac8dd4404522a3eb8be41232248f87da91581b8d0707c1cf"
     },
     {
       "path": "js/opening-book-manager.js",
@@ -3696,7 +3700,7 @@
     },
     {
       "path": "js/yahoo-classic-section.js",
-      "sha256": "9e23b854d539ce59a72d7ffc91cbe6db5d09b58570b26b9066de59757824d5eb"
+      "sha256": "e5d319886b653151a3552c03eb092d7bfdee49043a3aabbdeebb83d373209d08"
     },
     {
       "path": "knowledge/README.md",
@@ -4104,7 +4108,7 @@
     },
     {
       "path": "online.html",
-      "sha256": "f46feaae3740d264bc0c44308bc53c93e892e281f0cca075faa29d9c83e184c5"
+      "sha256": "4e83a6bf2b066e23cd415bea53965ff12e0fdde4d4675deadb3d155770fb4ec9"
     },
     {
       "path": "opening-database.html",
@@ -4120,7 +4124,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "49bb89632069388d1a4933eec392a6570e693eb674fa8b89ae79e96002b1f6f1"
+      "sha256": "3de328f064f84771b71d377ec51f4b2cc56ee01bdccbf97a7ce5b8c5dd641add"
     },
     {
       "path": "pgn-replayer.html",
@@ -4280,7 +4284,7 @@
     },
     {
       "path": "playwright.online.config.js",
-      "sha256": "c39eff585aff9fffe341e885979d31099bada7d882ecf9b2b7bf3fee055ba413"
+      "sha256": "db6087765c1d8d10e3818475efc82c9e5ded3af6f82ec4df814987a4b79a66e0"
     },
     {
       "path": "playwright.release.config.js",
