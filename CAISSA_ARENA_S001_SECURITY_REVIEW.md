@@ -1,121 +1,96 @@
 # CAISSA Arena S001 Security Review
 
-Status: **HOLD — managed diff scan failed; independent review and local checks complete; isolated hosted verification outstanding**
-Reviewed application range: `6df4c2bf4be00fea72f88d63cae726e8515c4380..86224d33f67ac7343e84a2406caac6c01b264843`
-Review date: 2026-11-19/20 (America/New_York)
+Status: **independent review complete; managed scanner unavailable; hosted security gates passed**
+Reviewed baseline: `6df4c2bf4be00fea72f88d63cae726e8515c4380`
+Final candidate: `d029d42c237f42d2f22fe5507a4d652094d2a2b5`
+Binary diff SHA-256: `9aa5467aef380cf5e86ebe3eb0792f44e2828b11f067a08cbdb9c63b33b643d9`
+Review date: 2026-11-20/21 (America/New_York)
 
-## Executive decision
+## Decision
 
-No confirmed critical or high-severity issue was found by the implementation
-review, static assertions, API tests, browser tests, or disposable PostgreSQL
-harness. The feature nevertheless remains on hold because:
+No validated critical or high-severity issue was found in independent source,
+dependency, migration, API, browser, or hosted review. The automated hosted
+security gates are sufficient to hand the protected beta to four real testers.
 
-1. the Codex Security managed diff-scan launcher rejected valid Git targets after
-   its own setup inspection reported `hasHead: true`, `isWorktree: true`, and
-   `reviewChangesSupported: true`; and
-2. there is no verified non-production Vercel/Supabase environment in this
-   worktree for live Clerk, RLS, Realtime, and four-account testing.
+The Codex Security managed diff scanner did not run successfully. This review
+does not claim or imply a managed-scan pass.
 
-This document is an engineering control review, not a substitute for the blocked
-managed scan or the owner’s four-human acceptance test.
+## Managed scanner evidence
 
-## Threat model
-
-Protected assets are game/result integrity, clock integrity, tournament scoring
-and rank, private tournament membership and activity, canonical public identity,
-service-role credentials, and production isolation.
-
-Relevant attackers are an unauthenticated visitor, an Online guest, a normal
-registered user outside the four-member beta, an authorized beta participant
-sending malformed/replayed commands, and a participant attempting to observe or
-alter another game. Browser code and Realtime messages are treated as untrusted.
-
-Trust boundaries:
-
-- Clerk/Supabase token verification -> Online API;
-- Online API -> service-role RPC adapter;
-- PostgreSQL RPC/transaction -> durable tournament and game rows;
-- private Realtime invalidation -> canonical authenticated resync;
-- canonical API response -> escaped/text-only DOM presentation.
-
-## Control review
-
-| Surface | Control | Evidence/result |
-| --- | --- | --- |
-| Production isolation | Arena returns disabled for production rollout regardless of flags | API and pure-engine tests pass |
-| Beta authorization | exact server-side Clerk-subject allowlist; guests rejected | authorized/unauthorized/guest API tests pass |
-| Organizer authorization | separate admin allowlist plus creation flag | organizer tests pass; no implicit user promotion |
-| Input validation | bounded UUID, name, duration, start time, and fixed control catalog | API/engine/migration tests pass |
-| Rate limiting | tournament commands remain behind the existing common authenticated request limiter | inherited Online API tests pass |
-| Browser authority | no client result, clock, score, color, opponent, or display-name authority | canonical RPC/game-engine flow exercised |
-| Direct database access | RLS enabled; browser grants and RPC execute revoked; only service role executes Arena RPCs | migration assertions and real migration apply pass |
-| Least privilege | Arena tables grant service role only select/insert/update/delete; sequence usage is explicit | migration assertion passes |
-| Cross-instance concurrency | transaction advisory locks, row locks, `SKIP LOCKED`, state transitions, partial unique indexes | source assertions and PostgreSQL harness pass |
-| Idempotency | event IDs, creation-event unique index/lock, post-lock registration recheck, exact-once `scored_at` guard | duplicate join and repeated score harness checks pass |
-| Audit/broadcast amplification | no-op joins/withdrawals return canonical sync; nonparticipant withdrawal fails before event/version mutation | corrected in `86224d33`; PostgreSQL regression passes |
-| Result integrity | scores only completed canonical Online games; explicit 2/1/0 contract | PostgreSQL harness and unit tests pass |
-| Private Realtime | private topic `online-tournament:<uuid>`; authenticated participant-membership policy | migration/API/browser tests pass; hosted JWT policy test outstanding |
-| Realtime authority | messages contain only ID/version/event/correlation and trigger canonical resync | browser recovery and duplicate-message regressions pass |
-| Identity privacy | state passes through the existing canonical public-identity resolver; no raw email returned | projection and Online regression tests pass |
-| XSS | tournament names reject control/angle characters; UI renders dynamic names/status with `textContent` | code review and browser tests pass |
-| Secret handling | no env file or credentials added; public config exposes booleans only | repository/config inspection pass |
-| Disconnect abuse | expired presence moves waiters to `disconnected`; only authenticated recovery requeues | migration assertion and lifecycle review pass |
-
-## Database policy notes
-
-The migration does not enable or otherwise reconfigure RLS on
-`realtime.messages`; it adds only the private broadcast read policy expected by
-Supabase Realtime. The policy’s definer function uses an empty `search_path`, an
-exact topic string, the authenticated JWT subject, and durable tournament
-membership. Arena RPCs use invoker rights and are executable only by
-`service_role`.
-
-The disposable PostgreSQL test stubs `auth.jwt`, `realtime.topic`, and Realtime
-send functions so the migration can be parsed and executed without Docker. That
-proves SQL validity, grants/revokes, constraints, and lifecycle behavior; it does
-not prove hosted Supabase JWT or Realtime behavior. A protected preview must test
-those controls with four distinct real accounts before release.
-
-## Managed scan blocker and independent fallback
-
-The scanner was retried against a clean ordinary, non-detached clone at
-`C:\CAISSA-S001-SECURITY`, with resolvable HEAD `2386c78c` and the explicit
-full-SHA range ending at that then-current documentation HEAD.
-`inspect_codex_security_setup` returned `isGit: true`, `isWorktree: true`,
-`hasHead: true`, and `reviewChangesSupported: true`. The subsequent
-`start_codex_security_prompt_only_scan` call returned exactly:
+The baseline SHA, merge base, candidate HEAD, ordinary worktree, and resolvable
+HEAD were verified. The prompt-only managed launcher returned exactly:
 
 > Review changes requires a non-bare Git worktree with a resolvable HEAD.
 
-No scan ID or canonical report was created. Per scanner policy, no substitute
-managed report was fabricated. Daybreak access also reported `not_granted`, which
-may prevent protected scan output display even after the launcher problem is
-resolved.
+No scan ID or managed report exists. Retrying the unchanged launcher was not
+represented as useful security evidence. The independent review below is the
+documented fallback.
 
-The prior independent fallback bound the original application patch and returned
-`hold_for_evidence`. After independent review found the no-op membership
-amplification described above, the corrected immutable range was fixed and
-reverified. Its binary diff SHA-256 is
-`b2a103b4f9465a716133726adb7da06de6f843265fcf34d267ca7020da1737fb`.
-The combined original fallback and corrected local review covered authentication/authorization, service-role boundaries, migration
-grants/search paths, input validation, concurrency, idempotency, scoring,
-Realtime policy, identity projection, origin configuration, and recovery. Its
-validated recommendation is `hold_for_evidence`: no validated high- or
-critical-severity code vulnerability was established, but hosted identity,
-origin, Realtime, migration, and four-user evidence are decision-critical. This
-independent evidence does not convert the failed managed scan into a pass.
+## Trust boundaries and controls
 
-## Open findings and release gates
+| Surface | Hosted evidence |
+| --- | --- |
+| Deployment isolation | separate Vercel project, no Git link, Preview-only variables, Vercel Authentication |
+| Backend isolation | dedicated Supabase `imtwlzicxaaqjyvrkdsv`; no Production/shared staging writes |
+| Auth isolation | AUTH-004D Development issuer only; four separate users/sessions |
+| Origin validation | hosted JWT `azp` equals the protected origin; configured authorized parties exact |
+| Browser authority | moves, clocks, results, scoring, pairing, and standings remain server canonical |
+| Database access | 15/15 public tables RLS-enabled; no browser RPC execution; service role only |
+| Realtime privacy | participant topics subscribed; cross-game topic rejected |
+| Beta access | exact four-subject allowlists; guest/rated play disabled |
+| Concurrency | advisory/row locks retained; separate-transaction rematch regression passed |
+| Idempotency | event IDs, exact-once scoring, duplicate membership regression |
+| Recovery | a fresh browser context recovered the active pairing and tournament |
+| Dependency risk | supply-chain policy passed; `npm audit --audit-level=high` found 0 |
+| Secret handling | no credential committed; test scan found only intentional role/grant text |
+| Production safety | production rollout fails closed; no merge, promotion, domain, or Production credential |
 
-| ID | Severity | State | Required closure |
-| --- | --- | --- | --- |
-| SEC-S001-01 | process limitation | recorded | managed launch failure preserved; independent immutable-patch review completed with `hold_for_evidence`; rerun managed scan if the launcher becomes available |
-| SEC-S001-02 | release-blocking environment gap | open | approve a dedicated $10/month backend, then exercise AUTH-004D, service-role RPCs, RLS, and private Realtime with four accounts |
-| SEC-S001-03 | acceptance gap | open | complete the four-person human scenario and record owner PASS/FAIL |
-| SEC-S001-04 | low availability/audit integrity | remediated locally | no-op membership and nonparticipant-withdraw regression passes; hosted verification pending |
+## Supabase review
 
-## Prohibited release actions
+The clean-room chain contains only the minimal account anchor and the exact
+Online, identity, Arena, index, and rematch migrations required by the beta.
+Reader-staging guards and unrelated product history were not replayed.
 
-Do not apply the migration to production, add production credentials to a preview,
-enable public discovery, merge to `main`, or promote any deployment until all
-three open gates are closed and the owner explicitly authorizes the next step.
+The security advisor reports only `rls_enabled_no_policy` at INFO for the 15
+public application tables. This is intentional default deny: the browser does
+not read/write those tables directly and the server uses service-role RPCs.
+Health has no findings. Performance reports unused new indexes and the default
+Auth connection allocation at INFO; neither is a security or beta blocker.
+
+The private pairing function retains the tournament advisory lock and is
+executable only by `service_role`. The concurrent-rematch fix waits for unseen
+active opponents before allowing a rematch, preventing the hosted
+separate-transaction race without granting new authority.
+
+## Hosted attack checks
+
+Four real AUTH-004D Development tokens were checked for distinct subject, exact
+issuer, `role=authenticated`, and exact authorized party. Public config exposed
+only the intended capabilities and publishable Realtime configuration.
+
+A participant subscribed to each assigned private game topic. A participant
+then attempted the other board's private topic and did not reach
+`SUBSCRIBED`. All state mutations continued through authenticated API commands
+and canonical database transactions.
+
+The final tournament `09c7ba7d-41ac-4dfe-bc70-ff24714dae53` completed with
+12 scored games, four participants, six unique opponent pairs, and deterministic
+final ranks.
+
+## Findings
+
+| ID | Severity | State |
+| --- | --- | --- |
+| SEC-S001-01 | process limitation | managed launcher error preserved; no pass claimed |
+| SEC-S001-02 | release-blocking isolation gap | closed by dedicated Supabase, Clerk, and Vercel Preview |
+| SEC-S001-03 | low availability/audit integrity | remediated by no-op membership hardening |
+| SEC-S001-04 | medium correctness/availability | hosted immediate-rematch race remediated and reverified |
+| SEC-S001-05 | acceptance gap | owner-led four-human QA still pending |
+
+## Restrictions
+
+Do not publish the time-limited Vercel share secret in Git or public channels.
+Do not enable production rollout, reuse production credentials, make the
+deployment public, delete beta evidence, merge, or promote. If Human QA finds an
+authorization, pairing, scoring, clock, or recovery defect, disable only the
+isolated Preview Arena flags and preserve all evidence.

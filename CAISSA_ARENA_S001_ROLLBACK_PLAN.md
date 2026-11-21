@@ -1,7 +1,7 @@
 # CAISSA Arena S001 Rollback Plan
 
 Scope: private preview/beta only  
-Application candidate: `86224d33f67ac7343e84a2406caac6c01b264843`
+Application candidate: `d029d42c237f42d2f22fe5507a4d652094d2a2b5`
 Production rollback: not applicable; nothing was deployed to production
 
 ## Principles
@@ -21,7 +21,8 @@ order:
 1. `CAISSA_ONLINE_ARENA_CREATE=0` — stops new tournament creation.
 2. `CAISSA_ONLINE_ARENA=0` — hides and rejects all Arena actions while leaving
    ordinary CAISSA Online available.
-3. If ordinary Online must also stop, set `CAISSA_ONLINE_ROLLOUT=off` for preview.
+3. `CAISSA_ONLINE_TOURNAMENTS=0` — disables the tournament surface.
+4. If ordinary Online must also stop, set `CAISSA_ONLINE_ROLLOUT=off` for preview.
 
 Redeploy the preview configuration and confirm:
 
@@ -95,7 +96,8 @@ behavior:
 - `npm run test:online`, the PostgreSQL harness, and the full three-engine Online
   browser suite pass.
 - Hosted RLS/Realtime checks pass with four distinct preview accounts.
-- The managed security diff scan completes without unresolved reportable issues.
+- The managed security diff scan is retried if its launcher is available; if it
+  remains unavailable, preserve the exact error and repeat the independent review.
 - A new exact commit and preview deployment are recorded.
 - The owner explicitly approves another Human QA attempt.
 
