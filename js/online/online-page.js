@@ -475,11 +475,11 @@ async function openArenaDetails(tournamentId) {
     try {
         const envelope = await api.command('tournament.sync', { tournamentId });
         applyState(envelope.data?.state);
-        if (model.arena?.current?.id === tournamentId) renderArenaDetail(model.arena.current);
     } catch (error) {
         handleError(error, 'The tournament could not be opened.');
     } finally {
         model.arenaBusy = false;
+        if (model.arena?.current?.id === tournamentId) renderArenaDetail(model.arena.current);
     }
 }
 

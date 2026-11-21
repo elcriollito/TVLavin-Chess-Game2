@@ -9,18 +9,21 @@ const EXPECTED_ISSUER = 'https://cheerful-mantis-9523.clerk.accounts.dev';
 const CERT_TOURNAMENT_ID = String(process.env.CAISSA_CERT_TOURNAMENT_ID || '');
 const HUMAN_TOURNAMENT_ID = String(process.env.CAISSA_HUMAN_TOURNAMENT_ID || '');
 const EXPECTED_SOURCE_HEAD = String(process.env.CAISSA_EXPECTED_SOURCE_HEAD || 'verified externally');
+const EXISTING_PLAYERS = parseExistingPlayers(process.env.CAISSA_CERT_EXISTING_PLAYERS);
 const OWNER = {
     label: 'OWNER',
     email: 'chess2u@gmail.com',
     subject: 'user_3LI0jbMHgYevJkNfY8dK6tUnoYu'
 };
 const runId = String(process.env.CAISSA_CERT_RUN_ID || Date.now().toString(36)).toLowerCase();
-const players = ['A', 'B', 'C', 'D'].map(label => ({
-    label,
-    email: `caissa-public-${runId}-${label.toLowerCase()}+clerk_test@example.com`
-}));
+const players = EXISTING_PLAYERS.length === 4
+    ? EXISTING_PLAYERS
+    : ['A', 'B', 'C', 'D'].map(label => ({
+        label,
+        email: `caissa-public-${runId}-${label.toLowerCase()}+clerk_test@example.com`
+    }));
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: process.env.CAISSA_CERT_HEADED !== '1' });
 let heartbeatTimer = null;
 
 try {
@@ -48,10 +51,17 @@ async function certifyPublicBeta() {
     assert.equal(new URL(publicConfig.realtime.url).hostname, 'imtwlzicxaaqjyvrkdsv.supabase.co');
     console.log('PUBLIC_BETA_CONFIG_PASS preview, member-only directory, isolated backend');
 
-    await Promise.all(players.map(registerNewIdentity));
+    for (const player of players) {
+        if (player.subject) await establishSignIn(player);
+        else await registerNewIdentity(player);
+        await delay(1_500);
+    }
     assert.equal(new Set(players.map(player => player.subject)).size, 4);
     assert.ok(players.every(player => player.subject && player.subject !== OWNER.subject));
-    console.log(`PUBLIC_SIGNUP_PASS ${players.map(player => `${player.label}:${player.subject}`).join(' ')}`);
+    const identityGate = EXISTING_PLAYERS.length === 4
+        ? 'PUBLIC_NON_ALLOWLISTED_IDENTITY_PASS'
+        : 'PUBLIC_SIGNUP_PASS';
+    console.log(`${identityGate} ${players.map(player => `${player.label}:${player.subject}`).join(' ')}`);
 
     if (!CERT_TOURNAMENT_ID || !HUMAN_TOURNAMENT_ID) await establishSignIn(OWNER);
     const activeIdentities = OWNER.page ? [OWNER, ...players] : players;
@@ -210,6 +220,10 @@ async function registerNewIdentity(identity) {
     await identity.page.goto(`${ORIGIN}/signup?redirect_url=%2Fonline`, { waitUntil: 'domcontentloaded' });
     await identity.page.waitForFunction(() => window.Clerk?.client?.signUp, null, { timeout: 30_000 });
     const auth = await identity.page.evaluate(async ({ email, password, otp }) => {
+        const decodeJwtPayload = (token) => JSON.parse(atob(
+            token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+                .padEnd(Math.ceil(token.split('.')[1].length / 4) * 4, '=')
+        ));
         const clerk = window.Clerk;
         if (clerk.user) await clerk.signOut();
         let attempt = await clerk.client.signUp.create({ emailAddress: email, password, legalAccepted: true });
@@ -238,6 +252,10 @@ async function establishSignIn(identity) {
     await identity.page.goto(`${ORIGIN}/signin?redirect_url=%2Fonline`, { waitUntil: 'domcontentloaded' });
     await identity.page.waitForFunction(() => window.Clerk?.client?.signIn, null, { timeout: 30_000 });
     const auth = await identity.page.evaluate(async ({ email, otp }) => {
+        const decodeJwtPayload = (token) => JSON.parse(atob(
+            token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+                .padEnd(Math.ceil(token.split('.')[1].length / 4) * 4, '=')
+        ));
         const clerk = window.Clerk;
         if (clerk.user) await clerk.signOut();
         let attempt = await clerk.client.signIn.create({ identifier: email });
@@ -277,6 +295,7 @@ async function joinThroughBrowser(identity, tournamentName) {
         await identity.page.goto(`${ORIGIN}/online`, { waitUntil: 'domcontentloaded' });
         await waitForSignedIn(identity);
     }
+    await identity.page.locator('#tab-lobby').click();
     await identity.page.locator('#lobby-tab-tournaments').click();
     const card = identity.page.locator('.arena-card').filter({ hasText: tournamentName });
     await card.waitFor({ state: 'visible', timeout: 30_000 });
@@ -285,7 +304,10 @@ async function joinThroughBrowser(identity, tournamentName) {
         .waitFor({ state: 'visible', timeout: 15_000 });
     const join = identity.page.locator('#arena-join');
     await join.waitFor({ state: 'visible', timeout: 15_000 });
-    assert.equal(await join.isDisabled(), false);
+    await identity.page.waitForFunction(() => {
+        const button = document.getElementById('arena-join');
+        return button && !button.disabled;
+    }, null, { timeout: 15_000 });
     await join.click();
     await identity.page.waitForFunction(() => {
         const button = document.getElementById('arena-withdraw');
@@ -464,4 +486,16 @@ function defaultHumanQaStart() {
 
 function delay(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function parseExistingPlayers(value) {
+    if (!value) return [];
+    const parsed = JSON.parse(value);
+    assert.equal(Array.isArray(parsed), true);
+    assert.equal(parsed.length, 4);
+    return parsed.map((player, index) => ({
+        label: String(player.label || String.fromCharCode(65 + index)),
+        email: String(player.email || ''),
+        subject: String(player.subject || '')
+    }));
 }

@@ -72,7 +72,9 @@ test('authorized player discovers, opens, and joins the Founders beta', async ({
     await expect(page.locator('#arena-detail')).toBeVisible();
     await expect(page.locator('#arena-detail-name')).toHaveText('CAISSA Arena S001 — Founders Beta');
     await expect(page.locator('.arena-rules')).toContainText('Win 2 · Draw 1 · Loss 0');
-    await page.getByRole('button', { name: 'Join tournament' }).click();
+    const join = page.getByRole('button', { name: 'Join tournament' });
+    await expect(join).toBeEnabled();
+    await join.click();
     await expect(page.locator('#tab-tournament')).toBeVisible();
     await expect(page.locator('#panel-tournament')).toBeVisible();
     await expect(page.locator('#arena-standings-body tr')).toHaveCount(4);
