@@ -45,6 +45,8 @@ test('weekly scheduler is idempotent, DST-local, auditable and disabled until la
     assert.match(sql, /order by started_at desc limit 20/);
     assert.match(sql, /if v_t\.participants<v_t\.min_players then update[^;]+status='cancelled'/);
     assert.match(sql, /cron\.schedule\('caissa-tournament-scheduler-s001','\* \* \* \* \*'/);
+    assert.match(sql, /if not exists \([\s\S]+pg_catalog\.pg_extension where extname='pg_cron'[\s\S]+execute 'create extension pg_cron with schema pg_catalog'/);
+    assert.doesNotMatch(sql, /create extension if not exists pg_cron/);
 });
 
 test('migration is forward-only and does not grant a browser administration path', () => {

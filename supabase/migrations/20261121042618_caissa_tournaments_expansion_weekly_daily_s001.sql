@@ -909,7 +909,15 @@ alter function public.caissa_online_daily_join(text,uuid,text) set lock_timeout=
 alter function public.caissa_online_daily_commit_move(text,uuid,text,integer,text,text,text,text,text,text,text,text,text,text,boolean,boolean,timestamptz) set lock_timeout='2s';
 alter function public.caissa_online_tournament_scheduler_tick(timestamptz) set lock_timeout='2s';
 
-create extension if not exists pg_cron with schema pg_catalog;
+do $$
+begin
+  if not exists (
+    select 1 from pg_catalog.pg_extension where extname='pg_cron'
+  ) then
+    execute 'create extension pg_cron with schema pg_catalog';
+  end if;
+end
+$$;
 do $$
 begin
   if not exists(select 1 from cron.job where jobname='caissa-tournament-scheduler-s001') then
