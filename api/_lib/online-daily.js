@@ -12,7 +12,7 @@ export const DAILY_DEFAULTS = Object.freeze({
 });
 
 export function isDailyEnabled(rollout, env = {}) {
-    return rollout === 'preview'
+    return (rollout === 'preview' || rollout === 'production')
         && env.CAISSA_ONLINE_TOURNAMENTS === '1'
         && env.CAISSA_ONLINE_DAILY === '1';
 }

@@ -16,7 +16,7 @@ const RECURRENCE_FIELDS = new Set([
 ]);
 
 export function isRecurringTournamentsEnabled(rollout, env = {}) {
-    return rollout === 'preview'
+    return (rollout === 'preview' || rollout === 'production')
         && env.CAISSA_ONLINE_TOURNAMENTS === '1'
         && env.CAISSA_ONLINE_ARENA === '1'
         && env.CAISSA_ONLINE_RECURRING_TOURNAMENTS === '1';

@@ -24,7 +24,7 @@ export const SATURDAYS_OF_CHESS = Object.freeze({
 });
 
 export function isWeeklyArenaEnabled(rollout, env = {}) {
-    return rollout === 'preview'
+    return (rollout === 'preview' || rollout === 'production')
         && env.CAISSA_ONLINE_TOURNAMENTS === '1'
         && env.CAISSA_ONLINE_WEEKLY_ARENAS === '1';
 }

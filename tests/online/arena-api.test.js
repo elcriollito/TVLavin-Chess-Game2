@@ -39,15 +39,37 @@ const arena = {
     current: { id: tournamentId, version: 3, status: 'registration_open', myState: 'registered' }
 };
 
-test('Arena remains disabled in production even when every flag is present', async () => {
+test('Arena is available in production only when every explicit gate is present', async () => {
     const res = response();
     await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, res, {
         env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production' }
     });
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body.capabilities.arenaS001, false);
-    assert.equal(res.body.capabilities.tournaments, false);
+    assert.equal(res.body.capabilities.arenaS001, true);
+    assert.equal(res.body.capabilities.tournaments, true);
     assert.equal(res.body.capabilities.publicTournamentDirectory, false);
+
+    const disabled = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, disabled, {
+        env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production', CAISSA_ONLINE_ARENA: '0' }
+    });
+    assert.equal(disabled.body.capabilities.arenaS001, false);
+});
+
+test('ordinary authenticated Production users can join without a beta allowlist', async () => {
+    let joined;
+    const service = {
+        async checkRateLimit() { return { allowed: true }; },
+        async joinArena(input) { joined = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const res = response();
+    await handler(command('tournament.join', { tournamentId }), res, {
+        env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production', CAISSA_ONLINE_ARENA_BETA_USERS: '' },
+        authenticate, rateLimit, service
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(joined.clerkId, userId);
 });
 
 test('ordinary authenticated Preview users can discover and join without an allowlist', async () => {

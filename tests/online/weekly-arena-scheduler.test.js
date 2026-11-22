@@ -3,10 +3,19 @@ import assert from 'node:assert/strict';
 import {
     SATURDAYS_OF_CHESS,
     generateWeeklyOccurrences,
+    isWeeklyArenaEnabled,
     planWeeklyLifecycle,
     validateWeeklyAdminAction,
     zonedParts
 } from '../../api/_lib/online-weekly-scheduler.js';
+
+test('official weekly Arenas require explicit gates in Preview and Production', () => {
+    const env = { CAISSA_ONLINE_TOURNAMENTS: '1', CAISSA_ONLINE_WEEKLY_ARENAS: '1' };
+    assert.equal(isWeeklyArenaEnabled('preview', env), true);
+    assert.equal(isWeeklyArenaEnabled('production', env), true);
+    assert.equal(isWeeklyArenaEnabled('internal', env), false);
+    assert.equal(isWeeklyArenaEnabled('production', { CAISSA_ONLINE_TOURNAMENTS: '1' }), false);
+});
 
 test('weekly scheduler generates both slots for four Saturdays without duplicates', () => {
     const rows = generateWeeklyOccurrences(SATURDAYS_OF_CHESS, Date.parse('2026-11-20T12:00:00Z'), 4);

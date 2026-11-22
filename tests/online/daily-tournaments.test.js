@@ -5,10 +5,19 @@ import {
     buildDailyGroups,
     buildDoubleRoundRobinPairings,
     calculateDailyStandings,
+    isDailyEnabled,
     nextDailyDeadline,
     selectDailyQualifiers,
     validateDailyCreation
 } from '../../api/_lib/online-daily.js';
+
+test('Daily requires explicit gates in Preview and Production', () => {
+    const env = { CAISSA_ONLINE_TOURNAMENTS: '1', CAISSA_ONLINE_DAILY: '1' };
+    assert.equal(isDailyEnabled('preview', env), true);
+    assert.equal(isDailyEnabled('production', env), true);
+    assert.equal(isDailyEnabled('internal', env), false);
+    assert.equal(isDailyEnabled('production', { CAISSA_ONLINE_TOURNAMENTS: '1' }), false);
+});
 
 test('Daily creation accepts 1, 3, 5, and 7 days and rejects invalid capacity', () => {
     const now = Date.parse('2026-11-20T12:00:00Z');

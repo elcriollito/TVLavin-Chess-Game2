@@ -50,12 +50,18 @@ const baseService = {
     async checkRateLimit() { return { allowed: true }; }
 };
 
-test('recurrence capability fails closed outside isolated Preview', async () => {
+test('recurrence capability requires every explicit Production gate', async () => {
     const result = response();
     await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, result, {
         env: { ...env, CAISSA_ONLINE_ROLLOUT: 'production' }
     });
-    assert.equal(result.body.capabilities.recurringTournaments, false);
+    assert.equal(result.body.capabilities.recurringTournaments, true);
+
+    const disabled = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, disabled, {
+        env: { ...env, CAISSA_ONLINE_ROLLOUT: 'production', CAISSA_ONLINE_RECURRING_TOURNAMENTS: '0' }
+    });
+    assert.equal(disabled.body.capabilities.recurringTournaments, false);
 });
 
 test('an ordinary authenticated member can create only a validated unrated Arena series', async () => {

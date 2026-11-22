@@ -31,8 +31,9 @@ function payload(recurrence = {}) {
     };
 }
 
-test('recurrence is preview-only and requires the isolated feature flag', () => {
+test('recurrence requires the explicit feature flag in Preview and Production', () => {
     assert.equal(isRecurringTournamentsEnabled('preview', enabledEnv), true);
+    assert.equal(isRecurringTournamentsEnabled('production', enabledEnv), true);
     assert.equal(isRecurringTournamentsEnabled('internal', enabledEnv), false);
     assert.equal(isRecurringTournamentsEnabled('preview', { ...enabledEnv, CAISSA_ONLINE_RECURRING_TOURNAMENTS: '0' }), false);
 });

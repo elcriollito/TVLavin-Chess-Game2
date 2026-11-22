@@ -29,12 +29,18 @@ function command(eventType, payload = {}, gameId = null) {
 
 const rateLimit = () => ({ allowed: true });
 
-test('Daily flags fail closed and an ordinary Preview member can join when enabled', async () => {
+test('Daily requires explicit gates in Production and an ordinary member can join when enabled', async () => {
     const config = response();
     await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, config, {
         env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production' }
     });
-    assert.equal(config.body.capabilities.dailyTournaments, false);
+    assert.equal(config.body.capabilities.dailyTournaments, true);
+
+    const disabled = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, disabled, {
+        env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production', CAISSA_ONLINE_DAILY: '0' }
+    });
+    assert.equal(disabled.body.capabilities.dailyTournaments, false);
 
     let joined;
     const daily = { tournaments: [{ id: tournamentId }], current: { id: tournamentId }, games: [], recentGames: [] };

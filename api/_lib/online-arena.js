@@ -70,7 +70,6 @@ export function isArenaRatedEnabled(rollout, env = {}) {
 
 export function isArenaEnabled(rollout, env = {}) {
     return rollout !== 'off'
-        && rollout !== 'production'
         && env.CAISSA_ONLINE_TOURNAMENTS === '1'
         && env.CAISSA_ONLINE_ARENA === '1';
 }

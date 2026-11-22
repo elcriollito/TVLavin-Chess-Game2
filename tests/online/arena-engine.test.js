@@ -39,11 +39,12 @@ test('S001 exposes exactly the approved Arena time controls', () => {
     assert.equal(validateArenaTournamentId({ tournamentId: 'not-a-uuid' }).ok, false);
 });
 
-test('Arena flags fail closed in production and require both explicit gates', () => {
+test('Arena requires both explicit gates in Preview and Production', () => {
     const enabled = { CAISSA_ONLINE_TOURNAMENTS: '1', CAISSA_ONLINE_ARENA: '1' };
     assert.equal(isArenaEnabled('preview', enabled), true);
-    assert.equal(isArenaEnabled('production', enabled), false);
+    assert.equal(isArenaEnabled('production', enabled), true);
     assert.equal(isArenaEnabled('preview', { CAISSA_ONLINE_TOURNAMENTS: '1' }), false);
+    assert.equal(isArenaEnabled('production', { CAISSA_ONLINE_ARENA: '1' }), false);
 });
 
 test('four waiting players produce two games without double pairing', () => {

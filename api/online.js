@@ -622,6 +622,7 @@ async function handleRecurringSeriesCommand(req, res, auth, service, dependencie
 
 function isArenaParticipantAuthorized(rollout, env, userId) {
     return rollout === 'preview'
+        || rollout === 'production'
         || arenaSubjectSet(env.CAISSA_ONLINE_ARENA_BETA_USERS).has(userId);
 }
 
