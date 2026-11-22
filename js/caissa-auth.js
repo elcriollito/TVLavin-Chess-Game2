@@ -159,6 +159,7 @@
                 signUpUrl: '/signup',
                 signInFallbackRedirectUrl: authDefaultDestination,
                 signUpFallbackRedirectUrl: authDefaultDestination,
+                ...(config.CLERK_PROXY_URL ? { proxyUrl: config.CLERK_PROXY_URL } : {}),
                 ...(includeUi ? { ui: { ClerkUI: window.__internal_ClerkUICtor } } : {})
             });
 

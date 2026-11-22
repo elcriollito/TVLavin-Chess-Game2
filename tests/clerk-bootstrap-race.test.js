@@ -6,13 +6,13 @@ import publicConfigHandler, { isValidClerkPublishableKey } from '../api/public-a
 
 const validKey = 'pk_test_c3ludGhldGljLmNsZXJrLmFjY291bnRzLmRldiQ';
 
-function loadAuth({ resolveConfig, key = validKey, includeUi = false }) {
+function loadAuth({ resolveConfig, key = validKey, includeUi = false, proxyUrl = '' }) {
   let resolveReady;
   const ready = new Promise(resolve => { resolveReady = resolve; });
   let appended = 0, loadCalls = 0, listeners = 0, loadOptions = null;
   const Clerk = { user:null, session:null, load:async options=>{ loadCalls++; loadOptions = options; assert.equal(options.publishableKey,key); }, addListener:()=>{listeners++;} };
   const window = {
-    CAISSA_AUTH_CONFIG:{CLERK_PUBLISHABLE_KEY:'pk_test_REPLACE_WITH_YOUR_KEY',STORAGE_KEYS:{USER_PROFILE:'profiles',AUTH_STATE:'state'}},
+    CAISSA_AUTH_CONFIG:{CLERK_PUBLISHABLE_KEY:'pk_test_REPLACE_WITH_YOUR_KEY',CLERK_PROXY_URL:proxyUrl,STORAGE_KEYS:{USER_PROFILE:'profiles',AUTH_STATE:'state'}},
     CAISSA_AUTH_CONFIG_UTILS:{isValidClerkPublishableKey}, CAISSA_AUTH_CONFIG_READY:ready,
     addEventListener(){}, dispatchEvent(){}, location:{pathname:'/',search:'',hash:'',href:''},
     atob: value => Buffer.from(value, 'base64').toString('utf8')
@@ -51,6 +51,11 @@ test('missing, malformed, and placeholder config never construct Clerk', async()
 test('valid config initializes exactly one owned Clerk instance', async()=>{
   const run=loadAuth({resolveConfig:true}); await new Promise(r=>setTimeout(r,5));
   assert.deepEqual(run.counts(),{appended:1,loadCalls:1,listeners:1});
+});
+
+test('shared auth passes a validated proxy URL to Clerk when configured', async()=>{
+  const run=loadAuth({resolveConfig:true,proxyUrl:'/__clerk'}); await new Promise(r=>setTimeout(r,5));
+  assert.equal(run.loadOptions().proxyUrl,'/__clerk');
 });
 
 test('Home opts into Clerk UI before initialization so Profile can open', async()=>{

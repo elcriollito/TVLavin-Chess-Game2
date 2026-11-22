@@ -10,7 +10,7 @@ const uiCdn = 'https://cdn.jsdelivr.net/npm/@clerk/ui@1.30.1/dist/ui.browser.js'
 const uiFallback = 'https://synthetic.clerk.accounts.dev/npm/@clerk/ui@1.30.1/dist/ui.browser.js';
 const clerkCdn = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.28.1/dist/clerk.browser.js';
 
-function bootstrapWithFirstUiSourceUnavailable() {
+function bootstrapWithFirstUiSourceUnavailable(proxyUrl = '') {
     const attempts = [];
     const container = { innerHTML: '' };
     let loadOptions;
@@ -24,7 +24,7 @@ function bootstrapWithFirstUiSourceUnavailable() {
 
     const window = {
         location: { search: '', href: '', origin: 'https://www.caissa-chess.org', pathname: '/signin' },
-        CAISSA_AUTH_CONFIG: { CLERK_PUBLISHABLE_KEY: validKey, IDENTITY_OWNER_HANDOFF: null },
+        CAISSA_AUTH_CONFIG: { CLERK_PUBLISHABLE_KEY: validKey, CLERK_PROXY_URL: proxyUrl, IDENTITY_OWNER_HANDOFF: null },
         CAISSA_AUTH_CONFIG_READY: Promise.resolve(),
         CAISSA_REDIRECTS: { sanitizeInternalRedirect: () => '/' }
     };
@@ -105,4 +105,10 @@ test('sign-in falls back to the exact custom-domain asset after a CDN load failu
     assert.equal(mountOptions.transferable, false);
     assert.equal(mountOptions.signUpUrl, '/signup');
     assert.doesNotMatch(container.innerHTML, /Authentication error/);
+});
+
+test('sign-in passes only the validated public proxy setting to Clerk', async () => {
+    const run = bootstrapWithFirstUiSourceUnavailable('/__clerk');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(run.result().loadOptions.proxyUrl, '/__clerk');
 });

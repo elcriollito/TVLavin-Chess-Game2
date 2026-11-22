@@ -23,6 +23,11 @@ export default function handler(req, res) {
         clerkPublishableKeyCandidates[0] ||
         '';
 
+    const clerkProxyUrl = publicClerkProxyUrl(req, process.env);
+    if (!isClerkRequestOriginCompatible(req, clerkPublishableKey, clerkProxyUrl)) {
+        return res.status(503).json({ error: 'AUTH_ORIGIN_INCOMPATIBLE' });
+    }
+
     const supabaseUrl =
         process.env.SUPABASE_URL ||
         process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -30,6 +35,7 @@ export default function handler(req, res) {
 
     return res.status(200).json({
         clerkPublishableKey,
+        clerkProxyUrl,
         authDefaultDestination: publicAuthDefaultDestination(process.env),
         registrationTracking: Boolean(
             process.env.CLERK_SECRET_KEY &&
@@ -39,6 +45,78 @@ export default function handler(req, res) {
         registrationOpen: isPublicRegistrationOpen(process.env),
         identityOwnerHandoff: publicOwnerHandoffMetadata(process.env)
     });
+}
+
+export function publicClerkProxyUrl(req, env = process.env) {
+    const candidate = String(env.CAISSA_CLERK_PROXY_URL || '').trim();
+    if (!candidate) return '';
+
+    const requestHost = requestHostname(req);
+    if (!requestHost) return '';
+    if (/^\/(?![\\/])/.test(candidate) && isSafeClerkProxyPath(candidate)) {
+        try {
+            const parsed = new URL(candidate, `https://${requestHost}`);
+            if (parsed.origin !== `https://${requestHost}` || parsed.search || parsed.hash) return '';
+            return parsed.pathname.replace(/\/$/, '');
+        } catch {
+            return '';
+        }
+    }
+
+    try {
+        const parsed = new URL(candidate);
+        if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port
+            || parsed.hostname.toLowerCase() !== requestHost || parsed.search || parsed.hash
+            || !isSafeClerkProxyPath(parsed.pathname)) return '';
+        return parsed.href.replace(/\/$/, '');
+    } catch {
+        return '';
+    }
+}
+
+function isSafeClerkProxyPath(value) {
+    const path = String(value || '');
+    if (path.length < 2 || path.length > 256 || !/^\/[A-Za-z0-9._~/-]+$/.test(path)) return false;
+    return !path.split('/').some(segment => segment === '.' || segment === '..');
+}
+
+export function isClerkRequestOriginCompatible(req, publishableKey, proxyUrl = '') {
+    if (!String(publishableKey || '').startsWith('pk_live_')) return true;
+    if (proxyUrl) return true;
+
+    const requestHost = requestHostname(req);
+    if (!requestHost) return true;
+    const frontendHost = clerkPublishableKeyFrontendHost(publishableKey);
+    if (!frontendHost) return false;
+
+    const applicationRoot = frontendHost.startsWith('clerk.')
+        ? frontendHost.slice('clerk.'.length)
+        : frontendHost;
+    return requestHost === applicationRoot || requestHost.endsWith(`.${applicationRoot}`);
+}
+
+export function clerkPublishableKeyFrontendHost(value) {
+    if (!isValidClerkPublishableKey(value)) return '';
+    try {
+        const encoded = String(value).trim().replace(/^pk_(?:test|live)_/, '');
+        const decoded = Buffer.from(encoded, 'base64url').toString('utf8').replace(/\$$/, '');
+        return /^[a-z0-9.-]+$/i.test(decoded) ? decoded.toLowerCase() : '';
+    } catch {
+        return '';
+    }
+}
+
+function requestHostname(req) {
+    const raw = String(req?.headers?.host || req?.headers?.['x-forwarded-host'] || '')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+    if (!raw || /[\u0000-\u001f\u007f\\/]/.test(raw)) return '';
+    try {
+        return new URL(`https://${raw}`).hostname.toLowerCase();
+    } catch {
+        return '';
+    }
 }
 
 const BLOCKED_AUTH_REDIRECT_PATHS = Object.freeze(['/api', '/internal', '/debug', '/qa', '/admin', '/auth']);

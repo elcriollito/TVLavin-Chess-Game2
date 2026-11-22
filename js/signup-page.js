@@ -71,7 +71,8 @@
                 signInUrl: '/signin',
                 signUpUrl: '/signup',
                 signInFallbackRedirectUrl: completionUrl,
-                signUpFallbackRedirectUrl: completionUrl
+                signUpFallbackRedirectUrl: completionUrl,
+                ...(config.CLERK_PROXY_URL ? { proxyUrl: config.CLERK_PROXY_URL } : {})
             });
 
             // Check if already signed in

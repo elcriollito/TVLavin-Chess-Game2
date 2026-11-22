@@ -43,6 +43,7 @@ function isValidClerkPublishableKey(value) {
 const CAISSA_AUTH_CONFIG = {
     // Fallback only. Production should hydrate this from /api/public-auth-config.
     CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_WITH_YOUR_KEY',
+    CLERK_PROXY_URL: '',
     REGISTRATION_TRACKING_AVAILABLE: false,
     REGISTRATION_OPEN: false,
     IDENTITY_OWNER_HANDOFF: null,
@@ -98,6 +99,7 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
                 console.warn('[Auth Config] Production is using a Clerk development publishable key. Configure NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY with a pk_live_ key in Vercel.');
             }
         }
+        CAISSA_AUTH_CONFIG.CLERK_PROXY_URL = normalizeSameOriginProxyUrl(data.clerkProxyUrl);
         CAISSA_AUTH_CONFIG.REGISTRATION_TRACKING_AVAILABLE = data.registrationTracking === true;
         CAISSA_AUTH_CONFIG.REGISTRATION_OPEN = data.registrationOpen === true;
         CAISSA_AUTH_CONFIG.IDENTITY_OWNER_HANDOFF = normalizeOwnerHandoffMetadata(data.identityOwnerHandoff);
@@ -110,6 +112,19 @@ window.CAISSA_AUTH_CONFIG_READY = (async function loadPublicAuthConfig() {
 
     return CAISSA_AUTH_CONFIG;
 })();
+
+function normalizeSameOriginProxyUrl(value) {
+    const candidate = String(value || '').trim();
+    if (!candidate) return '';
+    try {
+        const parsed = new URL(candidate, window.location.origin);
+        if (parsed.origin !== window.location.origin || parsed.username || parsed.password
+            || parsed.search || parsed.hash) return '';
+        return candidate.startsWith('/') ? parsed.pathname.replace(/\/$/, '') : parsed.href.replace(/\/$/, '');
+    } catch {
+        return '';
+    }
+}
 
 function normalizeOwnerHandoffMetadata(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)
