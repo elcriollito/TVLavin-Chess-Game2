@@ -136,8 +136,20 @@ async function assertCurrentChronology() {
 }
 
 async function assertScheduleChronology() {
-    const cards = identity.page.locator('#arena-schedule-list .arena-card');
-    const names = await cards.locator('h4').allTextContents();
+    const names = await identity.page.locator('#arena-schedule-list').evaluate(list => {
+        const result = [];
+        let scheduledSection = false;
+        for (const child of list.children) {
+            if (child.matches('.arena-schedule-section')) {
+                scheduledSection = child.textContent === 'Scheduled tournament records';
+                continue;
+            }
+            if (scheduledSection && child.matches('.arena-card')) {
+                result.push(child.querySelector('h4')?.textContent || '');
+            }
+        }
+        return result;
+    });
     const timestamps = await getState().then(result => {
         const tournaments = result.data.state.arena.tournaments;
         return new Map(tournaments.map(item => [item.name, Date.parse(item.startsAt)]));
