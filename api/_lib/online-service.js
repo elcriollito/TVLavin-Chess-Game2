@@ -287,6 +287,15 @@ export function createOnlineService(options = {}) {
             });
         },
         async manageRecurringSeries({ clerkId, eventId, action, payload = {} }) {
+            if (action === 'unskip') {
+                return rpc(db, 'caissa_online_recurring_series_unskip', {
+                    p_clerk_id: clerkId,
+                    p_event_id: eventId,
+                    p_series_id: payload.seriesId,
+                    p_local_date: payload.localDate,
+                    p_reason: payload.reason
+                });
+            }
             return rpc(db, 'caissa_online_recurring_series_manage', {
                 p_clerk_id: clerkId,
                 p_event_id: eventId,

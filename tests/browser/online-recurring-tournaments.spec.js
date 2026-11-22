@@ -43,6 +43,11 @@ test.beforeEach(async ({ page }) => {
             if (command.eventType === 'series.pause') {
                 harness.state.recurring.series[0].enabled = false;
             }
+            if (command.eventType === 'series.unskip') {
+                const restored = harness.state.recurring.series[0]?.upcoming
+                    ?.find(item => item.localDate === command.payload.localDate);
+                if (restored) restored.state = 'planned';
+            }
         }
         return route.fulfill({ json: {
             protocolVersion: '1.0.0', eventType: 'tournament.snapshot',
@@ -101,9 +106,13 @@ test('series ownership controls pause safely and mobile form does not overflow',
             endMode: 'never', endDate: null, occurrenceCount: null, enabled: true
         }, capacity: 16, durationMinutes: 30, lateJoin: true, pool: 'blitz', baseMs: 180000, incrementMs: 2000
     })];
+    harnesses.get(page).state.recurring.series[0].upcoming[0].state = 'skipped';
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/online/tournaments?directory=1');
     await page.locator('#directory-tab-schedule').click();
+    await page.getByRole('button', { name: 'Restore skipped' }).click();
+    expect(harnesses.get(page).commands.some(command => command.eventType === 'series.unskip'
+        && command.payload.localDate === '2026-12-11')).toBe(true);
     await page.getByRole('button', { name: 'Pause' }).click();
     expect(harnesses.get(page).commands.some(command => command.eventType === 'series.pause'
         && command.payload.seriesId === seriesId)).toBe(true);

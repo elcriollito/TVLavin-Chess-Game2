@@ -83,6 +83,31 @@ end
 $$;
 
 do $$
+declare v_series uuid; v_local_date date;
+begin
+  select id into v_series from public.caissa_online_tournament_series
+    where owner_clerk_id='recurring_owner_local' and creation_event_id='series-create:local-s002';
+  select local_date into v_local_date from caissa_online_private.recurring_candidate_dates(v_series,
+    (clock_timestamp() at time zone 'America/New_York')::date,
+    (clock_timestamp() at time zone 'America/New_York')::date+90) candidate
+    where not exists(select 1 from public.caissa_online_tournaments tournament
+      where tournament.series_occurrence_key=candidate.occurrence_key)
+    order by starts_at limit 1;
+  perform public.caissa_online_recurring_series_manage('recurring_owner_local','series-skip:unskip-test',
+    'skip',jsonb_build_object('seriesId',v_series,'localDate',v_local_date,'reason','Local recovery test'));
+  perform public.caissa_online_recurring_series_unskip('recurring_owner_local','series-unskip:local-s002',
+    v_series,v_local_date,'Local recovery test');
+  perform public.caissa_online_recurring_series_unskip('recurring_owner_local','series-unskip:local-s002',
+    v_series,v_local_date,'Local recovery test');
+  if exists(select 1 from public.caissa_online_tournament_series_skips
+      where series_id=v_series and local_date=v_local_date and slot_id='primary')
+    or (select count(*) from public.caissa_online_tournament_series_skip_recoveries
+      where series_id=v_series and local_date=v_local_date)<>1
+    then raise exception 'audited unskip was not idempotent'; end if;
+end
+$$;
+
+do $$
 declare v_series uuid; v_start timestamptz; v_generated integer;
 begin
   update public.caissa_online_tournament_series
@@ -145,6 +170,9 @@ begin
   if has_function_privilege('anon','public.caissa_online_tournament_identity_projection(uuid[])','execute')
     or has_function_privilege('authenticated','public.caissa_online_tournament_identity_projection(uuid[])','execute')
     then raise exception 'browser role can read the tournament identity projection'; end if;
+  if has_function_privilege('anon','public.caissa_online_recurring_series_unskip(text,text,uuid,date,text)','execute')
+    or has_function_privilege('authenticated','public.caissa_online_recurring_series_unskip(text,text,uuid,date,text)','execute')
+    then raise exception 'browser role can execute the audited unskip RPC'; end if;
 end
 $$;
 

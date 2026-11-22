@@ -67,10 +67,12 @@ export function validateRecurringSeriesAction(action, payload = {}, now = Date.n
     if (action === 'pause' || action === 'resume') {
         return Object.freeze({ ok: true, value: Object.freeze({ seriesId }) });
     }
-    if (action === 'skip') {
+    if (action === 'skip' || action === 'unskip') {
         const localDate = validDateString(payload.localDate);
-        const reason = String(payload.reason || 'Organizer skip').trim().slice(0, 240);
-        if (!localDate || reason.length < 3) return failure('RECURRING_INVALID_SKIP');
+        const reason = String(payload.reason || (action === 'skip'
+            ? 'Organizer skip' : 'Organizer restored occurrence')).trim().slice(0, 240);
+        if (!localDate || reason.length < 3) return failure(action === 'skip'
+            ? 'RECURRING_INVALID_SKIP' : 'RECURRING_INVALID_UNSKIP');
         return Object.freeze({ ok: true, value: Object.freeze({ seriesId, localDate, reason }) });
     }
     if (action === 'cancel') {

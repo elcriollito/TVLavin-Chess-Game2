@@ -1333,6 +1333,14 @@ function renderRecurringSeriesManager(seriesRows) {
             }));
             actions.append(skip);
         }
+        const nextSkipped = (series.upcoming || []).find(item => item.state === 'skipped');
+        if (nextSkipped) {
+            const restore = document.createElement('button'); restore.type = 'button'; restore.textContent = 'Restore skipped';
+            restore.addEventListener('click', () => void manageRecurringSeries('unskip', {
+                seriesId: series.id, localDate: nextSkipped.localDate, reason: 'Organizer restored occurrence'
+            }));
+            actions.append(restore);
+        }
         const nextGenerated = (series.upcoming || []).find(item => item.tournamentId
             && ['scheduled', 'registration_open'].includes(item.state));
         if (nextGenerated) {
@@ -1354,7 +1362,8 @@ async function manageRecurringSeries(action, payload) {
         const envelope = await api.command(`series.${action}`, payload);
         applyState(envelope.data?.state);
         showToast(({ pause: 'Recurring series paused.', resume: 'Recurring series resumed.',
-            skip: 'The planned date was skipped.', cancel: 'The generated occurrence was cancelled.',
+            skip: 'The planned date was skipped.', unskip: 'The skipped date was restored.',
+            cancel: 'The generated occurrence was cancelled.',
             update: 'Future recurrence settings updated.' })[action] || 'Recurring series updated.');
     } catch (error) {
         handleError(error, 'The recurring series could not be updated.');

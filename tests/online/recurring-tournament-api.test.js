@@ -104,6 +104,7 @@ test('pause, resume, skip and update carry the verified Clerk subject to ownersh
         ['pause', { seriesId }],
         ['resume', { seriesId }],
         ['skip', { seriesId, localDate: '2026-12-11', reason: 'Holiday event' }],
+        ['unskip', { seriesId, localDate: '2026-12-11', reason: 'Restore event' }],
         ['update', { seriesId, recurrence: creation().recurrence }]
     ]) {
         const result = response();
@@ -118,7 +119,7 @@ test('pause, resume, skip and update carry the verified Clerk subject to ownersh
         assert.equal(result.statusCode, 200);
     }
     assert.ok(managed.every(item => item.clerkId === userId));
-    assert.deepEqual(managed.map(item => item.action), ['pause', 'resume', 'skip', 'update']);
+    assert.deepEqual(managed.map(item => item.action), ['pause', 'resume', 'skip', 'unskip', 'update']);
 });
 
 test('guests and malformed ownership targets are rejected before storage', async () => {

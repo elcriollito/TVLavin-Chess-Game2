@@ -96,6 +96,7 @@ test('end date, after-count and bounded management actions are independent', () 
     const id = '88888888-8888-4888-8888-888888888888';
     assert.equal(validateRecurringSeriesAction('pause', { seriesId: id }, now).ok, true);
     assert.equal(validateRecurringSeriesAction('skip', { seriesId: id, localDate: '2026-12-11', reason: 'Holiday event' }, now).ok, true);
+    assert.equal(validateRecurringSeriesAction('unskip', { seriesId: id, localDate: '2026-12-11', reason: 'Restore event' }, now).ok, true);
     assert.equal(validateRecurringSeriesAction('cancel', { seriesId: id, tournamentId: 'bad' }, now).code, 'RECURRING_INVALID_TOURNAMENT');
     assert.match(recurrenceSummary(ended.value.recurrence), /Every 2 weeks on Friday at 7:00 PM/);
 });

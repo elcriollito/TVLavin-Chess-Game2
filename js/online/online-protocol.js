@@ -11,7 +11,7 @@ export const ONLINE_EVENTS = Object.freeze({
         'daily.withdraw', 'daily.sync', 'weekly.sync', 'weekly.enable',
         'weekly.pause', 'weekly.skip', 'weekly.cancel', 'weekly.update',
         'series.create', 'series.sync', 'series.pause', 'series.resume',
-        'series.skip', 'series.cancel', 'series.update'
+        'series.skip', 'series.unskip', 'series.cancel', 'series.update'
     ]),
     server: Object.freeze([
         'presence.snapshot', 'queue.status', 'match.found', 'game.snapshot',
