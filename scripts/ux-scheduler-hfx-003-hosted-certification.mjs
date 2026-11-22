@@ -105,10 +105,10 @@ async function certify() {
     const plannedButtons = await schedule.locator('.arena-card button', { hasText: 'Planned' }).count();
     assert.ok(plannedButtons > 0, 'planned recurrence rows must remain non-enrollable');
     await assertScheduleChronology();
-    await dialog.screenshot({ path: evidencePath('ux-scheduler-hfx-003-schedule.png'), animations: 'disabled' });
+    await schedule.screenshot({ path: evidencePath('ux-scheduler-hfx-003-schedule.png'), animations: 'disabled' });
 
     await identity.page.setViewportSize({ width: 390, height: 844 });
-    await dialog.screenshot({ path: evidencePath('ux-scheduler-hfx-003-schedule-mobile.png'), animations: 'disabled' });
+    await schedule.screenshot({ path: evidencePath('ux-scheduler-hfx-003-schedule-mobile.png'), animations: 'disabled' });
 
     console.log(`CAISSA_UX_SCHEDULER_HFX_003_HOSTED_CERTIFICATION ${JSON.stringify({
         status: 'pass', origin: ORIGIN, subject: identity.subject,

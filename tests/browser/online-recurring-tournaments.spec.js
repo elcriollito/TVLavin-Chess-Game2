@@ -96,6 +96,9 @@ test('ordinary member creates a calendar series and sees server-planned dates', 
     await expect(page.locator('#arena-schedule-list')).toContainText('Planned');
     await expect(page.locator('#arena-schedule-list')).toContainText('Tournament record not created yet');
     await expect(page.locator('#recurring-series-list')).toContainText('Community Multi-day Arena');
+    const managedSeries = page.locator('#recurring-series-list .recurring-series-card');
+    await expect(managedSeries).toHaveClass(/recurring-series-card--community/u);
+    await expect(managedSeries.locator('.tournament-identity')).toHaveAttribute('aria-label', 'COMMUNITY TOURNAMENT');
 });
 
 test('series ownership controls pause safely and mobile form does not overflow', async ({ page }) => {

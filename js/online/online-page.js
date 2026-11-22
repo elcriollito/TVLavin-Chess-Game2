@@ -1311,12 +1311,15 @@ function renderRecurringSeriesManager(seriesRows) {
     if (!list) return;
     list.replaceChildren(...seriesRows.map(series => {
         const card = document.createElement('article');
-        card.className = `recurring-series-card${series.enabled ? '' : ' recurring-series-card--paused'}`;
+        const identity = tournamentIdentity(series.source);
+        card.className = `recurring-series-card${identity ? ` recurring-series-card--${identity.kind}` : ''}${series.enabled ? '' : ' recurring-series-card--paused'}`;
         const main = document.createElement('div');
+        const identityBadge = createTournamentIdentityBadge(series.source);
         const title = document.createElement('h4'); title.textContent = series.title;
         const summary = document.createElement('p'); summary.textContent = recurringSeriesSummary(series);
         const history = document.createElement('p');
         history.textContent = `${series.generatedCount || 0} generated · ${(series.past || []).length} past results · ${series.enabled ? 'Enabled' : 'Paused'}`;
+        if (identityBadge) main.append(identityBadge);
         main.append(title, summary, history);
         const actions = document.createElement('div'); actions.className = 'recurring-series-actions';
         const pause = document.createElement('button'); pause.type = 'button';
