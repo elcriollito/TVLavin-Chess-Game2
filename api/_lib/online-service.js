@@ -11,14 +11,14 @@ export function createOnlineService(options = {}) {
         return ids.length ? rpc(db, 'caissa_online_tournament_identity_projection', { p_ids: ids }) : [];
     };
     const safeArenaState = async state => {
-        const projected = await projectOnlineArenaState(state, clerkIds => resolveIdentityMap(db, clerkIds));
-        return decorateTournamentIdentities(projected, await tournamentIdentities(projected));
+        const decorated = decorateTournamentIdentities(state, await tournamentIdentities(state));
+        return projectOnlineArenaState(decorated, clerkIds => resolveIdentityMap(db, clerkIds));
     };
     const safeDailyState = async state => {
-        const projected = (await projectOnlineState(
-            { daily: state }, clerkIds => resolveIdentityMap(db, clerkIds)
+        const decorated = decorateTournamentIdentities(state, await tournamentIdentities(state));
+        return (await projectOnlineState(
+            { daily: decorated }, clerkIds => resolveIdentityMap(db, clerkIds)
         )).daily;
-        return decorateTournamentIdentities(projected, await tournamentIdentities(projected));
     };
     return Object.freeze({
         async resolvePublicIdentity(clerkId) {
@@ -184,6 +184,13 @@ export function createOnlineService(options = {}) {
                 p_action: action
             }));
         },
+        async requestNextArenaGame({ clerkId, tournamentId, eventId }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_next', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId
+            }));
+        },
         async getDailyState(clerkId, tournamentId = null, gameId = null) {
             return safeDailyState(await rpc(db, 'caissa_online_daily_sync', {
                 p_clerk_id: clerkId,
@@ -327,7 +334,9 @@ export function decorateTournamentIdentities(state, identities) {
             source: item.source,
             seriesId: item.seriesId || null,
             seriesKind: item.seriesKind || null,
-            seriesSlug: item.seriesSlug || null
+            seriesSlug: item.seriesSlug || null,
+            organizerClerkId: item.organizerClerkId || null,
+            timeZone: item.timeZone || null
         })]));
     const decorate = tournament => {
         if (!tournament || typeof tournament !== 'object') return tournament;

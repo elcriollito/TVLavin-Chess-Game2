@@ -64,29 +64,21 @@ test('recurrence capability requires every explicit Production gate', async () =
     assert.equal(disabled.body.capabilities.recurringTournaments, false);
 });
 
-test('an ordinary authenticated member can create only a validated unrated Arena series', async () => {
-    let created;
+test('ordinary authenticated members cannot create recurring tournament series', async () => {
     const result = response();
     await handler(command('series.create', creation()), result, {
         env, rateLimit,
         authenticate: async () => ({ authenticated: true, userId, guest: false }),
         service: {
             ...baseService,
-            async createRecurringSeries(input) {
-                created = input;
-                return { series: [{ id: seriesId, title: input.name, upcoming: [] }] };
-            }
+            async createRecurringSeries() { assert.fail('public recurring create reached storage'); }
         }
     });
-    assert.equal(result.statusCode, 201);
-    assert.equal(created.clerkId, userId);
-    assert.equal(created.recurrence.interval, 2);
-    assert.deepEqual(created.recurrence.weekdays, [5]);
-    assert.equal(created.control.baseMs, 120_000);
-    assert.equal(result.body.data.state.permissions.recurringTournamentCreator, true);
+    assert.equal(result.statusCode, 403);
+    assert.equal(result.body.code, 'RECURRING_OPERATOR_REQUIRED');
 });
 
-test('Daily fields and uncertified Rated settings never reach the series RPC', async () => {
+test('all public series creation variants are rejected before validation or storage', async () => {
     for (const candidate of [
         creation({ daysPerMove: 7 }),
         creation({ rated: true }),
@@ -100,12 +92,12 @@ test('Daily fields and uncertified Rated settings never reach the series RPC', a
             authenticate: async () => ({ authenticated: true, userId, guest: false }),
             service: { createRecurringSeries: async () => assert.fail('invalid payload reached storage') }
         });
-        assert.equal(result.statusCode, 400);
+        assert.equal(result.statusCode, 403);
+        assert.equal(result.body.code, 'RECURRING_OPERATOR_REQUIRED');
     }
 });
 
-test('pause, resume, skip and update carry the verified Clerk subject to ownership RPCs', async () => {
-    const managed = [];
+test('pause, resume, skip, unskip and update require the non-public operator workflow', async () => {
     for (const [action, payload] of [
         ['pause', { seriesId }],
         ['resume', { seriesId }],
@@ -119,13 +111,12 @@ test('pause, resume, skip and update carry the verified Clerk subject to ownersh
             authenticate: async () => ({ authenticated: true, userId, guest: false }),
             service: {
                 ...baseService,
-                async manageRecurringSeries(input) { managed.push(input); return { series: [] }; }
+                async manageRecurringSeries() { assert.fail('public series mutation reached storage'); }
             }
         });
-        assert.equal(result.statusCode, 200);
+        assert.equal(result.statusCode, 403);
+        assert.equal(result.body.code, 'RECURRING_OPERATOR_REQUIRED');
     }
-    assert.ok(managed.every(item => item.clerkId === userId));
-    assert.deepEqual(managed.map(item => item.action), ['pause', 'resume', 'skip', 'unskip', 'update']);
 });
 
 test('guests and malformed ownership targets are rejected before storage', async () => {
@@ -144,23 +135,20 @@ test('guests and malformed ownership targets are rejected before storage', async
         authenticate: async () => ({ authenticated: true, userId, guest: false }),
         service: { manageRecurringSeries: async () => assert.fail('malformed target reached storage') }
     });
-    assert.equal(malformed.statusCode, 400);
+    assert.equal(malformed.statusCode, 403);
+    assert.equal(malformed.body.code, 'RECURRING_OPERATOR_REQUIRED');
 });
 
-test('an asynchronous storage ownership rejection is mapped to a safe 403', async () => {
-    const denied = response();
-    await handler(command('series.pause', { seriesId }), denied, {
+test('series sync remains read-only and never grants creator permissions', async () => {
+    const synced = response();
+    await handler(command('series.sync'), synced, {
         env, rateLimit,
-        authenticate: async () => ({ authenticated: true, userId: 'user_other', guest: false }),
+        authenticate: async () => ({ authenticated: true, userId, guest: false }),
         service: {
             ...baseService,
-            async manageRecurringSeries() {
-                const error = new Error('CAISSA_ONLINE_RECURRING_NOT_OWNER');
-                error.code = 'CAISSA_ONLINE_RECURRING_NOT_OWNER';
-                throw error;
-            }
+            async getRecurringSeries() { return { series: [], directory: [] }; }
         }
     });
-    assert.equal(denied.statusCode, 403);
-    assert.equal(denied.body.code, 'RECURRING_NOT_OWNER');
+    assert.equal(synced.statusCode, 200);
+    assert.equal(synced.body.data.state.permissions.recurringTournamentCreator, false);
 });
