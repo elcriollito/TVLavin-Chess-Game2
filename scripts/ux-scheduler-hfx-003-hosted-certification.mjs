@@ -12,8 +12,9 @@ const TARGET_SERIES_ID = '739947f6-0552-45a5-ba24-ba5c1e3aeaa8';
 const TARGET_TOURNAMENT_ID = 'f49e9939-71c2-4705-840a-35309946fff5';
 const OFFICIAL_SERIES_ID = '50111e7e-ce57-47ef-af76-b7d0c4eeb685';
 const runId = Date.now().toString(36).toLowerCase();
+const existingEmail = String(process.env.CAISSA_HFX003_EXISTING_EMAIL || '').trim();
 const identity = {
-    email: `caissa-hfx003-${runId}+clerk_test@example.com`,
+    email: existingEmail || `caissa-hfx003-${runId}+clerk_test@example.com`,
     password: `Aa1!${crypto.randomBytes(18).toString('base64url')}`
 };
 const outputDirectory = new URL('../docs/visual-evidence/', import.meta.url);
@@ -32,7 +33,8 @@ async function certify() {
     assert.equal(config.capabilities.recurringTournaments, true);
     assert.equal(new URL(config.realtime.url).hostname, 'imtwlzicxaaqjyvrkdsv.supabase.co');
 
-    await register();
+    if (existingEmail) await signIn();
+    else await register();
     const initial = await getState();
     const state = initial.data.state;
     const targetSeries = state.recurring.directory.find(series => series.id === TARGET_SERIES_ID);
@@ -171,6 +173,40 @@ async function register() {
     assert.equal(auth.role, 'authenticated');
     assert.equal(auth.azp, ORIGIN);
     await identity.page.goto(`${ORIGIN}/auth/complete?redirect_url=${encodeURIComponent('/online/tournaments?directory=1')}`,
+        { waitUntil: 'domcontentloaded' });
+    await identity.page.waitForURL(url => url.origin === ORIGIN
+        && url.pathname === '/online/tournaments' && url.searchParams.get('directory') === '1', { timeout: 30_000 });
+    await waitForSignedIn();
+}
+
+async function signIn() {
+    identity.context = await browser.newContext({ locale: 'en-US', timezoneId: 'America/New_York' });
+    identity.page = await identity.context.newPage();
+    const destination = '/online/tournaments?directory=1';
+    await identity.page.goto(`${ORIGIN}/signin?redirect_url=${encodeURIComponent(destination)}`,
+        { waitUntil: 'domcontentloaded' });
+    await identity.page.waitForFunction(() => window.Clerk?.client?.signIn, null, { timeout: 30_000 });
+    const auth = await identity.page.evaluate(async ({ email, otp }) => {
+        const decode = token => JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+            .padEnd(Math.ceil(token.split('.')[1].length / 4) * 4, '=')));
+        let attempt = await window.Clerk.client.signIn.create({ identifier: email });
+        const factor = attempt.supportedFirstFactors?.find(item => item.strategy === 'email_code');
+        if (attempt.status === 'needs_first_factor' && factor) {
+            await attempt.prepareFirstFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId });
+            attempt = await attempt.attemptFirstFactor({ strategy: 'email_code', code: otp });
+        }
+        if (attempt.status !== 'complete' || !attempt.createdSessionId) {
+            throw new Error(`CLERK_SIGN_IN_INCOMPLETE:${attempt.status}`);
+        }
+        await window.Clerk.setActive({ session: attempt.createdSessionId });
+        const claims = decode(await window.Clerk.session.getToken());
+        return { subject: window.Clerk.user?.id, issuer: claims.iss, role: claims.role, azp: claims.azp };
+    }, { email: identity.email, otp: OTP });
+    identity.subject = auth.subject;
+    assert.equal(auth.issuer, EXPECTED_ISSUER);
+    assert.equal(auth.role, 'authenticated');
+    assert.equal(auth.azp, ORIGIN);
+    await identity.page.goto(`${ORIGIN}/auth/complete?redirect_url=${encodeURIComponent(destination)}`,
         { waitUntil: 'domcontentloaded' });
     await identity.page.waitForURL(url => url.origin === ORIGIN
         && url.pathname === '/online/tournaments' && url.searchParams.get('directory') === '1', { timeout: 30_000 });
