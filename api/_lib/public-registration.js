@@ -1,8 +1,12 @@
 import { createClerkClient } from '@clerk/backend';
 import { isIdentityOwnershipEnforced, clerkAuthorityFromEnvironment } from './identity-ownership.js';
+import { isIdentityMigrationEnforced } from './identity-resolution.js';
 import { getSupabaseServerKey, getSupabaseUrl } from './supabase.js';
 
 const REGISTRATION_MODE = 'open';
+const ISOLATED_ARENA_BETA_TARGET = 'arena_s001_beta';
+const ISOLATED_ARENA_BETA_REF = 'imtwlzicxaaqjyvrkdsv';
+const ISOLATED_ARENA_BETA_CLERK_ISSUER = 'https://cheerful-mantis-9523.clerk.accounts.dev';
 const STAGING_REF = 'aqizagaskicotorfpwfn';
 const PRODUCTION_REF = 'jczauvkfkweuvdpurpem';
 const DEFAULT_CLERK_TIMEOUT_MS = 3_000;
@@ -31,7 +35,41 @@ export function publicRegistrationEnvironment(env = process.env) {
 }
 
 export function isPublicRegistrationOpen(env = process.env) {
-    return publicRegistrationEnvironment(env) !== null;
+    return publicRegistrationEnvironment(env) !== null
+        || isolatedArenaBetaRegistrationEnvironment(env) !== null;
+}
+
+function isolatedArenaBetaRegistrationEnvironment(env) {
+    const diagnostics = isolatedArenaBetaRegistrationDiagnostics(env);
+    if (Object.values(diagnostics).some(value => value !== true)) return null;
+    return Object.freeze({ authority: 'legacy_development', projectRef: ISOLATED_ARENA_BETA_REF });
+}
+
+export function isolatedArenaBetaRegistrationDiagnostics(env = process.env) {
+    const authority = clerkAuthorityFromEnvironment(env);
+    const publishableKey = String(
+        env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || env.CLERK_PUBLISHABLE_KEY || ''
+    ).trim();
+    let serverKey = false;
+    try {
+        serverKey = Boolean(getSupabaseServerKey(env));
+    } catch {
+        serverKey = false;
+    }
+    return Object.freeze({
+        mode: String(env.CAISSA_PUBLIC_REGISTRATION_MODE || '').trim() === REGISTRATION_MODE,
+        target: String(env.CAISSA_PUBLIC_REGISTRATION_TARGET || '').trim() === ISOLATED_ARENA_BETA_TARGET,
+        rollout: String(env.CAISSA_ONLINE_ROLLOUT || '').trim() === 'preview',
+        ownershipModeOff: !isIdentityOwnershipEnforced(env),
+        migrationModeOff: !isIdentityMigrationEnforced(env),
+        authority: authority === 'legacy_development',
+        configuredAuthority: String(env.CAISSA_CLERK_AUTHORITY || '').trim() === authority,
+        issuer: String(env.CAISSA_CLERK_ISSUER || '').replace(/\/+$/, '') === ISOLATED_ARENA_BETA_CLERK_ISSUER,
+        publishableKey: publishableKey.startsWith('pk_test_'),
+        jwtKey: Boolean(String(env.CLERK_JWT_KEY || '').trim()),
+        project: supabaseProjectRef(getSupabaseUrl(env)) === ISOLATED_ARENA_BETA_REF,
+        serverKey
+    });
 }
 
 export async function enrollPublicRegistration({

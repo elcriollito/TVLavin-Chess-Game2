@@ -19,7 +19,10 @@
 
     function destination() {
         const raw = new URLSearchParams(window.location.search).get('redirect_url');
-        return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(raw, '/play');
+        return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(
+            raw,
+            window.CAISSA_AUTH_CONFIG?.AUTH_DEFAULT_DESTINATION || '/play'
+        );
     }
 
     function waitForAuth(timeoutMs = 10000) {

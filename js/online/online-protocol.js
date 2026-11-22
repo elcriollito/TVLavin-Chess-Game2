@@ -5,7 +5,13 @@ export const ONLINE_EVENTS = Object.freeze({
         'presence.join', 'queue.join', 'queue.leave', 'challenge.create',
         'challenge.accept', 'challenge.decline', 'game.move', 'game.resign',
         'game.drawOffer', 'game.drawAccept', 'game.drawDecline', 'game.sync',
-        'game.rematch', 'spectate.join', 'spectate.leave', 'tournament.join'
+        'game.rematch', 'spectate.join', 'spectate.leave', 'tournament.join',
+        'tournament.withdraw', 'tournament.sync', 'tournament.create',
+        'tournament.cancel', 'tournament.close', 'daily.create', 'daily.join',
+        'daily.withdraw', 'daily.sync', 'weekly.sync', 'weekly.enable',
+        'weekly.pause', 'weekly.skip', 'weekly.cancel', 'weekly.update',
+        'series.create', 'series.sync', 'series.pause', 'series.resume',
+        'series.skip', 'series.unskip', 'series.cancel', 'series.update'
     ]),
     server: Object.freeze([
         'presence.snapshot', 'queue.status', 'match.found', 'game.snapshot',
@@ -17,6 +23,7 @@ export const ONLINE_EVENTS = Object.freeze({
 
 export const TIME_CONTROLS = Object.freeze([
     Object.freeze({ id: 'bullet-1-0', label: '1+0', pool: 'bullet', baseMs: 60_000, incrementMs: 0 }),
+    Object.freeze({ id: 'bullet-2-1', label: '2+1', pool: 'bullet', baseMs: 120_000, incrementMs: 1_000 }),
     Object.freeze({ id: 'blitz-3-2', label: '3+2', pool: 'blitz', baseMs: 180_000, incrementMs: 2_000 }),
     Object.freeze({ id: 'blitz-5-0', label: '5+0', pool: 'blitz', baseMs: 300_000, incrementMs: 0 }),
     Object.freeze({ id: 'rapid-10-0', label: '10+0', pool: 'rapid', baseMs: 600_000, incrementMs: 0 }),

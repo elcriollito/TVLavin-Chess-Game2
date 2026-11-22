@@ -6,13 +6,13 @@ import publicConfigHandler, { isValidClerkPublishableKey } from '../api/public-a
 
 const validKey = 'pk_test_c3ludGhldGljLmNsZXJrLmFjY291bnRzLmRldiQ';
 
-function loadAuth({ resolveConfig, key = validKey, includeUi = false }) {
+function loadAuth({ resolveConfig, key = validKey, includeUi = false, proxyUrl = '' }) {
   let resolveReady;
   const ready = new Promise(resolve => { resolveReady = resolve; });
   let appended = 0, loadCalls = 0, listeners = 0, loadOptions = null;
   const Clerk = { user:null, session:null, load:async options=>{ loadCalls++; loadOptions = options; assert.equal(options.publishableKey,key); }, addListener:()=>{listeners++;} };
   const window = {
-    CAISSA_AUTH_CONFIG:{CLERK_PUBLISHABLE_KEY:'pk_test_REPLACE_WITH_YOUR_KEY',STORAGE_KEYS:{USER_PROFILE:'profiles',AUTH_STATE:'state'}},
+    CAISSA_AUTH_CONFIG:{CLERK_PUBLISHABLE_KEY:'pk_test_REPLACE_WITH_YOUR_KEY',CLERK_PROXY_URL:proxyUrl,STORAGE_KEYS:{USER_PROFILE:'profiles',AUTH_STATE:'state'}},
     CAISSA_AUTH_CONFIG_UTILS:{isValidClerkPublishableKey}, CAISSA_AUTH_CONFIG_READY:ready,
     addEventListener(){}, dispatchEvent(){}, location:{pathname:'/',search:'',hash:'',href:''},
     atob: value => Buffer.from(value, 'base64').toString('utf8')
@@ -53,6 +53,11 @@ test('valid config initializes exactly one owned Clerk instance', async()=>{
   assert.deepEqual(run.counts(),{appended:1,loadCalls:1,listeners:1});
 });
 
+test('shared auth passes a validated proxy URL to Clerk when configured', async()=>{
+  const run=loadAuth({resolveConfig:true,proxyUrl:'/__clerk'}); await new Promise(r=>setTimeout(r,5));
+  assert.equal(run.loadOptions().proxyUrl,'/__clerk');
+});
+
 test('Home opts into Clerk UI before initialization so Profile can open', async()=>{
   const run=loadAuth({resolveConfig:true,includeUi:true}); await new Promise(r=>setTimeout(r,5));
   assert.deepEqual(run.counts(),{appended:2,loadCalls:1,listeners:1});
@@ -75,11 +80,21 @@ test('global, Reader, and Play CSP add only Clerk-required Blob Worker support',
   const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
   const global=config.headers.find(item=>item.source==='/(.*)').headers.find(h=>h.key==='Content-Security-Policy').value;
   assert.match(global,/worker-src 'self' blob:/); assert.doesNotMatch(global,/worker-src[^;]*\*/);
+  assert.match(global,/script-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
+  assert.match(global,/connect-src[^;]*https:\/\/\*\.protect\.clerk\.com:\*/);
+  assert.match(global,/frame-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
   const reader=config.headers.find(item=>item.source==='/pgn-replayer').headers.find(h=>h.key==='Content-Security-Policy').value;
   assert.match(reader,/worker-src 'self' blob:/); assert.doesNotMatch(reader,/worker-src[^;]*\*/);
   assert.match(reader,/img-src 'self' data: https:\/\/img\.clerk\.com https:\/\/images\.clerk\.dev/);
   for(const source of ['/play','/play/:path*']) {
     const value=config.headers.find(item=>item.source===source).headers.find(h=>h.key==='Content-Security-Policy').value;
     assert.match(value,/worker-src 'self' blob:;/); assert.doesNotMatch(value,/worker-src[^;]*\*/);
+  }
+  for(const file of ['signin.html','signup.html']) {
+    const value=fs.readFileSync(file,'utf8').match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/)?.[1] || '';
+    assert.match(value,/script-src[^;]*https:\/\/\*\.protect\.clerk\.com/,file);
+    assert.match(value,/script-src-elem[^;]*https:\/\/\*\.protect\.clerk\.com/,file);
+    assert.match(value,/connect-src[^;]*https:\/\/\*\.protect\.clerk\.com:\*/,file);
+    assert.match(value,/frame-src[^;]*https:\/\/\*\.protect\.clerk\.com/,file);
   }
 });

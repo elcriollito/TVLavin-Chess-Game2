@@ -49,3 +49,46 @@ export function calculateStandings(participants, games) {
     return [...rows.values()].sort((a, b) => b.score - a.score || b.wins - a.wins
         || String(a.displayName).localeCompare(String(b.displayName))).map((row, index) => Object.freeze({ ...row, rank: index + 1 }));
 }
+
+export function arenaTournamentPoints(result, color) {
+    if (!['white', 'black'].includes(color)) throw new TypeError('Tournament color is required.');
+    if (result === '1/2-1/2') return 1;
+    if (result === '1-0') return color === 'white' ? 2 : 0;
+    if (result === '0-1') return color === 'black' ? 2 : 0;
+    return 0;
+}
+
+export function calculateArenaStandings(participants, games) {
+    const rows = new Map((participants || []).map(player => [player.id, {
+        id: player.id,
+        displayName: player.displayName,
+        joinedAt: player.joinedAt || '',
+        points: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        gamesPlayed: 0
+    }]));
+    const scoredGames = new Set();
+    for (const game of games || []) {
+        if (!game?.id || scoredGames.has(game.id) || !['1-0', '0-1', '1/2-1/2'].includes(game.result)) continue;
+        scoredGames.add(game.id);
+        for (const [id, color] of [[game.whiteUserId, 'white'], [game.blackUserId, 'black']]) {
+            const row = rows.get(id);
+            if (!row) continue;
+            const points = arenaTournamentPoints(game.result, color);
+            row.points += points;
+            row.gamesPlayed += 1;
+            row.wins += points === 2 ? 1 : 0;
+            row.draws += points === 1 ? 1 : 0;
+            row.losses += points === 0 ? 1 : 0;
+        }
+    }
+    return [...rows.values()]
+        .sort((a, b) => b.points - a.points
+            || b.wins - a.wins
+            || b.draws - a.draws
+            || String(a.joinedAt).localeCompare(String(b.joinedAt))
+            || String(a.id).localeCompare(String(b.id)))
+        .map((row, index) => Object.freeze({ ...row, rank: index + 1 }));
+}

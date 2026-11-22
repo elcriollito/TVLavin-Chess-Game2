@@ -35,8 +35,8 @@ test('registration retains the single server-authoritative provisioning path', (
   const signup = read('js/signup-page.js');
   const completion = read('js/auth-complete.js');
   const sync = read('api/user/sync.js');
-  assert.match(signup, /signUpForceRedirectUrl: getCompletionUrl\(\)/);
-  assert.match(completion, /fetch\('\/api\/user\/sync'/);
+  assert.match(signup, /forceRedirectUrl: completionUrl/);
+  assert.match(completion, /authenticatedPost\('\/api\/user\/sync', \{\}\)/);
   assert.match(sync, /onConflict: 'clerk_id'/);
 });
 

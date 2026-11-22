@@ -57,6 +57,39 @@ test('queue join does not retry unrelated database failures', async () => {
     assert.equal(calls, 1);
 });
 
+test('recurring ownership errors preserve their safe public code', async () => {
+    const db = { async rpc() {
+        return { data: null, error: { message: 'P0001: CAISSA_RECURRING_NOT_OWNER' } };
+    } };
+    const service = createOnlineService({ db });
+
+    await assert.rejects(() => service.manageRecurringSeries({
+        clerkId: 'user_b', eventId: 'series-pause:test', action: 'pause',
+        payload: { seriesId: '88888888-8888-4888-8888-888888888888' }
+    }), error => error.code === 'CAISSA_RECURRING_NOT_OWNER');
+});
+
+test('unrated Arena creation remains compatible before the rated RPC overload is migrated', async () => {
+    const calls = [];
+    const db = { async rpc(name, args) {
+        calls.push({ name, args });
+        return { data: { tournaments: [], current: null }, error: null };
+    } };
+    const service = createOnlineService({ db });
+    const input = {
+        clerkId: 'user_a', eventId: 'arena:create:1', name: 'Compatible Arena',
+        startsAt: '2026-11-22T00:00:00.000Z', durationMinutes: 60, capacity: 16,
+        lateJoin: true, control: { pool: 'blitz', baseMs: 300000, incrementMs: 0 }
+    };
+    await service.createArena({ ...input, rated: false });
+    await service.createArena({ ...input, eventId: 'arena:create:2', rated: true });
+    const creationCalls = calls.filter(call => call.name === 'caissa_online_arena_create');
+    assert.equal(Object.hasOwn(creationCalls[0].args, 'p_rated'), false);
+    assert.equal(creationCalls[1].args.p_rated, true);
+    assert.equal(calls.filter(call => call.name === 'caissa_online_tournament_identity_projection').length, 0,
+        'empty Arena snapshots must not request an identity projection');
+});
+
 test('public identity resolver calls the server-only canonical RPC', async () => {
     const calls = [];
     const db = { async rpc(name, args) {

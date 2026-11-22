@@ -24,7 +24,85 @@ export async function projectOnlineState(state, resolveMany) {
     if (Array.isArray(state.challenges)) {
         projected.challenges = state.challenges.map(challenge => projectChallenge(challenge, identities));
     }
+    if (state.arena) projected.arena = await projectOnlineArenaState(state.arena, resolveMany);
+    if (state.daily && typeof state.daily === 'object') {
+        const current = state.daily.current ? {
+            ...state.daily.current,
+            standings: (state.daily.current.standings || []).map(row => ({
+                ...row,
+                displayName: publicName({
+                    subject: row.clerkId,
+                    userId: row.userId,
+                    raw: row.displayName,
+                    identity: identities[row.clerkId]
+                })
+            }))
+        } : null;
+        projected.daily = {
+            ...state.daily,
+            current,
+            game: projectGame(state.daily.game, identities),
+            games: Array.isArray(state.daily.games)
+                ? state.daily.games.map(game => projectGame(game, identities)) : [],
+            recentGames: Array.isArray(state.daily.recentGames)
+                ? state.daily.recentGames.map(game => projectGame(game, identities)) : []
+        };
+    }
     return projected;
+}
+
+export async function projectOnlineArenaState(arena, resolveMany) {
+    if (!arena || typeof arena !== 'object') return arena;
+    const subjects = new Set();
+    const add = value => {
+        const subject = String(value || '').trim();
+        if (subject && subject.length <= 255) subjects.add(subject);
+    };
+    for (const row of arena.current?.standings || []) add(row?.clerkId);
+    for (const game of arena.current?.games || []) {
+        add(game?.whiteClerkId);
+        add(game?.blackClerkId);
+    }
+    add(arena.current?.nextPairing?.opponentClerkId);
+    const identities = normalizeResolution(subjects.size && typeof resolveMany === 'function'
+        ? await resolveMany([...subjects].sort())
+        : {});
+    const current = arena.current ? {
+        ...arena.current,
+        standings: (arena.current.standings || []).map(row => ({
+            ...row,
+            displayName: publicName({
+                subject: row.clerkId,
+                userId: row.userId,
+                raw: row.displayName,
+                identity: identities[row.clerkId]
+            })
+        })),
+        games: (arena.current.games || []).map(game => ({
+            ...game,
+            whiteDisplayName: publicName({
+                subject: game.whiteClerkId,
+                userId: game.whiteUserId,
+                raw: game.whiteDisplayName,
+                identity: identities[game.whiteClerkId]
+            }),
+            blackDisplayName: publicName({
+                subject: game.blackClerkId,
+                userId: game.blackUserId,
+                raw: game.blackDisplayName,
+                identity: identities[game.blackClerkId]
+            })
+        })),
+        nextPairing: arena.current.nextPairing ? {
+            ...arena.current.nextPairing,
+            opponentDisplayName: publicName({
+                subject: arena.current.nextPairing.opponentClerkId,
+                raw: arena.current.nextPairing.opponentDisplayName,
+                identity: identities[arena.current.nextPairing.opponentClerkId]
+            })
+        } : null
+    } : null;
+    return { ...arena, current };
 }
 
 export function redactHistoricalPgn(pgn, whiteName, blackName) {
@@ -48,6 +126,12 @@ function collectSubjects(state) {
     }
     for (const player of Array.isArray(state.players) ? state.players : []) add(player?.clerkId);
     for (const challenge of Array.isArray(state.challenges) ? state.challenges : []) add(challenge?.otherClerkId);
+    for (const game of [state.daily?.game, ...(Array.isArray(state.daily?.games) ? state.daily.games : []),
+        ...(Array.isArray(state.daily?.recentGames) ? state.daily.recentGames : [])]) {
+        add(game?.white_clerk_id);
+        add(game?.black_clerk_id);
+    }
+    for (const row of state.daily?.current?.standings || []) add(row?.clerkId);
     return [...subjects].sort();
 }
 

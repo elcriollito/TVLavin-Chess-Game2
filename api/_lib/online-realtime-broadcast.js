@@ -47,3 +47,53 @@ export async function sendOnlineGameBroadcast(options = {}) {
         clearTimeout(timer);
     }
 }
+
+export async function sendOnlineTournamentBroadcast(options = {}) {
+    const tournamentId = String(options.tournamentId || '');
+    const version = Number(options.version);
+    if (!/^[0-9a-f-]{36}$/i.test(tournamentId) || !Number.isSafeInteger(version) || version < 1) {
+        throw new Error('ONLINE_TOURNAMENT_REALTIME_BROADCAST_INVALID');
+    }
+    return sendPrivateBroadcast({
+        ...options,
+        topic: `online-tournament:${tournamentId}`,
+        event: 'UPDATE',
+        payload: {
+            tournamentId,
+            version,
+            eventType: String(options.eventType || 'tournament.snapshot'),
+            correlationId: String(options.correlationId || '')
+        }
+    });
+}
+
+async function sendPrivateBroadcast(options) {
+    const env = options.env || process.env;
+    const baseUrl = getSupabaseUrl(env);
+    const serverKey = getSupabaseServerKey(env);
+    if (!baseUrl || !serverKey) return { delivered: false, reason: 'not-configured' };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), options.timeoutMs || BROADCAST_TIMEOUT_MS);
+    try {
+        const response = await (options.fetchImpl || fetch)(
+            `${String(baseUrl).replace(/\/+$/, '')}/realtime/v1/api/broadcast`,
+            {
+                method: 'POST',
+                headers: { apikey: serverKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [{
+                        topic: options.topic,
+                        event: options.event,
+                        payload: options.payload,
+                        private: true
+                    }]
+                }),
+                signal: controller.signal
+            }
+        );
+        if (response.status !== 202) throw new Error(`ONLINE_REALTIME_BROADCAST_HTTP_${response.status}`);
+        return { delivered: true };
+    } finally {
+        clearTimeout(timer);
+    }
+}

@@ -11,7 +11,8 @@ const server = fs.readFileSync(new URL('../../server.js', import.meta.url), 'utf
 test('online shell is board-first with one tabbed workspace and accessible status', () => {
     assert.match(html, /id="online-board"/);
     assert.match(html, /role="tablist"/);
-    assert.match(html, /data-tab="new"[\s\S]+data-tab="games"[\s\S]+data-tab="lobby"/);
+    assert.match(html, /data-tab="new"[\s\S]+data-tab="lobby"[\s\S]+data-tab="games"[\s\S]+data-tab="tournaments"/);
+    assert.equal((html.match(/data-tab="(?:new|lobby|games|tournaments)"/g) || []).length, 4);
     assert.doesNotMatch(html, /data-tab="players"/);
     assert.match(html, /aria-live="polite"/);
     assert.match(css, /--online-layout-gap:clamp\(24px,2vw,32px\)/);
@@ -55,16 +56,30 @@ test('player-facing panel copy follows enabled capabilities without internal dia
     assert.match(html, /id="workspace-foot-context">Private, server-verified games/);
 });
 
-test('tournament proposal is an isolated, synthetic and accessible panel', () => {
+test('Tournaments is a real top-level destination with an accessible directory', () => {
     assert.ok(vercel.rewrites.some(item => item.source === '/online/tournament-demo' && item.destination === '/online.html'));
     assert.match(server, /pathname === '\/online\/tournament-demo'/);
-    assert.match(html, /data-lobby-tab="tournaments"[^>]*>Tournaments/);
-    assert.match(html, /id="tournaments-coming-soon"[\s\S]*CAISSA Tournaments[\s\S]*Coming Soon/);
-    assert.doesNotMatch(html, /id="tab-tournament"/);
-    assert.match(html, /id="tournament-demo-content" hidden[\s\S]*Visual demo[\s\S]*Current standings/);
-    assert.match(html, /class="is-current-player"[\s\S]*Alexander <span>\(you\)<\/span>/);
-    assert.match(html, /data-tournament-view="standings"[\s\S]*>Standings<[\s\S]*data-tournament-view="games"[\s\S]*>Games</);
-    assert.doesNotMatch(html.match(/id="tournament-demo-content"[\s\S]*?<\/div>\s*<\/section>/)?.[0] || '', />Chat</i);
+    assert.doesNotMatch(html, /data-lobby-tab="tournaments"/);
+    assert.match(html, /id="tournament-directory-dialog"[\s\S]*data-directory-tab="current"[\s\S]*data-directory-tab="schedule"[\s\S]*data-directory-tab="mine"[\s\S]*data-directory-tab="create"/);
+    assert.match(html, /id="tab-tournaments"[^>]*data-tab="tournaments"[^>]*>Tournaments/);
+    assert.match(html, /id="arena-directory"[^>]*hidden/);
+    assert.match(html, /id="online-access-denied"[^>]*role="alert"[^>]*hidden/);
+    assert.match(html, /id="browse-tournaments"[^>]*aria-haspopup="dialog"/);
+    assert.match(html, /id="panel-tournaments"[^>]*data-panel="tournaments"[^>]*hidden/);
+    assert.match(html, /id="arena-detail-rules"/);
+    assert.match(html, /id="arena-create-form"[\s\S]*id="arena-create-capacity"[\s\S]*id="arena-create-late-join"/);
+    assert.doesNotMatch(html, /NovaKnight|EndgameMuse/);
+    assert.match(html, /data-arena-context="standings"[\s\S]*>Standings<[\s\S]*data-arena-context="games"[\s\S]*>Games</);
+    assert.doesNotMatch(html, /tournament-demo-content|Visual demo/);
+});
+
+test('authorization failures replace Ready and Join with a persistent access-denied state', () => {
+    assert.match(onlinePage, /ONLINE_INTERNAL_ONLY: 'Access denied\. This account cannot use the isolated beta\.'/);
+    assert.match(onlinePage, /ARENA_BETA_NOT_AUTHORIZED: 'Access denied\. This account cannot access Arena Season 001\.'/);
+    assert.match(onlinePage, /ui\.badge\.textContent = 'ACCESS DENIED'/);
+    assert.match(onlinePage, /ui\.find\.textContent = 'Access required'/);
+    assert.match(onlinePage, /ui\.arenaDirectory\.hidden = true/);
+    assert.match(onlinePage, /ui\.accessDenied\.hidden = false/);
 });
 
 test('online route is isolated, private-cache, noindex, and keeps the retired play route intact', () => {
@@ -74,6 +89,12 @@ test('online route is isolated, private-cache, noindex, and keeps the retired pl
     assert.ok(headers.some(item => item.key === 'Cache-Control' && item.value.includes('no-store')));
     assert.ok(headers.some(item => item.key === 'X-Robots-Tag' && item.value.includes('noindex')));
     assert.ok(headers.some(item => item.key === 'Content-Security-Policy' && item.value.includes('wss://*.supabase.co')));
+    const csp = headers.find(item => item.key === 'Content-Security-Policy')?.value || '';
+    assert.match(csp, /script-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
+    assert.match(csp, /script-src-elem[^;]*https:\/\/\*\.protect\.clerk\.com/);
+    assert.match(csp, /connect-src[^;]*https:\/\/\*\.protect\.clerk\.com:\*/);
+    assert.match(csp, /frame-src[^;]*https:\/\/\*\.protect\.clerk\.com/);
+    assert.doesNotMatch(csp, /'unsafe-eval'/);
 });
 
 test('completed games use the existing opaque Analyze handoff transport', () => {
@@ -126,9 +147,10 @@ test('New Game keeps authentication actions in a flexible footer without absolut
     assert.doesNotMatch(accessRule, /position:absolute|position:fixed/);
 });
 
-test('Lobby owns Players, gated Tables / Offers, Tournaments, and an active-game return', () => {
+test('Lobby owns only Players and Tables / Offers, plus an active-game return', () => {
     assert.match(html, /id="tab-lobby"[^>]*aria-controls="panel-lobby"/);
-    assert.match(html, /data-lobby-tab="players"[\s\S]*data-lobby-tab="offers"[\s\S]*data-lobby-tab="tournaments"/);
+    assert.match(html, /data-lobby-tab="players"[\s\S]*data-lobby-tab="offers"/);
+    assert.doesNotMatch(html, /data-lobby-tab="tournaments"/);
     assert.match(html, /id="return-to-game"[^>]*hidden>Return to game/);
     assert.doesNotMatch(html, /class="lobby-hub-head"/);
     assert.match(html, /id="players-fixture-badge"[^>]*hidden>Local test data/);
@@ -137,7 +159,7 @@ test('Lobby owns Players, gated Tables / Offers, Tournaments, and an active-game
     assert.match(html, /id="offers-state">Public offers are off · no Join yet\./);
     assert.doesNotMatch(html, /Browse public game offers|Public offers are unavailable|No queue or player data is exposed here/);
     assert.doesNotMatch(html, /PlayerOne|PlayerTwo|GuestPlayer/);
-    assert.match(css, /\.lobby-subtabs\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+    assert.match(css, /\.lobby-subtabs\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
     assert.match(css, /\.offers-table\{[^}]*table-layout:fixed/);
     assert.match(css, /#lobby-panel-offers\{padding-top:4px\}/);
     assert.doesNotMatch(css, /\.offers-state\{[^}]*min-height/);
@@ -152,10 +174,11 @@ test('workspace and board-strip headings follow the selected tab and canonical g
     assert.match(onlinePage, /model\.selectedTab = name/);
     assert.match(onlinePage, /model\.selectedTab === 'games'\) title = 'Games'/);
     assert.match(onlinePage, /model\.selectedTab === 'lobby'\) title = 'Lobby'/);
+    assert.match(onlinePage, /model\.selectedTab === 'tournaments'\) title = model\.arena\?\.current\?\.name \|\| 'Tournaments'/);
     assert.match(onlinePage, /title = 'Finding an opponent'/);
     assert.match(onlinePage, /title = rival \? `Playing \$\{rival\}` : 'Game in progress'/);
     assert.match(onlinePage, /state === 'searching' \? 'Waiting for opponent'/);
-    assert.match(onlinePage, /state === 'signed-out' \? 'Sign in to play' : 'Ready to play'/);
+    assert.match(onlinePage, /state === 'signed-out' \? 'Sign in to play'[\s\S]*state === 'access-denied' \? 'Private beta access required' : 'Ready to play'/);
 });
 
 test('Setup keeps help and a real device-scoped invitation preference', () => {

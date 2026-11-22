@@ -1,11 +1,25 @@
 import { getSupabase } from './supabase.js';
 import { resolvePublicIdentity as resolveCanonicalPublicIdentity } from './public-identity.js';
-import { projectOnlineState } from './online-public-projection.js';
+import { projectOnlineArenaState, projectOnlineState } from './online-public-projection.js';
 
 export function createOnlineService(options = {}) {
     const db = options.db || getSupabase();
     const sleep = options.sleep || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
     const safeState = state => projectOnlineState(state, clerkIds => resolveIdentityMap(db, clerkIds));
+    const tournamentIdentities = state => {
+        const ids = tournamentIdentityIds(state);
+        return ids.length ? rpc(db, 'caissa_online_tournament_identity_projection', { p_ids: ids }) : [];
+    };
+    const safeArenaState = async state => {
+        const projected = await projectOnlineArenaState(state, clerkIds => resolveIdentityMap(db, clerkIds));
+        return decorateTournamentIdentities(projected, await tournamentIdentities(projected));
+    };
+    const safeDailyState = async state => {
+        const projected = (await projectOnlineState(
+            { daily: state }, clerkIds => resolveIdentityMap(db, clerkIds)
+        )).daily;
+        return decorateTournamentIdentities(projected, await tournamentIdentities(projected));
+    };
     return Object.freeze({
         async resolvePublicIdentity(clerkId) {
             return resolveCanonicalPublicIdentity(clerkId, {
@@ -125,6 +139,169 @@ export function createOnlineService(options = {}) {
                 p_clerk_id: clerkId,
                 p_display_name: displayName
             }));
+        },
+        async getArenaState(clerkId, tournamentId = null) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_sync', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId
+            }));
+        },
+        async createArena({ clerkId, eventId, name, startsAt, durationMinutes, capacity, lateJoin, rated, control }) {
+            const args = {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_name: name,
+                p_starts_at: startsAt,
+                p_duration_minutes: durationMinutes,
+                p_pool: control.pool,
+                p_base_ms: control.baseMs,
+                p_increment_ms: control.incrementMs,
+                p_capacity: capacity,
+                p_late_join: lateJoin
+            };
+            if (rated === true) args.p_rated = true;
+            return safeArenaState(await rpc(db, 'caissa_online_arena_create', args));
+        },
+        async joinArena({ clerkId, tournamentId, eventId }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_join', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId
+            }));
+        },
+        async withdrawArena({ clerkId, tournamentId, eventId }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_withdraw', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId
+            }));
+        },
+        async manageArena({ clerkId, tournamentId, eventId, action }) {
+            return safeArenaState(await rpc(db, 'caissa_online_arena_manage', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId,
+                p_action: action
+            }));
+        },
+        async getDailyState(clerkId, tournamentId = null, gameId = null) {
+            return safeDailyState(await rpc(db, 'caissa_online_daily_sync', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_game_id: gameId
+            }));
+        },
+        async createDaily({ clerkId, eventId, name, description, startsAt,
+            daysPerMove, groupSize, qualifiersPerGroup, capacity, rated }) {
+            return safeDailyState(await rpc(db, 'caissa_online_daily_create', {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_name: name,
+                p_description: description,
+                p_starts_at: startsAt,
+                p_days_per_move: daysPerMove,
+                p_group_size: groupSize,
+                p_qualifiers_per_group: qualifiersPerGroup,
+                p_capacity: capacity,
+                p_rated: rated === true
+            }));
+        },
+        async joinDaily({ clerkId, tournamentId, eventId }) {
+            return safeDailyState(await rpc(db, 'caissa_online_daily_join', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId
+            }));
+        },
+        async withdrawDaily({ clerkId, tournamentId, eventId }) {
+            return safeDailyState(await rpc(db, 'caissa_online_daily_withdraw', {
+                p_clerk_id: clerkId,
+                p_tournament_id: tournamentId,
+                p_event_id: eventId
+            }));
+        },
+        async commitDailyMove({ clerkId, gameId, eventId, expectedVersion, projection }) {
+            return safeDailyState(await rpc(db, 'caissa_online_daily_commit_move', {
+                p_clerk_id: clerkId,
+                p_game_id: gameId,
+                p_event_id: eventId,
+                p_expected_version: expectedVersion,
+                p_from: projection.move.from,
+                p_to: projection.move.to,
+                p_promotion: projection.move.promotion,
+                p_san: projection.move.san,
+                p_uci: projection.move.uci,
+                p_next_fen: projection.fen,
+                p_next_turn: projection.turn,
+                p_result: projection.result,
+                p_termination: projection.termination,
+                p_pgn: projection.pgn,
+                p_white_can_mate: projection.whiteCanMate,
+                p_black_can_mate: projection.blackCanMate,
+                p_next_deadline_at: projection.nextDeadlineAt
+            }));
+        },
+        async finishDailyGame({ clerkId, gameId, eventId, reason }) {
+            return safeDailyState(await rpc(db, 'caissa_online_daily_finish_game', {
+                p_clerk_id: clerkId,
+                p_game_id: gameId,
+                p_event_id: eventId,
+                p_reason: reason
+            }));
+        },
+        async manageWeeklySeries({ clerkId, eventId, action, payload = {} }) {
+            return rpc(db, 'caissa_online_weekly_admin', {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_action: action,
+                p_payload: payload
+            });
+        },
+        async getRecurringSeries(clerkId) {
+            return rpc(db, 'caissa_online_recurring_series_sync', { p_clerk_id: clerkId });
+        },
+        async createRecurringSeries({ clerkId, eventId, name, control, durationMinutes,
+            capacity, lateJoin, rated, recurrence }) {
+            return rpc(db, 'caissa_online_recurring_series_create', {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_name: name,
+                p_time_zone: recurrence.timeZone,
+                p_frequency_unit: recurrence.frequencyUnit,
+                p_interval: recurrence.interval,
+                p_weekdays: recurrence.weekdays,
+                p_first_date: recurrence.firstDate,
+                p_local_time: recurrence.localTime,
+                p_generation_lead_days: recurrence.leadDays,
+                p_end_mode: recurrence.endMode,
+                p_end_date: recurrence.endDate,
+                p_end_after_occurrences: recurrence.occurrenceCount,
+                p_enabled: recurrence.enabled,
+                p_pool: control.pool,
+                p_base_ms: control.baseMs,
+                p_increment_ms: control.incrementMs,
+                p_duration_minutes: durationMinutes,
+                p_capacity: capacity,
+                p_late_join: lateJoin,
+                p_rated: rated === true
+            });
+        },
+        async manageRecurringSeries({ clerkId, eventId, action, payload = {} }) {
+            if (action === 'unskip') {
+                return rpc(db, 'caissa_online_recurring_series_unskip', {
+                    p_clerk_id: clerkId,
+                    p_event_id: eventId,
+                    p_series_id: payload.seriesId,
+                    p_local_date: payload.localDate,
+                    p_reason: payload.reason
+                });
+            }
+            return rpc(db, 'caissa_online_recurring_series_manage', {
+                p_clerk_id: clerkId,
+                p_event_id: eventId,
+                p_action: action,
+                p_payload: payload
+            });
         }
     });
 }
@@ -140,6 +317,35 @@ async function resolveIdentityMap(db, clerkIds) {
         ));
     }
     return identities;
+}
+
+export function decorateTournamentIdentities(state, identities) {
+    if (!state || typeof state !== 'object') return state;
+    const byId = new Map((Array.isArray(identities) ? identities : [])
+        .filter(item => item?.id)
+        .map(item => [String(item.id), Object.freeze({
+            source: item.source,
+            seriesId: item.seriesId || null,
+            seriesKind: item.seriesKind || null,
+            seriesSlug: item.seriesSlug || null
+        })]));
+    const decorate = tournament => {
+        if (!tournament || typeof tournament !== 'object') return tournament;
+        const identity = byId.get(String(tournament.id || tournament.tournamentId || ''));
+        return identity ? { ...tournament, ...identity } : tournament;
+    };
+    return {
+        ...state,
+        tournaments: Array.isArray(state.tournaments) ? state.tournaments.map(decorate) : state.tournaments,
+        current: decorate(state.current)
+    };
+}
+
+function tournamentIdentityIds(state) {
+    return [...new Set([
+        ...(Array.isArray(state?.tournaments) ? state.tournaments.map(tournament => tournament?.id) : []),
+        state?.current?.id
+    ].filter(Boolean).map(String))].slice(0, 500);
 }
 
 async function readGuestIdentity(db, clerkId) {
@@ -167,7 +373,10 @@ async function retryQueueBusy(operation, sleep) {
 
 async function rpc(db, name, args) {
     const { data, error } = await db.rpc(name, args);
-    if (error) throw serviceError(error.message?.match(/CAISSA_ONLINE_[A-Z_]+/)?.[0] || 'ONLINE_STORE_FAILED', error);
+    if (error) {
+        const publicCode = error.message?.match(/CAISSA_(?:ONLINE|RECURRING)_[A-Z_]+/)?.[0];
+        throw serviceError(publicCode || 'ONLINE_STORE_FAILED', error);
+    }
     return data;
 }
 

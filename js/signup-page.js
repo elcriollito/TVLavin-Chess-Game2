@@ -10,7 +10,10 @@
     // Get redirect URL from query params
     function getRedirectUrl() {
         const params = new URLSearchParams(window.location.search);
-        return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(params.get('redirect_url'), '/');
+        return window.CAISSA_REDIRECTS.sanitizeInternalRedirect(
+            params.get('redirect_url'),
+            window.CAISSA_AUTH_CONFIG?.AUTH_DEFAULT_DESTINATION || '/'
+        );
     }
 
     function getCompletionUrl() {
@@ -62,8 +65,14 @@
             if (!Clerk) throw new Error('Clerk SDK unavailable');
 
             // Load Clerk with publishable key
+            const completionUrl = getCompletionUrl();
             await Clerk.load({
-                ui: { ClerkUI: window.__internal_ClerkUICtor }
+                ui: { ClerkUI: window.__internal_ClerkUICtor },
+                signInUrl: '/signin',
+                signUpUrl: '/signup',
+                signInFallbackRedirectUrl: completionUrl,
+                signUpFallbackRedirectUrl: completionUrl,
+                ...(config.CLERK_PROXY_URL ? { proxyUrl: config.CLERK_PROXY_URL } : {})
             });
 
             // Check if already signed in
@@ -75,8 +84,10 @@
             // Mount Sign Up component
             Clerk.mountSignUp(container, {
                 transferable: false,
-                signInForceRedirectUrl: getCompletionUrl(),
-                signUpForceRedirectUrl: getCompletionUrl(),
+                forceRedirectUrl: completionUrl,
+                fallbackRedirectUrl: completionUrl,
+                signInForceRedirectUrl: completionUrl,
+                signInFallbackRedirectUrl: completionUrl,
                 signInUrl: '/signin',
                 appearance: {
                     variables: {

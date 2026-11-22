@@ -1,0 +1,216 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import handler from '../../api/online.js';
+
+const tournamentId = '22222222-2222-4222-8222-222222222222';
+const userId = 'user_founder_a';
+const baseEnv = {
+    CAISSA_ONLINE_ROLLOUT: 'preview',
+    CAISSA_ONLINE_TOURNAMENTS: '1',
+    CAISSA_ONLINE_ARENA: '1',
+    CAISSA_ONLINE_ARENA_CREATE: '1',
+    CAISSA_ONLINE_TOURNAMENT_ADMINS: userId
+};
+
+function response() {
+    return {
+        statusCode: 200, headers: {}, body: null,
+        setHeader(name, value) { this.headers[name] = value; },
+        status(code) { this.statusCode = code; return this; },
+        json(body) { this.body = body; return this; },
+        end() { return this; }
+    };
+}
+
+function command(eventType, payload = {}) {
+    return {
+        method: 'POST', query: {}, headers: {}, body: {
+            protocolVersion: '1.0.0', eventType,
+            eventId: `${eventType.replaceAll('.', '-')}:123456789012`,
+            gameId: null, clientSentAt: Date.now(), payload
+        }
+    };
+}
+
+const authenticate = async () => ({ authenticated: true, userId, email: 'founder@example.test' });
+const rateLimit = () => ({ allowed: true });
+const arena = {
+    tournaments: [{ id: tournamentId, name: 'CAISSA Arena S001 — Founders Beta', status: 'registration_open' }],
+    current: { id: tournamentId, version: 3, status: 'registration_open', myState: 'registered' }
+};
+
+test('Arena is available in production only when every explicit gate is present', async () => {
+    const res = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, res, {
+        env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production' }
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.capabilities.arenaS001, true);
+    assert.equal(res.body.capabilities.tournaments, true);
+    assert.equal(res.body.capabilities.publicTournamentDirectory, false);
+
+    const disabled = response();
+    await handler({ method: 'GET', query: { action: 'config' }, headers: {} }, disabled, {
+        env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production', CAISSA_ONLINE_ARENA: '0' }
+    });
+    assert.equal(disabled.body.capabilities.arenaS001, false);
+});
+
+test('ordinary authenticated Production users can join without a beta allowlist', async () => {
+    let joined;
+    const service = {
+        async checkRateLimit() { return { allowed: true }; },
+        async joinArena(input) { joined = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const res = response();
+    await handler(command('tournament.join', { tournamentId }), res, {
+        env: { ...baseEnv, CAISSA_ONLINE_ROLLOUT: 'production', CAISSA_ONLINE_ARENA_BETA_USERS: '' },
+        authenticate, rateLimit, service
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(joined.clerkId, userId);
+});
+
+test('ordinary authenticated Preview users can discover and join without an allowlist', async () => {
+    let joined;
+    const service = {
+        async joinArena(input) { joined = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const res = response();
+    await handler(command('tournament.join', { tournamentId }), res, {
+        env: baseEnv,
+        authenticate, rateLimit, service
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.state.arena.current.id, tournamentId);
+    assert.equal(joined.clerkId, userId);
+});
+
+test('internal Arena mode retains its participant allowlist', async () => {
+    const service = {
+        joinArena: async () => assert.fail('join must not reach the store'),
+        getState: async () => assert.fail('state must not be read')
+    };
+    const res = response();
+    await handler(command('tournament.join', { tournamentId }), res, {
+        env: {
+            ...baseEnv,
+            CAISSA_ONLINE_ROLLOUT: 'internal',
+            CAISSA_ONLINE_INTERNAL_USERS: userId,
+            CAISSA_ONLINE_ARENA_BETA_USERS: 'another_user'
+        },
+        authenticate, rateLimit, service
+    });
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.code, 'ARENA_BETA_NOT_AUTHORIZED');
+});
+
+test('authorized registration returns a canonical snapshot and private invalidation', async () => {
+    let joined;
+    let broadcast;
+    const service = {
+        async joinArena(input) { joined = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const res = response();
+    await handler(command('tournament.join', { tournamentId }), res, {
+        env: baseEnv, authenticate, rateLimit, service,
+        broadcastTournamentChange: async input => { broadcast = input; return { delivered: true }; }
+    });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.eventType, 'tournament.snapshot');
+    assert.equal(res.body.data.state.arena.current.id, tournamentId);
+    assert.deepEqual(joined, {
+        clerkId: userId, tournamentId, eventId: 'tournament-join:123456789012'
+    });
+    assert.equal(broadcast.tournamentId, tournamentId);
+    assert.equal(broadcast.version, 3);
+});
+
+test('only an allowlisted Preview organizer can create a bounded Arena', async () => {
+    let created;
+    const service = {
+        async createArena(input) { created = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const denied = response();
+    await handler(command('tournament.create', { name: 'Community Arena' }), denied, {
+        env: { ...baseEnv, CAISSA_ONLINE_TOURNAMENT_ADMINS: 'user_someone_else' },
+        authenticate, rateLimit, service
+    });
+    assert.equal(denied.statusCode, 403);
+    assert.equal(denied.body.code, 'ARENA_ORGANIZER_REQUIRED');
+
+    const accepted = response();
+    await handler(command('tournament.create', {
+        name: 'Community Arena', timeControlId: 'blitz-3-2',
+        durationMinutes: 30, capacity: 16, lateJoin: true,
+        startsAt: new Date(Date.now() + 60_000).toISOString()
+    }), accepted, {
+        env: baseEnv, authenticate, rateLimit, service,
+        broadcastTournamentChange: async () => ({ delivered: true })
+    });
+    assert.equal(accepted.statusCode, 201);
+    assert.equal(created.name, 'Community Arena');
+    assert.equal(created.durationMinutes, 30);
+    assert.equal(created.capacity, 16);
+    assert.equal(created.lateJoin, true);
+    assert.equal(created.control.label, '3+2');
+});
+
+test('cancel and close commands delegate organizer authorization to the tournament RPC', async () => {
+    let managed;
+    const service = {
+        async manageArena(input) { managed = input; return arena; },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    const res = response();
+    await handler(command('tournament.cancel', { tournamentId }), res, {
+        env: baseEnv, authenticate, rateLimit, service
+    });
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(managed, {
+        clerkId: userId, tournamentId,
+        eventId: 'tournament-cancel:123456789012', action: 'cancel'
+    });
+});
+
+test('guest and malformed tournament requests fail before the Arena store', async () => {
+    const service = {
+        checkRateLimit: async () => ({ allowed: true }),
+        joinArena: async () => assert.fail('Arena store must not be called')
+    };
+    const guest = response();
+    await handler(command('tournament.join', { tournamentId }), guest, {
+        env: baseEnv,
+        authenticate: async () => ({ authenticated: true, userId, guest: true }),
+        rateLimit, service, trustedSourceKey: () => 'online-source:test'
+    });
+    assert.equal(guest.statusCode, 403);
+    assert.equal(guest.body.code, 'ARENA_MEMBER_ACCOUNT_REQUIRED');
+
+    const invalid = response();
+    await handler(command('tournament.join', { tournamentId: 'bad' }), invalid, {
+        env: baseEnv, authenticate, rateLimit, service
+    });
+    assert.equal(invalid.statusCode, 400);
+    assert.equal(invalid.body.code, 'INVALID_TOURNAMENT_ID');
+});
+
+test('state recovery reconciles Arena before reading the canonical game', async () => {
+    const calls = [];
+    const res = response();
+    await handler({ method: 'GET', query: { action: 'state' }, headers: {} }, res, {
+        env: baseEnv, authenticate, rateLimit,
+        service: {
+            async getArenaState() { calls.push('arena'); return arena; },
+            async getState() { calls.push('game'); return { game: { id: 'game-1', tournament_id: tournamentId } }; }
+        }
+    });
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(calls, ['arena', 'game']);
+    assert.equal(res.body.data.state.arena.current.id, tournamentId);
+    assert.equal(res.body.data.state.game.tournament_id, tournamentId);
+});

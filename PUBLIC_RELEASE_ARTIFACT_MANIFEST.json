@@ -131,8 +131,16 @@
       "sha256": "41c732884965595a58680a7ed6f58303aaefefdf910dcd9c03dfb7cd2e5a842e"
     },
     {
+      "path": "api/_lib/online-arena.js",
+      "sha256": "e20813ddc93ad3384cd79c770e27632d1724faf5ed282f1b5e57f67c7c66940f"
+    },
+    {
+      "path": "api/_lib/online-daily.js",
+      "sha256": "bb7b65f3e3da9d80a52fb252b590b4ba973304f05d7a334cfa8c0ecc2a2c3986"
+    },
+    {
       "path": "api/_lib/online-game-engine.js",
-      "sha256": "7e53164b1771b7f6889153ea2a5e887d916906e92e1d5f8d5ddaf77dfc08c75f"
+      "sha256": "c3b609821cbb3471c72eb98269b43fe0357ed7838ee77525e0d89dcc17b05614"
     },
     {
       "path": "api/_lib/online-guest-auth.js",
@@ -144,7 +152,7 @@
     },
     {
       "path": "api/_lib/online-public-projection.js",
-      "sha256": "e5a00e61e37240a84825c7325ff86368e03f06fec6fc7f4d8af930fdaadaf2ff"
+      "sha256": "d3004c0744d93e159570e7702f93df6f059fbd0f6c4c13bac41d38d15677ea60"
     },
     {
       "path": "api/_lib/online-rating.js",
@@ -152,7 +160,11 @@
     },
     {
       "path": "api/_lib/online-realtime-broadcast.js",
-      "sha256": "091a61920349c9aa566697876c2748c1a0c9deb51a760c81bdf89ae3a93a7c01"
+      "sha256": "c358582f5cb96a9b3811cc8741024911e3a733f514e0fb0062d2d02eec9c6f36"
+    },
+    {
+      "path": "api/_lib/online-recurring-scheduler.js",
+      "sha256": "d16369a32179997a9fdf6448cc8d7803cbc6f27d238037054733ac890444413c"
     },
     {
       "path": "api/_lib/online-request-source.js",
@@ -160,7 +172,11 @@
     },
     {
       "path": "api/_lib/online-service.js",
-      "sha256": "fe9a24eb7f263bf8f54b7928bc44beb30b3a11fbce7ad8997d5d4e91eda2ba71"
+      "sha256": "617679cf92a25c764a6c5a4cdd899135f7c32f7b429d0c313ee684cf598c450b"
+    },
+    {
+      "path": "api/_lib/online-weekly-scheduler.js",
+      "sha256": "d7db5a94f6daeee4baf2e1361da34a9e0c98d74b415974d786ada7ecd381309e"
     },
     {
       "path": "api/_lib/pgn-player-offers.js",
@@ -196,7 +212,7 @@
     },
     {
       "path": "api/_lib/public-registration.js",
-      "sha256": "d81510aa31ab4623ef3eba6b8db6f55e17b0cd6bd52f9e06632405ebb1ba1004"
+      "sha256": "6bd7ef1bf1d10daca63d280a914f8357bb890984a8d417d3dfe2d1347bf9af07"
     },
     {
       "path": "api/_lib/puzzle-catalog.js",
@@ -736,7 +752,7 @@
     },
     {
       "path": "api/online.js",
-      "sha256": "1a03cbf19977233a4e3f8cf5a18c3a6c9ffac0ea2dc747f9a14deecc56b36b84"
+      "sha256": "c7d6c4fe9cc831ec814c5950ecba720bd88ffdd748df3a2c9f0400992e5f21db"
     },
     {
       "path": "api/opening-trainer/repertoires.js",
@@ -784,7 +800,7 @@
     },
     {
       "path": "api/public-auth-config.js",
-      "sha256": "67d64984fe52e06bee50fbb03814bd975cfd4d9c01881a3fc7b55d3dbb2fdb55"
+      "sha256": "80e9122180cf8822cd7e32d3ac41a0930d14ed4f9acd3be20fc118179440f355"
     },
     {
       "path": "api/puzzles/progress.js",
@@ -1396,7 +1412,7 @@
     },
     {
       "path": "auth-complete.html",
-      "sha256": "871e73983af8a1bdcf178458e961d61e5963f63edb18d4e2ff8b2482e5941060"
+      "sha256": "98e789c1988b5812ff03637cff201e37570a43d53c04c0db398588c1192ff71e"
     },
     {
       "path": "blog/caissa-chess-online-community/index.html",
@@ -1672,7 +1688,7 @@
     },
     {
       "path": "css/online.css",
-      "sha256": "fee0b4d4c1f67610a49b92835ae6b7b82f294a3684088d2ff9bf84ec5c1c1bef"
+      "sha256": "45079328e24562727c791f708a8dafa98926a1c300ba2f65717f33aca54a3c77"
     },
     {
       "path": "css/opening-book.css",
@@ -1748,7 +1764,7 @@
     },
     {
       "path": "css/yahoo-classic.css",
-      "sha256": "4761606455dd205767d1c734fbb2169fea918254274ddefc3c11fbdad95bf6cd"
+      "sha256": "9f7d9c88fb8a2aa0b595b51f0878fb46cdc53d743045366a0b6e30a680ee9bc7"
     },
     {
       "path": "data/blog-article.schema.json",
@@ -2044,11 +2060,11 @@
     },
     {
       "path": "js/auth-complete.js",
-      "sha256": "befdd1a7d0bffdcbee60658ce97dbcd4c45f713e839aed3db43d8658e7edd1ce"
+      "sha256": "a11189827410d06c2551e5ff167767c9ba55b181b8d180b39dccf6b40cb6d820"
     },
     {
       "path": "js/auth-config.js",
-      "sha256": "964912a187dc57ea729330db361493c325f28c879bafdfe1cc4c747b2fc88e0a"
+      "sha256": "43486d3ea9ccebe1c4dd92f783ae502ff8a5c536ba47c7e0d16da12541e0644a"
     },
     {
       "path": "js/board/caissa-board-a11y.js",
@@ -2088,7 +2104,7 @@
     },
     {
       "path": "js/caissa-auth.js",
-      "sha256": "b15b59db4994dde7fa98b6fc74aebe613fc5513e1b3db506fa1bc0ec41e50776"
+      "sha256": "2e86965f6bce35de8c0bfe986dac5244021f2cc7f8a36ddfbf83a2b27cfcd0c1"
     },
     {
       "path": "js/caissa-board-interaction.js",
@@ -2904,19 +2920,19 @@
     },
     {
       "path": "js/online/online-page.js",
-      "sha256": "2ae74b5e6636913546b4ec5b3c6ec6c9acd2e92922800c46572cdaadca7096f2"
+      "sha256": "a4fe641189d63b8b242e4ac1fa3fc33851843e9b398cae00d7cd60063d6f511f"
     },
     {
       "path": "js/online/online-protocol.js",
-      "sha256": "036a99bdc151c9bd797313de13b8b78bda26d84412fce28230ecd13d6d20b292"
+      "sha256": "9c80b1aff71e45635d22a979e9832bcd12a825ec100022bd4d4f9e1fdad5bb2d"
     },
     {
       "path": "js/online/online-realtime.js",
-      "sha256": "906bd3a94bcf8f1ab301880744ed3b94182b139018c47ca7c01bb00f49aa0142"
+      "sha256": "610864df0275c6886c75f4eef90018ac2f24bfb26dc3faa55d22710796046cce"
     },
     {
       "path": "js/online/online-tournaments.js",
-      "sha256": "ce0f91dbdd8ec179f379e1cce736f5aaf105df4123407f197d961705989255e8"
+      "sha256": "892282ed43df4622ac8dd4404522a3eb8be41232248f87da91581b8d0707c1cf"
     },
     {
       "path": "js/opening-book-manager.js",
@@ -3668,11 +3684,11 @@
     },
     {
       "path": "js/signin-page.js",
-      "sha256": "8a5da3e010701b52794d3f0cfba670968bb9bf5dbff5938ae9ab22849262ccbc"
+      "sha256": "c73a19cdef722910a97a50b7d191b336af4518abc9c1d81f830c2524500ec0e4"
     },
     {
       "path": "js/signup-page.js",
-      "sha256": "d69c016f27860441f759b1dbd3bf985bc0c61823d2ab23190860d812d1d0bbbf"
+      "sha256": "eb0d460e4f0bbc45e3f90f0cab08d392102e0b873b903a72591bb422249fca2e"
     },
     {
       "path": "js/spectator-tv-catalog.js",
@@ -3696,7 +3712,7 @@
     },
     {
       "path": "js/yahoo-classic-section.js",
-      "sha256": "9e23b854d539ce59a72d7ffc91cbe6db5d09b58570b26b9066de59757824d5eb"
+      "sha256": "e5d319886b653151a3552c03eb092d7bfdee49043a3aabbdeebb83d373209d08"
     },
     {
       "path": "knowledge/README.md",
@@ -4104,7 +4120,7 @@
     },
     {
       "path": "online.html",
-      "sha256": "f46feaae3740d264bc0c44308bc53c93e892e281f0cca075faa29d9c83e184c5"
+      "sha256": "1f11d55913d1809c992ddf7b61a3f497ff67a8f4106ea44619d219b9ff806450"
     },
     {
       "path": "opening-database.html",
@@ -4120,7 +4136,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "49bb89632069388d1a4933eec392a6570e693eb674fa8b89ae79e96002b1f6f1"
+      "sha256": "d56638017e9ddec13aee21032741edc7ef8760ce6dc050f96407a38303f8eb6c"
     },
     {
       "path": "pgn-replayer.html",
@@ -4280,7 +4296,7 @@
     },
     {
       "path": "playwright.online.config.js",
-      "sha256": "c39eff585aff9fffe341e885979d31099bada7d882ecf9b2b7bf3fee055ba413"
+      "sha256": "b1eefbd773a02535e247c7064da2abe904cd47ebd02848f91ce47a05ea889217"
     },
     {
       "path": "playwright.release.config.js",
@@ -7056,11 +7072,11 @@
     },
     {
       "path": "signin.html",
-      "sha256": "127a4cab2afd0383da534e21880e2d071b173f218f87d2c25924e48fea855036"
+      "sha256": "469bfcd30f9966fa02261b9fdad8861b63ea365f3980a3c03af2823a07bdf347"
     },
     {
       "path": "signup.html",
-      "sha256": "2136e2add87d24cc59aa43981e5d3ee26fecd449551b504244f68946775c71b5"
+      "sha256": "b1d801e92510137d213759ee8b7c5411d78b6cebb500b251d53fbfbc52fca354"
     },
     {
       "path": "stockfish-worker.js",
@@ -7076,7 +7092,7 @@
     },
     {
       "path": "vercel.json",
-      "sha256": "783f677649e98c56218faf715eeb625f26cf74483a530b1bc07f0c814a5f819b"
+      "sha256": "150f98979a043b4805e4a68a9e34348295334bcf4e10a91153106768a1462690"
     },
     {
       "path": "worker/stats-worker.js",

@@ -1,5 +1,6 @@
 export async function createOnlineRealtime(config, options = {}) {
-    if (!config?.url || !config?.publishableKey || !options.gameId) return null;
+    const topic = String(options.topic || (options.gameId ? `online-game:${options.gameId}` : ''));
+    if (!config?.url || !config?.publishableKey || !topic) return null;
     let client = null;
     let channel = null;
     let closed = false;
@@ -30,7 +31,7 @@ export async function createOnlineRealtime(config, options = {}) {
             return null;
         }
 
-        channel = client.channel(`online-game:${options.gameId}`, { config: { private: true } });
+        channel = client.channel(topic, { config: { private: true } });
         channel.on('broadcast', { event: '*' }, payload => {
             const version = broadcastVersion(payload);
             if (version && version <= newestBroadcastVersion) return;
@@ -80,6 +81,14 @@ export async function createOnlineRealtime(config, options = {}) {
         options.onStatus?.('FALLBACK', error);
         return null;
     }
+}
+
+export function createOnlineTournamentRealtime(config, options = {}) {
+    if (!options.tournamentId) return Promise.resolve(null);
+    return createOnlineRealtime(config, {
+        ...options,
+        topic: `online-tournament:${options.tournamentId}`
+    });
 }
 
 export function createOnlineResyncQueue(run) {

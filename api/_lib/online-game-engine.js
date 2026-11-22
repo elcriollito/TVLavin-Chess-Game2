@@ -59,6 +59,65 @@ export function applyAuthoritativeMove(game, actorClerkId, intent, now = Date.no
     });
 }
 
+export function applyAuthoritativeDailyMove(game, actorClerkId, intent, now = Date.now()) {
+    if (!game || game.status !== 'active' || game.pool !== 'daily') return reject('GAME_NOT_ACTIVE');
+    const color = participantColor(game, actorClerkId);
+    if (!color) return reject('NOT_A_PARTICIPANT');
+    if (game.turn !== color) return reject('NOT_YOUR_TURN');
+    if (Number(intent.expectedVersion) !== Number(game.version)) return reject('STALE_VERSION');
+    const deadline = Date.parse(game.move_deadline_at || '');
+    if (!Number.isFinite(deadline)) return reject('CORRUPT_DAILY_DEADLINE');
+    if (Number(now) >= deadline) {
+        return Object.freeze({
+            ok: false,
+            code: 'TIME_EXPIRED',
+            timeout: Object.freeze({ result: timeoutResult(game), termination: 'timeout' })
+        });
+    }
+
+    let chess;
+    try { chess = replayCanonicalGame(game); }
+    catch (_) { return reject('CORRUPT_CANONICAL_POSITION'); }
+    if (Number(game.ply || 0) >= MAX_GAME_PLIES) return reject('GAME_LIMIT_REACHED');
+
+    let move;
+    try { move = chess.move({ from: intent.from, to: intent.to, promotion: intent.promotion || 'q' }); }
+    catch (_) { move = null; }
+    if (!move) return reject('ILLEGAL_MOVE');
+
+    const termination = determineTermination(chess);
+    const result = termination ? resultFor(chess, termination) : null;
+    const nextTurn = chess.turn() === 'w' ? 'white' : 'black';
+    const matingPotential = timeoutMatingPotential(chess);
+    const moveRecord = Object.freeze({
+        ply: Number(game.ply || 0) + 1,
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion || null,
+        san: move.san,
+        uci: `${move.from}${move.to}${move.promotion || ''}`,
+        color,
+        serverTimestamp: new Date(now).toISOString()
+    });
+    const pgn = buildPgn(game, moveRecord, result);
+    const daysPerMove = Number(game.days_per_move);
+    if (![1, 3, 5, 7].includes(daysPerMove)) return reject('CORRUPT_DAILY_DEADLINE');
+    return Object.freeze({
+        ok: true,
+        value: Object.freeze({
+            move: moveRecord,
+            fen: chess.fen(),
+            turn: nextTurn,
+            result,
+            termination,
+            pgn,
+            whiteCanMate: matingPotential.white,
+            blackCanMate: matingPotential.black,
+            nextDeadlineAt: result ? null : new Date(Number(now) + (daysPerMove * 86_400_000)).toISOString()
+        })
+    });
+}
+
 function replayCanonicalGame(game) {
     const chess = new Chess(game.initial_fen || START_FEN);
     const moves = Array.isArray(game.moves) ? game.moves : [];
@@ -162,7 +221,9 @@ function buildPgn(game, move, result) {
         'White', game.white_display_name || 'White',
         'Black', game.black_display_name || 'Black',
         'Result', result || '*',
-        'TimeControl', `${Math.floor(Number(game.base_ms) / 1000)}+${Math.floor(Number(game.increment_ms) / 1000)}`,
+        'TimeControl', game.pool === 'daily'
+            ? `${Number(game.days_per_move || 7)}/86400`
+            : `${Math.floor(Number(game.base_ms) / 1000)}+${Math.floor(Number(game.increment_ms) / 1000)}`,
         'CAISSAProtocol', String(game.protocol_version || '1.0.0')
     );
     for (const item of [...(Array.isArray(game.moves) ? game.moves : []), move]) {
