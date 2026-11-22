@@ -53,13 +53,15 @@ async function certify() {
     assert.equal(attemptedSpoof.response.status, 400);
     assert.match(attemptedSpoof.body.code, /^RECURRING_INVALID_/);
 
-    const spoofName = `OFFICIAL CAISSA Spoof Probe ${runId}`;
-    const created = await command('series.create', recurringPayload({ name: spoofName }));
+    const existingProbe = state.recurring.series.find(series =>
+        series.title?.startsWith('OFFICIAL CAISSA Spoof Probe '));
+    const spoofName = existingProbe?.title || `OFFICIAL CAISSA Spoof Probe ${runId}`;
+    const created = existingProbe ? initial : await command('series.create', recurringPayload({ name: spoofName }));
     const communitySeries = created.data.state.recurring.series.find(series => series.title === spoofName);
     assert.ok(communitySeries?.id);
     assert.equal(communitySeries.seriesKind, 'user');
     assert.equal(communitySeries.source, 'community');
-    await command('series.pause', { seriesId: communitySeries.id });
+    if (communitySeries.enabled) await command('series.pause', { seriesId: communitySeries.id });
     console.log('HFX003_HOSTED_ANTI_SPOOF_PASS reserved fields rejected; title-only probe remained community');
 
     const deniedRestore = await rawCommand('series.unskip', {
