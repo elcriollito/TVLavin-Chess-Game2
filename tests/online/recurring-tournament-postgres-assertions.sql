@@ -105,6 +105,33 @@ end
 $$;
 
 do $$
+declare v_series uuid; v_start timestamptz; v_due timestamptz; v_generated integer;
+begin
+  update public.caissa_online_tournament_series
+    set created_at=created_at-interval '2 minutes'
+    where owner_clerk_id='recurring_owner_local';
+  perform public.caissa_online_recurring_series_create(
+    'recurring_owner_local','series-create:inside-lead','Inside Lead Window','America/New_York',
+    'weekly',1::smallint,array[extract(dow from ((clock_timestamp() at time zone 'America/New_York')::date+1))::smallint]::smallint[],
+    (clock_timestamp() at time zone 'America/New_York')::date+1,'19:00'::time,2::smallint,
+    'after_count',null,1::smallint,true,'bullet',120000,1000,30,16,true,false);
+  select id,next_generation_at into v_series,v_due from public.caissa_online_tournament_series
+    where owner_clerk_id='recurring_owner_local' and creation_event_id='series-create:inside-lead';
+  select starts_at into v_start from caissa_online_private.recurring_candidate_dates(v_series,
+    (clock_timestamp() at time zone 'America/New_York')::date,
+    (clock_timestamp() at time zone 'America/New_York')::date+2) limit 1;
+  if v_start<=clock_timestamp() or v_due>clock_timestamp()+interval '5 seconds'
+    then raise exception 'inside-lead first occurrence was not made immediately due'; end if;
+  v_generated:=caissa_online_private.recurring_generate(clock_timestamp(),100);
+  if v_generated<1 or not exists(select 1 from public.caissa_online_tournaments
+      where series_id=v_series and starts_at=v_start and source='community')
+    then raise exception 'inside-lead first occurrence was not generated'; end if;
+  if (select count(*) from public.caissa_online_tournaments where series_id=v_series)<>1
+    then raise exception 'inside-lead generation duplicated its occurrence'; end if;
+end
+$$;
+
+do $$
 begin
   if has_function_privilege('anon',
       'public.caissa_online_recurring_series_create(text,text,text,text,text,smallint,smallint[],date,time without time zone,smallint,text,date,smallint,boolean,text,integer,integer,integer,integer,boolean,boolean)','execute')
@@ -115,6 +142,9 @@ begin
     then raise exception 'browser role can execute a privileged recurrence RPC'; end if;
   if (select count(*) from cron.job where jobname='caissa-tournament-scheduler-s001')<>1
     then raise exception 'S002 did not preserve exactly one scheduler Cron'; end if;
+  if has_function_privilege('anon','public.caissa_online_tournament_identity_projection(uuid[])','execute')
+    or has_function_privilege('authenticated','public.caissa_online_tournament_identity_projection(uuid[])','execute')
+    then raise exception 'browser role can read the tournament identity projection'; end if;
 end
 $$;
 

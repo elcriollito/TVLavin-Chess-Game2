@@ -83,8 +83,11 @@ test('unrated Arena creation remains compatible before the rated RPC overload is
     };
     await service.createArena({ ...input, rated: false });
     await service.createArena({ ...input, eventId: 'arena:create:2', rated: true });
-    assert.equal(Object.hasOwn(calls[0].args, 'p_rated'), false);
-    assert.equal(calls[1].args.p_rated, true);
+    const creationCalls = calls.filter(call => call.name === 'caissa_online_arena_create');
+    assert.equal(Object.hasOwn(creationCalls[0].args, 'p_rated'), false);
+    assert.equal(creationCalls[1].args.p_rated, true);
+    assert.equal(calls.filter(call => call.name === 'caissa_online_tournament_identity_projection').length, 0,
+        'empty Arena snapshots must not request an identity projection');
 });
 
 test('public identity resolver calls the server-only canonical RPC', async () => {

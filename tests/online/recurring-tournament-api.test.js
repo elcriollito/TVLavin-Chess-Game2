@@ -83,7 +83,10 @@ test('an ordinary authenticated member can create only a validated unrated Arena
 test('Daily fields and uncertified Rated settings never reach the series RPC', async () => {
     for (const candidate of [
         creation({ daysPerMove: 7 }),
-        creation({ rated: true })
+        creation({ rated: true }),
+        creation({ source: 'official' }),
+        creation({ seriesKind: 'official' }),
+        creation({ official: true })
     ]) {
         const result = response();
         await handler(command('series.create', candidate), result, {

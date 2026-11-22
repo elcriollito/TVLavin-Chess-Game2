@@ -44,6 +44,12 @@ test('weekly validation accepts multiple weekdays and rejects Daily or rated lea
     assert.deepEqual(valid.value.recurrence.weekdays, [1, 3, 5]);
     assert.equal(validateRecurringSeriesCreate({ ...payload(), daysPerMove: 7 }, enabledEnv, now).code, 'RECURRING_INVALID_FIELDS');
     assert.equal(validateRecurringSeriesCreate({ ...payload(), rated: true }, enabledEnv, now).code, 'RECURRING_RATED_NOT_CERTIFIED');
+    for (const spoof of [{ source: 'official' }, { seriesKind: 'official' }, { official: true }]) {
+        assert.equal(validateRecurringSeriesCreate({ ...payload(), ...spoof }, enabledEnv, now).code,
+            'RECURRING_INVALID_FIELDS');
+    }
+    assert.equal(validateRecurringSeriesCreate(payload({ source: 'official' }), enabledEnv, now).code,
+        'RECURRING_INVALID_RULE');
 });
 
 test('daily intervals preserve month, year and leap-day calendar boundaries', () => {

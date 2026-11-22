@@ -173,12 +173,14 @@
 .arena-directory__head p,.arena-context-head p,.arena-detail__hero p{margin:0;color:var(--online-accent);font-size:.8125rem;font-weight:800;letter-spacing:.12em}
 .arena-directory__head h3,.arena-context-head h3,.arena-detail__hero h3{margin:4px 0 0;font:500 1.45rem/1.15 Georgia,serif}
 .arena-directory__head>span{padding:6px 9px;border:1px solid #725f37;border-radius:999px;color:#efd18f;font-size:.8125rem}
-.arena-filters{display:grid;grid-template-columns:minmax(0,1fr) 150px 150px;gap:10px;margin:18px 0}
+.arena-filters{display:grid;grid-template-columns:minmax(180px,1fr) repeat(4,minmax(128px,150px));gap:10px;margin:18px 0}
 .arena-filters label{display:grid;gap:6px;color:var(--online-muted);font-size:.875rem}
 .arena-filters input,.arena-filters select{width:100%;min-height:42px;border:1px solid var(--online-line);border-radius:8px;background:#09140f;color:var(--online-text);padding:9px 34px 9px 10px;font-size:1rem}
 .arena-filters select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#d5ae61 50%),linear-gradient(135deg,#d5ae61 50%,transparent 50%);background-position:calc(100% - 17px) 17px,calc(100% - 11px) 17px;background-size:6px 6px,6px 6px;background-repeat:no-repeat}
 .arena-list{display:grid;gap:10px}
 .arena-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px;border:1px solid #31453a;border-radius:10px;background:linear-gradient(135deg,#172820,#122119)}
+.arena-card--official{border-color:#a9853f;box-shadow:inset 3px 0 #d8b660;background:linear-gradient(135deg,#25271b,#17251d)}
+.arena-card--community{border-color:#3b5045}
 .arena-card h4{margin:5px 0 3px;font:500 1.08rem Georgia,serif}
 .arena-card p{margin:0;color:var(--online-muted);font-size:.875rem;line-height:1.45}
 .arena-card button,.arena-back,.arena-detail__actions>button,.arena-pairing-state button,.arena-game-row{min-height:42px;border:1px solid #526b5d;border-radius:8px;background:#1b3026;color:var(--online-text);padding:8px 12px;cursor:pointer;font-size:.875rem}
@@ -186,6 +188,10 @@
 .recurring-series-list{display:grid;gap:10px;margin:0 0 16px}.recurring-series-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px;border:1px solid #6f5933;border-radius:9px;background:#17241d}.recurring-series-card h4{margin:0 0 5px;color:#e7c77f}.recurring-series-card p{margin:0;color:var(--online-muted);font-size:.8rem;line-height:1.45}.recurring-series-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:7px}.recurring-series-actions button{min-height:38px;border:1px solid #8d7140;border-radius:7px;background:#243329;color:var(--online-text);padding:7px 10px;cursor:pointer}.recurring-series-card--paused{opacity:.78}
 .arena-status{display:inline-flex;align-items:center;min-height:23px;padding:3px 7px;border-radius:999px;background:#26382f;color:#c9d7ce;font-size:.8125rem}
 .arena-status--active{background:#173d2e;color:#84d6ac}.arena-status--upcoming{background:#3a301d;color:#f0cd83}.arena-status--completed{background:#262d29;color:#aeb9b3}
+.tournament-identity{display:inline-flex;align-items:center;gap:5px;width:max-content;margin:0 7px 5px 0;padding:3px 7px;border:1px solid #4d5d54;border-radius:999px;color:#c4cec8;font-size:.68rem;font-weight:900;letter-spacing:.08em}
+.tournament-identity[hidden]{display:none}.tournament-identity--official{border-color:#b99243;background:#302817;color:#f3d483}.tournament-identity--official>span{font-size:.8rem}.tournament-identity--community{background:#1d2d25;color:#bfcac4}
+.arena-schedule-section{margin:14px 0 0;padding-bottom:7px;border-bottom:1px solid #405147;color:#e7c77f;font-size:.92rem;letter-spacing:.04em}
+.arena-date-group{margin:10px 0 0;color:#d4ddd8;font-size:.78rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .arena-empty{padding:38px 20px;text-align:center;color:var(--online-muted)}.arena-empty strong{display:block;color:var(--online-text);font-size:1rem}.arena-empty p{font-size:.875rem}
 .arena-detail{display:grid;gap:17px}.arena-back{width:max-content;background:transparent}.arena-detail__hero time,.arena-context-head time{display:grid;justify-items:end;gap:4px;color:var(--online-muted);font-size:.8125rem}.arena-detail__hero time strong,.arena-context-head time strong{color:var(--online-text);font:700 1.45rem ui-monospace,monospace;font-variant-numeric:tabular-nums}
 .arena-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}.arena-facts>div{padding:11px;border:1px solid var(--online-line);border-radius:8px;background:#101c17}.arena-facts dt{color:var(--online-muted);font-size:.8125rem}.arena-facts dd{margin:4px 0 0;font-weight:700;font-size:1rem}
@@ -209,6 +215,7 @@
     .arena-facts{grid-template-columns:1fr 1fr}
     .arena-standings th,.arena-standings td{padding-inline:5px}
 }
+@media(min-width:521px) and (max-width:900px){.arena-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.arena-filters label:first-child{grid-column:1/-1}}
 
 /* Compact page identity: the page title shares the persistent navigation bar. */
 .online-brand-group{

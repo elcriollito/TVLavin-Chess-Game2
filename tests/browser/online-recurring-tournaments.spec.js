@@ -136,10 +136,77 @@ test('participants see planned dates without receiving owner controls', async ({
     await expect(page.locator('#recurring-series-list')).toBeEmpty();
 });
 
+test('schedule is chronological and authoritative identity persists across views', async ({ page }) => {
+    const officialId = '11111111-1111-4111-8111-111111111111';
+    const earlyId = '22222222-2222-4222-8222-222222222222';
+    const dailyId = '33333333-3333-4333-8333-333333333333';
+    const official = {
+        id: officialId, name: 'Morning Arena', source: 'official', seriesKind: 'official',
+        seriesSlug: 'saturdays-of-chess-s001', status: 'scheduled', startsAt: '2026-11-28T16:00:00.000Z',
+        endsAt: '2026-11-28T17:00:00.000Z', registrationClosesAt: '2026-11-28T16:00:00.000Z',
+        pool: 'blitz', baseMs: 300000, incrementMs: 0, durationMinutes: 60,
+        capacity: 100, participantCount: 1, joined: true, myState: 'registered', rated: false,
+        standings: [], games: []
+    };
+    harnesses.get(page).state.arena = {
+        current: official,
+        tournaments: [official, {
+            id: earlyId, name: 'OFFICIAL CAISSA LOOKALIKE', source: 'community', seriesKind: 'user',
+            status: 'scheduled', startsAt: '2026-11-22T16:00:00.000Z', endsAt: '2026-11-22T16:30:00.000Z',
+            registrationClosesAt: '2026-11-22T16:00:00.000Z', pool: 'bullet', baseMs: 120000,
+            incrementMs: 1000, durationMinutes: 30, capacity: 16, participantCount: 0, rated: false
+        }]
+    };
+    harnesses.get(page).state.daily.tournaments = [{
+        id: dailyId, name: 'Community Daily', source: 'community', status: 'scheduled',
+        startsAt: '2026-11-22T18:00:00.000Z', registrationClosesAt: '2026-11-22T18:00:00.000Z',
+        daysPerMove: 7, groupSize: 4, capacity: 16, participantCount: 0, rated: false
+    }];
+    harnesses.get(page).state.recurring = { series: [], directory: [seriesFixture({
+        name: 'Public Planned Arena', recurrence: {
+            frequencyUnit: 'weekly', interval: 1, weekdays: [5], firstDate: '2026-12-04',
+            localTime: '19:00', timeZone: 'America/New_York', leadDays: 2,
+            endMode: 'never', endDate: null, occurrenceCount: null, enabled: true
+        }, capacity: 16, durationMinutes: 30, lateJoin: true,
+        pool: 'blitz', baseMs: 180000, incrementMs: 2000
+    })] };
+
+    await page.goto('/online/tournaments?directory=1');
+    await expect(page.locator('#arena-context-identity')).toContainText('OFFICIAL CAISSA');
+    await page.locator('#directory-tab-schedule').click();
+    const cardTexts = await page.locator('#arena-schedule-list .arena-card').allTextContents();
+    expect(cardTexts[0]).toContain('OFFICIAL CAISSA LOOKALIKE');
+    expect(cardTexts[1]).toContain('Community Daily');
+    expect(cardTexts[2]).toContain('Morning Arena');
+    expect(cardTexts.at(-1)).toContain('Public Planned Arena');
+    await expect(page.locator('#arena-schedule-list')).toContainText('Scheduled tournament records');
+    await expect(page.locator('#arena-schedule-list')).toContainText('Planned from recurrence rules');
+    await expect(page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'Morning Arena' }))
+        .toHaveClass(/arena-card--official/u);
+    await expect(page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'OFFICIAL CAISSA LOOKALIKE' }))
+        .toContainText('COMMUNITY TOURNAMENT');
+
+    await page.locator('#arena-identity-filter').selectOption('official');
+    await expect(page.locator('#arena-schedule-list')).toContainText('Morning Arena');
+    await expect(page.locator('#arena-schedule-list')).not.toContainText('OFFICIAL CAISSA LOOKALIKE');
+    await page.locator('#arena-identity-filter').selectOption('all');
+    await page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'Morning Arena' })
+        .getByRole('button', { name: 'Details' }).click();
+    await expect(page.locator('#arena-detail-identity')).toContainText('OFFICIAL CAISSA');
+    await page.locator('#arena-detail-back').click();
+    await page.locator('#directory-tab-mine').click();
+    await expect(page.locator('#arena-my-list')).toContainText('OFFICIAL CAISSA');
+    await page.locator('#tournament-directory-close').click();
+    await page.locator('#arena-context-tab-games').click();
+    await expect(page.locator('#arena-context-games')).toBeVisible();
+    await expect(page.locator('#arena-context-identity')).toContainText('OFFICIAL CAISSA');
+});
+
 function seriesFixture(payload) {
     const recurrence = payload.recurrence;
     return {
         id: seriesId, title: payload.name, enabled: recurrence.enabled !== false,
+        seriesKind: 'user', source: 'community',
         frequencyUnit: recurrence.frequencyUnit, interval: recurrence.interval,
         weekdays: recurrence.weekdays, firstDate: recurrence.firstDate,
         localTime: recurrence.localTime, timeZone: recurrence.timeZone,

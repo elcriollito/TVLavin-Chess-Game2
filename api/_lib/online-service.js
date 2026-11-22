@@ -6,10 +6,20 @@ export function createOnlineService(options = {}) {
     const db = options.db || getSupabase();
     const sleep = options.sleep || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
     const safeState = state => projectOnlineState(state, clerkIds => resolveIdentityMap(db, clerkIds));
-    const safeArenaState = state => projectOnlineArenaState(state, clerkIds => resolveIdentityMap(db, clerkIds));
-    const safeDailyState = async state => (await projectOnlineState(
-        { daily: state }, clerkIds => resolveIdentityMap(db, clerkIds)
-    )).daily;
+    const tournamentIdentities = state => {
+        const ids = tournamentIdentityIds(state);
+        return ids.length ? rpc(db, 'caissa_online_tournament_identity_projection', { p_ids: ids }) : [];
+    };
+    const safeArenaState = async state => {
+        const projected = await projectOnlineArenaState(state, clerkIds => resolveIdentityMap(db, clerkIds));
+        return decorateTournamentIdentities(projected, await tournamentIdentities(projected));
+    };
+    const safeDailyState = async state => {
+        const projected = (await projectOnlineState(
+            { daily: state }, clerkIds => resolveIdentityMap(db, clerkIds)
+        )).daily;
+        return decorateTournamentIdentities(projected, await tournamentIdentities(projected));
+    };
     return Object.freeze({
         async resolvePublicIdentity(clerkId) {
             return resolveCanonicalPublicIdentity(clerkId, {
@@ -298,6 +308,35 @@ async function resolveIdentityMap(db, clerkIds) {
         ));
     }
     return identities;
+}
+
+export function decorateTournamentIdentities(state, identities) {
+    if (!state || typeof state !== 'object') return state;
+    const byId = new Map((Array.isArray(identities) ? identities : [])
+        .filter(item => item?.id)
+        .map(item => [String(item.id), Object.freeze({
+            source: item.source,
+            seriesId: item.seriesId || null,
+            seriesKind: item.seriesKind || null,
+            seriesSlug: item.seriesSlug || null
+        })]));
+    const decorate = tournament => {
+        if (!tournament || typeof tournament !== 'object') return tournament;
+        const identity = byId.get(String(tournament.id || tournament.tournamentId || ''));
+        return identity ? { ...tournament, ...identity } : tournament;
+    };
+    return {
+        ...state,
+        tournaments: Array.isArray(state.tournaments) ? state.tournaments.map(decorate) : state.tournaments,
+        current: decorate(state.current)
+    };
+}
+
+function tournamentIdentityIds(state) {
+    return [...new Set([
+        ...(Array.isArray(state?.tournaments) ? state.tournaments.map(tournament => tournament?.id) : []),
+        state?.current?.id
+    ].filter(Boolean).map(String))].slice(0, 500);
 }
 
 async function readGuestIdentity(db, clerkId) {

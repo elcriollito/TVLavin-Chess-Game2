@@ -7,6 +7,13 @@ const DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
 const TIME = /^(\d{2}):(\d{2})$/u;
 const SAFE_NAME = /^[^<>\u0000-\u001f\u007f]{3,80}$/u;
 const CONTROL_BY_ID = new Map(ARENA_TIME_CONTROLS.map(control => [control.id, control]));
+const SERIES_CREATE_FIELDS = new Set([
+    'name', 'timeControlId', 'durationMinutes', 'capacity', 'lateJoin', 'rated', 'recurrence'
+]);
+const RECURRENCE_FIELDS = new Set([
+    'frequencyUnit', 'interval', 'weekdays', 'firstDate', 'localTime', 'timeZone',
+    'leadDays', 'endMode', 'endDate', 'occurrenceCount', 'enabled'
+]);
 
 export function isRecurringTournamentsEnabled(rollout, env = {}) {
     return rollout === 'preview'
@@ -17,7 +24,7 @@ export function isRecurringTournamentsEnabled(rollout, env = {}) {
 
 export function validateRecurringSeriesCreate(payload, env = {}, now = Date.now()) {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)
-        || hasAny(payload, ['description', 'daysPerMove', 'groupSize', 'qualifiersPerGroup'])) {
+        || hasUnknown(payload, SERIES_CREATE_FIELDS)) {
         return failure('RECURRING_INVALID_FIELDS');
     }
     const name = String(payload.name || '').trim();
@@ -81,7 +88,8 @@ export function validateRecurringSeriesAction(action, payload = {}, now = Date.n
 }
 
 export function validateRecurrenceRule(input, now = Date.now(), options = {}) {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    if (!input || typeof input !== 'object' || Array.isArray(input)
+        || hasUnknown(input, RECURRENCE_FIELDS)) {
         return failure('RECURRING_INVALID_RULE');
     }
     const frequencyUnit = String(input.frequencyUnit || '');
@@ -228,8 +236,8 @@ function formatDate(parts) {
     return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
 }
 
-function hasAny(payload, keys) {
-    return keys.some(key => Object.hasOwn(payload, key));
+function hasUnknown(payload, allowed) {
+    return Object.keys(payload).some(key => !allowed.has(key));
 }
 
 function failure(code) {

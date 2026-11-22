@@ -42,7 +42,8 @@ const ui = {
     accessDenied: $('online-access-denied'),
     arenaDirectory: $('arena-directory'), arenaDetail: $('arena-detail'),
     arenaCurrentList: $('arena-current-list'), arenaScheduleList: $('arena-schedule-list'), arenaMyList: $('arena-my-list'),
-    arenaSearch: $('arena-search'), arenaStatusFilter: $('arena-status-filter'), arenaControlFilter: $('arena-control-filter'),
+    arenaSearch: $('arena-search'), arenaStatusFilter: $('arena-status-filter'),
+    arenaControlFilter: $('arena-control-filter'), arenaRatingFilter: null, arenaIdentityFilter: null,
     arenaJoin: $('arena-join'), arenaWithdraw: $('arena-withdraw'), arenaTab: $('tab-tournaments'),
     arenaViewResults: $('arena-view-results'), arenaContext: $('arena-context'), arenaContextEmpty: $('tournament-context-empty'),
     directoryDialog: $('tournament-directory-dialog'), directoryClose: $('tournament-directory-close'),
@@ -503,6 +504,8 @@ function renderArenaDirectory() {
     const query = ui.arenaSearch.value.trim().toLocaleLowerCase();
     const statusFilter = ui.arenaStatusFilter.value;
     const controlFilter = ui.arenaControlFilter.value;
+    const ratingFilter = ui.arenaRatingFilter?.value || 'all';
+    const identityFilter = ui.arenaIdentityFilter?.value || 'all';
     const liveRows = (model.arena.tournaments || []).map(tournament => ({ ...tournament, playCategory: 'live' }));
     const dailyRows = (model.daily?.tournaments || []).map(tournament => ({
         ...tournament,
@@ -527,20 +530,25 @@ function renderArenaDirectory() {
             capacity: series.template?.capacity,
             participantCount: 0,
             planned: true,
-            seriesId: series.id
+            seriesId: series.id,
+            seriesKind: series.seriesKind,
+            source: occurrence.source || series.source
         })));
     const tournaments = [...liveRows, ...dailyRows, ...plannedRows].filter(tournament => {
         const category = arenaStatusCategory(tournament.status);
+        const identity = tournamentIdentity(tournament.source)?.kind;
         return (!query || String(tournament.name || '').toLocaleLowerCase().includes(query))
             && (statusFilter === 'all' || statusFilter === category)
             && (controlFilter === 'all' || tournament.pool === controlFilter
-                || tournament.playCategory === controlFilter);
-    });
+                || tournament.playCategory === controlFilter)
+            && (ratingFilter === 'all' || (ratingFilter === 'rated') === (tournament.rated === true))
+            && (identityFilter === 'all' || identityFilter === identity);
+    }).sort(compareTournamentStarts);
     const current = tournaments.filter(item => ['registration_open', 'active', 'finishing'].includes(item.status));
     const schedule = tournaments.filter(item => ['draft', 'scheduled', 'planned', 'skipped'].includes(item.status));
     const mine = tournaments.filter(item => item.joined || item.organizedByMe || (item.myState && item.myState !== 'withdrawn'));
     renderArenaList(ui.arenaCurrentList, current, 'No current tournaments', 'Live Arenas and open registrations will appear here.');
-    renderArenaList(ui.arenaScheduleList, schedule, 'No scheduled tournaments', 'New community Arenas will appear here in your local time.');
+    renderArenaSchedule(ui.arenaScheduleList, schedule);
     renderArenaList(ui.arenaMyList, mine, 'No tournaments yet', 'Join or create an Arena to keep it here.');
     $('directory-count-current').textContent = String(current.length);
     $('directory-count-schedule').textContent = String(schedule.length);
@@ -552,18 +560,62 @@ function renderArenaDirectory() {
 function renderArenaList(list, tournaments, title, copy) {
     list.replaceChildren();
     if (!tournaments.length) {
-        const empty = document.createElement('div');
-        empty.className = 'arena-empty';
-        const heading = document.createElement('strong'); heading.textContent = title;
-        const detail = document.createElement('p'); detail.textContent = copy;
-        empty.append(heading, detail);
-        list.append(empty);
+        appendArenaEmpty(list, title, copy);
         return;
     }
+    renderArenaCards(list, tournaments);
+}
+
+function renderArenaSchedule(list, tournaments) {
+    list.replaceChildren();
+    if (!tournaments.length) {
+        appendArenaEmpty(list, 'No scheduled tournaments', 'Upcoming events and recurrence plans will appear here in your local time.');
+        return;
+    }
+    const materialized = tournaments.filter(tournament => !tournament.planned);
+    const planned = tournaments.filter(tournament => tournament.planned);
+    for (const section of [
+        { title: 'Scheduled tournament records', rows: materialized },
+        { title: 'Planned from recurrence rules', rows: planned }
+    ]) {
+        if (!section.rows.length) continue;
+        const heading = document.createElement('h4');
+        heading.className = 'arena-schedule-section';
+        heading.textContent = section.title;
+        list.append(heading);
+        renderArenaCards(list, section.rows, { groupByDate: true });
+    }
+}
+
+function appendArenaEmpty(list, title, copy) {
+    const empty = document.createElement('div');
+    empty.className = 'arena-empty';
+    const heading = document.createElement('strong'); heading.textContent = title;
+    const detail = document.createElement('p'); detail.textContent = copy;
+    empty.append(heading, detail);
+    list.append(empty);
+}
+
+function renderArenaCards(list, tournaments, options = {}) {
+    let lastDate = null;
     tournaments.forEach(tournament => {
+        if (options.groupByDate) {
+            const starts = new Date(tournament.startsAt);
+            const dateKey = Number.isNaN(starts.valueOf()) ? 'unknown' : starts.toLocaleDateString('en-CA');
+            if (dateKey !== lastDate) {
+                const dateHeading = document.createElement('h5');
+                dateHeading.className = 'arena-date-group';
+                dateHeading.textContent = Number.isNaN(starts.valueOf()) ? 'Date unavailable'
+                    : starts.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                list.append(dateHeading);
+                lastDate = dateKey;
+            }
+        }
         const card = document.createElement('article');
-        card.className = 'arena-card';
+        const identity = tournamentIdentity(tournament.source);
+        card.className = `arena-card${identity ? ` arena-card--${identity.kind}` : ''}`;
         const main = document.createElement('div');
+        const identityBadge = createTournamentIdentityBadge(tournament.source);
         const status = document.createElement('span');
         status.className = `arena-status arena-status--${arenaStatusCategory(tournament.status)}`;
         status.textContent = arenaStatusLabel(tournament.status);
@@ -576,6 +628,7 @@ function renderArenaList(list, tournaments, title, copy) {
         facts.textContent = tournament.planned
             ? `${arenaControl(tournament)} · ${duration} · Tournament record not created yet${localStart}`
             : `${arenaControl(tournament)} · ${duration} · ${tournament.participantCount}/${tournament.capacity || '∞'} players${localStart}`;
+        if (identityBadge) main.append(identityBadge);
         main.append(status, name, facts);
         const actions = document.createElement('div'); actions.className = 'arena-card__actions';
         if (tournament.planned) {
@@ -609,6 +662,83 @@ function renderArenaList(list, tournaments, title, copy) {
         card.append(main, actions);
         list.append(card);
     });
+}
+
+function compareTournamentStarts(left, right) {
+    const leftTime = Date.parse(left?.startsAt);
+    const rightTime = Date.parse(right?.startsAt);
+    const compared = (Number.isFinite(leftTime) ? leftTime : Number.MAX_SAFE_INTEGER)
+        - (Number.isFinite(rightTime) ? rightTime : Number.MAX_SAFE_INTEGER);
+    return compared || String(left?.name || '').localeCompare(String(right?.name || ''))
+        || String(left?.id || '').localeCompare(String(right?.id || ''));
+}
+
+function tournamentIdentity(source) {
+    if (source === 'official') return Object.freeze({ kind: 'official', label: 'OFFICIAL CAISSA', icon: '🛡' });
+    if (source === 'community') return Object.freeze({ kind: 'community', label: 'COMMUNITY TOURNAMENT', icon: null });
+    return null;
+}
+
+function createTournamentIdentityBadge(source) {
+    const identity = tournamentIdentity(source);
+    if (!identity) return null;
+    const badge = document.createElement('span');
+    badge.className = `tournament-identity tournament-identity--${identity.kind}`;
+    badge.setAttribute('aria-label', identity.label);
+    if (identity.icon) {
+        const icon = document.createElement('span');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = identity.icon;
+        badge.append(icon);
+    }
+    badge.append(document.createTextNode(identity.label));
+    return badge;
+}
+
+function renderTournamentIdentity(id, source) {
+    let element = $(id);
+    const identity = tournamentIdentity(source);
+    if (!element && identity) {
+        element = document.createElement('div');
+        element.id = id;
+        const anchor = id === 'arena-detail-identity' ? $('arena-detail-kicker')
+            : document.querySelector('.arena-context-head p');
+        anchor?.before(element);
+    }
+    if (!element) return;
+    const badge = createTournamentIdentityBadge(source);
+    element.replaceChildren(...(badge ? [...badge.childNodes] : []));
+    element.className = badge?.className || 'tournament-identity';
+    element.hidden = !badge;
+    if (badge) element.setAttribute('aria-label', badge.getAttribute('aria-label'));
+    else element.removeAttribute('aria-label');
+}
+
+function ensureTournamentDirectoryFilters() {
+    if (ui.arenaRatingFilter && ui.arenaIdentityFilter) return;
+    const filters = $('arena-filters');
+    const addSelect = (id, labelText, options) => {
+        const label = document.createElement('label');
+        label.append(document.createTextNode(labelText));
+        const select = document.createElement('select');
+        select.id = id;
+        for (const [value, text] of options) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = text;
+            select.append(option);
+        }
+        select.addEventListener('change', renderArenaDirectory);
+        label.append(select);
+        filters.append(label);
+        return select;
+    };
+    ui.arenaRatingFilter = addSelect('arena-rating-filter', 'Rating', [
+        ['all', 'Rated and unrated'], ['rated', 'Rated'], ['unrated', 'Unrated']
+    ]);
+    ui.arenaIdentityFilter = addSelect('arena-identity-filter', 'Organizer', [
+        ['all', 'Official and community'], ['official', 'Official CAISSA'], ['community', 'Community']
+    ]);
 }
 
 async function joinTournamentFromCard(tournament, button) {
@@ -654,6 +784,7 @@ function renderArenaDetail(tournament) {
     $('arena-filters').hidden = true;
     document.querySelector('.tournament-directory-tabs').hidden = true;
     ui.arenaDetail.hidden = false;
+    renderTournamentIdentity('arena-detail-identity', tournament.source);
     $('arena-detail-name').textContent = tournament.name;
     const daily = tournament.playCategory === 'daily' || Number(tournament.daysPerMove) > 0;
     $('arena-detail-kicker').textContent = `${daily ? 'DAILY · ROUND ROBIN' : String(tournament.format || 'arena').toUpperCase()} · ${tournament.rated ? 'RATED' : 'UNRATED'}`;
@@ -741,6 +872,7 @@ function openTournamentDirectory(view = 'current', opener = document.activeEleme
         return;
     }
     model.directoryOpener = opener instanceof HTMLElement ? opener : document.activeElement;
+    ensureTournamentDirectoryFilters();
     showArenaDirectory();
     selectDirectoryView(view);
     if (!ui.directoryDialog.open) ui.directoryDialog.showModal();
@@ -1263,6 +1395,7 @@ async function manageArenaTournament(action) {
 }
 
 function renderArenaContext(tournament) {
+    renderTournamentIdentity('arena-context-identity', tournament.source);
     $('arena-context-name').textContent = tournament.name;
     $('arena-context-meta').textContent = `${arenaControl(tournament)} · ${tournament.rated ? 'Rated' : 'Unrated'} · ${arenaStatusLabel(tournament.status)}`;
     $('arena-context-enrollment').textContent = `${tournament.participantCount}/${tournament.capacity || '∞'} players · ${tournament.myState ? arenaParticipantStatus(tournament.myState) : tournament.organizedByMe ? 'Organizer' : 'Not joined'}`;
