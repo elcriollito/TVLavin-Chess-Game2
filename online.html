@@ -284,23 +284,6 @@
                         <label>Time control<select id="arena-create-control" name="control" required><option value="bullet-1-0">1+0 Bullet</option><option value="bullet-1-1">1+1 Bullet</option><option value="bullet-2-1">2+1 Bullet</option><option value="blitz-3-0">3+0 Blitz</option><option value="blitz-3-2" selected>3+2 Blitz</option><option value="blitz-5-0">5+0 Blitz</option><option value="blitz-5-5">5+5 Blitz</option><option value="rapid-10-0">10+0 Rapid</option><option value="rapid-10-5">10+5 Rapid</option></select></label>
                         <label>Tournament duration<select id="arena-create-duration" name="duration" required><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select></label>
                         <label class="arena-create-check"><input id="arena-create-late-join" name="lateJoin" type="checkbox" checked><span><strong>Allow late join</strong><small>Players may join while the Arena is active.</small></span></label>
-                        <label id="arena-create-repeat-wrap" class="arena-create-check form-wide"><input id="arena-create-repeat" type="checkbox"><span><strong>Repeat Tournament</strong><small>CAISSA creates each Arena automatically 1 or 2 days before it starts.</small></span></label>
-                    </template>
-                    <template id="arena-create-recurrence-template">
-                        <section id="arena-create-recurrence" class="arena-recurrence form-wide" aria-labelledby="arena-recurrence-title" hidden>
-                            <header><h4 id="arena-recurrence-title">Calendar recurrence</h4><p>Dates are calculated by the server in the selected timezone.</p></header>
-                            <label>Repeat every<span class="arena-recurrence-inline"><input id="recurrence-interval" type="number" min="1" max="52" value="1" inputmode="numeric"><select id="recurrence-frequency"><option value="weekly">week(s)</option><option value="daily">day(s)</option></select></span></label>
-                            <label>Local start time<input id="recurrence-local-time" type="time" value="19:00" step="60"></label>
-                            <fieldset id="recurrence-weekdays" class="recurrence-weekdays form-wide"><legend>Weekdays</legend><label><input type="checkbox" value="1">Mon</label><label><input type="checkbox" value="2">Tue</label><label><input type="checkbox" value="3">Wed</label><label><input type="checkbox" value="4">Thu</label><label><input type="checkbox" value="5" checked>Fri</label><label><input type="checkbox" value="6">Sat</label><label><input type="checkbox" value="0">Sun</label></fieldset>
-                            <label>First recurrence date<input id="recurrence-first-date" type="date"></label>
-                            <label>Timezone<input id="recurrence-timezone" type="text" list="recurrence-timezones" value="America/New_York" maxlength="64" autocomplete="off"><datalist id="recurrence-timezones"><option value="America/New_York"><option value="America/Chicago"><option value="America/Denver"><option value="America/Los_Angeles"><option value="Etc/UTC"></datalist></label>
-                            <label>End<select id="recurrence-end-mode"><option value="never">Never</option><option value="on_date">On date</option><option value="after_count">After N occurrences</option></select></label>
-                            <label id="recurrence-end-date-wrap" hidden>End date<input id="recurrence-end-date" type="date"></label>
-                            <label id="recurrence-count-wrap" hidden>Occurrences<input id="recurrence-count" type="number" min="1" max="100" value="10" inputmode="numeric"></label>
-                            <label>Create tournament<select id="recurrence-lead-days"><option value="2" selected>2 days before</option><option value="1">1 day before</option></select></label>
-                            <label class="arena-create-check"><input id="recurrence-enabled" type="checkbox" checked><span><strong>Enabled</strong><small>Clear to save the series paused.</small></span></label>
-                            <output id="recurrence-summary" class="recurrence-summary form-wide" aria-live="polite"></output>
-                        </section>
                     </template>
                     <template id="arena-create-daily-fields-template">
                         <label class="form-wide">Description<textarea id="daily-create-description" name="description" maxlength="500" rows="3" placeholder="Describe the event for participants."></textarea></label>
@@ -312,8 +295,13 @@
                     </template>
                 </section>
                 <section id="arena-detail" class="arena-detail" aria-labelledby="arena-detail-name" hidden>
-                    <button id="arena-detail-back" class="arena-back" type="button">Back to tournaments</button>
-                    <div class="arena-detail__hero"><div><p id="arena-detail-kicker">ARENA · UNRATED</p><h3 id="arena-detail-name">Tournament</h3></div><time id="arena-detail-countdown"><span>Starts in</span><strong>—</strong></time></div>
+                    <div id="tournament-detail-tools-mount"></div>
+                    <template id="tournament-detail-tools-template">
+                    <div class="arena-detail__toolbar"><button id="arena-detail-back" class="arena-back" type="button">Back to tournaments</button><div role="group" aria-label="Tournament actions"><button id="arena-detail-info-toggle" type="button" aria-controls="arena-information" aria-expanded="true"><span aria-hidden="true">ⓘ</span><span>Info</span></button><button id="arena-detail-share" type="button"><span aria-hidden="true">⌯</span><span>Share</span></button><button id="arena-detail-manage-toggle" type="button" aria-controls="arena-manage" aria-expanded="false" hidden><span aria-hidden="true">⚙</span><span>Manage</span></button></div></div>
+                    <section id="arena-information" class="arena-information" aria-labelledby="arena-information-title"><h4 id="arena-information-title">Tournament Information</h4><dl id="arena-information-list"></dl></section>
+                    <section id="arena-manage" class="arena-manage" aria-labelledby="arena-manage-title" hidden><h4 id="arena-manage-title">Organizer controls</h4><p id="arena-manage-copy">Actions are checked again by the server.</p><div><button id="arena-manage-cancel" class="danger-action" type="button" hidden>Cancel this tournament</button><button id="arena-manage-close" class="danger-action" type="button" hidden>Close tournament</button><button id="arena-manage-series" type="button" hidden>Official series controls</button></div><small>Emergency Abort remains disabled. Close stops new pairings and preserves active games.</small></section>
+                    </template>
+                    <div class="arena-detail__hero"><div><p id="arena-detail-kicker">ARENA · UNRATED</p><h3 id="arena-detail-name">Tournament</h3><p id="arena-detail-status" class="arena-detail__status">Registration open</p></div><time id="arena-detail-countdown"><span>Starts in</span><strong>—</strong></time></div>
                     <dl class="arena-facts"><div><dt>Time control</dt><dd id="arena-detail-control">3+2</dd></div><div><dt>Duration</dt><dd id="arena-detail-duration">15 min</dd></div><div><dt>Players</dt><dd id="arena-detail-players">0 / 4</dd></div><div><dt>Registration</dt><dd id="arena-detail-registration">Open</dd></div></dl>
                     <div class="arena-detail__actions"><button id="arena-join" class="primary-action" type="button">Join tournament</button><button id="arena-withdraw" type="button" hidden>Withdraw</button><button id="arena-view-results" type="button" hidden>View Results</button></div>
                     <section class="arena-rules"><h4>Season 001 rules</h4><ul id="arena-detail-rules"><li>Win 2 · Draw 1 · Loss 0</li><li>New pairings stop when Arena time expires.</li><li>Games already in progress finish normally.</li><li>Immediate rematches are avoided when alternatives exist.</li></ul></section>
@@ -321,6 +309,16 @@
             </div>
         </article>
     </dialog>
+    <dialog id="tournament-share-dialog" class="tournament-share-dialog" aria-labelledby="tournament-share-title"></dialog>
+    <template id="tournament-share-template">
+        <form method="dialog" class="tournament-share-card">
+            <header><div><p>SHARE TOURNAMENT</p><h3 id="tournament-share-title">Tournament</h3><time id="tournament-share-start"></time></div><button value="cancel" aria-label="Close share dialog">×</button></header>
+            <label>Permanent tournament link<input id="tournament-share-url" type="url" readonly></label>
+            <p id="tournament-share-protection" class="tournament-share-protection" hidden>Invitees still need authorized Vercel SSO access to this protected certification environment.</p>
+            <div class="tournament-share-actions"><button id="tournament-copy-link" type="button">Copy Link</button><button id="tournament-native-share" type="button">Share…</button><a id="tournament-share-facebook" target="_blank" rel="noopener noreferrer">Facebook</a><a id="tournament-share-x" target="_blank" rel="noopener noreferrer">X</a></div>
+            <output id="tournament-share-feedback" aria-live="polite"></output>
+        </form>
+    </template>
     <div id="online-toast" role="alert" aria-live="assertive" hidden></div>
 </body>
 </html>

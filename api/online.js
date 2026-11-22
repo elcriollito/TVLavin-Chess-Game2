@@ -26,8 +26,7 @@ import {
 import { isDailyEnabled, validateDailyCreation } from './_lib/online-daily.js';
 import {
     isRecurringTournamentsEnabled,
-    validateRecurringSeriesAction,
-    validateRecurringSeriesCreate
+    validateRecurringSeriesAction
 } from './_lib/online-recurring-scheduler.js';
 import { isWeeklyArenaEnabled, validateWeeklyAdminAction } from './_lib/online-weekly-scheduler.js';
 import { trustedOnlineSourceKey } from './_lib/online-request-source.js';
@@ -465,6 +464,12 @@ async function handleTournamentCommand(req, res, auth, service, dependencies, ev
                 eventId: event.eventId,
                 action: event.eventType === 'tournament.cancel' ? 'cancel' : 'close'
             });
+        } else if (event.eventType === 'tournament.next') {
+            arena = await service.requestNextArenaGame({
+                clerkId: auth.userId,
+                tournamentId: checked.value.tournamentId,
+                eventId: event.eventId
+            });
         } else {
             return res.status(501).json({ code: 'EVENT_NOT_ENABLED' });
         }
@@ -589,27 +594,13 @@ async function handleRecurringSeriesCommand(req, res, auth, service, dependencie
     }
     if (auth.guest) return res.status(403).json({ code: 'ARENA_MEMBER_ACCOUNT_REQUIRED' });
     const action = event.eventType.slice('series.'.length);
-    let recurring;
-    if (action === 'create') {
-        const checked = validateRecurringSeriesCreate(event.payload, env);
-        if (!checked.ok) return res.status(400).json({ code: checked.code });
-        if (checked.value.capacity > 64 && env.CAISSA_ONLINE_ARENA_100 !== '1') {
-            return res.status(403).json({ code: 'ARENA_100_NOT_ENABLED' });
-        }
-        recurring = await service.createRecurringSeries({
-            clerkId: auth.userId, eventId: event.eventId, ...checked.value
-        });
-    } else {
-        const checked = validateRecurringSeriesAction(action, event.payload);
-        if (!checked.ok) return res.status(400).json({ code: checked.code });
-        if (action === 'sync') recurring = await service.getRecurringSeries(auth.userId);
-        else recurring = await service.manageRecurringSeries({
-            clerkId: auth.userId,
-            eventId: event.eventId,
-            action,
-            payload: checked.value
-        });
+    if (action !== 'sync') {
+        return res.status(403).json({ code: 'RECURRING_OPERATOR_REQUIRED' });
     }
+    let recurring;
+    const checked = validateRecurringSeriesAction(action, event.payload);
+    if (!checked.ok) return res.status(400).json({ code: checked.code });
+    recurring = await service.getRecurringSeries(auth.userId);
     const state = {
         ...(await service.getState(auth.userId)),
         arena: await service.getArenaState(auth.userId),
@@ -630,8 +621,7 @@ function onlinePermissions(auth, env) {
     return Object.freeze({
         tournamentOrganizer: auth?.guest !== true
             && arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth?.userId),
-        recurringTournamentCreator: auth?.guest !== true
-            && env.CAISSA_ONLINE_RECURRING_TOURNAMENTS === '1'
+        recurringTournamentCreator: false
     });
 }
 
@@ -727,6 +717,7 @@ function mapError(code) {
     if (value.includes('ARENA_CREATION_COOLDOWN')) return { status: 429, code: 'ARENA_CREATION_COOLDOWN' };
     if (value.includes('ARENA_CREATION_CONFLICT')) return { status: 409, code: 'ARENA_CREATION_CONFLICT' };
     if (value.includes('ARENA_ORGANIZER_REQUIRED')) return { status: 403, code: 'ARENA_ORGANIZER_REQUIRED' };
+    if (value.includes('ARENA_NEXT_INVALID_STATE')) return { status: 409, code: 'ARENA_NEXT_INVALID_STATE' };
     if (value.includes('ARENA_MANAGE_INVALID_STATE')) return { status: 409, code: 'ARENA_MANAGE_INVALID_STATE' };
     if (value.includes('ARENA_NOT_FOUND')) return { status: 404, code: 'ARENA_NOT_FOUND' };
     if (value.includes('ARENA_INVALID')) return { status: 400, code: 'ARENA_INVALID' };

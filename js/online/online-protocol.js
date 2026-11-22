@@ -7,7 +7,7 @@ export const ONLINE_EVENTS = Object.freeze({
         'game.drawOffer', 'game.drawAccept', 'game.drawDecline', 'game.sync',
         'game.rematch', 'spectate.join', 'spectate.leave', 'tournament.join',
         'tournament.withdraw', 'tournament.sync', 'tournament.create',
-        'tournament.cancel', 'tournament.close', 'daily.create', 'daily.join',
+        'tournament.cancel', 'tournament.close', 'tournament.next', 'daily.create', 'daily.join',
         'daily.withdraw', 'daily.sync', 'weekly.sync', 'weekly.enable',
         'weekly.pause', 'weekly.skip', 'weekly.cancel', 'weekly.update',
         'series.create', 'series.sync', 'series.pause', 'series.resume',

@@ -9,6 +9,7 @@ test.beforeEach(async ({ page }) => {
     const tournament = tournamentFixture();
     const harness = {
         commands: [],
+        syncTournament: tournament,
         joinDelayMs: 0,
         joinErrorCode: null,
         state: {
@@ -18,6 +19,16 @@ test.beforeEach(async ({ page }) => {
         }
     };
     harnesses.set(page, harness);
+    await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'share', {
+            configurable: true,
+            value: async value => { window.__caissaShared = value; }
+        });
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: async value => { window.__caissaCopied = value; } }
+        });
+    });
     await page.route('**/js/caissa-auth.js', route => route.fulfill({
         contentType: 'text/javascript',
         body: `window.CAISSA_AUTH={isLoaded:true,isSignedIn:true,userId:'founder_a',fullName:'Founder A',email:'founder@example.test',getToken:async()=> 'arena-token',whenReady:async()=>window.CAISSA_AUTH};`
@@ -46,7 +57,7 @@ test.beforeEach(async ({ page }) => {
             if (command.eventType === 'tournament.sync') {
                 harness.state = {
                     ...harness.state,
-                    arena: { tournaments: harness.state.arena.tournaments, current: tournamentFixture() }
+                    arena: { tournaments: harness.state.arena.tournaments, current: harness.syncTournament }
                 };
             } else if (command.eventType === 'tournament.join') {
                 const current = { ...tournamentFixture(), participantCount: 1, myState: 'registered', standings: standingsFixture() };
@@ -59,6 +70,12 @@ test.beforeEach(async ({ page }) => {
                 harness.state = {
                     ...harness.state,
                     arena: { tournaments: [{ ...directoryTournament(current), joined: false, myState: 'withdrawn' }], current }
+                };
+            } else if (command.eventType === 'tournament.next') {
+                const current = { ...harness.state.arena.current, myState: 'waiting' };
+                harness.state = {
+                    ...harness.state,
+                    arena: { tournaments: [{ ...directoryTournament(current), joined: true, myState: 'waiting' }], current }
                 };
             }
         }
@@ -194,6 +211,79 @@ test('two simultaneous games render in context and tab navigation preserves the 
     expect(Math.abs(after.height - before.height)).toBeLessThan(1);
 });
 
+test('canonical deep link opens authoritative Info and Share without leaking session data', async ({ page }) => {
+    await page.goto(`/online/tournaments?directory=1&tournament=${tournamentId}`);
+    await expect(page.locator('#arena-detail')).toBeVisible();
+    await expect(page.locator('#arena-detail-name')).toHaveText('CAISSA Arena S001 — Founders Beta');
+    await expect(page.locator('#arena-information')).toBeVisible();
+    await expect(page.locator('#arena-information-list')).toContainText('Founder A');
+    await expect(page.locator('#arena-information-list')).toContainText('Win 2 · Draw 1 · Loss 0');
+    if (process.env.CAISSA_CAPTURE_HFX_005 === '1') {
+        await page.screenshot({ path: 'artifacts/hfx-005/tournament-information-desktop.png', fullPage: true });
+    }
+    await page.locator('#arena-detail-share').click();
+    const expected = `http://127.0.0.1:8017/online/tournaments?directory=1&tournament=${tournamentId}`;
+    await expect(page.locator('#tournament-share-url')).toHaveValue(expected);
+    await expect(page.locator('#tournament-share-url')).not.toHaveValue(/token|session|clerk/iu);
+    await page.locator('#tournament-copy-link').click();
+    await expect(page.locator('#tournament-share-feedback')).toHaveText('Link copied.');
+    expect(await page.evaluate(() => window.__caissaCopied)).toBe(expected);
+    await page.locator('#tournament-native-share').click();
+    expect(await page.evaluate(() => window.__caissaShared.url)).toBe(expected);
+    if (process.env.CAISSA_CAPTURE_HFX_005 === '1') {
+        await page.screenshot({ path: 'artifacts/hfx-005/tournament-share-dialog.png', fullPage: true });
+        await page.getByRole('button', { name: 'Close share dialog' }).click();
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: 'artifacts/hfx-005/tournament-information-mobile.png', fullPage: true });
+    }
+});
+
+test('invalid deep link fails safely without issuing tournament sync', async ({ page }) => {
+    await page.goto('/online/tournaments?directory=1&tournament=not-a-uuid');
+    await expect(page.locator('#arena-directory-message')).toContainText('Invalid tournament link');
+    expect(harnesses.get(page).commands.some(command => command.eventType === 'tournament.sync')).toBe(false);
+});
+
+test('resting survives canonical state and Next Arena Game requests one idempotent transition', async ({ page }) => {
+    const harness = harnesses.get(page);
+    const resting = {
+        ...tournamentFixture(), status: 'active', myState: 'resting', participantCount: 4,
+        startsAt: new Date(Date.now() - 60_000).toISOString(),
+        endsAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+        standings: standingsFixture().map((row, index) => ({ ...row, state: index === 0 ? 'resting' : 'waiting' }))
+    };
+    harness.state.arena = { tournaments: [{ ...directoryTournament(resting), joined: true }], current: resting };
+    await page.goto('/online');
+    await page.locator('#tab-tournaments').click();
+    await expect(page.locator('#arena-pairing-state')).toContainText('Break time');
+    await page.locator('#arena-context-tab-games').click();
+    const next = page.getByRole('button', { name: 'Next Arena Game' });
+    if (process.env.CAISSA_CAPTURE_HFX_005 === '1') {
+        await page.screenshot({ path: 'artifacts/hfx-005/arena-break-next-game.png', fullPage: true });
+    }
+    await next.dblclick();
+    await expect(page.locator('#arena-pairing-state')).toContainText('Waiting for pairing');
+    expect(harness.commands.filter(command => command.eventType === 'tournament.next')).toHaveLength(1);
+});
+
+test('Manage is server-role-derived and exposes Close only for the active organizer', async ({ page }) => {
+    const harness = harnesses.get(page);
+    const active = {
+        ...tournamentFixture(), status: 'active', organizedByMe: true, myState: 'waiting',
+        startsAt: new Date(Date.now() - 60_000).toISOString(),
+        endsAt: new Date(Date.now() + 30 * 60_000).toISOString()
+    };
+    harness.syncTournament = active;
+    harness.state.arena = { tournaments: [directoryTournament(active)], current: active };
+    await page.goto('/online/tournaments?directory=1');
+    await page.getByRole('button', { name: 'Details' }).click();
+    await expect(page.locator('#arena-detail-manage-toggle')).toBeVisible();
+    await page.locator('#arena-detail-manage-toggle').click();
+    await expect(page.locator('#arena-manage-close')).toBeVisible();
+    await expect(page.locator('#arena-manage-cancel')).toBeHidden();
+    await expect(page.locator('#arena-manage')).toContainText('Emergency Abort remains disabled');
+});
+
 test('refresh recovers membership, active game, and countdown from canonical state', async ({ page }) => {
     const harness = harnesses.get(page);
     const tournament = {
@@ -244,7 +334,8 @@ function tournamentFixture() {
         durationMinutes: 15, lateJoin: true, capacity: 4, minPlayers: 4,
         participantCount: 0, version: 2, scoringContract: 'arena-s001-2-1-0',
         finishingPolicy: 'finish_active_games', myState: null, standings: standingsFixture(),
-        games: [], nextPairing: null
+        games: [], nextPairing: null, source: 'community', organizerDisplayName: 'Founder A',
+        timeZone: 'America/New_York', organizedByMe: false
     };
 }
 

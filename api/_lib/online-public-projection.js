@@ -27,7 +27,7 @@ export async function projectOnlineState(state, resolveMany) {
     if (state.arena) projected.arena = await projectOnlineArenaState(state.arena, resolveMany);
     if (state.daily && typeof state.daily === 'object') {
         const current = state.daily.current ? {
-            ...state.daily.current,
+            ...projectTournamentInfo(state.daily.current, identities),
             standings: (state.daily.current.standings || []).map(row => ({
                 ...row,
                 displayName: publicName({
@@ -40,6 +40,8 @@ export async function projectOnlineState(state, resolveMany) {
         } : null;
         projected.daily = {
             ...state.daily,
+            tournaments: Array.isArray(state.daily.tournaments)
+                ? state.daily.tournaments.map(tournament => projectTournamentInfo(tournament, identities)) : [],
             current,
             game: projectGame(state.daily.game, identities),
             games: Array.isArray(state.daily.games)
@@ -59,6 +61,8 @@ export async function projectOnlineArenaState(arena, resolveMany) {
         if (subject && subject.length <= 255) subjects.add(subject);
     };
     for (const row of arena.current?.standings || []) add(row?.clerkId);
+    for (const tournament of arena.tournaments || []) add(tournament?.organizerClerkId);
+    add(arena.current?.organizerClerkId);
     for (const game of arena.current?.games || []) {
         add(game?.whiteClerkId);
         add(game?.blackClerkId);
@@ -68,7 +72,7 @@ export async function projectOnlineArenaState(arena, resolveMany) {
         ? await resolveMany([...subjects].sort())
         : {});
     const current = arena.current ? {
-        ...arena.current,
+        ...projectTournamentInfo(arena.current, identities),
         standings: (arena.current.standings || []).map(row => ({
             ...row,
             displayName: publicName({
@@ -102,7 +106,12 @@ export async function projectOnlineArenaState(arena, resolveMany) {
             })
         } : null
     } : null;
-    return { ...arena, current };
+    return {
+        ...arena,
+        tournaments: Array.isArray(arena.tournaments)
+            ? arena.tournaments.map(tournament => projectTournamentInfo(tournament, identities)) : [],
+        current
+    };
 }
 
 export function redactHistoricalPgn(pgn, whiteName, blackName) {
@@ -132,7 +141,21 @@ function collectSubjects(state) {
         add(game?.black_clerk_id);
     }
     for (const row of state.daily?.current?.standings || []) add(row?.clerkId);
+    for (const tournament of state.daily?.tournaments || []) add(tournament?.organizerClerkId);
+    add(state.daily?.current?.organizerClerkId);
     return [...subjects].sort();
+}
+
+function projectTournamentInfo(tournament, identities) {
+    if (!tournament || typeof tournament !== 'object') return tournament;
+    const { organizerClerkId, ...safe } = tournament;
+    const organizerDisplayName = tournament.source === 'official' ? 'CAISSA'
+        : organizerClerkId ? publicName({
+            subject: organizerClerkId,
+            raw: tournament.organizerDisplayName,
+            identity: identities[organizerClerkId]
+        }) : tournament.organizerDisplayName || null;
+    return { ...safe, organizerDisplayName };
 }
 
 function normalizeResolution(value) {
