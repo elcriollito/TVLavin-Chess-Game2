@@ -1,5 +1,10 @@
 {
   "outputDirectory": ".",
+  "git": {
+    "deploymentEnabled": {
+      "hotfix/caissa-tournament-directory-ux-hfx-006b": false
+    }
+  },
   "functions": {
     "api/insights/**/*.js": { "maxDuration": 30, "includeFiles": "index.html" },
     "api/stripe/webhook.js": {
