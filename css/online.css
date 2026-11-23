@@ -146,7 +146,7 @@
 .arena-create-form{min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 18px;padding-top:22px;text-align:left!important}
 .arena-create-form [hidden]{display:none!important}
 .arena-create-fields{display:contents}
-.arena-create-form>header{grid-column:1/-1}.arena-create-form header h3{margin-bottom:4px}.arena-create-form header p{margin:0;color:var(--online-muted);font-size:12px}
+.arena-create-form>header{grid-column:1/-1}.arena-create-form header h3{width:max-content;max-width:100%;margin-bottom:4px}.arena-create-form header h3:focus{outline:2px solid var(--online-accent);outline-offset:4px;border-radius:3px}.arena-create-form header p{margin:0;color:var(--online-muted);font-size:12px}
 .arena-create-form label{display:grid;align-content:start;gap:7px;color:var(--online-muted);font-size:14px}
 .arena-create-form input,.arena-create-form select,.arena-create-form textarea{width:100%;min-width:0;min-height:44px;border:1px solid var(--online-line);border-radius:8px;background:#09140f;color:var(--online-text);padding:9px 11px}
 .arena-create-form textarea{resize:vertical}.arena-create-form label>small{line-height:1.45;color:var(--online-muted)}
