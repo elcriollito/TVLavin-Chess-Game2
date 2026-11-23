@@ -110,6 +110,6 @@ test('public UI removes recurrence controls and exposes Share Info Manage and la
     assert.match(html, /tournament-share-dialog/u);
     assert.match(page, /\/online\/tournaments/u);
     assert.match(page, /searchParams\.set\('tournament', tournamentId\)/u);
-    assert.match(css, /width:min\(1320px/u);
+    assert.match(css, /width:min\(1480px/u);
     assert.match(css, /#f29a2e/u);
 });

@@ -187,7 +187,7 @@ function configureCapabilities(capabilities) {
     if (ratedOption.disabled) $('arena-create-rating').value = 'unrated';
     $('arena-create-capacity').max = capabilities.arena100 === true ? '100' : '64';
     $('weekly-featured').hidden = capabilities.weeklyArenas !== true;
-    $('directory-tab-create').hidden = true;
+    $('tournament-directory-create').hidden = true;
     $('weekly-admin-controls').hidden = true;
     configureTournamentCreateType();
 }
@@ -303,6 +303,7 @@ function bindControls() {
     $('browse-tournaments').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
     $('tournament-empty-browse').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
     $('tournament-empty-create').addEventListener('click', event => openTournamentDirectory('create', event.currentTarget));
+    $('tournament-directory-create').addEventListener('click', () => selectDirectoryView('create', { focusPanel: true }));
     $('arena-context-directory').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
     $('resign-game').addEventListener('click', () => confirmAction('Resign this game?', 'This result is final and will be recorded.', 'Resign')
         .then(confirmed => confirmed && sendGameCommand('game.resign')));
@@ -815,7 +816,7 @@ function renderArenaDetail(tournament) {
     model.selectedTournamentId = tournament.id;
     document.querySelectorAll('[data-directory-panel]').forEach(panel => { panel.hidden = true; });
     $('arena-filters').hidden = true;
-    document.querySelector('.tournament-directory-tabs').hidden = true;
+    document.querySelector('.tournament-directory-nav').hidden = true;
     ui.arenaDetail.hidden = false;
     renderTournamentIdentity('arena-detail-identity', tournament.source);
     $('arena-detail-name').textContent = tournament.name;
@@ -1033,7 +1034,7 @@ function showArenaDirectory() {
     updateTournamentUrl(null);
     ui.arenaDetail.hidden = true;
     $('arena-filters').hidden = false;
-    document.querySelector('.tournament-directory-tabs').hidden = false;
+    document.querySelector('.tournament-directory-nav').hidden = false;
     selectDirectoryView(model.selectedDirectoryView);
     renderArenaDirectory();
 }
@@ -1101,8 +1102,8 @@ function openTournamentDirectory(view = 'current', opener = document.activeEleme
     model.directoryOpener = opener instanceof HTMLElement ? opener : document.activeElement;
     ensureTournamentDirectoryFilters();
     showArenaDirectory();
-    selectDirectoryView(view);
     if (!ui.directoryDialog.open) ui.directoryDialog.showModal();
+    selectDirectoryView(view, { focusPanel: view === 'create' });
 }
 
 function closeTournamentDirectory() {
@@ -1748,19 +1749,28 @@ function arenaParticipantStatus(state) {
     return ({ registered: 'Registered', waiting: 'Waiting', playing: 'Playing', resting: 'Taking a break', withdrawn: 'Withdrawn', disconnected: 'Reconnecting' })[state] || 'Registered';
 }
 
-function selectDirectoryView(name) {
+function selectDirectoryView(name, { focusPanel = false } = {}) {
     model.selectedDirectoryView = name;
     ui.arenaDetail.hidden = true;
     $('arena-filters').hidden = name === 'create';
-    document.querySelector('.tournament-directory-tabs').hidden = false;
+    document.querySelector('.tournament-directory-nav').hidden = false;
     document.querySelectorAll('[data-directory-tab]').forEach(tab => {
         const selected = tab.dataset.directoryTab === name;
         tab.setAttribute('aria-selected', String(selected));
         tab.tabIndex = selected ? 0 : -1;
     });
+    $('tournament-directory-create').dataset.active = String(name === 'create');
     document.querySelectorAll('[data-directory-panel]').forEach(panel => {
         panel.hidden = panel.dataset.directoryPanel !== name;
     });
+    const directory = $('arena-directory');
+    directory.scrollTop = 0;
+    if (name === 'create' && focusPanel) {
+        requestAnimationFrame(() => {
+            directory.scrollTop = 0;
+            $('arena-create-title').focus({ preventScroll: true });
+        });
+    }
     renderArenaDirectory();
 }
 
@@ -1968,7 +1978,7 @@ function configureTournamentPermissions(permissions) {
     model.tournamentOrganizer = organizer;
     model.recurringTournamentCreator = recurringCreator;
     const capabilities = model.config?.capabilities || {};
-    $('directory-tab-create').hidden = !(organizer && capabilities.tournamentCreation === true);
+    $('tournament-directory-create').hidden = !(organizer && capabilities.tournamentCreation === true);
     $('weekly-admin-controls').hidden = !organizer
         || capabilities.weeklyArenas !== true;
     for (const id of ['weekly-config-form', 'weekly-skip-form']) {

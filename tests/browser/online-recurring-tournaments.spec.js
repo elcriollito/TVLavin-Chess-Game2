@@ -49,7 +49,7 @@ test('ordinary member cannot access recurring creation controls', async ({ page 
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto('/online/tournaments?directory=1');
-    await expect(page.locator('#directory-tab-create')).toBeHidden();
+    await expect(page.locator('#tournament-directory-create')).toBeHidden();
     await expect(page.locator('#arena-create-repeat')).toHaveCount(0);
     await expect(page.locator('#arena-create-recurrence')).toHaveCount(0);
     await expect(page.getByText('Repeat Tournament', { exact: true })).toHaveCount(0);
@@ -71,7 +71,7 @@ test('existing series are read-only and organizer one-time creation fits mobile'
     await page.locator('#directory-tab-schedule').click();
     await expect(page.locator('#recurring-series-list')).toContainText('audited CAISSA operator workflow');
     await expect(page.locator('#recurring-series-list button')).toHaveCount(0);
-    await page.locator('#directory-tab-create').click();
+    await page.locator('#tournament-directory-create').click();
     await expect(page.locator('#arena-create-repeat')).toHaveCount(0);
     const geometry = await page.locator('#arena-create-form').evaluate(element => ({
         scrollWidth: element.scrollWidth, clientWidth: element.clientWidth,

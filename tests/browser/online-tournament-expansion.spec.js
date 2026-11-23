@@ -93,7 +93,7 @@ test('creation form isolates Arena and Daily fields and submits only the selecte
     const harness = harnesses.get(page);
     harness.state.permissions.tournamentOrganizer = true;
     await page.goto('/online/tournaments?directory=1');
-    await page.locator('#directory-tab-create').click();
+    await page.locator('#tournament-directory-create').click();
 
     await expect(page.locator('#arena-create-control')).toBeVisible();
     await expect(page.locator('#arena-create-duration')).toBeVisible();
@@ -138,7 +138,52 @@ test('creation form isolates Arena and Daily fields and submits only the selecte
     ]) expect(creation.payload).not.toHaveProperty(forbidden);
 });
 
-test('2+1 is selectable for New Game and tournament creation stays within a phone viewport', async ({ page }) => {
+test('directory create CTA resets scroll, focuses the form, and gives filters readable widths', async ({ page }, testInfo) => {
+    harnesses.get(page).state.permissions.tournamentOrganizer = true;
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/online/tournaments?directory=1');
+
+    const create = page.locator('#tournament-directory-create');
+    await expect(create).toBeVisible();
+    const widths = await page.locator('#arena-filters').evaluate(filters => {
+        const width = selector => filters.querySelector(selector).getBoundingClientRect().width;
+        return {
+            search: width('#arena-search'), status: width('#arena-status-filter'),
+            type: width('#arena-control-filter'), rating: width('#arena-rating-filter'),
+            organizer: width('#arena-identity-filter')
+        };
+    });
+    expect(widths.search).toBeLessThan(widths.organizer);
+    for (const key of ['status', 'type', 'rating', 'organizer']) expect(widths[key]).toBeGreaterThanOrEqual(160);
+    expect(await page.locator('#tournament-directory-dialog').evaluate(element => element.clientWidth)).toBeGreaterThan(1320);
+    if (process.env.CAISSA_CAPTURE_DIRECTORY_UX === '1') {
+        await page.screenshot({ path: testInfo.outputPath('directory-filters-desktop.png') });
+    }
+
+    await page.locator('#directory-panel-current').evaluate(element => { element.style.minHeight = '1600px'; });
+    await page.locator('#arena-directory').evaluate(element => { element.scrollTop = 900; });
+    expect(await page.locator('#arena-directory').evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await create.focus();
+    await create.press('Enter');
+
+    await expect(page.locator('#directory-panel-create')).toBeVisible();
+    await expect(page.locator('#arena-create-title')).toBeFocused();
+    expect(await page.locator('#arena-directory').evaluate(element => element.scrollTop)).toBeLessThanOrEqual(1);
+    const geometry = await page.locator('#arena-create-title').evaluate(element => {
+        const title = element.getBoundingClientRect();
+        const scroller = element.closest('#arena-directory').getBoundingClientRect();
+        return { titleTop: title.top, scrollerTop: scroller.top, scrollerBottom: scroller.bottom };
+    });
+    expect(geometry.titleTop).toBeGreaterThanOrEqual(geometry.scrollerTop);
+    expect(geometry.titleTop).toBeLessThan(geometry.scrollerBottom);
+    if (process.env.CAISSA_CAPTURE_DIRECTORY_UX === '1') {
+        await page.screenshot({ path: testInfo.outputPath('directory-create-desktop.png') });
+    }
+    await page.locator('#arena-create-submit').scrollIntoViewIfNeeded();
+    await expect(page.locator('#arena-create-submit')).toBeVisible();
+});
+
+test('2+1 is selectable for New Game and tournament creation stays within a phone viewport', async ({ page }, testInfo) => {
     const harness = harnesses.get(page);
     harness.state.permissions.tournamentOrganizer = true;
     await page.setViewportSize({ width: 390, height: 844 });
@@ -149,13 +194,22 @@ test('2+1 is selectable for New Game and tournament creation stays within a phon
     expect(queued.payload).toMatchObject({ timeControlId: 'bullet-2-1' });
 
     await page.locator('#browse-tournaments').click();
-    await page.locator('#directory-tab-create').click();
+    const create = page.locator('#tournament-directory-create');
+    await expect(create).toBeVisible();
+    const createBox = await create.boundingBox();
+    expect(createBox.x).toBeGreaterThanOrEqual(0);
+    expect(createBox.x + createBox.width).toBeLessThanOrEqual(390);
+    await create.click();
+    await expect(page.locator('#arena-create-title')).toBeFocused();
     const overflow = await page.locator('#arena-create-form').evaluate(element => ({
         form: element.scrollWidth - element.clientWidth,
         dialog: element.closest('dialog').scrollWidth - element.closest('dialog').clientWidth
     }));
     expect(overflow.form).toBeLessThanOrEqual(1);
     expect(overflow.dialog).toBeLessThanOrEqual(1);
+    if (process.env.CAISSA_CAPTURE_DIRECTORY_UX === '1') {
+        await page.screenshot({ path: testInfo.outputPath('directory-create-mobile.png') });
+    }
 });
 
 test('ordinary member joins Daily, sees persistence, and opens the correspondence board', async ({ page }) => {
@@ -163,7 +217,7 @@ test('ordinary member joins Daily, sees persistence, and opens the correspondenc
     await expect(page.locator('.arena-card')).toHaveCount(2);
     await expect(page.locator('#weekly-featured')).toBeVisible();
     await expect(page.locator('#weekly-featured')).toContainText('SATURDAYS OF CHESS');
-    await expect(page.locator('#directory-tab-create')).toBeHidden();
+    await expect(page.locator('#tournament-directory-create')).toBeHidden();
     await expect(page.locator('#weekly-admin-controls')).toBeHidden();
 
     const dailyCard = page.locator('.arena-card').filter({ hasText: 'Daily Correspondence Test' });

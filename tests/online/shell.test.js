@@ -60,7 +60,8 @@ test('Tournaments is a real top-level destination with an accessible directory',
     assert.ok(vercel.rewrites.some(item => item.source === '/online/tournament-demo' && item.destination === '/online.html'));
     assert.match(server, /pathname === '\/online\/tournament-demo'/);
     assert.doesNotMatch(html, /data-lobby-tab="tournaments"/);
-    assert.match(html, /id="tournament-directory-dialog"[\s\S]*data-directory-tab="current"[\s\S]*data-directory-tab="schedule"[\s\S]*data-directory-tab="mine"[\s\S]*data-directory-tab="create"/);
+    assert.match(html, /id="tournament-directory-dialog"[\s\S]*data-directory-tab="current"[\s\S]*data-directory-tab="schedule"[\s\S]*data-directory-tab="mine"[\s\S]*id="tournament-directory-create"[^>]*aria-controls="directory-panel-create"/);
+    assert.doesNotMatch(html, /data-directory-tab="create"/);
     assert.match(html, /id="tab-tournaments"[^>]*data-tab="tournaments"[^>]*>Tournaments/);
     assert.match(html, /id="arena-directory"[^>]*hidden/);
     assert.match(html, /id="online-access-denied"[^>]*role="alert"[^>]*hidden/);
