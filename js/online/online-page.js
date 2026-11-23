@@ -821,12 +821,16 @@ function renderArenaDetail(tournament) {
     $('arena-detail-manage-toggle').setAttribute('aria-expanded', 'false');
     renderTournamentInformation(tournament, daily);
     configureTournamentManage(tournament, daily);
+    const strictDeadline = tournament.finishingPolicy === 'abort_at_deadline';
     const rules = Array.isArray(tournament.rules) && tournament.rules.length ? tournament.rules
         : daily ? ['One White and one Black game against each group opponent.',
             'The deadline resets after every legal move.',
             'Top players advance using points, Sonneborn-Berger, wins, then seed.']
             : ['Win 2 · Draw 1 · Loss 0', 'New pairings stop when Arena time expires.',
-                'Games already in progress finish normally.', 'Immediate rematches are avoided when alternatives exist.'];
+                strictDeadline
+                    ? 'Unfinished games are aborted at the scheduled ending time with no points or rating change.'
+                    : 'Games already in progress finish normally.',
+                'Immediate rematches are avoided when alternatives exist.'];
     $('arena-detail-rules').replaceChildren(...rules.map(rule => {
         const item = document.createElement('li'); item.textContent = rule; return item;
     }));
@@ -866,6 +870,9 @@ function renderTournamentInformation(tournament, daily) {
         add('Pairing', 'Continuous Arena pairings; immediate rematches are avoided when alternatives exist');
         add('Scoring', tournament.scoringContract === 'arena-s001-2-1-0'
             ? 'Win 2 · Draw 1 · Loss 0' : null);
+        add('Deadline policy', tournament.finishingPolicy === 'abort_at_deadline'
+            ? 'Unfinished games are aborted at the scheduled ending time; no points or rating changes.'
+            : 'Games already in progress may finish after pairing closes.');
     }
     const starts = new Date(tournament.startsAt);
     add('Start time', Number.isNaN(starts.valueOf()) ? null
@@ -1564,7 +1571,9 @@ function renderArenaGames(tournament) {
         ui.arenaPairingState.append(mark, title, copy);
     } else if (tournament.status === 'finishing') {
         title.textContent = 'Arena is finishing';
-        copy.textContent = 'No new games will start. Active games are resolving.';
+        copy.textContent = tournament.finishingPolicy === 'abort_at_deadline'
+            ? 'Arena time expired. No new games can start.'
+            : 'No new games will start. Active games are resolving.';
         ui.arenaPairingState.append(mark, title, copy);
     } else {
         title.textContent = arenaStatusLabel(tournament.status);
@@ -1578,7 +1587,10 @@ function renderArenaGames(tournament) {
         const names = document.createElement('strong');
         names.textContent = `${game.whiteDisplayName} — ${game.blackDisplayName}`;
         const meta = document.createElement('span');
-        meta.textContent = `Board ${game.boardNumber || '—'} · ${game.status === 'active' ? 'Playing' : game.result || 'Finished'}`;
+        const gameStatus = game.status === 'active' ? 'Playing'
+            : game.status === 'aborted' && game.termination === 'tournament_deadline'
+                ? 'Arena time expired · No points' : game.result || 'Finished';
+        meta.textContent = `Board ${game.boardNumber || '—'} · ${gameStatus}`;
         row.append(names, meta);
         row.addEventListener('click', () => {
             const fullGame = (model.state?.recentGames || []).find(item => item.id === game.gameId);
@@ -1829,7 +1841,8 @@ function applyState(state, options = {}) {
         ? state.recentGames?.find?.(game => game.id === priorGame.id)
             || dailyGames.find(game => game.id === priorGame.id)
         : null;
-    const retainedCompleted = !state.game && !state.ticket && recentPrior?.status === 'completed' ? recentPrior : null;
+    const retainedCompleted = !state.game && !state.ticket
+        && ['completed', 'aborted'].includes(recentPrior?.status) ? recentPrior : null;
     const retainedDaily = priorGame?.pool === 'daily'
         ? dailyGames.find(game => game.id === priorGame.id && game.status === 'active') || null
         : null;
@@ -1881,6 +1894,10 @@ function applyState(state, options = {}) {
             if (model.game.tournament_id) selectTab('new');
         }
         if (!resolvedPendingMove && gameVersion(model.game) > previousVersion && previousGameId === model.game.id) announceOpponentMove(model.game);
+        if (model.game.status === 'aborted' && model.game.termination === 'tournament_deadline'
+            && (priorGame?.status !== 'aborted' || priorGame?.termination !== 'tournament_deadline')) {
+            showToast('Arena time expired — Game aborted. No points awarded.');
+        }
     } else if (state.ticket) renderQueue(state.ticket);
     else renderLobby();
 }
@@ -1922,7 +1939,7 @@ function renderQueue(ticket) {
 }
 
 function renderGame(game, options = {}) {
-    const completed = game.status === 'completed';
+    const completed = ['completed', 'aborted'].includes(game.status);
     showView(completed ? 'result' : 'game');
     model.queueStartedAt = null;
     const color = playerColor(game);
@@ -1932,7 +1949,9 @@ function renderGame(game, options = {}) {
     board.setReadOnly(completed || game.turn !== color || !!model.pendingMove);
     ui.curtain.hidden = true;
     renderWorkspaceHeader();
-    ui.status.textContent = completed ? 'Game over. Review the result or choose what to do next.'
+    ui.status.textContent = game.status === 'aborted' && game.termination === 'tournament_deadline'
+        ? 'Arena time expired — Game aborted. No points awarded.'
+        : completed ? 'Game over. Review the result or choose what to do next.'
         : game.pool === 'daily' ? `Daily game · ${formatDailyDeadline(game.move_deadline_at)}` : 'Game in progress.';
     renderPlayerStrips(game, color);
     renderMoves(game.moves || []);
@@ -2011,7 +2030,7 @@ function renderMoves(moves) {
 function moveButton(move, ply, moves) {
     const button = document.createElement('button'); button.textContent = move?.san || '';
     button.disabled = !move;
-    if (move && model.game?.status === 'completed') button.addEventListener('click', () => {
+    if (move && ['completed', 'aborted'].includes(model.game?.status)) button.addEventListener('click', () => {
         const replay = new Chess(model.game.initial_fen || START_FEN);
         for (const item of moves.slice(0, ply)) replay.move({ from: item.from, to: item.to, promotion: item.promotion || 'q' });
         board.setPosition(replay.fen(), { animate: true });
@@ -2087,6 +2106,14 @@ async function sendGameCommand(eventType) {
 }
 
 function renderResult(game, color) {
+    if (game.status === 'aborted' && game.termination === 'tournament_deadline') {
+        ui.resultTitle.textContent = 'Arena time expired';
+        ui.resultDetail.textContent = 'Game aborted · No points awarded';
+        ui.ratingChange.hidden = true;
+        ui.rematch.disabled = true;
+        ui.rematch.textContent = 'Arena ended';
+        return;
+    }
     const won = (game.result === '1-0' && color === 'white') || (game.result === '0-1' && color === 'black');
     const drawn = game.result === '1/2-1/2';
     ui.resultTitle.textContent = drawn ? 'Draw' : won ? 'Victory' : 'Defeat';
@@ -2659,7 +2686,7 @@ function formatPlayerMeta(player) {
     return [rating, pool].filter(Boolean).join(' · ');
 }
 function isGuestSubject(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '')); }
-function resultLabel(value) { return ({ checkmate: 'Checkmate', stalemate: 'Stalemate', repetition: 'Threefold repetition', 'insufficient-material': 'Insufficient material', draw: 'Draw', resignation: 'Resignation', agreement: 'Draw agreed', timeout: 'Time expired' })[value] || 'Game complete'; }
+function resultLabel(value) { return ({ checkmate: 'Checkmate', stalemate: 'Stalemate', repetition: 'Threefold repetition', 'insufficient-material': 'Insufficient material', draw: 'Draw', resignation: 'Resignation', agreement: 'Draw agreed', timeout: 'Time expired', tournament_deadline: 'Arena time expired' })[value] || 'Game complete'; }
 function announceOpponentMove(game) {
     const move = game.moves?.at(-1);
     if (move && move.color !== playerColor(game)) ui.status.textContent = `${opponentName(game, playerColor(game))} moved ${move.san}.`;

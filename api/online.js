@@ -293,12 +293,13 @@ async function handleCommand(req, res, auth, service, dependencies, event) {
         const state = dailyGame
             ? await mergeDailyGameState(service, auth.userId, rawState, event.gameId)
             : rawState?.game ? rawState : focusCompletedGame(rawState, event.gameId);
-        const acceptedType = state?.game?.status === 'completed' ? 'game.result' : 'game.moveAccepted';
+        const acceptedType = ['completed', 'aborted'].includes(state?.game?.status)
+            ? 'game.result' : 'game.moveAccepted';
         audit(acceptedType, {
             gameId: event.gameId,
             version: state?.game?.version || null,
             ply: state?.game?.ply || null,
-            termination: projected.value.termination || null
+            termination: state?.game?.termination || projected.value.termination || null
         });
         await notifyGameChange(dependencies, dependencies.env || process.env, {
             gameId: event.gameId,

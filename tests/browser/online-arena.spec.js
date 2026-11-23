@@ -266,6 +266,55 @@ test('resting survives canonical state and Next Arena Game requests one idempote
     expect(harness.commands.filter(command => command.eventType === 'tournament.next')).toHaveLength(1);
 });
 
+test('strict deadline abort is announced, unscored, read-only and disables Next Arena Game', async ({ page }) => {
+    const harness = harnesses.get(page);
+    const deadlineGame = {
+        ...activeGame(), status: 'aborted', version: 2, result: null,
+        termination: 'tournament_deadline', clock_started_at: null,
+        completed_at: new Date().toISOString()
+    };
+    const tournament = {
+        ...tournamentFixture(), status: 'completed', myState: 'registered', participantCount: 4,
+        finishingPolicy: 'abort_at_deadline',
+        startsAt: new Date(Date.now() - 61 * 60_000).toISOString(),
+        endsAt: new Date(Date.now() - 60_000).toISOString(),
+        standings: standingsFixture(),
+        games: [{ ...tournamentGame(gameId, 'Founder A', 'Founder B', 1),
+            status: 'aborted', result: null, termination: 'tournament_deadline' }]
+    };
+    harness.state = {
+        ...harness.state, game: null, recentGames: [deadlineGame],
+        arena: { tournaments: [{ ...directoryTournament(tournament), joined: true }], current: tournament }
+    };
+    await page.goto('/online');
+    await page.locator('#tab-games').click();
+    await page.getByRole('tab', { name: 'Game History' }).click();
+    await page.locator('.game-row').click();
+    await expect(page.locator('#result-title')).toHaveText('Arena time expired');
+    await expect(page.locator('#result-detail')).toHaveText('Game aborted · No points awarded');
+    await expect(page.locator('#room-status')).toContainText('Arena time expired — Game aborted. No points awarded.');
+    await expect(page.locator('#rematch-game')).toBeDisabled();
+    await page.locator('#tab-tournaments').click();
+    await page.locator('#arena-context-tab-games').click();
+    await expect(page.locator('#arena-games-list')).toContainText('Arena time expired · No points');
+    await expect(page.getByRole('button', { name: 'Next Arena Game' })).toHaveCount(0);
+});
+
+test('strict deadline rules and information explain the exact cutoff', async ({ page }) => {
+    const harness = harnesses.get(page);
+    const strict = { ...tournamentFixture(), finishingPolicy: 'abort_at_deadline' };
+    harness.syncTournament = strict;
+    harness.state.arena = { tournaments: [directoryTournament(strict)], current: strict };
+    await page.goto('/online/tournaments?directory=1');
+    await page.getByRole('button', { name: 'Details' }).click();
+    await expect(page.locator('#arena-information-list')).toContainText(
+        'Unfinished games are aborted at the scheduled ending time; no points or rating changes.'
+    );
+    await expect(page.locator('#arena-detail-rules')).toContainText(
+        'Unfinished games are aborted at the scheduled ending time with no points or rating change.'
+    );
+});
+
 test('Manage is server-role-derived and exposes Close only for the active organizer', async ({ page }) => {
     const harness = harnesses.get(page);
     const active = {
