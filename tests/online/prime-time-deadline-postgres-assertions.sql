@@ -269,5 +269,66 @@ begin
   if v_after_ratings<>v_before_ratings then raise exception 'QA_LATE_RESULT_RATINGS_CHANGED'; end if;
 end $$;
 
+do $$
+declare
+  v_users uuid[];
+  v_clerks text[];
+  v_control record;
+  v_tournament uuid;
+  v_game uuid;
+begin
+  select array_agg(id order by id),array_agg(clerk_id order by id)
+  into v_users,v_clerks
+  from (select id,clerk_id from public.users where role<>'online_guest' order by id limit 2) users;
+  if cardinality(v_users)<>2 then raise exception 'QA_REQUIRES_TWO_BETA_USERS'; end if;
+
+  for v_control in select * from jsonb_to_recordset('[
+    {"label":"Bullet 1+0","pool":"bullet","base_ms":60000,"increment_ms":0},
+    {"label":"Bullet 1+1","pool":"bullet","base_ms":60000,"increment_ms":1000},
+    {"label":"Bullet 2+1","pool":"bullet","base_ms":120000,"increment_ms":1000},
+    {"label":"Blitz 3+0","pool":"blitz","base_ms":180000,"increment_ms":0},
+    {"label":"Blitz 3+2","pool":"blitz","base_ms":180000,"increment_ms":2000},
+    {"label":"Blitz 5+0","pool":"blitz","base_ms":300000,"increment_ms":0},
+    {"label":"Blitz 5+5","pool":"blitz","base_ms":300000,"increment_ms":5000},
+    {"label":"Rapid 10+0","pool":"rapid","base_ms":600000,"increment_ms":0},
+    {"label":"Rapid 10+5","pool":"rapid","base_ms":600000,"increment_ms":5000}
+  ]'::jsonb) as control(label text,pool text,base_ms integer,increment_ms integer)
+  loop
+    v_tournament:=gen_random_uuid(); v_game:=gen_random_uuid();
+    insert into public.caissa_online_tournaments(
+      id,name,source,format,status,pool,base_ms,increment_ms,rated,visibility,
+      starts_at,ends_at,registration_opens_at,registration_closes_at,duration_minutes,
+      late_join,capacity,min_players,configuration,created_by_clerk_id,play_category,
+      finishing_policy)
+    values(v_tournament,'QA strict '||v_control.label,'official','arena','active',
+      v_control.pool,v_control.base_ms,v_control.increment_ms,false,'private',
+      clock_timestamp()-interval '61 minutes',clock_timestamp()-interval '1 minute',
+      clock_timestamp()-interval '2 hours',clock_timestamp()-interval '1 minute',60,true,64,2,
+      '{"betaSeason":"S001","finishingPolicy":"abort_at_deadline"}'::jsonb,
+      'system:deadline-qa','live','abort_at_deadline');
+    for i in 1..2 loop
+      insert into public.caissa_online_tournament_participants(
+        tournament_id,user_id,clerk_id,display_name,rating_at_join,state)
+      values(v_tournament,v_users[i],v_clerks[i],'Deadline QA '||i,1500,'playing');
+    end loop;
+    insert into public.caissa_online_games(
+      id,pool,rated,base_ms,increment_ms,white_user_id,black_user_id,
+      white_clerk_id,black_clerk_id,white_display_name,black_display_name,
+      white_time_ms,black_time_ms,clock_started_at,tournament_id)
+    values(v_game,v_control.pool,false,v_control.base_ms,v_control.increment_ms,
+      v_users[1],v_users[2],v_clerks[1],v_clerks[2],'Deadline QA 1','Deadline QA 2',
+      v_control.base_ms,v_control.base_ms,clock_timestamp(),v_tournament);
+    insert into public.caissa_online_tournament_games(tournament_id,game_id,board_number)
+    values(v_tournament,v_game,1);
+    perform caissa_online_private.arena_reconcile(v_tournament);
+    if not exists(select 1 from public.caissa_online_games where id=v_game
+        and status='aborted' and result is null and termination='tournament_deadline')
+      then raise exception 'QA_CONTROL_NOT_ABORTED:%',v_control.label; end if;
+    if exists(select 1 from public.caissa_online_tournament_games where game_id=v_game
+        and (scored_at is not null or white_points is not null or black_points is not null))
+      then raise exception 'QA_CONTROL_SCORED:%',v_control.label; end if;
+  end loop;
+end $$;
+
 rollback;
 select 'prime_time_deadline_postgres_pass' result;
