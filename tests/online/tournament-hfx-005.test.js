@@ -114,7 +114,10 @@ test('public UI removes recurrence controls and exposes Share Info Manage and la
     assert.match(page, /\/online\/tournaments/u);
     assert.match(page, /searchParams\.set\('tournament', tournamentId\)/u);
     assert.match(css, /width:min\(1480px/u);
+    assert.match(css, /grid-template-columns:minmax\(320px,1fr\) 150px 160px 210px 230px/u);
     assert.match(css, /#f29a2e/u);
+    assert.match(page, /function syncTournamentCreationAccess\(\)/u);
+    assert.match(page, /model\.tournamentOrganizer[\s\S]+capabilities\?\.tournamentCreation === true/u);
 });
 
 test('Saturdays administration remains on its dedicated server-authorized service path', async () => {

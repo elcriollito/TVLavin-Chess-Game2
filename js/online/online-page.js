@@ -185,7 +185,7 @@ function configureCapabilities(capabilities) {
     if (ratedOption.disabled) $('arena-create-rating').value = 'unrated';
     $('arena-create-capacity').max = capabilities.arena100 === true ? '100' : '64';
     $('weekly-featured').hidden = capabilities.weeklyArenas !== true;
-    $('tournament-directory-create').hidden = true;
+    syncTournamentCreationAccess();
     configureTournamentCreateType();
 }
 
@@ -1907,10 +1907,17 @@ function configureTournamentPermissions(permissions) {
     const recurringCreator = permissions?.recurringTournamentCreator === true;
     model.tournamentOrganizer = organizer;
     model.recurringTournamentCreator = recurringCreator;
-    const capabilities = model.config?.capabilities || {};
-    $('tournament-directory-create').hidden = !(organizer && capabilities.tournamentCreation === true);
-    if (!organizer && !recurringCreator && model.selectedDirectoryView === 'create') selectDirectoryView('current');
+    syncTournamentCreationAccess();
     configureTournamentCreateType();
+}
+
+function syncTournamentCreationAccess() {
+    const authenticatedMember = model.auth?.isSignedIn === true && model.auth?.isGuest !== true;
+    const canCreate = authenticatedMember
+        && model.tournamentOrganizer
+        && model.config?.capabilities?.tournamentCreation === true;
+    $('tournament-directory-create').hidden = !canCreate;
+    if (!canCreate && model.selectedDirectoryView === 'create') selectDirectoryView('current');
 }
 
 function renderLobby() {

@@ -8,6 +8,12 @@ const harnesses = new WeakMap();
 test.beforeEach(async ({ page }) => {
     const harness = {
         commands: [],
+        capabilities: {
+            matchmaking: true, rated: false, tournaments: true, arenaS001: true,
+            tournamentCreation: true, publicTournamentDirectory: false,
+            arena100: true, tournamentRated: false, dailyTournaments: true,
+            dailyRated: false, weeklyArenas: true
+        },
         state: {
             profile: { display_name: 'Daily Player' }, ticket: null, game: null,
             recentGames: [], players: [], challenges: [],
@@ -27,12 +33,7 @@ test.beforeEach(async ({ page }) => {
         if (request.method() === 'GET' && url.searchParams.get('action') === 'config') {
             return route.fulfill({ json: {
                 protocolVersion: '1.0.0', rollout: 'preview', enabled: true,
-                capabilities: {
-                    matchmaking: true, rated: false, tournaments: true, arenaS001: true,
-                    tournamentCreation: true, publicTournamentDirectory: false,
-                    arena100: true, tournamentRated: false, dailyTournaments: true,
-                    dailyRated: false, weeklyArenas: true
-                }, realtime: null
+                capabilities: harness.capabilities, realtime: null
             } });
         }
         if (request.method() === 'POST') {
@@ -131,6 +132,7 @@ test('creation form isolates Arena and Daily fields and submits only the selecte
 
     await page.locator('#arena-create-name').fill('Daily UX Contract');
     await page.locator('#arena-create-submit').click();
+    await expect.poll(() => harness.commands.some(command => command.eventType === 'daily.create')).toBe(true);
     const creation = harness.commands.find(command => command.eventType === 'daily.create');
     expect(creation.payload).toMatchObject({
         name: 'Daily UX Contract', description: 'A server-timed correspondence event.',
@@ -156,8 +158,15 @@ test('directory create CTA resets scroll, focuses the form, and gives filters re
             organizer: width('#arena-identity-filter')
         };
     });
-    expect(widths.search).toBeLessThan(widths.organizer);
-    for (const key of ['status', 'type', 'rating', 'organizer']) expect(widths[key]).toBeGreaterThanOrEqual(160);
+    expect(widths.search).toBeGreaterThan(widths.organizer * 2);
+    expect(widths.status).toBeGreaterThanOrEqual(145);
+    expect(widths.type).toBeGreaterThanOrEqual(155);
+    expect(widths.rating).toBeGreaterThanOrEqual(205);
+    expect(widths.organizer).toBeGreaterThanOrEqual(225);
+    const filterTextFits = await page.locator('#arena-filters select').evaluateAll(selects => selects.every(select => (
+        select.clientWidth >= 140 && select.scrollWidth <= select.clientWidth + 1
+    )));
+    expect(filterTextFits).toBe(true);
     expect(await page.locator('#tournament-directory-dialog').evaluate(element => element.clientWidth)).toBeGreaterThan(1320);
     if (process.env.CAISSA_CAPTURE_DIRECTORY_UX === '1') {
         await page.screenshot({ path: testInfo.outputPath('directory-filters-desktop.png') });
@@ -186,6 +195,47 @@ test('directory create CTA resets scroll, focuses the form, and gives filters re
     await expect(page.locator('#arena-create-submit')).toBeVisible();
 });
 
+test('creation CTA requires both the server organizer permission and the environment capability', async ({ page }) => {
+    const harness = harnesses.get(page);
+    harness.state.permissions.tournamentOrganizer = true;
+    harness.capabilities.tournamentCreation = false;
+    await page.goto('/online/tournaments?directory=1');
+    await expect(page.locator('#tournament-directory-create')).toBeHidden();
+
+    harness.capabilities.tournamentCreation = true;
+    harness.state.permissions.tournamentOrganizer = false;
+    await page.reload();
+    await expect(page.locator('#tournament-directory-create')).toBeHidden();
+
+    harness.state.permissions.tournamentOrganizer = true;
+    await page.reload();
+    await expect(page.locator('#tournament-directory-create')).toBeVisible();
+    await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
+});
+
+test('directory filters reflow without truncation or horizontal overflow on tablet', async ({ page }) => {
+    harnesses.get(page).state.permissions.tournamentOrganizer = true;
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto('/online/tournaments?directory=1');
+
+    const layout = await page.locator('#arena-filters').evaluate(filters => {
+        const controls = [...filters.querySelectorAll('input, select')].map(control => {
+            const box = control.getBoundingClientRect();
+            return { width: box.width, top: Math.round(box.top) };
+        });
+        const dialog = filters.closest('dialog');
+        return {
+            controls,
+            overflow: dialog.scrollWidth - dialog.clientWidth
+        };
+    });
+    expect(layout.overflow).toBeLessThanOrEqual(1);
+    expect(new Set(layout.controls.map(control => control.top)).size).toBe(2);
+    expect(layout.controls[0].width).toBeGreaterThan(layout.controls[1].width * 1.8);
+    expect(layout.controls[3].width).toBeGreaterThanOrEqual(300);
+    expect(layout.controls[4].width).toBeGreaterThanOrEqual(300);
+});
+
 test('2+1 is selectable for New Game and tournament creation stays within a phone viewport', async ({ page }, testInfo) => {
     const harness = harnesses.get(page);
     harness.state.permissions.tournamentOrganizer = true;
@@ -193,6 +243,7 @@ test('2+1 is selectable for New Game and tournament creation stays within a phon
     await page.goto('/online');
     await page.locator('[data-control="bullet-2-1"]').click();
     await page.locator('#find-game').click();
+    await expect.poll(() => harness.commands.some(command => command.eventType === 'queue.join')).toBe(true);
     const queued = harness.commands.find(command => command.eventType === 'queue.join');
     expect(queued.payload).toMatchObject({ timeControlId: 'bullet-2-1' });
 
