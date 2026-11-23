@@ -9,7 +9,11 @@ test.beforeEach(async ({ page }) => {
         state: {
             profile: { display_name: 'Recurring Member' }, ticket: null, game: null,
             recentGames: [], players: [], challenges: [],
-            permissions: { tournamentOrganizer: false, recurringTournamentCreator: false },
+            permissions: {
+                communityTournamentCreator: true,
+                tournamentOrganizer: false,
+                recurringTournamentCreator: false
+            },
             arena: { tournaments: [], current: null },
             daily: { tournaments: [], current: null, games: [], game: null, recentGames: [] },
             recurring: { series: [] }
@@ -28,7 +32,7 @@ test.beforeEach(async ({ page }) => {
                 protocolVersion: '1.0.0', rollout: 'preview', enabled: true,
                 capabilities: {
                     matchmaking: true, rated: false, tournaments: true, arenaS001: true,
-                    tournamentCreation: true, publicTournamentDirectory: false,
+                    tournamentCreation: true, dailyTournamentCreation: true, publicTournamentDirectory: false,
                     arena100: true, tournamentRated: false, dailyTournaments: true,
                     dailyRated: false, weeklyArenas: true, recurringTournaments: true
                 }, realtime: null
@@ -49,7 +53,9 @@ test('ordinary member cannot access recurring creation controls', async ({ page 
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto('/online/tournaments?directory=1');
-    await expect(page.locator('#tournament-directory-create')).toBeHidden();
+    await expect(page.locator('#tournament-directory-create')).toBeVisible();
+    await page.locator('#tournament-directory-create').click();
+    await expect(page.locator('#directory-panel-create')).toBeVisible();
     await expect(page.locator('#arena-create-repeat')).toHaveCount(0);
     await expect(page.locator('#arena-create-recurrence')).toHaveCount(0);
     await expect(page.getByText('Repeat Tournament', { exact: true })).toHaveCount(0);

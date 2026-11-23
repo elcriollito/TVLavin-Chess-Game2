@@ -386,6 +386,7 @@ function publicConfig(rollout, env) {
             tournaments: arenaEnabled,
             arenaS001: arenaEnabled,
             tournamentCreation: arenaEnabled && env.CAISSA_ONLINE_ARENA_CREATE === '1',
+            dailyTournamentCreation: dailyEnabled && env.CAISSA_ONLINE_DAILY_CREATE === '1',
             publicTournamentDirectory: false,
             arena100: arenaEnabled && env.CAISSA_ONLINE_ARENA_100 === '1',
             tournamentRated: isArenaRatedEnabled(rollout, env),
@@ -424,9 +425,8 @@ async function handleTournamentCommand(req, res, auth, service, dependencies, ev
 
     let arena;
     if (event.eventType === 'tournament.create') {
-        if (env.CAISSA_ONLINE_ARENA_CREATE !== '1'
-            || !arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth.userId)) {
-            return res.status(403).json({ code: 'ARENA_ORGANIZER_REQUIRED' });
+        if (env.CAISSA_ONLINE_ARENA_CREATE !== '1') {
+            return res.status(403).json({ code: 'TOURNAMENT_CREATION_DISABLED' });
         }
         const creation = validateArenaCreation(event.payload);
         if (!creation.ok) return res.status(400).json({ code: creation.code });
@@ -529,9 +529,8 @@ async function handleDailyTournamentCommand(req, res, auth, service, dependencie
     if (auth.guest) return res.status(403).json({ code: 'ARENA_MEMBER_ACCOUNT_REQUIRED' });
     let daily;
     if (event.eventType === 'daily.create') {
-        if (env.CAISSA_ONLINE_DAILY_CREATE !== '1'
-            || !arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth.userId)) {
-            return res.status(403).json({ code: 'ARENA_ORGANIZER_REQUIRED' });
+        if (env.CAISSA_ONLINE_DAILY_CREATE !== '1') {
+            return res.status(403).json({ code: 'TOURNAMENT_CREATION_DISABLED' });
         }
         const creation = validateDailyCreation(event.payload);
         if (!creation.ok) return res.status(400).json({ code: creation.code });
@@ -619,8 +618,11 @@ function isArenaParticipantAuthorized(rollout, env, userId) {
 }
 
 function onlinePermissions(auth, env) {
+    const authenticatedMember = Boolean(auth?.userId) && auth?.guest !== true;
     return Object.freeze({
-        tournamentOrganizer: auth?.guest !== true
+        communityTournamentCreator: authenticatedMember
+            && (env.CAISSA_ONLINE_ARENA_CREATE === '1' || env.CAISSA_ONLINE_DAILY_CREATE === '1'),
+        tournamentOrganizer: authenticatedMember
             && arenaSubjectSet(env.CAISSA_ONLINE_TOURNAMENT_ADMINS).has(auth?.userId),
         recurringTournamentCreator: false
     });
@@ -738,7 +740,8 @@ function serializedBodyBytes(body) {
 
 function distributedRatePolicy(req, event) {
     if (req.method === 'GET') return { bucket: 'read', limit: 120, windowSeconds: 60 };
-    if (event?.eventType === 'tournament.create' || event?.eventType === 'series.create') {
+    if (event?.eventType === 'tournament.create' || event?.eventType === 'daily.create'
+        || event?.eventType === 'series.create') {
         return { bucket: 'tournament-create', limit: 6, windowSeconds: 3600 };
     }
     if (event?.eventType === 'challenge.create' || event?.eventType === 'game.rematch') {

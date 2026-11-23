@@ -70,12 +70,14 @@ const model = {
     tournamentRealtime: null, tournamentRealtimeId: null, tournamentRealtimeEpoch: 0,
     selectedArenaContext: 'standings', selectedDirectoryView: 'current', arenaBusy: false,
     tournamentIntent: location.pathname === '/online/tournaments' && PAGE_PARAMS.get('directory') === '1',
+    tournamentCreateIntent: location.pathname === '/online/tournaments' && PAGE_PARAMS.get('create') === '1',
     deepLinkTournamentId: TOURNAMENT_UUID.test(String(REQUESTED_TOURNAMENT_ID || ''))
         ? REQUESTED_TOURNAMENT_ID : null,
     invalidTournamentLink: REQUESTED_TOURNAMENT_ID !== null
         && !TOURNAMENT_UUID.test(String(REQUESTED_TOURNAMENT_ID || '')),
     accessDeniedCode: null,
-    tournamentCreateMode: null, tournamentOrganizer: false, recurringTournamentCreator: false,
+    tournamentCreateMode: null, communityTournamentCreator: false,
+    tournamentOrganizer: false, recurringTournamentCreator: false,
     editingRecurringSeriesId: null,
     tournamentCreateDrafts: createDefaultTournamentDrafts()
 };
@@ -300,7 +302,7 @@ function bindControls() {
     $('browse-tournaments').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
     $('tournament-empty-browse').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
     $('tournament-empty-create').addEventListener('click', event => openTournamentDirectory('create', event.currentTarget));
-    $('tournament-directory-create').addEventListener('click', () => selectDirectoryView('create', { focusPanel: true }));
+    $('tournament-directory-create').addEventListener('click', event => requestTournamentCreation(event.currentTarget));
     $('arena-context-directory').addEventListener('click', event => openTournamentDirectory('current', event.currentTarget));
     $('resign-game').addEventListener('click', () => confirmAction('Resign this game?', 'This result is final and will be recorded.', 'Resign')
         .then(confirmed => confirmed && sendGameCommand('game.resign')));
@@ -472,10 +474,12 @@ function renderArena(arena) {
         void disconnectTournamentRealtime();
     }
     if (model.selectedTournamentId && current?.id === model.selectedTournamentId) renderArenaDetail(current);
-    if (model.tournamentIntent && model.auth?.isSignedIn) {
+    if (model.tournamentIntent && model.auth?.isSignedIn && !model.auth?.isGuest) {
+        const requestedView = model.tournamentCreateIntent ? 'create' : 'current';
         model.tournamentIntent = false;
+        model.tournamentCreateIntent = false;
         queueMicrotask(async () => {
-            openTournamentDirectory('current', ui.arenaTab);
+            openTournamentDirectory(requestedView, ui.arenaTab);
             if (model.invalidTournamentLink) {
                 showDirectoryMessage('Invalid tournament link', 'The tournament ID in this link is not valid.', true);
                 return;
@@ -1062,8 +1066,11 @@ async function changeArenaMembership(eventType) {
 function openTournamentDirectory(view = 'current', opener = document.activeElement) {
     if (!model.auth?.isSignedIn || model.auth?.isGuest) {
         model.tournamentIntent = true;
+        model.tournamentCreateIntent = view === 'create';
         $('signin-dialog-title').textContent = 'Sign in for CAISSA Tournaments';
-        $('signin-dialog-copy').textContent = 'Sign in to browse, join, or organize an Arena tournament.';
+        $('signin-dialog-copy').textContent = view === 'create'
+            ? 'Sign in with a CAISSA member account to create a community tournament.'
+            : 'Sign in to browse, join, or organize an Arena tournament.';
         showSignInDialog(opener);
         return;
     }
@@ -1076,6 +1083,18 @@ function openTournamentDirectory(view = 'current', opener = document.activeEleme
     showArenaDirectory();
     if (!ui.directoryDialog.open) ui.directoryDialog.showModal();
     selectDirectoryView(view, { focusPanel: view === 'create' });
+}
+
+function requestTournamentCreation(opener = document.activeElement) {
+    if (!model.auth?.isSignedIn || model.auth?.isGuest) {
+        openTournamentDirectory('create', opener);
+        return;
+    }
+    if (!model.communityTournamentCreator) {
+        showToast('Community tournament creation is not enabled in this environment.');
+        return;
+    }
+    selectDirectoryView('create', { focusPanel: true });
 }
 
 function closeTournamentDirectory() {
@@ -1111,8 +1130,20 @@ async function createArenaTournament(event) {
     };
     const control = type === 'live' ? controls[$('arena-create-control').value] : null;
     const recurring = false;
-    if (!model.tournamentOrganizer) {
-        ui.createFeedback.textContent = 'Only an authorized tournament organizer may create an event.';
+    if (!model.auth?.isSignedIn || model.auth?.isGuest) {
+        ui.createFeedback.textContent = 'Sign in with a CAISSA member account to create a tournament.';
+        showSignInDialog($('arena-create-submit'));
+        return;
+    }
+    if (!model.communityTournamentCreator) {
+        ui.createFeedback.textContent = 'Community tournament creation is not enabled in this environment.';
+        return;
+    }
+    const creationCapability = type === 'daily'
+        ? model.config?.capabilities?.dailyTournamentCreation === true
+        : model.config?.capabilities?.tournamentCreation === true;
+    if (!creationCapability) {
+        ui.createFeedback.textContent = `${type === 'daily' ? 'Daily' : 'Arena'} tournament creation is not enabled.`;
         return;
     }
     const scheduled = !recurring && $('arena-create-start-mode').value === 'scheduled';
@@ -1184,7 +1215,8 @@ async function createArenaTournament(event) {
 function configureTournamentCreateType() {
     const capabilities = model.config?.capabilities || {};
     const dailyOption = $('arena-create-type').querySelector('option[value="daily"]');
-    dailyOption.disabled = capabilities.dailyTournaments !== true || !model.tournamentOrganizer;
+    dailyOption.disabled = capabilities.dailyTournaments !== true
+        || capabilities.dailyTournamentCreation !== true;
     if (dailyOption.disabled && $('arena-create-type').value === 'daily') $('arena-create-type').value = 'live';
     const mode = $('arena-create-type').value === 'daily' ? 'daily' : 'live';
     const daily = mode === 'daily';
@@ -1903,8 +1935,10 @@ function applyState(state, options = {}) {
 }
 
 function configureTournamentPermissions(permissions) {
+    const communityCreator = permissions?.communityTournamentCreator === true;
     const organizer = permissions?.tournamentOrganizer === true;
     const recurringCreator = permissions?.recurringTournamentCreator === true;
+    model.communityTournamentCreator = communityCreator;
     model.tournamentOrganizer = organizer;
     model.recurringTournamentCreator = recurringCreator;
     syncTournamentCreationAccess();
@@ -1912,12 +1946,10 @@ function configureTournamentPermissions(permissions) {
 }
 
 function syncTournamentCreationAccess() {
-    const authenticatedMember = model.auth?.isSignedIn === true && model.auth?.isGuest !== true;
-    const canCreate = authenticatedMember
-        && model.tournamentOrganizer
-        && model.config?.capabilities?.tournamentCreation === true;
-    $('tournament-directory-create').hidden = !canCreate;
-    if (!canCreate && model.selectedDirectoryView === 'create') selectDirectoryView('current');
+    const creationAvailable = model.config?.capabilities?.tournamentCreation === true
+        || model.config?.capabilities?.dailyTournamentCreation === true;
+    $('tournament-directory-create').hidden = !creationAvailable;
+    if (!creationAvailable && model.selectedDirectoryView === 'create') selectDirectoryView('current');
 }
 
 function renderLobby() {
@@ -2622,7 +2654,7 @@ function renderSignedOut() {
 }
 
 function showSignInDialog(opener) {
-    if (model.auth?.isSignedIn || model.signInRedirecting) return;
+    if ((model.auth?.isSignedIn && !model.auth?.isGuest) || model.signInRedirecting) return;
     model.signInPromptOpener = opener instanceof HTMLElement ? opener : document.activeElement;
     if (ui.signInDialog.open) return;
     ui.signInDialog.returnValue = '';
@@ -2642,7 +2674,11 @@ function handleSignInDialogClose() {
 }
 
 function selectedOnlineReturnPath() {
-    if (model.tournamentIntent || model.selectedTab === 'tournaments') return '/online/tournaments?directory=1';
+    if (model.tournamentIntent || model.selectedTab === 'tournaments') {
+        return model.tournamentCreateIntent
+            ? '/online/tournaments?directory=1&create=1'
+            : '/online/tournaments?directory=1';
+    }
     const params = new URLSearchParams({ control: model.selectedControl });
     if (model.selectedControl === 'custom') {
         params.set('minutes', boundedInputValue($('custom-minutes')));
@@ -2732,6 +2768,7 @@ function messageForError(error) {
         ARENA_CREATION_LIMIT: 'You already have the maximum number of open tournaments.',
         ARENA_CREATION_COOLDOWN: 'Please wait a minute before creating another tournament.',
         ARENA_CREATION_CONFLICT: 'You already organize a tournament during this time.',
+        TOURNAMENT_CREATION_DISABLED: 'Community tournament creation is not enabled in this environment.',
         ARENA_ORGANIZER_REQUIRED: 'Only this tournament’s organizer may perform that action.',
         ARENA_NEXT_INVALID_STATE: 'You can request another Arena game only while taking a break.',
         ARENA_MANAGE_INVALID_STATE: 'That organizer action is not available in the current tournament state.',

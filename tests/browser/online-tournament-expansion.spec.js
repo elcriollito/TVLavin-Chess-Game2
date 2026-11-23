@@ -10,14 +10,14 @@ test.beforeEach(async ({ page }) => {
         commands: [],
         capabilities: {
             matchmaking: true, rated: false, tournaments: true, arenaS001: true,
-            tournamentCreation: true, publicTournamentDirectory: false,
+            tournamentCreation: true, dailyTournamentCreation: true, publicTournamentDirectory: false,
             arena100: true, tournamentRated: false, dailyTournaments: true,
             dailyRated: false, weeklyArenas: true
         },
         state: {
             profile: { display_name: 'Daily Player' }, ticket: null, game: null,
             recentGames: [], players: [], challenges: [],
-            permissions: { tournamentOrganizer: false },
+            permissions: { communityTournamentCreator: true, tournamentOrganizer: false },
             arena: { tournaments: [weeklyTournament()], current: null },
             daily: { tournaments: [dailyTournament()], current: null, games: [], game: null, recentGames: [] }
         }
@@ -195,21 +195,26 @@ test('directory create CTA resets scroll, focuses the form, and gives filters re
     await expect(page.locator('#arena-create-submit')).toBeVisible();
 });
 
-test('creation CTA requires both the server organizer permission and the environment capability', async ({ page }) => {
+test('creation CTA is independent of official organizer status and submission remains server-permitted', async ({ page }) => {
     const harness = harnesses.get(page);
-    harness.state.permissions.tournamentOrganizer = true;
     harness.capabilities.tournamentCreation = false;
+    harness.capabilities.dailyTournamentCreation = false;
     await page.goto('/online/tournaments?directory=1');
     await expect(page.locator('#tournament-directory-create')).toBeHidden();
 
     harness.capabilities.tournamentCreation = true;
-    harness.state.permissions.tournamentOrganizer = false;
-    await page.reload();
-    await expect(page.locator('#tournament-directory-create')).toBeHidden();
-
-    harness.state.permissions.tournamentOrganizer = true;
+    harness.state.permissions.communityTournamentCreator = false;
     await page.reload();
     await expect(page.locator('#tournament-directory-create')).toBeVisible();
+    await page.locator('#tournament-directory-create').click();
+    await expect(page.locator('#online-toast')).toContainText('not enabled');
+    await expect(page.locator('#directory-panel-create')).toBeHidden();
+
+    harness.state.permissions.communityTournamentCreator = true;
+    await page.reload();
+    await expect(page.locator('#tournament-directory-create')).toBeVisible();
+    await page.locator('#tournament-directory-create').click();
+    await expect(page.locator('#directory-panel-create')).toBeVisible();
     await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
 });
 
@@ -271,7 +276,8 @@ test('ordinary member joins Daily, sees persistence, and opens the correspondenc
     await expect(page.locator('.arena-card')).toHaveCount(2);
     await expect(page.locator('#weekly-featured')).toBeVisible();
     await expect(page.locator('#weekly-featured')).toContainText('SATURDAYS OF CHESS');
-    await expect(page.locator('#tournament-directory-create')).toBeHidden();
+    await expect(page.locator('#tournament-directory-create')).toBeVisible();
+    await expect(page.locator('#arena-create-repeat')).toHaveCount(0);
     await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
 
     const dailyCard = page.locator('.arena-card').filter({ hasText: 'Daily Correspondence Test' });

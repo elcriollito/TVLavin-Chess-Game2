@@ -1,4 +1,9 @@
 const DAY_MS = 86_400_000;
+const OFFICIAL_OR_RECURRING_FIELDS = Object.freeze([
+    'recurrence', 'repeat', 'seriesId', 'seriesKind', 'source', 'official', 'officialSeries',
+    'slug', 'frequencyUnit', 'interval', 'weekdays', 'firstDate', 'localTime', 'timeZone',
+    'generationLeadDays', 'leadDays', 'endMode', 'endDate', 'occurrenceCount', 'enabled'
+]);
 
 export const DAILY_MOVE_CONTROLS = Object.freeze([1, 3, 5, 7]);
 export const DAILY_DEFAULTS = Object.freeze({
@@ -18,7 +23,10 @@ export function isDailyEnabled(rollout, env = {}) {
 }
 
 export function validateDailyCreation(payload, now = Date.now()) {
-    if (hasAny(payload, ['timeControlId', 'durationMinutes', 'lateJoin', 'pool', 'baseMs', 'incrementMs'])) {
+    if (hasAny(payload, [
+        'timeControlId', 'durationMinutes', 'lateJoin', 'pool', 'baseMs', 'incrementMs',
+        ...OFFICIAL_OR_RECURRING_FIELDS
+    ])) {
         return failure('INVALID_DAILY_FIELDS');
     }
     if (Object.hasOwn(payload || {}, 'registrationClosesAt')) {
