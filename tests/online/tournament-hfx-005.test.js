@@ -6,6 +6,7 @@ import { projectOnlineArenaState } from '../../api/_lib/online-public-projection
 
 const migrationUrl = new URL('../../supabase/migrations/20261122183216_caissa_tournaments_hfx_005.sql', import.meta.url);
 const indexMigrationUrl = new URL('../../supabase/migrations/20261122191500_caissa_tournaments_hfx_005_fk_index.sql', import.meta.url);
+const SaturdaysAuditMigrationUrl = new URL('../../supabase/migrations/20261123024955_caissa_saturdays_operator_audit_hardening.sql', import.meta.url);
 
 function response() {
     return {
@@ -117,8 +118,10 @@ test('public UI removes recurrence controls and exposes Share Info Manage and la
 });
 
 test('Saturdays administration remains on its dedicated server-authorized service path', async () => {
-    const [migration, api, service] = await Promise.all([
+    const [migration, auditMigration, operator, api, service] = await Promise.all([
         readFile(new URL('../../supabase/migrations/20261121042618_caissa_tournaments_expansion_weekly_daily_s001.sql', import.meta.url), 'utf8'),
+        readFile(SaturdaysAuditMigrationUrl, 'utf8'),
+        readFile(new URL('../../scripts/manage-saturdays-of-chess.mjs', import.meta.url), 'utf8'),
         readFile(new URL('../../api/online.js', import.meta.url), 'utf8'),
         readFile(new URL('../../api/_lib/online-service.js', import.meta.url), 'utf8')
     ]);
@@ -126,4 +129,15 @@ test('Saturdays administration remains on its dedicated server-authorized servic
     assert.match(migration, /grant execute on function public\.caissa_online_weekly_admin\(text,text,text,jsonb\) to service_role/u);
     assert.match(api, /CAISSA_ONLINE_TOURNAMENT_ADMINS/u);
     assert.match(service, /rpc\(db, 'caissa_online_weekly_admin'/u);
+    assert.match(auditMigration, /caissa_online_series_operator_audit/u);
+    assert.match(auditMigration, /where event_id=p_event_id[\s\S]+payload->>'operator'='saturdays-of-chess'/u);
+    assert.match(auditMigration, /raise exception 'CAISSA_ONLINE_SERIES_EVENT_ID_CONFLICT'/u);
+    assert.match(auditMigration, /'operator','saturdays-of-chess','requestedAction',p_action/u);
+    assert.match(auditMigration, /v_audit_action:=case when p_action='enable' then 'resume' else p_action end/u);
+    assert.match(auditMigration, /revoke all on function public\.caissa_online_weekly_admin\(text,text,text,jsonb\)[\s\S]+from public,anon,authenticated/u);
+    assert.match(auditMigration, /grant execute on function public\.caissa_online_weekly_admin\(text,text,text,jsonb\)[\s\S]+to service_role/u);
+    assert.match(operator, /CAISSA_OPERATOR_EXPECTED_PROJECT_REF/u);
+    assert.match(operator, /CAISSA_OPERATOR_SERVICE_ROLE_KEY/u);
+    assert.match(operator, /client\.rpc\('caissa_online_weekly_admin'/u);
+    assert.doesNotMatch(operator, /process\.env\.(?:NEXT_PUBLIC|VITE|PUBLIC)_/u);
 });

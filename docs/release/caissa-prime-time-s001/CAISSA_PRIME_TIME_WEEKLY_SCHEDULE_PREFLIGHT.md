@@ -16,10 +16,11 @@ no series, tournaments, Cron settings, authentication configuration, or data
 were changed. The 14 Prime Time series remain uncreated and disabled pending
 the owner's separate execution approval.
 
-Production activation is not ready yet. It requires a reviewed application and
-database release of `abort_at_deadline`, a recoverable Production backup, the
-owner's approval of the exact effective first date, and a second authorization
-to create the disabled series and enable them.
+Production activation remains gated on publication and security review of the
+final candidate plus the owner's explicit execution authorization. A current
+recoverable Production backup and the Saturdays audit hardening have now been
+verified; neither the strict-deadline nor audit migrations have been applied to
+Production.
 
 ## Production state
 
@@ -36,10 +37,26 @@ to create the disabled series and enable them.
 - Production contains zero Prime Time series and zero strict-deadline events.
 
 The Saturdays private administration RPC remains separate from the general
-official-series operator. Its supplied `p_event_id` is not persisted in an
-operator audit table. Before enabling Saturdays in Production, this audit and
-idempotency gap must be corrected or explicitly accepted by the owner; the
-series must not be recreated through the general operator.
+official-series operator. Migration
+`20261123024955_caissa_saturdays_operator_audit_hardening.sql` now persists its
+`p_event_id` in the existing operator audit table, makes exact retries
+idempotent, rejects conflicting event reuse, locks the series before mutation,
+and retains service-role-only execution. It passed rollback-safe assertions in
+isolated Beta. It is not yet present in Production, and the Saturdays series
+must not be recreated through the general operator.
+
+## Recoverable Production backup
+
+The Supabase CLI listed seven completed physical daily backups for Production.
+The newest was backup `2344093493`, completed at
+`2026-11-22T08:49:59.723Z`; the preceding six cover November 16-21. WAL-G is
+enabled and PITR is disabled. This establishes a recoverable daily restore
+point without performing a restore or writing to Production.
+
+The resulting recovery-point risk is up to the interval since the latest daily
+backup. A restore would introduce downtime and must be an explicitly approved
+last resort. Database backup restore does not restore Storage object bodies,
+and custom database-role passwords require separate recovery handling.
 
 ## Grouped series definitions
 
@@ -144,16 +161,24 @@ boundaries independently enforce the cutoff using server timestamps.
   Chromium, Firefox, WebKit, and the existing mobile accessibility case.
 - The Supabase security advisor reported only the existing informational
   RPC-only/RLS-without-policy pattern; no new table exposure was introduced.
-- The managed Codex Security diff scanner did not run. Exact error:
+- The Saturdays audit migration passed an isolated Beta transaction covering
+  persisted audit identity, exact retry idempotency, conflicting event reuse,
+  unchanged series configuration, rollback, and service-role-only grants.
+- `scripts/manage-saturdays-of-chess.mjs` provides the dedicated private dry-run
+  and execute path with explicit Production project-ref verification.
+- A previous managed Codex Security diff attempt from this linked worktree did
+  not run. Exact error:
   `Review changes requires a non-bare Git worktree with a resolvable HEAD`.
-  Git locally reported a valid linked worktree and resolvable HEAD. This is a
-  scanner infrastructure HOLD, not a scanner PASS.
+  Git locally reported a valid linked worktree and resolvable HEAD. This prior
+  failure is not a scanner PASS; the final immutable SHA must be scanned from a
+  compatible standalone checkout, with its result recorded in the PR and final
+  release handoff.
 
 ## Production execution requiring approval
 
 1. Approve and deploy the reviewed application/database candidate to a
-   protected Production release path, after a recoverable database backup and
-   rollback rehearsal.
+   protected Production release path, after re-listing backups and confirming
+   the latest completed restore point remains within the approved RPO.
 2. Reverify Production project ref, Clerk Production identity, RLS/RPC grants,
    Cron ownership, and zero conflicting occurrences.
 3. Choose the first local date based on the actual approval time. Re-run the
@@ -163,8 +188,8 @@ boundaries independently enforce the cutoff using server timestamps.
    ref and stable audit event IDs.
 5. Inspect the 14 stored definitions and audit rows. Confirm no Saturday 19:00
    duplicate and no past occurrence.
-6. Separately approve enabling/resuming the 14 series. Use the dedicated
-   Saturdays administrator only after resolving or accepting its audit gap.
+6. Separately approve enabling/resuming the 14 series. Use the dedicated,
+   audited Saturdays administrator for that existing series.
 7. Verify generated rows, strict policy, registration windows, exact 60-minute
    `ends_at`, occurrence-key uniqueness, and scheduler ledger.
 8. If rollback is needed, pause the new series and cancel only unstarted future
