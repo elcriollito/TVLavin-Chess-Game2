@@ -3,7 +3,8 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
     testDir: './tests/browser',
     testMatch: ['online-native.spec.js', 'online-arena.spec.js', 'online-access-denied.spec.js',
-        'online-tournament-expansion.spec.js', 'online-recurring-tournaments.spec.js'],
+        'online-tournament-expansion.spec.js', 'online-recurring-tournaments.spec.js',
+        'online-community-creation.spec.js'],
     timeout: 30_000,
     expect: { timeout: 7_000 },
     workers: 1,

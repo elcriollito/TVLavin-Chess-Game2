@@ -129,7 +129,7 @@ test('authorized registration returns a canonical snapshot and private invalidat
     assert.equal(broadcast.version, 3);
 });
 
-test('only an allowlisted Preview organizer can create a bounded Arena', async () => {
+test('an ordinary authenticated member can create a bounded one-time community Arena', async () => {
     let created;
     const service = {
         async createArena(input) { created = input; return arena; },
@@ -137,11 +137,11 @@ test('only an allowlisted Preview organizer can create a bounded Arena', async (
     };
     const denied = response();
     await handler(command('tournament.create', { name: 'Community Arena' }), denied, {
-        env: { ...baseEnv, CAISSA_ONLINE_TOURNAMENT_ADMINS: 'user_someone_else' },
+        env: { ...baseEnv, CAISSA_ONLINE_ARENA_CREATE: '0' },
         authenticate, rateLimit, service
     });
     assert.equal(denied.statusCode, 403);
-    assert.equal(denied.body.code, 'ARENA_ORGANIZER_REQUIRED');
+    assert.equal(denied.body.code, 'TOURNAMENT_CREATION_DISABLED');
 
     const accepted = response();
     await handler(command('tournament.create', {
@@ -149,7 +149,8 @@ test('only an allowlisted Preview organizer can create a bounded Arena', async (
         durationMinutes: 30, capacity: 16, lateJoin: true,
         startsAt: new Date(Date.now() + 60_000).toISOString()
     }), accepted, {
-        env: baseEnv, authenticate, rateLimit, service,
+        env: { ...baseEnv, CAISSA_ONLINE_TOURNAMENT_ADMINS: 'user_someone_else' },
+        authenticate, rateLimit, service,
         broadcastTournamentChange: async () => ({ delivered: true })
     });
     assert.equal(accepted.statusCode, 201);
@@ -158,6 +159,31 @@ test('only an allowlisted Preview organizer can create a bounded Arena', async (
     assert.equal(created.capacity, 16);
     assert.equal(created.lateJoin, true);
     assert.equal(created.control.label, '3+2');
+    assert.equal(accepted.body.data.state.permissions.communityTournamentCreator, true);
+    assert.equal(accepted.body.data.state.permissions.tournamentOrganizer, false);
+});
+
+test('community Arena creation rejects forged recurrence and official identity fields', async () => {
+    const service = {
+        async createArena() { assert.fail('forged creation must not reach the store'); },
+        async getState() { return { game: null, recentGames: [] }; }
+    };
+    for (const payload of [
+        { recurrence: { frequencyUnit: 'week' } },
+        { seriesKind: 'official' },
+        { source: 'official' },
+        { seriesId: tournamentId }
+    ]) {
+        const res = response();
+        await handler(command('tournament.create', {
+            name: 'Forged Community Arena', timeControlId: 'blitz-3-2',
+            durationMinutes: 30, capacity: 16, lateJoin: true,
+            startsAt: new Date(Date.now() + 60_000).toISOString(),
+            ...payload
+        }), res, { env: baseEnv, authenticate, rateLimit, service });
+        assert.equal(res.statusCode, 400);
+        assert.equal(res.body.code, 'INVALID_ARENA_FIELDS');
+    }
 });
 
 test('cancel and close commands delegate organizer authorization to the tournament RPC', async () => {

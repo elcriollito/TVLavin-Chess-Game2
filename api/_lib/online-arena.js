@@ -13,6 +13,11 @@ export const ARENA_TIME_CONTROLS = Object.freeze([
 ]);
 
 const CONTROL_BY_ID = new Map(ARENA_TIME_CONTROLS.map(control => [control.id, control]));
+const OFFICIAL_OR_RECURRING_FIELDS = Object.freeze([
+    'recurrence', 'repeat', 'seriesId', 'seriesKind', 'source', 'official', 'officialSeries',
+    'slug', 'frequencyUnit', 'interval', 'weekdays', 'firstDate', 'localTime', 'timeZone',
+    'generationLeadDays', 'leadDays', 'endMode', 'endDate', 'occurrenceCount', 'enabled'
+]);
 
 export function validateArenaTournamentId(payload) {
     const tournamentId = String(payload?.tournamentId || '');
@@ -22,7 +27,10 @@ export function validateArenaTournamentId(payload) {
 }
 
 export function validateArenaCreation(payload, now = Date.now()) {
-    if (hasAny(payload, ['description', 'daysPerMove', 'groupSize', 'qualifiersPerGroup', 'registrationClosesAt'])) {
+    if (hasAny(payload, [
+        'description', 'daysPerMove', 'groupSize', 'qualifiersPerGroup', 'registrationClosesAt',
+        ...OFFICIAL_OR_RECURRING_FIELDS
+    ])) {
         return failure('INVALID_ARENA_FIELDS');
     }
     const name = String(payload?.name || '').trim();

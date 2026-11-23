@@ -58,7 +58,7 @@ test('Daily requires explicit gates in Production and an ordinary member can joi
     assert.equal(joined.clerkId, userId);
 });
 
-test('Daily creation and rated mode require independent organizer flags', async () => {
+test('Daily creation and rated mode require independent feature flags', async () => {
     const payload = {
         name: 'Daily Championship', startsAt: new Date(Date.now() + 172_800_000).toISOString(),
         description: 'Daily correspondence event', daysPerMove: 7, groupSize: 4,
@@ -67,14 +67,14 @@ test('Daily creation and rated mode require independent organizer flags', async 
     const denied = response();
     await handler(command('daily.create', payload), denied, {
         env: { ...baseEnv, CAISSA_ONLINE_DAILY_CREATE: '1', CAISSA_ONLINE_TOURNAMENT_ADMINS: adminId },
-        rateLimit, authenticate: async () => ({ authenticated: true, userId: adminId, guest: false }),
+        rateLimit, authenticate: async () => ({ authenticated: true, userId, guest: false }),
         service: { createDaily: async () => assert.fail('rated store call must be blocked') }
     });
     assert.equal(denied.statusCode, 403);
     assert.equal(denied.body.code, 'RATED_NOT_ENABLED');
 });
 
-test('Daily creation derives registration closure and preserves the type-specific contract', async () => {
+test('an ordinary member can create Daily with server-managed closure and type-specific fields', async () => {
     const startsAt = new Date(Date.now() + 172_800_000).toISOString();
     let created;
     const accepted = response();
@@ -87,7 +87,7 @@ test('Daily creation derives registration closure and preserves the type-specifi
             ...baseEnv, CAISSA_ONLINE_DAILY_CREATE: '1',
             CAISSA_ONLINE_TOURNAMENT_ADMINS: adminId
         },
-        rateLimit, authenticate: async () => ({ authenticated: true, userId: adminId, guest: false }),
+        rateLimit, authenticate: async () => ({ authenticated: true, userId, guest: false }),
         service: {
             async createDaily(input) { created = input; return { current: { id: tournamentId } }; },
             async getState() { return { game: null, recentGames: [] }; }
@@ -100,6 +100,68 @@ test('Daily creation derives registration closure and preserves the type-specifi
     for (const forbidden of ['timeControlId', 'durationMinutes', 'lateJoin']) {
         assert.equal(Object.hasOwn(created, forbidden), false);
     }
+    assert.equal(accepted.body.data.state.permissions.communityTournamentCreator, true);
+    assert.equal(accepted.body.data.state.permissions.tournamentOrganizer, false);
+});
+
+test('Daily creation rejects guest, disabled, recurring and official requests before storage', async () => {
+    const payload = {
+        name: 'Daily Community Only', startsAt: new Date(Date.now() + 172_800_000).toISOString(),
+        description: '', daysPerMove: 7, groupSize: 4,
+        qualifiersPerGroup: 2, capacity: 16, rated: false
+    };
+    const service = {
+        async createDaily() { assert.fail('rejected creation must not reach the store'); }
+    };
+    const disabled = response();
+    await handler(command('daily.create', payload), disabled, {
+        env: { ...baseEnv, CAISSA_ONLINE_DAILY_CREATE: '0' }, rateLimit,
+        authenticate: async () => ({ authenticated: true, userId, guest: false }), service
+    });
+    assert.equal(disabled.statusCode, 403);
+    assert.equal(disabled.body.code, 'TOURNAMENT_CREATION_DISABLED');
+
+    const guest = response();
+    await handler(command('daily.create', payload), guest, {
+        env: { ...baseEnv, CAISSA_ONLINE_DAILY_CREATE: '1' }, rateLimit,
+        authenticate: async () => ({ authenticated: true, userId, guest: true }),
+        trustedSourceKey: () => 'online-source:test',
+        service: { ...service, checkRateLimit: async () => ({ allowed: true }) }
+    });
+    assert.equal(guest.statusCode, 403);
+    assert.equal(guest.body.code, 'ARENA_MEMBER_ACCOUNT_REQUIRED');
+
+    for (const forged of [{ recurrence: {} }, { source: 'official' }, { seriesKind: 'official' }]) {
+        const res = response();
+        await handler(command('daily.create', { ...payload, ...forged }), res, {
+            env: { ...baseEnv, CAISSA_ONLINE_DAILY_CREATE: '1' }, rateLimit,
+            authenticate: async () => ({ authenticated: true, userId, guest: false }), service
+        });
+        assert.equal(res.statusCode, 400);
+        assert.equal(res.body.code, 'INVALID_DAILY_FIELDS');
+    }
+});
+
+test('Daily and Arena creation share the conservative distributed rate bucket', async () => {
+    const policies = [];
+    const startsAt = new Date(Date.now() + 172_800_000).toISOString();
+    const res = response();
+    await handler(command('daily.create', {
+        name: 'Rate Limited Daily', description: '', startsAt,
+        daysPerMove: 7, groupSize: 4, qualifiersPerGroup: 2, capacity: 16, rated: false
+    }), res, {
+        env: { ...baseEnv, CAISSA_ONLINE_DAILY_CREATE: '1' }, rateLimit,
+        authenticate: async () => ({ authenticated: true, userId, guest: false }),
+        service: {
+            async checkRateLimit(policy) { policies.push(policy); return { allowed: false, retryAfter: 120 }; },
+            async createDaily() { assert.fail('rate-limited creation must not reach storage'); }
+        }
+    });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.headers['Retry-After'], '120');
+    assert.equal(policies[0].bucket, 'tournament-create');
+    assert.equal(policies[0].limit, 6);
+    assert.equal(policies[0].windowSeconds, 3600);
 });
 
 test('weekly administration is hidden from members and service-only for the organizer', async () => {
