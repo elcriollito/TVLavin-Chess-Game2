@@ -38,12 +38,7 @@ test.beforeEach(async ({ page }) => {
         if (request.method() === 'POST') {
             const command = request.postDataJSON();
             harness.commands.push(command);
-            if (command.eventType.startsWith('weekly.')) {
-                return route.fulfill({ json: {
-                    protocolVersion: '1.0.0', eventType: 'tournament.snapshot',
-                    serverTimestamp: new Date().toISOString(), data: { series: weeklySeriesSnapshot() }
-                } });
-            } else if (command.eventType === 'daily.join') {
+            if (command.eventType === 'daily.join') {
                 const tournament = { ...dailyTournament(), participantCount: 1, myState: 'registered' };
                 harness.state = {
                     ...harness.state,
@@ -66,27 +61,35 @@ test.beforeEach(async ({ page }) => {
     });
 });
 
-test('weekly operations stay organizer-only and send bounded management commands', async ({ page }) => {
+test('organizer sees the official weekly calendar without public administration controls', async ({ page }, testInfo) => {
     harnesses.get(page).state.permissions.tournamentOrganizer = true;
     await page.goto('/online/tournaments?directory=1');
-    await expect(page.locator('#weekly-admin-controls')).toBeVisible();
-    await page.locator('#weekly-inspect').click();
-    await expect(page.locator('#weekly-operations-status')).toContainText('completed');
-    await page.locator('#weekly-capacity').fill('100');
-    await page.locator('#weekly-minimum').fill('4');
-    await page.locator('#weekly-lead-days').fill('7');
-    await page.locator('#weekly-config-form').getByRole('button').click();
-    await page.locator('#weekly-skip-date').fill('2026-12-05');
-    await page.locator('#weekly-skip-slot').selectOption('evening');
-    await page.locator('#weekly-skip-form').getByRole('button').click();
-    await page.locator('#weekly-cancel').click();
-    const commands = harnesses.get(page).commands;
-    expect(commands.some(command => command.eventType === 'weekly.update'
-        && command.payload.capacity === 100)).toBe(true);
-    expect(commands.some(command => command.eventType === 'weekly.skip'
-        && command.payload.slotId === 'evening')).toBe(true);
-    expect(commands.some(command => command.eventType === 'weekly.cancel'
-        && command.payload.tournamentId === weeklyId)).toBe(true);
+    await expect(page.locator('#weekly-featured')).toBeVisible();
+    await expect(page.locator('#weekly-featured')).toContainText('SATURDAYS OF CHESS');
+    await expect(page.locator('#weekly-featured')).toContainText('Morning Arena');
+    await page.locator('#directory-tab-schedule').click();
+    const officialIdentity = page.locator('.tournament-identity--official');
+    await expect(officialIdentity).toContainText('OFFICIAL CAISSA');
+    await expect(officialIdentity).toHaveAttribute('aria-label', 'OFFICIAL CAISSA');
+    await page.locator('#directory-tab-current').click();
+    await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
+    await expect(page.locator('#arena-manage-series')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Enable series|Pause series|Refresh operations|Skip occurrence|Cancel selected occurrence/u })).toHaveCount(0);
+    expect(harnesses.get(page).commands.some(command => command.eventType.startsWith('weekly.'))).toBe(false);
+    if (process.env.CAISSA_CAPTURE_HFX_006A === '1') {
+        await page.screenshot({ path: testInfo.outputPath('hfx-006a-organizer-directory.png') });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    const overflow = await page.locator('#weekly-featured').evaluate(element => ({
+        banner: element.scrollWidth - element.clientWidth,
+        dialog: element.closest('dialog').scrollWidth - element.closest('dialog').clientWidth
+    }));
+    expect(overflow.banner).toBeLessThanOrEqual(1);
+    expect(overflow.dialog).toBeLessThanOrEqual(1);
+    await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
+    if (process.env.CAISSA_CAPTURE_HFX_006A === '1') {
+        await page.screenshot({ path: testInfo.outputPath('hfx-006a-organizer-directory-mobile.png') });
+    }
 });
 
 test('creation form isolates Arena and Daily fields and submits only the selected contract', async ({ page }) => {
@@ -218,7 +221,7 @@ test('ordinary member joins Daily, sees persistence, and opens the correspondenc
     await expect(page.locator('#weekly-featured')).toBeVisible();
     await expect(page.locator('#weekly-featured')).toContainText('SATURDAYS OF CHESS');
     await expect(page.locator('#tournament-directory-create')).toBeHidden();
-    await expect(page.locator('#weekly-admin-controls')).toBeHidden();
+    await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
 
     const dailyCard = page.locator('.arena-card').filter({ hasText: 'Daily Correspondence Test' });
     await expect(dailyCard).toContainText('7 days / move');
@@ -257,16 +260,8 @@ function weeklyTournament() {
         pool: 'blitz', baseMs: 300_000, incrementMs: 0, rated: false,
         startsAt: '2026-11-28T16:00:00.000Z', endsAt: '2026-11-28T17:00:00.000Z',
         durationMinutes: 60, lateJoin: true, capacity: 100, participantCount: 0,
-        joined: false, myState: null, playCategory: 'live',
+        joined: false, myState: null, playCategory: 'live', source: 'official', seriesKind: 'official',
         seriesSlug: 'saturdays-of-chess-s001', featured: true
-    };
-}
-
-function weeklySeriesSnapshot() {
-    return {
-        series: { enabled: false, capacity: 100, min_players: 4, registration_lead_days: 7 },
-        occurrences: [weeklyTournament()],
-        ledger: [{ status: 'completed', startedAt: '2026-11-20T12:00:00.000Z' }]
     };
 }
 

@@ -66,7 +66,7 @@ const model = {
     signInPromptOpener: null, signInRedirecting: false,
     guestSession: null, guestStarting: false, pendingGameCommand: null,
     selectedTab: 'new', selectedLobbyView: 'players', muteInvitationPopups: false, preferenceEpoch: 0,
-    setupOpener: null, arena: null, daily: null, recurring: null, weeklySeries: null, selectedTournamentId: null, directoryOpener: null,
+    setupOpener: null, arena: null, daily: null, recurring: null, selectedTournamentId: null, directoryOpener: null,
     tournamentRealtime: null, tournamentRealtimeId: null, tournamentRealtimeEpoch: 0,
     selectedArenaContext: 'standings', selectedDirectoryView: 'current', arenaBusy: false,
     tournamentIntent: location.pathname === '/online/tournaments' && PAGE_PARAMS.get('directory') === '1',
@@ -79,8 +79,6 @@ const model = {
     editingRecurringSeriesId: null,
     tournamentCreateDrafts: createDefaultTournamentDrafts()
 };
-const detachedWeeklyAdminForms = [];
-
 const api = createOnlineApi({
     tokenProvider: onlineAccessToken
 });
@@ -188,7 +186,6 @@ function configureCapabilities(capabilities) {
     $('arena-create-capacity').max = capabilities.arena100 === true ? '100' : '64';
     $('weekly-featured').hidden = capabilities.weeklyArenas !== true;
     $('tournament-directory-create').hidden = true;
-    $('weekly-admin-controls').hidden = true;
     configureTournamentCreateType();
 }
 
@@ -343,30 +340,6 @@ function bindControls() {
         }
     });
     ui.createForm.addEventListener('submit', createArenaTournament);
-    $('weekly-enable').addEventListener('click', () => manageWeeklySeries('enable'));
-    $('weekly-pause').addEventListener('click', () => manageWeeklySeries('pause'));
-    $('weekly-inspect').addEventListener('click', () => manageWeeklySeries('sync'));
-    $('weekly-config-form').addEventListener('submit', event => {
-        event.preventDefault();
-        void manageWeeklySeries('update', {
-            capacity: Number($('weekly-capacity').value),
-            minimumPlayers: Number($('weekly-minimum').value),
-            registrationLeadDays: Number($('weekly-lead-days').value),
-            rated: false
-        });
-    });
-    $('weekly-skip-form').addEventListener('submit', event => {
-        event.preventDefault();
-        void manageWeeklySeries('skip', {
-            localDate: $('weekly-skip-date').value,
-            slotId: $('weekly-skip-slot').value,
-            reason: $('weekly-skip-reason').value
-        });
-    });
-    $('weekly-cancel').addEventListener('click', () => {
-        const tournamentId = $('weekly-occurrence-select').value;
-        if (tournamentId) void manageWeeklySeries('cancel', { tournamentId });
-    });
     $('arena-cancel').addEventListener('click', () => manageArenaTournament('cancel'));
     $('arena-close').addEventListener('click', () => manageArenaTournament('close'));
     $('player-search').addEventListener('input', () => renderPlayers(model.state?.players || [], model.state?.challenges || []));
@@ -870,11 +843,6 @@ function ensureTournamentDetailTools() {
     $('arena-detail-manage-toggle').addEventListener('click', toggleTournamentManage);
     $('arena-manage-cancel').addEventListener('click', () => manageArenaTournament('cancel'));
     $('arena-manage-close').addEventListener('click', () => manageArenaTournament('close'));
-    $('arena-manage-series').addEventListener('click', () => {
-        showArenaDirectory();
-        selectDirectoryView('current');
-        $('weekly-admin-controls')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
 }
 
 function renderTournamentInformation(tournament, daily) {
@@ -921,13 +889,10 @@ function configureTournamentManage(tournament, daily) {
         && ['scheduled', 'registration_open'].includes(tournament.status);
     const canClose = !daily && tournament.organizedByMe
         && ['active', 'finishing'].includes(tournament.status);
-    const canManageOfficialSeries = !daily && model.tournamentOrganizer
-        && tournament.source === 'official' && tournament.seriesSlug === 'saturdays-of-chess-s001';
     const manage = $('arena-detail-manage-toggle');
-    manage.hidden = !(canCancel || canClose || canManageOfficialSeries);
+    manage.hidden = !(canCancel || canClose);
     $('arena-manage-cancel').hidden = !canCancel;
     $('arena-manage-close').hidden = !canClose;
-    $('arena-manage-series').hidden = !canManageOfficialSeries;
     if (manage.hidden) {
         $('arena-manage').hidden = true;
         manage.setAttribute('aria-expanded', 'false');
@@ -1461,58 +1426,6 @@ function updateTournamentCreateRules() {
     }));
 }
 
-async function manageWeeklySeries(action, payload = {}) {
-    if (model.arenaBusy) return;
-    if (action === 'enable') {
-        const confirmed = await confirmAction(
-            'Enable SATURDAYS OF CHESS?',
-            'This generates official occurrences only after the owner has explicitly approved launch.',
-            'Enable series'
-        );
-        if (!confirmed) return;
-    }
-    model.arenaBusy = true;
-    try {
-        const envelope = await api.command(`weekly.${action}`, payload);
-        model.weeklySeries = envelope.data?.series || null;
-        renderWeeklyAdmin();
-        const messages = {
-            enable: 'Weekly series enabled.', pause: 'Weekly series paused.', sync: 'Scheduler operations refreshed.',
-            update: 'Future weekly configuration updated.', skip: 'Occurrence skipped.', cancel: 'Occurrence cancelled.'
-        };
-        showToast(messages[action] || 'Weekly series updated.');
-        await syncState('weekly-admin');
-    } catch (error) {
-        handleError(error, 'The weekly series could not be updated.');
-    } finally {
-        model.arenaBusy = false;
-    }
-}
-
-function renderWeeklyAdmin() {
-    const snapshot = model.weeklySeries;
-    const series = snapshot?.series;
-    if (series) {
-        $('weekly-capacity').value = String(series.capacity ?? 100);
-        $('weekly-minimum').value = String(series.min_players ?? 4);
-        $('weekly-lead-days').value = String(series.registration_lead_days ?? 7);
-    }
-    const occurrences = Array.isArray(snapshot?.occurrences) ? snapshot.occurrences : [];
-    const future = occurrences.filter(row => ['scheduled', 'registration_open'].includes(row.status));
-    $('weekly-occurrence-select').replaceChildren(...(future.length ? future : [{ id: '', name: 'No generated occurrences' }]).map(row => {
-        const option = document.createElement('option');
-        option.value = row.id || '';
-        option.textContent = row.id
-            ? `${row.name} · ${new Date(row.startsAt).toLocaleString()}`
-            : row.name;
-        return option;
-    }));
-    const lastRun = snapshot?.ledger?.[0];
-    $('weekly-operations-status').textContent = lastRun
-        ? `Last scheduler run: ${lastRun.status} · ${new Date(lastRun.startedAt).toLocaleString()}`
-        : series ? `Series is ${series.enabled ? 'enabled' : 'paused'}; no scheduler run is recorded.` : '';
-}
-
 function renderWeeklyFeatured(tournaments) {
     if ($('weekly-featured').hidden) return;
     $('weekly-featured-list').replaceChildren(...tournaments.slice(0, 4).map(tournament => {
@@ -1979,18 +1892,6 @@ function configureTournamentPermissions(permissions) {
     model.recurringTournamentCreator = recurringCreator;
     const capabilities = model.config?.capabilities || {};
     $('tournament-directory-create').hidden = !(organizer && capabilities.tournamentCreation === true);
-    $('weekly-admin-controls').hidden = !organizer
-        || capabilities.weeklyArenas !== true;
-    for (const id of ['weekly-config-form', 'weekly-skip-form']) {
-        const connected = document.getElementById(id);
-        if (!organizer && connected) {
-            detachedWeeklyAdminForms.push(connected);
-            connected.remove();
-        } else if (organizer && !connected) {
-            const detached = detachedWeeklyAdminForms.find(element => element.id === id);
-            if (detached) $('weekly-admin-controls').append(detached);
-        }
-    }
     if (!organizer && !recurringCreator && model.selectedDirectoryView === 'create') selectDirectoryView('current');
     configureTournamentCreateType();
 }

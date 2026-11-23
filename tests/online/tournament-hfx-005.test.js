@@ -108,8 +108,22 @@ test('public UI removes recurrence controls and exposes Share Info Manage and la
     assert.match(html, /arena-detail-share/u);
     assert.match(html, /arena-detail-manage-toggle/u);
     assert.match(html, /tournament-share-dialog/u);
+    assert.doesNotMatch(html, /weekly-admin-controls|weekly-enable|weekly-config-form|arena-manage-series/u);
+    assert.doesNotMatch(page, /manageWeeklySeries|renderWeeklyAdmin|weekly-admin-controls|arena-manage-series/u);
     assert.match(page, /\/online\/tournaments/u);
     assert.match(page, /searchParams\.set\('tournament', tournamentId\)/u);
     assert.match(css, /width:min\(1480px/u);
     assert.match(css, /#f29a2e/u);
+});
+
+test('Saturdays administration remains on its dedicated server-authorized service path', async () => {
+    const [migration, api, service] = await Promise.all([
+        readFile(new URL('../../supabase/migrations/20261121042618_caissa_tournaments_expansion_weekly_daily_s001.sql', import.meta.url), 'utf8'),
+        readFile(new URL('../../api/online.js', import.meta.url), 'utf8'),
+        readFile(new URL('../../api/_lib/online-service.js', import.meta.url), 'utf8')
+    ]);
+    assert.match(migration, /revoke all on function public\.caissa_online_weekly_admin\(text,text,text,jsonb\) from public,anon,authenticated/u);
+    assert.match(migration, /grant execute on function public\.caissa_online_weekly_admin\(text,text,text,jsonb\) to service_role/u);
+    assert.match(api, /CAISSA_ONLINE_TOURNAMENT_ADMINS/u);
+    assert.match(service, /rpc\(db, 'caissa_online_weekly_admin'/u);
 });
