@@ -16,6 +16,10 @@ const hardeningUrl = new URL(
     '../../supabase/migrations/20261123031500_caissa_prime_time_deadline_race_hardening.sql',
     import.meta.url
 );
+const pgnConsistencyUrl = new URL(
+    '../../supabase/migrations/20261123040628_caissa_prime_time_deadline_pgn_consistency.sql',
+    import.meta.url
+);
 
 test('Prime Time schedule groups 27 weekly slots into 14 stable official series', () => {
     assert.deepEqual(assertPrimeTimePlan(), {
@@ -51,6 +55,7 @@ test('operator dry-run payloads are unrated, disabled, capped and exact-duration
 test('deadline migration is policy-scoped, server-authoritative and service-only', async () => {
     const sql = await readFile(migrationUrl, 'utf8');
     const hardening = await readFile(hardeningUrl, 'utf8');
+    const pgnConsistency = await readFile(pgnConsistencyUrl, 'utf8');
     assert.match(sql, /finishing_policy in \('finish_active_games','abort_at_deadline'\)/u);
     assert.match(sql, /termination='tournament_deadline'/u);
     assert.match(sql, /status='aborted',result=null/u);
@@ -71,6 +76,22 @@ test('deadline migration is policy-scoped, server-authoritative and service-only
     assert.match(hardening, /v_game\.completed_at is null or v_game\.completed_at>=tournament\.ends_at/u);
     assert.match(hardening, /revoke all on function caissa_online_private\.arena_guard_write/u);
     assert.match(hardening, /grant execute on function caissa_online_private\.arena_guard_write[\s\S]+to service_role/u);
+    assert.match(pgnConsistency, /create or replace function caissa_online_private\.normalize_deadline_aborted_pgn/u);
+    assert.match(pgnConsistency, /immutable[\s\S]+security invoker[\s\S]+set search_path=''/u);
+    assert.match(pgnConsistency, /pgn=caissa_online_private\.normalize_deadline_aborted_pgn\(pgn\)/u);
+    assert.match(pgnConsistency, /where game\.status='aborted'[\s\S]+game\.result is null[\s\S]+game\.termination='tournament_deadline'/u);
+    assert.match(pgnConsistency, /revoke all on function caissa_online_private\.normalize_deadline_aborted_pgn\(text\)[\s\S]+from public,anon,authenticated/u);
+    assert.match(pgnConsistency, /grant execute on function caissa_online_private\.normalize_deadline_aborted_pgn\(text\)[\s\S]+to service_role/u);
+    assert.doesNotMatch(pgnConsistency, /\b(?:delete|truncate)\b/iu);
+});
+
+test('deadline PGN correction is forward-only and idempotent', async () => {
+    const pgnConsistency = await readFile(pgnConsistencyUrl, 'utf8');
+    assert.match(pgnConsistency, /if pg_catalog\.btrim\(v_pgn\)='' then[\s\S]+\[Result "\*"\]/u);
+    assert.match(pgnConsistency, /regexp_replace\([\s\S]+\[Result "\*"\][\s\S]+1\/2-1\/2/u);
+    assert.match(pgnConsistency, /game\.pgn is distinct from[\s\S]+normalize_deadline_aborted_pgn\(game\.pgn\)/u);
+    assert.match(pgnConsistency, /create or replace function caissa_online_private\.arena_apply_deadline/u);
+    assert.doesNotMatch(pgnConsistency, /alter table|drop function/iu);
 });
 
 test('deadline policy excludes Daily and preserves standard Arena behavior', async () => {

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { readFile } from 'node:fs/promises';
 
 const tournamentId = '22222222-2222-4222-8222-222222222222';
 const gameId = '33333333-3333-4333-8333-333333333333';
@@ -271,7 +272,8 @@ test('strict deadline abort is announced, unscored, read-only and disables Next 
     const deadlineGame = {
         ...activeGame(), status: 'aborted', version: 2, result: null,
         termination: 'tournament_deadline', clock_started_at: null,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        pgn: '[Event "CAISSA Deadline QA"]\n[Site "CAISSA"]\n[Result "*"]\n\n1. e4 e5 2. Nf3 *'
     };
     const tournament = {
         ...tournamentFixture(), status: 'completed', myState: 'registered', participantCount: 4,
@@ -294,9 +296,19 @@ test('strict deadline abort is announced, unscored, read-only and disables Next 
     await expect(page.locator('#result-detail')).toHaveText('Game aborted · No points awarded');
     await expect(page.locator('#room-status')).toContainText('Arena time expired — Game aborted. No points awarded.');
     await expect(page.locator('#rematch-game')).toBeDisabled();
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#download-pgn').click();
+    const download = await downloadPromise;
+    const exportedPgn = await readFile(await download.path(), 'utf8');
+    expect(exportedPgn).toContain('[Event "CAISSA Deadline QA"]');
+    expect(exportedPgn).toContain('[Site "CAISSA"]');
+    expect(exportedPgn).toContain('[Result "*"]');
+    expect(exportedPgn).toContain('1. e4 e5 2. Nf3 *');
+    expect(exportedPgn).not.toMatch(/\[Result "(?:1-0|0-1|1\/2-1\/2)"\]/u);
     await page.locator('#tab-tournaments').click();
     await page.locator('#arena-context-tab-games').click();
     await expect(page.locator('#arena-games-list')).toContainText('Arena time expired · No points');
+    await expect(page.locator('#arena-standings-body')).toContainText('0');
     await expect(page.getByRole('button', { name: 'Next Arena Game' })).toHaveCount(0);
 });
 

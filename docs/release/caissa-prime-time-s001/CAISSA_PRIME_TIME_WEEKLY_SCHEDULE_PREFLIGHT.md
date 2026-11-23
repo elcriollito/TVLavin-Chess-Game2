@@ -142,22 +142,31 @@ strictly before the cutoff, and aborts every other unfinished game with
 Late terminal writes are recovered as audited aborts. The browser displays:
 `Arena time expired — Game aborted. No points awarded.`
 
+The forward PGN-consistency migration canonicalizes every such abort to a PGN
+`[Result "*"]` header and terminal `*` marker while preserving moves, unrelated
+tags, audit rows, zero scoring, and rating isolation. It intentionally leaves
+completed-before-deadline games unchanged.
+
 Cron remains a recovery mechanism. State, move, finish, scoring, and rating
 boundaries independently enforce the cutoff using server timestamps.
 
 ## Certification evidence
 
-- Both deadline migrations compiled transactionally and were applied only to
-  isolated Beta project `imtwlzicxaaqjyvrkdsv`.
+- The two original deadline migrations and the forward PGN-consistency
+  correction compiled transactionally and are installed only in isolated Beta
+  project `imtwlzicxaaqjyvrkdsv`. Migration history records the correction as
+  `20261123041435_caissa_prime_time_deadline_pgn_consistency`; Production
+  remains unchanged.
 - The Beta test transaction rolled back all fixtures and covered multiple
   simultaneous games, valid pre-deadline completion, pre-deadline flag fall,
   delayed post-deadline result recovery, Elo isolation, idempotent retry,
-  Next rejection, standard Arena isolation, and Daily isolation.
+  canonical PGN export, empty and malformed PGN input, Next rejection,
+  standard Arena isolation, and Daily isolation.
 - Beta has zero strict tournaments and zero Prime Time series after testing;
   its eight pre-existing future tournaments remain present.
 - `anon`, `authenticated`, and `public` have no execute permission on the new
   private helpers or replaced game mutation RPCs; `service_role` does.
-- 194 Online tests and 39 Arena browser tests passed. Browser coverage includes
+- 195 Online tests and 39 Arena browser tests passed. Browser coverage includes
   Chromium, Firefox, WebKit, and the existing mobile accessibility case.
 - The Supabase security advisor reported only the existing informational
   RPC-only/RLS-without-policy pattern; no new table exposure was introduced.

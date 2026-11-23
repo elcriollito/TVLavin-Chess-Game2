@@ -37,6 +37,7 @@ in timestamp order:
 1. `20261123023000_caissa_prime_time_deadline_s001.sql`
 2. `20261123024955_caissa_saturdays_operator_audit_hardening.sql`
 3. `20261123031500_caissa_prime_time_deadline_race_hardening.sql`
+4. `20261123040628_caissa_prime_time_deadline_pgn_consistency.sql`
 
 Immediately verify migration history, the `finishing_policy` constraint,
 strict-deadline helper definitions, RPC grants, scheduler ownership, and that
@@ -64,7 +65,10 @@ Verify, using controlled test records authorized for Production certification:
 
 - a result committed before `ends_at` remains scored;
 - an unfinished or late-settled game becomes `aborted` with
-  `termination_reason='tournament_deadline'` and `result=NULL`;
+  `termination='tournament_deadline'`, `result=NULL`, and a canonical PGN
+  `[Result "*"]` header and terminal `*` marker;
+- the PGN correction preserves moves and unrelated tags, is idempotent, and
+  does not modify a result completed strictly before the deadline;
 - neither player receives tournament points or an Elo update;
 - multiple simultaneous games, move/deadline races, reconnect, retry and Cron
   recovery are idempotent;
