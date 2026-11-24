@@ -7096,7 +7096,7 @@
     },
     {
       "path": "vercel.json",
-      "sha256": "4af2d7f411a6a30a6d5b93180d5994b4a4da2aedaf78915ee7d7f38a7b0bc1d3"
+      "sha256": "150f98979a043b4805e4a68a9e34348295334bcf4e10a91153106768a1462690"
     },
     {
       "path": "worker/stats-worker.js",
