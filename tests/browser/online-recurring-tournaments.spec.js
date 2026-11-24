@@ -4,6 +4,7 @@ const seriesId = '99999999-9999-4999-8999-999999999999';
 const harnesses = new WeakMap();
 
 test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-23T17:00:00-05:00'));
     const harness = {
         commands: [],
         state: {
@@ -75,8 +76,9 @@ test('existing series are read-only and organizer one-time creation fits mobile'
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/online/tournaments?directory=1');
     await page.locator('#directory-tab-schedule').click();
-    await expect(page.locator('#recurring-series-list')).toContainText('audited CAISSA operator workflow');
-    await expect(page.locator('#recurring-series-list button')).toHaveCount(0);
+    await expect(page.locator('#recurring-series-list')).toHaveCount(0);
+    await expect(page.locator('#arena-schedule-list')).toContainText('Owned Arena');
+    await expect(page.getByRole('button', { name: /Enable series|Pause series|Skip occurrence/u })).toHaveCount(0);
     await page.locator('#tournament-directory-create').click();
     await expect(page.locator('#arena-create-repeat')).toHaveCount(0);
     const geometry = await page.locator('#arena-create-form').evaluate(element => ({
@@ -97,11 +99,72 @@ test('participants see planned dates without receiving owner controls', async ({
         pool: 'blitz', baseMs: 180000, incrementMs: 2000
     });
     harnesses.get(page).state.recurring = { series: [], directory: [planned] };
+    harnesses.get(page).state.arena.tournaments = [{
+        id: '77777777-7777-4777-8777-777777777777',
+        seriesId, seriesOccurrenceKey: 'user-series:2026-12-11:primary',
+        name: 'Public Planned Arena', source: 'community', status: 'registration_open',
+        startsAt: '2026-12-12T00:00:00.000Z', endsAt: '2026-12-12T00:30:00.000Z',
+        registrationClosesAt: '2026-12-12T00:00:00.000Z', pool: 'blitz', baseMs: 180000,
+        incrementMs: 2000, durationMinutes: 30, capacity: 16, participantCount: 0,
+        rated: false, joined: false, myState: null
+    }];
     await page.goto('/online/tournaments?directory=1');
     await page.locator('#directory-tab-schedule').click();
     await expect(page.locator('#arena-schedule-list')).toContainText('Public Planned Arena');
     await expect(page.locator('#arena-schedule-list')).toContainText('Planned');
-    await expect(page.locator('#recurring-series-list')).toBeEmpty();
+    await expect(page.locator('#arena-schedule-list .arena-card')).toHaveCount(2);
+    await expect(page.locator('#arena-schedule-list').getByRole('button', { name: 'Join', exact: true })).toHaveCount(1);
+    await expect(page.locator('#recurring-series-list')).toHaveCount(0);
+});
+
+test('Current follows the local day while Schedule starts tomorrow and My preserves history', async ({ page }) => {
+    const harness = harnesses.get(page);
+    const base = {
+        format: 'arena', pool: 'blitz', baseMs: 180000, incrementMs: 2000,
+        durationMinutes: 30, capacity: 16, participantCount: 0, rated: false,
+        source: 'community', standings: [], games: []
+    };
+    harness.state.arena.tournaments = [
+        { ...base, id: '11111111-1111-4111-8111-111111111111', name: 'Today Scheduled',
+            status: 'scheduled', startsAt: '2026-11-23T23:00:00.000Z', endsAt: '2026-11-23T23:30:00.000Z' },
+        { ...base, id: '22222222-2222-4222-8222-222222222222', name: 'Today Active',
+            status: 'active', startsAt: '2026-11-23T21:00:00.000Z', endsAt: '2026-11-23T23:30:00.000Z',
+            registrationClosesAt: '2026-11-23T23:30:00.000Z' },
+        { ...base, id: '33333333-3333-4333-8333-333333333333', name: 'Tomorrow Open',
+            status: 'registration_open', startsAt: '2026-11-24T22:00:00.000Z', endsAt: '2026-11-24T22:30:00.000Z',
+            registrationClosesAt: '2026-11-24T22:00:00.000Z' },
+        { ...base, id: '44444444-4444-4444-8444-444444444444', name: 'Cancelled History',
+            status: 'cancelled', startsAt: '2026-11-23T18:00:00.000Z', endsAt: '2026-11-23T18:30:00.000Z',
+            joined: true, myState: 'registered' },
+        { ...base, id: '55555555-5555-4555-8555-555555555555', name: 'Completed History',
+            status: 'completed', startsAt: '2026-11-22T18:00:00.000Z', endsAt: '2026-11-22T18:30:00.000Z',
+            organizedByMe: true }
+    ];
+
+    await page.goto('/online/tournaments?directory=1');
+    await expect(page.locator('#directory-count-current')).toHaveText('2');
+    await expect(page.locator('#arena-current-list')).toContainText('Today Scheduled');
+    await expect(page.locator('#arena-current-list')).toContainText('Today Active');
+    await expect(page.locator('#arena-current-list')).not.toContainText('Tomorrow Open');
+    await expect(page.locator('#arena-current-list')).not.toContainText('Cancelled History');
+
+    await page.locator('#directory-tab-schedule').click();
+    await expect(page.locator('#directory-count-schedule')).toHaveText('1');
+    await expect(page.locator('#arena-schedule-list')).toContainText('Tomorrow Open');
+    await expect(page.locator('#arena-schedule-list').getByRole('button', { name: 'Join', exact: true })).toBeEnabled();
+
+    await page.locator('#directory-tab-mine').click();
+    await expect(page.locator('#directory-count-mine')).toHaveText('2');
+    await expect(page.locator('#arena-my-list')).toContainText('Cancelled History');
+    await expect(page.locator('#arena-my-list')).toContainText('Completed History');
+
+    await page.clock.setFixedTime(new Date('2026-11-24T00:01:00-05:00'));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect(page.locator('#directory-count-current')).toHaveText('1');
+    await expect(page.locator('#directory-count-schedule')).toHaveText('0');
+    await page.locator('#directory-tab-current').click();
+    await expect(page.locator('#arena-current-list')).toContainText('Tomorrow Open');
+    await expect(page.locator('#arena-current-list')).not.toContainText('Today Active');
 });
 
 test('schedule is chronological and authoritative identity persists across views', async ({ page }) => {
@@ -120,14 +183,14 @@ test('schedule is chronological and authoritative identity persists across views
         current: official,
         tournaments: [official, {
             id: earlyId, name: 'OFFICIAL CAISSA LOOKALIKE', source: 'community', seriesKind: 'user',
-            status: 'scheduled', startsAt: '2026-11-22T16:00:00.000Z', endsAt: '2026-11-22T16:30:00.000Z',
-            registrationClosesAt: '2026-11-22T16:00:00.000Z', pool: 'bullet', baseMs: 120000,
+            status: 'scheduled', startsAt: '2026-11-24T16:00:00.000Z', endsAt: '2026-11-24T16:30:00.000Z',
+            registrationClosesAt: '2026-11-24T16:00:00.000Z', pool: 'bullet', baseMs: 120000,
             incrementMs: 1000, durationMinutes: 30, capacity: 16, participantCount: 0, rated: false
         }]
     };
     harnesses.get(page).state.daily.tournaments = [{
         id: dailyId, name: 'Community Daily', source: 'community', status: 'scheduled',
-        startsAt: '2026-11-22T18:00:00.000Z', registrationClosesAt: '2026-11-22T18:00:00.000Z',
+        startsAt: '2026-11-24T18:00:00.000Z', registrationClosesAt: '2026-11-24T18:00:00.000Z',
         daysPerMove: 7, groupSize: 4, capacity: 16, participantCount: 0, rated: false
     }];
     harnesses.get(page).state.recurring = { series: [], directory: [seriesFixture({
@@ -147,10 +210,12 @@ test('schedule is chronological and authoritative identity persists across views
     expect(cardTexts[1]).toContain('Community Daily');
     expect(cardTexts[2]).toContain('Morning Arena');
     expect(cardTexts.at(-1)).toContain('Public Planned Arena');
-    await expect(page.locator('#arena-schedule-list')).toContainText('Scheduled tournament records');
-    await expect(page.locator('#arena-schedule-list')).toContainText('Planned from recurrence rules');
+    await expect(page.locator('#arena-schedule-list')).not.toContainText('Scheduled tournament records');
+    await expect(page.locator('#arena-schedule-list')).not.toContainText('Planned from recurrence rules');
     await expect(page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'Morning Arena' }))
         .toHaveClass(/arena-card--official/u);
+    await expect(page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'Morning Arena' }))
+        .toContainText('Official series · Saturdays of Chess');
     await expect(page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'OFFICIAL CAISSA LOOKALIKE' }))
         .toContainText('COMMUNITY TOURNAMENT');
 
@@ -161,6 +226,7 @@ test('schedule is chronological and authoritative identity persists across views
     await page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'Morning Arena' })
         .getByRole('button', { name: 'Details' }).click();
     await expect(page.locator('#arena-detail-identity')).toContainText('OFFICIAL CAISSA');
+    await expect(page.locator('#arena-information-list')).toContainText('Official series · Saturdays of Chess');
     await page.locator('#arena-detail-back').click();
     await page.locator('#directory-tab-mine').click();
     await expect(page.locator('#arena-my-list')).toContainText('OFFICIAL CAISSA');

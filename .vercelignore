@@ -1215,6 +1215,7 @@
 !/js/online/online-protocol.js
 !/js/online/online-realtime.js
 !/js/online/online-tournaments.js
+!/js/online/tournament-directory.js
 !/js/opening-book-manager.js
 !/js/opening-database-i18n.js
 !/js/opening-database.js
