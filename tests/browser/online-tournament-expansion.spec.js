@@ -6,6 +6,7 @@ const weeklyId = '88888888-8888-4888-8888-888888888888';
 const harnesses = new WeakMap();
 
 test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-23T17:00:00-05:00'));
     const harness = {
         commands: [],
         capabilities: {
@@ -65,31 +66,30 @@ test.beforeEach(async ({ page }) => {
 test('organizer sees the official weekly calendar without public administration controls', async ({ page }, testInfo) => {
     harnesses.get(page).state.permissions.tournamentOrganizer = true;
     await page.goto('/online/tournaments?directory=1');
-    await expect(page.locator('#weekly-featured')).toBeVisible();
-    await expect(page.locator('#weekly-featured')).toContainText('SATURDAYS OF CHESS');
-    await expect(page.locator('#weekly-featured')).toContainText('Morning Arena');
     await page.locator('#directory-tab-schedule').click();
+    await expect(page.locator('#weekly-featured')).toHaveCount(0);
+    const saturdayCard = page.locator('#arena-schedule-list .arena-card').filter({ hasText: 'Morning Arena' });
+    await expect(saturdayCard).toContainText('Official series · Saturdays of Chess');
     const officialIdentity = page.locator('.tournament-identity--official');
     await expect(officialIdentity).toContainText('OFFICIAL CAISSA');
     await expect(officialIdentity).toHaveAttribute('aria-label', 'OFFICIAL CAISSA');
-    await page.locator('#directory-tab-current').click();
     await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
     await expect(page.locator('#arena-manage-series')).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Enable series|Pause series|Refresh operations|Skip occurrence|Cancel selected occurrence/u })).toHaveCount(0);
     expect(harnesses.get(page).commands.some(command => command.eventType.startsWith('weekly.'))).toBe(false);
-    if (process.env.CAISSA_CAPTURE_HFX_006A === '1') {
-        await page.screenshot({ path: testInfo.outputPath('hfx-006a-organizer-directory.png') });
+    if (process.env.CAISSA_CAPTURE_HFX_008 === '1') {
+        await page.screenshot({ path: testInfo.outputPath('hfx-008-schedule-desktop.png') });
     }
     await page.setViewportSize({ width: 390, height: 844 });
-    const overflow = await page.locator('#weekly-featured').evaluate(element => ({
-        banner: element.scrollWidth - element.clientWidth,
+    const overflow = await saturdayCard.evaluate(element => ({
+        card: element.scrollWidth - element.clientWidth,
         dialog: element.closest('dialog').scrollWidth - element.closest('dialog').clientWidth
     }));
-    expect(overflow.banner).toBeLessThanOrEqual(1);
+    expect(overflow.card).toBeLessThanOrEqual(1);
     expect(overflow.dialog).toBeLessThanOrEqual(1);
     await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
-    if (process.env.CAISSA_CAPTURE_HFX_006A === '1') {
-        await page.screenshot({ path: testInfo.outputPath('hfx-006a-organizer-directory-mobile.png') });
+    if (process.env.CAISSA_CAPTURE_HFX_008 === '1') {
+        await page.screenshot({ path: testInfo.outputPath('hfx-008-schedule-mobile.png') });
     }
 });
 
@@ -273,9 +273,10 @@ test('2+1 is selectable for New Game and tournament creation stays within a phon
 
 test('ordinary member joins Daily, sees persistence, and opens the correspondence board', async ({ page }) => {
     await page.goto('/online/tournaments?directory=1');
+    await page.locator('#directory-tab-schedule').click();
     await expect(page.locator('.arena-card')).toHaveCount(2);
-    await expect(page.locator('#weekly-featured')).toBeVisible();
-    await expect(page.locator('#weekly-featured')).toContainText('SATURDAYS OF CHESS');
+    await expect(page.locator('#weekly-featured')).toHaveCount(0);
+    await expect(page.locator('#arena-schedule-list')).toContainText('Official series · Saturdays of Chess');
     await expect(page.locator('#tournament-directory-create')).toBeVisible();
     await expect(page.locator('#arena-create-repeat')).toHaveCount(0);
     await expect(page.locator('#weekly-admin-controls')).toHaveCount(0);
@@ -297,6 +298,7 @@ test('ordinary member joins Daily, sees persistence, and opens the correspondenc
 
     await page.reload();
     await page.locator('#arena-directory').click();
+    await page.locator('#directory-tab-schedule').click();
     const persisted = page.locator('.arena-card').filter({ hasText: 'Daily Correspondence Test' });
     await expect(persisted.getByRole('button', { name: 'Registered' })).toBeDisabled();
 });
@@ -304,8 +306,8 @@ test('ordinary member joins Daily, sees persistence, and opens the correspondenc
 function dailyTournament() {
     return {
         id: dailyId, name: 'Daily Correspondence Test', status: 'registration_open', rated: false,
-        startsAt: new Date(Date.now() + 86_400_000).toISOString(),
-        registrationClosesAt: new Date(Date.now() + 43_200_000).toISOString(),
+        startsAt: '2026-11-24T23:00:00.000Z',
+        registrationClosesAt: '2026-11-24T23:00:00.000Z',
         daysPerMove: 7, groupSize: 4, capacity: 16, participantCount: 0,
         myState: null, playCategory: 'daily'
     };
@@ -326,7 +328,7 @@ function dailyGame() {
     return {
         id: gameId, tournament_id: dailyId, status: 'active', version: 1, rated: false,
         pool: 'daily', play_category: 'daily', days_per_move: 7,
-        move_deadline_at: new Date(Date.now() + (7 * 86_400_000)).toISOString(),
+        move_deadline_at: '2026-11-30T22:00:00.000Z',
         white_clerk_id: 'daily_player', black_clerk_id: 'daily_opponent',
         white_display_name: 'Daily Player', black_display_name: 'Opponent',
         white_rating_before: 1500, black_rating_before: 1500,

@@ -9,6 +9,12 @@ import {
     createOnlineResyncQueue,
     createOnlineTournamentRealtime
 } from './online-realtime.js';
+import {
+    classifyTournamentDirectoryRows,
+    compareTournamentStarts,
+    dedupeTournamentDirectoryRows,
+    localCalendarDayKey
+} from './tournament-directory.js';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const PAGE_PARAMS = new URLSearchParams(location.search);
@@ -79,6 +85,8 @@ const model = {
     tournamentCreateMode: null, communityTournamentCreator: false,
     tournamentOrganizer: false, recurringTournamentCreator: false,
     editingRecurringSeriesId: null,
+    directoryDayKey: null, directoryTimeZone: null,
+    directoryDateTimer: null, directoryDateMonitor: null,
     tournamentCreateDrafts: createDefaultTournamentDrafts()
 };
 const api = createOnlineApi({
@@ -101,9 +109,13 @@ const stateSyncQueue = createOnlineResyncQueue(fetchCanonicalState);
 window.addEventListener('beforeunload', dispose, { once: true });
 window.addEventListener('caissa-auth-change', onAuthEvent);
 document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && model.auth?.isSignedIn) void resumeFromBackground();
+    if (!document.hidden) {
+        refreshDirectoryDateClassification();
+        if (model.auth?.isSignedIn) void resumeFromBackground();
+    }
 });
 bindControls();
+initializeDirectoryDateRefresh();
 restoreSelectedControlFromLocation();
 selectTab('new');
 selectGamesView('daily');
@@ -186,7 +198,6 @@ function configureCapabilities(capabilities) {
     ratedOption.disabled = capabilities.tournamentRated !== true;
     if (ratedOption.disabled) $('arena-create-rating').value = 'unrated';
     $('arena-create-capacity').max = capabilities.arena100 === true ? '100' : '64';
-    $('weekly-featured').hidden = capabilities.weeklyArenas !== true;
     syncTournamentCreationAccess();
     configureTournamentCreateType();
 }
@@ -506,7 +517,12 @@ function renderArenaDirectory() {
     const controlFilter = ui.arenaControlFilter.value;
     const ratingFilter = ui.arenaRatingFilter?.value || 'all';
     const identityFilter = ui.arenaIdentityFilter?.value || 'all';
-    const liveRows = (model.arena.tournaments || []).map(tournament => ({ ...tournament, playCategory: 'live' }));
+    const recurringSeries = recurringDirectorySeries();
+    const seriesIndex = createRecurringSeriesIndex(recurringSeries);
+    const liveRows = (model.arena.tournaments || []).map(tournament => decorateTournamentSeries({
+        ...tournament,
+        playCategory: 'live'
+    }, seriesIndex));
     const dailyRows = (model.daily?.tournaments || []).map(tournament => ({
         ...tournament,
         playCategory: 'daily',
@@ -514,11 +530,12 @@ function renderArenaDirectory() {
         pool: 'daily',
         joined: !!tournament.myState && tournament.myState !== 'withdrawn',
         lateJoin: false
-    }));
-    const plannedRows = (model.recurring?.directory || model.recurring?.series || []).flatMap(series => (series.upcoming || [])
-        .filter(occurrence => !occurrence.tournamentId)
+    })).map(tournament => decorateTournamentSeries(tournament, seriesIndex));
+    const plannedRows = recurringSeries.flatMap(series => (series.upcoming || [])
         .map(occurrence => ({
             id: occurrence.occurrenceKey,
+            occurrenceKey: occurrence.occurrenceKey,
+            tournamentId: occurrence.tournamentId || null,
             name: occurrence.name || series.title,
             status: occurrence.state || 'planned',
             startsAt: occurrence.startsAt,
@@ -532,9 +549,11 @@ function renderArenaDirectory() {
             planned: true,
             seriesId: series.id,
             seriesKind: series.seriesKind,
+            seriesSlug: series.slug || null,
+            seriesTitle: series.title || null,
             source: occurrence.source || series.source
         })));
-    const tournaments = [...liveRows, ...dailyRows, ...plannedRows].filter(tournament => {
+    const tournaments = dedupeTournamentDirectoryRows([...liveRows, ...dailyRows], plannedRows).filter(tournament => {
         const category = arenaStatusCategory(tournament.status);
         const identity = tournamentIdentity(tournament.source)?.kind;
         return (!query || String(tournament.name || '').toLocaleLowerCase().includes(query))
@@ -544,17 +563,13 @@ function renderArenaDirectory() {
             && (ratingFilter === 'all' || (ratingFilter === 'rated') === (tournament.rated === true))
             && (identityFilter === 'all' || identityFilter === identity);
     }).sort(compareTournamentStarts);
-    const current = tournaments.filter(item => ['registration_open', 'active', 'finishing'].includes(item.status));
-    const schedule = tournaments.filter(item => ['draft', 'scheduled', 'planned', 'skipped'].includes(item.status));
-    const mine = tournaments.filter(item => item.joined || item.organizedByMe || (item.myState && item.myState !== 'withdrawn'));
-    renderArenaList(ui.arenaCurrentList, current, 'No current tournaments', 'Live Arenas and open registrations will appear here.');
+    const { current, schedule, mine } = classifyTournamentDirectoryRows(tournaments);
+    renderArenaList(ui.arenaCurrentList, current, 'No tournaments today', 'Today\'s scheduled and live tournaments will appear here.');
     renderArenaSchedule(ui.arenaScheduleList, schedule);
     renderArenaList(ui.arenaMyList, mine, 'No tournaments yet', 'Join or create an Arena to keep it here.');
     $('directory-count-current').textContent = String(current.length);
     $('directory-count-schedule').textContent = String(schedule.length);
     $('directory-count-mine').textContent = String(mine.length);
-    renderWeeklyFeatured(tournaments.filter(item => item.seriesSlug === 'saturdays-of-chess-s001'));
-    renderRecurringSeriesManager(model.recurring?.series || []);
 }
 
 function renderArenaList(list, tournaments, title, copy) {
@@ -572,19 +587,7 @@ function renderArenaSchedule(list, tournaments) {
         appendArenaEmpty(list, 'No scheduled tournaments', 'Upcoming events and recurrence plans will appear here in your local time.');
         return;
     }
-    const materialized = tournaments.filter(tournament => !tournament.planned);
-    const planned = tournaments.filter(tournament => tournament.planned);
-    for (const section of [
-        { title: 'Scheduled tournament records', rows: materialized },
-        { title: 'Planned from recurrence rules', rows: planned }
-    ]) {
-        if (!section.rows.length) continue;
-        const heading = document.createElement('h4');
-        heading.className = 'arena-schedule-section';
-        heading.textContent = section.title;
-        list.append(heading);
-        renderArenaCards(list, section.rows, { groupByDate: true });
-    }
+    renderArenaCards(list, tournaments, { groupByDate: true });
 }
 
 function appendArenaEmpty(list, title, copy) {
@@ -601,7 +604,7 @@ function renderArenaCards(list, tournaments, options = {}) {
     tournaments.forEach(tournament => {
         if (options.groupByDate) {
             const starts = new Date(tournament.startsAt);
-            const dateKey = Number.isNaN(starts.valueOf()) ? 'unknown' : starts.toLocaleDateString('en-CA');
+            const dateKey = localCalendarDayKey(starts) || 'unknown';
             if (dateKey !== lastDate) {
                 const dateHeading = document.createElement('h5');
                 dateHeading.className = 'arena-date-group';
@@ -620,6 +623,11 @@ function renderArenaCards(list, tournaments, options = {}) {
         status.className = `arena-status arena-status--${arenaStatusCategory(tournament.status)}`;
         status.textContent = arenaStatusLabel(tournament.status);
         const name = document.createElement('h4'); name.textContent = tournament.name;
+        const seriesDescription = tournamentSeriesDescription(tournament);
+        const series = document.createElement('p');
+        series.className = 'arena-card__series';
+        series.textContent = seriesDescription || '';
+        series.hidden = !seriesDescription;
         const facts = document.createElement('p');
         const starts = new Date(tournament.startsAt);
         const localStart = Number.isNaN(starts.valueOf()) ? '' : ` · ${starts.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`;
@@ -629,7 +637,7 @@ function renderArenaCards(list, tournaments, options = {}) {
             ? `${arenaControl(tournament)} · ${duration} · Tournament record not created yet${localStart}`
             : `${arenaControl(tournament)} · ${duration} · ${tournament.participantCount}/${tournament.capacity || '∞'} players${localStart}`;
         if (identityBadge) main.append(identityBadge);
-        main.append(status, name, facts);
+        main.append(status, name, series, facts);
         const actions = document.createElement('div'); actions.className = 'arena-card__actions';
         if (tournament.planned) {
             const marker = document.createElement('button'); marker.type = 'button'; marker.disabled = true;
@@ -670,13 +678,86 @@ function renderArenaCards(list, tournaments, options = {}) {
     });
 }
 
-function compareTournamentStarts(left, right) {
-    const leftTime = Date.parse(left?.startsAt);
-    const rightTime = Date.parse(right?.startsAt);
-    const compared = (Number.isFinite(leftTime) ? leftTime : Number.MAX_SAFE_INTEGER)
-        - (Number.isFinite(rightTime) ? rightTime : Number.MAX_SAFE_INTEGER);
-    return compared || String(left?.name || '').localeCompare(String(right?.name || ''))
-        || String(left?.id || '').localeCompare(String(right?.id || ''));
+function recurringDirectorySeries() {
+    const directory = model.recurring?.directory || [];
+    const series = model.recurring?.series || [];
+    const seen = new Set();
+    return [...directory, ...series].filter(item => {
+        const key = String(item?.id || item?.slug || '');
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+function createRecurringSeriesIndex(seriesRows) {
+    const byId = new Map();
+    const bySlug = new Map();
+    for (const series of seriesRows) {
+        if (series?.id) byId.set(String(series.id), series);
+        if (series?.slug) bySlug.set(String(series.slug), series);
+    }
+    return { byId, bySlug };
+}
+
+function decorateTournamentSeries(tournament, index = createRecurringSeriesIndex(recurringDirectorySeries())) {
+    if (!tournament || typeof tournament !== 'object') return tournament;
+    const series = index.byId.get(String(tournament.seriesId || ''))
+        || index.bySlug.get(String(tournament.seriesSlug || ''));
+    if (!series) return tournament.seriesSlug === 'saturdays-of-chess-s001'
+        ? { ...tournament, seriesTitle: 'Saturdays of Chess' }
+        : tournament;
+    return {
+        ...tournament,
+        seriesId: tournament.seriesId || series.id || null,
+        seriesSlug: tournament.seriesSlug || series.slug || null,
+        seriesTitle: series.title || tournament.seriesTitle || null
+    };
+}
+
+function tournamentSeriesDescription(tournament) {
+    if (tournament?.source !== 'official') return null;
+    if (tournament.seriesTitle) return `Official series · ${tournament.seriesTitle}`;
+    if (tournament.seriesId || tournament.seriesSlug) return 'Official series';
+    return null;
+}
+
+function viewerTimeZone() {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || 'local';
+    } catch {
+        return 'local';
+    }
+}
+
+function initializeDirectoryDateRefresh() {
+    model.directoryDayKey = localCalendarDayKey();
+    model.directoryTimeZone = viewerTimeZone();
+    scheduleNextDirectoryMidnight();
+    model.directoryDateMonitor = setInterval(refreshDirectoryDateClassification, 60_000);
+}
+
+function refreshDirectoryDateClassification(force = false) {
+    if (model.disposed) return;
+    const dayKey = localCalendarDayKey();
+    const timeZone = viewerTimeZone();
+    const changed = force || dayKey !== model.directoryDayKey || timeZone !== model.directoryTimeZone;
+    model.directoryDayKey = dayKey;
+    model.directoryTimeZone = timeZone;
+    if (changed) {
+        scheduleNextDirectoryMidnight();
+        renderArenaDirectory();
+    }
+}
+
+function scheduleNextDirectoryMidnight() {
+    clearTimeout(model.directoryDateTimer);
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 50);
+    model.directoryDateTimer = setTimeout(() => {
+        model.directoryDateTimer = null;
+        refreshDirectoryDateClassification(true);
+    }, Math.max(1_000, next.valueOf() - now.valueOf()));
 }
 
 function tournamentIdentity(source) {
@@ -789,6 +870,7 @@ async function openArenaDetails(tournamentId, options = {}) {
 
 function renderArenaDetail(tournament) {
     if (!tournament) return;
+    tournament = decorateTournamentSeries(tournament);
     ensureTournamentDetailTools();
     model.selectedTournamentId = tournament.id;
     document.querySelectorAll('[data-directory-panel]').forEach(panel => { panel.hidden = true; });
@@ -862,6 +944,7 @@ function renderTournamentInformation(tournament, daily) {
     add('Organizer', tournament.organizerDisplayName);
     add('Identity', tournament.source === 'official' ? 'OFFICIAL CAISSA'
         : tournament.source === 'community' ? 'Community tournament' : null);
+    add('Series', tournamentSeriesDescription(tournament));
     add('Rating', tournament.rated ? 'Rated' : 'Unrated');
     add('Format', daily ? 'Daily correspondence · Round robin' : 'Live Arena · Standard chess');
     if (daily) {
@@ -1465,40 +1548,6 @@ function updateTournamentCreateRules() {
     }));
 }
 
-function renderWeeklyFeatured(tournaments) {
-    if ($('weekly-featured').hidden) return;
-    $('weekly-featured-list').replaceChildren(...tournaments.slice(0, 4).map(tournament => {
-        const row = document.createElement('div');
-        const title = document.createElement('strong'); title.textContent = tournament.name;
-        const time = document.createElement('span');
-        time.textContent = `${new Date(tournament.startsAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} · ${arenaStatusLabel(tournament.status)}`;
-        row.append(title, time); return row;
-    }));
-}
-
-function renderRecurringSeriesManager(seriesRows) {
-    const list = $('recurring-series-list');
-    if (!list) return;
-    list.replaceChildren(...seriesRows.map(series => {
-        const card = document.createElement('article');
-        const identity = tournamentIdentity(series.source);
-        card.className = `recurring-series-card${identity ? ` recurring-series-card--${identity.kind}` : ''}${series.enabled ? '' : ' recurring-series-card--paused'}`;
-        const main = document.createElement('div');
-        const identityBadge = createTournamentIdentityBadge(series.source);
-        const title = document.createElement('h4'); title.textContent = series.title;
-        const summary = document.createElement('p'); summary.textContent = recurringSeriesSummary(series);
-        const history = document.createElement('p');
-        history.textContent = `${series.generatedCount || 0} generated · ${(series.past || []).length} past results · ${series.enabled ? 'Enabled' : 'Paused'}`;
-        if (identityBadge) main.append(identityBadge);
-        main.append(title, summary, history);
-        const note = document.createElement('p');
-        note.textContent = 'Series administration is available only through the audited CAISSA operator workflow.';
-        main.append(note);
-        card.append(main);
-        return card;
-    }));
-}
-
 async function manageRecurringSeries(action, payload) {
     if (model.arenaBusy) return;
     model.arenaBusy = true;
@@ -1515,15 +1564,6 @@ async function manageRecurringSeries(action, payload) {
         model.arenaBusy = false;
         renderArenaDirectory();
     }
-}
-
-function recurringSeriesSummary(series) {
-    const every = `Every ${series.interval === 1 ? '' : `${series.interval} `}${series.frequencyUnit === 'daily'
-        ? series.interval === 1 ? 'day' : 'days' : series.interval === 1 ? 'week' : 'weeks'}`;
-    const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const days = series.frequencyUnit === 'weekly'
-        ? ` on ${(series.weekdays || []).map(day => names[day]).join(', ')}` : '';
-    return `${every}${days} at ${series.localTime} (${series.timeZone}). Create ${series.leadDays} ${series.leadDays === 1 ? 'day' : 'days'} before.`;
 }
 
 async function manageArenaTournament(action) {
@@ -2831,6 +2871,8 @@ function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, char
 async function dispose() {
     model.disposed = true;
     clearTimeout(model.challengeExpiryTimer);
+    clearTimeout(model.directoryDateTimer);
+    clearInterval(model.directoryDateMonitor);
     stateSyncQueue.close();
     window.removeEventListener('caissa-auth-change', onAuthEvent);
     stopPolling();
