@@ -1,10 +1,5 @@
 {
   "outputDirectory": ".",
-  "git": {
-    "deploymentEnabled": {
-      "feature/caissa-today-schedule-hfx-008": false
-    }
-  },
   "functions": {
     "api/insights/**/*.js": { "maxDuration": 30, "includeFiles": "index.html" },
     "api/stripe/webhook.js": {
